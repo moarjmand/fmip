@@ -1748,7 +1748,7 @@
   "predictions.section.signIn": "Sign in",
   "predictions.section.none": "You did not predict this match before kick-off.",
   "predictions.section.verify": "Verify your e-mail address before predicting; the link is in your inbox.",
-  "predictions.section.note": "Community distribution and settlement arrive with the predictions release (E5); your prediction is never blended with the model forecast (rule 6).",
+  "predictions.section.note": "Your pick counts towards the community picks only; it is never blended with the statistical model or the founder’s analysis.",
   "predictions.section.final": "Final version {version} of {total}, submitted {time} UTC. Settlement arrives with T-052.",
   "predictions.form.call": "Your call",
   "predictions.form.score": "Exact score (optional)",
@@ -2329,5 +2329,34 @@
   "shared.og.matchAlt": "The match, its score or kick-off, and the model’s forecast",
   "shared.og.competitionAlt": "The top of the competition’s table this season",
   "shared.og.memberAlt": "A member of FMIP, their rating and latest settled predictions",
-  "shared.action.refused": "You may not do this. {reason}"
+  "shared.action.refused": "You may not do this. {reason}",
+  "freshness.checked": "Last checked {ago}",
+  "freshness.behind": "may be behind",
+  "forecastBar.label": "Model forecast: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
+  "forecastBar.computed": "computed {time}",
+  "forecastBar.none": "No model forecast for this match yet.",
+  "forecastBar.noneBefore": "The model had no forecast for this match before kick-off.",
+  "forecastBar.unavailable": "The model gave no probabilities in version {version}. {reason}",
+  "forecastBar.unreachable": "The model forecast could not be loaded, so none is shown.",
+  "lanes.model.title": "Statistical model",
+  "lanes.model.origin": "Computed by FMIP’s statistical model from match data. Not a person’s opinion.",
+  "lanes.founder.title": "Founder’s analysis",
+  "lanes.community.title": "Community picks",
+  "lanes.community.picked": {
+    "one": "{count} member has picked",
+    "other": "{count} members have picked"
+  },
+  "lanes.community.hidden": "The spread opens after you lock your own pick, so it cannot sway it.",
+  "lanes.note": "Three separate products. Each has its own source, method and record; none is blended with or relabelled as another.",
+  "pick.make": "Make your pick",
+  "pick.group": "Your pick: {home} v {away}",
+  "pick.split": "Community split · revealed after your pick",
+  "pick.picks": {
+    "one": "{count} pick · locks at kick-off",
+    "other": "{count} picks · locks at kick-off"
+  },
+  "pick.splitLabel": "Community picks: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
+  "nextMatch.title": "Next match",
+  "nextMatch.tehranTime": "Tehran time",
+  "nextMatch.zoneTime": "{zone} time"
 }

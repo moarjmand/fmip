@@ -17,13 +17,17 @@ import {
   versionChanges,
 } from '@/lib/forecast';
 import { attribute } from '@/lib/forecast-diff';
+import { cardForecast } from '@/lib/score-card-products';
 import { formatKickoff } from '@/lib/scores';
 import { formatFixed, formatPercent } from '@/lib/words';
+import { forecastBarWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
+import { ForecastBar } from '@/components/forecast-bar';
+import { ModelLane } from '@/components/product-lanes';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Score, pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
-import { Notice } from '@/components/ui';
+import { CoverageBadge, Notice } from '@/components/ui';
 
 /**
  * The model forecast on the match centre (T-065, blueprint 6.1–6.4): the
@@ -60,30 +64,73 @@ export function ForecastPanel({
 
   if (forecasts === null) {
     return (
-      <section className="flex flex-col gap-2" data-testid="forecast" data-coverage="unreachable">
-        <h2 className="text-lg font-semibold">
-          <Translated locale={locale} message="forecast.title" />
-        </h2>
-        <Notice tone="danger">
-          <Translated locale={locale} message="forecast.unreachable" />
-        </Notice>
-      </section>
+      <ModelLane locale={locale}>
+        <section className="flex flex-col gap-2" data-testid="forecast" data-coverage="unreachable">
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="forecast.title" />
+          </h2>
+          <Notice tone="danger">
+            <Translated locale={locale} message="forecast.unreachable" />
+          </Notice>
+        </section>
+      </ModelLane>
     );
   }
 
   const latest = forecasts.latest;
+  return (
+    // Its own lane, colour and name (T-1388, rule 6): the model's, and only the model's.
+    <ModelLane locale={locale}>
+      <ForecastSection
+        forecasts={forecasts}
+        evaluations={evaluations}
+        latest={latest}
+        home={home}
+        away={away}
+        timeZone={timeZone}
+        stamp={stamp}
+        locale={l}
+      />
+    </ModelLane>
+  );
+}
+
+function ForecastSection({
+  forecasts,
+  evaluations,
+  latest,
+  home,
+  away,
+  timeZone,
+  stamp,
+  locale: l,
+}: {
+  forecasts: ForecastVersionsResponse;
+  evaluations: FixtureEvaluationsResponse | null;
+  latest: ForecastVersionsResponse['latest'];
+  home: string;
+  away: string;
+  timeZone: string;
+  stamp: (iso: string) => React.ReactNode;
+  locale: Locale;
+}) {
+  const locale: string = l;
   return (
     <section
       className="flex flex-col gap-3"
       data-testid="forecast"
       data-coverage={forecasts.coverage}
     >
-      <h2 className="text-lg font-semibold">
+      <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-semibold">
         <Translated locale={locale} message="forecast.title" />
-        <span className="ms-2 text-xs font-normal uppercase text-muted">
-          <Translated locale={locale} message={COVERAGE_KEY[forecasts.coverage]} />
-        </span>
+        <CoverageBadge
+          state={forecasts.coverage}
+          label={<Translated locale={locale} message={COVERAGE_KEY[forecasts.coverage]} />}
+        />
       </h2>
+      <p className="text-xs text-muted" data-testid="model-origin">
+        <Translated locale={locale} message="lanes.model.origin" />
+      </p>
 
       {latest === null ? (
         <p className="text-sm text-muted" data-testid="forecast-none">
@@ -110,7 +157,14 @@ export function ForecastPanel({
           </p>
         </div>
       ) : (
-        <Latest version={latest} home={home} away={away} stamp={stamp} locale={l} />
+        <Latest
+          version={latest}
+          home={home}
+          away={away}
+          stamp={stamp}
+          timeZone={timeZone}
+          locale={l}
+        />
       )}
 
       {forecasts.versions.length > 1 && (
@@ -182,24 +236,31 @@ function Latest({
   home,
   away,
   stamp,
+  timeZone,
   locale,
 }: {
   version: NonNullable<ForecastVersionsResponse['latest']>;
   home: string;
   away: string;
   stamp: (iso: string) => React.ReactNode;
+  timeZone: string;
   locale: Locale;
 }) {
   const p = version.probabilities;
   if (p === null) return null;
-  const pct = percentages(p);
   const prior = priorNote(version, locale);
   return (
     <div className="flex flex-col gap-2" data-testid="forecast-latest">
-      <div className="grid grid-cols-3 gap-2 text-center" data-testid="probabilities">
-        <Outcome label={home} value={pct.home} locale={locale} />
-        <Outcome label={t(locale, 'forecast.draw')} value={pct.draw} locale={locale} />
-        <Outcome label={away} value={pct.away} locale={locale} />
+      {/* The bar (T-1388): one hue, three steps, the model id and time under it. */}
+      <div data-testid="probabilities">
+        <ForecastBar
+          forecast={cardForecast(version)}
+          home={home}
+          away={away}
+          locale={locale}
+          timeZone={timeZone}
+          words={forecastBarWords(locale)}
+        />
       </div>
       <p className="text-sm" data-testid="forecast-framing">
         {framing(p, home, away, locale)}
@@ -283,17 +344,6 @@ function Latest({
           }}
         />
       </p>
-    </div>
-  );
-}
-
-function Outcome({ label, value, locale }: { label: string; value: number; locale: Locale }) {
-  return (
-    <div className="flex flex-col rounded border border-default p-2">
-      <span className="text-xl font-semibold tabular-nums" dir="ltr">
-        {formatPercent(locale, value)}
-      </span>
-      <span className="truncate text-xs text-muted">{label}</span>
     </div>
   );
 }

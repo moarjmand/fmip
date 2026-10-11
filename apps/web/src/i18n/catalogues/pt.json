@@ -8086,7 +8086,7 @@
     "status": "untranslated"
   },
   "predictions.section.note": {
-    "source": "Community distribution and settlement arrive with the predictions release (E5); your prediction is never blended with the model forecast (rule 6).",
+    "source": "Your pick counts towards the community picks only; it is never blended with the statistical model or the founder’s analysis.",
     "text": "",
     "status": "untranslated"
   },
@@ -10692,6 +10692,127 @@
   },
   "shared.action.refused": {
     "source": "You may not do this. {reason}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "freshness.checked": {
+    "source": "Last checked {ago}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "freshness.behind": {
+    "source": "may be behind",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.label": {
+    "source": "Model forecast: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.computed": {
+    "source": "computed {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.none": {
+    "source": "No model forecast for this match yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.noneBefore": {
+    "source": "The model had no forecast for this match before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.unavailable": {
+    "source": "The model gave no probabilities in version {version}. {reason}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.unreachable": {
+    "source": "The model forecast could not be loaded, so none is shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.model.title": {
+    "source": "Statistical model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.model.origin": {
+    "source": "Computed by FMIP’s statistical model from match data. Not a person’s opinion.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.founder.title": {
+    "source": "Founder’s analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.community.title": {
+    "source": "Community picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.community.picked": {
+    "source": {
+      "one": "{count} member has picked",
+      "other": "{count} members have picked"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "lanes.community.hidden": {
+    "source": "The spread opens after you lock your own pick, so it cannot sway it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.note": {
+    "source": "Three separate products. Each has its own source, method and record; none is blended with or relabelled as another.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.make": {
+    "source": "Make your pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.group": {
+    "source": "Your pick: {home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.split": {
+    "source": "Community split · revealed after your pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.picks": {
+    "source": {
+      "one": "{count} pick · locks at kick-off",
+      "other": "{count} picks · locks at kick-off"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "pick.splitLabel": {
+    "source": "Community picks: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nextMatch.title": {
+    "source": "Next match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nextMatch.tehranTime": {
+    "source": "Tehran time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nextMatch.zoneTime": {
+    "source": "{zone} time",
     "text": "",
     "status": "untranslated"
   }

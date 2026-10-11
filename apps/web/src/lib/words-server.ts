@@ -8,6 +8,7 @@ import {
   type PluralForms,
   type PluralKey,
 } from '@/i18n/messages';
+import { FORECAST_BAR_KEYS, type ForecastBarWords } from '@/components/forecast-bar';
 import { STAGE_KEYS } from '@/lib/stage-label';
 import type { ClientPlural, ClientWords } from '@/lib/words';
 
@@ -79,6 +80,9 @@ const LIVE_KEYS = [
   'scores.live.stale',
   'scores.live.staleAt',
   'scores.live.unavailable',
+  // The freshness stamp (T-1388): "Last checked 8 sec ago · may be behind".
+  'freshness.checked',
+  'freshness.behind',
   'scores.announce.kickOff',
   'scores.announce.fullTime',
   'scores.announce.awarded',
@@ -265,4 +269,9 @@ export type MatchWords = ClientWords<(typeof MATCH_KEYS)[number]>;
 
 export function matchWords(locale: string): MatchWords {
   return resolveWords(locale, MATCH_KEYS, []);
+}
+
+/** The model's forecast bar (T-1388), for a server page or a client card alike. */
+export function forecastBarWords(locale: string): ForecastBarWords {
+  return resolveWords(locale, FORECAST_BAR_KEYS, []).m;
 }

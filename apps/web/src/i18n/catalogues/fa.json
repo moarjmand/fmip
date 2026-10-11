@@ -9830,8 +9830,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "predictions.section.note": {
-    "source": "Community distribution and settlement arrive with the predictions release (E5); your prediction is never blended with the model forecast (rule 6).",
-    "text": "توزیع پیش‌بینی‌های کاربران و تسویه با انتشار بخش پیش‌بینی‌ها (E5) می‌آیند؛ پیش‌بینی شما هرگز با پیش‌بینی مدل آماری ترکیب نمی‌شود (قاعده‌ی ۶).",
+    "source": "Your pick counts towards the community picks only; it is never blended with the statistical model or the founder’s analysis.",
+    "text": "انتخاب شما فقط در انتخاب‌های کاربران حساب می‌شود و هرگز با مدل آماری یا تحلیل بنیان‌گذار آمیخته نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -13018,6 +13018,156 @@
   "shared.action.refused": {
     "source": "You may not do this. {reason}",
     "text": "شما اجازه‌ی این کار را ندارید. {reason}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "freshness.checked": {
+    "source": "Last checked {ago}",
+    "text": "آخرین بررسی {ago}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "freshness.behind": {
+    "source": "may be behind",
+    "text": "شاید عقب باشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecastBar.label": {
+    "source": "Model forecast: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
+    "text": "پیش‌بینی مدل آماری: {home} {homePct}، مساوی {drawPct}، {away} {awayPct}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecastBar.computed": {
+    "source": "computed {time}",
+    "text": "محاسبه‌شده {time}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecastBar.none": {
+    "source": "No model forecast for this match yet.",
+    "text": "مدل آماری هنوز برای این بازی پیش‌بینی‌ای ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecastBar.noneBefore": {
+    "source": "The model had no forecast for this match before kick-off.",
+    "text": "مدل آماری پیش از شروع این بازی پیش‌بینی‌ای برای آن نداشت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecastBar.unavailable": {
+    "source": "The model gave no probabilities in version {version}. {reason}",
+    "text": "مدل آماری در نسخهٔ {version} هیچ احتمالی نداد. {reason}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecastBar.unreachable": {
+    "source": "The model forecast could not be loaded, so none is shown.",
+    "text": "پیش‌بینی مدل آماری بارگیری نشد، بنابراین چیزی نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.model.title": {
+    "source": "Statistical model",
+    "text": "مدل آماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.model.origin": {
+    "source": "Computed by FMIP’s statistical model from match data. Not a person’s opinion.",
+    "text": "محاسبه‌شده با مدل آماری FMIP از داده‌های بازی. نظر هیچ شخصی نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.founder.title": {
+    "source": "Founder’s analysis",
+    "text": "تحلیل بنیان‌گذار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.community.title": {
+    "source": "Community picks",
+    "text": "انتخاب‌های کاربران",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.community.picked": {
+    "source": {
+      "one": "{count} member has picked",
+      "other": "{count} members have picked"
+    },
+    "forms": {
+      "one": "{count} کاربر انتخاب کرده است",
+      "other": "{count} کاربر انتخاب کرده‌اند"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.community.hidden": {
+    "source": "The spread opens after you lock your own pick, so it cannot sway it.",
+    "text": "پراکندگی پس از ثبت انتخاب خودتان باز می‌شود تا بر آن اثر نگذارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.note": {
+    "source": "Three separate products. Each has its own source, method and record; none is blended with or relabelled as another.",
+    "text": "سه محصول جداگانه. هر کدام منبع، روش و کارنامهٔ خودش را دارد؛ هیچ‌کدام با دیگری آمیخته نمی‌شود و به نام دیگری خوانده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pick.make": {
+    "source": "Make your pick",
+    "text": "انتخاب کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pick.group": {
+    "source": "Your pick: {home} v {away}",
+    "text": "انتخاب شما: {home} در برابر {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pick.split": {
+    "source": "Community split · revealed after your pick",
+    "text": "انتخاب‌های کاربران · پس از انتخاب شما نشان داده می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pick.picks": {
+    "source": {
+      "one": "{count} pick · locks at kick-off",
+      "other": "{count} picks · locks at kick-off"
+    },
+    "forms": {
+      "one": "{count} انتخاب · با شروع بازی قفل می‌شود",
+      "other": "{count} انتخاب · با شروع بازی قفل می‌شود"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pick.splitLabel": {
+    "source": "Community picks: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
+    "text": "انتخاب‌های کاربران: {home} {homePct}، مساوی {drawPct}، {away} {awayPct}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nextMatch.title": {
+    "source": "Next match",
+    "text": "بازی بعدی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nextMatch.tehranTime": {
+    "source": "Tehran time",
+    "text": "به وقت تهران",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nextMatch.zoneTime": {
+    "source": "{zone} time",
+    "text": "به وقت {zone}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   }

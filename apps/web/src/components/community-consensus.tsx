@@ -12,7 +12,7 @@ import { FilledMessage } from '@/components/filled-message';
 import { LtrNumeric } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { type Triple, difference, sharesToPercentages } from '@/lib/triple';
-import { Notice } from '@/components/ui';
+import { Icon, Notice } from '@/components/ui';
 
 /**
  * The community forecast on the match centre (blueprint 4.2, T-135).
@@ -44,21 +44,135 @@ function Distribution({
   testId: string;
   locale: Locale;
 }) {
-  const labels: Record<(typeof OUTCOME_KEYS)[number], string> = {
+  return (
+    <div data-testid={testId}>
+      <SpreadBar percentages={percentages} home={home} away={away} locale={locale} />
+    </div>
+  );
+}
+
+/**
+ * The members' spread as a bar (T-1388, D-206): the community colour only, in
+ * three lightness steps, home strongest, labelled below with the share of
+ * picks. Its own bar in its own file, never the model's bar handed other
+ * numbers (rule 6): a spread of picks is not a probability, and the colour
+ * and the words say which product it is.
+ */
+const SPREAD_STEPS = {
+  home: 'bg-community',
+  draw: 'bg-community/55',
+  away: 'bg-community/25',
+} as const;
+
+function SpreadBar({
+  percentages,
+  home,
+  away,
+  locale,
+}: {
+  percentages: Triple;
+  home: string;
+  away: string;
+  locale: Locale;
+}) {
+  const names: Record<(typeof OUTCOME_KEYS)[number], string> = {
     home,
     draw: t(locale, 'matchCentre.community.draw'),
     away,
   };
+  const pct = (key: (typeof OUTCOME_KEYS)[number]) => formatPercent(locale, percentages[key]);
   return (
-    <div className="grid grid-cols-3 gap-2 text-center" data-testid={testId}>
-      {OUTCOME_KEYS.map((key) => (
-        <div key={key} className="flex flex-col rounded border border-default p-2">
-          <span className="text-xs text-muted">{labels[key]}</span>
-          <span className="text-lg font-semibold" dir="ltr">
-            {formatPercent(locale, percentages[key])}
+    <div className="flex flex-col">
+      <div
+        role="img"
+        aria-label={interpolate(t(locale, 'pick.splitLabel'), {
+          home,
+          homePct: pct('home'),
+          drawPct: pct('draw'),
+          away,
+          awayPct: pct('away'),
+        })}
+        className="flex h-2.5 gap-0.75"
+      >
+        {OUTCOME_KEYS.map((key) => (
+          <span
+            key={key}
+            data-outcome={key}
+            className={`rounded-sm ${SPREAD_STEPS[key]}`}
+            style={{ flexGrow: Math.max(percentages[key], 1.5), flexBasis: 0 }}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm text-muted">
+        {OUTCOME_KEYS.map((key) => (
+          <span key={key} className="inline-flex items-center gap-1.5" data-outcome={key}>
+            <span aria-hidden="true" className={`size-2.5 rounded-xs ${SPREAD_STEPS[key]}`} />
+            <bdi>{names[key]}</bdi>
+            <b className="font-extrabold text-fg tabular-nums" dir="ltr">
+              {pct(key)}
+            </b>
           </span>
-        </div>
-      ))}
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The community split under "Make your pick" (T-1388, D-206): shown only once
+ * the viewer has picked, so it cannot anchor the pick, with how many picks it
+ * is drawn from and that it locks at kick-off. Below D-052's floor it says
+ * there is no consensus yet rather than drawing one member's pick as a
+ * finding (rule 3).
+ */
+export function CommunitySplit({
+  consensus,
+  home,
+  away,
+  locale,
+}: {
+  consensus: CommunityConsensusResponse | null;
+  home: string;
+  away: string;
+  locale: string;
+}) {
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const data = consensus?.data ?? null;
+  return (
+    <div
+      className="flex flex-col gap-2 border-t-3 border-community bg-community/8 px-3 py-2.5"
+      data-testid="community-split"
+      data-state={consensus === null ? 'unreachable' : data === null ? 'not_supplied' : 'revealed'}
+    >
+      <p className="flex items-center gap-1.5 text-xs font-extrabold text-community">
+        <Icon name="community" size={14} />
+        <Translated locale={l} message="pick.split" />
+      </p>
+      {consensus === null ? (
+        <p className="text-sm text-muted">
+          <Translated locale={l} message="matchCentre.community.unreachable" />
+        </p>
+      ) : data === null ? (
+        <p className="text-sm text-muted">
+          <Translated
+            locale={l}
+            message="matchCentre.community.belowFloor"
+            count={MIN_CONSENSUS_SAMPLE}
+          />
+        </p>
+      ) : (
+        <>
+          <SpreadBar
+            percentages={sharesToPercentages(data.crowd.shares)}
+            home={home}
+            away={away}
+            locale={l}
+          />
+          <p className="text-xs text-caption">
+            <Translated locale={l} message="pick.picks" count={data.sample} />
+          </p>
+        </>
+      )}
     </div>
   );
 }
@@ -70,12 +184,20 @@ export function CommunityForecastPanel({
   timeZone,
   model,
   locale,
+  revealed = true,
 }: {
   consensus: CommunityConsensusResponse | null;
   home: string;
   away: string;
   timeZone: string;
   locale: string;
+  /**
+   * Whether the reader may see the spread (T-1388, D-206): on the match centre,
+   * only once they have made their own pick, or once kick-off has locked every
+   * pick, so the spread cannot anchor a pick still to be made. Until then the
+   * panel says how many members have picked and nothing about what.
+   */
+  revealed?: boolean;
   /**
    * The model's three probabilities as shares, for the comparison blueprint 4.2
    * asks for — extracted by the page, so this component never holds a forecast.
@@ -120,6 +242,30 @@ export function CommunityForecastPanel({
     );
   }
 
+  if (!revealed) {
+    return (
+      <section
+        className="flex flex-col gap-2"
+        data-testid="consensus"
+        data-state={consensus.coverage}
+        data-spread="hidden"
+      >
+        {heading}
+        <p className="text-base font-semibold" data-testid="consensus-count">
+          <Translated
+            locale={locale}
+            message="lanes.community.picked"
+            count={consensus.data.sample}
+          />
+        </p>
+        <p className="text-sm text-muted">
+          <Translated locale={locale} message="lanes.community.hidden" />{' '}
+          <Translated locale={locale} message="matchCentre.community.intro" />
+        </p>
+      </section>
+    );
+  }
+
   const { sample, crowd, weighted } = consensus.data;
   const crowdPercentages = sharesToPercentages(crowd.shares);
   const weightedPercentages = weighted === null ? null : sharesToPercentages(weighted.shares);
@@ -130,6 +276,7 @@ export function CommunityForecastPanel({
       className="flex flex-col gap-3"
       data-testid="consensus"
       data-state={consensus.coverage}
+      data-spread="revealed"
     >
       {heading}
       <p className="text-xs text-muted">
