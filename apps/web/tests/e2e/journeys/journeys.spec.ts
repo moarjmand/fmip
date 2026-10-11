@@ -54,7 +54,8 @@ test.describe('blueprint journeys', () => {
     await page.getByTestId('prediction-guest').getByRole('link', { name: 'Sign in' }).click();
     await expect(page).toHaveURL(/\/en\/login/);
 
-    await page.getByRole('link', { name: 'Register' }).click();
+    // The header offers Sign in alone from 768px (T-1381); the way to register is on the login page.
+    await page.getByRole('link', { name: 'Create an account' }).click();
     const form = page.getByTestId('register-form');
     await form.getByLabel('Username').fill(USERNAME);
     await form.getByLabel('Display name').fill('Journey Tester');
@@ -82,7 +83,15 @@ test.describe('blueprint journeys', () => {
 
     await page.goto(`/en/match/${OPEN_MATCH}`);
     const prediction = page.getByTestId('prediction-form');
-    await prediction.getByLabel('Liverpool', { exact: true }).check();
+    // "Make your pick" (T-1388): one control first, then the three choices,
+    // each a pressable label over a native radio, in the community colour.
+    // Before any pick the members' spread is not on the page.
+    await expect(prediction).toHaveAttribute('data-pick', 'before');
+    await expect(page.getByTestId('consensus-crowd')).toHaveCount(0);
+    await prediction.getByRole('button', { name: 'Make your pick' }).click();
+    await expect(prediction).toHaveAttribute('data-pick', 'choosing');
+    await prediction.locator('label[data-outcome="home"]').click();
+    await expect(prediction.getByLabel('Liverpool', { exact: true })).toBeChecked();
     await prediction.getByLabel('Liverpool goals').fill('2');
     await prediction.getByLabel('Manchester United goals').fill('1');
     await prediction.getByLabel('Confidence').selectOption('4');
@@ -218,8 +227,9 @@ test.describe('blueprint journeys', () => {
     await guest.close();
 
     // The team fixture list carries the same line, for the same member, in the
-    // same words: not supplied, never not available.
-    await page.goto(`/en/team/${LIVERPOOL}`);
+    // same words: not supplied, never not available. The list is the club
+    // page's Fixtures tab since T-1386; the Overview's card names the next one.
+    await page.goto(`/en/team/${LIVERPOOL}?tab=fixtures`);
     const line = page.getByTestId('fixtures').getByTestId('viewing-line').first();
     await expect(line).toHaveAttribute('data-state', 'not_supplied');
     await expect(line).toContainText('United Kingdom');

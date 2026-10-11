@@ -1,11 +1,11 @@
 'use client';
 
 import { PREDICTION_REASON_TAGS, type Prediction, type PredictionReasonTag } from '@fmip/contracts';
-import { type ReactNode, useActionState } from 'react';
+import { type ReactNode, useActionState, useState } from 'react';
 import type { ActionState } from '@/lib/auth-actions';
 import type { Message } from '@/i18n/messages';
 import { ShareLink } from './share-link';
-import { Button, FormStatus, TextArea, controlClasses } from '@/components/ui';
+import { FormStatus, Icon, TextArea, controlClasses } from '@/components/ui';
 
 /**
  * The form's words, resolved on the server in the reader's language (T-1307):
@@ -32,7 +32,28 @@ export interface PredictionFormWords {
   shareTitle: string;
   /** "Link copied." and "Copy this link: {url}", for the share control. */
   shareMessages: { copied: Message; manual: Message };
+  /** "Make your pick": the one control before the reader starts (T-1388). */
+  makePick: ReactNode;
+  /** "Your pick: {home} v {away}", the outcome group's name for a screen reader. */
+  group: { text: string; lang?: string };
 }
+
+/** The three states of "Make your pick" (T-1388, D-206). */
+export type PickState = 'before' | 'choosing' | 'picked';
+
+/** Which state the pick is in: picked once a version is saved, choosing once opened. */
+export function pickState(saved: boolean, opened: boolean): PickState {
+  return saved ? 'picked' : opened ? 'choosing' : 'before';
+}
+
+/**
+ * An outcome as a pressable choice in the community lane's colour, never the
+ * brand green (the pick feeds the community product only, rule 6). A native
+ * radio underneath, so the form, the keyboard and a label lookup work as
+ * before; the box shows which is chosen, with a tick as well as the fill.
+ */
+const OUTCOME_CHOICE =
+  'group inline-flex min-h-touch cursor-pointer items-center gap-1.5 rounded-control border border-strong bg-surface px-3.5 font-semibold has-checked:border-community has-checked:bg-community has-checked:text-canvas has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus';
 
 /**
  * The member's prediction on the match centre (blueprint 6.6, T-050):
@@ -46,6 +67,7 @@ export function PredictionForm({
   home,
   away,
   shareUrl,
+  split,
   words,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
@@ -54,30 +76,75 @@ export function PredictionForm({
   away: string;
   /** The match's own address, offered for sharing once a prediction is saved (T-521). */
   shareUrl?: string;
+  /**
+   * The community split, rendered on the server and shown here only once the
+   * reader has picked (T-1388): before that it is not on the page at all, so
+   * it cannot anchor the pick.
+   */
+  split?: ReactNode;
   words: PredictionFormWords;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
+  const [opened, setOpened] = useState(false);
   const latest = current?.latest ?? null;
   const fieldError = (name: string): string | undefined =>
     state !== null && !state.ok ? state.fields?.[name] : undefined;
+  const pick = pickState(latest !== null || state?.ok === true, opened);
+
+  if (pick === 'before') {
+    return (
+      <div data-testid="prediction-form" data-pick="before">
+        <button
+          type="button"
+          onClick={() => setOpened(true)}
+          className="inline-flex min-h-touch items-center gap-2 rounded-control border border-community bg-surface px-4 font-bold text-community"
+          data-testid="make-pick"
+        >
+          <Icon name="pick" />
+          {words.makePick}
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 text-sm" data-testid="prediction-form">
-      <fieldset className="flex flex-wrap gap-3">
+    <form
+      action={formAction}
+      className="flex flex-col gap-3 text-sm"
+      data-testid="prediction-form"
+      data-pick={pick}
+    >
+      <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 font-medium">{words.call}</legend>
-        {(['home', 'draw', 'away'] as const).map((outcome) => (
-          <label key={outcome} className="flex items-center gap-1">
-            <input
-              type="radio"
-              name="outcome"
-              value={outcome}
-              defaultChecked={latest?.outcome === outcome}
-              required
-            />
-            {outcome === 'home' ? home : outcome === 'away' ? away : words.draw}
-          </label>
-        ))}
+        <div
+          role="group"
+          aria-label={words.group.text}
+          lang={words.group.lang}
+          className="flex flex-wrap gap-1.5"
+        >
+          {(['home', 'draw', 'away'] as const).map((outcome) => (
+            <label key={outcome} className={OUTCOME_CHOICE} data-outcome={outcome}>
+              <input
+                type="radio"
+                name="outcome"
+                value={outcome}
+                defaultChecked={latest?.outcome === outcome}
+                required
+                className="sr-only"
+              />
+              <Icon name="check" strokeWidth={2} className="hidden group-has-checked:block" />
+              {outcome === 'home' ? (
+                <bdi>{home}</bdi>
+              ) : outcome === 'away' ? (
+                <bdi>{away}</bdi>
+              ) : (
+                words.draw
+              )}
+            </label>
+          ))}
+        </div>
         {fieldError('outcome') && <FormStatus ok={false}>{fieldError('outcome')}</FormStatus>}
+        {pick === 'picked' && split !== undefined && <div data-testid="pick-split">{split}</div>}
       </fieldset>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -157,9 +224,16 @@ export function PredictionForm({
       />
 
       <div className="flex items-center gap-3">
-        <Button type="submit" variant="primary" pending={pending}>
+        {/* Locking the pick is the community lane's action, so its colour, not
+            the brand green (T-1388); pending as every submit is. */}
+        <button
+          type="submit"
+          disabled={pending}
+          aria-busy={pending ? true : undefined}
+          className="inline-flex min-h-touch items-center justify-center rounded-control border border-community bg-community px-4 font-semibold text-canvas disabled:opacity-50"
+        >
           {latest === null ? words.submit : words.update}
-        </Button>
+        </button>
         {latest !== null && (
           <span className="text-xs text-muted" data-testid="prediction-versions">
             {words.version}

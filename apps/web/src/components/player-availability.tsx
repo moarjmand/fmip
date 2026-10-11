@@ -3,6 +3,8 @@ import type { PlayerAvailability } from '@fmip/contracts';
 import { formatDateTime } from '@/i18n/format';
 import { availabilityStale } from '@/lib/player';
 import { Translated } from '@/components/translated';
+import { CoverageBadge } from '@/components/ui';
+import { COVERAGE_KEY, say } from '@/lib/competition';
 
 const KIND_MESSAGE = {
   injury: 'player.availability.kind.injury',
@@ -32,10 +34,26 @@ export function PlayerAvailabilitySection({
   const { team, fixture, listing, reason } = availability;
   const state = reason ?? listing.data?.status ?? 'not_listed';
   return (
-    <section className="flex flex-col gap-2" data-testid="player-availability" data-state={state}>
-      <h2 className="text-lg font-semibold">
-        <Translated locale={locale} message="player.availability.title" />
-      </h2>
+    <section
+      aria-labelledby="player-availability-heading"
+      className="flex min-w-0 flex-col gap-2 rounded-card border border-default bg-surface p-4 sm:p-5"
+      data-testid="player-availability"
+      data-state={state}
+    >
+      {/* The Hybrid panel's heading and the listing's coverage beside it (T-1386). */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <h2
+          id="player-availability-heading"
+          className="flex items-center text-sm font-extrabold text-fg uppercase ltr:tracking-wider"
+        >
+          <span aria-hidden="true" className="me-2.5 inline-block h-3.5 w-1 -skew-x-12 bg-accent" />
+          <Translated locale={locale} message="player.availability.title" />
+        </h2>
+        <CoverageBadge
+          state={listing.coverage}
+          label={say(locale, COVERAGE_KEY[listing.coverage])}
+        />
+      </div>
       {team === null ? (
         <p className="text-sm text-muted">
           <Translated locale={locale} message="player.availability.noTeam" />

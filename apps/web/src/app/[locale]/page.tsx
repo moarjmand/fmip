@@ -1,58 +1,83 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import type { ScoreCard } from '@fmip/contracts';
 import { BreakingStrip } from '@/components/breaking-strip';
 import { FirstRunOffer } from '@/components/first-run-offer';
-import { JsonLd } from '@/components/json-ld';
-import { EntityImage } from '@/components/entity-image';
-import { FounderAnalysisFeed } from '@/components/founder-analysis';
+import {
+  HomeDateline,
+  KeyMatches,
+  LeadMatchCard,
+  LeadStory,
+  RuleHeading,
+  ThreeForecasts,
+} from '@/components/home-front';
+import {
+  AccuracyCard,
+  Broadcasts,
+  ColumnAndPicks,
+  GuestWelcome,
+  MyTeams,
+  NewsGrid,
+  TableTopFive,
+} from '@/components/home-rail';
 import {
   FriendPredictionsSection,
   GroupDiscussionsSection,
   PanelsSection,
 } from '@/components/home-member';
+import { JsonLd } from '@/components/json-ld';
 import { LinkedSentence } from '@/components/linked-sentence';
-import { NewsImageCredit, NewsThumb, drawableNewsImage } from '@/components/news-image';
-import { LtrNumeric } from '@/components/score';
-import { CardViewingLine } from '@/components/score-card';
 import { Translated } from '@/components/translated';
-import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { type Message, type MessageKey, attribute, interpolate, message, t } from '@/i18n/messages';
-import { MessageText } from '@/components/message-text';
+import { message, t } from '@/i18n/messages';
 import {
   fetchBreakingNews,
   fetchCompetition,
+  fetchConsensus,
   fetchFeaturedMatches,
   fetchFirstRun,
-  fetchForecastList,
+  fetchFollowing,
+  fetchForecastSummaries,
+  fetchFounderAnalysis,
   fetchFounderFeed,
   fetchFriendPredictions,
   fetchGroupDiscussions,
   fetchMe,
+  fetchModelAccuracy,
   fetchNewsSection,
+  fetchOwnPrediction,
   fetchPanelLatest,
   fetchScores,
+  fetchTeam,
   fetchViewingBatch,
 } from '@/lib/api';
 import {
   HOME_DAYS,
-  HOME_MATCHES,
-  HOME_TABLE_ROWS,
+  HOME_MY_TEAMS,
+  HOME_STORIES,
+  accuracyFigure,
+  allCards,
+  competitionsOn,
   featuredNotes,
-  homeForecasts,
-  homeMatches,
+  homeBroadcasts,
   homePanels,
-  homeViewing,
-  shortDay,
+  keyDay,
+  keyMatchGroups,
+  leadMatch,
+  leadStory,
   tableCompetition,
+  tableRowOf,
   todayFixtureIds,
 } from '@/lib/home';
-import { dateIn, formatKickoff, shiftDate, statusLabel } from '@/lib/scores';
+import { stageName } from '@/lib/competition';
 import { rootTitle } from '@/lib/demonstration';
 import { readGuestChoices } from '@/lib/first-run-cookie';
+import { feedsStale } from '@/lib/news';
+import { isLocked } from '@/lib/prediction-form';
+import { type CardForecast, batches, cardForecast } from '@/lib/score-card-products';
+import { dateIn, shiftDate } from '@/lib/scores';
 import { pageMetadata, websiteJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { scoresWords } from '@/lib/words-server';
+import { territoryName } from '@/lib/territory';
 
 // The API is queried per request, so a build never depends on it being up.
 export const dynamic = 'force-dynamic';
@@ -73,404 +98,341 @@ export async function generateMetadata({
   });
 }
 
-/** A list of rows in one bordered box, a hairline between rows (T-1201). */
-const LIST = 'flex flex-col divide-y divide-default rounded border border-default bg-surface';
-/** A row's own link: the row is the target, so the underline waits for a pointer or focus. */
-const ROW_LINK = 'font-medium hover:underline focus-visible:underline';
+/** The model's pre-kick-off summary per match, one request per 50 (T-940), in parallel. */
+async function loadForecasts(ids: string[]): Promise<Map<string, CardForecast>> {
+  const out = new Map<string, CardForecast>();
+  await Promise.all(
+    batches(ids).map(async (group) => {
+      const answer = await fetchForecastSummaries(group);
+      const found = new Map(
+        answer.ok ? answer.data.fixtures.map((e) => [e.fixture_id, e.pre_kickoff]) : [],
+      );
+      for (const id of group) {
+        out.set(id, answer.ok ? cardForecast(found.get(id) ?? null) : { state: 'unreachable' });
+      }
+    }),
+  );
+  return out;
+}
 
+/**
+ * The homepage in the Hybrid design (T-1382, D-200; boards h1 and h9): an
+ * editorial front page on paper whatever the theme. The lead story, else the
+ * day's biggest match; the three forecasts kept apart for that match; the
+ * day's key matches by competition; beside them the league's top five, the
+ * model's accuracy, today's broadcasts and the member's teams; then the news.
+ *
+ * Three rounds of requests, each in parallel (D-115, D-200): what needs no
+ * zone, then the scores in the reader's zone, then what the scores choose.
+ */
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const num = (value: number) => formatNumber(lang, value);
-  // The scores list's words, for the status cell and the viewing line (T-1303).
-  const scoreWords = scoresWords(lang);
-  /** A sentence with its `{placeholders}` filled, keeping where its words came from. */
-  const filled = (key: MessageKey, values: Record<string, string>): Message => {
-    const said = message(lang, key);
-    return { ...said, text: interpolate(said.text, values) };
-  };
   const cookie = await sessionCookieHeader();
-  // The API's uptime and the locale code were printed at the foot of this
-  // page since Phase 0; they are the System page's business (T-804), not a
-  // reader's, and went in the design pass (T-1201).
-  const [founder, me] = await Promise.all([
-    // The blueprint puts the founder's analysis on the homepage "for selected
-    // matches"; the feed is upcoming matches only, so there is nothing to
-    // select — what exists is what is coming (T-132).
-    fetchFounderFeed({ limit: 3 }),
-    // Only to offer the first-visit page to someone who is not signed in (T-523).
+  const session = cookie !== undefined;
+
+  // Round 1: everything that does not depend on the reader's zone.
+  const [
+    me,
+    following,
+    guestChoices,
+    firstRun,
+    news,
+    breaking,
+    featured,
+    founderFeed,
+    accuracy,
+    friendCalls,
+    groupTalk,
+  ] = await Promise.all([
     fetchMe(cookie),
+    // The member's teams: "Your teams" first, the lead match, "My teams".
+    fetchFollowing(cookie),
+    readGuestChoices(),
+    session ? fetchFirstRun(cookie) : null,
+    fetchNewsSection('', locale, cookie),
+    // T-1004 (D-125): read at render, so an expired mark is gone now.
+    fetchBreakingNews(locale),
+    // T-1161 (D-153): the matches an editor features now.
+    fetchFeaturedMatches(),
+    // The founder's analysis of what is coming (T-132).
+    fetchFounderFeed({ limit: 3 }),
+    // T-1369 (D-187): the public accuracy figures.
+    fetchModelAccuracy(),
+    session ? fetchFriendPredictions(cookie) : null,
+    session ? fetchGroupDiscussions(cookie) : null,
   ]);
+  const member = me !== null;
 
   // The first run (T-620): offered once to a member, and to a guest until they
   // finish it or say not now; a guest's confirmed zone is used for their times.
-  const guest = me === null ? await readGuestChoices() : null;
-  const firstRun = me === null ? null : await fetchFirstRun(cookie);
+  const guest = member ? null : guestChoices;
   const offerFirstRun =
     guest !== null
       ? guest.done !== true && guest.dismissed !== true
       : firstRun?.state === 'pending';
 
-  // Blueprint 2.3 (T-526): the homepage is made of answers the product already
-  // gives, each block shown only when it has something real in it (rule 3).
   // Times are the member's zone, else the zone a guest chose, else UTC, and say which.
   const timeZone = me?.timezone ?? guest?.timezone ?? 'UTC';
-  const today = dateIn(timeZone, new Date());
-  const [scores, news, breaking, featured] = await Promise.all([
-    fetchScores(
-      new URLSearchParams({
-        from: today,
-        to: shiftDate(today, HOME_DAYS - 1),
-        tz: timeZone,
-      }).toString(),
-      cookie,
-    ),
-    fetchNewsSection('', locale, cookie),
-    // T-1004 (D-125): the strip, read at render, so an expired mark is gone now.
-    fetchBreakingNews(locale),
-    // T-1161 (D-153): the matches an editor features now, read at render, so
-    // an expired feature is gone now. Unreachable reads as nothing featured.
-    fetchFeaturedMatches(),
-  ]);
+  const now = new Date();
+  const today = dateIn(timeZone, now);
+
+  // Round 2: the scores, asked without the session (D-200) so the groups come
+  // in the competitions' stated order (D-154); the member's teams are lifted
+  // here from what they follow.
+  const scores = await fetchScores(
+    new URLSearchParams({
+      from: today,
+      to: shiftDate(today, HOME_DAYS - 1),
+      tz: timeZone,
+    }).toString(),
+    undefined,
+  );
+  const followedTeams = new Set(
+    member ? (following ?? []).filter((e) => e.entity_type === 'team').map((e) => e.entity_id) : [],
+  );
   const notes = featuredNotes(featured.ok ? featured.data.features : null);
-  const matches = scores.ok ? homeMatches(scores.data, HOME_MATCHES, new Set(notes.keys())) : [];
+  const day = scores.ok ? keyDay(scores.data, today, timeZone) : null;
+  const groups =
+    scores.ok && day !== null ? keyMatchGroups(scores.data, day, timeZone, followedTeams) : [];
+  const lead = scores.ok
+    ? leadMatch(scores.data, today, timeZone, followedTeams, new Set(notes.keys()))
+    : null;
   const tableId = scores.ok ? tableCompetition(scores.data) : null;
-  // T-942 (D-115): every section below is one request for the whole page,
-  // all in parallel with the forecasts and the table. The member sections and
-  // the viewing lines are asked for a member only: a guest has no friends,
-  // groups or stored territory, and is not told those sections are empty.
   const todayIds = scores.ok ? todayFixtureIds(scores.data, today, timeZone) : [];
-  const member = me !== null;
-  const [forecasts, table, friendCalls, groupTalk, panelsLatest, viewing] = await Promise.all([
-    matches.length > 0 ? fetchForecastList(matches.map((card) => card.id)) : null,
+  const todayCards = scores.ok
+    ? allCards(scores.data).filter((card) => todayIds.includes(card.id))
+    : [];
+  const territory = guest?.territory;
+  const askViewing = todayIds.length > 0 && (member || territory !== undefined);
+  const myTeams = member
+    ? (following ?? []).filter((e) => e.entity_type === 'team').slice(0, HOME_MY_TEAMS)
+    : [];
+  const forecastIds = [
+    ...new Set([
+      ...(lead === null ? [] : [lead.id]),
+      ...groups.flatMap((g) => g.cards.map((c) => c.id)),
+    ]),
+  ];
+
+  // Round 3: what the scores chose, in parallel.
+  const [
+    forecasts,
+    table,
+    leadTable,
+    founder,
+    consensus,
+    ownPick,
+    panelsLatest,
+    viewing,
+    teamPages,
+  ] = await Promise.all([
+    loadForecasts(forecastIds),
     tableId !== null ? fetchCompetition(tableId, '', locale) : null,
-    member ? fetchFriendPredictions(cookie) : null,
-    member ? fetchGroupDiscussions(cookie) : null,
-    todayIds.length > 0 ? fetchPanelLatest(todayIds) : null,
-    member && matches.length > 0
-      ? fetchViewingBatch(
-          matches.map((card) => card.id),
-          undefined,
-          cookie,
-        )
+    lead !== null && lead.competition.id !== tableId
+      ? fetchCompetition(lead.competition.id, '', locale)
       : null,
+    lead !== null ? fetchFounderAnalysis(lead.id) : null,
+    lead !== null ? fetchConsensus(lead.id) : null,
+    lead !== null && member ? fetchOwnPrediction(lead.id, cookie) : null,
+    todayIds.length > 0 ? fetchPanelLatest(todayIds) : null,
+    askViewing ? fetchViewingBatch(todayIds, member ? undefined : territory, cookie) : null,
+    Promise.all(myTeams.map((team) => fetchTeam(team.entity_id, locale))),
   ]);
-  const watch =
-    viewing === null
-      ? null
-      : homeViewing(matches, viewing.ok ? viewing.data.fixtures : null, locale);
+
+  const { lead: story, rest: breakingRest } = leadStory(
+    breaking.ok ? breaking.data.stories.data : null,
+  );
+  const leadTablePage = lead === null ? null : lead.competition.id === tableId ? table : leadTable;
+  const leadRows =
+    leadTablePage !== null && leadTablePage.ok ? leadTablePage.data.table.data : null;
+  const leadForecast: CardForecast =
+    lead === null ? { state: 'none' } : (forecasts.get(lead.id) ?? { state: 'unreachable' });
   const panels =
     panelsLatest === null ? [] : panelsLatest.ok ? homePanels(panelsLatest.data.panels) : null;
-  const cardsById = new Map(
-    scores.ok
-      ? [...scores.data.pinned, ...scores.data.groups.flatMap((group) => group.fixtures)].map(
-          (card) => [card.id, card] as const,
-        )
-      : [],
+  const cardsById = new Map<string, ScoreCard>(
+    scores.ok ? allCards(scores.data).map((card) => [card.id, card] as const) : [],
   );
-  const modelView =
-    forecasts !== null && forecasts.ok ? homeForecasts(matches, forecasts.data.fixtures) : [];
-  const tableRows =
-    table !== null && table.ok ? (table.data.table.data ?? []).slice(0, HOME_TABLE_ROWS) : [];
-  const stories = news.ok ? (news.data.stories.data ?? []).slice(0, 5) : [];
-  const played = attribute(lang, 'home.table.played');
-  const points = attribute(lang, 'home.table.points');
+  const stories = news.ok
+    ? (news.data.stories.data ?? [])
+        .filter((s) => s.story_id !== story?.story_id)
+        .slice(0, HOME_STORIES)
+    : [];
+  const context =
+    lead === null
+      ? null
+      : [
+          lead.competition.short_name ?? lead.competition.name,
+          lead.round === null ? null : stageName(locale, lead.round),
+        ]
+          .filter((part) => part !== null)
+          .join(' · ');
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6 sm:p-8">
+    <main data-mode="editorial" className="pb-12">
       <JsonLd data={websiteJsonLd(locale)} />
-      {/*
-        The accent bar is deliberately asymmetric and deliberately logical:
-        `border-s` and `ps` sit on the inline start, so they move to the right
-        edge under `dir="rtl"`. The Playwright check in tests/e2e asserts exactly
-        that, which makes this element the canary for a physical-property
-        regression that slipped past lint.
-      */}
-      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-        FMIP
-      </h1>
-      <p>
-        <LinkedSentence
-          sentence={message(lang, 'home.tagline')}
-          link={message(lang, 'home.tagline.link')}
-          href={`/${locale}/scores`}
-        />
-      </p>
-      {breaking.ok && breaking.data.stories.data !== null && (
-        <BreakingStrip locale={locale} stories={breaking.data.stories.data} />
-      )}
-      {offerFirstRun && <FirstRunOffer locale={locale} />}
-      {me === null && (
-        <p data-testid="first-visit">
-          <LinkedSentence
-            sentence={message(lang, 'home.firstVisit')}
-            link={message(lang, 'home.firstVisit.link')}
-            href={`/${locale}/about`}
-          />
-        </p>
-      )}
-      {me === null && (
-        <p className="text-sm" data-testid="guest-invite">
-          <LinkedSentence
-            sentence={message(lang, 'home.guestInvite')}
-            link={message(lang, 'home.guestInvite.link')}
-            href={`/${locale}/register`}
-          />
-        </p>
-      )}
-      {me !== null && (
-        <p className="text-sm">
-          <LinkedSentence
-            sentence={message(lang, 'home.feed')}
-            link={message(lang, 'home.feed.link')}
-            href={`/${locale}/following`}
-          />
-        </p>
-      )}
+      <div className="page-frame">
+        <HomeDateline locale={lang} timeZone={timeZone} now={now.toISOString()} context={context} />
+      </div>
+      <div className="page-frame flex flex-col gap-8 pt-6">
+        {breakingRest.length > 0 && <BreakingStrip locale={locale} stories={breakingRest} />}
+        {offerFirstRun && <FirstRunOffer locale={locale} />}
 
-      {matches.length > 0 && (
-        <section className="flex flex-col gap-2" data-testid="home-matches">
-          <h2 className="text-lg font-semibold">
-            <Translated locale={lang} message="home.matches.title" />
-          </h2>
-          {/*
-            A fixed time column and the match beside it, so every row lines up
-            however long the names are (the design pass, T-1201).
-          */}
-          <ul className={LIST}>
-            {matches.map((card) => (
-              <li key={card.id} className="grid grid-cols-[6.5rem_1fr] gap-x-3 px-3 py-2">
-                <span className="text-sm text-muted tabular-nums">
-                  {card.status === 'scheduled'
-                    ? `${shortDay(locale, card.kickoff_at, timeZone)} ${formatKickoff(locale, card.kickoff_at, timeZone)}`
-                    : statusLabel(card, locale, timeZone, undefined, scoreWords.m)}
-                </span>
-                <span className="flex min-w-0 flex-col">
-                  <Link href={`/${locale}/match/${card.id}`} className={ROW_LINK}>
-                    {card.home.name}{' '}
-                    <EntityImage
-                      media={card.home.crest}
-                      kind="crest"
-                      name={card.home.name}
-                      size={20}
-                      className="inline-flex align-middle"
-                    />{' '}
-                    {card.scores.current !== null ? (
-                      <LtrNumeric>
-                        {num(card.scores.current.home)}–{num(card.scores.current.away)}
-                      </LtrNumeric>
-                    ) : (
-                      <Translated locale={lang} message="home.versus" />
-                    )}{' '}
-                    <EntityImage
-                      media={card.away.crest}
-                      kind="crest"
-                      name={card.away.name}
-                      size={20}
-                      className="inline-flex align-middle"
-                    />{' '}
-                    {card.away.name}
-                  </Link>
-                  <span className="text-xs text-muted">
-                    {card.competition.short_name ?? card.competition.name}
-                  </span>
-                  {notes.has(card.id) && (
-                    // The editor's placement, in their words; it says nothing
-                    // about who will win (rule 6).
-                    <span className="text-xs" data-testid="home-featured-note">
-                      <span className="font-semibold">
-                        <Translated locale={lang} message="home.featured" />
-                      </span>
-                      : {notes.get(card.id)}
-                    </span>
-                  )}
-                  {watch?.state === 'lines' && (
-                    <span className="text-xs">
-                      <CardViewingLine
-                        viewing={watch.byFixture.get(card.id)}
-                        locale={locale}
-                        words={scoreWords}
-                      />
-                    </span>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {watch?.state === 'ask' && (
-            // Once for the list, not the same question on every line (D-115).
-            <p className="text-sm" data-testid="home-viewing-ask">
-              <LinkedSentence
-                sentence={message(lang, 'home.watch.ask')}
-                link={message(lang, 'viewing.choose')}
-                href={`/${locale}/watch`}
+        <div className="flex flex-wrap gap-x-12 gap-y-10">
+          <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-8">
+            {story !== null && <LeadStory story={story} locale={lang} timeZone={timeZone} />}
+            {lead !== null && (
+              <LeadMatchCard
+                card={lead}
+                forecast={leadForecast}
+                homeRow={tableRowOf(leadRows, lead.home.id)}
+                awayRow={tableRowOf(leadRows, lead.away.id)}
+                tableSize={leadRows?.length ?? 0}
+                note={notes.get(lead.id) ?? null}
+                today={today}
+                locale={lang}
+                timeZone={timeZone}
               />
-            </p>
-          )}
-          {watch?.state === 'unreachable' && (
-            <p className="text-sm text-muted" data-testid="home-viewing-unreachable">
-              <Translated locale={lang} message="home.watch.unreachable" />
-            </p>
-          )}
-          <p className="text-sm">
-            <Link href={`/${locale}/scores`} className="underline">
-              <Translated locale={lang} message="home.allScores" />
-            </Link>{' '}
-            <MessageText
-              className="text-muted"
-              message={filled('home.timesIn', { zone: timeZone })}
-            />
-          </p>
-        </section>
-      )}
-
-      {modelView.length > 0 && (
-        <section className="flex flex-col gap-2" data-testid="home-forecasts">
-          <h2 className="text-lg font-semibold">
-            <Translated locale={lang} message="home.model.title" />
-          </h2>
-          <ul className={LIST}>
-            {modelView.map(({ card, percent }) => (
-              <li key={card.id} className="flex flex-col px-3 py-2">
-                <Link href={`/${locale}/match/${card.id}`} className={ROW_LINK}>
-                  <MessageText
-                    message={filled('home.fixture', {
-                      home: card.home.name,
-                      away: card.away.name,
-                    })}
-                  />
-                </Link>
-                <MessageText
-                  className="text-sm text-muted tabular-nums"
-                  message={filled('home.model.line', {
-                    home: card.home.short_name ?? card.home.name,
-                    homePercent: num(percent.home),
-                    draw: num(percent.draw),
-                    away: card.away.short_name ?? card.away.name,
-                    awayPercent: num(percent.away),
-                  })}
+            )}
+            {lead !== null && (
+              <ThreeForecasts
+                card={lead}
+                forecast={leadForecast}
+                founder={founder !== null && founder.ok ? founder.data : null}
+                consensus={consensus !== null && consensus.ok ? consensus.data : null}
+                revealed={
+                  ownPick != null || lead.status !== 'scheduled' || isLocked(lead.kickoff_at)
+                }
+                locale={lang}
+              />
+            )}
+            {!scores.ok || day === null ? (
+              <section aria-labelledby="home-key" data-testid="home-matches-none">
+                <RuleHeading
+                  id="home-key"
+                  title={<Translated locale={lang} message="home.key.title" />}
                 />
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-muted">
-            <MessageText
-              message={filled('home.model.note', { version: modelView[0]?.modelVersion ?? '' })}
-            />
-          </p>
-        </section>
-      )}
-
-      {me !== null && (
-        <FriendPredictionsSection
-          locale={locale}
-          timeZone={timeZone}
-          result={friendCalls?.ok === true ? friendCalls.data.predictions : null}
-        />
-      )}
-
-      {me !== null && (
-        <GroupDiscussionsSection
-          locale={locale}
-          viewer={me.username}
-          result={groupTalk?.ok === true ? groupTalk.data.discussions : null}
-        />
-      )}
-
-      {todayIds.length > 0 && <PanelsSection locale={locale} panels={panels} cards={cardsById} />}
-
-      {founder.ok && (
-        <FounderAnalysisFeed
-          analyses={founder.data.analyses}
-          locale={locale}
-          timeZone="UTC"
-          heading={t(lang, 'home.founder.heading')}
-        />
-      )}
-
-      {table !== null && table.ok && tableRows.length > 0 && (
-        <section className="flex flex-col gap-2" data-testid="home-table">
-          <h2 className="text-lg font-semibold">
-            <Link
-              href={`/${locale}/competition/${table.data.competition.id}`}
-              className="inline-flex items-center gap-2 underline"
-            >
-              <EntityImage
-                media={table.data.competition.logo}
-                kind="logo"
-                name={table.data.competition.name}
-                size={20}
+                <p className="text-sm text-muted">
+                  <Translated
+                    locale={lang}
+                    message={scores.ok ? 'home.key.empty' : 'home.key.unreachable'}
+                  />
+                </p>
+              </section>
+            ) : (
+              <KeyMatches
+                groups={groups}
+                isToday={day === today}
+                day={day}
+                forecasts={forecasts}
+                notes={notes}
+                competitions={competitionsOn(scores.data, day, timeZone)}
+                scoresHref={`/${locale}/scores${day === today ? '' : `?date=${day}`}`}
+                signedIn={member}
+                locale={lang}
+                timeZone={timeZone}
               />
-              {table.data.competition.name}
-            </Link>
-          </h2>
-          <table className="w-full text-sm tabular-nums">
-            <thead>
-              <tr className="border-b border-default text-xs text-muted">
-                <th scope="col" className="w-8 py-1 text-start font-normal">
-                  #
-                </th>
-                <th scope="col" className="py-1 text-start font-normal">
-                  <Translated locale={lang} message="home.table.team" />
-                </th>
-                <th scope="col" className="w-10 py-1 text-end font-normal">
-                  <abbr title={played.text} lang={played.lang}>
-                    <Translated locale={lang} message="home.table.playedShort" />
-                  </abbr>
-                </th>
-                <th scope="col" className="w-12 py-1 text-end font-normal">
-                  <abbr title={points.text} lang={points.lang}>
-                    <Translated locale={lang} message="home.table.pointsShort" />
-                  </abbr>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableRows.map((row) => (
-                <tr key={row.team.id} className="border-b border-default last:border-b-0">
-                  <td className="py-1.5 text-muted">{num(row.position)}</td>
-                  <td className="py-1.5">
-                    <span className="flex items-center gap-2">
-                      <EntityImage
-                        media={row.team.crest}
-                        kind="crest"
-                        name={row.team.name}
-                        size={20}
-                      />
-                      {row.team.name}
-                    </span>
-                  </td>
-                  <td className="py-1.5 text-end text-muted">{num(row.played)}</td>
-                  <td className="py-1.5 text-end font-semibold">{num(row.points)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
+            )}
+            {member && (
+              <FriendPredictionsSection
+                locale={locale}
+                timeZone={timeZone}
+                result={friendCalls?.ok === true ? friendCalls.data.predictions : null}
+              />
+            )}
+            {member && (
+              <GroupDiscussionsSection
+                locale={locale}
+                viewer={me.username}
+                result={groupTalk?.ok === true ? groupTalk.data.discussions : null}
+              />
+            )}
+            {todayIds.length > 0 && (
+              <PanelsSection locale={locale} panels={panels} cards={cardsById} />
+            )}
+            <ColumnAndPicks
+              analyses={founderFeed.ok ? founderFeed.data.analyses : null}
+              locale={lang}
+            />
+          </div>
 
-      {stories.length > 0 && (
-        <section className="flex flex-col gap-2" data-testid="home-news">
-          <h2 className="text-lg font-semibold">
-            <Translated locale={lang} message="home.news.title" />
-          </h2>
-          <ul className={LIST}>
-            {stories.map((story) => (
-              <li key={story.story_id} className="flex gap-3 px-3 py-2" data-testid="home-story">
-                <NewsThumb image={story.image} />
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <Link href={`/${locale}/news/story/${story.story_id}`} className={ROW_LINK}>
-                    {story.headline}
-                  </Link>
-                  {drawableNewsImage(story.image) && (
-                    <NewsImageCredit image={story.image} locale={lang} />
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+          <aside className="flex min-w-0 flex-[1_1_21rem] flex-col gap-8 xl:max-w-[26.25rem]">
+            {table !== null && table.ok && <TableTopFive page={table.data} locale={lang} />}
+            <AccuracyCard
+              figure={accuracy.ok ? accuracyFigure(accuracy.data) : null}
+              reachable={accuracy.ok}
+              locale={lang}
+              timeZone={timeZone}
+            />
+            {viewing !== null && (
+              <Broadcasts
+                broadcasts={homeBroadcasts(
+                  todayCards,
+                  viewing.ok ? viewing.data.fixtures : null,
+                  (code) => territoryName(lang, code),
+                )}
+                locale={lang}
+                timeZone={timeZone}
+              />
+            )}
+            {member && (
+              <MyTeams
+                teams={
+                  following === null
+                    ? null
+                    : myTeams.map((team, index) => {
+                        const page = teamPages[index];
+                        return {
+                          id: team.entity_id,
+                          name: team.name,
+                          page: page !== undefined && page.ok ? page.data : null,
+                        };
+                      })
+                }
+                followsNone={following !== null && myTeams.length === 0}
+                locale={lang}
+                timeZone={timeZone}
+              />
+            )}
+            {member && (
+              <p className="text-sm">
+                <LinkedSentence
+                  sentence={message(lang, 'home.feed')}
+                  link={message(lang, 'home.feed.link')}
+                  href={`/${locale}/following`}
+                />
+              </p>
+            )}
+            {!member && (
+              <GuestWelcome locale={lang}>
+                <p data-testid="first-visit">
+                  <LinkedSentence
+                    sentence={message(lang, 'home.firstVisit')}
+                    link={message(lang, 'home.firstVisit.link')}
+                    href={`/${locale}/about`}
+                  />
+                </p>
+                <p data-testid="guest-invite">
+                  <LinkedSentence
+                    sentence={message(lang, 'home.guestInvite')}
+                    link={message(lang, 'home.guestInvite.link')}
+                    href={`/${locale}/register`}
+                  />
+                </p>
+              </GuestWelcome>
+            )}
+          </aside>
+        </div>
+
+        {stories.length > 0 && (
+          <NewsGrid
+            stories={stories}
+            stale={news.ok && feedsStale(news.data.stories.last_updated_at, now)}
+            locale={lang}
+            timeZone={timeZone}
+          />
+        )}
+      </div>
     </main>
   );
 }

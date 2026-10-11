@@ -1,5 +1,6 @@
 import { NEWS_IMAGE_LICENCES, type NewsImage } from '@fmip/contracts';
 import { FilledMessage } from '@/components/filled-message';
+import { Pictured } from '@/components/lite-mode';
 import { cx } from '@/components/ui/cx';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { message } from '@/i18n/messages';
@@ -99,65 +100,72 @@ export function NewsPhoto({
 }) {
   if (!drawableNewsImage(image)) return null;
   const { width, height } = size(image);
+  // Lite mode (T-1387): neither the photo nor its credit; the story is its text.
   return (
-    <figure className="flex flex-col gap-1" data-testid="news-photo">
-      {/* A plain image on purpose: no optimiser route, no client JS (see above). */}
+    <Pictured>
+      <figure className="flex flex-col gap-1" data-testid="news-photo">
+        {/* A plain image on purpose: no optimiser route, no client JS (see above). */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={image.url}
+          width={width}
+          height={height}
+          alt={headline}
+          loading="eager"
+          decoding="auto"
+          className={cx(
+            'h-auto w-full rounded-sm bg-surface-raised',
+            image.width === null || image.height === null ? 'aspect-video object-cover' : null,
+          )}
+          data-testid="news-image"
+        />
+        <figcaption>
+          <NewsImageCredit image={image} locale={locale} />
+        </figcaption>
+      </figure>
+    </Pictured>
+  );
+}
+
+/** A card on the news page: the full width, 16:9, above the headline; lazy; none in lite mode. */
+export function NewsCardImage({ image }: { image: NewsImage | null | undefined }) {
+  if (!drawableNewsImage(image)) return null;
+  const { width, height } = size(image);
+  return (
+    <Pictured>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={image.url}
         width={width}
         height={height}
-        alt={headline}
-        loading="eager"
-        decoding="auto"
-        className={cx(
-          'h-auto w-full rounded-sm bg-surface-raised',
-          image.width === null || image.height === null ? 'aspect-video object-cover' : null,
-        )}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="aspect-video h-auto w-full rounded-sm bg-surface-raised object-cover"
         data-testid="news-image"
+        data-variant="card"
       />
-      <figcaption>
-        <NewsImageCredit image={image} locale={locale} />
-      </figcaption>
-    </figure>
+    </Pictured>
   );
 }
 
-/** A card on the news page: the full width, 16:9, above the headline; lazy. */
-export function NewsCardImage({ image }: { image: NewsImage | null | undefined }) {
-  if (!drawableNewsImage(image)) return null;
-  const { width, height } = size(image);
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={image.url}
-      width={width}
-      height={height}
-      alt=""
-      loading="lazy"
-      decoding="async"
-      className="aspect-video h-auto w-full rounded-sm bg-surface-raised object-cover"
-      data-testid="news-image"
-      data-variant="card"
-    />
-  );
-}
-
-/** A dense list's row: a 72px square on the inline start; lazy. */
+/** A dense list's row: a 72px square on the inline start; lazy; none in lite mode. */
 export function NewsThumb({ image }: { image: NewsImage | null | undefined }) {
   if (!drawableNewsImage(image)) return null;
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={image.url}
-      width={72}
-      height={72}
-      alt=""
-      loading="lazy"
-      decoding="async"
-      className="size-[72px] shrink-0 rounded-sm bg-surface-raised object-cover"
-      data-testid="news-image"
-      data-variant="thumb"
-    />
+    <Pictured>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image.url}
+        width={72}
+        height={72}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="size-[72px] shrink-0 rounded-sm bg-surface-raised object-cover"
+        data-testid="news-image"
+        data-variant="thumb"
+      />
+    </Pictured>
   );
 }

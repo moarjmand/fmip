@@ -34,6 +34,7 @@ import type {
   StatMetric,
 } from '../../normalised';
 import { groupOfLabel } from '../_group';
+import { incidentDetail } from '../_incident-detail';
 
 export type Json = Record<string, unknown>;
 
@@ -254,7 +255,8 @@ export function mapIncidents(
       side,
       player,
       relatedPlayer,
-      detail: str(e.type),
+      // In our words, never the provider's type text (rule 2, T-1378).
+      detail: incidentDetail(kind, e.type),
     });
   }
   return out;

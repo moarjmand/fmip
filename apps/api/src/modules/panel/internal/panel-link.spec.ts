@@ -106,7 +106,33 @@ describe('incidentState (T-1030)', () => {
   it('is changed when any field the card shows moved', () => {
     expect(incidentState(row({ ...goal, minute: 24 }))).toBe('changed');
     expect(incidentState(row({ ...goal, incident_kind: 'own_goal' }))).toBe('changed');
-    expect(incidentState(row({ ...goal, incident_detail: 'VAR: offside' }))).toBe('changed');
+  });
+
+  // T-1378: a detail is compared, and shown, in our words.
+  const review = {
+    ...goal,
+    incident_kind: 'var',
+    incident_person_id: null,
+    incident_person_name: null,
+    incident_detail: 'Goal cancelled',
+    link_snapshot: {
+      ...goal.link_snapshot,
+      kind: 'var',
+      person_id: null,
+      detail: 'Goal cancelled',
+    },
+  };
+
+  it('is changed when what a VAR review decided moved', () => {
+    expect(incidentState(row({ ...review, incident_detail: 'goal_confirmed' }))).toBe('changed');
+    expect(incidentState(row({ ...review, incident_detail: null }))).toBe('changed');
+  });
+
+  it("is as linked when the provider's text was stored then and our code now", () => {
+    expect(incidentState(row(review))).toBe('as_linked');
+    expect(incidentState(row({ ...review, incident_detail: 'goal_cancelled' }))).toBe('as_linked');
+    // A goal's text only repeated its kind: nothing the card shows moved.
+    expect(incidentState(row({ ...goal, incident_detail: 'Normal Goal' }))).toBe('as_linked');
   });
 
   it('is removed when the feed no longer has it', () => {
@@ -123,6 +149,28 @@ describe('linkOf (T-1030)', () => {
     });
     const changed = linkOf(row({ ...goal, minute: 31 }), 'visible');
     expect(changed).toMatchObject({ state: 'changed', incident: { minute: 31 } });
+  });
+
+  it("carries a stored detail in our words, never the provider's text (T-1378)", () => {
+    const at = (kind: string, detail: string | null) =>
+      linkOf(
+        row({
+          ...goal,
+          incident_kind: kind,
+          incident_detail: detail,
+          link_snapshot: { ...goal.link_snapshot, kind, detail },
+        }),
+        'visible',
+      );
+    expect(at('var', 'Goal Disallowed - offside')).toMatchObject({
+      incident: { detail: 'goal_cancelled' },
+    });
+    expect(at('var', 'penalty_confirmed')).toMatchObject({
+      incident: { detail: 'penalty_confirmed' },
+    });
+    expect(at('var', 'Something new')).toMatchObject({ incident: { detail: null } });
+    expect(at('goal', 'Normal Goal')).toMatchObject({ incident: { detail: null } });
+    expect(at('substitution', 'Substitution 1')).toMatchObject({ incident: { detail: null } });
   });
 
   it('withholds a prediction the author does not show the public, naming the setting', () => {

@@ -1,6 +1,7 @@
 import { type Freshness, type IngestionHealth, STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { formatTime } from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
+import { LITE_POLL_MS } from '@/lib/lite';
 import { fill } from '@/lib/words';
 
 /**
@@ -64,10 +65,27 @@ export interface LiveClock {
 
 export const INITIAL_CLOCK: LiveClock = { lastEventAt: null, lastSnapshotAt: null, broken: false };
 
-export function liveState(clock: LiveClock, now: number): LiveState {
+/**
+ * In lite mode (T-1387, D-205) a live surface asks once a minute instead of
+ * holding the stream open (`openLiveSource`), so "stale" is a missed poll
+ * plus the same slack, not a missed heartbeat; the freshness line still
+ * says exactly when it last checked.
+ */
+export const LITE_STALE_AFTER_MS = LITE_POLL_MS + STALE_AFTER_MS;
+
+/** The threshold a live surface judges itself by, lite or not. */
+export function staleAfterMs(lite: boolean): number {
+  return lite ? LITE_STALE_AFTER_MS : STALE_AFTER_MS;
+}
+
+export function liveState(
+  clock: LiveClock,
+  now: number,
+  staleAfter: number = STALE_AFTER_MS,
+): LiveState {
   if (clock.broken) return clock.lastSnapshotAt === null ? 'unavailable' : 'stale';
   if (clock.lastEventAt === null) return 'connecting';
-  return now - clock.lastEventAt > STALE_AFTER_MS ? 'stale' : 'live';
+  return now - clock.lastEventAt > staleAfter ? 'stale' : 'live';
 }
 
 /** The freshness line's words, resolved for the reader's locale (T-1303). */

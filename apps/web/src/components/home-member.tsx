@@ -10,7 +10,7 @@ import {
 } from '@fmip/contracts';
 import { MemberName } from '@/components/member-name';
 import { MessageText } from '@/components/message-text';
-import { LtrNumeric } from '@/components/score';
+import { ScorePair } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { formatNumber, intlLocale } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
@@ -124,10 +124,10 @@ export function FriendPredictionsSection({
                     {p.version.score !== null && (
                       <>
                         {' ('}
-                        <LtrNumeric>
+                        <ScorePair locale={lang}>
                           {formatNumber(lang, p.version.score.home)}–
                           {formatNumber(lang, p.version.score.away)}
-                        </LtrNumeric>
+                        </ScorePair>
                         )
                       </>
                     )}

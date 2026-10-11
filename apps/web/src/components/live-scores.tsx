@@ -6,7 +6,10 @@ import { useEffect, useState } from 'react';
 import { EntityImage } from '@/components/entity-image';
 import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
-import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
+import { FreshnessStamp } from '@/components/freshness-stamp';
+import { useLite } from '@/components/lite-mode';
+import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState, staleAfterMs } from '@/lib/live';
+import { openLiveSource } from '@/lib/live-source';
 import type { ScoreCardProducts } from '@/lib/score-card-products';
 import { blockUpdatedLabel, formatKickoff } from '@/lib/scores';
 import { applyFilters, isFiltered, type ScoresFilterSelection } from '@/lib/scores-filters';
@@ -88,44 +91,52 @@ export function LiveScores({
   // What the last snapshot changed, in words, for the polite live region (T-081).
   const [announcement, setAnnouncement] = useState('');
   const filterKey = JSON.stringify(filters);
+  // Lite mode (T-1387): a snapshot a minute rather than an open stream.
+  const { on: lite } = useLite();
 
   useEffect(() => {
     // Keyed on the selection's value, not the object, so a re-render with the
     // same filters never reopens the stream.
     const selection = JSON.parse(filterKey) as ScoresFilterSelection;
-    // The reader's names in every snapshot, as on the server-rendered page (T-1312).
-    const source = new EventSource(withLocale(`/api/scores/stream?${streamQuery}`, locale));
     const stamp = (snapshot: boolean): void =>
       setClock((c) => ({
         lastEventAt: Date.now(),
         lastSnapshotAt: snapshot ? Date.now() : c.lastSnapshotAt,
         broken: false,
       }));
-    source.addEventListener('snapshot', (event) => {
-      const next = JSON.parse((event as MessageEvent<string>).data) as ScoresResponse;
-      setScores((previous) => {
-        const said = scoresAnnouncements(
-          applyFilters(previous, selection),
-          applyFilters(next, selection),
-          words,
-        );
-        if (said.length > 0) setAnnouncement(said.join(' '));
-        return next;
-      });
-      stamp(true);
-    });
-    source.addEventListener('heartbeat', () => stamp(false));
-    source.addEventListener('stale', () => setClock((c) => ({ ...c, broken: true })));
-    source.onerror = () => setClock((c) => ({ ...c, broken: true }));
-    source.onopen = () => setClock((c) => ({ ...c, broken: false }));
+    // The reader's names in every snapshot, as on the server-rendered page (T-1312).
+    const stop = openLiveSource(
+      withLocale(`/api/scores/stream?${streamQuery}`, locale),
+      lite,
+      (source) => {
+        source.addEventListener('snapshot', (event) => {
+          const next = JSON.parse((event as MessageEvent<string>).data) as ScoresResponse;
+          setScores((previous) => {
+            const said = scoresAnnouncements(
+              applyFilters(previous, selection),
+              applyFilters(next, selection),
+              words,
+            );
+            if (said.length > 0) setAnnouncement(said.join(' '));
+            return next;
+          });
+          stamp(true);
+        });
+        source.addEventListener('heartbeat', () => stamp(false));
+        source.addEventListener('stale', () => setClock((c) => ({ ...c, broken: true })));
+        source.onerror = () => setClock((c) => ({ ...c, broken: true }));
+        source.onopen = () => setClock((c) => ({ ...c, broken: false }));
+      },
+    );
     const tick = setInterval(() => setNow(Date.now()), 5_000);
     return () => {
       clearInterval(tick);
-      source.close();
+      stop();
     };
-  }, [streamQuery, filterKey, words, locale]);
+  }, [streamQuery, filterKey, words, locale, lite]);
 
-  const state = liveState(clock, now);
+  const staleAfter = staleAfterMs(lite);
+  const state = liveState(clock, now, staleAfter);
   const shown = applyFilters(scores, filters);
 
   return (
@@ -142,7 +153,19 @@ export function LiveScores({
         data-state={state}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
       >
-        {liveLabel(state, clock, locale, timeZone, words.m)}
+        {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
+          // The freshness stamp (T-1388), the same one the match centre shows.
+          <FreshnessStamp
+            checkedAt={clock.lastEventAt}
+            now={now}
+            staleAfterMs={staleAfter}
+            behind={state === 'stale'}
+            locale={locale}
+            words={words.m}
+          />
+        ) : (
+          liveLabel(state, clock, locale, timeZone, words.m)
+        )}
       </p>
       <div
         aria-live="polite"

@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import type { MatchViewing, Territory, ViewingOption } from '@fmip/contracts';
+import { Pictured } from '@/components/lite-mode';
 import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
-import { Button, Notice, Select, inlineTargetClasses } from '@/components/ui';
+import { Button, LinkOut, Notice, Select, inlineTargetClasses } from '@/components/ui';
 import { formatDateTime } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, interpolate, message } from '@/i18n/messages';
@@ -133,6 +134,94 @@ export function ViewingPanel(props: Props) {
       )}
     </section>
   );
+}
+
+/**
+ * The match centre's score band (T-1384, D-202): "Watch: IRIB TV3 ↗ ·
+ * Telewebion ↗" under the score, each service a link-out to its official
+ * page that names it. Anything short of a listing is a link to the Watch
+ * section, which says why in full (the four sentences above); an unreachable
+ * service says nothing here, because the Watch section says it.
+ */
+export function WatchLine({ locale, viewing }: { locale: string; viewing: MatchViewing | null }) {
+  if (viewing === null) return null;
+  const options = optionsState(viewing) === 'listed' ? (viewing.options.data ?? []) : [];
+  // One link per service: a service listed twice (free and registration) is one name.
+  const services = options.filter(
+    (option, index) =>
+      options.findIndex((o) => o.broadcaster.id === option.broadcaster.id) === index,
+  );
+  if (services.length === 0) {
+    return (
+      <a
+        href="#watch"
+        className={inlineTargetClasses('text-sm font-semibold underline')}
+        data-testid="hero-watch"
+        data-state={optionsState(viewing)}
+      >
+        <Translated locale={locale} message="viewing.title" />
+      </a>
+    );
+  }
+  return (
+    <p
+      className="flex flex-wrap items-center justify-center gap-x-2 text-sm font-semibold"
+      data-testid="hero-watch"
+      data-state="listed"
+    >
+      <Translated locale={locale} message="matchCentre.hero.watch" />
+      {services.map((option, index) => (
+        <span key={option.id} className="inline-flex items-center gap-2">
+          {index > 0 && <span aria-hidden="true">·</span>}
+          <LinkOut href={option.url} host={option.broadcaster.name} />
+        </span>
+      ))}
+    </p>
+  );
+}
+
+/**
+ * After full time, the official highlight first in the score band (T-1384):
+ * only when the highlights module lists a clip for the reader's territory --
+ * a licensed feed's or the editorial desk's official page, both checked
+ * sources (T-1361, T-1366) -- as a link-out that names who publishes it, with
+ * the line that says nothing is hosted here (D-014). No clip, no button: the
+ * Watch section says why.
+ */
+export function HighlightsLink({
+  locale,
+  viewing,
+}: {
+  locale: string;
+  viewing: MatchViewing | null;
+}) {
+  if (viewing === null) return null;
+  const state = highlightsState(viewing);
+  const highlight = viewing.highlights.data?.[0];
+  if (highlight === undefined || (state !== 'page' && state !== 'embed')) return null;
+  const host = highlight.publisher ?? hostOf(highlight.url);
+  return (
+    <div
+      className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2"
+      data-testid="hero-highlights"
+    >
+      <LinkOut href={highlight.url} host={host} look="button" icon="play" testId="highlights-link">
+        <Translated locale={locale} message="viewing.highlightsPage" />
+      </LinkOut>
+      <span className="text-sm text-muted">
+        {interpolate(text(locale, 'matchCentre.hero.highlightsNote'), { host })}
+      </span>
+    </div>
+  );
+}
+
+/** The site an address belongs to, without its "www.": what a link-out names when no publisher is. */
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
 }
 
 /** A message as a plain string, for an attribute or an option label, in the locale or English. */
@@ -331,15 +420,18 @@ function Highlights({
       {highlight !== undefined && (state === 'page' || state === 'embed') && (
         <>
           {state === 'embed' && highlight.embed_url !== null && (
-            <iframe
-              src={highlight.embed_url}
-              title={text(locale, 'viewing.highlightsPlayer')}
-              className="aspect-video w-full"
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="strict-origin-when-cross-origin"
-              data-testid="viewing-embed"
-            />
+            // No player in lite mode (T-1387): the link below still leads to the clip.
+            <Pictured>
+              <iframe
+                src={highlight.embed_url}
+                title={text(locale, 'viewing.highlightsPlayer')}
+                className="aspect-video w-full"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                data-testid="viewing-embed"
+              />
+            </Pictured>
           )}
           <a
             href={highlight.url}

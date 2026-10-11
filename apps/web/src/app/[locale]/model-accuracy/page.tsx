@@ -40,14 +40,28 @@ export default async function ModelAccuracyPage({
   const result = await fetchModelAccuracy();
 
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
-      <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-        <Translated locale={lang} message="modelAccuracy.meta.title" />
-      </h1>
-      <p>
-        <Translated locale={lang} message="modelAccuracy.intro" />
-      </p>
-      <ModelAccuracy locale={lang} report={result.ok ? result.data : null} />
+    // Editorial mode (T-1383, D-201): paper whatever the theme, the serif
+    // display, the introduction at the article measure, the tables beside.
+    <main data-mode="editorial" className="bg-canvas text-fg">
+      <div className="page-frame flex flex-col gap-8 py-8 md:py-10">
+        <header className="flex max-w-measure flex-col gap-3">
+          <p className="text-xs font-bold tracking-widest text-model uppercase">
+            <Translated locale={lang} message="lanes.model.title" />
+          </p>
+          <h1
+            className="font-serif text-display-2 font-semibold md:text-display-4"
+            data-testid="title"
+          >
+            <Translated locale={lang} message="modelAccuracy.meta.title" />
+          </h1>
+          <p className="font-article text-article text-muted">
+            <Translated locale={lang} message="modelAccuracy.intro" />
+          </p>
+        </header>
+        <div className="max-w-4xl">
+          <ModelAccuracy locale={lang} report={result.ok ? result.data : null} />
+        </div>
+      </div>
     </main>
   );
 }

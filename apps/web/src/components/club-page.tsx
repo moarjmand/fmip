@@ -1,0 +1,956 @@
+import Link from 'next/link';
+import type { ReactNode } from 'react';
+import type {
+  MatchViewing,
+  SquadPlayer,
+  TeamCompetition,
+  TeamCompetitionSplits,
+  TeamPage,
+  TeamPageFixture,
+} from '@fmip/contracts';
+import { Coverage, MoreLink, Panel, When, zoneWords } from '@/components/competition-page';
+import { EntityBand, LinkTabs, StatTile, TileGrid } from '@/components/entity-band';
+import { EntityImage } from '@/components/entity-image';
+import { MinutesFigure } from '@/components/minutes-figure';
+import { Score, ScorePair } from '@/components/score';
+import { FORM_LOOK } from '@/components/standings-table';
+import { Translated } from '@/components/translated';
+import { ViewingPanel } from '@/components/viewing-panel';
+import { inlineTargetClasses } from '@/components/ui';
+import { cx } from '@/components/ui/cx';
+import { formatNumber, intlLocale, localDigits } from '@/i18n/format';
+import type { MessageKey } from '@/i18n/messages';
+import { FORM_KEY, formatFixtureDate, say } from '@/lib/competition';
+import { tabHref } from '@/lib/competition-overview';
+import { POSITION_KEY as PLAYER_POSITION_KEY } from '@/lib/player';
+import {
+  METRIC_KEY,
+  OVERVIEW_SQUAD,
+  SPLIT_COLUMNS,
+  SPLIT_COLUMN_KEY,
+  SPLIT_RECORD_ROWS,
+  SPLITS_FOOTNOTE,
+  type SeasonFigures,
+  type TeamTab,
+  TEAM_TABS,
+  afterTimeNote,
+  averageCell,
+  averageNote,
+  contextLine,
+  fromTeamSide,
+  groupSquad,
+  notSuppliedNote,
+  splitNotes,
+  squadIncomplete,
+  squadInOrder,
+  teamTabHref,
+} from '@/lib/team';
+import { withTerritory } from '@/lib/viewing';
+
+/**
+ * The club page in the Hybrid design, data mode (T-1386, D-204): the band,
+ * the tabs and the modules each tab is made of. Every module states its
+ * coverage with a `CoverageBadge` where the API declares one (rule 3); a
+ * figure the API does not count is left out with a sentence, never drawn as
+ * a zero. The page (`app/[locale]/team/[id]/page.tsx`) fetches and composes.
+ */
+
+// ---------------------------------------------------------------------------
+// The band
+// ---------------------------------------------------------------------------
+
+const TAB_KEY: Record<TeamTab, MessageKey> = {
+  overview: 'competitionPage.tab.overview',
+  fixtures: 'competitionPage.tab.fixtures',
+  results: 'competitionPage.tab.results',
+  squad: 'teamPage.squad',
+  stats: 'competitionPage.tab.stats',
+};
+
+/** A year as a reader reads it: the locale's digits, never grouped ("1899", not "1,899"). */
+export function yearText(locale: string, year: number): string {
+  return new Intl.NumberFormat(intlLocale(locale), { useGrouping: false }).format(year);
+}
+
+/**
+ * The club's band (T-1386): the crest, country, kind and founding year, the
+ * name in the condensed display face, the canonical name when a localised
+ * one is shown, the ground, the followers and the manager, follow, and the
+ * tabs. Brand colours only (see `EntityBand`).
+ */
+export function ClubBand({
+  page,
+  locale,
+  timeZone,
+  tab,
+  follow,
+  territory,
+}: {
+  page: TeamPage;
+  locale: string;
+  timeZone: string;
+  tab: TeamTab;
+  follow: ReactNode;
+  /** A guest's territory, kept on the tab links so the Fixtures tab still answers in it. */
+  territory: string | undefined;
+}) {
+  const t = page.team;
+  const name = t.localised_name ?? t.name;
+  const eyebrow = [
+    ...(t.country !== null ? [t.country.name] : []),
+    say(locale, t.kind === 'national' ? 'teamPage.national' : 'teamPage.club'),
+    ...(t.gender === 'women' ? [say(locale, 'competitionPage.women')] : []),
+    ...(t.founded_year !== null
+      ? [say(locale, 'teamPage.founded', { year: yearText(locale, t.founded_year) })]
+      : []),
+  ];
+  return (
+    <EntityBand
+      testId="team-header"
+      media={
+        <span className="grid size-18 shrink-0 place-items-center rounded-tile border border-default bg-canvas md:size-26">
+          <EntityImage media={t.crest} kind="crest" name={name} size={48} aboveFold />
+        </span>
+      }
+      eyebrow={eyebrow.join(' · ')}
+      title={name}
+      details={
+        <>
+          {t.localised_name !== null && (
+            // The name it is a name for. Shown, not hidden: a page that showed
+            // only the localised name would have lost the entity (rule 1).
+            <p className="text-sm text-muted" data-testid="canonical-name">
+              {t.name}
+            </p>
+          )}
+          <p className="mt-1.5 text-sm font-medium text-muted">
+            {t.venue !== null ? (
+              `${
+                t.venue.city !== null
+                  ? say(locale, 'teamPage.venueCity', { venue: t.venue.name, city: t.venue.city })
+                  : t.venue.name
+              }${t.venue.capacity !== null ? ` · ${formatNumber(locale, t.venue.capacity)}` : ''}`
+            ) : (
+              <Translated locale={locale} message="teamPage.noGround" />
+            )}
+            {' · '}
+            <span data-testid="followers">
+              <Translated locale={locale} message="team.followerCount" count={page.followers} />
+            </span>
+          </p>
+          <Manager page={page} locale={locale} timeZone={timeZone} />
+        </>
+      }
+      actions={follow}
+      tabs={
+        <LinkTabs
+          label={say(locale, 'competitionPage.sections')}
+          testId="team-tab"
+          tabs={TEAM_TABS.map((key) => ({
+            key,
+            href: withTerritory(teamTabHref(locale, t.id, key), territory),
+            label: say(locale, TAB_KEY[key]),
+            current: key === tab,
+          }))}
+        />
+      }
+    />
+  );
+}
+
+/** The coach named on the latest line-up, linked to that match, or why none is shown (T-944). */
+function Manager({ page, locale, timeZone }: { page: TeamPage; locale: string; timeZone: string }) {
+  const { coach, lineup_fixture: fixture } = page.manager;
+  return (
+    <p className="text-sm" data-testid="manager">
+      {coach.data !== null && fixture !== null ? (
+        <>
+          <span className="text-muted">
+            <Translated locale={locale} message="team.manager.label" />
+          </span>{' '}
+          <span className="font-semibold">{coach.data.name}</span>{' '}
+          <span className="text-xs text-muted">
+            <Translated locale={locale} message="team.manager.named" />{' '}
+            <Link
+              href={`/${locale}/match/${fixture.id}`}
+              className={inlineTargetClasses('underline')}
+            >
+              <time dateTime={fixture.kickoff_at}>
+                {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
+              </time>
+            </Link>
+          </span>
+        </>
+      ) : (
+        <span className="text-muted" data-testid="manager-none">
+          <Translated
+            locale={locale}
+            message={fixture === null ? 'team.manager.noLineup' : 'team.manager.noCoach'}
+          />
+        </span>
+      )}
+    </p>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Matches
+// ---------------------------------------------------------------------------
+
+/**
+ * One of the club's matches as a row (T-1386): when, the two sides with the
+ * score between them -- home first from the inline start, so on `/fa` the
+ * home side and its goals are on the right (D-193) -- the competition and
+ * any "aet" or shoot-out from the club's side under them, and the result
+ * from the club's side as a letter tile (none for a match not played).
+ */
+export function TeamMatchRow({
+  fixture,
+  teamId,
+  locale,
+  timeZone,
+  below,
+}: {
+  fixture: TeamPageFixture;
+  teamId: string;
+  locale: string;
+  timeZone: string;
+  /** Under the row: where to watch it (the Fixtures tab). */
+  below?: ReactNode;
+}) {
+  const side = fromTeamSide(fixture, teamId);
+  const note = afterTimeNote(locale, fixture, teamId);
+  const home = fixture.home.short_name ?? fixture.home.name;
+  const away = fixture.away.short_name ?? fixture.away.name;
+  return (
+    <li className="border-b border-default py-2.5 last:border-b-0" data-testid="match-line">
+      <div className="grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-2.5">
+        <When fixture={fixture} locale={locale} timeZone={timeZone} />
+        <div className="flex min-w-0 flex-col">
+          <Link
+            href={`/${locale}/match/${fixture.id}`}
+            className="flex min-h-7 min-w-0 items-center gap-2 text-sm font-semibold hover:underline focus-visible:underline"
+            data-testid="match-link"
+          >
+            <bdi className={cx('min-w-0 truncate', side.home && 'font-extrabold')}>{home}</bdi>
+            {fixture.score === null ? (
+              <span className="shrink-0 font-medium text-caption">
+                {say(locale, 'competitionPage.v')}
+              </span>
+            ) : (
+              <Score
+                home={fixture.score.home}
+                away={fixture.score.away}
+                locale={locale}
+                separator=" – "
+                className="shrink-0 font-sans text-base font-black font-stretch-condensed tabular-nums"
+                testId="match-score"
+              />
+            )}
+            <bdi className={cx('min-w-0 truncate', !side.home && 'font-extrabold')}>{away}</bdi>
+          </Link>
+          <span className="text-xs text-muted">
+            <Link
+              href={`/${locale}/competition/${fixture.competition.id}?season=${fixture.season.id}`}
+              className={inlineTargetClasses('hover:underline')}
+            >
+              {fixture.competition.short_name ?? fixture.competition.name}
+            </Link>
+            {note !== null && (
+              <span data-testid="after-time-note">
+                {' · '}
+                {note}
+              </span>
+            )}
+          </span>
+        </div>
+        {side.result !== null ? (
+          <span
+            data-result={side.result}
+            data-testid="result-letter"
+            className={`inline-grid size-6 place-items-center rounded-md text-xs font-extrabold ${FORM_LOOK[side.result]}`}
+          >
+            {say(locale, FORM_KEY[side.result])}
+          </span>
+        ) : (
+          <span aria-hidden="true" className="size-6" />
+        )}
+      </div>
+      {below}
+    </li>
+  );
+}
+
+/**
+ * The Overview's fixtures and results (T-1386): the next few matches and the
+ * latest few results, each list with a link to its whole tab, and the zone
+ * every time is in. A club with neither says so.
+ */
+export function MatchesPanel({
+  page,
+  locale,
+  timeZone,
+  limit,
+  territory,
+  freshness,
+}: {
+  page: TeamPage;
+  locale: string;
+  timeZone: string;
+  limit: number;
+  territory: string | undefined;
+  freshness: ReactNode;
+}) {
+  const t = page.team;
+  const upcoming = page.fixtures.slice(0, limit);
+  const recent = page.results.slice(0, limit);
+  return (
+    <Panel
+      testId="team-matches"
+      title={<Translated locale={locale} message="teamPage.matches" />}
+      aside={freshness}
+    >
+      {upcoming.length === 0 && recent.length === 0 ? (
+        <p className="text-sm text-muted" data-testid="team-matches-empty">
+          <Translated locale={locale} message="teamPage.noFixtures" />{' '}
+          <Translated locale={locale} message="teamPage.noResults" />
+        </p>
+      ) : (
+        <>
+          <ul className="flex flex-col">
+            {[...upcoming, ...recent].map((fixture) => (
+              <TeamMatchRow
+                key={fixture.id}
+                fixture={fixture}
+                teamId={t.id}
+                locale={locale}
+                timeZone={timeZone}
+              />
+            ))}
+          </ul>
+          <p className="text-xs text-muted">{zoneWords(locale, timeZone)}</p>
+          <div className="flex flex-wrap gap-x-5">
+            {page.fixtures.length > upcoming.length && (
+              <MoreLink href={withTerritory(teamTabHref(locale, t.id, 'fixtures'), territory)}>
+                <Translated locale={locale} message="teamPage.allFixtures" />
+              </MoreLink>
+            )}
+            {page.results.length > recent.length && (
+              <MoreLink href={withTerritory(teamTabHref(locale, t.id, 'results'), territory)}>
+                <Translated locale={locale} message="teamPage.allResults" />
+              </MoreLink>
+            )}
+          </div>
+        </>
+      )}
+    </Panel>
+  );
+}
+
+/**
+ * The Fixtures tab (T-1386): every match to come from the club's side, each
+ * with where it can be watched in the reader's territory (T-314), as the
+ * page always had it.
+ */
+export function FixturesPanel({
+  page,
+  locale,
+  timeZone,
+  viewing,
+  signedIn,
+  territory,
+  freshness,
+}: {
+  page: TeamPage;
+  locale: string;
+  timeZone: string;
+  viewing: Map<string, MatchViewing>;
+  signedIn: boolean;
+  territory: string | undefined;
+  freshness: ReactNode;
+}) {
+  return (
+    <Panel
+      testId="fixtures"
+      title={<Translated locale={locale} message="competitionPage.fixtures" />}
+      aside={freshness}
+    >
+      {page.fixtures.length === 0 ? (
+        <p className="text-sm text-muted" data-testid="fixtures-empty">
+          <Translated locale={locale} message="teamPage.noFixtures" />
+        </p>
+      ) : (
+        <>
+          <ul className="flex flex-col">
+            {page.fixtures.map((fixture) => (
+              <TeamMatchRow
+                key={fixture.id}
+                fixture={fixture}
+                teamId={page.team.id}
+                locale={locale}
+                timeZone={timeZone}
+                below={
+                  <div className="ps-[5.625rem]">
+                    <ViewingPanel
+                      variant="line"
+                      locale={locale}
+                      timeZone={timeZone}
+                      viewing={viewing.get(fixture.id) ?? null}
+                      kickoffAt={fixture.kickoff_at}
+                      status={fixture.status}
+                      signedIn={signedIn}
+                      href={withTerritory(`/${locale}/match/${fixture.id}`, territory)}
+                    />
+                  </div>
+                }
+              />
+            ))}
+          </ul>
+          <p className="text-xs text-muted">{zoneWords(locale, timeZone)}</p>
+        </>
+      )}
+    </Panel>
+  );
+}
+
+/** The Results tab (T-1386): every result on record, newest first, from the club's side. */
+export function ResultsPanel({
+  page,
+  locale,
+  timeZone,
+}: {
+  page: TeamPage;
+  locale: string;
+  timeZone: string;
+}) {
+  return (
+    <Panel
+      testId="results"
+      title={<Translated locale={locale} message="competitionPage.results" />}
+    >
+      {page.results.length === 0 ? (
+        <p className="text-sm text-muted" data-testid="results-empty">
+          <Translated locale={locale} message="teamPage.noResults" />
+        </p>
+      ) : (
+        <ul className="flex flex-col">
+          {page.results.map((fixture) => (
+            <TeamMatchRow
+              key={fixture.id}
+              fixture={fixture}
+              teamId={page.team.id}
+              locale={locale}
+              timeZone={timeZone}
+            />
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+/** "No match scheduled", in the next-match card's place, so the page never opens on a blank. */
+export function NoNextMatch({ locale }: { locale: string }) {
+  return (
+    <Panel
+      testId="next-match-none"
+      title={<Translated locale={locale} message="nextMatch.title" />}
+    >
+      <p className="text-sm text-muted">
+        <Translated locale={locale} message="teamPage.noNext" />
+      </p>
+    </Panel>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The season
+// ---------------------------------------------------------------------------
+
+/** "Pro League · 2026/27", the season in the reader's digits. */
+function competitionSeason(
+  locale: string,
+  entry: Pick<TeamCompetition, 'competition' | 'season'>,
+): string {
+  return `${entry.competition.short_name ?? entry.competition.name} · ${localDigits(
+    locale,
+    entry.season.label,
+  )}`;
+}
+
+/**
+ * A current competition's season in tiles (T-1386): the place and the points
+ * from the table (its coverage on the badge), then won-drawn-lost, goals for
+ * and against and clean sheets as the API counted them from the stored
+ * finished matches. A figure it does not have is a sentence, never a zero;
+ * a pair of figures reads in the page's direction, the first at the start.
+ */
+export function SeasonPanel({ figures, locale }: { figures: SeasonFigures; locale: string }) {
+  const { entry, splits } = figures;
+  const context = entry.context.data;
+  const total = splits?.total ?? null;
+  const counted = total !== null && total.played > 0;
+  const n = (value: number) => formatNumber(locale, value);
+  return (
+    <Panel
+      testId="season"
+      id={`season-${entry.season.id}`}
+      title={competitionSeason(locale, entry)}
+      aside={<Coverage locale={locale} state={entry.context.coverage} />}
+    >
+      {context === null && !counted ? (
+        <p className="text-sm text-muted" data-testid="season-empty">
+          <Translated locale={locale} message="teamPage.noPosition" />{' '}
+          <Translated locale={locale} message="teamPage.splitsEmpty" />
+        </p>
+      ) : (
+        <TileGrid>
+          {context !== null && (
+            <>
+              <StatTile
+                testId="tile-position"
+                value={n(context.position)}
+                label={say(locale, 'teamPage.tile.position', { total: n(context.total) })}
+              />
+              <StatTile
+                testId="tile-points"
+                value={n(context.points)}
+                label={say(locale, 'competitionPage.col.pointsTitle')}
+              />
+            </>
+          )}
+          {counted && (
+            <>
+              <StatTile
+                testId="tile-record"
+                value={
+                  <ScorePair locale={locale}>
+                    {n(total.won)}–{n(total.drawn)}–{n(total.lost)}
+                  </ScorePair>
+                }
+                label={say(locale, 'teamPage.tile.record')}
+              />
+              <StatTile
+                testId="tile-goals"
+                value={
+                  <ScorePair locale={locale}>
+                    {n(total.goals_for)}–{n(total.goals_against)}
+                  </ScorePair>
+                }
+                label={say(locale, 'teamPage.tile.goals')}
+              />
+              <StatTile
+                testId="tile-clean-sheets"
+                value={n(total.clean_sheets)}
+                label={say(locale, 'teamPage.row.cleanSheets')}
+              />
+            </>
+          )}
+        </TileGrid>
+      )}
+      {context === null && counted && (
+        <p className="text-sm text-muted">
+          <Translated locale={locale} message="teamPage.noPosition" />
+        </p>
+      )}
+      {context !== null && !counted && (
+        <p className="text-sm text-muted">
+          <Translated locale={locale} message="teamPage.splitsEmpty" />
+        </p>
+      )}
+      {splits !== null &&
+        splitNotes(locale, splits).map((note) => (
+          <p key={note} className="text-xs text-muted">
+            {note}
+          </p>
+        ))}
+    </Panel>
+  );
+}
+
+/** The season panels, or the sentence for a club with no current competition. */
+export function SeasonPanels({ figures, locale }: { figures: SeasonFigures[]; locale: string }) {
+  if (figures.length === 0) {
+    return (
+      <Panel
+        testId="season-none"
+        title={<Translated locale={locale} message="teamPage.competitions" />}
+      >
+        <p className="text-sm text-muted">
+          <Translated locale={locale} message="teamPage.noCompetition" />
+        </p>
+      </Panel>
+    );
+  }
+  return (
+    <>
+      {figures.map((f) => (
+        <SeasonPanel key={f.entry.season.id} figures={f} locale={locale} />
+      ))}
+    </>
+  );
+}
+
+/**
+ * Where the club stands in each current competition (T-1386, from T-036):
+ * its row and its neighbours, its own row in bold, the table's coverage on
+ * the badge, and a link to the whole table on the competition page.
+ */
+export function TablePanels({ page, locale }: { page: TeamPage; locale: string }) {
+  const t = page.team;
+  return (
+    <div className="flex flex-col gap-5" data-testid="competitions">
+      {page.competitions.map((entry) => (
+        <Panel
+          key={entry.season.id}
+          testId="competition"
+          id={`table-${entry.season.id}`}
+          title={competitionSeason(locale, entry)}
+          aside={<Coverage locale={locale} state={entry.context.coverage} />}
+        >
+          {entry.context.data === null ? (
+            <p className="text-sm text-muted">
+              <Translated locale={locale} message="teamPage.noPosition" />
+            </p>
+          ) : (
+            <>
+              <p className="text-sm font-semibold" data-testid="context-line">
+                {contextLine(locale, entry.context.data)}
+              </p>
+              <table className="w-full text-sm tabular-nums">
+                <thead>
+                  <tr className="border-b border-strong text-xs text-muted">
+                    <th scope="col" className="py-1.5 pe-2 text-start font-bold">
+                      #
+                    </th>
+                    <th scope="col" className="py-1.5 pe-2 text-start font-bold">
+                      <Translated locale={locale} message="competitionPage.col.team" />
+                    </th>
+                    {(
+                      [
+                        ['competitionPage.col.played', 'competitionPage.col.playedTitle'],
+                        [
+                          'competitionPage.col.goalDifference',
+                          'competitionPage.col.goalDifferenceTitle',
+                        ],
+                        ['competitionPage.col.points', 'competitionPage.col.pointsTitle'],
+                      ] as const
+                    ).map(([short, long]) => (
+                      <th key={short} scope="col" className="py-1.5 ps-2 text-end font-bold">
+                        <abbr title={say(locale, long)} className="no-underline">
+                          {say(locale, short)}
+                        </abbr>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {entry.context.data.rows.map((row) => {
+                    const own = row.team.id === t.id;
+                    return (
+                      <tr
+                        key={row.team.id}
+                        className={cx(
+                          'border-b border-default last:border-b-0',
+                          own && 'font-extrabold',
+                        )}
+                        aria-current={own ? 'true' : undefined}
+                      >
+                        <td className="py-1.5 pe-2">{formatNumber(locale, row.position)}</td>
+                        <td className="py-1.5 pe-2">
+                          {own ? (
+                            <bdi>{row.team.name}</bdi>
+                          ) : (
+                            <Link
+                              href={`/${locale}/team/${row.team.id}`}
+                              className={inlineTargetClasses('hover:underline')}
+                            >
+                              <bdi>{row.team.name}</bdi>
+                            </Link>
+                          )}
+                        </td>
+                        <td className="py-1.5 ps-2 text-end">{formatNumber(locale, row.played)}</td>
+                        <td className="py-1.5 ps-2 text-end">
+                          <bdi>
+                            {row.goal_difference > 0 ? '+' : ''}
+                            {formatNumber(locale, row.goal_difference)}
+                          </bdi>
+                        </td>
+                        <td className="py-1.5 ps-2 text-end font-black font-stretch-condensed">
+                          {formatNumber(locale, row.points)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          )}
+          <MoreLink href={tabHref(locale, entry.competition.id, entry.season, 'table')}>
+            <Translated locale={locale} message="competitionPage.fullTable" />
+          </MoreLink>
+        </Panel>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The squad
+// ---------------------------------------------------------------------------
+
+/** "Goalkeeper · No. 1", or what we have of it; nothing when we have neither. */
+function squadRole(locale: string, player: SquadPlayer): string {
+  return [
+    ...(player.position !== null ? [say(locale, PLAYER_POSITION_KEY[player.position])] : []),
+    ...(player.shirt_number !== null
+      ? [say(locale, 'playerPage.shirt', { number: formatNumber(locale, player.shirt_number) })]
+      : []),
+  ].join(' · ');
+}
+
+/** One player as a card: photo or initials, name, position and shirt, loan, and minutes where asked. */
+function SquadCard({
+  player,
+  locale,
+  minutes,
+}: {
+  player: SquadPlayer;
+  locale: string;
+  minutes: boolean;
+}) {
+  const role = squadRole(locale, player);
+  return (
+    <li data-testid="player">
+      <Link
+        href={`/${locale}/player/${player.person.id}`}
+        className="flex min-h-touch items-center gap-3 rounded-tile bg-surface-raised p-2.5 hover:underline focus-visible:underline"
+      >
+        <EntityImage media={player.person.photo} kind="photo" name={player.person.name} size={48} />
+        <span className="flex min-w-0 flex-col">
+          <b className="truncate font-bold">{player.person.name}</b>
+          {(role !== '' || player.on_loan) && (
+            <span className="text-xs text-muted">
+              {role}
+              {player.on_loan && (
+                <>
+                  {role !== '' && ' · '}
+                  <Translated locale={locale} message="teamPage.onLoan" />
+                </>
+              )}
+            </span>
+          )}
+          {minutes && (
+            <MinutesFigure
+              locale={locale}
+              minutes={player.minutes}
+              className="text-xs text-muted"
+            />
+          )}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+const SQUAD_GRID = 'grid grid-cols-[repeat(auto-fit,minmax(min(13rem,100%),1fr))] gap-2.5';
+
+/**
+ * The squad (T-1386, from T-036 and T-824). The Overview shows the first
+ * `OVERVIEW_SQUAD` in the Squad tab's order as cards; the tab groups everyone
+ * by position with their minutes. The badge is the squad's coverage, and a
+ * sentence says when positions or shirt numbers are missing for some players
+ * rather than leaving a gap that looks like a fact.
+ */
+export function SquadPanel({
+  page,
+  locale,
+  full,
+}: {
+  page: TeamPage;
+  locale: string;
+  /** The Squad tab: every player by position, with minutes. */
+  full: boolean;
+}) {
+  const players = page.squad.data;
+  const ordered = players === null ? [] : squadInOrder(locale, players);
+  const shown = full ? ordered : ordered.slice(0, OVERVIEW_SQUAD);
+  return (
+    <Panel
+      testId="squad"
+      title={<Translated locale={locale} message="teamPage.squad" />}
+      aside={<Coverage locale={locale} state={page.squad.coverage} />}
+    >
+      {players === null ? (
+        <p className="text-sm text-muted" data-testid="squad-empty">
+          <Translated locale={locale} message="teamPage.noSquad" />
+        </p>
+      ) : (
+        <>
+          {squadIncomplete(players) && (
+            <p className="text-sm text-muted" data-testid="squad-incomplete">
+              <Translated locale={locale} message="teamPage.squadIncomplete" />
+            </p>
+          )}
+          {full ? (
+            groupSquad(locale, players).map((group) => (
+              <div key={group.position} className="flex flex-col gap-2" data-testid="squad-group">
+                <h3 className="border-b border-strong pb-1.5 text-xs font-extrabold text-muted uppercase ltr:tracking-wider">
+                  {group.label}
+                </h3>
+                <ul className={SQUAD_GRID}>
+                  {group.players.map((player) => (
+                    <SquadCard key={player.person.id} player={player} locale={locale} minutes />
+                  ))}
+                </ul>
+              </div>
+            ))
+          ) : (
+            <ul className={SQUAD_GRID}>
+              {shown.map((player) => (
+                <SquadCard key={player.person.id} player={player} locale={locale} minutes={false} />
+              ))}
+            </ul>
+          )}
+          {full && (
+            <p className="text-xs text-muted" data-testid="squad-minutes-note">
+              <Translated locale={locale} message="team.squad.minutes" />
+            </p>
+          )}
+          {!full && ordered.length > shown.length && (
+            <MoreLink href={teamTabHref(locale, page.team.id, 'squad')}>
+              <Translated locale={locale} message="teamPage.wholeSquad" count={ordered.length} />
+            </MoreLink>
+          )}
+        </>
+      )}
+    </Panel>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Home and away (the Stats tab)
+// ---------------------------------------------------------------------------
+
+/**
+ * Home and away (T-632): a panel per competition, a row per figure, a column
+ * per split, so the table stays four columns wide at 360px. Averages follow
+ * under their own coverage; a short row says why rather than showing a
+ * partial figure; a figure never supplied is named once under the table.
+ */
+export function SplitsPanels({ page, locale }: { page: TeamPage; locale: string }) {
+  return (
+    <div className="flex flex-col gap-5" data-testid="splits">
+      {page.splits.length === 0 ? (
+        <Panel
+          testId="splits-none"
+          title={<Translated locale={locale} message="teamPage.splits" />}
+        >
+          <p className="text-sm text-muted">
+            <Translated locale={locale} message="teamPage.noCompetition" />
+          </p>
+        </Panel>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+            {page.splits.map((entry) => (
+              <SplitsPanel key={entry.season.id} splits={entry} locale={locale} />
+            ))}
+          </div>
+          <p className="text-xs text-muted" data-testid="splits-footnote">
+            <Translated locale={locale} message={SPLITS_FOOTNOTE} />
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function SplitsPanel({ splits, locale }: { splits: TeamCompetitionSplits; locale: string }) {
+  const played = splits.total.played;
+  const notes = splitNotes(locale, splits);
+  // A figure the feed never supplied for these matches is named once under
+  // the table, not given a row of dashes each (T-1205); rule 3 still holds.
+  const shown = splits.averages.filter((a) => a.coverage !== 'not_supplied');
+  const missing = splits.averages.filter((a) => a.coverage === 'not_supplied');
+  return (
+    <Panel
+      testId="splits-competition"
+      id={`splits-${splits.season.id}`}
+      title={`${say(locale, 'teamPage.splits')} · ${competitionSeason(locale, splits)}`}
+    >
+      {played === 0 ? (
+        <p className="text-sm text-muted" data-testid="splits-empty">
+          <Translated locale={locale} message="teamPage.splitsEmpty" />
+        </p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-strong text-xs text-muted">
+              <th scope="col" className="py-1.5 pe-2 text-start font-bold">
+                <span className="sr-only">
+                  <Translated locale={locale} message="teamPage.figure" />
+                </span>
+              </th>
+              {SPLIT_COLUMNS.map((column) => (
+                <th key={column} scope="col" className="py-1.5 ps-2 text-end font-bold">
+                  <Translated locale={locale} message={SPLIT_COLUMN_KEY[column]} />
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {SPLIT_RECORD_ROWS.map((row) => (
+              <tr key={row.key} className="border-b border-default">
+                <th scope="row" className="py-1.5 pe-2 text-start font-medium">
+                  <Translated locale={locale} message={row.label} />
+                </th>
+                {SPLIT_COLUMNS.map((column) => (
+                  <td key={column} className="py-1.5 ps-2 text-end tabular-nums">
+                    {formatNumber(locale, splits[column][row.key])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {shown.map((average) => {
+              const note = averageNote(locale, average, played);
+              return (
+                <tr
+                  key={average.metric}
+                  className="border-b border-default last:border-b-0"
+                  data-testid="splits-average"
+                  data-coverage={average.coverage}
+                >
+                  <th scope="row" className="py-1.5 pe-2 text-start font-medium">
+                    <Translated locale={locale} message={METRIC_KEY[average.metric]} />
+                    <span className="block text-xs font-normal text-muted">
+                      {note === null ? say(locale, 'teamPage.perMatch') : note}
+                    </span>
+                  </th>
+                  {SPLIT_COLUMNS.map((column) => (
+                    <td key={column} className="py-1.5 ps-2 text-end align-top tabular-nums">
+                      {averageCell(locale, average, column)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+      {played > 0 && missing.length > 0 && (
+        <p className="text-xs text-muted" data-testid="splits-not-supplied">
+          {notSuppliedNote(
+            locale,
+            missing.map((a) => say(locale, METRIC_KEY[a.metric])),
+          )}
+        </p>
+      )}
+      {notes.map((note) => (
+        <p key={note} className="text-xs text-muted">
+          {note}
+        </p>
+      ))}
+    </Panel>
+  );
+}

@@ -78,8 +78,13 @@ export function AchievementsSection({
             </span>
             {achievement.round !== null && (
               <span className="text-muted">
-                {achievement.round.competition.name} · {achievement.round.season_label} ·{' '}
-                {stageName(locale, achievement.round.round)}
+                {[
+                  achievement.round.competition.name,
+                  achievement.round.season_label,
+                  stageName(locale, achievement.round.round),
+                ]
+                  .filter((part): part is string => part !== null)
+                  .join(' · ')}
               </span>
             )}
             <time dateTime={achievement.earned_at} className="text-xs text-muted">

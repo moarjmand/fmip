@@ -108,10 +108,9 @@ describe('labels', () => {
     expect(fromTeamSide(pens, 'b')).toMatchObject({ result: 'D', shootout: 'won' });
     expect(afterTimeNote('en', pens, 'a')).toBe('aet, lost 3–4 on penalties');
     expect(afterTimeNote('en', pens, 'b')).toBe('aet, won 4–3 on penalties');
-    // Persian (T-1304): its own words and digits, the pair kept left to right.
-    expect(afterTimeNote('fa', pens, 'b')).toBe(
-      'پس از وقت اضافه، برد \u2066۴–۳\u2069 در ضربات پنالتی',
-    );
+    // Persian (T-1304): its own words and digits, the pair one run read right
+    // to left, the side's own goals first (T-1375).
+    expect(afterTimeNote('fa', pens, 'b')).toBe('پس از وقت اضافه، برد ⁧۴–۳\u2069 در ضربات پنالتی');
   });
 
   it('spells the table position by the locale’s ordinal rules', () => {

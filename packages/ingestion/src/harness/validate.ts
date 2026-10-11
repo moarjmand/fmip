@@ -13,6 +13,7 @@ import {
   ABSENCE_KINDS,
   ABSENCE_STATUSES,
   FIXTURE_STATUSES,
+  INCIDENT_DETAILS,
   INCIDENT_KINDS,
   PERIOD_KINDS,
   PLAYER_STAT_METRICS,
@@ -226,7 +227,13 @@ export function validateIncident(value: unknown, path = 'incident'): Problem[] {
   if (value.side !== null) expectEnum(sink, value.side, `${path}.side`, ['home', 'away']);
   expectNullableRef(sink, value.player, `${path}.player`);
   expectNullableRef(sink, value.relatedPlayer, `${path}.relatedPlayer`);
-  expectNullableString(sink, value.detail, `${path}.detail`);
+  // Our words or none, never the provider's text (T-1378); only a VAR review has one.
+  if (value.detail !== null) {
+    const detailOk = expectEnum(sink, value.detail, `${path}.detail`, INCIDENT_DETAILS);
+    if (detailOk && kindOk && value.kind !== 'var') {
+      fail(sink, `${path}.detail`, `a ${String(value.kind)} carries no detail`);
+    }
+  }
 
   if (kindOk && value.kind !== 'var' && value.player === null) {
     fail(sink, `${path}.player`, `a ${String(value.kind)} needs a player`);

@@ -8980,3 +8980,1020 @@ an operator's, on that measurement, not this decision's.
   risks torn pages after a crash, the second gives up detecting corruption;
   neither is worth the bytes.
 - *zstd*: see above; smaller WAL as written, larger archive.
+
+## D-193 — A score reads in the page's direction, and a provider label we cannot name is left out
+**Status:** Accepted · 2026-10-10 · **Task:** T-1375 · **Follows:** D-175, T-153, T-1339
+
+**Context.** T-153 isolated every score left to right ("a score is a number
+pair and reads left to right in every script"). A score row, though, is
+home, score, away from the inline start, so on `/fa` the home team stands on
+the right while a left-to-right pair puts the home goals on the left, beside
+the away team. The live site on 2026-10-10 showed it on every finished row of
+`/fa/scores` and on the match centre header: Sepahan 6 Fajr Sepasi 1 was
+drawn with the six beside Fajr Sepasi. Built strings had a second form of
+the fault: an English name in a Persian fixture line ("Arsenal 2–1 Leeds")
+turned the whole line left to right. Separately, T-1339 returned a stage or
+round label it did not know exactly as the provider spelled it; 83 cards on
+`/fa/scores` in September and October 2026 said "Friendly International".
+
+**Decision.** (1) A home–away pair is one isolated run in the page's own
+direction (`Score`, `ScorePair`, `pairIsolate` in
+`apps/web/src/components/score.tsx`): on a right-to-left page its first
+number, the home goals, sits on the right, beside the home team, and a
+Persian reader reads "home – away". The DOM keeps home first in every
+locale. Names inside built strings are isolated as first-strong runs
+(`nameIsolate`, `<bdi>` in markup), so a Latin name cannot turn a Persian line
+around. `LtrNumeric` and `ltrIsolate` stay for figures that are not pairs
+(percentages, signed gaps, minutes). (2) `stageLabel` answers `null` for a
+text it cannot name, in every locale; the page leaves the label out or says
+its own word ("Groups" over a group table, "Knockout round" in the
+competition context). An unknown stage's round number still reads "Round n".
+The forms the live site shows or the provider is known to send (friendlies,
+qualifying, championship and relegation rounds, "Round of n", numbered
+rounds and matchdays) are in the catalogue.
+
+**Not changed here.** Predicted scorelines (the member's prediction, the
+founder's analysis, the community's and the model's most likely scorelines)
+still render left to right through `LtrNumeric`/`ltrIsolate`; moving them to
+the same rule is a follow-up, so a page may briefly show both. The label
+mapping stays in the web layer, over the contract's `round` string: moving it
+into the adapter as a stored matchday number and stage kind needs a
+migration with a backfill (CLAUDE.md §7), left to the maintainer.
+
+**Rejected.** *Keeping the pair left to right and swapping the two numbers on
+RTL pages*: the DOM, a screen reader and a copy would then say away first.
+*Laying the row out left to right on RTL pages*: the page mirrors everywhere
+else (rule 7). *Printing an unknown provider label in English*: rule 2.
+
+## D-196 — An incident's detail is ours: what a VAR review decided, or nothing
+**Status:** Accepted · 2026-10-10 · **Task:** T-1378 · **Follows:** D-193, T-034, T-1030
+
+**Context.** The adapters stored the provider's detail beside each incident
+as it was spelled (API-Football's `detail`, else its `comments`; Highlightly's
+event `type`), and the match centre printed it after the player: "Normal
+Goal", "Penalty", "Own Goal", "Missed Penalty", "Yellow Card", "Red card",
+"Second Yellow card", "Substitution 1", "Goal cancelled", in English on `/fa`
+as on `/en`. That is a provider string reaching the page unmapped (rule 2),
+and most of it repeated the incident's kind, which the page already names in
+the reader's language.
+
+**Decision.** (1) `IncidentDetail` (`INCIDENT_DETAILS` in `normalised.ts`,
+`MatchIncidentDetail` in the contract) is what a VAR review decided:
+`goal_cancelled`, `goal_confirmed`, `penalty_awarded`, `penalty_cancelled`,
+`penalty_confirmed`, `card_upgraded`, `card_cancelled`. Only a `var` incident
+carries one. A detail that repeats the kind is none; a detail the mapping
+cannot name is none, so the page shows the kind ("Goal", "VAR") alone and
+never the provider's text. (2) `incidentDetail(kind, raw)`
+(`packages/ingestion/src/adapters/_incident-detail.ts`) is the one mapping:
+the adapters call it, `validate.ts` refuses any other value, and it maps one
+of our codes to itself. (3) Rows stored before this hold the provider's text.
+They are not backfilled (CLAUDE.md §7): the API maps the stored detail at read
+time (`match-centre-store.ts`; `panel-link.ts`, which also compares a linked
+incident's detail in our words, so a link made over the provider's text is not
+reported as changed when the row later holds our code). A fixture's rows take
+our codes the next time its detail is ingested, as an ordinary changed-row
+write (D-192's writers rewrite only a row that differs). (4) The web says the
+code from the catalogue (`matchCentre.incidentDetail.*`, English and Persian;
+other locales fall back) in the timeline and on a panel card.
+
+**Not changed here.** The `incident.detail` column stays `text`; a check
+constraint on it would need the backfill. The AI match facts read the match
+centre and so get the code, or nothing.
+
+**Rejected.** *A detail per kind* (normal goal, penalty, own goal; card
+colours; substitution numbers): each repeats the kind or orders nothing the
+sequence does not. *Keeping the provider's text for an unknown detail*: rule
+2. *A backfill migration*: left to the maintainer, and unnecessary once the
+API maps at read time.
+
+## D-197 — API-Football Ultra: 20 more competitions, two more past seasons, a larger budget
+**Status:** Accepted · 2026-10-11 · **Task:** T-1379 · **Follows:** D-076, D-183, D-179
+
+**Context.** The teammate's review of 2026-10-04 found about 33 requested
+competitions missing, and a busy day needing 8-9k requests against the Pro
+plan's 7,500. The maintainer decided to buy the higher plan and, once bought,
+to add every requested competition that has a current season, add the
+tournaments when their edition starts, and backfill two more past seasons
+(2023/24, 2024/25) of the 11 domestic leagues so head-to-head and form have
+history. The maintainer bought Ultra on 2026-10-11: `/status` reads plan
+Ultra, 75,000 requests a day, active to 2026-11-21.
+
+**Decision.** (1) `API_FOOTBALL_DAILY_BUDGET=70000` (about 93 % of the plan,
+D-183's rule) and `INGESTION_BACKLOG_BATCH=200` (`MAX_BACKLOG_BATCH`) in the
+server's `.env`, with the maintainer's OK; D-183's tiers scale with it, so
+bulk work stops at 49,000 a day. (2) Twenty competitions with a current
+season, by the provider's ids: the domestic cups FA Cup 45, Copa del Rey 143,
+Coppa Italia 137, DFB-Pokal 81; the leagues Saudi Pro League 307, MLS 253,
+Brasileirão Série A 71, Liga Profesional Argentina 128, UAE Pro League 301,
+Qatar Stars League 305, Ekstraklasa 106, Serbian SuperLiga 286, HNL 210,
+Austrian Bundesliga 218, Swiss Super League 207, Danish Superliga 119, Super
+League Greece 197, Czech First League 345; the continental cups CONMEBOL
+Libertadores 13 and AFC Champions League Elite 17. Each season is labelled
+`2026/27` from the provider's year, as D-179 labels the calendar-year
+national competitions, because the adapter's fixtures carry that form; its
+end is the competition's real end, not the provider's last published date.
+The cups' stages are the provider's round names known today; later rounds
+are added when drawn (`14-maintainer.md`). (3) Seasons 2023/24 and 2024/25
+for the 11 domestic leagues with the provider's dates, backfilled; the detail
+backlog fills them at the larger batch. (4) Persian names for the twenty
+(migration `1765848000000_persian-names-ultra.sql`, by provider id, D-175).
+
+**Not added, and when.** Coupe de France 66: the provider's current season is
+still 2025; add 2026/27 when it appears. World Cup 1, EURO 4, Copa América 9,
+AFCON 6 and the Club World Cup 15 are between editions; the World Cup
+qualifiers (29-34, 37) finished their 2026 cycle. Each is added when its next
+edition starts. No model division is set for the new leagues: the model has
+no training data for them, so their forecasts stay `not_supplied` (rule 3).
+
+**Rejected.** *A scores-only tier for the new leagues*: the plan now covers
+full detail. *Labelling calendar-year seasons `2026`*: the adapter's fixtures
+carry `2026/27` and would not match.
+
+## D-198 — The Hybrid design system: one green, editorial and data modes, five families, a named display scale
+**Status:** Accepted · 2026-10-11 · **Task:** T-1380 · **Follows:** D-089, D-041, D-092, D-193
+
+**Context.** The maintainer chose the «Hybrid» direction from the design
+canvas on 2026-10-10: the Analyst's editorial pages and the Front Row's data
+pages under one header, with confirmed answers on colour, modes, fonts and
+the theme toggle. Later tasks build shared components (T-1381) and convert
+pages (T-1382 and on) on what this one lays down: tokens, fonts, scales and
+the mode mechanism. No page changes layout here.
+
+**Decision.**
+1. **One brand colour.** The FMIP green #0b6b3a (D-089) stays the only
+   accent; on Night it lifts to #1ed38a, and the mark is drawn in #0b6b3a in
+   both themes (`brand-colours.ts`). D-089's dark green (#4cc88a) is
+   retired. The model (#1d5fc4 / #6aa8ff), founder (#a84a12 / #ff9b57) and
+   community (#6a4bb3 / #b79cff) colours are tokens of their own and belong
+   to the three prediction products only (CLAUDE.md rule 6).
+2. **The palette.** The existing tokens are re-valued, so every page picks
+   it up: light is paper #fafaf7 (canvas), white surfaces, sunk #f1f2ee
+   (surface-raised), ink #15181d, ink-2 #3e4651 (muted), rule #dadde2, live
+   #c42335, warning #8a5a00; dark is Night: canvas #06080c, surface #0f141c,
+   raised #151c27, text #f4f6f8 / #a7b1bf, live #ff4d5e, warning #f5c451.
+   New tokens: `caption` (#646c78 / #8b95a5), `stage` (a data page's ground:
+   the sunk Day ground on light, the Night canvas on dark) and the three
+   lanes: 20 tokens per block.
+3. **Two modes.** `data-mode="editorial"` on an element (the header now;
+   home, stories, predictions, model accuracy and the founder's analysis as
+   they are converted) gives it the light values, light-more when contrast
+   asks for it, whatever the theme, and it paints its own paper ground: the
+   custom properties are set on the element itself, so nothing depends on
+   specificity against `<html>`. Data pages (live match, full time,
+   competition, player, club) follow the theme and stand on the stage
+   (`data-mode="data"` or `bg-stage`). Modes do not nest. A page opts in
+   when it is converted; until then it follows the theme as before.
+4. **The toggle** reads Auto / Day / Night (خودکار · روز · شب), Auto
+   first. The values (`system` / `light` / `dark`), the cookie and the
+   account preference are unchanged; other locales show the English, marked,
+   until translated.
+5. **Fonts**, all SIL OFL and self-hosted from `@fontsource-variable/*`:
+   Mona Sans (`wdth.css`, so 900 condensed is the same file) for the
+   interface on a Latin-script page; Newsreader upright and italic for
+   English editorial display, article body and the founder's voice; Geist
+   Mono for versions and timestamps; Markazi Text for Persian editorial
+   display; Vazirmatn stays for the Persian (and Arabic) interface, body and
+   scores. The classes are roles, not families: `font-sans`, `font-serif`,
+   `font-article`, `font-mono`, switched on `<html>` by `:lang(fa)` /
+   `:lang(ar)` in the base layer; `font-latin` and `font-naskh` name a
+   script's stack for a fragment that must not follow the page. Every locale
+   other than fa and ar is Latin-script and gets Mona Sans.
+6. **Subsets.** The packages' own stylesheets are imported unchanged: every
+   face is split by script with `unicode-range`, so a browser downloads only
+   the subsets a page draws, from this site, with `font-display: swap`
+   (measured on the production build: an English page fetches only Mona Sans
+   latin; a Persian one only Vazirmatn arabic and latin). Latin-extended is
+   kept on purpose: player names (Çalhanoğlu, Szczęsny, Đorđević) need it.
+   The Vietnamese, Cyrillic and symbol faces cost a few hundred bytes of CSS
+   each and are fetched only if such a character appears, which they then
+   render correctly. Writing our own @font-face rules to drop them would copy
+   the packages' ranges by hand and save no download.
+7. **Scales.** The seven interface sizes stay the only interface sizes. A
+   second, named scale is added and fixed in `fonts.spec.ts`: `text-article`
+   (19px / 1.65; Persian 17px / 2.0) and `text-display-1`..`7` at 28, 36,
+   44, 60, 84, 120 and 168px, covering editorial display (en 44-60, fa
+   36-44), data stats (28-44), data titles (44-84; fa 28-36) and the score
+   (en 120-168, fa 84-120). Display line heights are tight for Latin and
+   opened to 1.5 (1.3 at 84px) for Arabic script. Spacing is Tailwind's
+   4-point scale; radii `rounded-editorial` 0, `-control` 10, `-tile` 16,
+   `-card` 20, `-pill`; `max-w-page` 1280px, `max-w-measure` 680px, the
+   `page-frame` utility (16px gutters, 32px from 768px); `*-touch` 44px.
+
+**Contrast.** Every design value meets WCAG AA for its role on paper, white,
+sunk and the stage, and on the three Night grounds; none needed adjusting.
+The figures are in `tokens.css` and recomputed by `tokens.spec.ts`; e.g.
+caption 4.72 on sunk, live 5.13 on sunk, the Night caption 5.65 on raised
+(the board's "5.9 on surface" computes to 6.10). Values the board did not
+give were chosen here: the control edge (`border-strong`) #767d88 (3.69 on
+sunk) and #6b7482 on Night (3.62 on raised); the Night hairline is the
+board's tenth of white flattened over a card, #272c33, because a token is a
+plain hex; Night's pressed green #6de2b3 and text on the green #06080c;
+`danger` keeps #b91c1c / #f87171. More contrast (D-092) is recomputed for
+the new grounds: every text role, the captions and the three lanes at 7:1
+or better on light and dark (e.g. live #981a29 7.43 on sunk, model #174a99
+7.54), the light grounds unchanged and the dark ones black.
+
+**Rejected.** *A second accent* (the maintainer: one green). *Editorial
+pages in Night*: they and the header stay on paper. *Families as classes*
+(`font-mona`, `font-vazir`): a page would have to know its locale; roles
+switch by `lang` instead. *Fluid `clamp()` display sizes*: a viewport term
+ignores the reader's text-size setting (T-621); fixed steps chosen per
+breakpoint keep it. *`next/font/local`*: the site already self-hosts through
+fontsource packages and the spec checks that path. *Re-ordering
+`THEME_PREFERENCES` in the contracts* for Auto-first: only the switch's
+display order changes.
+
+## D-199 — The Hybrid shell: one header nav, a live strip on every page, a phone tab bar
+**Status:** Accepted · 2026-10-11 · **Task:** T-1381 · **Follows:** D-198, D-193, D-154, D-045
+
+**Context.** The Hybrid boards (h0, h1, h9) give every page the same shell:
+a paper header with a double rule, a strip of today's score chips under it,
+and on a phone a bottom tab bar. Later page tasks build under it.
+
+**Decision.**
+1. **The header** stays on paper (`data-mode="editorial"`), the double
+   rule (3px double ink) under it. From 768px one row: the mark and the
+   wordmark (Mona Sans 900 condensed), the nav, then the other language, a
+   search icon (to the search page), the theme (Auto / Day / Night) and
+   Sign in, or the member's own menu (profile, Following, Friends,
+   Messages, Groups, Settings, Sign out) as a disclosure. A guest's
+   Settings (appearance) stays beside Sign in; Register is in the phone's
+   Menu and on the login page. Below 768px the row is the Menu button, the
+   mark and search; the Menu (`<details>`, no script) holds the nav, the
+   language, the theme and the account. One copy of every link: from 768px
+   the disclosure is `display: contents` (T-605's mechanism, its breakpoint
+   moved from 640 to 768px).
+2. **The nav** is Today (home), Scores, Predictions, Analysis, News,
+   Watch (امروز، نتایج، پیش‌بینی‌ها، تحلیل، خبر، تماشا), in that order
+   (`lib/shell-nav.ts`). *Competitions* is left out: there is no
+   competitions index yet, only `/competition/<id>`; it joins the nav when
+   one exists. *Analysis* leads to the founder's analysis on the Predictions
+   page (`/predictions#analysis`), which has no page of its own; the
+   analysis pages (`/analyses`, `/founder`) make it current. *Leaderboard*
+   leaves the header; the Predictions page links to it, and it makes
+   Predictions current. The current entry is brand green with a 3px bar
+   under it, worked out on the client from the pathname, because the
+   layout is not rendered again on a client-side navigation.
+3. **The live strip** is under the header on every page: today's matches,
+   in the reader's zone (member, else a guest's choice, else UTC, as the
+   homepage counts it), of the first competition in the scores answer's
+   order that has one. The strip asks without the session, so the order is
+   `display_order` (D-154): the Pro League first, then the cups and the big
+   leagues. The label says "Today · <competition>" (from 768px; a screen
+   reader hears it on a phone). Chips are 44px, radius 10, white in both
+   themes: before kick-off the time (Geist Mono; Vazirmatn's Persian digits
+   on fa/ar) and "v" (fa "–"); live a red minute with a pulsing dot (still
+   when motion is reduced) and the score; full time FT / پایان and the
+   score; postponed and the rest their word. A live match with no score
+   shows none rather than 0–0 (rule 3). Each chip opens its match. On
+   `/fa` the home team is on the right with its goals beside it
+   (`ScorePair`, D-193).
+4. **Cost and failure.** One request (`GET /scores` for today), its
+   answer shared for 15 s per day, zone and language, a failure for 5 s
+   (`sharedAnswer`), so a page view rarely costs the API anything; it runs
+   while the page's own requests run. When the API cannot answer, or nothing
+   is played today, there is no strip at all, never an empty box.
+5. **Freshness** (rule 4). The strip says "May be behind" (ممکن است
+   به‌روز نباشد) when a live chip's data is behind (D-045) or when the
+   answer has aged past `STALE_LIVE_AFTER_MS` since a match could have
+   changed (a live match from the answer's time, a match to come from its
+   kick-off). A small client island shows it at that moment, because the
+   layout keeps the strip across client-side navigations. A behind live
+   chip says "Behind" in place of the minute.
+6. **The bottom tab bar**, phones only (hidden from 768px): Today,
+   Results, Predictions, News, Me (امروز، نتایج، پیش‌بینی، اخبار، من), icon
+   and label, each at least 56px, the current one brand green with a bar
+   along its top, fixed to the bottom with `env(safe-area-inset-bottom)`
+   padding, on white like the header. A spacer of its height ends the page.
+   Me is the member's Settings, or Sign in for a guest. It comes after the
+   page in the DOM, so after it in the reading and tab order.
+
+**Rejected.** *Fetching the strip with the session*: a member's pinned
+matches would make the answer per member and uncacheable, for a strip that
+shows one competition. *Next's data cache* for the shared answer: every API
+call goes through `apiRequest` (no-store, D-027, the request id); a small
+in-process map keeps that path. *Streaming the strip behind `Suspense`*: it
+would arrive after the first paint and push the page down. *A chip
+`aria-current` for the open match*: that is the match centre's strip, its
+own task.
+
+## D-206 — The Hybrid data atoms: one bar per product, a stamp that ages, badges that never rest on hue, a pick that hides the spread
+**Status:** Accepted · 2026-10-11 · **Task:** T-1388 · **Follows:** D-198, D-045, D-052, D-114, D-014
+
+**Context.** T-1380 (D-198) laid down the Hybrid tokens, fonts and modes. The
+pages to be converted next (T-1382 and on) all draw the same few data atoms:
+the model's forecast, how fresh a live surface is, a module's coverage, the
+three prediction products side by side, buttons and links out, the member's
+pick, and a club's next match. This task restyles the components that
+already do those jobs rather than adding second copies, and adds the two
+that did not exist (the next-match card, the link-out).
+
+**Decision.**
+1. **The forecast bar** (`components/forecast-bar.tsx`, `ForecastBar`) is the
+   model's only: the `model` token in three steps (full, 55%, 25% through
+   Tailwind's opacity modifier, so no new colour value exists), home
+   strongest, the outcomes labelled with their percentages below, and always
+   the model id (`dir="ltr"`, Geist Mono) and the computation time under it.
+   It takes the scores card's `CardForecast` (`cardForecast` reduces both a
+   full version and a pre-kick-off summary to it), so every state that is not
+   three numbers is a sentence: not computed yet, none before kick-off, a
+   version with no probabilities and why, the service not answering (rule 3).
+   Percentages keep one decimal, so they total 100.0 (blueprint 6.2), not the
+   board's whole numbers. The segments follow the reading direction, so
+   Persian puts home on the right with Persian digits. `size="compact"` for
+   cards and lanes. The words are resolved on the server
+   (`forecastBarWords`), so the bar also works in a client bundle.
+2. **The freshness stamp** (`FreshnessStamp`): "Last checked 8 sec ago" with a
+   ring that empties as the check ages; past the surface's **existing**
+   threshold it turns to the warning colour and adds "may be behind". The live
+   stream's line on the scores page and the match centre uses it with
+   `STALE_AFTER_MS` (no new threshold); `behind` forces the state when the
+   stream itself broke. Connecting and unavailable keep their own words.
+   Pure: with no clock it renders nothing.
+3. **Coverage badges** (`ui/coverage-badge.tsx`): each of the four states has
+   its own icon and its own edge as well as a colour (available: green, a
+   tick; limited: warning, a half circle; not supplied: caption, a dash, a
+   dashed edge; delayed: warning, a clock), so none rests on hue. The match
+   centre's module headings and its coverage list use them; the other pages
+   switch as they are converted.
+4. **Three lanes** (`components/product-lanes.tsx`): `ModelLane`,
+   `FounderLane`, `CommunityLane`, written out three times on purpose -- a
+   single `Lane` with a product prop is the component rule 6 forbids. Each
+   has its own colour (the lane tokens, used for these three only), icon and
+   name; each product's panel keeps its own source line (`lanes.model.origin`
+   is new for the model; the founder's and the community's were already
+   there). `ThreeProductsNote` says once, where they meet, that they are
+   three separate products. The founder's reasoning is set in the founder's
+   voice: `font-article`, italic where the script has one (not in Persian).
+5. **The community spread opens only after the reader's own pick.** On the
+   match centre the consensus panel (`revealed`) says how many members have
+   picked and nothing about what, until the reader has picked or kick-off has
+   locked every pick; the split under the pick (`CommunitySplit`) appears
+   only in the picked state. Below D-052's floor nothing changes: there is no
+   spread to hide. A guest therefore sees the count before kick-off and the
+   spread after it.
+6. **Make your pick** (`PredictionForm`): three states, `before` (one control,
+   "Make your pick"), `choosing` (the three outcomes as pressable choices over
+   native radios, then the existing details) and `picked` (the saved choice
+   filled with a tick, the split revealed, changeable until kick-off); after
+   kick-off the locked pick is shown filled with a lock. All in the community
+   colour, never the brand green: the pick feeds the community product only.
+   Same server action and API; no new endpoint.
+7. **Buttons**: the control radius (10px), the primary filled in the green with
+   the deeper green when pressed, the secondary an outline; `md` is a 44px
+   touch target and is what a reader presses. **Link-out**
+   (`ui/link-out.tsx`, `LinkOut`): `host` is required, so the destination's
+   host is always named, with the external-link mark; `button` (on the ink)
+   or `inline` (the 24px inline floor). Same window and `noopener noreferrer`,
+   as every external link on the site.
+8. **The next-match card** (`NextMatchCard`): competition and round, both
+   teams, kick-off and the date with the zone named ("Tehran time"), the
+   model's bar in its compact size (or its sentence), and "Watch:" with each
+   listed broadcaster as a link-out, or the card's existing sentence for no
+   territory, no schedule, nothing listed or no answer. Fed by the team
+   page's `next_match`, `cardForecast` and the match's viewing listing; not
+   placed on a page yet.
+
+**Not built: the founder's "sealed" note.** The board shows the founder's
+lane as "Sealed [time] · opens at kick-off". Nothing in the product seals an
+analysis: the blueprint (6.5) publishes it before kick-off with updates
+recorded until then, and the API returns its text. Hiding it on the page
+would not seal it (the words would be in the response) and would change
+what the blueprint says the analysis is for. The lane shows the published
+analysis, signed, as before; a real seal is a product decision and an API
+change for the maintainer.
+
+**Rejected.** *One `Lane` or `PredictionBar` with a product prop*: rule 6.
+*New lane tints as tokens*: an opacity modifier on the lane token is the
+same colour, and a second value would be a second thing to keep in step.
+*Whole-number percentages on the bar*: they do not always total 100.
+*A `target="_blank"` link-out*: no other external link on the site opens a
+window, and an unasked window is hostile on a phone.
+
+## D-203 — The competition page in data mode: a brand band, tabs that open on an Overview, a projection slot that stays empty
+**Status:** Accepted · 2026-10-11 · **Task:** T-1385 · **Follows:** D-198, D-199, D-206, D-193, D-171
+
+**Context.** The Hybrid board h6 draws the competition page in the Front Row
+look: a band with the competition's name, season and follow button, a row
+of tabs, and an Overview with the table's summary, the current matchweek
+with the model's three-way, the top scorers, the news and the season in
+figures. The maintainer decided (2026-10-10 and 2026-10-11) that the page is
+a data page (the stage, Day and Night), that the band uses the brand's
+colours and never a club's, that the page opens on the Overview, that the
+other tabs hold what the page already showed, that a cup with stages, groups
+or only knockout rounds keeps working, and that the model's season
+projection (title, top four, relegation) is a later feature with a slot
+left for it now. Production follows 39 competitions, domestic cups among
+them.
+
+**Decision.**
+1. **Data mode.** `<main data-mode="data">`: the page stands on the stage
+   and follows the theme. Modules are surface cards (`rounded-card`), each
+   headed in small capitals (Latin only: the letter spacing is `ltr:`, so
+   Persian and Arabic letters stay joined) with what it says about itself
+   beside the name: its `CoverageBadge`, its last update, a live list's
+   `FreshnessStamp`.
+2. **The band** is the theme's surface with a 4px brand-green rule along its
+   top, the green follow button and the green bar under the open tab: brand
+   colours, no club colour (that is T-1386's band). It says country, kind,
+   tier and "Season 2026/27" (Persian digits on `/fa`), the name in the
+   condensed display face (44-60px in Latin, 28-36px in Persian, D-198), the
+   canonical name when a localised one is shown, and only facts the season
+   holds: the clubs on its table, the matches played, and the next round
+   and day. The board's "after matchweek 7" and the Persian year were left
+   out: the first is not knowable with games in hand, the second is not
+   stored. The board's "Alerts" button is not built; following is the
+   alert switch (T-945's form, `followAction`, now revalidating the page).
+   A guest is sent to sign in; an unreadable follow list is a sentence.
+3. **Tabs are links** (`?tab=`), server-rendered, so each is a URL, works
+   without JavaScript and fetches only what it shows: Overview (no
+   parameter), Table, Fixtures, Results, Players, Stats. The season links
+   keep the open tab; the scorers' minutes floor moves to the Players tab
+   (`leadersHref` adds `tab=players`). The Overview alone asks for the news,
+   the founder's feed and the round's forecasts. An unknown `tab` is the
+   Overview.
+4. **The Overview**: the table's summary (#, club, played, goal difference,
+   points, form), the round and its forecasts, the top five scorers, the
+   season in figures, the news and the founder's analysis (in its own card
+   with the founder's colour edge, rule 6). Two columns from 1024px, one on a
+   phone in that order.
+5. **The round** (`currentMatchweek`): the round of a live match, else of
+   the next scheduled match (a postponed match from an old round never sets
+   it), with every match of that round played or not, by kick-off; when the
+   season is over, its last round, said so. A match with no stored round
+   brings the week from it, unnamed. At most 12 rows, the rest counted with
+   a link to Fixtures. Its heading is D-193's `stageLabel`, or "Next matches"
+   when the round cannot be named; a provider's text is never printed.
+6. **The model's three-way per match** is one `GET /forecasts/pre-kickoff`
+   for the round (no API change), drawn by `ForecastBar` in a new `row`
+   size: a short bar, the three percentages, and the model id and
+   computation time on the same line (blueprint 6.2), or the bar's sentence
+   when there is none. The note says the order (home · draw · away) and the
+   zone the times are in.
+7. **Tables**: tabular figures, the points in the condensed 900 weight, the
+   goal difference signed, the form as letter tiles read oldest to newest (a
+   win filled green, a draw on the raised ground, a loss outlined in the
+   danger colour, so none rests on hue). The Table tab keeps every column,
+   the zone legend (T-1167), the group tables (T-1336) and the knockout
+   rounds (T-630). A season with no table and no group stage of a competition
+   that is not a league (a domestic cup) has no table: no Table tab, and the
+   Overview says so in one sentence instead of drawing an empty grid; a cup
+   with knockout rounds keeps the tab, named "Knockout rounds".
+8. **The season projection slot.** A league's table carries a dashed column
+   group headed "Season projection · coming later" in the warning colour,
+   with Title, Top 4 and Relegation, from 768px; its cells are empty
+   (`data-projection="empty"`), never a dash, a zero or an estimate (rule 3),
+   and a sentence under the table says what will fill them and that until
+   then they stay empty. Group tables and cups get no slot.
+9. **The season in figures** (Stats tab and the Overview): goals per match,
+   draws, home wins and goalless draws, counted in the web from the stored
+   results the page already has; a finished match without a score is left
+   out and counted (`limited`); none with a score is `not_supplied` and a
+   sentence.
+10. **Coverage** is `CoverageBadge` everywhere on the page; the old
+    uppercase coverage words (`coverageText`) are gone from it. The Stats
+    tab lists the season's declared coverage per module in the match
+    centre's module names.
+11. **Persian**: digits everywhere (season labels included), the table and
+    rows mirrored, each score a `Score` pair isolated in the page's
+    direction between its teams, so the home goals sit beside the home team.
+
+**Not built.** The board's top scorers show shirt numbers; the leaders carry
+none, so the row shows the player's photo or initials. English round labels
+read as the provider's known forms ("Regular Season - 8") because that is
+D-193's English catalogue; the board's "Matchweek 8" would be a change to
+every page's English labels, left for the maintainer. The news module is
+`EntityNews` unchanged in a card.
+
+**Rejected.** *Client-side tabs over one page*: every tab's data would be in
+every response, and the scorers' floor already lives in the URL. *Showing
+the projection columns with "—"*: a dash in a figure column reads as a value
+of nothing. *A club-coloured or green-filled band*: the green fill turns
+into a bright mint panel at night and fights the green follow button; the
+maintainer asked for no club colour, which this keeps. *A new endpoint for
+the round's forecasts*: the scores card's batch route already answers it.
+
+## D-200 — The Hybrid homepage: a lead story or the day's biggest match, three forecasts apart, every competition of the day
+**Status:** Accepted · 2026-10-11 · **Task:** T-1382 · **Follows:** D-198, D-199, D-206, D-153, D-154, D-125, D-115, D-187
+
+**Context.** The maintainer's answers for the home board (h1, and h9 for the
+Persian phone): an editorial page; an editorial lead story at the top, or,
+with none, the day's biggest match; the three forecasts kept apart; today's
+key matches for every competition; a side column with the Pro League's top
+five, the model's accuracy, today's broadcasts and the member's teams; then
+the news. The shell (D-199) and the atoms (D-206) were already merged.
+
+**Decision.**
+1. **Editorial.** `<main data-mode="editorial">`: paper in Day and in
+   Night. The page's `<h1>` is "Today" (امروز) in the dateline, with the
+   inline-start accent bar the RTL check has always measured; the wordmark
+   is the header's, so the old "FMIP" heading went. The dateline gives the
+   weekday and date (the Persian calendar on `/fa`), the time of the render
+   and the zone, and the lead match's competition and round.
+2. **The lead story** is the newest story an editor has marked breaking
+   (D-125). The API has no "lead" or "featured" story; the breaking mark is
+   the one editorial act that puts a story at the top, and it ends by
+   itself, after which the slot returns to the match. Other marked stories
+   stay in the breaking strip. The story is the publisher's (D-061): its
+   headline and summary in its language, the source and time, the photo
+   with its credit where the licence covers it, and the way to the story
+   page. The board's "By [author] · n min read" is not shown: we do not
+   have the author for every source, nor the length.
+3. **The day's biggest match** is drawn whenever there is one, under the
+   story or in its place: the first day from today with a match still to be
+   played or in play; on it the teams a member follows, then a match an
+   editor features (D-153 put features "first after a member's
+   favourites"; keeping that is keeping what the home did), then the
+   competitions' order (D-154), then the earliest. A finished or called-off
+   match never leads. The card: competition, round, day, kick-off and zone,
+   the venue, each team's place and points from the league table when the
+   match's competition has one (the table already asked for, else that
+   competition's page), the score and status once started, "Behind" when
+   the live data is stale (rule 4), the model's bar with its version and
+   time (the pre-kick-off summary, D-114), the scores coverage as a badge,
+   "Open match centre" and "How the model works" (the About page's model
+   entry, `/about#model`). The board's "unbeaten" is not shown: it would be
+   a new fact computed for one line.
+4. **Three forecasts, kept apart** for that match (rule 6, D-206): the
+   model's lane with its bar; the founder's lane with the published analysis
+   (call, score, confidence, the start of the reasoning in the founder's
+   voice, the signature, the way to the whole) or "has not written an
+   analysis"; the community's lane with how many have picked and nothing
+   about what until the reader has picked or kick-off has locked every pick,
+   then the split. Each lane's content is that product's own component, in
+   its own file (`FounderAnalysisBrief`, `CommunityPicksBrief`);
+   `three-products.spec.ts` holds the page to that. Nothing is sealed (the
+   maintainer, 2026-10-11).
+5. **Today's key matches**: every match of the day (or, on a day with none,
+   of the next day with a match, said in the heading), grouped by
+   competition in the answer's order, the member's teams first in a group of
+   their own, each match once. Per row the model's three percentages from the
+   pre-kick-off summary, the favourite's cell shaded deeper; a match without
+   a forecast gets blank cells (named "No model forecast" for a screen
+   reader), counted under the table with the coverage badge "limited" (all
+   present: "available"). The model version(s) and the newest computation
+   time are said under it, and "All N competitions on the scores page" is
+   the way on. At most ten competitions of six matches each; what is left
+   out is counted per group.
+6. **The scores are asked without the session.** With it, the answer pins a
+   member's favourite teams *and competitions* and lifts followed
+   competitions, which is not the maintainer's order. Without it the groups
+   come in the stated order (D-154, as the live strip already asks), and the
+   member's own teams are lifted on the page from `GET /me/following`. The
+   table's competition is the first group's, so the Pro League's on any day
+   it plays in the fortnight.
+7. **The side column** (beside the main one from about 1100px, stacked under
+   it below, in the same order): the league's top five with the season
+   (in the page's digits: `localDigits` in `i18n/format.ts`, «۲۰۲۶/۲۷»),
+   its coverage badge and "Full table and fixtures"; **the model's
+   accuracy**: the public endpoint (D-187) is by calendar month only, so the
+   card shows the newest month with a scored match -- RPS, "lower is
+   better", the sample in matches with its coverage, what a uniform guess
+   scores on the same matches, the versions and the last update -- and says
+   which month instead of the board's "last week" (a weekly figure exists
+   for administrators only, and an API change for one label was not worth
+   it); **today's broadcasts**, one viewing request for today's matches in
+   the member's stored territory or a guest's first-run territory: each
+   match still to come or in play with a listing, each broadcaster a
+   `LinkOut` naming itself, then "Listings for <territory> from <sources> ·
+   last checked <time>"; nothing listed and no source are two sentences; no
+   territory is one "choose your territory" for a member. A guest without a
+   territory is not asked (D-115: the first-run offer asks), and nothing is
+   drawn; **My teams** for a member: up to four followed teams, each team
+   page's next match and last result (W/D/L, the score from the team's side,
+   the opponent, the date, the match centre), and "Follow or remove teams".
+   A guest gets the two lines that were at the top (what FMIP is, what an
+   account adds).
+8. **Kept from the old home**, placed: the first-run offer and the rest of
+   the breaking strip at the top; friends' predictions, group discussions
+   and today's panels in the main column under the key matches; the
+   founder's feed of coming analyses in its lane beside the community's call
+   to pick (the board's founder and community cards); "Your feed" under My
+   teams; JSON-LD and the metadata unchanged. **Removed**: the tagline
+   ("Start with the scores": the key matches' link replaces it), "Live and
+   upcoming" and "The model's view" (both are the key matches now), and the
+   per-line viewing for members (the broadcasts block replaces it); their
+   catalogue keys went with them.
+9. **The news**: the latest stories other than the lead, up to six, each with
+   its photo and credit where licensed, its type when one is known, the
+   publisher's headline in its language, the source and date, whose words a
+   translated version is, and "may be behind" when the feeds are stale
+   (rule 4).
+10. **Cost.** Three rounds of parallel requests: what does not depend on the
+    zone (eleven, the member ones only with a session); the scores; then
+    what the scores choose (the forecasts in batches of 50, one or two
+    tables, three for the lead, panels, viewing, at most four team pages).
+    Everything is a server component: the first-load JavaScript is
+    unchanged at 154.4 kB against the 158 kB budget, and the response
+    budget (200 ms median) is not raised. The team pages are the heaviest
+    new reads and are asked for members only.
+
+**Not verified here.** The 200 ms response budget is measured by the
+`budgets` project against the API and the seed, which do not run on this
+machine; the page was exercised against a stand-in API (screenshots) and,
+with no API at all, by the chromium E2E project.
+
+**Rejected.** *A new `lead` flag on stories*: an API and migration for what
+the breaking mark already says, with a window. *A weekly figure on the
+public accuracy endpoint*: a contract change for one word on one card.
+*Asking the scores with the session and re-sorting*: the page cannot recover
+D-154's order from a follow-ranked answer. *`NextMatchCard` per followed
+team*: each carries a bar and broadcasters; four of them would push the
+column far down. The rows say next and last, and the match centre has the
+rest. *Two renderings of the three lanes (compact on a phone, as h9 draws
+them)*: the lanes stack at full width instead, so one markup carries each
+product.
+## D-201 — The Hybrid editorial pages: Predictions by day with a pick in each row, the story at the measure with what the model expected
+**Status:** Accepted · 2026-10-11 · **Task:** T-1383 · **Follows:** D-198, D-199, D-206, D-154, D-061, D-187
+
+**Context.** The Hybrid boards h2 (predictions) and h3 (story) set the
+Predictions page and the story page in The Analyst's editorial look. The
+maintainer's answers: both editorial (paper whatever the theme, serif
+display, rules not boxes, the 680px measure); Predictions ordered by day and
+grouped by competition with a filter, simple three-way probabilities that open
+to expected goals, top scorelines and version history, an inline "Make your
+pick" with the community split only after the reader's pick, the founder's
+analysis at `#analysis` and published (never sealed), the leaderboard kept in
+reach; the story keeps "What the model expected" in match reports, its photo
+and source credits and the link out naming the host; `/model-accuracy` gets
+the treatment if it is small.
+
+**Decision.**
+1. **Editorial mode** on all three pages: `<main data-mode="editorial">` on
+   `bg-canvas`, the content in `page-frame`, the heading in `font-serif` at
+   `text-display-2` on a phone and `text-display-4` (Predictions, model
+   accuracy) or `-3` (a story's headline) from 768px, the introduction in
+   `font-article text-article` at `max-w-measure`, sections under a 2px ink
+   rule. `/model-accuracy` is a 53-line page, so it is converted here; its
+   tables keep their width.
+2. **Predictions by day.** One `GET /scores?from=&to=` for the start day
+   (`?date=`, default today in the reader's zone) and the two days after it,
+   asked **without the session**, so the competitions keep D-154's
+   `display_order` (as the live strip asks, D-199); a member's favourites do
+   not reorder this page. `lib/predictions-days.ts` buckets it by the reader's
+   day, then competition, kick-off order inside; an empty day is left out. The
+   list endpoints take at most fifty ids (`MAX_CONSENSUS_FIXTURES`), so the
+   list stops at fifty in page order and says how many it left out, pointing
+   to the filter (rule 3). The filter is links (`?competition=<id>#model`), no
+   script; it lists the window's competitions in the same order.
+3. **Each row** is the model's `ForecastBar` in its compact size (or its
+   sentence: none, unavailable, unreachable), then the pick, then a
+   `<details>` disclosure, no script, for any match with a version: the latest
+   version's expected goals ("before kick-off, not live xG"), its three
+   likeliest scorelines, and the version history newest first, "Current" and
+   "Superseded · kept" (rule 5). The bar replaces the board's three shaded
+   cells: D-206 made the bar the model's one drawing.
+4. **The history costs at most `HISTORY_LOOKUPS` (16) requests.** The list
+   endpoint returns the latest version only (T-136). A match whose latest is
+   version 1 needs no request; for the first sixteen matches in page order
+   with more than one version the page reads `GET /fixtures/:id/forecasts`
+   in parallel; any other says "N earlier versions are kept on the match
+   page" with the link, rather than showing one row as the whole history. No
+   new endpoint: a batch history endpoint is the next step if the page grows
+   busier.
+5. **The pick in the row** is `InlinePick` (`prediction-section.tsx`): the
+   match centre's `PredictionForm`, server action and three states, without
+   the section heading; a guest's "Make your pick" leads to sign in; after
+   kick-off the locked pick (or, for a member, that there was none). The
+   member's own predictions come from one page of `GET /me/predictions`
+   (`limit=50`, newest kick-off first); a listed match is asked about on its
+   own (`GET /fixtures/:id/prediction`) only when that page was full and ends
+   later than the match. The model's list takes the pick as an opaque slot
+   (`picks[id]`), so `forecast-panel.tsx` never imports the community's
+   components (rule 6, `three-products.spec.ts`).
+6. **The community spread waits for the pick** (D-206, on this page too):
+   `CommunitySplit` is handed to the pick, which shows it only once picked;
+   the community section (`CommunityConsensusList`, `revealed`) says "N
+   members have picked. Make your pick to see how they split." for a match
+   the reader has not picked and that has not kicked off, and the spread
+   otherwise. Below D-052's floor nothing is listed, as before.
+7. **The founder** stays at `#analysis` in `FounderLane`, published as
+   blueprint 6.5 has it; no sealed state (D-206). The community section is
+   in `CommunityLane` at `#community`; `ThreeProductsNote` under the two. A
+   three-link jump nav at the top names each product in its own colour. The
+   leaderboard stays on the page, with "The full leaderboard" link at the top
+   and at its foot.
+8. **"How accurate is our model?"** on Predictions is `ModelAccuracyRecent`
+   in the model lane: the latest three months of `GET /model/accuracy`'s
+   overall series, newest first: matches scored, the model's RPS and "RPS if
+   guessing" (one third each, the board's "baseline"), a `limited` month
+   marked, the full report linked; nothing scored, or no answer, is a
+   sentence.
+9. **The story page**: the type, headline, dek, byline and the words at the
+   measure; languages, corrections, entities, the three product links,
+   follow, other reports, save, share and freshness in an aside (below on a
+   phone). Where the publisher grants no body the link out is a `LinkOut`
+   button naming the publisher ("Read the original (Tehran Times)"). A
+   **Sources** list names the publisher (linked), the photo's credit and
+   licence when a photo is shown, and the forecast's stored model version
+   when the box is shown.
+10. **What the model expected** (`ModelExpected`, in `forecast-panel.tsx`, in
+    `ModelLane`): only when the story's type is `match_report` and it links a
+    match. Three reads, only then: `GET /fixtures/:id` (names, full-time
+    score), `GET /forecasts/pre-kickoff` (the version the match was played
+    against) and `GET /fixtures/:id/evaluations` (that version's RPS). The
+    bar with the version and computation time, "Result: Tractor 1–1
+    Esteghlal.", the RPS, the link to the accuracy page; no forecast, no
+    result, not yet scored and no answer are each a sentence (rule 3). The
+    publisher's words are never rewritten around it.
+
+**Not built.** The board's "featured match" block on Predictions (the same
+bar and history as a row's disclosure, a second time). On the story: a
+writer's byline beyond the publisher's own, "[n] min read", the goals and
+quote paragraphs, the "top two" table and the "more from matchweek" links: a
+licensed feed gives a headline and a summary (D-061), and the page does not
+write match copy around a publisher's story. A round label beside the
+competition ("matchweek 8"): `round` is the provider's free text. The
+founder's season record line: no endpoint gives it.
+
+**Rejected.** *One row component taking the model and the pick*: rule 6; the
+row is the model's, the pick a slot. *Fetching every listed match's
+history*: up to fifty requests per view. *Asking `/scores` with the
+session*: favourites would reorder the competitions away from D-154.
+*Whole-number cells as on the board*: D-206 keeps one decimal so the three
+total 100.0.
+
+## D-202 — The Hybrid match centre: a score band on the stage, tabs that need no script, a pitch only where the feed places every player, three lanes against the result
+**Status:** Accepted · 2026-10-11 · **Task:** T-1384 · **Follows:** D-198, D-199, D-206, D-193, D-187, D-014
+
+**Context.** The maintainer chose the Front Row look for the match centre
+(boards h4 live, h5 full time, h10 Persian phone) and decided: the page on
+the stage following Day and Night under the unchanged header and live strip;
+a big condensed score with the live minute in red and a freshness stamp; the
+broadcasters under the score as links; tabs on a phone, every section side by
+side on a desktop; the line-ups on a pitch with formation, bench and coach,
+falling back to a list where positions are missing; after full time the
+highlight first, then the key events, then what each product forecast against
+what happened; statistics as dense grids; no team colours.
+
+**Decision.**
+1. **The ground and the band.** The page is a data page (`bg-stage`, every
+   section a `rounded-card` surface, tiles `rounded-tile`). The score band
+   carries the competition and round, both crests, the score (Mona Sans 900
+   condensed in Latin script; Vazirmatn 900 with Persian digits on `/fa` and
+   `/ar`, smaller per D-198's scale; `ScorePair` keeps each side's goals
+   beside it), the status pill (the live minute in red with the live dot,
+   amber when the feed is behind, FT/AET/Pens at full time), the stream's
+   `FreshnessStamp` (moved from above the page into the band), the "Watch:"
+   line and the match's facts. Before kick-off the band's figure is the
+   kick-off time: no 0–0 (rule 3). Brand green and the three lane colours
+   only; no club colour anywhere on the page.
+2. **Watch under the score.** Each service listed for the reader's territory
+   is one `LinkOut` naming it (a service listed twice is named once). Any
+   other state -- no territory, nothing declared, nothing listed -- is a link
+   to the Watch section, which keeps the full list and its four sentences
+   (T-314). An unreachable viewing service adds nothing to the band; the
+   Watch section says it.
+3. **Highlights first after full time** when the highlights module lists a
+   clip for the territory -- a licensed feed's (T-1366) or the editorial
+   desk's official page, both checked sources -- as a `LinkOut` button naming
+   the publisher, or the site's host when the desk's page names none, with
+   "We don't host video" (D-014). No clip, no button.
+4. **Tabs without script.** Below 768px six tabs (Summary, Line-ups, Stats,
+   Predictions, Watch, Discussion), plain anchors in a sticky bar; CSS in
+   `globals.css` shows the tab that holds the page's `:target`, or Summary
+   when nothing in the tabs is targeted, and marks its link. A tab, a deep
+   link from a story (`#forecast`, `#analysis`, `#community`), the
+   discussion's links (`#lineups`, `#stats`, `#timeline`) and a page with no
+   script all behave alike, and every existing anchor and test id stays.
+   From 768px there are no tabs: three columns (what happened; who played;
+   what was forecast) of 360, 400 and 360px that wrap as the board's do.
+   Summary holds the key events (latest first, kick-off last), after full
+   time the verdict and the machine-written summary, the competition context
+   and related news; Predictions holds the model, the founder and the
+   community as three sections (rule 6).
+5. **The pitch places nobody the feed did not.** No grid position is stored
+   (the feed's grid never reached our tables), so a side is drawn on the
+   pitch only when its formation (three to five lines adding to ten) and its
+   eleven starters' roles fill the lines exactly: one goalkeeper, the
+   defenders the first line, the forwards the last, the midfielders the one
+   middle line. A formation with two midfield lines (4-2-3-1) would need to
+   know which midfielder stood in which, so that side is a list that says
+   so; a missing formation, a missing role or counts that do not fit the
+   formation are each their own sentence. Along a line the order is the shirt
+   number's, which the note under the pitch says. Away in the top half, home
+   at the bottom, each goalkeeper at its own goal; bench and coach per side.
+6. **What was forecast, and what happened** (full time only): three lanes
+   from three components in the three products' own files -- `ModelVerdict`
+   (the pre-match version the evaluation scored, else the last before
+   kick-off; what it gave the result; the match's RPS from T-1369 when the
+   evaluation exists, else "not scored yet"), `FounderVerdict` (the published
+   pick settled right or wrong, the score exact or not, signed) and
+   `CommunityVerdict` (the share of members who picked the result, over the
+   spread and the sample; below D-052's floor, no consensus) -- with
+   `ThreeProductsNote`. Never one figure. The founder's analysis is not
+   sealed (D-206); the lane shows what was published.
+7. **Statistics** are tiles with both figures large and condensed and the
+   two shares as bars from the middle, the home side's in the brand green and
+   the away side's in a neutral token; a side not supplied is "–" with no bar.
+8. **What does not move in play** -- recent form, head-to-head and the
+   season's coverage -- is rendered by the page on the server
+   (`match-record.tsx`) and handed in as slots; the score, events,
+   statistics, line-ups and absences stay in the live view and follow the
+   stream. The live view also stops importing the whole scores card for its
+   four coverage words (`COVERAGE_KEY` now lives in `match-centre-cards.tsx`
+   as well). The route's first load is 182.5 kB of its 184 kB budget; no
+   budget changed.
+
+**Rejected.** *Client-side tabs with state*: they would show nothing but the
+Summary until the script ran, break deep links before hydration and add
+bundle weight; `:target` does the same job in CSS. *Placing a 4-2-3-1's
+midfielders by shirt number*: an invented position (rule 3). *Storing the
+feed's grid positions* to draw every formation: an ingestion change and a
+migration for a layout; worth its own task if the maintainer wants it.
+*The board's standings ("1st · 16 pts at kick-off"), scorers under each
+name and "Next" fixtures in the band*: not asked for, and the first two need
+data the match payload does not carry. *A white crest tile*: no white token
+exists (D-198); the crest sits on the surface token in both themes.
+
+## D-204 — The player and club pages in data mode: a brand band because no club colour exists, a next-match card first, tabs over what the pages had
+**Status:** Accepted · 2026-10-11 · **Task:** T-1386 · **Follows:** D-198, D-199, D-203, D-206, D-193
+
+**Context.** The Hybrid boards h7 (player) and h8 (club) draw both pages in
+the Front Row look: a band filled with the club's colour, tabs, and modules
+on the stage. The maintainer decided (2026-10-10 and 2026-10-11) that both
+are data pages (the stage, Day and Night); that a club's colour may appear
+on the top band of a club page, and of a player page in his club's colour,
+and nowhere else, with text on it reaching WCAG AA 4.5:1 with white or ink
+(a colour that cannot is darkened until it does, computed); that the colour
+must come from our data and never be invented or taken from a provider
+field (rule 2); that the club page starts with a "Next match" card with the
+model's forecast and its version and the broadcaster; and that the player
+page shows a profile header, the season in dense tiles, recent matches and
+career, every module with a `CoverageBadge`.
+
+**Decision.**
+1. **No club colour exists, so the band is the brand's.** Neither
+   `@fmip/contracts` (`TeamPage.team`, `PlayerSpell.team`, `TableRow.team`)
+   nor the schema (no colour or kit column in any migration) carries a club
+   or kit colour; the only colour field in the contracts is the member's
+   theme. Inventing one, or reading one from the feed, is what the
+   maintainer ruled out. Both bands are therefore D-203's: the theme's
+   surface with a 4px brand-green rule along the top and the green bar under
+   the open tab (`EntityBand`, `LinkTabs`), following Day and Night; the
+   follow button is the green primary. When a licensed colour field exists
+   (a canonical team attribute, set by an editor or a licensed source, never
+   a provider field passed through), `EntityBand` is the one place it goes:
+   fill the band, put white or ink on it, and darken it in steps until the
+   chosen text reaches 4.5:1, computed in a spec. For reference, white on the
+   brand green #0b6b3a is 6.61:1; white on the board's red #c41f17 is 5.91:1
+   (ink on it only 3.01:1). Below the band everything stays brand green.
+2. **Data mode.** `<main data-mode="data">`, modules are D-203's surface
+   cards (`Panel`, which now takes an `id` so several panels of a kind on
+   one page keep unique ids), each with its coverage badge beside its name.
+3. **Tabs are links** (`?tab=`), server-rendered, each fetching only what
+   it shows. Club: Overview, Fixtures, Results, Squad, Stats; the board's
+   History tab is not built (no head-to-head or history data). A guest's
+   `?territory=` is kept on the tab links. Player: Overview, Matches,
+   Career, Stats; `?season=` belongs to Matches and Stats only.
+4. **The club Overview** opens on `NextMatchCard` (D-206) fed by the team
+   page's `next_match`, one `GET /forecasts/pre-kickoff` for that match and
+   one viewing request for it; with no next match, a "No match scheduled"
+   panel. Then, per current competition, the season in tiles: place and
+   points from the table context (its coverage on the badge), won-drawn-lost,
+   goals for and against and clean sheets from the API's own home/away/total
+   figures for the same season; a figure not counted is a sentence, never a
+   zero; a pair reads from the start of the line (`ScorePair`), so on `/fa`
+   the wins are on the right. Then the next three fixtures and last three
+   results as rows (the score between its teams in the page's direction, the
+   result from the club's side as D-203's letter tile), the first twelve of
+   the squad (the whole squad a tab away), where the club stands, the news
+   and the founder's analysis in its own card (rule 6). The Fixtures tab
+   keeps every fixture's "where to watch" line (T-314) in one batch request.
+   The board's head-to-head is not built: no endpoint serves it.
+5. **The squad** is a grid of cards (photo or initials, name, position and
+   shirt number). A sentence says when positions or shirt numbers are
+   missing for some players rather than leaving a gap; the initials are on
+   the neutral mark, not the board's "initial in club colour" (point 1).
+6. **The player band**: photo, "Goalkeeper · No. 1" from the open spell,
+   the name, the canonical and full names, the identity line (club with
+   "since", nationality, age and birth date or "Date of birth" with a
+   not-supplied badge, height, foot), follow (a person follow, the same
+   form) and "Compare with…" (T-631's search, unchanged). The board's large
+   licensed action photo with its credit is not built: `EntityMedia` has no
+   credit and the page has one photo, the 96px one.
+7. **The player Overview**: the newest season's first record row in dense
+   tiles (appearances, starts, goals, assists, yellow / red, minutes); the
+   other competitions of that season are named, not added in. Minutes the
+   feed never sent are a dashed tile with a "not supplied" badge; "at least"
+   where only some matches carried them (T-823). The board's "clean sheets"
+   for a goalkeeper is not on the record and is left out. Then the record by
+   season (the main columns; minutes and reds on the Stats tab), the latest
+   five matches with his line, the availability panel (T-1007, now with the
+   listing's coverage badge) and the news. The board's "his line from the
+   feed" is our line: started, came on or unused, goals, assists, cards.
+8. **Coverage**: `CoverageBadge` everywhere on both pages; the uppercase
+   `coverageText` words are gone from them. The spells, which the API
+   declares no coverage for, are `not_supplied` when there are none and
+   `available` otherwise, the rule the API itself applies to the squad.
+9. **Persian**: digits everywhere, season labels through `localDigits`
+   (D-200), each score a `Score` pair isolated in the page's direction
+   between its teams, so the home goals sit beside the home team; the old
+   team page's scores without a locale (Latin digits on `/fa`) are fixed.
+10. **The next-match card's round** is now D-193's label
+    (`stageNames`), or nothing when the round cannot be named; T-1388 had it
+    print the feed's round text, which this page would have been the first
+    to show.
+
+**Not built.** The board's "Alerts" button (following is the alert switch,
+as on the competition page), History and head-to-head, the club's
+"provisional after matchweek 8" note (not knowable with games in hand), the
+action photo and credit, a goalkeeper's clean sheets. No API, contract or
+schema change; no migration.
+
+**Rejected.** *Deriving a club colour from the crest image*: a guess
+dressed as data, and two clubs with the same dominant hue would look alike.
+*A green-filled band for clubs*: D-203's reasons (a mint panel at night that
+fights the green follow button). *Client-side tabs*: every tab's data in
+every response. *Summing a player's season across competitions in the
+tiles*: a friendly and a league are not one record; the other competitions
+are named and the record table has each.
+
+## D-205 — Lite mode for slow connections: a browser's choice, on by itself when the browser says the connection is slow
+**Status:** Accepted · 2026-10-11 · **Task:** T-1387 · **Follows:** D-089, D-090, D-092, D-198, D-199, D-206
+
+**Context.** The Hybrid boards h11 and h0 ("Lite-mode indicator") draw a
+lite page for slow connections: no images or club crests, the device's own
+fonts, compact lists, and a thin banner under the header saying "Lite mode
+on · slow connection detected" with a switch. The maintainer decided that
+lite mode drops images and the extra web fonts and makes fewer live
+updates; that it turns on by itself when the browser reports a slow
+connection and says so; that the switch turns it off; and that the choice
+is remembered.
+
+**Decision.**
+1. **The preference** is `auto` (default), `on` or `off`, kept the way the
+   appearance preferences are (D-090, D-092): the cookie `fmip_lite` (a
+   year, server-read), rendered by the locale layout as `data-lite="on"` /
+   `"off"` on `<html>`, so the first paint is already lite and nothing is
+   requested that a script would have to stop. It is set by
+   `setLiteAction`, a plain form post, from Settings -> Appearance (Auto /
+   On / Off) and from the banner's switch.
+2. **Cookie only, no migration.** Unlike theme, text size, contrast and
+   motion, lite mode is not stored on the account: a connection belongs to
+   a device, not a member (the same reader is on a train's 3G with one and
+   on fibre with another), a guest keeps it in a cookie anyway, and storing
+   it would need a column, a contract field and the sign-in reconciliation
+   for a setting that should not follow the member between devices.
+3. **"Slow" is what the browser reports, never a guess.** The server sees
+   `Save-Data: on`. A script sees the Network Information API: `saveData`,
+   or an `effectiveType` of `slow-2g`, `2g` or `3g`; where the API is
+   missing (Safari, Firefox) nothing is assumed. Because the server cannot
+   see the second on the first request, `LiteProvider` (in the layout)
+   turns lite mode on after hydration when it finds one -- images not yet
+   drawn are not drawn, the fonts fall back, the live surfaces poll -- and
+   writes the hint cookie `fmip_slow=1` (a week, readable by the script,
+   nothing personal), so the next page is lite from the server. A fast
+   connection clears the hint for the next page and leaves the current one
+   as rendered: the page never flips back under the reader. `off` wins
+   over both signals.
+4. **No web fonts.** Under `data-lite="on"` every font role (`--font-sans`,
+   `-latin`, `-serif`, `-naskh`, `-mono`) is a system stack. A browser
+   fetches a face only when a family naming it is used, so no woff2 is
+   requested; the @font-face rules stay. The Persian roles keep their split
+   (display and body in the device's sans, as the board draws them).
+5. **No images.** `Pictured` (a small client component reading the mode)
+   renders its children only when lite mode is off: `EntityImage` renders no
+   `<img>` and keeps its lettered mark, marked `data-coverage="available"
+   data-omitted="lite"` (the image exists and was left out, rule 3);
+   `NewsPhoto` (with its credit), `NewsCardImage`, `NewsThumb`, a member's
+   avatar and a highlights player (`iframe`; the link to the clip stays)
+   render nothing.
+6. **Compact lists** through a `lite:` Tailwind variant
+   (`&:where([data-lite='on'] *)`): the score card's row, the news list and
+   related stories close up; the 44px row target stays.
+7. **Fewer live updates** (`openLiveSource`): the scores page and the match
+   centre do not hold their stream open in lite mode. The stream's first
+   event is always a full snapshot (D-027), so the source closes on it and
+   opens again a minute later (`LITE_POLL_MS`). The freshness line keeps
+   saying when it last checked, and calls itself behind only after a missed
+   poll plus the usual slack (`LITE_STALE_AFTER_MS`, 105 s), so rule 4 holds
+   without a false alarm between polls. No manual refresh button: the
+   page's own freshness line already says how old it is.
+8. **The indicator**: a thin banner under the header (above the live
+   strip), never a modal, `role="status"`, in the accent's 10 % tint with
+   the bolt icon. "Lite mode on · slow connection detected" / «حالت سبک
+   فعال است · اینترنت کند تشخیص داده شد» when `auto` turned it on; plain
+   "Lite mode on" when chosen. Its switch is a 52x44px submit button,
+   `role="switch"`, `aria-checked`, named "Lite mode", posting `lite=off`
+   (works before the script loads; while the post is on its way it already
+   shows off).
+9. **The footnote** at the foot of a lite page: "No images or club crests ·
+   device fonts only". The board's "page weight [n] KB" is left out: the
+   server does not know what the browser will have fetched, and a number
+   it cannot measure would be invented.
+
+**Budget.** The provider, the banner and the poll are on every page's first
+load: home and competition 154.4 to 154.8 kB gzip (within 158), the match
+centre 183.0 (within 184), scores 172.7 to 173.4, over its 173 budget by
+0.4 kB; raised to 174 (docs/08-load-test.md).
+
+**Rejected.** *Account-stored preference*: see 2. *A guess from timing
+(navigation timing, a probe download)*: it costs the slow reader bytes and
+is wrong on a busy minute; the browser's own report is honest. *Hiding
+images with CSS*: an `<img>` with `display: none` is still fetched in most
+browsers, and the page would still hold it. *A manual refresh in place of
+the stream*: the poll keeps the page current with the same freshness line
+and no new control. *Not registering the service worker in lite mode*: its
+precache is a one-off of three small files, and it is what makes the
+offline page work on exactly these connections.

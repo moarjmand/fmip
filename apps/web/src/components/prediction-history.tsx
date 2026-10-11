@@ -1,6 +1,6 @@
 import type { PredictionHistoryItem } from '@fmip/contracts';
 import Link from 'next/link';
-import { LtrNumeric } from '@/components/score';
+import { ScorePair } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { attribute, interpolate, message, t } from '@/i18n/messages';
 import {
@@ -94,13 +94,13 @@ export function PredictionHistory({
                   <span className="ms-2 text-xs text-muted">
                     {richMessage(message(l, 'history.fullTime'), {
                       score: (
-                        <LtrNumeric>
+                        <ScorePair locale={l}>
                           {scoreText(
                             l,
                             prediction.settlement.actual.home,
                             prediction.settlement.actual.away,
                           )}
-                        </LtrNumeric>
+                        </ScorePair>
                       ),
                     })}
                   </span>

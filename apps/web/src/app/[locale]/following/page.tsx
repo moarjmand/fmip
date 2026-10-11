@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import type { FeedItem, FeedSignal, MatchViewing } from '@fmip/contracts';
 import { BriefingPanel } from '@/components/briefing';
 import { FollowNextSteps } from '@/components/follow-next-steps';
-import { LtrNumeric } from '@/components/score';
+import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
 import { formatDateTime, formatNumber } from '@/i18n/format';
@@ -201,9 +201,7 @@ function Item({
       </h2>
       {item.kind === 'fixture' && item.score !== null && (
         <p className="text-sm">
-          <LtrNumeric>
-            {formatNumber(locale, item.score.home)} – {formatNumber(locale, item.score.away)}
-          </LtrNumeric>
+          <Score home={item.score.home} away={item.score.away} separator=" – " locale={locale} />
         </p>
       )}
       {item.kind === 'fixture' && viewing !== undefined && (

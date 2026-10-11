@@ -3,10 +3,13 @@
 import type { MatchCentre } from '@fmip/contracts';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { MatchCentreView, type MatchSlots } from '@/components/match-centre-view';
+import { type MatchHero, MatchCentreView, type MatchSlots } from '@/components/match-centre-view';
 import { matchAnnouncements } from '@/lib/announce';
 import { withLocale } from '@/lib/locale-query';
-import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
+import { FreshnessStamp } from '@/components/freshness-stamp';
+import { useLite } from '@/components/lite-mode';
+import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState, staleAfterMs } from '@/lib/live';
+import { openLiveSource } from '@/lib/live-source';
 import type { MatchWords } from '@/lib/words-server';
 
 /**
@@ -29,6 +32,7 @@ export function LiveMatch({
   timeZone,
   locale,
   slots,
+  hero = {},
   words,
 }: {
   initial: MatchCentre;
@@ -39,6 +43,8 @@ export function LiveMatch({
    * rest -- each placed by the view in its own section of the page (T-605).
    */
   slots: MatchSlots;
+  /** Where to watch and the highlight, for the score band (T-1384). */
+  hero?: Omit<MatchHero, 'live'>;
   /** The reader's words, resolved by the page on the server (T-1303). */
   words: MatchWords;
 }) {
@@ -50,9 +56,10 @@ export function LiveMatch({
   const id = initial.fixture.id;
   const router = useRouter();
 
+  // Lite mode (T-1387): a snapshot a minute rather than an open stream.
+  const { on: lite } = useLite();
+
   useEffect(() => {
-    // The reader's names in every snapshot, as on the server-rendered page (T-1312).
-    const source = new EventSource(withLocale(`/api/fixtures/${id}/stream`, locale));
     let panelRefresh: ReturnType<typeof setTimeout> | null = null;
     const stamp = (snapshot: boolean): void =>
       setClock((c) => ({
@@ -60,52 +67,77 @@ export function LiveMatch({
         lastSnapshotAt: snapshot ? Date.now() : c.lastSnapshotAt,
         broken: false,
       }));
-    source.addEventListener('snapshot', (event) => {
-      const next = JSON.parse((event as MessageEvent<string>).data) as MatchCentre;
-      setCentre((previous) => {
-        const said = matchAnnouncements(previous, next, words);
-        if (said.length > 0) setAnnouncement(said.join(' '));
-        return next;
-      });
-      stamp(true);
-    });
-    source.addEventListener('heartbeat', () => stamp(false));
-    source.addEventListener('panel', () => {
-      stamp(false);
-      if (panelRefresh !== null) return;
-      panelRefresh = setTimeout(() => {
-        panelRefresh = null;
-        router.refresh();
-      }, PANEL_REFRESH_MS);
-    });
-    source.addEventListener('stale', () => setClock((c) => ({ ...c, broken: true })));
-    source.onerror = () => setClock((c) => ({ ...c, broken: true }));
-    source.onopen = () => setClock((c) => ({ ...c, broken: false }));
+    // The reader's names in every snapshot, as on the server-rendered page (T-1312).
+    const stop = openLiveSource(
+      withLocale(`/api/fixtures/${id}/stream`, locale),
+      lite,
+      (source) => {
+        source.addEventListener('snapshot', (event) => {
+          const next = JSON.parse((event as MessageEvent<string>).data) as MatchCentre;
+          setCentre((previous) => {
+            const said = matchAnnouncements(previous, next, words);
+            if (said.length > 0) setAnnouncement(said.join(' '));
+            return next;
+          });
+          stamp(true);
+        });
+        source.addEventListener('heartbeat', () => stamp(false));
+        source.addEventListener('panel', () => {
+          stamp(false);
+          if (panelRefresh !== null) return;
+          panelRefresh = setTimeout(() => {
+            panelRefresh = null;
+            router.refresh();
+          }, PANEL_REFRESH_MS);
+        });
+        source.addEventListener('stale', () => setClock((c) => ({ ...c, broken: true })));
+        source.onerror = () => setClock((c) => ({ ...c, broken: true }));
+        source.onopen = () => setClock((c) => ({ ...c, broken: false }));
+      },
+    );
     const tick = setInterval(() => setNow(Date.now()), 5_000);
     return () => {
       clearInterval(tick);
       if (panelRefresh !== null) clearTimeout(panelRefresh);
-      source.close();
+      stop();
     };
-  }, [id, router, words, locale]);
+  }, [id, router, words, locale, lite]);
 
-  const state = liveState(clock, now);
+  // In lite mode the threshold is a missed poll plus the usual slack (T-1387).
+  const staleAfter = staleAfterMs(lite);
+  const state = liveState(clock, now, staleAfter);
+  // The stream's line sits in the score band, under the status (T-1384).
+  const live = (
+    <p
+      className={`text-xs ${
+        state === 'live'
+          ? 'text-muted'
+          : state === 'connecting'
+            ? 'font-medium'
+            : 'font-medium text-warning'
+      }`}
+      data-testid="live-state"
+      data-state={state}
+      role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
+    >
+      {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
+        // "Last checked 8 sec ago", amber with "may be behind" past the
+        // stream's own threshold (T-1388); the other states keep their words.
+        <FreshnessStamp
+          checkedAt={clock.lastEventAt}
+          now={now}
+          staleAfterMs={staleAfter}
+          behind={state === 'stale'}
+          locale={locale}
+          words={words.m}
+        />
+      ) : (
+        liveLabel(state, clock, locale, timeZone, words.m)
+      )}
+    </p>
+  );
   return (
     <>
-      <p
-        className={`text-xs ${
-          state === 'live'
-            ? 'text-muted'
-            : state === 'connecting'
-              ? 'font-medium'
-              : 'font-medium text-warning'
-        }`}
-        data-testid="live-state"
-        data-state={state}
-        role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
-      >
-        {liveLabel(state, clock, locale, timeZone, words.m)}
-      </p>
       <div
         aria-live="polite"
         aria-atomic="true"
@@ -120,6 +152,7 @@ export function LiveMatch({
         locale={locale}
         now={now}
         slots={slots}
+        hero={{ ...hero, live }}
         words={words}
       />
     </>

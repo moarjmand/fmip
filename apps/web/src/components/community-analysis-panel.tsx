@@ -1,6 +1,6 @@
 import type { CommunityAnalysesResponse, CommunityAnalysis } from '@fmip/contracts';
 import { MemberHandle, MemberName } from '@/components/member-name';
-import { LtrNumeric } from '@/components/score';
+import { ScorePair } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 import type { Locale } from '@/i18n/locales';
@@ -88,9 +88,9 @@ function Analysis({ locale, analysis }: { locale: Locale; analysis: CommunityAna
           <Translated locale={locale} message={OUTCOME_KEY[current.predicted_outcome]} />
         </span>
         {current.predicted_home !== null && current.predicted_away !== null && (
-          <LtrNumeric className="ms-2">
+          <ScorePair locale={locale} className="ms-2" testId="community-analysis-score">
             {scoreText(locale, current.predicted_home, current.predicted_away)}
-          </LtrNumeric>
+          </ScorePair>
         )}
         <span className="ms-2 text-muted">{confidenceText(locale, current.confidence)}</span>
       </p>

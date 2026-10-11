@@ -114,10 +114,39 @@ export function formatNumber(locale: Locale | string, value: number): string {
 }
 
 /**
+ * A label that carries numbers as text -- a season, "2026/27" -- with every
+ * ASCII digit in the locale's own digits and nothing else touched: «۲۰۲۶/۲۷»
+ * on `/fa` (T-1382). Digit by digit, so a leading zero stays and no grouping
+ * separator is added.
+ */
+export function localDigits(locale: Locale | string, text: string): string {
+  const digits = new Intl.NumberFormat(intlLocale(locale), { useGrouping: false });
+  return text.replace(/[0-9]/g, (digit) => digits.format(Number(digit)));
+}
+
+/**
  * Whole calendar days before today, in the reader's words: "yesterday",
  * "12 days ago", «۱۲ روز پیش» (T-1371). `numeric: 'auto'` is what turns one
  * day into "yesterday"; the date and time beside it are the caller's.
  */
 export function formatDaysAgo(locale: Locale | string, days: number): string {
   return new Intl.RelativeTimeFormat(intlLocale(locale), { numeric: 'auto' }).format(-days, 'day');
+}
+
+/**
+ * How long ago a check was, short, in the reader's words: "8 sec ago",
+ * "4 min ago", «۸ ثانیه پیش» (T-1388). The freshness stamp's clause; the narrow
+ * style keeps it to a glance beside a live score. Under a minute in
+ * seconds, under an hour in minutes, under a day in hours, else days. A
+ * moment a little ahead of the clock reads as now, never "in 2s".
+ */
+export function formatAgo(locale: Locale | string, elapsedMs: number): string {
+  const format = new Intl.RelativeTimeFormat(intlLocale(locale), { style: 'narrow' });
+  const seconds = Math.max(0, Math.floor(elapsedMs / 1000));
+  if (seconds < 60) return format.format(-seconds, 'second');
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return format.format(-minutes, 'minute');
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return format.format(-hours, 'hour');
+  return format.format(-Math.floor(hours / 24), 'day');
 }

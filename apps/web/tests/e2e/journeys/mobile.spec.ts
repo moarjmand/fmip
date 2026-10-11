@@ -46,15 +46,23 @@ for (const theme of ['light', 'dark'] as const) {
       for (const path of PATHS) {
         test(`${path} does not scroll sideways and passes axe`, async ({ page }) => {
           await page.goto(path);
-          // The key players (T-841) are on every match page, so they are measured with the rest.
-          if (path.includes('/match/')) await expect(page.getByTestId('key-players')).toBeVisible();
           await expect(page.locator('html')).toHaveAttribute('data-text-size', size);
           await expect(
             page.getByTestId('score-card').first().or(page.getByTestId('match-header')),
           ).toBeVisible();
-          // The competition context (T-840) is on every match page, so its
-          // lines are measured with the rest.
           if (path.includes('/match/')) {
+            // On a phone the match centre is tabs (T-1384): each tab is
+            // opened and measured, so nothing hidden behind one escapes the
+            // check. The key players (T-841) are in Line-ups, the competition
+            // context (T-840) in Summary, on every match page.
+            const nav = page.getByTestId('section-nav');
+            for (const link of await nav.getByRole('link').all()) {
+              await link.click();
+              expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+            }
+            await nav.locator('[data-tab-link="lineups"]').click();
+            await expect(page.getByTestId('key-players')).toBeVisible();
+            await nav.locator('[data-tab-link="summary"]').click();
             await expect(page.getByTestId('competition-context')).toBeVisible();
           }
           expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
@@ -104,7 +112,7 @@ test('a match row is one thumb-sized line, and its details open in place', async
   ).toContainText('Updated');
 });
 
-test('the match centre reaches each section through its nav, without script', async ({
+test('the match centre reaches each section through its tabs, without script', async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -115,25 +123,46 @@ test('the match centre reaches each section through its nav, without script', as
   await page.goto(`/en/match/${PLAYED_MATCH}`);
   const nav = page.getByTestId('section-nav');
   await expect(nav).toBeVisible();
-  for (const name of [
-    'Timeline',
-    'Stats',
-    'Competition',
-    'Line-ups',
-    'Model forecast',
-    'Community',
-    'Watch',
-  ]) {
+  // The phone's tabs (T-1384), plain anchors: no script decides what shows.
+  for (const name of ['Summary', 'Line-ups', 'Stats', 'Predictions', 'Watch', 'Discussion']) {
     await expect(nav.getByRole('link', { name, exact: true })).toBeVisible();
   }
-  // The key players (T-841), their own section beside the line-ups.
-  await expect(nav.getByRole('link', { name: 'Key players', exact: true })).toBeVisible();
+  // Summary first: the key events and the competition (T-840) are on show,
+  // the line-ups are behind their tab.
+  await expect(page.getByTestId('timeline')).toBeVisible();
+  await expect(page.getByTestId('competition-context')).toBeVisible();
+  await expect(page.getByTestId('lineups')).toBeHidden();
   await nav.getByRole('link', { name: 'Line-ups', exact: true }).click();
   await expect(page).toHaveURL(/#lineups$/);
   await expect(page.getByTestId('lineups')).toBeInViewport();
+  // The key players (T-841), their own section beside the line-ups.
+  await expect(page.getByTestId('key-players')).toBeVisible();
+  await expect(page.getByTestId('timeline')).toBeHidden();
+  // A deep link opens its own tab: a story's "#forecast" shows the model.
+  await page.goto(`/en/match/${PLAYED_MATCH}#forecast`);
+  await expect(page.getByTestId('forecast')).toBeVisible();
   // The model, the founder and the community stay three sections (rule 6).
   for (const id of ['forecast', 'analysis', 'community']) {
     await expect(page.locator(`#${id}`)).toHaveCount(1);
   }
+  await context.close();
+});
+
+test('the match centre opens every section side by side from 768px, with no tabs', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  await page.goto(`/en/match/${PLAYED_MATCH}`);
+  await expect(page.getByTestId('section-nav')).toBeHidden();
+  for (const id of ['timeline', 'lineups', 'forecast', 'analysis', 'community', 'watch']) {
+    await expect(page.locator(`#${id}`)).toBeVisible();
+  }
+  // Three columns at 1280px: the line-ups beside the key events.
+  const events = await page.locator('[data-column="events"]').boundingBox();
+  const teams = await page.locator('[data-column="teams"]').boundingBox();
+  expect(events).not.toBeNull();
+  expect(teams).not.toBeNull();
+  if (events !== null && teams !== null) expect(teams.x).toBeGreaterThan(events.x);
   await context.close();
 });

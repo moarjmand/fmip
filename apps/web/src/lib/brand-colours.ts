@@ -12,10 +12,10 @@
  * which these values do not.
  */
 export const BRAND_COLOURS = {
-  canvas: '#ffffff',
-  text: '#111827',
-  'text-muted': '#4b5563',
-  border: '#d1d5db',
+  canvas: '#fafaf7',
+  text: '#15181d',
+  'text-muted': '#3e4651',
+  border: '#dadde2',
   accent: '#0b6b3a',
   'on-accent': '#ffffff',
 } as const;

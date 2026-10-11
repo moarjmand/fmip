@@ -88,6 +88,20 @@ export type MatchIncidentKind =
   | 'substitution'
   | 'var';
 
+/**
+ * What an incident adds to its kind, in our words (T-1378, D-196): what a VAR
+ * review decided. `null` when it adds nothing or when the provider's detail
+ * could not be named; the provider's text is never carried (rule 2).
+ */
+export type MatchIncidentDetail =
+  | 'goal_cancelled'
+  | 'goal_confirmed'
+  | 'penalty_awarded'
+  | 'penalty_cancelled'
+  | 'penalty_confirmed'
+  | 'card_upgraded'
+  | 'card_cancelled';
+
 export interface MatchIncident {
   id: string;
   sequence: number;
@@ -98,7 +112,7 @@ export interface MatchIncident {
   player: { id: string; name: string } | null;
   /** The assist, or the player coming on. */
   related_player: { id: string; name: string } | null;
-  detail: string | null;
+  detail: MatchIncidentDetail | null;
 }
 
 export type MatchStatMetric =

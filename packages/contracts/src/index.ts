@@ -335,6 +335,7 @@ export type {
   MatchCentre,
   MatchHeader,
   MatchIncident,
+  MatchIncidentDetail,
   MatchIncidentKind,
   MatchLineupPlayer,
   MatchLineups,

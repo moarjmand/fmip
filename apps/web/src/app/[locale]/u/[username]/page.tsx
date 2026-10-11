@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AchievementsSection } from '@/components/achievements';
 import { StartConversation } from '@/components/conversation-controls';
+import { Pictured } from '@/components/lite-mode';
 import { isDeletedMember } from '@fmip/contracts';
 import { FriendControls } from '@/components/friend-controls';
 import { MemberHandle, MemberName } from '@/components/member-name';
@@ -155,15 +156,18 @@ export default async function ProfilePage({
       <header className="flex items-start gap-4">
         {profile.avatar_url !== null && (
           // A plain <img>: avatars are remote URLs the member chose, and Next's
-          // image optimiser would need every host allow-listed.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.avatar_url}
-            alt=""
-            width={64}
-            height={64}
-            className="size-16 rounded-full object-cover"
-          />
+          // image optimiser would need every host allow-listed. None in lite
+          // mode (T-1387); the name beside it is the profile's heading.
+          <Pictured>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={profile.avatar_url}
+              alt=""
+              width={64}
+              height={64}
+              className="size-16 rounded-full object-cover"
+            />
+          </Pictured>
         )}
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold" data-testid="profile-name">

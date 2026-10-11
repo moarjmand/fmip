@@ -44,6 +44,13 @@ describe('season selection', () => {
     expect(seasonHref('fa', 'c1', { id: ID, is_current: false })).toBe(
       `/fa/competition/c1?season=${ID}`,
     );
+    // T-1385: the section the reader is on is kept; the Overview needs none.
+    expect(seasonHref('en', 'c1', { id: ID, is_current: false }, 'results')).toBe(
+      `/en/competition/c1?season=${ID}&tab=results`,
+    );
+    expect(seasonHref('en', 'c1', { id: ID, is_current: true }, 'overview')).toBe(
+      '/en/competition/c1',
+    );
     expect(competitionQuery(null)).toBe('');
     expect(competitionQuery(ID)).toBe(`?season=${ID}`);
   });
@@ -64,10 +71,10 @@ describe('the minutes floor on the leaders (T-824)', () => {
     expect(competitionQuery(null, 900)).toBe('?min_minutes=900');
     expect(competitionQuery(ID, 900)).toBe(`?season=${ID}&min_minutes=900`);
     expect(leadersHref('en', 'c1', { id: ID, is_current: true }, 450)).toBe(
-      '/en/competition/c1?min_minutes=450#leaders',
+      '/en/competition/c1?min_minutes=450&tab=players#leaders',
     );
     expect(leadersHref('en', 'c1', { id: ID, is_current: false }, null)).toBe(
-      `/en/competition/c1?season=${ID}#leaders`,
+      `/en/competition/c1?season=${ID}&tab=players#leaders`,
     );
   });
 });
@@ -80,10 +87,15 @@ describe('labels', () => {
     );
   });
 
-  it('writes a fixture in Persian with Persian digits, the score kept left to right (T-1304)', () => {
-    expect(fixtureLine('fa', fixture())).toBe('ALP \u2066۳–۱\u2069 Test Beta');
+  it('writes a fixture in Persian with Persian digits, each part isolated (T-1304, T-1375)', () => {
+    // The names are their own runs and the score one right-to-left run, so the
+    // home goals sit on the right, beside the home side, even when English
+    // names stand in a Persian line.
+    expect(fixtureLine('fa', fixture())).toBe(
+      '\u2068ALP\u2069 \u2067۳–۱\u2069 \u2068Test Beta\u2069',
+    );
     expect(fixtureLine('fa', fixture({ score: null, status: 'scheduled' }))).toBe(
-      'ALP - Test Beta',
+      '⁨ALP⁩ - ⁨Test Beta⁩',
     );
     expect(formLine('fa', ['W', 'D', 'L'])).toBe('ب م ش');
   });

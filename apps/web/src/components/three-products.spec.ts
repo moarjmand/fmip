@@ -85,6 +85,20 @@ describe('the three products stay three on the page', () => {
     expect(page).not.toMatch(/<PredictionPanel/);
   });
 
+  it('keeps the homepage’s "three forecasts" three lanes from three files (T-1382)', () => {
+    // The front page shows the three side by side for the day's biggest match,
+    // which is the second place a single "prediction" box would be tempting.
+    const front = source('home-front.tsx');
+    expect(front).toContain('<ModelLane');
+    expect(front).toContain('<FounderAnalysisBrief');
+    expect(front).toContain('<CommunityPicksBrief');
+    expect(front).toContain('<ThreeProductsNote');
+    expect(front).not.toMatch(/'model'\s*\|\s*'founder'|'founder'\s*\|\s*'community'/);
+    // Each brief lives with its own product's components, so the guards above cover it.
+    expect(source('founder-analysis.tsx')).toContain('export function FounderAnalysisBrief');
+    expect(source('community-consensus.tsx')).toContain('export function CommunityPicksBrief');
+  });
+
   it('keeps the Predictions page four sections rather than one feed', () => {
     // This is the page rule 6 was written for: blueprint 2.1 puts all three
     // products and the leaderboard under one heading, which makes "today's
@@ -103,6 +117,18 @@ describe('the three products stay three on the page', () => {
     // And nothing that takes whichever it is handed.
     expect(page).not.toMatch(/<PredictionList|<ProductList|<PredictionRow/);
     expect(page).not.toMatch(/source:\s*'(model|founder|community)'/);
+
+    // T-1383 (D-201): each match row holds the model's bar and the member's
+    // pick side by side. The pick is the community's own component, handed to
+    // the model's list as an opaque slot; the list never reads what it holds.
+    expect(page).toContain('<InlinePick');
+    expect(page).toContain('<CommunitySplit');
+    const forecast = source('forecast-panel.tsx');
+    expect(forecast).not.toMatch(/CommunitySplit|Consensus|InlinePick|PredictionForm|Prediction\b/);
+    // The founder's and the community's sections stand in their own lanes.
+    expect(page).toContain('<FounderLane');
+    expect(page).toContain('<CommunityLane');
+    expect(page).toContain('<ThreeProductsNote');
   });
 
   it('keeps the scores card two lines from two components (T-940)', () => {
@@ -147,6 +173,38 @@ describe('the three products stay three on the page', () => {
     expect(links).toContain("anchor: 'analysis'");
     expect(links).toContain("anchor: 'community'");
     expect(links).not.toMatch(/ForecastVersion|ForecastSummary|CommunityConsensus|FounderAnalysis/);
+  });
+
+  it('gives the three their own lanes and bars, none of which can be handed another product (T-1388)', () => {
+    // The lanes: three components, no prop that chooses a product. A `Lane`
+    // taking `product: 'model' | 'founder' | 'community'` is the shortcut.
+    const lanes = source('product-lanes.tsx');
+    for (const name of ['ModelLane', 'FounderLane', 'CommunityLane']) {
+      expect(lanes).toContain(`export function ${name}(`);
+    }
+    expect(lanes).not.toMatch(/'model'\s*\|\s*'founder'|'founder'\s*\|\s*'community'/);
+    // Code only: the file's prose argues about products and lanes at length.
+    const code = lanes.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[\r\n])\s*\/\/.*/g, '$1');
+    expect(code).not.toMatch(/\b(source|product|lane)\s*[:?]/);
+    // Each panel stands in its own lane.
+    expect(source('forecast-panel.tsx')).toContain('<ModelLane');
+    expect(source('founder-analysis.tsx')).toContain('<FounderLane');
+    const page = readFileSync(
+      join(COMPONENTS, '..', 'app', '[locale]', 'match', '[id]', 'page.tsx'),
+      'utf8',
+    );
+    expect(page).toContain('<CommunityLane');
+    expect(page).toContain('<ThreeProductsNote');
+    // The model's bar draws the model only, in the model's colour; the
+    // community's spread has its own bar in its own file and colour.
+    const bar = source('forecast-bar.tsx');
+    expect(bar).not.toMatch(/CardCommunity|Consensus|FounderAnalysis|bg-community|bg-founder/);
+    const community = source('community-consensus.tsx');
+    expect(community).not.toMatch(/forecast-bar|ForecastBar|bg-model/);
+    // The pick feeds the community product only: its colour, never the brand green.
+    const pick = source('prediction-form.tsx');
+    expect(pick).toContain('has-checked:bg-community');
+    expect(pick).not.toMatch(/has-checked:bg-accent|bg-model|bg-founder/);
   });
 
   it('never averages the three into one number', () => {

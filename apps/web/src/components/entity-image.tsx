@@ -1,4 +1,5 @@
 import { MEDIA_PATH_PREFIX, type EntityMedia } from '@fmip/contracts';
+import { Pictured } from '@/components/lite-mode';
 import { cx } from '@/components/ui/cx';
 
 /**
@@ -104,7 +105,7 @@ export function EntityImage({
   const round = kind === 'photo';
   const shape = round ? 'rounded-full' : 'rounded-sm';
   if (drawable(media)) {
-    return (
+    const image = (
       // A plain image on purpose: no optimiser route, no client JS (see above).
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -126,7 +127,33 @@ export function EntityImage({
         data-coverage="available"
       />
     );
+    // Lite mode (T-1387): no <img> at all, so nothing is fetched; the lettered
+    // mark stands in, still saying the image exists and was left out.
+    return (
+      <Pictured fallback={mark({ kind, name, size, decorative, className, omitted: true })}>
+        {image}
+      </Pictured>
+    );
   }
+  return mark({ kind, name, size, decorative, className, omitted: false });
+}
+
+/** The neutral lettered mark: no image held, or one lite mode left out. */
+function mark({
+  kind,
+  name,
+  size,
+  decorative,
+  className,
+  omitted,
+}: {
+  kind: EntityImageKind;
+  name: string;
+  size: EntityImageSize;
+  decorative: boolean;
+  className: string | undefined;
+  omitted: boolean;
+}) {
   return (
     <span
       {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': name })}
@@ -134,12 +161,13 @@ export function EntityImage({
         'inline-flex shrink-0 items-center justify-center overflow-hidden border border-default bg-surface-raised leading-none font-semibold text-muted select-none before:content-[attr(data-letters)]',
         BOX[size],
         LETTERS[size],
-        shape,
+        kind === 'photo' ? 'rounded-full' : 'rounded-sm',
         className,
       )}
       data-testid="entity-image"
       data-kind={kind}
-      data-coverage="not_supplied"
+      data-coverage={omitted ? 'available' : 'not_supplied'}
+      data-omitted={omitted ? 'lite' : undefined}
       data-letters={initials(name, kind)}
     />
   );

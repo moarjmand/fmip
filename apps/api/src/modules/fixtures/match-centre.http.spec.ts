@@ -90,10 +90,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     const away = rows.find((r) => r.side === 'away')?.id;
     await pool.query(
       `INSERT INTO incident (fixture_id, participant_id, person_id, related_person_id, kind, minute, added_time, sequence, detail) VALUES
-         ($1, $2, $4, NULL, 'goal', 23, NULL, 1, NULL),
-         ($1, $3, $5, NULL, 'yellow_card', 45, 1, 2, NULL),
-         ($1, $3, $5, NULL, 'penalty_goal', 67, NULL, 3, NULL),
-         ($1, $2, $4, $5, 'substitution', 80, NULL, 4, NULL),
+         ($1, $2, $4, NULL, 'goal', 23, NULL, 1, 'Normal Goal'),
+         ($1, $3, $5, NULL, 'yellow_card', 45, 1, 2, 'Yellow Card'),
+         ($1, $3, $5, NULL, 'penalty_goal', 67, NULL, 3, 'Penalty'),
+         ($1, $2, $4, $5, 'substitution', 80, NULL, 4, 'Substitution 1'),
          ($1, NULL, NULL, NULL, 'var', 88, NULL, 5, 'Goal cancelled')`,
       [MATCH, home, away, SALAH, BRUNO],
     );
@@ -216,6 +216,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     ]);
     expect(timeline.data?.[1]?.added_time).toBe(1);
     expect(timeline.last_updated_at).not.toBeNull();
+  });
+
+  it("maps a detail stored in the provider's words to ours, and passes none of its text (T-1378)", async () => {
+    const { timeline } = (await get(MATCH)).json() as MatchCentre;
+    // Rows written before T-1378 hold "Normal Goal", "Substitution 1", "Goal
+    // cancelled": only what the VAR review decided survives, as our code.
+    expect(timeline.data?.map((i) => i.detail)).toEqual([null, null, null, null, 'goal_cancelled']);
   });
 
   it('pairs statistics per metric and leaves an unsupplied side null, never zero', async () => {

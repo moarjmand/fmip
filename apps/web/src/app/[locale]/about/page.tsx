@@ -90,7 +90,8 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
           <Translated locale={lang} message="about.three.title" />
         </h2>
         <ul className="flex list-disc flex-col gap-2 ps-6">
-          <li>
+          {/* The homepage's "How the model works" lands here (T-1382). */}
+          <li id="model" className="scroll-mt-4">
             <strong>
               <Translated locale={lang} message="about.three.model.name" />
             </strong>{' '}

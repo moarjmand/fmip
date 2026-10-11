@@ -582,12 +582,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     // A row at a place the answer no longer fills -- what a list that shrank
     // leaves behind -- is deleted on the next ask, and nothing else moves
     // (T-1382; production fixture 1639651 showed a substitution twice).
-    const kept = await versions();
     await pool.query(
       `INSERT INTO incident (fixture_id, person_id, kind, minute, sequence)
        VALUES ($1, $2, 'goal', 1, 999)`,
       [fixtureId, HAALAND],
     );
+    // Read after the insert: its foreign-key check locks the fixture row
+    // (`xmax`), which is the test's doing, not the writer's.
+    const kept = (await versions()).filter((r) => r.row !== 'incident 999');
     const fourth = await jobs.postMatch(AFTER_KICKOFF);
     expect(fourth.itemsWritten).toBe(1);
     expect(

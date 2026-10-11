@@ -66,7 +66,10 @@ export function ratingText(locale: string, rating: number): string {
   }).format(rating);
 }
 
-/** "2–1", in the locale's digits; the caller isolates it left to right. */
+/**
+ * "2–1", home first, in the locale's digits; the caller isolates it in the
+ * page's direction (`ScorePair`, `pairIsolate`; D-193, T-1378).
+ */
 export function scoreText(locale: string, home: number, away: number): string {
   return `${plainNumber(locale, home)}–${plainNumber(locale, away)}`;
 }

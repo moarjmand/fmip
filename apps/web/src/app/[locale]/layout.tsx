@@ -5,7 +5,7 @@ import { DemonstrationBanner } from '@/components/demonstration-banner';
 import { ERROR_PAGE_KEYS } from '@/components/error-page';
 import { ServiceWorker } from '@/components/service-worker';
 import { Translated } from '@/components/translated';
-import { SiteHeader } from '@/components/site-header';
+import { SiteHeader, SiteTabBar } from '@/components/site-header';
 import { DEFAULT_LOCALE, LOCALES, directionOf, isLocale } from '@/i18n/locales';
 import { resolveMessages, t } from '@/i18n/messages';
 import {
@@ -15,13 +15,27 @@ import {
 } from '@/lib/demonstration';
 import { BRAND_COLOURS } from '@/lib/brand-colours';
 import { pageMetadata, siteUrl } from '@/lib/seo';
-import { readAppearance, readTheme } from '@/lib/theme-cookie';
+import { readAppearance, readLite, readTheme } from '@/lib/theme-cookie';
+import { LITE_BANNER_KEYS } from '@/lib/lite';
+import { LiteBanner, LiteFootnote } from '@/components/lite-banner';
+import { LiteProvider } from '@/components/lite-mode';
 // The site font (T-601, D-089): Vazirmatn, self-hosted. The package's
 // @font-face rules point at woff2 files Next copies into its own static
 // assets, one per script subset by `unicode-range`, so a page downloads only
 // the scripts it shows and no request leaves the site for a font. Imported
 // before globals.css, which names the family.
 import '@fontsource-variable/vazirmatn';
+// The Hybrid families (T-1380, D-198), the same way: Mona Sans with its width
+// axis (the interface on a Latin-script page, condensed 900 for data
+// numerals), Newsreader upright and italic (English editorial; the italic is
+// the founder's voice), Geist Mono (versions, timestamps) and Markazi Text
+// (Persian editorial display). A face downloads only where a page uses it and
+// only for the scripts on that page, by `unicode-range`.
+import '@fontsource-variable/mona-sans/wdth.css';
+import '@fontsource-variable/newsreader';
+import '@fontsource-variable/newsreader/wght-italic.css';
+import '@fontsource-variable/geist-mono';
+import '@fontsource-variable/markazi-text';
 import '../globals.css';
 
 /**
@@ -107,6 +121,13 @@ export default async function LocaleLayout({
   // scales the root font size every rem follows, `data-contrast` and
   // `data-motion` switch tokens.css and globals.css.
   const appearance = await readAppearance();
+  // Lite mode (T-1387, D-205), the same way: `data-lite="on"` switches the
+  // font roles to the device's own stacks before any face is requested and
+  // compacts the lists (globals.css); `LiteProvider` hands the mode to the
+  // images (`Pictured`) and the live surfaces, and turns it on after load
+  // when only a script can tell the connection is slow.
+  const lite = await readLite();
+  const liteWords = resolveMessages(locale, LITE_BANNER_KEYS);
 
   return (
     <html
@@ -116,33 +137,40 @@ export default async function LocaleLayout({
       data-text-size={appearance.text_size}
       data-contrast={appearance.contrast}
       data-motion={appearance.motion}
+      data-lite={lite.on ? 'on' : 'off'}
     >
       <body>
-        {/* First in the tab order (T-081): one key past the navigation to the content. */}
-        <a
-          href="#content"
-          className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded focus:bg-surface-raised focus:px-3 focus:py-2"
-          data-testid="skip-link"
-        >
-          {/* Through `Translated` like every other label: on `/es` this is
+        <LiteProvider preference={lite.preference} slow={lite.slow}>
+          {/* First in the tab order (T-081): one key past the navigation to the content. */}
+          <a
+            href="#content"
+            className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded focus:bg-surface-raised focus:px-3 focus:py-2"
+            data-testid="skip-link"
+          >
+            {/* Through `Translated` like every other label: on `/es` this is
               English and says so, rather than being English and silent. It was
               the one string in the catalogue with nowhere calling it. */}
-          <Translated locale={locale} message="nav.skipToContent" />
-        </a>
-        {/* Above the header, on every page, and never dismissible: when this
+            <Translated locale={locale} message="nav.skipToContent" />
+          </a>
+          {/* Above the header, on every page, and never dismissible: when this
             deployment's football is fixture data, a reader meets that fact
             before they meet a score (T-087). */}
-        <DemonstrationBanner locale={locale} />
-        <SiteHeader locale={locale} theme={theme} />
-        <div id="content" tabIndex={-1} className="outline-none">
-          {/* The error pages below this layout are client components, and the
+          <DemonstrationBanner locale={locale} />
+          <SiteHeader locale={locale} theme={theme} banner={<LiteBanner words={liteWords} />} />
+          <div id="content" tabIndex={-1} className="outline-none">
+            {/* The error pages below this layout are client components, and the
               catalogues stay on the server (T-1040): their words are resolved
               here, for this locale only, and handed down. */}
-          <ClientMessagesProvider messages={resolveMessages(locale, ERROR_PAGE_KEYS)}>
-            {children}
-          </ClientMessagesProvider>
-        </div>
-        <ServiceWorker />
+            <ClientMessagesProvider messages={resolveMessages(locale, ERROR_PAGE_KEYS)}>
+              {children}
+            </ClientMessagesProvider>
+          </div>
+          {/* What a lite page leaves out, at its foot (T-1387). */}
+          <LiteFootnote words={liteWords} />
+          {/* The phone's five main sections (T-1381, D-199); not drawn from 768px. */}
+          <SiteTabBar locale={locale} />
+          <ServiceWorker />
+        </LiteProvider>
       </body>
     </html>
   );

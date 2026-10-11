@@ -49,6 +49,14 @@ const DARK_MORE_COPIES = [
   block(":root:not([data-theme='light']):not([data-contrast='standard'])"),
 ];
 
+// Editorial mode (D-198): the header and editorial pages, on paper whatever
+// the theme -- the light values, plain and with more contrast.
+const EDITORIAL = block("\n[data-mode='editorial']");
+const EDITORIAL_MORE = [
+  block(":root[data-contrast='more'] [data-mode='editorial']"),
+  block(":root:not([data-contrast='standard']) [data-mode='editorial']"),
+];
+
 function luminance(hex: string): number {
   const linear = [1, 3, 5]
     .map((at) => parseInt(hex.slice(at, at + 2), 16) / 255)
@@ -63,15 +71,23 @@ export function contrast(a: string, b: string): number {
   return Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100;
 }
 
-const BACKGROUNDS = ['--token-canvas', '--token-surface', '--token-surface-raised'];
+// The figures in the comments are written against these three, in order...
+const FIGURES_AGAINST = ['--token-canvas', '--token-surface', '--token-surface-raised'];
+// ...and every pair is also checked on the stage, a data page's ground (D-198),
+// which repeats one of them (see 'the stage' below).
+const BACKGROUNDS = [...FIGURES_AGAINST, '--token-stage'];
 const TEXT = [
   '--token-text',
   '--token-text-muted',
+  '--token-caption',
   '--token-accent',
   '--token-danger',
   '--token-warning',
   '--token-success',
   '--token-live',
+  '--token-model',
+  '--token-founder',
+  '--token-community',
 ];
 const NON_TEXT = ['--token-border-strong', '--token-focus'];
 const ON_ACCENT_BACKGROUNDS = ['--token-accent', '--token-accent-strong'];
@@ -118,7 +134,7 @@ describe.each([
     let checked = 0;
     for (const [token, { comment }] of theme) {
       const written = [...(comment ?? '').matchAll(/\b\d+\.\d{2}\b/g)].map((m) => Number(m[0]));
-      const against = token === '--token-on-accent' ? ON_ACCENT_BACKGROUNDS : BACKGROUNDS;
+      const against = token === '--token-on-accent' ? ON_ACCENT_BACKGROUNDS : FIGURES_AGAINST;
       written.forEach((figure, index) => {
         const background = against[index] ?? '(none)';
         expect(figure, `${token} against ${background}`).toBe(
@@ -248,9 +264,36 @@ describe('more contrast, as a whole (T-621)', () => {
 describe('the tokens themselves', () => {
   it('declare the same names in light and in both ways to dark', () => {
     const names = [...LIGHT.keys()].sort();
-    expect(names.length).toBe(15);
+    expect(names.length).toBe(20);
     expect([...DARK.keys()].sort()).toEqual(names);
     expect([...DARK_CHOSEN.keys()].sort()).toEqual(names);
+  });
+
+  it('put a data page on the stage: Day is the sunk ground, Night the canvas (D-198)', () => {
+    expect(value(LIGHT, '--token-stage')).toBe('#f1f2ee');
+    expect(value(DARK, '--token-canvas')).toBe('#06080c');
+    for (const light of [LIGHT, LIGHT_MORE]) {
+      expect(value(light, '--token-stage')).toBe(value(light, '--token-surface-raised'));
+    }
+    for (const dark of [DARK, DARK_MORE]) {
+      expect(value(dark, '--token-stage')).toBe(value(dark, '--token-canvas'));
+    }
+  });
+
+  it('keep editorial mode on paper: the light values, whatever the theme (D-198)', () => {
+    expect(value(LIGHT, '--token-canvas')).toBe('#fafaf7');
+    const pairs = [[EDITORIAL, LIGHT], ...EDITORIAL_MORE.map((copy) => [copy, LIGHT_MORE])];
+    for (const [copy, of] of pairs) {
+      if (copy === undefined || of === undefined) throw new Error('missing block');
+      expect([...copy.keys()].sort()).toEqual([...of.keys()].sort());
+      for (const [name, declared] of of) expect(value(copy, name), name).toBe(declared.value);
+    }
+    // And the marked element paints its own ground and text with them.
+    const editorial = /\[data-mode='editorial'\] \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';
+    expect(editorial).toContain('background-color: var(--token-canvas);');
+    expect(editorial).toContain('color: var(--token-text);');
+    const data = /\[data-mode='data'\] \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';
+    expect(data).toContain('background-color: var(--token-stage);');
   });
 
   it('reach dark with the same values whether the device or the member chose it', () => {
@@ -267,9 +310,11 @@ describe('the tokens themselves', () => {
     }
   });
 
-  it('keep the green D-089 names: #0b6b3a on light, #4cc88a on dark', () => {
+  it('keep one green: D-089 #0b6b3a on light, lifted to #1ed38a on Night (D-198)', () => {
     expect(value(LIGHT, '--token-accent')).toBe('#0b6b3a');
-    expect(value(DARK, '--token-accent')).toBe('#4cc88a');
+    expect(value(DARK, '--token-accent')).toBe('#1ed38a');
+    // The mark is drawn in the light green in both themes.
+    expect(BRAND_COLOURS.accent).toBe('#0b6b3a');
   });
 
   it('are what every Tailwind colour class in globals.css reads', () => {

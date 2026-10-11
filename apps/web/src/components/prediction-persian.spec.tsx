@@ -73,7 +73,10 @@ describe('the prediction surfaces in Persian (T-1307)', () => {
     const html = founder('en');
     expect(html).toContain('Founder’s analysis');
     expect(html).toContain('Test Home win');
-    expect(html).toContain('<span dir="ltr">2–1</span>');
+    // A home–away pair in the page's direction (T-1378): left to right in English.
+    expect(html).toContain(
+      '<span dir="ltr" class="[unicode-bidi:isolate]" data-testid="founder-score">2–1</span>',
+    );
     expect(html).toContain('· confidence 4/5');
     expect(html).toContain('Written by The Founder · published');
     expect(html).toContain('2026-09-29 08:00');
