@@ -140,4 +140,29 @@ test.describe('layout mirrors under rtl', () => {
     });
     expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
   });
+
+  // T-1387: lite mode's banner -- the words at the inline start, the switch at
+  // the inline end, its knob at the switch's inline end -- mirrors as a whole.
+  for (const [path, rtl] of [
+    ['/en/scores', false],
+    ['/x-rtl/scores', true],
+  ] as const) {
+    test(`${path}'s lite banner puts its switch at the inline end`, async ({ page, baseURL }) => {
+      await page.context().addCookies([{ name: 'fmip_lite', value: 'on', url: baseURL ?? '' }]);
+      await page.goto(path);
+
+      const banner = page.getByTestId('lite-banner');
+      const words = (await banner.locator('span').first().boundingBox())!;
+      const toggle = (await page.getByTestId('lite-switch').boundingBox())!;
+      const knob = (await page.getByTestId('lite-switch').locator('span span').boundingBox())!;
+      const track = (await page.getByTestId('lite-switch').locator('> span').boundingBox())!;
+      if (rtl) {
+        expect(toggle.x + toggle.width).toBeLessThanOrEqual(words.x);
+        expect(knob.x - track.x).toBeLessThan(track.x + track.width - (knob.x + knob.width));
+      } else {
+        expect(words.x + words.width).toBeLessThanOrEqual(toggle.x);
+        expect(knob.x - track.x).toBeGreaterThan(track.x + track.width - (knob.x + knob.width));
+      }
+    });
+  }
 });
