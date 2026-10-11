@@ -22,6 +22,17 @@ import { readAppearance, readTheme } from '@/lib/theme-cookie';
 // the scripts it shows and no request leaves the site for a font. Imported
 // before globals.css, which names the family.
 import '@fontsource-variable/vazirmatn';
+// The Hybrid families (T-1380, D-198), the same way: Mona Sans with its width
+// axis (the interface on a Latin-script page, condensed 900 for data
+// numerals), Newsreader upright and italic (English editorial; the italic is
+// the founder's voice), Geist Mono (versions, timestamps) and Markazi Text
+// (Persian editorial display). A face downloads only where a page uses it and
+// only for the scripts on that page, by `unicode-range`.
+import '@fontsource-variable/mona-sans/wdth.css';
+import '@fontsource-variable/newsreader';
+import '@fontsource-variable/newsreader/wght-italic.css';
+import '@fontsource-variable/geist-mono';
+import '@fontsource-variable/markazi-text';
 import '../globals.css';
 
 /**

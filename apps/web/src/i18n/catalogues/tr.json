@@ -564,17 +564,17 @@
     "status": "untranslated"
   },
   "theme.light": {
-    "source": "Light",
+    "source": "Day",
     "text": "",
     "status": "untranslated"
   },
   "theme.dark": {
-    "source": "Dark",
+    "source": "Night",
     "text": "",
     "status": "untranslated"
   },
   "theme.system": {
-    "source": "Device",
+    "source": "Auto",
     "text": "",
     "status": "untranslated"
   },
@@ -584,7 +584,7 @@
     "status": "untranslated"
   },
   "theme.hint": {
-    "source": "Device follows the light or dark setting of your phone or computer. Your choice is kept in this browser and on your account, so signing in elsewhere brings it with you.",
+    "source": "Auto follows the light or dark setting of your phone or computer: Night when it is dark, Day when it is light. Your choice is kept in this browser and on your account, so signing in elsewhere brings it with you.",
     "text": "",
     "status": "untranslated"
   },

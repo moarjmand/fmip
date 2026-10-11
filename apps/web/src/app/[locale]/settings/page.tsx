@@ -384,7 +384,7 @@ function AppearanceSection({
       <h2 className="text-xl font-semibold">
         <Translated locale={locale} message="theme.heading" />
       </h2>
-      {/* T-602: the same switch as the header's, with room to say what "Device" means. */}
+      {/* T-602: the same switch as the header's, with room to say what "Auto" means. */}
       <p className="text-sm text-muted">
         <Translated locale={locale} message="theme.hint" />
       </p>

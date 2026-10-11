@@ -87,7 +87,7 @@ test('the header is one row on a phone, the rest behind its Menu', async ({ page
   for (const id of ['nav-scores', 'nav-watch', 'nav-search', 'nav-settings-guest']) {
     await expect(page.getByTestId(id)).toBeVisible();
   }
-  await expect(menu.getByRole('button', { name: 'Dark' })).toBeVisible();
+  await expect(menu.getByRole('button', { name: 'Night' })).toBeVisible();
   expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   expect(results.violations.map((v) => v.id)).toEqual([]);
