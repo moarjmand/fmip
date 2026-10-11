@@ -114,6 +114,17 @@ export function formatNumber(locale: Locale | string, value: number): string {
 }
 
 /**
+ * A label that carries numbers as text -- a season, "2026/27" -- with every
+ * ASCII digit in the locale's own digits and nothing else touched: «۲۰۲۶/۲۷»
+ * on `/fa` (T-1382). Digit by digit, so a leading zero stays and no grouping
+ * separator is added.
+ */
+export function localDigits(locale: Locale | string, text: string): string {
+  const digits = new Intl.NumberFormat(intlLocale(locale), { useGrouping: false });
+  return text.replace(/[0-9]/g, (digit) => digits.format(Number(digit)));
+}
+
+/**
  * Whole calendar days before today, in the reader's words: "yesterday",
  * "12 days ago", «۱۲ روز پیش» (T-1371). `numeric: 'auto'` is what turns one
  * day into "yesterday"; the date and time beside it are the caller's.

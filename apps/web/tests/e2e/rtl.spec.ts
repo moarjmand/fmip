@@ -22,7 +22,9 @@ test.describe('locale routing', () => {
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.getByTestId('title')).toHaveText('FMIP');
+    // The homepage's own heading is "Today" since the Hybrid front page
+    // (T-1382, D-200): the wordmark is the header's.
+    await expect(page.getByTestId('title')).toHaveText('Today');
   });
 
   test('/x-rtl renders right-to-left', async ({ page }) => {
@@ -31,7 +33,7 @@ test.describe('locale routing', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('html')).toHaveAttribute('lang', 'x-rtl');
     // Same English content: the pseudo-locale changes direction, not language.
-    await expect(page.getByTestId('title')).toHaveText('FMIP');
+    await expect(page.getByTestId('title')).toHaveText('Today');
   });
 
   test('a path without a locale redirects to the default one', async ({ page }) => {

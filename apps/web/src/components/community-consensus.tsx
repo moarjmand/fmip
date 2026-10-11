@@ -178,6 +178,57 @@ export function CommunitySplit({
 }
 
 /**
+ * The community's lane on the homepage's "three forecasts" (T-1382, D-200):
+ * how many members have picked, and nothing about what until the reader has
+ * picked (or kick-off has locked every pick), then the split (D-206). Below
+ * the floor there is no consensus to hide or show (D-052).
+ */
+export function CommunityPicksBrief({
+  consensus,
+  revealed,
+  home,
+  away,
+  href,
+  locale,
+}: {
+  consensus: CommunityConsensusResponse | null;
+  /** The reader has picked, or kick-off has locked every pick. */
+  revealed: boolean;
+  home: string;
+  away: string;
+  /** Where the reader makes their pick: the match centre. */
+  href: string;
+  locale: string;
+}) {
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  if (consensus === null || consensus.data === null || revealed) {
+    return (
+      <div className="flex flex-col gap-2" data-testid="community-brief" data-spread="shown">
+        <CommunitySplit consensus={consensus} home={home} away={away} locale={l} />
+        {!revealed && (
+          <Link href={href} className="text-sm font-bold text-community underline">
+            <Translated locale={l} message="pick.make" />
+          </Link>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2" data-testid="community-brief" data-spread="hidden">
+      <p className="text-base font-semibold" data-testid="consensus-count">
+        <Translated locale={l} message="lanes.community.picked" count={consensus.data.sample} />
+      </p>
+      <p className="text-sm text-muted">
+        <Translated locale={l} message="lanes.community.hidden" />
+      </p>
+      <Link href={href} className="text-sm font-bold text-community underline">
+        <Translated locale={l} message="pick.make" />
+      </Link>
+    </div>
+  );
+}
+
+/**
  * The community's lane in "What was forecast, and what happened" (T-1384,
  * D-202): after full time every pick is locked, so the spread is open to
  * everyone; the lane says what share of members picked what happened, over
