@@ -445,10 +445,13 @@ export class PostgresMatchCentreStore {
       shirt_number: number | null;
       position: MatchLineupPlayer['position'];
       is_captain: boolean;
+      grid_row: number | null;
+      grid_col: number | null;
       updated_at: Date;
     }>(
       `SELECT l.participant_id, l.person_id, COALESCE(p.known_as, p.full_name) AS name,
-              l.role, l.shirt_number, l.position, l.is_captain, l.updated_at
+              l.role, l.shirt_number, l.position, l.is_captain, l.grid_row, l.grid_col,
+              l.updated_at
          FROM lineup l JOIN person p ON p.id = l.person_id
         WHERE l.participant_id IN ($1, $2)
         ORDER BY l.role DESC, l.shirt_number NULLS LAST, name`,
@@ -461,6 +464,9 @@ export class PostgresMatchCentreStore {
       shirt_number: r.shirt_number,
       position: r.position,
       is_captain: r.is_captain,
+      // A place is both numbers or neither (the table's CHECK); T-1397, D-212.
+      grid:
+        r.grid_row !== null && r.grid_col !== null ? { row: r.grid_row, col: r.grid_col } : null,
     });
     return {
       home: rows.filter((r) => r.participant_id === homeParticipantId).map(player),
