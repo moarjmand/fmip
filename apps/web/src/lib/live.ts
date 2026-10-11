@@ -1,4 +1,10 @@
-import { type Freshness, type IngestionHealth, STALE_LIVE_AFTER_MS } from '@fmip/contracts';
+import {
+  type FixtureStatus,
+  type Freshness,
+  type IngestionHealth,
+  STALE_LIVE_AFTER_MS,
+  liveFreshnessFrom,
+} from '@fmip/contracts';
 import { formatTime } from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
 import { LITE_POLL_MS } from '@/lib/lite';
@@ -17,18 +23,44 @@ import { fill } from '@/lib/words';
 export type LiveState = 'connecting' | 'live' | 'stale' | 'unavailable';
 
 /**
+ * Whether a match page shows the stream's line ("Connecting to live
+ * updates…", "Last checked 8 sec ago") at all (T-1394): before kick-off and
+ * while the match is in progress. A finished, awarded, abandoned, postponed
+ * or cancelled match is not live, so the page neither claims a live
+ * connection nor lets that line age into "may be behind"; when its result was
+ * last confirmed is the page's own "last checked" line. The stream stays open
+ * all the same: the discussion still moves, and a corrected result still
+ * arrives.
+ */
+export function showsLiveLine(status: FixtureStatus): boolean {
+  return status === 'scheduled' || status === 'live' || status === 'suspended';
+}
+
+/**
  * Whether a fixture's own data is behind (T-083, D-045): live or suspended,
  * and unchanged for longer than `STALE_LIVE_AFTER_MS`. The API says the same
  * in `freshness` at snapshot time; the client re-asks as the clock moves, so
  * a feed that stops after the last snapshot is caught here too.
+ *
+ * Only a match in progress is ever behind: a finished match is not live and
+ * does not age (T-1394), whatever an older snapshot said. Where its stored
+ * clock stands still -- half-time, added time, a break -- the provider's last
+ * live answer counts as well as the last change (`liveFreshnessFrom`, D-209),
+ * so half-time is not "behind" while the provider is still answering.
  */
 export function isBehind(
-  fixture: { status: string; last_updated_at: string; freshness?: Freshness | null },
+  fixture: {
+    status: FixtureStatus;
+    minute?: number | null;
+    last_updated_at: string;
+    live_answered_at?: string | null;
+    freshness?: Freshness | null;
+  },
   now: number,
 ): boolean {
-  if (fixture.freshness === 'stale') return true;
   if (fixture.status !== 'live' && fixture.status !== 'suspended') return false;
-  return now - Date.parse(fixture.last_updated_at) > STALE_LIVE_AFTER_MS;
+  if (fixture.freshness === 'stale') return true;
+  return now - liveFreshnessFrom(fixture) > STALE_LIVE_AFTER_MS;
 }
 
 /**

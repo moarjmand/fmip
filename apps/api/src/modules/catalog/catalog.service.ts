@@ -240,6 +240,8 @@ export class CatalogService {
         ),
       ],
       null,
+      // The boards count the main competition only, so their minutes do too (D-209).
+      true,
     );
     const filtered = leadersWithMinutes(scorers.data ?? [], minutes, minMinutes, LEADERS_LIMIT);
     const board = <T extends { person: { id: string } }>(module: Covered<T[]>) => {
@@ -361,7 +363,7 @@ export class CatalogService {
     if (found === null) return { kind: 'unknown_team' };
     const seasons = await this.teams_.seasons(id);
     const seasonIds = seasons.map((s) => s.season.id);
-    const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures, lineup] =
+    const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures, lineup, ground] =
       await Promise.all([
         this.teams_.fixtures(id, seasonIds),
         this.teams_.squad(id),
@@ -369,6 +371,13 @@ export class CatalogService {
         Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
         this.teams_.splitFixtures(id, seasonIds),
         this.teams_.latestLineup(id),
+        // No ground recorded: where this season's home matches were played (D-209).
+        found.venue === null
+          ? this.teams_.fixtureGround(
+              id,
+              seasons.filter((s) => s.season.is_current).map((s) => s.season.id),
+            )
+          : Promise.resolve(null),
       ]);
     // Minutes for this team over the seasons the page covers (T-824).
     const squadMinutes = await this.players_.minutesByPerson(
@@ -408,6 +417,7 @@ export class CatalogService {
         ),
         splits: buildSplits(seasons, splitFixtures),
         manager: managerOf(lineup),
+        fixture_ground: ground,
         followers,
         last_updated_at: lastUpdatedAt,
       },

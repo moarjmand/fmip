@@ -324,6 +324,38 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     expect((await app.inject({ method: 'GET', url: `/teams/not-an-id` })).statusCode).toBe(404);
   });
 
+  it('says where a club with no ground recorded played its home matches this season (T-1394)', async () => {
+    const page = async (id: string) =>
+      (await app.inject({ method: 'GET', url: `/teams/${id}` })).json() as TeamPage;
+    // A recorded ground is the answer; the fixtures are not asked.
+    expect((await page(TEAMS.alpha)).fixture_ground).toBeNull();
+    // Gamma's home match names no ground: nothing is said, never a guess.
+    expect((await page(TEAMS.gamma)).fixture_ground).toBeNull();
+
+    // Beta has no ground recorded; its two home matches this season name one.
+    await pool.query(
+      `UPDATE fixture SET venue_id = $1
+        WHERE id IN (SELECT fixture_id FROM fixture_participant WHERE team_id = $2 AND side = 'home')`,
+      [VENUE, TEAMS.beta],
+    );
+    const beta = await page(TEAMS.beta);
+    expect(beta.team.venue).toBeNull();
+    expect(beta.fixture_ground).toEqual({
+      venue: { id: VENUE, name: `Test Ground ${RUN}`, city: 'Testville' },
+      matches: 2,
+      home_matches: 2,
+    });
+
+    // A match at a neutral ground is not a home match there.
+    await pool.query(
+      `UPDATE fixture SET is_neutral_venue = true
+        WHERE id IN (SELECT fixture_id FROM fixture_participant WHERE team_id = $1 AND side = 'home')
+          AND status = 'finished'`,
+      [TEAMS.beta],
+    );
+    expect((await page(TEAMS.beta)).fixture_ground).toMatchObject({ matches: 1, home_matches: 1 });
+  });
+
   it('names the coach on the latest line-up, and says so when there is none (T-944)', async () => {
     const page = async (id: string) =>
       (await app.inject({ method: 'GET', url: `/teams/${id}` })).json() as TeamPage;

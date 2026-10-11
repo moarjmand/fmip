@@ -6,6 +6,7 @@ import {
   currentMatchweek,
   hasTable,
   leagueNumbers,
+  mainResults,
   perMatch,
   readTabParam,
   roundGroups,
@@ -218,6 +219,7 @@ describe('the season in figures (T-1385)', () => {
       coverage: 'limited',
       counted: 4,
       unscored: 1,
+      qualifying: 0,
       goals: 8,
       homeWins: 1,
       draws: 2,
@@ -225,6 +227,40 @@ describe('the season in figures (T-1385)', () => {
     });
     expect(perMatch('en', numbers.goals, numbers.counted)).toBe('2.00');
     expect(sharePercent('en', numbers.draws, numbers.counted)).toBe('50%');
+  });
+
+  it("counts a cup's main competition only, and names the qualifying matches left out (T-1394)", () => {
+    // The Champions League on 11 October 2026: 90 qualifying matches stored
+    // with the 18 of the league phase's first matchday. "108 results" was the
+    // two read as one season.
+    const qualifying = Array.from({ length: 90 }, () =>
+      fx({ status: 'finished', score: { home: 4, away: 0 }, qualifying: true }),
+    );
+    const leaguePhase = [
+      ...Array.from({ length: 9 }, () =>
+        fx({ status: 'finished', score: { home: 2, away: 1 }, qualifying: false }),
+      ),
+      ...Array.from({ length: 5 }, () =>
+        fx({ status: 'finished', score: { home: 1, away: 1 }, qualifying: false }),
+      ),
+      ...Array.from({ length: 4 }, () =>
+        fx({ status: 'finished', score: { home: 0, away: 2 }, qualifying: false }),
+      ),
+    ];
+    const numbers = leagueNumbers([...qualifying, ...leaguePhase]);
+    expect(numbers).toMatchObject({
+      coverage: 'available',
+      counted: 18,
+      qualifying: 90,
+      homeWins: 9,
+      draws: 5,
+      goalless: 0,
+      goals: 45,
+    });
+    expect(perMatch('en', numbers.goals, numbers.counted)).toBe('2.50');
+    expect(mainResults([...qualifying, ...leaguePhase])).toHaveLength(18);
+    // A league season has no qualifying match: every result is counted.
+    expect(mainResults(leaguePhase)).toHaveLength(18);
   });
 
   it('is not supplied without a scored result, never a row of noughts', () => {

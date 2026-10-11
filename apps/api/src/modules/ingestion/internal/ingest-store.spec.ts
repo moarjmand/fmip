@@ -215,6 +215,21 @@ describe('the incident list is the whole truth for its fixture (T-1382)', () => 
     expect(deletes[0]?.params).toEqual(['fixture', [1, 3]]);
   });
 
+  it('writes a repeated booking once and deletes the copy stored at its place (T-1394)', async () => {
+    const { pool, calls } = paramsPool();
+    const store = new IngestStore(pool, resolverOf({ 'person:9': 'p9' }));
+    const booking = (sequence: number): NormalisedIncident => ({
+      ...goal(sequence, '9'),
+      kind: 'yellow_card',
+      minute: 86,
+    });
+    await store.saveIncidents('api_football', 'fixture', [booking(1), booking(2)]);
+    const inserts = calls.filter((c) => c.sql.includes('INSERT INTO incident'));
+    expect(inserts).toHaveLength(1);
+    const deletes = calls.filter((c) => c.sql.includes('DELETE FROM incident'));
+    expect(deletes[0]?.params).toEqual(['fixture', [1]]);
+  });
+
   it('deletes nothing on an empty answer', async () => {
     const { pool, calls } = paramsPool();
     const store = new IngestStore(pool, resolverOf({}));

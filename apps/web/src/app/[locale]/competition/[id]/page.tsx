@@ -15,6 +15,7 @@ import {
   MoreLink,
   NoTableNote,
   ProjectionNote,
+  QualifyingNote,
   RoundsPanel,
   ScorerList,
   ZoneLegend,
@@ -324,6 +325,7 @@ function Overview({
               <Translated locale={locale} message="competition.leaders.noneReach" />
             ) : undefined
           }
+          intro={<QualifyingNote results={page.results} locale={locale} />}
           footer={
             (page.leaders.data ?? []).length > 0 ? (
               <MoreLink href={tabHref(locale, c.id, page.season, 'players')}>
@@ -503,6 +505,7 @@ function PlayersTab({ page, locale, timeZone }: { page: Page; locale: string; ti
                 );
               })}
             </nav>
+            <QualifyingNote results={page.results} locale={locale} />
             {floor !== null && (
               <p className="text-sm text-muted" data-testid="leaders-floor">
                 <Translated locale={locale} message="competition.leaders.floor" count={floor} />

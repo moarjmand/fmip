@@ -46,6 +46,46 @@ import type {
 } from '@fmip/ingestion';
 import { PERIOD_KINDS } from '@fmip/ingestion';
 import type { EntityType } from './resolver';
+
+/**
+ * The kinds a provider's list can repeat by mistake but a match never can:
+ * one player is not booked, sent off or substituted twice in the same minute
+ * of the same match (a second booking is its own kind). A goal is not here:
+ * a brace inside one minute is rare but real, and the score is the check.
+ */
+const NEVER_TWICE: ReadonlySet<NormalisedIncident['kind']> = new Set([
+  'yellow_card',
+  'second_yellow_card',
+  'red_card',
+  'substitution',
+]);
+
+/**
+ * The provider's list without its repeats (T-1394, D-209): an incident of a
+ * `NEVER_TWICE` kind identical to an earlier one -- side, minute, added time,
+ * players and detail -- is dropped, so its place is not written and a stored
+ * copy there is deleted (T-1382's rule). Production showed Portugal v Norway
+ * (2026-10-04) booking F. Conceicao twice at 86'. Pure, so a unit spec holds
+ * it.
+ */
+export function withoutRepeats(incidents: readonly NormalisedIncident[]): NormalisedIncident[] {
+  const seen = new Set<string>();
+  return incidents.filter((incident) => {
+    if (!NEVER_TWICE.has(incident.kind)) return true;
+    const key = JSON.stringify([
+      incident.kind,
+      incident.side,
+      incident.minute,
+      incident.addedTime,
+      incident.player?.externalId ?? null,
+      incident.relatedPlayer?.externalId ?? null,
+      incident.detail,
+    ]);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 import type { SquadStore, SquadTeam } from './squad-sweep';
 
 /** One competition/season pair a job polls, already resolved to our ids. */
@@ -344,6 +384,27 @@ export class IngestStore implements SquadStore {
       [provider, externalId],
     );
     return rows[0]?.internal_id ?? null;
+  }
+
+  /**
+   * Tells the open live pages that the live list answered about these
+   * matches without changing them (T-1394, D-209): one `fixture_change`
+   * notification each, as the row triggers of migration 1758700000000 raise,
+   * so every stream re-sends its snapshot with the new `live_answered_at`.
+   * Called once the run is recorded, so the snapshot reads this run. Only
+   * for matches whose clock stands still (half-time, added time, a break, a
+   * suspension): in play the minute moves and the row's own trigger speaks.
+   */
+  async noteLiveAnswered(fixtureIds: readonly string[]): Promise<void> {
+    if (fixtureIds.length === 0) return;
+    await this.pool.query(
+      `SELECT pg_notify('fixture_change', json_build_object(
+                'fixture_id', id,
+                'table', 'live_answer',
+                'at', to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))::text)
+         FROM unnest($1::uuid[]) AS id`,
+      [[...new Set(fixtureIds)]],
+    );
   }
 
   /**
@@ -688,13 +749,16 @@ export class IngestStore implements SquadStore {
    * deleted. Left behind, it showed the same substitution twice and hid the
    * goal that had taken its place. An empty answer deletes nothing: a
    * provider's momentary empty list must not wipe a timeline that post-match
-   * will not ask for again.
+   * will not ask for again. A booking or substitution the list repeats is
+   * written once (`withoutRepeats`, T-1394).
    */
   async saveIncidents(
     provider: Provider,
     fixtureId: string,
-    incidents: NormalisedIncident[],
+    answer: NormalisedIncident[],
   ): Promise<WriteResult> {
+    // A repeat is not written, so a copy stored at its place goes (T-1394).
+    const incidents = withoutRepeats(answer);
     const unresolved: string[] = [];
     const participants = new Map<Side, string | null>([
       ['home', await this.participantId(fixtureId, 'home')],

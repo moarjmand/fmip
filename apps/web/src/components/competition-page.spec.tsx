@@ -23,6 +23,7 @@ const {
   LiveFreshness,
   MatchweekPanel,
   NoTableNote,
+  QualifyingNote,
 } = await import('./competition-page');
 const { StandingsTable } = await import('./standings-table');
 
@@ -157,6 +158,18 @@ describe('the band and the tabs', () => {
     // Brand colours only: the green rule and the green tab bar, no club colour.
     expect(html).toContain('bg-accent');
     expect(html).toContain('shadow-[inset_0_-3px_0_var(--token-accent)]');
+  });
+
+  it("counts a cup's played matches from the main competition and names the qualifying ones (T-1394)", () => {
+    const results = [
+      fixture({ status: 'finished', score: { home: 1, away: 0 }, qualifying: true }),
+      fixture({ status: 'finished', score: { home: 2, away: 0 }, qualifying: true }),
+      fixture({ status: 'finished', score: { home: 0, away: 1 }, qualifying: false }),
+    ];
+    const html = band(page({ results }));
+    expect(html).toContain('1 match played');
+    expect(html).toContain('2 in qualifying');
+    expect(band(page())).not.toContain('in qualifying');
   });
 
   it('keeps the open tab when the season changes', () => {
@@ -419,6 +432,36 @@ describe('coverage, never the old uppercase words', () => {
     );
     expect(some).toContain('data-coverage-badge="limited"');
     expect(some).toContain('۲٫۰۰');
+  });
+
+  it("counts a cup's main competition and says the qualifying rounds are left out (T-1394)", () => {
+    const results = [
+      fixture({ status: 'finished', score: { home: 5, away: 0 }, qualifying: true }),
+      fixture({ status: 'finished', score: { home: 3, away: 0 }, qualifying: true }),
+      fixture({ status: 'finished', score: { home: 2, away: 1 }, qualifying: false }),
+      fixture({ status: 'finished', score: { home: 0, away: 0 }, qualifying: false }),
+    ];
+    const html = renderToStaticMarkup(
+      <LeagueNumbersPanel numbers={leagueNumbers(results)} locale="en" />,
+    );
+    // 3 goals over the 2 main-competition matches, not 11 over 4.
+    expect(html).toContain('1.50');
+    expect(html).toContain('From all 2 results of the main competition');
+    expect(html).toContain('The 2 qualifying matches before it are not counted.');
+    const boards = renderToStaticMarkup(<QualifyingNote results={results} locale="fa" />);
+    expect(boards).toContain('data-testid="boards-main-phase"');
+    expect(boards).toContain('۲ بازی مرحله‌ی مقدماتی');
+    // A league season has nothing to say.
+    expect(
+      renderToStaticMarkup(
+        <QualifyingNote results={[fixture({ status: 'finished' })]} locale="en" />,
+      ),
+    ).toBe('');
+    // Only qualifying results so far: no figures, and why.
+    const early = renderToStaticMarkup(
+      <LeagueNumbersPanel numbers={leagueNumbers(results.slice(0, 2))} locale="en" />,
+    );
+    expect(early).toContain('The main competition has no result with a score yet');
   });
 });
 

@@ -311,6 +311,12 @@ export class PostgresEvaluationStore {
    * the versions named (the public page). Sums, not means, so the caller can
    * add competitions and periods up without averaging averages; a fixture is
    * in one competition and one period, so match counts add up too.
+   *
+   * Every sum is over each match's own forecast only -- the last version
+   * computed before its kick-off, per model version and role on the console
+   * -- so `matches` is the sample of every figure (T-1394, D-209): before,
+   * a share of all versions sat beside a count of matches and read as
+   * 65.0% of 7. `forecasts` still counts every pre-kick-off version.
    */
   async accuracySums(
     period: AccuracyPeriod,
@@ -335,28 +341,41 @@ export class PostgresEvaluationStore {
       correct: number;
       last_evaluated_at: Date;
     }>(
-      `SELECT ${byModel ? 'f.role, m.model_id' : 'NULL::text AS role, NULL::text AS model_id'},
-              array_agg(DISTINCT m.model_id ORDER BY m.model_id) AS model_ids,
-              co.id::text AS competition_id, co.name AS competition_name,
-              to_char(date_trunc('${unit}', fx.kickoff_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD')
-                AS period_start,
+      `WITH scored AS (
+         SELECT f.role, m.model_id, co.id AS competition_id, co.name AS competition_name,
+                date_trunc('${unit}', fx.kickoff_at AT TIME ZONE 'UTC') AS period,
+                e.log_loss, e.brier, e.correct, e.evaluated_at,
+                ${RPS_SQL} AS rps,
+                ${UNIFORM_RPS_SQL} AS uniform_rps,
+                -- The match's own forecast: the last one computed before its
+                -- kick-off (for the console, per model version and role).
+                row_number() OVER (
+                  PARTITION BY e.fixture_id${byModel ? ', f.role, m.model_id' : ''}
+                  ORDER BY f.computed_at DESC, f.id DESC) = 1 AS counted
+           FROM evaluation e
+           JOIN forecast f ON f.id = e.forecast_id
+           JOIN model_version m ON m.id = f.model_version_id
+           JOIN fixture fx ON fx.id = e.fixture_id
+           JOIN season se ON se.id = fx.season_id
+           JOIN competition co ON co.id = se.competition_id
+          WHERE e.pre_kickoff ${byModel ? '' : `AND f.role = 'published'`}
+       )
+       SELECT ${byModel ? 's.role, s.model_id' : 'NULL::text AS role, NULL::text AS model_id'},
+              COALESCE(array_agg(DISTINCT s.model_id ORDER BY s.model_id)
+                         FILTER (WHERE s.counted), '{}') AS model_ids,
+              s.competition_id::text AS competition_id, s.competition_name,
+              to_char(s.period, 'YYYY-MM-DD') AS period_start,
               COUNT(*)::int AS forecasts,
-              COUNT(DISTINCT e.fixture_id)::int AS matches,
-              SUM(e.log_loss)::text AS log_loss,
-              SUM(e.brier)::text AS brier,
-              SUM(${RPS_SQL})::text AS rps,
-              SUM(${UNIFORM_RPS_SQL})::text AS uniform_rps,
-              (COUNT(*) FILTER (WHERE e.correct))::int AS correct,
-              MAX(e.evaluated_at) AS last_evaluated_at
-         FROM evaluation e
-         JOIN forecast f ON f.id = e.forecast_id
-         JOIN model_version m ON m.id = f.model_version_id
-         JOIN fixture fx ON fx.id = e.fixture_id
-         JOIN season se ON se.id = fx.season_id
-         JOIN competition co ON co.id = se.competition_id
-        WHERE e.pre_kickoff ${byModel ? '' : `AND f.role = 'published'`}
-        GROUP BY ${byModel ? 'f.role, m.model_id, ' : ''}co.id, co.name,
-                 date_trunc('${unit}', fx.kickoff_at AT TIME ZONE 'UTC')
+              (COUNT(*) FILTER (WHERE s.counted))::int AS matches,
+              COALESCE(SUM(s.log_loss) FILTER (WHERE s.counted), 0)::text AS log_loss,
+              COALESCE(SUM(s.brier) FILTER (WHERE s.counted), 0)::text AS brier,
+              COALESCE(SUM(s.rps) FILTER (WHERE s.counted), 0)::text AS rps,
+              COALESCE(SUM(s.uniform_rps) FILTER (WHERE s.counted), 0)::text AS uniform_rps,
+              (COUNT(*) FILTER (WHERE s.counted AND s.correct))::int AS correct,
+              MAX(s.evaluated_at) AS last_evaluated_at
+         FROM scored s
+        GROUP BY ${byModel ? 's.role, s.model_id, ' : ''}s.competition_id, s.competition_name,
+                 s.period
         ORDER BY period_start`,
     );
     return rows.map((row) => ({

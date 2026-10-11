@@ -7700,7 +7700,7 @@
     "status": "untranslated"
   },
   "modelAccuracy.explain.matches": {
-    "source": "Matches: how many matches were scored. A match can have more than one forecast before kick-off (an early one, another once the line-ups are known); each is scored, and the averages are over all of them.",
+    "source": "Matches: how many matches were scored. A match can have more than one forecast before kick-off (an early one, another once the line-ups are known); each match counts once, by the last forecast made before its kick-off, the one its page shows. Every figure on its row is over those matches.",
     "text": "",
     "status": "untranslated"
   },
@@ -10025,6 +10025,14 @@
     "forms": {},
     "status": "untranslated"
   },
+  "competitionPage.facts.qualifying": {
+    "source": {
+      "one": "{count} in qualifying",
+      "other": "{count} in qualifying"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "competitionPage.facts.nextRound": {
     "source": "next: {round}, {day}",
     "text": "",
@@ -10143,6 +10151,14 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.boards.mainPhase": {
+    "source": {
+      "one": "Counted over the main competition, from the league or group stage on; the {count} qualifying match before it is not included.",
+      "other": "Counted over the main competition, from the league or group stage on; the {count} qualifying matches before it are not included."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "competitionPage.numbers.title": {
     "source": "Season in numbers",
     "text": "",
@@ -10173,6 +10189,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.numbers.noneMain": {
+    "source": "The main competition has no result with a score yet, so there are no figures; the qualifying rounds before it are not counted.",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.numbers.over": {
     "source": {
       "one": "From the {count} result with a score.",
@@ -10181,10 +10202,26 @@
     "forms": {},
     "status": "untranslated"
   },
+  "competitionPage.numbers.overMain": {
+    "source": {
+      "one": "From the {count} result of the main competition, from the league or group stage on.",
+      "other": "From all {count} results of the main competition, from the league or group stage on."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "competitionPage.numbers.unscored": {
     "source": {
       "one": "{count} finished match has no score stored and is left out.",
       "other": "{count} finished matches have no score stored and are left out."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competitionPage.numbers.qualifying": {
+    "source": {
+      "one": "The {count} qualifying match before it is not counted.",
+      "other": "The {count} qualifying matches before it are not counted."
     },
     "forms": {},
     "status": "untranslated"
@@ -10226,6 +10263,11 @@
   },
   "teamPage.noGround": {
     "source": "Home ground not recorded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.groundFromFixtures": {
+    "source": "{venue} (home matches this season: {matches} of {total}; no home ground recorded)",
     "text": "",
     "status": "untranslated"
   },
@@ -10618,6 +10660,11 @@
   },
   "playerPage.noCurrentTeam": {
     "source": "No current team on record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.lastLineup": {
+    "source": "from the latest line-up that names this player, {date}; no current spell on record",
     "text": "",
     "status": "untranslated"
   },

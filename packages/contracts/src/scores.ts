@@ -42,6 +42,43 @@ export const STALE_LIVE_AFTER_MS = 120_000;
 export type Freshness = 'current' | 'stale';
 
 /**
+ * The minutes at which a match's stored clock stands still while the match
+ * goes on (T-1394, D-209): the feed counts added time apart from the minute,
+ * so the minute stays at 45 through first-half added time and the half-time
+ * interval, at 90 through second-half added time and the break before extra
+ * time, at 105 through the extra-time interval and at 120 through the
+ * shoot-out.
+ */
+export const STOPPED_CLOCK_MINUTES: readonly number[] = [45, 90, 105, 120];
+
+/**
+ * The moment a live match's freshness is measured from (T-1394, D-209), in
+ * ms since the epoch. Normally its last change (`last_updated_at`): in play
+ * the minute moves, so a row unchanged for `STALE_LIVE_AFTER_MS` is a feed
+ * that stopped. Where no clock moves the row -- the stored minute at one of
+ * `STOPPED_CLOCK_MINUTES`, or the match suspended -- an unchanged row is
+ * expected, so the time the provider's live list last answered with the
+ * match in it (`live_answered_at`) counts too: half-time is not "behind"
+ * while the provider is still answering, and is the moment it stops.
+ */
+export function liveFreshnessFrom(fixture: {
+  status: FixtureStatus;
+  minute?: number | null;
+  last_updated_at: string;
+  live_answered_at?: string | null;
+}): number {
+  const changed = Date.parse(fixture.last_updated_at);
+  const stopped =
+    fixture.status === 'suspended' ||
+    (fixture.status === 'live' &&
+      fixture.minute != null &&
+      STOPPED_CLOCK_MINUTES.includes(fixture.minute));
+  if (!stopped || fixture.live_answered_at == null) return changed;
+  const answered = Date.parse(fixture.live_answered_at);
+  return Number.isNaN(answered) ? changed : Math.max(changed, answered);
+}
+
+/**
  * With `?locale=` (T-1312), on this and on every answer that names a team, a
  * competition or a country as `{ id, name }`: `name` is the reader's where
  * one is written (the canonical name where none is), and an English
@@ -114,7 +151,13 @@ export interface ScoreCard {
   coverage: CoverageState;
   /** When the fixture, its scores or its incidents last changed. */
   last_updated_at: string;
-  /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS`; `null` when not live. */
+  /**
+   * When the provider's live list last answered while this match was live
+   * or suspended, changed or not (T-1394, D-209); null otherwise, or when no
+   * answer is recorded. `liveFreshnessFrom` reads it where no clock moves.
+   */
+  live_answered_at?: string | null;
+  /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (see `liveFreshnessFrom`); `null` when not live. */
   freshness: Freshness | null;
   /** Ranked above the standard list because of the viewer's favourites. */
   pinned: boolean;

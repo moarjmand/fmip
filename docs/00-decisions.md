@@ -10224,3 +10224,111 @@ this story one" and listed its language as "en-US".
    story" (not a claim about every publisher).
 
 **Production.** The names arrive with the migration; nothing to set.
+
+## D-209 — Live state, accuracy samples, a cup's main competition and what a page may derive
+**Status:** Accepted · 2026-10-11 (agent, from a read-only audit of production's `/en` pages, at the maintainer's request) · **Task:** T-1394 · **Follows:** D-031, D-045, D-187, D-189, D-205, D-206, T-1382, rules 1, 3, 4
+
+**Context.** Five honesty faults on the live English site. (1) At
+half-time the match centre and the live strip said "Behind" / "Data
+behind": the stored minute stays at 45 through the interval, so the row
+does not change for fifteen minutes and D-045's two-minute rule fired while
+the provider was answering every minute; a finished match said
+"Connecting to live updates…" and then "Last checked … · may be behind".
+(2) The model accuracy page showed "Correct 65.0%" (La Liga, "70.0%") for 7
+matches: every pre-kick-off version was averaged (D-187) while the count
+beside it was distinct matches. (3) The Champions League page's "108
+matches played", "Season in numbers" and top scorers counted 90 qualifying
+matches with the league phase's 18. (4) A match named Anfield while
+Liverpool's page said "Home ground not recorded" (no ground adopted for the
+club); a player's page said "No current team on record" beside his line-up
+for Liverpool that afternoon (no open spell). (5) Portugal v Norway
+(2026-10-04) booked F. Conceicao twice at 86'.
+
+**Decision.**
+
+1. **Where no clock moves, the provider's answer counts.**
+   `liveFreshnessFrom` (contracts) is the one rule the API's `freshness`
+   and the web's `isBehind` share: a live match is measured from its last
+   change, except where the stored minute stands at 45, 90, 105 or 120
+   (`STOPPED_CLOCK_MINUTES`: added time and the breaks, which the feed
+   counts apart from the minute) or the match is suspended; there the later
+   of the last change and `live_answered_at` counts. `live_answered_at`
+   (new, optional, on `ScoreCard` and `MatchHeader`) is the newest completed
+   `live` ingestion run, of a provider the fixture is mapped to, that read
+   at least one match -- the live job asks for every match in its window in
+   one request, so such a run is an answer about each live one. After each
+   run the live job raises a `fixture_change` notification (`live_answer`)
+   for the matches it answered about without a change at a stopped clock,
+   so every open stream re-sends its snapshot and the page's clock re-asks
+   with the new time. Half-time is current while the provider answers and
+   behind two minutes after it stops; in play nothing changes (the minute
+   moves, so an unchanged row is still a feed behind). No schema change:
+   the time is read from `ingest_run`.
+2. **A finished match is not live.** `isBehind` is false for any status but
+   `live`/`suspended`, whatever an older snapshot said, and the match page
+   draws the stream's line only before and during a match
+   (`showsLiveLine`). Once it is over the page says nothing about a live
+   connection; when the result was last confirmed is the page's own "Data
+   last checked …; unchanged since …" line (D-189). The stream stays open
+   (the discussion still moves, a corrected result still arrives). Lite
+   mode's minute poll (D-205) is judged by the same rules.
+3. **An accuracy figure is over the matches it sits beside.** Each match
+   counts once, by the last forecast computed before its kick-off -- the
+   one its page shows as frozen at kick-off -- for the public page across
+   published versions and, on the console, per model version and role.
+   Every sum (log loss, Brier, RPS, uniform RPS, correct) and every mean is
+   over those matches, so 7 matches give a multiple of 1/7. `forecasts`
+   still counts every pre-kick-off version scored (D-031 keeps them all in
+   `evaluation`); it is shown on the console and averages nothing. This
+   replaces D-187's "every version of a match counts" for these figures;
+   the per-competition `model-performance` read is unchanged.
+4. **A cup's season is its main competition.** What a reader means by "the
+   Champions League" is the league or group stage and every round after
+   it. A fixture is qualifying when its stage is a `qualifying` stage, or
+   its season has a league or group stage and it kicked off before that
+   stage's first match (qualifying rounds are often stored without a
+   stage; a knockout play-off after the league phase is in).
+   `mainPhaseSql` (`apps/api/src/database/main-phase.ts`) is the one
+   definition: the competition page's `SeasonFixture.qualifying` flag, and
+   the top scorers, assists, cards, clean sheets and the minutes beside
+   them count the main competition only. The page counts "matches played"
+   and "Season in numbers" without the flagged matches and says how many
+   qualifying matches it left out; the results list still shows them under
+   their rounds. A league season, with no qualifying match, is unchanged.
+5. **A page may derive what the data supports, labelled.** With no home
+   ground recorded, the club page names the ground most of its home matches
+   of the current seasons name (neutral-venue and cancelled matches left
+   out), with "home matches this season: 3 of 3; no home ground recorded"
+   (`TeamPage.fixture_ground`); never stored as the club's ground. With no
+   open spell, the player page names the team of his latest line-up,
+   linked, with "from the latest line-up that names this player, <date>; no
+   current spell on record" -- what the availability section already reads
+   (T-1007). Neither is a guess: with no such fixture or line-up the page
+   still says "not recorded" / "No current team on record".
+6. **A booking or substitution the provider repeats is written once.**
+   `withoutRepeats` drops an incident of a kind a match can never repeat
+   (yellow, second yellow, red, substitution) identical to an earlier one in
+   the same answer -- side, minute, added time, players, detail -- so its
+   place is not written and T-1382 deletes a copy stored there. Goals and
+   VAR reviews are never dropped (a brace in one minute is rare but real).
+   Migration `1765854000000` takes the detail-fetch mark off every fixture
+   whose stored timeline repeats one, so the backlog asks once more (one
+   request per fixture, at the backlog's pace; no row is changed by the
+   migration). Every other live-page list checked on production (87
+   matches on 2026-10-11, 89 on 2026-10-10, 224 over four days, the related
+   news included) held no repeat.
+
+**Rejected.** *Calling half-time current for fifteen minutes*: a feed that
+dies at the whistle would read as current. *A per-fixture `live_checked_at`
+column*: the run already records the answer; a migration on `fixture`
+would fire every row trigger once a minute. *Labelling the accuracy count
+"forecasts"*: a reader asks how often the model was right about matches,
+and the match page shows one forecast. *Keeping qualifying rounds and
+labelling the figures*: the reader expects the competition, the bracket and
+the table already start at the league phase, and UEFA counts its scorers
+the same way. *Adopting the fixtures' ground as the club's*: a write
+nobody approved, and a ground-share or a temporary move would become a
+fact. *Deduplicating on read*: the boards would still count the repeat.
+
+**Production.** Nothing to set. The migration re-queues the affected
+fixtures' detail; the figures and the live states change with the deploy.

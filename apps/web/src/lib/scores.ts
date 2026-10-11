@@ -265,7 +265,7 @@ const ENGLISH_STATUS: Record<StatusKey, string> = {
  */
 export function statusLabel(
   card: Pick<ScoreCard, 'status' | 'minute' | 'scores' | 'kickoff_at' | 'last_updated_at'> &
-    Partial<Pick<ScoreCard, 'freshness'>>,
+    Partial<Pick<ScoreCard, 'freshness' | 'live_answered_at'>>,
   locale: string,
   timeZone: string,
   now?: number,

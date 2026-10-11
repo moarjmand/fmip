@@ -29,4 +29,28 @@ describe('freshnessOf', () => {
   it('takes a different threshold when asked', () => {
     expect(freshnessOf('live', ago(30_000), NOW, 20_000)).toBe('stale');
   });
+
+  it('keeps half-time current while the live list still answers (T-1394, D-209)', () => {
+    const clock = { minute: 45, liveAnsweredAt: ago(20_000) };
+    expect(freshnessOf('live', ago(10 * 60_000), NOW, undefined, clock)).toBe('current');
+    expect(
+      freshnessOf('suspended', ago(10 * 60_000), NOW, undefined, {
+        minute: null,
+        liveAnsweredAt: ago(20_000),
+      }),
+    ).toBe('current');
+    // The answers stopped: stale again.
+    expect(
+      freshnessOf('live', ago(10 * 60_000), NOW, undefined, {
+        minute: 45,
+        liveAnsweredAt: ago(STALE_LIVE_AFTER_MS + 1),
+      }),
+    ).toBe('stale');
+    // In play the minute moves, so an answer without a change is stale.
+    expect(freshnessOf('live', ago(10 * 60_000), NOW, undefined, { ...clock, minute: 63 })).toBe(
+      'stale',
+    );
+    // Never for a match that is over.
+    expect(freshnessOf('finished', ago(10 * 60_000), NOW, undefined, clock)).toBeNull();
+  });
 });

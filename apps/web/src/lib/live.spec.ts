@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
-import { INITIAL_CLOCK, STALE_AFTER_MS, feedTrouble, isBehind, liveLabel, liveState } from './live';
+import {
+  INITIAL_CLOCK,
+  STALE_AFTER_MS,
+  feedTrouble,
+  isBehind,
+  liveLabel,
+  liveState,
+  showsLiveLine,
+} from './live';
 import { scoresWords } from './words-server';
 
 const EN_WORDS = scoresWords('en').m;
@@ -24,6 +32,44 @@ describe('isBehind', () => {
   it('never applies before kick-off or after the end', () => {
     expect(isBehind({ status: 'scheduled', last_updated_at: ago(3_600_000) }, now)).toBe(false);
     expect(isBehind({ status: 'finished', last_updated_at: ago(3_600_000) }, now)).toBe(false);
+  });
+
+  it('never calls a finished match behind, even from a snapshot taken while it was (T-1394)', () => {
+    expect(
+      isBehind({ status: 'finished', last_updated_at: ago(3_600_000), freshness: 'stale' }, now),
+    ).toBe(false);
+  });
+
+  it('keeps half-time current while the provider still answers, and behind once it stops (D-209)', () => {
+    // The row has not changed since the whistle, ten minutes ago, and will not
+    // until the second half: the live list answered 30 seconds ago.
+    const halfTime = {
+      status: 'live' as const,
+      minute: 45,
+      last_updated_at: ago(600_000),
+      live_answered_at: ago(30_000),
+    };
+    expect(isBehind(halfTime, now)).toBe(false);
+    // The same in second-half added time, held at 90.
+    expect(isBehind({ ...halfTime, minute: 90 }, now)).toBe(false);
+    // The provider stopped answering three minutes ago: behind.
+    expect(isBehind({ ...halfTime, live_answered_at: ago(180_000) }, now)).toBe(true);
+    // In play the minute moves, so an answer without a change is a feed behind.
+    expect(isBehind({ ...halfTime, minute: 63 }, now)).toBe(true);
+  });
+});
+
+describe('showsLiveLine (T-1394)', () => {
+  it('shows the stream line before and during a match only', () => {
+    expect(showsLiveLine('scheduled')).toBe(true);
+    expect(showsLiveLine('live')).toBe(true);
+    expect(showsLiveLine('suspended')).toBe(true);
+  });
+
+  it('never claims a live connection for a match that is over or off', () => {
+    for (const status of ['finished', 'awarded', 'abandoned', 'postponed', 'cancelled'] as const) {
+      expect(showsLiveLine(status)).toBe(false);
+    }
   });
 });
 

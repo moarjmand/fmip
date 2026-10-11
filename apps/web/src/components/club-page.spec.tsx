@@ -199,6 +199,41 @@ describe('the club band', () => {
     expect(html).toContain('data-testid="manager-none"');
   });
 
+  it('with no ground recorded, says where this season’s home matches were played (T-1394)', () => {
+    // A match names Anfield while the club page said "not recorded": the
+    // fixtures' ground, labelled as theirs, with how many it covers.
+    const noGround = { ...page().team, venue: null };
+    const html = band(
+      page({
+        team: noGround,
+        fixture_ground: {
+          venue: { id: 'anfield', name: 'Anfield', city: 'Liverpool' },
+          matches: 3,
+          home_matches: 3,
+        },
+      }),
+    );
+    expect(html).toMatch(/data-testid="fixture-ground"[^>]*>Anfield, Liverpool \(home matches/);
+    expect(html).toContain('home matches this season: 3 of 3; no home ground recorded');
+    expect(html).not.toContain('Home ground not recorded');
+    const fa = band(
+      page({
+        team: noGround,
+        fixture_ground: {
+          venue: { id: 'anfield', name: 'Anfield', city: 'Liverpool' },
+          matches: 2,
+          home_matches: 3,
+        },
+      }),
+      'fa',
+    );
+    expect(fa).toContain('بازی‌های خانگی این فصل: ۲ از ۳');
+    // No fixture names a ground either: "not recorded", never a guess.
+    expect(band(page({ team: noGround, fixture_ground: null }))).toContain(
+      'Home ground not recorded',
+    );
+  });
+
   it('keeps a guest’s territory on the tab links', () => {
     expect(band(page(), 'en', 'IR')).toContain(
       `href="/en/team/${TEAM}?tab=fixtures&amp;territory=IR"`,

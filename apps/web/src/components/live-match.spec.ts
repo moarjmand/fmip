@@ -38,3 +38,10 @@ describe('live match: the panel event', () => {
     expect(SOURCE).toMatch(/if \(panelRefresh !== null\) clearTimeout\(panelRefresh\)/);
   });
 });
+
+describe('live match: a finished match is not live (T-1394)', () => {
+  it('draws the stream line only while showsLiveLine says the match can still change', () => {
+    expect(SOURCE).toMatch(/const live = showsLiveLine\(centre\.fixture\.status\) \?/);
+    expect(SOURCE).toMatch(/\) : undefined;/);
+  });
+});

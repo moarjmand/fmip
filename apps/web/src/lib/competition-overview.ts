@@ -168,6 +168,11 @@ export interface LeagueNumbers {
   counted: number;
   /** Finished matches stored without a score, left out of every figure. */
   unscored: number;
+  /**
+   * Finished qualifying matches, before the season's main competition (the
+   * API's `qualifying`), left out of every figure and named (T-1394, D-209).
+   */
+  qualifying: number;
   goals: number;
   homeWins: number;
   draws: number;
@@ -180,16 +185,25 @@ export interface LeagueNumbers {
  * with no score is left out and counted, so the figures say what they are
  * over (`limited`); no result with a score is `not_supplied`, never a row
  * of noughts.
+ *
+ * A cup's figures are its main competition's (T-1394, D-209): a qualifying
+ * match is left out and counted apart, so "108 results" is not 18 of the
+ * Champions League and 90 of its qualifying rounds read as one season.
  */
 export function leagueNumbers(results: readonly SeasonFixture[]): LeagueNumbers {
   let counted = 0;
   let unscored = 0;
+  let qualifying = 0;
   let goals = 0;
   let homeWins = 0;
   let draws = 0;
   let goalless = 0;
   for (const f of results) {
     if (f.status !== 'finished') continue;
+    if (f.qualifying === true) {
+      qualifying += 1;
+      continue;
+    }
     if (f.score === null) {
       unscored += 1;
       continue;
@@ -204,7 +218,14 @@ export function leagueNumbers(results: readonly SeasonFixture[]): LeagueNumbers 
   }
   const coverage: CoverageState =
     counted === 0 ? 'not_supplied' : unscored > 0 ? 'limited' : 'available';
-  return { coverage, counted, unscored, goals, homeWins, draws, goalless };
+  return { coverage, counted, unscored, qualifying, goals, homeWins, draws, goalless };
+}
+
+/** The season's matches of its main competition: what the band counts as played (D-209). */
+export function mainResults<T extends Pick<SeasonFixture, 'qualifying'>>(
+  results: readonly T[],
+): T[] {
+  return results.filter((f) => f.qualifying !== true);
 }
 
 /** A share as a whole percentage in the locale's digits: "37%", «۳۷٪». */

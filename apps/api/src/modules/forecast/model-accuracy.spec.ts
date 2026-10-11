@@ -24,8 +24,8 @@ function row(overrides: Partial<AccuracySumRow>): AccuracySumRow {
     modelVersions: ['dixon-coles-elo@0.1.0'],
     competition: PL,
     periodStart: '2026-10-05',
-    forecasts: 2,
-    matches: 1,
+    forecasts: 3,
+    matches: 2,
     logLoss: 2,
     brier: 1.2,
     rps: 0.4,
@@ -64,10 +64,10 @@ describe('accuracyCoverage', () => {
 });
 
 describe('accuracyMetrics', () => {
-  it('divides the sums by the forecasts', () => {
+  it('divides the sums by the matches, each counted once (D-209)', () => {
     expect(accuracyMetrics(row({}))).toEqual({
-      forecasts: 2,
-      matches: 1,
+      forecasts: 3,
+      matches: 2,
       coverage: 'limited',
       log_loss: 1,
       brier: 0.6,
@@ -75,6 +75,27 @@ describe('accuracyMetrics', () => {
       accuracy: 0.5,
       uniform_rps: 0.277778,
     });
+  });
+
+  it("gives a share the match count can make: 5 of La Liga's 7, never 65.0% of 7", () => {
+    // The week the audit saw (T-1394): 7 matches, 20 pre-kick-off versions
+    // of them scored, 13 of the versions right but 5 of the matches' own
+    // forecasts. The share is of the matches it sits beside.
+    const laLiga = accuracyMetrics({
+      forecasts: 20,
+      matches: 7,
+      logLoss: 5.306,
+      brier: 2.975,
+      rps: 0.833,
+      uniformRps: 1.596,
+      correct: 5,
+    });
+    expect(laLiga).toMatchObject({ forecasts: 20, matches: 7, coverage: 'limited' });
+    expect(laLiga.accuracy).toBe(0.7143);
+    expect(laLiga.rps).toBe(0.119);
+    // Every share of 7 is a multiple of 1/7: 0.7143 is 5/7, rounded.
+    expect(Math.round((laLiga.accuracy ?? 0) * 7)).toBe(5);
+    expect(Math.abs((laLiga.accuracy ?? 0) * 7 - 5)).toBeLessThan(0.001);
   });
 
   it('shows no figure at all when nothing was evaluated (rule 3)', () => {
@@ -129,19 +150,19 @@ describe('adminAccuracy', () => {
   it('adds competitions into the week, and weeks into the total, without averaging averages', () => {
     const overall = out.series[0];
     expect(overall?.points.map((p) => [p.period, p.period_start, p.forecasts, p.matches])).toEqual([
-      ['2026-W41', '2026-10-05', 3, 2],
+      ['2026-W41', '2026-10-05', 4, 3],
       ['2026-W42', '2026-10-12', 1, 1],
     ]);
-    // (2 + 0.5) / 3, not the mean of 1 and 0.5.
+    // (2 + 0.5) / 3 matches, not the mean of 1 and 0.5.
     expect(overall?.points[0]?.log_loss).toBe(0.833333);
     expect(overall?.points[0]?.accuracy).toBe(0.6667);
-    expect(overall?.total).toMatchObject({ forecasts: 4, matches: 3, log_loss: 1, accuracy: 0.5 });
+    expect(overall?.total).toMatchObject({ forecasts: 5, matches: 4, log_loss: 1, accuracy: 0.5 });
     expect(overall?.total.coverage).toBe('limited');
   });
 
   it('keeps the shadow version out of the published series', () => {
-    expect(out.series[0]?.total.forecasts).toBe(4);
-    expect(out.series[3]?.total.forecasts).toBe(2);
+    expect(out.series[0]?.total.forecasts).toBe(5);
+    expect(out.series[3]?.total.forecasts).toBe(3);
   });
 });
 

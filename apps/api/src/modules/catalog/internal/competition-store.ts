@@ -8,6 +8,7 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { mainPhaseSql, mainPhaseStartSql } from '../../../database/main-phase';
 import type { BracketFixture } from './bracket';
 
 export interface FixtureContextRow {
@@ -197,8 +198,10 @@ export class PostgresCompetitionStore {
       score_home: number | null;
       score_away: number | null;
       updated_at: Date;
+      main_phase: boolean;
     }>(
       `SELECT f.id, f.kickoff_at, f.status, f.round, f.stage_id, st.name AS stage_name,
+              ${mainPhaseSql('f', 'mp.main_from')} AS main_phase,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
               a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
               COALESCE(ft.home, cur.home) AS score_home, COALESCE(ft.away, cur.away) AS score_away,
@@ -211,6 +214,7 @@ export class PostgresCompetitionStore {
          JOIN team ta ON ta.id = a.team_id
          LEFT JOIN fixture_score ft ON ft.fixture_id = f.id AND ft.kind = 'full_time'
          LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+        CROSS JOIN (SELECT ${mainPhaseStartSql('$1')} AS main_from) mp
         WHERE f.season_id = $1
         ORDER BY f.kickoff_at, f.id`,
       [seasonId],
@@ -234,6 +238,7 @@ export class PostgresCompetitionStore {
           r.score_home !== null && r.score_away !== null
             ? { home: r.score_home, away: r.score_away }
             : null,
+        qualifying: !r.main_phase,
       })),
     };
   }

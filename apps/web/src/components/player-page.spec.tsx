@@ -3,7 +3,13 @@ import { join } from 'node:path';
 import type { PlayerMatch, PlayerPage, PlayerSeasonRecord } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { latestSeason, playerTabHref, readPlayerTab, spellsCoverage } from '@/lib/player';
+import {
+  latestSeason,
+  lineupTeam,
+  playerTabHref,
+  readPlayerTab,
+  spellsCoverage,
+} from '@/lib/player';
 
 vi.mock('@/lib/auth-actions', () => ({
   followAction: async () => undefined,
@@ -158,6 +164,45 @@ describe('the player band', () => {
     expect(html).toMatch(/aria-current="page"[^>]*data-testid="player-tab-overview"/);
     expect(html).toContain('bg-accent');
     expect(html).not.toMatch(/style="[^"]*(?:background|color)/);
+  });
+
+  it('names the team of his latest line-up, as a line-up, when no spell is open (T-1394)', () => {
+    // No open spell, but he started for Liverpool on 11 October: "no current
+    // team" beside that line-up was the contradiction the audit found.
+    const latest = match({
+      team: { id: 'liverpool', name: 'Liverpool' },
+      fixture: { ...match().fixture, kickoff_at: '2026-10-11T15:30:00.000Z' },
+    });
+    const p = page({
+      current_spell: null,
+      recent_matches: { coverage: 'available', last_updated_at: null, data: [latest, match()] },
+    });
+    expect(lineupTeam(p)).toEqual({
+      team: { id: 'liverpool', name: 'Liverpool' },
+      day: '2026-10-11',
+    });
+    const html = band(p);
+    expect(html).toMatch(
+      /data-testid="current-team-lineup".*href="\/en\/team\/liverpool".*Liverpool/,
+    );
+    expect(html).toContain('from the latest line-up that names this player, 2026-10-11');
+    expect(html).toContain('no current spell on record');
+    expect(html).not.toContain('No current team on record');
+    // In Persian, the sentence is the catalogue's and the date the Persian calendar's.
+    const fa = band(p, 'fa');
+    expect(fa).toContain('بر پایه‌ی آخرین ترکیبی که نام این بازیکن در آن آمده');
+    expect(fa).not.toContain('2026-10-11');
+  });
+
+  it('keeps "no current team" when neither a spell nor a line-up names a team', () => {
+    const none = page({
+      current_spell: null,
+      recent_matches: { coverage: 'not_supplied', last_updated_at: null, data: null },
+    });
+    expect(lineupTeam(none)).toBeNull();
+    expect(band(none)).toContain('No current team on record');
+    // An open spell is the answer; the line-up is not asked.
+    expect(lineupTeam(page())).toBeNull();
   });
 
   it('says a birth date we do not hold is not supplied, never a guessed age', () => {
