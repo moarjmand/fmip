@@ -2515,6 +2515,14 @@ the model service answers with `dixon-coles-elo@0.6.0` published,
 `check-setup.sh` passes with the nightly backup two hours old and the restore
 drill passed. *Delivery:* **passed** -- the site answers and the PWA manifest
 is served. The condition is met; the decision stands unamended.
+An earlier walk, on 2026-10-09, failed the second part: no job had ever
+settled a prediction (`settlement_run` was empty with nine predictions
+stored), because settlement and the rating recompute had only operator
+endpoints. The settlement tick (T-1380) was deployed on 2026-10-10 and settled
+those nine at 16:02 UTC; the walk above is after it. The same walk found a
+match timeline showing two substitutions twice and hiding a goal, rows the
+provider's shortened list had left behind; that is T-1382, a defect within the
+first part's surfaces rather than a part that does not answer.
 
 ---
 
