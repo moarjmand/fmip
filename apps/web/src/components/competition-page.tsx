@@ -79,22 +79,25 @@ function PanelHeading({ id, children }: { id: string; children: ReactNode }) {
 /** A module on the stage (T-1385): a surface card, its name, and what it says about itself. */
 export function Panel({
   testId,
+  id = testId,
   title,
   aside,
   children,
   className,
 }: {
   testId: string;
+  /** The section's own id, where one page has several panels of a kind (T-1386). */
+  id?: string;
   title: ReactNode;
   /** Beside the name: the coverage badge, the freshness, the model id. */
   aside?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
-  const headingId = `${testId}-heading`;
+  const headingId = `${id}-heading`;
   return (
     <section
-      id={testId}
+      id={id}
       aria-labelledby={headingId}
       data-testid={testId}
       className={cx(
@@ -432,13 +435,48 @@ export function CompetitionFollow({
   signedIn: boolean;
   following: FollowedEntity[] | null;
 }) {
+  return (
+    <EntityFollow
+      locale={locale}
+      entityType="competition"
+      entityId={competitionId}
+      signedIn={signedIn}
+      following={following}
+      followingKey="competitionPage.follow.following"
+      unreachableKey="competitionPage.follow.unreachable"
+    />
+  );
+}
+
+/**
+ * Follow a competition, a club or a player from its band (T-1385, T-1386):
+ * one form for the three, each with its own "you follow this …" and
+ * "cannot be checked" sentence. The test ids are `<type>-follow…`.
+ */
+export function EntityFollow({
+  locale,
+  entityType,
+  entityId,
+  signedIn,
+  following,
+  followingKey,
+  unreachableKey,
+}: {
+  locale: string;
+  entityType: 'competition' | 'team' | 'person';
+  entityId: string;
+  signedIn: boolean;
+  following: FollowedEntity[] | null;
+  followingKey: MessageKey;
+  unreachableKey: MessageKey;
+}) {
   if (!signedIn) {
     return (
       <ButtonLink
         href={`/${locale}/login`}
         variant="primary"
         size="md"
-        data-testid="competition-follow-guest"
+        data-testid={`${entityType}-follow-guest`}
       >
         <Icon name="bell" size={18} />
         <Translated locale={locale} message="competitionPage.follow.signIn" />
@@ -447,28 +485,26 @@ export function CompetitionFollow({
   }
   if (following === null) {
     return (
-      <p className="max-w-60 text-sm text-muted" data-testid="competition-follow-unreachable">
-        <Translated locale={locale} message="competitionPage.follow.unreachable" />
+      <p className="max-w-60 text-sm text-muted" data-testid={`${entityType}-follow-unreachable`}>
+        <Translated locale={locale} message={unreachableKey} />
       </p>
     );
   }
-  const followed = following.some(
-    (f) => f.entity_type === 'competition' && f.entity_id === competitionId,
-  );
+  const followed = following.some((f) => f.entity_type === entityType && f.entity_id === entityId);
   const action = (followed ? unfollowAction : followAction).bind(null, locale);
   return (
     <form
       action={action}
       className="flex flex-col items-start gap-1.5"
-      data-testid="competition-follow"
+      data-testid={`${entityType}-follow`}
       data-following={followed}
     >
-      <input type="hidden" name="entity_type" value="competition" />
-      <input type="hidden" name="entity_id" value={competitionId} />
+      <input type="hidden" name="entity_type" value={entityType} />
+      <input type="hidden" name="entity_id" value={entityId} />
       {followed && (
         <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
           <Icon name="check" size={16} />
-          <Translated locale={locale} message="competitionPage.follow.following" />
+          <Translated locale={locale} message={followingKey} />
         </p>
       )}
       <Button type="submit" variant={followed ? 'secondary' : 'primary'} size="md">
@@ -495,7 +531,7 @@ export function zoneWords(locale: string, timeZone: string): string {
 }
 
 /** When, or what happened instead: the day and time, "live", "postponed". */
-function When({
+export function When({
   fixture,
   locale,
   timeZone,
