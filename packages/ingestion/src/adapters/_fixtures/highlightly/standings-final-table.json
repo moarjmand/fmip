@@ -15,7 +15,7 @@
   "requests": [
     {
       "method": "GET",
-      "url": "https://sports.highlightly.net/football/standings?leagueId=33973&season=2023",
+      "url": "https://soccer.highlightly.net/standings?leagueId=33973&season=2023",
       "status": 200,
       "body": {
         "groups": [

@@ -14,7 +14,7 @@
   "requests": [
     {
       "method": "GET",
-      "url": "https://sports.highlightly.net/football/matches/880817271",
+      "url": "https://soccer.highlightly.net/matches/880817271",
       "status": 200,
       "body": [
         {
@@ -402,7 +402,7 @@
     },
     {
       "method": "GET",
-      "url": "https://sports.highlightly.net/football/matches/1",
+      "url": "https://soccer.highlightly.net/matches/1",
       "status": 200,
       "body": []
     }
