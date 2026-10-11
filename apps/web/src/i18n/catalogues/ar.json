@@ -10164,16 +10164,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "teamPage.previousMatch": {
-    "source": "Previous match",
-    "text": "",
-    "status": "untranslated"
-  },
-  "teamPage.noPrevious": {
-    "source": "No result on record.",
-    "text": "",
-    "status": "untranslated"
-  },
   "teamPage.noFixtures": {
     "source": "No fixtures scheduled.",
     "text": "",
@@ -10249,6 +10239,59 @@
     "text": "",
     "status": "untranslated"
   },
+  "teamPage.follow.following": {
+    "source": "You follow this team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.follow.unreachable": {
+    "source": "Whether you follow this team cannot be checked right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.tile.position": {
+    "source": "Position, of {total}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.tile.record": {
+    "source": "Won · drawn · lost",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.tile.goals": {
+    "source": "Goals for · against",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.matches": {
+    "source": "Fixtures and results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.allFixtures": {
+    "source": "All fixtures",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.allResults": {
+    "source": "All results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.squadIncomplete": {
+    "source": "Positions or shirt numbers are not on record for every player.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.wholeSquad": {
+    "source": {
+      "one": "The whole squad: {count} player",
+      "other": "The whole squad: {count} players"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "playerPage.title": {
     "source": "Player",
     "text": "",
@@ -10281,11 +10324,6 @@
   },
   "playerPage.foot": {
     "source": "Preferred foot",
-    "text": "",
-    "status": "untranslated"
-  },
-  "playerPage.noBirthDate": {
-    "source": "Date of birth not recorded",
     "text": "",
     "status": "untranslated"
   },
@@ -10520,6 +10558,61 @@
   },
   "playerPage.noData": {
     "source": "No match data stored for this player yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.follow.following": {
+    "source": "You follow this player",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.follow.unreachable": {
+    "source": "Whether you follow this player cannot be checked right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tab.matches": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.dateOfBirth": {
+    "source": "Date of birth",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.apps": {
+    "source": "Appearances",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.cards": {
+    "source": "Yellow / red cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.minutes": {
+    "source": "Minutes played",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.alsoThisSeason": {
+    "source": "Also this season: {list}. Every competition is in the record below.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.fullRecord": {
+    "source": "Full record with minutes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.allMatches": {
+    "source": "All matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.clubs": {
+    "source": "Clubs",
     "text": "",
     "status": "untranslated"
   },

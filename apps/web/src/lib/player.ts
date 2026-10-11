@@ -5,6 +5,7 @@ import type {
   PlayerSeasonRecord,
   PlayerSpell,
 } from '@fmip/contracts';
+import type { CoverageState } from '@fmip/contracts';
 import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatDate, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
@@ -150,4 +151,59 @@ export const AVAILABILITY_STALE_AFTER_HOURS = AVAILABILITY_STALE_AFTER_MS / 3_60
 /** Whether the feed's last answer about a match is old enough to say so. */
 export function availabilityStale(askedAt: string, now: Date): boolean {
   return now.getTime() - Date.parse(askedAt) > AVAILABILITY_STALE_AFTER_HOURS * 60 * 60 * 1000;
+}
+
+// ---------------------------------------------------------------------------
+// The Hybrid player page (T-1386, D-204): its tabs and the Overview's slices.
+// ---------------------------------------------------------------------------
+
+/** The player page's sections, in the order the tab bar shows them. */
+export const PLAYER_TABS = ['overview', 'matches', 'career', 'stats'] as const;
+export type PlayerTab = (typeof PLAYER_TABS)[number];
+
+/** `?tab=`: one of the page's sections; anything else (or nothing) is the Overview. */
+export function readPlayerTab(params: SearchParams): PlayerTab {
+  const raw = Array.isArray(params.tab) ? params.tab[0] : params.tab;
+  return (PLAYER_TABS as readonly string[]).includes(raw ?? '') ? (raw as PlayerTab) : 'overview';
+}
+
+/** One tab's address, keeping the season filter where the tab has one (Matches, Stats). */
+export function playerTabHref(
+  locale: string,
+  personId: string,
+  tab: PlayerTab,
+  seasonId: string | null = null,
+): string {
+  const query = new URLSearchParams();
+  if (tab !== 'overview') query.set('tab', tab);
+  if (seasonId !== null && (tab === 'matches' || tab === 'stats')) query.set('season', seasonId);
+  const text = query.toString();
+  const base = `/${locale}/player/${encodeURIComponent(personId)}`;
+  return text === '' ? base : `${base}?${text}`;
+}
+
+/** Matches on the Overview's short list; the Matches tab has every one the API sent. */
+export const OVERVIEW_PLAYER_MATCHES = 5;
+
+/**
+ * The spells' coverage, by the rule the API gives the squad (`TeamPage.squad`):
+ * spells come from our own records, so a player with none is `not_supplied`,
+ * never an empty list drawn as a career (rule 3).
+ */
+export function spellsCoverage(spells: readonly PlayerSpell[]): CoverageState {
+  return spells.length === 0 ? 'not_supplied' : 'available';
+}
+
+/**
+ * The season the Overview's tiles show: the record's first row (the newest
+ * season, as the API orders it), and the other competitions of that season,
+ * which the tiles do not add in.
+ */
+export function latestSeason(record: readonly PlayerSeasonRecord[]): {
+  row: PlayerSeasonRecord;
+  others: PlayerSeasonRecord[];
+} | null {
+  const row = record[0];
+  if (row === undefined) return null;
+  return { row, others: record.slice(1).filter((r) => r.season.id === row.season.id) };
 }

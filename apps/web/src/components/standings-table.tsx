@@ -92,7 +92,7 @@ const TH = 'px-1.5 py-2 text-xs font-bold text-muted';
  * filled in the green, a draw on the raised ground, a loss outlined in the
  * danger colour -- so none rests on hue.
  */
-const FORM_LOOK: Record<FormResult, string> = {
+export const FORM_LOOK: Record<FormResult, string> = {
   W: 'bg-accent text-on-accent',
   D: 'bg-surface-raised text-fg',
   L: 'border border-danger text-danger',

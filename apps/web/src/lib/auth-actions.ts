@@ -307,6 +307,9 @@ export async function followAction(locale: string, formData: FormData): Promise<
   if (type === 'fixture') revalidatePath(`/${locale}/match/${id}`);
   // The competition page's band offers one for the competition (T-1385).
   if (type === 'competition') revalidatePath(`/${locale}/competition/${id}`);
+  // The club and player pages' bands offer one too (T-1386).
+  if (type === 'team') revalidatePath(`/${locale}/team/${id}`);
+  if (type === 'person') revalidatePath(`/${locale}/player/${id}`);
 }
 
 export async function unfollowAction(locale: string, formData: FormData): Promise<void> {
@@ -320,4 +323,6 @@ export async function unfollowAction(locale: string, formData: FormData): Promis
   revalidatePath(`/${locale}/settings`);
   if (type === 'fixture') revalidatePath(`/${locale}/match/${id}`);
   if (type === 'competition') revalidatePath(`/${locale}/competition/${id}`);
+  if (type === 'team') revalidatePath(`/${locale}/team/${id}`);
+  if (type === 'person') revalidatePath(`/${locale}/player/${id}`);
 }
