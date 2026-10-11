@@ -87,7 +87,7 @@ function Icon({ children }: { children: React.ReactNode }) {
  * Menu (`<details>`, no script) holds the nav, the language, the theme and
  * the account, and the five main sections are in the bottom tab bar.
  *
- * One copy of every link: from 768px `.site-menu` in globals.css makes the
+ * One copy of every link: from 1024px `.site-menu` in globals.css makes the
  * disclosure `display: contents` (where `::details-content` can be styled),
  * so its contents are laid out in the bar itself, placed by `order`.
  *
@@ -143,9 +143,9 @@ export async function SiteHeader({
         <nav
           aria-label={primary.text}
           lang={primary.lang}
-          className="page-frame flex min-h-15 items-center gap-x-2 md:min-h-17 md:flex-wrap md:gap-x-6 md:gap-y-1"
+          className="page-frame flex min-h-15 items-center gap-x-2 lg:min-h-17 lg:flex-wrap lg:gap-x-6 lg:gap-y-1"
         >
-          <details className="site-menu md:order-last" data-testid="nav-menu">
+          <details className="site-menu lg:order-last" data-testid="nav-menu">
             <summary
               aria-label={menu.text}
               lang={menu.lang}
@@ -159,10 +159,10 @@ export async function SiteHeader({
               <PrimaryNav
                 locale={locale}
                 labels={resolved(lang, NAV_LABELS)}
-                className="flex flex-col md:order-2 md:min-w-0 md:flex-1 md:flex-row md:flex-wrap md:gap-0.5"
+                className="flex flex-col lg:order-2 lg:min-w-0 lg:flex-1 lg:flex-row lg:flex-wrap lg:gap-0.5"
               />
               {/* Nothing until a second language is finished (T-306) and not held back (T-1163). */}
-              <div className="md:order-3">
+              <div className="lg:order-3">
                 <LanguagePicker
                   languages={offeredLanguages(offeredGiven(holds))}
                   label={attribute(lang, 'shell.language')}
@@ -170,37 +170,37 @@ export async function SiteHeader({
                 />
               </div>
               {/* Auto, Day or Night, on every page (T-602, D-198). */}
-              <div className="py-2 md:order-5 md:py-0">
+              <div className="py-2 lg:order-5 lg:py-0">
                 <ThemeSwitch locale={locale} current={theme} variant="compact" />
               </div>
               {me === null ? (
-                <div className="flex flex-col md:order-6 md:flex-row md:items-center md:gap-3">
+                <div className="flex flex-col lg:order-6 lg:flex-row lg:items-center lg:gap-3">
                   {/* A guest's Settings is the appearance alone: text size, contrast, motion (T-621). */}
                   <Link
                     href={href('/settings')}
-                    className={`${item} text-sm text-muted md:px-0`}
+                    className={`${item} text-sm text-muted lg:px-0`}
                     data-testid="nav-settings-guest"
                   >
                     <Translated locale={locale} message="nav.settings" />
                   </Link>
-                  <Link href={href('/register')} className={`${item} md:hidden`}>
+                  <Link href={href('/register')} className={`${item} lg:hidden`}>
                     <Translated locale={locale} message="shell.register" />
                   </Link>
                   <Link
                     href={href('/login')}
-                    className="mt-1 inline-flex h-11 items-center justify-center rounded-control border border-fg px-4 text-sm font-semibold md:mt-0"
+                    className="mt-1 inline-flex h-11 items-center justify-center rounded-control border border-fg px-4 text-sm font-semibold lg:mt-0"
                     data-testid="nav-sign-in"
                   >
                     <Translated locale={locale} message="nav.signIn" />
                   </Link>
                 </div>
               ) : (
-                <details className="account-menu relative md:order-6" data-testid="account-menu">
-                  <summary className="flex min-h-touch cursor-pointer list-none items-center gap-1 rounded-control px-3 text-sm font-semibold md:border md:border-fg [&::-webkit-details-marker]:hidden">
+                <details className="account-menu relative lg:order-6" data-testid="account-menu">
+                  <summary className="flex min-h-touch cursor-pointer list-none items-center gap-1 rounded-control px-3 text-sm font-semibold lg:border lg:border-fg [&::-webkit-details-marker]:hidden">
                     @{me.username}
                     <span aria-hidden="true">▾</span>
                   </summary>
-                  <div className="flex flex-col ps-3 md:absolute md:end-0 md:top-full md:z-40 md:mt-1 md:w-56 md:rounded-control md:border md:border-default md:bg-canvas md:px-2 md:py-2">
+                  <div className="flex flex-col ps-3 lg:absolute lg:end-0 lg:top-full lg:z-40 lg:mt-1 lg:w-56 lg:rounded-control lg:border lg:border-default lg:bg-canvas lg:px-2 lg:py-2">
                     <Link
                       href={href(`/u/${encodeURIComponent(me.username)}`)}
                       className={item}
@@ -235,11 +235,11 @@ export async function SiteHeader({
           </details>
           <Link
             href={href('')}
-            className="mx-auto flex min-h-touch items-center gap-2.5 font-latin text-fg md:order-1 md:mx-0"
+            className="mx-auto flex min-h-touch items-center gap-2.5 font-latin text-fg lg:order-1 lg:mx-0"
             data-testid="nav-home"
           >
             <BrandMark size={32} className="shrink-0" />
-            <span className="text-2xl leading-none font-black tracking-wide font-stretch-condensed md:text-3xl">
+            <span className="text-2xl leading-none font-black tracking-wide font-stretch-condensed lg:text-3xl">
               FMIP
             </span>
           </Link>
@@ -247,7 +247,7 @@ export async function SiteHeader({
             href={href('/search')}
             aria-label={search.text}
             lang={search.lang}
-            className="flex size-touch items-center justify-center rounded-control md:order-4"
+            className="flex size-touch items-center justify-center rounded-control lg:order-4"
             data-testid="nav-search"
           >
             <Icon>
