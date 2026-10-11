@@ -13,3 +13,8 @@ export type { ChoiceProps, FieldSize, SelectProps, TextAreaProps, TextFieldProps
 export { FormStatus, Notice } from './notice';
 export type { FormStatusProps, NoticeProps, NoticeTone } from './notice';
 export { inlineTargetClasses } from './target';
+// The Hybrid atoms shared by every product (T-1388, D-206).
+export { CoverageBadge } from './coverage-badge';
+export { Icon } from './icons';
+export type { IconName } from './icons';
+export { LinkOut } from './link-out';

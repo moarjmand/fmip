@@ -25,6 +25,7 @@ import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Score } from '@/components/score';
+import { CoverageBadge } from '@/components/ui/coverage-badge';
 
 /** The server-rendered panels the page slots between the live modules (T-605). */
 export type MatchSlot =
@@ -719,13 +720,27 @@ export function MatchCentreView({
           {(
             Object.entries(centre.coverage) as [CoverageModule, Covered<unknown>['coverage']][]
           ).map(([module, state]) => (
-            <li key={module} dir="auto" className="rounded border border-default px-2 py-1">
-              <MessageText
-                message={filled(m['matchCentre.moduleCoverage'], {
-                  module: m[MODULE_KEY[module]].text,
-                  state: moduleState(state).text,
-                })}
-              />
+            <li
+              key={module}
+              dir="auto"
+              className="inline-flex items-center gap-2 rounded-control border border-default px-2 py-1"
+              data-coverage={state}
+            >
+              {/* The sentence for a screen reader and a search; the badge for the eye (T-1388). */}
+              <span className="sr-only">
+                <MessageText
+                  message={filled(m['matchCentre.moduleCoverage'], {
+                    module: m[MODULE_KEY[module]].text,
+                    state: moduleState(state).text,
+                  })}
+                />
+              </span>
+              <span aria-hidden="true">
+                <MessageText message={m[MODULE_KEY[module]]} />
+              </span>
+              <span aria-hidden="true">
+                <CoverageBadge state={state} label={<MessageText message={moduleState(state)} />} />
+              </span>
             </li>
           ))}
         </ul>
@@ -759,12 +774,15 @@ const MODULE_HEADING = 'flex flex-wrap items-baseline gap-x-2 gap-y-1 text-lg fo
  * rendered as ".Data for this module is delayed". With its own direction it
  * reads as the sentence it is.
  */
-function CoverageTag({ children }: { children: React.ReactNode }) {
-  return (
-    <span dir="auto" className="text-xs font-normal uppercase text-muted">
-      {children}
-    </span>
-  );
+function CoverageTag({
+  state,
+  children,
+}: {
+  state: Covered<unknown>['coverage'];
+  children: React.ReactNode;
+}) {
+  // The Hybrid badge (T-1388): an icon and an edge as well as a colour.
+  return <CoverageBadge state={state} label={children} className="self-center font-bold" />;
 }
 
 function Module<T>({
@@ -794,7 +812,7 @@ function Module<T>({
         <span>
           <MessageText message={title} />
         </span>
-        <CoverageTag>
+        <CoverageTag state={module.coverage}>
           <MessageText message={m[COVERAGE_KEY[module.coverage]]} />
         </CoverageTag>
       </h2>
@@ -915,7 +933,7 @@ function Form({
     <div className="flex flex-col gap-1" data-coverage={module.coverage}>
       <h3 className="flex flex-wrap items-baseline gap-x-2 font-medium">
         <bdi>{name}</bdi>
-        <CoverageTag>
+        <CoverageTag state={module.coverage}>
           <MessageText message={m[COVERAGE_KEY[module.coverage]]} />
         </CoverageTag>
       </h3>

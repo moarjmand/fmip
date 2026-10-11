@@ -15,26 +15,34 @@ import { cx } from './cx';
  *
  * Sizes follow what the product already used: `xs` inside a row of chips,
  * `sm` beside a line of text (most admin and social actions), `md` for a
- * form's own submit.
+ * form's own submit and every action a reader presses on a phone, which is a
+ * 44px touch target (the Hybrid design, T-1388, D-206).
+ *
+ * The Hybrid look (D-206): the control radius (`rounded-control`, 10px), the
+ * primary filled in the one brand green with a pressed state in the deeper
+ * green, the secondary an outline in the control edge. A link that leaves
+ * the site is not a button variant: it is `LinkOut` (`link-out.tsx`), which
+ * must name who hosts the destination.
  */
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 export type ButtonSize = 'xs' | 'sm' | 'md';
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: 'bg-accent font-medium text-on-accent',
-  secondary: 'border border-strong',
-  danger: 'border border-danger text-danger',
+  primary:
+    'border border-accent bg-accent font-semibold text-on-accent hover:border-accent-strong hover:bg-accent-strong',
+  secondary: 'border border-strong font-medium',
+  danger: 'font-medium border border-danger text-danger',
   ghost: 'underline',
 };
 
 /** The secondary edge when the control is the chosen one (a toggle that is on). */
-const SELECTED = 'border border-accent';
+const SELECTED = 'border border-accent font-medium';
 
 const SIZES: Record<ButtonSize, string> = {
   xs: 'px-2 py-0.5 text-xs',
   sm: 'px-3 py-1 text-sm',
-  md: 'px-4 py-2',
+  md: 'inline-flex min-h-touch items-center justify-center gap-2 px-4 py-2',
 };
 
 /** A ghost button keeps the text's own size and no padding: it sits in a sentence. */
@@ -60,7 +68,7 @@ export function buttonClasses({
   className,
 }: ButtonStyle = {}): string {
   const look = variant === 'secondary' && selected ? SELECTED : VARIANTS[variant];
-  const box = variant === 'ghost' ? GHOST_SIZES[size] : `rounded ${SIZES[size]}`;
+  const box = variant === 'ghost' ? GHOST_SIZES[size] : `rounded-control ${SIZES[size]}`;
   return cx(box, look, 'disabled:opacity-50', className);
 }
 

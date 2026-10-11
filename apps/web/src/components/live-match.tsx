@@ -6,7 +6,8 @@ import { useEffect, useState } from 'react';
 import { MatchCentreView, type MatchSlots } from '@/components/match-centre-view';
 import { matchAnnouncements } from '@/lib/announce';
 import { withLocale } from '@/lib/locale-query';
-import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState } from '@/lib/live';
+import { FreshnessStamp } from '@/components/freshness-stamp';
+import { INITIAL_CLOCK, type LiveClock, STALE_AFTER_MS, liveLabel, liveState } from '@/lib/live';
 import type { MatchWords } from '@/lib/words-server';
 
 /**
@@ -104,7 +105,20 @@ export function LiveMatch({
         data-state={state}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
       >
-        {liveLabel(state, clock, locale, timeZone, words.m)}
+        {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
+          // "Last checked 8 sec ago", amber with "may be behind" past the
+          // stream's own threshold (T-1388); the other states keep their words.
+          <FreshnessStamp
+            checkedAt={clock.lastEventAt}
+            now={now}
+            staleAfterMs={STALE_AFTER_MS}
+            behind={state === 'stale'}
+            locale={locale}
+            words={words.m}
+          />
+        ) : (
+          liveLabel(state, clock, locale, timeZone, words.m)
+        )}
       </p>
       <div
         aria-live="polite"
