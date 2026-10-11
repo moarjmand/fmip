@@ -2498,6 +2498,32 @@ last clause records nothing about the others. *Signing without the
 condition*: it would claim a public deployment with real fixtures that does
 not exist.
 
+**Re-checked on the real deployment (2026-10-11).** The four parts were walked
+on https://traveltohormuz.ir with ingestion on, after the first club weekend
+since the international break (91 finished fixtures on 2026-10-10). *Public
+read and live:* **passed** -- the scores page, a finished match (Crystal Palace
+3-1 Nottingham Forest: timeline, statistics, line-ups, player statistics,
+availability, the forecast against the result), the Premier League table, a
+team page, search, news and watch all answer, and every absence is a
+sentence; 475 live runs wrote 19,978 items in that Saturday's match window.
+*Predictions and reputation:* **passed** -- every finished fixture of the
+competitions the model covers had a forecast computed before kick-off (53
+that day), `power_index` rows carry `power-index@1.1.0`, and members'
+predictions were settled by the scheduler (9 settlements, a
+`performance-rating@1.0.0` snapshot). *Model and operations:* **passed** --
+the model service answers with `dixon-coles-elo@0.6.0` published,
+`check-setup.sh` passes with the nightly backup two hours old and the restore
+drill passed. *Delivery:* **passed** -- the site answers and the PWA manifest
+is served. The condition is met; the decision stands unamended.
+An earlier walk, on 2026-10-09, failed the second part: no job had ever
+settled a prediction (`settlement_run` was empty with nine predictions
+stored), because settlement and the rating recompute had only operator
+endpoints. The settlement tick (T-1380) was deployed on 2026-10-10 and settled
+those nine at 16:02 UTC; the walk above is after it. The same walk found a
+match timeline showing two substitutions twice and hiding a goal, rows the
+provider's shortened list had left behind; that is T-1382, a defect within the
+first part's surfaces rather than a part that does not answer.
+
 ---
 
 ## D-072 — A second adapter behind the intelligence port: the chat-completions shape, Mistral as a named preset, and any compatible endpoint by URL
