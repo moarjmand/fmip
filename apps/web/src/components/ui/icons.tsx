@@ -27,10 +27,13 @@ export type IconName =
   | 'lock'
   | 'screen'
   | 'play'
-  | 'bell';
+  | 'bell'
+  | 'bolt';
 
 const PATHS: Record<IconName, ReactNode> = {
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  // Lite mode's banner (T-1387).
+  bolt: <path d="M13 3 5 14h6l-1 7 8-11h-6z" />,
   limited: (
     <>
       <circle cx="12" cy="12" r="8" />

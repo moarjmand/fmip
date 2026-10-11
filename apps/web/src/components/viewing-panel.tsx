@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { MatchViewing, Territory, ViewingOption } from '@fmip/contracts';
+import { Pictured } from '@/components/lite-mode';
 import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
 import { Button, Notice, Select, inlineTargetClasses } from '@/components/ui';
@@ -331,15 +332,18 @@ function Highlights({
       {highlight !== undefined && (state === 'page' || state === 'embed') && (
         <>
           {state === 'embed' && highlight.embed_url !== null && (
-            <iframe
-              src={highlight.embed_url}
-              title={text(locale, 'viewing.highlightsPlayer')}
-              className="aspect-video w-full"
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="strict-origin-when-cross-origin"
-              data-testid="viewing-embed"
-            />
+            // No player in lite mode (T-1387): the link below still leads to the clip.
+            <Pictured>
+              <iframe
+                src={highlight.embed_url}
+                title={text(locale, 'viewing.highlightsPlayer')}
+                className="aspect-video w-full"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+                data-testid="viewing-embed"
+              />
+            </Pictured>
           )}
           <a
             href={highlight.url}

@@ -100,7 +100,7 @@ function StoryList({
   cards: NewsStoryCard[];
 }) {
   return (
-    <ul className="flex flex-col gap-3" data-testid="related-news-list">
+    <ul className="flex flex-col gap-3 lite:gap-2" data-testid="related-news-list">
       {cards.map((card) => (
         <li
           key={card.story_id}
