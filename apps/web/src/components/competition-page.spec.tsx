@@ -1,0 +1,436 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import type { CompetitionPage, FollowedEntity, SeasonFixture, TableRow } from '@fmip/contracts';
+import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
+import { message } from '@/i18n/messages';
+import { leagueNumbers } from '@/lib/competition-overview';
+import { forecastBarWords } from '@/lib/words-server';
+
+// The server actions need a request; the component only binds them.
+vi.mock('@/lib/auth-actions', () => ({
+  followAction: async () => undefined,
+  unfollowAction: async () => undefined,
+}));
+
+const {
+  CompetitionBand,
+  CompetitionFollow,
+  CoveragePanel,
+  FixtureRow,
+  LeagueNumbersPanel,
+  LiveFreshness,
+  MatchweekPanel,
+  NoTableNote,
+} = await import('./competition-page');
+const { StandingsTable } = await import('./standings-table');
+
+/**
+ * The competition page in the Hybrid design (T-1385, D-203): the band in the
+ * brand's colours with the follow control and the tabs, the round with the
+ * model's three-way, a score beside its own team on `/fa`, the projection
+ * slot that is never a figure, and every module's coverage as a badge.
+ */
+
+const ID = '00000000-0000-4000-8000-000000000201';
+const PHYSICAL = /\b(?:m|p|border|rounded)-?[lr]-|\b(?:left|right)-\d|text-(?:left|right)\b/;
+const PAGE = readFileSync(
+  join(__dirname, '..', 'app', '[locale]', 'competition', '[id]', 'page.tsx'),
+  'utf8',
+);
+const COMPONENT = readFileSync(join(__dirname, 'competition-page.tsx'), 'utf8');
+
+function fixture(over: Partial<SeasonFixture> = {}): SeasonFixture {
+  return {
+    id: '00000000-0000-4000-8000-00000000f001',
+    kickoff_at: '2026-10-01T12:30:00.000Z',
+    status: 'scheduled',
+    round: 'Regular Season - 8',
+    stage: null,
+    home: { id: 'h', name: 'Sepahan', short_name: null },
+    away: { id: 'a', name: 'Fajr Sepasi', short_name: null },
+    score: null,
+    ...over,
+  };
+}
+
+const row = (id: string, position: number, form: TableRow['form']): TableRow => ({
+  position,
+  team: { id, name: `Team ${id}`, short_name: null },
+  played: 7,
+  won: 5,
+  drawn: 1,
+  lost: 1,
+  goals_for: 12,
+  goals_against: 5,
+  goal_difference: position === 1 ? 7 : -2,
+  points: 16,
+  form,
+});
+
+function page(over: Partial<CompetitionPage> = {}): CompetitionPage {
+  return {
+    competition: {
+      id: ID,
+      name: 'Persian Gulf Pro League',
+      localised_name: null,
+      short_name: 'Pro League',
+      kind: 'league',
+      scope: 'domestic',
+      gender: 'men',
+      age_group: 'senior',
+      tier: 1,
+      country: { id: 'ir', name: 'Iran', code: 'IR' },
+    },
+    seasons: [
+      {
+        id: 's2',
+        label: '2026/27',
+        start_date: '2026-08-01',
+        end_date: '2027-05-30',
+        is_current: true,
+      },
+      {
+        id: 's1',
+        label: '2025/26',
+        start_date: '2025-08-01',
+        end_date: '2026-05-30',
+        is_current: false,
+      },
+    ],
+    season: {
+      id: 's2',
+      label: '2026/27',
+      start_date: '2026-08-01',
+      end_date: '2027-05-30',
+      is_current: true,
+      stages: [],
+    },
+    table: {
+      coverage: 'available',
+      last_updated_at: '2026-09-26T16:15:00.000Z',
+      data: [row('a', 1, ['W', 'W', 'D', 'W', 'L']), row('b', 2, ['L'])],
+    },
+    group_tables: null,
+    zones: { state: 'not_listed', reason: 'season_not_listed' },
+    results: [fixture({ id: 'r1', status: 'finished', score: { home: 6, away: 1 } })],
+    fixtures: [fixture()],
+    leaders: { coverage: 'limited', last_updated_at: null, data: [] },
+    leaders_filter: { min_minutes: null, unproven: 0, presets: [450, 900, 1800] },
+    boards: {
+      assists: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      clean_sheets: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      cards: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      unproven: { assists: 0, clean_sheets: 0, cards: 0 },
+    },
+    bracket: null,
+    coverage: { standings: 'available', lineups: 'limited', scores: 'delayed' },
+    last_updated_at: '2026-10-01T12:00:00.000Z',
+    ...over,
+  } as CompetitionPage;
+}
+
+const band = (p: CompetitionPage, locale = 'en', tab: 'overview' | 'table' = 'overview') =>
+  renderToStaticMarkup(
+    <CompetitionBand
+      page={p}
+      locale={locale}
+      timeZone="UTC"
+      tab={tab}
+      tabs={['overview', 'table', 'fixtures', 'results', 'players', 'stats']}
+      minMinutes={null}
+      matchweek={null}
+      follow={null}
+    />,
+  );
+
+describe('the band and the tabs', () => {
+  it('names the country, kind, tier and season, and marks the open tab', () => {
+    const html = band(page());
+    expect(html).toContain('Iran · League · Tier 1 · Season 2026/27');
+    expect(html).toContain('data-testid="title"');
+    expect(html).toContain('1 match played');
+    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-current="page"[^>]*data-testid="competition-tab-overview"/);
+    expect(html).toContain('href="/en/competition/' + ID + '?tab=table"');
+    // Brand colours only: the green rule and the green tab bar, no club colour.
+    expect(html).toContain('bg-accent');
+    expect(html).toContain('shadow-[inset_0_-3px_0_var(--token-accent)]');
+  });
+
+  it('keeps the open tab when the season changes', () => {
+    const html = band(page(), 'en', 'table');
+    expect(html).toContain(`href="/en/competition/${ID}?season=s1&amp;tab=table"`);
+  });
+
+  it('writes the season in Persian digits on /fa', () => {
+    const html = band(page(), 'fa');
+    expect(html).toContain('فصل ۲۰۲۶/۲۷');
+    expect(html).toContain('۱ بازی انجام‌شده');
+    expect(html).not.toMatch(/2026\/27/);
+  });
+
+  it('calls the table tab the knockout rounds for a cup with no table', () => {
+    const cup = page({
+      competition: { ...page().competition, kind: 'cup' },
+      table: { coverage: 'not_supplied', last_updated_at: null, data: [] },
+    });
+    expect(band(cup)).toContain('Knockout rounds');
+    expect(renderToStaticMarkup(<NoTableNote locale="en" />)).toContain('has no table');
+  });
+});
+
+describe('following the competition', () => {
+  const competition: FollowedEntity = {
+    entity_type: 'competition',
+    entity_id: ID,
+    favourite: false,
+  } as FollowedEntity;
+
+  it('sends a guest to sign in and says when the follows cannot be read', () => {
+    const guest = renderToStaticMarkup(
+      <CompetitionFollow locale="en" competitionId={ID} signedIn={false} following={null} />,
+    );
+    expect(guest).toContain('data-testid="competition-follow-guest"');
+    expect(guest).toContain('href="/en/login"');
+    const unknown = renderToStaticMarkup(
+      <CompetitionFollow locale="en" competitionId={ID} signedIn following={null} />,
+    );
+    expect(unknown).toContain('data-testid="competition-follow-unreachable"');
+    expect(unknown).not.toContain('<form');
+  });
+
+  it('posts the follow, and offers to stop once followed', () => {
+    const off = renderToStaticMarkup(
+      <CompetitionFollow locale="en" competitionId={ID} signedIn following={[]} />,
+    );
+    expect(off).toContain('value="competition"');
+    expect(off).toContain('data-following="false"');
+    expect(off).toContain('>Follow<');
+    const on = renderToStaticMarkup(
+      <CompetitionFollow locale="fa" competitionId={ID} signedIn following={[competition]} />,
+    );
+    expect(on).toContain('data-following="true"');
+    expect(on).toContain('لغو دنبال کردن');
+  });
+});
+
+describe('a match row', () => {
+  it('puts the score between the sides, home first, in the page’s direction', () => {
+    const finished = fixture({ status: 'finished', score: { home: 6, away: 1 } });
+    const en = renderToStaticMarkup(
+      <ul>
+        <FixtureRow fixture={finished} locale="en" timeZone="UTC" />
+      </ul>,
+    );
+    expect(en).toMatch(/Sepahan.*dir="ltr"[^>]*data-testid="fixture-score">6 – 1<.*Fajr Sepasi/);
+    const fa = renderToStaticMarkup(
+      <ul>
+        <FixtureRow fixture={finished} locale="fa" timeZone="UTC" />
+      </ul>,
+    );
+    // Home first in the DOM; the pair right to left, so its six sits on the home side.
+    expect(fa).toMatch(/Sepahan.*dir="rtl"[^>]*data-testid="fixture-score">۶ – ۱<.*Fajr Sepasi/);
+    expect(fa).not.toMatch(/>6 – 1</);
+  });
+
+  it('says a postponed match is postponed and a live one is live', () => {
+    const html = renderToStaticMarkup(
+      <ul>
+        <FixtureRow fixture={fixture({ status: 'postponed' })} locale="en" timeZone="UTC" />
+        <FixtureRow
+          fixture={fixture({ id: 'x', status: 'live', score: { home: 1, away: 1 } })}
+          locale="en"
+          timeZone="UTC"
+        />
+      </ul>,
+    );
+    expect(html).toContain('postponed');
+    expect(html).toMatch(/text-live[^>]*>live</);
+  });
+});
+
+describe('the Overview’s round', () => {
+  const words = forecastBarWords('en');
+  const week = {
+    label: 'Matchweek 8',
+    state: 'next' as const,
+    fixtures: [fixture(), fixture({ id: 'f2' }), fixture({ id: 'f3' })],
+    more: 0,
+  };
+
+  it('gives each match the model’s three-way, or the sentence for why not', () => {
+    const html = renderToStaticMarkup(
+      <MatchweekPanel
+        matchweek={week}
+        page={page()}
+        locale="en"
+        timeZone="Asia/Tehran"
+        forecastWords={words}
+        freshness={null}
+        forecasts={{
+          [week.fixtures[0]!.id]: {
+            state: 'available',
+            home: 46,
+            draw: 34,
+            away: 20,
+            version: 3,
+            model_version: 'dixon-coles-elo@0.6.0',
+            computed_at: '2026-09-30T08:00:00.000Z',
+          },
+          f2: { state: 'unreachable' },
+        }}
+      />,
+    );
+    expect(html.match(/data-testid="fixture"/g)).toHaveLength(3);
+    expect(html).toContain('data-size="row"');
+    expect(html).toContain('46.0%');
+    // The model id and its computation time are on screen with every figure (blueprint 6.2).
+    expect(html).toContain('dixon-coles-elo@0.6.0');
+    expect(html).toContain('data-state="unreachable"');
+    expect(html).toContain('data-state="none"');
+    expect(html).toContain('Tehran time');
+  });
+
+  it('says there is no match rather than drawing an empty list', () => {
+    const html = renderToStaticMarkup(
+      <MatchweekPanel
+        matchweek={null}
+        page={page()}
+        locale="en"
+        timeZone="UTC"
+        forecastWords={words}
+        freshness={null}
+        forecasts={{}}
+      />,
+    );
+    expect(html).toContain('data-testid="matchweek-empty"');
+    expect(html).not.toContain('data-testid="fixture"');
+  });
+});
+
+describe('freshness where a module is live (rule 4)', () => {
+  const freshness = {
+    'freshness.checked': message('en', 'freshness.checked'),
+    'freshness.behind': message('en', 'freshness.behind'),
+  };
+  const at = Date.parse('2026-10-01T12:00:00.000Z');
+
+  it('stamps a list with a live match, and says it may be behind past the threshold', () => {
+    const live = [fixture({ status: 'live' })];
+    const fresh = renderToStaticMarkup(
+      <LiveFreshness
+        fixtures={live}
+        checkedAt="2026-10-01T12:00:00.000Z"
+        now={at + 10_000}
+        locale="en"
+        words={freshness}
+      />,
+    );
+    expect(fresh).toContain('data-freshness="current"');
+    const old = renderToStaticMarkup(
+      <LiveFreshness
+        fixtures={live}
+        checkedAt="2026-10-01T12:00:00.000Z"
+        now={at + STALE_LIVE_AFTER_MS + 1}
+        locale="en"
+        words={freshness}
+      />,
+    );
+    expect(old).toContain('data-freshness="behind"');
+  });
+
+  it('stamps nothing when no match is live', () => {
+    expect(
+      renderToStaticMarkup(
+        <LiveFreshness
+          fixtures={[fixture()]}
+          checkedAt="2026-10-01T12:00:00.000Z"
+          now={at}
+          locale="en"
+          words={freshness}
+        />,
+      ),
+    ).toBe('');
+  });
+});
+
+describe('the table', () => {
+  it('leaves the season projection empty and labelled, never a figure (rule 3)', () => {
+    const html = renderToStaticMarkup(
+      <StandingsTable rows={page().table.data!} locale="en" zones={null} summary projection />,
+    );
+    expect(html).toContain('Season projection · coming later');
+    const cells = html.match(/<td[^>]*data-projection="empty"[^>]*><\/td>/g) ?? [];
+    expect(cells).toHaveLength(6);
+    expect(html).toContain('data-testid="projection-head"');
+  });
+
+  it('reads the form oldest to newest and signs the goal difference', () => {
+    const html = renderToStaticMarkup(
+      <StandingsTable rows={page().table.data!} locale="en" zones={null} summary />,
+    );
+    const first = html.slice(html.indexOf('data-testid="form"'));
+    // The contract says W W D W L, most recent first; the run reads L W D W W.
+    expect(
+      [...first.slice(0, first.indexOf('</span></td>')).matchAll(/data-result="(\w)"/g)].map(
+        (m) => m[1],
+      ),
+    ).toEqual(['L', 'W', 'D', 'W', 'W']);
+    expect(html).toContain('+7');
+    expect(html).toContain('−2');
+    expect(html).not.toContain('data-projection');
+  });
+
+  it('writes the table in Persian digits on /fa', () => {
+    const html = renderToStaticMarkup(
+      <StandingsTable rows={page().table.data!} locale="fa" zones={null} summary />,
+    );
+    expect(html).toContain('>۱۶<');
+    expect(html).toContain('+۷');
+  });
+});
+
+describe('coverage, never the old uppercase words', () => {
+  it('badges every module the season declares', () => {
+    const html = renderToStaticMarkup(<CoveragePanel page={page()} locale="en" timeZone="UTC" />);
+    expect(html).toContain('data-coverage-badge="available"');
+    expect(html).toContain('data-coverage-badge="limited"');
+    expect(html).toContain('data-coverage-badge="delayed"');
+    expect(COMPONENT).not.toContain('coverageText');
+    expect(PAGE).not.toContain('coverageText');
+  });
+
+  it('says the season has no figures rather than four noughts', () => {
+    const none = renderToStaticMarkup(
+      <LeagueNumbersPanel numbers={leagueNumbers([])} locale="en" />,
+    );
+    expect(none).toContain('data-testid="numbers-empty"');
+    expect(none).toContain('data-coverage-badge="not_supplied"');
+    const some = renderToStaticMarkup(
+      <LeagueNumbersPanel
+        numbers={leagueNumbers([
+          fixture({ status: 'finished', score: { home: 1, away: 1 } }),
+          fixture({ status: 'finished', score: null }),
+        ])}
+        locale="fa"
+      />,
+    );
+    expect(some).toContain('data-coverage-badge="limited"');
+    expect(some).toContain('۲٫۰۰');
+  });
+});
+
+describe('the page’s layout', () => {
+  it('uses logical properties only (rule 7) and stands on the data stage', () => {
+    expect(PAGE).not.toMatch(PHYSICAL);
+    expect(COMPONENT).not.toMatch(PHYSICAL);
+    expect(PAGE).toContain('data-mode="data"');
+  });
+
+  it('asks the model for the round in one request, never one per match', () => {
+    expect(PAGE).toContain('fetchForecastSummaries(ids)');
+    expect(PAGE.match(/fetchForecastSummaries\(/g)).toHaveLength(1);
+  });
+});

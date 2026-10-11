@@ -30,14 +30,22 @@ export function readSeasonParam(params: SearchParams): string | null {
   return raw !== undefined && UUID.test(raw) ? raw.toLowerCase() : null;
 }
 
-/** The page for one season; the current season needs no parameter. */
+/**
+ * The page for one season; the current season needs no parameter. `tab`
+ * keeps the section the reader is on (T-1385); the Overview needs none.
+ */
 export function seasonHref(
   locale: string,
   competitionId: string,
   season: Pick<SeasonSummary, 'id' | 'is_current'>,
+  tab: string | null = null,
 ): string {
   const base = `/${locale}/competition/${encodeURIComponent(competitionId)}`;
-  return season.is_current ? base : `${base}?season=${encodeURIComponent(season.id)}`;
+  const query = new URLSearchParams();
+  if (!season.is_current) query.set('season', season.id);
+  if (tab !== null && tab !== 'overview') query.set('tab', tab);
+  const text = query.toString();
+  return text === '' ? base : `${base}?${text}`;
 }
 
 /**
@@ -66,7 +74,8 @@ export function competitionQuery(
 
 /**
  * The page with the leaders under a floor (T-824), keeping the season; null
- * is no floor. The fragment brings the reader back to the leaders.
+ * is no floor. The leaders live on the Players tab (T-1385); the fragment
+ * brings the reader back to them.
  */
 export function leadersHref(
   locale: string,
@@ -75,8 +84,11 @@ export function leadersHref(
   minMinutes: number | null,
 ): string {
   const base = `/${locale}/competition/${encodeURIComponent(competitionId)}`;
-  const query = competitionQuery(season.is_current ? null : season.id, minMinutes);
-  return `${base}${query}#leaders`;
+  const query = new URLSearchParams(
+    competitionQuery(season.is_current ? null : season.id, minMinutes).replace(/^\?/, ''),
+  );
+  query.set('tab', 'players');
+  return `${base}?${query.toString()}#leaders`;
 }
 
 /** The page's locale as a catalogue locale; anything unknown reads as English. */

@@ -9370,6 +9370,109 @@ same colour, and a second value would be a second thing to keep in step.
 *A `target="_blank"` link-out*: no other external link on the site opens a
 window, and an unasked window is hostile on a phone.
 
+## D-203 — The competition page in data mode: a brand band, tabs that open on an Overview, a projection slot that stays empty
+**Status:** Accepted · 2026-10-11 · **Task:** T-1385 · **Follows:** D-198, D-199, D-206, D-193, D-171
+
+**Context.** The Hybrid board h6 draws the competition page in the Front Row
+look: a band with the competition's name, season and follow button, a row
+of tabs, and an Overview with the table's summary, the current matchweek
+with the model's three-way, the top scorers, the news and the season in
+figures. The maintainer decided (2026-10-10 and 2026-10-11) that the page is
+a data page (the stage, Day and Night), that the band uses the brand's
+colours and never a club's, that the page opens on the Overview, that the
+other tabs hold what the page already showed, that a cup with stages, groups
+or only knockout rounds keeps working, and that the model's season
+projection (title, top four, relegation) is a later feature with a slot
+left for it now. Production follows 39 competitions, domestic cups among
+them.
+
+**Decision.**
+1. **Data mode.** `<main data-mode="data">`: the page stands on the stage
+   and follows the theme. Modules are surface cards (`rounded-card`), each
+   headed in small capitals (Latin only: the letter spacing is `ltr:`, so
+   Persian and Arabic letters stay joined) with what it says about itself
+   beside the name: its `CoverageBadge`, its last update, a live list's
+   `FreshnessStamp`.
+2. **The band** is the theme's surface with a 4px brand-green rule along its
+   top, the green follow button and the green bar under the open tab: brand
+   colours, no club colour (that is T-1386's band). It says country, kind,
+   tier and "Season 2026/27" (Persian digits on `/fa`), the name in the
+   condensed display face (44-60px in Latin, 28-36px in Persian, D-198), the
+   canonical name when a localised one is shown, and only facts the season
+   holds: the clubs on its table, the matches played, and the next round
+   and day. The board's "after matchweek 7" and the Persian year were left
+   out: the first is not knowable with games in hand, the second is not
+   stored. The board's "Alerts" button is not built; following is the
+   alert switch (T-945's form, `followAction`, now revalidating the page).
+   A guest is sent to sign in; an unreadable follow list is a sentence.
+3. **Tabs are links** (`?tab=`), server-rendered, so each is a URL, works
+   without JavaScript and fetches only what it shows: Overview (no
+   parameter), Table, Fixtures, Results, Players, Stats. The season links
+   keep the open tab; the scorers' minutes floor moves to the Players tab
+   (`leadersHref` adds `tab=players`). The Overview alone asks for the news,
+   the founder's feed and the round's forecasts. An unknown `tab` is the
+   Overview.
+4. **The Overview**: the table's summary (#, club, played, goal difference,
+   points, form), the round and its forecasts, the top five scorers, the
+   season in figures, the news and the founder's analysis (in its own card
+   with the founder's colour edge, rule 6). Two columns from 1024px, one on a
+   phone in that order.
+5. **The round** (`currentMatchweek`): the round of a live match, else of
+   the next scheduled match (a postponed match from an old round never sets
+   it), with every match of that round played or not, by kick-off; when the
+   season is over, its last round, said so. A match with no stored round
+   brings the week from it, unnamed. At most 12 rows, the rest counted with
+   a link to Fixtures. Its heading is D-193's `stageLabel`, or "Next matches"
+   when the round cannot be named; a provider's text is never printed.
+6. **The model's three-way per match** is one `GET /forecasts/pre-kickoff`
+   for the round (no API change), drawn by `ForecastBar` in a new `row`
+   size: a short bar, the three percentages, and the model id and
+   computation time on the same line (blueprint 6.2), or the bar's sentence
+   when there is none. The note says the order (home · draw · away) and the
+   zone the times are in.
+7. **Tables**: tabular figures, the points in the condensed 900 weight, the
+   goal difference signed, the form as letter tiles read oldest to newest (a
+   win filled green, a draw on the raised ground, a loss outlined in the
+   danger colour, so none rests on hue). The Table tab keeps every column,
+   the zone legend (T-1167), the group tables (T-1336) and the knockout
+   rounds (T-630). A season with no table and no group stage of a competition
+   that is not a league (a domestic cup) has no table: no Table tab, and the
+   Overview says so in one sentence instead of drawing an empty grid; a cup
+   with knockout rounds keeps the tab, named "Knockout rounds".
+8. **The season projection slot.** A league's table carries a dashed column
+   group headed "Season projection · coming later" in the warning colour,
+   with Title, Top 4 and Relegation, from 768px; its cells are empty
+   (`data-projection="empty"`), never a dash, a zero or an estimate (rule 3),
+   and a sentence under the table says what will fill them and that until
+   then they stay empty. Group tables and cups get no slot.
+9. **The season in figures** (Stats tab and the Overview): goals per match,
+   draws, home wins and goalless draws, counted in the web from the stored
+   results the page already has; a finished match without a score is left
+   out and counted (`limited`); none with a score is `not_supplied` and a
+   sentence.
+10. **Coverage** is `CoverageBadge` everywhere on the page; the old
+    uppercase coverage words (`coverageText`) are gone from it. The Stats
+    tab lists the season's declared coverage per module in the match
+    centre's module names.
+11. **Persian**: digits everywhere (season labels included), the table and
+    rows mirrored, each score a `Score` pair isolated in the page's
+    direction between its teams, so the home goals sit beside the home team.
+
+**Not built.** The board's top scorers show shirt numbers; the leaders carry
+none, so the row shows the player's photo or initials. English round labels
+read as the provider's known forms ("Regular Season - 8") because that is
+D-193's English catalogue; the board's "Matchweek 8" would be a change to
+every page's English labels, left for the maintainer. The news module is
+`EntityNews` unchanged in a card.
+
+**Rejected.** *Client-side tabs over one page*: every tab's data would be in
+every response, and the scorers' floor already lives in the URL. *Showing
+the projection columns with "—"*: a dash in a figure column reads as a value
+of nothing. *A club-coloured or green-filled band*: the green fill turns
+into a bright mint panel at night and fights the green follow button; the
+maintainer asked for no club colour, which this keeps. *A new endpoint for
+the round's forecasts*: the scores card's batch route already answers it.
+
 ## D-200 — The Hybrid homepage: a lead story or the day's biggest match, three forecasts apart, every competition of the day
 **Status:** Accepted · 2026-10-11 · **Task:** T-1382 · **Follows:** D-198, D-199, D-206, D-153, D-154, D-125, D-115, D-187
 

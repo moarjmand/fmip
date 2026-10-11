@@ -65,8 +65,13 @@ export function ForecastBar({
   locale: string;
   timeZone: string;
   words: ForecastBarWords;
-  /** `compact` for a card or a lane (an 8px bar); `default` for a section's own forecast. */
-  size?: 'default' | 'compact';
+  /**
+   * `compact` for a card or a lane (an 8px bar); `default` for a section's
+   * own forecast; `row` for a line in a list of matches (T-1385): a short
+   * bar, the three percentages home · draw · away, and the model id and time
+   * on the same line, wrapping on a phone.
+   */
+  size?: 'default' | 'compact' | 'row';
   className?: string;
 }) {
   if (forecast.state !== 'available') {
@@ -87,7 +92,8 @@ export function ForecastBar({
     return (
       <p
         className={cx(
-          'rounded-control border border-dashed border-model px-3 py-2 text-sm text-muted',
+          'rounded-control border border-dashed border-model text-muted',
+          size === 'row' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm',
           className,
         )}
         data-testid="forecast-bar"
@@ -105,6 +111,79 @@ export function ForecastBar({
   ] as const;
   const label = words['forecastBar.label'];
   const pct = (value: number) => formatPercent(locale, value);
+  const ariaLabel = fill(label.text, {
+    home,
+    homePct: pct(forecast.home),
+    drawPct: pct(forecast.draw),
+    away,
+    awayPct: pct(forecast.away),
+  });
+  const meta = (
+    <>
+      <span dir="ltr" className="text-model">
+        {forecast.model_version}
+      </span>
+      <FilledMessage
+        message={words['forecastBar.computed']}
+        params={{
+          time: (
+            <time dateTime={forecast.computed_at}>
+              {formatDate(locale, forecast.computed_at, timeZone, {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+                hourCycle: 'h23',
+              })}
+              {timeZone === 'UTC' ? ' UTC' : ''}
+            </time>
+          ),
+        }}
+      />
+    </>
+  );
+  if (size === 'row') {
+    // One line in a list of matches: the outcomes' names are the row's own
+    // teams, so the figures stand alone, home first in the reading direction.
+    return (
+      <div
+        className={cx('flex flex-wrap items-center gap-x-2.5 gap-y-1', className)}
+        data-testid="forecast-bar"
+        data-state="available"
+        data-size="row"
+      >
+        <div
+          role="img"
+          aria-label={ariaLabel}
+          lang={label.status === 'untranslated' ? DEFAULT_LOCALE : undefined}
+          className="flex h-2 w-24 shrink-0 gap-0.5"
+        >
+          {outcomes.map(({ key, value }) => (
+            <span
+              key={key}
+              data-outcome={key}
+              className={cx('rounded-xs', STEPS[key])}
+              style={{ flexGrow: Math.max(value, 1.5), flexBasis: 0 }}
+            />
+          ))}
+        </div>
+        <span aria-hidden="true" className="text-xs font-semibold text-muted tabular-nums">
+          {outcomes.map(({ key, value }, i) => (
+            <span key={key}>
+              {i > 0 && ' · '}
+              <bdi>{pct(value)}</bdi>
+            </span>
+          ))}
+        </span>
+        <span
+          className="inline-flex flex-wrap items-center gap-x-2 font-mono text-xs text-caption [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
+          data-testid="forecast-bar-meta"
+        >
+          {meta}
+        </span>
+      </div>
+    );
+  }
   return (
     <div
       className={cx('flex flex-col', className)}
@@ -113,13 +192,7 @@ export function ForecastBar({
     >
       <div
         role="img"
-        aria-label={fill(label.text, {
-          home,
-          homePct: pct(forecast.home),
-          drawPct: pct(forecast.draw),
-          away,
-          awayPct: pct(forecast.away),
-        })}
+        aria-label={ariaLabel}
         lang={label.status === 'untranslated' ? DEFAULT_LOCALE : undefined}
         className={cx('flex gap-0.75', size === 'compact' ? 'h-2' : 'h-3')}
       >
@@ -149,26 +222,7 @@ export function ForecastBar({
         className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-xs text-caption"
         data-testid="forecast-bar-meta"
       >
-        <span dir="ltr" className="text-model">
-          {forecast.model_version}
-        </span>
-        <FilledMessage
-          message={words['forecastBar.computed']}
-          params={{
-            time: (
-              <time dateTime={forecast.computed_at}>
-                {formatDate(locale, forecast.computed_at, timeZone, {
-                  day: '2-digit',
-                  month: 'short',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hourCycle: 'h23',
-                })}
-                {timeZone === 'UTC' ? ' UTC' : ''}
-              </time>
-            ),
-          }}
-        />
+        {meta}
       </p>
     </div>
   );

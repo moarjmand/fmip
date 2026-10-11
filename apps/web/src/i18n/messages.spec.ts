@@ -224,8 +224,8 @@ describe('plurals (T-301)', () => {
         .pluralCategories,
     ].sort();
 
-  it('has eighty-five plural keys, one of them ordinal, and knows which they are', () => {
-    expect(pluralKeys).toHaveLength(85);
+  it('has ninety plural keys, one of them ordinal, and knows which they are', () => {
+    expect(pluralKeys).toHaveLength(90);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

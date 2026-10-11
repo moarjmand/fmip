@@ -70,8 +70,10 @@ describe('where the minutes are shown (T-824)', () => {
     const page = read('competition', '[id]', 'page.tsx');
     expect(page).toContain('readMinMinutesParam(query)');
     expect(page).toContain('leadersHref(');
-    expect(page).toContain('minutes={leader.minutes}');
     expect(page).toContain('message="competition.leaders.unproven"');
+    // T-1385: the rows are drawn by the page's components, minutes on each.
+    const rows = readFileSync(join(HERE, 'competition-page.tsx'), 'utf8');
+    expect(rows).toContain('minutes={row.minutes}');
   });
 
   it('shows minutes beside each squad member on the team page', () => {
