@@ -100,16 +100,16 @@ test.describe('contrast nobody chose follows the device', () => {
     await page.goto('/en/scores');
     expect(await page.evaluate(MUTED)).toBe('#2b313a');
     await page.emulateMedia({ colorScheme: 'dark', contrast: 'more' });
-    expect(await page.evaluate(MUTED)).toBe('#d4d4d8');
+    expect(await page.evaluate(MUTED)).toBe('#cad1da');
     await page.emulateMedia({ colorScheme: 'dark', contrast: 'no-preference' });
-    expect(await page.evaluate(MUTED)).toBe('#a3a3a8');
+    expect(await page.evaluate(MUTED)).toBe('#a7b1bf');
   });
 
   test('standard, once chosen, holds whatever the device says', async ({ page, baseURL }) => {
     await choose(page, { fmip_contrast: 'standard', fmip_theme: 'dark' }, baseURL);
     await page.emulateMedia({ colorScheme: 'light', contrast: 'more' });
     await page.goto('/en/scores');
-    expect(await page.evaluate(MUTED)).toBe('#a3a3a8');
+    expect(await page.evaluate(MUTED)).toBe('#a7b1bf');
   });
 });
 
