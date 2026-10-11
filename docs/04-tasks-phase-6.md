@@ -85,7 +85,7 @@ Checked on the public deployment:
 | `[~]` T-501 | The request budget at fifteen competitions: each ingest run records the requests it spent, a match day is measured, and a ceiling is set below the plan | T-071 | The projection is in `05-data-providers.md`; a day over the ceiling is a partial run naming the budget, never a refusal from the provider |
 | `[x]` T-502 | The six domestic leagues on the server: Championship, Eredivisie, Primeira Liga, Süper Lig, Belgian Pro League, Scottish Premiership | T-500, T-501, D-080 | `--alias-training` agrees with every current-season result in E1, N1, P1, T1, B1 and SC0 |
 | `[x]` T-503 | The Europa League and the Conference League on the server, with their stages | T-500, T-501 | Their tables are the league stage's; their match pages say why there is no forecast yet (T-533) |
-| `[~]` T-504 | Fifteen competitions on one scores page | T-502, T-042 | A stated order after a member's favourites, and the page stays usable on a phone on a Saturday with every league playing |
+| `[x]` T-504 | Fifteen competitions on one scores page | T-502, T-042 | A stated order after a member's favourites, and the page stays usable on a phone on a Saturday with every league playing |
 | `[x]` T-505 | The season's schedule, not a week of it | T-030 | A competition's and a team's upcoming matches reach the season's end; the cost is one request per competition a day |
 
 **The leagues were chosen for the model, not only for the audience.** Each of
@@ -257,6 +257,18 @@ member's favourites, then that place, then country and name as before; the
 order used on the server is in `14-maintainer.md`. Whether the page stays
 usable on a phone with every league playing is observed on the first full
 Saturday after the international break, not asserted.
+
+**Observed on 2026-10-10 at 15:30 UTC, and ticked.** Production's
+`/en/scores` at 375 × 812 (the built-in browser's mobile preset), signed out,
+with 54 fixtures that UTC day (24 live, 10 finished, 20 to come) across 12
+competitions: the page is 375 px wide with no sideways scroll, about 4,650 px
+tall (under six screens), the Premier League first in the stated order, every
+card showing its minute or FT and its score, and the live connection
+established after the first "Connecting to live updates…". Usable. One
+defect seen and filed separately: in a card's 60 px name box a name longer
+than about eight letters breaks inside the word ("Brentfor/d",
+"Sunderl/and"), because `break-words` gives way before `line-clamp-2` can
+wrap at a space.
 
 ---
 
