@@ -44,6 +44,13 @@ describe('season selection', () => {
     expect(seasonHref('fa', 'c1', { id: ID, is_current: false })).toBe(
       `/fa/competition/c1?season=${ID}`,
     );
+    // T-1385: the section the reader is on is kept; the Overview needs none.
+    expect(seasonHref('en', 'c1', { id: ID, is_current: false }, 'results')).toBe(
+      `/en/competition/c1?season=${ID}&tab=results`,
+    );
+    expect(seasonHref('en', 'c1', { id: ID, is_current: true }, 'overview')).toBe(
+      '/en/competition/c1',
+    );
     expect(competitionQuery(null)).toBe('');
     expect(competitionQuery(ID)).toBe(`?season=${ID}`);
   });
@@ -64,10 +71,10 @@ describe('the minutes floor on the leaders (T-824)', () => {
     expect(competitionQuery(null, 900)).toBe('?min_minutes=900');
     expect(competitionQuery(ID, 900)).toBe(`?season=${ID}&min_minutes=900`);
     expect(leadersHref('en', 'c1', { id: ID, is_current: true }, 450)).toBe(
-      '/en/competition/c1?min_minutes=450#leaders',
+      '/en/competition/c1?min_minutes=450&tab=players#leaders',
     );
     expect(leadersHref('en', 'c1', { id: ID, is_current: false }, null)).toBe(
-      `/en/competition/c1?season=${ID}#leaders`,
+      `/en/competition/c1?season=${ID}&tab=players#leaders`,
     );
   });
 });
