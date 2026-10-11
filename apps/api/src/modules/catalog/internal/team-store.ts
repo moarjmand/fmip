@@ -73,6 +73,43 @@ export class PostgresTeamStore {
   }
 
   /**
+   * The ground most of the team's home matches in `seasonIds` name (T-1394,
+   * D-209), for a team with no home ground recorded: neutral-venue matches
+   * and cancelled ones are left out, ties go to the name. `home_matches` is
+   * every such home match that names a ground. Null when none does.
+   */
+  async fixtureGround(teamId: string, seasonIds: string[]): Promise<TeamPage['fixture_ground']> {
+    if (seasonIds.length === 0) return null;
+    const { rows } = await this.pool.query<{
+      venue_id: string;
+      venue_name: string;
+      venue_city: string | null;
+      matches: number;
+      home_matches: number;
+    }>(
+      `SELECT v.id AS venue_id, v.name AS venue_name, v.city AS venue_city,
+              count(*)::int AS matches, (sum(count(*)) OVER ())::int AS home_matches
+         FROM fixture f
+         JOIN fixture_participant p ON p.fixture_id = f.id AND p.side = 'home' AND p.team_id = $1
+         JOIN venue v ON v.id = f.venue_id
+        WHERE f.season_id = ANY($2::uuid[])
+          AND NOT f.is_neutral_venue
+          AND f.status <> 'cancelled'
+        GROUP BY v.id, v.name, v.city
+        ORDER BY count(*) DESC, v.name, v.id
+        LIMIT 1`,
+      [teamId, seasonIds],
+    );
+    const r = rows[0];
+    if (r === undefined) return null;
+    return {
+      venue: { id: r.venue_id, name: r.venue_name, city: r.venue_city },
+      matches: r.matches,
+      home_matches: r.home_matches,
+    };
+  }
+
+  /**
    * The seasons the team is active in: the current season of each competition
    * it has a fixture in, plus any season it still has an unfinished match in.
    */

@@ -9,6 +9,7 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { mainPhaseSql, mainPhaseStartSql } from '../../../database/main-phase';
 
 /**
  * The minutes of one season row (T-823): whole only when every match the
@@ -353,6 +354,8 @@ export class PostgresPlayerStore {
     seasonIds: string[],
     personIds: string[],
     teamId: string | null,
+    /** The seasons' main competition only, as the competition page's boards count (D-209). */
+    mainPhaseOnly = false,
   ): Promise<Map<string, PlayerSeasonMinutes>> {
     if (seasonIds.length === 0 || personIds.length === 0) return new Map();
     const { rows } = await this.pool.query<{
@@ -361,7 +364,10 @@ export class PostgresPlayerStore {
       matches_with_minutes: string;
       supplied_minutes: string;
     }>(
-      `WITH lined AS (
+      `WITH starts AS (
+         SELECT picked.id AS season_id, ${mainPhaseStartSql('picked.id')} AS main_from
+           FROM unnest($1::uuid[]) AS picked(id)
+       ), lined AS (
          SELECT l.person_id, l.role,
                 EXISTS (SELECT 1 FROM incident s
                          WHERE s.fixture_id = f.id AND s.kind = 'substitution'
@@ -370,10 +376,12 @@ export class PostgresPlayerStore {
            FROM lineup l
            JOIN fixture_participant p ON p.id = l.participant_id
            JOIN fixture f ON f.id = p.fixture_id
+           JOIN starts st ON st.season_id = f.season_id
            LEFT JOIN fixture_player_stat m
              ON m.participant_id = p.id AND m.person_id = l.person_id AND m.metric = 'minutes'
-          WHERE f.season_id = ANY($1::uuid[]) AND l.person_id = ANY($2::uuid[])
+          WHERE l.person_id = ANY($2::uuid[])
             AND ($3::uuid IS NULL OR p.team_id = $3::uuid)
+            AND (NOT $4::boolean OR ${mainPhaseSql('f', 'st.main_from')})
        ), named AS (
          SELECT lined.*,
                 (lined.role = 'starter' OR lined.came_on OR COALESCE(lined.minutes, 0) > 0) AS played
@@ -385,7 +393,7 @@ export class PostgresPlayerStore {
               COALESCE(sum(minutes) FILTER (WHERE played), 0)::text AS supplied_minutes
          FROM named
         GROUP BY person_id`,
-      [seasonIds, personIds, teamId],
+      [seasonIds, personIds, teamId, mainPhaseOnly],
     );
     return new Map(
       rows.map((r) => [

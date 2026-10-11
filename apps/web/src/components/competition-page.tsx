@@ -44,6 +44,7 @@ import {
   type RoundGroup,
   clubCount,
   hasTable,
+  mainResults,
   perMatch,
   seasonDigits,
   sharePercent,
@@ -367,7 +368,9 @@ function SeasonFacts({
   matchweek: Matchweek | null;
 }) {
   const clubs = clubCount(page);
-  const played = page.results.length;
+  // The main competition's matches; a cup's qualifying rounds are named apart (D-209).
+  const played = mainResults(page.results).length;
+  const qualifying = page.results.length - played;
   const first = matchweek?.state === 'next' ? matchweek.fixtures.find(notOver) : undefined;
   const facts: ReactNode[] = [];
   if (clubs !== null) {
@@ -388,6 +391,16 @@ function SeasonFacts({
       count={played}
     />,
   );
+  if (qualifying > 0) {
+    facts.push(
+      <Translated
+        key="qualifying"
+        locale={locale}
+        message="competitionPage.facts.qualifying"
+        count={qualifying}
+      />,
+    );
+  }
   if (first !== undefined) {
     const day = formatDate(locale, first.kickoff_at, timeZone, {
       weekday: 'short',
@@ -1094,7 +1107,14 @@ export function LeagueNumbersPanel({
     >
       {n === 0 ? (
         <p className="text-sm text-muted" data-testid="numbers-empty">
-          <Translated locale={locale} message="competitionPage.numbers.none" />
+          <Translated
+            locale={locale}
+            message={
+              numbers.qualifying > 0
+                ? 'competitionPage.numbers.noneMain'
+                : 'competitionPage.numbers.none'
+            }
+          />
         </p>
       ) : (
         <>
@@ -1113,7 +1133,15 @@ export function LeagueNumbersPanel({
             ))}
           </div>
           <p className="text-xs text-muted" data-testid="numbers-over">
-            <Translated locale={locale} message="competitionPage.numbers.over" count={n} />
+            <Translated
+              locale={locale}
+              message={
+                numbers.qualifying > 0
+                  ? 'competitionPage.numbers.overMain'
+                  : 'competitionPage.numbers.over'
+              }
+              count={n}
+            />
             {numbers.unscored > 0 && (
               <>
                 {' '}
@@ -1121,6 +1149,16 @@ export function LeagueNumbersPanel({
                   locale={locale}
                   message="competitionPage.numbers.unscored"
                   count={numbers.unscored}
+                />
+              </>
+            )}
+            {numbers.qualifying > 0 && (
+              <>
+                {' '}
+                <Translated
+                  locale={locale}
+                  message="competitionPage.numbers.qualifying"
+                  count={numbers.qualifying}
                 />
               </>
             )}
@@ -1193,4 +1231,25 @@ const MODULE_KEY: Record<string, MessageKey> = {
 function moduleName(locale: string, module: string): string {
   const key = MODULE_KEY[module];
   return key === undefined ? module.replace(/_/g, ' ') : say(locale, key);
+}
+
+/**
+ * Under a cup's boards (T-1394, D-209): they count the main competition, from
+ * the league or group stage on, and the qualifying rounds' matches are not in
+ * them. Nothing for a season with no qualifying match.
+ */
+export function QualifyingNote({
+  results,
+  locale,
+}: {
+  results: readonly Pick<SeasonFixture, 'qualifying'>[];
+  locale: string;
+}) {
+  const qualifying = results.length - mainResults(results).length;
+  if (qualifying === 0) return null;
+  return (
+    <p className="text-xs text-muted" data-testid="boards-main-phase">
+      <Translated locale={locale} message="competitionPage.boards.mainPhase" count={qualifying} />
+    </p>
+  );
 }

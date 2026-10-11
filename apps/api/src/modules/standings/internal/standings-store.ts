@@ -3,6 +3,14 @@ import type { CoverageState, Leader, TableRow } from '@fmip/contracts';
 
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { mainPhaseSql, mainPhaseStartSql } from '../../../database/main-phase';
+
+/**
+ * The boards count the season's main competition only (T-1394, D-209): a
+ * cup's qualifying rounds are not its top scorers' goals. `$1` is the season
+ * in every board query, so its start is read once per query.
+ */
+const MAIN_PHASE = mainPhaseSql('f', mainPhaseStartSql('$1'));
 import type { Result } from './table';
 
 /** A leader as the standings boundary knows it: goals, not minutes (T-824 adds those in the catalog). */
@@ -214,7 +222,7 @@ export class PostgresStandingsStore {
          JOIN person pe ON pe.id = i.person_id
          LEFT JOIN fixture_participant p ON p.id = i.participant_id
          LEFT JOIN team t ON t.id = p.team_id
-        WHERE f.season_id = $1
+        WHERE f.season_id = $1 AND ${MAIN_PHASE}
           AND i.kind IN ('goal', 'penalty_goal')
           AND i.person_id IS NOT NULL
         GROUP BY i.person_id, person_name, p.team_id, t.name
@@ -257,7 +265,7 @@ export class PostgresStandingsStore {
            JOIN person pe ON pe.id = i.related_person_id
            LEFT JOIN fixture_participant p ON p.id = i.participant_id
            LEFT JOIN team t ON t.id = p.team_id
-          WHERE f.season_id = $1
+          WHERE f.season_id = $1 AND ${MAIN_PHASE}
             AND i.kind IN ('goal', 'penalty_goal')
             AND i.related_person_id IS NOT NULL
           GROUP BY i.related_person_id, person_name, p.team_id, t.name
@@ -270,7 +278,7 @@ export class PostgresStandingsStore {
                 max(i.updated_at) AS updated_at
            FROM incident i
            JOIN fixture f ON f.id = i.fixture_id
-          WHERE f.season_id = $1 AND i.kind IN ('goal', 'penalty_goal')`,
+          WHERE f.season_id = $1 AND ${MAIN_PHASE} AND i.kind IN ('goal', 'penalty_goal')`,
         [seasonId],
       ),
     ]);
@@ -305,7 +313,7 @@ export class PostgresStandingsStore {
          JOIN person pe ON pe.id = i.person_id
          LEFT JOIN fixture_participant p ON p.id = i.participant_id
          LEFT JOIN team t ON t.id = p.team_id
-        WHERE f.season_id = $1
+        WHERE f.season_id = $1 AND ${MAIN_PHASE}
           AND i.kind IN ('yellow_card', 'second_yellow_card', 'red_card')
           AND i.person_id IS NOT NULL
         GROUP BY i.person_id, person_name, p.team_id, t.name
@@ -358,7 +366,7 @@ export class PostgresStandingsStore {
            JOIN fixture_participant p ON p.fixture_id = f.id
            LEFT JOIN fixture_score ft ON ft.fixture_id = f.id AND ft.kind = 'full_time'
            LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
-          WHERE f.season_id = $1 AND f.status = 'finished'
+          WHERE f.season_id = $1 AND f.status = 'finished' AND ${MAIN_PHASE}
             AND (ft.id IS NOT NULL OR cur.id IS NOT NULL)
        ), keeper AS (
          SELECT l.participant_id, count(*) AS keepers, min(l.person_id::text)::uuid AS person_id,

@@ -247,6 +247,13 @@ export interface SeasonFixture {
   away: { id: string; name: string; short_name: string | null };
   /** Full time when known, else the current score, else null. */
   score: { home: number; away: number } | null;
+  /**
+   * A qualifying match, before the season's main competition (T-1394,
+   * D-209): in a `qualifying` stage, or kicked off before the first match of
+   * the season's league or group stage. Set on the competition page's lists
+   * only, where the season's figures leave these matches out and say so.
+   */
+  qualifying?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -549,6 +556,19 @@ export interface TeamPage {
   splits: TeamCompetitionSplits[];
   /** The coach named on the team's most recent line-up (T-944, D-119). */
   manager: TeamManager;
+  /**
+   * Where the club plays at home this season when no home ground is recorded
+   * for it (`team.venue` null; T-1394, D-209): the ground most of its home
+   * matches of the current seasons name, read from those fixtures, with how
+   * many of the home matches that name a ground it was. A fact about those
+   * matches, never stored as the club's ground. Null when a ground is
+   * recorded, or when no such match names one.
+   */
+  fixture_ground?: {
+    venue: { id: string; name: string; city: string | null };
+    matches: number;
+    home_matches: number;
+  } | null;
   followers: number;
   last_updated_at: string | null;
 }

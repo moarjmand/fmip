@@ -9362,8 +9362,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "modelAccuracy.explain.matches": {
-    "source": "Matches: how many matches were scored. A match can have more than one forecast before kick-off (an early one, another once the line-ups are known); each is scored, and the averages are over all of them.",
-    "text": "بازی‌ها: تعداد بازی‌هایی که ارزیابی شده‌اند. یک بازی ممکن است پیش از شروع بیش از یک پیش‌بینی داشته باشد (یکی زودهنگام، یکی پس از اعلام ترکیب‌ها)؛ هر کدام ارزیابی می‌شود و میانگین‌ها روی همه‌ی آن‌هاست.",
+    "source": "Matches: how many matches were scored. A match can have more than one forecast before kick-off (an early one, another once the line-ups are known); each match counts once, by the last forecast made before its kick-off, the one its page shows. Every figure on its row is over those matches.",
+    "text": "بازی‌ها: تعداد بازی‌هایی که ارزیابی شده‌اند. یک بازی ممکن است پیش از شروع بیش از یک پیش‌بینی داشته باشد (یکی زودهنگام، یکی پس از اعلام ترکیب‌ها)؛ هر بازی فقط یک بار شمرده می‌شود، با آخرین پیش‌بینی پیش از شروعش، همان که صفحه‌ی بازی نشان می‌دهد. همه‌ی ارقام هر ردیف روی همین بازی‌هاست.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -12217,6 +12217,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.facts.qualifying": {
+    "source": {
+      "one": "{count} in qualifying",
+      "other": "{count} in qualifying"
+    },
+    "forms": {
+      "one": "{count} در مرحله‌ی مقدماتی",
+      "other": "{count} در مرحله‌ی مقدماتی"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.facts.nextRound": {
     "source": "next: {round}, {day}",
     "text": "بعدی: {round}، {day}",
@@ -12361,6 +12373,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.boards.mainPhase": {
+    "source": {
+      "one": "Counted over the main competition, from the league or group stage on; the {count} qualifying match before it is not included.",
+      "other": "Counted over the main competition, from the league or group stage on; the {count} qualifying matches before it are not included."
+    },
+    "forms": {
+      "one": "بر پایه‌ی رقابت اصلی، از مرحله‌ی لیگ یا گروهی به بعد؛ {count} بازی مرحله‌ی مقدماتی پیش از آن در شمار نیست.",
+      "other": "بر پایه‌ی رقابت اصلی، از مرحله‌ی لیگ یا گروهی به بعد؛ {count} بازی مرحله‌ی مقدماتی پیش از آن در شمار نیست."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.numbers.title": {
     "source": "Season in numbers",
     "text": "فصل در آمار",
@@ -12397,6 +12421,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.numbers.noneMain": {
+    "source": "The main competition has no result with a score yet, so there are no figures; the qualifying rounds before it are not counted.",
+    "text": "رقابت اصلی هنوز بازی با نتیجه‌ی ثبت‌شده ندارد، پس رقمی در کار نیست؛ بازی‌های مرحله‌ی مقدماتی پیش از آن شمرده نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.numbers.over": {
     "source": {
       "one": "From the {count} result with a score.",
@@ -12409,6 +12439,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.numbers.overMain": {
+    "source": {
+      "one": "From the {count} result of the main competition, from the league or group stage on.",
+      "other": "From all {count} results of the main competition, from the league or group stage on."
+    },
+    "forms": {
+      "one": "بر پایه‌ی {count} بازی رقابت اصلی، از مرحله‌ی لیگ یا گروهی به بعد.",
+      "other": "بر پایه‌ی همه‌ی {count} بازی رقابت اصلی، از مرحله‌ی لیگ یا گروهی به بعد."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.numbers.unscored": {
     "source": {
       "one": "{count} finished match has no score stored and is left out.",
@@ -12417,6 +12459,18 @@
     "forms": {
       "one": "{count} بازی پایان‌یافته نتیجه‌ی ثبت‌شده ندارد و کنار گذاشته شده است.",
       "other": "{count} بازی پایان‌یافته نتیجه‌ی ثبت‌شده ندارند و کنار گذاشته شده‌اند."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.numbers.qualifying": {
+    "source": {
+      "one": "The {count} qualifying match before it is not counted.",
+      "other": "The {count} qualifying matches before it are not counted."
+    },
+    "forms": {
+      "one": "{count} بازی مرحله‌ی مقدماتی پیش از آن شمرده نشده است.",
+      "other": "{count} بازی مرحله‌ی مقدماتی پیش از آن شمرده نشده است."
     },
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -12466,6 +12520,12 @@
   "teamPage.noGround": {
     "source": "Home ground not recorded",
     "text": "ورزشگاه خانگی ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.groundFromFixtures": {
+    "source": "{venue} (home matches this season: {matches} of {total}; no home ground recorded)",
+    "text": "{venue} (بازی‌های خانگی این فصل: {matches} از {total}؛ ورزشگاه خانگی ثبت نشده)",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -12946,6 +13006,12 @@
   "playerPage.noCurrentTeam": {
     "source": "No current team on record.",
     "text": "هیچ تیم فعلی‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.lastLineup": {
+    "source": "from the latest line-up that names this player, {date}; no current spell on record",
+    "text": "بر پایه‌ی آخرین ترکیبی که نام این بازیکن در آن آمده، {date}؛ دوره‌ی جاری‌ای ثبت نشده",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

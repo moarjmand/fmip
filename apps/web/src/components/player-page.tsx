@@ -20,6 +20,7 @@ import {
   appearances,
   dayText,
   latestSeason,
+  lineupTeam,
   minutesText,
   playerTabHref,
   roleLabel,
@@ -128,6 +129,7 @@ export function PlayerBand({
 function Identity({ page, locale }: { page: PlayerPage; locale: string }) {
   const p = page.person;
   const spell = page.current_spell;
+  const lineup = lineupTeam(page);
   const age = ageOn(p.date_of_birth, new Date());
   return (
     <dl
@@ -140,7 +142,21 @@ function Identity({ page, locale }: { page: PlayerPage; locale: string }) {
         </dt>
         <dd>
           {spell === null ? (
-            <Translated locale={locale} message="playerPage.noCurrentTeam" />
+            lineup !== null ? (
+              // No open spell, but a line-up names him (T-1394, D-209): the
+              // team of that line-up, said to be a line-up, not a contract.
+              <span data-testid="current-team-lineup">
+                <Link
+                  href={`/${locale}/team/${lineup.team.id}`}
+                  className={inlineTargetClasses('font-bold text-fg hover:underline')}
+                >
+                  {lineup.team.name}
+                </Link>
+                {` · ${say(locale, 'playerPage.lastLineup', { date: dayText(locale, lineup.day) })}`}
+              </span>
+            ) : (
+              <Translated locale={locale} message="playerPage.noCurrentTeam" />
+            )
           ) : (
             <>
               <Link

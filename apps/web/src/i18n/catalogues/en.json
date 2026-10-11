@@ -1666,7 +1666,7 @@
   "modelAccuracy.table.coverage": "Coverage",
   "modelAccuracy.table.all": "All months",
   "modelAccuracy.explain.title": "What the figures mean",
-  "modelAccuracy.explain.matches": "Matches: how many matches were scored. A match can have more than one forecast before kick-off (an early one, another once the line-ups are known); each is scored, and the averages are over all of them.",
+  "modelAccuracy.explain.matches": "Matches: how many matches were scored. A match can have more than one forecast before kick-off (an early one, another once the line-ups are known); each match counts once, by the last forecast made before its kick-off, the one its page shows. Every figure on its row is over those matches.",
   "modelAccuracy.explain.correct": "Correct: how often the outcome the model thought most likely (a home win, a draw or an away win) happened. Picking at random gets about {guess} right.",
   "modelAccuracy.explain.rps": "RPS (ranked probability score): how far the forecast’s probabilities were from the result, with part credit when the result was next to the outcome the model favoured, since a draw is closer to a home win than an away win is. 0 is perfect. “RPS if guessing” is what a forecast of one third each would have scored on the same matches.",
   "modelAccuracy.explain.brier": "Brier score: the squared distance between the probabilities and what happened. Lower is better; a forecast of one third each scores {guess}.",
@@ -2196,6 +2196,10 @@
     "one": "{count} match played",
     "other": "{count} matches played"
   },
+  "competitionPage.facts.qualifying": {
+    "one": "{count} in qualifying",
+    "other": "{count} in qualifying"
+  },
   "competitionPage.facts.nextRound": "next: {round}, {day}",
   "competitionPage.facts.next": "next match: {day}",
   "competitionPage.follow.start": "Follow",
@@ -2222,19 +2226,32 @@
   "competitionPage.projection.relegation": "Relegation",
   "competitionPage.projection.note": "The model’s title, top-four and relegation chances will fill the dashed columns once the season simulation ships. Until then they stay empty, never estimated.",
   "competitionPage.allPlayers": "All scorers and boards",
+  "competitionPage.boards.mainPhase": {
+    "one": "Counted over the main competition, from the league or group stage on; the {count} qualifying match before it is not included.",
+    "other": "Counted over the main competition, from the league or group stage on; the {count} qualifying matches before it are not included."
+  },
   "competitionPage.numbers.title": "Season in numbers",
   "competitionPage.numbers.goals": "goals per match",
   "competitionPage.numbers.draws": "draws · {draws} of {matches}",
   "competitionPage.numbers.homeWins": "home wins",
   "competitionPage.numbers.goalless": "goalless draws",
   "competitionPage.numbers.none": "No result with a score is stored for this season yet, so there are no figures.",
+  "competitionPage.numbers.noneMain": "The main competition has no result with a score yet, so there are no figures; the qualifying rounds before it are not counted.",
   "competitionPage.numbers.over": {
     "one": "From the {count} result with a score.",
     "other": "From all {count} results with a score."
   },
+  "competitionPage.numbers.overMain": {
+    "one": "From the {count} result of the main competition, from the league or group stage on.",
+    "other": "From all {count} results of the main competition, from the league or group stage on."
+  },
   "competitionPage.numbers.unscored": {
     "one": "{count} finished match has no score stored and is left out.",
     "other": "{count} finished matches have no score stored and are left out."
+  },
+  "competitionPage.numbers.qualifying": {
+    "one": "The {count} qualifying match before it is not counted.",
+    "other": "The {count} qualifying matches before it are not counted."
   },
   "teamPage.title": "Team",
   "teamPage.metaDescription": "{name}: fixtures, results, squad and where they stand.",
@@ -2244,6 +2261,7 @@
   "teamPage.founded": "Founded {year}",
   "teamPage.venueCity": "{venue}, {city}",
   "teamPage.noGround": "Home ground not recorded",
+  "teamPage.groundFromFixtures": "{venue} (home matches this season: {matches} of {total}; no home ground recorded)",
   "teamPage.founderHeading": "Founder's analysis of {name}",
   "teamPage.competitions": "Competitions",
   "teamPage.noCompetition": "No current competition on record.",
@@ -2332,6 +2350,7 @@
   "playerPage.position.forward": "Forward",
   "playerPage.currentTeam": "Current team",
   "playerPage.noCurrentTeam": "No current team on record.",
+  "playerPage.lastLineup": "from the latest line-up that names this player, {date}; no current spell on record",
   "playerPage.shirt": "No. {number}",
   "playerPage.since": "since {date}",
   "playerPage.compareWith": "Compare with…",

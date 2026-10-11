@@ -60,6 +60,24 @@ export function dayText(locale: string, iso: string): string {
   });
 }
 
+/**
+ * The team a player with no open spell was last named in a line-up for
+ * (T-1394, D-209), and that match's day (`YYYY-MM-DD`, UTC): the newest of
+ * `recent_matches`, which are his line-ups newest first. Null while a spell
+ * is open (the spell is the answer) or when no line-up names him. The page
+ * says it is a line-up, not a contract: "no current team" beside a line-up
+ * for a club last week was a contradiction, and a guess either way would be
+ * another.
+ */
+export function lineupTeam(
+  page: Pick<PlayerPage, 'current_spell' | 'recent_matches'>,
+): { team: { id: string; name: string }; day: string } | null {
+  if (page.current_spell !== null) return null;
+  const latest = page.recent_matches.data?.[0];
+  if (latest === undefined) return null;
+  return { team: latest.team, day: latest.fixture.kickoff_at.slice(0, 10) };
+}
+
 /** "Jul 2025 – present" or "Jul 2022 – Jun 2025". */
 export function spellPeriod(
   locale: string,

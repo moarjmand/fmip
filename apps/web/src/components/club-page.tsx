@@ -130,6 +130,22 @@ export function ClubBand({
                   ? say(locale, 'teamPage.venueCity', { venue: t.venue.name, city: t.venue.city })
                   : t.venue.name
               }${t.venue.capacity !== null ? ` · ${formatNumber(locale, t.venue.capacity)}` : ''}`
+            ) : page.fixture_ground != null ? (
+              // No ground recorded: where this season's home matches were
+              // played, said to come from them (T-1394, D-209).
+              <span data-testid="fixture-ground">
+                {say(locale, 'teamPage.groundFromFixtures', {
+                  venue:
+                    page.fixture_ground.venue.city !== null
+                      ? say(locale, 'teamPage.venueCity', {
+                          venue: page.fixture_ground.venue.name,
+                          city: page.fixture_ground.venue.city,
+                        })
+                      : page.fixture_ground.venue.name,
+                  matches: formatNumber(locale, page.fixture_ground.matches),
+                  total: formatNumber(locale, page.fixture_ground.home_matches),
+                })}
+              </span>
             ) : (
               <Translated locale={locale} message="teamPage.noGround" />
             )}
