@@ -9202,3 +9202,77 @@ breakpoint keep it. *`next/font/local`*: the site already self-hosts through
 fontsource packages and the spec checks that path. *Re-ordering
 `THEME_PREFERENCES` in the contracts* for Auto-first: only the switch's
 display order changes.
+
+## D-199 — The Hybrid shell: one header nav, a live strip on every page, a phone tab bar
+**Status:** Accepted · 2026-10-11 · **Task:** T-1381 · **Follows:** D-198, D-193, D-154, D-045
+
+**Context.** The Hybrid boards (h0, h1, h9) give every page the same shell:
+a paper header with a double rule, a strip of today's score chips under it,
+and on a phone a bottom tab bar. Later page tasks build under it.
+
+**Decision.**
+1. **The header** stays on paper (`data-mode="editorial"`), the double
+   rule (3px double ink) under it. From 768px one row: the mark and the
+   wordmark (Mona Sans 900 condensed), the nav, then the other language, a
+   search icon (to the search page), the theme (Auto / Day / Night) and
+   Sign in, or the member's own menu (profile, Following, Friends,
+   Messages, Groups, Settings, Sign out) as a disclosure. A guest's
+   Settings (appearance) stays beside Sign in; Register is in the phone's
+   Menu and on the login page. Below 768px the row is the Menu button, the
+   mark and search; the Menu (`<details>`, no script) holds the nav, the
+   language, the theme and the account. One copy of every link: from 768px
+   the disclosure is `display: contents` (T-605's mechanism, its breakpoint
+   moved from 640 to 768px).
+2. **The nav** is Today (home), Scores, Predictions, Analysis, News,
+   Watch (امروز، نتایج، پیش‌بینی‌ها، تحلیل، خبر، تماشا), in that order
+   (`lib/shell-nav.ts`). *Competitions* is left out: there is no
+   competitions index yet, only `/competition/<id>`; it joins the nav when
+   one exists. *Analysis* leads to the founder's analysis on the Predictions
+   page (`/predictions#analysis`), which has no page of its own; the
+   analysis pages (`/analyses`, `/founder`) make it current. *Leaderboard*
+   leaves the header; the Predictions page links to it, and it makes
+   Predictions current. The current entry is brand green with a 3px bar
+   under it, worked out on the client from the pathname, because the
+   layout is not rendered again on a client-side navigation.
+3. **The live strip** is under the header on every page: today's matches,
+   in the reader's zone (member, else a guest's choice, else UTC, as the
+   homepage counts it), of the first competition in the scores answer's
+   order that has one. The strip asks without the session, so the order is
+   `display_order` (D-154): the Pro League first, then the cups and the big
+   leagues. The label says "Today · <competition>" (from 768px; a screen
+   reader hears it on a phone). Chips are 44px, radius 10, white in both
+   themes: before kick-off the time (Geist Mono; Vazirmatn's Persian digits
+   on fa/ar) and "v" (fa "–"); live a red minute with a pulsing dot (still
+   when motion is reduced) and the score; full time FT / پایان and the
+   score; postponed and the rest their word. A live match with no score
+   shows none rather than 0–0 (rule 3). Each chip opens its match. On
+   `/fa` the home team is on the right with its goals beside it
+   (`ScorePair`, D-193).
+4. **Cost and failure.** One request (`GET /scores` for today), its
+   answer shared for 15 s per day, zone and language, a failure for 5 s
+   (`sharedAnswer`), so a page view rarely costs the API anything; it runs
+   while the page's own requests run. When the API cannot answer, or nothing
+   is played today, there is no strip at all, never an empty box.
+5. **Freshness** (rule 4). The strip says "May be behind" (ممکن است
+   به‌روز نباشد) when a live chip's data is behind (D-045) or when the
+   answer has aged past `STALE_LIVE_AFTER_MS` since a match could have
+   changed (a live match from the answer's time, a match to come from its
+   kick-off). A small client island shows it at that moment, because the
+   layout keeps the strip across client-side navigations. A behind live
+   chip says "Behind" in place of the minute.
+6. **The bottom tab bar**, phones only (hidden from 768px): Today,
+   Results, Predictions, News, Me (امروز، نتایج، پیش‌بینی، اخبار، من), icon
+   and label, each at least 56px, the current one brand green with a bar
+   along its top, fixed to the bottom with `env(safe-area-inset-bottom)`
+   padding, on white like the header. A spacer of its height ends the page.
+   Me is the member's Settings, or Sign in for a guest. It comes after the
+   page in the DOM, so after it in the reading and tab order.
+
+**Rejected.** *Fetching the strip with the session*: a member's pinned
+matches would make the answer per member and uncacheable, for a strip that
+shows one competition. *Next's data cache* for the shared answer: every API
+call goes through `apiRequest` (no-store, D-027, the request id); a small
+in-process map keeps that path. *Streaming the strip behind `Suspense`*: it
+would arrive after the first paint and push the page down. *A chip
+`aria-current` for the open match*: that is the match centre's strip, its
+own task.

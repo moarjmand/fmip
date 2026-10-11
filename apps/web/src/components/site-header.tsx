@@ -1,44 +1,102 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { cache } from 'react';
 import { BrandMark } from '@/components/brand-mark';
 import { HeldLanguageNotice } from '@/components/held-language-notice';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
+import { LiveStrip } from '@/components/live-strip';
 import { RulesPrompt } from '@/components/rules-prompt';
+import { BottomTabBar, PrimaryNav } from '@/components/shell-nav';
 import { ThemeSwitch } from '@/components/theme-switch';
-import { controlClasses } from '@/components/ui';
-import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { attribute } from '@/i18n/messages';
+import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
+import { type Message, type MessageKey, attribute, message } from '@/i18n/messages';
 import { fetchSession } from '@/lib/api';
 import { readGuestChoices } from '@/lib/first-run-cookie';
 import { HELD_NOTICE_COOKIE, currentHolds, heldNotice, offeredGiven } from '@/lib/language-hold';
 import { offeredLanguages } from '@/lib/language-picker';
 import { logoutAction } from '@/lib/auth-actions';
+import { isTimeZone } from '@/lib/scores';
 import { sessionCookieHeader } from '@/lib/session';
 import type { ThemePreference } from '@/lib/theme';
 
 /**
- * The one navigation bar. Reads the session server-side; when the API is
- * unreachable the visitor is shown as signed out, which is the honest state:
- * nothing could be verified.
+ * The site shell (T-1381, D-199): the header, the live strip under it and
+ * the phone's bottom tab bar, the same on every page of both modes.
  *
- * Every label goes through `Translated` (T-151), which is what makes this the
- * worked example of the missing-string policy: on an unfinished locale the
- * English stands in and is marked `lang="en"`, rather than being shown as
- * though somebody had translated it.
+ * Who is reading is asked once per request (`shellReader`, React's `cache`):
+ * the header, the strip (for the reader's zone) and the tab bar ("Me") all
+ * need it. When the API is unreachable the visitor is shown as signed out,
+ * which is the honest state: nothing could be verified.
+ */
+const shellReader = cache(async () => {
+  const session = await fetchSession(await sessionCookieHeader());
+  const guest = session?.user ? null : await readGuestChoices();
+  return { session, guest };
+});
+
+/** The header nav's words (`HEADER_NAV`), resolved here: the catalogues stay on the server. */
+const NAV_LABELS: Record<string, MessageKey> = {
+  today: 'shell.nav.today',
+  scores: 'nav.scores',
+  predictions: 'nav.predictions',
+  analysis: 'shell.nav.analysis',
+  news: 'shell.nav.news',
+  watch: 'nav.watch',
+};
+
+/** The bottom tab bar's words (`tabBarLinks`). */
+const TAB_LABELS: Record<string, MessageKey> = {
+  today: 'shell.nav.today',
+  results: 'shell.tab.results',
+  predictions: 'shell.tab.predictions',
+  news: 'shell.tab.news',
+  me: 'shell.tab.me',
+};
+
+function resolved(lang: Locale, keys: Record<string, MessageKey>): Record<string, Message> {
+  return Object.fromEntries(Object.entries(keys).map(([id, key]) => [id, message(lang, key)]));
+}
+
+/** A line icon on the 24-unit grid, in the text colour. */
+function Icon({ children }: { children: React.ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      {children}
+    </svg>
+  );
+}
+
+/**
+ * The one header (D-198, D-199): always on paper (`data-mode="editorial"`)
+ * with a double rule under it. From 768px one row: the mark and wordmark,
+ * the nav (Today, Scores, Predictions, Analysis, News, Watch), then the other
+ * language, search, the theme (Auto, Day, Night) and Sign in or the
+ * member's menu. On a phone it is the Menu button, the mark and search; the
+ * Menu (`<details>`, no script) holds the nav, the language, the theme and
+ * the account, and the five main sections are in the bottom tab bar.
  *
- * On a phone (T-605) it is one row: the mark, a guest's way in, and a Menu
- * disclosure (`<details>`, so no script is needed) holding the links, the
- * search, the member's own pages, Settings and the theme. From `sm` up the
- * disclosure is not a disclosure at all: `.site-menu` in globals.css lays its
- * contents inline in the bar, in the order they always had. There is one copy
- * of every link, so every `data-testid` is still one element. From `lg` the
- * bar is wider than the reading column (T-1207): at 1280 px a guest's bar
- * wrapped onto two rows inside `max-w-3xl`.
+ * One copy of every link: from 768px `.site-menu` in globals.css makes the
+ * disclosure `display: contents` (where `::details-content` can be styled),
+ * so its contents are laid out in the bar itself, placed by `order`.
+ *
+ * Every label goes through `Translated` or a resolved `Message` (T-151): on
+ * an unfinished locale the English stands in, marked `lang="en"`.
  */
 export async function SiteHeader({ locale, theme }: { locale: string; theme: ThemePreference }) {
-  const [session, holds, jar] = await Promise.all([
-    fetchSession(await sessionCookieHeader()),
+  const [{ session, guest }, holds, jar] = await Promise.all([
+    shellReader(),
     currentHolds(),
     cookies(),
   ]);
@@ -46,7 +104,7 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
   // T-1163 (D-155): a reader whose stored language is held back is told
   // once; the language they chose is kept, and the picker offers it again
   // the day it is released.
-  const stored = me !== null ? me.preferred_language : (await readGuestChoices()).language;
+  const stored = me !== null ? me.preferred_language : guest?.language;
   const notice = heldNotice(
     stored,
     holds,
@@ -57,140 +115,163 @@ export async function SiteHeader({ locale, theme }: { locale: string; theme: The
   );
   const href = (path: string) => `/${locale}${path}`;
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const search = attribute(lang, 'nav.search');
   const primary = attribute(lang, 'shell.nav.primary');
-  // A thumb-sized row in the phone menu; inline text again from `sm`.
-  const item = 'flex min-h-11 items-center sm:min-h-0';
+  const menu = attribute(lang, 'nav.menu');
+  // The search icon leads to the search page; its name says what it searches.
+  const search = attribute(lang, 'nav.searchLabel');
+  // The strip's "today" is the reader's: the member's zone, else the one a
+  // guest chose, else UTC, as the homepage counts it.
+  const zone = me?.timezone ?? guest?.timezone;
+  const timeZone = zone !== undefined && isTimeZone(zone) ? zone : 'UTC';
+  // A thumb-sized row in the phone's Menu.
+  const item = 'flex min-h-touch items-center px-3';
 
-  // Editorial mode (D-198): the header is on paper whatever the theme, while
-  // a data page below it follows the theme.
   return (
-    <header data-mode="editorial" className="border-b border-default">
-      <nav
-        aria-label={primary.text}
-        lang={primary.lang}
-        className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-1 px-4 py-1 text-sm sm:px-8 sm:py-3 lg:max-w-7xl"
-      >
-        <Link
-          href={href('')}
-          className="me-auto flex min-h-11 items-center gap-2 font-semibold sm:me-0 sm:min-h-0"
+    <>
+      <header data-mode="editorial" className="relative border-b-[3px] border-double border-fg">
+        <nav
+          aria-label={primary.text}
+          lang={primary.lang}
+          className="page-frame flex min-h-15 items-center gap-x-2 md:min-h-17 md:flex-wrap md:gap-x-6 md:gap-y-1"
         >
-          <BrandMark size={20} className="shrink-0" />
-          FMIP
-        </Link>
-        {me === null && (
-          // A guest's way in stays on a phone's first row, outside the menu;
-          // on a wider screen it sits after the search, where it always was.
-          <>
-            <Link href={href('/login')} className={`${item} sm:order-1`}>
-              <Translated locale={locale} message="nav.signIn" />
-            </Link>
-            <Link href={href('/register')} className={`${item} font-medium sm:order-1`}>
-              <Translated locale={locale} message="shell.register" />
-            </Link>
-          </>
-        )}
-        <details className="site-menu relative" data-testid="nav-menu">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-1 rounded border border-strong px-3 [&::-webkit-details-marker]:hidden">
-            <Translated locale={locale} message="nav.menu" />
-            <span aria-hidden="true">▾</span>
-          </summary>
-          <div className="site-menu-panel absolute end-0 top-full z-30 mt-1 flex w-64 max-w-[calc(100vw-2rem)] flex-col rounded border border-default bg-canvas px-3 py-2">
-            <Link href={href('/scores')} className={item} data-testid="nav-scores">
-              <Translated locale={locale} message="nav.scores" />
-            </Link>
-            <Link href={href('/predictions')} className={item} data-testid="nav-predictions">
-              <Translated locale={locale} message="nav.predictions" />
-            </Link>
-            <Link href={href('/leaderboard')} className={item} data-testid="nav-leaderboard">
-              <Translated locale={locale} message="nav.leaderboard" />
-            </Link>
-            <Link href={href('/news')} className={item} data-testid="nav-news">
-              <Translated locale={locale} message="nav.news" />
-            </Link>
-            <Link href={href('/watch')} className={item} data-testid="nav-watch">
-              <Translated locale={locale} message="nav.watch" />
-            </Link>
-            <form
-              action={href('/search')}
-              method="get"
-              role="search"
-              className="py-1 sm:me-auto sm:py-0"
+          <details className="site-menu md:order-last" data-testid="nav-menu">
+            <summary
+              aria-label={menu.text}
+              lang={menu.lang}
+              className="flex size-touch cursor-pointer list-none items-center justify-center rounded-control [&::-webkit-details-marker]:hidden"
             >
-              <label htmlFor="header-search" className="sr-only">
-                <Translated locale={locale} message="nav.searchLabel" />
-              </label>
-              <input
-                id="header-search"
-                name="q"
-                type="search"
-                // The one place a fallback cannot be wrapped in a marked span, so
-                // the marking goes on the input itself (see `attribute`).
-                placeholder={search.text}
-                lang={search.lang}
-                autoComplete="off"
-                className={controlClasses('sm', 'min-h-11 w-full sm:min-h-0 sm:w-48')}
-                data-testid="nav-search"
+              <Icon>
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </Icon>
+            </summary>
+            <div className="site-menu-panel absolute inset-x-0 top-full z-30 flex max-h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto border-b border-default bg-canvas px-4 py-3">
+              <PrimaryNav
+                locale={locale}
+                labels={resolved(lang, NAV_LABELS)}
+                className="flex flex-col md:order-2 md:min-w-0 md:flex-1 md:flex-row md:flex-wrap md:gap-0.5"
               />
-            </form>
-
-            {me === null ? (
-              // A guest's Settings is the appearance alone: text size, contrast, motion (T-621).
-              <Link
-                href={href('/settings')}
-                className={`${item} sm:order-2`}
-                data-testid="nav-settings-guest"
-              >
-                <Translated locale={locale} message="nav.settings" />
-              </Link>
-            ) : (
-              <>
-                <Link href={href('/following')} className={item} data-testid="nav-following">
-                  <Translated locale={locale} message="nav.following" />
-                </Link>
-                <Link href={href('/friends')} className={item} data-testid="nav-friends">
-                  <Translated locale={locale} message="nav.friends" />
-                </Link>
-                <Link href={href('/messages')} className={item} data-testid="nav-messages">
-                  <Translated locale={locale} message="nav.messages" />
-                </Link>
-                <Link href={href('/groups')} className={item} data-testid="nav-groups">
-                  <Translated locale={locale} message="nav.groups" />
-                </Link>
-                <Link
-                  href={href(`/u/${encodeURIComponent(me.username)}`)}
-                  className={item}
-                  data-testid="nav-me"
-                >
-                  @{me.username}
-                </Link>
-                <Link href={href('/settings')} className={item}>
-                  <Translated locale={locale} message="nav.settings" />
-                </Link>
-                <form action={logoutAction.bind(null, locale)} className="flex">
-                  <button type="submit" className={`${item} underline`}>
-                    <Translated locale={locale} message="nav.signOut" />
-                  </button>
-                </form>
-              </>
-            )}
-            {/* Nothing until a second language is finished (T-306) and not held back (T-1163). */}
-            <LanguagePicker
-              languages={offeredLanguages(offeredGiven(holds))}
-              label={attribute(lang, 'shell.language')}
-            />
-            {/* Light, dark or the device's own, on every page (T-602). */}
-            <div className="py-2 sm:order-2 sm:py-0">
-              <ThemeSwitch locale={locale} current={theme} variant="compact" />
+              {/* Nothing until a second language is finished (T-306) and not held back (T-1163). */}
+              <div className="md:order-3">
+                <LanguagePicker
+                  languages={offeredLanguages(offeredGiven(holds))}
+                  label={attribute(lang, 'shell.language')}
+                  others
+                />
+              </div>
+              {/* Auto, Day or Night, on every page (T-602, D-198). */}
+              <div className="py-2 md:order-5 md:py-0">
+                <ThemeSwitch locale={locale} current={theme} variant="compact" />
+              </div>
+              {me === null ? (
+                <div className="flex flex-col md:order-6 md:flex-row md:items-center md:gap-3">
+                  {/* A guest's Settings is the appearance alone: text size, contrast, motion (T-621). */}
+                  <Link
+                    href={href('/settings')}
+                    className={`${item} text-sm text-muted md:px-0`}
+                    data-testid="nav-settings-guest"
+                  >
+                    <Translated locale={locale} message="nav.settings" />
+                  </Link>
+                  <Link href={href('/register')} className={`${item} md:hidden`}>
+                    <Translated locale={locale} message="shell.register" />
+                  </Link>
+                  <Link
+                    href={href('/login')}
+                    className="mt-1 inline-flex h-11 items-center justify-center rounded-control border border-fg px-4 text-sm font-semibold md:mt-0"
+                    data-testid="nav-sign-in"
+                  >
+                    <Translated locale={locale} message="nav.signIn" />
+                  </Link>
+                </div>
+              ) : (
+                <details className="account-menu relative md:order-6" data-testid="account-menu">
+                  <summary className="flex min-h-touch cursor-pointer list-none items-center gap-1 rounded-control px-3 text-sm font-semibold md:border md:border-fg [&::-webkit-details-marker]:hidden">
+                    @{me.username}
+                    <span aria-hidden="true">▾</span>
+                  </summary>
+                  <div className="flex flex-col ps-3 md:absolute md:end-0 md:top-full md:z-40 md:mt-1 md:w-56 md:rounded-control md:border md:border-default md:bg-canvas md:px-2 md:py-2">
+                    <Link
+                      href={href(`/u/${encodeURIComponent(me.username)}`)}
+                      className={item}
+                      data-testid="nav-me"
+                    >
+                      @{me.username}
+                    </Link>
+                    <Link href={href('/following')} className={item} data-testid="nav-following">
+                      <Translated locale={locale} message="nav.following" />
+                    </Link>
+                    <Link href={href('/friends')} className={item} data-testid="nav-friends">
+                      <Translated locale={locale} message="nav.friends" />
+                    </Link>
+                    <Link href={href('/messages')} className={item} data-testid="nav-messages">
+                      <Translated locale={locale} message="nav.messages" />
+                    </Link>
+                    <Link href={href('/groups')} className={item} data-testid="nav-groups">
+                      <Translated locale={locale} message="nav.groups" />
+                    </Link>
+                    <Link href={href('/settings')} className={item} data-testid="nav-settings">
+                      <Translated locale={locale} message="nav.settings" />
+                    </Link>
+                    <form action={logoutAction.bind(null, locale)} className="flex">
+                      <button type="submit" className={`${item} underline`}>
+                        <Translated locale={locale} message="nav.signOut" />
+                      </button>
+                    </form>
+                  </div>
+                </details>
+              )}
             </div>
-          </div>
-        </details>
-      </nav>
-      {/* A newer version of the platform rules awaits this member (T-931, D-113). */}
-      {session?.rules.pending === true && <RulesPrompt locale={locale} />}
-      {notice !== null && stored !== null && stored !== undefined && (
-        <HeldLanguageNotice locale={locale} held={stored} value={notice} />
-      )}
-    </header>
+          </details>
+          <Link
+            href={href('')}
+            className="mx-auto flex min-h-touch items-center gap-2.5 font-latin text-fg md:order-1 md:mx-0"
+            data-testid="nav-home"
+          >
+            <BrandMark size={32} className="shrink-0" />
+            <span className="text-2xl leading-none font-black tracking-wide font-stretch-condensed md:text-3xl">
+              FMIP
+            </span>
+          </Link>
+          <Link
+            href={href('/search')}
+            aria-label={search.text}
+            lang={search.lang}
+            className="flex size-touch items-center justify-center rounded-control md:order-4"
+            data-testid="nav-search"
+          >
+            <Icon>
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="m16 16 4 4" />
+            </Icon>
+          </Link>
+        </nav>
+        {/* A newer version of the platform rules awaits this member (T-931, D-113). */}
+        {session?.rules.pending === true && <RulesPrompt locale={locale} />}
+        {notice !== null && stored !== null && stored !== undefined && (
+          <HeldLanguageNotice locale={locale} held={stored} value={notice} />
+        )}
+      </header>
+      {/* Today's matches, on every page; nothing at all when there are none or the API cannot say. */}
+      <LiveStrip locale={locale} timeZone={timeZone} />
+    </>
+  );
+}
+
+/**
+ * The bottom tab bar's server half (D-199): the words and whether "Me" is the
+ * member's settings or Sign in. Rendered at the end of the body, so it comes
+ * after the page in the reading and tab order; it is fixed to the bottom on
+ * a phone and not drawn from 768px.
+ */
+export async function SiteTabBar({ locale }: { locale: string }) {
+  const { session } = await shellReader();
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return (
+    <BottomTabBar
+      locale={locale}
+      labels={resolved(lang, TAB_LABELS)}
+      signedIn={(session?.user ?? null) !== null}
+      navLabel={attribute(lang, 'shell.nav.tabs')}
+    />
   );
 }

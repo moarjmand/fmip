@@ -143,6 +143,72 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "shell.nav.today": {
+    "source": "Today",
+    "text": "امروز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.analysis": {
+    "source": "Analysis",
+    "text": "تحلیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.news": {
+    "source": "News",
+    "text": "خبر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.tabs": {
+    "source": "Sections",
+    "text": "بخش‌های اصلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.results": {
+    "source": "Results",
+    "text": "نتایج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.predictions": {
+    "source": "Predictions",
+    "text": "پیش‌بینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.news": {
+    "source": "News",
+    "text": "اخبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.me": {
+    "source": "Me",
+    "text": "من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.strip.label": {
+    "source": "Today · {competition}",
+    "text": "امروز · {competition}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.strip.versus": {
+    "source": "v",
+    "text": "–",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.strip.behind": {
+    "source": "May be behind",
+    "text": "ممکن است به‌روز نباشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "shell.demonstration": {
     "source": "Demonstration data. Every match, score, team and member on this site is development fixture data. None of it is real football, and nothing here has happened.",
     "text": "داده‌های نمایشی. همه‌ی بازی‌ها، نتیجه‌ها، تیم‌ها و اعضای این سایت داده‌های آزمایشیِ توسعه هستند. هیچ‌کدام فوتبال واقعی نیست و هیچ‌یک از این رویدادها رخ نداده است.",

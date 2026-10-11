@@ -146,29 +146,32 @@ export default async function PredictionsPage({
             whether the founder has written nothing or the site forgot to ask.
             So the absence is stated.
           */}
-          {founder.ok && founder.data.analyses.length > 0 ? (
-            <FounderAnalysisFeed
-              analyses={founder.data.analyses}
-              locale={locale}
-              timeZone={q.timezone}
-            />
-          ) : (
-            <section className="flex flex-col gap-2" data-testid="predictions-founder">
-              <h2 className="text-lg font-semibold">
-                <Translated locale={l} message="analysis.founder.title" />
-              </h2>
-              <p className="text-sm text-muted">
-                <Translated
-                  locale={l}
-                  message={
-                    founder.ok
-                      ? 'predictions.page.founderNone'
-                      : 'predictions.page.founderUnreachable'
-                  }
-                />
-              </p>
-            </section>
-          )}
+          {/* The header's Analysis leads here (T-1381, D-199): the founder's analysis has no page of its own yet. */}
+          <div id="analysis">
+            {founder.ok && founder.data.analyses.length > 0 ? (
+              <FounderAnalysisFeed
+                analyses={founder.data.analyses}
+                locale={locale}
+                timeZone={q.timezone}
+              />
+            ) : (
+              <section className="flex flex-col gap-2" data-testid="predictions-founder">
+                <h2 className="text-lg font-semibold">
+                  <Translated locale={l} message="analysis.founder.title" />
+                </h2>
+                <p className="text-sm text-muted">
+                  <Translated
+                    locale={l}
+                    message={
+                      founder.ok
+                        ? 'predictions.page.founderNone'
+                        : 'predictions.page.founderUnreachable'
+                    }
+                  />
+                </p>
+              </section>
+            )}
+          </div>
           <CommunityConsensusList
             entries={consensus !== null && consensus.ok ? consensus.data.fixtures : []}
             fixtures={names}

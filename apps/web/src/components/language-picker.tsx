@@ -25,31 +25,36 @@ import { type OfferedLanguage, pickerEntriesFor } from '@/lib/language-switch';
 export function LanguagePicker({
   languages,
   label,
+  others = false,
 }: {
   languages: readonly OfferedLanguage[];
   /** The navigation's name, resolved by the header (`attribute`), with its marking. */
   label: { text: string; lang?: string };
+  /**
+   * The Hybrid header (T-1381, D-199) offers only the other languages, each
+   * in its own name: "فارسی" on an English page, "English" on a Persian one.
+   * The page's own language is the page itself.
+   */
+  others?: boolean;
 }) {
   const pathname = usePathname();
   const entries = pickerEntriesFor(pathname, languages);
   if (entries.length === 0) return null;
+  const shown = others ? entries.filter((entry) => !entry.current) : entries;
 
   return (
-    <nav
-      aria-label={label.text}
-      lang={label.lang}
-      data-testid="language-picker"
-      className="ms-auto"
-    >
-      <ul className="flex flex-wrap gap-3">
-        {entries.map((entry) => (
+    <nav aria-label={label.text} lang={label.lang} data-testid="language-picker">
+      <ul className="flex flex-wrap gap-x-3">
+        {shown.map((entry) => (
           <li key={entry.locale}>
             <Link
               href={entry.href}
               lang={entry.locale}
               hrefLang={entry.locale}
               aria-current={entry.current ? 'page' : undefined}
-              className={entry.current ? 'font-semibold' : 'underline'}
+              className={`flex min-h-touch items-center px-3 font-semibold md:px-2.5 ${
+                entry.current ? '' : 'text-muted hover:text-accent'
+              }`}
               data-testid={`language-${entry.locale}`}
             >
               {entry.autonym}
