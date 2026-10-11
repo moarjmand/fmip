@@ -361,9 +361,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // A German source every reader used to be shown: not on the English site,
       // still shown to a Persian reader, as before.
       expect((await latest('en', OTHER_TEAM)).map((c) => c.story_id)).not.toContain(germanStory);
-      expect((await latest('en-GB', OTHER_TEAM)).map((c) => c.story_id)).not.toContain(
-        germanStory,
-      );
+      expect((await latest('en-GB', OTHER_TEAM)).map((c) => c.story_id)).not.toContain(germanStory);
       expect((await call('GET', `/news/stories/${germanStory}?locale=en`)).statusCode).toBe(404);
       expect((await latest('fa', OTHER_TEAM)).map((c) => c.story_id)).toContain(germanStory);
       expect((await latest('de', OTHER_TEAM)).map((c) => c.story_id)).toContain(germanStory);
