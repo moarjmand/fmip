@@ -443,6 +443,25 @@ to its competition (`liveQuestion`). The first match day after the break will
 be measured from `ingest_run.requests` and recorded here beside the
 projection.
 
+**Measured on Saturday 2026-10-10** (the first full club Saturday after the
+break: 19 competitions in season, 91 fixtures that UTC day, the backlog at the
+default 20 a run), summed from `ingest_run.requests` by job:
+
+| Job | Runs | Requests measured | Projected |
+|---|---|---|---|
+| fixtures | 24 | 456 | 360 |
+| standings | 24 | 456 | 360 |
+| live | 1,307 | 713 | up to 720 |
+| lineups (with availability) | 265 | 1,339 | up to 1,520 |
+| post-match (with the backlog) | 48 | 1,158 | 70, up to 960 more |
+| squads | 1 | 0 | at most 60 |
+| **total** | | **4,122** | **about 4,000** |
+
+The day came in on the projection: fixtures and standings scale with the 19
+competitions (19 x 24 = 456), the live job held one request a tick, and the
+day used 55% of the Pro plan's 7,500. On the Ultra plan (D-197, 75,000 a day)
+the same day leaves ample room for the backlog at 200 a run.
+
 **Past seasons, and what they cost (2026-09-26).** A past season is one
 request per competition for its whole fixture list (`backfill.js --season`),
 then one per finished match for its details through the post-match backlog
