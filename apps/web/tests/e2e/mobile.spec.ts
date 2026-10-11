@@ -106,6 +106,18 @@ test('the header is one row on a phone, the rest behind its Menu and in the tab 
   expect(results.violations.map((v) => v.id)).toEqual([]);
 });
 
+test('on a tablet the header keeps its Menu, since the nav does not fit one row (T-1390)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 800, height: 1000 });
+  await page.goto('/fa/scores');
+  await expect(page.getByTestId('nav-menu').locator('summary')).toBeVisible();
+  await expect(page.getByTestId('tab-bar')).toBeHidden();
+  expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+  const bar = await page.locator('header').first().boundingBox();
+  expect(bar?.height ?? 999).toBeLessThan(100);
+});
+
 test('on a wide screen the header is laid out inline, with no Menu and no tab bar', async ({
   page,
 }) => {

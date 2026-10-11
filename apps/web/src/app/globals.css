@@ -277,15 +277,15 @@ body {
 
 /*
  * The header's Menu (T-605, `components/site-header.tsx`). On a phone it is
- * a disclosure whose panel drops below the bar. From 768px (`md`, T-1381:
- * where the bottom tab bar gives way to the header's nav) it is no box at
+ * a disclosure whose panel drops below the bar. From 1024px (`lg`, T-1390;
+ * below it a tablet keeps the Menu, since the nav does not fit one row) it is no box at
  * all: the <details>, its content slot and the panel are `display: contents`,
  * so every link and control inside lays out in the bar itself, and the
  * summary is hidden. Only where the browser can style the content slot of a
  * closed <details> (`::details-content`); a browser that cannot keeps the
  * Menu, which still works, rather than hiding links it could not show.
  */
-@media (width >= 48rem) {
+@media (width >= 64rem) {
   @supports selector(::details-content) {
     .site-menu,
     .site-menu::details-content,
