@@ -50,7 +50,10 @@ export { REPLAY_QUERY };
 /** The injection token for the resolved sources. Provided by `IngestionModule`. */
 export const INGESTION_SOURCES = Symbol('INGESTION_SOURCES');
 
-/** The five scheduled jobs (T-026), and the monthly squads sweep for player photos (T-1324). */
+/**
+ * The five scheduled jobs (T-026), the monthly squads sweep for player photos
+ * (T-1324), and the full names of people stored under a short one (T-1398).
+ */
 export const INGEST_JOBS = [
   'fixtures',
   'live',
@@ -58,6 +61,7 @@ export const INGEST_JOBS = [
   'standings',
   'post_match',
   'squads',
+  'people_names',
 ] as const;
 export type IngestJob = (typeof INGEST_JOBS)[number];
 

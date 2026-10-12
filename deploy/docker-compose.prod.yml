@@ -186,6 +186,8 @@ services:
       API_FOOTBALL_BUDGET_STANDARD_PERCENT: ${API_FOOTBALL_BUDGET_STANDARD_PERCENT:-}
       INGESTION_BACKLOG_BATCH: ${INGESTION_BACKLOG_BATCH:-}
       INGESTION_REFETCH_SHARE: ${INGESTION_REFETCH_SHARE:-}
+      # Full player names from the provider's profile (T-1398, D-213): 50 a run unless set.
+      INGESTION_PEOPLE_NAMES_BATCH: ${INGESTION_PEOPLE_NAMES_BATCH:-}
       # English stories from GNews' free plan (T-1367, D-185): off while the key is empty.
       GNEWS_API_KEY: ${GNEWS_API_KEY:-}
       GNEWS_DAILY_BUDGET: ${GNEWS_DAILY_BUDGET:-}

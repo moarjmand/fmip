@@ -15,6 +15,7 @@ import type {
   NormalisedFixtureDetail,
   NormalisedLineup,
   NormalisedLiveFixture,
+  NormalisedPersonProfile,
   NormalisedSeasonCoverage,
   NormalisedStanding,
 } from '../../normalised';
@@ -38,6 +39,7 @@ import {
   mapIncidents,
   mapLineup,
   mapPeriods,
+  mapPersonProfile,
   mapStandings,
   mapAvailability,
   mapPlayerStatistics,
@@ -347,6 +349,24 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapSquad(result.data.response, teamExternalId),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/players/profiles?player=`: a player's given and family names, one
+   * request and no season (T-1398). `null` data when the provider has no
+   * usable profile for the id.
+   */
+  async getPersonProfile(
+    personExternalId: string,
+  ): Promise<AdapterResult<NormalisedPersonProfile | null>> {
+    const result = await this.call('/players/profiles', { player: personExternalId });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapPersonProfile(result.data.response, personExternalId),
       requests: 1,
       fetchedAt: result.receivedAt,
     };

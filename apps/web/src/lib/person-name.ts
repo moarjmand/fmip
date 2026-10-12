@@ -4,13 +4,13 @@
  * A player's stored name is the one the feed first gave him, and the feed
  * writes most players as an initial and a surname ("M. Salah") but some in
  * full ("Mohamed Salah"), the same field in line-ups, events and player
- * statistics alike. Squads are not read for names (they only bring photos,
- * T-1324), so no stored full form exists for the short ones: writing every
- * name in full would need a backfill of the provider's player records. What
- * the data does allow is the other way round: on the dense lists of a match
- * page (line-ups, incidents, player statistics, absences, key players) a
- * full Latin-script name is shortened to the same style as the rest,
- * "M. Salah" beside "V. van Dijk".
+ * statistics alike. Since T-1398 (D-213) the people names job writes most
+ * of the short ones in full from the provider's player profile ("Mohamed
+ * Salah"), so stored names are now mostly full. On the dense lists of a
+ * match page (line-ups, incidents, player statistics, absences, key players)
+ * a full Latin-script name is shortened to the same style as the rest,
+ * "M. Salah" beside "V. van Dijk", which gives back the feed's own short form
+ * for a name that job wrote.
  *
  * Conservative on purpose, so no name is mangled:
  *  - only a name whose first word is Latin letters (a capital, then

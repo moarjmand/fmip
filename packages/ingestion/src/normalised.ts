@@ -325,6 +325,20 @@ export interface NormalisedSeasonCoverage {
   absences: boolean | null;
 }
 
+/**
+ * A person's name in full, from the provider's player profile (T-1398,
+ * D-213). `givenName` and `familyName` are every given name and every family
+ * name the provider records ("Mohamed", "Salah Hamed Mahrous Ghaly"), and
+ * `fullName` is the two together: the legal name, which is often longer than
+ * the name a reader knows. Never an empty string, and entity-decoded.
+ */
+export interface NormalisedPersonProfile {
+  externalId: string;
+  fullName: string;
+  givenName: string;
+  familyName: string;
+}
+
 export interface NormalisedPlayerStat {
   side: Side;
   player: EntityRef;

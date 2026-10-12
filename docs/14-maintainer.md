@@ -1093,3 +1093,47 @@ own name, linking to the original; Persian readers do not see them.
 **To stop it.** Empty `GNEWS_API_KEY` and roll the API out again, or drop the
 GNews row on the news sources page (with a reason). One publisher you do not
 want: drop its row there; GNews will not bring it back.
+
+## 15. Full player names (T-1398, D-213)
+
+Nothing to do: the `people_names` job starts with the deploy. Every ten
+minutes it asks the provider's player profile of up to 50 people stored as an
+initial and a surname ("M. Salah") and writes the full name ("Mohamed Salah")
+where the profile agrees; the short form stays searchable. Each person is
+asked once: about 16,100 requests in all, about 2.3 days at 7,200 a day, in
+the bulk part of the budget (it stops for the day at 70 % of
+`API_FOOTBALL_DAILY_BUDGET`, before live scores could ever be short).
+
+**How to watch it.** On the server, `ssh fmip-prod`, then
+`docker exec -it fmip-postgres-1 psql -U fmip -d fmip` and:
+
+```sql
+-- Still abbreviated: asked and answered, asked and waiting for a retry, never asked.
+SELECT CASE WHEN f.answered_at IS NOT NULL THEN 'answered, name kept'
+            WHEN f.asked_at IS NOT NULL THEN 'asked, no answer yet'
+            ELSE 'not asked yet' END AS state,
+       count(*)
+  FROM person p
+  JOIN provider_mapping pm ON pm.internal_id = p.id AND pm.entity_type = 'person'
+                          AND pm.provider = 'api_football'
+  LEFT JOIN person_name_fetch f ON f.person_id = p.id AND f.provider = 'api_football'
+ WHERE p.full_name ~ '^([A-Za-zÀ-ÖØ-öø-ɏ]\.\s*)+[A-Za-zÀ-ÖØ-öø-ɏ]'
+ GROUP BY 1;
+
+-- What the answers led to: written, or why not.
+SELECT outcome, count(*) FROM person_name_fetch GROUP BY 1 ORDER BY 2 DESC;
+
+-- The last runs: requests sent, names written, and any refusal.
+SELECT started_at, status, requests, items_seen, items_written, error
+  FROM ingest_run WHERE job = 'people_names' ORDER BY started_at DESC LIMIT 10;
+```
+
+"not asked yet" falls by about 300 an hour. When it reaches 0 the backlog is
+done; later adoptions are picked up the same way. "answered, name kept" is
+people whose profile did not agree with the short form (the reason is in
+`person_name_fetch.detail`): they keep the short name, on purpose.
+
+**To slow it or stop it.** In `/opt/fmip/.env`, `INGESTION_PEOPLE_NAMES_BATCH=20`
+(slower) or `=0` (off), then `cd /opt/fmip && bash deploy/rollout.sh api`.
+More than 50 (at most 200) finishes sooner but holds the live job back a
+little longer each run.

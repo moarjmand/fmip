@@ -23,6 +23,27 @@ describe('listName (T-1395): one name style on a match page', () => {
     expect(listName('en', 'Алексей Миранчук')).toBe('Алексей Миранчук');
   });
 
+  it("gives back the feed's short form of the full names T-1398 writes", () => {
+    // Each pair: the short form the feed printed, the full name the people
+    // names job writes from the profile (D-213). A list shows the short form
+    // again; the player's own page shows the full name.
+    const written: Array<[string, string]> = [
+      ['M. Salah', 'Mohamed Salah'],
+      ['E. Haaland', 'Erling Haaland'],
+      ['K. De Bruyne', 'Kevin De Bruyne'],
+      ['V. van Dijk', 'Virgil van Dijk'],
+      ['T. Alexander-Arnold', 'Trent Alexander-Arnold'],
+      ['R. Araújo', 'Ronald Araújo'],
+      ["P. O'Neill", "Patrick O'Neill"],
+      ['J. Mateta', 'Jean-Philippe Mateta'],
+      ['S. Ødegaard', 'Sander Ødegaard'],
+    ];
+    for (const [short, full] of written) expect(listName('en', full)).toBe(short);
+    // Several initials (about 1 % of short forms): only the first given name is
+    // shortened, since a list cannot tell a second given name from a surname.
+    expect(listName('en', 'António Sérgio Vaz dos Ramos')).toBe('A. Sérgio Vaz dos Ramos');
+  });
+
   it('keeps every name as stored on a Persian page', () => {
     expect(listName('fa', 'Mohamed Salah')).toBe('Mohamed Salah');
   });

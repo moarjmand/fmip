@@ -14,6 +14,7 @@ import {
   mapLineup,
   mapPlayerStatistics,
   mapSeasonCoverage,
+  mapPersonProfile,
   mapSquad,
   mapStandings,
   mapStatistics,
@@ -657,6 +658,106 @@ describe('a club squad (T-1324)', () => {
       { apiKey: 'test-key' },
     );
     const result = await adapter.getSquad!('9001');
+    expect(result).toMatchObject({ ok: false, requests: 1, error: { kind: 'quota' } });
+  });
+});
+
+describe('a player profile (T-1398)', () => {
+  // CONSTRUCTED, not recorded: the shape of `/players/profiles?player=` as
+  // API-Football documents it (`response[].player` with id, name, firstname,
+  // lastname, age, birth, nationality, height, weight, number, position,
+  // photo). No profile answer has been recorded from the provider; the ids
+  // below are invented, the names are a real player's as an example.
+  const constructed = {
+    get: 'players/profiles',
+    parameters: { player: '80001' },
+    errors: [],
+    results: 1,
+    paging: { current: 1, total: 1 },
+    response: [
+      {
+        player: {
+          id: 80001,
+          name: 'M. Salah',
+          firstname: 'Mohamed',
+          lastname: 'Salah Hamed Mahrous  Ghaly',
+          age: 34,
+          nationality: 'Egypt',
+          photo: 'https://example.test/players/80001.png',
+        },
+      },
+    ],
+  };
+
+  it('asks once, by player, and maps the given and family names', async () => {
+    const asked: string[] = [];
+    const adapter = createApiFootballAdapter(
+      {
+        request: async (url) => {
+          asked.push(url);
+          return { status: 200, body: constructed, receivedAt: '2026-10-12T00:00:00Z' };
+        },
+      },
+      { apiKey: 'test-key' },
+    );
+    const result = await adapter.getPersonProfile!('80001');
+    expect(asked).toEqual(['https://v3.football.api-sports.io/players/profiles?player=80001']);
+    expect(result).toMatchObject({ ok: true, requests: 1 });
+    expect(result.ok && result.data).toEqual({
+      externalId: '80001',
+      fullName: 'Mohamed Salah Hamed Mahrous Ghaly',
+      givenName: 'Mohamed',
+      familyName: 'Salah Hamed Mahrous Ghaly',
+    });
+  });
+
+  it('decodes HTML entities the provider sends', () => {
+    const profile = mapPersonProfile(
+      [
+        {
+          player: {
+            id: 80002,
+            name: 'P. O&apos;Neill',
+            firstname: 'Patrick',
+            lastname: 'O&apos;Neill &amp; Co&#39;s',
+          },
+        },
+      ],
+      '80002',
+    );
+    expect(profile).toEqual({
+      externalId: '80002',
+      fullName: "Patrick O'Neill & Co's",
+      givenName: 'Patrick',
+      familyName: "O'Neill & Co's",
+    });
+  });
+
+  it('is null for no entry, another player, or a blank given or family name', () => {
+    expect(mapPersonProfile([], '80001')).toBeNull();
+    expect(mapPersonProfile(null, '80001')).toBeNull();
+    expect(mapPersonProfile(constructed.response, '1')).toBeNull();
+    const blank = (firstname: unknown, lastname: unknown) =>
+      mapPersonProfile([{ player: { id: 80003, firstname, lastname } }], '80003');
+    expect(blank('', 'Salah')).toBeNull();
+    expect(blank('Mohamed', '   ')).toBeNull();
+    expect(blank(null, 'Salah')).toBeNull();
+    expect(blank('Mohamed', '&nbsp;')).toBeNull();
+    expect(blank('Mohamed', 42)).toBeNull();
+  });
+
+  it('counts a refusal as one request', async () => {
+    const adapter = createApiFootballAdapter(
+      {
+        request: async () => ({
+          status: 200,
+          body: { errors: { requests: 'limit reached' }, response: [] },
+          receivedAt: '2026-10-12T00:00:00Z',
+        }),
+      },
+      { apiKey: 'test-key' },
+    );
+    const result = await adapter.getPersonProfile!('80001');
     expect(result).toMatchObject({ ok: false, requests: 1, error: { kind: 'quota' } });
   });
 });
