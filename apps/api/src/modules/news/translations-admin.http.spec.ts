@@ -284,8 +284,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article tran
     async function scored(): Promise<{ article: string; team: string; teamName: string }> {
       const made = await article('summary');
       checked.push(made.article);
+      // The seeded England, by id: the first team by name was whichever team
+      // a spec running beside this one had just created (T-1396).
       const team = await pool.query<{ id: string; name: string }>(
-        `SELECT id, name FROM team WHERE length(name) >= 5 ORDER BY name LIMIT 1`,
+        `SELECT id, name FROM team WHERE id = '00000000-0000-4000-8000-000000000606'`,
       );
       const { id, name } = team.rows[0]!;
       await pool.query(

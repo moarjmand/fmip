@@ -16,6 +16,7 @@ import type {
   NormalisedAbsence,
   NormalisedFixture,
   NormalisedIncident,
+  LineupGrid,
   NormalisedLineup,
   NormalisedLineupPlayer,
   NormalisedPeriod,
@@ -366,6 +367,40 @@ const POSITION: Record<string, Position> = {
   F: 'forward',
 };
 
+/** "row:column", each a whole number from 1 to 11: "1:1", "4:3". */
+const GRID = /^([1-9]|1[01]):([1-9]|1[01])$/;
+
+/**
+ * A starter's `grid` (T-1397, D-212): "row:column", row 1 the goalkeeper's
+ * line, columns counted across the line. Anything else -- a number, "0:1",
+ * "2:", "12:1", " 2:1" -- is no place, so it is null rather than a guess; the
+ * provider's string never leaves this file (rule 2).
+ */
+export function gridOf(value: unknown): LineupGrid | null {
+  if (typeof value !== 'string') return null;
+  const match = GRID.exec(value);
+  if (match === null) return null;
+  return { row: Number(match[1]), col: Number(match[2]) };
+}
+
+/**
+ * Two starters of one side given the same place: neither place can be true,
+ * so both are dropped (rule 3) and the page falls back for that side.
+ */
+function withoutSharedPlaces(players: NormalisedLineupPlayer[]): NormalisedLineupPlayer[] {
+  const count = new Map<string, number>();
+  for (const p of players) {
+    if (p.grid === null) continue;
+    const key = `${p.grid.row}:${p.grid.col}`;
+    count.set(key, (count.get(key) ?? 0) + 1);
+  }
+  return players.map((p) =>
+    p.grid !== null && (count.get(`${p.grid.row}:${p.grid.col}`) ?? 0) > 1
+      ? { ...p, grid: null }
+      : p,
+  );
+}
+
 function lineupPlayers(
   list: unknown,
   role: 'starter' | 'bench',
@@ -389,6 +424,8 @@ function lineupPlayers(
       shirtNumber: number !== null && number >= 1 && number <= 99 ? number : null,
       position: pos,
       isCaptain: captains.has(externalId),
+      // Only a starter has a place in the shape; the bench's `grid` is null.
+      grid: role === 'starter' ? gridOf(p.grid) : null,
     });
   }
   return out;
@@ -450,7 +487,7 @@ function sideLineup(
     formation: formation !== null && /^[0-9](-[0-9]){2,4}$/.test(formation) ? formation : null,
     coach: imagedRef(b.coach, 'photo'),
     players: [
-      ...lineupPlayers(b.startXI, 'starter', captains, seen, photos),
+      ...withoutSharedPlaces(lineupPlayers(b.startXI, 'starter', captains, seen, photos)),
       ...lineupPlayers(b.substitutes, 'bench', captains, seen, photos),
     ],
   };

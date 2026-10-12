@@ -303,6 +303,8 @@ function players(
       shirtNumber: number !== null && number >= 1 && number <= 99 ? number : null,
       position: positionOf(p.position),
       isCaptain: p.captain === true,
+      // The provider gives no place in the shape (T-1397, D-212).
+      grid: null,
     });
   }
   return out;

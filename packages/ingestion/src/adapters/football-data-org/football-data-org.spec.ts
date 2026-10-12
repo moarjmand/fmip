@@ -6,6 +6,7 @@ import {
   humanise,
   mapFixture,
   mapIncidents,
+  mapLineup,
   mapStandings,
   mapStatus,
   positionOf,
@@ -187,5 +188,20 @@ describe('mapping rules', () => {
     ]);
     expect(incidents[2]?.relatedPlayer).toEqual({ externalId: '22', name: 'In' });
     expect(incidents[0]?.relatedPlayer).toEqual({ externalId: '11', name: 'A' });
+  });
+});
+
+describe('no place in the shape (T-1397, D-212)', () => {
+  it('gives every player a null grid, even when an answer carries one', () => {
+    const side = (base: number) => ({
+      formation: '4-4-2',
+      lineup: [{ id: base, name: 'Keeper', position: 'Goalkeeper', grid: '1:1' }],
+      bench: [{ id: base + 1, name: 'Sub', position: 'Defence' }],
+    });
+    const lineup = mapLineup({ id: 99, homeTeam: side(10), awayTeam: side(20) });
+    expect(lineup).not.toBeNull();
+    const players = [...lineup!.home.players, ...lineup!.away.players];
+    expect(players).toHaveLength(4);
+    for (const p of players) expect(p.grid).toBeNull();
   });
 });

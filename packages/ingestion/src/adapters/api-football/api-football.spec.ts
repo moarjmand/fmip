@@ -10,6 +10,7 @@ import {
   mapFixture,
   imageUrl,
   mapIncidents,
+  gridOf,
   mapLineup,
   mapPlayerStatistics,
   mapSeasonCoverage,
@@ -499,6 +500,86 @@ describe('image addresses are carried inside ingestion (T-1320)', () => {
     expect(imageUrl('https://media.api-sports.io/football/teams/44.png')).not.toBeNull();
     expect(imageUrl('javascript:alert(1)')).toBeNull();
     expect(imageUrl(42)).toBeNull();
+  });
+});
+
+describe("a starter's place in the shape (T-1397, D-212)", () => {
+  const recorded = (): {
+    lineups: { startXI: { player: { grid: unknown } }[] }[];
+    players: unknown;
+    teams: { home: { id: number }; away: { id: number } };
+  } => {
+    const raw = loadScenarios(FIXTURES_DIR).find((s) => s.name === 'lineup-burnley-man-city')
+      ?.requests[0]?.body;
+    const body = (typeof raw === 'string' ? JSON.parse(raw) : structuredClone(raw)) as {
+      response: unknown[];
+    };
+    return body.response[0] as ReturnType<typeof recorded>;
+  };
+  const map = (item: ReturnType<typeof recorded>) =>
+    mapLineup(
+      item.lineups,
+      item.players,
+      '1035037',
+      String(item.teams.home.id),
+      String(item.teams.away.id),
+    );
+
+  it('reads "row:column" as two whole numbers, and nothing else', () => {
+    expect(gridOf('1:1')).toEqual({ row: 1, col: 1 });
+    expect(gridOf('4:3')).toEqual({ row: 4, col: 3 });
+    expect(gridOf('11:10')).toEqual({ row: 11, col: 10 });
+    for (const bad of [
+      null,
+      undefined,
+      21,
+      '',
+      '0:1',
+      '1:0',
+      '12:1',
+      '2:',
+      ':2',
+      ' 2:1',
+      '2:1 ',
+      '2-1',
+      '2:1:1',
+      '02:1',
+      '1.5:2',
+      '-1:2',
+    ]) {
+      expect(gridOf(bad)).toBeNull();
+    }
+  });
+
+  it('places every starter of the recorded 5-4-1 and 4-2-3-1, and nobody on the bench', () => {
+    const lineup = map(recorded());
+    expect(lineup).not.toBeNull();
+    for (const side of [lineup!.home, lineup!.away]) {
+      const starters = side.players.filter((p) => p.role === 'starter');
+      expect(starters).toHaveLength(11);
+      for (const p of starters) expect(p.grid).not.toBeNull();
+      for (const p of side.players.filter((q) => q.role === 'bench')) expect(p.grid).toBeNull();
+    }
+    // Manchester City's 4-2-3-1: one goalkeeper, then four, two, three and one.
+    const away = lineup!.away.players.filter((p) => p.role === 'starter');
+    expect(lineup!.away.formation).toBe('4-2-3-1');
+    const perRow = [1, 2, 3, 4, 5].map((row) => away.filter((p) => p.grid?.row === row).length);
+    expect(perRow).toEqual([1, 4, 2, 3, 1]);
+    expect(away.find((p) => p.grid?.row === 1)?.position).toBe('goalkeeper');
+    // No provider string reaches the normalised line-up (rule 2).
+    expect(JSON.stringify(lineup)).not.toMatch(/"grid":"/);
+  });
+
+  it('drops a malformed place and a place two starters share, keeping the rest', () => {
+    const item = recorded();
+    const home = item.lineups[0]!.startXI;
+    home[1]!.player.grid = '2:x';
+    home[2]!.player.grid = home[3]!.player.grid;
+    const lineup = map(item)!;
+    const side = [lineup.home, lineup.away].find((s) => s.formation === '5-4-1')!;
+    const starters = side.players.filter((p) => p.role === 'starter');
+    expect(starters.filter((p) => p.grid === null)).toHaveLength(3);
+    expect(starters.filter((p) => p.grid !== null)).toHaveLength(8);
   });
 });
 

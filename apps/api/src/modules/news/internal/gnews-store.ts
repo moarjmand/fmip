@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
-import type { NewsRights } from './news-store';
+import { HOST_OF, type NewsRights } from './news-store';
 
 /** The GNews row the migration seeds (T-1367, `1765844000000_gnews-source.sql`). */
 export const GNEWS_SOURCE_ID = '00000000-0000-4000-8000-000000001367';
@@ -26,10 +26,6 @@ export interface PublisherRow {
   language: string;
   dropped: boolean;
 }
-
-/** `lower(host)` without `www.`, of a URL column, in SQL (mirrors `siteHost`). */
-const HOST_OF = (column: string): string =>
-  `lower(regexp_replace(substring(${column} from '^[a-zA-Z][a-zA-Z0-9+.-]*://([^/:?#]+)'), '^www\\.', ''))`;
 
 /** LIKE's own characters escaped, so a URL fragment matches only itself. */
 function likeLiteral(text: string): string {

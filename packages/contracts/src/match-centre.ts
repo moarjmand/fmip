@@ -215,6 +215,17 @@ export type MatchAbsenceGap = 'not_covered' | 'not_yet' | 'not_asked';
  */
 export const AVAILABILITY_STALE_AFTER_MS = 6 * 60 * 60 * 1000;
 
+/**
+ * A starter's place in the side's shape (T-1397, D-212): `row` counts the
+ * lines from the goalkeeper's (1) towards the halfway line, `col` counts
+ * across a line from the side's own left as it attacks (1). Whole numbers
+ * from 1.
+ */
+export interface LineupGrid {
+  row: number;
+  col: number;
+}
+
 export interface MatchLineupPlayer {
   id: string;
   name: string;
@@ -222,6 +233,12 @@ export interface MatchLineupPlayer {
   shirt_number: number | null;
   position: 'goalkeeper' | 'defender' | 'midfielder' | 'forward' | null;
   is_captain: boolean;
+  /**
+   * Where the starter stood, when the line-up says (T-1397, D-212). Null for
+   * the bench, for a provider that gives no place and for a line-up stored
+   * before places were kept.
+   */
+  grid: LineupGrid | null;
   /** The player's photo from our own origin (T-1320). */
   photo?: EntityMedia;
 }

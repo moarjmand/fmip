@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { formatNumber } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { MessageText } from '@/components/message-text';
-import { ltrIsolate } from '@/components/score';
-import { type PitchLines, pitchLines } from '@/lib/formation';
+import { ltrIsolate, nameIsolate } from '@/components/score';
+import { type PitchLines, pitchShape } from '@/lib/formation';
 import { listName } from '@/lib/person-name';
 import { fill, filled } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
@@ -12,12 +12,20 @@ import type { MatchWords } from '@/lib/words-server';
 /**
  * The line-ups on a pitch (T-1384, D-202): the away side in the top half, its
  * goalkeeper at the top, the home side in the bottom half, its goalkeeper at
- * the bottom, each line of the formation a row, then each side's bench and
- * coach. A side is placed only where its formation and its starters' roles
- * place every player on one line (`pitchLines`); otherwise that side is a
- * list, and a sentence says why (rule 3: never an invented position). Across
- * a row the order is the shirt number's, and the note under the pitch says
- * so. Brand and neutral tokens only: no club colour (D-202).
+ * the bottom, each line a row, then each side's bench and coach.
+ *
+ * A side whose starters all carry the place the line-up gives them is drawn
+ * from those places, whatever the formation (T-1397, D-212): each row one line
+ * from the goalkeeper's, each player on his own side of the pitch as his team
+ * attacks -- so the home side's left is the pitch's left and the away side's
+ * (attacking down the screen) its right. The pitch is a picture of the ground,
+ * so its rows keep that left and right on a right-to-left page too.
+ *
+ * Without the places, a side is placed only where its formation and its
+ * starters' roles put every player on one line (`pitchLines`), in
+ * shirt-number order across a row, which the note under the pitch says;
+ * otherwise that side is a list, and a sentence says why (rule 3: never an
+ * invented position). Brand and neutral tokens only: no club colour (D-202).
  */
 
 type Side = 'home' | 'away';
@@ -45,8 +53,8 @@ export function MatchLineupsView({
   const m = words.m;
   const teams: Record<Side, { team: MatchTeam; players: MatchLineupPlayer[]; shape: PitchLines }> =
     {
-      home: { team: home, players: lineups.home, shape: pitchLines(home.formation, lineups.home) },
-      away: { team: away, players: lineups.away, shape: pitchLines(away.formation, lineups.away) },
+      home: { team: home, players: lineups.home, shape: pitchShape(home.formation, lineups.home) },
+      away: { team: away, players: lineups.away, shape: pitchShape(away.formation, lineups.away) },
     };
   // An answer with nobody in it is no line-up, not two empty lists (rule 3).
   if (lineups.home.length === 0 && lineups.away.length === 0) {
@@ -58,6 +66,24 @@ export function MatchLineupsView({
   }
   const placed = (['away', 'home'] as const).filter((side) => teams[side].shape.state === 'pitch');
   const listed = (['home', 'away'] as const).filter((side) => teams[side].shape.state !== 'pitch');
+  const placedBy = (by: 'grid' | 'roles') =>
+    placed.filter((side) => {
+      const shape = teams[side].shape;
+      return shape.state === 'pitch' && shape.by === by;
+    });
+  const [byGrid] = placedBy('grid');
+  const [byRoles] = placedBy('roles');
+  // One note for what is on the pitch: every side by its places, every side
+  // by the roles (shirt-number order), or one of each, named.
+  const note =
+    byRoles === undefined
+      ? m['matchCentre.lineups.pitchNoteGrid']
+      : byGrid === undefined
+        ? m['matchCentre.lineups.pitchNote']
+        : filled(m['matchCentre.lineups.pitchNoteMixed'], {
+            grid: nameIsolate(teams[byGrid].team.name),
+            roles: nameIsolate(teams[byRoles].team.name),
+          });
   return (
     <div className="flex flex-col gap-4 text-sm">
       {placed.length > 0 && (
@@ -83,28 +109,49 @@ export function MatchLineupsView({
               const heading = (
                 <p className="relative flex items-baseline gap-2 px-3 py-1.5">
                   <bdi className="font-extrabold text-fg">{team.name}</bdi>
-                  <span dir="ltr" className="font-mono text-xs text-caption">
-                    {shape.formation}
-                  </span>
+                  {shape.formation !== null && (
+                    <span dir="ltr" className="font-mono text-xs text-caption">
+                      {shape.formation}
+                    </span>
+                  )}
                 </p>
               );
               return (
-                <div key={side} className="relative" data-side={side} data-testid={`pitch-${side}`}>
+                <div
+                  key={side}
+                  className="relative"
+                  data-side={side}
+                  data-testid={`pitch-${side}`}
+                  data-placed-by={shape.by}
+                >
                   {side === 'away' && heading}
-                  {rows.map((row, index) => (
-                    <ol key={index} className="flex justify-around py-1.5">
-                      {row.map((p) => (
-                        <PitchPlayer key={p.id} player={p} locale={locale} words={words} />
-                      ))}
-                    </ol>
-                  ))}
+                  {rows.map((row, index) =>
+                    shape.by === 'grid' ? (
+                      // Placed by the line-up: a line runs from the side's own
+                      // left as it attacks, which is the pitch's left for the
+                      // home side (attacking up) and its right for the away
+                      // side. The row is a picture of the ground, so it keeps
+                      // its left and right on a right-to-left page (`dir`).
+                      <ol key={index} dir="ltr" className="flex justify-around py-1.5">
+                        {(side === 'home' ? row : [...row].reverse()).map((p) => (
+                          <PitchPlayer key={p.id} player={p} locale={locale} words={words} />
+                        ))}
+                      </ol>
+                    ) : (
+                      <ol key={index} className="flex justify-around py-1.5">
+                        {row.map((p) => (
+                          <PitchPlayer key={p.id} player={p} locale={locale} words={words} />
+                        ))}
+                      </ol>
+                    ),
+                  )}
                   {side === 'home' && heading}
                 </div>
               );
             })}
           </div>
           <p className="text-xs text-caption" data-testid="lineup-pitch-note">
-            <MessageText message={m['matchCentre.lineups.pitchNote']} />
+            <MessageText message={note} />
           </p>
         </div>
       )}
@@ -112,7 +159,7 @@ export function MatchLineupsView({
       {listed.map((side) => {
         const { team, players, shape } = teams[side];
         if (shape.state === 'pitch') return null;
-        const formation = 'formation' in shape ? shape.formation : '';
+        const formation = 'formation' in shape ? (shape.formation ?? '') : '';
         return (
           <div key={side} className="flex flex-col gap-1" data-testid={`lineup-list-${side}`}>
             <h3 className="flex flex-wrap items-baseline gap-x-2 font-extrabold">

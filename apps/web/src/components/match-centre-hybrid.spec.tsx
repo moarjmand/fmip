@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { EN } from '@/i18n/messages';
-import { pitchLines } from '@/lib/formation';
+import { gridLines, pitchLines, pitchShape } from '@/lib/formation';
 import { matchWords } from '@/lib/words-server';
 import { CommunityVerdict } from './community-consensus';
 import { ModelVerdict } from './forecast-panel';
@@ -47,6 +47,7 @@ const player = (
     shirt_number: next,
     position,
     is_captain: false,
+    grid: null,
     ...over,
   };
 };
@@ -192,6 +193,199 @@ describe('the line-ups on a pitch', () => {
     expect(html).toContain('data-testid="lineup-empty"');
     expect(html).toContain('Not supplied for this match.');
     expect(html).not.toContain('<ul');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The pitch from the line-up's own places (T-1397, D-212)
+// ---------------------------------------------------------------------------
+
+/**
+ * Eleven starters at the places a line-up gives them: `rows` is how many
+ * stand on each line after the goalkeeper's ("4-2-3-1" is [4, 2, 3, 1]); the
+ * names say where each stands ("r3c2" is row 3, column 2), and the roles are
+ * a 4-2-3-1's or a 3-4-2-1's (two midfield lines, which the roles alone
+ * cannot place).
+ */
+const placed = (rows: number[], roles: MatchLineupPlayer['position'][]): MatchLineupPlayer[] => {
+  const out: MatchLineupPlayer[] = [
+    player('goalkeeper', { name: 'r1c1', grid: { row: 1, col: 1 } }),
+  ];
+  let index = 0;
+  rows.forEach((count, line) => {
+    for (let col = 1; col <= count; col += 1) {
+      out.push(
+        player(roles[index] ?? null, {
+          name: `r${line + 2}c${col}`,
+          grid: { row: line + 2, col },
+        }),
+      );
+      index += 1;
+    }
+  });
+  return out;
+};
+const D = 'defender' as const;
+const M = 'midfielder' as const;
+const F = 'forward' as const;
+const fourTwoThreeOne = () => placed([4, 2, 3, 1], [D, D, D, D, M, M, M, M, M, F]);
+const threeFourTwoOne = () => placed([3, 4, 2, 1], [D, D, D, M, M, M, M, M, M, F]);
+
+describe("where the starters stand by the line-up's places (gridLines)", () => {
+  const names = (lines: MatchLineupPlayer[][]) => lines.map((line) => line.map((p) => p.name));
+
+  it('draws a 4-2-3-1 line by line, each line from the left as the side attacks', () => {
+    const shape = pitchShape('4-2-3-1', fourTwoThreeOne().reverse());
+    expect(shape.state).toBe('pitch');
+    if (shape.state !== 'pitch') return;
+    expect(shape.by).toBe('grid');
+    expect(shape.formation).toBe('4-2-3-1');
+    expect(names(shape.lines)).toEqual([
+      ['r1c1'],
+      ['r2c1', 'r2c2', 'r2c3', 'r2c4'],
+      ['r3c1', 'r3c2'],
+      ['r4c1', 'r4c2', 'r4c3'],
+      ['r5c1'],
+    ]);
+  });
+
+  it('draws a 3-4-2-1 the roles alone could not place', () => {
+    expect(pitchLines('3-4-2-1', threeFourTwoOne()).state).toBe('lines_unknown');
+    const shape = pitchShape('3-4-2-1', threeFourTwoOne());
+    expect(shape.state === 'pitch' && shape.lines.map((line) => line.length)).toEqual([
+      1, 3, 4, 2, 1,
+    ]);
+  });
+
+  it('needs no formation string, and keeps none it was not given', () => {
+    const shape = gridLines(null, fourTwoThreeOne());
+    expect(shape?.formation).toBeNull();
+    expect(shape?.lines.map((line) => line.length)).toEqual([1, 4, 2, 3, 1]);
+  });
+
+  it('uses the places only when they are whole, else the roles, else a list', () => {
+    const missing = fourTwoThreeOne();
+    missing[7] = { ...missing[7]!, grid: null };
+    expect(gridLines('4-2-3-1', missing)).toBeNull();
+    // Without every place, a 4-2-3-1 is still the list it was (T-1384).
+    expect(pitchShape('4-2-3-1', missing)).toEqual({
+      state: 'lines_unknown',
+      formation: '4-2-3-1',
+    });
+
+    const shared = fourTwoThreeOne();
+    shared[3] = { ...shared[3]!, grid: { row: 2, col: 1 } };
+    expect(gridLines('4-2-3-1', shared)).toBeNull();
+
+    const keeperOut = fourTwoThreeOne();
+    keeperOut[0] = { ...keeperOut[0]!, position: 'defender' };
+    expect(gridLines('4-2-3-1', keeperOut)).toBeNull();
+
+    const twoOnTheLine = fourTwoThreeOne();
+    twoOnTheLine[1] = { ...twoOnTheLine[1]!, grid: { row: 1, col: 2 } };
+    expect(gridLines(null, twoOnTheLine)).toBeNull();
+
+    // The places say 4-2-3-1 and the formation 4-4-2: one of them is wrong.
+    expect(gridLines('4-4-2', fourTwoThreeOne())).toBeNull();
+    expect(gridLines('4-2-3-1', fourTwoThreeOne().slice(0, 10))).toBeNull();
+
+    // A line-up of a three-line formation with places is drawn by them.
+    const threeLines = placed([4, 3, 3], [D, D, D, D, M, M, M, F, F, F]);
+    expect(pitchShape('4-3-3', threeLines)).toMatchObject({ state: 'pitch', by: 'grid' });
+    // And without them, by the roles, as before.
+    expect(pitchShape('4-3-3', eleven(4, 3, 3))).toMatchObject({ state: 'pitch', by: 'roles' });
+  });
+
+  it('reads a line-up stored before places were kept (no field at all) as without places', () => {
+    const old = fourTwoThreeOne().map(({ grid: _grid, ...rest }) => rest as MatchLineupPlayer);
+    expect(gridLines('4-2-3-1', old)).toBeNull();
+  });
+});
+
+describe("the pitch from the line-up's places", () => {
+  const words = matchWords('en');
+  const rowsOf = (html: string, side: 'away' | 'home') => {
+    const start = html.indexOf(`data-testid="pitch-${side}"`);
+    const end = side === 'away' ? html.indexOf('data-testid="pitch-home"') : html.length;
+    return [
+      ...html
+        .slice(start, end)
+        .matchAll(/<ol dir="ltr" class="flex justify-around py-1.5">(.*?)<\/ol>/g),
+    ].map((m) => [...(m[1] ?? '').matchAll(/title="(r\dc\d)"/g)].map((n) => n[1]));
+  };
+  const render = (locale: string, home = fourTwoThreeOne(), away = threeFourTwoOne()) =>
+    renderToStaticMarkup(
+      <MatchLineupsView
+        home={team('h', 'Tractor', '4-2-3-1')}
+        away={team('a', 'Esteghlal', '3-4-2-1')}
+        lineups={{ home, away }}
+        locale={locale}
+        words={locale === 'en' ? words : matchWords(locale)}
+      />,
+    );
+
+  it('draws both sides of two-midfield-line formations, home from its own left, away mirrored', () => {
+    const html = render('en');
+    expect(html).toContain('data-sides="away home"');
+    expect(html).not.toMatch(/data-testid="lineup-fallback"/);
+    expect(html.match(/data-placed-by="grid"/g)).toHaveLength(2);
+    // Home attacks up the screen: goalkeeper's line last, its left on the left.
+    expect(rowsOf(html, 'home')).toEqual([
+      ['r5c1'],
+      ['r4c1', 'r4c2', 'r4c3'],
+      ['r3c1', 'r3c2'],
+      ['r2c1', 'r2c2', 'r2c3', 'r2c4'],
+      ['r1c1'],
+    ]);
+    // Away attacks down the screen: goalkeeper's line first, its left on the right.
+    expect(rowsOf(html, 'away')).toEqual([
+      ['r1c1'],
+      ['r2c3', 'r2c2', 'r2c1'],
+      ['r3c4', 'r3c3', 'r3c2', 'r3c1'],
+      ['r4c2', 'r4c1'],
+      ['r5c1'],
+    ]);
+    expect(html).toContain(EN['matchCentre.lineups.pitchNoteGrid']);
+    expect(html).not.toContain(EN['matchCentre.lineups.pitchNote']);
+    // The formations are still named beside each side.
+    expect(html).toContain('>4-2-3-1</span>');
+    expect(html).toContain('>3-4-2-1</span>');
+  });
+
+  it('keeps the left and right of the ground on a right-to-left page', () => {
+    const en = render('en');
+    const fa = render('fa');
+    expect(rowsOf(fa, 'home')).toEqual(rowsOf(en, 'home'));
+    expect(rowsOf(fa, 'away')).toEqual(rowsOf(en, 'away'));
+    expect(fa).toContain('در خطِ خودش');
+    expect(fa).not.toContain('data-translation="untranslated"');
+  });
+
+  it('names which side is placed how when one has places and the other only roles', () => {
+    const html = renderToStaticMarkup(
+      <MatchLineupsView
+        home={team('h', 'Tractor', '4-2-3-1')}
+        away={team('a', 'Esteghlal', '4-4-2')}
+        lineups={{ home: fourTwoThreeOne(), away: eleven(4, 4, 2) }}
+        locale="en"
+        words={words}
+      />,
+    );
+    expect(html).toContain('data-sides="away home"');
+    expect(html).toMatch(/data-testid="pitch-away" data-placed-by="roles"/);
+    expect(html).toMatch(/data-testid="pitch-home" data-placed-by="grid"/);
+    expect(html).toContain(
+      'Home side at the bottom. ⁨Tractor⁩: each player where the line-up places him. ⁨Esteghlal⁩: placed by the formation',
+    );
+  });
+
+  it('falls back to the list, with its reason, when a place is missing', () => {
+    const home = fourTwoThreeOne();
+    home[4] = { ...home[4]!, grid: null };
+    const html = render('en', home);
+    expect(html).toContain('data-sides="away"');
+    expect(html).toContain('data-testid="lineup-list-home"');
+    expect(html).toContain('data-reason="lines_unknown"');
   });
 });
 

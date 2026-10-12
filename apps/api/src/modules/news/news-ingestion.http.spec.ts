@@ -36,15 +36,20 @@ const MATCH = randomUUID();
 const HOME_NAME = `Testville Rovers ${RUN}`;
 const AWAY_NAME = `Otherton Athletic ${RUN}`;
 
-const feedXml = (
-  headline: string,
-  summary = 'What the publisher wrote.',
-): string => `<?xml version="1.0"?>
+/**
+ * Each call links its own pages: since T-1396 a page another source already
+ * carries is not written again, and every test here reads a feed of its own.
+ */
+let pages = 0;
+const feedXml = (headline: string, summary = 'What the publisher wrote.'): string => {
+  pages += 1;
+  return `<?xml version="1.0"?>
 <rss version="2.0"><channel><title>Scripted</title><language>en</language>
-<item><title>${headline}</title><link>https://scripted.test/one</link><guid>one-${RUN}</guid>
+<item><title>${headline}</title><link>https://scripted.test/one-${RUN}-${pages}</link><guid>one-${RUN}</guid>
 <pubDate>Sun, 05 Jan 2025 16:28:00 GMT</pubDate><description>${summary}</description></item>
-<item><title>Second ${RUN}</title><link>https://scripted.test/two</link><guid>two-${RUN}</guid></item>
+<item><title>Second ${RUN}</title><link>https://scripted.test/two-${RUN}-${pages}</link><guid>two-${RUN}</guid></item>
 </channel></rss>`;
+};
 
 /** A feed of the given items, each with a headline, a guid and (usually) a time. */
 const feedOf = (items: { headline: string; guid: string; pubDate?: string }[]): string =>
@@ -82,13 +87,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news ingesti
   ): Promise<string> => {
     const { rows } = await pool.query<{ id: string }>(
       `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language, dropped_at, dropped_reason)
-       VALUES ($1, 'https://scripted.test', $2, 'rss', $3, 'en', $4, $5) RETURNING id`,
+       VALUES ($1, $6, $2, 'rss', $3, 'en', $4, $5) RETURNING id`,
       [
         `Scripted ${rights} ${feedUrl.slice(-6)} ${RUN}`,
         feedUrl,
         rights,
         dropped ? new Date() : null,
         dropped ? 'asked to be dropped' : null,
+        // A publisher of its own (T-1396: one site's two feeds carry one report once).
+        `https://publisher-${sources.length}-${RUN}.test`,
       ],
     );
     sources.push(rows[0]!.id);

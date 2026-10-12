@@ -916,22 +916,31 @@ export class IngestStore implements SquadStore {
         );
         changed += released ?? 0;
       }
+      // The place in the shape (T-1397, D-212) is compared like every other
+      // field, so a fetch that now carries it fills a row stored without one.
       const { rowCount: written } = await this.pool.query(
-        `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position, is_captain)
-         SELECT $1::uuid, $2::uuid, $3::text, $4::smallint, $5::text, $6::boolean
+        `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position, is_captain,
+                             grid_row, grid_col)
+         SELECT $1::uuid, $2::uuid, $3::text, $4::smallint, $5::text, $6::boolean,
+                $7::smallint, $8::smallint
           WHERE NOT EXISTS (
                   SELECT 1 FROM lineup
                    WHERE participant_id = $1::uuid AND person_id = $2::uuid
-                     AND (role, shirt_number, position, is_captain)
-                         IS NOT DISTINCT FROM ($3::text, $4::smallint, $5::text, $6::boolean))
+                     AND (role, shirt_number, position, is_captain, grid_row, grid_col)
+                         IS NOT DISTINCT FROM ($3::text, $4::smallint, $5::text, $6::boolean,
+                                               $7::smallint, $8::smallint))
          ON CONFLICT (participant_id, person_id) DO UPDATE
             SET role = EXCLUDED.role,
                 shirt_number = EXCLUDED.shirt_number,
                 position = EXCLUDED.position,
-                is_captain = EXCLUDED.is_captain
-          WHERE (lineup.role, lineup.shirt_number, lineup.position, lineup.is_captain)
+                is_captain = EXCLUDED.is_captain,
+                grid_row = EXCLUDED.grid_row,
+                grid_col = EXCLUDED.grid_col
+          WHERE (lineup.role, lineup.shirt_number, lineup.position, lineup.is_captain,
+                 lineup.grid_row, lineup.grid_col)
                 IS DISTINCT FROM
-                (EXCLUDED.role, EXCLUDED.shirt_number, EXCLUDED.position, EXCLUDED.is_captain)`,
+                (EXCLUDED.role, EXCLUDED.shirt_number, EXCLUDED.position, EXCLUDED.is_captain,
+                 EXCLUDED.grid_row, EXCLUDED.grid_col)`,
         [
           participantId,
           personId,
@@ -939,6 +948,8 @@ export class IngestStore implements SquadStore {
           player.shirtNumber,
           player.position,
           player.isCaptain,
+          player.grid?.row ?? null,
+          player.grid?.col ?? null,
         ],
       );
       changed += written ?? 0;

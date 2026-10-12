@@ -65,6 +65,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       shirtNumber: null,
       position: null,
       isCaptain: false,
+      grid: null as { row: number; col: number } | null,
     });
     const side = (players: ReturnType<typeof player>[]) => ({
       formation: null,
@@ -320,6 +321,41 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         `${FIXTURE}:lineups`,
         `${FIXTURE}:out:${SAKA}`,
       ]);
+    });
+
+    // T-1397 (D-212): rows stored before places were kept fill on the next
+    // answer that carries them -- the writer compares the place like any
+    // other field -- once, and without telling anybody again.
+    it('a later answer with the places fills the stored rows once, and alerts nobody', async () => {
+      const places = async () =>
+        (
+          await pool.query<{ person_id: string; grid_row: number | null; grid_col: number | null }>(
+            `SELECT l.person_id, l.grid_row, l.grid_col
+               FROM lineup l JOIN fixture_participant fp ON fp.id = l.participant_id
+              WHERE fp.fixture_id = $1 ORDER BY fp.side::text`,
+            [FIXTURE],
+          )
+        ).rows;
+      expect((await places()).map((r) => [r.grid_row, r.grid_col])).toEqual([
+        [null, null],
+        [null, null],
+      ]);
+      const count = pushes.length;
+      lineup = {
+        fixtureExternalId: X('fixture'),
+        home: side([{ ...player('rice', 'Rice'), grid: { row: 3, col: 2 } }]),
+        away: side([{ ...player('palmer', 'Palmer'), grid: { row: 4, col: 1 } }]),
+      };
+      const filled = await jobs.lineups();
+      expect(filled.itemsWritten).toBeGreaterThanOrEqual(2);
+      expect((await places()).map((r) => [r.person_id, r.grid_row, r.grid_col])).toEqual([
+        [PALMER, 4, 1],
+        [RICE, 3, 2],
+      ]);
+      const again = await jobs.lineups();
+      expect(again.itemsWritten).toBe(0);
+      expect(await heard('on')).toHaveLength(2);
+      expect(pushes.length).toBe(count);
     });
   },
 );

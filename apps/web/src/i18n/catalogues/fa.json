@@ -14263,6 +14263,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.lineups.pitchNoteGrid": {
+    "source": "Home side at the bottom. Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",
+    "text": "میزبان در پایین. هر بازیکن همان‌جایی است که ترکیب تیم نشان می‌دهد: در خطِ خودش از دروازه‌بان به جلو، و در سمتِ خودش از زمین رو به جهتِ حمله‌ی تیمش.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.lineups.pitchNoteMixed": {
+    "source": "Home side at the bottom. {grid}: each player where the line-up places him. {roles}: placed by the formation and the role each was given, in shirt-number order along each line, because its line-up does not say who played on which side.",
+    "text": "میزبان در پایین. {grid}: هر بازیکن همان‌جایی که ترکیب تیم نشان می‌دهد. {roles}: بر پایه‌ی آرایش تیم و نقشی که داده‌ها برای هر کدام می‌دهند، در هر خط به ترتیب شماره‌ی پیراهن، چون ترکیب این تیم نمی‌گوید چه کسی در کدام سمت بازی کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.lineups.noFormation": {
     "source": "No formation supplied, so this line-up is a list.",
     "text": "آرایش تیم ارائه نشده است؛ برای همین این ترکیب به‌صورت فهرست آمده است.",

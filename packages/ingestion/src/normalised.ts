@@ -212,11 +212,27 @@ export interface NormalisedIncident {
   detail: IncidentDetail | null;
 }
 
+/**
+ * Where a starter stood in the side's shape (T-1397, D-212), in our terms:
+ * `row` counts the lines from the goalkeeper's (1) towards the halfway line,
+ * `col` counts across a line from the side's own left as it attacks (1).
+ * Both are whole numbers from 1 to 11 (a side has eleven starters).
+ */
+export interface LineupGrid {
+  row: number;
+  col: number;
+}
+
 export interface NormalisedLineupPlayer extends EntityRef {
   role: 'starter' | 'bench';
   shirtNumber: number | null;
   position: Position | null;
   isCaptain: boolean;
+  /**
+   * The starter's place in the shape; null for the bench, for a provider that
+   * does not supply it, and for a value that does not read as one (rule 3).
+   */
+  grid: LineupGrid | null;
 }
 
 export interface NormalisedSideLineup {

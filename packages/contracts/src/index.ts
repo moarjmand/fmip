@@ -330,6 +330,7 @@ export type {
   CoverageModule,
   FormEntry,
   HeadToHeadEntry,
+  LineupGrid,
   MatchAbsence,
   MatchAbsenceGap,
   MatchCentre,
