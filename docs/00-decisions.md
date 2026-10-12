@@ -10464,3 +10464,84 @@ non-articles*: a publisher's item goes only when the publisher is dropped
 **Production.** Nothing to set. The migration re-checks every stored team,
 competition and match link once (only the entities already linked, a few
 per article); the job and the lists follow the new rules from the deploy.
+## D-212 — A starter's place in the shape is stored, so every formation can be drawn on the pitch
+**Status:** Accepted · 2026-10-12 · **Task:** T-1397 · **Follows:** D-202, D-192, D-183, D-110
+
+**Context.** T-1384 (D-202) draws a side on the match centre's pitch only
+where its formation and its starters' roles put every player on exactly one
+line. A formation with two midfield lines (4-2-3-1, 4-1-4-1, 3-4-2-1) fell
+back to a list, because which midfielder stood in which line was never
+stored. API-Football's line-up answer gives each starter a `grid`,
+"row:column": row 1 is the goalkeeper's line, and the recorded Burnley v
+Manchester City answer (`_fixtures/api-football/lineup-burnley-man-city.json`)
+shows the columns counting from the side's own left as it attacks (City's
+4-2-3-1: Walker, the right-back, at 2:4 and Lewis at 2:1; Bernardo Silva on
+the right at 4:3 and Foden on the left at 4:1). D-202 rejected storing it as
+"worth its own task if the maintainer wants it"; this is that task.
+
+**Decision.**
+1. **The place is ours, not the provider's string (rule 2).** The
+   normalised line-up entry carries `grid: { row, col } | null`
+   (`LineupGrid`): `row` counts the lines from the goalkeeper's, `col` across
+   a line from the side's own left as it attacks, each a whole number from 1
+   to 11. The API-Football adapter reads "row:column" with one strict pattern
+   (`gridOf`); anything else -- a number, "0:1", "12:1", "2:", a padded
+   string -- is null, never a guess (rule 3), and a place two starters of one
+   side share is dropped for both (`withoutSharedPlaces`). The bench is
+   always null. Highlightly and football-data.org supply no place, so their
+   entries are null and their matches keep D-202's placement. The harness
+   validator checks the range, the bench and a place given twice.
+2. **Schema.** Migration `1765856000000` adds nullable `lineup.grid_row` and
+   `lineup.grid_col` (smallint) with `> 0` checks and a third check that a
+   place is both numbers or neither. `lineup` carries `lineup_set_updated_at`
+   and `lineup_notify_change` and no `refuse_change` (checked in
+   `pg_trigger`); adding nullable columns without a default rewrites no row,
+   so neither fires. No backfill.
+3. **The writer compares the place like any other field** (D-192): the
+   insert's `NOT EXISTS` and the upsert's `IS DISTINCT FROM` both include
+   `grid_row`/`grid_col`, so an answer that now carries a place updates a row
+   stored with null (one `fixture_change` per row, as for any correction),
+   and the same answer again writes nothing. A provider's later answer is the
+   whole side (T-539), so a place it no longer gives goes back to null.
+4. **Contract and API.** `MatchLineupPlayer.grid: LineupGrid | null` on the
+   match-centre line-up, read from the two columns; null for a row stored
+   before this, the bench, and a provider that gives none.
+5. **The pitch.** `pitchShape` places a side by its places when they are
+   whole -- eleven starters, every one with a place, none twice, one player
+   alone on row 1 who is the goalkeeper when a role is given, and, when a
+   formation is supplied, the outfield rows holding its counts (a 4-2-3-1 is
+   four, two, three, one) -- whatever the formation. Each row is one line
+   from the goalkeeper's; across it players stand by column, so the home side
+   (attacking up the screen) reads left to right from its own left, and the
+   away side (attacking down) is mirrored. The pitch is a picture of the
+   ground, so a grid row is `dir="ltr"` and a right-back is on the same side
+   of the screen on `/en` and `/fa`. When the places are not whole the side
+   falls back to D-202's placement by the roles where it fits, else the list
+   with its reason, exactly as before. The note under the pitch says which:
+   every side by its places (`pitchNoteGrid`), every side by the roles
+   (`pitchNote`, unchanged), or one of each, named (`pitchNoteMixed`); English
+   and Persian written, the other locales refreshed untranslated.
+6. **How past matches fill.** Nothing is re-fetched for this. From the
+   deploy, every line-up the line-ups job asks for before and around
+   kick-off, every post-match detail and every live-list leaver's detail
+   carries the places, and a finished match the detail backlog has not yet
+   reached gains them when it does (at its bulk share, D-183). A match whose
+   detail was already fetched keeps null places and its D-202 drawing, unless
+   an administrator asks the feed again for it (`POST
+   /admin/data-quality/refetch`, D-110: one bulk request per fixture, audited).
+   Re-queuing every stored line-up without places (taking their detail-fetch
+   marks off, as migration `1765854000000` did for repeated incidents) would
+   cost one request per past fixture; that is the maintainer's call, not done
+   here.
+
+**Rejected.** *Keeping "row:column" as text*: a provider's format in our
+table and contract (rule 2). *A unique index on (participant, row, column)*:
+a provider that moves two players in one answer would be refused mid-write,
+as shirt numbers were before T-539's release step; the adapter and the page
+already refuse a shared place. *Deriving columns from the shirt number for
+the roles placement*: D-202's rule stands. *Mirroring the pitch on `/fa`*:
+it would put a right-back on the left. *A backfill in the migration*: the
+places exist only in the provider's answers (CLAUDE.md §7).
+
+**Production.** The migration runs with the deploy; the match route's first
+load is 183.5 kB of its 184 kB budget, no budget changed.

@@ -2,7 +2,15 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { checkAdapterContract, loadScenarios } from '../../harness/contract-check';
 import { createHighlightlyAdapter, daysBetween } from './index';
-import { mapFixture, mapIncidents, mapStatistics, mapStatus, parseScore, parseTime } from './map';
+import {
+  mapFixture,
+  mapIncidents,
+  mapLineup,
+  mapStatistics,
+  mapStatus,
+  parseScore,
+  parseTime,
+} from './map';
 
 const FIXTURES_DIR = join(__dirname, '..', '_fixtures', 'highlightly');
 
@@ -167,5 +175,20 @@ describe('mapping rules', () => {
       { side: 'home', metric: 'shots_on_target', value: 1 },
       { side: 'home', metric: 'passes_accurate', value: 290 },
     ]);
+  });
+});
+
+describe('no place in the shape (T-1397, D-212)', () => {
+  it('gives every player a null grid, even when an answer carries one', () => {
+    const side = (base: number) => ({
+      formation: '4-3-3',
+      initialLineup: [{ id: base, name: 'Keeper', position: 'Goalkeeper', grid: '1:1' }],
+      substitutes: [{ id: base + 1, name: 'Sub', position: 'Defender' }],
+    });
+    const lineup = mapLineup({ homeTeam: side(10), awayTeam: side(20) }, '99');
+    expect(lineup).not.toBeNull();
+    const players = [...lineup!.home.players, ...lineup!.away.players];
+    expect(players).toHaveLength(4);
+    for (const p of players) expect(p.grid).toBeNull();
   });
 });

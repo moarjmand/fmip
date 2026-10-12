@@ -62,6 +62,7 @@ describe('linkChoices (T-1030)', () => {
                 shirt_number: 1,
                 position: 'goalkeeper',
                 is_captain: false,
+                grid: null,
               },
             ],
             away: [],

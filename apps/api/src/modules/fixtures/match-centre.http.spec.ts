@@ -98,9 +98,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
       [MATCH, home, away, SALAH, BRUNO],
     );
     await pool.query(
-      `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position, is_captain) VALUES
-         ($1, $3, 'starter', 11, 'forward', true),
-         ($2, $4, 'starter', 8, 'midfielder', true)`,
+      `INSERT INTO lineup (participant_id, person_id, role, shirt_number, position, is_captain,
+                           grid_row, grid_col) VALUES
+         ($1, $3, 'starter', 11, 'forward', true, NULL, NULL),
+         ($2, $4, 'starter', 8, 'midfielder', true, 4, 2)`,
       [home, away, SALAH, BRUNO],
     );
     await pool.query(
@@ -350,11 +351,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
         shirt_number: 11,
         position: 'forward',
         is_captain: true,
+        // Stored without a place: said so, never guessed (T-1397).
+        grid: null,
         // No photo stored for him: said so, never left out (T-1320).
         photo: { coverage: 'not_supplied', url: null },
       },
     ]);
     expect(body.lineups.data?.away[0]?.name).toBe('Bruno Fernandes');
+    // A place is our pair, row from the goalkeeper and column across (T-1397, D-212).
+    expect(body.lineups.data?.away[0]?.grid).toEqual({ row: 4, col: 2 });
     expect(body.coverage).toEqual({
       scores: 'limited',
       incidents: 'not_supplied',
@@ -364,6 +369,27 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
       availability: 'not_supplied',
       advanced_statistics: 'not_supplied',
     });
+  });
+
+  it('refuses a place that is not one: below 1, or half a place (T-1397)', async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture_participant WHERE fixture_id = $1 AND side = 'home'`,
+      [MATCH],
+    );
+    const home = rows[0]?.id;
+    for (const [row, col] of [
+      [0, 1],
+      [1, 0],
+      [2, null],
+      [null, 3],
+    ]) {
+      await expect(
+        pool.query(
+          `UPDATE lineup SET grid_row = $3, grid_col = $4 WHERE participant_id = $1 AND person_id = $2`,
+          [home, SALAH, row, col],
+        ),
+      ).rejects.toThrow(/lineup_grid_/);
+    }
   });
 
   it('derives recent form and head-to-head from our own results, newest first', async () => {

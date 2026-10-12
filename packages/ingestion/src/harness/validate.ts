@@ -265,6 +265,12 @@ function validateSideLineup(sink: Sink, value: unknown, path: string): void {
     if (player.position !== null) expectEnum(sink, player.position, `${p}.position`, POSITIONS);
     expectBoolean(sink, player.isCaptain, `${p}.isCaptain`);
     if (player.isCaptain === true) captains += 1;
+    // A place in the shape (T-1397, D-212): null, or a row and a column of 1 to 11.
+    if (player.grid !== null && expectRecord(sink, player.grid, `${p}.grid`)) {
+      expectInt(sink, player.grid.row, `${p}.grid.row`, 1, 11);
+      expectInt(sink, player.grid.col, `${p}.grid.col`, 1, 11);
+      if (player.role === 'bench') fail(sink, `${p}.grid`, 'only a starter has a place');
+    }
   });
 
   if (captains > 1) fail(sink, `${path}.players`, 'at most one captain per side');
@@ -281,6 +287,14 @@ function validateSideLineup(sink: Sink, value: unknown, path: string): void {
       .filter((n) => n !== null),
     `${path}.players`,
     'shirt number',
+  );
+  noDuplicates(
+    sink,
+    value.players
+      .map((player) => (isRecord(player) ? player.grid : null))
+      .filter((g) => g !== null && g !== undefined),
+    `${path}.players`,
+    'grid place',
   );
 }
 

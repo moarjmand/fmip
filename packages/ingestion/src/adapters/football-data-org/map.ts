@@ -299,6 +299,8 @@ function players(
       position: positionOf(p.position),
       // The provider does not say who captains; nobody is marked rather than guessed.
       isCaptain: false,
+      // The provider gives no place in the shape (T-1397, D-212).
+      grid: null,
     });
   }
   return out;
