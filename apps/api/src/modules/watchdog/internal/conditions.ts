@@ -41,6 +41,8 @@ const HOUR = 60 * MINUTE;
  * - post_match, every thirty minutes: 90 minutes and 4 hours.
  * - fixtures and standings, hourly: 3 and 12 hours.
  * - squads, daily (T-1324): 2 and 4 days. Photos only; a missed day is not news.
+ * - people_names, every ten minutes (T-1398): 2 and 12 hours. A one-off
+ *   backfill of names, then new adoptions; a missed hour is not news.
  */
 export const INGEST_THRESHOLDS: Record<string, WatchdogThreshold> = {
   live: { unit: 'seconds', degraded: 5 * MINUTE, failing: 15 * MINUTE },
@@ -49,6 +51,7 @@ export const INGEST_THRESHOLDS: Record<string, WatchdogThreshold> = {
   fixtures: { unit: 'seconds', degraded: 3 * HOUR, failing: 12 * HOUR },
   standings: { unit: 'seconds', degraded: 3 * HOUR, failing: 12 * HOUR },
   squads: { unit: 'seconds', degraded: 48 * HOUR, failing: 96 * HOUR },
+  people_names: { unit: 'seconds', degraded: 2 * HOUR, failing: 12 * HOUR },
 };
 
 const DEFAULT_INGEST_THRESHOLD: WatchdogThreshold = {

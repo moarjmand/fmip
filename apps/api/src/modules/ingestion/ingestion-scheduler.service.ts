@@ -40,6 +40,11 @@ export const SCHEDULE: Record<IngestJob, string> = {
   // Daily, in the quiet early hours: each run asks at most the day's cap of
   // squads, each club at most once a month (T-1324).
   squads: '41 3 * * *',
+  // Every ten minutes, off the other jobs' minutes: each run asks at most
+  // `INGESTION_PEOPLE_NAMES_BATCH` profiles for at most 30 seconds, so the
+  // live tick queued behind it on the one worker waits that long at most
+  // (T-1398). Idle, and cheap, once every short name has been asked about.
+  people_names: '4,14,24,34,44,54 * * * *',
 };
 
 /** Job schedulers are keyed by id, so re-registering one replaces it. */

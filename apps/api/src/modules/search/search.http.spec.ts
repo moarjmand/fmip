@@ -20,6 +20,8 @@ const TEAM = randomUUID();
 const OTHER_TEAM = randomUUID();
 const COMPETITION = randomUUID();
 const PERSON = randomUUID();
+// Stored in full, with the feed's short form kept as an alias (T-1398).
+const NAMED = randomUUID();
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity search', () => {
   let app: NestFastifyApplication;
@@ -30,7 +32,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
     expect(response.statusCode).toBe(200);
     return response.json() as SearchResponse;
   };
-  const OURS: string[] = [TEAM, OTHER_TEAM, COMPETITION, PERSON];
+  const OURS: string[] = [TEAM, OTHER_TEAM, COMPETITION, PERSON, NAMED];
   const ours = (r: SearchResponse) => r.results.filter((x) => OURS.includes(x.id));
 
   beforeAll(async () => {
@@ -61,6 +63,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
       PERSON,
       `Zlatko Testović ${RUN}`,
     ]);
+    await pool.query(`INSERT INTO person (id, full_name, known_as) VALUES ($1, $2, NULL)`, [
+      NAMED,
+      `Quillon Ravensworth${RUN}`,
+    ]);
+    await pool.query(
+      `INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
+       VALUES ('person', $1, $2, NULL, 'abbreviation', 'api_football')`,
+      [NAMED, `Q. Ravensworth${RUN}`],
+    );
     await pool.query(
       `INSERT INTO player_spell (person_id, team_id, start_date, end_date) VALUES ($1, $2, DATE '2025-07-01', NULL)`,
       [PERSON, TEAM],
@@ -78,10 +89,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
 
   afterAll(async () => {
     await pool.query(`DELETE FROM entity_alias WHERE entity_id = ANY($1::uuid[])`, [
-      [TEAM, OTHER_TEAM, COMPETITION, PERSON],
+      [TEAM, OTHER_TEAM, COMPETITION, PERSON, NAMED],
     ]);
     await pool.query(`DELETE FROM player_spell WHERE person_id = $1`, [PERSON]);
-    await pool.query(`DELETE FROM person WHERE id = $1`, [PERSON]);
+    await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [[PERSON, NAMED]]);
     await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[TEAM, OTHER_TEAM]]);
     await pool.end();
@@ -126,6 +137,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
 
     const limited = await search('q=zeb&limit=1');
     expect(limited.results).toHaveLength(1);
+  });
+
+  it('finds a person stored in full by the short form the feed printed, kept as an alias (T-1398)', async () => {
+    const results = ours(await search(`q=${encodeURIComponent(`Q. Ravensworth${RUN}`)}`));
+    expect(results[0]).toMatchObject({
+      type: 'person',
+      id: NAMED,
+      name: `Quillon Ravensworth${RUN}`,
+      matched_on: 'alias',
+    });
   });
 
   it('answers an empty list for nothing like it, and 400 for a bad request', async () => {

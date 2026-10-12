@@ -16,7 +16,7 @@ import { StandingsService } from '../standings/standings.service';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
 import { EntityResolverService } from './ingestion.service';
-import { withBudgetTier } from './internal/budget-tier';
+import { DEFAULT_TIER_SHARES, parseTierShares, withBudgetTier } from './internal/budget-tier';
 import { groupMembers } from './internal/groups';
 import {
   IngestStore,
@@ -31,6 +31,8 @@ import {
   type IngestionSources,
   type JobSource,
 } from './internal/sources';
+import { PersonNameStore } from './internal/person-name-store';
+import { peopleNamesBatch, sweepPeopleNames } from './internal/person-names';
 import { squadsPerDay, sweepSquads } from './internal/squad-sweep';
 
 /** How far back and forward the fixtures job looks, in days. */
@@ -295,6 +297,8 @@ export class IngestionJobsService {
   private readonly backlogBatch = backlogBatch(process.env.INGESTION_BACKLOG_BATCH);
   private readonly refetchShare = refetchShare(process.env.INGESTION_REFETCH_SHARE);
   private readonly squadsPerDay = squadsPerDay(process.env.INGESTION_SQUADS_PER_DAY);
+  private readonly peopleNamesBatch = peopleNamesBatch(process.env.INGESTION_PEOPLE_NAMES_BATCH);
+  private readonly personNames: PersonNameStore;
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
 
@@ -310,6 +314,7 @@ export class IngestionJobsService {
     private readonly media: MediaService,
   ) {
     this.store = new IngestStore(pool, resolver, media);
+    this.personNames = new PersonNameStore(pool);
   }
 
   /** Runs one job by name. The scheduler and the tests both come through here. */
@@ -327,7 +332,50 @@ export class IngestionJobsService {
         return this.postMatch(now);
       case 'squads':
         return this.squads(now);
+      case 'people_names':
+        return this.peopleNames(now);
     }
+  }
+
+  /**
+   * Full names for people stored under the feed's short form (T-1398, D-213):
+   * each is asked about once through the provider's player profile, within
+   * `INGESTION_PEOPLE_NAMES_BATCH` a run and the bulk tier of the budget, and
+   * the name is written only where the profile agrees with the short form.
+   * `itemsWritten` is the names written; `person_name_fetch` holds each ask.
+   */
+  peopleNames(now: Date = new Date()): Promise<JobReport> {
+    return this.track('people_names', async (source) => {
+      const shares = parseTierShares(process.env);
+      const sweep = await sweepPeopleNames({
+        provider: source.provider,
+        adapter: source.adapter,
+        store: this.personNames,
+        now,
+        // The replay source has no profiles recorded: asking would only fail.
+        batch: this.sources.kind === 'replay' ? 0 : this.peopleNamesBatch,
+        budget: this.sources.dailyBudget ?? null,
+        bulkPercent: 'error' in shares ? DEFAULT_TIER_SHARES.bulk : shares.bulk,
+        requestsToday: await this.runs.requestsToday(source.provider, now),
+      });
+      this.log.log('people names', {
+        event: 'ingest.people_names',
+        provider: source.provider,
+        asked: sweep.asked,
+        answered: sweep.answered,
+        written: sweep.written,
+        kept: sweep.kept,
+        ...(sweep.idle === undefined ? {} : { idle: sweep.idle }),
+      });
+      const partial = sweep.refused.join('; ');
+      return {
+        job: 'people_names',
+        provider: source.provider,
+        itemsSeen: sweep.answered,
+        itemsWritten: sweep.written,
+        ...(partial === '' ? {} : { partial }),
+      };
+    });
   }
 
   /**
