@@ -10332,3 +10332,100 @@ fact. *Deduplicating on read*: the boards would still count the repeat.
 
 **Production.** Nothing to set. The migration re-queues the affected
 fixtures' detail; the figures and the live states change with the deploy.
+
+## D-213 — Full player names from the provider's player profile
+**Status:** Accepted · 2026-10-12 (the one-off provider backfill approved by the maintainer on 2026-10-12: about 16,000 people at one request each, in the bulk tier) · **Task:** T-1398 · **Follows:** D-039, D-079, D-176, D-183, D-210, rules 1, 2, 3, 10
+
+**Context.** 16,097 of production's 23,706 people (2026-10-12) are stored
+under an initial and a surname ("M. Salah"): a person is adopted under the
+name the line-ups, events and player statistics carry (D-079), and those
+answers carry only the short form. The player page's title, its search
+result and every list showed "M. Salah". T-1395 (D-210) made the match
+page's lists consistent by shortening the full names, and reported that
+full names everywhere needed the provider's player records. API-Football's
+player profile (`/players/profiles?player=`) carries `firstname`
+("Mohamed") and `lastname` ("Salah Hamed Mahrous Ghaly") as well as the
+short `name`.
+
+**Decision.**
+1. **The adapter.** `getPersonProfile(id)`, optional like `getSquad`, one
+   request and no season, mapped to `NormalisedPersonProfile { externalId,
+   fullName, givenName, familyName }` in `api-football/map.ts`
+   (`mapPersonProfile`): entities decoded (the provider sends
+   "O&apos;Neill"; six stored names carry one), whitespace collapsed, and
+   `null` -- no profile -- unless both names hold a letter. The provider's
+   shape never leaves the adapter.
+2. **What is written.** `person.full_name` becomes the name in full as a
+   reader knows it: the given name each initial stands for and the short
+   form's surname, in the profile's spelling ("Mohamed Salah", "Ronald
+   Araújo" for "R. Araujo", "Gabriel Jesus" for "G. Jesus") -- never the
+   legal `firstname lastname` ("Mohamed Salah Hamed Mahrous Ghaly"), which
+   nobody reading a team sheet knows him by; that one is kept in the ask
+   record only. `known_as` is untouched (it is null for every person today),
+   so the display name (`known_as ?? full_name`) everywhere becomes the full
+   name with no API, contract or page change.
+3. **Only where the profile agrees with the short form.** The short form's
+   surname must be a run of the profile's family names, compared without
+   accents or case ("Salah" in "Salah Hamed Mahrous Ghaly"; "Alexander" is
+   not "Alexander-Arnold"), and each initial the first letter of one of the
+   given names, in order (several initials take as many given names: "A.
+   S. Vaz dos Ramos" is "António Sérgio Vaz dos Ramos", 183 people).
+   Otherwise the name is left alone and the reason recorded
+   (`family_name_differs`, `initial_differs`, `no_profile`, `name_kept`).
+   The written name must be Latin-script whole words, as the stored one
+   must be: never a Latin name over another script's, nor the reverse.
+4. **The short form stays searchable.** It is kept as an `entity_alias` row
+   (universal, kind `abbreviation`, source the provider, decoded): search
+   reads aliases of every kind (D-039), so "M. Salah" still finds Mohamed
+   Salah. Not a new column: the alias table is where other spellings live.
+5. **A name a person chose is never overwritten.** No path writes
+   `person.full_name` by hand today: the catalogue tool inserts it once,
+   from the feed, and audits `catalog.person_added` with the name it used
+   (every one of production's 23,706 still matches its adoption record).
+   So provenance is read from the audit log: a person with any other
+   audited action, or whose adoption recorded another name than the one
+   stored, or with `known_as` set, is never asked about; and the write is a
+   compare-and-set on the name the job read, so a name changed meanwhile is
+   kept (`name_kept`). Persian names are `entity_alias` rows (`fa`), which
+   the job never touches.
+6. **The job.** `people_names`, an ingestion job like `squads`
+   (`internal/person-names.ts`, `internal/person-name-store.ts`), every ten
+   minutes at minutes 4, 14 ... 54 (off the other jobs' minutes). Each run
+   asks at most `INGESTION_PEOPLE_NAMES_BATCH` profiles (50 unless set, at
+   most 200, 0 off), never past the bulk share of the day's budget (D-183:
+   the job's own allowance stops at `API_FOOTBALL_BUDGET_BULK_PERCENT`, and
+   the transport refuses the bulk tier there too), and asks nothing new
+   after 30 seconds: the ingestion worker runs one job at a time, so a live
+   tick waits behind this job at most that long. A quota refusal ends the
+   run. Candidates: mapped to the provider, stored name matching the short
+   form, never answered, not asked in the last 24 hours, fewer than five
+   asks.
+7. **The record (rule 10).** `audit_log` needs a user as its actor and no
+   system actor exists, so each person's ask is recorded in
+   `person_name_fetch` (migration `1765857000000`): asked and answered
+   times, attempts, the outcome and its reason, the name before and after
+   and the profile's legal name; and each run in `ingest_run` (requests,
+   `items_written` the names written, refusals in `error`). The migration's
+   down section puts back every short name still in place and drops the
+   aliases.
+
+**Cost.** One request per person: about 16,100 for the backlog, plus one
+per person adopted later. At the default 50 a run, 144 runs a day, 7,200 a
+day: the backlog takes about 2.3 days. Production spent 2,500 to 11,000 of
+its 70,000 a day in the week before, so the bulk ceiling (49,000) is not
+near.
+
+**Rejected.** *Writing the legal full name*: "Mohamed Salah Hamed Mahrous
+Ghaly" on a team sheet is a name nobody uses. *A `short_name` column*: the
+alias table already does it, and search already reads it. *Matching by the
+profile's own short `name`*: it would add a second agreement test the
+consistency rule already makes, and reject people for punctuation.
+*Running the backlog in the post-match run's slot*: it would compete with
+the detail backlog inside one run's time. *Asking `/players?id=&season=`*:
+it needs a season and carries a page of statistics per competition for the
+same two names.
+
+**Production.** Nothing to set: the default batch is the approved pace.
+`INGESTION_PEOPLE_NAMES_BATCH=0` stops it; a higher value (at most 200)
+finishes sooner and holds the live tick longer per run. Progress:
+`docs/14-maintainer.md` §15.
