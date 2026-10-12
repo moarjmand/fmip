@@ -25,6 +25,7 @@ export {
   type FeedOptions,
   type FeedProblem,
   type ParsedFeed,
+  decodeEntities,
   parseFeed,
   readFeed,
 } from './news/feed';

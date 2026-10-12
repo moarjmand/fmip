@@ -12,6 +12,7 @@ import type {
   NormalisedFixtureDetail,
   NormalisedLineup,
   NormalisedLiveFixture,
+  NormalisedPersonProfile,
   NormalisedSeasonCoverage,
   NormalisedStanding,
   Provider,
@@ -141,11 +142,20 @@ export interface ProviderAdapter {
    * One request. Optional, like `getSquad`, and not a replayed call.
    */
   getSeasonCoverage?(query: StandingsQuery): Promise<AdapterResult<NormalisedSeasonCoverage>>;
+  /**
+   * A person's name in full, from the provider's player profile (T-1398).
+   * One request. `null` when the provider answered without a usable profile
+   * (no such player, or a blank given or family name). Optional, like
+   * `getSquad`, and not a replayed call.
+   */
+  getPersonProfile?(
+    personExternalId: string,
+  ): Promise<AdapterResult<NormalisedPersonProfile | null>>;
 }
 
 export type AdapterCall = Exclude<
   keyof Omit<ProviderAdapter, 'manifest'>,
-  'getSquad' | 'getSeasonCoverage'
+  'getSquad' | 'getSeasonCoverage' | 'getPersonProfile'
 >;
 
 export const ADAPTER_CALLS: readonly AdapterCall[] = [

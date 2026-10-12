@@ -19,6 +19,7 @@ import type {
   NormalisedLineup,
   NormalisedLineupPlayer,
   NormalisedPeriod,
+  NormalisedPersonProfile,
   NormalisedPlayerStat,
   NormalisedSeasonCoverage,
   NormalisedSideLineup,
@@ -31,6 +32,7 @@ import type {
   StageKind,
   StatMetric,
 } from '../../normalised';
+import { decodeEntities } from '../../news/feed';
 import { groupOfLabel } from '../_group';
 import { incidentDetail } from '../_incident-detail';
 
@@ -697,6 +699,46 @@ export function mapSquad(response: unknown, teamExternalId: string): EntityRef[]
     }
   }
   return out;
+}
+
+/**
+ * A name as the provider wrote it, made plain: HTML entities decoded (the
+ * provider sends some, "O&apos;Neill"), whitespace collapsed. `null` when
+ * nothing with a letter in it is left.
+ */
+function plainName(value: unknown): string | null {
+  const s = str(value);
+  if (s === null) return null;
+  const plain = decodeEntities(s).replace(/\s+/g, ' ').trim();
+  return /\p{L}/u.test(plain) ? plain : null;
+}
+
+/**
+ * `/players/profiles?player=` (T-1398): one entry whose `player` carries
+ * `id`, `name` (the short form, "M. Salah"), `firstname` ("Mohamed") and
+ * `lastname` ("Salah Hamed Mahrous Ghaly"). Only the entry for the player
+ * asked about counts, and only with both a given and a family name: half a
+ * name is not a full one, so it is `null`, as is an empty answer.
+ */
+export function mapPersonProfile(
+  response: unknown,
+  personExternalId: string,
+): NormalisedPersonProfile | null {
+  if (!Array.isArray(response)) return null;
+  for (const item of response) {
+    const player = rec(rec(item).player);
+    if (id(player.id) !== personExternalId) continue;
+    const givenName = plainName(player.firstname);
+    const familyName = plainName(player.lastname);
+    if (givenName === null || familyName === null) return null;
+    return {
+      externalId: personExternalId,
+      fullName: `${givenName} ${familyName}`,
+      givenName,
+      familyName,
+    };
+  }
+  return null;
 }
 
 /**
