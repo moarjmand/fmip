@@ -50,6 +50,30 @@ export interface DuplicateRule {
   threshold: number;
 }
 
+/** When two reports with the same headline are one report (T-1396, D-211). */
+export interface SameHeadlineRule {
+  /** How far apart in time they may be. */
+  window: string;
+  /** Trigram similarity their summaries must reach when both have one, 0..1. */
+  summaryAgreement: number;
+}
+
+/** `lower(host)` without `www.`, of a URL column, in SQL (mirrors `siteHost`). */
+export const HOST_OF = (column: string): string =>
+  `lower(regexp_replace(substring(${column} from '^[a-zA-Z][a-zA-Z0-9+.-]*://([^/:?#]+)'), '^www\\.', ''))`;
+
+/**
+ * Whether two summaries let two equal headlines be one report: either has
+ * none, or they read alike. Two different pieces a publisher gives the same
+ * generic headline ("Offense, defense, coaching report card") differ here.
+ */
+const SUMMARIES_AGREE = (a: string, b: string, threshold: string): string =>
+  `(${a} IS NULL OR ${b} IS NULL OR similarity(news_text_key(${a}), news_text_key(${b})) >= ${threshold})`;
+
+/** An article's time: its first publication, else when it was first fetched. */
+const FIRST_AT = (alias: string): string =>
+  `COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = ${alias}.id), ${alias}.fetched_at)`;
+
 /**
  * The folded, whole-word form of a name: `search_key` (lower-cased, unaccented,
  * Arabic-folded) with every run of non-letters made one space, so "Paris
@@ -198,6 +222,89 @@ export class PostgresNewsStore {
     }
   }
 
+  /** Whether the source already has the item, by the identity its feed gave it. */
+  async knownItem(sourceId: string, externalId: string): Promise<boolean> {
+    const { rows } = await this.pool.query<{ found: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM article WHERE source_id = $1 AND external_id = $2) AS found`,
+      [sourceId, externalId],
+    );
+    return rows[0]?.found === true;
+  }
+
+  /**
+   * Stored article URLs, from any source, that contain `fragment` (a page's
+   * host and path, as `articleUrlKey` begins): candidates the caller compares
+   * by key. A narrowing, never the decision.
+   */
+  async urlsLike(fragment: string): Promise<string[]> {
+    const { rows } = await this.pool.query<{ url: string }>(
+      `SELECT url FROM article WHERE url ILIKE $1`,
+      [`%${fragment.replace(/[\\%_]/g, (c) => `\\${c}`)}%`],
+    );
+    return rows.map((r) => r.url);
+  }
+
+  /**
+   * The article in which the same publisher -- this source, or another row
+   * on the same site -- already carries a report with this headline (folded
+   * as the linker folds it) within the window of `at`, with a summary that
+   * agrees; `null` when there is none (T-1396, D-211). One page reached by
+   * two addresses, or listed by two of the publisher's feeds, is one report.
+   */
+  async samePublisherReport(
+    sourceId: string,
+    item: { headline: string; summary: string | null; at: string },
+    rule: SameHeadlineRule,
+  ): Promise<string | null> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      `WITH me AS (
+         SELECT id, ${HOST_OF('homepage_url')} AS host FROM news_source WHERE id = $1
+       )
+       SELECT b.id
+         FROM article_version bv
+         JOIN article b ON b.id = bv.article_id
+         JOIN news_source bs ON bs.id = b.source_id
+         CROSS JOIN me
+        WHERE news_text_key(bv.headline) = news_text_key($2::text)
+          AND news_text_key($2::text) <> ''
+          AND (b.source_id = me.id OR ${HOST_OF('bs.homepage_url')} = me.host)
+          AND ${SUMMARIES_AGREE('bv.summary', '$3::text', '$6::float8')}
+          AND ${FIRST_AT('b')} BETWEEN $4::timestamptz - $5::interval AND $4::timestamptz + $5::interval
+        LIMIT 1`,
+      [sourceId, item.headline, item.summary, item.at, rule.window, rule.summaryAgreement],
+    );
+    return rows[0]?.id ?? null;
+  }
+
+  /**
+   * The story in which another publisher already carries a report with the
+   * same headline as this article, within the window and with a summary that
+   * agrees -- a syndicated copy, or one story from two feeds -- or `null`
+   * (T-1396, D-211). Unlike `duplicateOf`, no linked team is needed: the same
+   * words are the same report, whatever it names.
+   */
+  async sameHeadlineStory(articleId: string, rule: SameHeadlineRule): Promise<string | null> {
+    const { rows } = await this.pool.query<{ story_id: string }>(
+      `WITH me AS (
+         SELECT a.id, a.source_id, a.story_id, ${FIRST_AT('a')} AS at FROM article a WHERE a.id = $1
+       )
+       SELECT b.story_id
+         FROM article_version mv
+         CROSS JOIN me
+         JOIN article_version bv ON news_text_key(bv.headline) = news_text_key(mv.headline)
+         JOIN article b ON b.id = bv.article_id
+        WHERE mv.article_id = $1
+          AND news_text_key(mv.headline) <> ''
+          AND b.id <> me.id AND b.source_id <> me.source_id AND b.story_id <> me.story_id
+          AND ${SUMMARIES_AGREE('mv.summary', 'bv.summary', '$3::float8')}
+          AND ${FIRST_AT('b')} BETWEEN me.at - $2::interval AND me.at + $2::interval
+        ORDER BY ${FIRST_AT('b')} ASC, b.id
+        LIMIT 1`,
+      [articleId, rule.window, rule.summaryAgreement],
+    );
+    return rows[0]?.story_id ?? null;
+  }
+
   /**
    * The item's category strings as the feed carried them this time (T-1002):
    * the stored set becomes this set, in the feed's order. True when anything
@@ -279,37 +386,30 @@ export class PostgresNewsStore {
   }
 
   /**
-   * Links the teams and competitions a headline names, by a whole-word match
-   * of the entity's own name or a recorded alias (rule 1: by id, never by
-   * guess), across every version the article has. Then the match: when
-   * exactly one fixture between the linked teams kicks off within the window
-   * of the article's time, the article is about it; two candidates link none.
-   * Then, when `rule.persons` is on, the persons of `PERSON_CANDIDATES`.
-   * Returns how many links the article has afterwards.
+   * Links the teams and competitions the article's headlines write as names
+   * (`news_named_entities`, T-1396, D-211): the entity's own name or a
+   * recorded alias as whole words, capitalised where the headline has case,
+   * and not inside a longer catalogued name written at the same place -- by
+   * id, never by name (rule 1), across every version the article has. The
+   * team and competition links become exactly that set, so a link an older
+   * rule made and this one would not is removed when the article is placed
+   * again. Then the match: when exactly one fixture between the linked teams
+   * kicks off within the window of the article's time, the article is about
+   * it; two candidates link none. Then, when `rule.persons` is on, the
+   * persons of `PERSON_CANDIDATES`. Returns how many links the article has
+   * afterwards.
    */
   async linkEntities(articleId: string, rule: LinkRule): Promise<number> {
     await this.pool.query(
-      `WITH headline AS (
-         SELECT ' ' || ${KEY('v.headline')} || ' ' AS text
-           FROM article_version v
-          WHERE v.article_id = $1
-       ),
-       candidate AS (
-         SELECT 'team' AS entity_type, t.id AS entity_id, t.name AS label FROM team t
-         UNION ALL
-         SELECT 'competition', c.id, c.name FROM competition c
-         UNION ALL
-         SELECT a.entity_type, a.entity_id, a.alias
-           FROM entity_alias a
-          WHERE a.entity_type IN ('team', 'competition')
-       ),
-       keyed AS (
-         SELECT entity_type, entity_id, ${KEY('label')} AS key FROM candidate
+      `WITH named AS (SELECT * FROM news_named_entities($1::uuid, $2::int, false)),
+       gone AS (
+         DELETE FROM article_entity e
+          WHERE e.article_id = $1 AND e.entity_type IN ('team', 'competition')
+            AND NOT EXISTS (SELECT 1 FROM named n
+                             WHERE n.entity_type = e.entity_type AND n.entity_id = e.entity_id)
        )
        INSERT INTO article_entity (article_id, entity_type, entity_id)
-       SELECT DISTINCT $1::uuid, k.entity_type, k.entity_id
-         FROM keyed k CROSS JOIN headline h
-        WHERE length(k.key) >= $2 AND position(' ' || k.key || ' ' IN h.text) > 0
+       SELECT $1::uuid, n.entity_type, n.entity_id FROM named n
        ON CONFLICT DO NOTHING`,
       [articleId, rule.minimumKeyLength],
     );
@@ -331,11 +431,17 @@ export class PostgresNewsStore {
             AND (SELECT count(*)
                    FROM fixture_participant p JOIN linked l ON l.team_id = p.team_id
                   WHERE p.fixture_id = f.id) = 2
+       ),
+       chosen AS (
+         SELECT id FROM candidate WHERE (SELECT count(*) FROM candidate) = 1
+       ),
+       gone AS (
+         DELETE FROM article_entity e
+          WHERE e.article_id = $1 AND e.entity_type = 'fixture'
+            AND e.entity_id NOT IN (SELECT id FROM chosen)
        )
        INSERT INTO article_entity (article_id, entity_type, entity_id)
-       SELECT $1::uuid, 'fixture', id
-         FROM candidate
-        WHERE (SELECT count(*) FROM candidate) = 1
+       SELECT $1::uuid, 'fixture', id FROM chosen
        ON CONFLICT DO NOTHING`,
       [articleId, rule.fixtureWindow],
     );

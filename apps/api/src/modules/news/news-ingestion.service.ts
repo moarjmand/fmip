@@ -1,11 +1,17 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { type NormalisedNewsItem, type Transport, readFeed } from '@fmip/ingestion';
+import {
+  type NormalisedNewsItem,
+  type Transport,
+  articleUrlKey,
+  nonArticleKind,
+  readFeed,
+} from '@fmip/ingestion';
 import { NEWS_TRANSPORT } from './internal/news-transport';
 import { type NewsSourceRow, PostgresNewsStore, type VersionFields } from './internal/news-store';
 import { NEWS_USER_AGENT, robotsAllows } from './internal/robots';
 import { PostgresStoryLabelStore } from './internal/story-label-store';
 import { type ImageRight, PostgresNewsImageStore } from './internal/news-image-store';
-import { NewsClusteringService } from './news-clustering.service';
+import { NewsClusteringService, SAME_HEADLINE } from './news-clustering.service';
 import { NewsImagesService } from './news-images.service';
 import { StoryTypeAlertsService } from './story-type-alerts.service';
 
@@ -178,6 +184,19 @@ export class NewsIngestionService {
       byline: item.byline,
       published_at: item.publishedAt,
     };
+    if (!(await this.store.knownItem(source.id, item.externalId))) {
+      // T-1396 (D-211): a new item is written only when it is an article the
+      // site does not already carry.
+      const leftOut = await this.leftOut(source, item, fields);
+      if (leftOut !== null) {
+        this.log.log('news item left out', {
+          event: 'news.left_out',
+          source: source.id,
+          reason: leftOut,
+        });
+        return false;
+      }
+    }
     const article = await this.store.upsertArticle(source.id, item.externalId, item.url);
     // T-1002: the publisher's categories as carried this time.
     const recategorised = await this.store.replaceCategories(article.id, item.categories);
@@ -212,6 +231,40 @@ export class NewsIngestionService {
       await this.alerts.tell(storyId);
     }
     return wrote;
+  }
+
+  /**
+   * Why a new item is not written, or `null` to write it (T-1396, D-211):
+   * its own headline says it is not an article (a live ticker, a guide to
+   * where to watch, a betting offer -- `nonArticleKind`); its page is one the
+   * site already carries under any source, by the page's identity
+   * (`articleUrlKey`: no tracking parameters, no `www.`, no fragment); or the
+   * same publisher already carries a report with this headline and an
+   * agreeing summary within the window (`SAME_HEADLINE`). An item seen
+   * before is never left out: its new words are a new version.
+   */
+  private async leftOut(
+    source: WritableSource,
+    item: NormalisedNewsItem,
+    fields: VersionFields,
+  ): Promise<string | null> {
+    const kind = nonArticleKind(item.headline);
+    if (kind !== null) return kind;
+    const key = articleUrlKey(item.url);
+    if (key !== null) {
+      const stored = await this.store.urlsLike(key.split('?')[0]!);
+      if (stored.some((url) => articleUrlKey(url) === key)) return 'page_already_carried';
+    }
+    const twin = await this.store.samePublisherReport(
+      source.id,
+      {
+        headline: fields.headline,
+        summary: fields.summary,
+        at: item.publishedAt ?? new Date().toISOString(),
+      },
+      SAME_HEADLINE,
+    );
+    return twin === null ? null : 'same_publisher_same_headline';
   }
 
   private report(

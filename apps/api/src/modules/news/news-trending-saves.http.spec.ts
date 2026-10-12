@@ -10,7 +10,7 @@ import { PostgresNewsStore } from './internal/news-store';
  * members who saved a story inside the window rank it beside the panel
  * discussion; a save older than the window is not counted; a save moved by a
  * cluster merge counts once; and the section stays within its query budget
- * -- two statements, well under a second -- over ten thousand saves.
+ * -- three statements, well under a second -- over ten thousand saves.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -26,8 +26,8 @@ const NO_FILTERS = {
   to: null,
   time_zone: 'UTC',
 };
-/** The section's query budget: the cards and their entities, whatever the table holds. */
-const QUERY_BUDGET = 2;
+/** The section's query budget: the cards, the copies among them (T-1396) and their entities, whatever the table holds. */
+const QUERY_BUDGET = 3;
 const TIME_BUDGET_MS = 1500;
 const BULK_MEMBERS = 100;
 const BULK_STORIES = 100;
