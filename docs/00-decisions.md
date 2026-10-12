@@ -10333,6 +10333,137 @@ fact. *Deduplicating on read*: the boards would still count the repeat.
 **Production.** Nothing to set. The migration re-queues the affected
 fixtures' detail; the figures and the live states change with the deploy.
 
+## D-211 — News filed by what a headline names, one report shown once, and no item that is not an article
+**Status:** Accepted · 2026-10-12 (agent, from a read-only audit of production's `/en` pages, at the maintainer's request) · **Task:** T-1396 · **Follows:** D-061, D-119, D-126, D-178, D-185, D-207, T-142, rules 1, 3
+
+**Context.** A walk of production's English news page (480 stories, its
+twelve newest pages), a team page and a competition page on 2026-10-12
+found three faults. (1) Stories filed under clubs they are not about. The
+linker matched a stored name as a word wherever a headline carried it:
+six headlines with the noun "derby" ("Ten-man Southampton beat Portsmouth
+in heated derby", three Brasileirão line-ups, a Rhine derby) under Derby
+County, whose stored name is "Derby" -- four of the five stories on its
+club page; "the Big Ten championship picture" and "Public League
+championship" under the Championship; "Inter Miami's Lionel Messi nets
+twice" under Inter as well as Inter Miami; "United's struggles deepen at
+Old Trafford" under Trafford; "What punishment could Vinicius Junior face"
+under Junior; "miss Europa League clash" under the Gibraltar club Europa,
+because the competition's stored name begins with "UEFA". (2) The same
+report twice: an Independent piece and Yahoo Sports' copy of it under the
+same headline (twice), Fox News and NewsBreak, Yardbarker and Yahoo, a
+USA Today-network piece on up to four of its local sites, one CBS Sports
+betting page at two slugs, one Tulsa World page at two paths. None of them
+linked a team, so the clustering rule, which needs the same linked teams,
+never compared them. No stored pair differed only by tracking parameters,
+but the direct feeds had no such check at all (GNews had one). (3) Items
+that are not articles: "Liverpool vs Manchester City LIVE: …", "Serie A
+Liveblog …", "Live updates: …", "How to watch …", "Where to watch … on
+TV", "… streaming and TV information for …", and "promo code" betting
+offers.
+
+**Decision.**
+1. **A name links where the headline writes it as a name** (migration
+   `1765855000000`, `news_named_entities`, called by
+   `PostgresNewsStore.linkEntities`). Still the headline only, every
+   version, a team's or competition's own name or a recorded alias as whole
+   words, at least `MINIMUM_NAME_LENGTH` letters, by id (rule 1). Two
+   conditions are added, both read from the headline itself:
+   - *Case.* The name's first word starts with a capital where the
+     headline has case at all: "derby" and "championship" in a sentence
+     are nouns. A script without case (Persian) and a headline with no
+     capital letter are not judged. Only the first word: names carry
+     particles ("Atlético de Madrid", "Inter Club d'Escaldes").
+   - *A longer name.* A place in the headline inside a longer catalogued
+     name written at the same place does not count: another team's or
+     competition's name or alias, a venue's name, a person's full or
+     known-as name. "Inter" inside "Inter Miami", "Trafford" inside "Old
+     Trafford", "Junior" inside "Vinícius Júnior", "Europa" inside "Europa
+     League". One place that passes is enough.
+   The team and competition links become exactly that set each time an
+   article is placed, so a link the older rule made goes when the article
+   is placed again, and the match link follows its two sides. The
+   migration applies the same function to every stored team and
+   competition link (`from_links`: only the entities already linked are
+   re-checked, which is everything the old rule could have linked) and
+   removes a match link one of whose sides went. `article_entity` carries
+   no trigger (it is not one of the `refuse_change_unless_article_gone`
+   tables), so this is a plain delete; articles, versions and stories are
+   untouched, and the down migration does not restore links that were
+   wrong. The migration also records "Champions League", "Europa League"
+   and "Conference League" as English aliases of the provider's leagues 2,
+   3 and 848, through `provider_mapping`.
+2. **One report is written once and listed once.** Two reports with the
+   same headline, folded as names are folded (`news_text_key`), within
+   `DUPLICATE_WINDOW` (48 h), are one report when their summaries agree:
+   either has none, or their trigram similarity is at least 0.6
+   (`SAME_HEADLINE`; calibrated on production's summaries: a copy 1.0, cut
+   to 85% 0.90, cut to under half 0.49 -- left apart; two pieces given one
+   generic headline, "Offense, defense, coaching report card" for Duke and
+   for North Carolina, 0.11; two written to one template 0.58).
+   - At the job, for an item seen for the first time
+     (`NewsIngestionService.writeItem`, so the feeds and GNews alike): not
+     written when its page is already carried under any source by
+     `articleUrlKey` (tracking parameters, `www.`, a trailing slash and the
+     fragment aside), or when the same publisher -- the source, or another
+     row on the same site -- already carries the same report. Another
+     publisher's copy is written and joins the first one's story
+     (`NewsClusteringService.place`, `sameHeadlineStory`, before the
+     team-based rule), so the card says "1 more report on this story".
+   - At read time, for what was stored before: a section reads twice its
+     page plus ten rows and leaves out a story whose report an earlier
+     story, from a carried source this reader is shown, already carries
+     (`PostgresNewsReadStore.copies`, one statement over the rows read, on
+     the new index `article_version_headline_key_idx`). Judged on the rows
+     read, not in the card's WHERE over every story: there it doubled the
+     newest-first query over 30,000 stories (2.4 s to 4.7 s); after the
+     read it is one indexed statement and the query keeps its cost.
+3. **An item whose own headline says it is not an article is left out**
+   (`nonArticleKind`, `@fmip/ingestion`): a live ticker ("LIVE" in
+   capitals; "live blog", "live updates", "live score", "score updates",
+   "live game thread", "as it happened"), a guide to where to watch or
+   listen ("how to watch", "where to watch", "where to stream", "streaming
+   and TV information", "what TV channel", "what channel is", "listen
+   live") and a betting offer ("promo code", "bonus bets"). The publisher's
+   own words only: "College Football Week 6 Live Winners and Losers" is an
+   article. The job does not write a new one; the lists do not show one
+   stored before (the same function). A report seen before keeps its new
+   versions whatever they say; the lists hide it while its headline is a
+   ticker's.
+
+**Not fixed, reported.** (a) American and Gaelic football: about one story
+in eight on `/en` (college football, the NFL, high-school football, GAA
+county finals) arrives through GNews despite `NOT NFL`, and those stories
+file "Georgia" (the US state) under the national team of Georgia. Telling
+the codes apart needs GNews' query changed and checked against the live
+service (the development host has no egress) or a rule over words no
+headline guarantees: a follow-up. (b) A country named as a place
+("Meanwhile in England", "return to Argentina", "From U-17 World Cup to
+Brazil") and a women's match under the men's national team ("Spain strike
+first and beat the United States") stay linked: no headline-only rule
+tells "to Spain" the place from "falls to Spain" the team. (c) A transfer
+story naming two clubs that meet within two days is linked to that match
+("Manchester United Are In The Mix To Sign This Atletico Madrid Winger",
+Atlético v Manchester United on 13 October). (d) "Fla-Flu, Derby and
+Gre-Nal: share your predictions" (the Derby Paulista, capitalised) still
+files under Derby, and "Junior boys soccer forward's hat trick" under
+Junior. (e) A Title Case headline ("… Battle To Derby Win") passes the
+case condition.
+
+**Rejected.** *A list of words that are never names* ("derby", "united",
+"city"): it grows with every league added, and still files "Derby" in
+"Fla-Flu, Derby and Gre-Nal"; the headline's own case and the catalogue's
+own longer names decide without one. *Every word of a name capitalised*:
+refuses "Atlético de Madrid". *A second linked entity required for a
+one-word name*: loses "Derby defeat 'one that got away' for Pompey" and
+most one-club headlines. *Merging the stored duplicates into one story by
+migration*: moves saves and changes story ids readers may hold; leaving
+the later copy out of the lists changes nothing stored. *Deleting stored
+non-articles*: a publisher's item goes only when the publisher is dropped
+(D-061).
+
+**Production.** Nothing to set. The migration re-checks every stored team,
+competition and match link once (only the entities already linked, a few
+per article); the job and the lists follow the new rules from the deploy.
 ## D-212 — A starter's place in the shape is stored, so every formation can be drawn on the pitch
 **Status:** Accepted · 2026-10-12 · **Task:** T-1397 · **Follows:** D-202, D-192, D-183, D-110
 
