@@ -203,6 +203,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       ] as const) {
         expect(await filed(headline, summary), headline).toEqual([]);
       }
+      // After a place word, the team where the words say so: a possessive, the
+      // verb before, another clause between them.
+      expect(await filed('Talking points from England’s 7-0 thrashing of Croatia')).toEqual(
+        sorted(ids.england, ids.croatia),
+      );
+      expect(
+        await filed('Lionel Messi bids tearful farewell to Argentina: ‘The most wonderful thing’'),
+      ).toEqual([ids.argentina]);
+      expect(
+        await filed('How Barcelona star was central to Spain’s press this international break'),
+      ).toEqual([ids.spain]);
+      // Production's "🚨XIs in: Portugal visit Denmark without Cristiano", with this spec's teams.
+      expect(await filed('🚨XIs in: Spain visit Czechia without Yamal')).toEqual(
+        sorted(ids.spain, ids.czechia),
+      );
       // A place word followed by a team word is the team (written for the spec).
       expect(await filed('Rashford back in England squad for Croatia trip')).toContain(ids.england);
     });

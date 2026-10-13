@@ -38,10 +38,15 @@
 --      ...), "v"/"vs" with another national team's name on its other side,
 --      or a fixture of that team within three days of the article. And never
 --      where the name follows a place preposition ("in Spain", "to Brazil",
---      "from England"), unless a team word follows it ("in England squad") or
---      "to" follows a result ("falls to Spain", "lost to Italy").
---   4. A one-word name that the team's own longer name or alias contains
---      ("Derby" in "Derby County") is a shortening (`news_team_written`):
+--      "from England"), unless a team's word follows it ("in England squad",
+--      "in Croatia drubbing", "from Germany duty"), it is a possessive ("from
+--      England's 7-0 thrashing", "from Wales' Nations League window"),
+--      another clause begins between them ("XIs in: Portugal visit
+--      Denmark"), or the verb before says the team ("falls to Spain",
+--      "farewell to Argentina", "retire from Portugal").
+--   4. A team's stored name of one word that its own longer name or alias
+--      contains ("Derby" in "Derby County") is the feed's shortening
+--      (`news_team_written`):
 --      where the headline's case says nothing about it -- the headline's first
 --      word, or a Title Case headline -- the summary must name the team (the
 --      longer name, or the short one capitalised mid-sentence); elsewhere it
@@ -206,16 +211,36 @@ CREATE FUNCTION news_team_written(
 DECLARE
   written text[] := public.news_written_words(headline);
   words text[];
+  -- What stands between word k-1 and word k, aligned with `written`: a colon,
+  -- a dash or a full stop there starts another clause.
+  gaps text[] := regexp_split_to_array(
+                   regexp_replace(public.unaccent('public.unaccent', headline), E'[ـً-ْٰ]', '', 'g'),
+                   '[[:alnum:]]+');
   n int := cardinality(public.news_folded_words(name));
   cased boolean := headline <> lower(headline);
   title boolean := public.news_title_case(headline);
   shortened boolean := n = 1 AND cardinality(COALESCE(own_longer, '{}')) > 0;
-  places_before text[] := ARRAY['in', 'to', 'from', 'across', 'around', 'throughout', 'inside', 'within', 'into'];
-  results text[] := ARRAY['lose', 'loses', 'lost', 'losing', 'fall', 'falls', 'fell', 'falling',
-                          'slip', 'slips', 'slipped', 'succumb', 'succumbs', 'succumbed', 'defeat', 'defeats', 'defeated'];
+  -- "in Spain", "to Brazil", "from England": the country as a place.
+  places_before text[] := ARRAY['in', 'to', 'from', 'across', 'around', 'throughout', 'within', 'into'];
+  -- "falls to Spain", "farewell to Argentina", "switch to Morocco": the team.
+  to_team text[] := ARRAY['lose', 'loses', 'lost', 'losing', 'fall', 'falls', 'fell', 'falling',
+                          'slip', 'slips', 'slipped', 'succumb', 'succumbs', 'succumbed',
+                          'farewell', 'goodbye', 'allegiance', 'switch', 'switches', 'switched',
+                          'commit', 'commits', 'committed', 'pledge', 'pledges', 'pledged'];
+  -- "retire from Portugal", "withdraws from Senegal": the team.
+  from_team text[] := ARRAY['retire', 'retires', 'retired', 'retiring', 'retirement',
+                            'withdraw', 'withdraws', 'withdrew', 'withdrawn', 'dropped', 'axed',
+                            'omitted', 'released', 'exit', 'exits', 'banned', 'suspended', 'calls'];
+  -- A team's word right after the name: "in England squad", "in Croatia
+  -- drubbing", "from Germany duty", "to Germany national team".
+  team_after text[] := ARRAY['squad', 'squads', 'camp', 'side', 'team', 'national', 'international',
+                             'duty', 'manager', 'coach', 'boss', 'captain', 'debut', 'shirt', 'spot',
+                             'call', 'win', 'wins', 'victory', 'defeat', 'draw', 'loss', 'drubbing',
+                             'thrashing', 'rout', 'game', 'match', 'clash', 'tie', 'fixture', 'career'];
   i int;
   after text;
   previous text;
+  before_previous text;
 BEGIN
   IF headline IS NULL OR n = 0 THEN
     RETURN false;
@@ -224,6 +249,7 @@ BEGIN
   FOREACH i IN ARRAY public.news_name_places(headline, name, longer) LOOP
     after := COALESCE(words[i + n], '');
     previous := COALESCE(words[i - 1], '');
+    before_previous := COALESCE(words[i - 2], '');
     -- An age group right after the name is the youth side's, not the senior team's.
     CONTINUE WHEN is_senior AND (after ~ '^u[0-9]{2}s?$' OR after = 'youth'
                               OR (after IN ('u', 'under') AND COALESCE(words[i + n + 1], '') ~ '^[0-9]{2}s?$'));
@@ -236,11 +262,17 @@ BEGIN
       END IF;
     END IF;
     IF is_national THEN
-      -- A place: "in Spain", "to Brazil" -- unless a team word follows
-      -- ("in England squad") or "to" follows a result ("falls to Spain").
+      -- A place: "in Spain", "to Brazil" -- unless another clause begins
+      -- between them ("XIs in: Portugal visit Denmark"), the name is a
+      -- possessive ("from England's 7-0 thrashing"), a team's word follows
+      -- ("in England squad"), or the verb before says the team ("falls to
+      -- Spain", "retire from Portugal").
       CONTINUE WHEN previous = ANY (places_before)
-        AND NOT (previous = 'to' AND i > 2 AND words[i - 2] = ANY (results))
-        AND NOT (after IN ('squad', 'squads', 'camp', 'side', 'team', 'manager', 'coach', 'boss', 'debut', 'shirt'));
+        AND COALESCE(gaps[i], ' ') !~ '[:;|.!?–—]'
+        AND after <> 's' AND COALESCE(gaps[i + n], '') !~ '^[''’]'
+        AND NOT (after = ANY (team_after))
+        AND NOT (previous = 'to' AND before_previous = ANY (to_team))
+        AND NOT (previous = 'from' AND before_previous = ANY (from_team));
       CONTINUE WHEN NOT (public.news_national_context(words, i, n, nations) OR fixture_near);
     END IF;
     RETURN true;
@@ -337,8 +369,8 @@ CREATE OR REPLACE FUNCTION news_named_entities(p_article uuid, p_minimum int, p_
        WHERE t.kind = 'national'
     ),
     judged AS (
-      SELECT hit.entity_type, hit.entity_id, hit.label, hit.key, t.id AS team_id, t.kind, t.gender,
-             t.age_group
+      SELECT hit.entity_type, hit.entity_id, hit.label, hit.key, t.id AS team_id, t.name AS team_name,
+             t.kind, t.gender, t.age_group
         FROM hit
         LEFT JOIN team t ON hit.entity_type = 'team' AND t.id = hit.entity_id
     )
@@ -358,7 +390,7 @@ CREATE OR REPLACE FUNCTION news_named_entities(p_article uuid, p_minimum int, p_
                                    UNION
                                    SELECT a2.alias FROM entity_alias a2
                                     WHERE a2.entity_type = 'team' AND a2.entity_id = j.team_id) o
-                            WHERE news_text_key(o.label) <> j.key
+                            WHERE j.key = news_text_key(j.team_name) AND news_text_key(o.label) <> j.key
                               AND position(' ' || j.key || ' ' IN ' ' || news_text_key(o.label) || ' ') > 0),
                           j.kind = 'national', j.age_group = 'senior', nations.keys,
                           j.kind = 'national' AND EXISTS (
