@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { GNEWS_SOURCE_ID } from './internal/gnews-store';
 import { NO_FILTERS, PostgresNewsReadStore } from './internal/news-read-store';
 import { NEWS_TRANSPORT } from './internal/news-transport';
 import { NewsIngestionService } from './news-ingestion.service';
@@ -232,11 +233,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news dedupe 
       headline: string,
       summary: string | null,
       publishedAt: string,
+      via: string | null = null,
     ): Promise<string> {
       const src = await pool.query<{ id: string }>(
-        `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language)
-         VALUES ($1, $2, NULL, 'licensed', 'summary', 'en') RETURNING id`,
-        [`Stored ${site} ${randomUUID()}`, `https://${site}/`],
+        `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language, via_source_id)
+         VALUES ($1, $2, NULL, 'licensed', 'summary', 'en', $3) RETURNING id`,
+        [`Stored ${site} ${randomUUID()}`, `https://${site}/`, via],
       );
       sources.push(src.rows[0]!.id);
       // The story and its article in one statement: no other spec ever sees an empty story.
@@ -315,6 +317,28 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news dedupe 
       const listed = page.cards.map((c) => c.story_id);
       expect(listed).not.toContain(ticker);
       expect(listed).not.toContain(guide);
+    });
+
+    it('does not list an item a search brought about another code of football (T-1400)', async () => {
+      // As GNews stored it on 2026-10-10, under a publisher reached through the search.
+      const nfl = await stored(
+        `vcstar-old-${RUN}.test`,
+        `Falcons EDGE ruled out vs. Ravens in Week 5 ${TEAM_NAME}`,
+        "Falcons downgrade EDGE Za'Darius Smith for Sunday Night Football game vs. Ravens",
+        '2026-10-10T15:00:00Z',
+        GNEWS_SOURCE_ID,
+      );
+      // A publisher's own feed is not judged by it: the Independent's piece on Kane.
+      const feed = await stored(
+        `independent-old-nfl-${RUN}.test`,
+        `MLS boss urges Harry Kane to follow Messi and Beckham before NFL dream ${TEAM_NAME}`,
+        null,
+        '2026-10-10T15:05:00Z',
+      );
+      const page = await reader.latest({ ...NO_FILTERS, team: TEAM }, 'en', null, 50);
+      const listed = page.cards.map((c) => c.story_id);
+      expect(listed).not.toContain(nfl);
+      expect(listed).toContain(feed);
     });
   });
 });
