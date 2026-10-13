@@ -2,6 +2,7 @@ import type { AdapterResult, NormalisedPersonProfile, ProviderAdapter } from '@f
 import { describe, expect, it } from 'vitest';
 import {
   MAX_PEOPLE_NAMES_BATCH,
+  PEOPLE_NAMES_ASK_GAP_MS,
   PEOPLE_NAMES_BATCH,
   fullNameFromProfile,
   parseShortForm,
@@ -194,6 +195,7 @@ const base = {
   budget: 70_000,
   bulkPercent: 70,
   requestsToday: 1_000,
+  wait: () => Promise.resolve(),
 };
 
 describe('the people names sweep', () => {
@@ -221,7 +223,7 @@ describe('the people names sweep', () => {
     expect(store.limit).toBe(50);
   });
 
-  it('records a failed ask for a later retry, and stops at a quota refusal', async () => {
+  it('retries a failed ask later; a quota refusal stops the run, uncounted', async () => {
     const store = new FakeStore();
     store.due = [person(1), person(2), person(3)];
     const calls: string[] = [];
@@ -237,7 +239,7 @@ describe('the people names sweep', () => {
       ),
     });
     expect(calls).toEqual(['1', '2']);
-    expect(store.asked).toEqual(['p1', 'p2']);
+    expect(store.asked).toEqual(['p1']);
     expect(store.answers).toEqual([]);
     expect(sweep.refused).toHaveLength(2);
     expect(sweep.asked).toBe(2);
@@ -284,5 +286,33 @@ describe('the people names sweep', () => {
     } as unknown as ProviderAdapter;
     await sweepPeopleNames({ ...base, store, adapter, clock: () => now, runMs: 30_000 });
     expect(calls).toEqual(['1', '2']);
+  });
+
+  it('waits between asks, never before the first', async () => {
+    const store = new FakeStore();
+    store.due = [person(1), person(2), person(3)];
+    const events: string[] = [];
+    const adapter = {
+      getPersonProfile: (id: string) => {
+        events.push(`ask ${id}`);
+        return Promise.resolve(ok(null));
+      },
+    } as unknown as ProviderAdapter;
+    await sweepPeopleNames({
+      ...base,
+      store,
+      adapter,
+      wait: (ms) => {
+        events.push(`wait ${ms}`);
+        return Promise.resolve();
+      },
+    });
+    expect(events).toEqual([
+      'ask 1',
+      `wait ${PEOPLE_NAMES_ASK_GAP_MS}`,
+      'ask 2',
+      `wait ${PEOPLE_NAMES_ASK_GAP_MS}`,
+      'ask 3',
+    ]);
   });
 });
