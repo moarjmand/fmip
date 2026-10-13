@@ -10642,3 +10642,133 @@ same two names.
 `INGESTION_PEOPLE_NAMES_BATCH=0` stops it; a higher value (at most 200)
 finishes sooner and holds the live tick longer per run. Progress:
 `docs/14-maintainer.md` §15.
+
+## D-215 — Association football only from GNews, a national team only as a team, and English names for the remaining clubs
+**Status:** Accepted · 2026-10-13 (agent, from a read-only audit of production at the maintainer's request) · **Task:** T-1400 · **Follows:** D-185, D-207, D-210, D-211, rules 1, 3, 4
+
+**Context.** D-211 left five faults open, all seen on production's `/en`
+on 2026-10-12. (1) Of the 515 stories GNews had brought, 226 named
+another code of football in their own words (college, high-school and NFL
+American football, Gaelic games), and many more read "Michigan football"
+or "Week 7 scoreboard" with no other clue; they filed "Georgia" (the US
+state) under the national team of Georgia. A read-only check of GNews
+itself (4 requests of the free plan's 100, one of them refused as too
+fast; titles and counts only, the key never printed) answered `(football
+OR soccer) NOT NFL` with 5 items of 10 about another code, `soccer OR
+"Premier League" OR … OR UEFA` with 10 of 10 association football, and
+`football` from publishers in the United Kingdom (`country=gb`) with 10 of
+10. (2) A country named as a place ("Messi buys a club in Spain",
+"Meanwhile in England", "return to Argentina", "From U-17 World Cup to
+Brazil") and women's football ("Russo named England player of the year",
+the WSL and the Women's Champions League under Arsenal and Manchester
+City, the USWNT under Spain: 72 English links) were filed under men's
+teams, and age groups ("Spain U21s", "England u19s") under the senior
+side. (3) "Derby" as a word ("Fla-Flu, Derby and Gre-Nal", "In The East
+Anglia Derby", "Derby weekend …", "Derby defeat 'one that got away' for
+Pompey", whose summary is about Southampton) under Derby County, and
+"Junior boys soccer …" under the Colombian club Junior. (4) The English
+site still named about 170 clubs as the feed does ("Derby", "Sheffield
+Utd", "ST Mirren", "Atletico-MG", "SHANGHAI SIPG"). (5) Found on the way:
+GNews had asked nothing since 2026-10-11 20:05 UTC. That run was left open
+by a process that stopped mid-run, and the one-open-run index refused every
+later run of the source without a row.
+
+**Decision.**
+1. **Two GNews searches in turn** (`GNEWS_SEARCHES`, `gnewsSearchFor`, by
+   the day's requests so far): "soccer" and the names of competitions no
+   other code uses, from publishers anywhere; and "football" from UK
+   publishers only. The bare word from publishers anywhere is not asked
+   again. Same request count and budget (D-185).
+2. **Another code is left out by its own words** (`otherCodeOf`,
+   `@fmip/ingestion`): markers association football writing does not use
+   ("touchdown", "quarterback", "NFL", "college football", "GAA",
+   "hurling", "All-Ireland", "AFL", "rugby league", "wicket"), acronyms in
+   capitals only; never words both codes use ("interception", "overtime",
+   "handball", "fantasy football", "Monday Night Football", Sky's Premier
+   League slot). An item that says "soccer" is association football
+   whatever else it lists. The GNews job does not write such an item; the
+   lists hide one stored before, as D-211 hides non-articles, but only for a
+   publisher reached through a search (`news_source.via_source_id`): a
+   publisher's own football feed is not judged by it (the Independent's
+   "MLS boss urges Harry Kane … before NFL dream" stays). Applied to the 515
+   stored GNews stories it hides 226; it cannot hide the ones whose words
+   name no other code ("Iowa Hawkeyes football is now 5-1"), which the new
+   searches no longer bring and which age off the lists.
+3. **A team is linked as a team** (migration `1765860000000`,
+   `news_named_entities` with the same signature; competitions as in
+   D-211):
+   - a men's team only when no version's headline or summary names women
+     (`news_names_women`: "women", "Lionesses", "USWNT", "WSL", "UWCL",
+     "Frauen", "girls"), a women's team only when one does;
+   - not the senior side where an age group follows the name ("U21s",
+     "u19", "Under-23s", "youth");
+   - a national team only with football-team context at that place
+     (`news_national_context`): a team's word within three words ("squad",
+     "manager", "World Cup", "friendly", "Nations League", "XI", ...),
+     "v"/"vs" with another national team on the other side, or a fixture of
+     that team within three days of the article; and never right after a
+     place preposition ("in", "to", "from", "across", "around",
+     "throughout", "within", "into"), unless a team's word follows ("in
+     England squad", "in Croatia drubbing", "from Germany duty"), the name
+     is a possessive ("from England's 7-0 thrashing"), another clause begins
+     between them ("XIs in: Portugal visit Denmark"), or the verb before
+     says the team ("falls to Spain", "farewell to Argentina", "retire from
+     Portugal");
+   - a team's stored name of one word that its own longer name or alias
+     contains ("Derby" in "Derby County", "Junior" in "Atlético Junior") is
+     the feed's shortening: where the headline's case cannot tell it from
+     the word -- its first word, or a Title Case headline -- the summary must
+     name the team (the longer name, or the short one capitalised
+     mid-sentence after a lower-case word); elsewhere it must not follow
+     another capitalised word (a compound or a list of derbies). Only the
+     stored name: an English alias such as "Roma" for "AS Roma" is judged as
+     before.
+   The migration re-checks every stored team link by the new function and
+   removes the match links that lose a side. `article_entity` still has no
+   trigger (listed again in `pg_trigger`: of these tables only `article`
+   and `article_version` carry one, and neither is written). Checked offline
+   against production's 3,502 stored English team links (headlines,
+   summaries and team names read read-only): 72 go for naming women, 64 more
+   by the words (the place names, age groups and the Derby and Junior
+   headlines above; 13 others it could not judge, clubs linked through an
+   English alias it did not load); 534 national links stand only by a
+   fixture, which the offline check could not see.
+4. **English names for 167 more clubs** (migration `1765861000000`, source
+   `d215`), by the provider's team id as D-210: real oddities only, each
+   listed with the stored name -- a stored name that is also a word (Derby
+   County, Atlético Junior, NK Bravo, Europa FC), an abbreviation or a
+   letter case ("Sheffield Utd", "ST Mirren", "Estudiantes L.P.", "Vasco DA
+   Gama"), a misspelling or a former name (Athletico Paranaense, Shanghai
+   Port, WSG Tirol), an American city for its club (Austin FC, Charlotte
+   FC, San Diego FC), and the legal prefixes and suffixes D-210 drops, with
+   diacritics restored. City names English readers use for a club stay
+   ("Bolton", "Norwich"), as D-210 kept "Newcastle". A club with an English
+   name already is skipped. The migration then re-checks those clubs'
+   stored news links, since a longer name changes how the short one reads.
+5. **An abandoned run is closed** (`PostgresNewsStore.startFetch`): a run of
+   the same source open longer than `ABANDONED_AFTER` (15 minutes; a run
+   takes seconds) is closed as `failed`, "abandoned", before the new run
+   opens. Feeds and GNews alike. On production the next GNews run after the
+   deploy closes the 2026-10-11 row and asks again.
+
+**Not fixed, reported.** "Jordan Pickford defiant amid threat to England No
+1 spot" loses England (a place preposition with no team's word after);
+"Spain win in Croatia" drops Croatia (the match was in Croatia, against
+Croatia). A transfer story naming two clubs that meet within two days is
+still linked to that match (D-211 (c)). Stored GNews stories about American
+football that name no other code ("Michigan football …") stay listed until
+they age off.
+
+**Rejected.** *A list of American college and NFL team names*: endless and
+partly shared with association football clubs. *Judging by the publisher's
+country or host*: GNews gives no country per item, and a host says nothing
+of a piece's sport. *Dropping every stored GNews story*: most of them are
+association football. *Applying `otherCodeOf` to feeds*: their football
+section is the publisher's own statement, and "NFL" in a piece about Harry
+Kane is not American football news. *Requiring a second linked entity for
+a national team*: loses "Saka moves past Beckham after superb England
+display".
+
+**Production.** Nothing to set. The two migrations run with the deploy (the
+re-check reads every stored team link once); GNews asks the new searches
+from its next run.
