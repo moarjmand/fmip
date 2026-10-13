@@ -35,18 +35,58 @@ export const GNEWS_ENDPOINT = 'https://gnews.io/api/v4/search';
 export const GNEWS_MAX_ARTICLES = 10;
 
 /**
- * Association football in English. GNews' query syntax takes `OR`, `NOT` and
- * parentheses; American football is the one sense of the word that keeps
- * arriving otherwise. Matched in the title and the description only, so an
- * article that mentions football once in its body is not football news.
+ * Association football in English, in two searches the job takes in turn
+ * (T-1400, D-215). Both are matched in the title and the description only,
+ * so an article that mentions football once in its body is not football news.
+ *
+ * The bare word "football" is the problem: from American publishers it means
+ * American football, from Irish ones often Gaelic football, from Australian
+ * ones Australian rules. `(football OR soccer) NOT NFL` (T-1367) brought
+ * mostly college and high-school American football; a read-only check on
+ * production on 2026-10-12 found 5 of its 10 newest answers about another
+ * code. So:
+ *   - `GNEWS_SOCCER_QUERY`, from publishers anywhere: "soccer" and the names of
+ *     the competitions that no other code uses (10 of 10 association
+ *     football in the same check);
+ *   - `GNEWS_UK_FOOTBALL_QUERY`, "football" from publishers in the United
+ *     Kingdom only (GNews' `country=gb`), where the word means association
+ *     football (10 of 10).
+ * `otherCodeOf` still reads every item before it is written.
  */
-export const GNEWS_FOOTBALL_QUERY = '(football OR soccer) NOT NFL';
+export const GNEWS_SOCCER_QUERY =
+  'soccer OR "Premier League" OR "Champions League" OR "Europa League" OR "La Liga" OR "Serie A" OR Bundesliga OR "Ligue 1" OR MLS OR FIFA OR UEFA';
+
+export const GNEWS_UK_FOOTBALL_QUERY = 'football';
+
+/** One search: its words and, when it is limited to one country's publishers, that country. */
+export interface GNewsSearch {
+  query: string;
+  /** GNews' `country` (ISO 3166-1 alpha-2, lower case), or `null` for publishers anywhere. */
+  country: string | null;
+}
+
+export const GNEWS_SEARCHES: readonly GNewsSearch[] = [
+  { query: GNEWS_SOCCER_QUERY, country: null },
+  { query: GNEWS_UK_FOOTBALL_QUERY, country: 'gb' },
+];
+
+/**
+ * The search for a run, by how many requests the day has already spent: the
+ * two take turns, so each gets half the day's runs whatever the interval.
+ */
+export function gnewsSearchFor(requestsToday: number): GNewsSearch {
+  const index = Math.abs(Math.trunc(requestsToday)) % GNEWS_SEARCHES.length;
+  return GNEWS_SEARCHES[index]!;
+}
 
 export interface GNewsQuery {
   apiKey: string;
   /** ISO 639-1, as GNews takes it. */
   language: string;
+  /** The search's words; the first of `GNEWS_SEARCHES` when not given. */
   query?: string;
+  /** Publishers of one country only (`country`), or anywhere when absent or `null`. */
+  country?: string | null;
   max?: number;
 }
 
@@ -75,13 +115,14 @@ export interface ParsedGNews {
 /** The request URL. Holds the key: give it to the transport and nowhere else. */
 export function gnewsUrl(q: GNewsQuery): string {
   const params = new URLSearchParams({
-    q: q.query ?? GNEWS_FOOTBALL_QUERY,
+    q: q.query ?? GNEWS_SOCCER_QUERY,
     lang: q.language,
     max: String(Math.min(q.max ?? GNEWS_MAX_ARTICLES, GNEWS_MAX_ARTICLES)),
     in: 'title,description',
     sortby: 'publishedAt',
-    apikey: q.apiKey,
   });
+  if (q.country !== undefined && q.country !== null) params.set('country', q.country);
+  params.set('apikey', q.apiKey);
   return `${GNEWS_ENDPOINT}?${params.toString()}`;
 }
 

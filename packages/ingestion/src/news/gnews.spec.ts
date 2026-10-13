@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { Transport, TransportInit, TransportResponse } from '../adapters/_contract';
 import {
-  GNEWS_FOOTBALL_QUERY,
+  GNEWS_SOCCER_QUERY,
+  GNEWS_UK_FOOTBALL_QUERY,
   articleUrlKey,
+  gnewsSearchFor,
   gnewsUrl,
   parseGNews,
   readGNews,
@@ -103,7 +105,8 @@ describe('readGNews over the transport', () => {
     expect(result.requests).toBe(1);
     const url = new URL(asked[0]!.url);
     expect(url.origin + url.pathname).toBe('https://gnews.io/api/v4/search');
-    expect(url.searchParams.get('q')).toBe(GNEWS_FOOTBALL_QUERY);
+    expect(url.searchParams.get('q')).toBe(GNEWS_SOCCER_QUERY);
+    expect(url.searchParams.has('country')).toBe(false);
     expect(url.searchParams.get('lang')).toBe('en');
     expect(url.searchParams.get('max')).toBe('10');
     expect(url.searchParams.get('sortby')).toBe('publishedAt');
@@ -129,6 +132,22 @@ describe('readGNews over the transport', () => {
 
   it('builds the same URL it requests', () => {
     expect(gnewsUrl({ apiKey: 'k', language: 'en' })).toContain('in=title%2Cdescription');
+  });
+
+  it('takes the two searches in turn (T-1400, D-215)', async () => {
+    // The day's first request: soccer and the competitions, publishers anywhere.
+    expect(gnewsSearchFor(0)).toEqual({ query: GNEWS_SOCCER_QUERY, country: null });
+    // The next: "football" from publishers in the United Kingdom only.
+    expect(gnewsSearchFor(1)).toEqual({ query: GNEWS_UK_FOOTBALL_QUERY, country: 'gb' });
+    expect(gnewsSearchFor(2).country).toBeNull();
+    expect(gnewsSearchFor(47).country).toBe('gb');
+    const { transport, asked } = scripted(200, JSON.stringify(ANSWER));
+    await readGNews(transport, { apiKey: 'k', language: 'en', ...gnewsSearchFor(1) });
+    const url = new URL(asked[0]!.url);
+    expect(url.searchParams.get('q')).toBe('football');
+    expect(url.searchParams.get('country')).toBe('gb');
+    // No search asks for the bare word from publishers anywhere.
+    expect(GNEWS_SOCCER_QUERY).not.toMatch(/football/i);
   });
 });
 
