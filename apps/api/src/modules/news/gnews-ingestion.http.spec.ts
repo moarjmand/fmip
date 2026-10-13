@@ -323,6 +323,61 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('gnews ingest
     expect(JSON.stringify(rows)).not.toContain(KEY);
   });
 
+  it('takes the two searches in turn and leaves out another code of football (T-1400, D-215)', async () => {
+    const id = await aggregator();
+    transport.answer([]);
+    await service.run(ON, id);
+    const first = new URL(transport.asked.at(-1)!);
+    expect(first.searchParams.get('q')).toContain('soccer');
+    expect(first.searchParams.has('country')).toBe(false);
+
+    // The day's second request: "football" from UK publishers. Its answer
+    // carries one NFL item and one association football item (titles and
+    // descriptions as GNews brought them to production).
+    transport.answer([
+      {
+        title: `Bills rule out Ed Oliver, Joshua Palmer, wait on WR DJ Moore ${RUN}`,
+        description:
+          'Bills wide receiver DJ Moore returned to practice in a noncontact jersey and will be designated as questionable for "Monday Night Football" against the Rams.',
+        url: `https://bills-${RUN}.example/injuries`,
+        source: { name: `Bills Desk ${RUN}` },
+      },
+      {
+        title: `Jamie Carragher fumes Man City 'kidding' football ${RUN}`,
+        description: 'ERLING HAALAND sent the Manchester City fans bananas.',
+        url: `https://sun-${RUN}.example/carragher`,
+        source: { name: `Sun Desk ${RUN}` },
+      },
+    ]);
+    const second = await service.run(ON, id);
+    const asked = new URL(transport.asked.at(-1)!);
+    expect(asked.searchParams.get('q')).toBe('football');
+    expect(asked.searchParams.get('country')).toBe('gb');
+    expect(second).toMatchObject({ itemsSeen: 2, itemsWritten: 1 });
+    expect((await filed(id)).rows.map((r) => r.headline)).toEqual([
+      `Jamie Carragher fumes Man City 'kidding' football ${RUN}`,
+    ]);
+  });
+
+  it('closes a run a stopped process left open, instead of refusing every later run', async () => {
+    const id = await aggregator();
+    // Production's GNews row from 2026-10-11 20:05 UTC: opened, never closed.
+    await pool.query(
+      `INSERT INTO news_fetch (source_id, started_at) VALUES ($1, now() - interval '20 hours')`,
+      [id],
+    );
+    transport.answer([]);
+    expect(await service.run(ON, id)).toMatchObject({ partial: null });
+    const { rows } = await fetches(id);
+    expect(rows).toEqual([
+      expect.objectContaining({ status: 'failed', error: expect.stringContaining('abandoned') }),
+      expect.objectContaining({ status: 'succeeded' }),
+    ]);
+    // A run opened a moment ago is another process's, and still refuses.
+    await pool.query(`INSERT INTO news_fetch (source_id) VALUES ($1)`, [id]);
+    expect((await service.run(ON, id))!.partial).toBe('a fetch of this source was already open');
+  });
+
   it('asks nothing when its row is dropped', async () => {
     const id = await aggregator(true);
     const asked = transport.asked.length;

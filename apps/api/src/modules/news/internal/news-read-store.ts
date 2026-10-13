@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { TRENDING_WEIGHTS } from '@fmip/contracts';
-import { nonArticleKind } from '@fmip/ingestion';
+import { nonArticleKind, otherCodeOf } from '@fmip/ingestion';
 import type {
   NewsEntity,
   NewsFilters,
@@ -79,6 +79,8 @@ interface CardRow extends ImageColumns {
   source_id: string;
   source_name: string;
   homepage_url: string;
+  /** Whether the source is a publisher reached through a search (GNews), not its own feed. */
+  searched: boolean;
   rights: NewsRights;
   other_reports: number;
   story_type: StoryType | null;
@@ -556,7 +558,9 @@ export class PostgresNewsReadStore {
    * One section's page. The section read more rows than it shows (`fetch`);
    * those that are not to be listed go first (T-1396, D-211): an item whose
    * own headline says it is not an article (`nonArticleKind`, the job's rule,
-   * for what was stored before the job applied it), and a story whose report
+   * for what was stored before the job applied it), an item a search brought
+   * whose own words name another code of football (`otherCodeOf`, T-1400,
+   * D-215; a publisher's own feed is not judged by it), and a story whose report
    * an earlier story already carries (`copies`). `paged` sections say where
    * the next page begins: after the last card shown, or, when every row past
    * it was left out, after the last row read.
@@ -565,7 +569,10 @@ export class PostgresNewsReadStore {
     const { rows } = await this.pool.query<CardRow>(`${q.storyCard()} ${select}`, q.params);
     const copies = await this.copies(rows, q.locale);
     const listed = rows.filter(
-      (r) => nonArticleKind(r.headline) === null && !copies.has(r.story_id),
+      (r) =>
+        nonArticleKind(r.headline) === null &&
+        !(r.searched && otherCodeOf(r.headline, r.summary) !== null) &&
+        !copies.has(r.story_id),
     );
     const shown = listed.slice(0, limit);
     const read = rows.length === fetchSize(limit);
@@ -823,6 +830,7 @@ class Query {
     return `WITH story_card AS (
       SELECT s.id AS story_id, a.id AS article_id, a.url, a.fetched_at,
              src.id AS source_id, src.name AS source_name, src.homepage_url, src.rights,
+             src.via_source_id IS NOT NULL AS searched,
              v.headline, v.summary, v.byline, v.language, v.published_at, v.origin, v.review_state,
              COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
                       a.fetched_at) AS at,

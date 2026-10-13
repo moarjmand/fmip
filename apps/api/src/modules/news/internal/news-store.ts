@@ -58,6 +58,13 @@ export interface SameHeadlineRule {
   summaryAgreement: number;
 }
 
+/**
+ * How long a source's run may stay open before the next run closes it as
+ * abandoned (T-1400, D-215). A feed or GNews run takes seconds; the transport
+ * gives up on a request long before this.
+ */
+export const ABANDONED_AFTER = '15 minutes';
+
 /** `lower(host)` without `www.`, of a URL column, in SQL (mirrors `siteHost`). */
 export const HOST_OF = (column: string): string =>
   `lower(regexp_replace(substring(${column} from '^[a-zA-Z][a-zA-Z0-9+.-]*://([^/:?#]+)'), '^www\\.', ''))`;
@@ -160,8 +167,23 @@ export class PostgresNewsStore {
     return rows;
   }
 
-  /** Opens a run. Throws a unique violation when one is already open for the source. */
+  /**
+   * Opens a run. Throws a unique violation when one is already open for the
+   * source. A run left open longer than `ABANDONED_AFTER` is closed first as
+   * failed (T-1400, D-215): a run takes seconds, so one still open after that
+   * belongs to a process that stopped mid-run (a deploy), and left open it
+   * would refuse every later run of the source for good -- GNews stopped so on
+   * production from 2026-10-11 20:05 UTC.
+   */
   async startFetch(sourceId: string): Promise<string> {
+    await this.pool.query(
+      `UPDATE news_fetch
+          SET status = 'failed', finished_at = now(),
+              error = 'abandoned: still open after ${ABANDONED_AFTER}; the process running it stopped'
+        WHERE source_id = $1 AND status = 'running'
+          AND started_at < now() - interval '${ABANDONED_AFTER}'`,
+      [sourceId],
+    );
     const { rows } = await this.pool.query<{ id: string }>(
       `INSERT INTO news_fetch (source_id) VALUES ($1) RETURNING id`,
       [sourceId],

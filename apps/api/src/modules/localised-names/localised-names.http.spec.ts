@@ -30,6 +30,7 @@ const FIXTURE = randomUUID();
 const ALPHA_FA = `آلفا ${RUN}`;
 const LEAGUE_FA = `لیگ آزمایشی ${RUN}`;
 const MIGRATION = '1765853000000_english-club-names.sql';
+const MORE = '1765861000000_english-club-names-more.sql';
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
   '?locale= on every surface',
@@ -266,6 +267,87 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           [bayern],
         );
         expect(again.rowCount).toBe(1);
+      } finally {
+        await client.query('ROLLBACK');
+        client.release();
+      }
+    });
+
+    it('writes the remaining English club names by id and re-reads their news links (D-215)', async () => {
+      // Migration 1765861000000's up section, run again inside a transaction
+      // that is rolled back: "Derby" (the provider's 69) becomes Derby County,
+      // a club that already has an English name (62 here) keeps it, and a
+      // stored link the longer name now refuses ("Fla-Flu, Derby and Gre-Nal")
+      // goes. A database that already maps those ids is left alone.
+      const sql = readFileSync(
+        join(__dirname, '..', '..', '..', '..', '..', 'packages', 'db', 'migrations', MORE),
+        'utf8',
+      );
+      const up = sql.slice(0, sql.indexOf('-- Down Migration'));
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const { rowCount } = await client.query(
+          `SELECT 1 FROM provider_mapping
+            WHERE provider = 'api_football' AND entity_type = 'team' AND external_id IN ('69', '62')`,
+        );
+        if (rowCount !== 0) return;
+        const derby = randomUUID();
+        const sheffield = randomUUID();
+        await client.query(
+          `INSERT INTO team (id, name, kind, gender) VALUES
+           ($1, 'Derby', 'club', 'men'), ($2, 'Sheffield Utd', 'club', 'men')`,
+          [derby, sheffield],
+        );
+        await client.query(
+          `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id) VALUES
+           ('api_football', 'team', '69', $1), ('api_football', 'team', '62', $2)`,
+          [derby, sheffield],
+        );
+        await client.query(
+          `INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
+           VALUES ('team', $1, 'Sheffield United FC', 'en', 'name', 'test')`,
+          [sheffield],
+        );
+        const source = await client.query<{ id: string }>(
+          `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language)
+           VALUES ($1, 'https://names.test', NULL, 'licensed', 'summary', 'en') RETURNING id`,
+          [`Names ${RUN}`],
+        );
+        const story = await client.query<{ id: string }>(
+          `INSERT INTO story DEFAULT VALUES RETURNING id`,
+        );
+        const article = await client.query<{ id: string }>(
+          `INSERT INTO article (source_id, story_id, external_id, url)
+           VALUES ($1, $2, $3, $3) RETURNING id`,
+          [source.rows[0]!.id, story.rows[0]!.id, `https://names.test/${RUN}`],
+        );
+        const articleId = article.rows[0]!.id;
+        await client.query(
+          `INSERT INTO article_version (article_id, language, version_number, headline, summary, published_at)
+           VALUES ($1, 'en', 1, '⚔️ Fla-Flu, Derby and Gre-Nal: share your predictions for today’s derbies',
+                   'The Brasileirão will feature THREE derbies this Sunday.', now())`,
+          [articleId],
+        );
+        await client.query(
+          `INSERT INTO article_entity (article_id, entity_type, entity_id) VALUES ($1, 'team', $2)`,
+          [articleId, derby],
+        );
+        await client.query(up);
+        const { rows } = await client.query<{ entity_id: string; alias: string }>(
+          `SELECT entity_id::text, alias FROM entity_alias
+            WHERE entity_id = ANY($1::uuid[]) AND kind = 'name' AND language = 'en'
+            ORDER BY alias`,
+          [[derby, sheffield]],
+        );
+        expect(rows).toEqual([
+          { entity_id: derby, alias: 'Derby County' },
+          { entity_id: sheffield, alias: 'Sheffield United FC' },
+        ]);
+        const links = await client.query(`SELECT 1 FROM article_entity WHERE article_id = $1`, [
+          articleId,
+        ]);
+        expect(links.rowCount).toBe(0);
       } finally {
         await client.query('ROLLBACK');
         client.release();

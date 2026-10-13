@@ -31,19 +31,30 @@ export {
 } from './news/feed';
 // GNews, an English news search that names each article's own publisher (T-1367, D-185).
 export {
-  GNEWS_FOOTBALL_QUERY,
   GNEWS_MAX_ARTICLES,
+  GNEWS_SEARCHES,
+  GNEWS_SOCCER_QUERY,
+  GNEWS_UK_FOOTBALL_QUERY,
   type GNewsItem,
   type GNewsOptions,
   type GNewsPublisher,
   type GNewsQuery,
+  type GNewsSearch,
   type ParsedGNews,
   articleUrlKey,
+  gnewsSearchFor,
   gnewsUrl,
   parseGNews,
   readGNews,
   siteHost,
 } from './news/gnews';
+// Items about another sport that shares the word "football" (T-1400, D-215).
+export {
+  OTHER_CODE_RULES,
+  type OtherCode,
+  type OtherCodeRule,
+  otherCodeOf,
+} from './news/other-code';
 // Items whose own headline says they are not articles (T-1396, D-211).
 export {
   NON_ARTICLE_RULES,

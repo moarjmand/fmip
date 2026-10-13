@@ -1,5 +1,12 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { type Transport, articleUrlKey, readGNews, siteHost } from '@fmip/ingestion';
+import {
+  type Transport,
+  articleUrlKey,
+  gnewsSearchFor,
+  otherCodeOf,
+  readGNews,
+  siteHost,
+} from '@fmip/ingestion';
 import { NEWS_TRANSPORT } from './internal/news-transport';
 import { PostgresNewsStore } from './internal/news-store';
 import {
@@ -71,7 +78,10 @@ export function redact(text: string, apiKey: string): string {
 /**
  * English stories from GNews' free plan (T-1367, D-185).
  *
- * One request per run, to GNews' search for association football in English.
+ * One request per run, to GNews' search for association football in English:
+ * the two searches of `GNEWS_SEARCHES` in turn, by the day's requests so far
+ * (T-1400, D-215), and an item whose own words name another code of football
+ * (`otherCodeOf`: American, Gaelic, Australian, rugby league) is not written.
  * Each run is a `news_fetch` row of the GNews source -- opened before the
  * request, closed with the outcome -- so the console's news sources page
  * shows when GNews was last asked and what it said, and the day's ceiling is
@@ -168,9 +178,12 @@ export class GNewsIngestionService {
       return this.report(aggregator, 0, 0, `${BUDGET_SPENT} of ${config.dailyBudget} spent`);
     }
 
+    const search = gnewsSearchFor(spent);
     const result = await readGNews(this.transport, {
       apiKey: config.apiKey,
       language: aggregator.language,
+      query: search.query,
+      country: search.country,
     });
     if (!result.ok) {
       return this.report(
@@ -196,7 +209,13 @@ export class GNewsIngestionService {
     let written = 0;
     let duplicates = 0;
     let refused = 0;
+    let otherCode = 0;
     for (const [index, item] of items.entries()) {
+      // Another sport that shares the word (T-1400, D-215): not football news here.
+      if (otherCodeOf(item.headline, item.summary) !== null) {
+        otherCode += 1;
+        continue;
+      }
       const key = keys[index];
       if (key === null || key === undefined || carried.has(key)) {
         duplicates += 1;
@@ -221,12 +240,14 @@ export class GNewsIngestionService {
       if (await this.writer.writeItem(publisher, item, null)) written += 1;
     }
 
-    if (duplicates > 0 || refused > 0) {
+    if (duplicates > 0 || refused > 0 || otherCode > 0) {
       this.log.log('gnews items left out', {
         event: 'news.gnews_left_out',
         source: aggregator.id,
         already_carried: duplicates,
         publisher_dropped: refused,
+        other_code: otherCode,
+        search: search.country === null ? 'soccer' : `football_${search.country}`,
       });
     }
     const skipped =
