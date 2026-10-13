@@ -24,7 +24,10 @@
  * asks a run, none once the day's requests reach the bulk share of the
  * budget, and none past `PEOPLE_NAMES_RUN_MS` of wall-clock time, because the
  * ingestion worker runs one job at a time and the live job is waiting behind
- * this one.
+ * this one. The asks are spaced `PEOPLE_NAMES_ASK_GAP_MS` apart (T-1405): sent
+ * back to back, fifty profiles went out in two seconds and the provider
+ * refused that run, and the live and standings ticks after it, with its
+ * per-minute "rateLimit".
  */
 
 import {
@@ -40,6 +43,12 @@ export const PEOPLE_NAMES_BATCH = 50;
 export const MAX_PEOPLE_NAMES_BATCH = 200;
 /** No new ask once a run has taken this long: the live job is queued behind it. */
 export const PEOPLE_NAMES_RUN_MS = 30_000;
+/**
+ * The wait between two asks: at most four a second, so a full batch of fifty
+ * takes about 12 seconds and leaves most of the plan's 450 a minute to the
+ * other jobs (T-1405).
+ */
+export const PEOPLE_NAMES_ASK_GAP_MS = 250;
 /** How long after an unanswered ask a person is asked again. */
 export const PEOPLE_NAMES_RETRY_HOURS = 24;
 /** How many unanswered asks a person gets before the job stops asking. */
@@ -283,9 +292,15 @@ export async function sweepPeopleNames(input: {
   /** Milliseconds now; injected so a test can run the clock. */
   clock?: () => number;
   runMs?: number;
+  /** Waits between two asks; injected so a test does not sleep. */
+  wait?: (ms: number) => Promise<void>;
+  gapMs?: number;
 }): Promise<PeopleNamesSweep> {
   const { provider, adapter, store, now } = input;
   const clock = input.clock ?? Date.now;
+  const wait =
+    input.wait ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  const gapMs = input.gapMs ?? PEOPLE_NAMES_ASK_GAP_MS;
   const sweep: PeopleNamesSweep = { asked: 0, answered: 0, written: 0, kept: {}, refused: [] };
   if (adapter.getPersonProfile === undefined) {
     return { ...sweep, idle: `${provider} has no player profiles` };
@@ -309,17 +324,19 @@ export async function sweepPeopleNames(input: {
     return { ...sweep, idle: 'no person stored under a short name is owed an ask' };
 
   const deadline = clock() + (input.runMs ?? PEOPLE_NAMES_RUN_MS);
-  for (const person of due) {
+  for (const [index, person] of due.entries()) {
+    if (index > 0) await wait(gapMs);
     if (clock() >= deadline) break;
     const result = await adapter.getPersonProfile(person.externalId);
     sweep.asked += result.requests;
     if (!result.ok) {
-      await store.markPersonNameAsked(provider, person.personId);
       sweep.refused.push(
         `person ${person.externalId}: ${result.error.kind}: ${result.error.message}`,
       );
-      // The plan, or our own budget, has said no: nobody else will be answered today.
+      // The plan, or our own budget, has said no: nobody else is asked this run.
+      // The refusal says nothing about this person, so it costs them no attempt.
       if (result.error.kind === 'quota') break;
+      await store.markPersonNameAsked(provider, person.personId);
       continue;
     }
     sweep.answered += 1;
