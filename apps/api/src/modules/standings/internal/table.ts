@@ -106,3 +106,19 @@ function apply(t: Tally, scored: number, conceded: number): void {
     t.form.push('L');
   }
 }
+
+/**
+ * A group's table (T-1399, D-214): ranked over its results as `rankTable`
+ * ranks them, then only the group's own teams kept and numbered. A result
+ * against a team of another group (Argentina's interzonal matches) counts
+ * for the member who played it; the other side has a row in its own group.
+ */
+export function rankGroup(
+  results: readonly Result[],
+  members: readonly TableRow['team'][],
+): TableRow[] {
+  const ids = new Set(members.map((m) => m.id));
+  return rankTable(results, members)
+    .filter((row) => ids.has(row.team.id))
+    .map((row, index) => ({ ...row, position: index + 1 }));
+}

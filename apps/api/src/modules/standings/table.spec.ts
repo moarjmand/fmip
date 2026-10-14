@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FORM_WINDOW, type Result, rankTable } from './internal/table';
+import { FORM_WINDOW, type Result, rankGroup, rankTable } from './internal/table';
 
 const team = (id: string, name = id.toUpperCase()) => ({ id, name, shortName: null });
 
@@ -16,6 +16,28 @@ const result = (
   away: team(away),
   homeGoals,
   awayGoals,
+});
+
+describe('rankGroup (T-1399)', () => {
+  const member = (id: string) => ({ id, name: id.toUpperCase(), short_name: null });
+
+  it("counts a match against another zone for the group's own team only", () => {
+    // a and b are zone A; x is zone B and beat a in an interzonal match.
+    const rows = rankGroup(
+      [result(1, 'a', 'b', 1, 0), result(2, 'x', 'a', 3, 0)],
+      [member('a'), member('b')],
+    );
+    expect(rows.map((r) => [r.position, r.team.id, r.played, r.points])).toEqual([
+      [1, 'a', 2, 3],
+      [2, 'b', 1, 0],
+    ]);
+  });
+
+  it('is rankTable when every match is inside the group', () => {
+    const results = [result(1, 'a', 'b', 1, 1), result(2, 'b', 'a', 2, 0)];
+    const members = [member('a'), member('b')];
+    expect(rankGroup(results, members)).toEqual(rankTable(results, members));
+  });
 });
 
 describe('rankTable', () => {

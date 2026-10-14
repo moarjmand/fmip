@@ -70,14 +70,29 @@ export class PostgresStandingsStore {
 
   /**
    * Finished results of one group of a group stage (T-840): the stage's
-   * fixtures carrying that group's name.
+   * fixtures carrying that group's name, and (T-1399, D-214) the stage's
+   * fixtures carrying no group in which a team of the group played --
+   * Argentina's interzonal matches, which each zone's table counts for its
+   * own team. In an ordinary group stage every match has its group and the
+   * two are the same. The other side of such a match is not a member, so it
+   * is ranked out (`rankGroup`).
    */
   async groupResults(
     stageId: string,
     groupName: string,
     before: string | null,
   ): Promise<{ results: Result[]; lastUpdatedAt: string | null }> {
-    return this.results(`f.stage_id = $1 AND f.group_name = $2`, [stageId, groupName], before);
+    return this.results(
+      `f.stage_id = $1
+       AND (f.group_name = $2
+            OR (f.group_name IS NULL AND EXISTS (
+                  SELECT 1 FROM fixture g
+                    JOIN fixture_participant gp ON gp.fixture_id = g.id
+                   WHERE g.stage_id = $1 AND g.group_name = $2
+                     AND gp.team_id IN (h.team_id, a.team_id))))`,
+      [stageId, groupName],
+      before,
+    );
   }
 
   /**
@@ -124,8 +139,10 @@ export class PostgresStandingsStore {
   }
 
   /**
-   * Finished results matching `where` (over `f`, `c` and `st`) with their
-   * full-time score, kicked off before `before` when one is given.
+   * Finished results matching `where` (over `f`, `c`, `st` and the sides `h`
+   * and `a`) with their full-time score, kicked off before `before` when one
+   * is given. An awarded match with its awarded score counts as played, as
+   * the provider's tables count it (T-1399, D-214).
    */
   private async results(
     where: string,
@@ -160,7 +177,7 @@ export class PostgresStandingsStore {
          JOIN team ta ON ta.id = a.team_id
          JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
         WHERE ${where}
-          AND f.status = 'finished'
+          AND f.status IN ('finished', 'awarded')
           AND ($${at}::timestamptz IS NULL OR f.kickoff_at < $${at}::timestamptz)
         ORDER BY f.kickoff_at, f.id`,
       [...params, before],
