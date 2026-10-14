@@ -643,10 +643,16 @@ export class IngestStore implements SquadStore {
    * team the tables do not name is left as it is -- a group is never guessed.
    * A fixture of a stage that is not a group stage (a final between two teams
    * of one group, a play-off) is never given one. Returns the rows changed.
+   *
+   * `stageId` is the stage the tables are for when the provider names one
+   * (T-1399): Argentina's Apertura and Clausura each have a group A, and a
+   * team's Apertura zone says nothing of its Clausura matches. Null reads
+   * the tables across every group stage of the season, as before.
    */
   async assignGroups(
     seasonId: string,
     members: readonly { teamId: string; group: string }[],
+    stageId: string | null = null,
   ): Promise<number> {
     if (members.length === 0) return 0;
     const { rowCount } = await this.pool.query(
@@ -661,13 +667,13 @@ export class IngestStore implements SquadStore {
            JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
            JOIN member mh ON mh.team_id = h.team_id
            JOIN member ma ON ma.team_id = a.team_id
-          WHERE f.season_id = $1
+          WHERE f.season_id = $1 AND ($4::uuid IS NULL OR f.stage_id = $4::uuid)
        )
        UPDATE fixture f
           SET group_name = wanted.name
          FROM wanted
         WHERE f.id = wanted.id AND f.group_name IS DISTINCT FROM wanted.name`,
-      [seasonId, members.map((m) => m.teamId), members.map((m) => m.group)],
+      [seasonId, members.map((m) => m.teamId), members.map((m) => m.group), stageId],
     );
     return rowCount ?? 0;
   }
@@ -687,9 +693,21 @@ export class IngestStore implements SquadStore {
     round: string | null = null,
   ): Promise<string | null> {
     if (name !== null) {
+      // The named stage, unless an operator has split a round of it into a
+      // stage of its own (T-1399, D-214): Argentina's "Apertura - Round of
+      // 16" is read as stage "Apertura", and the stage "Apertura - Round of
+      // 16" (`catalog --add-stage`) keeps it out of the zones' tables. Only a
+      // stage named "<name> - ..." can outrank the name.
       const { rows } = await this.pool.query<{ id: string }>(
-        `SELECT id FROM stage WHERE season_id = $1 AND name = $2`,
-        [seasonId, name],
+        `SELECT id FROM stage
+          WHERE season_id = $1
+            AND (name = $2
+                 OR ($3::text IS NOT NULL
+                     AND left(name, length($2) + 3) = $2 || ' - '
+                     AND ($3 = name OR left($3, length(name) + 3) = name || ' - ')))
+          ORDER BY length(name) DESC
+          LIMIT 1`,
+        [seasonId, name, round],
       );
       return rows[0]?.id ?? null;
     }

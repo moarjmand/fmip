@@ -26,3 +26,27 @@ export function groupMembers(
     .filter((entry): entry is [string, string] => entry[1] !== null)
     .map(([teamId, group]) => ({ teamId, group }));
 }
+
+/**
+ * Each team's matches played in our table of the provider's group (T-1399):
+ * our groups with that name, in the stage the provider's table names when it
+ * names one we hold. Without one, every stage's group of that name is read,
+ * as before T-1399 -- one stage's group A is then the only group A there is.
+ * A team in no group of ours has no entry.
+ */
+export function groupPlayed(
+  ours: readonly {
+    stageId: string;
+    name: string;
+    rows: readonly { team: { id: string }; played: number }[];
+  }[],
+  table: { group: string | null; stageId: string | null },
+): Map<string, number> {
+  return new Map(
+    ours
+      .filter(
+        (g) => g.name === table.group && (table.stageId === null || g.stageId === table.stageId),
+      )
+      .flatMap((g) => g.rows.map((r) => [r.team.id, r.played] as const)),
+  );
+}

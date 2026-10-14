@@ -13,6 +13,32 @@
  */
 export function groupOfLabel(label: string | null): string | null {
   if (label === null) return null;
-  const match = /(?:^|[\s,\-_])group[\s_]+([a-z0-9]{1,3})\s*$/i.exec(label.trim());
+  const match = GROUP_SUFFIX.exec(label.trim());
   return match?.[1]?.toUpperCase() ?? null;
+}
+
+const GROUP_SUFFIX = /(?:^|[\s,\-_])group[\s_]+([a-z0-9]{1,3})\s*$/i;
+
+/**
+ * The stage a group table's label names before its group (T-1399, D-214):
+ * "Apertura - Group A" → "Apertura", "League A - Group 1" and "League A,
+ * Group 2" → "League A". Argentina's Liga Profesional has a group A in both
+ * its Apertura and its Clausura, and only this tells the two apart.
+ *
+ * Null when the label names no stage ("Group A") or is not a group's at all
+ * (`groupOfLabel` is null): a table is then compared across the season, as
+ * before. The name is the stage's as the adapter reads it from a round
+ * ("Apertura - 1" → "Apertura"), so it is looked up among the season's stages
+ * by name, never guessed.
+ */
+export function stageOfLabel(label: string | null): string | null {
+  if (label === null) return null;
+  const trimmed = label.trim();
+  const match = GROUP_SUFFIX.exec(trimmed);
+  if (match === null) return null;
+  const stage = trimmed
+    .slice(0, match.index)
+    .replace(/[\s,\-_]+$/, '')
+    .trim();
+  return stage === '' ? null : stage;
 }

@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { groupMembers } from './groups';
+import { groupMembers, groupPlayed } from './groups';
+
+describe('groupPlayed (T-1399)', () => {
+  // Argentina: the Apertura and the Clausura each have a group A.
+  const ours = [
+    { stageId: 'apertura', name: 'A', rows: [{ team: { id: 't1' }, played: 16 }] },
+    { stageId: 'clausura', name: 'A', rows: [{ team: { id: 't1' }, played: 12 }] },
+    { stageId: 'clausura', name: 'B', rows: [{ team: { id: 't2' }, played: 12 }] },
+  ];
+
+  it("reads the provider's group in the stage its table names", () => {
+    expect(groupPlayed(ours, { group: 'A', stageId: 'apertura' }).get('t1')).toBe(16);
+    expect(groupPlayed(ours, { group: 'A', stageId: 'clausura' }).get('t1')).toBe(12);
+    expect(groupPlayed(ours, { group: 'B', stageId: 'apertura' }).size).toBe(0);
+  });
+
+  it('reads every group of that name when the table names no stage, as before', () => {
+    const one = [ours[0]!, ours[2]!];
+    expect(groupPlayed(one, { group: 'A', stageId: null }).get('t1')).toBe(16);
+    expect(groupPlayed(one, { group: 'B', stageId: null }).get('t2')).toBe(12);
+  });
+});
 
 describe('groupMembers (T-1333)', () => {
   it("puts each team of the provider's group tables in its group", () => {
