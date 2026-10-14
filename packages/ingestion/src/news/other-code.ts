@@ -41,6 +41,111 @@ const START = '(^|[^A-Za-z0-9])';
 const END = '([^A-Za-z0-9]|$)';
 const words = (alternatives: string): string => `${START}(${alternatives})${END}`;
 
+/**
+ * US colleges whose football team the American press names "<college>
+ * football" (T-1411, D-217), from the stored GNews items that named no other
+ * code. Not a list of every college: the ones that reached us, and their
+ * conference rivals in the same items.
+ */
+const US_COLLEGES = [
+  'alabama',
+  'arizona state',
+  'arkansas',
+  'auburn',
+  'baylor',
+  'boise state',
+  'byu',
+  'cal',
+  'clemson',
+  'duke',
+  'florida',
+  'florida state',
+  'fresno state',
+  'fsu',
+  'georgia tech',
+  'gvsu',
+  'illinois',
+  'indiana',
+  'iowa',
+  'iowa state',
+  'iu',
+  'kansas',
+  'kansas state',
+  'kentucky',
+  'lsu',
+  'michigan',
+  'michigan state',
+  'mississippi state',
+  'missouri',
+  'msu',
+  'nebraska',
+  'northwestern',
+  'notre dame',
+  'ohio state',
+  'oklahoma',
+  'oklahoma state',
+  'ole miss',
+  'oregon',
+  'oregon ducks',
+  'oregon state',
+  'penn state',
+  'purdue',
+  'rutgers',
+  'south carolina',
+  'stanford',
+  'syracuse',
+  'tcu',
+  'tennessee',
+  'tennessee vols',
+  'texas',
+  'texas a&m',
+  'texas tech',
+  'ucla',
+  'uconn',
+  'ucf',
+  'usc',
+  'utah state',
+  'vanderbilt',
+  'virginia tech',
+  'wake forest',
+  'washington state',
+  'west virginia',
+  'wisconsin',
+  'wvu',
+].join('|');
+
+/** Their teams' nicknames, matched as written (capitalised). */
+const US_COLLEGE_NICKNAMES = [
+  'Hawkeyes?',
+  'Buckeyes',
+  'Crimson Tide',
+  'Longhorns',
+  'Sooners',
+  'Seminoles',
+  'Razorbacks',
+  'Tar Heels',
+  'Fighting Irish',
+  'Nittany Lions',
+  'Cornhuskers',
+  'Huskers?',
+  'Jayhawks',
+  'Boilermakers',
+  'Hoosiers',
+  'Hokies',
+  'Demon Deacons',
+  'Yellow Jackets',
+  'Gamecocks',
+  'Horned Frogs',
+  'Red Raiders',
+  'Sun Devils',
+  'Golden Gophers',
+  'Fighting Illini',
+  'Scarlet Knights',
+  'Wolverines',
+  'Utes',
+  'Vols',
+].join('|');
+
 export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
   // "Bills rule out Ed Oliver ...", "Kansas football vs Utah", "OHSAA Division III playoffs".
   {
@@ -81,6 +186,29 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
       ].join('|'),
     ),
     caseSensitive: false,
+  },
+  // T-1411 (D-217): a US college's name or nickname, the words that carry most
+  // of the GNews items that name no other code ("Iowa Hawkeyes football is now
+  // 5-1", "Florida football vs South Carolina", "Grading Penn State football").
+  // A college's name counts only directly before "football" -- "Kansas State
+  // football", "Indiana football's" -- since many of them are also places;
+  // none here is a place or a club association football writes that way
+  // (Georgia, Washington, Miami, Minnesota, Utah, Colorado, Monmouth are
+  // left out: a national team, a club's city, a Welsh club).
+  {
+    code: 'american_football',
+    pattern: words(`(${US_COLLEGES})(['’]s)? football`),
+    caseSensitive: false,
+  },
+  // Their nicknames, written as names (capitalised), which no association
+  // football club in English writing carries.
+  { code: 'american_football', pattern: words(US_COLLEGE_NICKNAMES), caseSensitive: true },
+  // A US school's own team ("Marshfield High football", "JV football", "prep
+  // football"), and the field goal and wide receiver in capitals.
+  {
+    code: 'american_football',
+    pattern: words('(High|JV|[Vv]arsity|[Pp]rep) [Ff]ootball|FGs?|WRs?'),
+    caseSensitive: true,
   },
   // "Nemo Rangers v Carrigaline ... Cork Senior Football Championship semi".
   { code: 'gaelic_games', pattern: words('GAA|LGFA'), caseSensitive: true },

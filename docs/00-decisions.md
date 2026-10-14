@@ -10823,3 +10823,99 @@ display".
 **Production.** Nothing to set. The two migrations run with the deploy (the
 re-check reads every stored team link once); GNews asks the new searches
 from its next run.
+
+## D-217 — The news links D-215 left open: a shirt number, an away host, a match only by its words, and US college football by name
+**Status:** Accepted · 2026-10-14 (agent, from D-215's "not fixed, reported" list) · **Task:** T-1411 · **Follows:** D-211, D-215, rules 1, 3
+
+**Context.** D-215 reported four faults it did not fix. (1) "Jordan Pickford
+defiant amid threat to England No 1 spot" loses England: "to England" reads
+as a place, and "No" is not a team's word. (2) "Spain win in Croatia" loses
+Croatia, the opponent and host, by the same place rule. (3) A transfer story
+naming two clubs that meet within two days is filed under their match
+(D-211's rule: one fixture between the linked teams in the window). (4)
+Stored GNews items about American football whose words name no other code
+("Iowa Hawkeyes football is now 5-1", "Florida football vs South Carolina")
+stay listed until they age off.
+
+**Decision.**
+1. **A national team before a shirt number or a role** (migration
+   `1765864000000`, `news_shirt_number`, `news_national_context`): a shirt
+   number right after the name or its possessive ("England No 1",
+   "France's No 1", "No.9", "number one") is the team's, after a place
+   preposition too; so is a captain's, a goalkeeper's or a cap's word
+   ("England captain", "Germany keeper", "first England cap",
+   "Argentina captaincy"). Only right after the name: "Everton goalkeeper
+   Jordan Pickford" does not name Jordan, and "No. 2 Georgia" ranks a
+   college.
+2. **The away host is the opponent when the two meet** (a ten-argument
+   `news_team_written` with `opponents`, the folded names and aliases of
+   the national teams of the same gender this one meets within three days):
+   "<nation> win/beat/lose/draw/held/victory/defeat in <nation>", possessive
+   allowed, links the second as a team when the two have a fixture within
+   three days of the article; otherwise "in <nation>" stays a place
+   ("England draw in Spain" when they do not meet). The nine-argument form
+   stays for the down migration and is no longer called.
+3. **A match link needs the article to be about a match**
+   (`news_match_context(headline, summary)`, `news_about_match(article)`;
+   `PostgresNewsStore.linkEntities` asks it before choosing the one
+   fixture): "v"/"vs"/"versus", a scoreline ("2-1", "2:1"), team news,
+   line-ups, kick-off, half or full time, highlights or a match report
+   anywhere; otherwise a match's word ("against", "clash", "preview",
+   "report", "host", "face", "win", "beat", "draw", "derby", "sent off",
+   ...) in a headline that has no transfer's word ("sign", "signing", "bid
+   for", "fee", "loan", "deal", "move to", "target", "transfer", "swap",
+   "contract", "in talks", "undergoes medical", ...), or in a summary when
+   neither has one. "A new signing" is a player already signed; "bid to
+   return to winning ways" and "move top" are not transfers; "Flick talks
+   Raphinha" is a press conference. Lists in English, German, Persian and
+   Portuguese, the languages the stored match links are in. The team links
+   stay: only the match goes.
+4. **US college football by its names** (`otherCodeOf`, `@fmip/ingestion`):
+   a US college's name directly before "football" ("Iowa State football",
+   "Indiana football's"), the colleges' nicknames as written (Hawkeyes,
+   Buckeyes, Crimson Tide, Longhorns, Seminoles, Vols, ...), a US school's
+   own team ("Marshfield High football", "JV football", "prep football")
+   and "FG"/"WR" in capitals. Places that are also a national team, a
+   club's city or a club are not on the list (Georgia, Washington, Miami,
+   Minnesota, Utah, Colorado, Monmouth); nicknames English clubs carry are
+   left out (Tigers, Eagles, Owls, Spartans, Bulldogs). Applied to GNews
+   items only, as D-215: the job does not write such an item and the lists
+   hide one stored before.
+
+The migration re-checks every stored team link by the new function, as
+`1765860000000` did (the rule only widens D-215's, so it removes nothing
+D-215 kept), then removes the match links that lose a side or whose
+article is not about a match. Links the wider rule would add are not
+written by the migration: an article gains them when it is placed again.
+
+**Measured on production (read-only, 2026-10-14).** Match links: of 594
+stored, 16 go -- transfer stories ("Liverpool told to push for double
+Manchester City transfer raid", "Exclusive: Barcelona make informal enquiry
+for 21-year-old Galatasaray talent", "بیرانوند: انتقال به استقلال؟") and
+pieces with no match in their words ("Galatasaray superstar Osimhen heaps
+praise on Barcelona", "تشکر سرمربی فولاد از ملوان برای دراختیار گذاشتن زمین
+تمرین"); two of the 16 are about the match in words the lists do not hold
+("رشیدی دست روی نقطه‌ضعف استقلال گذاشت/ تراکتور نباز نیست"). Team links:
+none removed; six stored articles would gain a national team when placed
+again (the Pickford headline, "Jude Bellingham can be England captain one
+day", "Scott wins first England cap", "former Germany keeper Bernd Leno",
+"Argentina captaincy group", "Spain win in Croatia"). GNews: of 717 stored
+search items, `otherCodeOf` now names 326 (226 before); the 100 more are all
+American college or high-school football, and the new rules name none of
+4,312 stored English feed items.
+
+**Rejected.** *A general "<place> football" rule*: association football
+writes "Wales football star", "Indian football", "English football".
+*Requiring match context for the team links too*: a transfer story is about
+both clubs. *A role's word on either side of the name*: "Everton
+goalkeeper Jordan Pickford". *Re-placing every stored article in the
+migration to add the new team links*: six articles; they are placed again
+with their next version, or age off.
+
+**Not fixed, reported.** US high-school teams named by their town ("Sidney
+football", "Hopewell Valley football") still pass `otherCodeOf`; GNews'
+current searches no longer bring them. A match story in words the lists do
+not hold loses its match link (two Persian headlines of the 16).
+
+**Production.** Nothing to set. The migration runs with the deploy and
+reads every stored team and match link once.

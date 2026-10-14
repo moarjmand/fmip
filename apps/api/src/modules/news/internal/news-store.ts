@@ -417,7 +417,10 @@ export class PostgresNewsStore {
    * rule made and this one would not is removed when the article is placed
    * again. Then the match: when exactly one fixture between the linked teams
    * kicks off within the window of the article's time, the article is about
-   * it; two candidates link none. Then, when `rule.persons` is on, the
+   * it; two candidates link none; and only when a version's headline and
+   * summary are about a match (`news_about_match`, T-1411, D-217): a
+   * transfer story naming both clubs keeps its team links, not the match.
+   * Then, when `rule.persons` is on, the
    * persons of `PERSON_CANDIDATES`. Returns how many links the article has
    * afterwards.
    */
@@ -455,7 +458,8 @@ export class PostgresNewsStore {
                   WHERE p.fixture_id = f.id) = 2
        ),
        chosen AS (
-         SELECT id FROM candidate WHERE (SELECT count(*) FROM candidate) = 1
+         SELECT id FROM candidate
+          WHERE (SELECT count(*) FROM candidate) = 1 AND news_about_match($1)
        ),
        gone AS (
          DELETE FROM article_entity e

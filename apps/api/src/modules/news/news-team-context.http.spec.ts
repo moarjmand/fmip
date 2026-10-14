@@ -35,6 +35,7 @@ const ids = {
   czechia: randomUUID(),
   senegal: randomUUID(),
   georgia: randomUUID(),
+  jordan: randomUUID(),
   derby: randomUUID(),
   junior: randomUUID(),
   arsenal: randomUUID(),
@@ -108,6 +109,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         [ids.czechia, 'Czechia', 'national', 'men'],
         [ids.senegal, 'Senegal', 'national', 'men'],
         [ids.georgia, 'Georgia', 'national', 'men'],
+        [ids.jordan, 'Jordan', 'national', 'men'],
         [ids.derby, 'Derby', 'club', 'men'],
         [ids.junior, 'Junior', 'club', 'men'],
         [ids.arsenal, 'Arsenal', 'club', 'men'],
@@ -132,6 +134,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       await fixture('2026-10-03T18:45:00Z', ids.spain, ids.czechia);
       await fixture('2026-10-03T23:00:00Z', ids.spainWomen, ids.croatia);
       await fixture('2026-10-06T00:00:00Z', ids.argentina, ids.brazil);
+      // T-1411: two clubs that meet the next day.
+      await fixture('2026-10-05T14:00:00Z', ids.arsenal, ids.watford);
       const src = await pool.query<{ id: string }>(
         `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language)
          VALUES ($1, 'https://context.test', NULL, 'licensed', 'summary', 'en') RETURNING id`,
@@ -310,6 +314,101 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       ] as const) {
         expect(await filed(headline, summary), headline).toEqual([ids.derby]);
       }
+    });
+
+    it('files a national team before a shirt number or as its captain (T-1411)', async () => {
+      // Production's headline: "to England" is not a place before "No 1".
+      expect(await filed('Jordan Pickford defiant amid threat to England No 1 spot')).toEqual([
+        ids.england,
+      ]);
+      // France plays nobody around this date, so the words alone must say the
+      // team (written for the spec).
+      expect(await filed('Maignan wants to remain France No 1')).toEqual([ids.france]);
+      expect(await filed('Maignan determined to stay France’s No 1 after Lyon blunder')).toEqual([
+        ids.france,
+      ]);
+      expect(await filed('Mbappe named France captain again by Deschamps')).toEqual([ids.france]);
+      // A role's word counts only after the name: production's headline names
+      // a player, not Jordan's goalkeeper.
+      expect(
+        await filed(
+          'Everton goalkeeper Jordan Pickford set for court case after pleading guilty to driving offence',
+        ),
+      ).toEqual([]);
+      // "no" with no number after it is not a shirt.
+      expect(await filed('France no longer the favourites, says Deschamps')).toEqual([]);
+    });
+
+    it('files the host a national team plays away only when the two meet (T-1411)', async () => {
+      // Spain and Czechia meet on 3 October: "in Czechia" is the opponent and host.
+      expect(await filed('Spain win in Czechia to top the group')).toEqual(
+        sorted(ids.spain, ids.czechia),
+      );
+      // England and Spain do not meet: "in Spain" stays a place.
+      expect(await filed('England draw in Spain as Kane rests')).toEqual([ids.england]);
+      // France plays nobody, Croatia plays England: neither is filed.
+      expect(await filed('France win in Croatia')).toEqual([]);
+    });
+
+    it('files a story under a match only when its words are about the match (T-1411)', async () => {
+      async function placed(headline: string, summary: string | null = null) {
+        const { id } = await store.upsertArticle(
+          source,
+          randomUUID(),
+          `https://context.test/${randomUUID()}`,
+        );
+        await store.addVersion(id, 'en', 1, { headline, summary, byline: null, published_at: AT });
+        stories.push(await store.storyOf(id));
+        await store.linkEntities(id, RULE);
+        const { rows } = await pool.query<{ n: string }>(
+          `SELECT count(*)::text AS n FROM article_entity
+            WHERE article_id = $1 AND entity_type = 'fixture' AND entity_id = ANY($2::uuid[])`,
+          [id, fixtures],
+        );
+        return { teams: await links(id), match: rows[0]!.n === '1', id };
+      }
+      const both = sorted(ids.arsenal, ids.watford);
+      // About the match: "v", a scoreline, a match's word in the headline, or
+      // in the summary (written for the spec).
+      for (const [headline, summary] of [
+        ['Arsenal v Watford: team news and predicted line-ups', null],
+        ['Arsenal beat Watford 3-0 at the Emirates', null],
+        ['Arsenal host Watford hoping to stay top', null],
+        [
+          'Arteta: Arsenal must respect Watford',
+          'The Arsenal manager looked ahead to Sunday’s game against Watford.',
+        ],
+      ] as const) {
+        expect(await placed(headline, summary), headline).toMatchObject({
+          teams: both,
+          match: true,
+        });
+      }
+      // A transfer story keeps both clubs and has no match, even where a
+      // match's word stands beside the transfer's.
+      for (const [headline, summary] of [
+        ['Arsenal sign Watford winger in £30m deal', null],
+        ['Arsenal in talks to sign Watford striker', null],
+        ['Arsenal beat Watford to signing of teenage wonderkid', null],
+        [
+          'Arsenal plan Watford raid',
+          'Arsenal are preparing a bid for the Watford striker before Sunday’s game between the sides.',
+        ],
+        // Neither a match's nor a transfer's word.
+        ['Arsenal and Watford fans raise money for charity', null],
+      ] as const) {
+        expect(await placed(headline, summary), headline).toMatchObject({
+          teams: both,
+          match: false,
+        });
+      }
+      // The migration's check of a stored match link is the same function.
+      const transfer = await placed('Arsenal sign Watford winger in £30m deal');
+      const { rows } = await pool.query<{ about: boolean }>(
+        `SELECT news_about_match($1) AS about`,
+        [transfer.id],
+      );
+      expect(rows[0]!.about).toBe(false);
     });
 
     it('re-checks the links already stored by the same rule, as the migration does', async () => {
