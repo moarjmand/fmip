@@ -10643,6 +10643,55 @@ same two names.
 finishes sooner and holds the live tick longer per run. Progress:
 `docs/14-maintainer.md` §15.
 
+## D-214 — A group table belongs to its stage, counts its teams' group-less matches, and an awarded match is played
+**Status:** Accepted · 2026-10-14 (agent, from the follow-up runs' standings findings of 2026-10-11..14) · **Task:** T-1399 · **Follows:** D-180, D-209, rules 3, 4
+
+**Context.** Production's hourly standings check has been `partial` since
+2026-10-11 on two competitions. Argentina's Liga Profesional: every club
+"provider 16 played, we have 9-11" (Apertura) and "provider 12 played, we
+have 9-11" (Clausura). API-Football labels its tables "Apertura - Group A"
+and "Clausura - Group A"; `groupOfLabel` kept only "A", so the two halves'
+zone A tables were assigned and compared as one across the season. Each
+round also has interzonal matches (a zone A club against a zone B club),
+which carry no group, so no zone's table counted them, though the
+provider's counts each for its own team. And the Apertura's knockout rounds
+sat inside the Apertura group stage. The Libertadores: Flamengo and
+Independiente Medellin "provider 6 played, we have 5" -- their match of
+2026-05-08 is `awarded`, and the tables counted `finished` only.
+
+**Decision.**
+1. **The stage a table names.** `stageOfLabel` reads the text before the
+   group ("Apertura - Group A" → "Apertura"; "League A - Group 1" → "League
+   A"); API-Football's `mapStandings` sets `NormalisedStanding.stage` with
+   it. The standings job looks the name up among the season's stages
+   (never guessed); a table whose stage we hold assigns groups only to that
+   stage's fixtures (`assignGroups(..., stageId)`) and is compared only with
+   our group of that name in that stage (`groupPlayed`). A table naming no
+   stage, or one we do not hold, is read across the season, as before.
+2. **Group-less matches of a group stage.** A group's results are its
+   matches plus the stage's matches with no group that one of its teams
+   played; `rankGroup` ranks them and keeps the group's own teams. In an
+   ordinary group stage every match has its group, so nothing changes
+   there. The coverage evidence owes a table for such a match too.
+3. **An operator's knockout stage wins its round.** `IngestStore.stageId`
+   returns a stage named "<stage> - ..." when it equals the round, or the
+   round begins with it, over the stage the adapter named: Argentina's
+   "Apertura - Round of 16" (stages added on production with
+   `catalog --add-stage`) leaves the Apertura's zones. Only such a prefixed
+   name can outrank the adapter's.
+4. **Awarded is played.** Every table counts an `awarded` match with its
+   stored full-time score, as the provider's tables do.
+
+**Rejected.** *Separate group names ("Apertura A")*: `group_name` would no
+longer be the group's own name that the match centre and D-180 show.
+*Counting an interzonal match in both zones' tables as rows*: each zone's
+table would list the other zone's club. *Leaving awarded matches out*: the
+table would disagree with the competition's own.
+
+**Production.** Nothing to run: the knockout stages already exist; the
+next season sweep moves the knockout fixtures into them, and the next
+standings run rewrites each half's zones.
+
 ## D-215 — Association football only from GNews, a national team only as a team, and English names for the remaining clubs
 **Status:** Accepted · 2026-10-13 (agent, from a read-only audit of production at the maintainer's request) · **Task:** T-1400 · **Follows:** D-185, D-207, D-210, D-211, rules 1, 3, 4
 
