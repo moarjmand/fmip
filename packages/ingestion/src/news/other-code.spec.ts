@@ -47,6 +47,42 @@ describe('otherCodeOf', () => {
     ],
     ['All-Ireland winner O’Connor announces Mayo retirement', null, 'gaelic_games'],
     ['England name Rugby League World Cup squad', null, 'rugby_league'],
+    // T-1411 (D-217): the stored items that named no other code before.
+    [
+      'Iowa Hawkeyes football is now 5-1 and can dream a little',
+      "The Hawkeyes' 41-24 pasting of Washington reminded the Register's Chad Leistikow ...",
+      'american_football',
+    ],
+    [
+      'How to watch Florida football vs South Carolina today, TV channel, streaming',
+      null,
+      'american_football',
+    ],
+    ['Takeaways from Iowa State football’s loss to No. 8 BYU', null, 'american_football'],
+    ['Grading Penn State football after White Out record loss to USC', null, 'american_football'],
+    ['20 Notes To Remember From FSU Football’s 44', null, 'american_football'],
+    [
+      'Live updates: Kalen DeBoer speaks after Alabama’s Georgia loss',
+      'Alabama football lost 20-17 against Georgia.',
+      'american_football',
+    ],
+    ['Tennessee vs. Arkansas: 3 Speed Threats the Vols Must Contain', null, 'american_football'],
+    [
+      'Adam Carriker’s Gut Reaction to a Heartbreaking Husker Loss to the Hoosiers',
+      null,
+      'american_football',
+    ],
+    ['Marshfield High football defeats Silver Lake', null, 'american_football'],
+    [
+      'Staten Island HS sports notebook: Tots girls’ swimmers continue to roll; Farrell, Curtis JV football post wins',
+      null,
+      'american_football',
+    ],
+    [
+      'Georgia Tech scores in final minute, Duke misses late FG in Jackets win',
+      null,
+      'american_football',
+    ],
   ])('%s -> %s', (headline, summary, code) => {
     expect(otherCodeOf(headline, summary)).toBe(code);
   });
@@ -76,6 +112,17 @@ describe('otherCodeOf', () => {
     ['Fantasy Premier League: the best captain picks for Gameweek 8', null],
     // An acronym in capitals only: "sec" and "td" in words do not count.
     ['Haaland scores 8 secs into the second half', null],
+    // T-1411: a college's name is a marker only directly before "football",
+    // and the places that are also national teams or clubs' cities are not
+    // colleges here (the first stood on production, the others are written
+    // for the spec).
+    ['Wales football star’s brother quits at 22 in crushing news after diagnosis', null],
+    ['Georgia football team stun Spain in Tbilisi', null],
+    ['Miami football fans pack the stadium for Messi’s farewell', null],
+    ['Indian football keeps finding hope at the U-17 World Cup', null],
+    ['Florida is the best place to watch the World Cup', null],
+    ['Arsenal hand a debut to their prep academy graduate', null],
+    ['A high football lands on the bar as Wolves hold Spurs', null],
   ])('%s is association football', (headline, summary) => {
     expect(otherCodeOf(headline, summary)).toBeNull();
   });
