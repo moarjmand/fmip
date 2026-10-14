@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 import type { CoverageState, Covered, GroupTable, TableRow } from '@fmip/contracts';
 import { covered } from '../fixtures/fixtures.service';
 import { PostgresStandingsStore, type BoardRow, type Scorer } from './internal/standings-store';
-import { rankTable } from './internal/table';
+import { rankGroup, rankTable } from './internal/table';
 
 // The module's public surface. Other modules import from this file only.
-export { FORM_WINDOW, rankTable, type Result } from './internal/table';
+export { FORM_WINDOW, rankGroup, rankTable, type Result } from './internal/table';
 export type { BoardRow, Scorer } from './internal/standings-store';
 
 /** The boards beyond goals as the standings boundary knows them (T-943): no minutes yet. */
@@ -67,7 +67,7 @@ export class StandingsService {
         ]);
         return {
           ...group,
-          rows: rankTable(results, participants),
+          rows: rankGroup(results, participants),
           teams: participants,
           counted: results.length,
           lastUpdatedAt,
@@ -118,7 +118,12 @@ export class StandingsService {
         : this.store.groupParticipants(group.stageId, group.name),
       this.store.declared(seasonId, 'standings'),
     ]);
-    const rows = results.length === 0 ? [] : rankTable(results, participants);
+    const rows =
+      results.length === 0
+        ? []
+        : group === null
+          ? rankTable(results, participants)
+          : rankGroup(results, participants);
     return {
       table: covered(rows, rows.length === 0, declared, lastUpdatedAt),
       counted: results.length,

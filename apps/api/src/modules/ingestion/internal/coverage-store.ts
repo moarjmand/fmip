@@ -58,12 +58,20 @@ const EVIDENCE: Record<CoverageModule, { expected: string; present: string }> = 
   // A group stage's matches owe their group's table too (T-1336), but only
   // those carrying a group name: the group tables count exactly those
   // (`groupResults`), and a match whose group nobody has said is in no table,
-  // so owing one for it would declare a gap no table could ever close.
+  // so owing one for it would declare a gap no table could ever close. A
+  // match with no group of a stage where one of its teams has a group
+  // (Argentina's interzonal matches, T-1399) is counted in that team's
+  // group, so it owes it too.
   standings: {
     expected: `f.status = 'finished' AND (
                  EXISTS (SELECT 1 FROM stage g WHERE g.id = f.stage_id AND g.kind = 'league')
-                 OR (f.group_name IS NOT NULL AND EXISTS (
-                       SELECT 1 FROM stage g WHERE g.id = f.stage_id AND g.kind = 'group'))
+                 OR (EXISTS (SELECT 1 FROM stage g WHERE g.id = f.stage_id AND g.kind = 'group')
+                     AND (f.group_name IS NOT NULL OR EXISTS (
+                       SELECT 1 FROM fixture_participant p
+                         JOIN fixture_participant gp ON gp.team_id = p.team_id
+                         JOIN fixture o ON o.id = gp.fixture_id
+                        WHERE p.fixture_id = f.id AND o.stage_id = f.stage_id
+                          AND o.group_name IS NOT NULL)))
                  OR (f.stage_id IS NULL AND EXISTS (
                        SELECT 1 FROM season se JOIN competition c ON c.id = se.competition_id
                         WHERE se.id = f.season_id AND c.kind = 'league')))`,

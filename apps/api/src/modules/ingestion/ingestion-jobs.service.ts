@@ -17,7 +17,7 @@ import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
 import { EntityResolverService } from './ingestion.service';
 import { DEFAULT_TIER_SHARES, parseTierShares, withBudgetTier } from './internal/budget-tier';
-import { groupMembers } from './internal/groups';
+import { groupMembers, groupPlayed } from './internal/groups';
 import {
   IngestStore,
   type PollTarget,
@@ -910,9 +910,12 @@ export class IngestionJobsService {
           // other end.
           const resolved: {
             group: string | null;
+            /** Our stage the provider's table names (T-1399); null when it names none we hold. */
+            stageId: string | null;
             rows: { name: string; played: number; teamId: string }[];
           }[] = [];
           let unmappedHere = 0;
+          const stageIds = new Map<string, string | null>();
           for (const table of tables) {
             const rows: { name: string; played: number; teamId: string }[] = [];
             for (const row of table.rows) {
@@ -927,17 +930,32 @@ export class IngestionJobsService {
               }
               rows.push({ name: row.team.name, played: row.played, teamId });
             }
-            resolved.push({ group: table.group, rows });
+            // A stage named and held scopes a group table to it (T-1399):
+            // Argentina's Apertura and Clausura each have a group A. A name
+            // we do not hold is read as no name -- compared as before.
+            let stageId: string | null = null;
+            if (table.group !== null && table.stage !== null) {
+              if (!stageIds.has(table.stage)) {
+                stageIds.set(table.stage, await this.store.stageId(seasonId, table.stage));
+              }
+              stageId = stageIds.get(table.stage) ?? null;
+            }
+            resolved.push({ group: table.group, stageId, rows });
           }
           unmapped += unmappedHere;
 
           const grouped = resolved.filter((t) => t.group !== null);
-          if (grouped.length > 0) {
+          // Each stage's tables assign that stage's groups; tables naming no
+          // stage assign across the season, as before.
+          for (const stageId of new Set(grouped.map((t) => t.stageId))) {
             written += await this.store.assignGroups(
               seasonId,
               groupMembers(
-                grouped.map((t) => ({ group: t.group, teamIds: t.rows.map((r) => r.teamId) })),
+                grouped
+                  .filter((t) => t.stageId === stageId)
+                  .map((t) => ({ group: t.group, teamIds: t.rows.map((r) => r.teamId) })),
               ),
+              stageId,
             );
           }
           const mine = new Map<string, number>();
@@ -951,14 +969,7 @@ export class IngestionJobsService {
           for (const table of resolved) {
             // A team's row in our table of the same group: a team in no
             // group of ours (its matches carry none yet) has no row.
-            const held =
-              table.group === null
-                ? mine
-                : new Map(
-                    ourGroups
-                      .filter((g) => g.name === table.group)
-                      .flatMap((g) => g.rows.map((r) => [r.team.id, r.played] as const)),
-                  );
+            const held = table.group === null ? mine : groupPlayed(ourGroups, table);
             for (const row of table.rows) {
               const ourPlayed = held.get(row.teamId);
               compared.push({ teamId: row.teamId, providerPlayed: row.played, ourPlayed });

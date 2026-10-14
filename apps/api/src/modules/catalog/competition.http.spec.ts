@@ -20,7 +20,14 @@ const OLD_SEASON = randomUUID();
 const NEW_SEASON = randomUUID();
 const OLD_STAGE = randomUUID();
 const NEW_STAGE = randomUUID();
-const TEAMS = { alpha: randomUUID(), beta: randomUUID(), gamma: randomUUID() };
+const TEAMS = {
+  alpha: randomUUID(),
+  beta: randomUUID(),
+  gamma: randomUUID(),
+  // T-1399: two sides in no group, for the League A match nobody grouped.
+  delta: randomUUID(),
+  epsilon: randomUUID(),
+};
 const SCORER = randomUUID();
 const OTHER_SCORER = randomUUID();
 const CUP = randomUUID();
@@ -103,14 +110,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     );
     await pool.query(
       `INSERT INTO team (id, name, short_name, kind, gender) VALUES
-         ($1, $4, 'ALP', 'club', 'men'), ($2, $5, 'BET', 'club', 'men'), ($3, $6, NULL, 'club', 'men')`,
+         ($1, $6, 'ALP', 'club', 'men'), ($2, $7, 'BET', 'club', 'men'), ($3, $8, NULL, 'club', 'men'),
+         ($4, $9, NULL, 'club', 'men'), ($5, $10, NULL, 'club', 'men')`,
       [
         TEAMS.alpha,
         TEAMS.beta,
         TEAMS.gamma,
+        TEAMS.delta,
+        TEAMS.epsilon,
         `Test Alpha ${RUN}`,
         `Test Beta ${RUN}`,
         `Test Gamma ${RUN}`,
+        `Test Delta ${RUN}`,
+        `Test Epsilon ${RUN}`,
       ],
     );
     await pool.query(
@@ -228,7 +240,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
 
     // T-1336: League A and League B, each a group stage; League A's groups
     // "2" (alpha beat beta) and "10" (not started), League B's "A" (a draw),
-    // and one finished League A match whose group nobody has said.
+    // and one finished League A match whose group nobody has said, between
+    // two sides in no group (a group-less match a member played is
+    // interzonal and counts for that member: T-1399, D-214).
     await pool.query(
       `INSERT INTO competition (id, name, kind, scope, gender)
        VALUES ($1, $2, 'cup', 'international', 'men')`,
@@ -262,7 +276,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     await groupFixture(LEAGUE_A, '2', TEAMS.alpha, TEAMS.beta, [1, 0]);
     await groupFixture(LEAGUE_A, '10', TEAMS.gamma, TEAMS.alpha, null);
     await groupFixture(LEAGUE_B, 'A', TEAMS.beta, TEAMS.gamma, [2, 2]);
-    await groupFixture(LEAGUE_A, null, TEAMS.gamma, TEAMS.beta, [5, 0]);
+    await groupFixture(LEAGUE_A, null, TEAMS.delta, TEAMS.epsilon, [5, 0]);
   });
 
   afterAll(async () => {
