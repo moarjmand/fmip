@@ -803,6 +803,33 @@ describe('a standings table names its group (T-1333)', () => {
       '2026-10-01T00:00:00Z',
     );
     expect(tables.map((t) => t.group)).toEqual(['1', '2', 'B', 'C']);
+    expect(tables.map((t) => t.stage)).toEqual(['League A', 'League A', null, null]);
+  });
+
+  it("reads the stage a group belongs to (T-1399): Argentina's two zones in each half", () => {
+    const tables = mapStandings(
+      groupBody([
+        'Apertura - Group A',
+        'Apertura - Group B',
+        'Clausura - Group A',
+        'Clausura - Group B',
+      ]),
+      '2026-10-01T00:00:00Z',
+    );
+    expect(tables.map((t) => [t.stage, t.group])).toEqual([
+      ['Apertura', 'A'],
+      ['Apertura', 'B'],
+      ['Clausura', 'A'],
+      ['Clausura', 'B'],
+    ]);
+  });
+
+  it('names no stage for a table that is not a group', () => {
+    const tables = mapStandings(
+      groupBody(['UEFA Nations League', 'Apertura', 'Group Stage']),
+      '2026-10-01T00:00:00Z',
+    );
+    expect(tables.map((t) => t.stage)).toEqual([null, null, null]);
   });
 
   it('gives no group to a table that is not one', () => {

@@ -264,6 +264,11 @@ export interface NormalisedStandingRow {
 export interface NormalisedStanding {
   competition: EntityRef;
   seasonLabel: string;
+  /**
+   * The stage the table belongs to, by the name our stages carry ("Apertura",
+   * "League A"; T-1399). Null when the provider names none: the table is then
+   * compared across the season's stages.
+   */
   stage: string | null;
   /**
    * The group's own name inside a group stage, as `fixture.group_name` holds
