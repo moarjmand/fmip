@@ -10672,7 +10672,9 @@ Independiente Medellin "provider 6 played, we have 5" -- their match of
    matches plus the stage's matches with no group that one of its teams
    played; `rankGroup` ranks them and keeps the group's own teams. In an
    ordinary group stage every match has its group, so nothing changes
-   there. The coverage evidence owes a table for such a match too.
+   there. The coverage evidence owes a table for such a match too. A
+   group-less match between two sides in no group still counts in no table
+   (T-1336's spec now plays that match between two such sides).
 3. **An operator's knockout stage wins its round.** `IngestStore.stageId`
    returns a stage named "<stage> - ..." when it equals the round, or the
    round begins with it, over the stage the adapter named: Argentina's
