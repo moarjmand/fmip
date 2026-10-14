@@ -524,6 +524,7 @@ export class IngestionJobsService {
       const answered = new Set<string>([target.seasonId]);
       for (const fixture of result.data) {
         const write = await this.store.saveFixture(source.provider, target, fixture, 'fixtures');
+        if (write.refused !== undefined) refused.push(`${target.seasonLabel}: ${write.refused}`);
         written += write.changed;
         if (write.seasonId !== undefined) {
           seasons.add(write.seasonId);
@@ -590,6 +591,7 @@ export class IngestionJobsService {
             const heldId = held.get(fixture.externalId)?.fixtureId;
             const before = heldId === undefined ? null : await this.alerts.before(heldId);
             const write = await this.store.saveFixture(source.provider, target, fixture, 'live');
+            if (write.refused !== undefined) refused.push(write.refused);
             written += write.changed;
             if (write.seasonId !== undefined) seasons.add(write.seasonId);
             for (const id of write.unresolved) unresolved.add(id);
@@ -846,7 +848,8 @@ export class IngestionJobsService {
       written += write.changed;
       unresolved.push(...write.unresolved);
     }
-    return { written, unresolved };
+    const refused = writes[0]?.refused;
+    return { written, unresolved, ...(refused === undefined ? {} : { refused }) };
   }
 
   /**

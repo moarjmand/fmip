@@ -115,6 +115,8 @@ export interface WriteResult {
   seasonId?: string;
   /** The fixture written, for a caller with more to write about it (T-830). */
   fixtureId?: string;
+  /** Why the fixture was not written, for the run's partial reason (T-1410). */
+  refused?: string;
 }
 
 export const NOTHING: WriteResult = { changed: 0, unresolved: [] };
@@ -549,6 +551,18 @@ export class IngestStore implements SquadStore {
         changed += rowCount ?? 0;
       }
 
+      const turned = await this.turnRound(client, fixtureId, homeId, awayId);
+      if (turned === 'held') {
+        await client.query('ROLLBACK');
+        return {
+          changed: 0,
+          unresolved,
+          refused:
+            `${fixture.externalId}: home and away swapped by the provider, ` +
+            'and the match already carries forecasts, predictions or detail; left for review',
+        };
+      }
+      changed += turned;
       changed += await this.upsertParticipant(client, fixtureId, homeId, 'home');
       changed += await this.upsertParticipant(client, fixtureId, awayId, 'away');
       changed += await this.upsertScores(client, fixtureId, fixture);
@@ -570,6 +584,60 @@ export class IngestStore implements SquadStore {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * A match the provider has turned round (T-1410): the team we hold at home
+   * now plays away and the other way about. Writing one side at a time would
+   * put the same team on both sides for a moment, which
+   * `fixture_participant_team_once` refuses -- and that refusal once failed a
+   * whole daily schedule sweep (provider fixture 1552933, 2026-10-14).
+   *
+   * Nothing hangs off the two rows yet (the usual case: a match months away),
+   * so they are removed and the upserts that follow write the new sides. Once
+   * anything reads the old orientation -- a forecast's home probability, a
+   * member's predicted score, a line-up, an incident -- turning it round is a
+   * decision about stored history, not ingestion, so the match is held as it
+   * is and named in the run's partial reason. Returns the rows removed, or
+   * `'held'`.
+   */
+  private async turnRound(
+    client: PoolClient,
+    fixtureId: string,
+    homeId: string,
+    awayId: string,
+  ): Promise<number | 'held'> {
+    const { rows } = await client.query<{ side: Side; team_id: string }>(
+      `SELECT side, team_id FROM fixture_participant WHERE fixture_id = $1`,
+      [fixtureId],
+    );
+    const held = new Map(rows.map((row) => [row.side, row.team_id]));
+    if (held.get('home') !== awayId || held.get('away') !== homeId) return 0;
+    const { rows: hanging } = await client.query<{ hanging: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM forecast WHERE fixture_id = $1)
+           OR EXISTS (SELECT 1 FROM user_prediction WHERE fixture_id = $1)
+           OR EXISTS (SELECT 1 FROM founder_analysis WHERE fixture_id = $1)
+           OR EXISTS (SELECT 1 FROM community_analysis WHERE fixture_id = $1)
+           OR EXISTS (SELECT 1 FROM match_summary WHERE fixture_id = $1)
+           OR EXISTS (
+                SELECT 1 FROM fixture_participant p
+                 WHERE p.fixture_id = $1
+                   AND (EXISTS (SELECT 1 FROM incident WHERE participant_id = p.id)
+                     OR EXISTS (SELECT 1 FROM lineup WHERE participant_id = p.id)
+                     OR EXISTS (SELECT 1 FROM fixture_stat WHERE participant_id = p.id)
+                     OR EXISTS (SELECT 1 FROM fixture_player_stat WHERE participant_id = p.id)
+                     OR EXISTS (SELECT 1 FROM fixture_absence WHERE participant_id = p.id)
+                     OR EXISTS (SELECT 1 FROM power_index WHERE participant_id = p.id)
+                     OR EXISTS (SELECT 1 FROM panel_post WHERE link_participant_id = p.id)))
+           AS hanging`,
+      [fixtureId],
+    );
+    if (hanging[0]?.hanging === true) return 'held';
+    const { rowCount } = await client.query(
+      `DELETE FROM fixture_participant WHERE fixture_id = $1`,
+      [fixtureId],
+    );
+    return rowCount ?? 0;
   }
 
   private async upsertParticipant(
