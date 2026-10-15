@@ -598,8 +598,10 @@ export class IngestStore implements SquadStore {
    * anything reads the old orientation -- a forecast's home probability, a
    * member's predicted score, a line-up, an incident -- turning it round is a
    * decision about stored history, not ingestion, so the match is held as it
-   * is and named in the run's partial reason. Returns the rows removed, or
-   * `'held'`.
+   * is and named in the run's partial reason. An `unavailable` forecast carries
+   * no numbers, so it reads no side and does not hold the match (T-1412: every
+   * match in a league without a model division has one, and holding them also
+   * held their kick-off changes). Returns the rows removed, or `'held'`.
    */
   private async turnRound(
     client: PoolClient,
@@ -614,7 +616,7 @@ export class IngestStore implements SquadStore {
     const held = new Map(rows.map((row) => [row.side, row.team_id]));
     if (held.get('home') !== awayId || held.get('away') !== homeId) return 0;
     const { rows: hanging } = await client.query<{ hanging: boolean }>(
-      `SELECT EXISTS (SELECT 1 FROM forecast WHERE fixture_id = $1)
+      `SELECT EXISTS (SELECT 1 FROM forecast WHERE fixture_id = $1 AND status <> 'unavailable')
            OR EXISTS (SELECT 1 FROM user_prediction WHERE fixture_id = $1)
            OR EXISTS (SELECT 1 FROM founder_analysis WHERE fixture_id = $1)
            OR EXISTS (SELECT 1 FROM community_analysis WHERE fixture_id = $1)
