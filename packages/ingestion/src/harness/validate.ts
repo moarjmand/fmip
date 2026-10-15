@@ -252,6 +252,10 @@ function validateSideLineup(sink: Sink, value: unknown, path: string): void {
     fail(sink, `${path}.formation`, 'must look like 4-3-3');
   }
   expectNullableRef(sink, value.coach, `${path}.coach`);
+  expectNullableString(sink, value.kitColour, `${path}.kitColour`);
+  if (typeof value.kitColour === 'string' && !/^#[0-9a-f]{6}$/.test(value.kitColour)) {
+    fail(sink, `${path}.kitColour`, 'must be #rrggbb in lower case');
+  }
 
   if (!expectArray(sink, value.players, `${path}.players`)) return;
 

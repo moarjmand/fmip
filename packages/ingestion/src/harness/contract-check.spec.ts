@@ -257,8 +257,8 @@ describe('checkAdapterContract', () => {
           ok: true,
           data: {
             fixtureExternalId: 'm-1001',
-            home: { formation: null, coach: null, players: [] },
-            away: { formation: null, coach: null, players: [] },
+            home: { formation: null, coach: null, players: [], kitColour: null },
+            away: { formation: null, coach: null, players: [], kitColour: null },
           },
           requests: 0,
           fetchedAt: '2025-01-06T09:00:00Z',

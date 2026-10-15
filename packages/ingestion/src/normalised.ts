@@ -239,6 +239,12 @@ export interface NormalisedSideLineup {
   formation: string | null;
   coach: EntityRef | null;
   players: NormalisedLineupPlayer[];
+  /**
+   * The colour of the side's outfield shirt in this match, `#rrggbb` in lower
+   * case (T-1415, D-218). Null when the provider does not supply one or the
+   * value is not a colour (rule 3); never a goalkeeper's shirt.
+   */
+  kitColour: string | null;
 }
 
 export interface NormalisedLineup {

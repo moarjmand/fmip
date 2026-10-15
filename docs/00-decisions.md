@@ -10919,3 +10919,47 @@ not hold loses its match link (two Persian headlines of the 16).
 
 **Production.** Nothing to set. The migration runs with the deploy and
 reads every stored team and match link once.
+
+---
+
+## D-218 — A club's colour from the licensed feed's shirt colours, derived into our own team attribute, with an editor's override
+**Status:** Accepted · 2026-10-15 (the maintainer, in chat: from the licensed data with a manual correction, for every match including past ones) · **Task:** T-1415, T-1416, T-1417 · **Follows:** D-204, D-014, D-197, rule 2, rule 10
+
+**Context.** D-204 left the club and player bands brand green because no
+club colour existed, and allowed one only as a canonical team attribute set
+by an editor or a licensed source, never a provider field passed through.
+API-Football, the licensed critical-path feed (D-014, D-197), gives each
+side of a line-up `team.colors.player` (`primary`, `number`, `border`) and
+`team.colors.goalkeeper`, as six hex digits. The maintainer chose to derive
+the colour from it, correctable by hand, and to fill it from past matches
+as well as new ones.
+
+**Decision.**
+1. **The adapter reads the outfield shirt.** `kitColourOf` turns
+   `team.colors.player.primary` into `NormalisedSideLineup.kitColour`,
+   `#rrggbb` in lower case; anything that is not six hex digits is null, and
+   the goalkeeper's shirt is never read. football-data.org and Highlightly
+   give null. The harness validator holds the shape (T-1415).
+2. **The match's shirt is ours to keep.** Ingestion stores each side's kit
+   colour on its participant for that match (T-1416).
+3. **The club's colour is our derivation.** The colour the club wore most
+   often at home in its latest ten home matches with a stored kit colour,
+   the most recent breaking a tie, recomputed whenever a line-up is written.
+   It is recomputable from stored participants alone. National teams the
+   same (T-1416).
+4. **An editor's colour wins.** An editor or administrator may set a club's
+   colour by hand, audited with actor, time, reason and previous value
+   (rule 10); the derivation never overwrites it, and clearing it returns
+   the club to the derivation (T-1416).
+5. **Past matches.** Every finished match with a stored line-up (18,649 on
+   2026-10-15) is queued once for a re-ask (T-913), carried on the bulk tier
+   within the re-ask share of the day's budget (T-1416).
+6. **Where it shows** is D-204's and nowhere else: the top band of a club
+   page, and of a player page in his current club's colour, with white or
+   ink on it and the fill darkened in steps until that text reaches 4.5:1,
+   computed in a spec (T-1417). Below the band everything stays brand green.
+
+**Alternatives.** *An editor only*: every one of about a thousand clubs by
+hand, most never set. *The provider's field straight to the page*: what
+D-204 and rule 2 rule out. *The latest match's shirt*: an away or third kit
+would repaint the club after one match.

@@ -71,6 +71,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       formation: null,
       coach: null,
       players,
+      kitColour: null,
     });
     const absence = (
       id: string,

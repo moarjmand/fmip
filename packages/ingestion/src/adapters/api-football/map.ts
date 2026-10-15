@@ -474,6 +474,17 @@ export function photosByPlayer(players: unknown): Map<string, string> {
   return out;
 }
 
+/**
+ * A side's outfield shirt colour (T-1415, D-218): `team.colors.player.primary`,
+ * six hex digits without the `#` in the feed, as `#rrggbb`. Anything else --
+ * absent, three digits, a name, a stray character -- is null, never guessed.
+ */
+export function kitColourOf(block: unknown): string | null {
+  const primary = rec(rec(rec(rec(block).team).colors).player).primary;
+  if (typeof primary !== 'string' || !/^[0-9a-fA-F]{6}$/.test(primary)) return null;
+  return `#${primary.toLowerCase()}`;
+}
+
 function sideLineup(
   block: unknown,
   captain: string | null,
@@ -490,6 +501,7 @@ function sideLineup(
       ...withoutSharedPlaces(lineupPlayers(b.startXI, 'starter', captains, seen, photos)),
       ...lineupPlayers(b.substitutes, 'bench', captains, seen, photos),
     ],
+    kitColour: kitColourOf(block),
   };
 }
 

@@ -316,6 +316,8 @@ function sideLineup(team: unknown): NormalisedSideLineup | null {
     formation: formation !== null && /^[0-9](-[0-9]){2,4}$/.test(formation) ? formation : null,
     coach: ref(t.coach),
     players: [...starters, ...players(t.bench, 'bench', seen)],
+    // No shirt colour in this feed (T-1415).
+    kitColour: null,
   };
 }
 
