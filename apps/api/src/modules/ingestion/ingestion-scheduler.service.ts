@@ -45,6 +45,10 @@ export const SCHEDULE: Record<IngestJob, string> = {
   // live tick queued behind it on the one worker waits that long at most
   // (T-1398). Idle, and cheap, once every short name has been asked about.
   people_names: '4,14,24,34,44,54 * * * *',
+  // Every ten minutes, on minutes no other job holds: each run asks at most
+  // `INGESTION_KIT_COLOURS_BATCH` matches for at most 30 seconds (T-1417).
+  // Idle once every past match's shirts have been asked for.
+  kit_colours: '9,19,29,39,49,59 * * * *',
 };
 
 /** Job schedulers are keyed by id, so re-registering one replaces it. */
