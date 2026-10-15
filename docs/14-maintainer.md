@@ -26,6 +26,14 @@ unblocks, and how to know it worked.
 | The production deploy | Live at `https://traveltohormuz.ir` on a Hetzner server, backups off-site, restore drill passed | 2026-09-25 |
 | Training on the feed's data | Allowed: the model learns from our own records of it (D-083, T-511) | 2026-09-26 |
 | A native app | Not now: the installable web app is the mobile product (D-084, T-320) | 2026-09-26 |
+| E-mail, push, the language model, the Telegram channel | A dedicated Gmail with an app password over 587 (T-330), `webpush`, Mistral's free plan (T-400), `@fmipbot1` posting to the channel (T-524) | 2026-09-30 |
+| English stories | GNews' free plan while the site is non-commercial (D-185, T-1367) | 2026-10-05 |
+| Point-in-time recovery | On, a three-day window, restore drill passed (D-157, T-845) | 2026-10-09 |
+| The model on the site | `dixon-coles-elo@0.6.0` published early, as a recorded exception to D-082 (D-191) | 2026-10-09 |
+| A larger data plan | API-Football Ultra: 39 competitions and two more past seasons (D-197, T-1379) | 2026-10-11 |
+| Match highlights | Highlightly Pro, through its Football API product (D-184, D-208) | 2026-10-11 |
+| The English site first | Its audience is abroad, e.g. the UK; only development happens in Iran (D-207) | 2026-10-11 |
+| D-071's real-fixture clause | Re-checked on the real deployment: public read and live, members' predictions settled, model and operations (D-071) | 2026-10-11 |
 
 These were judgements, not tasks: what a platform asks of its members is not
 derivable from the code, and an agent that picked them would have been inventing
@@ -33,55 +41,38 @@ product.
 
 ---
 
-## Now: what waits for you, in order (2026-10-01)
+## Now: what waits for you, in order (2026-10-15)
 
 Everything an agent can do on its own is done or runs by itself (the
-scheduled follow-up below). What is left is this list, most urgent first. For
-every item: nothing goes into a chat -- keys, passwords and tokens go into the
-server's `/opt/fmip/.env` by your own hand (`ssh fmip-prod`, then
+scheduled tasks below). Nothing on this list is urgent. For every item:
+nothing goes into a chat -- keys, passwords and tokens go into the server's
+`/opt/fmip/.env` by your own hand (`ssh fmip-prod`, then
 `nano /opt/fmip/.env`; change a line that exists rather than adding a second
 one) -- and `cd /opt/fmip && bash deploy/check-setup.sh` tells you whether it
 took. Its output holds no secret and is safe to paste to whoever is helping.
 
-1. **Renew the data plan before 2026-10-21 10:29 UTC** (a purchase). The Pro
-   plan ends then; a prepaid plan that ends falls back to the free one (100
-   requests a day), and scores, schedules and match details stop. On
-   `https://dashboard.api-football.com`, signed in with the buying account,
-   choose Pro again for 1, 3, 6 or 12 months (longer is cheaper per month,
-   nothing is refundable) and pay, a few days early. Nothing changes on the
-   server. *How to know:* the provider's `/status` shows the new end date (an
-   agent reads it from inside the API container without seeing the key), and
-   `check-setup.sh` keeps `Match data ... ON`.
-**Done on 2026-09-30:** e-mail (T-330) through a dedicated Gmail with an app
-password, `SMTP_URL=smtp://NAME%40gmail.com:APP_PASSWORD@smtp.gmail.com:587`
-(Brevo asked for a non-Iranian phone number and Mailjet was unreachable; the
-server's provider blocks outbound 465 and 25, so 587 with STARTTLS is the one
-that works), with "Forgot password" delivering to the maintainer; push
-(`webpush`); the language model (T-400, Mistral's free plan,
-`ministral-14b-latest`); and the Telegram channel (T-524, `@fmipbot1`, the
-bot an administrator allowed to post). `check-setup.sh` shows all four ON.
-
-2. **One prediction of your own, from 2026-10-08** when club football
-   resumes: sign in, predict an upcoming match before kick-off, and after it
-   see it settled on your profile. The real-fixture re-check of D-071 needs a
-   member's settled prediction.
+1. **Sportmonks: whether it covers the Persian Gulf Pro League** (a
+   judgement, then perhaps a purchase). Its free plan was tested on
+   2026-10-10: absences and TV stations are useful and IRIB Varzesh is in its
+   catalogue, but predicted line-ups need a paid plan and cover only its top
+   two league categories. Check the league in Sportmonks' id finder; only if
+   it is covered is the Starter plan worth comparing with API-Football on
+   real matches.
+2. **GNews' paid plan, once the site is commercial** (a purchase). The free
+   plan is allowed only while the site is non-commercial (D-185); the key
+   stays the same line in `.env`.
 3. **Optional: an editor for broadcast listings (T-310)**:
    `cd /opt/fmip && docker compose run --rm -T migrate node scripts/grant-role.mjs --email <address> --role editor --reason "enters broadcast listings"`;
    the desk appears at the bottom of every match page for them.
-4. **Match highlights (T-1366), once you have subscribed to Highlightly**:
-   the key into `.env`, then map the competitions and, as they queue, the
-   teams -- §13.
-5. **Optional: English stories from GNews (T-1367, D-185)**: a free account
-   and its key in `.env`, §14.
 
-**Meanwhile, by itself.** The scheduled task `fmip-server-followup` runs every
-six hours from the Claude desktop app on your laptop, so it needs the laptop
-awake and the app open until about mid-October. It finishes the detail
-backlog and the adoptions, fits the line-up term (T-534), ticks Iran's first
-forecast (T-512), measures the first match day (T-501, T-504), reports the
-candidate model against the published one (T-535) and re-checks D-071 on real
-matches. When it says its work is done, turn it off in the Scheduled tasks
-list.
+**Meanwhile, by itself.** Three scheduled tasks run from the Claude desktop
+app on your laptop, so they need the laptop awake and the app open:
+`fmip-server-followup` every six hours (health, the open PRs, the detail
+backlog and adoptions, cup stages, the line-up term fit, T-534, and the
+candidate model once there is one, T-535); `fmip-iran-watch-channels` twice a
+day (the IRIB channel of each Pro League match, T-1362); and
+`fmip-highlightly-pairs-rerun` once on 2026-10-19 (the strong Highlightly
+team pairs, D-188). Whatever they cannot settle alone they report.
 
 ---
 
