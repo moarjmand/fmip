@@ -57,6 +57,7 @@ const VERBS = [
   'map',
   'set-division',
   'set-order',
+  'set-colour',
   'alias-training',
   'ignore',
   'unignore',
@@ -87,6 +88,8 @@ const VALUED = [
   'legs',
   'reason',
   'locale',
+  'team',
+  'colour',
 ];
 
 const USAGE = `Usage (one verb per call):
@@ -108,6 +111,8 @@ const USAGE = `Usage (one verb per call):
   --set-division --competition <external id> --division <E0|SP1|...> [--by <address>]
   --set-order --competition <external id> --order <N, 1 first; 0 to clear>
               [--locale <language, e.g. en: that language's own order>] [--by <address>]
+  --set-colour --team <external id> --colour <#rrggbb, or none to return to the shirts>
+               --reason "<why>" [--by <address>]
   --alias-training [--file <csv>] [--by <address>]
   --ignore --type <${IGNORABLE.join('|')}> --file <csv, or - for standard input>
            --by <address> --reason "<why>" [--dry-run]
@@ -220,6 +225,27 @@ export function parseArgs(argv) {
       competition,
       order: order === 0 ? null : order,
       locale: locale === '' ? null : locale,
+    };
+  }
+  if (verb === 'set-colour') {
+    // T-1416 (D-218): an editor's club colour, which the shirts never overwrite.
+    const team = text('team');
+    const colour = text('colour').toLowerCase();
+    const reason = text('reason');
+    if (team === '') return { error: '--team is required: the provider’s id.' };
+    if (colour !== 'none' && !/^#[0-9a-f]{6}$/.test(colour)) {
+      return { error: '--colour is #rrggbb, or none to return the club to its shirts.' };
+    }
+    if (reason === '') {
+      return { error: '--reason is required: it is kept in the audit log.' };
+    }
+    return {
+      command: 'set-colour',
+      provider,
+      by,
+      team,
+      colour: colour === 'none' ? null : colour,
+      reason,
     };
   }
   if (verb === 'alias-training') {
@@ -1126,6 +1152,57 @@ async function setOrder(client, options) {
 }
 
 /**
+ * A club's colour set by hand (T-1416, D-218): `colour_source = 'editor'`,
+ * which the shirts' derivation never overwrites; `--colour none` hands the
+ * club back to `team_kit_colour`. Audited with the reason and the colour it
+ * had before (rule 10).
+ */
+async function setColour(client, options) {
+  const { rows: found } = await client.query(
+    `SELECT t.id, t.name, t.colour, t.colour_source
+       FROM team t
+       JOIN provider_mapping pm
+         ON pm.internal_id = t.id AND pm.entity_type = 'team'
+      WHERE pm.provider = $1 AND pm.external_id = $2`,
+    [options.provider, options.team],
+  );
+  const team = found[0];
+  if (team === undefined) {
+    console.error(`No team is mapped to ${options.provider} ${options.team}.`);
+    return 1;
+  }
+  const { rows } = await client.query(
+    options.colour === null
+      ? `UPDATE team t SET colour = d.colour,
+                colour_source = CASE WHEN d.colour IS NULL THEN NULL ELSE 'kits' END
+           FROM (SELECT team_kit_colour($1) AS colour) d
+          WHERE t.id = $1
+          RETURNING t.colour, t.colour_source`
+      : `UPDATE team SET colour = $2, colour_source = 'editor' WHERE id = $1
+          RETURNING colour, colour_source`,
+    options.colour === null ? [team.id] : [team.id, options.colour],
+  );
+  const now = rows[0];
+  const audited = await audit(
+    client,
+    options.by,
+    'catalog.team_colour_set',
+    'team',
+    team.id,
+    { colour: now.colour, colour_source: now.colour_source },
+    {
+      reason: options.reason,
+      previous: { colour: team.colour, colour_source: team.colour_source },
+    },
+  );
+  console.log(
+    `${team.name} -> ${now.colour ?? 'no colour'} (${now.colour_source ?? 'nothing known'}).`,
+  );
+  sayIfUnaudited(audited, options.by);
+  return 0;
+}
+
+/**
  * A language's own place for a competition (T-1391, D-207): a row in
  * `competition_display_order`, or none when `--order 0` clears it. A reader
  * in a language with any rows reads that order, unplaced competitions after;
@@ -1466,6 +1543,8 @@ async function main() {
         return await setDivision(client, parsed);
       case 'set-order':
         return await setOrder(client, parsed);
+      case 'set-colour':
+        return await setColour(client, parsed);
       case 'alias-training':
         return await aliasTraining(client, parsed);
       case 'ignore':
