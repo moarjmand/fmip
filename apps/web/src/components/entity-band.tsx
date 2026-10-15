@@ -1,15 +1,19 @@
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { cx } from '@/components/ui/cx';
+import { bandColours } from '@/lib/band-colour';
 
 /**
  * The top band of a club or a player page in the Hybrid data mode (T-1386,
  * D-204). The maintainer's rule is that a club's colour may appear here and
- * nowhere else on the page; our contracts carry no club colour (no kit or
- * colour field anywhere, D-204), so the band is the brand's, as on the
- * competition page (D-203): the theme's surface with a green rule along its
- * top and a green bar under the open tab, so it follows Day and Night.
- * Below the band, tabs, links and buttons are brand green whatever the club.
+ * nowhere else on the page. With no colour known the band is the brand's, as
+ * on the competition page (D-203): the theme's surface with a green rule
+ * along its top and a green bar under the open tab, so it follows Day and
+ * Night. With one (T-1418, D-218: `team.colour`, ours, never a provider
+ * field) the identity block above the tabs is filled with it, and every text
+ * on it is white or the ink at 4.5:1 or more (`bandColours`, darkened when
+ * neither reaches it). Below the band, tabs, links and buttons are brand
+ * green whatever the club.
  */
 export function EntityBand({
   testId,
@@ -19,6 +23,7 @@ export function EntityBand({
   details,
   actions,
   tabs,
+  colour,
 }: {
   testId: string;
   /** The crest or the photo, in its frame. */
@@ -32,32 +37,47 @@ export function EntityBand({
   /** Follow and compare. */
   actions: ReactNode;
   tabs: ReactNode;
+  /** The club's colour, `#rrggbb`, when one is known (T-1418). */
+  colour?: string | null;
 }) {
+  const paint = colour === undefined || colour === null ? null : bandColours(colour);
+  // Every text token on the fill is the one text colour that reaches 4.5:1 on it.
+  const filled: CSSProperties | undefined =
+    paint === null
+      ? undefined
+      : ({
+          backgroundColor: paint.fill,
+          '--token-text': paint.text,
+          '--token-text-muted': paint.text,
+          '--token-caption': paint.text,
+        } as CSSProperties);
   return (
     <div className="border-b border-default bg-surface" data-testid={testId}>
-      <div aria-hidden="true" className="h-1 bg-accent" />
-      <div className="page-frame">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-4 pt-6 pb-4 md:pt-7">
-          {media}
-          <div className="min-w-0 flex-[1_1_20rem]">
-            <p
-              className="text-xs font-bold text-muted uppercase ltr:tracking-wider"
-              data-testid="band-eyebrow"
-            >
-              {eyebrow}
-            </p>
-            <h1
-              className="mt-1.5 font-sans text-display-2 font-black font-stretch-condensed break-words uppercase md:text-display-3 lg:text-display-4 [:root:is(:lang(fa),:lang(ar))_&]:text-display-1 md:[:root:is(:lang(fa),:lang(ar))_&]:text-display-2"
-              data-testid="title"
-            >
-              {title}
-            </h1>
-            {details}
+      {paint === null && <div aria-hidden="true" className="h-1 bg-accent" />}
+      <div style={filled} data-band={paint === null ? 'brand' : 'club'}>
+        <div className="page-frame">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-4 pt-6 pb-4 text-fg md:pt-7">
+            {media}
+            <div className="min-w-0 flex-[1_1_20rem]">
+              <p
+                className="text-xs font-bold text-muted uppercase ltr:tracking-wider"
+                data-testid="band-eyebrow"
+              >
+                {eyebrow}
+              </p>
+              <h1
+                className="mt-1.5 font-sans text-display-2 font-black font-stretch-condensed break-words uppercase md:text-display-3 lg:text-display-4 [:root:is(:lang(fa),:lang(ar))_&]:text-display-1 md:[:root:is(:lang(fa),:lang(ar))_&]:text-display-2"
+                data-testid="title"
+              >
+                {title}
+              </h1>
+              {details}
+            </div>
+            <div className="flex flex-col items-start gap-2">{actions}</div>
           </div>
-          <div className="flex flex-col items-start gap-2">{actions}</div>
         </div>
-        {tabs}
       </div>
+      <div className={cx('page-frame', paint !== null && 'pt-1')}>{tabs}</div>
     </div>
   );
 }
