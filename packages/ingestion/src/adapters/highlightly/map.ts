@@ -320,6 +320,8 @@ function sideLineup(block: unknown): NormalisedSideLineup | null {
     formation: formation !== null && /^[0-9](-[0-9]){2,4}$/.test(formation) ? formation : null,
     coach: ref(b.coach),
     players: [...starters, ...players(b.substitutes, 'bench', seen)],
+    // Not read from this feed (T-1415): API-Football's is the licensed source.
+    kitColour: null,
   };
 }
 

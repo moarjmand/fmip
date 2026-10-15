@@ -11,6 +11,7 @@ import {
   imageUrl,
   mapIncidents,
   gridOf,
+  kitColourOf,
   mapLineup,
   mapPlayerStatistics,
   mapSeasonCoverage,
@@ -568,6 +569,19 @@ describe("a starter's place in the shape (T-1397, D-212)", () => {
     expect(away.find((p) => p.grid?.row === 1)?.position).toBe('goalkeeper');
     // No provider string reaches the normalised line-up (rule 2).
     expect(JSON.stringify(lineup)).not.toMatch(/"grid":"/);
+  });
+
+  it("reads each side's outfield shirt colour, never the goalkeeper's (T-1415)", () => {
+    const lineup = map(recorded())!;
+    // Burnley at home in claret, Manchester City away in white.
+    expect(lineup.home.kitColour).toBe('#990033');
+    expect(lineup.away.kitColour).toBe('#ffffff');
+    expect(kitColourOf({ team: { colors: { player: { primary: 'A1B2C3' } } } })).toBe('#a1b2c3');
+    for (const bad of [null, 'fff', '#990033', 'red', '99003', '9900333', 'gg0033', 990033]) {
+      expect(kitColourOf({ team: { colors: { player: { primary: bad } } } })).toBeNull();
+    }
+    expect(kitColourOf({ team: { colors: { goalkeeper: { primary: '66ffff' } } } })).toBeNull();
+    expect(kitColourOf({})).toBeNull();
   });
 
   it('drops a malformed place and a place two starters share, keeping the rest', () => {
