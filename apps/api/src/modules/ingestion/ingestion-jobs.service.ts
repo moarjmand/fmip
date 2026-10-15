@@ -32,6 +32,8 @@ import {
   type JobSource,
 } from './internal/sources';
 import { PersonNameStore } from './internal/person-name-store';
+import { KitColourStore } from './internal/kit-colour-store';
+import { kitColoursBatch, sweepKitColours } from './internal/kit-colours';
 import { peopleNamesBatch, sweepPeopleNames } from './internal/person-names';
 import { squadsPerDay, sweepSquads } from './internal/squad-sweep';
 
@@ -299,6 +301,8 @@ export class IngestionJobsService {
   private readonly squadsPerDay = squadsPerDay(process.env.INGESTION_SQUADS_PER_DAY);
   private readonly peopleNamesBatch = peopleNamesBatch(process.env.INGESTION_PEOPLE_NAMES_BATCH);
   private readonly personNames: PersonNameStore;
+  private readonly kitColoursBatch = kitColoursBatch(process.env.INGESTION_KIT_COLOURS_BATCH);
+  private readonly kitColourStore: KitColourStore;
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
 
@@ -315,6 +319,7 @@ export class IngestionJobsService {
   ) {
     this.store = new IngestStore(pool, resolver, media);
     this.personNames = new PersonNameStore(pool);
+    this.kitColourStore = new KitColourStore(pool);
   }
 
   /** Runs one job by name. The scheduler and the tests both come through here. */
@@ -334,7 +339,53 @@ export class IngestionJobsService {
         return this.squads(now);
       case 'people_names':
         return this.peopleNames(now);
+      case 'kit_colours':
+        return this.kitColours(now);
     }
+  }
+
+  /**
+   * The shirts of past matches (T-1417, D-218): each finished match with a
+   * stored line-up and a side without a shirt is asked for its line-up once,
+   * newest first, within `INGESTION_KIT_COLOURS_BATCH` a run and the bulk tier
+   * of the budget, and the answer goes through the line-up writer, which keeps
+   * the shirts and the club's colour. `itemsWritten` is the sides given a
+   * shirt; `fixture_kit_fetch` holds each ask.
+   */
+  kitColours(now: Date = new Date()): Promise<JobReport> {
+    return this.track('kit_colours', async (source) => {
+      const shares = parseTierShares(process.env);
+      const sweep = await sweepKitColours({
+        provider: source.provider,
+        adapter: source.adapter,
+        store: this.kitColourStore,
+        write: async (fixtureId, lineup) => {
+          await this.store.saveLineup(source.provider, fixtureId, lineup);
+        },
+        now,
+        // The replay source answers only the matches it recorded: nothing owed.
+        batch: this.sources.kind === 'replay' ? 0 : this.kitColoursBatch,
+        budget: this.sources.dailyBudget ?? null,
+        bulkPercent: 'error' in shares ? DEFAULT_TIER_SHARES.bulk : shares.bulk,
+        requestsToday: await this.runs.requestsToday(source.provider, now),
+      });
+      this.log.log('kit colours', {
+        event: 'ingest.kit_colours',
+        provider: source.provider,
+        asked: sweep.asked,
+        answered: sweep.answered,
+        shirts: sweep.shirts,
+        ...(sweep.idle === undefined ? {} : { idle: sweep.idle }),
+      });
+      const partial = sweep.refused.join('; ');
+      return {
+        job: 'kit_colours',
+        provider: source.provider,
+        itemsSeen: sweep.answered,
+        itemsWritten: sweep.shirts,
+        ...(partial === '' ? {} : { partial }),
+      };
+    });
   }
 
   /**
