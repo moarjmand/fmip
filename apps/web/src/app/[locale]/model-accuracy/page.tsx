@@ -25,19 +25,23 @@ export async function generateMetadata({
 
 /**
  * "How accurate is our model?" (T-1369, D-187): the statistical model's
- * published forecasts against the results, by month, overall and per
- * competition, over `GET /model/accuracy`. Linked from the forecast panel.
+ * published forecasts against the results, by month or (`?period=week`,
+ * T-1414) by ISO week, overall and per competition, over
+ * `GET /model/accuracy`. Linked from the forecast panel. Any other `period`
+ * is the month view, the page's address without one.
  * Every figure comes with its sample and coverage state; with nothing scored
  * the page says so rather than showing a number (rule 3).
  */
 export default async function ModelAccuracyPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { locale } = await params;
+  const [{ locale }, query] = await Promise.all([params, searchParams]);
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const result = await fetchModelAccuracy();
+  const result = await fetchModelAccuracy(query.period === 'week' ? 'week' : 'month');
 
   return (
     // Editorial mode (T-1383, D-201): paper whatever the theme, the serif

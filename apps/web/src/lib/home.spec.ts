@@ -243,6 +243,7 @@ describe('the Hybrid front page (T-1382, D-200)', () => {
     });
     const answer = (points: ReturnType<typeof point>[]) =>
       ({
+        period: 'month',
         overall: { competition: null, model_versions: ['dixon-coles-elo@0.6.0'], points },
         last_updated_at: '2026-10-08T03:00:00Z',
       }) as unknown as PublicModelAccuracyResponse;
@@ -250,6 +251,8 @@ describe('the Hybrid front page (T-1382, D-200)', () => {
       answer([point('2026-09', 40, 0.201), point('2026-10', 12, 0.19)]),
     );
     expect(figure?.period).toBe('2026-10');
+    expect(figure?.periodKind).toBe('month');
+    expect(figure?.periodStart).toBe('2026-10-01');
     expect(figure?.metrics.coverage).toBe('limited');
     expect(figure?.modelVersions).toEqual(['dixon-coles-elo@0.6.0']);
     expect(accuracyFigure(answer([point('2026-10', 0, null)]))).toBeNull();

@@ -123,6 +123,31 @@ describe('ModelAccuracy (T-1369)', () => {
     expect(out).not.toContain('data-translation="untranslated"');
   });
 
+  it('shows ISO weeks by their Monday, and offers month and week as links (T-1414)', () => {
+    const weekly = report({
+      period: 'week',
+      overall: series({
+        points: [{ period: '2026-W42', period_start: '2026-10-12', ...metrics({}) }],
+      }),
+    });
+    const out = html(weekly);
+    expect(out).toContain('data-period="week"');
+    expect(out).toContain('Week of 12 Oct 2026');
+    expect(out).toContain('<time dateTime="2026-10-12">');
+    expect(out).toContain('All weeks');
+    expect(out).toContain('By week of kick-off, Monday first (UTC)');
+    expect(out).toMatch(
+      /<a(?=[^>]*aria-current="page")(?=[^>]*href="\/en\/model-accuracy\?period=week")/,
+    );
+    expect(out).not.toMatch(PHYSICAL);
+    const monthly = html(report({}));
+    expect(monthly).toMatch(/<a(?=[^>]*aria-current="page")(?=[^>]*href="\/en\/model-accuracy")/);
+    expect(monthly).toContain('All months');
+    const fa = html(weekly, 'fa');
+    expect(fa).toContain('همه‌ی هفته‌ها');
+    expect(fa).not.toContain('data-translation="untranslated"');
+  });
+
   it('says so when the API cannot be reached', () => {
     expect(html(null)).toContain('data-testid="accuracy-unreachable"');
   });
