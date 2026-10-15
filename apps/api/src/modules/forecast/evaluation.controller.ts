@@ -13,12 +13,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type {
+  AccuracyPeriod,
   ApiError,
   FixtureEvaluationsResponse,
   ModelPerformanceResponse,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
-import { ROLE_REFUSALS } from '@fmip/contracts';
+import { ACCURACY_PERIODS, ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { EvaluationService } from './evaluation.service';
@@ -94,12 +95,22 @@ export class EvaluationController {
 
   /**
    * How accurate the statistical model has been (T-1369, D-187): its
-   * published pre-kick-off forecasts only, by month, overall and per
-   * competition, each row with its coverage state. Public.
+   * published pre-kick-off forecasts only, by month or (`?period=week`,
+   * T-1413) ISO week, overall and per competition, each row with its
+   * coverage state. Public.
    */
   @Get('model/accuracy')
-  async accuracy(): Promise<PublicModelAccuracyResponse> {
-    return this.evaluations.publicAccuracy();
+  async accuracy(@Query('period') period: unknown): Promise<PublicModelAccuracyResponse> {
+    const chosen = period === undefined ? 'month' : period;
+    if (typeof chosen !== 'string' || !ACCURACY_PERIODS.includes(chosen as AccuracyPeriod)) {
+      const error: ApiError = {
+        error: 'validation',
+        message: 'The request is not valid.',
+        fields: { period: 'must be week or month' },
+      };
+      throw new BadRequestException(error);
+    }
+    return this.evaluations.publicAccuracy(chosen as AccuracyPeriod);
   }
 
   @Get('competitions/:competitionId/model-performance')

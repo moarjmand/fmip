@@ -506,17 +506,18 @@ export interface PublicAccuracySeries {
   /** The published model versions the figures are from, by name. */
   model_versions: string[];
   total: AccuracyMetrics;
-  /** By calendar month, oldest first. */
+  /** By ISO week or calendar month, as the response's `period` says, oldest first. */
   points: AccuracyPoint[];
 }
 
 /**
- * `GET /model/accuracy` (T-1369): the statistical model's published
- * forecasts only -- never a shadow candidate, never the founder's analysis
- * or the community's consensus (rule 6). Public.
+ * `GET /model/accuracy?period=week|month` (T-1369; the week, T-1413): the
+ * statistical model's published forecasts only -- never a shadow candidate,
+ * never the founder's analysis or the community's consensus (rule 6).
+ * Public; by month unless asked for weeks.
  */
 export interface PublicModelAccuracyResponse {
-  period: 'month';
+  period: AccuracyPeriod;
   minimum_matches: number;
   reference: AccuracyReference;
   /** Every competition together. */

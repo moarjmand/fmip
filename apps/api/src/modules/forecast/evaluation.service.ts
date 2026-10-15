@@ -62,13 +62,13 @@ export class EvaluationService {
     return adminAccuracy(await this.store.accuracySums(period, 'by_model'), period, now);
   }
 
-  /** The public page's figures (T-1369): published forecasts only, by month. */
-  async publicAccuracy(): Promise<PublicModelAccuracyResponse> {
+  /** The public page's figures (T-1369): published forecasts only, by month or ISO week (T-1413). */
+  async publicAccuracy(period: AccuracyPeriod = 'month'): Promise<PublicModelAccuracyResponse> {
     const [rows, competitions] = await Promise.all([
-      this.store.accuracySums('month', 'published'),
+      this.store.accuracySums(period, 'published'),
       this.store.publishedCompetitions(),
     ]);
-    return publicAccuracy(rows, competitions);
+    return publicAccuracy(rows, competitions, period);
   }
 
   async performance(
