@@ -217,6 +217,7 @@ const versionsOf = (rows: readonly AccuracySumRow[]): string[] =>
 export function publicAccuracy(
   rows: readonly AccuracySumRow[],
   forecastCompetitions: readonly { id: string; name: string }[],
+  period: AccuracyPeriod = 'month',
 ): PublicModelAccuracyResponse {
   const published = rows.filter((row) => row.role === null || row.role === 'published');
   const grouped = new Map(competitionsOf(published).map((g) => [g.competition.id, g]));
@@ -225,16 +226,16 @@ export function publicAccuracy(
 
   const competitions: PublicAccuracySeries[] = [...named.values()].sort(byName).map((c) => {
     const own = grouped.get(c.id)?.rows ?? [];
-    return { competition: c, model_versions: versionsOf(own), ...series(own, 'month') };
+    return { competition: c, model_versions: versionsOf(own), ...series(own, period) };
   });
   return {
-    period: 'month',
+    period,
     minimum_matches: ACCURACY_MINIMUM_MATCHES,
     reference: ACCURACY_REFERENCE,
     overall: {
       competition: null,
       model_versions: versionsOf(published),
-      ...series(published, 'month'),
+      ...series(published, period),
     },
     competitions,
     last_updated_at: lastEvaluated(published),

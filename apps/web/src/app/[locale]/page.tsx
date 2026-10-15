@@ -159,7 +159,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     // The founder's analysis of what is coming (T-132).
     fetchFounderFeed({ limit: 3 }),
     // T-1369 (D-187): the public accuracy figures.
-    fetchModelAccuracy(),
+    fetchModelAccuracy('week'),
     session ? fetchFriendPredictions(cookie) : null,
     session ? fetchGroupDiscussions(cookie) : null,
   ]);

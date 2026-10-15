@@ -388,6 +388,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.accuracy.titleWeek": {
+    "source": "Model accuracy · week of {date}",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.accuracy.rps": {
     "source": "ranked probability score · lower is better",
     "text": "",
@@ -7691,6 +7696,41 @@
   },
   "modelAccuracy.table.all": {
     "source": "All months",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.captionWeek": {
+    "source": "By week of kick-off, Monday first (UTC). For RPS, Brier and log loss, lower is better.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.week": {
+    "source": "Week",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.table.allWeeks": {
+    "source": "All weeks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekOf": {
+    "source": "Week of {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.period.label": {
+    "source": "Show by",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.period.month": {
+    "source": "Month",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.period.week": {
+    "source": "Week",
     "text": "",
     "status": "untranslated"
   },

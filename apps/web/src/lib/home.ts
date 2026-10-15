@@ -1,6 +1,7 @@
 import {
   PANEL_LATEST_BATCH,
   type AccuracyMetrics,
+  type AccuracyPeriod,
   type MatchViewing,
   type NewsStoryCard,
   type PanelLatest,
@@ -228,8 +229,12 @@ export function leadStory(stories: readonly NewsStoryCard[] | null): {
  * rather than "last week" (rule 3). `null`: nothing scored yet.
  */
 export interface AccuracyFigure {
-  /** `YYYY-MM`. */
+  /** `YYYY-MM` for a month, `YYYY-Www` for an ISO week. */
   period: string;
+  /** What `period` is (T-1414): the home asks for weeks. */
+  periodKind: AccuracyPeriod;
+  /** The period's first day, `YYYY-MM-DD` (UTC): a week's Monday. */
+  periodStart: string;
   metrics: AccuracyMetrics;
   modelVersions: string[];
   lastUpdatedAt: string | null;
@@ -242,6 +247,8 @@ export function accuracyFigure(answer: PublicModelAccuracyResponse): AccuracyFig
   if (point === undefined) return null;
   return {
     period: point.period,
+    periodKind: answer.period,
+    periodStart: point.period_start,
     metrics: point,
     modelVersions: answer.overall.model_versions,
     lastUpdatedAt: answer.last_updated_at,

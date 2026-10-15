@@ -192,6 +192,23 @@ describe('publicAccuracy', () => {
     expect(out.overall.points.map((p) => p.period)).toEqual(['2026-10', '2026-11']);
   });
 
+  it('buckets by ISO week when asked (T-1413)', () => {
+    const out = publicAccuracy(
+      [
+        row({ role: null, modelVersion: null, periodStart: '2026-10-05' }),
+        row({ role: null, modelVersion: null, periodStart: '2026-10-12' }),
+      ],
+      [PL],
+      'week',
+    );
+    expect(out.period).toBe('week');
+    expect(out.overall.points.map((p) => [p.period, p.period_start])).toEqual([
+      ['2026-W41', '2026-10-05'],
+      ['2026-W42', '2026-10-12'],
+    ]);
+    expect(out.competitions[0]?.points.map((p) => p.period)).toEqual(['2026-W41', '2026-W42']);
+  });
+
   it('never counts a shadow row, and says not_supplied with nothing at all', () => {
     const out = publicAccuracy([row({ role: 'shadow' })], []);
     expect(out.overall.total.coverage).toBe('not_supplied');
