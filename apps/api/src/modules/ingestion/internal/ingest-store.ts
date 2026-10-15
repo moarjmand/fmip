@@ -938,6 +938,24 @@ export class IngestStore implements SquadStore {
     return { changed, unresolved };
   }
 
+  /**
+   * A club's colour from the shirts it wore at home (T-1416, D-218):
+   * `team_kit_colour`, written as `kits` unless an editor set one, which this
+   * never overwrites. Not a change to any match, so not counted as one.
+   */
+  async refreshTeamColour(teamId: string): Promise<void> {
+    await this.pool.query(
+      `UPDATE team t
+          SET colour = d.colour,
+              colour_source = CASE WHEN d.colour IS NULL THEN NULL ELSE 'kits' END
+         FROM (SELECT team_kit_colour($1) AS colour) d
+        WHERE t.id = $1
+          AND t.colour_source IS DISTINCT FROM 'editor'
+          AND t.colour IS DISTINCT FROM d.colour`,
+      [teamId],
+    );
+  }
+
   /** Both sides of a lineup: the formation and coach on the participant, then the players. */
   async saveLineup(
     provider: Provider,
@@ -965,12 +983,21 @@ export class IngestStore implements SquadStore {
       lineup.coach?.externalId ?? null,
       lineup.coach,
     );
-    const { rowCount } = await this.pool.query(
-      `UPDATE fixture_participant SET formation = $2, coach_id = $3
-        WHERE id = $1 AND (formation, coach_id) IS DISTINCT FROM ($2, $3)`,
-      [participantId, lineup.formation, coachId],
+    // The side's shirt in this match (T-1416, D-218). An answer without one
+    // keeps the shirt already stored: no colour is not a different colour.
+    const { rows: participant, rowCount } = await this.pool.query<{ team_id: string }>(
+      `UPDATE fixture_participant
+          SET formation = $2, coach_id = $3, kit_colour = COALESCE($4, kit_colour)
+        WHERE id = $1
+          AND (formation, coach_id, kit_colour) IS DISTINCT FROM ($2, $3, COALESCE($4, kit_colour))
+        RETURNING team_id`,
+      [participantId, lineup.formation, coachId, lineup.kitColour],
     );
     let changed = rowCount ?? 0;
+    const teamId = participant[0]?.team_id;
+    if (side === 'home' && lineup.kitColour !== null && teamId !== undefined) {
+      await this.refreshTeamColour(teamId);
+    }
 
     const listed: { player: NormalisedSideLineup['players'][number]; personId: string }[] = [];
     for (const player of lineup.players) {

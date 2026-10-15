@@ -10952,8 +10952,11 @@ as well as new ones.
    (rule 10); the derivation never overwrites it, and clearing it returns
    the club to the derivation (T-1416).
 5. **Past matches.** Every finished match with a stored line-up (18,649 on
-   2026-10-15) is queued once for a re-ask (T-913), carried on the bulk tier
-   within the re-ask share of the day's budget (T-1416).
+   2026-10-15) is asked once for its line-up's shirts by a `kit_colours`
+   job of its own, on the bulk tier, a batch a run like `people_names`
+   (T-1417). Not the re-ask queue (T-913): its 20 a run every half hour
+   would take about 19 days and hold an administrator's re-asks behind the
+   backfill.
 6. **Where it shows** is D-204's and nowhere else: the top band of a club
    page, and of a player page in his current club's colour, with white or
    ink on it and the fill darkened in steps until that text reaches 4.5:1,
