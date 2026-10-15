@@ -125,10 +125,11 @@ export function TableTopFive({ page, locale }: { page: CompetitionPage; locale: 
 }
 
 /**
- * The model's accuracy in the side column (T-1369, D-187): the newest month
- * with a match scored, as RPS with the uniform guess beside it, the sample
- * and its coverage, the versions and the last update. The public figures are
- * by month; a week is not published, so none is claimed (rule 3).
+ * The model's accuracy in the side column (T-1369, D-187): the newest period
+ * with a match scored -- a week since T-1414, the design's "accuracy last
+ * week", named by its Monday so an older week is never read as the last one
+ * -- as RPS with the uniform guess beside it, the sample and its coverage
+ * (a week is often `limited`, and says so), the versions and the last update.
  */
 export function AccuracyCard({
   figure,
@@ -160,12 +161,24 @@ export function AccuracyCard({
           <Translated locale={l} message="home.accuracy.heading" />
         ) : (
           <MessageText
-            message={{
-              ...message(l, 'home.accuracy.title'),
-              text: interpolate(t(l, 'home.accuracy.title'), {
-                month: formatGregorianMonth(l, figure.period),
-              }),
-            }}
+            message={
+              figure.periodKind === 'week'
+                ? {
+                    ...message(l, 'home.accuracy.titleWeek'),
+                    text: interpolate(t(l, 'home.accuracy.titleWeek'), {
+                      date: formatDate(l, `${figure.periodStart}T00:00:00Z`, 'UTC', {
+                        day: 'numeric',
+                        month: 'short',
+                      }),
+                    }),
+                  }
+                : {
+                    ...message(l, 'home.accuracy.title'),
+                    text: interpolate(t(l, 'home.accuracy.title'), {
+                      month: formatGregorianMonth(l, figure.period),
+                    }),
+                  }
+            }
           />
         )}
       </h2>

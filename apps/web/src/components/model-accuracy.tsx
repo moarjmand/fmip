@@ -1,5 +1,7 @@
 import type {
   AccuracyMetrics,
+  AccuracyPeriod,
+  AccuracyPoint,
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
@@ -10,13 +12,13 @@ import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
 import { formatDate, formatGregorianMonth, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
-import { type Message, interpolate, message, plural } from '@/i18n/messages';
+import { type Message, type MessageKey, interpolate, message, plural, t } from '@/i18n/messages';
 import { formatFixed, formatPercent } from '@/lib/words';
 
 /**
  * "How accurate is our model?" (T-1369, D-187): the statistical model's
- * published pre-kick-off forecasts, scored after the match, by month, over
- * every competition and each one. Only the model: the founder's analysis
+ * published pre-kick-off forecasts, scored after the match, by month or by
+ * ISO week (T-1414), over every competition and each one. Only the model: the founder's analysis
  * and the community's consensus are other products, named here only to say
  * they are not counted (rule 6). A row with no match scored shows no figure
  * and says so; one below the minimum shows its figures marked limited with
@@ -28,6 +30,56 @@ const filled = (m: Message, params: Record<string, string>): Message => ({
   ...m,
   text: interpolate(m.text, params),
 });
+
+/** A row's period as a reader names it: "October 2026", or "Week of 12 Oct 2026" (Monday, UTC). */
+function periodName(lang: Locale, point: AccuracyPoint, period: AccuracyPeriod): string {
+  if (period === 'month') return formatGregorianMonth(lang, point.period);
+  return interpolate(t(lang, 'modelAccuracy.weekOf'), {
+    date: formatDate(lang, `${point.period_start}T00:00:00Z`, 'UTC', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }),
+  });
+}
+
+/**
+ * Month or week (T-1414): two plain links, the current one marked, so the
+ * page needs no script and each view has its own address.
+ */
+function PeriodSwitch({ lang, period }: { lang: Locale; period: AccuracyPeriod }) {
+  const choices: { value: AccuracyPeriod; href: string; label: MessageKey }[] = [
+    { value: 'month', href: `/${lang}/model-accuracy`, label: 'modelAccuracy.period.month' },
+    {
+      value: 'week',
+      href: `/${lang}/model-accuracy?period=week`,
+      label: 'modelAccuracy.period.week',
+    },
+  ];
+  return (
+    <nav
+      className="flex flex-wrap items-center gap-2 text-sm"
+      aria-label={t(lang, 'modelAccuracy.period.label')}
+      data-testid="accuracy-period"
+    >
+      <span className="text-muted">
+        <Translated locale={lang} message="modelAccuracy.period.label" />
+      </span>
+      {choices.map((choice) => (
+        <Link
+          key={choice.value}
+          href={choice.href}
+          aria-current={choice.value === period ? 'page' : undefined}
+          className={`inline-flex min-h-touch items-center border px-3 ${
+            choice.value === period ? 'border-fg font-bold' : 'border-default text-accent'
+          }`}
+        >
+          <Translated locale={lang} message={choice.label} />
+        </Link>
+      ))}
+    </nav>
+  );
+}
 
 function Standing({
   lang,
@@ -82,11 +134,14 @@ function SeriesBlock({
   lang,
   series,
   minimum,
+  period,
 }: {
   lang: Locale;
   series: PublicAccuracySeries;
   minimum: number;
+  period: AccuracyPeriod;
 }) {
+  const weekly = period === 'week';
   const head = 'py-1 pe-3 text-end font-semibold';
   return (
     <div className="flex flex-col gap-2" data-coverage={series.total.coverage}>
@@ -96,12 +151,20 @@ function SeriesBlock({
           <div className="overflow-x-auto">
             <table className="w-full text-start text-sm" data-testid="accuracy-months">
               <caption className="pb-2 text-start text-muted">
-                <Translated locale={lang} message="modelAccuracy.table.caption" />
+                <Translated
+                  locale={lang}
+                  message={
+                    weekly ? 'modelAccuracy.table.captionWeek' : 'modelAccuracy.table.caption'
+                  }
+                />
               </caption>
               <thead>
                 <tr className="border-b border-default">
                   <th scope="col" className="py-1 pe-3 text-start font-semibold">
-                    <Translated locale={lang} message="modelAccuracy.table.month" />
+                    <Translated
+                      locale={lang}
+                      message={weekly ? 'modelAccuracy.table.week' : 'modelAccuracy.table.month'}
+                    />
                   </th>
                   <th scope="col" className={head}>
                     <Translated locale={lang} message="modelAccuracy.table.matches" />
@@ -135,8 +198,8 @@ function SeriesBlock({
                     data-coverage={point.coverage}
                   >
                     <th scope="row" className="py-1 pe-3 text-start font-normal">
-                      <time dateTime={point.period}>
-                        {formatGregorianMonth(lang, point.period)}
+                      <time dateTime={weekly ? point.period_start : point.period}>
+                        {periodName(lang, point, period)}
                       </time>
                     </th>
                     <Cells lang={lang} metrics={point} />
@@ -144,7 +207,10 @@ function SeriesBlock({
                 ))}
                 <tr className="font-semibold" data-testid="accuracy-all-months">
                   <th scope="row" className="py-1 pe-3 text-start">
-                    <Translated locale={lang} message="modelAccuracy.table.all" />
+                    <Translated
+                      locale={lang}
+                      message={weekly ? 'modelAccuracy.table.allWeeks' : 'modelAccuracy.table.all'}
+                    />
                   </th>
                   <Cells lang={lang} metrics={series.total} />
                 </tr>
@@ -181,13 +247,15 @@ export function ModelAccuracy({
   }
   const minimum = report.minimum_matches;
   const ref = report.reference;
+  const period = report.period;
   return (
-    <div className="flex flex-col gap-6" data-testid="model-accuracy">
+    <div className="flex flex-col gap-6" data-testid="model-accuracy" data-period={period}>
+      <PeriodSwitch lang={lang} period={period} />
       <section className="flex flex-col gap-2" data-testid="accuracy-overall">
         <h2 className="border-t-2 border-fg pt-2.5 font-serif text-2xl font-semibold">
           <Translated locale={lang} message="modelAccuracy.overall.title" />
         </h2>
-        <SeriesBlock lang={lang} series={report.overall} minimum={minimum} />
+        <SeriesBlock lang={lang} series={report.overall} minimum={minimum} period={period} />
         {report.last_updated_at !== null && (
           <p className="text-xs text-muted">
             <MessageText
@@ -215,7 +283,7 @@ export function ModelAccuracy({
               data-testid="accuracy-competition"
             >
               <h3 className="font-serif text-xl font-semibold">{series.competition?.name}</h3>
-              <SeriesBlock lang={lang} series={series} minimum={minimum} />
+              <SeriesBlock lang={lang} series={series} minimum={minimum} period={period} />
             </section>
           ))}
         </section>

@@ -473,6 +473,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "home.accuracy.titleWeek": {
+    "source": "Model accuracy · week of {date}",
+    "text": "دقت مدل · هفته‌ی {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "home.accuracy.rps": {
     "source": "ranked probability score · lower is better",
     "text": "امتیاز احتمال رتبه‌ای · هرچه کمتر، بهتر",
@@ -9352,6 +9358,48 @@
   "modelAccuracy.table.all": {
     "source": "All months",
     "text": "همه‌ی ماه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.captionWeek": {
+    "source": "By week of kick-off, Monday first (UTC). For RPS, Brier and log loss, lower is better.",
+    "text": "بر اساس هفته‌ی شروع بازی، از دوشنبه (UTC). برای RPS، بریر و لاگ‌لاس، کمتر بهتر است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.week": {
+    "source": "Week",
+    "text": "هفته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.table.allWeeks": {
+    "source": "All weeks",
+    "text": "همه‌ی هفته‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekOf": {
+    "source": "Week of {date}",
+    "text": "هفته‌ی {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.period.label": {
+    "source": "Show by",
+    "text": "نمایش بر اساس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.period.month": {
+    "source": "Month",
+    "text": "ماه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.period.week": {
+    "source": "Week",
+    "text": "هفته",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

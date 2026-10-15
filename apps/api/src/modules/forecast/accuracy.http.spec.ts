@@ -311,4 +311,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     expect(march?.accuracy).toBe(0.5);
     expect(march?.rps).toBeCloseTo((rps(P_SUNDAY, 'home') + rps(P_MONDAY, 'draw')) / 2, 6);
   });
+
+  it('serves the public page by ISO week when asked, and refuses an unknown period (T-1413)', async () => {
+    expect((await get('/model/accuracy?period=day')).statusCode).toBe(400);
+    const response = await get('/model/accuracy?period=week');
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as PublicModelAccuracyResponse;
+    expect(body.period).toBe('week');
+    const league = body.competitions.find((c) => c.competition?.id === COMPETITION);
+    expect(league?.points.map((p) => p.period)).toEqual(['2031-W09', '2031-W10']);
+    expect(league?.model_versions).not.toContain(SHADOW);
+    expect(league?.total).toMatchObject({ forecasts: 3, matches: 2, coverage: 'limited' });
+  });
 });

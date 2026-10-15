@@ -355,6 +355,8 @@ describe('the side column', () => {
   it('shows the newest month’s accuracy with its sample, baseline and versions', () => {
     const figure: AccuracyFigure = {
       period: '2026-10',
+      periodKind: 'month',
+      periodStart: '2026-10-01',
       metrics: {
         forecasts: 14,
         matches: 12,
@@ -385,6 +387,17 @@ describe('the side column', () => {
       <AccuracyCard figure={null} reachable={false} locale="en" timeZone="UTC" />,
     );
     expect(down).toContain('could not be loaded');
+    // T-1414: the home asks for weeks, and names the week by its Monday.
+    const week = renderToStaticMarkup(
+      <AccuracyCard
+        figure={{ ...figure, period: '2026-W42', periodKind: 'week', periodStart: '2026-10-12' }}
+        reachable
+        locale="en"
+        timeZone="UTC"
+      />,
+    );
+    expect(week).toContain('Model accuracy · week of 12 Oct');
+    expect(week).toContain('data-state="limited"');
   });
 
   it('names each broadcaster as a link-out, and the listings’ source and last check', () => {
