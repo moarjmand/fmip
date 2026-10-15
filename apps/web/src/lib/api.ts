@@ -1320,9 +1320,14 @@ export function fetchAdminModelAccuracy(
   });
 }
 
-/** `GET /model/accuracy` (T-1369): the published model's accuracy by month. Public. */
-export function fetchModelAccuracy(): Promise<ApiResult<PublicModelAccuracyResponse>> {
-  return apiRequest<PublicModelAccuracyResponse>('/model/accuracy');
+/**
+ * `GET /model/accuracy?period=` (T-1369): the published model's accuracy by
+ * month, or by ISO week (T-1413, T-1414). Public.
+ */
+export function fetchModelAccuracy(
+  period: AccuracyPeriod = 'month',
+): Promise<ApiResult<PublicModelAccuracyResponse>> {
+  return apiRequest<PublicModelAccuracyResponse>(`/model/accuracy?period=${period}`);
 }
 
 /** `GET /fixtures/:id/key-players` (T-841): each side's most-used players by the stated rule. Public. */
