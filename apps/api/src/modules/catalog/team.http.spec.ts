@@ -88,10 +88,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
       [VENUE, `Test Ground ${RUN}`, ENGLAND],
     );
     await pool.query(
-      `INSERT INTO team (id, name, short_name, kind, gender, country_id, home_venue_id, founded_year) VALUES
-         ($1, $4, 'ALP', 'club', 'men', $7, $8, 1901),
-         ($2, $5, 'BET', 'club', 'men', $7, NULL, NULL),
-         ($3, $6, NULL, 'club', 'men', $7, NULL, NULL)`,
+      `INSERT INTO team (id, name, short_name, kind, gender, country_id, home_venue_id, founded_year,
+                         colour, colour_source) VALUES
+         ($1, $4, 'ALP', 'club', 'men', $7, $8, 1901, '#c41f17', 'editor'),
+         ($2, $5, 'BET', 'club', 'men', $7, NULL, NULL, NULL, NULL),
+         ($3, $6, NULL, 'club', 'men', $7, NULL, NULL, NULL, NULL)`,
       [
         TEAMS.alpha,
         TEAMS.beta,
@@ -204,6 +205,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
       short_name: 'ALP',
       kind: 'club',
       founded_year: 1901,
+      // The club colour, ours (T-1418, D-218), for the band only.
+      colour: '#c41f17',
       country: { code: 'ENG' },
       venue: { name: `Test Ground ${RUN}`, city: 'Testville', capacity: 12345 },
     });

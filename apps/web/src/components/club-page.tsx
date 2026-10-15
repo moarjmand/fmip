@@ -107,6 +107,7 @@ export function ClubBand({
   return (
     <EntityBand
       testId="team-header"
+      colour={t.colour}
       media={
         <span className="grid size-18 shrink-0 place-items-center rounded-tile border border-default bg-canvas md:size-26">
           <EntityImage media={t.crest} kind="crest" name={name} size={48} aboveFold />

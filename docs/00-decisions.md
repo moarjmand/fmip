@@ -10923,7 +10923,7 @@ reads every stored team and match link once.
 ---
 
 ## D-218 — A club's colour from the licensed feed's shirt colours, derived into our own team attribute, with an editor's override
-**Status:** Accepted · 2026-10-15 (the maintainer, in chat: from the licensed data with a manual correction, for every match including past ones) · **Task:** T-1415, T-1416, T-1417 · **Follows:** D-204, D-014, D-197, rule 2, rule 10
+**Status:** Accepted · 2026-10-15 (the maintainer, in chat: from the licensed data with a manual correction, for every match including past ones) · **Task:** T-1415, T-1416, T-1417, T-1418 · **Follows:** D-204, D-014, D-197, rule 2, rule 10
 
 **Context.** D-204 left the club and player bands brand green because no
 club colour existed, and allowed one only as a canonical team attribute set
@@ -10960,7 +10960,7 @@ as well as new ones.
 6. **Where it shows** is D-204's and nowhere else: the top band of a club
    page, and of a player page in his current club's colour, with white or
    ink on it and the fill darkened in steps until that text reaches 4.5:1,
-   computed in a spec (T-1417). Below the band everything stays brand green.
+   computed in a spec (T-1418). Below the band everything stays brand green.
 
 **Alternatives.** *An editor only*: every one of about a thousand clubs by
 hand, most never set. *The provider's field straight to the page*: what

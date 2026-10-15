@@ -80,6 +80,7 @@ export function PlayerBand({
   return (
     <EntityBand
       testId="player-header"
+      colour={spell?.team.colour}
       media={
         <EntityImage
           media={p.photo}

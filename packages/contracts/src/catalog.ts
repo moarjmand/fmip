@@ -538,6 +538,12 @@ export interface TeamPage {
     venue: { id: string; name: string; city: string | null; capacity: number | null } | null;
     /** The team's crest from our own origin (T-1320). */
     crest?: EntityMedia;
+    /**
+     * The club's colour, `#rrggbb` (T-1418, D-218): derived from the shirts it
+     * wore at home, or set by an editor. Absent or null when none is known.
+     * For the top band of the club page only (D-204).
+     */
+    colour?: string | null;
   };
   /** Competitions with a current season, or one the team still has matches in. */
   competitions: TeamCompetition[];
@@ -592,7 +598,13 @@ export interface TeamManager {
 // ---------------------------------------------------------------------------
 
 export interface PlayerSpell {
-  team: { id: string; name: string; short_name: string | null };
+  team: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    /** The club's colour (T-1418, D-218), for the player page's band; absent or null when none is known. */
+    colour?: string | null;
+  };
   /** ISO 8601 dates; `end_date` null while the spell is open. */
   start_date: string;
   end_date: string | null;

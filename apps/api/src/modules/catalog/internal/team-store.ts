@@ -38,9 +38,10 @@ export class PostgresTeamStore {
       venue_name: string | null;
       venue_city: string | null;
       venue_capacity: number | null;
+      colour: string | null;
     }>(
       `SELECT t.id, t.name, localised_name('team', t.id, $2) AS localised_name,
-              t.short_name, t.code, t.kind, t.gender, t.age_group, t.founded_year,
+              t.short_name, t.code, t.kind, t.gender, t.age_group, t.founded_year, t.colour,
               co.id AS country_id, co.name AS country_name, co.code AS country_code,
               v.id AS venue_id, v.name AS venue_name, v.city AS venue_city, v.capacity AS venue_capacity
          FROM team t
@@ -69,6 +70,7 @@ export class PostgresTeamStore {
         r.venue_id !== null && r.venue_name !== null
           ? { id: r.venue_id, name: r.venue_name, city: r.venue_city, capacity: r.venue_capacity }
           : null,
+      colour: r.colour,
     };
   }
 

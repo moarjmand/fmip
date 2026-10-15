@@ -218,6 +218,7 @@ export class PostgresPlayerStore {
       team_id: string;
       team_name: string;
       team_short_name: string | null;
+      team_colour: string | null;
       start_date: string;
       end_date: string | null;
       shirt_number: number | null;
@@ -225,6 +226,7 @@ export class PostgresPlayerStore {
       on_loan: boolean;
     }>(
       `SELECT t.id AS team_id, t.name AS team_name, t.short_name AS team_short_name,
+              t.colour AS team_colour,
               ps.start_date::text, ps.end_date::text, ps.shirt_number, ps.position, ps.on_loan
          FROM player_spell ps JOIN team t ON t.id = ps.team_id
         WHERE ps.person_id = $1
@@ -232,7 +234,12 @@ export class PostgresPlayerStore {
       [personId],
     );
     return rows.map((r) => ({
-      team: { id: r.team_id, name: r.team_name, short_name: r.team_short_name },
+      team: {
+        id: r.team_id,
+        name: r.team_name,
+        short_name: r.team_short_name,
+        colour: r.team_colour,
+      },
       start_date: r.start_date,
       end_date: r.end_date,
       shirt_number: r.shirt_number,
