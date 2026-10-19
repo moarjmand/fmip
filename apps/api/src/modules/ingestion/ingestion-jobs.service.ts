@@ -820,7 +820,6 @@ export class IngestionJobsService {
       const unresolved = new Set<string>();
 
       const watched = new Set(recent.map((c) => c.fixtureId));
-      const raised = new Set<string>();
       for (const candidate of candidates) {
         // A recent match's alerts (T-830): a full-time or a red card the live
         // list did not carry. A backlog match is long over and raises none,
@@ -841,7 +840,10 @@ export class IngestionJobsService {
         seen += 1;
         written += detail.written;
         for (const id of detail.unresolved) unresolved.add(id);
-        if (before !== null) for (const id of await this.alerts.after(before)) raised.add(id);
+        // Handed over as soon as the match is written (T-1419): the rest of
+        // the run -- the backlog, the re-asks, the coverage -- takes minutes,
+        // and a full-time held until its end reached members three minutes late.
+        if (before !== null) await this.alerts.dispatch(await this.alerts.after(before));
         const requestId = refetchOf.get(candidate.fixtureId);
         if (requestId !== undefined) {
           await this.dataQuality.recordRefetch(requestId, detail.written > 0);
@@ -850,7 +852,6 @@ export class IngestionJobsService {
       written += await this.coverage.recomputeMany(
         await this.coverage.seasonsOf(candidates.map((c) => c.fixtureId)),
       );
-      await this.alerts.dispatch([...raised]);
       return this.report('post_match', source.provider, seen, written, refused, unresolved);
     });
   }
