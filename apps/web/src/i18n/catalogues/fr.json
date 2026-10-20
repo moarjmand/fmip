@@ -3396,6 +3396,51 @@
     "text": "",
     "status": "untranslated"
   },
+  "pushOffer.question": {
+    "source": "Get goal and line-up alerts for {name} on this device?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pushOffer.questionFollowed": {
+    "source": "Get goal and line-up alerts for what you follow on this device?",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pushOffer.detail": {
+    "source": "Your browser will ask for permission next. You can turn alerts off any time.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pushOffer.yes": {
+    "source": "Yes, send alerts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pushOffer.notNow": {
+    "source": "Not now",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pushOffer.on": {
+    "source": "Alerts are on for this device.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pushOffer.denied": {
+    "source": "Your browser blocked notifications, so we won't ask again here. You can allow them in your browser's site settings.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pushOffer.failed": {
+    "source": "Alerts could not be turned on.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pushOffer.settings": {
+    "source": "Notification settings",
+    "text": "",
+    "status": "untranslated"
+  },
   "story.bodyAtSource": {
     "source": "Only the headline and summary appear here; the full article is on the publisher's site.",
     "text": "",
@@ -3673,6 +3718,11 @@
   },
   "feed.manage": {
     "source": "Choose what you follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feed.alertSettings": {
+    "source": "Alerts on this device",
     "text": "",
     "status": "untranslated"
   },

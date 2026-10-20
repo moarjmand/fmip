@@ -1,4 +1,7 @@
 import type { CompetitionSummary, FollowedEntity, TeamSummary } from '@fmip/contracts';
+import Link from 'next/link';
+import { FollowIntentMark } from '@/components/push-offer';
+import { PushOfferFor } from '@/components/push-offer-for';
 import { Translated } from '@/components/translated';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
 import { type MessageKey, interpolate, t } from '@/i18n/messages';
@@ -24,7 +27,9 @@ const TYPE_LABEL: Record<FollowedEntity['entity_type'], MessageKey> = {
  * forms posting to server actions: each button is one intent, so it works
  * without JavaScript and needs no client state. Follow controls on team,
  * competition and player pages arrive with those pages (E3); until then the
- * pickers below are the way in.
+ * pickers below are the way in. A follow made with a picker brings up the
+ * offer of push on this device (T-1429), and the intro links to the alert
+ * settings, where the switch is.
  */
 export function FollowingSection({ locale, following, teams, competitions }: Props) {
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
@@ -42,7 +47,14 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
         <Translated locale={locale} message="feed.title" />
       </h2>
       <p className="text-sm text-muted">
-        <Translated locale={locale} message="followingPage.intro" />
+        <Translated locale={locale} message="followingPage.intro" />{' '}
+        <Link
+          href={`/${locale}/settings/notifications`}
+          className="underline"
+          data-testid="following-alert-settings"
+        >
+          <Translated locale={locale} message="feed.alertSettings" />
+        </Link>
       </p>
 
       {following.length === 0 ? (
@@ -99,6 +111,7 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
       <div className="grid gap-4 sm:grid-cols-2">
         <form action={follow} className="flex flex-col gap-2">
           <input type="hidden" name="entity_type" value="team" />
+          <FollowIntentMark />
           <Select
             label={<Translated locale={locale} message="followingPage.followTeam" />}
             id="follow-team"
@@ -121,6 +134,7 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
 
         <form action={follow} className="flex flex-col gap-2">
           <input type="hidden" name="entity_type" value="competition" />
+          <FollowIntentMark />
           <Select
             label={<Translated locale={locale} message="followingPage.followCompetition" />}
             id="follow-competition"
@@ -139,6 +153,8 @@ export function FollowingSection({ locale, following, teams, competitions }: Pro
           </Button>
         </form>
       </div>
+      {/* Remounted by a new follow, so it takes that follow's mark (T-1429). */}
+      <PushOfferFor key={following.length} locale={locale} entity={null} name={null} />
     </section>
   );
 }

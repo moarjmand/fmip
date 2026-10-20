@@ -203,12 +203,24 @@ describe('following the competition', () => {
 
   it('sends a guest to sign in and says when the follows cannot be read', () => {
     const guest = renderToStaticMarkup(
-      <CompetitionFollow locale="en" competitionId={ID} signedIn={false} following={null} />,
+      <CompetitionFollow
+        locale="en"
+        competitionId={ID}
+        name="Premier League"
+        signedIn={false}
+        following={null}
+      />,
     );
     expect(guest).toContain('data-testid="competition-follow-guest"');
     expect(guest).toContain('href="/en/login"');
     const unknown = renderToStaticMarkup(
-      <CompetitionFollow locale="en" competitionId={ID} signedIn following={null} />,
+      <CompetitionFollow
+        locale="en"
+        competitionId={ID}
+        name="Premier League"
+        signedIn
+        following={null}
+      />,
     );
     expect(unknown).toContain('data-testid="competition-follow-unreachable"');
     expect(unknown).not.toContain('<form');
@@ -216,13 +228,25 @@ describe('following the competition', () => {
 
   it('posts the follow, and offers to stop once followed', () => {
     const off = renderToStaticMarkup(
-      <CompetitionFollow locale="en" competitionId={ID} signedIn following={[]} />,
+      <CompetitionFollow
+        locale="en"
+        competitionId={ID}
+        name="Premier League"
+        signedIn
+        following={[]}
+      />,
     );
     expect(off).toContain('value="competition"');
     expect(off).toContain('data-following="false"');
     expect(off).toContain('>Follow<');
     const on = renderToStaticMarkup(
-      <CompetitionFollow locale="fa" competitionId={ID} signedIn following={[competition]} />,
+      <CompetitionFollow
+        locale="fa"
+        competitionId={ID}
+        name="Premier League"
+        signedIn
+        following={[competition]}
+      />,
     );
     expect(on).toContain('data-following="true"');
     expect(on).toContain('لغو دنبال کردن');

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, fetchPushState } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 import { failureSentence } from '@/lib/action-failure';
@@ -46,4 +46,16 @@ export async function unsubscribePushAction(
   }
   revalidatePath(`/${locale}/settings/notifications`);
   return { ok: true };
+}
+
+/**
+ * The deployment's public key, or null when it has no push channel or the
+ * API cannot say (T-1429). Asked by the offer a follow brings up, only after
+ * the browser has said it could take push -- so an ordinary page load costs
+ * no request, and a deployment without push never offers it.
+ */
+export async function pushOfferKeyAction(): Promise<string | null> {
+  const result = await fetchPushState(await sessionCookieHeader());
+  if (!result.ok || result.data.state !== 'configured') return null;
+  return result.data.public_key;
 }

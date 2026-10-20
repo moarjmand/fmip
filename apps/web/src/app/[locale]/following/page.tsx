@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import type { FeedItem, FeedSignal, MatchViewing } from '@fmip/contracts';
 import { BriefingPanel } from '@/components/briefing';
 import { FollowNextSteps } from '@/components/follow-next-steps';
+import { PushOfferFor } from '@/components/push-offer-for';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
@@ -94,6 +95,13 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
           <Link href={`/${locale}/settings`} className="underline">
             <Translated locale={locale} message="feed.manage" />
           </Link>
+          <Link
+            href={`/${locale}/settings/notifications`}
+            className="underline"
+            data-testid="alert-settings-link"
+          >
+            <Translated locale={locale} message="feed.alertSettings" />
+          </Link>
         </span>
       </div>
 
@@ -142,6 +150,14 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
               <Translated locale={locale} message={REASON_KEY[result.data.reason]} />
             </p>
           )}
+
+          {/* A follow from the suggestions below remounts it with the new count (T-1429). */}
+          <PushOfferFor
+            key={`${result.data.showing.followed.teams}:${result.data.showing.followed.competitions}`}
+            locale={locale}
+            entity={null}
+            name={null}
+          />
 
           {suggestions !== null && <FollowNextSteps locale={locale} suggestions={suggestions} />}
 

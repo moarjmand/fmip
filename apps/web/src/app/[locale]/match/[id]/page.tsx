@@ -249,6 +249,10 @@ export default async function MatchPage({
             <MatchFollow
               locale={locale}
               fixtureId={result.data.fixture.id}
+              name={interpolate(t(resolved, 'matchCentre.fixtureTitle'), {
+                home: result.data.fixture.home.name,
+                away: result.data.fixture.away.name,
+              })}
               status={result.data.fixture.status}
               signedIn={me !== null}
               following={following}

@@ -100,3 +100,16 @@ export const PUSH_TOGGLE_KEYS = [
 ] as const;
 
 export type PushToggleMessages = Record<(typeof PUSH_TOGGLE_KEYS)[number], Message>;
+
+/** The offer a follow brings up (T-1429); its question is resolved per follow. */
+export const PUSH_OFFER_KEYS = [
+  'pushOffer.detail',
+  'pushOffer.yes',
+  'pushOffer.notNow',
+  'pushOffer.on',
+  'pushOffer.denied',
+  'pushOffer.failed',
+  'pushOffer.settings',
+] as const;
+
+export type PushOfferMessages = Record<(typeof PUSH_OFFER_KEYS)[number], Message>;

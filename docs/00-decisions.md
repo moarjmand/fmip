@@ -11003,3 +11003,39 @@ the watchdog's thresholds (26 h, 50 h, 30 min) would then live twice.
 `report-capabilities.mjs`*: it is admin-only on purpose (T-801). *Make STALE
 fail too*: on the server the watchdog already turns a 50-hour-old success into
 `failing`, and STALE alone would fail rehearsals for old local files.
+
+## D-221 — Push is offered at the moment of a follow, once per click, after the browser says it could take it
+
+**Status:** Accepted · 2026-10-20 (agent, from the push audit; the maintainer approved the free code-level improvements) · **Task:** T-1429 · **Follows:** D-074, D-116, D-175
+
+**Context.** Production has had Web Push switched on (D-074) with zero
+subscriptions: the only way in was a switch in Settings → Notifications, two
+pages from anything a member does. Every goal, line-up and team-news alert
+from the match-alert module therefore reached the inbox and no device.
+
+**Decision.**
+1. The offer appears where the intent is: beside the followed state, right
+   after a member follows a team, a competition or a match (and on the two
+   pages whose pickers follow many things, without a name). A player's follow
+   sends no match alerts and is not offered.
+2. Only after a click: the follow form leaves a session-storage mark as it
+   submits; the offer takes it once, if it is under two minutes old. Nothing
+   is offered on a page load, and without JavaScript nothing is offered.
+3. Only when it can work and is wanted: the browser has a service worker and
+   push, has not refused notifications, has no subscription on this device,
+   and the member has not said "Not now" here in the last 60 days. The
+   deployment's key is asked only then, so an ordinary page costs no request
+   and a deployment without push never offers it.
+4. The browser's permission prompt is asked only by the offer's yes, through
+   the same subscribe flow as the Settings switch. A refusal is remembered
+   like "Not now".
+5. Two plain buttons, "Yes, send alerts" and "Not now", equal in reach, and a
+   line saying the browser will ask next and that alerts can be turned off.
+
+**Alternatives.** *Ask for permission on page load*: browsers penalise it and
+members refuse it, and a refusal is permanent for the origin. *Show the offer
+whenever a followed page is open*: a nag on every visit. *Remember "Not now"
+on the account*: the question is about this device, and a member's phone and
+laptop answer it differently. *Never return after "Not now"*: a member who
+follows a new club months later may want it; 60 days is long enough not to
+nag.

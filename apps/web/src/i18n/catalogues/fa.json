@@ -4135,6 +4135,60 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "pushOffer.question": {
+    "source": "Get goal and line-up alerts for {name} on this device?",
+    "text": "اعلان گل‌ها و ترکیب‌های {name} روی همین دستگاه برایتان فرستاده شود؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pushOffer.questionFollowed": {
+    "source": "Get goal and line-up alerts for what you follow on this device?",
+    "text": "اعلان گل‌ها و ترکیب‌های آنچه دنبال می‌کنید روی همین دستگاه برایتان فرستاده شود؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pushOffer.detail": {
+    "source": "Your browser will ask for permission next. You can turn alerts off any time.",
+    "text": "در قدم بعد مرورگرتان برای اجازه از شما می‌پرسد. هر وقت بخواهید می‌توانید اعلان‌ها را خاموش کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pushOffer.yes": {
+    "source": "Yes, send alerts",
+    "text": "بله، اعلان بفرست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pushOffer.notNow": {
+    "source": "Not now",
+    "text": "فعلاً نه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pushOffer.on": {
+    "source": "Alerts are on for this device.",
+    "text": "اعلان‌ها برای این دستگاه روشن شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pushOffer.denied": {
+    "source": "Your browser blocked notifications, so we won't ask again here. You can allow them in your browser's site settings.",
+    "text": "مرورگرتان اعلان‌ها را مسدود کرده است، پس دیگر اینجا نمی‌پرسیم. می‌توانید از تنظیمات سایت در مرورگرتان اجازه دهید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pushOffer.failed": {
+    "source": "Alerts could not be turned on.",
+    "text": "روشن کردن اعلان‌ها ممکن نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pushOffer.settings": {
+    "source": "Notification settings",
+    "text": "تنظیمات اعلان‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "story.bodyAtSource": {
     "source": "Only the headline and summary appear here; the full article is on the publisher's site.",
     "text": "تنها تیتر و خلاصه در اینجا آمده است؛ متن کامل خبر در سایت ناشر است.",
@@ -4468,6 +4522,12 @@
   "feed.manage": {
     "source": "Choose what you follow",
     "text": "انتخاب آنچه دنبال می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "feed.alertSettings": {
+    "source": "Alerts on this device",
+    "text": "اعلان‌ها روی این دستگاه",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

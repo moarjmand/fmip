@@ -199,6 +199,7 @@ export default async function CompetitionPage({
           <CompetitionFollow
             locale={locale}
             competitionId={page.competition.id}
+            name={page.competition.localised_name ?? page.competition.name}
             signedIn={me !== null}
             following={following}
           />
