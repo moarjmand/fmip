@@ -11896,5 +11896,90 @@
     "source": "No competitions are followed yet.",
     "text": "",
     "status": "untranslated"
+  },
+  "nav.highlights": {
+    "source": "Highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.title": {
+    "source": "Highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.metaDescription": {
+    "source": "Official highlight links for the matches FMIP follows, newest first, filtered by competition. Each opens on the publisher's own site.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.lead": {
+    "source": "Official highlights of the matches we follow, newest first. Each link opens on the publisher's own site; we don't host or play video.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.unreachable": {
+    "source": "The highlights could not be loaded just now. Please try again in a moment.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.everywhere": {
+    "source": "Choose your territory to see every highlight offered there. Until then only the clips offered in every country are listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.filter": {
+    "source": "Filter by competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.empty": {
+    "source": "No highlights are offered here yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.emptyCompetition": {
+    "source": "No highlights of this competition are offered here yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.pastEnd": {
+    "source": "There are no more highlights on this page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.pages": {
+    "source": "Pages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.newer": {
+    "source": "Newer",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.older": {
+    "source": "Older",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.pageOf": {
+    "source": "Page {page} of {pages}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.updated": {
+    "source": "Links last read {time} ({zone})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.penalties": {
+    "source": "Pens",
+    "text": "",
+    "status": "untranslated"
   }
 }

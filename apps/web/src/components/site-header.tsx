@@ -44,6 +44,7 @@ const NAV_LABELS: Record<string, MessageKey> = {
   analysis: 'shell.nav.analysis',
   news: 'shell.nav.news',
   watch: 'nav.watch',
+  highlights: 'nav.highlights',
 };
 
 /** The bottom tab bar's words (`tabBarLinks`). */
@@ -82,7 +83,7 @@ function Icon({ children }: { children: React.ReactNode }) {
 /**
  * The one header (D-198, D-199): always on paper (`data-mode="editorial"`)
  * with a double rule under it. From 768px one row: the mark and wordmark,
- * the nav (Today, Scores, Predictions, Analysis, News, Watch), then the other
+ * the nav (Today, Scores, Predictions, Analysis, News, Watch, Highlights), then the other
  * language, search, the theme (Auto, Day, Night) and Sign in or the
  * member's menu. On a phone it is the Menu button, the mark and search; the
  * Menu (`<details>`, no script) holds the nav, the language, the theme and

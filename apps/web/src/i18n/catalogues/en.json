@@ -2615,5 +2615,22 @@
   "competitions.group.continental": "Continental",
   "competitions.noMatch": "No competition we follow matches this search.",
   "competitions.unreachable": "The list of competitions could not be loaded just now. Please try again in a moment.",
-  "competitions.empty": "No competitions are followed yet."
+  "competitions.empty": "No competitions are followed yet.",
+  "nav.highlights": "Highlights",
+  "highlights.title": "Highlights",
+  "highlights.metaDescription": "Official highlight links for the matches FMIP follows, newest first, filtered by competition. Each opens on the publisher's own site.",
+  "highlights.lead": "Official highlights of the matches we follow, newest first. Each link opens on the publisher's own site; we don't host or play video.",
+  "highlights.unreachable": "The highlights could not be loaded just now. Please try again in a moment.",
+  "highlights.everywhere": "Choose your territory to see every highlight offered there. Until then only the clips offered in every country are listed.",
+  "highlights.filter": "Filter by competition",
+  "highlights.allCompetitions": "All competitions",
+  "highlights.empty": "No highlights are offered here yet.",
+  "highlights.emptyCompetition": "No highlights of this competition are offered here yet.",
+  "highlights.pastEnd": "There are no more highlights on this page.",
+  "highlights.pages": "Pages",
+  "highlights.newer": "Newer",
+  "highlights.older": "Older",
+  "highlights.pageOf": "Page {page} of {pages}",
+  "highlights.updated": "Links last read {time} ({zone})",
+  "highlights.penalties": "Pens"
 }

@@ -18,7 +18,7 @@ import { HEADER_NAV, type ShellLink, currentLink, tabBarLinks } from '@/lib/shel
 type Labels = Readonly<Record<string, Message>>;
 
 /**
- * The header's nav: Today, Scores, Predictions, Analysis, News, Watch
+ * The header's nav: Today, Scores, Predictions, Analysis, News, Watch, Highlights
  * (`HEADER_NAV`). In a row from 768px; on a phone it is the list inside the
  * header's Menu. The current entry is brand green with a bar under it.
  */

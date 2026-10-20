@@ -14508,5 +14508,107 @@
     "text": "هنوز هیچ رقابتی دنبال نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.highlights": {
+    "source": "Highlights",
+    "text": "هایلایت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.title": {
+    "source": "Highlights",
+    "text": "هایلایت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.metaDescription": {
+    "source": "Official highlight links for the matches FMIP follows, newest first, filtered by competition. Each opens on the publisher's own site.",
+    "text": "پیوند خلاصه‌های رسمی بازی‌هایی که FMIP دنبال می‌کند، تازه‌ترین‌ها اول، با فیلتر رقابت. هر پیوند در سایت خود ناشر باز می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.lead": {
+    "source": "Official highlights of the matches we follow, newest first. Each link opens on the publisher's own site; we don't host or play video.",
+    "text": "خلاصه‌های رسمی بازی‌هایی که دنبال می‌کنیم، تازه‌ترین‌ها اول. هر پیوند در سایت خود ناشر باز می‌شود؛ ما هیچ ویدیویی را میزبانی یا پخش نمی‌کنیم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.unreachable": {
+    "source": "The highlights could not be loaded just now. Please try again in a moment.",
+    "text": "هایلایت‌ها همین حالا بارگیری نشد. لطفاً چند لحظه دیگر دوباره امتحان کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.everywhere": {
+    "source": "Choose your territory to see every highlight offered there. Until then only the clips offered in every country are listed.",
+    "text": "کشور خود را انتخاب کنید تا همهٔ هایلایت‌هایی که آنجا در دسترس است را ببینید. تا آن موقع فقط خلاصه‌هایی فهرست می‌شوند که در همهٔ کشورها در دسترس‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.filter": {
+    "source": "Filter by competition",
+    "text": "فیلتر بر اساس رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.allCompetitions": {
+    "source": "All competitions",
+    "text": "همه رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.empty": {
+    "source": "No highlights are offered here yet.",
+    "text": "هنوز هیچ هایلایتی اینجا در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.emptyCompetition": {
+    "source": "No highlights of this competition are offered here yet.",
+    "text": "هنوز هیچ هایلایتی از این رقابت اینجا در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.pastEnd": {
+    "source": "There are no more highlights on this page.",
+    "text": "در این صفحه هایلایت دیگری نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.pages": {
+    "source": "Pages",
+    "text": "صفحه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.newer": {
+    "source": "Newer",
+    "text": "جدیدتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.older": {
+    "source": "Older",
+    "text": "قدیمی‌تر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.pageOf": {
+    "source": "Page {page} of {pages}",
+    "text": "صفحهٔ {page} از {pages}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.updated": {
+    "source": "Links last read {time} ({zone})",
+    "text": "آخرین به‌روزرسانی پیوندها: {time} ({zone})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.penalties": {
+    "source": "Pens",
+    "text": "پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   }
 }
