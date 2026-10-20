@@ -34,6 +34,7 @@ const MORE = '1765861000000_english-club-names-more.sql';
 const PERSIAN_CLUBS = '1765867000000_persian-club-names.sql';
 const PERSIAN_CLUBS_EUROPE = '1765868000000_persian-club-names-europe.sql';
 const PERSIAN_CLUBS_CUPS = '1765869000000_persian-club-names-cups.sql';
+const PERSIAN_CLUBS_FA_CUP = '1765870000000_persian-club-names-fa-cup.sql';
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
   '?locale= on every surface',
@@ -383,6 +384,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         name: 'Wolfsburg',
         fa: 'ولفسبورگ',
         national: '400',
+      },
+      {
+        task: 'T-1424',
+        file: PERSIAN_CLUBS_FA_CUP,
+        id: '1377',
+        name: 'Yeovil Town',
+        fa: 'یوویل تاون',
+        national: '1819',
       },
     ];
     it.each(PERSIAN_CASES)(
