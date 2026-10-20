@@ -2,7 +2,7 @@
  * Highlightly adapter (T-023): the Football API product at
  * soccer.highlightly.net (T-1392, D-208; it was the All Sports route
  * sports.highlightly.net/football until the maintainer chose the Football API
- * Pro plan). Both routes take the same paths, parameters and RapidAPI-style
+ * Pro plan, 7,500 requests a day). Both routes take the same paths, parameters and RapidAPI-style
  * headers (`x-rapidapi-key` and `x-rapidapi-host`).
  *
  * Request cost differs from the other two providers and is reported
@@ -55,12 +55,16 @@ export const HIGHLIGHTLY_MANIFEST: AdapterManifest = {
   criticalPath: true,
   licence: {
     kind: 'licensed_api',
-    // Terms are linked from the site footer; there is no stable deep link.
-    termsUrl: 'https://highlightly.net/',
-    tier: 'BASIC (free)',
+    // Read 2026-10-20 (version of 2026-07-24): the data may be used and shown
+    // in our product (s. 6.1), never for gambling (s. 7). D-208, D-224.
+    termsUrl: 'https://highlightly.net/terms',
+    tier: 'Football API Pro',
   },
   degradable: false,
-  quota: { requestsPerDay: 100, requestsPerMinute: null },
+  // The Pro plan's ceiling, shared by every key-holding caller (T-1432): the
+  // highlights feed and the box scores count against HIGHLIGHTS_DAILY_BUDGET,
+  // the `live` profile's jobs against HIGHLIGHTLY_DAILY_BUDGET.
+  quota: { requestsPerDay: 7500, requestsPerMinute: null },
 };
 
 function failure(response: TransportResponse): AdapterError {

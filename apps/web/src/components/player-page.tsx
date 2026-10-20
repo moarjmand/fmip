@@ -9,6 +9,7 @@ import { Translated } from '@/components/translated';
 import { Button, controlClasses, inlineTargetClasses } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
 import { formatNumber, localDigits } from '@/i18n/format';
+import { formatFixed } from '@/lib/words';
 import { type MessageKey, attribute } from '@/i18n/messages';
 import { pageLocale, say } from '@/lib/competition';
 import {
@@ -592,6 +593,37 @@ function MatchLine({ match, locale }: { match: PlayerMatch; locale: string }) {
         <span className="text-danger">
           · <Translated locale={locale} message="playerPage.redCard" />
         </span>
+      )}
+      <ExpectedGoalsLine match={match} locale={locale} />
+    </span>
+  );
+}
+
+/**
+ * "xG (Highlightly) 0.38 · xA 0.12": the match's expected goals from their own
+ * source, labelled with it (T-1432, D-224), and only what it supplied -- `–`
+ * for an xG it did not, nothing at all when it has no figure for the match.
+ */
+function ExpectedGoalsLine({ match, locale }: { match: PlayerMatch; locale: string }) {
+  const expected = match.expected_goals;
+  if (expected === null) return null;
+  const figure = (value: number | undefined) =>
+    value === undefined ? '–' : formatFixed(locale, value, 2);
+  const { xg, xa, xgot } = expected.figures;
+  return (
+    <span data-testid="player-match-xg" className="tabular-nums">
+      · <Translated locale={locale} message="playerPage.expectedGoals" /> {figure(xg)}
+      {xa !== undefined && (
+        <>
+          {' · '}
+          <Translated locale={locale} message="matchCentre.expectedGoals.xa" /> {figure(xa)}
+        </>
+      )}
+      {xgot !== undefined && (
+        <>
+          {' · '}
+          <Translated locale={locale} message="matchCentre.expectedGoals.xgot" /> {figure(xgot)}
+        </>
       )}
     </span>
   );

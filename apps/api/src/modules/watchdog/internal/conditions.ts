@@ -181,6 +181,37 @@ export function requestBudget(seen: { requestsToday: number; budget: number | nu
 }
 
 /**
+ * The share of Highlightly's daily ceiling spent (T-1432, D-224): the
+ * highlights feed and the box scores draw on one count
+ * (`HIGHLIGHTS_DAILY_BUDGET`), and a spent ceiling stops both until 00:00
+ * UTC. Same levels as `request_budget`: `degraded` at 80 %, `failing` at 95 %.
+ * `ok` without `HIGHLIGHTLY_KEY` (the two are off there, by design).
+ */
+export function highlightlyBudget(
+  seen: { configured: false } | { configured: true; requestsToday: number; budget: number },
+): Reading {
+  const key = 'highlightly_budget';
+  const threshold = REQUEST_BUDGET_THRESHOLD;
+  if (!seen.configured) {
+    return {
+      key,
+      level: 'ok',
+      observed: null,
+      threshold,
+      note: 'no HIGHLIGHTLY_KEY: the highlights feed and the box scores are off',
+    };
+  }
+  const observed = Math.round((1000 * seen.requestsToday) / seen.budget) / 10;
+  return {
+    key,
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: `${seen.requestsToday} of ${seen.budget} Highlightly requests since 00:00 UTC (highlights and box scores)`,
+  };
+}
+
+/**
  * Failed jobs on one BullMQ queue in the last hour: one is worth a look, three
  * is a job that keeps failing. An hour's window is also the hysteresis: the
  * condition recovers an hour after the last failure, not on the next tick.

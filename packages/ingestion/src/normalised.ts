@@ -98,8 +98,10 @@ export type StatMetric = (typeof STAT_METRICS)[number];
  * One player's numbers in one match (T-101), a closed list like the team's.
  * Counts are what the player did; `rating` is the provider's own 0-10 mark and
  * says so in its name nowhere else, so it is never averaged with anyone's.
- * There is no per-player expected goals: no provider in use supplies it, and a
- * metric nobody can fill is not listed as if one could.
+ * There is no per-player expected goals here: the one source of it is
+ * Highlightly's box score (T-1432, D-224), its own contract
+ * (`adapters/highlightly/box-score.ts`) and its own table, labelled with its
+ * source wherever it is shown, never a column of this list.
  */
 export const PLAYER_STAT_METRICS = [
   'minutes',

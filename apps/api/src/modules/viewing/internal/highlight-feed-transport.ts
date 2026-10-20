@@ -28,8 +28,9 @@ export class FetchJsonTransport implements Transport {
 }
 
 /**
- * The feed's own daily ceiling (`HIGHLIGHTS_DAILY_BUDGET`), the same pattern
- * as ingestion's `BudgetedTransport` (D-049) and a separate count from it:
+ * The daily ceiling the highlights feed and the box scores share
+ * (`HIGHLIGHTS_DAILY_BUDGET`, one instance in `HighlightlyQuota`, T-1432), the
+ * same pattern as ingestion's `BudgetedTransport` (D-049) and a separate count from it:
  * over budget it answers 429 rather than throwing, so the client reports a
  * `quota` refusal and the run stops where it is. The day is UTC, when the
  * provider's own count resets.
@@ -57,7 +58,7 @@ export class DailyBudgetTransport implements Transport {
     if (this.spent >= this.perDay) {
       return {
         status: 429,
-        body: { message: `the highlights feed's daily budget of ${this.perDay} is spent` },
+        body: { message: `the Highlightly daily budget of ${this.perDay} is spent` },
         receivedAt: this.now().toISOString(),
       };
     }

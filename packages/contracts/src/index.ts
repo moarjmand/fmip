@@ -123,6 +123,8 @@ export type {
   HighlightListItem,
   HighlightListTeam,
   HighlightRequest,
+  BoxScoreFeedHealth,
+  BoxScoreFeedRun,
   HighlightsFeedHealth,
   HighlightsFeedRun,
   HighlightsResponse,
@@ -343,6 +345,8 @@ export type {
 } from './scores';
 export type {
   CoverageModule,
+  ExpectedGoalsMetric,
+  ExpectedGoalsSource,
   FormEntry,
   HeadToHeadEntry,
   LineupGrid,
@@ -356,6 +360,8 @@ export type {
   MatchLineupPlayer,
   MatchLineups,
   MatchPeriod,
+  MatchExpectedGoals,
+  MatchPlayerExpected,
   MatchPlayerStats,
   MatchStatMetric,
   MatchStatRow,

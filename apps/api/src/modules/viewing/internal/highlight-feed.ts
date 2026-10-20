@@ -6,7 +6,7 @@ import type { NormalisedHighlight } from '@fmip/ingestion';
  * The service runs them; the store keeps what they decide.
  */
 
-/** The feed's own daily request ceiling, when `HIGHLIGHTS_DAILY_BUDGET` is empty. */
+/** The daily request ceiling the feed shares with the box scores, when `HIGHLIGHTS_DAILY_BUDGET` is empty. */
 export const HIGHLIGHTS_DEFAULT_BUDGET = 5000;
 /** A finished match is asked about until this long after kick-off: verified clips arrive 1-48 h after the whistle. */
 export const FEED_WINDOW_HOURS = 51;
@@ -14,6 +14,9 @@ export const FEED_WINDOW_HOURS = 51;
 export const KICKOFF_TOLERANCE_MS = 3 * 60 * 60 * 1000;
 /** Geo questions per match per run: a clip whose territories are unknown is passed over for the next. */
 export const GEO_TRIES_PER_MATCH = 3;
+
+/** The injection token for the feed's configuration, read from the environment once at boot. */
+export const HIGHLIGHT_FEED_CONFIG = Symbol('HIGHLIGHT_FEED_CONFIG');
 
 export type FeedConfig =
   { state: 'absent' } | { state: 'configured'; apiKey: string; dailyBudget: number };
@@ -72,11 +75,11 @@ export interface FeedCandidate {
 }
 
 /** One question to the feed: a league on a UTC day, and our matches it should answer for. */
-export interface FeedQuestion {
+export interface FeedQuestion<C extends FeedCandidate = FeedCandidate> {
   leagueExternalId: string;
   competitionId: string;
   date: string;
-  candidates: FeedCandidate[];
+  candidates: C[];
 }
 
 /**
@@ -85,11 +88,13 @@ export interface FeedQuestion {
  * rather than reported as matching nothing -- and the competitions of
  * waiting matches it cannot ask about because nobody mapped them.
  */
-export function feedQuestions(candidates: FeedCandidate[]): {
-  questions: FeedQuestion[];
+export function feedQuestions<C extends FeedCandidate>(
+  candidates: C[],
+): {
+  questions: FeedQuestion<C>[];
   unmappedCompetitions: Set<string>;
 } {
-  const byKey = new Map<string, FeedQuestion>();
+  const byKey = new Map<string, FeedQuestion<C>>();
   const unmappedCompetitions = new Set<string>();
   for (const candidate of candidates) {
     if (candidate.leagueExternalId === null) {
@@ -98,7 +103,7 @@ export function feedQuestions(candidates: FeedCandidate[]): {
     }
     const date = candidate.kickoffAt.toISOString().slice(0, 10);
     const key = `${candidate.leagueExternalId}/${date}`;
-    const question = byKey.get(key) ?? {
+    const question: FeedQuestion<C> = byKey.get(key) ?? {
       leagueExternalId: candidate.leagueExternalId,
       competitionId: candidate.competitionId,
       date,
@@ -119,6 +124,31 @@ export interface Unmatched {
 }
 
 /**
+ * The one candidate a feed's match is, by our team ids (`home`/`away`, null
+ * when the feed's team is not mapped) and kick-off: both teams mapped, the
+ * pair in either order -- a neutral ground is named differently by different
+ * sources -- and a kick-off within `KICKOFF_TOLERANCE_MS`. Anything else is
+ * the reason it is not placed. Shared by the clips and the box scores (T-1432).
+ */
+export function placeOnFixture<C extends FeedCandidate>(
+  home: string | null,
+  away: string | null,
+  kickoffAt: string,
+  candidates: readonly C[],
+): { candidate: C } | { reason: UnmatchedReason } {
+  if (home === null || away === null) return { reason: 'team_unmapped' };
+  const kickoff = Date.parse(kickoffAt);
+  const fits = candidates.filter((candidate) => {
+    const pair =
+      (candidate.homeTeamId === home && candidate.awayTeamId === away) ||
+      (candidate.homeTeamId === away && candidate.awayTeamId === home);
+    return pair && Math.abs(candidate.kickoffAt.getTime() - kickoff) <= KICKOFF_TOLERANCE_MS;
+  });
+  if (fits.length !== 1) return { reason: fits.length === 0 ? 'no_fixture' : 'ambiguous' };
+  return { candidate: fits[0]! };
+}
+
+/**
  * Which of our matches each clip belongs to (rule 1: never by a name). Both
  * of the clip's teams must be mapped to ours through `provider_mapping`
  * (`teams`: the feed's team id -> our team id, or null when unmapped), and
@@ -136,26 +166,19 @@ export function matchClips(
   const matched = new Map<string, NormalisedHighlight[]>();
   const unmatched: Unmatched[] = [];
   for (const clip of clips) {
-    const home = teams.get(clip.match.home.externalId) ?? null;
-    const away = teams.get(clip.match.away.externalId) ?? null;
-    if (home === null || away === null) {
-      unmatched.push({ reason: 'team_unmapped', clip });
+    const placed = placeOnFixture(
+      teams.get(clip.match.home.externalId) ?? null,
+      teams.get(clip.match.away.externalId) ?? null,
+      clip.match.kickoffAt,
+      candidates,
+    );
+    if ('reason' in placed) {
+      unmatched.push({ reason: placed.reason, clip });
       continue;
     }
-    const kickoff = Date.parse(clip.match.kickoffAt);
-    const fits = candidates.filter((candidate) => {
-      const pair =
-        (candidate.homeTeamId === home && candidate.awayTeamId === away) ||
-        (candidate.homeTeamId === away && candidate.awayTeamId === home);
-      return pair && Math.abs(candidate.kickoffAt.getTime() - kickoff) <= KICKOFF_TOLERANCE_MS;
-    });
-    if (fits.length !== 1) {
-      unmatched.push({ reason: fits.length === 0 ? 'no_fixture' : 'ambiguous', clip });
-      continue;
-    }
-    const list = matched.get(fits[0]!.fixtureId) ?? [];
+    const list = matched.get(placed.candidate.fixtureId) ?? [];
     list.push(clip);
-    matched.set(fits[0]!.fixtureId, list);
+    matched.set(placed.candidate.fixtureId, list);
   }
   for (const list of matched.values()) {
     list.sort((a, b) => Number(b.matchHighlights) - Number(a.matchHighlights));

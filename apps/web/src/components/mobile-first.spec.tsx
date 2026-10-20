@@ -251,6 +251,13 @@ const centre: MatchCentre = {
   lineups: covered({ home: [], away: [] }),
   availability: covered([]),
   player_statistics: { coverage: 'not_supplied', last_updated_at: null, data: null },
+  player_expected_goals: {
+    source: 'highlightly',
+    unplaced: 0,
+    coverage: 'not_supplied',
+    last_updated_at: null,
+    data: null,
+  },
   form: {
     home: { coverage: 'not_supplied', last_updated_at: null, data: null },
     away: { coverage: 'not_supplied', last_updated_at: null, data: null },

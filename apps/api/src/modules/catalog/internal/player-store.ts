@@ -450,6 +450,7 @@ export class PostgresPlayerStore {
       assists: string;
       yellow_cards: string;
       red_cards: string;
+      expected: Record<string, number> | null;
       updated_at: Date;
     }>(
       `SELECT f.id, f.kickoff_at, f.status, f.round, f.stage_id, st.name AS stage_name,
@@ -473,6 +474,11 @@ export class PostgresPlayerStore {
                   AND i.kind = 'yellow_card')::text AS yellow_cards,
               (SELECT count(*) FROM incident i WHERE i.fixture_id = f.id AND i.person_id = $1
                   AND i.kind IN ('red_card', 'second_yellow_card'))::text AS red_cards,
+              -- Expected goals from their one source (T-1432): its figures for
+              -- this player in this match, or null when it has none.
+              (SELECT jsonb_object_agg(e.metric, e.value::float8) FROM fixture_player_expected e
+                WHERE e.participant_id = me.id AND e.person_id = $1
+                  AND e.source = 'highlightly') AS expected,
               GREATEST(f.updated_at, l.updated_at,
                 (SELECT max(i.updated_at) FROM incident i WHERE i.fixture_id = f.id
                     AND (i.person_id = $1 OR i.related_person_id = $1))) AS updated_at
@@ -535,6 +541,7 @@ export class PostgresPlayerStore {
         assists: Number(r.assists),
         yellow_cards: Number(r.yellow_cards),
         red_cards: Number(r.red_cards),
+        expected_goals: r.expected === null ? null : { source: 'highlightly', figures: r.expected },
       })),
     };
   }

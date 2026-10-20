@@ -10,6 +10,9 @@ import { IngestRunsService } from '../../ingestion/ingest-runs.service';
 import { INGESTION_QUEUE } from '../../ingestion/ingestion-scheduler.service';
 import { MATCH_ALERTS_QUEUE } from '../../match-alerts/match-alerts.service';
 import { NEWS_QUEUE } from '../../news/news-scheduler.service';
+import { BOX_SCORE_QUEUE } from '../../viewing/box-score-feed.service';
+import { HIGHLIGHT_FEED_QUEUE } from '../../viewing/highlight-feed.service';
+import { HighlightlyQuota } from '../../viewing/highlightly-quota.service';
 import { WeeklyRangesCheck } from './cloudflare-ranges';
 import { LIVE_FEED_THRESHOLD } from './conditions';
 import type { Observations, Unreadable } from './readings';
@@ -25,6 +28,8 @@ export const WATCHED_QUEUES = [
   CHANNEL_POST_QUEUE,
   DATA_QUALITY_QUEUE,
   MATCH_ALERTS_QUEUE,
+  HIGHLIGHT_FEED_QUEUE,
+  BOX_SCORE_QUEUE,
   WATCHDOG_QUEUE,
 ];
 
@@ -55,8 +60,9 @@ async function orUnreadable<T>(read: () => Promise<T>): Promise<T | Unreadable> 
  * runs and budget (T-071, T-501), the live fixtures' last change (D-045), the
  * BullMQ failed sets, the model service's health check, the delivery
  * channels and their recorded outcomes (T-330), and what the backup and the
- * restore drill recorded in `backup_run` from the host (T-805), and the weekly
- * comparison of the committed Cloudflare ranges with the published ones (T-930).
+ * restore drill recorded in `backup_run` from the host (T-805), the weekly
+ * comparison of the committed Cloudflare ranges with the published ones (T-930),
+ * and Highlightly's shared daily ceiling (T-1432).
  */
 @Injectable()
 export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
@@ -70,6 +76,7 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
     private readonly delivery: DeliveryService,
     private readonly store: WatchdogStore,
     private readonly dataQuality: DataQualityService,
+    private readonly highlightly: HighlightlyQuota,
   ) {}
 
   async observe(now: Date): Promise<Observations> {
@@ -123,6 +130,7 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
       backups,
       candidates,
       cloudflare,
+      highlightly: this.highlightly.reading(),
     };
   }
 

@@ -430,6 +430,7 @@ const centre = (fixture: Partial<MatchCentre['fixture']>): MatchCentre => ({
   lineups: empty,
   availability: empty,
   player_statistics: empty,
+  player_expected_goals: { ...empty, source: 'highlightly', unplaced: 0 },
   form: { home: empty, away: empty },
   head_to_head: empty,
   coverage: {
@@ -454,6 +455,68 @@ const band = (c: MatchCentre, locale = 'en', hero = {}) => {
   );
   return html.slice(0, html.indexOf('</header>'));
 };
+
+describe('per-player expected goals (T-1432)', () => {
+  const view = (expected: MatchCentre['player_expected_goals'], locale = 'en') =>
+    renderToStaticMarkup(
+      <MatchCentreView
+        words={matchWords(locale)}
+        centre={{ ...centre({ status: 'finished' }), player_expected_goals: expected }}
+        timeZone="UTC"
+        locale={locale}
+      />,
+    );
+  const card = (html: string) => {
+    const at = html.indexOf('data-testid="player-expected-goals"');
+    return at < 0 ? '' : html.slice(at, html.indexOf('</section>', at));
+  };
+
+  it('shows a card of its own, labelled with the source, a dash for what was not supplied', () => {
+    const html = card(
+      view({
+        source: 'highlightly',
+        unplaced: 3,
+        coverage: 'limited',
+        last_updated_at: '2026-10-08T16:00:00.000Z',
+        data: [
+          { id: 'p1', name: 'Mohamed Salah', side: 'home', figures: { xg: 0.38, xa: 0.12 } },
+          { id: 'p2', name: 'Alisson', side: 'away', figures: { xa: 0 } },
+        ],
+      }),
+    );
+    expect(html).toContain('data-coverage="limited"');
+    expect(html).toContain('xG (Highlightly)');
+    expect(html).toContain('0.38');
+    expect(html).toContain('0.00');
+    expect(html).toContain('–');
+    expect(html).toContain('data-testid="player-expected-goals-unplaced"');
+    expect(html).toContain('Not shown: 3 players');
+  });
+
+  it('says why it is empty rather than drawing zeros', () => {
+    const answered = card(
+      view({
+        source: 'highlightly',
+        unplaced: 0,
+        coverage: 'not_supplied',
+        last_updated_at: '2026-10-08T16:00:00.000Z',
+        data: null,
+      }),
+    );
+    expect(answered).toContain('Highlightly supplies no expected goals for this match.');
+    expect(answered).not.toContain('<table');
+    const owed = card(
+      view({
+        source: 'highlightly',
+        unplaced: 0,
+        coverage: 'delayed',
+        last_updated_at: null,
+        data: null,
+      }),
+    );
+    expect(owed).toContain('data-coverage="delayed"');
+  });
+});
 
 describe('the score band', () => {
   it('before kick-off shows the kick-off time large, and no score at all', () => {

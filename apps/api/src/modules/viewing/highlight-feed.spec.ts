@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { FailureCountsService } from '../failure-counts/failure-counts.service';
 import type { EntityResolverService } from '../ingestion/ingestion.service';
 import { HighlightFeedService } from './highlight-feed.service';
+import { HighlightlyQuota } from './highlightly-quota.service';
 import {
   type FeedCandidate,
   HIGHLIGHTS_DEFAULT_BUDGET,
@@ -244,7 +245,13 @@ function service(
   } as unknown as EntityResolverService;
   const failures = { watch: () => undefined } as unknown as FailureCountsService;
   return {
-    feed: new HighlightFeedService(feedConfig(env), transport, store, resolver, failures),
+    feed: new HighlightFeedService(
+      feedConfig(env),
+      new HighlightlyQuota(feedConfig(env), transport),
+      store,
+      resolver,
+      failures,
+    ),
     stored,
     resolved,
   };

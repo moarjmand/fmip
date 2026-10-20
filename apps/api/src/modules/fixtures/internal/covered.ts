@@ -4,6 +4,8 @@ import type {
   FixtureStatus,
   MatchAbsence,
   MatchCentre,
+  MatchExpectedGoals,
+  MatchPlayerExpected,
 } from '@fmip/contracts';
 
 /**
@@ -96,4 +98,56 @@ export function absencesCovered(
       ? 'not_yet'
       : 'not_asked';
   return { coverage: 'not_supplied', last_updated_at: null, data: null, gap };
+}
+
+/**
+ * How long after kick-off the box-score job asks about a finished match: the
+ * highlights feed's window, which it shares (`FEED_WINDOW_HOURS` in the
+ * viewing boundary, T-1432).
+ */
+export const EXPECTED_GOALS_WINDOW_HOURS = 51;
+
+/** A match's stored expected goals from their one source, as the store read them. */
+export interface StoredExpectedGoals {
+  rows: MatchPlayerExpected[];
+  /** When the source answered for this match; null when it has not been asked. */
+  answeredAt: string | null;
+  /** Players the source listed that are not mapped to ours yet. */
+  unplaced: number;
+  /** Whether the match's competition is mapped to the source at all. */
+  sourceCovers: boolean;
+}
+
+/**
+ * The expected-goals module (T-1432, D-224). Figures: `available`, or
+ * `limited` when the source listed players we have not placed. None: asked
+ * and answered without a figure is `not_supplied`; not asked yet, for a
+ * finished match of a covered competition still inside the job's window, is
+ * `delayed`; anything else is `not_supplied`. Never a table of zeros (rule 3).
+ */
+export function expectedGoalsCovered(
+  stored: StoredExpectedGoals,
+  match: { status: FixtureStatus; kickoffAt: string },
+  now: Date,
+): MatchExpectedGoals {
+  const labelled = { source: 'highlightly' as const, unplaced: stored.unplaced };
+  if (stored.rows.length > 0) {
+    return {
+      ...labelled,
+      coverage: stored.unplaced > 0 ? 'limited' : 'available',
+      last_updated_at: stored.answeredAt,
+      data: stored.rows,
+    };
+  }
+  const owed =
+    stored.answeredAt === null &&
+    stored.sourceCovers &&
+    match.status === 'finished' &&
+    now.getTime() - Date.parse(match.kickoffAt) <= EXPECTED_GOALS_WINDOW_HOURS * 3_600_000;
+  return {
+    ...labelled,
+    coverage: owed ? 'delayed' : 'not_supplied',
+    last_updated_at: stored.answeredAt,
+    data: null,
+  };
 }

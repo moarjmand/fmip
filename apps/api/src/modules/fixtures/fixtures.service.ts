@@ -9,7 +9,7 @@ import type {
 import { MediaService } from '../media/media.service';
 import { ProfileService } from '../profile/profile.service';
 import { arrange, onlyFollowed } from './internal/arrange';
-import { absencesCovered, covered, derived } from './internal/covered';
+import { absencesCovered, covered, derived, expectedGoalsCovered } from './internal/covered';
 import { availabilityOf, keyPlayersSide, pickKeyPlayers } from './internal/key-players';
 import { PostgresKeyPlayersStore, type TeamSeason } from './internal/key-players-store';
 import { FORM_WINDOW, PostgresMatchCentreStore } from './internal/match-centre-store';
@@ -108,6 +108,7 @@ export class FixturesService {
       statistics,
       lineups,
       players,
+      expected,
       absences,
       homeForm,
       awayForm,
@@ -118,6 +119,7 @@ export class FixturesService {
       this.centre.statistics(homeParticipantId, awayParticipantId),
       this.centre.lineups(homeParticipantId, awayParticipantId),
       this.centre.playerStatistics(homeParticipantId, awayParticipantId),
+      this.centre.expectedGoals(fixtureId, homeParticipantId, awayParticipantId),
       this.centre.availability(fixtureId),
       this.centre.form(header.home.id, header.kickoff_at, fixtureId),
       this.centre.form(header.away.id, header.kickoff_at, fixtureId),
@@ -178,6 +180,12 @@ export class FixturesService {
         players.rows.length === 0,
         owed(players.rows.length === 0, coverage.statistics),
         players.lastUpdatedAt,
+      ),
+      // Another source's figures, apart from the table above (T-1432, D-224).
+      player_expected_goals: expectedGoalsCovered(
+        expected,
+        { status: header.status, kickoffAt: header.kickoff_at },
+        new Date(),
       ),
       form: {
         home: derived(homeForm, FORM_WINDOW, homeForm[0]?.kickoff_at ?? null),
