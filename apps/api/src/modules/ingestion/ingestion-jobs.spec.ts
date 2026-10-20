@@ -7,8 +7,9 @@ import {
   loadScenarios,
   recordingsDir,
 } from '@fmip/ingestion';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { MatchAlertsService } from '../match-alerts/match-alerts.service';
 import { CoverageService } from './coverage.service';
 import { IngestionJobsService } from './ingestion-jobs.service';
 import { IngestionModule } from './ingestion.module';
@@ -64,6 +65,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
   let jobs: IngestionJobsService;
   let coverage: CoverageService;
   let sources: IngestionSources;
+  let alerts: MatchAlertsService;
   let close: () => Promise<void>;
   let competitionId: string;
   const mappings: string[] = [];
@@ -187,6 +189,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     jobs = moduleRef.get(IngestionJobsService);
     coverage = moduleRef.get(CoverageService);
     sources = moduleRef.get<IngestionSources>(INGESTION_SOURCES);
+    alerts = moduleRef.get(MatchAlertsService, { strict: false });
     close = () => moduleRef.close();
   });
 
@@ -403,9 +406,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
   });
 
   it('writes incidents, statistics, periods and the formation after the whistle, once', async () => {
+    // A just-finished match's alerts leave as soon as it is written, before the
+    // coverage pass that closes the run (T-1419), not at the run's end.
+    const dispatch = vi.spyOn(alerts, 'dispatch');
+    const recompute = vi.spyOn(coverage, 'recomputeMany');
     const first = await jobs.postMatch(AFTER_KICKOFF);
     expect(first.itemsSeen).toBe(1);
     expect(first.itemsWritten).toBeGreaterThan(0);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch.mock.invocationCallOrder[0]).toBeLessThan(
+      recompute.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+    );
+    dispatch.mockRestore();
+    recompute.mockRestore();
 
     const { rows } = await pool.query<{ id: string }>(
       `SELECT id FROM fixture WHERE season_id = $1`,
