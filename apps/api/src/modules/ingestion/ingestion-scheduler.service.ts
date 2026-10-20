@@ -41,9 +41,10 @@ export const SCHEDULE: Record<IngestJob, string> = {
   // squads, each club at most once a month (T-1324).
   squads: '41 3 * * *',
   // Every ten minutes, off the other jobs' minutes: each run asks at most
-  // `INGESTION_PEOPLE_NAMES_BATCH` profiles for at most 30 seconds, so the
-  // live tick queued behind it on the one worker waits that long at most
-  // (T-1398). Idle, and cheap, once every short name has been asked about.
+  // `INGESTION_PEOPLE_NAMES_BATCH` profiles for names (T-1398), then
+  // `INGESTION_PEOPLE_BIOS_BATCH` for bios (T-1428), for at most 30 seconds in
+  // all, so the live tick queued behind it on the one worker waits that long
+  // at most. Idle, and cheap, once every person has been asked about.
   people_names: '4,14,24,34,44,54 * * * *',
   // Every ten minutes, on minutes no other job holds: each run asks at most
   // `INGESTION_KIT_COLOURS_BATCH` matches for at most 30 seconds (T-1417).

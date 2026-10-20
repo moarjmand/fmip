@@ -6,7 +6,6 @@
  */
 
 import type {
-  EntityRef,
   NormalisedAbsence,
   NormalisedFixture,
   NormalisedFixtureDetail,
@@ -14,6 +13,7 @@ import type {
   NormalisedLiveFixture,
   NormalisedPersonProfile,
   NormalisedSeasonCoverage,
+  NormalisedSquadPlayer,
   NormalisedStanding,
   Provider,
 } from '../normalised';
@@ -130,11 +130,12 @@ export interface ProviderAdapter {
   getAvailability(fixtureExternalId: string): Promise<AdapterResult<NormalisedAbsence[]>>;
   /**
    * The players a club's squad lists now, each with the photo address the
-   * provider carried (T-1324). One request per club. Optional: only a provider
+   * provider carried (T-1324) and the shirt number and position the listing
+   * gives (T-1428). One request per club. Optional: only a provider
    * that lists squads implements it, and the squads job says so for the rest.
    * Not one of the recorded calls the contract check replays.
    */
-  getSquad?(teamExternalId: string): Promise<AdapterResult<EntityRef[]>>;
+  getSquad?(teamExternalId: string): Promise<AdapterResult<NormalisedSquadPlayer[]>>;
   /**
    * What the provider covers for one competition's season (T-1364): whether
    * it reports absences there at all, so an empty `getAvailability` answer
@@ -143,9 +144,9 @@ export interface ProviderAdapter {
    */
   getSeasonCoverage?(query: StandingsQuery): Promise<AdapterResult<NormalisedSeasonCoverage>>;
   /**
-   * A person's name in full, from the provider's player profile (T-1398).
-   * One request. `null` when the provider answered without a usable profile
-   * (no such player, or a blank given or family name). Optional, like
+   * A person's profile (T-1398, T-1428): the name in full and the birth
+   * date, nationality, height and foot it gives. One request. `null` when the
+   * provider answered without an entry for that player. Optional, like
    * `getSquad`, and not a replayed call.
    */
   getPersonProfile?(

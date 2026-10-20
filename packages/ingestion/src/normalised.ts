@@ -345,11 +345,60 @@ export interface NormalisedSeasonCoverage {
  * `fullName` is the two together: the legal name, which is often longer than
  * the name a reader knows. Never an empty string, and entity-decoded.
  */
-export interface NormalisedPersonProfile {
-  externalId: string;
+export interface NormalisedPersonName {
   fullName: string;
   givenName: string;
   familyName: string;
+}
+
+export const PREFERRED_FEET = ['left', 'right', 'both'] as const;
+export type PreferredFoot = (typeof PREFERRED_FEET)[number];
+
+/**
+ * A nationality as the provider wrote it (T-1428, D-220): `name` plain and
+ * entity-decoded, and `code` the FIFA trigram when the adapter knows that
+ * spelling stands for one (a reviewed list, never a guess); `null` otherwise,
+ * and the store then matches `name` to a country exactly or not at all.
+ */
+export interface NormalisedNationality {
+  name: string;
+  code: string | null;
+}
+
+/**
+ * What a profile says about the person beyond the name (T-1428, D-220). Each
+ * field is `null` when the provider did not say, or said something we cannot
+ * read: an absent value, never a made-up one (rule 3).
+ */
+export interface NormalisedPersonBio {
+  /** ISO 8601 calendar date. */
+  dateOfBirth: string | null;
+  nationality: NormalisedNationality | null;
+  /** Whole centimetres, 100 to 250. */
+  heightCm: number | null;
+  preferredFoot: PreferredFoot | null;
+}
+
+/**
+ * The provider's player profile (T-1398, T-1428). `shortName` is the name
+ * the line-ups print ("M. Salah"), `name` the full name or `null` when either
+ * half is blank, and `bio` the rest.
+ */
+export interface NormalisedPersonProfile {
+  externalId: string;
+  shortName: string | null;
+  name: NormalisedPersonName | null;
+  bio: NormalisedPersonBio;
+}
+
+/**
+ * A player in a club's current squad listing (T-1324, T-1428): the ref and
+ * photo, and the shirt number (1 to 99) and position the listing gives, each
+ * `null` when it gives none.
+ */
+export interface NormalisedSquadPlayer extends EntityRef {
+  shirtNumber: number | null;
+  position: Position | null;
 }
 
 export interface NormalisedPlayerStat {

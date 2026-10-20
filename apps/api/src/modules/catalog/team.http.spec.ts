@@ -312,6 +312,55 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     expect((odd.json() as TeamPage).team.localised_name).toBeNull();
   });
 
+  it('shows the club’s listed squad with numbers and positions, limited while we hold only some (T-1428)', async () => {
+    const listedBack = randomUUID();
+    const listedNone = randomUUID();
+    await pool.query(
+      `INSERT INTO person (id, full_name) VALUES ($1, 'Listed Back ${RUN}'), ($2, 'Listed None ${RUN}')`,
+      [listedBack, listedNone],
+    );
+    await pool.query(
+      `INSERT INTO team_squad_member (team_id, person_id, provider, shirt_number, position, listed_at)
+       VALUES ($1, $2, 'api_football', NULL, NULL, now() - interval '1 day'),
+              ($1, $3, 'api_football', 4, 'defender', now() - interval '1 day'),
+              ($4, $5, 'api_football', 13, 'goalkeeper', now())`,
+      [TEAMS.gamma, listedNone, listedBack, TEAMS.alpha, KEEPER],
+    );
+    await pool.query(
+      `INSERT INTO team_squad_fetch (provider, team_id, answered_at, listed)
+       VALUES ('api_football', $1, now(), 3)`,
+      [TEAMS.gamma],
+    );
+    try {
+      const gamma = (
+        await app.inject({ method: 'GET', url: `/teams/${TEAMS.gamma}` })
+      ).json() as TeamPage;
+      // Two of the three listed: limited, never a full squad.
+      expect(gamma.squad.coverage).toBe('limited');
+      expect(gamma.squad.last_updated_at).not.toBeNull();
+      expect(
+        gamma.squad.data!.map((p) => [p.person.id, p.shirt_number, p.position, p.since]),
+      ).toEqual([
+        [listedBack, 4, 'defender', null],
+        [listedNone, null, null, null],
+      ]);
+      // A player with an open spell is listed once, the spell's number winning.
+      const alpha = (
+        await app.inject({ method: 'GET', url: `/teams/${TEAMS.alpha}` })
+      ).json() as TeamPage;
+      const keeper = alpha.squad.data!.filter((p) => p.person.id === KEEPER);
+      expect(keeper).toHaveLength(1);
+      expect(keeper[0]).toMatchObject({ shirt_number: 1, since: '2024-07-01' });
+      expect(alpha.squad.coverage).toBe('available');
+    } finally {
+      await pool.query(`DELETE FROM team_squad_member WHERE team_id = ANY($1::uuid[])`, [
+        [TEAMS.gamma, TEAMS.alpha],
+      ]);
+      await pool.query(`DELETE FROM team_squad_fetch WHERE team_id = $1`, [TEAMS.gamma]);
+      await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [[listedBack, listedNone]]);
+    }
+  });
+
   it('is honest about a squad it does not hold, and answers 404 for an unknown team', async () => {
     const page = (
       await app.inject({ method: 'GET', url: `/teams/${TEAMS.gamma}` })
