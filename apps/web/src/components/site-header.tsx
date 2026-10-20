@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { cache } from 'react';
 import { BrandMark } from '@/components/brand-mark';
+import { CompetitionsBar } from '@/components/competitions-bar';
 import { HeldLanguageNotice } from '@/components/held-language-notice';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
@@ -43,6 +44,7 @@ const NAV_LABELS: Record<string, MessageKey> = {
   analysis: 'shell.nav.analysis',
   news: 'shell.nav.news',
   watch: 'nav.watch',
+  highlights: 'nav.highlights',
 };
 
 /** The bottom tab bar's words (`tabBarLinks`). */
@@ -81,7 +83,7 @@ function Icon({ children }: { children: React.ReactNode }) {
 /**
  * The one header (D-198, D-199): always on paper (`data-mode="editorial"`)
  * with a double rule under it. From 768px one row: the mark and wordmark,
- * the nav (Today, Scores, Predictions, Analysis, News, Watch), then the other
+ * the nav (Today, Scores, Predictions, Analysis, News, Watch, Highlights), then the other
  * language, search, the theme (Auto, Day, Night) and Sign in or the
  * member's menu. On a phone it is the Menu button, the mark and search; the
  * Menu (`<details>`, no script) holds the nav, the language, the theme and
@@ -94,8 +96,9 @@ function Icon({ children }: { children: React.ReactNode }) {
  * Every label goes through `Translated` or a resolved `Message` (T-151): on
  * an unfinished locale the English stands in, marked `lang="en"`.
  *
- * `banner` is drawn right under the header, above the live strip: lite
- * mode's indicator (T-1387), which renders nothing when lite mode is off.
+ * `banner` is drawn under the header and the competitions bar (T-1433),
+ * above the live strip: lite mode's indicator (T-1387), which renders
+ * nothing when lite mode is off.
  */
 export async function SiteHeader({
   locale,
@@ -261,6 +264,8 @@ export async function SiteHeader({
           <HeldLanguageNotice locale={locale} held={stored} value={notice} />
         )}
       </header>
+      {/* The main competitions and "All competitions", right under the menu (T-1433). */}
+      <CompetitionsBar locale={locale} />
       {banner}
       {/* Today's matches, on every page; nothing at all when there are none or the API cannot say. */}
       <LiveStrip locale={locale} timeZone={timeZone} />

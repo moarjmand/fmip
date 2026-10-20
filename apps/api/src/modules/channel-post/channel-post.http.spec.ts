@@ -1,10 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import type { ChannelPostHealth, ForecastListEntry, ForecastVersion } from '@fmip/contracts';
+import type {
+  ChannelPostHealth,
+  ForecastListEntry,
+  ForecastVersion,
+  PublicModelAccuracyResponse,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { type CountedEvaluation, EvaluationService } from '../forecast/evaluation.service';
 import { ForecastService } from '../forecast/forecast.service';
 import {
   CHANNEL_POST_CONFIG,
@@ -14,14 +20,17 @@ import {
 } from './channel-post.port';
 import { ChannelPostModule } from './channel-post.module';
 import { ChannelPostService } from './channel-post.service';
+import { previousWeekStart } from './internal/weekly-post';
 
 /**
  * The daily post against the real schema (T-525): the day is claimed once
  * however many instances tick at the same moment, a refused day is taken
  * over while a failed one never is, a day with no match leaves no row, the
  * post links every match and carries only the published model's numbers,
- * and `/health/channel` reports the newest day. The channel is a fake that
- * records what it was given; nothing here reaches a network.
+ * and `/health/channel` reports the newest day. T-1430: the results and weekly
+ * posts are claimed the same way, by kind and day, beside the forecast post
+ * of the same day. The channel is a fake that records what it was given;
+ * nothing here reaches a network.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const PL_2024 = '00000000-0000-4000-8000-000000000301';
@@ -41,6 +50,11 @@ const MATCH_DAY = day(0);
 const EMPTY_DAY = day(1);
 const REFUSED_DAY = day(2);
 const FAILED_DAY = day(3);
+// T-1430: a Monday a week or so on, and the Monday that starts the week before it.
+const MONDAY = Array.from({ length: 7 }, (_, i) => day(7 + i)).find(
+  (d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 1,
+) as string;
+const WEEK = previousWeekStart(MONDAY);
 
 const LIVERPOOL_HOME = randomUUID();
 const CONTINENTAL = randomUUID();
@@ -96,6 +110,70 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the daily ch
       ids.map((id) => ({ fixture_id: id, latest: id === LIVERPOOL_HOME ? published(id) : null })),
   };
 
+  // The stored evaluation of the morning's finished match, and the week's
+  // public figures: what `EvaluationService` answers (its SQL is
+  // `accuracy.http.spec.ts`'s); the claims under test are this module's.
+  const evaluations = {
+    countedFor: async (ids: string[]): Promise<Map<string, CountedEvaluation>> =>
+      new Map(
+        ids
+          .filter((id) => id === FINISHED)
+          .map((id) => [
+            id,
+            {
+              hasForecast: true,
+              evaluation: {
+                id: randomUUID(),
+                forecast_id: randomUUID(),
+                fixture_id: id,
+                version_number: 1,
+                kind: 'early' as const,
+                model_version: 'dixon-coles@9.9.9',
+                computed_at: `${MATCH_DAY}T01:00:00.000Z`,
+                evaluated_at: `${MATCH_DAY}T05:00:00.000Z`,
+                pre_kickoff: true,
+                actual: { home: 0, away: 2 },
+                outcome: 'away' as const,
+                p_outcome: 0.5,
+                log_loss: 0.69,
+                brier: 0.38,
+                rps: 0.17,
+                correct: true,
+                scoreline_hit: false,
+                probabilities: { home: 0.2, draw: 0.3, away: 0.5 },
+              },
+            },
+          ]),
+      ),
+    publicAccuracy: async (): Promise<PublicModelAccuracyResponse> => {
+      const point = {
+        period: 'W',
+        period_start: WEEK,
+        forecasts: 40,
+        matches: 36,
+        coverage: 'available' as const,
+        log_loss: 0.97,
+        brier: 0.57,
+        rps: 0.195,
+        accuracy: 0.5,
+        uniform_rps: 0.226,
+      };
+      return {
+        period: 'week',
+        minimum_matches: 30,
+        reference: { uniform_log_loss: 1.0986, uniform_brier: 0.6667, uniform_accuracy: 1 / 3 },
+        overall: {
+          competition: null,
+          model_versions: ['dixon-coles@9.9.9'],
+          total: point,
+          points: [point],
+        },
+        competitions: [],
+        last_updated_at: null,
+      };
+    },
+  };
+
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [DatabaseModule, ChannelPostModule],
@@ -104,6 +182,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the daily ch
       .useValue(config)
       .overrideProvider(ForecastService)
       .useValue(forecasts)
+      .overrideProvider(EvaluationService)
+      .useValue(evaluations)
       .compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     await app.init();
@@ -137,6 +217,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the daily ch
          ($3, $5, 'home'), ($3, $4, 'away')`,
       [LIVERPOOL_HOME, CONTINENTAL, FINISHED, LIVERPOOL, MAN_UNITED, REAL_MADRID, PERSEPOLIS],
     );
+    await pool.query(
+      `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 0, 2)`,
+      [FINISHED],
+    );
     for (const d of [REFUSED_DAY, FAILED_DAY]) {
       const fixture = randomUUID();
       fixtureIds.push(fixture);
@@ -153,8 +237,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the daily ch
 
   afterAll(async () => {
     await pool.query(`DELETE FROM channel_post WHERE day = ANY($1::date[])`, [
-      [MATCH_DAY, EMPTY_DAY, REFUSED_DAY, FAILED_DAY],
+      [MATCH_DAY, EMPTY_DAY, REFUSED_DAY, FAILED_DAY, WEEK],
     ]);
+    await pool.query(`DELETE FROM fixture_score WHERE fixture_id = ANY($1::uuid[])`, [fixtureIds]);
     await pool.query(`DELETE FROM fixture_participant WHERE fixture_id = ANY($1::uuid[])`, [
       fixtureIds,
     ]);
@@ -251,6 +336,78 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the daily ch
     ).rejects.toThrow(/check constraint/);
   });
 
+  it("posts a day's results once, beside the same day's forecast post (T-1430)", async () => {
+    const before = channel.posted.length;
+    // The morning after the match day: its finished match is recapped.
+    const outcomes = await Promise.all(
+      Array.from({ length: 3 }, () => service.runResults(at(EMPTY_DAY, '06:41:00'))),
+    );
+    expect(outcomes.filter((o) => o.kind === 'sent')).toHaveLength(1);
+    expect(outcomes.filter((o) => o.kind === 'already')).toHaveLength(2);
+    expect(channel.posted.length).toBe(before + 1);
+    const text = channel.posted.at(-1) ?? '';
+    expect(text.split('\n')[0]).toContain("The statistical model's results");
+    expect(text).toContain('Manchester United 0-2 Liverpool');
+    expect(text).toContain("Model's pick: Liverpool · right");
+    expect(text).toContain(`https://fmip.example/en/match/${FINISHED}`);
+    // The matches still to come that day are not results.
+    expect(text).not.toContain(LIVERPOOL_HOME);
+
+    const { rows } = await pool.query(
+      `SELECT kind, state, fixtures, forecasts, model_versions
+         FROM channel_post WHERE day = $1::date ORDER BY kind`,
+      [MATCH_DAY],
+    );
+    expect(rows).toEqual([
+      {
+        kind: 'forecast',
+        state: 'sent',
+        fixtures: 2,
+        forecasts: 1,
+        model_versions: ['dixon-coles@9.9.9'],
+      },
+      {
+        kind: 'results',
+        state: 'sent',
+        fixtures: 1,
+        forecasts: 1,
+        model_versions: ['dixon-coles@9.9.9'],
+      },
+    ]);
+    expect(await service.runResults(at(EMPTY_DAY, '09:41:00'))).toEqual({
+      kind: 'already',
+      day: MATCH_DAY,
+      state: 'sent',
+    });
+    // The day after the empty day recaps nothing and records nothing.
+    expect(await service.runResults(at(REFUSED_DAY, '06:41:00'))).toEqual({
+      kind: 'nothing',
+      day: EMPTY_DAY,
+    });
+  });
+
+  it('posts the week once, on the Monday after it (T-1430)', async () => {
+    const before = channel.posted.length;
+    const outcomes = await Promise.all(
+      Array.from({ length: 3 }, () => service.runWeekly(at(MONDAY, '06:41:00'))),
+    );
+    expect(outcomes.filter((o) => o.kind === 'sent')).toHaveLength(1);
+    expect(channel.posted.length).toBe(before + 1);
+    const text = channel.posted.at(-1) ?? '';
+    expect(text.split('\n')[0]).toContain("The statistical model's accuracy · Week of");
+    expect(text).toContain('Most likely outcome happened: 18 of 36 (50.0%');
+    expect(text).toContain('https://fmip.example/en/model-accuracy?period=week');
+    const { rows } = await pool.query(
+      `SELECT kind, state, fixtures FROM channel_post WHERE day = $1::date AND kind <> 'forecast'`,
+      [WEEK],
+    );
+    expect(rows).toEqual([{ kind: 'weekly_accuracy', state: 'sent', fixtures: 36 }]);
+    expect(await service.runWeekly(at(MONDAY, '10:41:00'))).toMatchObject({
+      kind: 'already',
+      state: 'sent',
+    });
+  });
+
   it('reports the channel and the newest day on /health/channel', async () => {
     const response = await app.inject({ method: 'GET', url: '/health/channel' });
     expect(response.statusCode).toBe(200);
@@ -259,5 +416,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the daily ch
     expect(health.scheduled).toBe(false);
     expect(health.post_hour_utc).toBe(6);
     expect(health.last).not.toBeNull();
+    expect(health.results_last).not.toBeNull();
+    expect(health.weekly_accuracy_last).not.toBeNull();
   });
 });

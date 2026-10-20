@@ -9,28 +9,25 @@ import type { HighlightsFeedHealth, HighlightsFeedRun } from '@fmip/contracts';
 import {
   type HighlightlyHighlights,
   type NormalisedHighlight,
-  type Transport,
   createHighlightlyHighlights,
 } from '@fmip/ingestion';
 import { Queue, Worker } from 'bullmq';
 import { FailureCountsService } from '../failure-counts/failure-counts.service';
 import { EntityResolverService } from '../ingestion/ingestion.service';
+import { HighlightlyQuota } from './highlightly-quota.service';
 import {
   FEED_WINDOW_HOURS,
   type FeedConfig,
   type FeedQuestion,
   GEO_TRIES_PER_MATCH,
+  HIGHLIGHT_FEED_CONFIG,
   feedQuestions,
   matchClips,
 } from './internal/highlight-feed';
 import { PostgresHighlightFeedStore } from './internal/highlight-feed-store';
-import {
-  DailyBudgetTransport,
-  HIGHLIGHT_FEED_TRANSPORT,
-} from './internal/highlight-feed-transport';
+import type { DailyBudgetTransport } from './internal/highlight-feed-transport';
 
-/** The injection token for the feed's configuration, read from the environment once at boot. */
-export const HIGHLIGHT_FEED_CONFIG = Symbol('HIGHLIGHT_FEED_CONFIG');
+export { HIGHLIGHT_FEED_CONFIG } from './internal/highlight-feed';
 
 export const HIGHLIGHT_FEED_QUEUE = 'highlight-feed';
 export const HIGHLIGHT_FEED_JOB = 'highlight-feed-run';
@@ -48,8 +45,8 @@ const MAX_PAGES = 5;
  *
  * Off -- no queue, no request, nothing written -- unless `HIGHLIGHTLY_KEY`
  * holds a key; scheduled only where `INGESTION_SCHEDULE=on`, like every job.
- * Its own daily ceiling (`HIGHLIGHTS_DAILY_BUDGET`), counted apart from the
- * match feed's. A team the feed names that we have not mapped goes to the
+ * Its daily ceiling (`HIGHLIGHTS_DAILY_BUDGET`) is shared with the box
+ * scores (`HighlightlyQuota`, T-1432) and counted apart from the match feed's. A team the feed names that we have not mapped goes to the
  * resolver's queue (`unresolved_entity`), where the operator places it with
  * `catalog.mjs --map --provider highlightly`; until then its clips are kept
  * out and the run says how many and why.
@@ -65,18 +62,16 @@ export class HighlightFeedService implements OnModuleInit, OnApplicationShutdown
 
   constructor(
     @Inject(HIGHLIGHT_FEED_CONFIG) private readonly config: FeedConfig,
-    @Inject(HIGHLIGHT_FEED_TRANSPORT) transport: Transport,
+    quota: HighlightlyQuota,
     private readonly store: PostgresHighlightFeedStore,
     private readonly resolver: EntityResolverService,
     private readonly failures: FailureCountsService,
   ) {
-    if (config.state === 'configured') {
-      this.budget = new DailyBudgetTransport(transport, config.dailyBudget);
-      this.client = createHighlightlyHighlights(this.budget, config.apiKey);
-    } else {
-      this.budget = null;
-      this.client = null;
-    }
+    this.budget = quota.transport;
+    this.client =
+      config.state === 'configured' && this.budget !== null
+        ? createHighlightlyHighlights(this.budget, config.apiKey)
+        : null;
   }
 
   static scheduled(env: NodeJS.ProcessEnv = process.env): boolean {

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { absencesCovered, covered, derived } from './internal/covered';
+import {
+  type StoredExpectedGoals,
+  absencesCovered,
+  covered,
+  derived,
+  expectedGoalsCovered,
+} from './internal/covered';
 
 describe('covered', () => {
   it('labels present rows with the declared state, and limited when the profile denied them', () => {
@@ -90,5 +96,54 @@ describe('absencesCovered (T-103, T-1364)', () => {
     expect(
       absencesCovered(never, { status: 'finished', kickoffAt: '2026-10-01T19:00:00Z' }, NOW).gap,
     ).toBe('not_asked');
+  });
+});
+
+describe('expected goals (T-1432)', () => {
+  const at = new Date('2026-10-20T12:00:00Z');
+  const finished = { status: 'finished' as const, kickoffAt: '2026-10-19T19:00:00Z' };
+  const player = { id: 'p', name: 'P', side: 'home' as const, figures: { xg: 0.4 } };
+  const stored = (over: Partial<StoredExpectedGoals> = {}): StoredExpectedGoals => ({
+    rows: [],
+    answeredAt: null,
+    unplaced: 0,
+    sourceCovers: true,
+    ...over,
+  });
+
+  it('labels its figures with the source: available, or limited with players not placed', () => {
+    expect(expectedGoalsCovered(stored({ rows: [player], answeredAt: 't' }), finished, at)).toEqual(
+      {
+        source: 'highlightly',
+        unplaced: 0,
+        coverage: 'available',
+        last_updated_at: 't',
+        data: [player],
+      },
+    );
+    expect(
+      expectedGoalsCovered(stored({ rows: [player], answeredAt: 't', unplaced: 3 }), finished, at),
+    ).toMatchObject({ coverage: 'limited', unplaced: 3 });
+  });
+
+  it('is delayed only while the job still owes a covered finished match its ask', () => {
+    expect(expectedGoalsCovered(stored(), finished, at).coverage).toBe('delayed');
+    const late = { ...finished, kickoffAt: '2026-10-17T19:00:00Z' };
+    expect(expectedGoalsCovered(stored(), late, at).coverage).toBe('not_supplied');
+    expect(expectedGoalsCovered(stored({ sourceCovers: false }), finished, at).coverage).toBe(
+      'not_supplied',
+    );
+    expect(
+      expectedGoalsCovered(stored(), { status: 'scheduled', kickoffAt: finished.kickoffAt }, at)
+        .coverage,
+    ).toBe('not_supplied');
+  });
+
+  it('says not supplied, never zeros, when the source answered without a figure', () => {
+    expect(expectedGoalsCovered(stored({ answeredAt: 't' }), finished, at)).toMatchObject({
+      coverage: 'not_supplied',
+      last_updated_at: 't',
+      data: null,
+    });
   });
 });

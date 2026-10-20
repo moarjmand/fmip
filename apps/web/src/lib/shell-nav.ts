@@ -21,9 +21,10 @@ export interface ShellLink {
 
 /**
  * The header's nav, in the order the Hybrid header gives (D-199): Today,
- * Scores, Predictions, Analysis, News, Watch. The board's "Competitions" has
- * no index page to lead to yet (only `/competition/<id>`), so it is left out
- * until one exists rather than pointing at a page that is not one. Analysis
+ * Scores, Predictions, Analysis, News, Watch, then Highlights (T-1434,
+ * D-226), the page of every highlight link. The board's "Competitions" is
+ * the competitions bar under the header instead (T-1433, D-225), whose
+ * "All competitions" leads to `/competitions`. Analysis
  * is the founder's analysis, which is published on the Predictions page; its
  * own sections (`/analyses/<id>`, `/founder/<id>`) make it current.
  */
@@ -38,6 +39,7 @@ export const HEADER_NAV: readonly ShellLink[] = [
   { id: 'analysis', path: '/predictions#analysis', match: ['/analyses', '/founder'] },
   { id: 'news', path: '/news', match: ['/news'] },
   { id: 'watch', path: '/watch', match: ['/watch'] },
+  { id: 'highlights', path: '/highlights', match: ['/highlights'] },
 ];
 
 /** The member's own pages: where "Me" is current. */

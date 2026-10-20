@@ -116,8 +116,8 @@ export interface HighlightsFeedRun {
 /**
  * `GET /health/highlights` (T-1366): whether the feed is on (`HIGHLIGHTLY_KEY`
  * set), whether this process runs it (`INGESTION_SCHEDULE=on`), today's
- * requests against its own ceiling, and the newest run since this process
- * started. `absent` is the normal state of a deployment without the key.
+ * requests against the ceiling it shares with the box scores (T-1432), and
+ * the newest run since this process started. `absent` is the normal state of a deployment without the key.
  */
 export interface HighlightsFeedHealth {
   feed: 'absent' | 'configured';
@@ -127,11 +127,118 @@ export interface HighlightsFeedHealth {
   last_run: HighlightsFeedRun | null;
 }
 
+/** One run of the box-score job (T-1432, D-224). */
+export interface BoxScoreFeedRun {
+  started_at: string;
+  finished_at: string;
+  /** Finished matches inside the window still owed a box score. */
+  waiting: number;
+  /** Competitions of waiting matches that nobody mapped to the source: never asked about. */
+  unmapped_competitions: number;
+  /** League-and-day match lists asked for. */
+  questions: number;
+  /** Box scores asked for. */
+  asked: number;
+  /** Box scores stored (with or without a figure in them). */
+  stored: number;
+  /** Asked and answered with no players yet: asked again on a later run. */
+  not_ready: number;
+  /** Waiting matches the source's list did not place, by reason. */
+  unmatched: { team_unmapped: number; no_fixture: number; ambiguous: number };
+  /** Players the stored box scores listed that are not yet mapped to ours: queued for review. */
+  players_unresolved: number;
+  requests: number;
+  /** Why the run stopped early: the shared daily ceiling (`quota`) or this run's batch, or null. */
+  stopped: 'quota' | 'batch' | null;
+}
+
+/**
+ * `GET /health/box-scores` (T-1432): whether the job is on (`HIGHLIGHTLY_KEY`
+ * set), whether this process runs it, its batch, the ceiling it shares with
+ * the highlights feed and today's requests against it, and the newest run.
+ */
+export interface BoxScoreFeedHealth {
+  feed: 'absent' | 'configured';
+  scheduled: boolean;
+  batch: number | null;
+  /** Shared with the highlights feed: the same count as `GET /health/highlights`. */
+  daily_budget: number | null;
+  requests_today: number | null;
+  last_run: BoxScoreFeedRun | null;
+}
+
 /** `GET /viewing?fixture=<id>&fixture=<id>`: the same module for several matches, in the order asked, minus any id that is not a match. */
 export interface ViewingBatchResponse {
   generated_at: string;
   territory: ViewingTerritory;
   fixtures: MatchViewing[];
+}
+
+/** How many clips one page of `GET /highlights` holds. */
+export const HIGHLIGHTS_PAGE_SIZE = 20;
+
+/** A side of a listed clip's match: the team by id, named in the reader's language. */
+export interface HighlightListTeam {
+  id: string;
+  name: string;
+  short_name: string | null;
+}
+
+/**
+ * One clip on the Highlights page (T-1434): a licensed feed's link to the
+ * original (D-184, link only, never embedded) with its match. `score` is the
+ * latest stored score (after extra time where played), `null` when none is
+ * stored; `penalties` only after a shoot-out.
+ */
+export interface HighlightListItem {
+  id: string;
+  url: string;
+  publisher: string | null;
+  source: ViewingSource;
+  fixture: {
+    id: string;
+    kickoff_at: string;
+    status: FixtureStatus;
+    competition: { id: string; name: string; short_name: string | null };
+    home: HighlightListTeam;
+    away: HighlightListTeam;
+    score: { home: number; away: number } | null;
+    penalties: { home: number; away: number } | null;
+  };
+  last_updated_at: string;
+}
+
+/** A competition the filter offers: one with at least one clip offered to this reader. */
+export interface HighlightCompetition {
+  id: string;
+  name: string;
+  short_name: string | null;
+  count: number;
+}
+
+/**
+ * `GET /highlights?territory=&competition=&page=` (T-1434, D-226): every
+ * highlight link offered to the reader, newest match first, by page.
+ *
+ * `territory` is answered as on a match page (T-312). With one chosen, a clip
+ * is listed where its rule offers it there (`offeredIn`); with none
+ * (`offered: 'everywhere'`), only clips whose rule offers them in every
+ * territory -- a clip limited to some countries waits for the reader to say
+ * where they are. `total` counts the clips under the filter; an empty
+ * `items` on page 1 is the empty state, never a missing one (rule 3).
+ * `last_updated_at` is when the newest listed clip was read, `null` with none.
+ */
+export interface HighlightsResponse {
+  generated_at: string;
+  territory: ViewingTerritory;
+  offered: 'territory' | 'everywhere';
+  competition: string | null;
+  competitions: HighlightCompetition[];
+  page: number;
+  page_size: number;
+  total: number;
+  items: HighlightListItem[];
+  last_updated_at: string | null;
 }
 
 // ---------------------------------------------------------------------------

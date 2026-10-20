@@ -1,7 +1,9 @@
 import type {
+  ExpectedGoalsMetric,
   MatchAbsenceGap,
   MatchCentre,
   MatchIncident,
+  MatchPlayerExpected,
   MatchPlayerStats,
   MatchStatRow,
   PlayerMatchMetric,
@@ -107,6 +109,16 @@ const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
   ['shots', 'matchCentre.player.shots'],
   ['key_passes', 'matchCentre.player.keyPasses'],
   ['tackles', 'matchCentre.player.tackles'],
+];
+
+/**
+ * The expected-goals columns (T-1432), from their own source: a keeper's xGOT
+ * conceded and goals prevented are stored, not shown here.
+ */
+const EXPECTED_COLUMNS: readonly [ExpectedGoalsMetric, Key][] = [
+  ['xg', 'matchCentre.expectedGoals.xg'],
+  ['xa', 'matchCentre.expectedGoals.xa'],
+  ['xgot', 'matchCentre.expectedGoals.xgot'],
 ];
 
 /** Why the absence list is empty (T-1364): each reason its own sentence. */
@@ -217,6 +229,7 @@ export function MatchCentreView({
       <Region id="stats" tab="stats">
         <Statistics centre={centre} locale={locale} words={words} />
         <PlayerStatistics centre={centre} locale={locale} words={words} />
+        <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
         {slots.form}
         {slots.headToHead}
       </Region>
@@ -926,9 +939,109 @@ function PlayerStatistics({
               </div>
             );
           })}
-          <p className="text-muted">
-            <MessageText message={m['matchCentre.playerXgNotSupplied']} />
+        </div>
+      )}
+    </Module>
+  );
+}
+
+/**
+ * Per-player expected goals from their one source (T-1432, D-224), a card of
+ * its own under the player statistics: labelled "xG (Highlightly)", never a
+ * column of the table above, `–` for a figure the source did not supply, and
+ * an explicit state when it supplied none (rule 3).
+ */
+function PlayerExpectedGoals({
+  centre,
+  locale,
+  words,
+}: {
+  centre: MatchCentre;
+  locale: string;
+  words: MatchWords;
+}) {
+  const m = words.m;
+  const f = centre.fixture;
+  const expected = centre.player_expected_goals;
+  const cell = (player: MatchPlayerExpected, metric: ExpectedGoalsMetric): string => {
+    const value = player.figures[metric];
+    return value === undefined ? '–' : formatFixed(locale, value, 2);
+  };
+  return (
+    <Module
+      title={m['matchCentre.expectedGoals']}
+      module={expected}
+      testId="player-expected-goals"
+      words={words}
+      empty={expected.last_updated_at === null ? null : 'matchCentre.expectedGoals.none'}
+    >
+      {(players) => (
+        <div className="flex flex-col gap-3 text-sm">
+          {(
+            [
+              ['home', f.home.name],
+              ['away', f.away.name],
+            ] as const
+          ).map(([side, team]) => {
+            const rows = players.filter((p) => p.side === side);
+            if (rows.length === 0) return null;
+            return (
+              <div
+                key={side}
+                role="region"
+                aria-label={fill(m['matchCentre.expectedGoals.region'].text, { team })}
+                tabIndex={0}
+                className="scroll-cue overflow-x-auto rounded-control"
+              >
+                <table className="w-full">
+                  <caption className="text-start font-bold">{team}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" className="py-1 text-start font-normal text-muted">
+                        <MessageText message={m['matchCentre.playerColumn']} />
+                      </th>
+                      {EXPECTED_COLUMNS.map(([metric, label]) => (
+                        <th
+                          key={metric}
+                          scope="col"
+                          className="px-2 py-1 text-end font-normal text-muted"
+                        >
+                          <MessageText message={m[label]} />
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((player) => (
+                      <tr key={player.id} className="border-t border-default">
+                        <th scope="row" className="py-1 text-start font-normal">
+                          <Link href={`/${locale}/player/${player.id}`}>
+                            {listName(locale, player.name)}
+                          </Link>
+                        </th>
+                        {EXPECTED_COLUMNS.map(([metric]) => (
+                          <td key={metric} className="px-2 py-1 text-end tabular-nums">
+                            {cell(player, metric)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
+          <p className="text-xs text-muted" data-testid="player-expected-goals-note">
+            <MessageText message={m['matchCentre.expectedGoals.note']} />
           </p>
+          {expected.unplaced > 0 && (
+            <p className="text-xs text-muted" data-testid="player-expected-goals-unplaced">
+              <FilledMessage
+                message={m['matchCentre.expectedGoals.unplaced']}
+                params={{ count: formatNumber(locale, expected.unplaced) }}
+              />
+            </p>
+          )}
         </div>
       )}
     </Module>

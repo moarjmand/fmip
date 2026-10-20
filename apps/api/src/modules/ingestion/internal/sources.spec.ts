@@ -216,7 +216,8 @@ describe('the Highlightly daily budget', () => {
     expect(inner.calls()).toBe(2);
   });
 
-  it('defaults to the hundred a day the free plan allows', () => {
-    expect(HIGHLIGHTLY_DEFAULT_BUDGET).toBe(100);
+  it("defaults to a share that, with the highlights feed's 5,000, stays under the Pro plan's 7,500", () => {
+    expect(HIGHLIGHTLY_DEFAULT_BUDGET).toBe(2000);
+    expect(HIGHLIGHTLY_DEFAULT_BUDGET + 5000).toBeLessThan(7500);
   });
 });

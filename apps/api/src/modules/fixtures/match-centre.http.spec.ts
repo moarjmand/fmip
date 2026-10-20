@@ -277,6 +277,60 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     ]);
   });
 
+  /** T-1432: expected goals from their own source, apart from the provider's numbers, never zeros. */
+  it('serves per-player expected goals labelled with their source, apart from the player numbers', async () => {
+    const before = ((await get(MATCH)).json() as MatchCentre).player_expected_goals;
+    // The competition is not mapped to the source: nothing owed, nothing shown.
+    expect(before).toEqual({
+      source: 'highlightly',
+      unplaced: 0,
+      coverage: 'not_supplied',
+      last_updated_at: null,
+      data: null,
+    });
+    const { rows } = await pool.query<{ id: string; side: string }>(
+      `SELECT id, side FROM fixture_participant WHERE fixture_id = $1`,
+      [MATCH],
+    );
+    const home = rows.find((r) => r.side === 'home')!.id;
+    const away = rows.find((r) => r.side === 'away')!.id;
+    await pool.query(
+      `INSERT INTO fixture_box_score (fixture_id, source, fetched_at, players, unresolved)
+       VALUES ($1, 'highlightly', TIMESTAMPTZ '2086-03-16 08:00:00+00', 30, 0)`,
+      [MATCH],
+    );
+    // Answered without a figure: said as such, never a table of zeros.
+    expect(((await get(MATCH)).json() as MatchCentre).player_expected_goals).toMatchObject({
+      coverage: 'not_supplied',
+      last_updated_at: '2086-03-16T08:00:00.000Z',
+      data: null,
+    });
+    await pool.query(
+      `INSERT INTO fixture_player_expected (participant_id, person_id, source, metric, value) VALUES
+         ($1, $3, 'highlightly', 'xg', 0.38), ($1, $3, 'highlightly', 'xa', 0.12),
+         ($2, $4, 'highlightly', 'xa', 0.05)`,
+      [home, away, SALAH, BRUNO],
+    );
+    await pool.query(`UPDATE fixture_box_score SET unresolved = 2 WHERE fixture_id = $1`, [MATCH]);
+    const centre = (await get(MATCH)).json() as MatchCentre;
+    expect(centre.player_expected_goals).toEqual({
+      source: 'highlightly',
+      unplaced: 2,
+      coverage: 'limited',
+      last_updated_at: '2086-03-16T08:00:00.000Z',
+      data: [
+        { id: SALAH, name: 'Mohamed Salah', side: 'home', figures: { xg: 0.38, xa: 0.12 } },
+        { id: BRUNO, name: 'Bruno Fernandes', side: 'away', figures: { xa: 0.05 } },
+      ],
+    });
+    // Never blended into the provider's own numbers.
+    expect(centre.player_statistics.data?.[0]?.stats).toEqual({
+      minutes: 90,
+      rating: 7.8,
+      goals: 1,
+    });
+  });
+
   /**
    * T-103: never asked is `not_supplied`; asked is answered -- a list of who
    * will miss the match, or an empty one, dated by the ask.

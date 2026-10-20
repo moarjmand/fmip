@@ -60,6 +60,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
   let memberCookie = '';
   const sunday = randomUUID();
   const monday = randomUUID();
+  // T-1430: a finished match whose forecast is not scored yet, and one never forecast.
+  const unscored = randomUUID();
+  const bare = randomUUID();
 
   const version = (
     fixture: string,
@@ -152,6 +155,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     for (const [id, kickoff] of [
       [sunday, SUNDAY],
       [monday, MONDAY],
+      [unscored, MONDAY],
+      [bare, MONDAY],
     ] as const) {
       await pool.query(
         `INSERT INTO fixture (id, season_id, round, kickoff_at, status)
@@ -188,6 +193,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
        VALUES ($1, 'full_time', 2, 1), ($2, 'full_time', 1, 1)`,
       [sunday, monday],
     );
+    await store.record(
+      version(unscored, MONDAY, 'published', PUBLISHED, '2031-03-02T12:00:00Z', P_MONDAY),
+    );
     const evaluations = new EvaluationService(new PostgresEvaluationStore(pool));
     await evaluations.evaluateFixture(sunday);
     await evaluations.evaluateFixture(monday);
@@ -205,7 +213,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
 
   afterAll(async () => {
     await withTriggersOff(pool, async (client) => {
-      for (const id of [sunday, monday]) {
+      for (const id of [sunday, monday, unscored, bare]) {
         await client.query(`DELETE FROM evaluation WHERE fixture_id = $1`, [id]);
         await client.query(`DELETE FROM forecast WHERE fixture_id = $1`, [id]);
         await client.query(`DELETE FROM input_snapshot WHERE fixture_id = $1`, [id]);
@@ -322,5 +330,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     expect(league?.points.map((p) => p.period)).toEqual(['2031-W09', '2031-W10']);
     expect(league?.model_versions).not.toContain(SHADOW);
     expect(league?.total).toMatchObject({ forecasts: 3, matches: 2, coverage: 'limited' });
+  });
+
+  it("reads each match's counted evaluation, never a shadow's or a post-kick-off one (T-1430)", async () => {
+    const service = app.get(EvaluationService);
+    const unknown = randomUUID();
+    const counted = await service.countedFor([sunday, monday, unscored, bare, unknown]);
+    expect(counted.has(unknown)).toBe(false);
+    // Sunday: the later of the two published versions before kick-off, right.
+    expect(counted.get(sunday)?.hasForecast).toBe(true);
+    expect(counted.get(sunday)?.evaluation).toMatchObject({
+      fixture_id: sunday,
+      model_version: PUBLISHED,
+      pre_kickoff: true,
+      actual: { home: 2, away: 1 },
+      correct: true,
+      probabilities: P_SUNDAY,
+    });
+    // Monday: the version before kick-off, not the one after it, and wrong.
+    expect(counted.get(monday)?.evaluation).toMatchObject({
+      actual: { home: 1, away: 1 },
+      correct: false,
+      probabilities: P_MONDAY,
+    });
+    expect(counted.get(unscored)).toEqual({ hasForecast: true, evaluation: null });
+    expect(counted.get(bare)).toEqual({ hasForecast: false, evaluation: null });
+    expect(await service.countedFor([])).toEqual(new Map());
   });
 });

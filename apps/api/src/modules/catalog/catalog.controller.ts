@@ -9,11 +9,13 @@ import {
 import type {
   ApiError,
   CompetitionContext,
+  CompetitionDirectoryResponse,
   CompetitionPage,
   CompetitionsResponse,
   CountriesResponse,
   FollowSuggestionsResponse,
   PlayerPage,
+  PlayerProviderSeasons,
   TeamPage,
   TeamsResponse,
 } from '@fmip/contracts';
@@ -82,6 +84,16 @@ export class CatalogController {
   }
 
   /**
+   * The competitions directory (T-1433): every active competition with its
+   * country, in the product's order for `?locale=` (D-207). Public. Declared
+   * before `competitions/:id`, though a static segment wins either way.
+   */
+  @Get('competitions/directory')
+  async directory(@Query('locale') locale: unknown): Promise<CompetitionDirectoryResponse> {
+    return { competitions: await this.catalog.directory(localeOf(locale)) };
+  }
+
+  /**
    * What to follow next, for a member who follows nothing (T-622). Public: it
    * names no member, only teams and how many follow them.
    */
@@ -97,6 +109,18 @@ export class CatalogController {
     const outcome = await this.catalog.player(id.toLowerCase(), localeOf(locale));
     if (outcome.kind === 'unknown_player') throw new NotFoundException(NO_PLAYER);
     return outcome.page;
+  }
+
+  /**
+   * A player's season totals and career as the provider counts them, apart
+   * from our own record (T-1431, D-223). Public.
+   */
+  @Get('players/:id/provider-seasons')
+  async playerProviderSeasons(@Param('id') id: string): Promise<PlayerProviderSeasons> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_PLAYER);
+    const found = await this.catalog.playerProviderSeasons(id.toLowerCase());
+    if (found === null) throw new NotFoundException(NO_PLAYER);
+    return found;
   }
 
   /** The team page (blueprint 5.2, T-036). Public. */

@@ -98,8 +98,10 @@ export type StatMetric = (typeof STAT_METRICS)[number];
  * One player's numbers in one match (T-101), a closed list like the team's.
  * Counts are what the player did; `rating` is the provider's own 0-10 mark and
  * says so in its name nowhere else, so it is never averaged with anyone's.
- * There is no per-player expected goals: no provider in use supplies it, and a
- * metric nobody can fill is not listed as if one could.
+ * There is no per-player expected goals here: the one source of it is
+ * Highlightly's box score (T-1432, D-224), its own contract
+ * (`adapters/highlightly/box-score.ts`) and its own table, labelled with its
+ * source wherever it is shown, never a column of this list.
  */
 export const PLAYER_STAT_METRICS = [
   'minutes',
@@ -347,6 +349,42 @@ export interface NormalisedPersonName {
   fullName: string;
   givenName: string;
   familyName: string;
+}
+
+/**
+ * A player's totals for one season with one team in one competition, as the
+ * provider counts them (T-1431, D-223) -- every competition it covers,
+ * including cups and national-team matches we do not ingest match by match.
+ * A count the provider left out is `null`, never zero.
+ */
+export interface NormalisedPlayerSeasonLine {
+  competition: EntityRef;
+  team: EntityRef;
+  /** The year the season starts in (2026 for "2026/27" and for "2026"). */
+  seasonYear: number;
+  appearances: number | null;
+  starts: number | null;
+  minutes: number | null;
+  goals: number | null;
+  assists: number | null;
+  yellowCards: number | null;
+  /** Sent off for a second yellow card. */
+  secondYellowCards: number | null;
+  /** Sent off with a straight red card. */
+  redCards: number | null;
+  /** A goalkeeper's; `null` for everyone else. */
+  saves: number | null;
+  /** A goalkeeper's; `null` for everyone else. */
+  goalsConceded: number | null;
+  /** The provider's average match rating, 0 to 10. */
+  rating: number | null;
+}
+
+/** One club or national team in a player's career and the seasons they were there (T-1431). */
+export interface NormalisedCareerEntry {
+  team: EntityRef;
+  /** The years those seasons start in, newest first, each once. */
+  seasonYears: number[];
 }
 
 export const PREFERRED_FEET = ['left', 'right', 'both'] as const;

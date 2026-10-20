@@ -1,10 +1,14 @@
 import { Controller, Get, Module } from '@nestjs/common';
-import type { HighlightsFeedHealth } from '@fmip/contracts';
+import type { BoxScoreFeedHealth, HighlightsFeedHealth } from '@fmip/contracts';
 import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { IdentityModule } from '../identity/identity.module';
 import { EntityResolverService } from '../ingestion/ingestion.service';
 import { ProfileModule } from '../profile/profile.module';
+import { BoxScoreFeedService } from './box-score-feed.service';
 import { HIGHLIGHT_FEED_CONFIG, HighlightFeedService } from './highlight-feed.service';
+import { HighlightlyQuota } from './highlightly-quota.service';
+import { BOX_SCORE_BATCH, boxScoreBatch } from './internal/box-score-feed';
+import { PostgresBoxScoreStore } from './internal/box-score-store';
 import { feedConfig } from './internal/highlight-feed';
 import { PostgresHighlightFeedStore } from './internal/highlight-feed-store';
 import { FetchJsonTransport, HIGHLIGHT_FEED_TRANSPORT } from './internal/highlight-feed-transport';
@@ -22,11 +26,20 @@ import { ViewingService } from './viewing.service';
  */
 @Controller()
 export class HighlightFeedHealthController {
-  constructor(private readonly feed: HighlightFeedService) {}
+  constructor(
+    private readonly feed: HighlightFeedService,
+    private readonly boxScores: BoxScoreFeedService,
+  ) {}
 
   @Get('health/highlights')
   health(): HighlightsFeedHealth {
     return this.feed.health();
+  }
+
+  /** `GET /health/box-scores` (T-1432): the same for the box scores, on the shared ceiling. */
+  @Get('health/box-scores')
+  boxScoreHealth(): BoxScoreFeedHealth {
+    return this.boxScores.health();
   }
 }
 
@@ -34,7 +47,10 @@ export class HighlightFeedHealthController {
  * Watch and highlights (blueprint 11, E31): where a match can be watched in
  * the viewer's territory and where its highlight is, under the rights each
  * source grants (T-311), from the editorial desk (T-313, D-069) and, for
- * highlights, a licensed feed beside it (T-1366, D-184). Its own boundary:
+ * highlights, a licensed feed beside it (T-1366, D-184). It also holds the
+ * box-score job (T-1432, D-224), Highlightly's per-player expected goals,
+ * because it shares the feed's key, client and daily ceiling
+ * (`HighlightlyQuota`, exported for the watchdog). Its own boundary:
  * not on the critical path (rule 9), so a match, its score and its forecast
  * never depend on it, and it imports only identity (who is asking), profile
  * (their territory), failure counts (the jobs' failures, T-1360) and the
@@ -47,18 +63,22 @@ export class HighlightFeedHealthController {
     PostgresViewingReadStore,
     PostgresViewingAdminStore,
     PostgresHighlightFeedStore,
+    PostgresBoxScoreStore,
     ViewingService,
     ViewingDefaultsSchedulerService,
+    HighlightlyQuota,
     HighlightFeedService,
+    BoxScoreFeedService,
     // The ingestion boundary's public resolver over the shared pool: the feed's team ids are
     // placed or queued exactly as every adapter's are, without pulling the jobs in.
     EntityResolverService,
     { provide: HIGHLIGHT_FEED_CONFIG, useFactory: () => feedConfig(process.env) },
+    { provide: BOX_SCORE_BATCH, useFactory: () => boxScoreBatch(process.env) },
     {
       provide: HIGHLIGHT_FEED_TRANSPORT,
       useFactory: (): FetchJsonTransport => new FetchJsonTransport(),
     },
   ],
-  exports: [ViewingService],
+  exports: [ViewingService, HighlightlyQuota],
 })
 export class ViewingModule {}

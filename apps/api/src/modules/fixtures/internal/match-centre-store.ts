@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { StoredAbsences } from './covered';
+import type { StoredAbsences, StoredExpectedGoals } from './covered';
 import { freshnessOf } from './freshness';
 import { liveAnsweredAtSql } from './live-answer';
 import type {
@@ -13,6 +13,7 @@ import type {
   MatchIncident,
   MatchLineupPlayer,
   MatchPeriod,
+  MatchPlayerExpected,
   MatchPlayerStats,
   MatchStatMetric,
   MatchStatRow,
@@ -427,6 +428,75 @@ export class PostgresMatchCentreStore {
         a.name.localeCompare(b.name),
     );
     return { rows: ordered, lastUpdatedAt: newest?.toISOString() ?? null };
+  }
+
+  /**
+   * Per-player expected goals from their one source (T-1432), home side
+   * first, most xG first; whether and when the source answered for the
+   * match, how many of its players are not ours yet, and whether the
+   * match's competition is mapped to it at all.
+   */
+  async expectedGoals(
+    fixtureId: string,
+    homeParticipantId: string,
+    awayParticipantId: string,
+  ): Promise<StoredExpectedGoals> {
+    const [figures, answer, mapped] = await Promise.all([
+      this.pool.query<{
+        person_id: string;
+        name: string;
+        side: 'home' | 'away';
+        metric: keyof MatchPlayerExpected['figures'];
+        value: number;
+      }>(
+        `SELECT e.person_id, COALESCE(pe.known_as, pe.full_name) AS name, fp.side,
+                e.metric, e.value::float8 AS value
+           FROM fixture_player_expected e
+           JOIN fixture_participant fp ON fp.id = e.participant_id
+           JOIN person pe ON pe.id = e.person_id
+          WHERE e.participant_id IN ($1, $2) AND e.source = 'highlightly'`,
+        [homeParticipantId, awayParticipantId],
+      ),
+      this.pool.query<{ fetched_at: Date; unresolved: number }>(
+        `SELECT fetched_at, unresolved FROM fixture_box_score
+          WHERE fixture_id = $1 AND source = 'highlightly'`,
+        [fixtureId],
+      ),
+      this.pool.query<{ covers: boolean }>(
+        `SELECT EXISTS (
+           SELECT 1 FROM fixture f
+             JOIN season s ON s.id = f.season_id
+             JOIN provider_mapping pm
+               ON pm.provider = 'highlightly' AND pm.entity_type = 'competition'
+              AND pm.internal_id = s.competition_id
+            WHERE f.id = $1) AS covers`,
+        [fixtureId],
+      ),
+    ]);
+    const players = new Map<string, MatchPlayerExpected>();
+    for (const row of figures.rows) {
+      const player = players.get(row.person_id) ?? {
+        id: row.person_id,
+        name: row.name,
+        side: row.side,
+        figures: {},
+      };
+      player.figures[row.metric] = row.value;
+      players.set(row.person_id, player);
+    }
+    const rows = [...players.values()].sort(
+      (a, b) =>
+        (a.side === b.side ? 0 : a.side === 'home' ? -1 : 1) ||
+        (b.figures.xg ?? -1) - (a.figures.xg ?? -1) ||
+        a.name.localeCompare(b.name),
+    );
+    const stored = answer.rows[0];
+    return {
+      rows,
+      answeredAt: stored?.fetched_at.toISOString() ?? null,
+      unplaced: stored?.unresolved ?? 0,
+      sourceCovers: mapped.rows[0]?.covers === true,
+    };
   }
 
   async lineups(

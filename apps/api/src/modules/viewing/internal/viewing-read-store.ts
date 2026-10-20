@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { CoverageState, Territory, ViewingModule, ViewingRights } from '@fmip/contracts';
+import type {
+  CoverageState,
+  FixtureStatus,
+  Territory,
+  ViewingModule,
+  ViewingRights,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -64,6 +70,44 @@ export interface FeedHighlightRow {
   source_id: string;
   source_name: string;
   source_rights: ViewingRights;
+}
+
+/**
+ * One clip in the feed's index (T-1434): enough to judge its territory rule,
+ * file it under its competition and order it, nothing to show yet.
+ */
+export interface FeedIndexRow {
+  id: string;
+  competition_id: string;
+  competition_name: string;
+  competition_short_name: string | null;
+  allowed_territories: string[];
+  blocked_territories: string[];
+  kickoff_at: Date;
+}
+
+/** A listed clip with its match, for the page of the Highlights list (T-1434). */
+export interface FeedItemRow {
+  id: string;
+  url: string;
+  publisher: string | null;
+  fetched_at: Date;
+  source_id: string;
+  source_name: string;
+  source_rights: ViewingRights;
+  fixture_id: string;
+  kickoff_at: Date;
+  status: FixtureStatus;
+  competition_id: string;
+  competition_name: string;
+  competition_short_name: string | null;
+  home_id: string;
+  home_name: string;
+  home_short_name: string | null;
+  away_id: string;
+  away_name: string;
+  away_short_name: string | null;
+  scores: Record<string, { home: number; away: number }> | null;
 }
 
 /**
@@ -143,6 +187,57 @@ export class PostgresViewingReadStore {
         WHERE h.fixture_id = ANY($1::uuid[])
           AND h.withdrawn_at IS NULL AND s.dropped_at IS NULL`,
       [fixtureIds],
+    );
+    return rows;
+  }
+
+  /**
+   * Every clip the feed holds that a reader may be offered (T-1434): not
+   * withdrawn, from a source not dropped, on an active competition; newest
+   * match first. The territory rule is the service's (`offeredIn`), so the
+   * one copy of it decides here too.
+   */
+  async feedIndex(): Promise<FeedIndexRow[]> {
+    const { rows } = await this.pool.query<FeedIndexRow>(
+      `SELECT h.id, c.id AS competition_id, c.name AS competition_name,
+              c.short_name AS competition_short_name,
+              h.allowed_territories, h.blocked_territories, f.kickoff_at
+         FROM highlight_feed h
+         JOIN viewing_source s ON s.id = h.source_id
+         JOIN fixture f ON f.id = h.fixture_id
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
+        WHERE h.withdrawn_at IS NULL AND s.dropped_at IS NULL AND c.is_active
+        ORDER BY f.kickoff_at DESC, h.fetched_at DESC, h.id`,
+    );
+    return rows;
+  }
+
+  /** These clips with their matches, in the order asked. */
+  async feedItems(ids: string[]): Promise<FeedItemRow[]> {
+    if (ids.length === 0) return [];
+    const { rows } = await this.pool.query<FeedItemRow>(
+      `SELECT h.id, h.url, h.publisher, h.fetched_at,
+              s.id AS source_id, s.name AS source_name, s.rights AS source_rights,
+              f.id AS fixture_id, f.kickoff_at, f.status,
+              c.id AS competition_id, c.name AS competition_name,
+              c.short_name AS competition_short_name,
+              th.id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
+              ta.id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
+              (SELECT jsonb_object_agg(sc.kind, jsonb_build_object('home', sc.home, 'away', sc.away))
+                 FROM fixture_score sc WHERE sc.fixture_id = f.id) AS scores
+         FROM highlight_feed h
+         JOIN viewing_source s ON s.id = h.source_id
+         JOIN fixture f ON f.id = h.fixture_id
+         JOIN season se ON se.id = f.season_id
+         JOIN competition c ON c.id = se.competition_id
+         JOIN fixture_participant hp ON hp.fixture_id = f.id AND hp.side = 'home'
+         JOIN team th ON th.id = hp.team_id
+         JOIN fixture_participant ap ON ap.fixture_id = f.id AND ap.side = 'away'
+         JOIN team ta ON ta.id = ap.team_id
+        WHERE h.id = ANY($1::uuid[])
+        ORDER BY array_position($1::uuid[], h.id)`,
+      [ids],
     );
     return rows;
   }

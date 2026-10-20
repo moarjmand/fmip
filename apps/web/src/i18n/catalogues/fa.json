@@ -8449,11 +8449,53 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.playerXgNotSupplied": {
-    "source": "Expected goals per player: not available for any match.",
-    "text": "گل مورد انتظار هر بازیکن: برای هیچ بازی‌ای در دسترس نیست.",
+  "matchCentre.expectedGoals": {
+    "source": "xG (Highlightly)",
+    "text": "xG (Highlightly)",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.note": {
+    "source": "Expected goals from Highlightly's own model: kept apart from the player statistics above and never combined with them.",
+    "text": "گل مورد انتظار از مدل خود Highlightly: جدا از آمار بازیکنان در بالا نگه داشته می‌شود و هرگز با آن ترکیب نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.none": {
+    "source": "Highlightly supplies no expected goals for this match.",
+    "text": "Highlightly برای این بازی گل مورد انتظار ارائه نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.unplaced": {
+    "source": "Not shown: {count} players Highlightly listed who are not yet matched to ours.",
+    "text": "نمایش داده نشده: {count} بازیکنی که Highlightly فهرست کرده و هنوز با بازیکنان ما تطبیق داده نشده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.region": {
+    "source": "{team}: xG (Highlightly), scrolls sideways",
+    "text": "{team}: xG (Highlightly)، به پهلو پیمایش می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.xg": {
+    "source": "xG",
+    "text": "xG",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.xa": {
+    "source": "xA",
+    "text": "xA",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.xgot": {
+    "source": "xGOT",
+    "text": "xGOT",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
   },
   "matchCentre.noAbsences": {
     "source": "Nobody is reported missing or doubtful.",
@@ -13339,6 +13381,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "playerPage.expectedGoals": {
+    "source": "xG (Highlightly)",
+    "text": "xG (Highlightly)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
   "playerPage.noData": {
     "source": "No match data stored for this player yet.",
     "text": "هنوز هیچ داده‌ای از بازی‌های این بازیکن ذخیره نشده است.",
@@ -13408,6 +13456,108 @@
   "playerPage.clubs": {
     "source": "Clubs",
     "text": "باشگاه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.seasons": {
+    "source": "Every competition, as {source} counts it",
+    "text": "همه‌ی رقابت‌ها، به شمارش {source}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.seasonsNote": {
+    "source": "{source}'s totals for the season, including cups and national-team matches we do not follow match by match. Where our own record from the matches counts a competition, it stays the figure that counts, and {source}'s is neither shown beside it nor added to it.",
+    "text": "آمار فصل به شمارش {source}، از جمله جام‌ها و بازی‌های ملی که ما بازی‌به‌بازی دنبال نمی‌کنیم. هر جا کارنامه‌ی خودمان از روی بازی‌ها رقابتی را می‌شمارد، همان ملاک است و عدد {source} نه کنارش نشان داده می‌شود و نه به آن افزوده.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.season": {
+    "source": "Season starting {year}",
+    "text": "فصلی که در {year} آغاز می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.notAsked": {
+    "source": "{source} has not been asked about this player yet.",
+    "text": "هنوز از {source} درباره‌ی این بازیکن پرسیده نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.noLines": {
+    "source": "{source} lists no appearance this season.",
+    "text": "{source} در این فصل هیچ بازی‌ای برای این بازیکن ثبت نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.onlyOurs": {
+    "source": "Every competition {source} lists this season is counted in our own record from the matches, above.",
+    "text": "همه‌ی رقابت‌هایی که {source} در این فصل نام می‌برد در کارنامه‌ی خودمان از روی بازی‌ها، در بالا، شمرده شده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.countedByUs": {
+    "source": "Also this season, in our own record from the matches: {list}.",
+    "text": "همچنین در این فصل، در کارنامه‌ی خودمان از روی بازی‌ها: {list}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.unlisted": {
+    "source": {
+      "one": "{source} also lists {count} competition or team that is not in our catalogue; it is left out.",
+      "other": "{source} also lists {count} competitions or teams that are not in our catalogue; they are left out."
+    },
+    "forms": {
+      "one": "{source} {count} رقابت یا تیم دیگر هم نام می‌برد که در فهرست ما نیست؛ کنار گذاشته شده است.",
+      "other": "{source} {count} رقابت یا تیم دیگر هم نام می‌برد که در فهرست ما نیستند؛ کنار گذاشته شده‌اند."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.fetched": {
+    "source": "Fetched from {source}",
+    "text": "دریافت‌شده از {source}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.career": {
+    "source": "Career, as {source} lists it",
+    "text": "کارنامه‌ی تیمی، به روایت {source}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.careerNote": {
+    "source": "The seasons {source} lists for each team, by the year each season starts. Dates of joining and leaving are not supplied.",
+    "text": "فصل‌هایی که {source} برای هر تیم نام می‌برد، با سال آغاز هر فصل. تاریخ پیوستن و جدایی ارائه نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.noCareer": {
+    "source": "{source} lists no team we hold for this player.",
+    "text": "{source} برای این بازیکن تیمی نام نمی‌برد که در فهرست ما باشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.dash": {
+    "source": "A dash is a figure {source} did not supply, not a zero.",
+    "text": "خط تیره یعنی {source} این عدد را ارائه نکرده است، نه صفر.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.rating": {
+    "source": "Rating",
+    "text": "نمره",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.saves": {
+    "source": "Saves",
+    "text": "مهار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.conceded": {
+    "source": "Conceded",
+    "text": "گل خورده",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -14494,6 +14644,180 @@
   "matchCentre.noEventsYet": {
     "source": "No events recorded yet.",
     "text": "هنوز رویدادی ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.bar.label": {
+    "source": "Competitions",
+    "text": "رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.bar.all": {
+    "source": "All competitions",
+    "text": "همه رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.title": {
+    "source": "All competitions",
+    "text": "همه رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.metaDescription": {
+    "source": "Every league and cup FMIP follows, grouped by country and region, each with its own page.",
+    "text": "همهٔ لیگ‌ها و جام‌هایی که FMIP دنبال می‌کند، به تفکیک کشور و منطقه، هر کدام با صفحهٔ خودش.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.lead": {
+    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
+    "text": "همهٔ لیگ‌ها و جام‌هایی که دنبال می‌کنیم، به تفکیک کشور و منطقه. یکی را انتخاب کنید تا صفحه‌اش باز شود: جدول، برنامه، نتایج و برترین‌ها.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.filter": {
+    "source": "Find a competition or country",
+    "text": "جست‌وجوی رقابت یا کشور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.jump": {
+    "source": "Countries and regions",
+    "text": "کشورها و منطقه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.group.international": {
+    "source": "International",
+    "text": "بین‌المللی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.group.continental": {
+    "source": "Continental",
+    "text": "قاره‌ای",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.noMatch": {
+    "source": "No competition we follow matches this search.",
+    "text": "هیچ رقابتی از رقابت‌هایی که دنبال می‌کنیم با این جست‌وجو جور نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.unreachable": {
+    "source": "The list of competitions could not be loaded just now. Please try again in a moment.",
+    "text": "فهرست رقابت‌ها همین حالا بارگیری نشد. لطفاً چند لحظه دیگر دوباره امتحان کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.empty": {
+    "source": "No competitions are followed yet.",
+    "text": "هنوز هیچ رقابتی دنبال نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "nav.highlights": {
+    "source": "Highlights",
+    "text": "هایلایت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.title": {
+    "source": "Highlights",
+    "text": "هایلایت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.metaDescription": {
+    "source": "Official highlight links for the matches FMIP follows, newest first, filtered by competition. Each opens on the publisher's own site.",
+    "text": "پیوند خلاصه‌های رسمی بازی‌هایی که FMIP دنبال می‌کند، تازه‌ترین‌ها اول، با فیلتر رقابت. هر پیوند در سایت خود ناشر باز می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.lead": {
+    "source": "Official highlights of the matches we follow, newest first. Each link opens on the publisher's own site; we don't host or play video.",
+    "text": "خلاصه‌های رسمی بازی‌هایی که دنبال می‌کنیم، تازه‌ترین‌ها اول. هر پیوند در سایت خود ناشر باز می‌شود؛ ما هیچ ویدیویی را میزبانی یا پخش نمی‌کنیم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.unreachable": {
+    "source": "The highlights could not be loaded just now. Please try again in a moment.",
+    "text": "هایلایت‌ها همین حالا بارگیری نشد. لطفاً چند لحظه دیگر دوباره امتحان کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.everywhere": {
+    "source": "Choose your territory to see every highlight offered there. Until then only the clips offered in every country are listed.",
+    "text": "کشور خود را انتخاب کنید تا همهٔ هایلایت‌هایی که آنجا در دسترس است را ببینید. تا آن موقع فقط خلاصه‌هایی فهرست می‌شوند که در همهٔ کشورها در دسترس‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.filter": {
+    "source": "Filter by competition",
+    "text": "فیلتر بر اساس رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.allCompetitions": {
+    "source": "All competitions",
+    "text": "همه رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.empty": {
+    "source": "No highlights are offered here yet.",
+    "text": "هنوز هیچ هایلایتی اینجا در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.emptyCompetition": {
+    "source": "No highlights of this competition are offered here yet.",
+    "text": "هنوز هیچ هایلایتی از این رقابت اینجا در دسترس نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.pastEnd": {
+    "source": "There are no more highlights on this page.",
+    "text": "در این صفحه هایلایت دیگری نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.pages": {
+    "source": "Pages",
+    "text": "صفحه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.newer": {
+    "source": "Newer",
+    "text": "جدیدتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.older": {
+    "source": "Older",
+    "text": "قدیمی‌تر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.pageOf": {
+    "source": "Page {page} of {pages}",
+    "text": "صفحهٔ {page} از {pages}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.updated": {
+    "source": "Links last read {time} ({zone})",
+    "text": "آخرین به‌روزرسانی پیوندها: {time} ({zone})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.penalties": {
+    "source": "Pens",
+    "text": "پنالتی",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   }

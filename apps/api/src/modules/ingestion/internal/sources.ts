@@ -53,7 +53,8 @@ export const INGESTION_SOURCES = Symbol('INGESTION_SOURCES');
 /**
  * The five scheduled jobs (T-026), the monthly squads sweep for player photos
  * (T-1324), the full names of people stored under a short one (T-1398), and
- * the shirts of past matches for the club colour (T-1417).
+ * the shirts of past matches for the club colour (T-1417), and players'
+ * season totals and careers as the provider counts them (T-1431).
  */
 export const INGEST_JOBS = [
   'fixtures',
@@ -64,6 +65,7 @@ export const INGEST_JOBS = [
   'squads',
   'people_names',
   'kit_colours',
+  'player_seasons',
 ] as const;
 export type IngestJob = (typeof INGEST_JOBS)[number];
 
@@ -115,8 +117,13 @@ export interface SourceEnv {
   API_FOOTBALL_BUDGET_STANDARD_PERCENT?: string;
 }
 
-/** Highlightly's free plan, and the default ceiling the budget transport holds. */
-export const HIGHLIGHTLY_DEFAULT_BUDGET = 100;
+/**
+ * The `live` profile's default Highlightly ceiling (T-1432). The plan is Pro,
+ * 7,500 a day; the highlights feed and the box scores hold up to 5,000 of it
+ * (`HIGHLIGHTS_DAILY_BUDGET`), so the jobs' share leaves a margin under the
+ * plan when both run on one key.
+ */
+export const HIGHLIGHTLY_DEFAULT_BUDGET = 2000;
 
 /**
  * A transport that refuses once a day's requests are spent.

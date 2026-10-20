@@ -9629,6 +9629,7 @@ column far down. The rows say next and last, and the match centre has the
 rest. *Two renderings of the three lanes (compact on a phone, as h9 draws
 them)*: the lanes stack at full width instead, so one markup carries each
 product.
+
 ## D-201 — The Hybrid editorial pages: Predictions by day with a pick in each row, the story at the measure with what the model expected
 **Status:** Accepted · 2026-10-11 · **Task:** T-1383 · **Follows:** D-198, D-199, D-206, D-154, D-061, D-187
 
@@ -10464,6 +10465,7 @@ non-articles*: a publisher's item goes only when the publisher is dropped
 **Production.** Nothing to set. The migration re-checks every stored team,
 competition and match link once (only the entities already linked, a few
 per article); the job and the lists follow the new rules from the deploy.
+
 ## D-212 — A starter's place in the shape is stored, so every formation can be drawn on the pitch
 **Status:** Accepted · 2026-10-12 · **Task:** T-1397 · **Follows:** D-202, D-192, D-183, D-110
 
@@ -11067,6 +11069,272 @@ editor set would be lost, and one corrected profile is not worth that risk.
 *Write the listing into `player_spell` with today's date as the start*: an
 invented value shown as "since". *Fuzzy country matching*: a wrong
 nationality is worse than none.
+
+## D-222 — The channel also posts yesterday's results and the week's accuracy, from stored evaluations
+
+**Status:** Accepted · 2026-10-20 (agent; the maintainer approved the channel audit's five free improvements, this one among them) · **Task:** T-1430 · **Follows:** T-525, D-187, D-209, T-1413
+
+**Context.** The public channel got one post a day: the day's matches with
+the statistical model's forecast. Nothing in the channel ever said how those
+forecasts did, though the evaluations are stored (T-066) and the site
+already publishes the model's accuracy by week (T-1413, T-1414).
+
+**Decision.**
+1. Two more posts, on the existing hourly job and claim: the previous UTC
+   day's results, and on Mondays the ISO week just ended. On the post hour's
+   tick they go out results, week, forecast -- yesterday before today.
+2. **When.** The results go out from the forecast's post hour
+   (`CHANNEL_POST_HOUR`, 6 UTC by default), not in the evening: a match on
+   UTC day D kicks off by 23:59 and is over by about 02:30 on D+1, so by 6
+   UTC every match of D is finished and, normally, scored. A finished match
+   whose forecast is not yet evaluated holds the post for up to six hours
+   (capped at 23 UTC), then it goes out with that match marked "not scored
+   yet" and left out of the count. The week waits while the results do,
+   because Sunday's last matches belong to it.
+3. **Which forecast.** The one the accuracy figures count (D-209): the last
+   published version computed before kick-off. Right or wrong is that
+   forecast's stored evaluation (`correct`); the score shown beside it is
+   the one it was scored against. Nothing is recomputed or written to the
+   forecast boundary (rule 5); the forecast module gains a read,
+   `EvaluationService.countedFor`.
+4. **The week's figures** are `GET /model/accuracy?period=week`'s, read
+   through `EvaluationService.publicAccuracy('week')` -- the numbers the
+   site's card shows -- with the count of right picks derived from the share
+   and the matches it is exactly over.
+5. **The claim.** `channel_post` gains `kind` and the key becomes (`kind`,
+   `day`): `day` is the forecast's day, the recapped match day, or the
+   week's Monday. A new migration; the shipped one is untouched.
+6. Statistical model only, labelled as such on every message (rule 6);
+   English, UTC; split at competition boundaries under 4,096 characters;
+   nothing posted for a day with no finished match the model forecast or a
+   week with nothing scored.
+
+**Alternatives.** *A late-evening results post (e.g. 23 UTC)*: matches in
+the Americas kicking off after 21 UTC would still be playing. *A separate
+results hour setting*: another variable to explain, with no case yet where
+the post hour is wrong for it. *Recap the forecast post's own numbers*: a
+later pre-kick-off version (confirmed line-ups) may supersede them, and the
+site scores the last one; the channel says what the site counts. *Every
+match's evaluation computed here from the score*: a second definition of
+"right" beside the stored one.
+
+## D-225 — A competitions bar under the header, and an All competitions page grouped by region and country
+
+**Status:** Accepted · 2026-10-20 (agent, from the maintainer's teammate's request, which the maintainer asked for now) · **Task:** T-1433 · **Follows:** T-504, D-154, D-175, D-199, D-207, rules 2-3, 7
+
+**Context.** The teammate asked for "a competitions bar near the top of the
+site, right under the main menu", with an "All competitions" option where a
+reader sees every league and cup we carry, finds one by country or region,
+and opens its page. The competition pages existed; nothing listed them all,
+and `GET /competitions` is the follow controls' list, sorted by name, without
+countries.
+
+**Decision.**
+1. **One read, our own** (rule 2): `GET /competitions/directory?locale=` in
+   the catalog boundary, every active competition with its scope, kind,
+   country and logo, in the product's order -- the scores page's rule
+   (D-207): the reader's language's own order when it has one, else
+   `competition.display_order`, the unplaced ones after by country and name.
+   Names come through the localised-names interceptor (T-1312), so `/fa`
+   reads the Persian names. `GET /competitions` is unchanged.
+2. **The bar** is a second `<nav>` ("Competitions") right under the header on
+   every page, above the lite banner and the live strip: "All competitions"
+   first (so a phone never has to scroll to find it), then the first
+   `BAR_COMPETITIONS` (12) of the product's order, a row that scrolls
+   sideways. It is rendered on the server with the header (no layout shift)
+   and its answer is shared between pages for a few seconds per language,
+   as the live strip's is. When the API cannot answer it is "All
+   competitions" alone, never a guessed row (rule 3).
+3. **The page** `/competitions` groups: international, then continental, then
+   one group per country; a country with a placed competition in the
+   product's order, the rest by their name in the reader's alphabet. Inside a
+   group the product's order holds. We store no confederation, so the
+   continental competitions are one group rather than one per continent; no
+   region is invented. A filter matches a competition's name, short form,
+   country or group heading, folding case, accents and the Arabic/Persian
+   letter variants; it is a plain GET form (`?q=`) that narrows as the reader
+   types when a script runs. An unreachable API and an empty catalogue each
+   have their own sentence.
+
+**Alternatives.** *Re-sort `GET /competitions`*: the follow controls and the
+sitemap rely on its name order. *Group in the API*: the countries' order
+among the unplaced ones is the reader's alphabet, which is the web's to know
+after the names are localised. *Every competition in the bar*: 39 names make
+a row nobody scrolls; the page is for the rest.
+
+## D-226 — A Highlights page of every feed clip, by the match page's territory rule, and only the clips offered everywhere without a territory
+
+**Status:** Accepted · 2026-10-21 (agent, from the maintainer's teammate's request, which the maintainer asked for now) · **Task:** T-1434 · **Follows:** T-312, T-1366, D-069, D-184, D-199, D-225, rules 2-4
+
+**Context.** Highlights showed only on a match page. The teammate asked for
+"a separate tab called Highlights that lists all highlight links, where you
+can filter the available highlights by league name". The clips are the
+licensed feed's verified links (`highlight_feed`, D-184), each with a
+territory rule that the match page evaluates per viewer (`offeredIn`); a
+reader who has chosen no territory is shown no highlight on a match page.
+
+**Decision.**
+1. **One read in the viewing boundary:** `GET /highlights?territory=&competition=&page=`,
+   public. The territory is answered as the match page answers it (`?territory=`,
+   else the member's stored one, else none; an unknown code is a 400). Every
+   clip not withdrawn, from a source not dropped, on an active competition,
+   newest match first, twenty to a page (`HIGHLIGHTS_PAGE_SIZE`), at most 500
+   pages; a malformed competition id or page is a 400.
+2. **The territory rule is the match page's, in one place.** With a territory
+   chosen, a clip is listed where `offeredIn` offers it there. With none, only
+   the clips whose rule offers them in every territory (`offeredEverywhere`:
+   no allow list, nothing blocked) -- those are offered to that reader
+   whatever their territory turns out to be -- and the page says that clips
+   limited to some countries wait for a territory, with the chooser beside it.
+   *Rejected:* listing nothing until a territory is chosen (the match page's
+   answer): a guest's first visit to a tab called Highlights would be an empty
+   page with a form; listing every clip: a clip blocked where the reader is
+   would be offered.
+3. **Feed clips only.** The desk's official pages (`highlight`, D-069) are per
+   territory under declared coverage; on a match page a desk page wins over the
+   feed's clip, and the list's link to the match leads there. The list is the
+   feed's links, which is what the request named.
+4. **The filter** is the competitions with at least one clip offered to this
+   reader (most clips first), names in the reader's language; picking one goes
+   back to page 1; the filter, the page and a guest's territory travel on
+   every link. Each clip is a link to its match page and a link out to the
+   original, naming the publisher (`LinkOut`), never a player (D-184). An empty
+   list, a page past the end and an unreachable API each have their sentence
+   (rule 3), and the page says when the links were last read.
+5. **The nav:** "Highlights" («هایلایت‌ها») after "Watch" in the header's nav;
+   the phone's five tabs are unchanged, so on a phone it is in the Menu.
+6. **The E2E seed** gains one clip for the finished seeded match, offered
+   everywhere, on a reserved `example.com` address, so the journey meets a
+   listed clip.
+
+## D-223 — A player's season in every competition and his career, as the provider counts them, beside our own record and never in it
+
+**Status:** Accepted · 2026-10-20 (agent; one of five code-level improvements the maintainer approved after the 2026-10-20 API-Football usage audit) · **Task:** T-1431 · **Follows:** D-038, D-014, D-183, D-213
+
+**Context.** The player page's record is computed from the matches we ingest
+(D-038's rule, applied to players in T-037): starts, goals, cards and minutes
+from our line-ups, incidents and per-player statistics. It is exact where we
+follow a competition and silent everywhere else, so a player's domestic cup,
+his continental matches in a competition we do not carry, and his
+national-team games are missing, and the page cannot say which clubs he
+played for before our data begins. API-Football, which we pay for on the
+critical path (D-014, Ultra since 2026-10-11), counts every competition it
+covers in `/players?id=&season=` and lists a player's teams by season in
+`/players/teams?player=`. The 2026-10-20 audit found about 5,000 of 75,000
+daily requests in use.
+
+**Decision.**
+1. **Shown beside, never in.** The provider's totals are a module of their
+   own on the player page (the Stats tab), titled with the provider's name,
+   with its own coverage badge and the time they were fetched. Our computed
+   record stays the authority wherever we have it: a provider line for a
+   competition season our record already counts for this player
+   (`counted_by_us`: we hold his line-ups in that competition's season) is
+   not shown with its numbers, it is named beside the table ("also this
+   season, in our own record"). A competition we follow, but none of whose
+   matches we hold him in, keeps the provider's line: our record says
+   nothing there, so there is nothing to contradict. The two are never
+   summed, merged into one row, or relabelled (rule 3). D-038 stands for
+   tables, leaders and the record: nothing here feeds them.
+2. **Only what we can name.** A line or a career team is kept only when
+   `provider_mapping` knows its competition and team (rule 1: no entity
+   without our id, never a name as a key). Anything else is left out and
+   counted, and the module says how many and is `limited`. No catalogue row
+   is created from these answers.
+3. **The provider's numbers as sent.** A figure it left out is `null` and
+   shown as a dash with a note that a dash is not a zero; saves and goals
+   conceded are a goalkeeper's only; a line without an appearance is not a
+   season's record and is dropped; sendings-off add a straight red and a
+   second yellow only when both are known.
+4. **Careers are season years, not spells.** `/players/teams` gives the
+   years a player's seasons at a team start in, not dates; `player_spell`
+   needs a start date and drives "current team", so the career goes into
+   `player_career_season` and is shown as runs of years, saying that dates
+   of joining and leaving are not supplied.
+5. **Fetched on the bulk tier (D-183).** A `player_seasons` job, every ten
+   minutes, asks for each player named in a line-up of a current season: his
+   season once, and again after each match he was named for once that match
+   is six hours old; his career once, and again after 30 days. At most
+   `INGESTION_PLAYER_SEASONS_BATCH` asks (100) a run, none past 30 seconds,
+   250 ms apart, none once the day's requests reach the bulk share. Each
+   answer replaces the player's rows for that season, so a line the provider
+   drops goes too. An unanswered ask is retried after a day, five times.
+
+**Alternatives.** *Fill our record's gaps with the provider's numbers*: one
+row would then mix two counts, which is what rule 3 forbids and what makes a
+figure unexplainable. *Show the provider's line for every competition,
+ours included*: two different numbers for the same season side by side, and
+the reader cannot tell which to trust; ours is the one the match pages agree
+with. *Keep unknown competitions under the provider's name*: an entity
+without our id, keyed by the provider's; it would also put names like
+"Club Friendlies 3" on the page. *Write careers into `player_spell` with
+1 July dates*: invented dates, and a closed spell's end would move "current
+team". *Every past season of every player*: about ten requests a player for
+figures that do not change; one current season and the career list answer
+what the page lacks.
+
+## D-224 — Per-player expected goals from Highlightly's box score, as a source of its own
+
+**Status:** Accepted · 2026-10-20 (agent; the maintainer approved the five free Highlightly improvements of the 2026-10-20 audit, this one among them) · **Task:** T-1432 · **Follows:** D-013, D-184, D-188, D-208
+
+**Context.** No provider behind `fixture_player_stat` supplies per-player
+expected goals (T-101 left the metric out on purpose). Highlightly's
+`/box-score/{matchId}`, on the Football API Pro plan we already pay for
+(7,500 requests a day, of which the highlights feed used about 5-20 %),
+answers per player: xG, xA, xGOT, xGOT conceded and goals prevented, beside
+its own rating, minutes and counts. Highlightly's terms
+(https://highlightly.net/terms, version of 2026-07-24, read 2026-10-20) let
+us use and display the data in our product (§6.1) and forbid using it for
+gambling (§7); FMIP has no betting product, and these figures feed no
+forecast, odds or settlement.
+
+**Decision.**
+1. **Its own contract and its own table.** The adapter
+   (`adapters/highlightly/box-score.ts`) lets only the expected-goals family
+   out, never Highlightly's rating, minutes or counts: API-Football's are
+   stored already, and two sources' ratings are never blended or set side by
+   side as one figure (rules 3 and 6). Stored in `fixture_player_expected`
+   (long shape, a `source` column, closed metric list; goals prevented the
+   only signed figure) with `fixture_box_score` recording that the source
+   answered for the match. Never a column of `fixture_player_stat`.
+2. **Labelled wherever shown.** The match page shows a card of its own,
+   "xG (Highlightly)", under the player statistics; the player page's match
+   log says "xG (Highlightly)". Coverage: `available`, `limited` when the
+   source listed players we have not placed, `delayed` for a finished match
+   of a covered competition not yet asked, `not_supplied` otherwise. A
+   figure the source did not supply is `–`, never 0.
+3. **Identity through the mapping table only (rule 1).** The match is found
+   on the source's list for the league and UTC day by both teams' mappings
+   and the kick-off (the highlights feed's rule, now one function); each
+   player by `provider_mapping`. An unmapped player is queued in
+   `unresolved_entity` with the name, our team and match, the shirt number
+   and, as a reviewer's hint only, the person our line-up gives that shirt.
+   Nothing is ever mapped by the job.
+4. **A player who did not play has no figures.** The recording shows unused
+   substitutes carrying copies of team-mates' figures; with 0 minutes, or
+   minutes unknown, nothing is read.
+5. **One ceiling for both Highlightly jobs.** The feed and the box scores ask
+   through one `DailyBudgetTransport` (`HighlightlyQuota`), so
+   `HIGHLIGHTS_DAILY_BUDGET` (5,000 when empty) bounds the two together;
+   `BOX_SCORE_BATCH` (60 when empty) bounds a run. Every two hours at :49,
+   inside the feed's 51-hour window; a box score with players unplaced is
+   asked again after 12 hours, inside the window, and replaced whole. The
+   watchdog's `highlightly_budget` condition (80 % / 95 %) and the two
+   queues' failures watch it. The `live` profile's own Highlightly ceiling
+   (`HIGHLIGHTLY_DAILY_BUDGET`) now defaults to 2,000, and the adapter's
+   manifest names the Pro plan and its 7,500 a day.
+
+**Consequences.** Until players are mapped to Highlightly (there were none
+on 2026-10-20), stored box scores are `limited` with few rows and the review
+queue grows by the players the source names; mapping them in bulk from the
+shirt-number hint is a reviewed step of its own, never this job's.
+
+**Alternatives.** *New metric keys in `fixture_player_stat` with a source
+column*: every existing reader of that table (season figures, power index,
+key players, leader boards) would have to learn to exclude them, and one
+forgotten reader would blend two sources. *Map players by name or shirt
+number automatically*: rule 1. *Store Highlightly's rating too*: a second
+rating beside API-Football's invites exactly the blending rule 6 forbids.
 
 ## D-221 — Push is offered at the moment of a follow, once per click, after the browser says it could take it
 

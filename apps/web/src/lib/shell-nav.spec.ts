@@ -7,7 +7,7 @@ import { HEADER_NAV, currentLink, localeFreePath, tabBarLinks } from './shell-na
  */
 
 describe('the header nav', () => {
-  it('is Today, Scores, Predictions, Analysis, News, Watch, in that order', () => {
+  it('is Today, Scores, Predictions, Analysis, News, Watch, Highlights, in that order', () => {
     expect(HEADER_NAV.map((link) => link.id)).toEqual([
       'today',
       'scores',
@@ -15,10 +15,11 @@ describe('the header nav', () => {
       'analysis',
       'news',
       'watch',
+      'highlights',
     ]);
   });
 
-  it('leads to the pages that exist: home, scores, predictions and its analysis, news, watch', () => {
+  it('leads to the pages that exist: home, scores, predictions and its analysis, news, watch, highlights', () => {
     expect(HEADER_NAV.map((link) => link.path)).toEqual([
       '',
       '/scores',
@@ -26,10 +27,11 @@ describe('the header nav', () => {
       '/predictions#analysis',
       '/news',
       '/watch',
+      '/highlights',
     ]);
   });
 
-  it('has no Competitions entry while there is no competitions index to lead to', () => {
+  it('has no Competitions entry: the competitions bar under the header is that (T-1433)', () => {
     expect(HEADER_NAV.some((link) => link.path.startsWith('/competition'))).toBe(false);
   });
 
@@ -47,6 +49,7 @@ describe('the header nav', () => {
     expect(currentLink('/en/founder/abc', HEADER_NAV)).toBe('analysis');
     expect(currentLink('/en/news/story/1', HEADER_NAV)).toBe('news');
     expect(currentLink('/en/watch', HEADER_NAV)).toBe('watch');
+    expect(currentLink('/fa/highlights?page=2', HEADER_NAV)).toBe('highlights');
   });
 
   it('marks nothing on a page outside the sections, and never by a prefix of a word', () => {

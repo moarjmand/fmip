@@ -6,6 +6,7 @@ import { ForecastModule } from '../forecast/forecast.module';
 import { IdentityModule } from '../identity/identity.module';
 import { IngestionModule } from '../ingestion/ingestion.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ViewingModule } from '../viewing/viewing.module';
 import { ALERT_CURSOR, AdminAlertsService } from './admin-alerts.service';
 import { PostgresAlertCursor } from './internal/alert-cursor';
 import { LiveProbes, WATCHDOG_PROBES } from './internal/probes';
@@ -17,8 +18,8 @@ import { WatchdogService } from './watchdog.service';
 /**
  * The watchdog (T-801, E80): a scheduled job over the health views that keeps
  * each condition's state and logs a transition only when a level changes.
- * Reads the ingestion, forecast, delivery and data-quality boundaries through their public
- * services; its own SQL reads the live fixtures and the delivery outcomes, and
+ * Reads the ingestion, forecast, delivery, data-quality and viewing (Highlightly's
+ * shared ceiling, T-1432) boundaries through their public services; its own SQL reads the live fixtures and the delivery outcomes, and
  * owns `watchdog_condition` and `watchdog_event`.
  *
  * Its alerts reach administrators through the notifications boundary (T-802):
@@ -34,6 +35,7 @@ import { WatchdogService } from './watchdog.service';
     FailureCountsModule,
     NotificationsModule,
     DataQualityModule,
+    ViewingModule,
   ],
   controllers: [WatchdogController],
   providers: [

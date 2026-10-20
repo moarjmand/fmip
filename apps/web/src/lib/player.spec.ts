@@ -58,6 +58,7 @@ const match = (seasonId: string, role: PlayerMatch['role'], cameOn = false): Pla
   assists: 0,
   yellow_cards: 0,
   red_cards: 0,
+  expected_goals: null,
 });
 
 describe('ageOn', () => {

@@ -148,7 +148,8 @@ export interface MatchStatRow {
 /**
  * The per-player metrics a match can carry (T-101), mirroring
  * `fixture_player_stat_metric_check`. `rating` is the provider's own 0-10
- * mark. There is no per-player expected goals: no provider in use supplies it.
+ * mark. Per-player expected goals are not among them: they come from a
+ * source of their own (`MatchPlayerExpected`, T-1432).
  */
 export type PlayerMatchMetric =
   | 'minutes'
@@ -181,6 +182,42 @@ export interface MatchPlayerStats {
   side: 'home' | 'away';
   stats: Partial<Record<PlayerMatchMetric, number>>;
 }
+
+/**
+ * The expected-goals family (T-1432, D-224), mirroring
+ * `fixture_player_expected_metric_check`: expected goals, expected assists,
+ * expected goals on target, xGOT conceded (a keeper's) and goals prevented
+ * (xGOT conceded minus goals let in; may be negative).
+ */
+export type ExpectedGoalsMetric = 'xg' | 'xa' | 'xgot' | 'xgot_conceded' | 'xgp';
+
+/**
+ * Who supplied a player's expected goals. One source today; named on every
+ * figure because it is never blended with another source's numbers (rule 6's
+ * spirit) and a reader is told whose model it is ("xG (Highlightly)").
+ */
+export type ExpectedGoalsSource = 'highlightly';
+
+/** One player's expected-goals figures in this match; a figure missing here was not supplied, never 0. */
+export interface MatchPlayerExpected {
+  id: string;
+  name: string;
+  side: 'home' | 'away';
+  figures: Partial<Record<ExpectedGoalsMetric, number>>;
+}
+
+/**
+ * The match's per-player expected goals from their one source (T-1432).
+ * `available` when every player the source listed is one of ours, `limited`
+ * when some are not mapped yet (`unplaced` of them, not shown), `delayed` for
+ * a finished match of a covered competition the source has not been asked
+ * about yet, `not_supplied` otherwise -- including a box score that carried no
+ * figure. `last_updated_at` is when the source answered.
+ */
+export type MatchExpectedGoals = Covered<MatchPlayerExpected[]> & {
+  source: ExpectedGoalsSource;
+  unplaced: number;
+};
 
 /**
  * A player the provider says will miss (`out`) or may miss (`doubtful`) this
@@ -294,6 +331,12 @@ export interface MatchCentre {
   availability: Covered<MatchAbsence[]> & { gap?: MatchAbsenceGap | null };
   /** Each player who took part, home side first, most minutes first (T-101). */
   player_statistics: Covered<MatchPlayerStats[]>;
+  /**
+   * Per-player expected goals from their own source, home side first, most
+   * xG first (T-1432). Apart from `player_statistics` on purpose: another
+   * source's figures, never merged into that table's numbers.
+   */
+  player_expected_goals: MatchExpectedGoals;
   /** Last five competitive matches before this one, newest first, per side. */
   form: { home: Covered<FormEntry[]>; away: Covered<FormEntry[]> };
   /** Recent meetings of the two teams before this one, newest first. */
