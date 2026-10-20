@@ -9629,6 +9629,7 @@ column far down. The rows say next and last, and the match centre has the
 rest. *Two renderings of the three lanes (compact on a phone, as h9 draws
 them)*: the lanes stack at full width instead, so one markup carries each
 product.
+
 ## D-201 — The Hybrid editorial pages: Predictions by day with a pick in each row, the story at the measure with what the model expected
 **Status:** Accepted · 2026-10-11 · **Task:** T-1383 · **Follows:** D-198, D-199, D-206, D-154, D-061, D-187
 
@@ -10464,6 +10465,7 @@ non-articles*: a publisher's item goes only when the publisher is dropped
 **Production.** Nothing to set. The migration re-checks every stored team,
 competition and match link once (only the entities already linked, a few
 per article); the job and the lists follow the new rules from the deploy.
+
 ## D-212 — A starter's place in the shape is stored, so every formation can be drawn on the pitch
 **Status:** Accepted · 2026-10-12 · **Task:** T-1397 · **Follows:** D-202, D-192, D-183, D-110
 
@@ -11115,3 +11117,47 @@ later pre-kick-off version (confirmed line-ups) may supersede them, and the
 site scores the last one; the channel says what the site counts. *Every
 match's evaluation computed here from the score*: a second definition of
 "right" beside the stored one.
+
+## D-225 — A competitions bar under the header, and an All competitions page grouped by region and country
+
+**Status:** Accepted · 2026-10-20 (agent, from the maintainer's teammate's request, which the maintainer asked for now) · **Task:** T-1433 · **Follows:** T-504, D-154, D-175, D-199, D-207, rules 2-3, 7
+
+**Context.** The teammate asked for "a competitions bar near the top of the
+site, right under the main menu", with an "All competitions" option where a
+reader sees every league and cup we carry, finds one by country or region,
+and opens its page. The competition pages existed; nothing listed them all,
+and `GET /competitions` is the follow controls' list, sorted by name, without
+countries.
+
+**Decision.**
+1. **One read, our own** (rule 2): `GET /competitions/directory?locale=` in
+   the catalog boundary, every active competition with its scope, kind,
+   country and logo, in the product's order -- the scores page's rule
+   (D-207): the reader's language's own order when it has one, else
+   `competition.display_order`, the unplaced ones after by country and name.
+   Names come through the localised-names interceptor (T-1312), so `/fa`
+   reads the Persian names. `GET /competitions` is unchanged.
+2. **The bar** is a second `<nav>` ("Competitions") right under the header on
+   every page, above the lite banner and the live strip: "All competitions"
+   first (so a phone never has to scroll to find it), then the first
+   `BAR_COMPETITIONS` (12) of the product's order, a row that scrolls
+   sideways. It is rendered on the server with the header (no layout shift)
+   and its answer is shared between pages for a few seconds per language,
+   as the live strip's is. When the API cannot answer it is "All
+   competitions" alone, never a guessed row (rule 3).
+3. **The page** `/competitions` groups: international, then continental, then
+   one group per country; a country with a placed competition in the
+   product's order, the rest by their name in the reader's alphabet. Inside a
+   group the product's order holds. We store no confederation, so the
+   continental competitions are one group rather than one per continent; no
+   region is invented. A filter matches a competition's name, short form,
+   country or group heading, folding case, accents and the Arabic/Persian
+   letter variants; it is a plain GET form (`?q=`) that narrows as the reader
+   types when a script runs. An unreachable API and an empty catalogue each
+   have their own sentence.
+
+**Alternatives.** *Re-sort `GET /competitions`*: the follow controls and the
+sitemap rely on its name order. *Group in the API*: the countries' order
+among the unplaced ones is the reader's alphabet, which is the web's to know
+after the names are localised. *Every competition in the bar*: 39 names make
+a row nobody scrolls; the page is for the rest.

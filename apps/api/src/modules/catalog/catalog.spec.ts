@@ -1,9 +1,12 @@
-import type { Covered, TableRow } from '@fmip/contracts';
+import type { CompetitionDirectoryEntry, Covered, TableRow } from '@fmip/contracts';
+import { NO_MEDIA } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   CONTEXT_RADIUS,
+  directoryOrder,
   groupSuggestions,
   mainPhaseTeams,
+  orderSubtag,
   pickSeason,
   tableContext,
   type SuggestionRow,
@@ -240,5 +243,42 @@ describe('seasonMinutes (T-823)', () => {
 
   it('is zero, and whole, for a player named only as an unused substitute', () => {
     expect(seasonMinutes(0, 0, 0)).toMatchObject({ coverage: 'available', total: 0 });
+  });
+});
+
+describe('competitions directory order (T-1433)', () => {
+  const entry = (
+    id: string,
+    name: string,
+    order: number | null,
+    country: string | null,
+  ): CompetitionDirectoryEntry => ({
+    id,
+    name,
+    short_name: null,
+    scope: country === null ? 'continental' : 'domestic',
+    kind: 'league',
+    country: country === null ? null : { id: `c-${country}`, name: country, code: 'XXX' },
+    order,
+    logo: NO_MEDIA,
+  });
+
+  it('puts stated places first, then the unplaced by country and name', () => {
+    const ordered = directoryOrder([
+      entry('a', 'La Liga', null, 'Spain'),
+      entry('b', 'Premier League', 2, 'England'),
+      entry('c', 'Champions League', null, null),
+      entry('d', 'FA Cup', null, 'England'),
+      entry('e', 'Pro League', 1, 'Iran'),
+      entry('f', 'Championship', null, 'England'),
+    ]);
+    expect(ordered.map((c) => c.id)).toEqual(['e', 'b', 'c', 'f', 'd', 'a']);
+  });
+
+  it('reads the language subtag an order is kept under', () => {
+    expect(orderSubtag('en-GB')).toBe('en');
+    expect(orderSubtag('FA')).toBe('fa');
+    expect(orderSubtag(null)).toBeNull();
+    expect(orderSubtag('x-rtl')).toBeNull();
   });
 });

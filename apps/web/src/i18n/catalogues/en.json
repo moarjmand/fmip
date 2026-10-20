@@ -2603,5 +2603,17 @@
   "analysis.founder.verdict.exact": "The score was exact too.",
   "matchCentre.community.verdict.draw": "{share} picked a draw",
   "matchCentre.community.verdict.win": "{share} picked {team} to win",
-  "matchCentre.noEventsYet": "No events recorded yet."
+  "matchCentre.noEventsYet": "No events recorded yet.",
+  "competitions.bar.label": "Competitions",
+  "competitions.bar.all": "All competitions",
+  "competitions.title": "All competitions",
+  "competitions.metaDescription": "Every league and cup FMIP follows, grouped by country and region, each with its own page.",
+  "competitions.lead": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
+  "competitions.filter": "Find a competition or country",
+  "competitions.jump": "Countries and regions",
+  "competitions.group.international": "International",
+  "competitions.group.continental": "Continental",
+  "competitions.noMatch": "No competition we follow matches this search.",
+  "competitions.unreachable": "The list of competitions could not be loaded just now. Please try again in a moment.",
+  "competitions.empty": "No competitions are followed yet."
 }

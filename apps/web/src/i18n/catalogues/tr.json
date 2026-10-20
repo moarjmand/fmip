@@ -11836,5 +11836,65 @@
     "source": "No events recorded yet.",
     "text": "",
     "status": "untranslated"
+  },
+  "competitions.bar.label": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.bar.all": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.title": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.metaDescription": {
+    "source": "Every league and cup FMIP follows, grouped by country and region, each with its own page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.lead": {
+    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.filter": {
+    "source": "Find a competition or country",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.jump": {
+    "source": "Countries and regions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.group.international": {
+    "source": "International",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.group.continental": {
+    "source": "Continental",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.noMatch": {
+    "source": "No competition we follow matches this search.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.unreachable": {
+    "source": "The list of competitions could not be loaded just now. Please try again in a moment.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.empty": {
+    "source": "No competitions are followed yet.",
+    "text": "",
+    "status": "untranslated"
   }
 }
