@@ -375,6 +375,21 @@ that is working: `off` when nothing was ever written, `ON` with the age when
 it is current, `STALE` past 48 hours (the timer runs daily, so one missed run
 is still inside that), and a note whenever `BACKUP_RCLONE_REMOTE` is unset --
 a copy on the machine it is a backup of does not survive losing that machine.
+On the server it also reads the watchdog's `backup` condition
+(`watchdog_condition`, the same verdict the admin System page shows): when
+that is `degraded` or `failing`, the line is `FAILED` with the watchdog's note
+and the whole check fails (T-1427, D-219). The local dump's age cannot see
+this case, because `pg_dump` succeeds before the off-site copy is tried: from
+2026-10-12 to 2026-10-20 the line said `ON` while the remote refused every
+nightly copy and every WAL segment. The decision itself is
+`deploy/backup-verdict.sh`.
+
+**A full remote.** The remote answers `storage cap exceeded` (B2) or the
+like, `backup.sh` stops at "off-provider copy" and `pitr.sh ship` keeps the
+WAL spool on the server, which then fills the server's disk. The fix is on
+the remote's side: raise the account's cap (on B2, a payment method and the
+Caps & Alerts page), or keep fewer days with `BACKUP_KEEP_REMOTE_DAYS`. The
+next nightly run and the next ship then catch up by themselves.
 
 The `Restore drill` line reads the newest drill from `backup_run` and whether
 `fmip-restore-drill.timer` is enabled: `ON` with the age of the newest pass

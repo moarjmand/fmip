@@ -10966,3 +10966,40 @@ as well as new ones.
 hand, most never set. *The provider's field straight to the page*: what
 D-204 and rule 2 rule out. *The latest match's shirt*: an away or third kit
 would repaint the club after one match.
+
+## D-219 — The setup check reads the watchdog's backup verdict, and a failing backup fails the check
+
+**Status:** Accepted · 2026-10-20 (agent, from the purchases audit's finding; the maintainer said "do this task here") · **Task:** T-1427 · **Follows:** T-075, D-032, D-101, D-157
+
+**Context.** `deploy/check-setup.sh` decided its `Backups` line from the age
+of the newest local dump alone, and never counted it toward the exit code.
+`backup.sh` writes that dump before it tries the off-site copy, so when
+Backblaze B2's free cap was reached on 2026-10-12 the line kept saying `ON`
+and the check `PASS` for eight days, while the remote refused every nightly
+copy and every WAL segment and the server's disk filled with the WAL spool.
+The watchdog's `backup` condition (D-101, D-157), which reads every run's
+result from `backup_run` and Postgres's archiver, had said `failing` since
+2026-10-12 18:08 UTC.
+
+**Decision.**
+1. On the server, the check reads `watchdog_condition` where `key =
+   'backup'`, the way it already reads the newest restore drill. One verdict,
+   computed and tested in one place, rather than a second set of thresholds
+   in shell.
+2. `degraded` or `failing` makes the line `FAILED`, with the watchdog's note
+   (one line, at most 200 characters), and fails the run. A copy that stopped
+   leaving the machine is not a capability left off; it is the one thing
+   `07-backups.md` says production cannot be without.
+3. `unknown`, or nothing read (`SETUP_CHECK_API`, no database, a fresh
+   rehearsal), leaves the line as before: `off`, `ON` or `STALE` from the
+   local dump, none of them failing the run. A laptop rehearsal with old
+   dumps in `./backups` still passes.
+4. The decision is a function of what was read, `deploy/backup-verdict.sh`,
+   so a spec runs it as it ships.
+
+**Alternatives.** *Read `backup_run` and `pg_stat_archiver` in the script*:
+the watchdog's thresholds (26 h, 50 h, 30 min) would then live twice.
+*Expose the watchdog on a public health endpoint for
+`report-capabilities.mjs`*: it is admin-only on purpose (T-801). *Make STALE
+fail too*: on the server the watchdog already turns a 50-hour-old success into
+`failing`, and STALE alone would fail rehearsals for old local files.

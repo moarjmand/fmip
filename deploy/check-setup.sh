@@ -359,33 +359,44 @@ fi
 # production", and nothing above this line would notice their absence: every
 # container is healthy on a deployment that has never written a dump. Read from
 # the directory the scripts write to rather than from a switch, because a timer
-# that is installed and failing looks exactly like one that is working.
+# that is installed and failing looks exactly like one that is working. And
+# from the watchdog's `backup` condition (D-101, D-157), which is what sees a
+# dump written here but refused by the remote, or WAL that stopped shipping:
+# then the run fails (T-1427, D-219), because a deployment whose copies stopped
+# leaving the machine is not healthy. The decision is deploy/backup-verdict.sh.
+# shellcheck source=deploy/backup-verdict.sh
+. deploy/backup-verdict.sh
 backup_dir="${BACKUP_DIR:-./backups}"
 newest_dump=''
+dump_age_h=''
 if [ -d "$backup_dir" ]; then
   newest_dump="$(ls -t "$backup_dir"/fmip-*.dump 2>/dev/null | head -1 || true)"
 fi
-if [ -z "$newest_dump" ]; then
-  row 'Backups' 'off' "no dump in $backup_dir -- nothing has been backed up here"
-  notes+=("Backups: nothing has ever been backed up. Install scripts/backup/fmip-backup.timer and point BACKUP_RCLONE_REMOTE at a bucket at another company (docs/07-backups.md).")
-else
+if [ -n "$newest_dump" ]; then
   dump_age_h=$((($(date -u +%s) - $(date -r "$newest_dump" +%s)) / 3600))
-  if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
-    copies="off-site copy to ${BACKUP_RCLONE_REMOTE}"
-  else
-    copies='local only'
-  fi
-  # The timer runs daily, so one missed run is still inside 48 hours; past that
-  # something is wrong rather than merely late.
-  if [ "$dump_age_h" -gt 48 ]; then
-    row 'Backups' 'STALE' "newest dump is ${dump_age_h}h old, $copies"
-    notes+=("Backups: the newest dump is ${dump_age_h} hours old and the timer runs daily. Look at it: systemctl status fmip-backup.timer, then journalctl -u fmip-backup (docs/07-backups.md).")
-  else
-    row 'Backups' 'ON' "newest dump ${dump_age_h}h old, $copies"
-  fi
-  if [ -z "${BACKUP_RCLONE_REMOTE:-}" ]; then
-    notes+=('Backups: local only. A copy on the machine it is a backup of does not survive losing that machine -- set BACKUP_RCLONE_REMOTE (docs/07-backups.md).')
-  fi
+fi
+watchdog_backup=''
+if [ -z "${SETUP_CHECK_API:-}" ] && [ -n "${POSTGRES_USER:-}" ]; then
+  watchdog_backup="$(docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "${POSTGRES_DB:-fmip}" -tA -F '|' -c \
+    "SELECT level, to_char(since AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI'), coalesce(note, '')
+       FROM watchdog_condition WHERE key = 'backup'" 2>/dev/null | tr -d '\r' | head -1 || true)"
+fi
+wd_level='' wd_since='' wd_note=''
+if [ -n "$watchdog_backup" ]; then
+  IFS='|' read -r wd_level wd_since wd_note <<<"$watchdog_backup"
+fi
+backup_line=''
+backup_failed=0
+backup_line="$(backup_verdict "$dump_age_h" "${BACKUP_RCLONE_REMOTE:-}" "$wd_level" "$wd_since" "$wd_note" "$backup_dir")" ||
+  backup_failed=1
+IFS='|' read -r backup_state backup_detail backup_note <<<"$backup_line"
+if [ "$backup_failed" -eq 1 ]; then
+  require 'Backups' "$backup_state" "$backup_detail"
+else
+  row 'Backups' "$backup_state" "$backup_detail"
+fi
+if [ -n "$backup_note" ]; then
+  notes+=("$backup_note")
 fi
 
 # The restore drill (T-805): whether the monthly timer is installed, and what
