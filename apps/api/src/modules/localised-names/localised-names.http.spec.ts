@@ -32,6 +32,7 @@ const LEAGUE_FA = `لیگ آزمایشی ${RUN}`;
 const MIGRATION = '1765853000000_english-club-names.sql';
 const MORE = '1765861000000_english-club-names-more.sql';
 const PERSIAN_CLUBS = '1765867000000_persian-club-names.sql';
+const PERSIAN_CLUBS_EUROPE = '1765868000000_persian-club-names-europe.sql';
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
   '?locale= on every surface',
@@ -355,73 +356,86 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       }
     });
 
-    it("writes the Persian club names by the provider's id, for clubs only (T-1420)", async () => {
-      // The up section again, rolled back: a club mapped to Real Madrid's id,
-      // a namesake club under another id and a national team under an id the
-      // list holds. Only the first is named.
-      const sql = readFileSync(
-        join(
-          __dirname,
-          '..',
-          '..',
-          '..',
-          '..',
-          '..',
-          'packages',
-          'db',
-          'migrations',
-          PERSIAN_CLUBS,
-        ),
-        'utf8',
-      );
-      const up = sql.slice(0, sql.indexOf('-- Down Migration'));
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-        const { rowCount } = await client.query(
-          `SELECT 1 FROM provider_mapping
-            WHERE provider = 'api_football' AND entity_type = 'team' AND external_id IN ('541', '2939', '99999541')`,
+    // Each Persian club-name migration: a club mapped to a listed id, a
+    // namesake under another id and a national team under a listed id.
+    const PERSIAN_CASES = [
+      {
+        task: 'T-1420',
+        file: PERSIAN_CLUBS,
+        id: '541',
+        name: 'Real Madrid',
+        fa: 'رئال مادرید',
+        national: '2939',
+      },
+      {
+        task: 'T-1421',
+        file: PERSIAN_CLUBS_EUROPE,
+        id: '247',
+        name: 'Celtic',
+        fa: 'سلتیک',
+        national: '575',
+      },
+    ];
+    it.each(PERSIAN_CASES)(
+      "writes the Persian club names by the provider's id, for clubs only ($task)",
+      async (club) => {
+        // The up section again, rolled back: a club mapped to Real Madrid's id,
+        // a namesake club under another id and a national team under an id the
+        // list holds. Only the first is named.
+        const sql = readFileSync(
+          join(__dirname, '..', '..', '..', '..', '..', 'packages', 'db', 'migrations', club.file),
+          'utf8',
         );
-        if (rowCount !== 0) return;
-        const madrid = randomUUID();
-        const namesake = randomUUID();
-        const side = randomUUID();
-        await client.query(
-          `INSERT INTO team (id, name, kind, gender) VALUES
-           ($1, 'Real Madrid', 'club', 'men'), ($2, 'Real Madrid', 'club', 'men')`,
-          [madrid, namesake],
-        );
-        await client.query(
-          `INSERT INTO team (id, name, kind, gender, country_id)
+        const up = sql.slice(0, sql.indexOf('-- Down Migration'));
+        const client = await pool.connect();
+        try {
+          await client.query('BEGIN');
+          const { rowCount } = await client.query(
+            `SELECT 1 FROM provider_mapping
+            WHERE provider = 'api_football' AND entity_type = 'team' AND external_id = ANY($1::text[])`,
+            [[club.id, club.national, `9999${club.id}`]],
+          );
+          if (rowCount !== 0) return;
+          const madrid = randomUUID();
+          const namesake = randomUUID();
+          const side = randomUUID();
+          await client.query(
+            `INSERT INTO team (id, name, kind, gender) VALUES
+           ($1, $3, 'club', 'men'), ($2, $3, 'club', 'men')`,
+            [madrid, namesake, club.name],
+          );
+          await client.query(
+            `INSERT INTO team (id, name, kind, gender, country_id)
            SELECT $1, 'Al-Nassr', 'national', 'men', c.id FROM country c
             WHERE NOT EXISTS (SELECT 1 FROM team t WHERE t.country_id = c.id AND t.kind = 'national')
             ORDER BY c.code LIMIT 1`,
-          [side],
-        );
-        await client.query(
-          `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id) VALUES
-           ('api_football', 'team', '541', $1), ('api_football', 'team', '99999541', $2),
-           ('api_football', 'team', '2939', $3)`,
-          [madrid, namesake, side],
-        );
-        await client.query(up);
-        const { rows } = await client.query<{ entity_id: string; alias: string }>(
-          `SELECT entity_id::text, alias FROM entity_alias
+            [side],
+          );
+          await client.query(
+            `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id) VALUES
+           ('api_football', 'team', $4, $1), ('api_football', 'team', $5, $2),
+           ('api_football', 'team', $6, $3)`,
+            [madrid, namesake, side, club.id, `9999${club.id}`, club.national],
+          );
+          await client.query(up);
+          const { rows } = await client.query<{ entity_id: string; alias: string }>(
+            `SELECT entity_id::text, alias FROM entity_alias
             WHERE entity_id = ANY($1::uuid[]) AND kind = 'name' AND language = 'fa'`,
-          [[madrid, namesake, side]],
-        );
-        expect(rows).toEqual([{ entity_id: madrid, alias: 'رئال مادرید' }]);
-        await client.query(up);
-        const again = await client.query(
-          `SELECT 1 FROM entity_alias WHERE entity_id = $1 AND kind = 'name' AND language = 'fa'`,
-          [madrid],
-        );
-        expect(again.rowCount).toBe(1);
-      } finally {
-        await client.query('ROLLBACK');
-        client.release();
-      }
-    });
+            [[madrid, namesake, side]],
+          );
+          expect(rows).toEqual([{ entity_id: madrid, alias: club.fa }]);
+          await client.query(up);
+          const again = await client.query(
+            `SELECT 1 FROM entity_alias WHERE entity_id = $1 AND kind = 'name' AND language = 'fa'`,
+            [madrid],
+          );
+          expect(again.rowCount).toBe(1);
+        } finally {
+          await client.query('ROLLBACK');
+          client.release();
+        }
+      },
+    );
 
     it('keeps the canonical names without a locale, and with one nobody has written', async () => {
       for (const locale of ['', 'de-x', '!!']) {
