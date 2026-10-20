@@ -36,6 +36,7 @@ const PERSIAN_CLUBS_EUROPE = '1765868000000_persian-club-names-europe.sql';
 const PERSIAN_CLUBS_CUPS = '1765869000000_persian-club-names-cups.sql';
 const PERSIAN_CLUBS_FA_CUP = '1765870000000_persian-club-names-fa-cup.sql';
 const PERSIAN_CLUBS_EUROPE_LEAGUES = '1765871000000_persian-club-names-europe-leagues.sql';
+const PERSIAN_CLUBS_WORLD = '1765872000000_persian-club-names-world.sql';
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
   '?locale= on every surface',
@@ -401,6 +402,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         name: 'Basel',
         fa: 'بازل',
         national: '740',
+      },
+      {
+        task: 'T-1426',
+        file: PERSIAN_CLUBS_WORLD,
+        id: '435',
+        name: 'River Plate',
+        fa: 'ریورپلاته',
+        national: '1605',
       },
     ];
     it.each(PERSIAN_CASES)(
