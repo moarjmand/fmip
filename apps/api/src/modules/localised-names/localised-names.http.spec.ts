@@ -33,6 +33,7 @@ const MIGRATION = '1765853000000_english-club-names.sql';
 const MORE = '1765861000000_english-club-names-more.sql';
 const PERSIAN_CLUBS = '1765867000000_persian-club-names.sql';
 const PERSIAN_CLUBS_EUROPE = '1765868000000_persian-club-names-europe.sql';
+const PERSIAN_CLUBS_CUPS = '1765869000000_persian-club-names-cups.sql';
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
   '?locale= on every surface',
@@ -374,6 +375,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         name: 'Celtic',
         fa: 'سلتیک',
         national: '575',
+      },
+      {
+        task: 'T-1423',
+        file: PERSIAN_CLUBS_CUPS,
+        id: '161',
+        name: 'Wolfsburg',
+        fa: 'ولفسبورگ',
+        national: '400',
       },
     ];
     it.each(PERSIAN_CASES)(
