@@ -9629,6 +9629,7 @@ column far down. The rows say next and last, and the match centre has the
 rest. *Two renderings of the three lanes (compact on a phone, as h9 draws
 them)*: the lanes stack at full width instead, so one markup carries each
 product.
+
 ## D-201 — The Hybrid editorial pages: Predictions by day with a pick in each row, the story at the measure with what the model expected
 **Status:** Accepted · 2026-10-11 · **Task:** T-1383 · **Follows:** D-198, D-199, D-206, D-154, D-061, D-187
 
@@ -10464,6 +10465,7 @@ non-articles*: a publisher's item goes only when the publisher is dropped
 **Production.** Nothing to set. The migration re-checks every stored team,
 competition and match link once (only the entities already linked, a few
 per article); the job and the lists follow the new rules from the deploy.
+
 ## D-212 — A starter's place in the shape is stored, so every formation can be drawn on the pitch
 **Status:** Accepted · 2026-10-12 · **Task:** T-1397 · **Follows:** D-202, D-192, D-183, D-110
 
@@ -11067,6 +11069,54 @@ editor set would be lost, and one corrected profile is not worth that risk.
 *Write the listing into `player_spell` with today's date as the start*: an
 invented value shown as "since". *Fuzzy country matching*: a wrong
 nationality is worse than none.
+
+## D-222 — The channel also posts yesterday's results and the week's accuracy, from stored evaluations
+
+**Status:** Accepted · 2026-10-20 (agent; the maintainer approved the channel audit's five free improvements, this one among them) · **Task:** T-1430 · **Follows:** T-525, D-187, D-209, T-1413
+
+**Context.** The public channel got one post a day: the day's matches with
+the statistical model's forecast. Nothing in the channel ever said how those
+forecasts did, though the evaluations are stored (T-066) and the site
+already publishes the model's accuracy by week (T-1413, T-1414).
+
+**Decision.**
+1. Two more posts, on the existing hourly job and claim: the previous UTC
+   day's results, and on Mondays the ISO week just ended. On the post hour's
+   tick they go out results, week, forecast -- yesterday before today.
+2. **When.** The results go out from the forecast's post hour
+   (`CHANNEL_POST_HOUR`, 6 UTC by default), not in the evening: a match on
+   UTC day D kicks off by 23:59 and is over by about 02:30 on D+1, so by 6
+   UTC every match of D is finished and, normally, scored. A finished match
+   whose forecast is not yet evaluated holds the post for up to six hours
+   (capped at 23 UTC), then it goes out with that match marked "not scored
+   yet" and left out of the count. The week waits while the results do,
+   because Sunday's last matches belong to it.
+3. **Which forecast.** The one the accuracy figures count (D-209): the last
+   published version computed before kick-off. Right or wrong is that
+   forecast's stored evaluation (`correct`); the score shown beside it is
+   the one it was scored against. Nothing is recomputed or written to the
+   forecast boundary (rule 5); the forecast module gains a read,
+   `EvaluationService.countedFor`.
+4. **The week's figures** are `GET /model/accuracy?period=week`'s, read
+   through `EvaluationService.publicAccuracy('week')` -- the numbers the
+   site's card shows -- with the count of right picks derived from the share
+   and the matches it is exactly over.
+5. **The claim.** `channel_post` gains `kind` and the key becomes (`kind`,
+   `day`): `day` is the forecast's day, the recapped match day, or the
+   week's Monday. A new migration; the shipped one is untouched.
+6. Statistical model only, labelled as such on every message (rule 6);
+   English, UTC; split at competition boundaries under 4,096 characters;
+   nothing posted for a day with no finished match the model forecast or a
+   week with nothing scored.
+
+**Alternatives.** *A late-evening results post (e.g. 23 UTC)*: matches in
+the Americas kicking off after 21 UTC would still be playing. *A separate
+results hour setting*: another variable to explain, with no case yet where
+the post hour is wrong for it. *Recap the forecast post's own numbers*: a
+later pre-kick-off version (confirmed line-ups) may supersede them, and the
+site scores the last one; the channel says what the site counts. *Every
+match's evaluation computed here from the score*: a second definition of
+"right" beside the stored one.
 
 ## D-225 — A competitions bar under the header, and an All competitions page grouped by region and country
 

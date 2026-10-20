@@ -61,6 +61,8 @@ export type {
 } from './power-index';
 export type {
   ChannelPostHealth,
+  ChannelPostKind,
+  ChannelPostRecordSummary,
   ChannelPostState,
   ChatBusState,
   ChatHealth,
