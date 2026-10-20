@@ -179,14 +179,15 @@ export function fullNameFromProfile(
   stored: string,
   profile: NormalisedPersonProfile | null,
 ): PersonNameAnswer {
-  if (profile === null) {
+  const name = profile?.name ?? null;
+  if (name === null) {
     return {
       outcome: 'no_profile',
       detail: 'the provider has no profile with both names',
       profileName: null,
     };
   }
-  const profileName = profile.fullName;
+  const profileName = name.fullName;
   const short = parseShortForm(stored);
   if (short === null) {
     return {
@@ -196,7 +197,7 @@ export function fullNameFromProfile(
     };
   }
 
-  const family = profile.familyName.split(/\s+/).filter((w) => w !== '');
+  const family = name.familyName.split(/\s+/).filter((w) => w !== '');
   const wanted = short.surname.map(foldName);
   let at = -1;
   for (let i = 0; i + wanted.length <= family.length; i += 1) {
@@ -208,13 +209,13 @@ export function fullNameFromProfile(
   if (at < 0) {
     return {
       outcome: 'family_name_differs',
-      detail: `"${short.surname.join(' ')}" is not among the family names "${profile.familyName}"`,
+      detail: `"${short.surname.join(' ')}" is not among the family names "${name.familyName}"`,
       profileName,
     };
   }
   const surname = short.surname.map((w, k) => spelled(family[at + k] ?? w, w));
 
-  const given = profile.givenName.split(/\s+/).filter((w) => w !== '');
+  const given = name.givenName.split(/\s+/).filter((w) => w !== '');
   const initials = short.initials.map(foldName);
   let from = -1;
   for (let i = 0; i + initials.length <= given.length; i += 1) {
@@ -226,7 +227,7 @@ export function fullNameFromProfile(
   if (from < 0) {
     return {
       outcome: 'initial_differs',
-      detail: `"${short.initials.join('. ')}." does not start the given names "${profile.givenName}"`,
+      detail: `"${short.initials.join('. ')}." does not start the given names "${name.givenName}"`,
       profileName,
     };
   }
