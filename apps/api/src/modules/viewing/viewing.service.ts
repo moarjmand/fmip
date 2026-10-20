@@ -343,7 +343,9 @@ function listItem(row: FeedItemRow): HighlightListItem {
       home: team(row.home_id, row.home_name, row.home_short_name),
       away: team(row.away_id, row.away_name, row.away_short_name),
       score: score === null ? null : { home: score.home, away: score.away },
-      penalties: scores.penalties ? { home: scores.penalties.home, away: scores.penalties.away } : null,
+      penalties: scores.penalties
+        ? { home: scores.penalties.home, away: scores.penalties.away }
+        : null,
     },
     last_updated_at: row.fetched_at.toISOString(),
   };

@@ -30,6 +30,7 @@ const NAV = {
   analysis: 'shell.nav.analysis',
   news: 'shell.nav.news',
   watch: 'nav.watch',
+  highlights: 'nav.highlights',
 } as const;
 
 const TABS = {
@@ -53,7 +54,7 @@ beforeEach(() => {
 });
 
 describe('the header nav', () => {
-  it('reads Today, Scores, Predictions, Analysis, News, Watch, each to its page', () => {
+  it('reads Today, Scores, Predictions, Analysis, News, Watch, Highlights, each to its page', () => {
     const html = renderToStaticMarkup(<PrimaryNav locale="en" labels={words('en', NAV)} />);
     expect(ids(html, 'nav')).toEqual([
       'today',
@@ -62,6 +63,7 @@ describe('the header nav', () => {
       'analysis',
       'news',
       'watch',
+      'highlights',
     ]);
     expect([...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1])).toEqual([
       '/en',
@@ -70,6 +72,7 @@ describe('the header nav', () => {
       '/en/predictions#analysis',
       '/en/news',
       '/en/watch',
+      '/en/highlights',
     ]);
     expect(html).toContain('>Today<');
     expect(html).toContain('>Analysis<');
@@ -85,8 +88,9 @@ describe('the header nav', () => {
       'analysis',
       'news',
       'watch',
+      'highlights',
     ]);
-    for (const word of ['امروز', 'نتایج', 'پیش‌بینی‌ها', 'تحلیل', 'خبر', 'تماشا']) {
+    for (const word of ['امروز', 'نتایج', 'پیش‌بینی‌ها', 'تحلیل', 'خبر', 'تماشا', 'هایلایت‌ها']) {
       expect(html).toContain(`>${word}<`);
     }
   });

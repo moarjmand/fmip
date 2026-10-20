@@ -11047,3 +11047,48 @@ sitemap rely on its name order. *Group in the API*: the countries' order
 among the unplaced ones is the reader's alphabet, which is the web's to know
 after the names are localised. *Every competition in the bar*: 39 names make
 a row nobody scrolls; the page is for the rest.
+
+## D-226 — A Highlights page of every feed clip, by the match page's territory rule, and only the clips offered everywhere without a territory
+
+**Status:** Accepted · 2026-10-21 (agent, from the maintainer's teammate's request, which the maintainer asked for now) · **Task:** T-1434 · **Follows:** T-312, T-1366, D-069, D-184, D-199, D-225, rules 2-4
+
+**Context.** Highlights showed only on a match page. The teammate asked for
+"a separate tab called Highlights that lists all highlight links, where you
+can filter the available highlights by league name". The clips are the
+licensed feed's verified links (`highlight_feed`, D-184), each with a
+territory rule that the match page evaluates per viewer (`offeredIn`); a
+reader who has chosen no territory is shown no highlight on a match page.
+
+**Decision.**
+1. **One read in the viewing boundary:** `GET /highlights?territory=&competition=&page=`,
+   public. The territory is answered as the match page answers it (`?territory=`,
+   else the member's stored one, else none; an unknown code is a 400). Every
+   clip not withdrawn, from a source not dropped, on an active competition,
+   newest match first, twenty to a page (`HIGHLIGHTS_PAGE_SIZE`), at most 500
+   pages; a malformed competition id or page is a 400.
+2. **The territory rule is the match page's, in one place.** With a territory
+   chosen, a clip is listed where `offeredIn` offers it there. With none, only
+   the clips whose rule offers them in every territory (`offeredEverywhere`:
+   no allow list, nothing blocked) -- those are offered to that reader
+   whatever their territory turns out to be -- and the page says that clips
+   limited to some countries wait for a territory, with the chooser beside it.
+   *Rejected:* listing nothing until a territory is chosen (the match page's
+   answer): a guest's first visit to a tab called Highlights would be an empty
+   page with a form; listing every clip: a clip blocked where the reader is
+   would be offered.
+3. **Feed clips only.** The desk's official pages (`highlight`, D-069) are per
+   territory under declared coverage; on a match page a desk page wins over the
+   feed's clip, and the list's link to the match leads there. The list is the
+   feed's links, which is what the request named.
+4. **The filter** is the competitions with at least one clip offered to this
+   reader (most clips first), names in the reader's language; picking one goes
+   back to page 1; the filter, the page and a guest's territory travel on
+   every link. Each clip is a link to its match page and a link out to the
+   original, naming the publisher (`LinkOut`), never a player (D-184). An empty
+   list, a page past the end and an unreachable API each have their sentence
+   (rule 3), and the page says when the links were last read.
+5. **The nav:** "Highlights" («هایلایت‌ها») after "Watch" in the header's nav;
+   the phone's five tabs are unchanged, so on a phone it is in the Menu.
+6. **The E2E seed** gains one clip for the finished seeded match, offered
+   everywhere, on a reserved `example.com` address, so the journey meets a
+   listed clip.
