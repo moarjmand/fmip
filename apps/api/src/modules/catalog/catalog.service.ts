@@ -406,13 +406,14 @@ export class CatalogService {
         previous_match: results[0] ?? null,
         fixtures: upcoming,
         results,
+        // Limited while we hold fewer of the club's listed players than it listed (T-1428).
         squad: derived(
           squad.players.map((p) => ({
             ...p,
             person: { ...p.person, photo: media.photo(p.person.id) },
             minutes: squadMinutes.get(p.person.id) ?? NO_LINEUPS,
           })),
-          1,
+          Math.max(1, squad.listed ?? 0),
           squad.lastUpdatedAt,
         ),
         splits: buildSplits(seasons, splitFixtures),

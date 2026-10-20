@@ -136,6 +136,32 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the squads s
     expect(rows).toEqual([]);
   });
 
+  it('replaces a club’s listed squad as a whole, and records the listing’s size (T-1428)', async () => {
+    const listing = async () =>
+      (
+        await pool.query<{
+          person_id: string;
+          shirt_number: number | null;
+          position: string | null;
+        }>(`SELECT person_id, shirt_number, position FROM team_squad_member WHERE team_id = $1`, [
+          teams[0],
+        ])
+      ).rows;
+    await store.markSquadAsked('api_football', teams[0]!, true);
+    await store.replaceSquadListing('api_football', teams[0]!, 28, [
+      { personId: person, shirtNumber: 7, position: 'forward' },
+    ]);
+    expect(await listing()).toEqual([{ person_id: person, shirt_number: 7, position: 'forward' }]);
+    const fetched = await pool.query<{ listed: number }>(
+      `SELECT listed FROM team_squad_fetch WHERE team_id = $1`,
+      [teams[0]],
+    );
+    expect(fetched.rows[0]?.listed).toBe(28);
+    // The next listing leaves him out: he is no longer in the squad.
+    await store.replaceSquadListing('api_football', teams[0]!, 27, []);
+    expect(await listing()).toEqual([]);
+  });
+
   it('records a squads run in ingest_run', async () => {
     await pool.query(
       `INSERT INTO ingest_run (provider, job, scope, status, finished_at, requests)

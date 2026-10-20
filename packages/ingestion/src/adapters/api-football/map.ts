@@ -10,7 +10,6 @@
 import type {
   AbsenceKind,
   AbsenceStatus,
-  EntityRef,
   FixtureStatus,
   IncidentKind,
   NormalisedAbsence,
@@ -19,11 +18,14 @@ import type {
   LineupGrid,
   NormalisedLineup,
   NormalisedLineupPlayer,
+  NormalisedNationality,
   NormalisedPeriod,
+  NormalisedPersonBio,
   NormalisedPersonProfile,
   NormalisedPlayerStat,
   NormalisedSeasonCoverage,
   NormalisedSideLineup,
+  NormalisedSquadPlayer,
   NormalisedStanding,
   NormalisedStandingRow,
   NormalisedStat,
@@ -36,6 +38,7 @@ import type {
 import { decodeEntities } from '../../news/feed';
 import { groupOfLabel, stageOfLabel } from '../_group';
 import { incidentDetail } from '../_incident-detail';
+import { nationalityCode } from './nationality';
 
 // ---------------------------------------------------------------------------
 // Narrowing helpers
@@ -723,17 +726,26 @@ export function mapAvailability(response: unknown, fixtureExternalId: string): N
   return out;
 }
 
+/** A squad listing's `position` (T-1428): API-Football's four words, and nothing else. */
+const SQUAD_POSITION: Record<string, Position> = {
+  Goalkeeper: 'goalkeeper',
+  Defender: 'defender',
+  Midfielder: 'midfielder',
+  Attacker: 'forward',
+};
+
 /**
  * `/players/squads?team=` (T-1324): one entry for the club, whose `players`
- * list each player's id, name and photo. Only the ref and the photo are kept:
- * the squads job uses the answer for photos of players we already hold, and
- * the shirt number, age and position stay with the provider. An entry for
- * another club than the one asked about is ignored; a player listed twice
- * counts once.
+ * list each player's id, name, photo, shirt `number` and `position`. The
+ * squads job uses the photo of players we already hold (T-1324) and records
+ * their number and position as the club's listed squad (T-1428); the age
+ * stays with the provider. A number outside 1 to 99, or a position other than
+ * the four, is `null`. An entry for another club than the one asked about is
+ * ignored; a player listed twice counts once.
  */
-export function mapSquad(response: unknown, teamExternalId: string): EntityRef[] {
+export function mapSquad(response: unknown, teamExternalId: string): NormalisedSquadPlayer[] {
   if (!Array.isArray(response)) return [];
-  const out: EntityRef[] = [];
+  const out: NormalisedSquadPlayer[] = [];
   const seen = new Set<string>();
   for (const item of response) {
     const it = rec(item);
@@ -744,7 +756,13 @@ export function mapSquad(response: unknown, teamExternalId: string): EntityRef[]
       const player = imagedRef(entry, 'photo');
       if (player === null || seen.has(player.externalId)) continue;
       seen.add(player.externalId);
-      out.push(player);
+      const number = int(rec(entry).number);
+      const position = str(rec(entry).position);
+      out.push({
+        ...player,
+        shirtNumber: number !== null && number >= 1 && number <= 99 ? number : null,
+        position: position === null ? null : (SQUAD_POSITION[position] ?? null),
+      });
     }
   }
   return out;
@@ -762,12 +780,42 @@ function plainName(value: unknown): string | null {
   return /\p{L}/u.test(plain) ? plain : null;
 }
 
+/** "1992-06-15": a real calendar date from 1900 on, else `null`. */
+function calendarDate(value: unknown): string | null {
+  const s = str(value);
+  if (s === null || !/^\d{4}-\d{2}-\d{2}$/.test(s.trim())) return null;
+  const day = s.trim();
+  const parsed = new Date(`${day}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== day) return null;
+  return Number(day.slice(0, 4)) >= 1900 ? day : null;
+}
+
+/** "175 cm" (or a bare 175): whole centimetres from 100 to 250, else `null`. */
+function heightCm(value: unknown): number | null {
+  const n =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && /^\s*\d{3}\s*(cm)?\s*$/i.test(value)
+        ? Number.parseInt(value, 10)
+        : null;
+  return n !== null && Number.isInteger(n) && n >= 100 && n <= 250 ? n : null;
+}
+
+function nationality(value: unknown): NormalisedNationality | null {
+  const name = plainName(value);
+  return name === null ? null : { name, code: nationalityCode(name) };
+}
+
 /**
- * `/players/profiles?player=` (T-1398): one entry whose `player` carries
- * `id`, `name` (the short form, "M. Salah"), `firstname` ("Mohamed") and
- * `lastname` ("Salah Hamed Mahrous Ghaly"). Only the entry for the player
- * asked about counts, and only with both a given and a family name: half a
- * name is not a full one, so it is `null`, as is an empty answer.
+ * `/players/profiles?player=` (T-1398, T-1428): one entry whose `player`
+ * carries `id`, `name` (the short form, "M. Salah"), `firstname` ("Mohamed"),
+ * `lastname` ("Salah Hamed Mahrous Ghaly"), `birth.date` ("1992-06-15"),
+ * `nationality` ("Egypt") and `height` ("175 cm"). Only the entry for the
+ * player asked about counts; `null` without one. The full name needs both a
+ * given and a family name -- half a name is not a full one -- and each bio
+ * field is `null` when it is missing or unreadable. API-Football's profile
+ * has no preferred foot, so that is always `null`; the birth place and
+ * weight are not kept (no column holds them).
  */
 export function mapPersonProfile(
   response: unknown,
@@ -779,12 +827,20 @@ export function mapPersonProfile(
     if (id(player.id) !== personExternalId) continue;
     const givenName = plainName(player.firstname);
     const familyName = plainName(player.lastname);
-    if (givenName === null || familyName === null) return null;
+    const bio: NormalisedPersonBio = {
+      dateOfBirth: calendarDate(rec(player.birth).date),
+      nationality: nationality(player.nationality),
+      heightCm: heightCm(player.height),
+      preferredFoot: null,
+    };
     return {
       externalId: personExternalId,
-      fullName: `${givenName} ${familyName}`,
-      givenName,
-      familyName,
+      shortName: plainName(player.name),
+      name:
+        givenName === null || familyName === null
+          ? null
+          : { fullName: `${givenName} ${familyName}`, givenName, familyName },
+      bio,
     };
   }
   return null;

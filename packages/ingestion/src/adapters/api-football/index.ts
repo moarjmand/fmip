@@ -9,7 +9,6 @@
  */
 
 import type {
-  EntityRef,
   NormalisedAbsence,
   NormalisedFixture,
   NormalisedFixtureDetail,
@@ -17,6 +16,7 @@ import type {
   NormalisedLiveFixture,
   NormalisedPersonProfile,
   NormalisedSeasonCoverage,
+  NormalisedSquadPlayer,
   NormalisedStanding,
 } from '../../normalised';
 import type {
@@ -342,8 +342,8 @@ class ApiFootballAdapter implements ProviderAdapter {
     };
   }
 
-  /** `/players/squads?team=`: the club's current squad, one request (T-1324). */
-  async getSquad(teamExternalId: string): Promise<AdapterResult<EntityRef[]>> {
+  /** `/players/squads?team=`: the club's current squad, with numbers and positions, one request (T-1324, T-1428). */
+  async getSquad(teamExternalId: string): Promise<AdapterResult<NormalisedSquadPlayer[]>> {
     const result = await this.call('/players/squads', { team: teamExternalId });
     if (!result.ok) return { ok: false, error: result.error, requests: 1 };
     return {
@@ -355,9 +355,9 @@ class ApiFootballAdapter implements ProviderAdapter {
   }
 
   /**
-   * `/players/profiles?player=`: a player's given and family names, one
-   * request and no season (T-1398). `null` data when the provider has no
-   * usable profile for the id.
+   * `/players/profiles?player=`: a player's given and family names, birth
+   * date, nationality and height, one request and no season (T-1398,
+   * T-1428). `null` data when the provider has no entry for the id.
    */
   async getPersonProfile(
     personExternalId: string,
