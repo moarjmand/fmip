@@ -9629,6 +9629,7 @@ column far down. The rows say next and last, and the match centre has the
 rest. *Two renderings of the three lanes (compact on a phone, as h9 draws
 them)*: the lanes stack at full width instead, so one markup carries each
 product.
+
 ## D-201 — The Hybrid editorial pages: Predictions by day with a pick in each row, the story at the measure with what the model expected
 **Status:** Accepted · 2026-10-11 · **Task:** T-1383 · **Follows:** D-198, D-199, D-206, D-154, D-061, D-187
 
@@ -10464,6 +10465,7 @@ non-articles*: a publisher's item goes only when the publisher is dropped
 **Production.** Nothing to set. The migration re-checks every stored team,
 competition and match link once (only the entities already linked, a few
 per article); the job and the lists follow the new rules from the deploy.
+
 ## D-212 — A starter's place in the shape is stored, so every formation can be drawn on the pitch
 **Status:** Accepted · 2026-10-12 · **Task:** T-1397 · **Follows:** D-202, D-192, D-183, D-110
 
@@ -11067,6 +11069,7 @@ editor set would be lost, and one corrected profile is not worth that risk.
 *Write the listing into `player_spell` with today's date as the start*: an
 invented value shown as "since". *Fuzzy country matching*: a wrong
 nationality is worse than none.
+
 ## D-223 — A player's season in every competition and his career, as the provider counts them, beside our own record and never in it
 
 **Status:** Accepted · 2026-10-20 (agent; one of five code-level improvements the maintainer approved after the 2026-10-20 API-Football usage audit) · **Task:** T-1431 · **Follows:** D-038, D-014, D-183, D-213
