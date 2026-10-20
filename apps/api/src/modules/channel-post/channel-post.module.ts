@@ -27,9 +27,10 @@ export class ChannelPostHealthController {
 }
 
 /**
- * The daily channel post (T-525, E52). Reads the scores list and the model's
- * forecasts through their public services and nothing else -- no founder's
- * analysis, no consensus (rule 6). The channel is read from the environment
+ * The channel posts (T-525, E52; results and weekly accuracy, T-1430). Reads
+ * the scores list, the model's forecasts and their stored evaluations through
+ * their public services and nothing else -- no founder's analysis, no
+ * consensus (rule 6). The channel is read from the environment
  * once; half a configuration stops the process at boot.
  */
 @Module({
