@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { FollowSuggestionsResponse } from '@fmip/contracts';
-import { FollowIntentMark } from '@/components/push-offer';
+import { FollowIntentMark } from '@/components/push-offer-mark';
 import { Translated } from '@/components/translated';
 import type { ApiResult } from '@/lib/api';
 import { followAction } from '@/lib/auth-actions';

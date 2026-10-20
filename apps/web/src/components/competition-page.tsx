@@ -19,7 +19,7 @@ import { ForecastBar, type ForecastBarWords } from '@/components/forecast-bar';
 import { FreshnessStamp, type FreshnessWords } from '@/components/freshness-stamp';
 import { MinutesFigure } from '@/components/minutes-figure';
 import { Score } from '@/components/score';
-import { FollowIntentMark } from '@/components/push-offer';
+import { FollowIntentMark } from '@/components/push-offer-mark';
 import { PushOfferFor } from '@/components/push-offer-for';
 import { Stamp } from '@/components/stamp';
 import { Translated } from '@/components/translated';

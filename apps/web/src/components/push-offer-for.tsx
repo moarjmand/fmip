@@ -1,4 +1,4 @@
-import { PushOffer } from '@/components/push-offer';
+import { PushOfferLazy } from '@/components/push-offer-lazy';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
 import { interpolate, message, resolveMessages } from '@/i18n/messages';
 import { PUSH_OFFER_KEYS } from '@/lib/notification-messages';
@@ -26,11 +26,13 @@ export function PushOfferFor({
   );
   const question = name === null ? asked : { ...asked, text: interpolate(asked.text, { name }) };
   return (
-    <PushOffer
-      locale={locale}
-      entity={entity}
-      question={question}
-      messages={resolveMessages(resolved, PUSH_OFFER_KEYS)}
-    />
+    <div aria-live="polite" className="max-w-sm empty:hidden" data-testid="push-offer-slot">
+      <PushOfferLazy
+        locale={locale}
+        entity={entity}
+        question={question}
+        messages={resolveMessages(resolved, PUSH_OFFER_KEYS)}
+      />
+    </div>
   );
 }

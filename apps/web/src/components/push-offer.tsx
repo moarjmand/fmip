@@ -10,7 +10,6 @@ import {
   type FollowIntent,
   type OfferedType,
   isDismissed,
-  markFollowIntent,
   rememberDismissal,
   shouldOffer,
   takeFollowIntent,
@@ -26,7 +25,9 @@ import { Button } from '@/components/ui';
  * never on a page load, and the browser's own permission prompt only after
  * they say yes. "Not now" quiets it on this device for a while; a browser
  * that cannot take push, has refused it, or already receives it is never
- * offered. The rules are `@/lib/push-offer`.
+ * offered. The rules are `@/lib/push-offer`. The live region around it is
+ * `PushOfferFor`'s, drawn on the server, so the offer is announced when it
+ * appears.
  */
 
 function sessionStore(): Storage | null {
@@ -43,32 +44,6 @@ function localStore(): Storage | null {
   } catch {
     return null;
   }
-}
-
-/**
- * Inside a follow form: as the form submits, leave the mark the next render's
- * offer takes. It reads the form's own fields, so it fits a fixed button and
- * a picker alike. Without JavaScript the form still posts; it just leaves no
- * mark, and nothing is offered.
- */
-export function FollowIntentMark() {
-  const ref = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    const form = ref.current?.closest('form');
-    if (!form) return;
-    const onSubmit = () => {
-      const data = new FormData(form);
-      markFollowIntent(
-        sessionStore(),
-        String(data.get('entity_type') ?? ''),
-        String(data.get('entity_id') ?? ''),
-        Date.now(),
-      );
-    };
-    form.addEventListener('submit', onSubmit);
-    return () => form.removeEventListener('submit', onSubmit);
-  }, []);
-  return <span ref={ref} hidden data-testid="push-offer-intent" />;
 }
 
 type View = 'hidden' | 'asking' | 'working' | 'on' | 'denied' | 'failed';
@@ -160,7 +135,7 @@ export function PushOffer({
   );
 
   return (
-    <div aria-live="polite" className="max-w-sm empty:hidden" data-testid="push-offer-slot">
+    <>
       {(view === 'asking' || view === 'working') && (
         <div
           className="flex flex-col gap-2 rounded border border-default bg-surface px-3 py-2 text-sm"
@@ -214,6 +189,6 @@ export function PushOffer({
           {settings}
         </p>
       )}
-    </div>
+    </>
   );
 }
