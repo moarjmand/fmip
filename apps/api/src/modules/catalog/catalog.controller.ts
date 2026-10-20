@@ -14,6 +14,7 @@ import type {
   CountriesResponse,
   FollowSuggestionsResponse,
   PlayerPage,
+  PlayerProviderSeasons,
   TeamPage,
   TeamsResponse,
 } from '@fmip/contracts';
@@ -97,6 +98,18 @@ export class CatalogController {
     const outcome = await this.catalog.player(id.toLowerCase(), localeOf(locale));
     if (outcome.kind === 'unknown_player') throw new NotFoundException(NO_PLAYER);
     return outcome.page;
+  }
+
+  /**
+   * A player's season totals and career as the provider counts them, apart
+   * from our own record (T-1431, D-223). Public.
+   */
+  @Get('players/:id/provider-seasons')
+  async playerProviderSeasons(@Param('id') id: string): Promise<PlayerProviderSeasons> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_PLAYER);
+    const found = await this.catalog.playerProviderSeasons(id.toLowerCase());
+    if (found === null) throw new NotFoundException(NO_PLAYER);
+    return found;
   }
 
   /** The team page (blueprint 5.2, T-036). Public. */

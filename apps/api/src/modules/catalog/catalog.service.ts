@@ -9,6 +9,7 @@ import type {
   LeagueZoneEntry,
   BoardPlayer,
   PlayerPage,
+  PlayerProviderSeasons,
   SeasonSummary,
   SuggestedCompetition,
   SuggestedTeam,
@@ -33,6 +34,7 @@ import { buildBracket, tieOf } from './internal/bracket';
 import { contextTable, phaseOf } from './internal/competition-context';
 import { PostgresCompetitionStore } from './internal/competition-store';
 import { leadersModule, leadersWithMinutes } from './internal/leaders';
+import { readProviderSeasons } from './internal/player-provider-seasons';
 import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
@@ -67,6 +69,16 @@ export class CatalogService {
     private readonly standings: StandingsService,
     private readonly media: MediaService,
   ) {}
+
+  /**
+   * A player's season totals and career as the provider counts them (T-1431,
+   * D-223), apart from the record our line-ups support. `null` for no such player.
+   */
+  async playerProviderSeasons(id: string): Promise<PlayerProviderSeasons | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readProviderSeasons(this.pool, id);
+  }
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {

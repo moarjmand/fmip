@@ -225,6 +225,12 @@ export type {
   TeamSummary,
   TeamsResponse,
 } from './catalog';
+// A player's season totals and career as the provider counts them (T-1431, D-223).
+export type {
+  PlayerProviderCareerTeam,
+  PlayerProviderSeasonLine,
+  PlayerProviderSeasons,
+} from './player-provider-seasons';
 // The match centre's competition context (blueprint 4.2, T-840).
 export type {
   CompetitionContext,

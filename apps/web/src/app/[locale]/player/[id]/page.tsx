@@ -1,9 +1,16 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { fetchEntityNews, fetchFollowing, fetchMe, fetchPlayer } from '@/lib/api';
+import {
+  fetchEntityNews,
+  fetchFollowing,
+  fetchMe,
+  fetchPlayer,
+  fetchPlayerProviderSeasons,
+} from '@/lib/api';
 import { EntityFollow, MoreLink } from '@/components/competition-page';
 import { JsonLd } from '@/components/json-ld';
 import { PlayerAvailabilitySection } from '@/components/player-availability';
+import { ProviderCareerPanel, ProviderSeasonsPanel } from '@/components/player-provider-seasons';
 import {
   PlayerBand,
   PlayerMatchesPanel,
@@ -79,13 +86,16 @@ export default async function PlayerPage({
   const tab: PlayerTab = readPlayerTab(query);
   const overview = tab === 'overview';
   const cookie = await sessionCookieHeader();
-  const [result, me, following, news] = await Promise.all([
+  const [result, me, following, news, provider] = await Promise.all([
     fetchPlayer(id, locale),
     fetchMe(cookie),
     fetchFollowing(cookie),
     // The Overview's own module; the other tabs do not ask for it.
     overview ? fetchEntityNews('person', id, locale) : null,
+    // The provider's season and career (T-1431): Career and Stats only.
+    tab === 'career' || tab === 'stats' ? fetchPlayerProviderSeasons(id) : null,
   ]);
+  const providerSeasons = provider?.ok === true ? provider.data : null;
   if (!result.ok) {
     if (result.status === 404) notFound();
     return (
@@ -195,7 +205,12 @@ export default async function PlayerPage({
         )}
         {tab === 'career' && (
           <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)]">
-            <SpellsPanel page={page} locale={locale} />
+            <div className="flex min-w-0 flex-col gap-5">
+              <SpellsPanel page={page} locale={locale} />
+              {providerSeasons !== null && (
+                <ProviderCareerPanel data={providerSeasons} locale={locale} timeZone={timeZone} />
+              )}
+            </div>
             <RecordPanel
               page={page}
               rows={record}
@@ -221,6 +236,9 @@ export default async function PlayerPage({
               full
               testId="record"
             />
+            {providerSeasons !== null && (
+              <ProviderSeasonsPanel data={providerSeasons} locale={locale} timeZone={timeZone} />
+            )}
           </>
         )}
         <p className="text-xs text-muted" data-testid="player-updated">

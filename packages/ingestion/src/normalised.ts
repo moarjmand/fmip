@@ -350,6 +350,42 @@ export interface NormalisedPersonProfile {
   familyName: string;
 }
 
+/**
+ * A player's totals for one season with one team in one competition, as the
+ * provider counts them (T-1431, D-223) -- every competition it covers,
+ * including cups and national-team matches we do not ingest match by match.
+ * A count the provider left out is `null`, never zero.
+ */
+export interface NormalisedPlayerSeasonLine {
+  competition: EntityRef;
+  team: EntityRef;
+  /** The year the season starts in (2026 for "2026/27" and for "2026"). */
+  seasonYear: number;
+  appearances: number | null;
+  starts: number | null;
+  minutes: number | null;
+  goals: number | null;
+  assists: number | null;
+  yellowCards: number | null;
+  /** Sent off for a second yellow card. */
+  secondYellowCards: number | null;
+  /** Sent off with a straight red card. */
+  redCards: number | null;
+  /** A goalkeeper's; `null` for everyone else. */
+  saves: number | null;
+  /** A goalkeeper's; `null` for everyone else. */
+  goalsConceded: number | null;
+  /** The provider's average match rating, 0 to 10. */
+  rating: number | null;
+}
+
+/** One club or national team in a player's career and the seasons they were there (T-1431). */
+export interface NormalisedCareerEntry {
+  team: EntityRef;
+  /** The years those seasons start in, newest first, each once. */
+  seasonYears: number[];
+}
+
 export interface NormalisedPlayerStat {
   side: Side;
   player: EntityRef;
