@@ -672,6 +672,40 @@ job inside 1.5 times the 16 run's. **64 is the server's value** (D-106).
 Then `bash deploy/rollout.sh api`, and record the figures in a table like the
 one above and the value in D-106.
 
+### T-925: a real Saturday
+
+Saturday 2026-10-17 (the UTC day), read from production's own rows on
+2026-10-19: `match_alert`, `notification`, `notification_delivery` and the
+live job's `ingest_run`. Time runs from the start of the live tick before the
+alert was recorded, as in the threshold above.
+
+- 116 fixtures kicked off; 1,350 live ticks ran (1,305 succeeded, 45
+  partial), p95 3.7 s, longest 14.8 s.
+- 4 member accounts. One followed clubs that played and was told 22 times
+  (4 kick-offs, 14 goals, 4 full-times).
+- No member had a push subscription, so the carrier answered `skipped` for
+  all 22. Delivery to a device was not measured; it waits for the first
+  members with push switched on.
+
+| Path | Alerts | p50 | p95 | Max | Over 60 s |
+| --- | --- | --- | --- | --- | --- |
+| Kick-off, tick to expanded | 100 | 3.2 s | 7.7 s | 7.7 s | 0 |
+| Goal, tick to expanded | 281 | 3.0 s | 6.4 s | 201.9 s | 2 |
+| Full-time, tick to expanded | 93 | 5.5 s | 86.3 s | 253.6 s | 5 |
+| All three | 474 | 3.3 s | 11.7 s | 253.6 s | 7 |
+| The member's notifications, tick to the carrier | 22 | 3.7 s | 7.8 s | 12.2 s | 0 |
+
+T-834's synthetic figures for comparison: 2,000 members, goal bursts carried
+in 12–15 s, and the kick-off of 90 matches the one that failed.
+
+**The misses (7 of 474).** Each was first seen by the half-hourly
+`post_match` run, not the live tick. That happens to a full-time or a late
+goal the live list no longer carried. `postMatch` dispatched what it raised
+only at the end of its run, after the backlog, the re-asks and the coverage
+pass (146–224 s that day), so the worker could claim those alerts only 137 to
+204 s after they were recorded. Not re-run: the cause is fixed in T-1419,
+which hands each recent match's alerts over as soon as that match is written.
+
 ## Every carrier drains (T-837)
 
 That task. `NotificationsService.drain(scope)` carries page after page
