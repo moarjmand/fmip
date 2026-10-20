@@ -16,6 +16,7 @@ import { StandingsService } from '../standings/standings.service';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
 import { EntityResolverService } from './ingestion.service';
+import { AskPacer } from './internal/ask-pacer';
 import { DEFAULT_TIER_SHARES, parseTierShares, withBudgetTier } from './internal/budget-tier';
 import { groupMembers, groupPlayed } from './internal/groups';
 import {
@@ -820,7 +821,11 @@ export class IngestionJobsService {
       const unresolved = new Set<string>();
 
       const watched = new Set(recent.map((c) => c.fixtureId));
+      // The backlog and the re-asks are spaced (T-1422) where a provider's
+      // plan is held to a budget; a replay source or a test is not.
+      const pacer = this.sources.dailyBudget === undefined ? null : new AskPacer();
       for (const candidate of candidates) {
+        if (!watched.has(candidate.fixtureId)) await pacer?.pace();
         // A recent match's alerts (T-830): a full-time or a red card the live
         // list did not carry. A backlog match is long over and raises none,
         // so it is not read twice for nothing.
