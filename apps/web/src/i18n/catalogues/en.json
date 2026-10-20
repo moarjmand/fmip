@@ -2414,7 +2414,7 @@
   "playerPage.allMatches": "All matches",
   "playerPage.clubs": "Clubs",
   "playerPage.provider.seasons": "Every competition, as {source} counts it",
-  "playerPage.provider.seasonsNote": "{source}'s totals for the season, including cups and national-team matches we do not follow match by match. Where our own record from the matches counts a competition, it stays the figure that counts, and the provider's is neither shown beside it nor added to it.",
+  "playerPage.provider.seasonsNote": "{source}'s totals for the season, including cups and national-team matches we do not follow match by match. Where our own record from the matches counts a competition, it stays the figure that counts, and {source}'s is neither shown beside it nor added to it.",
   "playerPage.provider.season": "Season starting {year}",
   "playerPage.provider.notAsked": "{source} has not been asked about this player yet.",
   "playerPage.provider.noLines": "{source} lists no appearance this season.",

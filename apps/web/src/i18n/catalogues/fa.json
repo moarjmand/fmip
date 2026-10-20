@@ -13358,8 +13358,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "playerPage.provider.seasonsNote": {
-    "source": "{source}'s totals for the season, including cups and national-team matches we do not follow match by match. Where our own record from the matches counts a competition, it stays the figure that counts, and the provider's is neither shown beside it nor added to it.",
-    "text": "آمار فصل به شمارش {source}، از جمله جام‌ها و بازی‌های ملی که ما بازی‌به‌بازی دنبال نمی‌کنیم. هر جا کارنامه‌ی خودمان از روی بازی‌ها رقابتی را می‌شمارد، همان ملاک است و عدد ارائه‌دهنده نه کنارش نشان داده می‌شود و نه به آن افزوده.",
+    "source": "{source}'s totals for the season, including cups and national-team matches we do not follow match by match. Where our own record from the matches counts a competition, it stays the figure that counts, and {source}'s is neither shown beside it nor added to it.",
+    "text": "آمار فصل به شمارش {source}، از جمله جام‌ها و بازی‌های ملی که ما بازی‌به‌بازی دنبال نمی‌کنیم. هر جا کارنامه‌ی خودمان از روی بازی‌ها رقابتی را می‌شمارد، همان ملاک است و عدد {source} نه کنارش نشان داده می‌شود و نه به آن افزوده.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
