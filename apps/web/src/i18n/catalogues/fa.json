@@ -13351,6 +13351,108 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "playerPage.provider.seasons": {
+    "source": "Every competition, as {source} counts it",
+    "text": "همه‌ی رقابت‌ها، به شمارش {source}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.seasonsNote": {
+    "source": "{source}'s totals for the season, including cups and national-team matches we do not follow match by match. Where our own record from the matches counts a competition, it stays the figure that counts, and {source}'s is neither shown beside it nor added to it.",
+    "text": "آمار فصل به شمارش {source}، از جمله جام‌ها و بازی‌های ملی که ما بازی‌به‌بازی دنبال نمی‌کنیم. هر جا کارنامه‌ی خودمان از روی بازی‌ها رقابتی را می‌شمارد، همان ملاک است و عدد {source} نه کنارش نشان داده می‌شود و نه به آن افزوده.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.season": {
+    "source": "Season starting {year}",
+    "text": "فصلی که در {year} آغاز می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.notAsked": {
+    "source": "{source} has not been asked about this player yet.",
+    "text": "هنوز از {source} درباره‌ی این بازیکن پرسیده نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.noLines": {
+    "source": "{source} lists no appearance this season.",
+    "text": "{source} در این فصل هیچ بازی‌ای برای این بازیکن ثبت نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.onlyOurs": {
+    "source": "Every competition {source} lists this season is counted in our own record from the matches, above.",
+    "text": "همه‌ی رقابت‌هایی که {source} در این فصل نام می‌برد در کارنامه‌ی خودمان از روی بازی‌ها، در بالا، شمرده شده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.countedByUs": {
+    "source": "Also this season, in our own record from the matches: {list}.",
+    "text": "همچنین در این فصل، در کارنامه‌ی خودمان از روی بازی‌ها: {list}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.unlisted": {
+    "source": {
+      "one": "{source} also lists {count} competition or team that is not in our catalogue; it is left out.",
+      "other": "{source} also lists {count} competitions or teams that are not in our catalogue; they are left out."
+    },
+    "forms": {
+      "one": "{source} {count} رقابت یا تیم دیگر هم نام می‌برد که در فهرست ما نیست؛ کنار گذاشته شده است.",
+      "other": "{source} {count} رقابت یا تیم دیگر هم نام می‌برد که در فهرست ما نیستند؛ کنار گذاشته شده‌اند."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.fetched": {
+    "source": "Fetched from {source}",
+    "text": "دریافت‌شده از {source}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.career": {
+    "source": "Career, as {source} lists it",
+    "text": "کارنامه‌ی تیمی، به روایت {source}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.careerNote": {
+    "source": "The seasons {source} lists for each team, by the year each season starts. Dates of joining and leaving are not supplied.",
+    "text": "فصل‌هایی که {source} برای هر تیم نام می‌برد، با سال آغاز هر فصل. تاریخ پیوستن و جدایی ارائه نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.noCareer": {
+    "source": "{source} lists no team we hold for this player.",
+    "text": "{source} برای این بازیکن تیمی نام نمی‌برد که در فهرست ما باشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.provider.dash": {
+    "source": "A dash is a figure {source} did not supply, not a zero.",
+    "text": "خط تیره یعنی {source} این عدد را ارائه نکرده است، نه صفر.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.rating": {
+    "source": "Rating",
+    "text": "نمره",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.saves": {
+    "source": "Saves",
+    "text": "مهار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.conceded": {
+    "source": "Conceded",
+    "text": "گل خورده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "compare.title": {
     "source": "Compare players",
     "text": "مقایسه‌ی بازیکنان",

@@ -102,6 +102,7 @@ import type {
   PanelPermission,
   PlatformRules,
   PlayerPage,
+  PlayerProviderSeasons,
   PowerIndexResponse,
   PredictionHistoryResponse,
   PredictionResponse,
@@ -810,6 +811,14 @@ export function fetchSearch(query: string, cookie?: string): Promise<ApiResult<S
  */
 export function fetchPlayer(id: string, locale?: string): Promise<ApiResult<PlayerPage>> {
   return apiRequest<PlayerPage>(withLocale(`/players/${encodeURIComponent(id)}`, locale));
+}
+
+/**
+ * `GET /players/:id/provider-seasons` (T-1431, D-223): the player's season
+ * in every competition and his career, as the provider counts them. Public.
+ */
+export function fetchPlayerProviderSeasons(id: string): Promise<ApiResult<PlayerProviderSeasons>> {
+  return apiRequest<PlayerProviderSeasons>(`/players/${encodeURIComponent(id)}/provider-seasons`);
 }
 
 /** `GET /teams/:id?locale=` (T-036, T-303): the team page. Public. */

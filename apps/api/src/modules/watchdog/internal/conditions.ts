@@ -45,6 +45,9 @@ const HOUR = 60 * MINUTE;
  *   backfill of names, then new adoptions; a missed hour is not news.
  * - kit_colours, every ten minutes (T-1417): 2 and 12 hours. A one-off
  *   backfill of past matches' shirts; a missed hour is not news.
+ * - player_seasons, every ten minutes (T-1431): 2 and 12 hours. Season totals
+ *   refreshed after each match a player played; a missed hour is a few hours'
+ *   lag on figures that are a day behind at best.
  */
 export const INGEST_THRESHOLDS: Record<string, WatchdogThreshold> = {
   live: { unit: 'seconds', degraded: 5 * MINUTE, failing: 15 * MINUTE },
@@ -55,6 +58,7 @@ export const INGEST_THRESHOLDS: Record<string, WatchdogThreshold> = {
   squads: { unit: 'seconds', degraded: 48 * HOUR, failing: 96 * HOUR },
   people_names: { unit: 'seconds', degraded: 2 * HOUR, failing: 12 * HOUR },
   kit_colours: { unit: 'seconds', degraded: 2 * HOUR, failing: 12 * HOUR },
+  player_seasons: { unit: 'seconds', degraded: 2 * HOUR, failing: 12 * HOUR },
 };
 
 const DEFAULT_INGEST_THRESHOLD: WatchdogThreshold = {

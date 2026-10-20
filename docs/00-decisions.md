@@ -11206,3 +11206,69 @@ reader who has chosen no territory is shown no highlight on a match page.
 6. **The E2E seed** gains one clip for the finished seeded match, offered
    everywhere, on a reserved `example.com` address, so the journey meets a
    listed clip.
+
+## D-223 — A player's season in every competition and his career, as the provider counts them, beside our own record and never in it
+
+**Status:** Accepted · 2026-10-20 (agent; one of five code-level improvements the maintainer approved after the 2026-10-20 API-Football usage audit) · **Task:** T-1431 · **Follows:** D-038, D-014, D-183, D-213
+
+**Context.** The player page's record is computed from the matches we ingest
+(D-038's rule, applied to players in T-037): starts, goals, cards and minutes
+from our line-ups, incidents and per-player statistics. It is exact where we
+follow a competition and silent everywhere else, so a player's domestic cup,
+his continental matches in a competition we do not carry, and his
+national-team games are missing, and the page cannot say which clubs he
+played for before our data begins. API-Football, which we pay for on the
+critical path (D-014, Ultra since 2026-10-11), counts every competition it
+covers in `/players?id=&season=` and lists a player's teams by season in
+`/players/teams?player=`. The 2026-10-20 audit found about 5,000 of 75,000
+daily requests in use.
+
+**Decision.**
+1. **Shown beside, never in.** The provider's totals are a module of their
+   own on the player page (the Stats tab), titled with the provider's name,
+   with its own coverage badge and the time they were fetched. Our computed
+   record stays the authority wherever we have it: a provider line for a
+   competition season our record already counts for this player
+   (`counted_by_us`: we hold his line-ups in that competition's season) is
+   not shown with its numbers, it is named beside the table ("also this
+   season, in our own record"). A competition we follow, but none of whose
+   matches we hold him in, keeps the provider's line: our record says
+   nothing there, so there is nothing to contradict. The two are never
+   summed, merged into one row, or relabelled (rule 3). D-038 stands for
+   tables, leaders and the record: nothing here feeds them.
+2. **Only what we can name.** A line or a career team is kept only when
+   `provider_mapping` knows its competition and team (rule 1: no entity
+   without our id, never a name as a key). Anything else is left out and
+   counted, and the module says how many and is `limited`. No catalogue row
+   is created from these answers.
+3. **The provider's numbers as sent.** A figure it left out is `null` and
+   shown as a dash with a note that a dash is not a zero; saves and goals
+   conceded are a goalkeeper's only; a line without an appearance is not a
+   season's record and is dropped; sendings-off add a straight red and a
+   second yellow only when both are known.
+4. **Careers are season years, not spells.** `/players/teams` gives the
+   years a player's seasons at a team start in, not dates; `player_spell`
+   needs a start date and drives "current team", so the career goes into
+   `player_career_season` and is shown as runs of years, saying that dates
+   of joining and leaving are not supplied.
+5. **Fetched on the bulk tier (D-183).** A `player_seasons` job, every ten
+   minutes, asks for each player named in a line-up of a current season: his
+   season once, and again after each match he was named for once that match
+   is six hours old; his career once, and again after 30 days. At most
+   `INGESTION_PLAYER_SEASONS_BATCH` asks (100) a run, none past 30 seconds,
+   250 ms apart, none once the day's requests reach the bulk share. Each
+   answer replaces the player's rows for that season, so a line the provider
+   drops goes too. An unanswered ask is retried after a day, five times.
+
+**Alternatives.** *Fill our record's gaps with the provider's numbers*: one
+row would then mix two counts, which is what rule 3 forbids and what makes a
+figure unexplainable. *Show the provider's line for every competition,
+ours included*: two different numbers for the same season side by side, and
+the reader cannot tell which to trust; ours is the one the match pages agree
+with. *Keep unknown competitions under the provider's name*: an entity
+without our id, keyed by the provider's; it would also put names like
+"Club Friendlies 3" on the page. *Write careers into `player_spell` with
+1 July dates*: invented dates, and a closed spell's end would move "current
+team". *Every past season of every player*: about ten requests a player for
+figures that do not change; one current season and the career list answer
+what the page lacks.

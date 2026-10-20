@@ -224,14 +224,16 @@ describe('plurals (T-301)', () => {
         .pluralCategories,
     ].sort();
 
-  it('has ninety-eight plural keys, one of them ordinal, and knows which they are', () => {
+  it('has ninety-nine plural keys, one of them ordinal, and knows which they are', () => {
     // T-1383: four added (a day's matches, the matches left out, the earlier
     // forecast versions, the members who have picked), one retired (the
     // model list's missing count, now each row's own sentence). T-1386: one
     // added (the club page's whole-squad link). T-1394: four added (a cup's
     // qualifying matches in the band, the season figures over the main
     // competition, the qualifying matches they leave out, the boards' note).
-    expect(pluralKeys).toHaveLength(98);
+    // T-1431: one added (the competitions and teams the provider named that
+    // our catalogue does not hold).
+    expect(pluralKeys).toHaveLength(99);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);
