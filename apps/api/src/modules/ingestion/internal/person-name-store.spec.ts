@@ -135,9 +135,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people n
     const person = (await due()).find((x) => x.personId === p.short)!;
     const answer = fullNameFromProfile(person.storedName, {
       externalId: person.externalId,
-      fullName: 'Mohamed Salah Hamed Mahrous Ghaly',
-      givenName: 'Mohamed',
-      familyName: 'Salah Hamed Mahrous Ghaly',
+      shortName: null,
+      name: {
+        fullName: 'Mohamed Salah Hamed Mahrous Ghaly',
+        givenName: 'Mohamed',
+        familyName: 'Salah Hamed Mahrous Ghaly',
+      },
+      bio: { dateOfBirth: null, nationality: null, heightCm: null, preferredFoot: null },
     });
     expect(await store.recordPersonNameAnswer(PROVIDER, person, answer)).toBe('written');
     const stored = await pool.query(`SELECT full_name, known_as FROM person WHERE id = $1`, [
@@ -177,9 +181,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people n
     await pool.query(`UPDATE person SET full_name = 'Chosen Name' WHERE id = $1`, [p.changing]);
     const answer = fullNameFromProfile(person.storedName, {
       externalId: person.externalId,
-      fullName: 'Carl Hanging',
-      givenName: 'Carl',
-      familyName: 'Hanging',
+      shortName: null,
+      name: {
+        fullName: 'Carl Hanging',
+        givenName: 'Carl',
+        familyName: 'Hanging',
+      },
+      bio: { dateOfBirth: null, nationality: null, heightCm: null, preferredFoot: null },
     });
     expect(answer.outcome).toBe('written');
     expect(await store.recordPersonNameAnswer(PROVIDER, person, answer)).toBe('name_kept');
@@ -205,9 +213,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people n
     const person = (await due()).find((x) => x.personId === p.adopted)!;
     const answer = fullNameFromProfile(person.storedName, {
       externalId: person.externalId,
-      fullName: 'Anna Other',
-      givenName: 'Anna',
-      familyName: 'Other',
+      shortName: null,
+      name: {
+        fullName: 'Anna Other',
+        givenName: 'Anna',
+        familyName: 'Other',
+      },
+      bio: { dateOfBirth: null, nationality: null, heightCm: null, preferredFoot: null },
     });
     expect(await store.recordPersonNameAnswer(PROVIDER, person, answer)).toBe(
       'family_name_differs',

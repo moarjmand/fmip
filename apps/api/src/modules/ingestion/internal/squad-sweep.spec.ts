@@ -6,6 +6,7 @@ import {
   squadAllowance,
   squadsPerDay,
   sweepSquads,
+  type SquadMember,
   type SquadStore,
   type SquadTeam,
 } from './squad-sweep';
@@ -29,7 +30,8 @@ function squadOf(teamId: string, players: [number, string | null][]): unknown {
           id,
           name: `Player ${id}`,
           age: 25,
-          number: null,
+          // A shirt number for every player but 103 (T-1428).
+          number: id === 103 ? null : id % 100,
           position: 'Midfielder',
           ...(photo === null ? {} : { photo }),
         })),
@@ -80,6 +82,7 @@ function world(teams: SquadTeam[], options: { askedToday?: number; refuseAll?: b
     ['103', 'person-103'],
   ]);
   const marked: { teamId: string; answered: boolean }[] = [];
+  const listings: { teamId: string; listed: number; members: SquadMember[] }[] = [];
   const dueLimits: number[] = [];
   const store: SquadStore = {
     squadsAskedSince: async () => options.askedToday ?? 0,
@@ -92,6 +95,9 @@ function world(teams: SquadTeam[], options: { askedToday?: number; refuseAll?: b
     },
     mappedPersons: async (_p, ids) =>
       new Map(ids.flatMap((id) => (mapped.has(id) ? [[id, mapped.get(id)!] as const] : []))),
+    replaceSquadListing: async (_p, teamId, listed, members) => {
+      listings.push({ teamId, listed, members });
+    },
   };
   const noted: { provider: Provider; entityId: string; url: string }[] = [];
   const media = {
@@ -99,7 +105,7 @@ function world(teams: SquadTeam[], options: { askedToday?: number; refuseAll?: b
       noted.push({ provider, entityId, url });
     },
   };
-  return { adapter, store, media, requests, noted, marked, dueLimits };
+  return { adapter, store, media, requests, noted, marked, dueLimits, listings };
 }
 
 const TEAMS: SquadTeam[] = [
@@ -123,7 +129,14 @@ describe('the squads sweep (T-1324)', () => {
       'https://v3.football.api-sports.io/players/squads?team=10',
       'https://v3.football.api-sports.io/players/squads?team=20',
     ]);
-    expect(sweep).toMatchObject({ asked: 2, answered: 2, listed: 5, noted: 2, refused: [] });
+    expect(sweep).toMatchObject({
+      asked: 2,
+      answered: 2,
+      listed: 5,
+      noted: 2,
+      members: 3,
+      refused: [],
+    });
     // 102 and 202 are not ours and are not created; 103 has no photo.
     expect(w.noted).toEqual([
       {
@@ -140,6 +153,27 @@ describe('the squads sweep (T-1324)', () => {
     expect(w.marked).toEqual([
       { teamId: 'team-10', answered: true },
       { teamId: 'team-20', answered: true },
+    ]);
+  });
+
+  it('records each club’s listing of the players we hold, with number and position (T-1428)', async () => {
+    const w = world(TEAMS);
+    await sweepSquads({ ...base, ...w, perDay: 60, budget: null, requestsToday: 0 });
+    // 103 has no photo but is ours, so it is in the listing; 102 and 202 are not ours.
+    expect(w.listings).toEqual([
+      {
+        teamId: 'team-10',
+        listed: 3,
+        members: [
+          { personId: 'person-101', shirtNumber: 1, position: 'midfielder' },
+          { personId: 'person-103', shirtNumber: null, position: 'midfielder' },
+        ],
+      },
+      {
+        teamId: 'team-20',
+        listed: 2,
+        members: [{ personId: 'person-201', shirtNumber: 1, position: 'midfielder' }],
+      },
     ]);
   });
 
@@ -183,6 +217,8 @@ describe('the squads sweep (T-1324)', () => {
     expect(sweep.refused[0]).toMatch(/^team 10: quota/);
     expect(w.marked).toEqual([{ teamId: 'team-10', answered: false }]);
     expect(w.noted).toEqual([]);
+    // A refusal leaves the last listing as it was.
+    expect(w.listings).toEqual([]);
   });
 
   it('says so, and asks nothing, when the provider does not list squads', async () => {

@@ -1,11 +1,16 @@
 /**
- * Player photos for players already in our records (T-1324, D-176).
+ * Player photos and the listed squad for players already in our records
+ * (T-1324, D-176; T-1428, D-220).
  *
  * T-1320 notes a player's photo only when an ingest touches the player, so a
  * player of a match ingested before it has none until he plays again. The
  * `squads` job asks the provider for each club's squad -- one request per
  * club, each club at most once a month -- and hands the photo of every listed
  * player we already hold to the media store, exactly as the other writers do.
+ * It also records the listing itself (T-1428): the shirt number and position
+ * of each player we hold, as `team_squad_member`, replacing the club's last
+ * listing, with the size of the whole listing so a squad of which we hold
+ * only some players says so. The team page shows it as the squad.
  *
  * It never creates a person and never queues one for review: a squad lists
  * thirty players and most of them have never played a match we hold, so an
@@ -17,7 +22,7 @@
  * so photos never compete with match data for the plan.
  */
 
-import type { EntityRef, Provider, ProviderAdapter } from '@fmip/ingestion';
+import type { NormalisedSquadPlayer, Position, Provider, ProviderAdapter } from '@fmip/ingestion';
 
 /** The default daily cap on squad requests. */
 export const SQUADS_PER_DAY = 60;
@@ -45,6 +50,13 @@ export interface SquadTeam {
   externalId: string;
 }
 
+/** A listed player we hold, as the listing gives them. */
+export interface SquadMember {
+  personId: string;
+  shirtNumber: number | null;
+  position: Position | null;
+}
+
 /** The SQL the sweep needs. Implemented by `IngestStore`. */
 export interface SquadStore {
   /** Clubs asked about since `sinceIso`: the day's squad requests so far. */
@@ -60,6 +72,16 @@ export interface SquadStore {
   markSquadAsked(provider: Provider, teamId: string, answered: boolean): Promise<void>;
   /** Our person id for each provider id that is already mapped; the rest are absent. */
   mappedPersons(provider: Provider, externalIds: string[]): Promise<Map<string, string>>;
+  /**
+   * Replaces the club's listed squad with `members`, and records that the
+   * listing named `listed` players in all (T-1428). One transaction.
+   */
+  replaceSquadListing(
+    provider: Provider,
+    teamId: string,
+    listed: number,
+    members: SquadMember[],
+  ): Promise<void>;
 }
 
 /** Where a photo address goes. `MediaService.note`; never throws. */
@@ -80,6 +102,8 @@ export interface SquadSweep {
   listed: number;
   /** Listed players we hold, whose photo address was handed to the media store. */
   noted: number;
+  /** Listed players we hold, recorded as the club's squad with number and position. */
+  members: number;
   refused: string[];
   /** Why nothing was asked, when nothing was. */
   idle?: string;
@@ -117,7 +141,14 @@ export async function sweepSquads(input: {
   requestsToday: number;
 }): Promise<SquadSweep> {
   const { provider, adapter, store, media, now } = input;
-  const sweep: SquadSweep = { asked: 0, answered: 0, listed: 0, noted: 0, refused: [] };
+  const sweep: SquadSweep = {
+    asked: 0,
+    answered: 0,
+    listed: 0,
+    noted: 0,
+    members: 0,
+    refused: [],
+  };
   if (adapter.getSquad === undefined) {
     return { ...sweep, idle: `${provider} does not list squads` };
   }
@@ -160,29 +191,33 @@ export async function sweepSquads(input: {
     }
     sweep.answered += 1;
     sweep.listed += result.data.length;
-    sweep.noted += await notePhotos(provider, store, media, result.data);
+    const held = await store.mappedPersons(
+      provider,
+      result.data.map((p) => p.externalId),
+    );
+    sweep.noted += await notePhotos(provider, media, result.data, held);
+    const members = result.data.flatMap((p): SquadMember[] => {
+      const personId = held.get(p.externalId);
+      return personId === undefined
+        ? []
+        : [{ personId, shirtNumber: p.shirtNumber, position: p.position }];
+    });
+    await store.replaceSquadListing(provider, team.teamId, result.data.length, members);
+    sweep.members += members.length;
   }
   return sweep;
 }
 
 async function notePhotos(
   provider: Provider,
-  store: SquadStore,
   media: PhotoSink,
-  players: EntityRef[],
+  players: NormalisedSquadPlayer[],
+  held: Map<string, string>,
 ): Promise<number> {
-  const withPhoto = players.filter(
-    (p): p is EntityRef & { imageUrl: string } => typeof p.imageUrl === 'string',
-  );
-  if (withPhoto.length === 0) return 0;
-  const held = await store.mappedPersons(
-    provider,
-    withPhoto.map((p) => p.externalId),
-  );
   let noted = 0;
-  for (const player of withPhoto) {
+  for (const player of players) {
     const personId = held.get(player.externalId);
-    if (personId === undefined) continue;
+    if (personId === undefined || typeof player.imageUrl !== 'string') continue;
     await media.note(provider, 'person', personId, player.imageUrl);
     noted += 1;
   }
