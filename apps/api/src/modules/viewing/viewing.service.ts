@@ -3,16 +3,21 @@ import type {
   AuthUser,
   Covered,
   Highlight,
+  HighlightCompetition,
+  HighlightListItem,
+  HighlightsResponse,
   MatchViewing,
   ViewingOption,
   ViewingTerritory,
 } from '@fmip/contracts';
-import { TERRITORY_CODE } from '@fmip/contracts';
+import { HIGHLIGHTS_PAGE_SIZE, TERRITORY_CODE } from '@fmip/contracts';
 import { ProfileService } from '../profile/profile.service';
-import { offeredIn } from './internal/highlight-feed';
+import { offeredEverywhere, offeredIn } from './internal/highlight-feed';
 import {
   type CoverageRow,
   type FeedHighlightRow,
+  type FeedIndexRow,
+  type FeedItemRow,
   type HighlightRow,
   type OptionRow,
   PostgresViewingReadStore,
@@ -107,6 +112,38 @@ export class ViewingService {
         ),
       };
     });
+  }
+
+  /**
+   * The Highlights page (T-1434, D-226): every feed clip offered to this
+   * reader, newest match first, one page of it with the competitions the
+   * filter offers. Which clips is `highlightsPage`'s choice; the details are
+   * read for the page's clips only.
+   */
+  async list(
+    territory: ViewingTerritory,
+    competition: string | null,
+    page: number,
+  ): Promise<HighlightsResponse> {
+    const chosen = highlightsPage(await this.store.feedIndex(), territory, competition, page);
+    const rows = await this.store.feedItems(chosen.ids);
+    const items = rows.map(listItem);
+    const newest = rows.reduce<Date | null>(
+      (at, row) => (at === null || row.fetched_at > at ? row.fetched_at : at),
+      null,
+    );
+    return {
+      generated_at: new Date().toISOString(),
+      territory,
+      offered: territory.state === 'chosen' ? 'territory' : 'everywhere',
+      competition,
+      competitions: chosen.competitions,
+      page,
+      page_size: HIGHLIGHTS_PAGE_SIZE,
+      total: chosen.total,
+      items,
+      last_updated_at: newest === null ? null : newest.toISOString(),
+    };
   }
 
   /**
@@ -229,6 +266,85 @@ function feedHighlight(row: FeedHighlightRow, territory: string): Highlight {
     territory,
     source: { id: row.source_id, name: row.source_name, rights: row.source_rights },
     publisher: row.publisher,
+    last_updated_at: row.fetched_at.toISOString(),
+  };
+}
+
+/**
+ * Which clips a page of the Highlights list holds (T-1434, D-226), pure. A
+ * clip is offered by its territory rule: in the chosen territory
+ * (`offeredIn`, the match page's rule), or in every territory when none is
+ * chosen (`offeredEverywhere`). The filter's competitions are those with an
+ * offered clip, whatever competition is picked, by how many then by name;
+ * `total` and the page's ids are under the competition picked. The index is
+ * already newest first.
+ */
+export function highlightsPage(
+  index: readonly FeedIndexRow[],
+  territory: ViewingTerritory,
+  competition: string | null,
+  page: number,
+  size = HIGHLIGHTS_PAGE_SIZE,
+): { ids: string[]; total: number; competitions: HighlightCompetition[] } {
+  const offered = index.filter((row) => {
+    const rule = { allowed: row.allowed_territories, blocked: row.blocked_territories };
+    return territory.state === 'chosen'
+      ? offeredIn(rule, territory.territory.code)
+      : offeredEverywhere(rule);
+  });
+  const counts = new Map<string, HighlightCompetition>();
+  for (const row of offered) {
+    const held = counts.get(row.competition_id) ?? {
+      id: row.competition_id,
+      name: row.competition_name,
+      short_name: row.competition_short_name,
+      count: 0,
+    };
+    held.count += 1;
+    counts.set(row.competition_id, held);
+  }
+  const competitions = [...counts.values()].sort(
+    (a, b) => b.count - a.count || a.name.localeCompare(b.name) || (a.id < b.id ? -1 : 1),
+  );
+  const filtered =
+    competition === null ? offered : offered.filter((row) => row.competition_id === competition);
+  const start = (page - 1) * size;
+  return {
+    ids: filtered.slice(start, start + size).map((row) => row.id),
+    total: filtered.length,
+    competitions,
+  };
+}
+
+/**
+ * A listed clip (T-1434): the original's page, link only (D-184). The score is
+ * the latest stored, as the team page reads it (the current score, which
+ * holds extra time where it was played, else full time), and the shoot-out
+ * beside it, never added to it.
+ */
+function listItem(row: FeedItemRow): HighlightListItem {
+  const scores = row.scores ?? {};
+  const score = scores.current ?? scores.full_time ?? null;
+  const team = (id: string, name: string, short_name: string | null) => ({ id, name, short_name });
+  return {
+    id: row.id,
+    url: row.url,
+    publisher: row.publisher,
+    source: { id: row.source_id, name: row.source_name, rights: row.source_rights },
+    fixture: {
+      id: row.fixture_id,
+      kickoff_at: row.kickoff_at.toISOString(),
+      status: row.status,
+      competition: {
+        id: row.competition_id,
+        name: row.competition_name,
+        short_name: row.competition_short_name,
+      },
+      home: team(row.home_id, row.home_name, row.home_short_name),
+      away: team(row.away_id, row.away_name, row.away_short_name),
+      score: score === null ? null : { home: score.home, away: score.away },
+      penalties: scores.penalties ? { home: scores.penalties.home, away: scores.penalties.away } : null,
+    },
     last_updated_at: row.fetched_at.toISOString(),
   };
 }
