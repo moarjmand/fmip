@@ -20,37 +20,27 @@
  * the safe direction.
  */
 
-export const INTENT_KEY = 'fmip.pushOffer.intent';
+import {
+  type FollowIntent,
+  INTENT_KEY,
+  type OfferedType,
+  type Store,
+  isOfferedType,
+} from '@/lib/push-offer-intent';
+
+export {
+  type FollowIntent,
+  INTENT_KEY,
+  OFFERED_TYPES,
+  type OfferedType,
+  isOfferedType,
+  markFollowIntent,
+} from '@/lib/push-offer-intent';
+
 export const DISMISSED_KEY = 'fmip.pushOffer.dismissedAt';
 export const INTENT_TTL_MS = 2 * 60 * 1000;
 export const DISMISS_DAYS = 60;
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-/** The follows whose alerts reach a device: a team, a competition, a match. */
-export const OFFERED_TYPES = ['team', 'competition', 'fixture'] as const;
-export type OfferedType = (typeof OFFERED_TYPES)[number];
-
-export interface FollowIntent {
-  type: OfferedType;
-  id: string;
-  at: number;
-}
-
-type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
-
-export function isOfferedType(type: string): type is OfferedType {
-  return (OFFERED_TYPES as readonly string[]).includes(type);
-}
-
-/** The form is submitting a follow: leave the mark the next render takes. */
-export function markFollowIntent(store: Store | null, type: string, id: string, now: number): void {
-  if (store === null || id === '' || !isOfferedType(type)) return;
-  try {
-    store.setItem(INTENT_KEY, JSON.stringify({ type, id, at: now } satisfies FollowIntent));
-  } catch {
-    // Nothing remembered, nothing offered.
-  }
-}
 
 /**
  * Take the mark if it is for this follow (or for any follow, when `entity` is

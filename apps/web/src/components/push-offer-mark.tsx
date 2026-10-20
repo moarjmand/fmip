@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { markFollowIntent } from '@/lib/push-offer';
+import { markFollowIntent } from '@/lib/push-offer-intent';
 
 /**
  * Inside a follow form: as the form submits, leave the mark the next render's
