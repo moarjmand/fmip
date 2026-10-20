@@ -469,8 +469,12 @@ export interface SquadPlayer {
   shirt_number: number | null;
   position: SquadPosition | null;
   on_loan: boolean;
-  /** ISO 8601 date the spell began. */
-  since: string;
+  /**
+   * ISO 8601 date the spell began; `null` for a player who is in the club's
+   * squad listing without a spell of ours, since a listing does not say when
+   * they joined (T-1428).
+   */
+  since: string | null;
   /**
    * Minutes for this team in the seasons the page covers (T-824), under
    * T-823's rule. `matches` zero means no line-up of ours names the player.

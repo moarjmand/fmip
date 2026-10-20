@@ -4,6 +4,7 @@ import type {
   ForecastEvaluation,
   ForecastKind,
   ModelPerformanceRow,
+  ModelProbabilities,
   ModelScorelineProbability,
 } from '@fmip/contracts';
 import { Pool } from 'pg';
@@ -27,6 +28,13 @@ export interface UnevaluatedVersion {
   computedAt: Date;
   probabilities: { home: number; draw: number; away: number };
   mostLikely: ModelScorelineProbability[];
+}
+
+/** A fixture's counted evaluation (T-1430), with the probabilities it scored. */
+export interface CountedRow {
+  /** A published version computed before kick-off is available, scored or not. */
+  hasForecast: boolean;
+  evaluation: (ForecastEvaluation & { probabilities: ModelProbabilities }) | null;
 }
 
 export interface PerformanceTotals {
@@ -212,6 +220,58 @@ export class PostgresEvaluationStore {
       [fixtureId],
     );
     return rows.map(toEvaluation);
+  }
+
+  /**
+   * Per fixture, the evaluation the accuracy figures count (T-1394, D-209):
+   * of the published versions computed before kick-off, the last one -- the
+   * same order as `accuracySums` -- with the probabilities it was scored on;
+   * and whether any published version computed before kick-off is available
+   * at all, so a match whose forecast is not yet scored is told apart from
+   * one the model never forecast (T-1430). Read only; nothing is scored here.
+   */
+  async counted(fixtureIds: string[]): Promise<Map<string, CountedRow>> {
+    if (fixtureIds.length === 0) return new Map();
+    const { rows } = await this.pool.query<
+      { asked_id: string; has_forecast: boolean } & {
+        [K in keyof EvaluationRow]: EvaluationRow[K] | null;
+      }
+    >(
+      `SELECT fx.id::text AS asked_id,
+              EXISTS (SELECT 1 FROM forecast pf
+                       WHERE pf.fixture_id = fx.id AND pf.role = 'published'
+                         AND pf.status = 'available' AND pf.computed_at < fx.kickoff_at)
+                AS has_forecast,
+              c.*
+         FROM fixture fx
+         LEFT JOIN LATERAL (
+           ${SELECT}
+            WHERE e.fixture_id = fx.id AND e.pre_kickoff
+            ORDER BY f.computed_at DESC, f.id DESC
+            LIMIT 1
+         ) c ON true
+        WHERE fx.id = ANY($1::uuid[])`,
+      [fixtureIds],
+    );
+    return new Map(
+      rows.map((row) => [
+        row.asked_id,
+        {
+          hasForecast: row.has_forecast,
+          evaluation:
+            row.id === null
+              ? null
+              : {
+                  ...toEvaluation(row as unknown as EvaluationRow),
+                  probabilities: {
+                    home: Number(row.p_home),
+                    draw: Number(row.p_draw),
+                    away: Number(row.p_away),
+                  },
+                },
+        },
+      ]),
+    );
   }
 
   async competitionExists(competitionId: string): Promise<boolean> {

@@ -188,6 +188,7 @@ services:
       INGESTION_REFETCH_SHARE: ${INGESTION_REFETCH_SHARE:-}
       # Full player names from the provider's profile (T-1398, D-213): 50 a run unless set.
       INGESTION_PEOPLE_NAMES_BATCH: ${INGESTION_PEOPLE_NAMES_BATCH:-}
+      INGESTION_PEOPLE_BIOS_BATCH: ${INGESTION_PEOPLE_BIOS_BATCH:-}
       # The shirts of past matches for the club colour (T-1417, D-218): 100 a run unless set.
       INGESTION_KIT_COLOURS_BATCH: ${INGESTION_KIT_COLOURS_BATCH:-}
       # English stories from GNews' free plan (T-1367, D-185): off while the key is empty.

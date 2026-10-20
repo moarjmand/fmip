@@ -9629,6 +9629,7 @@ column far down. The rows say next and last, and the match centre has the
 rest. *Two renderings of the three lanes (compact on a phone, as h9 draws
 them)*: the lanes stack at full width instead, so one markup carries each
 product.
+
 ## D-201 — The Hybrid editorial pages: Predictions by day with a pick in each row, the story at the measure with what the model expected
 **Status:** Accepted · 2026-10-11 · **Task:** T-1383 · **Follows:** D-198, D-199, D-206, D-154, D-061, D-187
 
@@ -10464,6 +10465,7 @@ non-articles*: a publisher's item goes only when the publisher is dropped
 **Production.** Nothing to set. The migration re-checks every stored team,
 competition and match link once (only the entities already linked, a few
 per article); the job and the lists follow the new rules from the deploy.
+
 ## D-212 — A starter's place in the shape is stored, so every formation can be drawn on the pitch
 **Status:** Accepted · 2026-10-12 · **Task:** T-1397 · **Follows:** D-202, D-192, D-183, D-110
 
@@ -11003,6 +11005,118 @@ the watchdog's thresholds (26 h, 50 h, 30 min) would then live twice.
 `report-capabilities.mjs`*: it is admin-only on purpose (T-801). *Make STALE
 fail too*: on the server the watchdog already turns a 50-hour-old success into
 `failing`, and STALE alone would fail rehearsals for old local files.
+
+## D-220 — Player bios and squad listings from the provider answers we already pay for, filling only what is empty
+
+**Status:** Accepted · 2026-10-20 (agent, one of the five free code-level improvements the maintainer approved after the read-only request-usage audit) · **Task:** T-1428 · **Follows:** D-213, D-176, D-183, D-079
+
+**Context.** The plan allows 75,000 requests a day and the platform spends
+about 5,000. Two answers it already asks for carried data it dropped: the
+player profile (`/players/profiles`, T-1398) gives the birth date,
+nationality and height, of which only the name was kept, and the club squad
+(`/players/squads`, T-1324) gives each player's shirt number and position, of
+which only the photo was kept. The player page has read `date_of_birth`,
+`nationality_id`, `height_cm` and `preferred_foot` since T-037, and the team
+page groups the squad by position with shirt numbers, but nothing wrote any
+of them outside the development seed. Three questions had to be settled: whose
+value wins, how a provider's country spelling becomes our country, and where
+a listing without a start date lives.
+
+**Decision.**
+1. *Fill, never overwrite.* The `people_names` job runs a second pass after
+   the names: each player's profile once (`INGESTION_PEOPLE_BIOS_BATCH`, 60 a
+   run unless set; the same bulk tier, 30-second run and 250 ms gap), writing
+   a field only where it is empty, under a row lock. A value someone set, or
+   an earlier answer wrote, stands. `person_bio_fetch` records what was
+   written; every such field was empty, so that is the whole change (rule 10
+   for a scheduled job, as D-213).
+2. *The right person.* People named as a coach or a referee are never asked:
+   a coach's provider id is not a player id. The answer is used only when its
+   name agrees with ours (the short form, the full name, or the short form
+   the names job replaced, accent- and case-folded); otherwise `name_differs`
+   and nothing is written.
+3. *Nationality by code or exact name.* The adapter maps a reviewed list of
+   API-Football spellings that differ from our FIFA-based names ("Korea
+   Republic", "Congo DR", "USA") to FIFA trigrams; the store matches a
+   trigram to `country.code`, or the spelling to a `country.name` that is the
+   same after folding accents, case and punctuation. Anything else stays
+   empty and the spelling is kept in `person_bio_fetch.unmatched_nationality`
+   for the list to grow. No fuzzy matching.
+4. *Unknown is null.* A birth date that is not a real calendar date from 1900
+   to today, a height outside 100 to 250 cm or not in centimetres, a shirt
+   number outside 1 to 99, or a position other than the provider's four is
+   `null`. API-Football's profile has no foot, so `preferred_foot` stays
+   empty for its players. Birth place and weight have no column and are not
+   kept.
+5. *A listing is not a spell.* `team_squad_member` holds each club's squad as
+   last listed, for the players we hold, replaced as a whole by each answer.
+   A `player_spell` needs a start date, and inventing one would show a false
+   "since". The team page's squad is the open spells plus the listed players
+   without one (a spell's number and position win); a listed player's
+   `since` is `null`; and the module is `limited` while we hold fewer players
+   than the listing named (`team_squad_fetch.listed`).
+6. *Backfill.* No separate job: every mapped player without an answered bio
+   ask is owed one, squad members first. At the default 60 a run, every ten
+   minutes, that is up to 8,640 profiles a day; the existing people (about
+   24,000 when T-1398 was costed) take three to four days, as the 30-second
+   run allows for the provider's answer time, and new players are asked as
+   they are adopted. A day's total stays near 14,000 of the 75,000.
+
+**Alternatives.** *Overwrite with the provider's latest value*: a value an
+editor set would be lost, and one corrected profile is not worth that risk.
+*A new `people_bios` job*: another schedule, watchdog condition and
+`ingest_run` constraint for the same request the names job already makes.
+*Write the listing into `player_spell` with today's date as the start*: an
+invented value shown as "since". *Fuzzy country matching*: a wrong
+nationality is worse than none.
+
+## D-222 — The channel also posts yesterday's results and the week's accuracy, from stored evaluations
+
+**Status:** Accepted · 2026-10-20 (agent; the maintainer approved the channel audit's five free improvements, this one among them) · **Task:** T-1430 · **Follows:** T-525, D-187, D-209, T-1413
+
+**Context.** The public channel got one post a day: the day's matches with
+the statistical model's forecast. Nothing in the channel ever said how those
+forecasts did, though the evaluations are stored (T-066) and the site
+already publishes the model's accuracy by week (T-1413, T-1414).
+
+**Decision.**
+1. Two more posts, on the existing hourly job and claim: the previous UTC
+   day's results, and on Mondays the ISO week just ended. On the post hour's
+   tick they go out results, week, forecast -- yesterday before today.
+2. **When.** The results go out from the forecast's post hour
+   (`CHANNEL_POST_HOUR`, 6 UTC by default), not in the evening: a match on
+   UTC day D kicks off by 23:59 and is over by about 02:30 on D+1, so by 6
+   UTC every match of D is finished and, normally, scored. A finished match
+   whose forecast is not yet evaluated holds the post for up to six hours
+   (capped at 23 UTC), then it goes out with that match marked "not scored
+   yet" and left out of the count. The week waits while the results do,
+   because Sunday's last matches belong to it.
+3. **Which forecast.** The one the accuracy figures count (D-209): the last
+   published version computed before kick-off. Right or wrong is that
+   forecast's stored evaluation (`correct`); the score shown beside it is
+   the one it was scored against. Nothing is recomputed or written to the
+   forecast boundary (rule 5); the forecast module gains a read,
+   `EvaluationService.countedFor`.
+4. **The week's figures** are `GET /model/accuracy?period=week`'s, read
+   through `EvaluationService.publicAccuracy('week')` -- the numbers the
+   site's card shows -- with the count of right picks derived from the share
+   and the matches it is exactly over.
+5. **The claim.** `channel_post` gains `kind` and the key becomes (`kind`,
+   `day`): `day` is the forecast's day, the recapped match day, or the
+   week's Monday. A new migration; the shipped one is untouched.
+6. Statistical model only, labelled as such on every message (rule 6);
+   English, UTC; split at competition boundaries under 4,096 characters;
+   nothing posted for a day with no finished match the model forecast or a
+   week with nothing scored.
+
+**Alternatives.** *A late-evening results post (e.g. 23 UTC)*: matches in
+the Americas kicking off after 21 UTC would still be playing. *A separate
+results hour setting*: another variable to explain, with no case yet where
+the post hour is wrong for it. *Recap the forecast post's own numbers*: a
+later pre-kick-off version (confirmed line-ups) may supersede them, and the
+site scores the last one; the channel says what the site counts. *Every
+match's evaluation computed here from the score*: a second definition of
+"right" beside the stored one.
 
 ## D-225 — A competitions bar under the header, and an All competitions page grouped by region and country
 
