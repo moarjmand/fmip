@@ -50,8 +50,9 @@ const MATCH_DAY = day(0);
 const EMPTY_DAY = day(1);
 const REFUSED_DAY = day(2);
 const FAILED_DAY = day(3);
-// T-1430: a Monday a week or so on, and the Monday that starts the week before it.
-const MONDAY = Array.from({ length: 7 }, (_, i) => day(7 + i)).find(
+// T-1430: a Monday two weeks or so on, and the Monday that starts the week
+// before it -- after the days above, so no results post shares the week's day.
+const MONDAY = Array.from({ length: 7 }, (_, i) => day(14 + i)).find(
   (d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 1,
 ) as string;
 const WEEK = previousWeekStart(MONDAY);
