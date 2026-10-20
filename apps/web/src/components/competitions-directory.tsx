@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { EntityImage } from '@/components/entity-image';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { MessageText } from '@/components/message-text';
 import { TextField } from '@/components/ui';
 import type { Message } from '@/i18n/messages';
@@ -24,11 +23,14 @@ export interface ShownGroup extends DirectoryGroup {
 export function CompetitionsDirectory({
   locale,
   groups,
+  icons,
   initialFilter,
   words,
 }: {
   locale: string;
   groups: readonly ShownGroup[];
+  /** Each competition's logo by id, drawn by the server (see `CompetitionsBarLinks`). */
+  icons: Readonly<Record<string, ReactNode>>;
   initialFilter: string;
   words: {
     /** The filter's label, with its marking. */
@@ -127,7 +129,7 @@ export function CompetitionsDirectory({
                         data-testid="competitions-item"
                         data-competition={c.id}
                       >
-                        <EntityImage media={c.logo} kind="logo" name={c.name} size={22} />
+                        {icons[c.id]}
                         <bdi>{c.name}</bdi>
                       </Link>
                     </li>

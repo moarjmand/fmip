@@ -1,5 +1,6 @@
 import type { CompetitionDirectoryResponse } from '@fmip/contracts';
 import { CompetitionsBarLinks } from '@/components/competitions-bar-links';
+import { EntityImage } from '@/components/entity-image';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { attribute, message } from '@/i18n/messages';
 import { type ApiResult, fetchCompetitionDirectory } from '@/lib/api';
@@ -36,7 +37,11 @@ export async function CompetitionsBar({ locale }: { locale: string }) {
   return (
     <CompetitionsBarLinks
       locale={locale}
-      items={barCompetitions(list).map((c) => ({ id: c.id, label: barName(c), logo: c.logo }))}
+      items={barCompetitions(list).map((c) => ({
+        id: c.id,
+        label: barName(c),
+        icon: <EntityImage media={c.logo} kind="logo" name={barName(c)} size={20} />,
+      }))}
       all={message(lang, 'competitions.bar.all')}
       navLabel={attribute(lang, 'competitions.bar.label')}
     />

@@ -22,8 +22,8 @@ const SOURCES = ['competitions-bar.tsx', 'competitions-bar-links.tsx', 'competit
   .join('\n');
 
 const ITEMS = [
-  { id: 'pgpl', label: 'Pro League', logo: NO_MEDIA },
-  { id: 'epl', label: 'PL', logo: NO_MEDIA },
+  { id: 'pgpl', label: 'Pro League', icon: null },
+  { id: 'epl', label: 'PL', icon: null },
 ];
 
 const bar = (locale: 'en' | 'fa', items = ITEMS) =>
@@ -89,6 +89,16 @@ describe('the competitions bar', () => {
     expect(bar).toBeLessThan(HEADER.indexOf('<LiveStrip'));
   });
 
+  it("keeps the contracts package off every page's first load (T-808)", () => {
+    // The client halves draw logos the server rendered; EntityImage imports
+    // @fmip/contracts, which would ride on every page's first load.
+    for (const file of ['competitions-bar-links.tsx', 'competitions-directory.tsx']) {
+      const source = readFileSync(join(__dirname, file), 'utf8');
+      expect(source).not.toMatch(/from '@\/components\/entity-image'/);
+      expect(source).not.toMatch(/^import \{[^}]*\} from '@fmip\/contracts'/m);
+    }
+  });
+
   it('uses logical properties only (rule 7)', () => {
     expect(SOURCES).not.toMatch(/\b(?:ml|mr|pl|pr|left|right)-[\w[]/);
     expect(SOURCES).not.toMatch(/text-(?:left|right)\b/);
@@ -142,7 +152,13 @@ describe('the All competitions list', () => {
 
   it('draws each group as a section with its heading, a jump link and a link per competition', () => {
     const html = renderToStaticMarkup(
-      <CompetitionsDirectory locale="fa" groups={groups} initialFilter="" words={words} />,
+      <CompetitionsDirectory
+        locale="fa"
+        groups={groups}
+        icons={{}}
+        initialFilter=""
+        words={words}
+      />,
     );
     expect(html.match(/data-testid="competitions-group"/g)).toHaveLength(2);
     expect(html).toContain('href="#group-irn"');
@@ -158,13 +174,25 @@ describe('the All competitions list', () => {
 
   it('starts from the filter the address carries, and says when nothing matches', () => {
     const one = renderToStaticMarkup(
-      <CompetitionsDirectory locale="fa" groups={groups} initialFilter="ايران" words={words} />,
+      <CompetitionsDirectory
+        locale="fa"
+        groups={groups}
+        icons={{}}
+        initialFilter="ايران"
+        words={words}
+      />,
     );
     expect(one.match(/data-testid="competitions-item"/g)).toHaveLength(1);
     expect(one).toContain('/fa/competition/pgpl');
 
     const none = renderToStaticMarkup(
-      <CompetitionsDirectory locale="fa" groups={groups} initialFilter="zzz" words={words} />,
+      <CompetitionsDirectory
+        locale="fa"
+        groups={groups}
+        icons={{}}
+        initialFilter="zzz"
+        words={words}
+      />,
     );
     expect(none).toContain('data-testid="competitions-no-match"');
     expect(none).not.toContain('data-testid="competitions-group"');

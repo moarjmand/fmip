@@ -1,9 +1,8 @@
 'use client';
 
-import type { EntityMedia } from '@fmip/contracts';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { EntityImage } from '@/components/entity-image';
+import type { ReactNode } from 'react';
 import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';
 
@@ -11,7 +10,10 @@ import type { Message } from '@/i18n/messages';
  * The competitions bar's links (T-1433), the one part that needs the
  * pathname: which entry is current. The bar lives in the locale layout,
  * which a client-side navigation does not render again, so the pathname is
- * read here (as `PrimaryNav` does). The words arrive resolved (T-1040).
+ * read here (as `PrimaryNav` does). The words arrive resolved (T-1040),
+ * and each logo arrives drawn by the server (`icon`): `EntityImage` imports
+ * the contracts package, which would otherwise ride on every page's first
+ * load (perf budgets, T-808).
  */
 
 /** Whether `pathname` is this competition's page, any season or tab of it. */
@@ -27,7 +29,7 @@ export function CompetitionsBarLinks({
   navLabel,
 }: {
   locale: string;
-  items: readonly { id: string; label: string; logo: EntityMedia }[];
+  items: readonly { id: string; label: string; icon: ReactNode }[];
   /** "All competitions", resolved, with its marking. */
   all: Message;
   /** The landmark's name, resolved, with its marking. */
@@ -92,7 +94,7 @@ export function CompetitionsBarLinks({
                     : 'font-semibold text-fg hover:text-accent'
                 }`}
               >
-                <EntityImage media={item.logo} kind="logo" name={item.label} size={20} />
+                {item.icon}
                 <bdi>{item.label}</bdi>
               </Link>
             </li>

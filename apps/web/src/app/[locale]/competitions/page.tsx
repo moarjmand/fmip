@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { CompetitionsDirectory, type ShownGroup } from '@/components/competitions-directory';
+import { EntityImage } from '@/components/entity-image';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 import { attribute, message } from '@/i18n/messages';
@@ -83,6 +84,14 @@ export default async function CompetitionsPage({
         <CompetitionsDirectory
           locale={locale}
           groups={groups}
+          icons={Object.fromEntries(
+            groups
+              .flatMap((g) => g.competitions)
+              .map((c) => [
+                c.id,
+                <EntityImage key={c.id} media={c.logo} kind="logo" name={c.name} size={22} />,
+              ]),
+          )}
           initialFilter={readFilter(query)}
           words={{
             filter: attribute(lang, 'competitions.filter'),
