@@ -175,6 +175,8 @@ export {
   TEAM_AVERAGE_METRICS,
 } from './catalog';
 export type {
+  CompetitionDirectoryEntry,
+  CompetitionDirectoryResponse,
   CompetitionPage,
   CompetitionSummary,
   CompetitionsResponse,

@@ -14436,5 +14436,77 @@
     "text": "هنوز رویدادی ثبت نشده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.bar.label": {
+    "source": "Competitions",
+    "text": "رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.bar.all": {
+    "source": "All competitions",
+    "text": "همه رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.title": {
+    "source": "All competitions",
+    "text": "همه رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.metaDescription": {
+    "source": "Every league and cup FMIP follows, grouped by country and region, each with its own page.",
+    "text": "همهٔ لیگ‌ها و جام‌هایی که FMIP دنبال می‌کند، به تفکیک کشور و منطقه، هر کدام با صفحهٔ خودش.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.lead": {
+    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
+    "text": "همهٔ لیگ‌ها و جام‌هایی که دنبال می‌کنیم، به تفکیک کشور و منطقه. یکی را انتخاب کنید تا صفحه‌اش باز شود: جدول، برنامه، نتایج و برترین‌ها.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.filter": {
+    "source": "Find a competition or country",
+    "text": "جست‌وجوی رقابت یا کشور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.jump": {
+    "source": "Countries and regions",
+    "text": "کشورها و منطقه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.group.international": {
+    "source": "International",
+    "text": "بین‌المللی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.group.continental": {
+    "source": "Continental",
+    "text": "قاره‌ای",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.noMatch": {
+    "source": "No competition we follow matches this search.",
+    "text": "هیچ رقابتی از رقابت‌هایی که دنبال می‌کنیم با این جست‌وجو جور نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.unreachable": {
+    "source": "The list of competitions could not be loaded just now. Please try again in a moment.",
+    "text": "فهرست رقابت‌ها همین حالا بارگیری نشد. لطفاً چند لحظه دیگر دوباره امتحان کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.empty": {
+    "source": "No competitions are followed yet.",
+    "text": "هنوز هیچ رقابتی دنبال نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   }
 }

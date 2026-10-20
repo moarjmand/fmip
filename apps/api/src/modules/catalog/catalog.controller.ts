@@ -9,6 +9,7 @@ import {
 import type {
   ApiError,
   CompetitionContext,
+  CompetitionDirectoryResponse,
   CompetitionPage,
   CompetitionsResponse,
   CountriesResponse,
@@ -79,6 +80,16 @@ export class CatalogController {
   @Get('competitions')
   async competitions(): Promise<CompetitionsResponse> {
     return { competitions: await this.catalog.competitions() };
+  }
+
+  /**
+   * The competitions directory (T-1433): every active competition with its
+   * country, in the product's order for `?locale=` (D-207). Public. Declared
+   * before `competitions/:id`, though a static segment wins either way.
+   */
+  @Get('competitions/directory')
+  async directory(@Query('locale') locale: unknown): Promise<CompetitionDirectoryResponse> {
+    return { competitions: await this.catalog.directory(localeOf(locale)) };
   }
 
   /**

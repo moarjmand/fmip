@@ -36,6 +36,7 @@ import type {
   CommunityConsensusResponse,
   CompetitionContext,
   CompetitionPage,
+  CompetitionDirectoryResponse,
   CompetitionsResponse,
   ConsensusListResponse,
   ConversationPage,
@@ -672,6 +673,15 @@ export async function fetchTerritories(): Promise<TerritoriesResponse['territori
 export async function fetchTeams(): Promise<TeamsResponse['teams'] | null> {
   const result = await apiRequest<TeamsResponse>('/teams');
   return result.ok ? result.data.teams : null;
+}
+
+/**
+ * `GET /competitions/directory` (T-1433): every competition we follow with
+ * its country, in the product's order, names in the reader's language.
+ * Public; the header's competitions bar and the All competitions page.
+ */
+export function fetchCompetitionDirectory(): Promise<ApiResult<CompetitionDirectoryResponse>> {
+  return apiRequest<CompetitionDirectoryResponse>('/competitions/directory');
 }
 
 export async function fetchCompetitions(): Promise<CompetitionsResponse['competitions'] | null> {
