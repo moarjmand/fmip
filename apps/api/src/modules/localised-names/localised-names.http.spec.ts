@@ -35,6 +35,7 @@ const PERSIAN_CLUBS = '1765867000000_persian-club-names.sql';
 const PERSIAN_CLUBS_EUROPE = '1765868000000_persian-club-names-europe.sql';
 const PERSIAN_CLUBS_CUPS = '1765869000000_persian-club-names-cups.sql';
 const PERSIAN_CLUBS_FA_CUP = '1765870000000_persian-club-names-fa-cup.sql';
+const PERSIAN_CLUBS_EUROPE_LEAGUES = '1765871000000_persian-club-names-europe-leagues.sql';
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
   '?locale= on every surface',
@@ -392,6 +393,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         name: 'Yeovil Town',
         fa: 'یوویل تاون',
         national: '1819',
+      },
+      {
+        task: 'T-1425',
+        file: PERSIAN_CLUBS_EUROPE_LEAGUES,
+        id: '551',
+        name: 'Basel',
+        fa: 'بازل',
+        national: '740',
       },
     ];
     it.each(PERSIAN_CASES)(
