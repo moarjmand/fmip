@@ -158,6 +158,14 @@ export interface DeliveryHealth {
   in_product_only: boolean;
 }
 
+/**
+ * What a channel post is (T-1430, D-222): the day's matches with the model's
+ * forecast (T-525), the previous day's results against the model's last
+ * forecast before kick-off, or the model's accuracy over the ISO week just
+ * ended. Each is posted at most once per day it is about.
+ */
+export type ChannelPostKind = 'forecast' | 'results' | 'weekly_accuracy';
+
 /** Where one day's post stands (T-525). */
 export type ChannelPostState =
   /** Claimed and being carried; nothing else will post this day. */
@@ -182,14 +190,24 @@ export interface ChannelPostHealth {
    * (`INGESTION_SCHEDULE=on`) and Redis. A channel with no schedule posts nothing.
    */
   scheduled: boolean;
-  /** The hour (UTC) from which the day's post goes out. */
+  /**
+   * The hour (UTC) from which the day's post goes out; the previous day's
+   * results and, on Mondays, the week's accuracy go out on the same tick.
+   */
   post_hour_utc: number;
-  /** The newest day on record, or null when nothing was ever posted. */
-  last: {
-    day: string;
-    state: ChannelPostState;
-    messages: number;
-    delivered: number;
-    finished_at: string | null;
-  } | null;
+  /** The newest forecast post on record, or null when nothing was ever posted. */
+  last: ChannelPostRecordSummary | null;
+  /** The newest results post (T-1430): its `day` is the match day it recaps. */
+  results_last: ChannelPostRecordSummary | null;
+  /** The newest weekly accuracy post (T-1430): its `day` is the Monday the week starts. */
+  weekly_accuracy_last: ChannelPostRecordSummary | null;
+}
+
+/** One post on record, as `/health/channel` reports it. */
+export interface ChannelPostRecordSummary {
+  day: string;
+  state: ChannelPostState;
+  messages: number;
+  delivered: number;
+  finished_at: string | null;
 }
