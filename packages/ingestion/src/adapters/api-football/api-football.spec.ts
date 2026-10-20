@@ -653,9 +653,25 @@ describe('a club squad (T-1324)', () => {
         externalId: '70001',
         name: 'A. Keeper',
         imageUrl: 'https://example.test/players/70001.png',
+        shirtNumber: 1,
+        position: 'goalkeeper',
       },
-      { externalId: '70002', name: 'B. Back' },
+      { externalId: '70002', name: 'B. Back', shirtNumber: null, position: 'defender' },
     ]);
+  });
+
+  it('keeps a shirt number from 1 to 99 and the four positions only (T-1428)', () => {
+    const one = (number: unknown, position: unknown) =>
+      mapSquad(
+        [{ team: { id: 9001 }, players: [{ id: 1, name: 'P', number, position }] }],
+        '9001',
+      )[0];
+    expect(one(99, 'Attacker')).toMatchObject({ shirtNumber: 99, position: 'forward' });
+    expect(one(10, 'Midfielder')).toMatchObject({ shirtNumber: 10, position: 'midfielder' });
+    expect(one(0, 'Coach')).toMatchObject({ shirtNumber: null, position: null });
+    expect(one(100, 'goalkeeper')).toMatchObject({ shirtNumber: null, position: null });
+    expect(one('7', undefined)).toMatchObject({ shirtNumber: null, position: null });
+    expect(one(7.5, '')).toMatchObject({ shirtNumber: null, position: null });
   });
 
   it('ignores an entry for another club, and counts a refusal as one request', async () => {
@@ -696,14 +712,17 @@ describe('a player profile (T-1398)', () => {
           firstname: 'Mohamed',
           lastname: 'Salah Hamed Mahrous  Ghaly',
           age: 34,
+          birth: { date: '1992-06-15', place: 'Basyoun', country: 'Egypt' },
           nationality: 'Egypt',
+          height: '175 cm',
+          weight: '71 kg',
           photo: 'https://example.test/players/80001.png',
         },
       },
     ],
   };
 
-  it('asks once, by player, and maps the given and family names', async () => {
+  it('asks once, by player, and maps the names and the bio', async () => {
     const asked: string[] = [];
     const adapter = createApiFootballAdapter(
       {
@@ -719,9 +738,18 @@ describe('a player profile (T-1398)', () => {
     expect(result).toMatchObject({ ok: true, requests: 1 });
     expect(result.ok && result.data).toEqual({
       externalId: '80001',
-      fullName: 'Mohamed Salah Hamed Mahrous Ghaly',
-      givenName: 'Mohamed',
-      familyName: 'Salah Hamed Mahrous Ghaly',
+      shortName: 'M. Salah',
+      name: {
+        fullName: 'Mohamed Salah Hamed Mahrous Ghaly',
+        givenName: 'Mohamed',
+        familyName: 'Salah Hamed Mahrous Ghaly',
+      },
+      bio: {
+        dateOfBirth: '1992-06-15',
+        nationality: { name: 'Egypt', code: null },
+        heightCm: 175,
+        preferredFoot: null,
+      },
     });
   });
 
@@ -739,25 +767,68 @@ describe('a player profile (T-1398)', () => {
       ],
       '80002',
     );
-    expect(profile).toEqual({
+    expect(profile).toMatchObject({
       externalId: '80002',
-      fullName: "Patrick O'Neill & Co's",
-      givenName: 'Patrick',
-      familyName: "O'Neill & Co's",
+      shortName: "P. O'Neill",
+      name: {
+        fullName: "Patrick O'Neill & Co's",
+        givenName: 'Patrick',
+        familyName: "O'Neill & Co's",
+      },
     });
   });
 
-  it('is null for no entry, another player, or a blank given or family name', () => {
+  it('is null for no entry or another player', () => {
     expect(mapPersonProfile([], '80001')).toBeNull();
     expect(mapPersonProfile(null, '80001')).toBeNull();
     expect(mapPersonProfile(constructed.response, '1')).toBeNull();
+  });
+
+  it('has no full name for a blank given or family name, and keeps the bio', () => {
     const blank = (firstname: unknown, lastname: unknown) =>
-      mapPersonProfile([{ player: { id: 80003, firstname, lastname } }], '80003');
-    expect(blank('', 'Salah')).toBeNull();
-    expect(blank('Mohamed', '   ')).toBeNull();
-    expect(blank(null, 'Salah')).toBeNull();
-    expect(blank('Mohamed', '&nbsp;')).toBeNull();
-    expect(blank('Mohamed', 42)).toBeNull();
+      mapPersonProfile(
+        [{ player: { id: 80003, firstname, lastname, birth: { date: '2001-02-03' } } }],
+        '80003',
+      );
+    for (const [first, last] of [
+      ['', 'Salah'],
+      ['Mohamed', '   '],
+      [null, 'Salah'],
+      ['Mohamed', '&nbsp;'],
+      ['Mohamed', 42],
+    ] as const) {
+      expect(blank(first, last)).toMatchObject({ name: null, bio: { dateOfBirth: '2001-02-03' } });
+    }
+  });
+
+  it('reads a bio field only when it can, and leaves it null otherwise (T-1428)', () => {
+    const bio = (player: Record<string, unknown>) =>
+      mapPersonProfile([{ player: { id: 80004, ...player } }], '80004')?.bio;
+    expect(bio({})).toEqual({
+      dateOfBirth: null,
+      nationality: null,
+      heightCm: null,
+      preferredFoot: null,
+    });
+    for (const date of ['1992-02-30', '15/06/1992', '1899-12-31', '', 19920615, '1992-6-1']) {
+      expect(bio({ birth: { date } })?.dateOfBirth).toBeNull();
+    }
+    expect(bio({ birth: { date: '2000-02-29' } })?.dateOfBirth).toBe('2000-02-29');
+    expect(bio({ height: '188cm' })?.heightCm).toBe(188);
+    expect(bio({ height: 190 })?.heightCm).toBe(190);
+    for (const height of ['1.75 m', '99 cm', '251 cm', '175.5 cm', 'tall', null]) {
+      expect(bio({ height })?.heightCm).toBeNull();
+    }
+    expect(bio({ nationality: 'Korea Republic' })?.nationality).toEqual({
+      name: 'Korea Republic',
+      code: 'KOR',
+    });
+    expect(bio({ nationality: 'Côte-d&apos;Ivoire' })?.nationality).toEqual({
+      name: "Côte-d'Ivoire",
+      code: null,
+    });
+    expect(bio({ nationality: 'Ivory-Coast' })?.nationality?.code).toBe('CIV');
+    expect(bio({ nationality: '  ' })?.nationality).toBeNull();
   });
 
   it('counts a refusal as one request', async () => {

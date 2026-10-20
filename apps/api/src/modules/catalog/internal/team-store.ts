@@ -293,34 +293,64 @@ export class PostgresTeamStore {
     });
   }
 
-  /** Open spells: the squad as our records have it, by position, shirt number, name. */
-  async squad(
-    teamId: string,
-  ): Promise<{ players: Omit<SquadPlayer, 'minutes'>[]; lastUpdatedAt: string | null }> {
+  /**
+   * The squad, by position, shirt number, name: the open spells, and the
+   * players of the club's listing (T-1428, D-220) who have none. A spell's
+   * number and position win over the listing's where the spell has them; a
+   * listed player has no `since`, because a listing does not say when they
+   * joined. `listed` is the size of the club's last listing, for the
+   * coverage: a listing of which we hold only some players is limited.
+   */
+  async squad(teamId: string): Promise<{
+    players: Omit<SquadPlayer, 'minutes'>[];
+    lastUpdatedAt: string | null;
+    listed: number | null;
+  }> {
     const { rows } = await this.pool.query<{
       person_id: string;
       person_name: string;
       shirt_number: number | null;
       position: SquadPlayer['position'];
       on_loan: boolean;
-      start_date: string;
+      start_date: string | null;
       updated_at: Date;
     }>(
-      `SELECT ps.person_id, COALESCE(pe.known_as, pe.full_name) AS person_name,
-              ps.shirt_number, ps.position, ps.on_loan, ps.start_date::text, ps.updated_at
-         FROM player_spell ps
-         JOIN person pe ON pe.id = ps.person_id
-        WHERE ps.team_id = $1 AND ps.end_date IS NULL
-        ORDER BY CASE ps.position
+      `WITH members AS (
+         SELECT ps.person_id,
+                COALESCE(ps.shirt_number, sm.shirt_number) AS shirt_number,
+                COALESCE(ps.position, sm.position) AS position,
+                ps.on_loan, ps.start_date::text AS start_date,
+                GREATEST(ps.updated_at, sm.listed_at) AS updated_at
+           FROM player_spell ps
+           LEFT JOIN team_squad_member sm ON sm.team_id = ps.team_id AND sm.person_id = ps.person_id
+          WHERE ps.team_id = $1 AND ps.end_date IS NULL
+         UNION ALL
+         SELECT sm.person_id, sm.shirt_number, sm.position, false, NULL, sm.listed_at
+           FROM team_squad_member sm
+          WHERE sm.team_id = $1
+            AND NOT EXISTS (SELECT 1 FROM player_spell ps
+                             WHERE ps.team_id = sm.team_id AND ps.person_id = sm.person_id
+                               AND ps.end_date IS NULL)
+       )
+       SELECT m.person_id, COALESCE(pe.known_as, pe.full_name) AS person_name,
+              m.shirt_number, m.position, m.on_loan, m.start_date, m.updated_at
+         FROM members m
+         JOIN person pe ON pe.id = m.person_id
+        ORDER BY CASE m.position
                    WHEN 'goalkeeper' THEN 1 WHEN 'defender' THEN 2
                    WHEN 'midfielder' THEN 3 WHEN 'forward' THEN 4 ELSE 5 END,
-                 ps.shirt_number NULLS LAST, person_name`,
+                 m.shirt_number NULLS LAST, person_name`,
+      [teamId],
+    );
+    const fetched = await this.pool.query<{ listed: number | null }>(
+      `SELECT max(listed) AS listed FROM team_squad_fetch WHERE team_id = $1`,
       [teamId],
     );
     let last: Date | null = null;
     for (const r of rows) if (last === null || r.updated_at > last) last = r.updated_at;
     return {
       lastUpdatedAt: last === null ? null : last.toISOString(),
+      listed: fetched.rows[0]?.listed ?? null,
       players: rows.map((r) => ({
         person: { id: r.person_id, name: r.person_name },
         shirt_number: r.shirt_number,

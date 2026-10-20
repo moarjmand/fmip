@@ -19,9 +19,9 @@ import {
 
 const profile = (givenName: string, familyName: string): NormalisedPersonProfile => ({
   externalId: '1',
-  fullName: `${givenName} ${familyName}`,
-  givenName,
-  familyName,
+  shortName: null,
+  name: { fullName: `${givenName} ${familyName}`, givenName, familyName },
+  bio: { dateOfBirth: null, nationality: null, heightCm: null, preferredFoot: null },
 });
 
 describe('the full name a profile gives a short form', () => {
@@ -88,6 +88,11 @@ describe('the full name a profile gives a short form', () => {
 
   it('records a missing profile, and keeps a name that is not a short Latin form', () => {
     expect(fullNameFromProfile('M. Salah', null)).toMatchObject({
+      outcome: 'no_profile',
+      profileName: null,
+    });
+    // A profile with a bio but half a name (T-1428) is no full name either.
+    expect(fullNameFromProfile('M. Salah', { ...profile('M', 'S'), name: null })).toMatchObject({
       outcome: 'no_profile',
       profileName: null,
     });
