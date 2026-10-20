@@ -82,6 +82,7 @@ function match(over: Partial<PlayerMatch> = {}): PlayerMatch {
     assists: 1,
     yellow_cards: 1,
     red_cards: 0,
+    expected_goals: null,
     ...over,
   };
 }
@@ -348,6 +349,34 @@ describe('the matches', () => {
       <PlayerMatchesPanel page={p} matches={[]} locale="en" timeZone="UTC" />,
     );
     expect(none).toContain('data-testid="recent-matches-empty"');
+  });
+
+  it('labels a match’s expected goals with their source, and shows nothing it did not supply (T-1432)', () => {
+    const p = page();
+    const withXg = [
+      match({ expected_goals: { source: 'highlightly', figures: { xg: 0.38, xa: 0.1 } } }),
+      match({ expected_goals: { source: 'highlightly', figures: { xa: 0.05 } } }),
+      match(),
+    ];
+    const en = renderToStaticMarkup(
+      <PlayerMatchesPanel page={p} matches={withXg} locale="en" timeZone="UTC" />,
+    );
+    const lines = en
+      .split('data-testid="player-match-xg"')
+      .slice(1)
+      .map((line) => line.slice(0, line.indexOf('</li>')));
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain('xG (Highlightly)');
+    expect(lines[0]).toContain('0.38');
+    expect(lines[0]).toContain('0.10');
+    expect(en).not.toContain('xGOT');
+    // No xG supplied: a dash, never 0.00.
+    expect(lines[1]).toContain(' –');
+    expect(lines.join('')).not.toContain('0.00');
+    const fa = renderToStaticMarkup(
+      <PlayerMatchesPanel page={p} matches={withXg.slice(0, 1)} locale="fa" timeZone="UTC" />,
+    );
+    expect(fa).toContain('۰٫۳۸');
   });
 });
 

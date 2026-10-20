@@ -116,8 +116,8 @@ export interface HighlightsFeedRun {
 /**
  * `GET /health/highlights` (T-1366): whether the feed is on (`HIGHLIGHTLY_KEY`
  * set), whether this process runs it (`INGESTION_SCHEDULE=on`), today's
- * requests against its own ceiling, and the newest run since this process
- * started. `absent` is the normal state of a deployment without the key.
+ * requests against the ceiling it shares with the box scores (T-1432), and
+ * the newest run since this process started. `absent` is the normal state of a deployment without the key.
  */
 export interface HighlightsFeedHealth {
   feed: 'absent' | 'configured';
@@ -125,6 +125,46 @@ export interface HighlightsFeedHealth {
   daily_budget: number | null;
   requests_today: number | null;
   last_run: HighlightsFeedRun | null;
+}
+
+/** One run of the box-score job (T-1432, D-224). */
+export interface BoxScoreFeedRun {
+  started_at: string;
+  finished_at: string;
+  /** Finished matches inside the window still owed a box score. */
+  waiting: number;
+  /** Competitions of waiting matches that nobody mapped to the source: never asked about. */
+  unmapped_competitions: number;
+  /** League-and-day match lists asked for. */
+  questions: number;
+  /** Box scores asked for. */
+  asked: number;
+  /** Box scores stored (with or without a figure in them). */
+  stored: number;
+  /** Asked and answered with no players yet: asked again on a later run. */
+  not_ready: number;
+  /** Waiting matches the source's list did not place, by reason. */
+  unmatched: { team_unmapped: number; no_fixture: number; ambiguous: number };
+  /** Players the stored box scores listed that are not yet mapped to ours: queued for review. */
+  players_unresolved: number;
+  requests: number;
+  /** Why the run stopped early: the shared daily ceiling (`quota`) or this run's batch, or null. */
+  stopped: 'quota' | 'batch' | null;
+}
+
+/**
+ * `GET /health/box-scores` (T-1432): whether the job is on (`HIGHLIGHTLY_KEY`
+ * set), whether this process runs it, its batch, the ceiling it shares with
+ * the highlights feed and today's requests against it, and the newest run.
+ */
+export interface BoxScoreFeedHealth {
+  feed: 'absent' | 'configured';
+  scheduled: boolean;
+  batch: number | null;
+  /** Shared with the highlights feed: the same count as `GET /health/highlights`. */
+  daily_budget: number | null;
+  requests_today: number | null;
+  last_run: BoxScoreFeedRun | null;
 }
 
 /** `GET /viewing?fixture=<id>&fixture=<id>`: the same module for several matches, in the order asked, minus any id that is not a match. */

@@ -11003,3 +11003,66 @@ the watchdog's thresholds (26 h, 50 h, 30 min) would then live twice.
 `report-capabilities.mjs`*: it is admin-only on purpose (T-801). *Make STALE
 fail too*: on the server the watchdog already turns a 50-hour-old success into
 `failing`, and STALE alone would fail rehearsals for old local files.
+
+## D-224 — Per-player expected goals from Highlightly's box score, as a source of its own
+
+**Status:** Accepted · 2026-10-20 (agent; the maintainer approved the five free Highlightly improvements of the 2026-10-20 audit, this one among them) · **Task:** T-1432 · **Follows:** D-013, D-184, D-188, D-208
+
+**Context.** No provider behind `fixture_player_stat` supplies per-player
+expected goals (T-101 left the metric out on purpose). Highlightly's
+`/box-score/{matchId}`, on the Football API Pro plan we already pay for
+(7,500 requests a day, of which the highlights feed used about 5-20 %),
+answers per player: xG, xA, xGOT, xGOT conceded and goals prevented, beside
+its own rating, minutes and counts. Highlightly's terms
+(https://highlightly.net/terms, version of 2026-07-24, read 2026-10-20) let
+us use and display the data in our product (§6.1) and forbid using it for
+gambling (§7); FMIP has no betting product, and these figures feed no
+forecast, odds or settlement.
+
+**Decision.**
+1. **Its own contract and its own table.** The adapter
+   (`adapters/highlightly/box-score.ts`) lets only the expected-goals family
+   out, never Highlightly's rating, minutes or counts: API-Football's are
+   stored already, and two sources' ratings are never blended or set side by
+   side as one figure (rules 3 and 6). Stored in `fixture_player_expected`
+   (long shape, a `source` column, closed metric list; goals prevented the
+   only signed figure) with `fixture_box_score` recording that the source
+   answered for the match. Never a column of `fixture_player_stat`.
+2. **Labelled wherever shown.** The match page shows a card of its own,
+   "xG (Highlightly)", under the player statistics; the player page's match
+   log says "xG (Highlightly)". Coverage: `available`, `limited` when the
+   source listed players we have not placed, `delayed` for a finished match
+   of a covered competition not yet asked, `not_supplied` otherwise. A
+   figure the source did not supply is `–`, never 0.
+3. **Identity through the mapping table only (rule 1).** The match is found
+   on the source's list for the league and UTC day by both teams' mappings
+   and the kick-off (the highlights feed's rule, now one function); each
+   player by `provider_mapping`. An unmapped player is queued in
+   `unresolved_entity` with the name, our team and match, the shirt number
+   and, as a reviewer's hint only, the person our line-up gives that shirt.
+   Nothing is ever mapped by the job.
+4. **A player who did not play has no figures.** The recording shows unused
+   substitutes carrying copies of team-mates' figures; with 0 minutes, or
+   minutes unknown, nothing is read.
+5. **One ceiling for both Highlightly jobs.** The feed and the box scores ask
+   through one `DailyBudgetTransport` (`HighlightlyQuota`), so
+   `HIGHLIGHTS_DAILY_BUDGET` (5,000 when empty) bounds the two together;
+   `BOX_SCORE_BATCH` (60 when empty) bounds a run. Every two hours at :49,
+   inside the feed's 51-hour window; a box score with players unplaced is
+   asked again after 12 hours, inside the window, and replaced whole. The
+   watchdog's `highlightly_budget` condition (80 % / 95 %) and the two
+   queues' failures watch it. The `live` profile's own Highlightly ceiling
+   (`HIGHLIGHTLY_DAILY_BUDGET`) now defaults to 2,000, and the adapter's
+   manifest names the Pro plan and its 7,500 a day.
+
+**Consequences.** Until players are mapped to Highlightly (there were none
+on 2026-10-20), stored box scores are `limited` with few rows and the review
+queue grows by the players the source names; mapping them in bulk from the
+shirt-number hint is a reviewed step of its own, never this job's.
+
+**Alternatives.** *New metric keys in `fixture_player_stat` with a source
+column*: every existing reader of that table (season figures, power index,
+key players, leader boards) would have to learn to exclude them, and one
+forgotten reader would blend two sources. *Map players by name or shirt
+number automatically*: rule 1. *Store Highlightly's rating too*: a second
+rating beside API-Football's invites exactly the blending rule 6 forbids.

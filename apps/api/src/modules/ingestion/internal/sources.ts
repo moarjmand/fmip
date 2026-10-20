@@ -115,8 +115,13 @@ export interface SourceEnv {
   API_FOOTBALL_BUDGET_STANDARD_PERCENT?: string;
 }
 
-/** Highlightly's free plan, and the default ceiling the budget transport holds. */
-export const HIGHLIGHTLY_DEFAULT_BUDGET = 100;
+/**
+ * The `live` profile's default Highlightly ceiling (T-1432). The plan is Pro,
+ * 7,500 a day; the highlights feed and the box scores hold up to 5,000 of it
+ * (`HIGHLIGHTS_DAILY_BUDGET`), so the jobs' share leaves a margin under the
+ * plan when both run on one key.
+ */
+export const HIGHLIGHTLY_DEFAULT_BUDGET = 2000;
 
 /**
  * A transport that refuses once a day's requests are spent.

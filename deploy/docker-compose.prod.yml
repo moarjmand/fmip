@@ -172,8 +172,11 @@ services:
       API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
       FOOTBALL_DATA_ORG_KEY: ${FOOTBALL_DATA_ORG_KEY:-}
       HIGHLIGHTLY_KEY: ${HIGHLIGHTLY_KEY:-}
-      # The highlights feed's own daily ceiling (T-1366, D-184); empty = 5000.
+      # The daily ceiling the highlights feed and the box scores share
+      # (T-1366, D-184; T-1432, D-224); empty = 5000.
       HIGHLIGHTS_DAILY_BUDGET: ${HIGHLIGHTS_DAILY_BUDGET:-}
+      # Box scores asked for per run (T-1432); empty = 60.
+      BOX_SCORE_BATCH: ${BOX_SCORE_BATCH:-}
       # The schedule is what makes the provider key do anything (T-050): off
       # until a source is chosen (T-025), and forwarded here because a value in
       # .env reaches a container only when this file names it.

@@ -6919,8 +6919,43 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.playerXgNotSupplied": {
-    "source": "Expected goals per player: not available for any match.",
+  "matchCentre.expectedGoals": {
+    "source": "xG (Highlightly)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.expectedGoals.note": {
+    "source": "Expected goals from Highlightly's own model: kept apart from the player statistics above and never combined with them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.expectedGoals.none": {
+    "source": "Highlightly supplies no expected goals for this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.expectedGoals.unplaced": {
+    "source": "Not shown: {count} players Highlightly listed who are not yet matched to ours.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.expectedGoals.region": {
+    "source": "{team}: xG (Highlightly), scrolls sideways",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.expectedGoals.xg": {
+    "source": "xG",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.expectedGoals.xa": {
+    "source": "xA",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.expectedGoals.xgot": {
+    "source": "xGOT",
     "text": "",
     "status": "untranslated"
   },
@@ -10879,6 +10914,11 @@
   },
   "playerPage.redCard": {
     "source": "Red card",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.expectedGoals": {
+    "source": "xG (Highlightly)",
     "text": "",
     "status": "untranslated"
   },

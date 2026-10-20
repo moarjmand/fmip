@@ -322,4 +322,30 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       supplied_minutes: 115,
     });
   });
+
+  it("logs each match's expected goals from their own source, null where it has none (T-1432)", async () => {
+    const log = async () =>
+      ((await app.inject({ method: 'GET', url: `/players/${PLAYER}` })).json() as PlayerPage)
+        .recent_matches.data!;
+    expect((await log()).every((m) => m.expected_goals === null)).toBe(true);
+    const { rows } = await pool.query<{ participant_id: string }>(
+      `SELECT l.participant_id FROM lineup l
+         JOIN fixture_participant p ON p.id = l.participant_id
+         JOIN fixture f ON f.id = p.fixture_id
+        WHERE l.person_id = $1 ORDER BY f.kickoff_at DESC LIMIT 1`,
+      [PLAYER],
+    );
+    await pool.query(
+      `INSERT INTO fixture_player_expected (participant_id, person_id, source, metric, value)
+       VALUES ($1, $2, 'highlightly', 'xg', 0.38), ($1, $2, 'highlightly', 'xgot', 0.21)`,
+      [rows[0]!.participant_id, PLAYER],
+    );
+    const [newest, ...older] = await log();
+    expect(newest!.expected_goals).toEqual({
+      source: 'highlightly',
+      figures: { xg: 0.38, xgot: 0.21 },
+    });
+    expect(older.length).toBeGreaterThan(0);
+    expect(older.every((m) => m.expected_goals === null)).toBe(true);
+  });
 });

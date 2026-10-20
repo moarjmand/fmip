@@ -196,6 +196,42 @@ function failure(response: TransportResponse): AdapterError {
   return { kind, message: text, status: response.status };
 }
 
+/** One answered call, or why there is no answer. */
+export type HighlightlyAnswer =
+  { ok: true; body: unknown; receivedAt: string } | { ok: false; error: AdapterError };
+
+/**
+ * One GET on the Football API with its headers, a non-200 read into an
+ * `AdapterError` (429 is `quota`, 403 `unsupported`). Shared by the highlights
+ * and the box-score clients (T-1432); the budget is the transport's.
+ */
+export function highlightlyGet(
+  transport: Transport,
+  apiKey: string,
+): (path: string, params?: Record<string, string>) => Promise<HighlightlyAnswer> {
+  return async (path, params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    const url = `${HIGHLIGHTLY_BASE_URL}${path}${query === '' ? '' : `?${query}`}`;
+    let response: TransportResponse;
+    try {
+      response = await transport.request(url, {
+        method: 'GET',
+        headers: { 'x-rapidapi-host': HIGHLIGHTLY_HOST, 'x-rapidapi-key': apiKey },
+      });
+    } catch (error: unknown) {
+      return {
+        ok: false,
+        error: {
+          kind: 'transport',
+          message: error instanceof Error ? error.message : String(error),
+        },
+      };
+    }
+    if (response.status !== 200) return { ok: false, error: failure(response) };
+    return { ok: true, body: response.body, receivedAt: response.receivedAt };
+  };
+}
+
 export interface HighlightsQuery {
   /** YYYY-MM-DD, read by the provider in UTC. */
   date: string;
@@ -217,30 +253,7 @@ export function createHighlightlyHighlights(
   transport: Transport,
   apiKey: string,
 ): HighlightlyHighlights {
-  async function get(
-    path: string,
-    params: Record<string, string> = {},
-  ): Promise<{ ok: true; body: unknown; receivedAt: string } | { ok: false; error: AdapterError }> {
-    const query = new URLSearchParams(params).toString();
-    const url = `${HIGHLIGHTLY_BASE_URL}${path}${query === '' ? '' : `?${query}`}`;
-    let response: TransportResponse;
-    try {
-      response = await transport.request(url, {
-        method: 'GET',
-        headers: { 'x-rapidapi-host': HIGHLIGHTLY_HOST, 'x-rapidapi-key': apiKey },
-      });
-    } catch (error: unknown) {
-      return {
-        ok: false,
-        error: {
-          kind: 'transport',
-          message: error instanceof Error ? error.message : String(error),
-        },
-      };
-    }
-    if (response.status !== 200) return { ok: false, error: failure(response) };
-    return { ok: true, body: response.body, receivedAt: response.receivedAt };
-  }
+  const get = highlightlyGet(transport, apiKey);
 
   return {
     async list(query) {

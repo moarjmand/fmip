@@ -8389,11 +8389,53 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.playerXgNotSupplied": {
-    "source": "Expected goals per player: not available for any match.",
-    "text": "گل مورد انتظار هر بازیکن: برای هیچ بازی‌ای در دسترس نیست.",
+  "matchCentre.expectedGoals": {
+    "source": "xG (Highlightly)",
+    "text": "xG (Highlightly)",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.note": {
+    "source": "Expected goals from Highlightly's own model: kept apart from the player statistics above and never combined with them.",
+    "text": "گل مورد انتظار از مدل خود Highlightly: جدا از آمار بازیکنان در بالا نگه داشته می‌شود و هرگز با آن ترکیب نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.none": {
+    "source": "Highlightly supplies no expected goals for this match.",
+    "text": "Highlightly برای این بازی گل مورد انتظار ارائه نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.unplaced": {
+    "source": "Not shown: {count} players Highlightly listed who are not yet matched to ours.",
+    "text": "نمایش داده نشده: {count} بازیکنی که Highlightly فهرست کرده و هنوز با بازیکنان ما تطبیق داده نشده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.region": {
+    "source": "{team}: xG (Highlightly), scrolls sideways",
+    "text": "{team}: xG (Highlightly)، به پهلو پیمایش می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.xg": {
+    "source": "xG",
+    "text": "xG",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.xa": {
+    "source": "xA",
+    "text": "xA",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+  },
+  "matchCentre.expectedGoals.xgot": {
+    "source": "xGOT",
+    "text": "xGOT",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
   },
   "matchCentre.noAbsences": {
     "source": "Nobody is reported missing or doubtful.",
@@ -13278,6 +13320,12 @@
     "text": "کارت قرمز",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.expectedGoals": {
+    "source": "xG (Highlightly)",
+    "text": "xG (Highlightly)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
   },
   "playerPage.noData": {
     "source": "No match data stored for this player yet.",

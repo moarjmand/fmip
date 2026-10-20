@@ -123,6 +123,22 @@ export {
   mapHighlight,
   mapHighlightsPage,
 } from './adapters/highlightly/highlights';
+// Highlightly's per-player expected goals, a source of its own (T-1432, D-224).
+export {
+  type BoxScoreMatch,
+  type BoxScoreMatchesQuery,
+  type BoxScoreRef,
+  EXPECTED_METRICS,
+  type ExpectedMetric,
+  type HighlightlyBoxScores,
+  type NormalisedBoxScore,
+  type NormalisedBoxScorePlayer,
+  type NormalisedBoxScoreSide,
+  createHighlightlyBoxScores,
+  mapBoxScore,
+  mapBoxScoreMatch,
+  mapBoxScorePlayer,
+} from './adapters/highlightly/box-score';
 
 // The replay source (T-026, D-049): a real adapter over committed recordings.
 export {

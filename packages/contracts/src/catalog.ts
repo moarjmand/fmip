@@ -8,6 +8,7 @@
 import type { CoverageState, Covered } from './coverage';
 import type { LeagueZones } from './league-zones';
 import type { EntityMedia } from './media';
+import type { ExpectedGoalsMetric, ExpectedGoalsSource } from './match-centre';
 
 export interface CountrySummary {
   id: string;
@@ -669,6 +670,16 @@ export interface PlayerMatch {
   assists: number;
   yellow_cards: number;
   red_cards: number;
+  /**
+   * The player's expected goals in this match from their one source
+   * (T-1432, D-224), named so a reader is told whose figures they are. Null
+   * when that source has none for the player in this match; a figure missing
+   * from `figures` was not supplied, never 0.
+   */
+  expected_goals: {
+    source: ExpectedGoalsSource;
+    figures: Partial<Record<ExpectedGoalsMetric, number>>;
+  } | null;
 }
 
 /** `GET /players/:id`. */

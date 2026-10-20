@@ -1,0 +1,161 @@
+{
+  "name": "matches-serie-a-2026-10-18",
+  "recordedAt": "2026-10-20T00:00:00.000Z",
+  "note": "Read-only, from the production API container on the Pro plan (T-1432).",
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://soccer.highlightly.net/matches?leagueId=115669&date=2026-10-18&timezone=Etc%2FUTC",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": 1319180136,
+            "round": "Regular Season - 7",
+            "date": "2026-10-18T18:45:00.000Z",
+            "country": {
+              "code": "IT",
+              "name": "Italy",
+              "logo": "https://highlightly.net/soccer/images/countries/IT.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "0 - 3",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 415221,
+              "logo": "https://highlightly.net/soccer/images/teams/415221.png",
+              "name": "Lazio"
+            },
+            "homeTeam": {
+              "id": 422880,
+              "logo": "https://highlightly.net/soccer/images/teams/422880.png",
+              "name": "Juventus"
+            },
+            "league": {
+              "id": 115669,
+              "logo": "https://highlightly.net/soccer/images/leagues/115669.png",
+              "name": "Serie A",
+              "season": 2026
+            }
+          },
+          {
+            "id": 1319175881,
+            "round": "Regular Season - 7",
+            "date": "2026-10-18T16:00:00.000Z",
+            "country": {
+              "code": "IT",
+              "name": "Italy",
+              "logo": "https://highlightly.net/soccer/images/countries/IT.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "3 - 2",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 425433,
+              "logo": "https://highlightly.net/soccer/images/teams/425433.png",
+              "name": "Atalanta"
+            },
+            "homeTeam": {
+              "id": 416923,
+              "logo": "https://highlightly.net/soccer/images/teams/416923.png",
+              "name": "AC Milan"
+            },
+            "league": {
+              "id": 115669,
+              "logo": "https://highlightly.net/soccer/images/leagues/115669.png",
+              "name": "Serie A",
+              "season": 2026
+            }
+          },
+          {
+            "id": 1319178434,
+            "round": "Regular Season - 7",
+            "date": "2026-10-18T13:00:00.000Z",
+            "country": {
+              "code": "IT",
+              "name": "Italy",
+              "logo": "https://highlightly.net/soccer/images/countries/IT.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "1 - 3",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 762429,
+              "logo": "https://highlightly.net/soccer/images/teams/762429.png",
+              "name": "Como"
+            },
+            "homeTeam": {
+              "id": 427986,
+              "logo": "https://highlightly.net/soccer/images/teams/427986.png",
+              "name": "Fiorentina"
+            },
+            "league": {
+              "id": 115669,
+              "logo": "https://highlightly.net/soccer/images/leagues/115669.png",
+              "name": "Serie A",
+              "season": 2026
+            }
+          },
+          {
+            "id": 1319182689,
+            "round": "Regular Season - 7",
+            "date": "2026-10-18T10:30:00.000Z",
+            "country": {
+              "code": "IT",
+              "name": "Italy",
+              "logo": "https://highlightly.net/soccer/images/countries/IT.svg"
+            },
+            "state": {
+              "clock": 90,
+              "score": {
+                "current": "0 - 3",
+                "penalties": null
+              },
+              "description": "Finished"
+            },
+            "awayTeam": {
+              "id": 738601,
+              "logo": "https://highlightly.net/soccer/images/teams/738601.png",
+              "name": "Lecce"
+            },
+            "homeTeam": {
+              "id": 421178,
+              "logo": "https://highlightly.net/soccer/images/teams/421178.png",
+              "name": "Udinese"
+            },
+            "league": {
+              "id": 115669,
+              "logo": "https://highlightly.net/soccer/images/leagues/115669.png",
+              "name": "Serie A",
+              "season": 2026
+            }
+          }
+        ],
+        "plan": {
+          "tier": "PRO",
+          "message": "All data available with current plan."
+        },
+        "pagination": {
+          "totalCount": 4,
+          "offset": 0,
+          "limit": 100
+        }
+      }
+    }
+  ]
+}

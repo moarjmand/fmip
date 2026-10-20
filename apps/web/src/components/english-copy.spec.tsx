@@ -168,6 +168,7 @@ const centre = (): MatchCentre =>
       last_updated_at: '2026-10-11T16:00:00.000Z',
       data: [stats('p1', 'Mohamed Salah'), stats('p2', 'V. van Dijk')],
     },
+    player_expected_goals: { ...empty, source: 'highlightly', unplaced: 0 },
     form: { home: empty, away: empty },
     head_to_head: empty,
     coverage: {

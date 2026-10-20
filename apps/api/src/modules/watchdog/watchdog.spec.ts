@@ -23,6 +23,7 @@ import {
   dataQuality,
   deliveryChannel,
   eloSource,
+  highlightlyBudget,
   ingestJob,
   levelOf,
   liveFeed,
@@ -141,6 +142,51 @@ describe('request_budget', () => {
     });
   });
 });
+
+describe('highlightly_budget', () => {
+  it('is the share of the ceiling the highlights feed and the box scores share: 80 % and 95 %', () => {
+    expect(
+      highlightlyBudget({ configured: true, requestsToday: 1000, budget: 5000 }),
+    ).toMatchObject({ key: 'highlightly_budget', level: 'ok', observed: 20 });
+    expect(highlightlyBudget({ configured: true, requestsToday: 4000, budget: 5000 }).level).toBe(
+      'degraded',
+    );
+    expect(highlightlyBudget({ configured: true, requestsToday: 4750, budget: 5000 }).level).toBe(
+      'failing',
+    );
+  });
+
+  it('is ok without a key, and says why', () => {
+    expect(highlightlyBudget({ configured: false })).toMatchObject({
+      level: 'ok',
+      observed: null,
+      note: expect.stringContaining('HIGHLIGHTLY_KEY') as string,
+    });
+  });
+
+  it('is unknown when the reading could not be taken', () => {
+    const reading = readingsOf(
+      { ...observationsForBudget(), highlightly: { unreadable: 'boom' } },
+      new Map(),
+      new Date('2026-10-20T12:00:00Z'),
+      [],
+    ).find((r) => r.key === 'highlightly_budget');
+    expect(reading).toMatchObject({ level: 'unknown', note: 'boom', observed: null });
+  });
+});
+
+function observationsForBudget(): Observations {
+  return {
+    ingest: [],
+    live: { inProgress: 0, oldestChangeAt: null, behind: 0 },
+    budget: { requestsToday: 0, budget: 100 },
+    queues: [],
+    model: { configured: false },
+    delivery: { email: { configured: false }, push: { configured: false } },
+    dataQuality: { open: 0, sweptAt: null },
+    backups: { backup: NONE, drill: NONE },
+  };
+}
 
 describe('jobs:<queue>', () => {
   it('counts failed jobs in the last hour: one degraded, three failing', () => {
@@ -639,6 +685,7 @@ describe('readingsOf', () => {
       'ingest:live',
       'live_feed',
       'request_budget',
+      'highlightly_budget',
       'jobs:ingestion',
       'model_service',
       'elo_source',

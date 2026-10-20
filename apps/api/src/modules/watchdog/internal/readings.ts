@@ -13,6 +13,7 @@ import {
   ingestJob,
   liveFeed,
   modelService,
+  highlightlyBudget,
   queueFailures,
   requestBudget,
   restoreDrill,
@@ -88,6 +89,14 @@ export interface Observations {
    * published ones (T-930). Optional like `elo`; absent reads as not compared.
    */
   cloudflare?: CloudflareRangesSeen;
+  /**
+   * Highlightly's shared daily ceiling and today's count (T-1432). Optional
+   * like `elo`; absent reads as no key.
+   */
+  highlightly?:
+    | { configured: false }
+    | { configured: true; requestsToday: number; budget: number }
+    | Unreadable;
 }
 
 /**
@@ -127,6 +136,18 @@ export function readingsOf(
     unreadable(seen.budget)
       ? { ...requestBudget({ requestsToday: 0, budget: null }), note: seen.budget.unreadable }
       : requestBudget(seen.budget),
+  );
+
+  const highlightly = seen.highlightly ?? { configured: false };
+  out.push(
+    unreadable(highlightly)
+      ? {
+          ...highlightlyBudget({ configured: true, requestsToday: 0, budget: 1 }),
+          level: 'unknown',
+          observed: null,
+          note: highlightly.unreadable,
+        }
+      : highlightlyBudget(highlightly),
   );
 
   for (const q of seen.queues) {

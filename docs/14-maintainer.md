@@ -1052,6 +1052,18 @@ clubs uploading it. The API log names every clip it kept out and why:
 **A wrong clip.** On the match page, the desk's "remove highlight" with a
 reason takes the feed's clip down in every territory, for good (audited).
 
+**Per-player expected goals (T-1432, D-224).** The same key and the same
+mappings also bring each finished match's box score: the match page shows an
+"xG (Highlightly)" card under the player statistics, and the player page's
+match log an "xG (Highlightly)" figure. Nothing to switch on. The feed and the
+box scores share `HIGHLIGHTS_DAILY_BUDGET`; `BOX_SCORE_BATCH` (empty means 60)
+caps the box scores a run asks for. `GET /health/box-scores` shows the newest
+run. Players come through the mapping table only: a player Highlightly names
+that nobody has mapped is queued in the admin's unresolved list with the
+shirt number and the person our line-up gives that shirt, as a hint to check,
+and the match's card says how many players it could not show until they are
+mapped.
+
 ---
 
 ## 14. English news from GNews (T-1367, D-185)
