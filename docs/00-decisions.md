@@ -11003,3 +11003,67 @@ the watchdog's thresholds (26 h, 50 h, 30 min) would then live twice.
 `report-capabilities.mjs`*: it is admin-only on purpose (T-801). *Make STALE
 fail too*: on the server the watchdog already turns a 50-hour-old success into
 `failing`, and STALE alone would fail rehearsals for old local files.
+
+## D-220 — Player bios and squad listings from the provider answers we already pay for, filling only what is empty
+
+**Status:** Accepted · 2026-10-20 (agent, one of the five free code-level improvements the maintainer approved after the read-only request-usage audit) · **Task:** T-1428 · **Follows:** D-213, D-176, D-183, D-079
+
+**Context.** The plan allows 75,000 requests a day and the platform spends
+about 5,000. Two answers it already asks for carried data it dropped: the
+player profile (`/players/profiles`, T-1398) gives the birth date,
+nationality and height, of which only the name was kept, and the club squad
+(`/players/squads`, T-1324) gives each player's shirt number and position, of
+which only the photo was kept. The player page has read `date_of_birth`,
+`nationality_id`, `height_cm` and `preferred_foot` since T-037, and the team
+page groups the squad by position with shirt numbers, but nothing wrote any
+of them outside the development seed. Three questions had to be settled: whose
+value wins, how a provider's country spelling becomes our country, and where
+a listing without a start date lives.
+
+**Decision.**
+1. *Fill, never overwrite.* The `people_names` job runs a second pass after
+   the names: each player's profile once (`INGESTION_PEOPLE_BIOS_BATCH`, 60 a
+   run unless set; the same bulk tier, 30-second run and 250 ms gap), writing
+   a field only where it is empty, under a row lock. A value someone set, or
+   an earlier answer wrote, stands. `person_bio_fetch` records what was
+   written; every such field was empty, so that is the whole change (rule 10
+   for a scheduled job, as D-213).
+2. *The right person.* People named as a coach or a referee are never asked:
+   a coach's provider id is not a player id. The answer is used only when its
+   name agrees with ours (the short form, the full name, or the short form
+   the names job replaced, accent- and case-folded); otherwise `name_differs`
+   and nothing is written.
+3. *Nationality by code or exact name.* The adapter maps a reviewed list of
+   API-Football spellings that differ from our FIFA-based names ("Korea
+   Republic", "Congo DR", "USA") to FIFA trigrams; the store matches a
+   trigram to `country.code`, or the spelling to a `country.name` that is the
+   same after folding accents, case and punctuation. Anything else stays
+   empty and the spelling is kept in `person_bio_fetch.unmatched_nationality`
+   for the list to grow. No fuzzy matching.
+4. *Unknown is null.* A birth date that is not a real calendar date from 1900
+   to today, a height outside 100 to 250 cm or not in centimetres, a shirt
+   number outside 1 to 99, or a position other than the provider's four is
+   `null`. API-Football's profile has no foot, so `preferred_foot` stays
+   empty for its players. Birth place and weight have no column and are not
+   kept.
+5. *A listing is not a spell.* `team_squad_member` holds each club's squad as
+   last listed, for the players we hold, replaced as a whole by each answer.
+   A `player_spell` needs a start date, and inventing one would show a false
+   "since". The team page's squad is the open spells plus the listed players
+   without one (a spell's number and position win); a listed player's
+   `since` is `null`; and the module is `limited` while we hold fewer players
+   than the listing named (`team_squad_fetch.listed`).
+6. *Backfill.* No separate job: every mapped player without an answered bio
+   ask is owed one, squad members first. At the default 60 a run, every ten
+   minutes, that is up to 8,640 profiles a day; the existing people (about
+   24,000 when T-1398 was costed) take three to four days, as the 30-second
+   run allows for the provider's answer time, and new players are asked as
+   they are adopted. A day's total stays near 14,000 of the 75,000.
+
+**Alternatives.** *Overwrite with the provider's latest value*: a value an
+editor set would be lost, and one corrected profile is not worth that risk.
+*A new `people_bios` job*: another schedule, watchdog condition and
+`ingest_run` constraint for the same request the names job already makes.
+*Write the listing into `player_spell` with today's date as the start*: an
+invented value shown as "since". *Fuzzy country matching*: a wrong
+nationality is worse than none.

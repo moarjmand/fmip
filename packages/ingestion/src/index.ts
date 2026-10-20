@@ -1,5 +1,6 @@
 // The provider-neutral model every adapter produces.
 export * from './normalised';
+export { foldCountry } from './country-name';
 
 // The adapter contract.
 export {

@@ -32,10 +32,12 @@ import {
   type IngestionSources,
   type JobSource,
 } from './internal/sources';
+import { PersonBioStore } from './internal/person-bio-store';
+import { peopleBiosBatch, sweepPeopleBios } from './internal/person-bios';
 import { PersonNameStore } from './internal/person-name-store';
 import { KitColourStore } from './internal/kit-colour-store';
 import { kitColoursBatch, sweepKitColours } from './internal/kit-colours';
-import { peopleNamesBatch, sweepPeopleNames } from './internal/person-names';
+import { PEOPLE_NAMES_RUN_MS, peopleNamesBatch, sweepPeopleNames } from './internal/person-names';
 import { squadsPerDay, sweepSquads } from './internal/squad-sweep';
 
 /** How far back and forward the fixtures job looks, in days. */
@@ -302,6 +304,8 @@ export class IngestionJobsService {
   private readonly squadsPerDay = squadsPerDay(process.env.INGESTION_SQUADS_PER_DAY);
   private readonly peopleNamesBatch = peopleNamesBatch(process.env.INGESTION_PEOPLE_NAMES_BATCH);
   private readonly personNames: PersonNameStore;
+  private readonly peopleBiosBatch = peopleBiosBatch(process.env.INGESTION_PEOPLE_BIOS_BATCH);
+  private readonly personBios: PersonBioStore;
   private readonly kitColoursBatch = kitColoursBatch(process.env.INGESTION_KIT_COLOURS_BATCH);
   private readonly kitColourStore: KitColourStore;
   /** When the live job last asked for a match that left the live list, by fixture id. */
@@ -320,6 +324,7 @@ export class IngestionJobsService {
   ) {
     this.store = new IngestStore(pool, resolver, media);
     this.personNames = new PersonNameStore(pool);
+    this.personBios = new PersonBioStore(pool);
     this.kitColourStore = new KitColourStore(pool);
   }
 
@@ -394,21 +399,41 @@ export class IngestionJobsService {
    * each is asked about once through the provider's player profile, within
    * `INGESTION_PEOPLE_NAMES_BATCH` a run and the bulk tier of the budget, and
    * the name is written only where the profile agrees with the short form.
-   * `itemsWritten` is the names written; `person_name_fetch` holds each ask.
+   * Then, in what is left of the run, the bio pass (T-1428, D-220): each
+   * player's profile once, within `INGESTION_PEOPLE_BIOS_BATCH`, filling the
+   * birth date, nationality and height still empty. `itemsWritten` is the
+   * names and bios written; `person_name_fetch` and `person_bio_fetch` hold
+   * each ask.
    */
   peopleNames(now: Date = new Date()): Promise<JobReport> {
     return this.track('people_names', async (source) => {
       const shares = parseTierShares(process.env);
+      const bulkPercent = 'error' in shares ? DEFAULT_TIER_SHARES.bulk : shares.bulk;
+      const budget = this.sources.dailyBudget ?? null;
+      // The replay source has no profiles recorded: asking would only fail.
+      const replay = this.sources.kind === 'replay';
+      const requestsToday = await this.runs.requestsToday(source.provider, now);
+      const started = Date.now();
       const sweep = await sweepPeopleNames({
         provider: source.provider,
         adapter: source.adapter,
         store: this.personNames,
         now,
-        // The replay source has no profiles recorded: asking would only fail.
-        batch: this.sources.kind === 'replay' ? 0 : this.peopleNamesBatch,
-        budget: this.sources.dailyBudget ?? null,
-        bulkPercent: 'error' in shares ? DEFAULT_TIER_SHARES.bulk : shares.bulk,
-        requestsToday: await this.runs.requestsToday(source.provider, now),
+        batch: replay ? 0 : this.peopleNamesBatch,
+        budget,
+        bulkPercent,
+        requestsToday,
+      });
+      const bios = await sweepPeopleBios({
+        provider: source.provider,
+        adapter: source.adapter,
+        store: this.personBios,
+        now,
+        batch: replay ? 0 : this.peopleBiosBatch,
+        budget,
+        bulkPercent,
+        requestsToday: requestsToday + sweep.asked,
+        runMs: PEOPLE_NAMES_RUN_MS - (Date.now() - started),
       });
       this.log.log('people names', {
         event: 'ingest.people_names',
@@ -418,13 +443,20 @@ export class IngestionJobsService {
         written: sweep.written,
         kept: sweep.kept,
         ...(sweep.idle === undefined ? {} : { idle: sweep.idle }),
+        bios: {
+          asked: bios.asked,
+          answered: bios.answered,
+          written: bios.written,
+          kept: bios.kept,
+          ...(bios.idle === undefined ? {} : { idle: bios.idle }),
+        },
       });
-      const partial = sweep.refused.join('; ');
+      const partial = [...sweep.refused, ...bios.refused].join('; ');
       return {
         job: 'people_names',
         provider: source.provider,
-        itemsSeen: sweep.answered,
-        itemsWritten: sweep.written,
+        itemsSeen: sweep.answered + bios.answered,
+        itemsWritten: sweep.written + bios.written,
         ...(partial === '' ? {} : { partial }),
       };
     });

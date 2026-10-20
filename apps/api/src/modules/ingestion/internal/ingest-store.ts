@@ -86,7 +86,7 @@ export function withoutRepeats(incidents: readonly NormalisedIncident[]): Normal
     return true;
   });
 }
-import type { SquadStore, SquadTeam } from './squad-sweep';
+import type { SquadMember, SquadStore, SquadTeam } from './squad-sweep';
 
 /** One competition/season pair a job polls, already resolved to our ids. */
 export interface PollTarget {
@@ -1372,5 +1372,50 @@ export class IngestStore implements SquadStore {
       [provider, externalIds],
     );
     return new Map(rows.map((r) => [r.external_id, r.internal_id]));
+  }
+
+  /**
+   * The club's listed squad, replaced as a whole (T-1428): a player the new
+   * listing leaves out is no longer in the squad. A person listed for two
+   * clubs at once (a loan, a transfer read before the old club's next
+   * listing) is in both until that club is asked again.
+   */
+  async replaceSquadListing(
+    provider: Provider,
+    teamId: string,
+    listed: number,
+    members: SquadMember[],
+  ): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`DELETE FROM team_squad_member WHERE team_id = $1`, [teamId]);
+      if (members.length > 0) {
+        await client.query(
+          `INSERT INTO team_squad_member (team_id, person_id, provider, shirt_number, position)
+           SELECT $1, m.person_id, $2, m.shirt_number, m.position
+             FROM unnest($3::uuid[], $4::smallint[], $5::text[])
+                  AS m (person_id, shirt_number, position)
+           ON CONFLICT (team_id, person_id) DO NOTHING`,
+          [
+            teamId,
+            provider,
+            members.map((m) => m.personId),
+            members.map((m) => m.shirtNumber),
+            members.map((m) => m.position),
+          ],
+        );
+      }
+      await client.query(
+        `UPDATE team_squad_fetch SET listed = $3 WHERE provider = $1 AND team_id = $2`,
+        [provider, teamId, listed],
+      );
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }
