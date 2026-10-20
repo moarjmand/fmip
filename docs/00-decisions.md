@@ -11070,6 +11070,42 @@ editor set would be lost, and one corrected profile is not worth that risk.
 invented value shown as "since". *Fuzzy country matching*: a wrong
 nationality is worse than none.
 
+## D-221 — Push is offered at the moment of a follow, once per click, after the browser says it could take it
+
+**Status:** Accepted · 2026-10-20 (agent, from the push audit; the maintainer approved the free code-level improvements) · **Task:** T-1429 · **Follows:** D-074, D-116, D-175
+
+**Context.** Production has had Web Push switched on (D-074) with zero
+subscriptions: the only way in was a switch in Settings → Notifications, two
+pages from anything a member does. Every goal, line-up and team-news alert
+from the match-alert module therefore reached the inbox and no device.
+
+**Decision.**
+1. The offer appears where the intent is: beside the followed state, right
+   after a member follows a team, a competition or a match (and on the two
+   pages whose pickers follow many things, without a name). A player's follow
+   sends no match alerts and is not offered.
+2. Only after a click: the follow form leaves a session-storage mark as it
+   submits; the offer takes it once, if it is under two minutes old. Nothing
+   is offered on a page load, and without JavaScript nothing is offered.
+3. Only when it can work and is wanted: the browser has a service worker and
+   push, has not refused notifications, has no subscription on this device,
+   and the member has not said "Not now" here in the last 60 days. The
+   deployment's key is asked only then, so an ordinary page costs no request
+   and a deployment without push never offers it.
+4. The browser's permission prompt is asked only by the offer's yes, through
+   the same subscribe flow as the Settings switch. A refusal is remembered
+   like "Not now".
+5. Two plain buttons, "Yes, send alerts" and "Not now", equal in reach, and a
+   line saying the browser will ask next and that alerts can be turned off.
+
+**Alternatives.** *Ask for permission on page load*: browsers penalise it and
+members refuse it, and a refusal is permanent for the origin. *Show the offer
+whenever a followed page is open*: a nag on every visit. *Remember "Not now"
+on the account*: the question is about this device, and a member's phone and
+laptop answer it differently. *Never return after "Not now"*: a member who
+follows a new club months later may want it; 60 days is long enough not to
+nag.
+
 ## D-222 — The channel also posts yesterday's results and the week's accuracy, from stored evaluations
 
 **Status:** Accepted · 2026-10-20 (agent; the maintainer approved the channel audit's five free improvements, this one among them) · **Task:** T-1430 · **Follows:** T-525, D-187, D-209, T-1413
@@ -11117,95 +11153,6 @@ later pre-kick-off version (confirmed line-ups) may supersede them, and the
 site scores the last one; the channel says what the site counts. *Every
 match's evaluation computed here from the score*: a second definition of
 "right" beside the stored one.
-
-## D-225 — A competitions bar under the header, and an All competitions page grouped by region and country
-
-**Status:** Accepted · 2026-10-20 (agent, from the maintainer's teammate's request, which the maintainer asked for now) · **Task:** T-1433 · **Follows:** T-504, D-154, D-175, D-199, D-207, rules 2-3, 7
-
-**Context.** The teammate asked for "a competitions bar near the top of the
-site, right under the main menu", with an "All competitions" option where a
-reader sees every league and cup we carry, finds one by country or region,
-and opens its page. The competition pages existed; nothing listed them all,
-and `GET /competitions` is the follow controls' list, sorted by name, without
-countries.
-
-**Decision.**
-1. **One read, our own** (rule 2): `GET /competitions/directory?locale=` in
-   the catalog boundary, every active competition with its scope, kind,
-   country and logo, in the product's order -- the scores page's rule
-   (D-207): the reader's language's own order when it has one, else
-   `competition.display_order`, the unplaced ones after by country and name.
-   Names come through the localised-names interceptor (T-1312), so `/fa`
-   reads the Persian names. `GET /competitions` is unchanged.
-2. **The bar** is a second `<nav>` ("Competitions") right under the header on
-   every page, above the lite banner and the live strip: "All competitions"
-   first (so a phone never has to scroll to find it), then the first
-   `BAR_COMPETITIONS` (12) of the product's order, a row that scrolls
-   sideways. It is rendered on the server with the header (no layout shift)
-   and its answer is shared between pages for a few seconds per language,
-   as the live strip's is. When the API cannot answer it is "All
-   competitions" alone, never a guessed row (rule 3).
-3. **The page** `/competitions` groups: international, then continental, then
-   one group per country; a country with a placed competition in the
-   product's order, the rest by their name in the reader's alphabet. Inside a
-   group the product's order holds. We store no confederation, so the
-   continental competitions are one group rather than one per continent; no
-   region is invented. A filter matches a competition's name, short form,
-   country or group heading, folding case, accents and the Arabic/Persian
-   letter variants; it is a plain GET form (`?q=`) that narrows as the reader
-   types when a script runs. An unreachable API and an empty catalogue each
-   have their own sentence.
-
-**Alternatives.** *Re-sort `GET /competitions`*: the follow controls and the
-sitemap rely on its name order. *Group in the API*: the countries' order
-among the unplaced ones is the reader's alphabet, which is the web's to know
-after the names are localised. *Every competition in the bar*: 39 names make
-a row nobody scrolls; the page is for the rest.
-
-## D-226 — A Highlights page of every feed clip, by the match page's territory rule, and only the clips offered everywhere without a territory
-
-**Status:** Accepted · 2026-10-21 (agent, from the maintainer's teammate's request, which the maintainer asked for now) · **Task:** T-1434 · **Follows:** T-312, T-1366, D-069, D-184, D-199, D-225, rules 2-4
-
-**Context.** Highlights showed only on a match page. The teammate asked for
-"a separate tab called Highlights that lists all highlight links, where you
-can filter the available highlights by league name". The clips are the
-licensed feed's verified links (`highlight_feed`, D-184), each with a
-territory rule that the match page evaluates per viewer (`offeredIn`); a
-reader who has chosen no territory is shown no highlight on a match page.
-
-**Decision.**
-1. **One read in the viewing boundary:** `GET /highlights?territory=&competition=&page=`,
-   public. The territory is answered as the match page answers it (`?territory=`,
-   else the member's stored one, else none; an unknown code is a 400). Every
-   clip not withdrawn, from a source not dropped, on an active competition,
-   newest match first, twenty to a page (`HIGHLIGHTS_PAGE_SIZE`), at most 500
-   pages; a malformed competition id or page is a 400.
-2. **The territory rule is the match page's, in one place.** With a territory
-   chosen, a clip is listed where `offeredIn` offers it there. With none, only
-   the clips whose rule offers them in every territory (`offeredEverywhere`:
-   no allow list, nothing blocked) -- those are offered to that reader
-   whatever their territory turns out to be -- and the page says that clips
-   limited to some countries wait for a territory, with the chooser beside it.
-   *Rejected:* listing nothing until a territory is chosen (the match page's
-   answer): a guest's first visit to a tab called Highlights would be an empty
-   page with a form; listing every clip: a clip blocked where the reader is
-   would be offered.
-3. **Feed clips only.** The desk's official pages (`highlight`, D-069) are per
-   territory under declared coverage; on a match page a desk page wins over the
-   feed's clip, and the list's link to the match leads there. The list is the
-   feed's links, which is what the request named.
-4. **The filter** is the competitions with at least one clip offered to this
-   reader (most clips first), names in the reader's language; picking one goes
-   back to page 1; the filter, the page and a guest's territory travel on
-   every link. Each clip is a link to its match page and a link out to the
-   original, naming the publisher (`LinkOut`), never a player (D-184). An empty
-   list, a page past the end and an unreachable API each have their sentence
-   (rule 3), and the page says when the links were last read.
-5. **The nav:** "Highlights" («هایلایت‌ها») after "Watch" in the header's nav;
-   the phone's five tabs are unchanged, so on a phone it is in the Menu.
-6. **The E2E seed** gains one clip for the finished seeded match, offered
-   everywhere, on a reserved `example.com` address, so the journey meets a
-   listed clip.
 
 ## D-223 — A player's season in every competition and his career, as the provider counts them, beside our own record and never in it
 
@@ -11335,3 +11282,92 @@ key players, leader boards) would have to learn to exclude them, and one
 forgotten reader would blend two sources. *Map players by name or shirt
 number automatically*: rule 1. *Store Highlightly's rating too*: a second
 rating beside API-Football's invites exactly the blending rule 6 forbids.
+
+## D-225 — A competitions bar under the header, and an All competitions page grouped by region and country
+
+**Status:** Accepted · 2026-10-20 (agent, from the maintainer's teammate's request, which the maintainer asked for now) · **Task:** T-1433 · **Follows:** T-504, D-154, D-175, D-199, D-207, rules 2-3, 7
+
+**Context.** The teammate asked for "a competitions bar near the top of the
+site, right under the main menu", with an "All competitions" option where a
+reader sees every league and cup we carry, finds one by country or region,
+and opens its page. The competition pages existed; nothing listed them all,
+and `GET /competitions` is the follow controls' list, sorted by name, without
+countries.
+
+**Decision.**
+1. **One read, our own** (rule 2): `GET /competitions/directory?locale=` in
+   the catalog boundary, every active competition with its scope, kind,
+   country and logo, in the product's order -- the scores page's rule
+   (D-207): the reader's language's own order when it has one, else
+   `competition.display_order`, the unplaced ones after by country and name.
+   Names come through the localised-names interceptor (T-1312), so `/fa`
+   reads the Persian names. `GET /competitions` is unchanged.
+2. **The bar** is a second `<nav>` ("Competitions") right under the header on
+   every page, above the lite banner and the live strip: "All competitions"
+   first (so a phone never has to scroll to find it), then the first
+   `BAR_COMPETITIONS` (12) of the product's order, a row that scrolls
+   sideways. It is rendered on the server with the header (no layout shift)
+   and its answer is shared between pages for a few seconds per language,
+   as the live strip's is. When the API cannot answer it is "All
+   competitions" alone, never a guessed row (rule 3).
+3. **The page** `/competitions` groups: international, then continental, then
+   one group per country; a country with a placed competition in the
+   product's order, the rest by their name in the reader's alphabet. Inside a
+   group the product's order holds. We store no confederation, so the
+   continental competitions are one group rather than one per continent; no
+   region is invented. A filter matches a competition's name, short form,
+   country or group heading, folding case, accents and the Arabic/Persian
+   letter variants; it is a plain GET form (`?q=`) that narrows as the reader
+   types when a script runs. An unreachable API and an empty catalogue each
+   have their own sentence.
+
+**Alternatives.** *Re-sort `GET /competitions`*: the follow controls and the
+sitemap rely on its name order. *Group in the API*: the countries' order
+among the unplaced ones is the reader's alphabet, which is the web's to know
+after the names are localised. *Every competition in the bar*: 39 names make
+a row nobody scrolls; the page is for the rest.
+
+## D-226 — A Highlights page of every feed clip, by the match page's territory rule, and only the clips offered everywhere without a territory
+
+**Status:** Accepted · 2026-10-21 (agent, from the maintainer's teammate's request, which the maintainer asked for now) · **Task:** T-1434 · **Follows:** T-312, T-1366, D-069, D-184, D-199, D-225, rules 2-4
+
+**Context.** Highlights showed only on a match page. The teammate asked for
+"a separate tab called Highlights that lists all highlight links, where you
+can filter the available highlights by league name". The clips are the
+licensed feed's verified links (`highlight_feed`, D-184), each with a
+territory rule that the match page evaluates per viewer (`offeredIn`); a
+reader who has chosen no territory is shown no highlight on a match page.
+
+**Decision.**
+1. **One read in the viewing boundary:** `GET /highlights?territory=&competition=&page=`,
+   public. The territory is answered as the match page answers it (`?territory=`,
+   else the member's stored one, else none; an unknown code is a 400). Every
+   clip not withdrawn, from a source not dropped, on an active competition,
+   newest match first, twenty to a page (`HIGHLIGHTS_PAGE_SIZE`), at most 500
+   pages; a malformed competition id or page is a 400.
+2. **The territory rule is the match page's, in one place.** With a territory
+   chosen, a clip is listed where `offeredIn` offers it there. With none, only
+   the clips whose rule offers them in every territory (`offeredEverywhere`:
+   no allow list, nothing blocked) -- those are offered to that reader
+   whatever their territory turns out to be -- and the page says that clips
+   limited to some countries wait for a territory, with the chooser beside it.
+   *Rejected:* listing nothing until a territory is chosen (the match page's
+   answer): a guest's first visit to a tab called Highlights would be an empty
+   page with a form; listing every clip: a clip blocked where the reader is
+   would be offered.
+3. **Feed clips only.** The desk's official pages (`highlight`, D-069) are per
+   territory under declared coverage; on a match page a desk page wins over the
+   feed's clip, and the list's link to the match leads there. The list is the
+   feed's links, which is what the request named.
+4. **The filter** is the competitions with at least one clip offered to this
+   reader (most clips first), names in the reader's language; picking one goes
+   back to page 1; the filter, the page and a guest's territory travel on
+   every link. Each clip is a link to its match page and a link out to the
+   original, naming the publisher (`LinkOut`), never a player (D-184). An empty
+   list, a page past the end and an unreachable API each have their sentence
+   (rule 3), and the page says when the links were last read.
+5. **The nav:** "Highlights" («هایلایت‌ها») after "Watch" in the header's nav;
+   the phone's five tabs are unchanged, so on a phone it is in the Menu.
+6. **The E2E seed** gains one clip for the finished seeded match, offered
+   everywhere, on a reserved `example.com` address, so the journey meets a
+   listed clip.

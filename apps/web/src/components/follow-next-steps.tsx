@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { FollowSuggestionsResponse } from '@fmip/contracts';
+import { FollowIntentMark } from '@/components/push-offer-mark';
 import { Translated } from '@/components/translated';
 import type { ApiResult } from '@/lib/api';
 import { followAction } from '@/lib/auth-actions';
@@ -147,6 +148,7 @@ function FollowButton({
     <form action={action} className="contents">
       <input type="hidden" name="entity_type" value={type} />
       <input type="hidden" name="entity_id" value={id} />
+      <FollowIntentMark />
       <button type="submit" className="text-sm underline" data-testid="next-steps-follow">
         <Translated locale={locale} message="feed.nextSteps.follow" />
         <span className="sr-only"> {name}</span>

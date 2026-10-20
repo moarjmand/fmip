@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { FixtureStatus, FollowedEntity } from '@fmip/contracts';
 import { followAction, unfollowAction } from '@/lib/auth-actions';
+import { FollowIntentMark } from '@/components/push-offer-mark';
+import { PushOfferFor } from '@/components/push-offer-for';
 import { Translated } from '@/components/translated';
 import { Button } from '@/components/ui';
 
@@ -13,7 +15,8 @@ const OVER: readonly FixtureStatus[] = ['finished', 'awarded', 'cancelled', 'aba
  *
  * A followed match joins the member to its alerts under their own match-alert
  * switches, mutes and quiet hours; following it as well as its teams tells
- * them nothing twice. The follow ends by itself three hours after full-time,
+ * them nothing twice. Following it brings up the offer of push on this device
+ * when the device has none (T-1429). The follow ends by itself three hours after full-time,
  * and the sentence beside the button says so, so nobody wonders why a match
  * from last week is no longer followed. A match that is over is not offered
  * (the API would allow the last three hours, but there is nothing left to be
@@ -22,12 +25,15 @@ const OVER: readonly FixtureStatus[] = ['finished', 'awarded', 'cancelled', 'aba
 export function MatchFollow({
   locale,
   fixtureId,
+  name,
   status,
   signedIn,
   following,
 }: {
   locale: string;
   fixtureId: string;
+  /** "Arsenal v Chelsea", for the push offer. */
+  name: string;
   status: FixtureStatus;
   signedIn: boolean;
   /** The member's follows, or null when they could not be read. */
@@ -58,7 +64,7 @@ export function MatchFollow({
     );
   }
   const action = (followed ? unfollowAction : followAction).bind(null, locale);
-  return (
+  const form = (
     <form
       action={action}
       className="flex flex-wrap items-center gap-x-3 gap-y-1"
@@ -66,6 +72,7 @@ export function MatchFollow({
     >
       <input type="hidden" name="entity_type" value="fixture" />
       <input type="hidden" name="entity_id" value={fixtureId} />
+      {!followed && <FollowIntentMark />}
       <Button type="submit" variant={followed ? 'ghost' : 'secondary'} size="sm">
         <Translated
           locale={locale}
@@ -79,5 +86,12 @@ export function MatchFollow({
         />
       </span>
     </form>
+  );
+  if (!followed) return form;
+  return (
+    <div className="flex flex-col gap-2">
+      {form}
+      <PushOfferFor locale={locale} entity={{ type: 'fixture', id: fixtureId }} name={name} />
+    </div>
   );
 }

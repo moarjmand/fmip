@@ -172,6 +172,7 @@ export default async function TeamPage({
             locale={locale}
             entityType="team"
             entityId={t.id}
+            name={t.localised_name ?? t.name}
             signedIn={me !== null}
             following={following}
             followingKey="teamPage.follow.following"

@@ -19,6 +19,8 @@ import { ForecastBar, type ForecastBarWords } from '@/components/forecast-bar';
 import { FreshnessStamp, type FreshnessWords } from '@/components/freshness-stamp';
 import { MinutesFigure } from '@/components/minutes-figure';
 import { Score } from '@/components/score';
+import { FollowIntentMark } from '@/components/push-offer-mark';
+import { PushOfferFor } from '@/components/push-offer-for';
 import { Stamp } from '@/components/stamp';
 import { Translated } from '@/components/translated';
 import { Button, ButtonLink, CoverageBadge, Icon } from '@/components/ui';
@@ -441,11 +443,14 @@ const notOver = (f: SeasonFixture): boolean => f.status === 'scheduled' || f.sta
 export function CompetitionFollow({
   locale,
   competitionId,
+  name,
   signedIn,
   following,
 }: {
   locale: string;
   competitionId: string;
+  /** The competition's name as the page shows it, for the push offer (T-1429). */
+  name: string;
   signedIn: boolean;
   following: FollowedEntity[] | null;
 }) {
@@ -454,6 +459,7 @@ export function CompetitionFollow({
       locale={locale}
       entityType="competition"
       entityId={competitionId}
+      name={name}
       signedIn={signedIn}
       following={following}
       followingKey="competitionPage.follow.following"
@@ -471,6 +477,7 @@ export function EntityFollow({
   locale,
   entityType,
   entityId,
+  name,
   signedIn,
   following,
   followingKey,
@@ -479,6 +486,12 @@ export function EntityFollow({
   locale: string;
   entityType: 'competition' | 'team' | 'person';
   entityId: string;
+  /**
+   * The name the page shows. A team or a competition followed here brings up
+   * the push offer naming it (T-1429); a player's follow sends no match
+   * alerts, so it is not offered.
+   */
+  name?: string;
   signedIn: boolean;
   following: FollowedEntity[] | null;
   followingKey: MessageKey;
@@ -506,7 +519,8 @@ export function EntityFollow({
   }
   const followed = following.some((f) => f.entity_type === entityType && f.entity_id === entityId);
   const action = (followed ? unfollowAction : followAction).bind(null, locale);
-  return (
+  const offered = entityType !== 'person' && name !== undefined;
+  const form = (
     <form
       action={action}
       className="flex flex-col items-start gap-1.5"
@@ -515,6 +529,7 @@ export function EntityFollow({
     >
       <input type="hidden" name="entity_type" value={entityType} />
       <input type="hidden" name="entity_id" value={entityId} />
+      {offered && !followed && <FollowIntentMark />}
       {followed && (
         <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
           <Icon name="check" size={16} />
@@ -529,6 +544,13 @@ export function EntityFollow({
         />
       </Button>
     </form>
+  );
+  if (!followed || entityType === 'person' || name === undefined) return form;
+  return (
+    <div className="flex flex-col items-start gap-2">
+      {form}
+      <PushOfferFor locale={locale} entity={{ type: entityType, id: entityId }} name={name} />
+    </div>
   );
 }
 

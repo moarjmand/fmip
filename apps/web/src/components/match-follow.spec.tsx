@@ -38,6 +38,7 @@ function render(props: Partial<Parameters<typeof MatchFollow>[0]> = {}, locale =
     <MatchFollow
       locale={locale}
       fixtureId={FIXTURE}
+      name="Home v Away"
       status="scheduled"
       signedIn
       following={[]}

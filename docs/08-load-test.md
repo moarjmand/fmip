@@ -181,7 +181,7 @@ made per row, a timeout -- does.
 | --- | --- | --- |
 | home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
 | scores `/en/scores` | 173.3 / 174 (raised 2026-10-11, T-1387) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 184.2 / 185 (raised 2026-10-21, T-1432) | 77 / 76 / 300 |
+| match centre `/en/match/…0901` | 184.8 / 185 (raised 2026-10-21, T-1432) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
@@ -236,6 +236,11 @@ table in the client bundle. The build measured
 server instead would have kept the budget but frozen the card at the page's
 load, which is the wrong trade for a figure that lands after the match. No
 library was added.
+T-1429's push offer then joined the page within the 185: only the follow
+form's mark is in the first load (`push-offer-mark.tsx`, with the intent
+rules alone), and the offer itself is fetched by a plain `import()` after a
+follow (`push-offer-lazy.tsx`); `next/dynamic`'s loader would have cost
+more than it saved. 184.8 with both.
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the

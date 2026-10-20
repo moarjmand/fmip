@@ -5,7 +5,8 @@ import type { PushState } from '@fmip/contracts';
 import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';
 import type { PushToggleMessages } from '@/lib/notification-messages';
-import { subscribePushAction, unsubscribePushAction } from '@/lib/push-actions';
+import { unsubscribePushAction } from '@/lib/push-actions';
+import { subscribeThisDevice } from '@/lib/push-subscribe';
 import { Button } from '@/components/ui';
 
 /**
@@ -16,19 +17,13 @@ import { Button } from '@/components/ui';
  * reverse. Where the deployment has no push channel the section says so
  * instead of offering a switch that would do nothing.
  *
+ * The asking and subscribing is `subscribeThisDevice`, shared with the offer
+ * a follow brings up (T-1429).
+ *
  * Its words are resolved on the server for the reader's locale and handed
  * down (T-1040, T-1305); the device count is a plural resolved there too.
  */
 type Phase = 'checking' | 'unsupported' | 'off' | 'on' | 'working';
-
-function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
-  const normalised = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(normalised);
-  const bytes = new Uint8Array(new ArrayBuffer(raw.length));
-  for (let i = 0; i < raw.length; i += 1) bytes[i] = raw.charCodeAt(i);
-  return bytes;
-}
 
 export function PushToggle({
   locale,
@@ -87,31 +82,17 @@ export function PushToggle({
     start(async () => {
       setMessage(null);
       setPhase('working');
-      try {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          setPhase('off');
-          setMessage(messages['alerts.push.denied']);
-          return;
-        }
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
-        });
-        const outcome = await subscribePushAction(locale, subscription.toJSON());
-        if (!outcome?.ok) {
-          await subscription.unsubscribe();
-          setPhase('off');
-          setMessage(outcome?.message ?? messages['alerts.push.notRegistered']);
-          return;
-        }
+      const outcome = await subscribeThisDevice(locale, publicKey);
+      if (outcome.ok) {
         setPhase('on');
         setMessage(messages['alerts.push.isOn']);
-      } catch (error) {
-        setPhase('off');
-        setMessage(error instanceof Error ? error.message : messages['alerts.push.couldNotOn']);
+        return;
       }
+      setPhase('off');
+      if (outcome.reason === 'denied') setMessage(messages['alerts.push.denied']);
+      else if (outcome.reason === 'notRegistered')
+        setMessage(outcome.message ?? messages['alerts.push.notRegistered']);
+      else setMessage(outcome.message ?? messages['alerts.push.couldNotOn']);
     });
 
   const turnOff = () =>
