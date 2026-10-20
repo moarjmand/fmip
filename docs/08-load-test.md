@@ -181,7 +181,7 @@ made per row, a timeout -- does.
 | --- | --- | --- |
 | home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
 | scores `/en/scores` | 173.3 / 174 (raised 2026-10-11, T-1387) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 183.0 / 184 (raised 2026-10-11, T-1388) | 77 / 76 / 300 |
+| match centre `/en/match/…0901` | 184.2 / 185 (raised 2026-10-21, T-1432) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
@@ -227,6 +227,15 @@ together, within its 184, so its budget is unchanged. No library was added. What
 on a slow connection is larger than what it costs everyone: every web font
 (four woff2 files on `/en/scores`, six on `/fa/scores`; Mona Sans's Latin
 file alone is 98 kB) and every crest and photo.
+
+**The raise of 2026-10-21 (T-1432, D-224).** The per-player expected-goals
+card is part of the match centre's live view, so it updates with the rest of
+the statistics when the box score arrives after full-time; that keeps its
+table in the client bundle. The build measured
+184.2 kB gzip against 184, so the budget goes to 185. Drawing the card on the
+server instead would have kept the budget but frozen the card at the page's
+load, which is the wrong trade for a figure that lands after the match. No
+library was added.
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the
