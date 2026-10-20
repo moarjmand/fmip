@@ -26,3 +26,18 @@ ON CONFLICT (id) DO UPDATE SET
   fixture_id = EXCLUDED.fixture_id,
   team_id    = EXCLUDED.team_id,
   side       = EXCLUDED.side;
+
+-- One verified highlight clip for the finished seeded match (T-1434), so the
+-- Highlights page's journey (`journeys/highlights.spec.ts`) meets a listed
+-- clip: offered in every territory, from the Highlightly source the
+-- migration creates, on a reserved example address that is never followed.
+-- UUID block 0F = highlight_feed.
+INSERT INTO highlight_feed (id, fixture_id, source_id, url, title, publisher)
+VALUES ('00000000-0000-4000-8000-000000000f01', '00000000-0000-4000-8000-000000000901',
+        '00000000-0000-4000-8000-000000000902', 'https://example.com/highlights/e2e-0901',
+        'Highlights', 'Example Publisher')
+ON CONFLICT (id) DO UPDATE SET
+  fixture_id = EXCLUDED.fixture_id,
+  source_id  = EXCLUDED.source_id,
+  url        = EXCLUDED.url,
+  publisher  = EXCLUDED.publisher;

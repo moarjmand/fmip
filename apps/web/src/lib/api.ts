@@ -36,6 +36,8 @@ import type {
   CommunityConsensusResponse,
   CompetitionContext,
   CompetitionPage,
+  CompetitionDirectoryResponse,
+  HighlightsResponse,
   CompetitionsResponse,
   ConsensusListResponse,
   ConversationPage,
@@ -100,6 +102,7 @@ import type {
   PanelPermission,
   PlatformRules,
   PlayerPage,
+  PlayerProviderSeasons,
   PowerIndexResponse,
   PredictionHistoryResponse,
   PredictionResponse,
@@ -674,6 +677,27 @@ export async function fetchTeams(): Promise<TeamsResponse['teams'] | null> {
   return result.ok ? result.data.teams : null;
 }
 
+/**
+ * `GET /highlights${query}` (T-1434, D-226): the highlight links offered to
+ * this reader, newest match first, one page. The session, when there is one,
+ * is what lets the API answer for the member's stored territory.
+ */
+export function fetchHighlights(
+  query: string,
+  cookie: string | undefined,
+): Promise<ApiResult<HighlightsResponse>> {
+  return apiRequest<HighlightsResponse>(`/highlights${query}`, { cookie });
+}
+
+/**
+ * `GET /competitions/directory` (T-1433): every competition we follow with
+ * its country, in the product's order, names in the reader's language.
+ * Public; the header's competitions bar and the All competitions page.
+ */
+export function fetchCompetitionDirectory(): Promise<ApiResult<CompetitionDirectoryResponse>> {
+  return apiRequest<CompetitionDirectoryResponse>('/competitions/directory');
+}
+
 export async function fetchCompetitions(): Promise<CompetitionsResponse['competitions'] | null> {
   const result = await apiRequest<CompetitionsResponse>('/competitions');
   return result.ok ? result.data.competitions : null;
@@ -787,6 +811,14 @@ export function fetchSearch(query: string, cookie?: string): Promise<ApiResult<S
  */
 export function fetchPlayer(id: string, locale?: string): Promise<ApiResult<PlayerPage>> {
   return apiRequest<PlayerPage>(withLocale(`/players/${encodeURIComponent(id)}`, locale));
+}
+
+/**
+ * `GET /players/:id/provider-seasons` (T-1431, D-223): the player's season
+ * in every competition and his career, as the provider counts them. Public.
+ */
+export function fetchPlayerProviderSeasons(id: string): Promise<ApiResult<PlayerProviderSeasons>> {
+  return apiRequest<PlayerProviderSeasons>(`/players/${encodeURIComponent(id)}/provider-seasons`);
 }
 
 /** `GET /teams/:id?locale=` (T-036, T-303): the team page. Public. */

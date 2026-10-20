@@ -52,6 +52,15 @@ export function offeredIn(rule: TerritoryRule, territory: string): boolean {
   return rule.allowed.length === 0 || rule.allowed.includes(code);
 }
 
+/**
+ * Offered in every territory (T-1434): what a reader who has not said where
+ * they are may be shown. The same rule as `offeredIn`, for all codes at once:
+ * nothing blocked and no allow list.
+ */
+export function offeredEverywhere(rule: TerritoryRule): boolean {
+  return rule.blocked.length === 0 && rule.allowed.length === 0;
+}
+
 /** A finished match inside the window. */
 export interface FeedCandidate {
   fixtureId: string;

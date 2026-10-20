@@ -10,11 +10,13 @@
 
 import type {
   NormalisedAbsence,
+  NormalisedCareerEntry,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
   NormalisedLiveFixture,
   NormalisedPersonProfile,
+  NormalisedPlayerSeasonLine,
   NormalisedSeasonCoverage,
   NormalisedSquadPlayer,
   NormalisedStanding,
@@ -48,6 +50,7 @@ import {
   mapStatistics,
   seasonYear,
 } from './map';
+import { mapPlayerCareer, mapPlayerSeason } from './player-seasons';
 
 export const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
 
@@ -367,6 +370,45 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapPersonProfile(result.data.response, personExternalId),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/players?id=&season=`: a player's totals for one season in every
+   * competition the provider covers, one request (T-1431, D-223). Asked by
+   * player id, the answer is one page.
+   */
+  async getPlayerSeason(
+    personExternalId: string,
+    seasonLabel: string,
+  ): Promise<AdapterResult<NormalisedPlayerSeasonLine[]>> {
+    const season = seasonYear(seasonLabel);
+    if (season === null) {
+      return {
+        ok: false,
+        error: { kind: 'unsupported', message: `cannot read a season from "${seasonLabel}"` },
+        requests: 0,
+      };
+    }
+    const result = await this.call('/players', { id: personExternalId, season: String(season) });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapPlayerSeason(result.data.response, personExternalId, season),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /** `/players/teams?player=`: every team a player has played for, by season, one request (T-1431). */
+  async getPlayerCareer(personExternalId: string): Promise<AdapterResult<NormalisedCareerEntry[]>> {
+    const result = await this.call('/players/teams', { player: personExternalId });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapPlayerCareer(result.data.response),
       requests: 1,
       fetchedAt: result.receivedAt,
     };

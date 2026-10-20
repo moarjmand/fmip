@@ -216,7 +216,7 @@ export function HighlightsLink({
 }
 
 /** The site an address belongs to, without its "www.": what a link-out names when no publisher is. */
-function hostOf(url: string): string {
+export function hostOf(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, '');
   } catch {

@@ -7,11 +7,13 @@
 
 import type {
   NormalisedAbsence,
+  NormalisedCareerEntry,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
   NormalisedLiveFixture,
   NormalisedPersonProfile,
+  NormalisedPlayerSeasonLine,
   NormalisedSeasonCoverage,
   NormalisedSquadPlayer,
   NormalisedStanding,
@@ -152,11 +154,27 @@ export interface ProviderAdapter {
   getPersonProfile?(
     personExternalId: string,
   ): Promise<AdapterResult<NormalisedPersonProfile | null>>;
+  /**
+   * A player's totals for one season in every competition the provider
+   * covers, one line per competition and team (T-1431, D-223). One request.
+   * An empty list when the provider has no such player or season. Optional,
+   * like `getSquad`, and not a replayed call.
+   */
+  getPlayerSeason?(
+    personExternalId: string,
+    seasonLabel: string,
+  ): Promise<AdapterResult<NormalisedPlayerSeasonLine[]>>;
+  /**
+   * The clubs and national teams a player has played for and in which
+   * seasons (T-1431). One request. Optional, like `getSquad`, and not a
+   * replayed call.
+   */
+  getPlayerCareer?(personExternalId: string): Promise<AdapterResult<NormalisedCareerEntry[]>>;
 }
 
 export type AdapterCall = Exclude<
   keyof Omit<ProviderAdapter, 'manifest'>,
-  'getSquad' | 'getSeasonCoverage' | 'getPersonProfile'
+  'getSquad' | 'getSeasonCoverage' | 'getPersonProfile' | 'getPlayerSeason' | 'getPlayerCareer'
 >;
 
 export const ADAPTER_CALLS: readonly AdapterCall[] = [

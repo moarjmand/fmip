@@ -61,6 +61,8 @@ export type {
 } from './power-index';
 export type {
   ChannelPostHealth,
+  ChannelPostKind,
+  ChannelPostRecordSummary,
   ChannelPostState,
   ChatBusState,
   ChatHealth,
@@ -103,6 +105,7 @@ export type {
 // each source grants; "not supplied" and "not available" kept apart by shape.
 export {
   BROADCASTER_KINDS,
+  HIGHLIGHTS_PAGE_SIZE,
   VIEWING_ACCESS,
   VIEWING_BULK_MAX,
   VIEWING_COVERAGE_STATES,
@@ -116,11 +119,15 @@ export type {
   BroadcasterResponse,
   BroadcastersResponse,
   Highlight,
+  HighlightCompetition,
+  HighlightListItem,
+  HighlightListTeam,
   HighlightRequest,
   BoxScoreFeedHealth,
   BoxScoreFeedRun,
   HighlightsFeedHealth,
   HighlightsFeedRun,
+  HighlightsResponse,
   MatchViewing,
   ViewingAccess,
   ViewingBatchResponse,
@@ -177,6 +184,8 @@ export {
   TEAM_AVERAGE_METRICS,
 } from './catalog';
 export type {
+  CompetitionDirectoryEntry,
+  CompetitionDirectoryResponse,
   CompetitionPage,
   CompetitionSummary,
   CompetitionsResponse,
@@ -227,6 +236,12 @@ export type {
   TeamSummary,
   TeamsResponse,
 } from './catalog';
+// A player's season totals and career as the provider counts them (T-1431, D-223).
+export type {
+  PlayerProviderCareerTeam,
+  PlayerProviderSeasonLine,
+  PlayerProviderSeasons,
+} from './player-provider-seasons';
 // The match centre's competition context (blueprint 4.2, T-840).
 export type {
   CompetitionContext,

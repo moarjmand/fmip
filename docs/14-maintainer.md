@@ -697,6 +697,12 @@ with no match posts nothing. It is built and tested, and **off** until the
 two values below exist on the server: `check-setup.sh` reports it as `off`,
 which is the designed state, not a fault.
 
+Since T-1430 (D-222) the same channel and the same hour also carry, just
+before the day's forecasts, the previous day's results against the model's
+forecasts ("the model's most likely outcome happened in N of M matches"),
+and on Mondays the model's accuracy over the week just ended, linking to
+the site's weekly accuracy page. Nothing more to configure.
+
 **Why it is yours.** Creating the bot and the channel is opening accounts,
 and the bot's token is a secret. Nothing in chat, nothing in a file the
 agent writes.

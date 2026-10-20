@@ -51,6 +51,37 @@ export interface CompetitionsResponse {
   competitions: CompetitionSummary[];
 }
 
+/**
+ * One competition in the directory (T-1433): the header's competitions bar
+ * and the All competitions page. Its country is named so the page can group
+ * by it; a continental or international competition has none.
+ */
+export interface CompetitionDirectoryEntry {
+  id: string;
+  name: string;
+  short_name: string | null;
+  scope: 'domestic' | 'continental' | 'international';
+  kind: 'league' | 'cup' | 'super_cup' | 'qualifying' | 'friendly';
+  country: { id: string; name: string; code: string } | null;
+  /**
+   * The competition's stated place in the reader's language's order (D-207),
+   * else the default order (T-504, D-154); `null` when none is stated, and
+   * then it comes after every placed one.
+   */
+  order: number | null;
+  /** The competition's logo from our own origin (T-1320). */
+  logo: EntityMedia;
+}
+
+/**
+ * `GET /competitions/directory?locale=` (T-1433): every active competition
+ * in the product's order -- the order the scores page lists them in -- with
+ * names in the reader's language (T-1312).
+ */
+export interface CompetitionDirectoryResponse {
+  competitions: CompetitionDirectoryEntry[];
+}
+
 /** How many teams `GET /follow-suggestions` names under each competition. */
 export const SUGGESTED_TEAMS_PER_COMPETITION = 5;
 

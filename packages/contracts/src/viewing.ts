@@ -174,6 +174,73 @@ export interface ViewingBatchResponse {
   fixtures: MatchViewing[];
 }
 
+/** How many clips one page of `GET /highlights` holds. */
+export const HIGHLIGHTS_PAGE_SIZE = 20;
+
+/** A side of a listed clip's match: the team by id, named in the reader's language. */
+export interface HighlightListTeam {
+  id: string;
+  name: string;
+  short_name: string | null;
+}
+
+/**
+ * One clip on the Highlights page (T-1434): a licensed feed's link to the
+ * original (D-184, link only, never embedded) with its match. `score` is the
+ * latest stored score (after extra time where played), `null` when none is
+ * stored; `penalties` only after a shoot-out.
+ */
+export interface HighlightListItem {
+  id: string;
+  url: string;
+  publisher: string | null;
+  source: ViewingSource;
+  fixture: {
+    id: string;
+    kickoff_at: string;
+    status: FixtureStatus;
+    competition: { id: string; name: string; short_name: string | null };
+    home: HighlightListTeam;
+    away: HighlightListTeam;
+    score: { home: number; away: number } | null;
+    penalties: { home: number; away: number } | null;
+  };
+  last_updated_at: string;
+}
+
+/** A competition the filter offers: one with at least one clip offered to this reader. */
+export interface HighlightCompetition {
+  id: string;
+  name: string;
+  short_name: string | null;
+  count: number;
+}
+
+/**
+ * `GET /highlights?territory=&competition=&page=` (T-1434, D-226): every
+ * highlight link offered to the reader, newest match first, by page.
+ *
+ * `territory` is answered as on a match page (T-312). With one chosen, a clip
+ * is listed where its rule offers it there (`offeredIn`); with none
+ * (`offered: 'everywhere'`), only clips whose rule offers them in every
+ * territory -- a clip limited to some countries waits for the reader to say
+ * where they are. `total` counts the clips under the filter; an empty
+ * `items` on page 1 is the empty state, never a missing one (rule 3).
+ * `last_updated_at` is when the newest listed clip was read, `null` with none.
+ */
+export interface HighlightsResponse {
+  generated_at: string;
+  territory: ViewingTerritory;
+  offered: 'territory' | 'everywhere';
+  competition: string | null;
+  competitions: HighlightCompetition[];
+  page: number;
+  page_size: number;
+  total: number;
+  items: HighlightListItem[];
+  last_updated_at: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // The editorial desk (T-313, D-069). Until a licence says otherwise, every
 // listing and every highlight is a row an editor entered from a public

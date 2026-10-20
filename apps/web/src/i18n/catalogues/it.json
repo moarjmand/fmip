@@ -10982,6 +10982,89 @@
     "text": "",
     "status": "untranslated"
   },
+  "playerPage.provider.seasons": {
+    "source": "Every competition, as {source} counts it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.seasonsNote": {
+    "source": "{source}'s totals for the season, including cups and national-team matches we do not follow match by match. Where our own record from the matches counts a competition, it stays the figure that counts, and {source}'s is neither shown beside it nor added to it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.season": {
+    "source": "Season starting {year}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.notAsked": {
+    "source": "{source} has not been asked about this player yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.noLines": {
+    "source": "{source} lists no appearance this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.onlyOurs": {
+    "source": "Every competition {source} lists this season is counted in our own record from the matches, above.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.countedByUs": {
+    "source": "Also this season, in our own record from the matches: {list}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.unlisted": {
+    "source": {
+      "one": "{source} also lists {count} competition or team that is not in our catalogue; it is left out.",
+      "other": "{source} also lists {count} competitions or teams that are not in our catalogue; they are left out."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "playerPage.provider.fetched": {
+    "source": "Fetched from {source}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.career": {
+    "source": "Career, as {source} lists it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.careerNote": {
+    "source": "The seasons {source} lists for each team, by the year each season starts. Dates of joining and leaving are not supplied.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.noCareer": {
+    "source": "{source} lists no team we hold for this player.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.provider.dash": {
+    "source": "A dash is a figure {source} did not supply, not a zero.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.rating": {
+    "source": "Rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.saves": {
+    "source": "Saves",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.conceded": {
+    "source": "Conceded",
+    "text": "",
+    "status": "untranslated"
+  },
   "compare.title": {
     "source": "Compare players",
     "text": "",
@@ -11874,6 +11957,151 @@
   },
   "matchCentre.noEventsYet": {
     "source": "No events recorded yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.bar.label": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.bar.all": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.title": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.metaDescription": {
+    "source": "Every league and cup FMIP follows, grouped by country and region, each with its own page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.lead": {
+    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.filter": {
+    "source": "Find a competition or country",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.jump": {
+    "source": "Countries and regions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.group.international": {
+    "source": "International",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.group.continental": {
+    "source": "Continental",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.noMatch": {
+    "source": "No competition we follow matches this search.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.unreachable": {
+    "source": "The list of competitions could not be loaded just now. Please try again in a moment.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.empty": {
+    "source": "No competitions are followed yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "nav.highlights": {
+    "source": "Highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.title": {
+    "source": "Highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.metaDescription": {
+    "source": "Official highlight links for the matches FMIP follows, newest first, filtered by competition. Each opens on the publisher's own site.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.lead": {
+    "source": "Official highlights of the matches we follow, newest first. Each link opens on the publisher's own site; we don't host or play video.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.unreachable": {
+    "source": "The highlights could not be loaded just now. Please try again in a moment.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.everywhere": {
+    "source": "Choose your territory to see every highlight offered there. Until then only the clips offered in every country are listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.filter": {
+    "source": "Filter by competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.empty": {
+    "source": "No highlights are offered here yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.emptyCompetition": {
+    "source": "No highlights of this competition are offered here yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.pastEnd": {
+    "source": "There are no more highlights on this page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.pages": {
+    "source": "Pages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.newer": {
+    "source": "Newer",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.older": {
+    "source": "Older",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.pageOf": {
+    "source": "Page {page} of {pages}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.updated": {
+    "source": "Links last read {time} ({zone})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.penalties": {
+    "source": "Pens",
     "text": "",
     "status": "untranslated"
   }
