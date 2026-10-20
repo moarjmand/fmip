@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   CompetitionContext,
+  CompetitionDirectoryEntry,
   CompetitionPage,
   CompetitionSummary,
   CountrySummary,
@@ -130,6 +131,46 @@ export class CatalogService {
          FROM competition WHERE is_active ORDER BY name`,
     );
     return rows;
+  }
+
+  /**
+   * The competitions directory (T-1433): every active competition with its
+   * country, in the product's order for the reader's language -- the scores
+   * page's rule (D-207): a language with an order of its own in
+   * `competition_display_order` reads it and a competition it does not place
+   * has none; a language with no rows there, or no locale, reads
+   * `competition.display_order`. Unplaced ones follow, by country and name
+   * (`directoryOrder`). Names are localised by the interceptor (T-1312).
+   */
+  async directory(locale: string | null): Promise<CompetitionDirectoryEntry[]> {
+    const { rows } = await this.pool.query<DirectoryRow>(
+      `SELECT c.id, c.name, c.short_name, c.scope, c.kind,
+              co.id AS country_id, co.name AS country_name, co.code AS country_code,
+              CASE WHEN EXISTS (SELECT 1 FROM competition_display_order lo WHERE lo.locale = $1)
+                   THEN (SELECT lo.position FROM competition_display_order lo
+                          WHERE lo.competition_id = c.id AND lo.locale = $1)
+                   ELSE c.display_order END AS stated_order
+         FROM competition c
+         LEFT JOIN country co ON co.id = c.country_id
+        WHERE c.is_active`,
+      [orderSubtag(locale)],
+    );
+    const media = await this.media.index({ competition: rows.map((r) => r.id) });
+    return directoryOrder(
+      rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        short_name: r.short_name,
+        scope: r.scope,
+        kind: r.kind,
+        country:
+          r.country_id === null
+            ? null
+            : { id: r.country_id, name: r.country_name ?? '', code: r.country_code ?? '' },
+        order: r.stated_order,
+        logo: media.logo(r.id),
+      })),
+    );
   }
 
   /**
@@ -692,4 +733,46 @@ export function managerOf(
         : { coverage: 'available', last_updated_at: lineup.updatedAt, data: lineup.coach },
     lineup_fixture: lineup.fixture,
   };
+}
+
+interface DirectoryRow {
+  id: string;
+  name: string;
+  short_name: string | null;
+  scope: CompetitionDirectoryEntry['scope'];
+  kind: CompetitionDirectoryEntry['kind'];
+  country_id: string | null;
+  country_name: string | null;
+  country_code: string | null;
+  stated_order: number | null;
+}
+
+/**
+ * The language subtag a stated order is kept under (D-207): `en-GB` reads
+ * the `en` order; `null` (no locale, or none that parses) reads the default.
+ */
+export function orderSubtag(locale: string | null): string | null {
+  if (locale === null) return null;
+  const language = locale.split('-')[0]?.toLowerCase() ?? '';
+  return /^[a-z]{2,3}$/.test(language) ? language : null;
+}
+
+/**
+ * The directory in the product's order (T-1433), the scores page's rule
+ * (T-504, D-207): a stated place first, lowest first; then the unplaced
+ * ones by country name (none first, as the scores page sorts an empty
+ * country) and competition name. Pure, so the order is one function.
+ */
+export function directoryOrder(
+  entries: readonly CompetitionDirectoryEntry[],
+): CompetitionDirectoryEntry[] {
+  const stated = (a: number | null, b: number | null): number =>
+    a === b ? 0 : a === null ? 1 : b === null ? -1 : a - b;
+  return [...entries].sort(
+    (a, b) =>
+      stated(a.order, b.order) ||
+      (a.country?.name ?? '').localeCompare(b.country?.name ?? '') ||
+      a.name.localeCompare(b.name) ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  );
 }

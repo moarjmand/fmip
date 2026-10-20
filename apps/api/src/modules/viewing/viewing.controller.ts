@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import type {
   ApiError,
+  HighlightsResponse,
   MatchViewing,
   ViewingBatchResponse,
   ViewingTerritory,
@@ -24,6 +25,18 @@ const NOT_A_TERRITORY: ApiError = {
   error: 'validation',
   message: 'That is not a territory. Codes are ISO 3166-1 alpha-2, such as GB or IR.',
 };
+
+/** The most pages `GET /highlights` answers: a ceiling, not a promise that many exist. */
+const MAX_PAGE = 500;
+
+/** `?page=` (T-1434): a whole number from 1 to `MAX_PAGE`, absent is 1; anything else is refused. */
+export function pageOf(value: unknown): number | null {
+  const v = Array.isArray(value) ? value[0] : value;
+  if (v === undefined || v === '') return 1;
+  if (typeof v !== 'string' || !/^\d{1,3}$/.test(v)) return null;
+  const n = Number(v);
+  return n >= 1 && n <= MAX_PAGE ? n : null;
+}
 
 /**
  * Where a match can be watched (blueprint 11, T-313), for anyone: `GET
@@ -88,5 +101,34 @@ export class ViewingController {
       territory,
       fixtures: await this.viewing.forFixtures(ids, territory),
     };
+  }
+
+  /**
+   * The Highlights page (T-1434, D-226): every feed clip offered in the
+   * viewer's territory (or, with none, in every territory), newest match
+   * first, `?competition=` to filter and `?page=` to page. Public.
+   */
+  @Get('highlights')
+  async highlights(
+    @Query('territory') asked: string | undefined,
+    @Query('competition') competition: unknown,
+    @Query('page') page: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<HighlightsResponse> {
+    const wanted = Array.isArray(competition) ? competition[0] : competition;
+    const id = typeof wanted === 'string' && wanted.trim() !== '' ? wanted.trim() : null;
+    const number = pageOf(page);
+    if ((id !== null && !UUID.test(id)) || number === null) {
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'The request is not valid.',
+        fields: {
+          ...(id !== null && !UUID.test(id) ? { competition: 'A competition id.' } : {}),
+          ...(number === null ? { page: `A whole number from 1 to ${MAX_PAGE}.` } : {}),
+        },
+      } satisfies ApiError);
+    }
+    const territory = await this.territory(asked, request);
+    return this.viewing.list(territory, id?.toLowerCase() ?? null, number);
   }
 }

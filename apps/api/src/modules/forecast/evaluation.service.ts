@@ -7,9 +7,11 @@ import type {
   ModelPerformanceResponse,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
-import { PostgresEvaluationStore } from './internal/evaluation-store';
+import { type CountedRow, PostgresEvaluationStore } from './internal/evaluation-store';
 import { adminAccuracy, publicAccuracy } from './internal/model-accuracy';
 import { UNIFORM_BRIER, UNIFORM_LOG_LOSS, score } from './internal/scoring';
+
+export type CountedEvaluation = CountedRow;
 
 export type EvaluateOutcome =
   | { kind: 'evaluated'; added: number; evaluations: ForecastEvaluation[] }
@@ -55,6 +57,17 @@ export class EvaluationService {
       last_updated_at: last?.evaluated_at ?? null,
       evaluations,
     };
+  }
+
+  /**
+   * Per fixture asked, the stored evaluation the accuracy figures count --
+   * the last published version computed before kick-off (D-209) -- with the
+   * probabilities it was scored on, or null; and whether such a version is
+   * available at all, scored or not yet (T-1430: the channel's results post).
+   * A fixture that does not exist is absent from the map.
+   */
+  async countedFor(fixtureIds: string[]): Promise<Map<string, CountedEvaluation>> {
+    return this.store.counted(fixtureIds);
   }
 
   /** The console's accuracy over time (T-1369): every version, published and shadow. */

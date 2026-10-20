@@ -1,5 +1,6 @@
 import type { ForecastVersion, ModelProbabilities, ScoresGroup } from '@fmip/contracts';
 import { coverageOf, roundToTotalOne } from '../../forecast/forecast.service';
+import { MAX_MESSAGE_LENGTH, packMessages } from './pack';
 
 /**
  * The day's post, as text (T-525). Pure: which matches, in what order, in
@@ -12,8 +13,7 @@ import { coverageOf, roundToTotalOne } from '../../forecast/forecast.service';
  * listed with those words (rule 3), never with numbers from anywhere else.
  */
 
-/** Telegram's ceiling for one message, and a sane one for any channel. */
-export const MAX_MESSAGE_LENGTH = 4096;
+export { MAX_MESSAGE_LENGTH } from './pack';
 
 /** The language of the post and of the pages it links to. */
 export const POST_LOCALE = 'en';
@@ -185,16 +185,13 @@ function matchText(match: PostMatch, origin: string, nameVersion: boolean): stri
   return `${kickoffTime(match.kickoffAt)}  ${match.home} v ${match.away}\n${line}\n${matchUrl(origin, match.fixtureId)}`;
 }
 
-const GAP = '\n\n';
-
 /**
  * The day's post, split into messages of at most `limit` characters, or null
  * when the day has no match to post -- a day with no matches posts nothing.
  *
- * Messages break between competitions; a competition is cut between matches
- * only when it alone is longer than a message, and its next part carries its
- * name again. Every message opens with the same two lines, so each one read
- * alone in the channel still says whose forecast it is.
+ * Messages break between competitions (`packMessages`); every message opens
+ * with the same two lines, so each one read alone in the channel still says
+ * whose forecast it is.
  */
 export function composeDailyPost(
   day: string,
@@ -209,47 +206,15 @@ export function composeDailyPost(
     ...new Set(matches.flatMap((m) => (m.forecast === null ? [] : [m.forecast.modelVersion]))),
   ].sort();
   const nameVersion = versions.length > 1;
-  // Room for the widest header the post could need, so the counter added
-  // after packing can never push a message over the limit.
-  const budget = limit - header(day, versions, 999, 999).length - GAP.length;
-
-  const bodies: string[][] = [];
-  let current: string[] = [];
-  const length = (blocks: string[]): number => blocks.join(GAP).length;
-  const flush = (): void => {
-    if (current.length > 0) bodies.push(current);
-    current = [];
-  };
-
-  for (const competition of competitions) {
-    const chunks = competition.matches.map((m) => matchText(m, origin, nameVersion));
-    const whole = [competition.title, ...chunks].join(GAP);
-    if (length([...current, whole]) <= budget) {
-      current.push(whole);
-      continue;
-    }
-    flush();
-    if (whole.length <= budget) {
-      current.push(whole);
-      continue;
-    }
-    // One competition longer than a message: cut between its matches.
-    let piece: string[] = [competition.title];
-    for (const chunk of chunks) {
-      if (piece.length > 1 && length([...piece, chunk]) > budget) {
-        bodies.push([piece.join(GAP)]);
-        piece = [`${competition.title} (continued)`];
-      }
-      piece.push(chunk);
-    }
-    current.push(piece.join(GAP));
-  }
-  flush();
-
   return {
     day,
-    messages: bodies.map(
-      (blocks, i) => `${header(day, versions, i + 1, bodies.length)}${GAP}${blocks.join(GAP)}`,
+    messages: packMessages(
+      competitions.map((competition) => ({
+        title: competition.title,
+        blocks: competition.matches.map((m) => matchText(m, origin, nameVersion)),
+      })),
+      (part, total) => header(day, versions, part, total),
+      limit,
     ),
     fixtures: matches.length,
     forecasts: matches.filter((m) => m.forecast !== null).length,

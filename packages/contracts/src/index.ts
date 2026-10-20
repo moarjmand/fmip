@@ -61,6 +61,8 @@ export type {
 } from './power-index';
 export type {
   ChannelPostHealth,
+  ChannelPostKind,
+  ChannelPostRecordSummary,
   ChannelPostState,
   ChatBusState,
   ChatHealth,
@@ -103,6 +105,7 @@ export type {
 // each source grants; "not supplied" and "not available" kept apart by shape.
 export {
   BROADCASTER_KINDS,
+  HIGHLIGHTS_PAGE_SIZE,
   VIEWING_ACCESS,
   VIEWING_BULK_MAX,
   VIEWING_COVERAGE_STATES,
@@ -116,9 +119,13 @@ export type {
   BroadcasterResponse,
   BroadcastersResponse,
   Highlight,
+  HighlightCompetition,
+  HighlightListItem,
+  HighlightListTeam,
   HighlightRequest,
   HighlightsFeedHealth,
   HighlightsFeedRun,
+  HighlightsResponse,
   MatchViewing,
   ViewingAccess,
   ViewingBatchResponse,
@@ -175,6 +182,8 @@ export {
   TEAM_AVERAGE_METRICS,
 } from './catalog';
 export type {
+  CompetitionDirectoryEntry,
+  CompetitionDirectoryResponse,
   CompetitionPage,
   CompetitionSummary,
   CompetitionsResponse,
