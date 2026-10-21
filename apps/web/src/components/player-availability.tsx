@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { PlayerAvailability } from '@fmip/contracts';
 import { formatDateTime } from '@/i18n/format';
 import { availabilityStale } from '@/lib/player';

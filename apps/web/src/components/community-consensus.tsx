@@ -3,7 +3,7 @@ import {
   type ConsensusListEntry,
   MIN_CONSENSUS_SAMPLE,
 } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, message, plural, t } from '@/i18n/messages';
 import { formatKickoff } from '@/lib/scores';

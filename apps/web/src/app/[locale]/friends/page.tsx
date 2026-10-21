@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { FriendControls } from '@/components/friend-controls';
 import { MemberHandle, MemberName } from '@/components/member-name';

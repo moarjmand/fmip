@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
 import type { NewsEntity, NewsReport, StoryPage as StoryPageData } from '@fmip/contracts';
 import { StoryTypeTag } from '@/components/story-type';

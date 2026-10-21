@@ -1,5 +1,5 @@
 import type { MatchLineupPlayer, MatchLineups, MatchTeam } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { formatNumber } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { MessageText } from '@/components/message-text';

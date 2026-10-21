@@ -30,6 +30,25 @@ export default [
     },
   },
   {
+    // T-1456: internal links prefetch only when asked (`components/ui/link.tsx`).
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/components/ui/link.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'next/link',
+              message:
+                "Import Link from '@/components/ui/link': it turns off Next's viewport prefetch (T-1456).",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.spec.ts', '**/*.spec.tsx'],
     rules: {
       'no-restricted-syntax': 'off',

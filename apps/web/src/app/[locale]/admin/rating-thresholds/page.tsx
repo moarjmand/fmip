@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { RATING_THRESHOLD_BOUNDS, RATING_THRESHOLD_FIELDS } from '@fmip/contracts';
 import { ActionForm, type Field } from '@/components/action-form';

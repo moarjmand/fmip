@@ -8,7 +8,7 @@ import type {
   MatchOutcome,
   ScoreCard,
 } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { formatDate, formatVersionStamp } from '@/i18n/format';

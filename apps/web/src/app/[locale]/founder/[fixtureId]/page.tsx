@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
 import { ActionForm, type Field } from '@/components/action-form';
 import { Translated } from '@/components/translated';

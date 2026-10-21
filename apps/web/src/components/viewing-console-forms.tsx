@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { useActionState } from 'react';
 import { VIEWING_ACCESS, type Broadcaster, type ViewingUpcomingFixture } from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';

@@ -1,7 +1,7 @@
 'use client';
 
 import { type ReactNode, useActionState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { GroupAppealNote, GroupQueueSubject, QueuedReport } from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';
 import { type GroupDecisionKind, groupDecisionAction } from '@/lib/moderation-actions';

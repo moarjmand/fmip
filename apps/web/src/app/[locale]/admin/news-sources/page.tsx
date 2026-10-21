@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { NewsSourcesAdmin } from '@/components/news-sources-admin';
 import { fetchMe, fetchNewsSources } from '@/lib/api';

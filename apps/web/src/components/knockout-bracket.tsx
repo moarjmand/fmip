@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { KnockoutBracket as Bracket } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { formatFixtureDate, say, statusSuffix } from '@/lib/competition';

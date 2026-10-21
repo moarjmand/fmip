@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import type { PlayerMatch, PlayerPage, PlayerSeasonRecord } from '@fmip/contracts';
 import { Coverage, Panel, When, zoneWords } from '@/components/competition-page';

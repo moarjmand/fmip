@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { CANDIDATE_FAILURE_LOOKBACK_DAYS } from '@fmip/contracts';
 import type {
   AdminAlertsReport,

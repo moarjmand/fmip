@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { NewsCoverageReport as Report, NewsCoverageState } from '@fmip/contracts';
 import { Notice } from '@/components/ui';
 

@@ -1,5 +1,5 @@
 import type { FollowedEntity, NewsEntity } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { Translated } from '@/components/translated';
 import type { MessageKey } from '@/i18n/messages';
 import { storyFollowAction } from '@/lib/story-actions';

@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import type { TeamSeasonCount, TeamSeasonStats, TeamSeasonStatsLine } from '@fmip/contracts';
 import { Coverage, Panel } from '@/components/competition-page';

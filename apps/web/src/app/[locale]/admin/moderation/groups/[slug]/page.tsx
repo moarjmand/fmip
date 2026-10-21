@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { AppealNotes, GroupDecisionForm } from '@/components/group-moderation';
 import { fetchGroupModeration, fetchMe } from '@/lib/api';

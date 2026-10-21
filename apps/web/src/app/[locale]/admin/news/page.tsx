@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { STORY_TYPES, type StoryType } from '@fmip/contracts';
 import { NewsDesk, type DeskSelection } from '@/components/news-desk';

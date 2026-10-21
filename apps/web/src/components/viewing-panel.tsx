@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { MatchViewing, Territory, ViewingOption } from '@fmip/contracts';
 import { Pictured } from '@/components/lite-mode';
 import { MessageText } from '@/components/message-text';

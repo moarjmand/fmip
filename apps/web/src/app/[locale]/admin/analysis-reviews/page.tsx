@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { AnalysisQueue } from '@/components/analysis-queue';
 import { fetchAnalysisQueue, fetchMe } from '@/lib/api';

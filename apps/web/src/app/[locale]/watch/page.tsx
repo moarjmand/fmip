@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { MatchViewing, ScoreCard, ViewingTerritory } from '@fmip/contracts';
 import { EntityImage } from '@/components/entity-image';
 import { Translated } from '@/components/translated';

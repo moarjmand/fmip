@@ -5,7 +5,7 @@ import type {
   ScoreCard,
   TableRow,
 } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import { CommunityPicksBrief } from '@/components/community-consensus';
 import { EntityImage } from '@/components/entity-image';

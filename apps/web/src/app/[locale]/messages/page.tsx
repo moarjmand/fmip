@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { conversationTitle, threadStanding } from '@/lib/conversation-title';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { fetchConversations, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';

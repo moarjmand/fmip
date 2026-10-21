@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { usePathname } from 'next/navigation';
 import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';

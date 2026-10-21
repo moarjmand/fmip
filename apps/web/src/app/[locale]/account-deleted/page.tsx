@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { Translated } from '@/components/translated';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { t } from '@/i18n/messages';

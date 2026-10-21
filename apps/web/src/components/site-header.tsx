@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { cache } from 'react';
 import { BrandMark } from '@/components/brand-mark';
 import { CompetitionsBar } from '@/components/competitions-bar';

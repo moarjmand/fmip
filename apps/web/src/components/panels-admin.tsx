@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, type ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { PanelRecord } from '@fmip/contracts';
 import type { ActionState } from '@/lib/auth-actions';
 import { closePanelAction, openPanelAction } from '@/lib/panel-admin-actions';

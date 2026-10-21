@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { TeamSummary } from '@fmip/contracts';
 import { TimeZoneField } from '@/components/time-zone-field';
 import { Translated } from '@/components/translated';

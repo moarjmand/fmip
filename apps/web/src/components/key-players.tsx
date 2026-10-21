@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { Covered, KeyPlayers, KeyPlayersSide } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import {

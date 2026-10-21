@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { conversationTitle, threadStanding } from '@/lib/conversation-title';
 import type { ConversationSummary, Message, SharedCard } from '@fmip/contracts';
 import { MemberName } from '@/components/member-name';

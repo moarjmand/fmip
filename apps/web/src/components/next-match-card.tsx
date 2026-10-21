@@ -1,5 +1,5 @@
 import type { MatchViewing, TeamFixture } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { formatDate } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';

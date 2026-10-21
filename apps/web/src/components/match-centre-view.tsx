@@ -10,7 +10,7 @@ import type {
 } from '@fmip/contracts';
 import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, statValue } from '@/lib/match';
 import { isBehind } from '@/lib/live';
 import { formatKickoff, formatStamp, freshnessStamp, statusLabel } from '@/lib/scores';
