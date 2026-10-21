@@ -24,7 +24,6 @@ import { FilledMessage } from '@/components/filled-message';
 import { Module } from '@/components/match-centre-cards';
 import { MatchLineupsView } from '@/components/match-lineups';
 import { MessageText } from '@/components/message-text';
-import { VenueCard } from '@/components/venue-card';
 import { Score, ScorePair } from '@/components/score';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
@@ -38,6 +37,8 @@ export type MatchSlot =
   | 'headToHead'
   | 'coverage'
   | 'context'
+  // The ground's card (T-1438), from the server: a ground does not change in play.
+  | 'venue'
   | 'players'
   | 'forecast'
   | 'analysis'
@@ -223,7 +224,7 @@ export function MatchCentreView({
         <Region id="verdict">{slots.verdict}</Region>
         {slots.summary}
         <Region id="context">{slots.context}</Region>
-        <VenueCard venue={f.venue} locale={locale} words={words} />
+        {slots.venue}
         <Region id="news">{slots.news}</Region>
       </Panel>
     ),

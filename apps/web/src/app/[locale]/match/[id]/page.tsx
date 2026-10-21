@@ -28,6 +28,7 @@ import { ShareLink } from '@/components/share-link';
 import { MatchThreads } from '@/components/match-threads';
 import { PredictionSection } from '@/components/prediction-section';
 import { RelatedNews } from '@/components/related-news';
+import { VenueCard } from '@/components/venue-card';
 import { ViewingDesk } from '@/components/viewing-desk';
 import { HighlightsLink, ViewingPanel, WatchLine } from '@/components/viewing-panel';
 import {
@@ -290,6 +291,9 @@ export default async function MatchPage({
                   />
                 ),
                 coverage: <Coverage centre={result.data} words={words} />,
+                venue: (
+                  <VenueCard venue={result.data.fixture.venue} locale={locale} words={words} />
+                ),
                 // Each product in its own section with its own name: the model, the
                 // founder and the community are never one panel (rule 6, T-605).
                 // The machine-written summary exists only after full time; no
