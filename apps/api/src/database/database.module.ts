@@ -1,4 +1,4 @@
-import { Global, Inject, Module, type OnModuleDestroy } from '@nestjs/common';
+import { Global, Inject, Logger, Module, type OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
 
 /** Injection token for the shared `pg.Pool`. Modules ask for this, never for `Pool` by class. */
@@ -25,6 +25,27 @@ export function databaseUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string
 }
 
 /**
+ * The process's pool, which outlives a database restart (T-1435). When
+ * Postgres stops or restarts it ends every idle connection ("terminating
+ * connection due to administrator command"), and `pg` reports that as an
+ * `error` event on the pool. An event emitter with no `error` listener throws,
+ * so the whole API used to exit and lose whatever run it was in the middle
+ * of. With the listener the broken client is simply dropped from the pool and
+ * the next query opens a fresh connection; a query that was running at that
+ * moment still fails on its own promise, as it should.
+ */
+export function createPool(connectionString: string, log = new Logger('Database')): Pool {
+  const pool = new Pool({ connectionString });
+  pool.on('error', (error: Error) => {
+    log.warn('an idle database connection was closed; the pool will reconnect', {
+      event: 'database.idle_client_error',
+      error: error.message,
+    });
+  });
+  return pool;
+}
+
+/**
  * One connection pool for the whole process (D-025: plain `pg`, hand-written
  * SQL, no ORM). Global so that every boundary module can inject `PG_POOL`
  * without importing this module itself. The pool is created lazily by `pg`:
@@ -37,7 +58,7 @@ export function databaseUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string
   providers: [
     {
       provide: PG_POOL,
-      useFactory: (): Pool => new Pool({ connectionString: databaseUrlFromEnv() }),
+      useFactory: (): Pool => createPool(databaseUrlFromEnv()),
     },
   ],
   exports: [PG_POOL],
