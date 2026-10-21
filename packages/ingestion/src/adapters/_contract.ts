@@ -17,6 +17,7 @@ import type {
   NormalisedSeasonCoverage,
   NormalisedSquadPlayer,
   NormalisedStanding,
+  NormalisedTeamSeasonStats,
   NormalisedTeamFacts,
   NormalisedVenueFacts,
   Provider,
@@ -173,6 +174,16 @@ export interface ProviderAdapter {
    */
   getPlayerCareer?(personExternalId: string): Promise<AdapterResult<NormalisedCareerEntry[]>>;
   /**
+   * A team's statistics for one season of one competition (T-1437, D-228).
+   * One request. `null` when the provider has none for that team there.
+   * Optional, like `getSquad`, and not a replayed call.
+   */
+  getTeamSeasonStats?(
+    competitionExternalId: string,
+    seasonLabel: string,
+    teamExternalId: string,
+  ): Promise<AdapterResult<NormalisedTeamSeasonStats | null>>;
+  /**
    * Every team of a competition's season with its founding year and home
    * ground (T-1438, D-229). One request. Optional, like `getSquad`, and not
    * a replayed call.
@@ -195,6 +206,7 @@ export type AdapterCall = Exclude<
   | 'getPlayerCareer'
   | 'getSeasonTeams'
   | 'getVenue'
+  | 'getTeamSeasonStats'
 >;
 
 export const ADAPTER_CALLS: readonly AdapterCall[] = [

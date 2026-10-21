@@ -10720,6 +10720,221 @@
     "text": "",
     "status": "untranslated"
   },
+  "teamPage.seasonStats.title": {
+    "source": "Season statistics, as {source} counts them",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.note": {
+    "source": "{source}'s figures for one competition's season, beside our own table and home-and-away figures, never added to them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.seasons": {
+    "source": "Seasons with statistics",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.option": {
+    "source": "{competition} {season}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.notAsked": {
+    "source": "{source} has not been asked about this team's season yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.none": {
+    "source": "{source} has no statistics for this team in this competition's season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.noSeason": {
+    "source": "This team has played no match we hold, so there is no season to show.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.played": {
+    "source": "Played",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.wins": {
+    "source": "Won",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.draws": {
+    "source": "Drawn",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.losses": {
+    "source": "Lost",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.goalsFor": {
+    "source": "Goals for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.goalsAgainst": {
+    "source": "Goals against",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.cleanSheets": {
+    "source": "Clean sheets",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.failedToScore": {
+    "source": "Failed to score",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.homeAway": {
+    "source": "Home {home} · Away {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.form": {
+    "source": "Form",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.formNote": {
+    "source": "The latest results, oldest first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.byMinute": {
+    "source": "Goals by minute",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.minutes": {
+    "source": "Minutes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.scored": {
+    "source": "Scored",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.conceded": {
+    "source": "Conceded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.band": {
+    "source": "{from}–{to}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.bandsNote": {
+    "source": "{source}'s minute bands may not add up exactly to its goal totals.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.bandsWithheld": {
+    "source": "Goals by minute and penalties are not shown for this season: {source}'s minute bands do not match its own goal totals, as happens when it counts the kicks of a penalty shoot-out.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.bandsNone": {
+    "source": "{source} did not supply goals by minute.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.penalties": {
+    "source": "Penalties",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.penaltiesScored": {
+    "source": "Scored",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.penaltiesMissed": {
+    "source": "Missed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.biggestWin": {
+    "source": "Biggest win",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.biggestDefeat": {
+    "source": "Heaviest defeat",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.atHome": {
+    "source": "Home",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.awayFrom": {
+    "source": "Away",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.noResult": {
+    "source": "None",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.longestRuns": {
+    "source": "Longest runs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.runWins": {
+    "source": "Wins",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.runDraws": {
+    "source": "Draws",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.runLosses": {
+    "source": "Defeats",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.formations": {
+    "source": "Formations used",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.formation": {
+    "source": "Formation",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.matches": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.noFormations": {
+    "source": "{source} lists no formation for this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.seasonStats.dash": {
+    "source": "A dash is a figure {source} did not supply, not a zero.",
+    "text": "",
+    "status": "untranslated"
+  },
   "teamPage.squadIncomplete": {
     "source": "Positions or shirt numbers are not on record for every player.",
     "text": "",

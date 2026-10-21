@@ -103,6 +103,7 @@ import type {
   PlatformRules,
   PlayerPage,
   PlayerProviderSeasons,
+  TeamSeasonStats,
   PowerIndexResponse,
   PredictionHistoryResponse,
   PredictionResponse,
@@ -819,6 +820,18 @@ export function fetchPlayer(id: string, locale?: string): Promise<ApiResult<Play
  */
 export function fetchPlayerProviderSeasons(id: string): Promise<ApiResult<PlayerProviderSeasons>> {
   return apiRequest<PlayerProviderSeasons>(`/players/${encodeURIComponent(id)}/provider-seasons`);
+}
+
+/**
+ * `GET /teams/:id/season-stats?season=` (T-1437, D-228): one competition's
+ * season for the team as the provider counts it, and the seasons it has. Public.
+ */
+export function fetchTeamSeasonStats(
+  id: string,
+  season: string | null,
+): Promise<ApiResult<TeamSeasonStats>> {
+  const query = season === null ? '' : `?season=${encodeURIComponent(season)}`;
+  return apiRequest<TeamSeasonStats>(`/teams/${encodeURIComponent(id)}/season-stats${query}`);
 }
 
 /** `GET /teams/:id?locale=` (T-036, T-303): the team page. Public. */

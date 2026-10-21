@@ -19,6 +19,7 @@ import { JsonLd } from '@/components/json-ld';
 import { NextMatchCard } from '@/components/next-match-card';
 import { EntityNews } from '@/components/related-news';
 import { Stamp } from '@/components/stamp';
+import { TeamSeasonStatsPanel } from '@/components/team-season-stats';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 import { message } from '@/i18n/messages';
@@ -29,6 +30,7 @@ import {
   fetchFounderFeed,
   fetchMe,
   fetchTeam,
+  fetchTeamSeasonStats,
   fetchViewingBatch,
 } from '@/lib/api';
 import { pageLocale, say } from '@/lib/competition';
@@ -36,6 +38,7 @@ import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { OVERVIEW_MATCHES, type TeamTab, readTeamTab, seasonFigures } from '@/lib/team';
+import { readStatsSeason } from '@/lib/team-season-stats';
 import { readTerritoryQuery } from '@/lib/viewing';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
 
@@ -97,13 +100,15 @@ export default async function TeamPage({
   const tab: TeamTab = readTeamTab(query);
   const overview = tab === 'overview';
   const cookie = await sessionCookieHeader();
-  const [result, me, following, founder, news] = await Promise.all([
+  const [result, me, following, founder, news, seasonStats] = await Promise.all([
     fetchTeam(id, locale),
     fetchMe(cookie),
     fetchFollowing(cookie),
     // The Overview's own modules; the other tabs do not ask for them.
     overview ? fetchFounderFeed({ team: id, limit: 3 }) : null,
     overview ? fetchEntityNews('team', id, locale) : null,
+    // The provider's season statistics (T-1437): the Stats tab only.
+    tab === 'stats' ? fetchTeamSeasonStats(id, readStatsSeason(query)) : null,
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
@@ -251,7 +256,19 @@ export default async function TeamPage({
         )}
         {tab === 'results' && <ResultsPanel page={page} locale={locale} timeZone={timeZone} />}
         {tab === 'squad' && <SquadPanel page={page} locale={locale} full />}
-        {tab === 'stats' && <SplitsPanels page={page} locale={locale} />}
+        {tab === 'stats' && (
+          <>
+            <SplitsPanels page={page} locale={locale} />
+            {seasonStats?.ok === true && (
+              <TeamSeasonStatsPanel
+                data={seasonStats.data}
+                teamId={t.id}
+                locale={locale}
+                timeZone={timeZone}
+              />
+            )}
+          </>
+        )}
         <p className="text-xs text-muted" data-testid="team-updated">
           {page.last_updated_at === null ? (
             <Translated locale={locale} message="competitionPage.noData" />

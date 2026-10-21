@@ -20,6 +20,7 @@ import type {
   NormalisedSeasonCoverage,
   NormalisedSquadPlayer,
   NormalisedStanding,
+  NormalisedTeamSeasonStats,
   NormalisedTeamFacts,
   NormalisedVenueFacts,
 } from '../../normalised';
@@ -54,6 +55,7 @@ import {
 } from './map';
 import { mapTeamFacts, mapVenue } from './club-facts';
 import { mapPlayerCareer, mapPlayerSeason } from './player-seasons';
+import { mapTeamSeasonStats } from './team-statistics';
 
 export const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
 
@@ -93,7 +95,16 @@ function envelope(
     };
   }
   const body = response.body;
-  if (!isRecord(body) || !Array.isArray(body.response)) {
+  // `/teams/statistics` answers with one object, not a list (T-1437): it is
+  // read as a list of one, so every endpoint's `response` is a list here.
+  const list = !isRecord(body)
+    ? null
+    : Array.isArray(body.response)
+      ? body.response
+      : isRecord(body.response)
+        ? [body.response]
+        : null;
+  if (!isRecord(body) || list === null) {
     return {
       ok: false,
       error: { kind: 'malformed', message: 'body is not an API-Football envelope' },
@@ -116,7 +127,7 @@ function envelope(
   return {
     ok: true,
     data: {
-      response: body.response,
+      response: list,
       errors: Object.fromEntries(keys.map((k) => [k, String(errors[k])])),
     },
   };
@@ -412,6 +423,41 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapPlayerCareer(result.data.response),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/teams/statistics?league=&season=&team=`: a team's season in one
+   * competition, one request (T-1437, D-228).
+   */
+  async getTeamSeasonStats(
+    competitionExternalId: string,
+    seasonLabel: string,
+    teamExternalId: string,
+  ): Promise<AdapterResult<NormalisedTeamSeasonStats | null>> {
+    const season = seasonYear(seasonLabel);
+    if (season === null) {
+      return {
+        ok: false,
+        error: { kind: 'unsupported', message: `cannot read a season from "${seasonLabel}"` },
+        requests: 0,
+      };
+    }
+    const result = await this.call('/teams/statistics', {
+      league: competitionExternalId,
+      season: String(season),
+      team: teamExternalId,
+    });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapTeamSeasonStats(result.data.response, {
+        competitionExternalId,
+        teamExternalId,
+        seasonYear: season,
+      }),
       requests: 1,
       fetchedAt: result.receivedAt,
     };

@@ -17,6 +17,7 @@ import type {
   PlayerPage,
   PlayerProviderSeasons,
   TeamPage,
+  TeamSeasonStats,
   TeamsResponse,
 } from '@fmip/contracts';
 import { LEADERS_MINUTES_MAX } from '@fmip/contracts';
@@ -120,6 +121,25 @@ export class CatalogController {
     if (!UUID.test(id)) throw new NotFoundException(NO_PLAYER);
     const found = await this.catalog.playerProviderSeasons(id.toLowerCase());
     if (found === null) throw new NotFoundException(NO_PLAYER);
+    return found;
+  }
+
+  /**
+   * A team's statistics for one season of one competition as the provider
+   * counts them (T-1437, D-228); `?season=` picks a season the team played in.
+   * Public.
+   */
+  @Get('teams/:id/season-stats')
+  async teamSeasonStats(
+    @Param('id') id: string,
+    @Query('season') season: unknown,
+  ): Promise<TeamSeasonStats> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_TEAM);
+    const found = await this.catalog.teamSeasonStats(
+      id.toLowerCase(),
+      typeof season === 'string' ? season : null,
+    );
+    if (found === null) throw new NotFoundException(NO_TEAM);
     return found;
   }
 
