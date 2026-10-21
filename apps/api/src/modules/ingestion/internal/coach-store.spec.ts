@@ -64,7 +64,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the coaches 
 
   const teamsDue = async (at = { answeredBeforeIso: EARLIER, retryBeforeIso: EARLIER }) =>
     (await store.teamsDue(PROVIDER, at, 5, 50_000)).filter((t) =>
-      [id.city, id.chelsea].includes(t.teamId),
+      ([id.city, id.chelsea] as string[]).includes(t.teamId),
     );
 
   const maresca = (over: Partial<NormalisedCoach> = {}): NormalisedCoach => ({
