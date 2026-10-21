@@ -519,6 +519,37 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect((other.json() as ApiError).message).toMatch(/season/);
   });
 
+  it('serves the table alone, the same as the page has it, for either season (T-1460)', async () => {
+    for (const query of ['', `?season=${OLD_SEASON}`, '?locale=fa']) {
+      const [page, alone] = await Promise.all([
+        app.inject({ method: 'GET', url: `/competitions/${COMPETITION}${query}` }),
+        app.inject({ method: 'GET', url: `/competitions/${COMPETITION}/table${query}` }),
+      ]);
+      expect(alone.statusCode, query).toBe(200);
+      const full = page.json() as CompetitionPage;
+      const { stages: _stages, ...season } = full.season;
+      expect(alone.json(), query).toEqual({
+        competition: full.competition,
+        season,
+        table: full.table,
+      });
+    }
+    expect(
+      (await app.inject({ method: 'GET', url: `/competitions/${randomUUID()}/table` })).statusCode,
+    ).toBe(404);
+    expect(
+      (await app.inject({ method: 'GET', url: `/competitions/not-an-id/table` })).statusCode,
+    ).toBe(404);
+    expect(
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/competitions/${COMPETITION}/table?season=${randomUUID()}`,
+        })
+      ).statusCode,
+    ).toBe(404);
+  });
+
   it('draws the knockout rounds of a cup from stored fixtures and states the undrawn ones', async () => {
     const response = await app.inject({ method: 'GET', url: `/competitions/${CUP}` });
     expect(response.statusCode).toBe(200);

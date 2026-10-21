@@ -11,6 +11,7 @@ import type {
   CompetitionContext,
   CompetitionDirectoryResponse,
   CompetitionPage,
+  CompetitionTable,
   CompetitionsResponse,
   CoachPage,
   CountriesResponse,
@@ -199,6 +200,32 @@ export class CatalogController {
     const context = await this.catalog.competitionContext(id.toLowerCase());
     if (context === null) throw new NotFoundException(NO_FIXTURE);
     return context;
+  }
+
+  /** The league table alone (T-1460), for the homepage. Public. `?season=` as the page. */
+  @Get('competitions/:id/table')
+  async competitionTable(
+    @Param('id') id: string,
+    @Query('season') season: unknown,
+    @Query('locale') locale: unknown,
+  ): Promise<CompetitionTable> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_COMPETITION);
+    const wanted = first(season);
+    if (wanted !== undefined && !UUID.test(wanted)) throw new NotFoundException(NO_SEASON);
+    const outcome = await this.catalog.competitionTable(
+      id.toLowerCase(),
+      wanted?.toLowerCase() ?? null,
+      localeOf(locale),
+    );
+    switch (outcome.kind) {
+      case 'ok':
+        return outcome.table;
+      case 'unknown_competition':
+        throw new NotFoundException(NO_COMPETITION);
+      case 'unknown_season':
+      case 'no_seasons':
+        throw new NotFoundException(NO_SEASON);
+    }
   }
 
   /** The competition page (blueprint 5.1, T-035). Public. `?season=` selects a season. */

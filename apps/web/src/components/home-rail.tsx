@@ -1,5 +1,5 @@
 import type {
-  CompetitionPage,
+  CompetitionTable,
   CoverageState,
   FounderAnalysisSummary,
   NewsStoryCard,
@@ -40,7 +40,7 @@ const asLocale = (locale: string): Locale => (isLocale(locale) ? locale : DEFAUL
 const MORE = 'inline-flex min-h-touch items-center gap-1.5 text-sm font-bold text-accent';
 
 /** "Pro League · top five", the table's coverage, five rows and the way to the whole table. */
-export function TableTopFive({ page, locale }: { page: CompetitionPage; locale: string }) {
+export function TableTopFive({ page, locale }: { page: CompetitionTable; locale: string }) {
   const l = asLocale(locale);
   const rows = (page.table.data ?? []).slice(0, 5);
   const name =

@@ -1,6 +1,6 @@
 import type {
   CommunityConsensusResponse,
-  CompetitionPage,
+  CompetitionTable,
   FounderAnalysisResponse,
   ScoreCard,
   TableRow,
@@ -343,7 +343,7 @@ describe('the side column', () => {
       },
       season: { id: 's', label: '2026/27' },
       table: { coverage: 'available', last_updated_at: null, data: [row('tractor', 1, 16)] },
-    } as unknown as CompetitionPage;
+    } as unknown as CompetitionTable;
     const fa = renderToStaticMarkup(<TableTopFive page={page} locale="fa" />);
     expect(fa).toContain('<bdi>۲۰۲۶/۲۷</bdi>');
     expect(fa).not.toContain('2026/27');
