@@ -453,6 +453,16 @@ export interface CompetitionPage {
   last_updated_at: string | null;
 }
 
+/**
+ * `GET /competitions/:id/table` (T-1460): the competition, the selected
+ * season and its league table with the crests -- what the homepage's top
+ * five and the lead match's places read -- without the page's fixtures,
+ * leaders, boards and group tables, which it never shows.
+ */
+export type CompetitionTable = Pick<CompetitionPage, 'competition' | 'table'> & {
+  season: SeasonSummary;
+};
+
 // ---------------------------------------------------------------------------
 // Team page (blueprint 5.2, T-036): overview, current competitions with the
 // table context, next and previous match, fixtures and results, squad,

@@ -3,6 +3,7 @@ import type {
   CompetitionContext,
   CompetitionDirectoryEntry,
   CompetitionPage,
+  CompetitionTable,
   CompetitionSummary,
   CountrySummary,
   Covered,
@@ -57,6 +58,12 @@ import { PostgresTeamStore } from './internal/team-store';
 
 export type CompetitionOutcome =
   | { kind: 'ok'; page: CompetitionPage }
+  | { kind: 'unknown_competition' }
+  | { kind: 'unknown_season' }
+  | { kind: 'no_seasons' };
+
+export type CompetitionTableOutcome =
+  | { kind: 'ok'; table: CompetitionTable }
   | { kind: 'unknown_competition' }
   | { kind: 'unknown_season' }
   | { kind: 'no_seasons' };
@@ -301,6 +308,47 @@ export class CatalogService {
    * The competition page for one season: `seasonId` when given (and the
    * competition's own), else the current season, else the newest.
    */
+  /**
+   * The league table alone (T-1460), for the homepage: the same competition,
+   * season choice and rows as `competition`, with the logo and the crests,
+   * and nothing else read. The page's other modules cost 200-400 ms more on
+   * production and the homepage, which reads two tables, showed none of them.
+   */
+  async competitionTable(
+    id: string,
+    seasonId: string | null,
+    locale: string | null = null,
+  ): Promise<CompetitionTableOutcome> {
+    const competition = await this.competitions_.competition(id, locale);
+    if (competition === null) return { kind: 'unknown_competition' };
+    const seasons = await this.competitions_.seasons(id);
+    const selected = pickSeason(seasons, seasonId);
+    if (selected === undefined)
+      return { kind: seasons.length === 0 ? 'no_seasons' : 'unknown_season' };
+    const table = await this.standings.table(selected.id);
+    const media = await this.media.index({
+      competition: [competition.id],
+      team: (table.data ?? []).map((r) => r.team.id),
+    });
+    return {
+      kind: 'ok',
+      table: {
+        competition: { ...competition, logo: media.logo(competition.id) },
+        season: selected,
+        table: {
+          ...table,
+          data:
+            table.data === null
+              ? null
+              : table.data.map((r) => ({
+                  ...r,
+                  team: { ...r.team, crest: media.crest(r.team.id) },
+                })),
+        },
+      },
+    };
+  }
+
   async competition(
     id: string,
     seasonId: string | null,

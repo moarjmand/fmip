@@ -31,7 +31,7 @@ import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { message, t } from '@/i18n/messages';
 import {
   fetchBreakingNews,
-  fetchCompetition,
+  fetchCompetitionTable,
   fetchConsensus,
   fetchFeaturedMatches,
   fetchFirstRun,
@@ -232,9 +232,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     teamPages,
   ] = await Promise.all([
     loadForecasts(forecastIds),
-    tableId !== null ? fetchCompetition(tableId, '', locale) : null,
+    // T-1460: the tables alone, not the whole competition pages.
+    tableId !== null ? fetchCompetitionTable(tableId, locale) : null,
     lead !== null && lead.competition.id !== tableId
-      ? fetchCompetition(lead.competition.id, '', locale)
+      ? fetchCompetitionTable(lead.competition.id, locale)
       : null,
     lead !== null ? fetchFounderAnalysis(lead.id) : null,
     lead !== null ? fetchConsensus(lead.id) : null,

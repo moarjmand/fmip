@@ -37,6 +37,7 @@ import type {
   CommunityConsensusResponse,
   CompetitionContext,
   CompetitionPage,
+  CompetitionTable,
   CompetitionDirectoryResponse,
   HighlightsResponse,
   CompetitionsResponse,
@@ -872,6 +873,16 @@ export function fetchCompetition(
 ): Promise<ApiResult<CompetitionPage>> {
   return apiRequest<CompetitionPage>(
     withLocale(`/competitions/${encodeURIComponent(id)}${query}`, locale),
+  );
+}
+
+/** `GET /competitions/:id/table` (T-1460): the league table alone, for the homepage. */
+export function fetchCompetitionTable(
+  id: string,
+  locale?: string,
+): Promise<ApiResult<CompetitionTable>> {
+  return apiRequest<CompetitionTable>(
+    withLocale(`/competitions/${encodeURIComponent(id)}/table`, locale),
   );
 }
 
