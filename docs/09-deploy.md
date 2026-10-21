@@ -517,6 +517,23 @@ alone again. What is on the remote stays, and can still be replayed from, until
 and `docker compose up -d postgres`. The `wal-spool` volume can then be
 removed with `docker volume rm fmip_wal-spool`.
 
+**Applying T-1458's settings** (once, after the release that carries
+T-1458 is deployed; D-241). Postgres's memory and planner settings in
+`deploy/docker-compose.prod.yml` apply only when Postgres is recreated, as
+T-1374's did: a few seconds of failed and retried queries, and a cold cache
+for some minutes after. While archiving stays off, recreate it the way the
+archive-off step does, so the one restart does both:
+
+```bash
+git log -1 --oneline                              # the release with T-1458
+PG_ARCHIVE_MODE=off docker compose up -d --no-deps --wait postgres
+docker compose exec postgres psql -U fmip -d fmip -tAc   "SELECT name, setting, unit FROM pg_settings WHERE name IN ('shared_buffers','effective_cache_size','work_mem','random_page_cost','jit') ORDER BY 1"
+# effective_cache_size|262144|8kB  jit|off|  random_page_cost|1.1|  shared_buffers|65536|8kB  work_mem|8192|kB
+free -m                                           # swap should not climb in the hour after
+```
+
+If the box starts swapping hard, lower `shared_buffers` to 384MB the same way.
+
 **Applying T-1374's settings** (once, after the release that carries T-1374
 is deployed; D-192). The release's code needs nothing: its writers stop
 rewriting unchanged rows as soon as the API is rolled out. The three

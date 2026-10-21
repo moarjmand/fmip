@@ -11884,3 +11884,31 @@ Every page is rendered per request, so the crawlers held Postgres at about
 a rate). *Blocking by IP in Caddy* (Anthropic notes it stops the crawler
 reading robots.txt, so the opt-out is not seen; and the list changes).
 *A delay for every crawler* (`*`: Bing would honour it and index slower).
+
+## D-241 — Postgres sized for the VPS: 512 MB of buffers, SSD costs, no JIT
+
+**Status:** Accepted · 2026-10-22 (agent, under the parent session's phase-2 brief to weigh memory tuning with a decision entry) · **Task:** T-1458 · **Follows:** D-048, D-192
+
+**The problem.** Postgres ran on the image's defaults: `shared_buffers`
+128 MB, `work_mem` 4 MB, `random_page_cost` 4 (a spinning disk's), and JIT
+on. On 2026-10-21 the database is 2.5 GB with 72,851 fixtures (three times
+the morning's), the disk is an SSD, and after each restart every page read
+came cold from disk: the homepage took 4.5-11.8 s until the cache warmed.
+Plans showed JIT compiling 56 functions for a news read that ran in tens of
+milliseconds.
+
+**Decision.** In `deploy/docker-compose.prod.yml`'s `command`:
+`shared_buffers=512MB` (about an eighth of the 3.8 GB: the web, API and
+model containers take about 650 MB, and the page cache keeps the rest of
+the database), `effective_cache_size=2GB` (what the page cache holds in
+practice), `work_mem=8MB`, `maintenance_work_mem=128MB`,
+`random_page_cost=1.1` and `effective_io_concurrency=200` (SSD), `jit=off`;
+and `shm_size: 256mb`, because a parallel hash join's memory is a `/dev/shm`
+segment and Docker gives 64 MB. They apply when Postgres is recreated
+(docs/09-deploy.md). Development keeps the defaults: its machines differ.
+
+**Rejected.** *A quarter of RAM for `shared_buffers` (1 GB)*: the box
+already uses 350 MB of swap; double-buffering more of a 2.5 GB database
+would push the other containers out. *A larger `work_mem`*: up to 100
+connections times several sorts each; 8 MB covers the sorts measured.
+*PgTune's output as is*: it assumes Postgres has the machine to itself.
