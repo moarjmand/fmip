@@ -12,11 +12,15 @@ import type {
   CompetitionDirectoryResponse,
   CompetitionPage,
   CompetitionsResponse,
+  CoachPage,
   CountriesResponse,
   FollowSuggestionsResponse,
   PlayerPage,
   PlayerProviderSeasons,
+  PlayerTransfers,
   TeamPage,
+  TeamSeasonStats,
+  TeamTransfers,
   TeamsResponse,
 } from '@fmip/contracts';
 import { LEADERS_MINUTES_MAX } from '@fmip/contracts';
@@ -26,6 +30,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NO_COMPETITION: ApiError = { error: 'not_found', message: 'No such competition.' };
 const NO_TEAM: ApiError = { error: 'not_found', message: 'No such team.' };
 const NO_PLAYER: ApiError = { error: 'not_found', message: 'No such player.' };
+const NO_COACH: ApiError = { error: 'not_found', message: 'No such coach.' };
 const NO_FIXTURE: ApiError = { error: 'not_found', message: 'No such fixture.' };
 const NO_SEASON: ApiError = {
   error: 'not_found',
@@ -120,6 +125,58 @@ export class CatalogController {
     if (!UUID.test(id)) throw new NotFoundException(NO_PLAYER);
     const found = await this.catalog.playerProviderSeasons(id.toLowerCase());
     if (found === null) throw new NotFoundException(NO_PLAYER);
+    return found;
+  }
+
+  /**
+   * A team's statistics for one season of one competition as the provider
+   * counts them (T-1437, D-228); `?season=` picks a season the team played in.
+   * Public.
+   */
+  @Get('teams/:id/season-stats')
+  async teamSeasonStats(
+    @Param('id') id: string,
+    @Query('season') season: unknown,
+  ): Promise<TeamSeasonStats> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_TEAM);
+    const found = await this.catalog.teamSeasonStats(
+      id.toLowerCase(),
+      typeof season === 'string' ? season : null,
+    );
+    if (found === null) throw new NotFoundException(NO_TEAM);
+    return found;
+  }
+
+  /** The coach page (T-1439, D-230). Public. */
+  @Get('coaches/:id')
+  async coach(@Param('id') id: string, @Query('locale') locale: unknown): Promise<CoachPage> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_COACH);
+    const found = await this.catalog.coach(id.toLowerCase(), localeOf(locale));
+    if (found === null) throw new NotFoundException(NO_COACH);
+    return found;
+  }
+
+  /** A player's transfers as the provider lists them (T-1440, D-231). Public. */
+  @Get('players/:id/transfers')
+  async playerTransfers(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+  ): Promise<PlayerTransfers> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_PLAYER);
+    const found = await this.catalog.playerTransfers(id.toLowerCase(), localeOf(locale));
+    if (found === null) throw new NotFoundException(NO_PLAYER);
+    return found;
+  }
+
+  /** A club's arrivals and departures as the provider lists them (T-1440, D-231). Public. */
+  @Get('teams/:id/transfers')
+  async teamTransfers(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+  ): Promise<TeamTransfers> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_TEAM);
+    const found = await this.catalog.teamTransfers(id.toLowerCase(), localeOf(locale));
+    if (found === null) throw new NotFoundException(NO_TEAM);
     return found;
   }
 

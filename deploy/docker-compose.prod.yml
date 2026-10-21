@@ -194,6 +194,8 @@ services:
       INGESTION_PEOPLE_BIOS_BATCH: ${INGESTION_PEOPLE_BIOS_BATCH:-}
       # The shirts of past matches for the club colour (T-1417, D-218): 100 a run unless set.
       INGESTION_KIT_COLOURS_BATCH: ${INGESTION_KIT_COLOURS_BATCH:-}
+      # Each team's coaches and their careers (T-1439, D-230): 60 teams a run unless set.
+      INGESTION_COACHES_BATCH: ${INGESTION_COACHES_BATCH:-}
       # English stories from GNews' free plan (T-1367, D-185): off while the key is empty.
       GNEWS_API_KEY: ${GNEWS_API_KEY:-}
       GNEWS_DAILY_BUDGET: ${GNEWS_DAILY_BUDGET:-}

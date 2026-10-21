@@ -9,8 +9,12 @@ import type {
   FollowSuggestionsResponse,
   LeagueZoneEntry,
   BoardPlayer,
+  CoachPage,
   PlayerPage,
   PlayerProviderSeasons,
+  TeamSeasonStats,
+  PlayerTransfers,
+  TeamTransfers,
   PlayerSeasonMinutes,
   SeasonSummary,
   SuggestedCompetition,
@@ -42,7 +46,10 @@ import {
   rankByFigure,
   wholeOnlyIfRecorded,
 } from './internal/leaders';
+import { readCoachPage, readTeamHeadCoach } from './internal/coach-read';
 import { readProviderSeasons } from './internal/player-provider-seasons';
+import { readTeamSeasonStats } from './internal/team-season-stats';
+import { readPlayerTransfers, readTeamTransfers } from './internal/transfers';
 import { providerBoards, readProviderLeaders } from './internal/provider-leaders';
 import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
@@ -80,6 +87,32 @@ export class CatalogService {
   ) {}
 
   /**
+   * The coach page (T-1439, D-230): the coach, his career at the teams we
+   * carry with their crests, and the line-ups that name him. `null` for a
+   * person who is not a coach, or no such person.
+   */
+  async coach(id: string, locale: string | null = null): Promise<CoachPage | null> {
+    const rows = await readCoachPage(this.pool, id, locale);
+    if (rows === null) return null;
+    const spells = rows.career.data ?? [];
+    const media = await this.media.index({
+      team: spells.map((s) => s.team.id),
+      person: [id],
+    });
+    return {
+      ...rows,
+      coach: { ...rows.coach, photo: media.photo(id) },
+      career: {
+        ...rows.career,
+        data:
+          rows.career.data === null
+            ? null
+            : spells.map((s) => ({ ...s, team: { ...s.team, crest: media.crest(s.team.id) } })),
+      },
+    };
+  }
+
+  /**
    * A player's season totals and career as the provider counts them (T-1431,
    * D-223), apart from the record our line-ups support. `null` for no such player.
    */
@@ -87,6 +120,30 @@ export class CatalogService {
     const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
     if (rowCount === 0) return null;
     return readProviderSeasons(this.pool, id);
+  }
+
+  /**
+   * A team's season statistics as the provider counts them (T-1437, D-228).
+   * `null` for no such team.
+   */
+  async teamSeasonStats(id: string, season: string | null): Promise<TeamSeasonStats | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM team WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readTeamSeasonStats(this.pool, id, season);
+  }
+
+  /** A player's transfers as the provider lists them (T-1440, D-231). `null` for no such player. */
+  async playerTransfers(id: string, locale: string | null): Promise<PlayerTransfers | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readPlayerTransfers(this.pool, id, locale);
+  }
+
+  /** A club's arrivals and departures as the provider lists them (T-1440, D-231). `null` for no such club. */
+  async teamTransfers(id: string, locale: string | null): Promise<TeamTransfers | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM team WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readTeamTransfers(this.pool, id, locale);
   }
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */
@@ -521,10 +578,16 @@ export class CatalogService {
       squad.players.map((p) => p.person.id),
       id,
     );
-    // The crest (T-1320) and the squad's photos (T-1321) from our own origin, in one query.
+    // The head coach by the provider's coaches endpoint (T-1439, D-230), told
+    // apart from the coach the latest line-up names.
+    const headCoach = await readTeamHeadCoach(this.pool, id, locale, lineup?.coach?.id ?? null);
+    // The crest (T-1320) and the squad's and coach's photos (T-1321) from our own origin, in one query.
     const media = await this.media.index({
       team: [id],
-      person: squad.players.map((p) => p.person.id),
+      person: [
+        ...squad.players.map((p) => p.person.id),
+        ...(headCoach.data === null ? [] : [headCoach.data.person.id]),
+      ],
     });
     const team = { ...found, crest: media.crest(id) };
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
@@ -554,6 +617,19 @@ export class CatalogService {
         ),
         splits: buildSplits(seasons, splitFixtures),
         manager: managerOf(lineup),
+        head_coach:
+          headCoach.data === null
+            ? { ...headCoach, data: null }
+            : {
+                ...headCoach,
+                data: {
+                  ...headCoach.data,
+                  person: {
+                    ...headCoach.data.person,
+                    photo: media.photo(headCoach.data.person.id),
+                  },
+                },
+              },
         fixture_ground: ground,
         followers,
         last_updated_at: lastUpdatedAt,

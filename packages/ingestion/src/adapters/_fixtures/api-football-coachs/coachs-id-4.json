@@ -1,0 +1,54 @@
+{
+  "name": "coachs-id-4",
+  "recordedAt": "2026-10-21T00:00:00.000Z",
+  "note": "Read-only (T-1439). Coach 4 is Guardiola; player 4 (/players/profiles?player=4) is L. Unbehaun, a goalkeeper: the two id spaces overlap.",
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://v3.football.api-sports.io/coachs?id=4",
+      "status": 200,
+      "body": {
+        "errors": [],
+        "results": 1,
+        "paging": {
+          "current": 1,
+          "total": 1
+        },
+        "response": [
+          {
+            "id": 4,
+            "name": "Guardiola",
+            "firstname": null,
+            "lastname": null,
+            "age": null,
+            "birth": {
+              "date": null,
+              "place": null,
+              "country": null
+            },
+            "nationality": null,
+            "height": null,
+            "weight": null,
+            "photo": "https://media.api-sports.io/football/coachs/4.png",
+            "team": {
+              "id": 50,
+              "name": "Manchester City",
+              "logo": "https://media.api-sports.io/football/teams/50.png"
+            },
+            "career": [
+              {
+                "team": {
+                  "id": 50,
+                  "name": "Manchester City",
+                  "logo": "https://media.api-sports.io/football/teams/50.png"
+                },
+                "start": "2016-07-01",
+                "end": null
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

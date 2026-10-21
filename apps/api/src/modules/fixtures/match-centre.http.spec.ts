@@ -165,6 +165,62 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     expect(fixture.last_checked_at).toBeNull();
   });
 
+  it("serves the ground's card with an honest coverage, and the referee as a name (T-1438)", async () => {
+    const ground = randomUUID();
+    await pool.query(`INSERT INTO venue (id, name, city) VALUES ($1, 'T-1438 Ground', 'Leeds')`, [
+      ground,
+    ]);
+    const header = async () => ((await get(MATCH)).json() as MatchCentre).fixture;
+    try {
+      await pool.query(`UPDATE fixture SET venue_id = $2, referee_name = $3 WHERE id = $1`, [
+        MATCH,
+        ground,
+        'Anthony Taylor',
+      ]);
+      // Never asked about, nothing known: delayed, not the provider declining.
+      expect(await header()).toMatchObject({
+        venue: {
+          id: ground,
+          name: 'T-1438 Ground',
+          city: 'Leeds',
+          details: {
+            address: null,
+            capacity: null,
+            surface: null,
+            image: { coverage: 'not_supplied', url: null },
+            coverage: 'delayed',
+          },
+        },
+        referee: { name: 'Anthony Taylor' },
+      });
+
+      await pool.query(
+        `INSERT INTO venue_detail_fetch (provider, venue_id, answered_at, answered_by)
+         VALUES ('api_football', $1, now(), 'none')`,
+        [ground],
+      );
+      expect((await header()).venue?.details?.coverage).toBe('not_supplied');
+
+      await pool.query(`UPDATE venue SET capacity = 37890, surface = 'grass' WHERE id = $1`, [
+        ground,
+      ]);
+      expect((await header()).venue?.details).toMatchObject({
+        capacity: 37890,
+        surface: 'grass',
+        coverage: 'limited',
+      });
+
+      await pool.query(`UPDATE venue SET address = 'Elland Road' WHERE id = $1`, [ground]);
+      expect((await header()).venue?.details?.coverage).toBe('available');
+    } finally {
+      await pool.query(`UPDATE fixture SET venue_id = $2, referee_name = NULL WHERE id = $1`, [
+        MATCH,
+        BERNABEU,
+      ]);
+      await pool.query(`DELETE FROM venue WHERE id = $1`, [ground]);
+    }
+  });
+
   it('says when the match was last checked, from the season poll, changed or not (T-1371)', async () => {
     const poll = (values: string) =>
       pool.query(

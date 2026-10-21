@@ -8,6 +8,7 @@
 import type {
   NormalisedAbsence,
   NormalisedCareerEntry,
+  NormalisedCoach,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
@@ -17,6 +18,10 @@ import type {
   NormalisedSeasonCoverage,
   NormalisedSquadPlayer,
   NormalisedStanding,
+  NormalisedTeamSeasonStats,
+  NormalisedTeamFacts,
+  NormalisedVenueFacts,
+  NormalisedTransfer,
   Provider,
 } from '../normalised';
 
@@ -170,11 +175,57 @@ export interface ProviderAdapter {
    * replayed call.
    */
   getPlayerCareer?(personExternalId: string): Promise<AdapterResult<NormalisedCareerEntry[]>>;
+  /**
+   * A team's statistics for one season of one competition (T-1437, D-228).
+   * One request. `null` when the provider has none for that team there.
+   * Optional, like `getSquad`, and not a replayed call.
+   */
+  getTeamSeasonStats?(
+    competitionExternalId: string,
+    seasonLabel: string,
+    teamExternalId: string,
+  ): Promise<AdapterResult<NormalisedTeamSeasonStats | null>>;
+  /**
+   * Every team of a competition's season with its founding year and home
+   * ground (T-1438, D-229). One request. Optional, like `getSquad`, and not
+   * a replayed call.
+   */
+  getSeasonTeams?(query: StandingsQuery): Promise<AdapterResult<NormalisedTeamFacts[]>>;
+  /**
+   * One ground's capacity, address, surface and picture (T-1438). One
+   * request. `null` when the provider answered without an entry for it.
+   * Optional, like `getSquad`, and not a replayed call.
+   */
+  getVenue?(venueExternalId: string): Promise<AdapterResult<NormalisedVenueFacts | null>>;
+  /**
+   * Every coach the provider lists for a team -- the current one and those
+   * before him -- each with his career (T-1439, D-230). One request. An empty
+   * list when it lists none. Optional, like `getSquad`, and not a replayed call.
+   */
+  getTeamCoaches?(teamExternalId: string): Promise<AdapterResult<NormalisedCoach[]>>;
+  /**
+   * Every transfer the provider lists into or out of one club, every season
+   * (T-1440, D-231). One request. Optional, like `getSquad`, and not a
+   * replayed call.
+   */
+  getTeamTransfers?(teamExternalId: string): Promise<AdapterResult<NormalisedTransfer[]>>;
+  /** Every transfer the provider lists for one player (T-1440). One request. Optional. */
+  getPlayerTransfers?(personExternalId: string): Promise<AdapterResult<NormalisedTransfer[]>>;
 }
 
 export type AdapterCall = Exclude<
   keyof Omit<ProviderAdapter, 'manifest'>,
-  'getSquad' | 'getSeasonCoverage' | 'getPersonProfile' | 'getPlayerSeason' | 'getPlayerCareer'
+  | 'getSquad'
+  | 'getSeasonCoverage'
+  | 'getPersonProfile'
+  | 'getPlayerSeason'
+  | 'getPlayerCareer'
+  | 'getSeasonTeams'
+  | 'getVenue'
+  | 'getTeamSeasonStats'
+  | 'getTeamCoaches'
+  | 'getTeamTransfers'
+  | 'getPlayerTransfers'
 >;
 
 export const ADAPTER_CALLS: readonly AdapterCall[] = [

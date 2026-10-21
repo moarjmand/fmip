@@ -1,6 +1,13 @@
 // The provider-neutral model every adapter produces.
 export * from './normalised';
 export { foldCountry } from './country-name';
+// How often transfers are asked for again (T-1440, D-231).
+export {
+  TRANSFERS_REFRESH_DAYS_IN_WINDOW,
+  TRANSFERS_REFRESH_DAYS_OUTSIDE,
+  inTransferWindow,
+  transfersRefreshDays,
+} from './transfer-window';
 
 // The adapter contract.
 export {
