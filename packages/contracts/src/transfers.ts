@@ -40,7 +40,8 @@ export interface TransferLine {
  * about this club, and when it lists no move for it (`last_updated_at` then
  * says when it was asked); `delayed` when the last answer is older than the
  * job's refresh allows; `available` otherwise. Newest first in both lists,
- * at most `TEAM_TRANSFERS_SHOWN` each; the totals count them all.
+ * at most 25 each; the totals count them all. Types only here: a value
+ * exported from this package reaches every page's client bundle.
  */
 export interface TeamTransfers {
   /** Who listed these moves, for the page to say so ("API-Football"). */
@@ -52,9 +53,6 @@ export interface TeamTransfers {
     departures_total: number;
   }>;
 }
-
-/** How many arrivals and departures a club's section lists. */
-export const TEAM_TRANSFERS_SHOWN = 25;
 
 /**
  * `GET /players/:id/transfers`, newest first. `available` (or `delayed`) when

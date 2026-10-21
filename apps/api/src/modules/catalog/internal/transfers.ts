@@ -1,7 +1,6 @@
 import {
   type CoverageState,
   type PlayerTransfers,
-  TEAM_TRANSFERS_SHOWN,
   type TeamTransfers,
   type TransferClub,
   type TransferKind,
@@ -21,6 +20,8 @@ import type { Pool } from 'pg';
 const SOURCE_NAMES: Record<string, string> = { api_football: 'API-Football' };
 const SOURCE = 'api_football';
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** How many arrivals and departures a club's section lists, newest first. */
+export const TEAM_TRANSFERS_SHOWN = 25;
 
 /**
  * The state of an answer: nothing before the first, nothing when it listed no

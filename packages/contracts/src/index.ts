@@ -244,7 +244,6 @@ export type {
   TransferKind,
   TransferLine,
 } from './transfers';
-export { TEAM_TRANSFERS_SHOWN } from './transfers';
 // A player's season totals and career as the provider counts them (T-1431, D-223).
 export type {
   PlayerProviderCareerTeam,
