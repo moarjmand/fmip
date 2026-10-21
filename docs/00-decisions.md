@@ -11856,3 +11856,31 @@ the country's.
 does with it, T-1442's decision). *The provider's league id* (rule 2).
 *A name* (rule 1). *Marking a band across a split border* (the table would
 colour places the league does not rank that way).
+
+## D-240 — Heavy crawlers are throttled by robots.txt, not refused
+
+**Status:** Accepted · 2026-10-22 (maintainer approved the GTmetrix performance plan, whose recommendation this is) · **Task:** T-1451 · **Follows:** D-040
+
+**The problem.** On 2026-10-21, in thirty minutes, the origin took 2,534
+requests: ClaudeBot 2,134, Reflectionbot 312, bingbot 7, browsers about 80.
+Every page is rendered per request, so the crawlers held Postgres at about
+116 % CPU on a two-core server and every reader's page waited behind them
+(GTmetrix: 3.7 s of backend time on the homepage).
+
+**Decision.**
+
+1. **Throttle, not refuse.** `robots.ts` gives ClaudeBot, CCBot and
+   Reflectionbot their own group with `Crawl-delay: 10` and the same
+   disallow list as everyone else (a crawler reads only its own group). Being
+   read by AI systems is visibility the site wants; the rate is the problem.
+   Anthropic documents that ClaudeBot honours `Crawl-delay`.
+2. **Search engines are left alone.** Google ignores the field; delaying
+   Bing would slow indexing and save almost nothing.
+3. **What ignores the file is Cloudflare's job.** A crawler that does not
+   honour the delay is limited by a rate rule in the Cloudflare dashboard,
+   which is the maintainer's.
+
+**Rejected.** *`Disallow: /` for AI crawlers* (gives up the visibility to fix
+a rate). *Blocking by IP in Caddy* (Anthropic notes it stops the crawler
+reading robots.txt, so the opt-out is not seen; and the list changes).
+*A delay for every crawler* (`*`: Bing would honour it and index slower).

@@ -65,6 +65,8 @@ test.describe('SEO surface without JavaScript', () => {
     const robotsText = await robots.text();
     expect(robotsText).toContain('Disallow: /x-rtl/');
     expect(robotsText).toContain('Disallow: /api/');
+    // T-1451: the heavy crawlers wait ten seconds between pages.
+    expect(robotsText).toMatch(/User-Agent: ClaudeBot[\s\S]*Crawl-delay: 10/);
     expect(robotsText).toMatch(/Sitemap: .*\/sitemap\.xml/);
 
     const sitemap = await request.get('/sitemap.xml');
