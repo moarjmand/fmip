@@ -3,7 +3,7 @@
   "version": "0.7.0",
   "history_days": 1100,
   "elo_prior": "own",
-  "source": "T-1442, D-233: 0.6.0 (every constant, the window, our own Elo as the prior and the cross-league fit unchanged) forecasting fourteen more divisions: from football-data.co.uk, Greece (G1, a main file) and the extra leagues Austria (AT1), Switzerland (CH1), Denmark (DK1), Poland (PL1), MLS (US1), Brazil (BR1) and Argentina (AR1); from our own records (D-083), Czechia (CZ1), Croatia (HR1), Serbia (RS1), Saudi Arabia (SA1), Qatar (QA1) and the UAE (AE1). They fit with 0.6.0's default xi and ridge. Judged against uniform by python -m fmip_model.backtest.new_divisions (reports/dixon-coles-elo-0.7.0).",
+  "source": "T-1442, D-233: 0.6.0 (every constant, the window, our own Elo as the prior and the cross-league fit unchanged) forecasting eleven more divisions, each judged against uniform by python -m fmip_model.backtest.new_divisions over 2025-07-01..2026-10-20 (reports/dixon-coles-elo-0.7.0): from football-data.co.uk, Greece (G1, a main file) and the extra leagues Switzerland (CH1), Denmark (DK1), MLS (US1), Brazil (BR1) and Argentina (AR1); from our own records (D-083), Czechia (CZ1), Croatia (HR1), Serbia (RS1), Saudi Arabia (SA1) and the UAE (AE1). They fit with 0.6.0's default xi and ridge, except where those failed and backtest.tune's method (T-1372) chose a pair on 2024/25 that also won on the window: DK1 and AR1. Austria (AT1), Poland (PL1) and Qatar (QA1) failed even so and are not forecast; their entries keep the pair they were judged with.",
   "divisions": [
     "E0",
     "E1",
@@ -19,10 +19,8 @@
     "IR1",
     "XL",
     "G1",
-    "AT1",
     "CH1",
     "DK1",
-    "PL1",
     "US1",
     "BR1",
     "AR1",
@@ -30,7 +28,6 @@
     "HR1",
     "RS1",
     "SA1",
-    "QA1",
     "AE1"
   ],
   "per_division": {
@@ -88,6 +85,14 @@
     },
     "QA1": {
       "xi": 0.002,
+      "ridge": 0.3
+    },
+    "PL1": {
+      "xi": 0.001,
+      "ridge": 0.3
+    },
+    "AR1": {
+      "xi": 0.001,
       "ridge": 0.3
     }
   },

@@ -191,17 +191,42 @@ def test_a_version_without_a_list_forecasts_what_versions_did_before_t1442() -> 
     assert not PUBLISHED.forecasts("AT1") and not PUBLISHED.forecasts("G1")
 
 
-def test_0_7_0_is_0_6_0_plus_fourteen_divisions_and_nothing_else() -> None:
+def test_0_7_0_is_0_6_0_plus_eleven_divisions_and_nothing_else() -> None:
     candidate = load_candidate(CANDIDATES_DIR / "dixon-coles-elo-0.7.0.json")
     assert candidate is not None and candidate.id == "dixon-coles-elo@0.7.0"
     assert new_divisions(candidate) == sorted(
-        ["G1", "AT1", "CH1", "DK1", "PL1", "US1", "BR1", "AR1",
-         "CZ1", "HR1", "RS1", "SA1", "QA1", "AE1"]
-    )  # fmt: skip
+        ["G1", "CH1", "DK1", "US1", "BR1", "AR1", "CZ1", "HR1", "RS1", "SA1", "AE1"]
+    )
     assert candidate.divisions is not None and LEGACY_DIVISIONS <= candidate.divisions
-    same = replace(candidate, version=PUBLISHED.version, divisions=None)
+    # Every constant 0.6.0 has, unchanged; the others are the new divisions' own.
+    old = {d: c for d, c in candidate.per_division.items() if d in PUBLISHED.per_division}
+    assert old == dict(PUBLISHED.per_division)
+    assert not any(PUBLISHED.forecasts(d) for d in set(candidate.per_division) - set(old))
+    same = replace(candidate, version=PUBLISHED.version, divisions=None, per_division=old)
     assert same.as_dict() == PUBLISHED.as_dict()
-    assert dict(same.per_division) == dict(PUBLISHED.per_division)
+
+
+REPORTS_DIR = Path(__file__).parent.parent / "reports"
+
+
+def test_a_candidate_names_only_new_divisions_its_report_passed() -> None:
+    """D-233: a league no version forecast enters a version only past the bar against uniform."""
+    for path in sorted(CANDIDATES_DIR.glob("*.json")):
+        candidate = load_candidate(path)
+        assert candidate is not None
+        added = new_divisions(candidate)
+        if not added:
+            continue
+        reports = sorted((REPORTS_DIR / path.stem).glob("new_divisions_*.json"))
+        assert reports, f"{path.name} adds {added} with no new_divisions report"
+        body = json.loads(reports[-1].read_text(encoding="utf-8"))
+        assert body["candidate"]["id"] == candidate.id
+        assert set(added) <= set(body["passed"]), f"{path.name}: {added} vs {body['passed']}"
+        judged = {d["division"]: d for d in body["divisions"]}
+        for division in added:
+            constants = list(candidate.constants_for(division))
+            assert body["candidate"]["per_division"].get(division, constants) == constants
+            assert judged[division]["verdict"] == "passed"
 
 
 def test_a_version_file_names_division_codes_only(tmp_path: Path) -> None:

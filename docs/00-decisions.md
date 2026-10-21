@@ -11408,3 +11408,98 @@ name check and goes to review.
 **Rejected.** *Name alone* (rule 1). *Shirt alone*: a data error in either
 source's numbering would map the wrong person silently. *Reviewing every
 player by hand*: 1,319 players on the first day.
+
+## D-233 — The model learns fourteen more leagues, from football-data.co.uk's extra files and our own records, through a version that names its divisions
+
+**Status:** Accepted · 2026-10-21 (the maintainer: use the API-Football subscription fully, with past seasons back to 2020/21 and the leagues the model skips) · **Task:** T-1442 · **Follows:** D-016, D-080, D-083, D-140, D-191, rule 1, rule 5
+
+**Context.** `dixon-coles-elo@0.6.0` forecasts the twelve European leagues of
+football-data.co.uk's main files, Iran's league (our records, D-083) and the
+matches across leagues. Every other league the site follows was
+`division_not_loaded`: MLS, Brazil, Argentina, and the eleven the Ultra plan
+added. football-data.co.uk publishes, besides its main files, sixteen "extra
+leagues" (read 2026-10-21: Argentina, Austria, Brazil, China, Denmark,
+Finland, Ireland, Japan, Mexico, Norway, Poland, Romania, Russia, Sweden,
+Switzerland, USA): one CSV per country with every season since 2012, results
+and closing odds, no half-time or shots. Greece is one of its main files.
+Czechia, Croatia, Serbia, Saudi Arabia, Qatar and the UAE are in neither, and
+we now hold their seasons from 2020/21.
+
+**Decision.**
+1. **Division codes are ours**, in the catalogue's format (one or two letters
+   and a digit, `competition_football_data_division_format`), and none is a
+   code of the site's main files, so no migration: Greece `G1` (the site's
+   own); from the extra files `AT1` Austria, `CH1` Switzerland, `DK1` Denmark,
+   `PL1` Poland, `US1` MLS, `BR1` Brazil, `AR1` Argentina (and codes for the
+   other nine countries, unused); from our records `CZ1`, `HR1`, `RS1`, `SA1`,
+   `QA1`, `AE1`. `EXTRA_DIVISIONS` maps each code to its file.
+2. **An extra file is one load per division** (`training.load
+   football-data-extra --divisions … --since 2020/21`), its scope the
+   division, its seasons labelled as the catalogue labels them (`2024/2025` →
+   `2024/25`; a calendar year, `2026`, is `2026/27`, as MLS, Brazil and
+   Argentina's are in the catalogue). The odds are the market average's
+   closing price, then Pinnacle's, then Bet365's, one source across a file
+   (Bet365's closing price is there for the last two seasons only); an
+   unreadable price drops that set, not the match. A club the file spells two
+   ways (Argentina's Colón, Poland's Górnik) is one name by `EXTRA_RENAMES`,
+   each confirmed from our fixtures. The model service reloads such a division
+   once a day from its newest stored season, as it reloads our records.
+3. **The six leagues in neither source are our records** (D-083's path):
+   `catalog --set-division`, then `training.load records`.
+4. **The bridge is proposed from results, never names** (rule 1):
+   `fmip_model.training.aliases` sets each stored result beside our fixtures
+   within a day with the same score; each is a vote for home name → home club
+   and away → away. A name is proposed for the club with the most votes when
+   that club's most votes are that name's too, with at least five votes and
+   60% of the name's checkable results (those of the seasons in which we hold
+   that club's fixtures: our backfill is still filling). On 2026-10-21 a wrong
+   pair agreed on at most 18%, a right one on at least 64%. 184 lines were
+   added to `training-aliases.csv`, covering every club of the eight
+   divisions' 2026/27; `catalog --alias-training` checks them again against
+   the newest season.
+5. **A version names the divisions it forecasts.** A version file may list
+   `divisions`; one that does not forecasts `LEGACY_DIVISIONS`, the thirteen
+   held before T-1442, and the fit across leagues reads only the version's
+   divisions. So loading a league changes nothing the published version says
+   (rule 5's spirit: a forecast is traceable to a version that was judged on
+   that league), and a league reaches the site only in a new version.
+6. **`dixon-coles-elo@0.7.0`** is 0.6.0 (every constant, window, prior and the
+   cross-league fit) plus the new divisions that passed the bar in point 7
+   (a test refuses a candidate naming a new division its report did not pass),
+   with `backtest.tune`'s method (T-1372) where a division failed on 0.6.0's
+   default constants: a pair chosen on 2024/25 and adopted only if it also won
+   on the window, by at least 0.002. It is in shadow when merged and is
+   promoted only on its own record before kick-off (D-082, D-140, D-191).
+7. **The bar for a league no version forecast is uniform.**
+   `fmip_model.backtest.new_divisions` walks each forward with
+   `backtest.compare`'s fit dates and scores every forecast match: a division
+   passes when its log loss is below uniform's with the 95% paired bootstrap
+   interval of the difference wholly below zero, on at least 150 matches. The
+   closing odds are scored beside it as a benchmark only, and are never shown.
+
+**Results** (2025-07-01 to 2026-10-20, reports/dixon-coles-elo-0.7.0):
+Eleven pass and enter 0.7.0. Log loss against uniform's 1.0986, with the
+interval of the difference: Saudi Arabia 0.914 (−0.239 to −0.135), Greece
+0.965, Serbia 0.965, the UAE 0.972, Croatia 0.998, Brazil 1.010, Czechia 1.011,
+Switzerland 1.033, Denmark 1.040 (with its tuned pair), MLS 1.048 and Argentina
+1.069 (tuned; −0.055 to −0.004). The closing market scores 0.94 to 1.06 on the
+same matches. Austria (1.061, interval to +0.003), Poland (1.075, to +0.013)
+and Qatar (1.027 on 167 matches, to +0.013) are better than uniform but not
+shown to be, even with their tuned pairs: they are loaded, and no version
+forecasts them, until a later version's backtest passes. Denmark, Argentina,
+Austria, Poland and Qatar failed on 0.6.0's default constants first; tuning
+was adopted for all five, and their pairs stay in the file.
+
+**Consequences.** The Power Index, which reads any division with history,
+covers these leagues once they are loaded, as it did Phase 6's. Our own Elo
+reads every stored result, so these leagues' clubs gain ratings from their
+domestic matches, and the clubs that met them in continental cups move with
+them; that is new data, as each day's results are. The weekly load of the
+main files gains `G1`.
+
+**Rejected.** *The site's own file codes (`ARG`, `AUT`, …):* they fail the
+catalogue's division check, so a migration and a wider check for nothing.
+*Loading the leagues under 0.6.0:* it would start forecasting them unjudged
+the moment a division is set. *Every season since 2012:* the other divisions
+hold 2023/24 on (2020/21 once the backfill is in); the fit reads 1,100 days.
+*Matching names by likeness:* rule 1.
