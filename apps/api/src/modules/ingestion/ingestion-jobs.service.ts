@@ -40,6 +40,8 @@ import { kitColoursBatch, sweepKitColours } from './internal/kit-colours';
 import { PEOPLE_NAMES_RUN_MS, peopleNamesBatch, sweepPeopleNames } from './internal/person-names';
 import { PlayerSeasonStore } from './internal/player-season-store';
 import { playerSeasonsBatch, sweepPlayerSeasons } from './internal/player-seasons';
+import { TeamSeasonStore } from './internal/team-season-store';
+import { sweepTeamSeasons, teamSeasonsBatch } from './internal/team-seasons';
 import { squadsPerDay, sweepSquads } from './internal/squad-sweep';
 
 /** How far back and forward the fixtures job looks, in days. */
@@ -314,6 +316,8 @@ export class IngestionJobsService {
     process.env.INGESTION_PLAYER_SEASONS_BATCH,
   );
   private readonly playerSeasonStore: PlayerSeasonStore;
+  private readonly teamSeasonsBatch = teamSeasonsBatch(process.env.INGESTION_TEAM_SEASONS_BATCH);
+  private readonly teamSeasonStore: TeamSeasonStore;
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
 
@@ -333,6 +337,7 @@ export class IngestionJobsService {
     this.personBios = new PersonBioStore(pool);
     this.kitColourStore = new KitColourStore(pool);
     this.playerSeasonStore = new PlayerSeasonStore(pool);
+    this.teamSeasonStore = new TeamSeasonStore(pool);
   }
 
   /** Runs one job by name. The scheduler and the tests both come through here. */
@@ -356,7 +361,55 @@ export class IngestionJobsService {
         return this.kitColours(now);
       case 'player_seasons':
         return this.playerSeasons(now);
+      case 'team_seasons':
+        return this.teamSeasons(now);
     }
+  }
+
+  /**
+   * Teams' season statistics as the provider counts them (T-1437, D-228):
+   * each team with a finished match in a season we hold, past seasons once
+   * and current ones weekly and after each match day, within
+   * `INGESTION_TEAM_SEASONS_BATCH` a run and the bulk tier of the budget.
+   * `itemsWritten` is the seasons with statistics; `team_season_fetch` holds
+   * each ask.
+   */
+  teamSeasons(now: Date = new Date()): Promise<JobReport> {
+    return this.track('team_seasons', async (source) => {
+      const shares = parseTierShares(process.env);
+      const sweep = await sweepTeamSeasons({
+        provider: source.provider,
+        adapter: source.adapter,
+        store: this.teamSeasonStore,
+        now,
+        // The replay source has no team statistics recorded: asking would only fail.
+        batch: this.sources.kind === 'replay' ? 0 : this.teamSeasonsBatch,
+        budget: this.sources.dailyBudget ?? null,
+        bulkPercent: 'error' in shares ? DEFAULT_TIER_SHARES.bulk : shares.bulk,
+        requestsToday: await this.runs.requestsToday(source.provider, now),
+        // Spaced where a provider's plan is held to a budget (T-1422); not in a test.
+        ...(this.sources.dailyBudget === undefined
+          ? { pacer: { pace: () => Promise.resolve() } }
+          : {}),
+      });
+      this.log.log('team seasons', {
+        event: 'ingest.team_seasons',
+        provider: source.provider,
+        asked: sweep.asked,
+        answered: sweep.answered,
+        written: sweep.written,
+        empty: sweep.empty,
+        ...(sweep.idle === undefined ? {} : { idle: sweep.idle }),
+      });
+      const partial = sweep.refused.join('; ');
+      return {
+        job: 'team_seasons',
+        provider: source.provider,
+        itemsSeen: sweep.answered,
+        itemsWritten: sweep.written,
+        ...(partial === '' ? {} : { partial }),
+      };
+    });
   }
 
   /**

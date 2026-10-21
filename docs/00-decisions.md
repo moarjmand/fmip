@@ -11408,3 +11408,56 @@ name check and goes to review.
 **Rejected.** *Name alone* (rule 1). *Shirt alone*: a data error in either
 source's numbering would map the wrong person silently. *Reviewing every
 player by hand*: 1,319 players on the first day.
+
+## D-228 — A team's season statistics as the provider counts them, beside our own table, with shoot-out-polluted figures withheld
+
+**Status:** Accepted · 2026-10-21 (agent; one of the data items the maintainer asked for on 2026-10-21 to use the Ultra plan fully) · **Task:** T-1437 · **Follows:** D-014, D-183, D-223
+
+**Context.** The team page's table and home-and-away figures are computed
+from the matches we ingest. API-Football's `/teams/statistics?league=&season=&team=`
+adds what our matches alone do not hold in one place: goals by band of
+minutes, clean sheets, failure to score, penalties scored and missed, the
+biggest wins and defeats, the longest runs and the formations used. Recorded
+answers (`_fixtures/api-football-team-statistics/`) showed two traps: a
+league's minute bands miss its own goal total by a goal or two (68 for 69),
+and a cup's count the kicks of a penalty shoot-out -- FA Cup 2024/25 has 12
+goals in the bands for 4 scored, 8 of them under "106-120", and `penalty`
+counts 8 scored of 10.
+
+**Decision.**
+1. **Shown as the provider's.** A module of its own on the team page's Stats
+   tab, titled with the provider's name and its fetch time, below our own
+   home-and-away panels; nothing is added to or compared with our figures.
+2. **One row per team and season**, replaced by each answer
+   (`team_season_stat`), a count the provider left out stored as NULL and
+   shown as a dash. An answer with no statistics (a season of no match)
+   deletes the row and records `supplied = false`, so the page says the
+   provider has none rather than showing zeros.
+3. **Withheld, not corrected.** When the minute bands miss the goal total by
+   more than the larger of two goals and a tenth of the total, the bands and
+   the penalties are both withheld (`bands_withheld`), and the page says why.
+   We do not subtract the shoot-out: the answer does not say how many kicks it
+   counted, and guessing would invent a figure (rule 3).
+4. **Who is asked, and when.** The `team_seasons` job, bulk tier (D-183),
+   every ten minutes, asks for each team with a finished match in a season we
+   hold, team and competition both mapped to the provider (rule 1): a past
+   season once; a current season when never asked, a week after the last
+   answer, and after each match the team played there once it is six hours
+   old. `INGESTION_TEAM_SEASONS_BATCH` (100, at most 200, 0 off), no more than
+   30 seconds a run, asks spaced by `AskPacer`; five unanswered asks in a row
+   and the ask is no longer made.
+5. **Coverage.** `available` for a season given whole; `limited` when a count,
+   the form or the bands are missing or withheld; `not_supplied` before the
+   provider was asked (`asked: false`) or when it has none.
+
+**Cost.** About one request per team and competition season: some 7,000 to
+backfill 2020/21 onwards, then roughly 1,000 a week for current seasons --
+well inside the bulk share of 75,000 a day.
+
+**Rejected.** *Subtracting the shoot-out from the bands*: the kicks' minute
+band and count are not given apart from the goals. *Computing these from our
+own matches*: possible for leagues we ingest fully, but not for past seasons
+before our data or matches without incidents; the provider's figures are
+shown as the provider's instead. *One job with `player_seasons`*: a different
+target (team and season, not player) and refresh rule; a job of its own keeps
+both simple.

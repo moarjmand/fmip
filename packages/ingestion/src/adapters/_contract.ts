@@ -17,6 +17,7 @@ import type {
   NormalisedSeasonCoverage,
   NormalisedSquadPlayer,
   NormalisedStanding,
+  NormalisedTeamSeasonStats,
   Provider,
 } from '../normalised';
 
@@ -170,11 +171,26 @@ export interface ProviderAdapter {
    * replayed call.
    */
   getPlayerCareer?(personExternalId: string): Promise<AdapterResult<NormalisedCareerEntry[]>>;
+  /**
+   * A team's statistics for one season of one competition (T-1437, D-228).
+   * One request. `null` when the provider has none for that team there.
+   * Optional, like `getSquad`, and not a replayed call.
+   */
+  getTeamSeasonStats?(
+    competitionExternalId: string,
+    seasonLabel: string,
+    teamExternalId: string,
+  ): Promise<AdapterResult<NormalisedTeamSeasonStats | null>>;
 }
 
 export type AdapterCall = Exclude<
   keyof Omit<ProviderAdapter, 'manifest'>,
-  'getSquad' | 'getSeasonCoverage' | 'getPersonProfile' | 'getPlayerSeason' | 'getPlayerCareer'
+  | 'getSquad'
+  | 'getSeasonCoverage'
+  | 'getPersonProfile'
+  | 'getPlayerSeason'
+  | 'getPlayerCareer'
+  | 'getTeamSeasonStats'
 >;
 
 export const ADAPTER_CALLS: readonly AdapterCall[] = [

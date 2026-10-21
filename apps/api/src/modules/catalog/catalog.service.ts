@@ -11,6 +11,7 @@ import type {
   BoardPlayer,
   PlayerPage,
   PlayerProviderSeasons,
+  TeamSeasonStats,
   SeasonSummary,
   SuggestedCompetition,
   SuggestedTeam,
@@ -36,6 +37,7 @@ import { contextTable, phaseOf } from './internal/competition-context';
 import { PostgresCompetitionStore } from './internal/competition-store';
 import { leadersModule, leadersWithMinutes } from './internal/leaders';
 import { readProviderSeasons } from './internal/player-provider-seasons';
+import { readTeamSeasonStats } from './internal/team-season-stats';
 import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
@@ -79,6 +81,16 @@ export class CatalogService {
     const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
     if (rowCount === 0) return null;
     return readProviderSeasons(this.pool, id);
+  }
+
+  /**
+   * A team's season statistics as the provider counts them (T-1437, D-228).
+   * `null` for no such team.
+   */
+  async teamSeasonStats(id: string, season: string | null): Promise<TeamSeasonStats | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM team WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readTeamSeasonStats(this.pool, id, season);
   }
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */

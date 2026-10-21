@@ -13033,6 +13033,264 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "teamPage.seasonStats.title": {
+    "source": "Season statistics, as {source} counts them",
+    "text": "آمار فصل، به شمارش {source}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.note": {
+    "source": "{source}'s figures for one competition's season, beside our own table and home-and-away figures, never added to them.",
+    "text": "آمار {source} برای فصل یک رقابت، در کنار جدول و آمار خانه و بیرونِ خودمان؛ هرگز با آن‌ها جمع زده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.seasons": {
+    "source": "Seasons with statistics",
+    "text": "فصل‌هایی که آمار دارند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.option": {
+    "source": "{competition} {season}",
+    "text": "{competition} {season}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.notAsked": {
+    "source": "{source} has not been asked about this team's season yet.",
+    "text": "هنوز آمار فصل این تیم از {source} پرسیده نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.none": {
+    "source": "{source} has no statistics for this team in this competition's season.",
+    "text": "{source} برای این تیم در این فصلِ این رقابت آماری ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.noSeason": {
+    "source": "This team has played no match we hold, so there is no season to show.",
+    "text": "این تیم هیچ بازی‌ای در داده‌های ما ندارد، پس فصلی برای نشان دادن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.played": {
+    "source": "Played",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.wins": {
+    "source": "Won",
+    "text": "برد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.draws": {
+    "source": "Drawn",
+    "text": "مساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.losses": {
+    "source": "Lost",
+    "text": "باخت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.goalsFor": {
+    "source": "Goals for",
+    "text": "گل زده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.goalsAgainst": {
+    "source": "Goals against",
+    "text": "گل خورده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.cleanSheets": {
+    "source": "Clean sheets",
+    "text": "کلین‌شیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.failedToScore": {
+    "source": "Failed to score",
+    "text": "بی گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.homeAway": {
+    "source": "Home {home} · Away {away}",
+    "text": "خانه {home} · بیرون {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.form": {
+    "source": "Form",
+    "text": "روند نتایج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.formNote": {
+    "source": "The latest results, oldest first.",
+    "text": "آخرین نتایج، از قدیمی به جدید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.byMinute": {
+    "source": "Goals by minute",
+    "text": "گل‌ها بر حسب دقیقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.minutes": {
+    "source": "Minutes",
+    "text": "دقیقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.scored": {
+    "source": "Scored",
+    "text": "زده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.conceded": {
+    "source": "Conceded",
+    "text": "خورده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.band": {
+    "source": "{from}–{to}",
+    "text": "{from}–{to}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.bandsNote": {
+    "source": "{source}'s minute bands may not add up exactly to its goal totals.",
+    "text": "جمع بازه‌های دقیقه‌ی {source} ممکن است دقیقاً با جمع گل‌هایش برابر نباشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.bandsWithheld": {
+    "source": "Goals by minute and penalties are not shown for this season: {source}'s minute bands do not match its own goal totals, as happens when it counts the kicks of a penalty shoot-out.",
+    "text": "گل‌ها بر حسب دقیقه و پنالتی‌ها برای این فصل نشان داده نمی‌شوند: بازه‌های دقیقه‌ی {source} با جمع گل‌های خودش جور درنمی‌آید؛ این وقتی پیش می‌آید که ضربات پنالتیِ تعیین برنده را هم بشمارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.bandsNone": {
+    "source": "{source} did not supply goals by minute.",
+    "text": "{source} گل‌ها را بر حسب دقیقه نداده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.penalties": {
+    "source": "Penalties",
+    "text": "پنالتی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.penaltiesScored": {
+    "source": "Scored",
+    "text": "گل‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.penaltiesMissed": {
+    "source": "Missed",
+    "text": "از دست رفته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.biggestWin": {
+    "source": "Biggest win",
+    "text": "بزرگ‌ترین برد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.biggestDefeat": {
+    "source": "Heaviest defeat",
+    "text": "سنگین‌ترین باخت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.atHome": {
+    "source": "Home",
+    "text": "خانه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.awayFrom": {
+    "source": "Away",
+    "text": "بیرون",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.noResult": {
+    "source": "None",
+    "text": "ندارد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.longestRuns": {
+    "source": "Longest runs",
+    "text": "طولانی‌ترین رشته‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.runWins": {
+    "source": "Wins",
+    "text": "برد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.runDraws": {
+    "source": "Draws",
+    "text": "مساوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.runLosses": {
+    "source": "Defeats",
+    "text": "باخت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.formations": {
+    "source": "Formations used",
+    "text": "آرایش‌های به‌کاررفته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.formation": {
+    "source": "Formation",
+    "text": "آرایش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.matches": {
+    "source": "Matches",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.noFormations": {
+    "source": "{source} lists no formation for this season.",
+    "text": "{source} برای این فصل آرایشی ثبت نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.seasonStats.dash": {
+    "source": "A dash is a figure {source} did not supply, not a zero.",
+    "text": "خط تیره یعنی {source} این عدد را نداده است، نه صفر.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "teamPage.squadIncomplete": {
     "source": "Positions or shirt numbers are not on record for every player.",
     "text": "پست یا شماره‌ی پیراهن همه‌ی بازیکنان ثبت نشده است.",
