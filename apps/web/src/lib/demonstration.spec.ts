@@ -112,6 +112,24 @@ describe('robots.txt', () => {
     const result = robots();
     expect(result.sitemap).toContain('/sitemap.xml');
   });
+
+  it('throttles the heavy crawlers without refusing them (T-1451)', () => {
+    process.env['DEMONSTRATION_DATA'] = 'off';
+    const rules = [robots().rules].flat();
+    const everyone = rules.find((r) => r.userAgent === '*');
+    const throttled = rules.find((r) => Array.isArray(r.userAgent));
+    expect(everyone?.crawlDelay).toBeUndefined();
+    expect(throttled?.userAgent).toEqual(['ClaudeBot', 'CCBot', 'Reflectionbot']);
+    expect(throttled?.crawlDelay).toBe(10);
+    // A crawler reads its own group alone: the same pages stay closed to it.
+    expect(throttled?.allow).toBe('/');
+    expect(throttled?.disallow).toEqual(everyone?.disallow);
+  });
+
+  it('throttles no one when the whole site is forbidden', () => {
+    process.env['DEMONSTRATION_DATA'] = 'on';
+    expect(robots().rules).toEqual([{ userAgent: '*', disallow: '/' }]);
+  });
 });
 
 describe('sitemap.xml', () => {
