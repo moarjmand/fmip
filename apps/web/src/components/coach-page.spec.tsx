@@ -125,7 +125,7 @@ describe('the coach page', () => {
         locale="en"
       />,
     );
-    expect(html).toContain('No current team in the provider&#x27;s list');
+    expect(html).toContain('No current team in the coaching record');
     expect(html).toContain('data-coverage-badge="not_supplied"');
   });
 
@@ -152,7 +152,7 @@ describe('the coach page', () => {
         timeZone="UTC"
       />,
     );
-    expect(html).toContain('The provider has not described this coach yet.');
+    expect(html).toContain('Our data source has not described this coach yet.');
     expect(html).not.toContain('coach-not-carried');
   });
 

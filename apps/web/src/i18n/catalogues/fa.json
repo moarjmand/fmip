@@ -10232,8 +10232,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "team.headCoach.lineupDisagrees": {
-    "source": "The latest line-up names {name} as coach: the provider's list may not show the change yet.",
-    "text": "آخرین ترکیب، {name} را مربی معرفی کرده است؛ شاید فهرست تأمین‌کننده هنوز این تغییر را نشان ندهد.",
+    "source": "The latest line-up names {name} as coach: the coaching record may not show the change yet.",
+    "text": "آخرین ترکیب، {name} را مربی معرفی کرده است؛ شاید سابقهٔ مربیگری هنوز این تغییر را نشان ندهد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -13610,8 +13610,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "coachPage.noCurrentTeam": {
-    "source": "No current team in the provider's list",
-    "text": "در فهرست تأمین‌کننده تیم فعلی‌ای ندارد",
+    "source": "No current team in the coaching record",
+    "text": "در سابقهٔ مربیگری تیم فعلی‌ای ندارد",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -13622,8 +13622,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "coachPage.careerIntro": {
-    "source": "Spells as the data provider lists them, at the teams we cover. A spell with no end date is called current only when no later coach of that team is listed.",
-    "text": "دوره‌ها همان‌طور که تأمین‌کنندهٔ داده فهرست کرده است، در تیم‌هایی که پوشش می‌دهیم. دوره‌ای که تاریخ پایان ندارد فقط وقتی «فعلی» خوانده می‌شود که مربی دیگری از آن تیم بعد از او فهرست نشده باشد.",
+    "source": "Spells as our data source lists them, at the teams we cover. A spell with no end date is called current only when no later coach of that team is listed.",
+    "text": "دوره‌ها همان‌طور که منبع داده‌های ما فهرست کرده است، در تیم‌هایی که پوشش می‌دهیم. دوره‌ای که تاریخ پایان ندارد فقط وقتی «فعلی» خوانده می‌شود که مربی دیگری از آن تیم بعد از او فهرست نشده باشد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -13652,8 +13652,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "coachPage.notCarried": {
-    "source": "The provider lists {count} more spells at teams we do not cover.",
-    "text": "تأمین‌کننده {count} دورهٔ دیگر در تیم‌هایی فهرست کرده که آن‌ها را پوشش نمی‌دهیم.",
+    "source": "Our data source lists {count} more spells at teams we do not cover.",
+    "text": "منبع داده‌های ما {count} دورهٔ دیگر در تیم‌هایی فهرست کرده که آن‌ها را پوشش نمی‌دهیم.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -13682,8 +13682,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "coachPage.noData": {
-    "source": "The provider has not described this coach yet.",
-    "text": "تأمین‌کننده هنوز این مربی را توصیف نکرده است.",
+    "source": "Our data source has not described this coach yet.",
+    "text": "منبع داده‌های ما هنوز این مربی را توصیف نکرده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

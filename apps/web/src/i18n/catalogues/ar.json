@@ -8411,7 +8411,7 @@
     "status": "untranslated"
   },
   "team.headCoach.lineupDisagrees": {
-    "source": "The latest line-up names {name} as coach: the provider's list may not show the change yet.",
+    "source": "The latest line-up names {name} as coach: the coaching record may not show the change yet.",
     "text": "",
     "status": "untranslated"
   },
@@ -11156,7 +11156,7 @@
     "status": "untranslated"
   },
   "coachPage.noCurrentTeam": {
-    "source": "No current team in the provider's list",
+    "source": "No current team in the coaching record",
     "text": "",
     "status": "untranslated"
   },
@@ -11166,7 +11166,7 @@
     "status": "untranslated"
   },
   "coachPage.careerIntro": {
-    "source": "Spells as the data provider lists them, at the teams we cover. A spell with no end date is called current only when no later coach of that team is listed.",
+    "source": "Spells as our data source lists them, at the teams we cover. A spell with no end date is called current only when no later coach of that team is listed.",
     "text": "",
     "status": "untranslated"
   },
@@ -11191,7 +11191,7 @@
     "status": "untranslated"
   },
   "coachPage.notCarried": {
-    "source": "The provider lists {count} more spells at teams we do not cover.",
+    "source": "Our data source lists {count} more spells at teams we do not cover.",
     "text": "",
     "status": "untranslated"
   },
@@ -11216,7 +11216,7 @@
     "status": "untranslated"
   },
   "coachPage.noData": {
-    "source": "The provider has not described this coach yet.",
+    "source": "Our data source has not described this coach yet.",
     "text": "",
     "status": "untranslated"
   },
