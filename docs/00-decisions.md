@@ -11409,6 +11409,108 @@ name check and goes to review.
 source's numbering would map the wrong person silently. *Reviewing every
 player by hand*: 1,319 players on the first day.
 
+## D-228 — A team's season statistics as the provider counts them, beside our own table, with shoot-out-polluted figures withheld
+
+**Status:** Accepted · 2026-10-21 (agent; one of the data items the maintainer asked for on 2026-10-21 to use the Ultra plan fully) · **Task:** T-1437 · **Follows:** D-014, D-183, D-223
+
+**Context.** The team page's table and home-and-away figures are computed
+from the matches we ingest. API-Football's `/teams/statistics?league=&season=&team=`
+adds what our matches alone do not hold in one place: goals by band of
+minutes, clean sheets, failure to score, penalties scored and missed, the
+biggest wins and defeats, the longest runs and the formations used. Recorded
+answers (`_fixtures/api-football-team-statistics/`) showed two traps: a
+league's minute bands miss its own goal total by a goal or two (68 for 69),
+and a cup's count the kicks of a penalty shoot-out -- FA Cup 2024/25 has 12
+goals in the bands for 4 scored, 8 of them under "106-120", and `penalty`
+counts 8 scored of 10.
+
+**Decision.**
+1. **Shown as the provider's.** A module of its own on the team page's Stats
+   tab, titled with the provider's name and its fetch time, below our own
+   home-and-away panels; nothing is added to or compared with our figures.
+2. **One row per team and season**, replaced by each answer
+   (`team_season_stat`), a count the provider left out stored as NULL and
+   shown as a dash. An answer with no statistics (a season of no match)
+   deletes the row and records `supplied = false`, so the page says the
+   provider has none rather than showing zeros.
+3. **Withheld, not corrected.** When the minute bands miss the goal total by
+   more than the larger of two goals and a tenth of the total, the bands and
+   the penalties are both withheld (`bands_withheld`), and the page says why.
+   We do not subtract the shoot-out: the answer does not say how many kicks it
+   counted, and guessing would invent a figure (rule 3).
+4. **Who is asked, and when.** The `team_seasons` job, bulk tier (D-183),
+   every ten minutes, asks for each team with a finished match in a season we
+   hold, team and competition both mapped to the provider (rule 1): a past
+   season once; a current season when never asked, a week after the last
+   answer, and after each match the team played there once it is six hours
+   old. `INGESTION_TEAM_SEASONS_BATCH` (100, at most 200, 0 off), no more than
+   30 seconds a run, asks spaced by `AskPacer`; five unanswered asks in a row
+   and the ask is no longer made.
+5. **Coverage.** `available` for a season given whole; `limited` when a count,
+   the form or the bands are missing or withheld; `not_supplied` before the
+   provider was asked (`asked: false`) or when it has none.
+
+**Cost.** About one request per team and competition season: some 7,000 to
+backfill 2020/21 onwards, then roughly 1,000 a week for current seasons --
+well inside the bulk share of 75,000 a day.
+
+**Rejected.** *Subtracting the shoot-out from the bands*: the kicks' minute
+band and count are not given apart from the goals. *Computing these from our
+own matches*: possible for leagues we ingest fully, but not for past seasons
+before our data or matches without incidents; the provider's figures are
+shown as the provider's instead. *One job with `player_seasons`*: a different
+target (team and season, not player) and refresh rule; a job of its own keeps
+both simple.
+
+## D-229 — Grounds, clubs and the referee from the plan we pay for; the referee is a name, never an entity
+
+**Status:** Accepted · 2026-10-21 (the maintainer: use the API-Football Ultra subscription fully; the referee "as plain name text: no referee entity, no referee page") · **Task:** T-1438 · **Follows:** D-176, D-183, rules 1-3
+
+**Context.** `venue.capacity`, `latitude` and `longitude`, `team.founded_year`
+and `team.home_venue_id` have existed since T-010 and were always empty, and
+`fixture.referee_id` was never set: the adapter read the referee with no id,
+so the resolver dropped it. The plan already answers all of it: `/teams` for a
+competition's season lists every team with its founding year and its home
+ground in full, `/venues` describes one ground, and every fixture answer we
+already get names the referee.
+
+**Decision.**
+1. **Grounds.** `venue` gains `address` and `surface` (`grass`, `artificial`
+   or `hybrid`; the adapter maps the provider's words, anything else is
+   empty). `capacity` is filled. `latitude` and `longitude` stay empty: the
+   provider sends no coordinates, and none is derived. The ground's picture is
+   stored and served by us like a crest (D-176, kind `venue`).
+2. **Clubs.** A held club's `founded_year` and `home_venue_id` come from its
+   entry in a season's `/teams` answer. A national team's entry is read for
+   nothing: its ground and "founded" are its federation's.
+3. **How it is asked.** A second pass of the daily `squads` job, in the bulk
+   tier: each competition season with a match once (one request describes a
+   whole league's clubs and grounds), the current season again after 30 days;
+   then each mapped ground no club answer described, by id, once a month.
+   Paced with `AskPacer`, at most `INGESTION_CLUB_FACTS_BATCH` asks and 60
+   seconds a day. Not a new job: it is the same monthly club data, and a new
+   job name would touch the run table's job list that parallel work changes.
+4. **What is written.** Only teams and grounds `provider_mapping` knows (rule
+   1); others are counted, never created or queued. A fact an answer gives
+   replaces the stored one (a renovated ground, a club that moved); a fact it
+   leaves out is kept. The catalogue's ground name stands; a city is filled
+   only where none is stored.
+5. **The referee** is `fixture.referee_name`, plain text as the provider
+   names him, the ", Country" it appends dropped. No entity, no page, never a
+   key; `referee_id` stays unused. An answer naming nobody keeps the stored
+   name.
+6. **Shown with its coverage.** The match page's ground card is `available`
+   with address, capacity and surface, `limited` with some, `not_supplied`
+   when the provider was asked and gave none, `delayed` when it has not been
+   asked yet; the picture carries its own. The team page already shows the
+   founding year and the ground, and says so when there is no ground.
+
+**Rejected.** *A referee entity and page*: the maintainer's choice; the
+provider gives no referee id, so it would be a name as a key (rule 1).
+*Asking `/teams?id=` per club*: one request a club where one a season
+describes twenty. *Coordinates from a geocoder*: an invented value (rule 3)
+and a new dependency.
+
 ## D-230 — Coaches have their own id space; a team's coach and a coach's career come from the provider's coaches list, by our ids only
 
 **Status:** Accepted · 2026-10-21 (agent; one of the data items the maintainer asked for on 2026-10-21 to use the Ultra plan fully, the identity repair under the standing delegation of 2026-09-26) · **Task:** T-1439 · **Follows:** D-079, D-119, D-147, D-176, D-183, D-220

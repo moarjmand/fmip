@@ -42,7 +42,11 @@ import { CoachStore } from './internal/coach-store';
 import { coachesBatch, sweepCoaches } from './internal/coaches';
 import { PlayerSeasonStore } from './internal/player-season-store';
 import { playerSeasonsBatch, sweepPlayerSeasons } from './internal/player-seasons';
+import { TeamSeasonStore } from './internal/team-season-store';
+import { sweepTeamSeasons, teamSeasonsBatch } from './internal/team-seasons';
 import { squadsPerDay, sweepSquads } from './internal/squad-sweep';
+import { clubFactsBatch, sweepClubFacts } from './internal/club-facts';
+import { ClubFactsStore } from './internal/club-facts-store';
 
 /** How far back and forward the fixtures job looks, in days. */
 export const FIXTURE_WINDOW_BACK_DAYS = 2;
@@ -306,6 +310,8 @@ export class IngestionJobsService {
   private readonly backlogBatch = backlogBatch(process.env.INGESTION_BACKLOG_BATCH);
   private readonly refetchShare = refetchShare(process.env.INGESTION_REFETCH_SHARE);
   private readonly squadsPerDay = squadsPerDay(process.env.INGESTION_SQUADS_PER_DAY);
+  private readonly clubFactsBatch = clubFactsBatch(process.env.INGESTION_CLUB_FACTS_BATCH);
+  private readonly clubFacts: ClubFactsStore;
   private readonly peopleNamesBatch = peopleNamesBatch(process.env.INGESTION_PEOPLE_NAMES_BATCH);
   private readonly personNames: PersonNameStore;
   private readonly peopleBiosBatch = peopleBiosBatch(process.env.INGESTION_PEOPLE_BIOS_BATCH);
@@ -316,6 +322,8 @@ export class IngestionJobsService {
     process.env.INGESTION_PLAYER_SEASONS_BATCH,
   );
   private readonly playerSeasonStore: PlayerSeasonStore;
+  private readonly teamSeasonsBatch = teamSeasonsBatch(process.env.INGESTION_TEAM_SEASONS_BATCH);
+  private readonly teamSeasonStore: TeamSeasonStore;
   private readonly coachesBatch = coachesBatch(process.env.INGESTION_COACHES_BATCH);
   private readonly coachStore: CoachStore;
   /** When the live job last asked for a match that left the live list, by fixture id. */
@@ -337,6 +345,8 @@ export class IngestionJobsService {
     this.personBios = new PersonBioStore(pool);
     this.kitColourStore = new KitColourStore(pool);
     this.playerSeasonStore = new PlayerSeasonStore(pool);
+    this.teamSeasonStore = new TeamSeasonStore(pool);
+    this.clubFacts = new ClubFactsStore(pool);
     this.coachStore = new CoachStore(pool, resolver, media);
   }
 
@@ -361,9 +371,57 @@ export class IngestionJobsService {
         return this.kitColours(now);
       case 'player_seasons':
         return this.playerSeasons(now);
+      case 'team_seasons':
+        return this.teamSeasons(now);
       case 'coaches':
         return this.coaches(now);
     }
+  }
+
+  /**
+   * Teams' season statistics as the provider counts them (T-1437, D-228):
+   * each team with a finished match in a season we hold, past seasons once
+   * and current ones weekly and after each match day, within
+   * `INGESTION_TEAM_SEASONS_BATCH` a run and the bulk tier of the budget.
+   * `itemsWritten` is the seasons with statistics; `team_season_fetch` holds
+   * each ask.
+   */
+  teamSeasons(now: Date = new Date()): Promise<JobReport> {
+    return this.track('team_seasons', async (source) => {
+      const shares = parseTierShares(process.env);
+      const sweep = await sweepTeamSeasons({
+        provider: source.provider,
+        adapter: source.adapter,
+        store: this.teamSeasonStore,
+        now,
+        // The replay source has no team statistics recorded: asking would only fail.
+        batch: this.sources.kind === 'replay' ? 0 : this.teamSeasonsBatch,
+        budget: this.sources.dailyBudget ?? null,
+        bulkPercent: 'error' in shares ? DEFAULT_TIER_SHARES.bulk : shares.bulk,
+        requestsToday: await this.runs.requestsToday(source.provider, now),
+        // Spaced where a provider's plan is held to a budget (T-1422); not in a test.
+        ...(this.sources.dailyBudget === undefined
+          ? { pacer: { pace: () => Promise.resolve() } }
+          : {}),
+      });
+      this.log.log('team seasons', {
+        event: 'ingest.team_seasons',
+        provider: source.provider,
+        asked: sweep.asked,
+        answered: sweep.answered,
+        written: sweep.written,
+        empty: sweep.empty,
+        ...(sweep.idle === undefined ? {} : { idle: sweep.idle }),
+      });
+      const partial = sweep.refused.join('; ');
+      return {
+        job: 'team_seasons',
+        provider: source.provider,
+        itemsSeen: sweep.answered,
+        itemsWritten: sweep.written,
+        ...(partial === '' ? {} : { partial }),
+      };
+    });
   }
 
   /**
@@ -571,7 +629,11 @@ export class IngestionJobsService {
    * Player photos for players already in our records (T-1324): each mapped
    * club of the current seasons asked for its squad at most once a month,
    * within `INGESTION_SQUADS_PER_DAY`, and every listed player we hold has his
-   * photo address handed to the media store. Writes no football data.
+   * photo address handed to the media store. Then the club-and-ground pass
+   * (T-1438, D-229): each competition season's teams and each ground the
+   * provider can describe, within `INGESTION_CLUB_FACTS_BATCH` and the bulk
+   * tier, which writes the clubs' founding years and home grounds and the
+   * grounds' capacity, address, surface and picture.
    */
   squads(now: Date = new Date()): Promise<JobReport> {
     return this.track('squads', async (source, targets) => {
@@ -586,6 +648,29 @@ export class IngestionJobsService {
         budget: this.sources.dailyBudget ?? null,
         requestsToday: await this.runs.requestsToday(source.provider, now),
       });
+      const shares = parseTierShares(process.env);
+      const facts = await sweepClubFacts({
+        provider: source.provider,
+        adapter: source.adapter,
+        store: this.clubFacts,
+        media: this.media,
+        now,
+        // The replay source has no teams or grounds recorded: asking would only fail.
+        batch: this.sources.kind === 'replay' ? 0 : this.clubFactsBatch,
+        budget: this.sources.dailyBudget ?? null,
+        bulkPercent: 'error' in shares ? DEFAULT_TIER_SHARES.bulk : shares.bulk,
+        requestsToday: await this.runs.requestsToday(source.provider, now),
+      });
+      this.log.log('club and ground facts', {
+        event: 'ingest.club_facts',
+        provider: source.provider,
+        asked: facts.asked,
+        answered: facts.answered,
+        clubs_written: facts.clubsWritten,
+        venues_written: facts.venuesWritten,
+        unmapped_venues: facts.unmappedVenues,
+        ...(facts.idle === undefined ? {} : { idle: facts.idle }),
+      });
       this.log.log('squads swept', {
         event: 'ingest.squads',
         provider: source.provider,
@@ -595,13 +680,13 @@ export class IngestionJobsService {
         noted: sweep.noted,
         ...(sweep.idle === undefined ? {} : { idle: sweep.idle }),
       });
-      const partial = sweep.refused.join('; ');
+      const partial = [...sweep.refused, ...facts.refused].join('; ');
       return {
         job: 'squads',
         provider: source.provider,
-        itemsSeen: sweep.listed,
-        // A photo address is not football data, so nothing counts as written.
-        itemsWritten: 0,
+        itemsSeen: sweep.listed + facts.teamsSeen,
+        // A photo address is not football data; a club's or a ground's facts are.
+        itemsWritten: facts.clubsWritten + facts.venuesWritten,
         ...(partial === '' ? {} : { partial }),
       };
     });

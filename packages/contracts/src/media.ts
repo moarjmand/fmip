@@ -14,8 +14,11 @@
  * never the provider's silhouette.
  */
 
-/** Which image of which entity: crest (team), logo (competition), photo (person). */
-export const MEDIA_KINDS = ['crest', 'logo', 'photo'] as const;
+/**
+ * Which image of which entity: crest (team), logo (competition), photo
+ * (person), venue (a picture of the ground, T-1438).
+ */
+export const MEDIA_KINDS = ['crest', 'logo', 'photo', 'venue'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 /**

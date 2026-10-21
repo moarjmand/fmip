@@ -54,8 +54,9 @@ export const INGESTION_SOURCES = Symbol('INGESTION_SOURCES');
  * The five scheduled jobs (T-026), the monthly squads sweep for player photos
  * (T-1324), the full names of people stored under a short one (T-1398), and
  * the shirts of past matches for the club colour (T-1417), and players'
- * season totals and careers as the provider counts them (T-1431), and each
- * team's coaches and their careers (T-1439).
+ * season totals and careers as the provider counts them (T-1431), teams'
+ * season statistics (T-1437), and each team's coaches and their careers
+ * (T-1439).
  */
 export const INGEST_JOBS = [
   'fixtures',
@@ -67,6 +68,7 @@ export const INGEST_JOBS = [
   'people_names',
   'kit_colours',
   'player_seasons',
+  'team_seasons',
   'coaches',
 ] as const;
 export type IngestJob = (typeof INGEST_JOBS)[number];
