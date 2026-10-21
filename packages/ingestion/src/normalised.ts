@@ -387,6 +387,45 @@ export interface NormalisedCareerEntry {
   seasonYears: number[];
 }
 
+/**
+ * What kind of move a transfer was, read from the provider's own word for it
+ * (T-1440, D-231): a loan, the end of one, a free move, a fee (`fee` keeps the
+ * provider's text: "€ 75M"), a permanent move without a fee given, or a word
+ * we cannot read.
+ */
+export const TRANSFER_KINDS = [
+  'loan',
+  'loan_return',
+  'free',
+  'fee',
+  'transfer',
+  'unknown',
+] as const;
+export type TransferKind = (typeof TRANSFER_KINDS)[number];
+
+/**
+ * A club on one side of a transfer: the provider's id and name, or its name
+ * alone when the provider gave no id. A name alone is shown as text and never
+ * matched to a club of ours (rule 1).
+ */
+export interface NormalisedTransferClub {
+  externalId: string | null;
+  name: string;
+}
+
+/** One move of one player between two clubs, as the provider lists it (T-1440, D-231). */
+export interface NormalisedTransfer {
+  player: EntityRef;
+  /** The day of the move, `YYYY-MM-DD`. */
+  date: string;
+  kind: TransferKind;
+  /** The provider's fee as written ("€ 75M", "£ 1.5M"), for `kind: 'fee'` only. */
+  fee: string | null;
+  /** `null` when the provider names no club (a player without one before or after). */
+  from: NormalisedTransferClub | null;
+  to: NormalisedTransferClub | null;
+}
+
 export const PREFERRED_FEET = ['left', 'right', 'both'] as const;
 export type PreferredFoot = (typeof PREFERRED_FEET)[number];
 
@@ -428,6 +467,36 @@ export interface NormalisedPersonProfile {
 }
 
 /**
+ * A coach's spell at a team as the provider lists it (T-1439, D-230): ISO
+ * calendar dates, `start` null when the provider gave none and `end` null
+ * while the spell is open or when it gave none -- the provider leaves some
+ * spells open after the coach has gone, so an open spell is a claim, not a
+ * fact, and the reader decides which open spell is current.
+ */
+export interface NormalisedCoachSpell {
+  team: EntityRef;
+  start: string | null;
+  end: string | null;
+}
+
+/**
+ * A coach as the provider's coaches endpoint describes him (T-1439, D-230).
+ * `ref.externalId` is in the provider's coach id space, which is not its
+ * player id space: an adapter whose provider numbers coaches and players
+ * apart writes it with its own prefix, so one number never names two people
+ * in `provider_mapping` (rule 1). `name` is the full name or `null` without
+ * both halves; `bio` the birth date and nationality, each `null` when unsaid.
+ * `career` newest first.
+ */
+export interface NormalisedCoach {
+  ref: EntityRef;
+  name: NormalisedPersonName | null;
+  dateOfBirth: string | null;
+  nationality: NormalisedNationality | null;
+  career: NormalisedCoachSpell[];
+}
+
+/**
  * A player in a club's current squad listing (T-1324, T-1428): the ref and
  * photo, and the shirt number (1 to 99) and position the listing gives, each
  * `null` when it gives none.
@@ -435,6 +504,95 @@ export interface NormalisedPersonProfile {
 export interface NormalisedSquadPlayer extends EntityRef {
   shirtNumber: number | null;
   position: Position | null;
+}
+
+/** A count at home and away; one the provider left out is `null`, never zero. */
+export interface HomeAway {
+  home: number | null;
+  away: number | null;
+}
+
+/** Goals in one band of minutes, as the provider counts them ("0-15", ..., "106-120"). */
+export interface MinuteBand {
+  /** The band's first and last minute: 0 and 15 for "0-15". */
+  from: number;
+  to: number;
+  goals: number;
+}
+
+/** A biggest win or defeat at home or away, from the team's side: its goals first. */
+export interface TeamScore {
+  for: number;
+  against: number;
+}
+
+/**
+ * A team's statistics for one season of one competition, as the provider
+ * counts them (T-1437, D-228). A count the provider left out is `null`, never
+ * zero. The minute bands and the penalties are `null` when the provider's
+ * bands do not add up to its own goal totals: in a cup it counts the kicks of
+ * a penalty shoot-out in both, and a shoot-out kick is not a goal.
+ */
+export interface NormalisedTeamSeasonStats {
+  competition: EntityRef;
+  team: EntityRef;
+  /** The year the season starts in. */
+  seasonYear: number;
+  played: HomeAway;
+  wins: HomeAway;
+  draws: HomeAway;
+  losses: HomeAway;
+  goalsFor: HomeAway;
+  goalsAgainst: HomeAway;
+  cleanSheets: HomeAway;
+  failedToScore: HomeAway;
+  /** Oldest result first, newest last: "W", "D" or "L" each. */
+  form: string | null;
+  goalsForByMinute: MinuteBand[] | null;
+  goalsAgainstByMinute: MinuteBand[] | null;
+  /** Whether the bands and the penalties were left out because the bands miss the goal totals. */
+  bandsWithheld: boolean;
+  penaltiesScored: number | null;
+  penaltiesMissed: number | null;
+  biggestWin: { home: TeamScore | null; away: TeamScore | null };
+  biggestDefeat: { home: TeamScore | null; away: TeamScore | null };
+  /** The longest runs of wins, draws and defeats. */
+  longestRun: { wins: number | null; draws: number | null; losses: number | null };
+  /** Each formation the team started in and how often, most used first. */
+  formations: { formation: string; played: number }[];
+}
+
+/** What a pitch is laid with (T-1438, D-229); a provider's other words are `null`. */
+export const VENUE_SURFACES = ['grass', 'artificial', 'hybrid'] as const;
+export type VenueSurface = (typeof VENUE_SURFACES)[number];
+
+/**
+ * A ground as the provider describes it (T-1438, D-229): the name and city,
+ * the street address, the capacity (a whole number above zero), the surface,
+ * and the provider's https address for a picture of it (`imageUrl`, inside
+ * ingestion only, like `EntityRef.imageUrl`). Each is `null` when unsaid or
+ * unreadable. No coordinates: the provider sends none.
+ */
+export interface NormalisedVenueFacts {
+  externalId: string;
+  name: string;
+  city: string | null;
+  address: string | null;
+  capacity: number | null;
+  surface: VenueSurface | null;
+  imageUrl: string | null;
+}
+
+/**
+ * One team of a competition's season as the provider lists it (T-1438):
+ * whether it is a national team, the year it was founded (1800 to 2100) and
+ * its home ground, each `null` when unsaid.
+ */
+export interface NormalisedTeamFacts {
+  team: EntityRef;
+  national: boolean | null;
+  foundedYear: number | null;
+  venue: NormalisedVenueFacts | null;
 }
 
 export interface NormalisedPlayerStat {

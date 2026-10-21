@@ -21,11 +21,17 @@ the version that made them.
 
 ``BASELINE`` is ``dixon-coles-elo@0.1.0``, the first published version, kept
 in code: a version file names only what differs from its constants.
+
+A version forecasts the divisions its file lists under ``divisions`` (T-1442,
+D-233); a file that lists none forecasts ``LEGACY_DIVISIONS``, the ones held
+before T-1442, so a league added to the training store reaches the site only
+through a new version that names it, after its backtest and its shadow record.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -54,6 +60,16 @@ ELO_PRIORS: tuple[EloPrior, ...] = ("clubelo", "own", "clubelo_then_own")
 #: version never changes (rule 5); no new version may declare one of these, and
 #: ``tests/test_club_elo_retired.py`` refuses a candidate file that does.
 CLUB_ELO_PRIORS: frozenset[EloPrior] = frozenset({"clubelo", "clubelo_then_own"})
+
+#: What a version that lists no ``divisions`` forecasts (T-1442, D-233): every
+#: division held before T-1442 -- football-data.co.uk's twelve main leagues the
+#: catalogue maps, Iran's league and the matches across leagues of our records.
+LEGACY_DIVISIONS: frozenset[str] = frozenset(
+    {"E0", "E1", "SP1", "D1", "I1", "F1", "N1", "P1", "T1", "B1", "SC0", "IR1", "XL"}
+)
+#: A division's code, as ``competition_football_data_division_format`` checks
+#: it, or ``XL`` (the matches across leagues, T-533).
+DIVISION_CODE = re.compile(r"^(?:[A-Z]{1,2}[0-9C]|XL)$")
 
 #: How far back the service fits from, unless a version says otherwise.
 DEFAULT_HISTORY_DAYS = 400
@@ -87,10 +103,18 @@ class ModelVersion:
     cross_league: CrossLeague | None = None
     #: Where the Elo prior comes from (T-922). 0.1.0 reads Club Elo.
     elo_prior: EloPrior = "clubelo"
+    #: The divisions this version forecasts (T-1442, D-233); ``None``:
+    #: ``LEGACY_DIVISIONS``, what every version before it forecast.
+    divisions: frozenset[str] | None = field(default=None, hash=False, compare=False)
 
     @property
     def id(self) -> str:
         return f"{self.name}@{self.version}"
+
+    def forecasts(self, division: str) -> bool:
+        """Whether this version answers for ``division`` (and fits across leagues with it)."""
+        held = LEGACY_DIVISIONS if self.divisions is None else self.divisions
+        return division in held
 
     def constants_for(self, division: str) -> tuple[float, float]:
         return self.per_division.get(division, (self.xi, self.ridge))
@@ -99,6 +123,7 @@ class ModelVersion:
         body = asdict(self)
         body["per_division"] = {d: list(c) for d, c in self.per_division.items()}
         body["cross_league"] = None if self.cross_league is None else asdict(self.cross_league)
+        body["divisions"] = None if self.divisions is None else sorted(self.divisions)
         return {"id": self.id, **body}
 
 
@@ -199,6 +224,12 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
     if raw_prior not in ELO_PRIORS:
         raise ValueError(f"elo_prior must be one of {ELO_PRIORS}, not {raw_prior!r}")
     elo_prior: EloPrior = raw_prior
+    raw_divisions = body.get("divisions")
+    divisions = None if raw_divisions is None else frozenset(str(d) for d in raw_divisions)
+    if divisions is not None:
+        malformed = sorted(d for d in divisions if not DIVISION_CODE.match(d))
+        if malformed or not divisions:
+            raise ValueError(f"divisions must be division codes such as E0, not {malformed}")
     if (
         not per_division
         and (xi, ridge, elo_weight) == (BASELINE.xi, BASELINE.ridge, BASELINE.elo_weight)
@@ -206,6 +237,7 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         and cross_league is None
         and lineup_beta is None
         and elo_prior == BASELINE.elo_prior
+        and divisions is None
     ):
         return None
     return ModelVersion(
@@ -221,6 +253,7 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         lineup_beta=lineup_beta,
         cross_league=cross_league,
         elo_prior=elo_prior,
+        divisions=divisions,
     )
 
 

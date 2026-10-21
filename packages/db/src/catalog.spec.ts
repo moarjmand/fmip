@@ -341,13 +341,17 @@ describe('the training alias list', () => {
     'utf8',
   );
 
-  it('parses, covers the eleven leagues, and names every club and every name once per division', () => {
+  it('parses, covers the nineteen leagues, and names every club and every name once per division', () => {
     const parsed = parseAliases(text);
     expect(parsed.error).toBeUndefined();
     const rows = parsed.rows as { teamId: string; division: string; name: string }[];
-    // The first five (D-080) and the six Phase 6 added (T-502).
+    // The first five (D-080), the six Phase 6 added (T-502), and Greece and
+    // football-data.co.uk's extra leagues (T-1442, D-233).
     expect(new Set(rows.map((r) => r.division))).toEqual(
-      new Set(['E0', 'SP1', 'D1', 'I1', 'F1', 'E1', 'N1', 'P1', 'T1', 'B1', 'SC0']),
+      new Set([
+        ...['E0', 'SP1', 'D1', 'I1', 'F1', 'E1', 'N1', 'P1', 'T1', 'B1', 'SC0'],
+        ...['G1', 'AT1', 'CH1', 'DK1', 'PL1', 'US1', 'BR1', 'AR1'],
+      ]),
     );
     // `team_alias`'s key: a club has one name per division, and a promoted or
     // relegated club a row in each division it has played in.

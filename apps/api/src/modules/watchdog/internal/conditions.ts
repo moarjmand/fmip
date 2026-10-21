@@ -48,6 +48,12 @@ const HOUR = 60 * MINUTE;
  * - player_seasons, every ten minutes (T-1431): 2 and 12 hours. Season totals
  *   refreshed after each match a player played; a missed hour is a few hours'
  *   lag on figures that are a day behind at best.
+ * - team_seasons, every ten minutes (T-1437): 2 and 12 hours. Season
+ *   statistics refreshed weekly and after a match day; a missed hour is not news.
+ * - coaches, hourly (T-1439): 6 and 24 hours. Careers refreshed monthly and
+ *   after a change in the line-ups; a missed run is an hour's lag.
+ * - transfers, every ten minutes (T-1440): 2 and 12 hours. Each club and
+ *   player is asked weekly at most; a missed hour is not news.
  */
 export const INGEST_THRESHOLDS: Record<string, WatchdogThreshold> = {
   live: { unit: 'seconds', degraded: 5 * MINUTE, failing: 15 * MINUTE },
@@ -59,6 +65,9 @@ export const INGEST_THRESHOLDS: Record<string, WatchdogThreshold> = {
   people_names: { unit: 'seconds', degraded: 2 * HOUR, failing: 12 * HOUR },
   kit_colours: { unit: 'seconds', degraded: 2 * HOUR, failing: 12 * HOUR },
   player_seasons: { unit: 'seconds', degraded: 2 * HOUR, failing: 12 * HOUR },
+  team_seasons: { unit: 'seconds', degraded: 2 * HOUR, failing: 12 * HOUR },
+  coaches: { unit: 'seconds', degraded: 6 * HOUR, failing: 24 * HOUR },
+  transfers: { unit: 'seconds', degraded: 2 * HOUR, failing: 12 * HOUR },
 };
 
 const DEFAULT_INGEST_THRESHOLD: WatchdogThreshold = {

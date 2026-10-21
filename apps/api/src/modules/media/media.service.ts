@@ -18,6 +18,8 @@ export interface MediaIndex {
   crest(teamId: string): EntityMedia;
   logo(competitionId: string): EntityMedia;
   photo(personId: string): EntityMedia;
+  /** A picture of the ground (T-1438). */
+  venue(venueId: string): EntityMedia;
 }
 
 /** Entity ids to look up, by type. */
@@ -28,6 +30,7 @@ export const EMPTY_MEDIA_INDEX: MediaIndex = {
   crest: () => NO_MEDIA,
   logo: () => NO_MEDIA,
   photo: () => NO_MEDIA,
+  venue: () => NO_MEDIA,
 };
 
 /** How many noted addresses a process remembers, so an unchanged one costs no query. */
@@ -84,6 +87,7 @@ export class MediaService {
       team: [...new Set(request.team ?? [])],
       competition: [...new Set(request.competition ?? [])],
       person: [...new Set(request.person ?? [])],
+      venue: [...new Set(request.venue ?? [])],
     };
     const rows = await this.store.available(ids);
     if (rows.length === 0) return EMPTY_MEDIA_INDEX;
@@ -96,7 +100,7 @@ export class MediaService {
       });
     }
     const of = (kind: MediaKind) => (id: string) => found.get(`${kind}:${id}`) ?? NO_MEDIA;
-    return { crest: of('crest'), logo: of('logo'), photo: of('photo') };
+    return { crest: of('crest'), logo: of('logo'), photo: of('photo'), venue: of('venue') };
   }
 
   /** The stored file behind one address, for the serving route. */

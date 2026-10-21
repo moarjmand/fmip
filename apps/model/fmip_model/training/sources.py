@@ -80,6 +80,58 @@ def football_data_url(season: str, division: str) -> str:
     return f"https://www.football-data.co.uk/mmz4281/{season}/{division}.csv"
 
 
+#: football-data.co.uk's "extra leagues" (T-1442, D-233): one CSV per country,
+#: every season in one file, results and closing odds only. Our division code
+#: for each, then the site's file code. Our codes keep the catalogue's format
+#: (``competition_football_data_division_format``: one or two letters, then a
+#: digit) and none is a code of the site's main files.
+EXTRA_DIVISIONS: dict[str, str] = {
+    "AR1": "ARG",
+    "AT1": "AUT",
+    "BR1": "BRA",
+    "CH1": "SWZ",
+    "CN1": "CHN",
+    "DK1": "DNK",
+    "FI1": "FIN",
+    "IE1": "IRL",
+    "JP1": "JPN",
+    "MX1": "MEX",
+    "NO1": "NOR",
+    "PL1": "POL",
+    "RO1": "ROU",
+    "RU1": "RUS",
+    "SE1": "SWE",
+    "US1": "USA",
+}
+
+
+def football_data_extra_url(division: str) -> str:
+    """The one CSV of an extra league, every season, by our division code (``AT1``)."""
+    code = EXTRA_DIVISIONS.get(division)
+    if code is None:
+        known = ", ".join(sorted(EXTRA_DIVISIONS))
+        raise ValueError(f"{division!r} is not an extra-leagues division; one of {known}")
+    return f"https://www.football-data.co.uk/new/{code}.csv"
+
+
+def extra_season_label(season: str) -> str:
+    """The extra files' season as the catalogue labels it.
+
+    ``"2024/2025"`` → ``"2024/25"``; a calendar-year season, ``"2026"``, is
+    ``"2026/27"``, as the catalogue labels a season starting that year (MLS,
+    Brazil and Argentina's 2026 are ``2026/27`` there).
+    """
+    value = season.strip()
+    if len(value) == 9 and value[4] == "/" and value[:4].isdigit() and value[5:].isdigit():
+        start, end = int(value[:4]), int(value[5:])
+        if end == start + 1:
+            return f"{start}/{end % 100:02d}"
+    elif len(value) == 4 and value.isdigit():
+        start = int(value)
+        return f"{start}/{(start + 1) % 100:02d}"
+    raise ValueError(f"unrecognised season {season!r}")
+
+
 def season_label(season: str) -> str:
     """``"2425"`` → ``"2024/25"``. Matches the label convention in the catalog."""
     start, end = int(season[:2]), int(season[2:])
