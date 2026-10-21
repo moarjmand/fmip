@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { EntityNewsResponse, FixtureNewsResponse, NewsStoryCard } from '@fmip/contracts';
 import { NewsImageCredit, NewsThumb, drawableNewsImage } from '@/components/news-image';
 import { Translated } from '@/components/translated';

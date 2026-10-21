@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import type { NotificationKind } from '@fmip/contracts';
 import { NOTIFICATION_HOURLY_CAP } from '@fmip/contracts';

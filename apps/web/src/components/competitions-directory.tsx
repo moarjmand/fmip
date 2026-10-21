@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { MessageText } from '@/components/message-text';
 import { TextField } from '@/components/ui';

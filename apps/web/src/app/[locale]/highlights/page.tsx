@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { HighlightListItem, MatchViewing, ViewingTerritory } from '@fmip/contracts';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';

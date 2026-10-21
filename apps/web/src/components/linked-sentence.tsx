@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';
 

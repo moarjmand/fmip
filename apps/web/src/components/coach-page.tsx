@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { CoachPage } from '@fmip/contracts';
 import { Coverage, CoveredPanel, Panel } from '@/components/competition-page';
 import { EntityBand } from '@/components/entity-band';

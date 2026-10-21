@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { ModelAccuracyReport } from '@/components/model-accuracy-report';
 import { fetchAdminModelAccuracy, fetchMe } from '@/lib/api';

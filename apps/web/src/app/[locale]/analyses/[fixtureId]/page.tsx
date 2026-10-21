@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { AnalysisEditor } from '@/components/analysis-editor';
 import { Translated } from '@/components/translated';

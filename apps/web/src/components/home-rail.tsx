@@ -6,7 +6,7 @@ import type {
   TeamPage,
   TeamPageFixture,
 } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import { EntityImage } from '@/components/entity-image';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';

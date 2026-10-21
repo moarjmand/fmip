@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { LinkedSentence } from '@/components/linked-sentence';
 import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';

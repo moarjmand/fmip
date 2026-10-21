@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { NEWS_SECTIONS, STORY_TYPES, type NewsStoryCard } from '@fmip/contracts';
 import { ActionForm } from '@/components/action-form';
 import { NewsCardImage, NewsImageCredit, drawableNewsImage } from '@/components/news-image';

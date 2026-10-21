@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { ActionForm } from '@/components/action-form';
 import { Translated } from '@/components/translated';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';

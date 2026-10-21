@@ -5,7 +5,7 @@ import type {
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { MessageText } from '@/components/message-text';
 import { Icon } from '@/components/ui';
 import { COVERAGE_KEY } from '@/components/score-card';

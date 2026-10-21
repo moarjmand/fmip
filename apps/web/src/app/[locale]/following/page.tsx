@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import type { FeedItem, FeedSignal, MatchViewing } from '@fmip/contracts';
 import { BriefingPanel } from '@/components/briefing';

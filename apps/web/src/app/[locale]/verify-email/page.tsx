@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { apiRequest } from '@/lib/api';
 import { readerAddress } from '@/lib/session';
 import { Translated } from '@/components/translated';

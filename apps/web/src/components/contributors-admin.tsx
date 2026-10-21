@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, type ReactNode } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type {
   ContributorCandidate,
   ContributorFlagListResponse,

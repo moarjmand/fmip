@@ -1,5 +1,5 @@
 import type { CoverageState, ScoreCard as ScoreCardData, ScoreCardIncident } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { formatNumber } from '@/i18n/format';
 import { isBehind } from '@/lib/live';
 import { formatKickoff, formatStamp, scoreLabel, statusLabel } from '@/lib/scores';

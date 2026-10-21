@@ -1,7 +1,7 @@
 'use client';
 
 import { useTransition } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { Notification, NotificationsResponse } from '@fmip/contracts';
 import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';

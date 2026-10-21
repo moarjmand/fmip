@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { PlayerProviderSeasonLine, PlayerProviderSeasons } from '@fmip/contracts';
 import { Coverage, Panel } from '@/components/competition-page';
 import { Stamp } from '@/components/stamp';

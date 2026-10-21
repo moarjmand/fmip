@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { notFound, redirect } from 'next/navigation';
 import { TranslationDesk } from '@/components/translation-desk';
 import { fetchMe, fetchTranslationDesk } from '@/lib/api';

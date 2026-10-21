@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { isDeletedMember } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { memberProfileHref, type NamedMember } from '@/lib/member-name';

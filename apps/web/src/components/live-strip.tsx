@@ -1,5 +1,5 @@
 import type { ScoreCard, ScoresGroup } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { EntityImage } from '@/components/entity-image';
 import { LiveStripAge } from '@/components/live-strip-age';
 import { MessageText } from '@/components/message-text';

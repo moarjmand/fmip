@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { CommunitySubmission } from '@fmip/contracts';
 import { reviewAnalysisAction } from '@/lib/analysis-actions';
 import { Button, Card, FormStatus, Notice, TextArea } from '@/components/ui';

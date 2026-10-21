@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { notFound, redirect } from 'next/navigation';
 import { COVERAGE_STATES } from '@fmip/contracts';
 import { ActionForm, type Field } from '@/components/action-form';

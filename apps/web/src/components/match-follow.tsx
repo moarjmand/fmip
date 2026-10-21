@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { FixtureStatus, FollowedEntity } from '@fmip/contracts';
 import { followAction, unfollowAction } from '@/lib/auth-actions';
 import { FollowIntentMark } from '@/components/push-offer-mark';

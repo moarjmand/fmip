@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { PRIVACY_VISIBILITIES } from '@fmip/contracts';
 import { ActionForm, type FieldOption } from '@/components/action-form';
 import { AppearanceSwitch } from '@/components/appearance-switch';

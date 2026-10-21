@@ -1,5 +1,5 @@
 import type { CompetitionSummary, FollowedEntity, TeamSummary } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { FollowIntentMark } from '@/components/push-offer-mark';
 import { PushOfferFor } from '@/components/push-offer-for';
 import { Translated } from '@/components/translated';

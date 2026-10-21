@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { AskReason, SearchType } from '@fmip/contracts';
 import type { ReactNode } from 'react';
 import { MemberHandle, MemberName } from '@/components/member-name';

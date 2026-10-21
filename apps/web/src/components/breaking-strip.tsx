@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { NewsStoryCard } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { storyHref } from '@/lib/news';

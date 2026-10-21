@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import {
   MAX_CONSENSUS_FIXTURES,

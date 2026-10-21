@@ -6,7 +6,7 @@ import {
   type Prediction,
   type PredictionReasonTag,
 } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import { PredictionForm, type PredictionFormWords } from '@/components/prediction-form';
 import { Translated } from '@/components/translated';

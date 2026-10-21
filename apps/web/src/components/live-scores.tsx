@@ -1,7 +1,7 @@
 'use client';
 
 import type { ScoresResponse } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { useEffect, useState } from 'react';
 import { EntityImage } from '@/components/entity-image';
 import { ScoreCard } from '@/components/score-card';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type {
   DataQualityCheck,
   DataQualityCount,

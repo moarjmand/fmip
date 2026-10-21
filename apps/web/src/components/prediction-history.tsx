@@ -1,5 +1,5 @@
 import type { PredictionHistoryItem } from '@fmip/contracts';
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import { ScorePair } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { attribute, interpolate, message, t } from '@/i18n/messages';

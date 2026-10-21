@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/link';
 import type { CandidateRecord, CandidateRecordsResponse } from '@fmip/contracts';
 import { Card, Notice } from '@/components/ui';
 
