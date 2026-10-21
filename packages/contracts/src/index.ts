@@ -236,6 +236,8 @@ export type {
   TeamSummary,
   TeamsResponse,
 } from './catalog';
+// Coaches: the coach page and the team page's head coach (T-1439, D-230).
+export type { CoachCareerSpell, CoachCareerTeam, CoachPage, TeamHeadCoach } from './coaches';
 // Transfers as the provider lists them (T-1440, D-231).
 export type {
   PlayerTransfers,
@@ -250,6 +252,15 @@ export type {
   PlayerProviderSeasonLine,
   PlayerProviderSeasons,
 } from './player-provider-seasons';
+// A team's season statistics as the provider counts them (T-1437, D-228).
+export type {
+  TeamSeasonCount,
+  TeamSeasonMinuteBand,
+  TeamSeasonScore,
+  TeamSeasonStats,
+  TeamSeasonStatsChoice,
+  TeamSeasonStatsLine,
+} from './team-season-stats';
 // The match centre's competition context (blueprint 4.2, T-840).
 export type {
   CompetitionContext,
@@ -375,6 +386,8 @@ export type {
   MatchStatRow,
   MatchTeam,
   PlayerMatchMetric,
+  VenueDetails,
+  VenueSurface,
 } from './match-centre';
 // The match centre's key players (blueprint 4.2, T-841): a stated rule, not a judgement.
 export { KEY_PLAYERS_PER_SIDE } from './key-players';

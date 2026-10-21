@@ -11,18 +11,20 @@ import type { Pool } from 'pg';
 import type { MediaKind } from '@fmip/contracts';
 import type { MediaContentType } from './image-check';
 
-export type MediaEntityType = 'team' | 'competition' | 'person';
+export type MediaEntityType = 'team' | 'competition' | 'person' | 'venue';
 
 export const KIND_OF: Record<MediaEntityType, MediaKind> = {
   team: 'crest',
   competition: 'logo',
   person: 'photo',
+  venue: 'venue',
 };
 
 export const ENTITY_OF: Record<MediaKind, MediaEntityType> = {
   crest: 'team',
   logo: 'competition',
   photo: 'person',
+  venue: 'venue',
 };
 
 export type MediaState = 'pending' | 'available' | 'not_supplied' | 'failed';
@@ -114,7 +116,8 @@ export class MediaStore {
                AND last_checked_at < $1::timestamptz
                  - make_interval(hours => LEAST($3 * 24, power(2, LEAST(attempts, 10))::int)))
         ORDER BY (last_checked_at IS NULL) DESC,
-                 CASE entity_type WHEN 'competition' THEN 0 WHEN 'team' THEN 1 ELSE 2 END,
+                 CASE entity_type WHEN 'competition' THEN 0 WHEN 'team' THEN 1
+                                  WHEN 'person' THEN 2 ELSE 3 END,
                  last_checked_at NULLS FIRST, created_at
         LIMIT $2`,
       [now.toISOString(), limit, REFRESH_DAYS],
@@ -205,7 +208,8 @@ export class MediaStore {
     const team = [...(ids.team ?? [])];
     const competition = [...(ids.competition ?? [])];
     const person = [...(ids.person ?? [])];
-    if (team.length + competition.length + person.length === 0) return [];
+    const venue = [...(ids.venue ?? [])];
+    if (team.length + competition.length + person.length + venue.length === 0) return [];
     const { rows } = await this.pool.query<{
       entity_type: MediaEntityType;
       entity_id: string;
@@ -215,8 +219,9 @@ export class MediaStore {
         WHERE state = 'available'
           AND ((entity_type = 'team' AND entity_id = ANY($1::uuid[]))
             OR (entity_type = 'competition' AND entity_id = ANY($2::uuid[]))
-            OR (entity_type = 'person' AND entity_id = ANY($3::uuid[])))`,
-      [team, competition, person],
+            OR (entity_type = 'person' AND entity_id = ANY($3::uuid[]))
+            OR (entity_type = 'venue' AND entity_id = ANY($4::uuid[])))`,
+      [team, competition, person, venue],
     );
     return rows.map((r) => ({
       entityType: r.entity_type,

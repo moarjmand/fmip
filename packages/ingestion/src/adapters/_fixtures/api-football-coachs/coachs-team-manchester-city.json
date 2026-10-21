@@ -1,0 +1,131 @@
+{
+  "name": "coachs-team-manchester-city",
+  "recordedAt": "2026-10-21T00:00:00.000Z",
+  "note": "Read-only, from the production API container on the Ultra plan (T-1439). The envelope as answered, without get/parameters. Manchester City: Guardiola (career to date, no birth) and Maresca (the new coach, from 2026-08-01).",
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://v3.football.api-sports.io/coachs?team=50",
+      "status": 200,
+      "body": {
+        "errors": [],
+        "results": 2,
+        "paging": {
+          "current": 1,
+          "total": 1
+        },
+        "response": [
+          {
+            "id": 4,
+            "name": "Guardiola",
+            "firstname": null,
+            "lastname": null,
+            "age": null,
+            "birth": {
+              "date": null,
+              "place": null,
+              "country": null
+            },
+            "nationality": null,
+            "height": null,
+            "weight": null,
+            "photo": "https://media.api-sports.io/football/coachs/4.png",
+            "team": {
+              "id": 50,
+              "name": "Manchester City",
+              "logo": "https://media.api-sports.io/football/teams/50.png"
+            },
+            "career": [
+              {
+                "team": {
+                  "id": 50,
+                  "name": "Manchester City",
+                  "logo": "https://media.api-sports.io/football/teams/50.png"
+                },
+                "start": "2016-07-01",
+                "end": null
+              }
+            ]
+          },
+          {
+            "id": 12629,
+            "name": "E. Maresca",
+            "firstname": "Vincenzo",
+            "lastname": "Maresca",
+            "age": 45,
+            "birth": {
+              "date": "1980-02-10",
+              "place": "Ponte Cagnano",
+              "country": "Italy"
+            },
+            "nationality": "Italy",
+            "height": "180 cm",
+            "weight": "77 kg",
+            "photo": "https://media.api-sports.io/football/coachs/12629.png",
+            "team": {
+              "id": 50,
+              "name": "Manchester City",
+              "logo": "https://media.api-sports.io/football/teams/50.png"
+            },
+            "career": [
+              {
+                "team": {
+                  "id": 50,
+                  "name": "Manchester City",
+                  "logo": "https://media.api-sports.io/football/teams/50.png"
+                },
+                "start": "2026-08-01",
+                "end": null
+              },
+              {
+                "team": {
+                  "id": 49,
+                  "name": "Chelsea",
+                  "logo": "https://media.api-sports.io/football/teams/49.png"
+                },
+                "start": "2024-06-01",
+                "end": null
+              },
+              {
+                "team": {
+                  "id": 46,
+                  "name": "Leicester City",
+                  "logo": "https://media.api-sports.io/football/teams/46.png"
+                },
+                "start": "2023-07-01",
+                "end": "2024-06-01"
+              },
+              {
+                "team": {
+                  "id": 523,
+                  "name": "Parma",
+                  "logo": "https://media.api-sports.io/football/teams/523.png"
+                },
+                "start": "2021-05-01",
+                "end": "2021-11-01"
+              },
+              {
+                "team": {
+                  "id": 7197,
+                  "name": "Manchester City U21",
+                  "logo": "https://media.api-sports.io/football/teams/7197.png"
+                },
+                "start": "2020-09-01",
+                "end": "2021-05-01"
+              },
+              {
+                "team": {
+                  "id": 15637,
+                  "name": "Manchester City U23",
+                  "logo": "https://media.api-sports.io/football/teams/15637.png"
+                },
+                "start": "2020-08-01",
+                "end": "2021-05-01"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -149,6 +149,20 @@ function score(value: unknown): { home: number; away: number } | null {
   return home === null || away === null || home < 0 || away < 0 ? null : { home, away };
 }
 
+/**
+ * The referee as plain name text (T-1438, D-229): the provider writes
+ * "Anthony Taylor, England" or "M. Oliver", so the country after a comma is
+ * dropped and entities decoded. Never an entity: no id comes with it.
+ */
+export function refereeName(value: unknown): string | null {
+  const s = str(value);
+  if (s === null) return null;
+  const name = decodeEntities(s.split(',')[0] ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return /\p{L}/u.test(name) && name.length <= 120 ? name : null;
+}
+
 const DAY_MS = 86_400_000;
 
 /** True when a kick-off is at least a day after the moment the answer arrived. */
@@ -208,7 +222,7 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
   const stageKind = round === null ? null : stageKindOf(round);
   const venue = rec(fixture.venue);
   const venueName = str(venue.name);
-  const referee = str(fixture.referee);
+  const referee = refereeName(fixture.referee);
   const elapsed = int(statusRec.elapsed);
   const goals = score(it.goals);
 
@@ -285,6 +299,19 @@ function imagedRef(
 ): { externalId: string; name: string; imageUrl?: string } | null {
   const r = ref(value);
   return r === null ? null : withImage(r, imageUrl(rec(value)[field]));
+}
+
+/**
+ * What a coach's provider number is written after (T-1439, D-230): the
+ * provider numbers coaches apart from players (coach 4 is Guardiola, player 4
+ * a goalkeeper), and both are people to us, so a coach's number is
+ * `coach:4` and one number never names two people (rule 1).
+ */
+export const COACH_ID_PREFIX = 'coach:';
+
+/** A coach block's ref moved into the coach id space. */
+function inCoachSpace<T extends { externalId: string }>(ref: T | null): T | null {
+  return ref === null ? null : { ...ref, externalId: `${COACH_ID_PREFIX}${ref.externalId}` };
 }
 
 /** The contract's ceiling on stoppage time (`validate.ts`, the incident table). */
@@ -499,7 +526,7 @@ function sideLineup(
   const seen = new Set<string>();
   return {
     formation: formation !== null && /^[0-9](-[0-9]){2,4}$/.test(formation) ? formation : null,
-    coach: imagedRef(b.coach, 'photo'),
+    coach: inCoachSpace(imagedRef(b.coach, 'photo')),
     players: [
       ...withoutSharedPlaces(lineupPlayers(b.startXI, 'starter', captains, seen, photos)),
       ...lineupPlayers(b.substitutes, 'bench', captains, seen, photos),
@@ -773,7 +800,7 @@ export function mapSquad(response: unknown, teamExternalId: string): NormalisedS
  * provider sends some, "O&apos;Neill"), whitespace collapsed. `null` when
  * nothing with a letter in it is left.
  */
-function plainName(value: unknown): string | null {
+export function plainName(value: unknown): string | null {
   const s = str(value);
   if (s === null) return null;
   const plain = decodeEntities(s).replace(/\s+/g, ' ').trim();
@@ -781,7 +808,7 @@ function plainName(value: unknown): string | null {
 }
 
 /** "1992-06-15": a real calendar date from 1900 on, else `null`. */
-function calendarDate(value: unknown): string | null {
+export function calendarDate(value: unknown): string | null {
   const s = str(value);
   if (s === null || !/^\d{4}-\d{2}-\d{2}$/.test(s.trim())) return null;
   const day = s.trim();
@@ -801,7 +828,7 @@ function heightCm(value: unknown): number | null {
   return n !== null && Number.isInteger(n) && n >= 100 && n <= 250 ? n : null;
 }
 
-function nationality(value: unknown): NormalisedNationality | null {
+export function nationality(value: unknown): NormalisedNationality | null {
   const name = plainName(value);
   return name === null ? null : { name, code: nationalityCode(name) };
 }

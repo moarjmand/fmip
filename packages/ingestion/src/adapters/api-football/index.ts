@@ -11,6 +11,7 @@
 import type {
   NormalisedAbsence,
   NormalisedCareerEntry,
+  NormalisedCoach,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
@@ -20,6 +21,9 @@ import type {
   NormalisedSeasonCoverage,
   NormalisedSquadPlayer,
   NormalisedStanding,
+  NormalisedTeamSeasonStats,
+  NormalisedTeamFacts,
+  NormalisedVenueFacts,
   NormalisedTransfer,
 } from '../../normalised';
 import type {
@@ -51,7 +55,10 @@ import {
   mapStatistics,
   seasonYear,
 } from './map';
+import { mapTeamFacts, mapVenue } from './club-facts';
+import { mapCoaches } from './coaches';
 import { mapPlayerCareer, mapPlayerSeason } from './player-seasons';
+import { mapTeamSeasonStats } from './team-statistics';
 import { mapTransfers } from './transfers';
 
 export const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
@@ -92,7 +99,16 @@ function envelope(
     };
   }
   const body = response.body;
-  if (!isRecord(body) || !Array.isArray(body.response)) {
+  // `/teams/statistics` answers with one object, not a list (T-1437): it is
+  // read as a list of one, so every endpoint's `response` is a list here.
+  const list = !isRecord(body)
+    ? null
+    : Array.isArray(body.response)
+      ? body.response
+      : isRecord(body.response)
+        ? [body.response]
+        : null;
+  if (!isRecord(body) || list === null) {
     return {
       ok: false,
       error: { kind: 'malformed', message: 'body is not an API-Football envelope' },
@@ -115,7 +131,7 @@ function envelope(
   return {
     ok: true,
     data: {
-      response: body.response,
+      response: list,
       errors: Object.fromEntries(keys.map((k) => [k, String(errors[k])])),
     },
   };
@@ -411,6 +427,95 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapPlayerCareer(result.data.response),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/teams/statistics?league=&season=&team=`: a team's season in one
+   * competition, one request (T-1437, D-228).
+   */
+  async getTeamSeasonStats(
+    competitionExternalId: string,
+    seasonLabel: string,
+    teamExternalId: string,
+  ): Promise<AdapterResult<NormalisedTeamSeasonStats | null>> {
+    const season = seasonYear(seasonLabel);
+    if (season === null) {
+      return {
+        ok: false,
+        error: { kind: 'unsupported', message: `cannot read a season from "${seasonLabel}"` },
+        requests: 0,
+      };
+    }
+    const result = await this.call('/teams/statistics', {
+      league: competitionExternalId,
+      season: String(season),
+      team: teamExternalId,
+    });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapTeamSeasonStats(result.data.response, {
+        competitionExternalId,
+        teamExternalId,
+        seasonYear: season,
+      }),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/teams?league=&season=`: every team of the season with its founding
+   * year and home ground, one request (T-1438, D-229). One page: the
+   * provider does not page this answer.
+   */
+  async getSeasonTeams(query: StandingsQuery): Promise<AdapterResult<NormalisedTeamFacts[]>> {
+    const season = seasonYear(query.seasonLabel);
+    if (season === null) {
+      return {
+        ok: false,
+        error: { kind: 'unsupported', message: `cannot read a season from "${query.seasonLabel}"` },
+        requests: 0,
+      };
+    }
+    const result = await this.call('/teams', {
+      league: query.competitionExternalId,
+      season: String(season),
+    });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapTeamFacts(result.data.response),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /** `/venues?id=`: one ground's capacity, address, surface and picture, one request (T-1438). */
+  async getVenue(venueExternalId: string): Promise<AdapterResult<NormalisedVenueFacts | null>> {
+    const result = await this.call('/venues', { id: venueExternalId });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapVenue(result.data.response, venueExternalId),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/coachs?team=`: every coach the provider lists for a team, each with his
+   * career, one request (T-1439, D-230). The endpoint is not paged.
+   */
+  async getTeamCoaches(teamExternalId: string): Promise<AdapterResult<NormalisedCoach[]>> {
+    const result = await this.call('/coachs', { team: teamExternalId });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapCoaches(result.data.response),
       requests: 1,
       fetchedAt: result.receivedAt,
     };

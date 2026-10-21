@@ -22,7 +22,7 @@ import { formatNumber, intlLocale, localDigits } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
 import { FORM_KEY, formatFixtureDate, say } from '@/lib/competition';
 import { tabHref } from '@/lib/competition-overview';
-import { POSITION_KEY as PLAYER_POSITION_KEY } from '@/lib/player';
+import { POSITION_KEY as PLAYER_POSITION_KEY, dayText } from '@/lib/player';
 import {
   METRIC_KEY,
   OVERVIEW_SQUAD,
@@ -175,38 +175,78 @@ export function ClubBand({
   );
 }
 
-/** The coach named on the latest line-up, linked to that match, or why none is shown (T-944). */
+/**
+ * The head coach and the manager (T-944, T-1439). The head coach is the
+ * provider's coaches list's current one (D-230), linked to his page, with
+ * the day his spell started. The line-up's coach (D-119) is shown when there
+ * is no head coach, or when it names someone else -- the list may be behind a
+ * change, and the page says so rather than choosing.
+ */
 function Manager({ page, locale, timeZone }: { page: TeamPage; locale: string; timeZone: string }) {
+  const head = page.head_coach?.data ?? null;
   const { coach, lineup_fixture: fixture } = page.manager;
   return (
-    <p className="text-sm" data-testid="manager">
-      {coach.data !== null && fixture !== null ? (
-        <>
+    <>
+      {head !== null && (
+        <p className="text-sm" data-testid="head-coach">
           <span className="text-muted">
-            <Translated locale={locale} message="team.manager.label" />
+            <Translated locale={locale} message="team.headCoach.label" />
           </span>{' '}
-          <span className="font-semibold">{coach.data.name}</span>{' '}
-          <span className="text-xs text-muted">
-            <Translated locale={locale} message="team.manager.named" />{' '}
-            <Link
-              href={`/${locale}/match/${fixture.id}`}
-              className={inlineTargetClasses('underline')}
-            >
-              <time dateTime={fixture.kickoff_at}>
-                {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
-              </time>
-            </Link>
-          </span>
-        </>
-      ) : (
-        <span className="text-muted" data-testid="manager-none">
-          <Translated
-            locale={locale}
-            message={fixture === null ? 'team.manager.noLineup' : 'team.manager.noCoach'}
-          />
-        </span>
+          <Link
+            href={`/${locale}/coach/${head.person.id}`}
+            className={inlineTargetClasses('font-semibold hover:underline')}
+          >
+            {head.person.name}
+          </Link>
+          {head.since !== null && (
+            <span className="text-xs text-muted">
+              {' · '}
+              {say(locale, 'team.headCoach.since', { date: dayText(locale, head.since) })}
+            </span>
+          )}
+        </p>
       )}
-    </p>
+      {head !== null && head.lineup_disagrees && coach.data !== null && (
+        <p className="text-xs text-muted" data-testid="head-coach-disagrees">
+          {say(locale, 'team.headCoach.lineupDisagrees', { name: coach.data.name })}
+        </p>
+      )}
+      {head === null && (
+        <p className="text-sm" data-testid="manager">
+          {coach.data !== null && fixture !== null ? (
+            <>
+              <span className="text-muted">
+                <Translated locale={locale} message="team.manager.label" />
+              </span>{' '}
+              <Link
+                href={`/${locale}/coach/${coach.data.id}`}
+                className={inlineTargetClasses('font-semibold hover:underline')}
+              >
+                {coach.data.name}
+              </Link>{' '}
+              <span className="text-xs text-muted">
+                <Translated locale={locale} message="team.manager.named" />{' '}
+                <Link
+                  href={`/${locale}/match/${fixture.id}`}
+                  className={inlineTargetClasses('underline')}
+                >
+                  <time dateTime={fixture.kickoff_at}>
+                    {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
+                  </time>
+                </Link>
+              </span>
+            </>
+          ) : (
+            <span className="text-muted" data-testid="manager-none">
+              <Translated
+                locale={locale}
+                message={fixture === null ? 'team.manager.noLineup' : 'team.manager.noCoach'}
+              />
+            </span>
+          )}
+        </p>
+      )}
+    </>
   );
 }
 
