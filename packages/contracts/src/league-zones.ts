@@ -7,6 +7,11 @@
  * our code, never a name -- rule 1) and the season's label (`2025/26`), each
  * with the published sources it was read from.
  *
+ * A league the model does not hold has no training division (T-1444, D-234):
+ * its entry is keyed by the competition's country (the FIFA trigram of our
+ * `country` table, BEL, SCO, KSA ...) instead, and the lookup falls back to it
+ * when the division finds nothing.
+ *
  * Only places a league position earns by itself are listed. Europa League
  * and Conference League places (and the AFC's second competition) are not:
  * who takes them depends on the domestic cups, which a table cannot show.
@@ -18,6 +23,7 @@
 export const LEAGUE_ZONE_KINDS = [
   'champions_league',
   'afc_champions_league_elite',
+  'copa_libertadores',
   'promotion',
   'promotion_playoff',
   'relegation_playoff',
@@ -34,7 +40,14 @@ export interface LeagueZone {
 
 /** One entry of the committed list. */
 export interface LeagueZoneEntry {
-  division: string;
+  /** The training division (E0, IR1 ...); absent for an entry keyed by `country`. */
+  division?: string;
+  /**
+   * The country's FIFA trigram (`country.code`), for the top-flight league of a
+   * country whose league has no training division (D-234). Exactly one of
+   * `division` and `country` is set.
+   */
+  country?: string;
   season: string;
   /** The clubs in the league that season. */
   teams: number;
@@ -65,14 +78,18 @@ export type LeagueZones =
   | {
       state: 'not_listed';
       /**
-       * `not_a_league`: a cup; `no_division`: the competition has no code in
-       * the list's key; `season_not_listed`: the list has no entry for it.
+       * `not_a_league`: a cup; `no_division`: the competition has no division
+       * and no top-flight country to key on; `season_not_listed`: the list has no entry for it.
        */
       reason: 'not_a_league' | 'no_division' | 'season_not_listed';
     };
 
 const SEASON = /^\d{4}\/\d{2}$/;
 const DIVISION = /^[A-Z]{1,2}[0-9C]$/;
+const COUNTRY = /^[A-Z]{3}$/;
+
+/** What identifies an entry in messages: its division or its country. */
+const keyOf = (e: LeagueZoneEntry): string => e.division ?? `${e.country ?? '?'}`;
 
 /**
  * Every way the list can be wrong, as sentences; empty when it is sound. A
@@ -83,8 +100,13 @@ export function leagueZoneProblems(entries: readonly LeagueZoneEntry[]): string[
   const problems: string[] = [];
   const seen = new Set<string>();
   for (const e of entries) {
-    const key = `${e.division} ${e.season}`;
-    if (!DIVISION.test(e.division)) problems.push(`${key}: division is not a code`);
+    const key = `${keyOf(e)} ${e.season}`;
+    if ((e.division === undefined) === (e.country === undefined))
+      problems.push(`${key}: exactly one of division and country is needed`);
+    if (e.division !== undefined && !DIVISION.test(e.division))
+      problems.push(`${key}: division is not a code`);
+    if (e.country !== undefined && !COUNTRY.test(e.country))
+      problems.push(`${key}: country is not a three-letter code`);
     if (!SEASON.test(e.season)) problems.push(`${key}: season is not a label like 2025/26`);
     if (seen.has(key)) problems.push(`${key}: listed twice`);
     seen.add(key);
@@ -111,15 +133,43 @@ export function leagueZoneProblems(entries: readonly LeagueZoneEntry[]): string[
   return problems;
 }
 
-/** The zones of one season, or why there are none. */
+/**
+ * The competition as the lookup reads it. `country` is the FIFA trigram of a
+ * senior men's domestic league and is left null for anything else; `tier` is
+ * the catalog's (1 = top flight, null where it is not recorded).
+ */
+export interface ZoneCompetition {
+  kind: string;
+  division: string | null;
+  country?: string | null;
+  tier?: number | null;
+}
+
+/**
+ * The zones of one season, or why there are none. The division finds an entry
+ * first; failing that, the country does, for the top flight only: a catalog
+ * that records a tier other than 1 never matches (a null tier is read as the
+ * top flight, since every country listed here holds one league).
+ */
 export function leagueZonesFor(
   entries: readonly LeagueZoneEntry[],
-  competition: { kind: string; division: string | null },
+  competition: ZoneCompetition,
   season: string,
 ): LeagueZones {
   if (competition.kind !== 'league') return { state: 'not_listed', reason: 'not_a_league' };
-  if (competition.division === null) return { state: 'not_listed', reason: 'no_division' };
-  const e = entries.find((x) => x.division === competition.division && x.season === season);
+  const country = competition.country ?? null;
+  const topFlight =
+    competition.tier === undefined || competition.tier === null || competition.tier === 1;
+  if (competition.division === null && (country === null || !topFlight))
+    return { state: 'not_listed', reason: 'no_division' };
+  const e =
+    entries.find(
+      (x) =>
+        competition.division !== null && x.division === competition.division && x.season === season,
+    ) ??
+    entries.find(
+      (x) => country !== null && topFlight && x.country === country && x.season === season,
+    );
   if (e === undefined) return { state: 'not_listed', reason: 'season_not_listed' };
   return {
     state: 'listed',

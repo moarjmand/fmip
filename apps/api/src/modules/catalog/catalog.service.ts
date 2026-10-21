@@ -376,7 +376,18 @@ export class CatalogService {
         // T-1167 (D-171): the committed list, never the feed's standings.
         zones: leagueZonesFor(
           leagueZoneList as LeagueZoneEntry[],
-          { kind: competition.kind, division },
+          {
+            kind: competition.kind,
+            division,
+            // D-234: a league the model does not hold is keyed by its country.
+            country:
+              competition.scope === 'domestic' &&
+              competition.gender === 'men' &&
+              competition.age_group === 'senior'
+                ? (competition.country?.code ?? null)
+                : null,
+            tier: competition.tier,
+          },
           selected.label,
         ),
         results,

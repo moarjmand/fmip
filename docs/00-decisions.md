@@ -11408,3 +11408,71 @@ name check and goes to review.
 **Rejected.** *Name alone* (rule 1). *Shirt alone*: a data error in either
 source's numbering would map the wrong person silently. *Reviewing every
 player by hand*: 1,319 players on the first day.
+
+## D-234 — League zones for a league the model does not hold: keyed by country, and only what a source states
+
+**Status:** Accepted · 2026-10-21 (agent, under T-1444's brief: "write what you would add" where D-171's format cannot say it) · **Task:** T-1444 · **Follows:** D-171, D-083, rules 1-3
+
+**The problem.** D-171 keys an entry by the competition's training division
+(`football_data_division`). Only the leagues the model holds have one, so every
+other league could never show zones however good the entry. A division is also the model's mapping, set on the server by the
+catalog command: borrowing it for a zone legend would make a table decoration
+depend on a modelling decision (T-1442) and would change how the model treats
+the league.
+
+**Decision.**
+
+1. **A second key, `country`.** An entry may carry `country` (the FIFA trigram
+   of our `country` table: BEL, SCO, KSA ...) instead of `division`; exactly
+   one of the two (`leagueZoneProblems`). `leagueZonesFor` tries the
+   division first and the country second, and the country only for a senior
+   men's domestic league whose recorded tier is 1 or not recorded. The
+   catalog's `competition.tier` is not filled by ingestion today, so a null
+   tier counts as the top flight: it holds while the catalog follows one
+   league per country, and a second league of a country that has an entry must
+   be given a tier before it is added. The country is our canonical row, not a
+   name or a provider id (rule 1).
+2. **The model skips them.** `_zones.py` ignores an entry without a
+   division: a league the model does not hold has no stakes to read.
+3. **One new kind, `copa_libertadores`,** for the places a Brazilian position
+   earns (any stage), rendered like the other continental places.
+4. **Only what a source states.** The first entries are for 2026/27 (the
+   season label also stands for a calendar-year season: Brazil's 2026 is
+   `2026/27`, as the catalog labels every league) and carry `complete: false`
+   where UEFA's or the AFC's allocation for 2027/28 is not read from the
+   body itself: the champion's Champions League place is listed because every
+   association has one, no further place is. Where a source could not be found
+   for a fact, the fact is left out and the note says so.
+5. **Split leagues.** A band is one place or a run of places in the table
+   summed over all results (D-038). In a league that splits, a club never
+   crosses halves, so that table can differ from the official final order
+   across the border. Belgium 2026/27 has no split. Scotland, Austria, Switzerland, Denmark,
+   Czechia, Serbia and Greece are listed only at the ends of the table
+   (the champion's place and the last places), never a band that straddles a
+   border (`league-zones.spec.ts` fails one), and each entry's note says the
+   order can differ across the split. Belgium 2025/26 and Austria 2025/26
+   halved points, Greece's middle group still does, and so the summed table is
+   not their order: no 2025/26 entry for the first two.
+6. **Not listed, and why (rule 3).**
+   - **MLS:** the playoff places are the top nine of each *conference* table
+     and the Concacaf places come from the overall table, the Supporters'
+     Shield and the playoff result, none of which one place band says.
+   - **Argentina:** no single table. Two zone tables per tournament, a yearly
+     aggregate for the Libertadores and Sudamericana, and relegation by a
+     three-year average and the aggregate. It would take a different kind of
+     entry (a named table) that the page does not have.
+   - **Iran 2026/27:** the AFC's 2027/28 allocation for Iran and the federation's
+     relegation rule are not published in a source we read (D-171's reason for
+     IR1 stands).
+   - **Saudi Arabia, Qatar, UAE 2026/27:** the relegation counts and the AFC
+     places were not found; their 2025/26 seasons are listed instead.
+   - **Brazil's fifth place:** the sources disagree on its stage.
+
+T-1442 (D-233) is giving the leagues it trains division codes; the zones do
+not wait for them, and once a division has an entry of its own it wins over
+the country's.
+
+**Rejected.** *Setting a division on each league* (changes what the model
+does with it, T-1442's decision). *The provider's league id* (rule 2).
+*A name* (rule 1). *Marking a band across a split border* (the table would
+colour places the league does not rank that way).

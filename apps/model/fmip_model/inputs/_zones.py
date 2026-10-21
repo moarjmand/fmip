@@ -73,7 +73,12 @@ def parse(raw: object) -> dict[tuple[str, str], SeasonZones]:
         zones = tuple((str(z["kind"]), int(z["from"]), int(z["to"])) for z in e["zones"])
         for kind, first, last in zones:
             if not 1 <= first <= last <= teams:
-                raise ValueError(f"{e['division']} {e['season']}: {kind} is not inside the table")
+                name = e.get("division") or e.get("country")
+                raise ValueError(f"{name} {e['season']}: {kind} is not inside the table")
+        # An entry keyed by country (D-234) is a league the model does not
+        # hold: it has no division to be read by, so the model skips it.
+        if "division" not in e:
+            continue
         key = (str(e["division"]), str(e["season"]))
         if key in out:
             raise ValueError(f"{key} is listed twice")

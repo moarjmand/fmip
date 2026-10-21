@@ -12055,6 +12055,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.zone.copaLibertadores": {
+    "source": "Copa Libertadores",
+    "text": "کوپا لیبرتادورس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1444."
+  },
   "competitionPage.zone.promotion": {
     "source": "Promotion",
     "text": "صعود",

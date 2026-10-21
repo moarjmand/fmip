@@ -989,4 +989,10 @@ export type {
 // League zones from a committed list (T-1167, D-171). The list is
 // `zones/league-zones.json`, read as `@fmip/contracts/zones/league-zones.json`.
 export { LEAGUE_ZONE_KINDS, leagueZoneProblems, leagueZonesFor, zoneOfPlace } from './league-zones';
-export type { LeagueZone, LeagueZoneEntry, LeagueZoneKind, LeagueZones } from './league-zones';
+export type {
+  LeagueZone,
+  LeagueZoneEntry,
+  LeagueZoneKind,
+  LeagueZones,
+  ZoneCompetition,
+} from './league-zones';
