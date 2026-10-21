@@ -11408,3 +11408,20 @@ name check and goes to review.
 **Rejected.** *Name alone* (rule 1). *Shirt alone*: a data error in either
 source's numbering would map the wrong person silently. *Reviewing every
 player by hand*: 1,319 players on the first day.
+
+## D-232 — The competition's player tables are counted from our incidents; the provider's season totals fill only a season we hold none of
+
+**Status:** Accepted · 2026-10-21 (the maintainer: ties by fewer appearances, separate yellow and red tables, appearances on every row, depth 20, a labelled fallback to `player_season_stat` only for seasons with no stored incidents) · **Task:** T-1441 · **Follows:** D-118, D-209, D-223, rules 3 and 8
+
+**Context.** The Players tab already ranked scorers, assists, clean sheets and cards (T-824, T-943) from the incidents and line-ups we store. Two sources could feed the tables now: those, and `player_season_stat` (T-1431), the provider's own season totals per player, competition and team. Past seasons back to 2020/21 are being loaded, and their incidents arrive over days, so for a while some seasons have totals and no incident, or neither.
+
+**Decision.**
+1. **Incidents stay the source.** Scorers, assists, yellows and reds are counted from `incident` over the season's main competition (D-209) and appearances from our line-ups: a table that can be recomputed from stored matches, like a rating (rule 8).
+2. **The fallback.** Only when the season has no incident at all in its main competition (`incidentTally.incidents = 0`) and `player_season_stat` holds lines for that competition and season year (the first four digits of the label, as T-1431 stores them), the scorer, assist, yellow and red tables come from those lines. They are flagged `leaders_source: 'provider_totals'`, the page says so in a sentence above the tables, and each module is `limited`, never `available`: only the players the provider has been asked about appear, so a leader may be missing. A figure the provider left out (`NULL`) is no row, never a nought. The provider's reds are its straight reds plus second yellows, as the player page counts a red. Clean sheets are never taken from the provider.
+3. **No blending.** A season is wholly one source or the other; no table mixes rows from both. A season with incidents never reads `player_season_stat`, however thin its incidents are.
+4. **Honest coverage for our own count.** A recorded table is at most `limited` when the goals the incidents name are fewer than the goals the finished matches' full-time scores add up to: some match's incidents are not stored yet. It carries the newest stored change as `last_updated_at`.
+5. **Order and depth.** Every table: the figure, highest first; ties by fewer appearances; players whose appearances are not recorded after those whose are; then by name, then id. Twenty rows. Everyone tied at the twentieth place is considered, so the tie-break decides who makes the table, not the order the query returned.
+6. **Appearances** are the matches the player played in our line-ups (`appearances` is `null` when no line-up names the player: not a season of none), or the provider's own count for the fallback. The minutes floor works the same on both.
+7. **Yellow and red are separate tables** (`boards.yellow_cards`, `boards.red_cards`), each ranked by its own figure and listing only players with at least one; the combined `boards.cards` is retired.
+
+**Rejected.** *The provider's totals first*: they cover only players the job asked about, so a table could look whole and miss its leader, and they cannot be recomputed from our stored matches. *Mixing the two per player*: two counting rules in one ranking. *Filling a season's gaps from the fallback when it has some incidents*: a table partly one source, partly another.

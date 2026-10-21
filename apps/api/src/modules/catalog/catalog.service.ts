@@ -11,6 +11,7 @@ import type {
   BoardPlayer,
   PlayerPage,
   PlayerProviderSeasons,
+  PlayerSeasonMinutes,
   SeasonSummary,
   SuggestedCompetition,
   SuggestedTeam,
@@ -34,8 +35,15 @@ import { LEADERS_LIMIT, StandingsService } from '../standings/standings.service'
 import { buildBracket, tieOf } from './internal/bracket';
 import { contextTable, phaseOf } from './internal/competition-context';
 import { PostgresCompetitionStore } from './internal/competition-store';
-import { leadersModule, leadersWithMinutes } from './internal/leaders';
+import {
+  candidatesForTop,
+  leadersModule,
+  leadersWithMinutes,
+  rankByFigure,
+  wholeOnlyIfRecorded,
+} from './internal/leaders';
 import { readProviderSeasons } from './internal/player-provider-seasons';
+import { providerBoards, readProviderLeaders } from './internal/provider-leaders';
 import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
@@ -250,15 +258,16 @@ export class CatalogService {
       return { kind: seasons.length === 0 ? 'no_seasons' : 'unknown_season' };
 
     const knockout = playsKnockoutBracket(competition);
-    // Under a minutes floor every scorer is read, since the first ten by
-    // goals may not be the first ten that reached it (T-824).
+    // Every scorer and every board row is read, then ranked here: a tie at the
+    // cut-off is broken by appearances, which only the line-ups know (T-1441).
     const [
       stages,
       { fixtures, lastUpdatedAt },
       coverage,
       table,
-      scorers,
-      boards,
+      recordedScorers,
+      recordedBoards,
+      tally,
       bracketFixtures,
       division,
     ] = await Promise.all([
@@ -266,8 +275,9 @@ export class CatalogService {
       this.competitions_.fixtures(selected.id),
       this.competitions_.coverage(selected.id),
       this.standings.table(selected.id),
-      this.standings.leaders(selected.id, minMinutes === null ? LEADERS_LIMIT : null),
+      this.standings.leaders(selected.id, null),
       this.standings.boards(selected.id),
+      this.standings.incidentTally(selected.id),
       knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
       this.competitions_.division(id),
     ]);
@@ -276,44 +286,114 @@ export class CatalogService {
     const groupTables = stages.some((s) => s.kind === 'group')
       ? await this.standings.groupStandings(selected.id)
       : null;
-    // The boards beyond goals (T-943) are read whole, so their minutes are
-    // read only for the rows each board can show without a floor.
-    const shown = <T extends { person: { id: string } }>(rows: T[] | null) =>
-      (rows ?? []).slice(0, minMinutes === null ? LEADERS_LIMIT : undefined);
-    const minutes = await this.players_.minutesByPerson(
+
+    // D-232: our own incidents are the source. Only a season of which we store
+    // none falls back to the provider's season totals, if it has any.
+    const providerLines =
+      tally.incidents === 0
+        ? await readProviderLeaders(this.pool, competition.id, selected.label)
+        : [];
+    const fromProvider = providerLines.length > 0;
+    const provider = fromProvider ? providerBoards(providerLines) : null;
+    const scorers = provider?.scorers ?? wholeOnlyIfRecorded(recordedScorers, tally);
+    const assistsModule = provider?.assists ?? wholeOnlyIfRecorded(recordedBoards.assists, tally);
+    const cardsModule = provider?.cards ?? wholeOnlyIfRecorded(recordedBoards.cards, tally);
+
+    // The tables as ranked rows. Each is cut to the rows that can make the
+    // table once ties are broken, unless a floor is asked for, which needs all.
+    const onlyWith = <T>(module: Covered<T[]>, has: (row: T) => boolean): Covered<T[]> => ({
+      ...module,
+      data: module.data === null ? null : module.data.filter(has),
+    });
+    const tables = {
+      scorers: { module: scorers, figure: (r: { goals: number }) => r.goals },
+      assists: { module: assistsModule, figure: (r: { assists: number }) => r.assists },
+      clean_sheets: {
+        module: recordedBoards.clean_sheets,
+        figure: (r: { clean_sheets: number }) => r.clean_sheets,
+      },
+      yellow_cards: {
+        module: onlyWith(cardsModule, (r) => r.yellow_cards > 0),
+        figure: (r: { yellow_cards: number }) => r.yellow_cards,
+      },
+      red_cards: {
+        module: onlyWith(cardsModule, (r) => r.red_cards > 0),
+        figure: (r: { red_cards: number }) => r.red_cards,
+      },
+    };
+    const candidates = <T extends { person: { id: string } }>(
+      module: Covered<T[]>,
+      figure: (row: T) => number,
+    ): T[] =>
+      module.data === null
+        ? []
+        : minMinutes === null
+          ? candidatesForTop(module.data, figure, LEADERS_LIMIT)
+          : module.data;
+    const picked = {
+      scorers: candidates(tables.scorers.module, tables.scorers.figure),
+      assists: candidates(tables.assists.module, tables.assists.figure),
+      clean_sheets: candidates(tables.clean_sheets.module, tables.clean_sheets.figure),
+      yellow_cards: candidates(tables.yellow_cards.module, tables.yellow_cards.figure),
+      red_cards: candidates(tables.red_cards.module, tables.red_cards.figure),
+    };
+    const ids = (rows: { person: { id: string } }[]) => rows.map((r) => r.person.id);
+    // Minutes and appearances from our line-ups for the recorded tables (the
+    // boards count the main competition only, D-209), from the provider's
+    // own lines for the provider's.
+    const recordedMinutes = await this.players_.minutesByPerson(
       [selected.id],
       [
-        ...new Set(
-          [
-            ...(scorers.data ?? []),
-            ...shown(boards.assists.data),
-            ...shown(boards.clean_sheets.data),
-            ...shown(boards.cards.data),
-          ].map((s) => s.person.id),
-        ),
+        ...new Set([
+          ...(fromProvider ? [] : [...ids(picked.scorers), ...ids(picked.assists)]),
+          ...ids(picked.clean_sheets),
+          ...(fromProvider ? [] : [...ids(picked.yellow_cards), ...ids(picked.red_cards)]),
+        ]),
       ],
       null,
-      // The boards count the main competition only, so their minutes do too (D-209).
       true,
     );
-    const filtered = leadersWithMinutes(scorers.data ?? [], minutes, minMinutes, LEADERS_LIMIT);
-    const board = <T extends { person: { id: string } }>(module: Covered<T[]>) => {
-      const result = leadersWithMinutes(shown(module.data), minutes, minMinutes, LEADERS_LIMIT);
+    const minutes = provider === null ? recordedMinutes : provider.minutes;
+    const board = <T extends { person: { id: string; name: string } }>(
+      module: Covered<T[]>,
+      rows: T[],
+      figure: (row: T) => number,
+      minutesOf: ReadonlyMap<string, PlayerSeasonMinutes>,
+    ) => {
+      const result = leadersWithMinutes(
+        rankByFigure(rows, figure, minutesOf),
+        minutesOf,
+        minMinutes,
+        LEADERS_LIMIT,
+      );
       return { module: leadersModule(module, result), unproven: result.unproven };
     };
-    const assists = board(boards.assists);
-    const cleanSheets = board(boards.clean_sheets);
-    const cards = board(boards.cards);
+    const scored = board(tables.scorers.module, picked.scorers, tables.scorers.figure, minutes);
+    const assists = board(tables.assists.module, picked.assists, tables.assists.figure, minutes);
+    const cleanSheets = board(
+      tables.clean_sheets.module,
+      picked.clean_sheets,
+      tables.clean_sheets.figure,
+      recordedMinutes,
+    );
+    const yellows = board(
+      tables.yellow_cards.module,
+      picked.yellow_cards,
+      tables.yellow_cards.figure,
+      minutes,
+    );
+    const reds = board(tables.red_cards.module, picked.red_cards, tables.red_cards.figure, minutes);
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
     // The logo, the table's crests and the leaders' photos from our own origin
     // (T-1320), and the other boards' rows too (T-1321), in one query.
-    const leaders = leadersModule(scorers, filtered);
+    const leaders = scored.module;
     const boardRows = [
       ...(leaders.data ?? []),
       ...(assists.module.data ?? []),
       ...(cleanSheets.module.data ?? []),
-      ...(cards.module.data ?? []),
+      ...(yellows.module.data ?? []),
+      ...(reds.module.data ?? []),
     ];
     const media = await this.media.index({
       competition: [competition.id],
@@ -387,19 +467,22 @@ export class CatalogService {
         },
         leaders_filter: {
           min_minutes: minMinutes,
-          unproven: filtered.unproven,
+          unproven: scored.unproven,
           presets: [...LEADERS_MINUTES_PRESETS],
         },
         boards: {
           assists: boardWithMedia(assists.module),
           clean_sheets: boardWithMedia(cleanSheets.module),
-          cards: boardWithMedia(cards.module),
+          yellow_cards: boardWithMedia(yellows.module),
+          red_cards: boardWithMedia(reds.module),
           unproven: {
             assists: assists.unproven,
             clean_sheets: cleanSheets.unproven,
-            cards: cards.unproven,
+            yellow_cards: yellows.unproven,
+            red_cards: reds.unproven,
           },
         },
+        leaders_source: fromProvider ? 'provider_totals' : 'recorded',
         bracket:
           bracketFixtures === null
             ? null

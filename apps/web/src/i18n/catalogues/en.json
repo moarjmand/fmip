@@ -1819,6 +1819,12 @@
     "other": "{count} scorers are left out because their minutes were not recorded for every match they played, so the record cannot show they reached it."
   },
   "competition.leaders.noneReach": "No scorer's recorded minutes reach this floor.",
+  "competition.leaders.appearances": {
+    "one": "{count} appearance",
+    "other": "{count} appearances"
+  },
+  "competition.leaders.appearancesNone": "appearances not recorded",
+  "competition.leaders.providerTotals": "These tables use each player's season totals from our statistics source, because we hold no match events for this season. They cover only the players that source has been asked about, so a leader may be missing.",
   "team.manager.label": "Manager",
   "team.manager.named": "named on the line-up for",
   "team.manager.noCoach": "No manager shown: the team's latest line-up names no coach.",
@@ -2105,10 +2111,12 @@
   "analysis.action.sent": "Sent for review.",
   "competition.boards.assists": "Assists",
   "competition.boards.cleanSheets": "Clean sheets",
-  "competition.boards.cards": "Cards",
+  "competition.boards.yellowCards": "Yellow cards",
+  "competition.boards.redCards": "Red cards",
   "competition.boards.noAssists": "No goal of this season names an assist yet.",
   "competition.boards.noCleanSheets": "No goalkeeper on our line-ups has kept a clean sheet yet this season.",
-  "competition.boards.noCards": "No card is recorded for this season yet.",
+  "competition.boards.noYellowCards": "No yellow card is recorded for this season yet.",
+  "competition.boards.noRedCards": "No red card is recorded for this season yet.",
   "competition.boards.noneReach": "No player's recorded minutes reach this floor.",
   "competition.boards.unproven": {
     "one": "{count} player is left out because their minutes were not recorded for every match they played, so the record cannot show they reached the floor.",
@@ -2117,14 +2125,6 @@
   "competition.boards.startsInGoal": {
     "one": "{count} start in goal",
     "other": "{count} starts in goal"
-  },
-  "competition.boards.red": {
-    "one": "{count} red",
-    "other": "{count} red"
-  },
-  "competition.boards.yellow": {
-    "one": "{count} yellow",
-    "other": "{count} yellow"
   },
   "competitionPage.title": "Competition",
   "competitionPage.metaDescription": "{name} {season}: table, results, fixtures and top scorers.",

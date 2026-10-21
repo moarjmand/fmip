@@ -17,6 +17,7 @@ import {
   ProjectionNote,
   QualifyingNote,
   RoundsPanel,
+  ProviderTotalsNote,
   ScorerList,
   ZoneLegend,
 } from '@/components/competition-page';
@@ -463,6 +464,7 @@ function PlayersTab({ page, locale, timeZone }: { page: Page; locale: string; ti
   const floor = page.leaders_filter.min_minutes;
   return (
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+      {page.leaders_source === 'provider_totals' && <ProviderTotalsNote locale={locale} />}
       <CoveredPanel
         locale={locale}
         timeZone={timeZone}

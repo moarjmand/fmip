@@ -8380,6 +8380,24 @@
     "text": "",
     "status": "untranslated"
   },
+  "competition.leaders.appearances": {
+    "source": {
+      "one": "{count} appearance",
+      "other": "{count} appearances"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competition.leaders.appearancesNone": {
+    "source": "appearances not recorded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.leaders.providerTotals": {
+    "source": "These tables use each player's season totals from our statistics source, because we hold no match events for this season. They cover only the players that source has been asked about, so a leader may be missing.",
+    "text": "",
+    "status": "untranslated"
+  },
   "team.manager.label": {
     "source": "Manager",
     "text": "",
@@ -9642,8 +9660,13 @@
     "text": "",
     "status": "untranslated"
   },
-  "competition.boards.cards": {
-    "source": "Cards",
+  "competition.boards.yellowCards": {
+    "source": "Yellow cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.redCards": {
+    "source": "Red cards",
     "text": "",
     "status": "untranslated"
   },
@@ -9657,8 +9680,13 @@
     "text": "",
     "status": "untranslated"
   },
-  "competition.boards.noCards": {
-    "source": "No card is recorded for this season yet.",
+  "competition.boards.noYellowCards": {
+    "source": "No yellow card is recorded for this season yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competition.boards.noRedCards": {
+    "source": "No red card is recorded for this season yet.",
     "text": "",
     "status": "untranslated"
   },
@@ -9679,22 +9707,6 @@
     "source": {
       "one": "{count} start in goal",
       "other": "{count} starts in goal"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "competition.boards.red": {
-    "source": {
-      "one": "{count} red",
-      "other": "{count} red"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "competition.boards.yellow": {
-    "source": {
-      "one": "{count} yellow",
-      "other": "{count} yellow"
     },
     "forms": {},
     "status": "untranslated"

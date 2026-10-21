@@ -14,7 +14,7 @@ const MAIN_PHASE = mainPhaseSql('f', mainPhaseStartSql('$1'));
 import type { Result } from './table';
 
 /** A leader as the standings boundary knows it: goals, not minutes (T-824 adds those in the catalog). */
-export type Scorer = Omit<Leader, 'minutes'>;
+export type Scorer = Omit<Leader, 'minutes' | 'appearances'>;
 
 /** A row of a board beyond goals (T-943) before the catalog adds minutes. */
 export type BoardRow<T> = {
@@ -29,6 +29,19 @@ type RawBoardRow = {
   team_name: string | null;
   updated_at: Date;
 };
+
+/**
+ * What the stored incidents of a season's main competition amount to
+ * (T-1441): `incidents` rows of any kind, and the goals the finished matches'
+ * full-time scores add up to against the goals (own goals included) the
+ * incidents name. Recorded fewer than scored means some match's incidents are
+ * not stored (yet), so a board counted from them can be short.
+ */
+export interface IncidentTally {
+  incidents: number;
+  scoredGoals: number;
+  recordedGoals: number;
+}
 
 function boardRow(r: RawBoardRow): BoardRow<object> {
   return {
@@ -432,6 +445,32 @@ export class PostgresStandingsStore {
           (a.person.name < b.person.name ? -1 : a.person.name > b.person.name ? 1 : 0),
       );
     return { rows: ranked, sides: rows.length, judged, lastUpdatedAt: latest(rows) };
+  }
+
+  /** The season's main-competition incidents against its finished matches' scores (T-1441). */
+  async incidentTally(seasonId: string): Promise<IncidentTally> {
+    const { rows } = await this.pool.query<{
+      incidents: string;
+      scored: string;
+      recorded: string;
+    }>(
+      `SELECT (SELECT count(*) FROM incident i JOIN fixture f ON f.id = i.fixture_id
+                WHERE f.season_id = $1 AND ${MAIN_PHASE})::text AS incidents,
+              (SELECT COALESCE(sum(sc.home + sc.away), 0)
+                 FROM fixture f
+                 JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
+                WHERE f.season_id = $1 AND f.status = 'finished' AND ${MAIN_PHASE})::text AS scored,
+              (SELECT count(*) FROM incident i JOIN fixture f ON f.id = i.fixture_id
+                WHERE f.season_id = $1 AND f.status = 'finished' AND ${MAIN_PHASE}
+                  AND i.kind IN ('goal', 'penalty_goal', 'own_goal'))::text AS recorded`,
+      [seasonId],
+    );
+    const r = rows[0]!;
+    return {
+      incidents: Number(r.incidents),
+      scoredGoals: Number(r.scored),
+      recordedGoals: Number(r.recorded),
+    };
   }
 
   /** What the season's coverage profile declares for one module, or null when nothing is declared. */

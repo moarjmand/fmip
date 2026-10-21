@@ -209,7 +209,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('leader board
 
   it('counts assists from the goals that name one', async () => {
     const { boards } = await get();
-    expect(boards.assists.coverage).toBe('available');
+    // Four goals scored, three named by incidents: the board may be short (T-1441).
+    expect(boards.assists.coverage).toBe('limited');
     expect(
       boards.assists.data!.map((r) => [r.person.id, r.team?.id, r.assists, r.minutes.coverage]),
     ).toEqual([[P.maker, TEAMS.alpha, 1, 'not_supplied']]);
@@ -239,14 +240,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('leader board
     });
   });
 
-  it('ranks cards by reds, then yellows, then name', async () => {
+  it('keeps yellow and red cards in their own boards, ties by name when no line-up counts matches (T-1441)', async () => {
     const { boards } = await get();
-    expect(boards.cards.coverage).toBe('available');
-    expect(boards.cards.data!.map((r) => [r.person.id, r.red_cards, r.yellow_cards])).toEqual([
-      [P.hothead, 1, 0],
-      [P.defender, 0, 1],
-      [P.maker, 0, 1],
+    expect(boards.yellow_cards.data!.map((r) => [r.person.id, r.yellow_cards])).toEqual([
+      [P.defender, 1],
+      [P.maker, 1],
     ]);
+    expect(boards.red_cards.data!.map((r) => [r.person.id, r.red_cards])).toEqual([[P.hothead, 1]]);
+    expect(boards.red_cards.data![0]!.appearances).toBeNull();
   });
 
   it('applies the minutes floor to every board and counts the unproven per board', async () => {
@@ -254,8 +255,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('leader board
     expect(page.boards.clean_sheets.data!.map((r) => r.person.id)).toEqual([P.keeperOne]);
     expect(page.boards.clean_sheets.coverage).toBe('limited');
     expect(page.boards.assists.data).toEqual([]);
-    expect(page.boards.unproven).toEqual({ assists: 1, clean_sheets: 1, cards: 3 });
-    expect(page.boards.cards.coverage).toBe('limited');
+    expect(page.boards.unproven).toEqual({
+      assists: 1,
+      clean_sheets: 1,
+      yellow_cards: 2,
+      red_cards: 1,
+    });
+    expect(page.boards.yellow_cards.coverage).toBe('limited');
   });
 
   it('says a season without assists, line-ups or cards is not supplied, never a board of zeros', async () => {
@@ -267,7 +273,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('leader board
     });
     expect(boards.clean_sheets.data).toBeNull();
     expect(boards.clean_sheets.coverage).toBe('not_supplied');
-    expect(boards.cards).toEqual({ coverage: 'not_supplied', last_updated_at: null, data: null });
-    expect(boards.unproven).toEqual({ assists: 0, clean_sheets: 0, cards: 0 });
+    for (const board of [boards.yellow_cards, boards.red_cards]) {
+      expect(board).toEqual({ coverage: 'not_supplied', last_updated_at: null, data: null });
+    }
+    expect(boards.unproven).toEqual({ assists: 0, clean_sheets: 0, yellow_cards: 0, red_cards: 0 });
   });
 });

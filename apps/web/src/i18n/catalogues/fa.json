@@ -10195,6 +10195,30 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competition.leaders.appearances": {
+    "source": {
+      "one": "{count} appearance",
+      "other": "{count} appearances"
+    },
+    "forms": {
+      "one": "{count} بازی",
+      "other": "{count} بازی"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1441."
+  },
+  "competition.leaders.appearancesNone": {
+    "source": "appearances not recorded",
+    "text": "تعداد بازی‌ها ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1441."
+  },
+  "competition.leaders.providerTotals": {
+    "source": "These tables use each player's season totals from our statistics source, because we hold no match events for this season. They cover only the players that source has been asked about, so a leader may be missing.",
+    "text": "این جدول‌ها از آمار کل فصلِ هر بازیکن در منبع آماری ما گرفته شده‌اند، چون برای این فصل رویدادهای بازی‌ها را در اختیار نداریم. فقط بازیکنانی را پوشش می‌دهند که آمارشان را از آن منبع گرفته‌ایم، پس ممکن است یکی از برترین‌ها در فهرست نباشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1441."
+  },
   "team.manager.label": {
     "source": "Manager",
     "text": "سرمربی",
@@ -11743,11 +11767,17 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "competition.boards.cards": {
-    "source": "Cards",
-    "text": "کارت‌ها",
+  "competition.boards.yellowCards": {
+    "source": "Yellow cards",
+    "text": "کارت‌های زرد",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1441."
+  },
+  "competition.boards.redCards": {
+    "source": "Red cards",
+    "text": "کارت‌های قرمز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1441."
   },
   "competition.boards.noAssists": {
     "source": "No goal of this season names an assist yet.",
@@ -11761,11 +11791,17 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "competition.boards.noCards": {
-    "source": "No card is recorded for this season yet.",
-    "text": "هنوز هیچ کارتی برای این فصل ثبت نشده است.",
+  "competition.boards.noYellowCards": {
+    "source": "No yellow card is recorded for this season yet.",
+    "text": "هنوز هیچ کارت زردی برای این فصل ثبت نشده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1441."
+  },
+  "competition.boards.noRedCards": {
+    "source": "No red card is recorded for this season yet.",
+    "text": "هنوز هیچ کارت قرمزی برای این فصل ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1441."
   },
   "competition.boards.noneReach": {
     "source": "No player's recorded minutes reach this floor.",
@@ -11793,30 +11829,6 @@
     "forms": {
       "one": "{count} بازی در ترکیب اصلی به‌عنوان دروازه‌بان",
       "other": "{count} بازی در ترکیب اصلی به‌عنوان دروازه‌بان"
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competition.boards.red": {
-    "source": {
-      "one": "{count} red",
-      "other": "{count} red"
-    },
-    "forms": {
-      "one": "{count} قرمز",
-      "other": "{count} قرمز"
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competition.boards.yellow": {
-    "source": {
-      "one": "{count} yellow",
-      "other": "{count} yellow"
-    },
-    "forms": {
-      "one": "{count} زرد",
-      "other": "{count} زرد"
     },
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
