@@ -36,8 +36,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       fixture: randomUUID(),
     };
     const ext = (n: string) => `t1438-${RUN}-${n}`;
-    const seasons = [id.current, id.past, id.empty];
-    const venues = [id.ground, id.neutral];
+    const seasons: string[] = [id.current, id.past, id.empty];
+    const venues: string[] = [id.ground, id.neutral];
     const at = (over: Partial<Record<'answeredBeforeIso' | 'retryBeforeIso', string>> = {}) => ({
       answeredBeforeIso: EARLIER,
       retryBeforeIso: EARLIER,
