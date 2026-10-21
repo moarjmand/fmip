@@ -376,9 +376,11 @@ def test_a_candidate_file_is_named_after_its_version(tmp_path: Path) -> None:
 
 def test_the_promotion_moved_files_and_renamed_no_version() -> None:
     """D-191: 0.6.0's file went from candidates/ to published/ and 0.5.0's to retired/,
-    each under the version its stored forecasts carry; nothing is left in shadow."""
-    assert load_candidates() == {}
-    assert load_candidate() is None
+    each under the version its stored forecasts carry; nothing was left in shadow. The one
+    candidate since is 0.7.0 (T-1442, D-233)."""
+    assert list(load_candidates()) == ["dixon-coles-elo-0.7.0"]
+    newest = load_candidate()
+    assert newest is not None and newest.id == "dixon-coles-elo@0.7.0"
     assert (
         load_published()
         == PUBLISHED
@@ -387,7 +389,7 @@ def test_the_promotion_moved_files_and_renamed_no_version() -> None:
     retired = load_candidates(RETIRED_DIR)
     assert list(retired) == ["dixon-coles-elo-0.5.0"]
     assert retired["dixon-coles-elo-0.5.0"].id == "dixon-coles-elo@0.5.0"
-    app = TestClient(create_app(FakeSource()))
+    app = TestClient(create_app(FakeSource(), candidates={}))
     assert app.get("/candidates").json() == {"candidates": []}
     assert app.get("/health").json()["model_version"] == "dixon-coles-elo@0.6.0"
 

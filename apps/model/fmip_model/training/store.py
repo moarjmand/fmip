@@ -177,6 +177,13 @@ class TrainingStore:
             )
             return cur.fetchone() is not None
 
+    def newest_season(self, division: str) -> str | None:
+        """The newest season label ``division`` holds, or ``None`` for none."""
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT max(season) FROM training.match WHERE division = %s", (division,))
+            row = cur.fetchone()
+        return None if row is None or row[0] is None else str(row[0])
+
     def upsert_identity_aliases(self, division: str, team_ids: Sequence[str]) -> int:
         """A team of our own records is named by its catalogue id: its alias is itself."""
         with self.conn.cursor() as cur:

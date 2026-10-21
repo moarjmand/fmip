@@ -88,6 +88,14 @@ class Forecaster:
         # History strictly before kick-off day; never later than today.
         fit_date = min(request.kickoff_at.date(), now.date()) - timedelta(days=1)
 
+        if not self.version.forecasts(request.division):
+            # A league this version was not backtested on (T-1442, D-233).
+            return Unavailable(
+                fixture_id=request.fixture_id,
+                computed_at=now,
+                reason="division_not_loaded",
+                detail=f"{self.version.id} does not forecast {request.division}",
+            )
         if request.division == CROSS_LEAGUE:
             return self._across_leagues(request, now, fit_date)
 
@@ -222,7 +230,13 @@ class Forecaster:
         constants = self.version.cross_league
         assert constants is not None
         history_from = fit_date - timedelta(days=self.version.history_days)
-        tagged = self.source.every_match(history_from, fit_date)
+        # Only the divisions this version forecasts (T-1442): a league added
+        # later does not move an older version's scale.
+        tagged = [
+            (division, match)
+            for division, match in self.source.every_match(history_from, fit_date)
+            if self.version.forecasts(division)
+        ]
         if len(tagged) < MIN_HISTORY:
             return None
         matches = [m for _, m in tagged]
