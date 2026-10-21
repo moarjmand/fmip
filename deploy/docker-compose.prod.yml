@@ -92,6 +92,28 @@ services:
       - max_wal_size=2GB
       - -c
       - wal_compression=lz4
+      # Memory and planner (T-1458, D-241), for the 2-core, 4 GB VPS with an
+      # SSD and a 2.5 GB database the other services share: a quarter of the
+      # memory still free for Postgres's own cache, the rest to the page cache
+      # and the other containers. JIT off: a page's queries cost enough to
+      # compile, and compiling costs more than they save at this size.
+      - -c
+      - shared_buffers=512MB
+      - -c
+      - effective_cache_size=2GB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=128MB
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - jit=off
+    # A parallel hash join's memory is a /dev/shm segment; Docker's default
+    # 64 MB is too small for two workers at the work_mem above.
+    shm_size: 256mb
     ports:
       - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
     volumes:
