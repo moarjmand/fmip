@@ -107,6 +107,21 @@ function localeOf(value: unknown): string | null {
   return v !== undefined && LOCALE.test(v) ? v : null;
 }
 
+/**
+ * How many cards a page carries (T-1457): a page that shows a few, like the
+ * homepage's six, asks for a few, and the section reads only the rows those
+ * need. At most, and by default, `NEWS_PAGE_SIZE`.
+ */
+function limitOf(value: unknown): number {
+  const v = first(value);
+  if (v === undefined) return NEWS_PAGE_SIZE;
+  const n = Number(v);
+  if (!/^[0-9]+$/.test(v) || n < 1 || n > NEWS_PAGE_SIZE) {
+    throw bad(`limit must be a whole number from 1 to ${NEWS_PAGE_SIZE}.`);
+  }
+  return n;
+}
+
 function beforeOf(value: unknown): string | null {
   const v = first(value);
   if (v === undefined) return null;
@@ -158,6 +173,7 @@ export class NewsController {
     }
     const locale = localeOf(query.locale);
     const before = beforeOf(query.before);
+    const limit = limitOf(query.limit);
     const { time_zone: _zone, ...narrowing } = filters;
     const filtered = Object.values(narrowing).some((f) => f !== null);
     const [last_updated_at, untyped] = await Promise.all([
@@ -195,20 +211,20 @@ export class NewsController {
     switch (wanted satisfies NewsSection) {
       case 'latest':
         return answer(
-          await this.store.latest(filters, locale, before, NEWS_PAGE_SIZE),
+          await this.store.latest(filters, locale, before, limit),
           'available',
           'nothing_yet',
         );
       case 'trending':
         return answer(
-          await this.store.trending(filters, locale, TRENDING_WINDOW_HOURS, NEWS_PAGE_SIZE),
+          await this.store.trending(filters, locale, TRENDING_WINDOW_HOURS, limit),
           'limited',
           'nothing_trending',
           'discussion_and_saves',
         );
       case 'debate':
         return answer(
-          await this.store.debate(filters, locale, NEWS_PAGE_SIZE),
+          await this.store.debate(filters, locale, limit),
           'available',
           'nothing_selected',
         );
@@ -245,7 +261,7 @@ export class NewsController {
             locale,
             { teams: ids('team'), competitions: ids('competition'), persons: ids('person') },
             before,
-            NEWS_PAGE_SIZE,
+            limit,
           ),
           'available',
           'no_match',
