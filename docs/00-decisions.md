@@ -11408,3 +11408,82 @@ name check and goes to review.
 **Rejected.** *Name alone* (rule 1). *Shirt alone*: a data error in either
 source's numbering would map the wrong person silently. *Reviewing every
 player by hand*: 1,319 players on the first day.
+
+## D-231 — Transfers from the licensed feed, by club and by player, as records of the provider; transfer news and its alerts stay stories
+
+**Status:** Accepted · 2026-10-21 (the maintainer: "Yes, add them", when asked whether to use the Ultra plan's spare requests for transfers) · **Task:** T-1440 · **Supersedes:** the part of D-166 that kept the feed's transfer endpoint unread · **Follows:** D-014, D-123, D-127, D-166, D-183, D-223
+
+**Context.** D-166 (2026-09-30) made transfer and availability alerts from
+typed stories and left API-Football's transfer and injury endpoints unread:
+they would spend the live data's budget, and their terms for alerts were
+unchecked. Since then the plan is Ultra (75,000 requests a day, D-014), the
+2026-10-20 audit found less than a fifth of it in use, and bulk work has its
+own share of the budget (D-183). On 2026-10-21 the maintainer asked for the
+subscription to be used fully, transfers among the new data. A read of
+`/transfers?team=50` and `/transfers?player=1100` that day (two requests,
+recorded in `packages/ingestion/src/adapters/_fixtures/api-football-transfers/`)
+showed what the answer holds: one entry per player, each move with a day, a
+type and the two clubs, back to 1996 for a large club (1,031 moves for 341
+players), and some sides without an id.
+
+**Decision.**
+1. **Read `/transfers`, by club and by player.** The `transfers` job (bulk
+   tier, every ten minutes, `INGESTION_TRANSFERS_BATCH` asks a run, 60 unless
+   set, each paced by `AskPacer`, none past 30 seconds) asks for each club of
+   a current season, then each player named in a current season's line-up:
+   first when never asked, then again once the last answer is a week old
+   while a transfer window is open (1 June to 15 September, 1 January to
+   15 February, UTC) and a month old otherwise (`transfersRefreshDays` in
+   `@fmip/ingestion`). Unanswered asks are repeated after a day, five times
+   at most; a quota refusal ends the run. Each answer replaces that club's
+   or player's stored moves.
+2. **Shown as the provider's records.** A "Transfers, as API-Football lists
+   them" section on the club page's Squad tab (arrivals and departures,
+   newest first, 25 each with the totals) and on the player page's Career
+   tab (every move). Each has its own coverage badge and fetched time:
+   `not_supplied` before the first answer and when the answer lists no move
+   (the two say different sentences), `delayed` once the last answer is older
+   than twice the refresh, `available` otherwise. A player not yet asked about
+   himself shows the moves the clubs' answers list for him, each once, as
+   `limited`, with a sentence saying moves between other clubs may be missing.
+3. **Identity (rule 1).** The player and both clubs of a move are joined to
+   ours through `provider_mapping` only, and then named and linked as our
+   catalogue names them. A player or club we do not hold keeps the provider's
+   name as plain text: never a link, never a key, never matched to an entity
+   of ours by its name, and no catalogue row is created from these answers.
+   The provider's name is stored beside a mapped id too, so a row still reads
+   if a mapping is removed. Two quirks of the answers are handled in the
+   adapter: a "Free agent" move whose destination has no id names the player
+   himself ("Stones John"), so that side is read as no club; and a move from a
+   club to itself ("Raise", a youth player promoted) is not a move and is
+   dropped.
+4. **Types as written.** The provider's word becomes `loan`, `loan_return`
+   ("Return from loan", "Back from Loan"), `free` ("Free", "Free Transfer",
+   "Free agent"), `transfer` (a permanent move with no fee given), `fee`, or
+   `unknown` ("N/A", "-", "Raise", anything else). A fee is kept and shown
+   exactly as the provider writes it ("€ 75M", "7M €", "£ 1.5M" after its HTML
+   entity is decoded): never converted to one currency, summed, ranked or
+   called a club's spending (rule 3: no value we did not receive).
+5. **What stands from D-166.** Transfer *news* stays news: a rumour, a
+   "linked with", a report or a confirmation in the press is a story typed
+   `transfer` (D-123), shown and alerted on as D-166 says. The structured
+   list holds only moves the provider records; nothing from it is shown as
+   news, and nothing in a story is written into it. The `transfer_news` alert
+   kind is still made from typed stories only: a stored move sends no alert,
+   because the feed's terms for alerts are still unchecked. The injury
+   endpoint stays unread, and a player's availability stays D-127's.
+
+**Budget.** At most 60 asks a run, six runs an hour: 8,640 a day at the
+ceiling, all inside the bulk share. The first pass asks every current club
+and line-up player once; after it, a club or player costs one request a week
+in a window and one a month outside, which on the current catalogue is a few
+hundred requests a day.
+
+**Rejected.** *Clubs only*: a player's moves between clubs we do not follow
+would never appear, and his page would look complete when it is not.
+*Players only*: the club page's arrivals would wait for each player to be
+asked. *A daily refresh*: transfers change in windows, and a day's staleness
+outside them is not news. *Creating clubs from the answers' names*: rule 1,
+and a name-only club would be a page with nothing behind it. *Converting fees
+to euros*: the provider gives no rate or date, and a converted figure would
+be ours, not its.

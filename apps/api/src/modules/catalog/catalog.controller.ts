@@ -16,7 +16,9 @@ import type {
   FollowSuggestionsResponse,
   PlayerPage,
   PlayerProviderSeasons,
+  PlayerTransfers,
   TeamPage,
+  TeamTransfers,
   TeamsResponse,
 } from '@fmip/contracts';
 import { LEADERS_MINUTES_MAX } from '@fmip/contracts';
@@ -120,6 +122,30 @@ export class CatalogController {
     if (!UUID.test(id)) throw new NotFoundException(NO_PLAYER);
     const found = await this.catalog.playerProviderSeasons(id.toLowerCase());
     if (found === null) throw new NotFoundException(NO_PLAYER);
+    return found;
+  }
+
+  /** A player's transfers as the provider lists them (T-1440, D-231). Public. */
+  @Get('players/:id/transfers')
+  async playerTransfers(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+  ): Promise<PlayerTransfers> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_PLAYER);
+    const found = await this.catalog.playerTransfers(id.toLowerCase(), localeOf(locale));
+    if (found === null) throw new NotFoundException(NO_PLAYER);
+    return found;
+  }
+
+  /** A club's arrivals and departures as the provider lists them (T-1440, D-231). Public. */
+  @Get('teams/:id/transfers')
+  async teamTransfers(
+    @Param('id') id: string,
+    @Query('locale') locale: unknown,
+  ): Promise<TeamTransfers> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_TEAM);
+    const found = await this.catalog.teamTransfers(id.toLowerCase(), localeOf(locale));
+    if (found === null) throw new NotFoundException(NO_TEAM);
     return found;
   }
 

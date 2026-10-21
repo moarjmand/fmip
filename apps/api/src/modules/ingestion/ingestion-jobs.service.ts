@@ -40,6 +40,8 @@ import { kitColoursBatch, sweepKitColours } from './internal/kit-colours';
 import { PEOPLE_NAMES_RUN_MS, peopleNamesBatch, sweepPeopleNames } from './internal/person-names';
 import { PlayerSeasonStore } from './internal/player-season-store';
 import { playerSeasonsBatch, sweepPlayerSeasons } from './internal/player-seasons';
+import { TransferStore } from './internal/transfer-store';
+import { sweepTransfers, transfersBatch } from './internal/transfers';
 import { squadsPerDay, sweepSquads } from './internal/squad-sweep';
 
 /** How far back and forward the fixtures job looks, in days. */
@@ -314,6 +316,8 @@ export class IngestionJobsService {
     process.env.INGESTION_PLAYER_SEASONS_BATCH,
   );
   private readonly playerSeasonStore: PlayerSeasonStore;
+  private readonly transfersBatch = transfersBatch(process.env.INGESTION_TRANSFERS_BATCH);
+  private readonly transferStore: TransferStore;
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
 
@@ -333,6 +337,7 @@ export class IngestionJobsService {
     this.personBios = new PersonBioStore(pool);
     this.kitColourStore = new KitColourStore(pool);
     this.playerSeasonStore = new PlayerSeasonStore(pool);
+    this.transferStore = new TransferStore(pool);
   }
 
   /** Runs one job by name. The scheduler and the tests both come through here. */
@@ -356,7 +361,50 @@ export class IngestionJobsService {
         return this.kitColours(now);
       case 'player_seasons':
         return this.playerSeasons(now);
+      case 'transfers':
+        return this.transfers(now);
     }
+  }
+
+  /**
+   * Transfers as the provider lists them (T-1440, D-231): each club of a
+   * current season, then each player named in a current season's line-up, is
+   * asked for its moves when never asked and again weekly in a transfer
+   * window, monthly otherwise, within `INGESTION_TRANSFERS_BATCH` a run and
+   * the bulk tier of the budget. `itemsWritten` is the moves stored;
+   * `team_transfer_fetch` and `person_transfer_fetch` hold each ask.
+   */
+  transfers(now: Date = new Date()): Promise<JobReport> {
+    return this.track('transfers', async (source) => {
+      const shares = parseTierShares(process.env);
+      const sweep = await sweepTransfers({
+        provider: source.provider,
+        adapter: source.adapter,
+        store: this.transferStore,
+        now,
+        // The replay source has no transfers recorded: asking would only fail.
+        batch: this.sources.kind === 'replay' ? 0 : this.transfersBatch,
+        budget: this.sources.dailyBudget ?? null,
+        bulkPercent: 'error' in shares ? DEFAULT_TIER_SHARES.bulk : shares.bulk,
+        requestsToday: await this.runs.requestsToday(source.provider, now),
+      });
+      this.log.log('transfers', {
+        event: 'ingest.transfers',
+        provider: source.provider,
+        asked: sweep.asked,
+        answered: sweep.answered,
+        written: sweep.written,
+        ...(sweep.idle === undefined ? {} : { idle: sweep.idle }),
+      });
+      const partial = sweep.refused.join('; ');
+      return {
+        job: 'transfers',
+        provider: source.provider,
+        itemsSeen: sweep.answered,
+        itemsWritten: sweep.written,
+        ...(partial === '' ? {} : { partial }),
+      };
+    });
   }
 
   /**

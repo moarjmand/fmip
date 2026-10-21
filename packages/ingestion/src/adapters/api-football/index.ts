@@ -20,6 +20,7 @@ import type {
   NormalisedSeasonCoverage,
   NormalisedSquadPlayer,
   NormalisedStanding,
+  NormalisedTransfer,
 } from '../../normalised';
 import type {
   AdapterConfig,
@@ -51,6 +52,7 @@ import {
   seasonYear,
 } from './map';
 import { mapPlayerCareer, mapPlayerSeason } from './player-seasons';
+import { mapTransfers } from './transfers';
 
 export const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
 
@@ -409,6 +411,29 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapPlayerCareer(result.data.response),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /** `/transfers?team=`: every move into or out of one club the provider lists, one request (T-1440, D-231). */
+  async getTeamTransfers(teamExternalId: string): Promise<AdapterResult<NormalisedTransfer[]>> {
+    return this.transfers({ team: teamExternalId });
+  }
+
+  /** `/transfers?player=`: every move of one player the provider lists, one request (T-1440). */
+  async getPlayerTransfers(personExternalId: string): Promise<AdapterResult<NormalisedTransfer[]>> {
+    return this.transfers({ player: personExternalId });
+  }
+
+  private async transfers(
+    params: Record<string, string>,
+  ): Promise<AdapterResult<NormalisedTransfer[]>> {
+    const result = await this.call('/transfers', params);
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapTransfers(result.data.response),
       requests: 1,
       fetchedAt: result.receivedAt,
     };

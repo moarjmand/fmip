@@ -11,6 +11,8 @@ import type {
   BoardPlayer,
   PlayerPage,
   PlayerProviderSeasons,
+  PlayerTransfers,
+  TeamTransfers,
   SeasonSummary,
   SuggestedCompetition,
   SuggestedTeam,
@@ -36,6 +38,7 @@ import { contextTable, phaseOf } from './internal/competition-context';
 import { PostgresCompetitionStore } from './internal/competition-store';
 import { leadersModule, leadersWithMinutes } from './internal/leaders';
 import { readProviderSeasons } from './internal/player-provider-seasons';
+import { readPlayerTransfers, readTeamTransfers } from './internal/transfers';
 import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
@@ -79,6 +82,20 @@ export class CatalogService {
     const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
     if (rowCount === 0) return null;
     return readProviderSeasons(this.pool, id);
+  }
+
+  /** A player's transfers as the provider lists them (T-1440, D-231). `null` for no such player. */
+  async playerTransfers(id: string, locale: string | null): Promise<PlayerTransfers | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readPlayerTransfers(this.pool, id, locale);
+  }
+
+  /** A club's arrivals and departures as the provider lists them (T-1440, D-231). `null` for no such club. */
+  async teamTransfers(id: string, locale: string | null): Promise<TeamTransfers | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM team WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readTeamTransfers(this.pool, id, locale);
   }
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */

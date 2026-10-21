@@ -103,6 +103,7 @@ import type {
   PlatformRules,
   PlayerPage,
   PlayerProviderSeasons,
+  PlayerTransfers,
   PowerIndexResponse,
   PredictionHistoryResponse,
   PredictionResponse,
@@ -114,6 +115,7 @@ import type {
   SessionResponse,
   StoryPage,
   TeamPage,
+  TeamTransfers,
   TerritoriesResponse,
   ViewingTerritoryResponse,
   ViewingBatchResponse,
@@ -824,6 +826,23 @@ export function fetchPlayerProviderSeasons(id: string): Promise<ApiResult<Player
 /** `GET /teams/:id?locale=` (T-036, T-303): the team page. Public. */
 export function fetchTeam(id: string, locale?: string): Promise<ApiResult<TeamPage>> {
   return apiRequest<TeamPage>(withLocale(`/teams/${encodeURIComponent(id)}`, locale));
+}
+
+/** `GET /teams/:id/transfers` (T-1440, D-231): the club's arrivals and departures as the provider lists them. Public. */
+export function fetchTeamTransfers(id: string, locale?: string): Promise<ApiResult<TeamTransfers>> {
+  return apiRequest<TeamTransfers>(
+    withLocale(`/teams/${encodeURIComponent(id)}/transfers`, locale),
+  );
+}
+
+/** `GET /players/:id/transfers` (T-1440, D-231): the player's moves as the provider lists them. Public. */
+export function fetchPlayerTransfers(
+  id: string,
+  locale?: string,
+): Promise<ApiResult<PlayerTransfers>> {
+  return apiRequest<PlayerTransfers>(
+    withLocale(`/players/${encodeURIComponent(id)}/transfers`, locale),
+  );
 }
 
 /** `GET /competitions/:id${query}&locale=` (T-035, T-303): the competition page for one season. Public. */

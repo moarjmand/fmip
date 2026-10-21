@@ -19,6 +19,7 @@ import { JsonLd } from '@/components/json-ld';
 import { NextMatchCard } from '@/components/next-match-card';
 import { EntityNews } from '@/components/related-news';
 import { Stamp } from '@/components/stamp';
+import { TeamTransfersPanel } from '@/components/transfers';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 import { message } from '@/i18n/messages';
@@ -29,6 +30,7 @@ import {
   fetchFounderFeed,
   fetchMe,
   fetchTeam,
+  fetchTeamTransfers,
   fetchViewingBatch,
 } from '@/lib/api';
 import { pageLocale, say } from '@/lib/competition';
@@ -97,13 +99,15 @@ export default async function TeamPage({
   const tab: TeamTab = readTeamTab(query);
   const overview = tab === 'overview';
   const cookie = await sessionCookieHeader();
-  const [result, me, following, founder, news] = await Promise.all([
+  const [result, me, following, founder, news, transfers] = await Promise.all([
     fetchTeam(id, locale),
     fetchMe(cookie),
     fetchFollowing(cookie),
     // The Overview's own modules; the other tabs do not ask for them.
     overview ? fetchFounderFeed({ team: id, limit: 3 }) : null,
     overview ? fetchEntityNews('team', id, locale) : null,
+    // The provider's arrivals and departures (T-1440): the Squad tab only.
+    tab === 'squad' ? fetchTeamTransfers(id, locale) : null,
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
@@ -251,6 +255,9 @@ export default async function TeamPage({
         )}
         {tab === 'results' && <ResultsPanel page={page} locale={locale} timeZone={timeZone} />}
         {tab === 'squad' && <SquadPanel page={page} locale={locale} full />}
+        {tab === 'squad' && transfers?.ok === true && (
+          <TeamTransfersPanel data={transfers.data} locale={locale} timeZone={timeZone} />
+        )}
         {tab === 'stats' && <SplitsPanels page={page} locale={locale} />}
         <p className="text-xs text-muted" data-testid="team-updated">
           {page.last_updated_at === null ? (

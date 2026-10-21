@@ -13561,6 +13561,156 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "transfers.title": {
+    "source": "Transfers, as {source} lists them",
+    "text": "نقل‌وانتقال‌ها، به روایت {source}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.note": {
+    "source": "Moves {source} has recorded, not news reports. A fee is shown as {source} writes it.",
+    "text": "جابه‌جایی‌هایی که {source} ثبت کرده است، نه گزارش‌های خبری. مبلغ هر انتقال همان‌گونه که {source} نوشته نشان داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.arrivals": {
+    "source": "Arrivals",
+    "text": "ورودی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.departures": {
+    "source": "Departures",
+    "text": "خروجی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.noArrivals": {
+    "source": "No arrival listed.",
+    "text": "ورودی‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.noDepartures": {
+    "source": "No departure listed.",
+    "text": "خروجی‌ای ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.shown": {
+    "source": "The latest {shown} of {total}.",
+    "text": "{shown} مورد آخر از {total}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.unheld": {
+    "source": "A club or player in plain text is not in our catalogue: it is named as {source} writes it, without a page.",
+    "text": "باشگاه یا بازیکنی که بدون پیوند آمده در فهرست ما نیست: نامش همان‌گونه که {source} نوشته آمده و صفحه‌ای ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.noClub": {
+    "source": "No club",
+    "text": "بدون باشگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.fetched": {
+    "source": "Fetched from {source}",
+    "text": "دریافت‌شده از {source}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.team.notAsked": {
+    "source": "{source} has not been asked about this club's transfers yet.",
+    "text": "هنوز نقل‌وانتقال‌های این باشگاه از {source} پرسیده نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.team.none": {
+    "source": "{source} lists no transfer for this club.",
+    "text": "{source} هیچ نقل‌وانتقالی برای این باشگاه ثبت نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.player.notAsked": {
+    "source": "{source} has not been asked about this player's transfers yet.",
+    "text": "هنوز نقل‌وانتقال‌های این بازیکن از {source} پرسیده نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.player.none": {
+    "source": "{source} lists no transfer for this player.",
+    "text": "{source} هیچ نقل‌وانتقالی برای این بازیکن ثبت نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.player.limited": {
+    "source": "{source} has not been asked about this player himself yet: these are the moves it lists for clubs we follow, so moves between other clubs may be missing.",
+    "text": "هنوز درباره‌ی خود این بازیکن از {source} پرسیده نشده است: این‌ها جابه‌جایی‌هایی است که برای باشگاه‌هایی که دنبال می‌کنیم ثبت کرده، پس ممکن است جابه‌جایی میان باشگاه‌های دیگر در آن نباشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.col.date": {
+    "source": "Date",
+    "text": "تاریخ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.col.player": {
+    "source": "Player",
+    "text": "بازیکن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.col.from": {
+    "source": "From",
+    "text": "از",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.col.to": {
+    "source": "To",
+    "text": "به",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.col.type": {
+    "source": "Type",
+    "text": "نوع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.kind.loan": {
+    "source": "Loan",
+    "text": "قرضی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.kind.loanReturn": {
+    "source": "End of loan",
+    "text": "پایان قرضی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.kind.free": {
+    "source": "Free",
+    "text": "آزاد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.kind.transfer": {
+    "source": "Permanent, no fee given",
+    "text": "دائمی، بی‌ذکر مبلغ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "transfers.kind.unknown": {
+    "source": "Not stated",
+    "text": "نامشخص",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "compare.title": {
     "source": "Compare players",
     "text": "مقایسه‌ی بازیکنان",

@@ -387,6 +387,45 @@ export interface NormalisedCareerEntry {
   seasonYears: number[];
 }
 
+/**
+ * What kind of move a transfer was, read from the provider's own word for it
+ * (T-1440, D-231): a loan, the end of one, a free move, a fee (`fee` keeps the
+ * provider's text: "€ 75M"), a permanent move without a fee given, or a word
+ * we cannot read.
+ */
+export const TRANSFER_KINDS = [
+  'loan',
+  'loan_return',
+  'free',
+  'fee',
+  'transfer',
+  'unknown',
+] as const;
+export type TransferKind = (typeof TRANSFER_KINDS)[number];
+
+/**
+ * A club on one side of a transfer: the provider's id and name, or its name
+ * alone when the provider gave no id. A name alone is shown as text and never
+ * matched to a club of ours (rule 1).
+ */
+export interface NormalisedTransferClub {
+  externalId: string | null;
+  name: string;
+}
+
+/** One move of one player between two clubs, as the provider lists it (T-1440, D-231). */
+export interface NormalisedTransfer {
+  player: EntityRef;
+  /** The day of the move, `YYYY-MM-DD`. */
+  date: string;
+  kind: TransferKind;
+  /** The provider's fee as written ("€ 75M", "£ 1.5M"), for `kind: 'fee'` only. */
+  fee: string | null;
+  /** `null` when the provider names no club (a player without one before or after). */
+  from: NormalisedTransferClub | null;
+  to: NormalisedTransferClub | null;
+}
+
 export const PREFERRED_FEET = ['left', 'right', 'both'] as const;
 export type PreferredFoot = (typeof PREFERRED_FEET)[number];
 

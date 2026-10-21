@@ -6,11 +6,13 @@ import {
   fetchMe,
   fetchPlayer,
   fetchPlayerProviderSeasons,
+  fetchPlayerTransfers,
 } from '@/lib/api';
 import { EntityFollow, MoreLink } from '@/components/competition-page';
 import { JsonLd } from '@/components/json-ld';
 import { PlayerAvailabilitySection } from '@/components/player-availability';
 import { ProviderCareerPanel, ProviderSeasonsPanel } from '@/components/player-provider-seasons';
+import { PlayerTransfersPanel } from '@/components/transfers';
 import {
   PlayerBand,
   PlayerMatchesPanel,
@@ -86,7 +88,7 @@ export default async function PlayerPage({
   const tab: PlayerTab = readPlayerTab(query);
   const overview = tab === 'overview';
   const cookie = await sessionCookieHeader();
-  const [result, me, following, news, provider] = await Promise.all([
+  const [result, me, following, news, provider, transfers] = await Promise.all([
     fetchPlayer(id, locale),
     fetchMe(cookie),
     fetchFollowing(cookie),
@@ -94,6 +96,8 @@ export default async function PlayerPage({
     overview ? fetchEntityNews('person', id, locale) : null,
     // The provider's season and career (T-1431): Career and Stats only.
     tab === 'career' || tab === 'stats' ? fetchPlayerProviderSeasons(id) : null,
+    // The provider's list of his moves (T-1440): Career only.
+    tab === 'career' ? fetchPlayerTransfers(id, locale) : null,
   ]);
   const providerSeasons = provider?.ok === true ? provider.data : null;
   if (!result.ok) {
@@ -209,6 +213,9 @@ export default async function PlayerPage({
               <SpellsPanel page={page} locale={locale} />
               {providerSeasons !== null && (
                 <ProviderCareerPanel data={providerSeasons} locale={locale} timeZone={timeZone} />
+              )}
+              {transfers?.ok === true && (
+                <PlayerTransfersPanel data={transfers.data} locale={locale} timeZone={timeZone} />
               )}
             </div>
             <RecordPanel

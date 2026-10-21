@@ -11115,6 +11115,131 @@
     "text": "",
     "status": "untranslated"
   },
+  "transfers.title": {
+    "source": "Transfers, as {source} lists them",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.note": {
+    "source": "Moves {source} has recorded, not news reports. A fee is shown as {source} writes it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.arrivals": {
+    "source": "Arrivals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.departures": {
+    "source": "Departures",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.noArrivals": {
+    "source": "No arrival listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.noDepartures": {
+    "source": "No departure listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.shown": {
+    "source": "The latest {shown} of {total}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.unheld": {
+    "source": "A club or player in plain text is not in our catalogue: it is named as {source} writes it, without a page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.noClub": {
+    "source": "No club",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.fetched": {
+    "source": "Fetched from {source}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.team.notAsked": {
+    "source": "{source} has not been asked about this club's transfers yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.team.none": {
+    "source": "{source} lists no transfer for this club.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.player.notAsked": {
+    "source": "{source} has not been asked about this player's transfers yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.player.none": {
+    "source": "{source} lists no transfer for this player.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.player.limited": {
+    "source": "{source} has not been asked about this player himself yet: these are the moves it lists for clubs we follow, so moves between other clubs may be missing.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.col.date": {
+    "source": "Date",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.col.player": {
+    "source": "Player",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.col.from": {
+    "source": "From",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.col.to": {
+    "source": "To",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.col.type": {
+    "source": "Type",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.kind.loan": {
+    "source": "Loan",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.kind.loanReturn": {
+    "source": "End of loan",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.kind.free": {
+    "source": "Free",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.kind.transfer": {
+    "source": "Permanent, no fee given",
+    "text": "",
+    "status": "untranslated"
+  },
+  "transfers.kind.unknown": {
+    "source": "Not stated",
+    "text": "",
+    "status": "untranslated"
+  },
   "compare.title": {
     "source": "Compare players",
     "text": "",
