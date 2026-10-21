@@ -1,0 +1,4358 @@
+{
+  "name": "transfers-man-city",
+  "recordedAt": "2026-10-21T16:47:30.000Z",
+  "note": "Read-only, from the production API container on the Ultra plan (T-1440). Trimmed by script: 60 of the answer's 341 player entries are kept, each entry whole and unedited as served (entries with a side missing its id, with an unusual type, or dated since June 2025, in the answer's order, up to sixty); the envelope's results and paging are as served.",
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://v3.football.api-sports.io/transfers?team=50",
+      "status": 200,
+      "body": {
+        "get": "transfers",
+        "parameters": {
+          "team": "50"
+        },
+        "errors": [],
+        "results": 341,
+        "paging": {
+          "current": 1,
+          "total": 1
+        },
+        "response": [
+          {
+            "player": {
+              "id": 19284,
+              "name": "C. Pantilimon"
+            },
+            "update": "2023-09-07T00:20:27+00:00",
+            "transfers": [
+              {
+                "date": "2014-07-01",
+                "type": "Free",
+                "teams": {
+                  "in": {
+                    "id": 746,
+                    "name": "Sunderland",
+                    "logo": "https://media.api-sports.io/football/teams/746.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2012-01-31",
+                "type": "€ 2.3M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": null,
+                    "name": null,
+                    "logo": null
+                  }
+                }
+              },
+              {
+                "date": "2011-08-05",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": null,
+                    "name": null,
+                    "logo": null
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 91393,
+              "name": "Rolando Bianchi"
+            },
+            "update": "2023-09-07T05:06:32+00:00",
+            "transfers": [
+              {
+                "date": "2008-08-01",
+                "type": "7M €",
+                "teams": {
+                  "in": {
+                    "id": 503,
+                    "name": "Torino",
+                    "logo": "https://media.api-sports.io/football/teams/503.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2008-01-22",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 487,
+                    "name": "Lazio",
+                    "logo": "https://media.api-sports.io/football/teams/487.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2007-08-01",
+                "type": "13M €",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1692,
+                    "name": "Reggina",
+                    "logo": "https://media.api-sports.io/football/teams/1692.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 70378,
+              "name": "K. Aguilar"
+            },
+            "update": "2025-05-29T20:11:12+00:00",
+            "transfers": [
+              {
+                "date": "2021-07-01",
+                "type": "&pound; 1.5M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 2553,
+                    "name": "Alianza Lima",
+                    "logo": "https://media.api-sports.io/football/teams/2553.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 627,
+              "name": "K. Walker"
+            },
+            "update": "2026-02-02T00:16:11+00:00",
+            "transfers": [
+              {
+                "date": "2017-07-14",
+                "type": "€ 51M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 47,
+                    "name": "Tottenham",
+                    "logo": "https://media.api-sports.io/football/teams/47.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-01",
+                "type": "Back from Loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 489,
+                    "name": "AC Milan",
+                    "logo": "https://media.api-sports.io/football/teams/489.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-01-24",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 489,
+                    "name": "AC Milan",
+                    "logo": "https://media.api-sports.io/football/teams/489.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 489,
+                    "name": "AC Milan",
+                    "logo": "https://media.api-sports.io/football/teams/489.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-05",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 44,
+                    "name": "Burnley",
+                    "logo": "https://media.api-sports.io/football/teams/44.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 328096,
+              "name": "Joel Tshisanga Ndala"
+            },
+            "update": "2026-10-12T00:52:55+00:00",
+            "transfers": [
+              {
+                "date": "2025-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 65,
+                    "name": "Nottingham Forest",
+                    "logo": "https://media.api-sports.io/football/teams/65.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-02-03",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 65,
+                    "name": "Nottingham Forest",
+                    "logo": "https://media.api-sports.io/football/teams/65.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-28",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 64,
+                    "name": "Hull City",
+                    "logo": "https://media.api-sports.io/football/teams/64.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-31",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": null,
+                    "name": "Hull",
+                    "logo": null
+                  }
+                }
+              },
+              {
+                "date": "2026-02-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": null,
+                    "name": "Sheffield Wed",
+                    "logo": null
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-31",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 64,
+                    "name": "Hull City",
+                    "logo": "https://media.api-sports.io/football/teams/64.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-02-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 74,
+                    "name": "Sheffield Wednesday",
+                    "logo": "https://media.api-sports.io/football/teams/74.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-05-30",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 74,
+                    "name": "Sheffield Wednesday",
+                    "logo": "https://media.api-sports.io/football/teams/74.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-02-01",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 411,
+                    "name": "Jong PSV U21",
+                    "logo": "https://media.api-sports.io/football/teams/411.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-07-28",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 741,
+                    "name": "Cercle Brugge",
+                    "logo": "https://media.api-sports.io/football/teams/741.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-09-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 411,
+                    "name": "Jong PSV U21",
+                    "logo": "https://media.api-sports.io/football/teams/411.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 328097,
+              "name": "Mahamadou Susoho Sissoho"
+            },
+            "update": "2026-08-10T01:22:26+00:00",
+            "transfers": [
+              {
+                "date": "2025-06-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1350,
+                    "name": "Peterborough",
+                    "logo": "https://media.api-sports.io/football/teams/1350.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-08-06",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1350,
+                    "name": "Peterborough",
+                    "logo": "https://media.api-sports.io/football/teams/1350.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-01",
+                "type": "Back from Loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1350,
+                    "name": "Peterborough",
+                    "logo": "https://media.api-sports.io/football/teams/1350.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-08-31",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 255,
+                    "name": "Livingston",
+                    "logo": "https://media.api-sports.io/football/teams/255.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 255,
+                    "name": "Livingston",
+                    "logo": "https://media.api-sports.io/football/teams/255.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-30",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 7411,
+                    "name": "Kocaelispor",
+                    "logo": "https://media.api-sports.io/football/teams/7411.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 284372,
+              "name": "C. Doyle"
+            },
+            "update": "2026-06-01T00:22:08+00:00",
+            "transfers": [
+              {
+                "date": "2025-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 71,
+                    "name": "Norwich",
+                    "logo": "https://media.api-sports.io/football/teams/71.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-08-06",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 71,
+                    "name": "Norwich",
+                    "logo": "https://media.api-sports.io/football/teams/71.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-08-20",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 1837,
+                    "name": "Wrexham",
+                    "logo": "https://media.api-sports.io/football/teams/1837.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 158696,
+              "name": "F. Burns"
+            },
+            "update": "2026-10-12T00:31:45+00:00",
+            "transfers": [
+              {
+                "date": "2025-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 64,
+                    "name": "Hull City",
+                    "logo": "https://media.api-sports.io/football/teams/64.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-08-09",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 64,
+                    "name": "Hull City",
+                    "logo": "https://media.api-sports.io/football/teams/64.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2022-06-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 76,
+                    "name": "Swansea",
+                    "logo": "https://media.api-sports.io/football/teams/76.png"
+                  }
+                }
+              },
+              {
+                "date": "2022-01-30",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 76,
+                    "name": "Swansea",
+                    "logo": "https://media.api-sports.io/football/teams/76.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 53,
+                    "name": "Reading",
+                    "logo": "https://media.api-sports.io/football/teams/53.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-13",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 61,
+                    "name": "Wigan",
+                    "logo": "https://media.api-sports.io/football/teams/61.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 305819,
+              "name": "Kayky"
+            },
+            "update": "2026-06-01T00:20:37+00:00",
+            "transfers": [
+              {
+                "date": "2023-01-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 118,
+                    "name": "Bahia",
+                    "logo": "https://media.api-sports.io/football/teams/118.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-02-07",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 118,
+                    "name": "Bahia",
+                    "logo": "https://media.api-sports.io/football/teams/118.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-12-30",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 118,
+                    "name": "Bahia",
+                    "logo": "https://media.api-sports.io/football/teams/118.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 328120,
+              "name": "Tomas Galvez"
+            },
+            "update": "2026-10-12T00:52:42+00:00",
+            "transfers": [
+              {
+                "date": "2025-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 420,
+                    "name": "Cambuur",
+                    "logo": "https://media.api-sports.io/football/teams/420.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-01-12",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 420,
+                    "name": "Cambuur",
+                    "logo": "https://media.api-sports.io/football/teams/420.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-01-11",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1026,
+                    "name": "Lask Linz",
+                    "logo": "https://media.api-sports.io/football/teams/1026.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-08-07",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1026,
+                    "name": "Lask Linz",
+                    "logo": "https://media.api-sports.io/football/teams/1026.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-28",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 420,
+                    "name": "Cambuur",
+                    "logo": "https://media.api-sports.io/football/teams/420.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 420,
+                    "name": "Cambuur",
+                    "logo": "https://media.api-sports.io/football/teams/420.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-07-06",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 410,
+                    "name": "GO Ahead Eagles",
+                    "logo": "https://media.api-sports.io/football/teams/410.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 47296,
+              "name": "G. Rulli"
+            },
+            "update": "2026-10-12T00:34:20+00:00",
+            "transfers": [
+              {
+                "date": "2017-01-02",
+                "type": "€ 7M",
+                "teams": {
+                  "in": {
+                    "id": 548,
+                    "name": "Real Sociedad",
+                    "logo": "https://media.api-sports.io/football/teams/548.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2016-08-09",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 548,
+                    "name": "Real Sociedad",
+                    "logo": "https://media.api-sports.io/football/teams/548.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-11",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 81,
+                    "name": "Marseille",
+                    "logo": "https://media.api-sports.io/football/teams/81.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-10",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 81,
+                    "name": "Marseille",
+                    "logo": "https://media.api-sports.io/football/teams/81.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 449509,
+              "name": "Abdulay Bah"
+            },
+            "update": "2026-10-12T00:35:51+00:00",
+            "transfers": [
+              {
+                "date": "2025-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 116,
+                    "name": "Lens",
+                    "logo": "https://media.api-sports.io/football/teams/116.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-01-28",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 116,
+                    "name": "Lens",
+                    "logo": "https://media.api-sports.io/football/teams/116.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-01-27",
+                "type": "€ 6M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 720,
+                    "name": "Valladolid",
+                    "logo": "https://media.api-sports.io/football/teams/720.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-25",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 84,
+                    "name": "Nice",
+                    "logo": "https://media.api-sports.io/football/teams/84.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-30",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 84,
+                    "name": "Nice",
+                    "logo": "https://media.api-sports.io/football/teams/84.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 116,
+                    "name": "Lens",
+                    "logo": "https://media.api-sports.io/football/teams/116.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 84,
+                    "name": "Nice",
+                    "logo": "https://media.api-sports.io/football/teams/84.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-31",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 170,
+                    "name": "FC Augsburg",
+                    "logo": "https://media.api-sports.io/football/teams/170.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 288699,
+              "name": "M. Perrone"
+            },
+            "update": "2026-02-09T00:21:14+00:00",
+            "transfers": [
+              {
+                "date": "2024-08-25",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 895,
+                    "name": "Como",
+                    "logo": "https://media.api-sports.io/football/teams/895.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 534,
+                    "name": "Las Palmas",
+                    "logo": "https://media.api-sports.io/football/teams/534.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-08-23",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 534,
+                    "name": "Las Palmas",
+                    "logo": "https://media.api-sports.io/football/teams/534.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-01-23",
+                "type": "€ 11M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 438,
+                    "name": "Velez Sarsfield",
+                    "logo": "https://media.api-sports.io/football/teams/438.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-01",
+                "type": "Back from Loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 895,
+                    "name": "Como",
+                    "logo": "https://media.api-sports.io/football/teams/895.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-17",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 895,
+                    "name": "Como",
+                    "logo": "https://media.api-sports.io/football/teams/895.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 895,
+                    "name": "Como",
+                    "logo": "https://media.api-sports.io/football/teams/895.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 629,
+              "name": "K. De Bruyne"
+            },
+            "update": "2026-01-19T00:26:26+00:00",
+            "transfers": [
+              {
+                "date": "2015-08-30",
+                "type": "€ 74M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 161,
+                    "name": "VfL Wolfsburg",
+                    "logo": "https://media.api-sports.io/football/teams/161.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-01",
+                "type": "Free Transfer",
+                "teams": {
+                  "in": {
+                    "id": 492,
+                    "name": "Napoli",
+                    "logo": "https://media.api-sports.io/football/teams/492.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 197448,
+              "name": "Yan Couto"
+            },
+            "update": "2026-08-17T00:12:53+00:00",
+            "transfers": [
+              {
+                "date": "2024-08-03",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 165,
+                    "name": "Borussia Dortmund",
+                    "logo": "https://media.api-sports.io/football/teams/165.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-07-14",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  }
+                }
+              },
+              {
+                "date": "2022-07-25",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2022-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 217,
+                    "name": "SC Braga",
+                    "logo": "https://media.api-sports.io/football/teams/217.png"
+                  }
+                }
+              },
+              {
+                "date": "2021-08-20",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 217,
+                    "name": "SC Braga",
+                    "logo": "https://media.api-sports.io/football/teams/217.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2021-06-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  }
+                }
+              },
+              {
+                "date": "2020-09-25",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2020-08-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 147,
+                    "name": "Coritiba",
+                    "logo": "https://media.api-sports.io/football/teams/147.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 165,
+                    "name": "Borussia Dortmund",
+                    "logo": "https://media.api-sports.io/football/teams/165.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-01",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 165,
+                    "name": "Borussia Dortmund",
+                    "logo": "https://media.api-sports.io/football/teams/165.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 162489,
+              "name": "J. Trafford"
+            },
+            "update": "2026-10-12T00:29:41+00:00",
+            "transfers": [
+              {
+                "date": "2022-07-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 68,
+                    "name": "Bolton",
+                    "logo": "https://media.api-sports.io/football/teams/68.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2022-06-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 68,
+                    "name": "Bolton",
+                    "logo": "https://media.api-sports.io/football/teams/68.png"
+                  }
+                }
+              },
+              {
+                "date": "2022-01-13",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 68,
+                    "name": "Bolton",
+                    "logo": "https://media.api-sports.io/football/teams/68.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2021-07-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1360,
+                    "name": "Accrington ST",
+                    "logo": "https://media.api-sports.io/football/teams/1360.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-29",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 44,
+                    "name": "Burnley",
+                    "logo": "https://media.api-sports.io/football/teams/44.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-05",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 63,
+                    "name": "Leeds",
+                    "logo": "https://media.api-sports.io/football/teams/63.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 266657,
+              "name": "Sávio"
+            },
+            "update": "2026-10-12T00:31:33+00:00",
+            "transfers": [
+              {
+                "date": "2024-07-18",
+                "type": "€ 25M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 110,
+                    "name": "Estac Troyes",
+                    "logo": "https://media.api-sports.io/football/teams/110.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-23",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 47,
+                    "name": "Tottenham",
+                    "logo": "https://media.api-sports.io/football/teams/47.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-24",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 47,
+                    "name": "Tottenham",
+                    "logo": "https://media.api-sports.io/football/teams/47.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 44,
+              "name": "Rodri"
+            },
+            "update": "2026-10-12T01:06:47+00:00",
+            "transfers": [
+              {
+                "date": "2019-07-04",
+                "type": "€ 70M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 530,
+                    "name": "Atletico Madrid",
+                    "logo": "https://media.api-sports.io/football/teams/530.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-16",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 529,
+                    "name": "Barcelona",
+                    "logo": "https://media.api-sports.io/football/teams/529.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-17",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 529,
+                    "name": "Barcelona",
+                    "logo": "https://media.api-sports.io/football/teams/529.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 414385,
+              "name": "C. Echeverri"
+            },
+            "update": "2026-10-12T00:58:27+00:00",
+            "transfers": [
+              {
+                "date": "2024-01-26",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 435,
+                    "name": "River Plate",
+                    "logo": "https://media.api-sports.io/football/teams/435.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-01-25",
+                "type": "€ 14.5M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 435,
+                    "name": "River Plate",
+                    "logo": "https://media.api-sports.io/football/teams/435.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-01-01",
+                "type": "Back from Loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 435,
+                    "name": "River Plate",
+                    "logo": "https://media.api-sports.io/football/teams/435.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-17",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-08-21",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 168,
+                    "name": "Bayer Leverkusen",
+                    "logo": "https://media.api-sports.io/football/teams/168.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-12-30",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 168,
+                    "name": "Bayer Leverkusen",
+                    "logo": "https://media.api-sports.io/football/teams/168.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-09-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 211,
+                    "name": "Benfica",
+                    "logo": "https://media.api-sports.io/football/teams/211.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 158697,
+              "name": "J. McAtee"
+            },
+            "update": "2026-01-19T00:17:06+00:00",
+            "transfers": [
+              {
+                "date": "2024-06-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 62,
+                    "name": "Sheffield Utd",
+                    "logo": "https://media.api-sports.io/football/teams/62.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-09-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 62,
+                    "name": "Sheffield Utd",
+                    "logo": "https://media.api-sports.io/football/teams/62.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 62,
+                    "name": "Sheffield Utd",
+                    "logo": "https://media.api-sports.io/football/teams/62.png"
+                  }
+                }
+              },
+              {
+                "date": "2022-08-04",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 62,
+                    "name": "Sheffield Utd",
+                    "logo": "https://media.api-sports.io/football/teams/62.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-08-16",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 8686,
+                    "name": "Ashington AFC",
+                    "logo": "https://media.api-sports.io/football/teams/8686.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-08-16",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 65,
+                    "name": "Nottingham Forest",
+                    "logo": "https://media.api-sports.io/football/teams/65.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 636,
+              "name": "Bernardo Silva"
+            },
+            "update": "2026-10-12T01:07:49+00:00",
+            "transfers": [
+              {
+                "date": "2017-07-01",
+                "type": "€ 50M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 91,
+                    "name": "Monaco",
+                    "logo": "https://media.api-sports.io/football/teams/91.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-30",
+                "type": "Free agent",
+                "teams": {
+                  "in": {
+                    "id": 541,
+                    "name": "Real Madrid",
+                    "logo": "https://media.api-sports.io/football/teams/541.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 633,
+              "name": "İ. Gündoğan"
+            },
+            "update": "2026-07-06T00:38:44+00:00",
+            "transfers": [
+              {
+                "date": "2024-08-23",
+                "type": "Free",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 529,
+                    "name": "Barcelona",
+                    "logo": "https://media.api-sports.io/football/teams/529.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-07-01",
+                "type": "Free",
+                "teams": {
+                  "in": {
+                    "id": 529,
+                    "name": "Barcelona",
+                    "logo": "https://media.api-sports.io/football/teams/529.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2016-07-01",
+                "type": "€ 27M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 165,
+                    "name": "Borussia Dortmund",
+                    "logo": "https://media.api-sports.io/football/teams/165.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-09-02",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 645,
+                    "name": "Galatasaray",
+                    "logo": "https://media.api-sports.io/football/teams/645.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 19187,
+              "name": "J. Grealish"
+            },
+            "update": "2026-10-12T00:30:15+00:00",
+            "transfers": [
+              {
+                "date": "2021-08-05",
+                "type": "€ 117.5M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 66,
+                    "name": "Aston Villa",
+                    "logo": "https://media.api-sports.io/football/teams/66.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-08-12",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 45,
+                    "name": "Everton",
+                    "logo": "https://media.api-sports.io/football/teams/45.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 45,
+                    "name": "Everton",
+                    "logo": "https://media.api-sports.io/football/teams/45.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-31",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 45,
+                    "name": "Everton",
+                    "logo": "https://media.api-sports.io/football/teams/45.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 19130,
+              "name": "K. Phillips"
+            },
+            "update": "2026-10-12T00:31:05+00:00",
+            "transfers": [
+              {
+                "date": "2024-08-16",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 57,
+                    "name": "Ipswich",
+                    "logo": "https://media.api-sports.io/football/teams/57.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 48,
+                    "name": "West Ham",
+                    "logo": "https://media.api-sports.io/football/teams/48.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-01-26",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 48,
+                    "name": "West Ham",
+                    "logo": "https://media.api-sports.io/football/teams/48.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2022-07-04",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 63,
+                    "name": "Leeds",
+                    "logo": "https://media.api-sports.io/football/teams/63.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-01",
+                "type": "Back from Loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": null,
+                    "name": "Ipswich Town",
+                    "logo": null
+                  }
+                }
+              },
+              {
+                "date": "2025-07-01",
+                "type": "Back from Loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 57,
+                    "name": "Ipswich",
+                    "logo": "https://media.api-sports.io/football/teams/57.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 57,
+                    "name": "Ipswich",
+                    "logo": "https://media.api-sports.io/football/teams/57.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-05-30",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 62,
+                    "name": "Sheffield Utd",
+                    "logo": "https://media.api-sports.io/football/teams/62.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-02-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 62,
+                    "name": "Sheffield Utd",
+                    "logo": "https://media.api-sports.io/football/teams/62.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-11",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 62,
+                    "name": "Sheffield Utd",
+                    "logo": "https://media.api-sports.io/football/teams/62.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 140947,
+              "name": "I. Kaboré"
+            },
+            "update": "2026-10-12T00:31:49+00:00",
+            "transfers": [
+              {
+                "date": "2024-09-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 211,
+                    "name": "Benfica",
+                    "logo": "https://media.api-sports.io/football/teams/211.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-07-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1359,
+                    "name": "Luton",
+                    "logo": "https://media.api-sports.io/football/teams/1359.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-07-21",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1359,
+                    "name": "Luton",
+                    "logo": "https://media.api-sports.io/football/teams/1359.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2022-08-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 81,
+                    "name": "Marseille",
+                    "logo": "https://media.api-sports.io/football/teams/81.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2021-07-02",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 110,
+                    "name": "Estac Troyes",
+                    "logo": "https://media.api-sports.io/football/teams/110.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2020-07-30",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 266,
+                    "name": "KV Mechelen",
+                    "logo": "https://media.api-sports.io/football/teams/266.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2020-07-29",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 266,
+                    "name": "KV Mechelen",
+                    "logo": "https://media.api-sports.io/football/teams/266.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-01",
+                "type": "Back from Loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 162,
+                    "name": "Werder Bremen",
+                    "logo": "https://media.api-sports.io/football/teams/162.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-01-06",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 162,
+                    "name": "Werder Bremen",
+                    "logo": "https://media.api-sports.io/football/teams/162.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-09-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1837,
+                    "name": "Wrexham",
+                    "logo": "https://media.api-sports.io/football/teams/1837.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 162,
+                    "name": "Werder Bremen",
+                    "logo": "https://media.api-sports.io/football/teams/162.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-05-30",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1837,
+                    "name": "Wrexham",
+                    "logo": "https://media.api-sports.io/football/teams/1837.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-25",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 1837,
+                    "name": "Wrexham",
+                    "logo": "https://media.api-sports.io/football/teams/1837.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-26",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 1837,
+                    "name": "Wrexham",
+                    "logo": "https://media.api-sports.io/football/teams/1837.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 5,
+              "name": "M. Akanji"
+            },
+            "update": "2026-10-12T00:43:40+00:00",
+            "transfers": [
+              {
+                "date": "2022-09-01",
+                "type": "€ 17.5M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 165,
+                    "name": "Borussia Dortmund",
+                    "logo": "https://media.api-sports.io/football/teams/165.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-09-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": null,
+                    "name": "Internazionale",
+                    "logo": null
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-09-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 505,
+                    "name": "Inter",
+                    "logo": "https://media.api-sports.io/football/teams/505.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 505,
+                    "name": "Inter",
+                    "logo": "https://media.api-sports.io/football/teams/505.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-30",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 505,
+                    "name": "Inter",
+                    "logo": "https://media.api-sports.io/football/teams/505.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 18861,
+              "name": "N. Aké"
+            },
+            "update": "2026-10-12T01:11:39+00:00",
+            "transfers": [
+              {
+                "date": "2020-08-05",
+                "type": "€ 45M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 35,
+                    "name": "Bournemouth",
+                    "logo": "https://media.api-sports.io/football/teams/35.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-07-02",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 611,
+                    "name": "Fenerbahçe",
+                    "logo": "https://media.api-sports.io/football/teams/611.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 278128,
+              "name": "J. Wilson-Esbrand"
+            },
+            "update": "2026-10-12T01:57:19+00:00",
+            "transfers": [
+              {
+                "date": "2024-06-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 43,
+                    "name": "Cardiff",
+                    "logo": "https://media.api-sports.io/football/teams/43.png"
+                  }
+                }
+              },
+              {
+                "date": "2024-02-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 43,
+                    "name": "Cardiff",
+                    "logo": "https://media.api-sports.io/football/teams/43.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-07-23",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 93,
+                    "name": "Reims",
+                    "logo": "https://media.api-sports.io/football/teams/93.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2023-01-10",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1346,
+                    "name": "Coventry",
+                    "logo": "https://media.api-sports.io/football/teams/1346.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-01-22",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 75,
+                    "name": "Stoke City",
+                    "logo": "https://media.api-sports.io/football/teams/75.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-01",
+                "type": "Back from Loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 75,
+                    "name": "Stoke City",
+                    "logo": "https://media.api-sports.io/football/teams/75.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-09-08",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 4248,
+                    "name": "Radomiak Radom",
+                    "logo": "https://media.api-sports.io/football/teams/4248.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 4248,
+                    "name": "Radomiak Radom",
+                    "logo": "https://media.api-sports.io/football/teams/4248.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 626,
+              "name": "J. Stones"
+            },
+            "update": "2026-10-12T00:43:40+00:00",
+            "transfers": [
+              {
+                "date": "2016-08-09",
+                "type": "€ 55.6M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 45,
+                    "name": "Everton",
+                    "logo": "https://media.api-sports.io/football/teams/45.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Free agent",
+                "teams": {
+                  "in": {
+                    "id": null,
+                    "name": "Stones John",
+                    "logo": null
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Free agent",
+                "teams": {
+                  "in": {
+                    "id": 505,
+                    "name": "Inter",
+                    "logo": "https://media.api-sports.io/football/teams/505.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-07-29",
+                "type": "Free agent",
+                "teams": {
+                  "in": {
+                    "id": 505,
+                    "name": "Inter",
+                    "logo": "https://media.api-sports.io/football/teams/505.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 25004,
+              "name": "S. Ortega"
+            },
+            "update": "2026-08-03T00:16:32+00:00",
+            "transfers": [
+              {
+                "date": "2022-07-01",
+                "type": "Free",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 188,
+                    "name": "Arminia Bielefeld",
+                    "logo": "https://media.api-sports.io/football/teams/188.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-02-01",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 65,
+                    "name": "Nottingham Forest",
+                    "logo": "https://media.api-sports.io/football/teams/65.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 617,
+              "name": "Ederson"
+            },
+            "update": "2026-07-06T00:38:43+00:00",
+            "transfers": [
+              {
+                "date": "2017-07-01",
+                "type": "€ 40M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 211,
+                    "name": "Benfica",
+                    "logo": "https://media.api-sports.io/football/teams/211.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-09-02",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 611,
+                    "name": "Fenerbahçe",
+                    "logo": "https://media.api-sports.io/football/teams/611.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 36902,
+              "name": "T. Reijnders"
+            },
+            "update": "2026-10-12T01:02:58+00:00",
+            "transfers": [
+              {
+                "date": "2025-06-10",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": null,
+                    "name": "Milan",
+                    "logo": null
+                  }
+                }
+              },
+              {
+                "date": "2025-06-10",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 489,
+                    "name": "AC Milan",
+                    "logo": "https://media.api-sports.io/football/teams/489.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-17",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 2933,
+                    "name": "Al-Qadisiyah FC",
+                    "logo": "https://media.api-sports.io/football/teams/2933.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-18",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 2933,
+                    "name": "Al-Qadisiyah FC",
+                    "logo": "https://media.api-sports.io/football/teams/2933.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 156477,
+              "name": "R. Cherki"
+            },
+            "update": "2026-01-05T00:19:12+00:00",
+            "transfers": [
+              {
+                "date": "2025-06-10",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": null,
+                    "name": "Olympique Lyonnais",
+                    "logo": null
+                  }
+                }
+              },
+              {
+                "date": "2025-06-10",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 80,
+                    "name": "Lyon",
+                    "logo": "https://media.api-sports.io/football/teams/80.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 161933,
+              "name": "Nico González"
+            },
+            "update": "2026-10-12T00:30:15+00:00",
+            "transfers": [
+              {
+                "date": "2025-02-03",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": null,
+                    "name": "Porto",
+                    "logo": null
+                  }
+                }
+              },
+              {
+                "date": "2025-02-03",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 212,
+                    "name": "FC Porto",
+                    "logo": "https://media.api-sports.io/football/teams/212.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-25",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 34,
+                    "name": "Newcastle",
+                    "logo": "https://media.api-sports.io/football/teams/34.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-24",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 34,
+                    "name": "Newcastle",
+                    "logo": "https://media.api-sports.io/football/teams/34.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 382355,
+              "name": "Jacob Wright"
+            },
+            "update": "2026-06-01T00:20:37+00:00",
+            "transfers": [
+              {
+                "date": "2025-02-04",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 71,
+                    "name": "Norwich",
+                    "logo": "https://media.api-sports.io/football/teams/71.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-01",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 71,
+                    "name": "Norwich",
+                    "logo": "https://media.api-sports.io/football/teams/71.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-30",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 71,
+                    "name": "Norwich",
+                    "logo": "https://media.api-sports.io/football/teams/71.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 71,
+                    "name": "Norwich",
+                    "logo": "https://media.api-sports.io/football/teams/71.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 81573,
+              "name": "Omar Marmoush"
+            },
+            "update": "2026-10-12T00:31:32+00:00",
+            "transfers": [
+              {
+                "date": "2025-01-23",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 169,
+                    "name": "Eintracht Frankfurt",
+                    "logo": "https://media.api-sports.io/football/teams/169.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-26",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 47,
+                    "name": "Tottenham",
+                    "logo": "https://media.api-sports.io/football/teams/47.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 360114,
+              "name": "A. Khusanov"
+            },
+            "update": "2025-11-10T00:17:38+00:00",
+            "transfers": [
+              {
+                "date": "2025-01-20",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 116,
+                    "name": "Lens",
+                    "logo": "https://media.api-sports.io/football/teams/116.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 414359,
+              "name": "Vitor Nunes"
+            },
+            "update": "2026-10-12T00:30:15+00:00",
+            "transfers": [
+              {
+                "date": "2025-01-21",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 121,
+                    "name": "Palmeiras",
+                    "logo": "https://media.api-sports.io/football/teams/121.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-08-08",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 547,
+                    "name": "Girona",
+                    "logo": "https://media.api-sports.io/football/teams/547.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 347305,
+              "name": "Jaden Heskey"
+            },
+            "update": "2026-10-12T00:31:09+00:00",
+            "transfers": [
+              {
+                "date": "2025-09-22",
+                "type": "Raise",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-15",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": null,
+                    "name": "Sheffield Wed",
+                    "logo": null
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-15",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 74,
+                    "name": "Sheffield Wednesday",
+                    "logo": "https://media.api-sports.io/football/teams/74.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-05-30",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 74,
+                    "name": "Sheffield Wednesday",
+                    "logo": "https://media.api-sports.io/football/teams/74.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-31",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 74,
+                    "name": "Sheffield Wednesday",
+                    "logo": "https://media.api-sports.io/football/teams/74.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 284409,
+              "name": "D. Mubama"
+            },
+            "update": "2026-10-12T00:31:20+00:00",
+            "transfers": [
+              {
+                "date": "2025-07-04",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 75,
+                    "name": "Stoke City",
+                    "logo": "https://media.api-sports.io/football/teams/75.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 75,
+                    "name": "Stoke City",
+                    "logo": "https://media.api-sports.io/football/teams/75.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-10",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 41,
+                    "name": "Southampton",
+                    "logo": "https://media.api-sports.io/football/teams/41.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 404656,
+              "name": "Jahmai Simpson-Pusey"
+            },
+            "update": "2026-10-12T00:37:13+00:00",
+            "transfers": [
+              {
+                "date": "2025-08-04",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 247,
+                    "name": "Celtic",
+                    "logo": "https://media.api-sports.io/football/teams/247.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-05",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": null,
+                    "name": "FC Koln",
+                    "logo": null
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-05",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 192,
+                    "name": "1. FC Köln",
+                    "logo": "https://media.api-sports.io/football/teams/192.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-04",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 247,
+                    "name": "Celtic",
+                    "logo": "https://media.api-sports.io/football/teams/247.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-30",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 192,
+                    "name": "1. FC Köln",
+                    "logo": "https://media.api-sports.io/football/teams/192.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 192,
+                    "name": "1. FC Köln",
+                    "logo": "https://media.api-sports.io/football/teams/192.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 355454,
+              "name": "C. McFarlane"
+            },
+            "update": "2026-10-12T00:29:47+00:00",
+            "transfers": [
+              {
+                "date": "2025-01-25",
+                "type": "Free agent",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1604,
+                    "name": "New York City FC",
+                    "logo": "https://media.api-sports.io/football/teams/1604.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-07-28",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 46,
+                    "name": "Leicester",
+                    "logo": "https://media.api-sports.io/football/teams/46.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 337941,
+              "name": "J. Oboavwoduo"
+            },
+            "update": "2026-09-14T00:42:04+00:00",
+            "transfers": [
+              {
+                "date": "2026-02-01",
+                "type": "-",
+                "teams": {
+                  "in": {
+                    "id": 24744,
+                    "name": "Juventus U20",
+                    "logo": "https://media.api-sports.io/football/teams/24744.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-02-01",
+                "type": "-",
+                "teams": {
+                  "in": {
+                    "id": 1715,
+                    "name": "Juventus U23",
+                    "logo": "https://media.api-sports.io/football/teams/1715.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 603442,
+              "name": "R. Liu"
+            },
+            "update": "2026-03-09T05:24:39+00:00",
+            "transfers": [
+              {
+                "date": "2024-06-30",
+                "type": "-",
+                "teams": {
+                  "in": {
+                    "id": 15385,
+                    "name": "Stoke City U18",
+                    "logo": "https://media.api-sports.io/football/teams/15385.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 1622,
+              "name": "G. Donnarumma"
+            },
+            "update": "2026-07-20T16:21:50+00:00",
+            "transfers": [
+              {
+                "date": "2025-09-01",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": null,
+                    "name": "PSG",
+                    "logo": null
+                  }
+                }
+              },
+              {
+                "date": "2025-09-01",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 85,
+                    "name": "Paris Saint Germain",
+                    "logo": "https://media.api-sports.io/football/teams/85.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-08-30",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 85,
+                    "name": "Paris Saint Germain",
+                    "logo": "https://media.api-sports.io/football/teams/85.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 19012,
+              "name": "M. Bettinelli"
+            },
+            "update": "2025-12-29T00:14:49+00:00",
+            "transfers": [
+              {
+                "date": "2025-06-10",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 49,
+                    "name": "Chelsea",
+                    "logo": "https://media.api-sports.io/football/teams/49.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 21138,
+              "name": "R. Aït-Nouri"
+            },
+            "update": "2025-12-29T00:14:49+00:00",
+            "transfers": [
+              {
+                "date": "2025-06-09",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 39,
+                    "name": "Wolves",
+                    "logo": "https://media.api-sports.io/football/teams/39.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 323591,
+              "name": "S. Nypan"
+            },
+            "update": "2026-10-12T00:10:28+00:00",
+            "transfers": [
+              {
+                "date": "2025-08-19",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 70,
+                    "name": "Middlesbrough",
+                    "logo": "https://media.api-sports.io/football/teams/70.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2025-07-17",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 331,
+                    "name": "Rosenborg",
+                    "logo": "https://media.api-sports.io/football/teams/331.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-02-01",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 70,
+                    "name": "Middlesbrough",
+                    "logo": "https://media.api-sports.io/football/teams/70.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-07-10",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 259,
+                    "name": "Lommel United",
+                    "logo": "https://media.api-sports.io/football/teams/259.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 588425,
+              "name": "Tyrese Noubissie"
+            },
+            "update": "2026-05-04T00:21:41+00:00",
+            "transfers": [
+              {
+                "date": "2025-08-21",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 95,
+                    "name": "Strasbourg",
+                    "logo": "https://media.api-sports.io/football/teams/95.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 361675,
+              "name": "True Grant"
+            },
+            "update": "2026-06-01T00:21:43+00:00",
+            "transfers": [
+              {
+                "date": "2025-08-24",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 75,
+                    "name": "Stoke City",
+                    "logo": "https://media.api-sports.io/football/teams/75.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 293168,
+              "name": "Max Alleyne"
+            },
+            "update": "2026-10-12T00:28:23+00:00",
+            "transfers": [
+              {
+                "date": "2025-08-07",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 38,
+                    "name": "Watford",
+                    "logo": "https://media.api-sports.io/football/teams/38.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-04",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 38,
+                    "name": "Watford",
+                    "logo": "https://media.api-sports.io/football/teams/38.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-13",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 44,
+                    "name": "Burnley",
+                    "logo": "https://media.api-sports.io/football/teams/44.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 337936,
+              "name": "L. Samuel"
+            },
+            "update": "2026-10-12T00:30:15+00:00",
+            "transfers": [
+              {
+                "date": "2025-08-31",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1832,
+                    "name": "Bromley",
+                    "logo": "https://media.api-sports.io/football/teams/1832.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-05-30",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1832,
+                    "name": "Bromley",
+                    "logo": "https://media.api-sports.io/football/teams/1832.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-13",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1364,
+                    "name": "Exeter City",
+                    "logo": "https://media.api-sports.io/football/teams/1364.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 307858,
+              "name": "Emilio Lawrence"
+            },
+            "update": "2026-10-12T00:29:59+00:00",
+            "transfers": [
+              {
+                "date": "2026-01-08",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1359,
+                    "name": "Luton",
+                    "logo": "https://media.api-sports.io/football/teams/1359.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-05-30",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1359,
+                    "name": "Luton",
+                    "logo": "https://media.api-sports.io/football/teams/1359.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1359,
+                    "name": "Luton",
+                    "logo": "https://media.api-sports.io/football/teams/1359.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-13",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1359,
+                    "name": "Luton",
+                    "logo": "https://media.api-sports.io/football/teams/1359.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 451583,
+              "name": "K. Braithwaite"
+            },
+            "update": "2026-07-06T00:16:56+00:00",
+            "transfers": [
+              {
+                "date": "2025-09-24",
+                "type": "Free agent",
+                "teams": {
+                  "in": {
+                    "id": null,
+                    "name": "Braithwaite Kaden",
+                    "logo": null
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 389035,
+              "name": "Farid Alfa-Ruprecht"
+            },
+            "update": "2026-07-06T00:20:08+00:00",
+            "transfers": [
+              {
+                "date": "2025-07-26",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 168,
+                    "name": "Bayer Leverkusen",
+                    "logo": "https://media.api-sports.io/football/teams/168.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 329352,
+              "name": "William Dickson"
+            },
+            "update": "2026-08-03T00:15:45+00:00",
+            "transfers": [
+              {
+                "date": "2025-08-31",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1345,
+                    "name": "Chesterfield",
+                    "logo": "https://media.api-sports.io/football/teams/1345.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-04",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 1345,
+                    "name": "Chesterfield",
+                    "logo": "https://media.api-sports.io/football/teams/1345.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-01-15",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 1345,
+                    "name": "Chesterfield",
+                    "logo": "https://media.api-sports.io/football/teams/1345.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 348816,
+              "name": "Michael Okeke"
+            },
+            "update": "2026-07-13T00:51:46+00:00",
+            "transfers": [
+              {
+                "date": "2025-09-02",
+                "type": "Free agent",
+                "teams": {
+                  "in": {
+                    "id": 2391,
+                    "name": "Puskas Academy",
+                    "logo": "https://media.api-sports.io/football/teams/2391.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 380681,
+              "name": "D. Mukasa"
+            },
+            "update": "2026-10-12T00:31:44+00:00",
+            "transfers": [
+              {
+                "date": "2026-05-30",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 46,
+                    "name": "Leicester",
+                    "logo": "https://media.api-sports.io/football/teams/46.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-02-01",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 46,
+                    "name": "Leicester",
+                    "logo": "https://media.api-sports.io/football/teams/46.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-20",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 48,
+                    "name": "West Ham",
+                    "logo": "https://media.api-sports.io/football/teams/48.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 382358,
+              "name": "S. Mfuni"
+            },
+            "update": "2026-10-12T00:30:15+00:00",
+            "transfers": [
+              {
+                "date": "2026-01-29",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 38,
+                    "name": "Watford",
+                    "logo": "https://media.api-sports.io/football/teams/38.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-06-29",
+                "type": "Return from loan",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 38,
+                    "name": "Watford",
+                    "logo": "https://media.api-sports.io/football/teams/38.png"
+                  }
+                }
+              },
+              {
+                "date": "2026-08-29",
+                "type": "Loan",
+                "teams": {
+                  "in": {
+                    "id": 1346,
+                    "name": "Coventry",
+                    "logo": "https://media.api-sports.io/football/teams/1346.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "player": {
+              "id": 303015,
+              "name": "Jadel Katongo"
+            },
+            "update": "2026-08-17T00:27:10+00:00",
+            "transfers": [
+              {
+                "date": "2026-01-15",
+                "type": "Transfer",
+                "teams": {
+                  "in": {
+                    "id": 1001,
+                    "name": "Kayserispor",
+                    "logo": "https://media.api-sports.io/football/teams/1001.png"
+                  },
+                  "out": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

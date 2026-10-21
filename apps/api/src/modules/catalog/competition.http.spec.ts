@@ -349,7 +349,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect(page.fixtures).toHaveLength(1);
     expect(page.fixtures[0]).toMatchObject({ status: 'scheduled', score: null, round: 'Matchday' });
 
-    expect(page.leaders.coverage).toBe('available');
+    // Four goals scored (3-1), three named by incidents: possibly short (T-1441).
+    expect(page.leaders.coverage).toBe('limited');
+    expect(page.leaders_source).toBe('recorded');
     expect(page.leaders.data).toEqual([
       {
         // Nothing stored for either: said so (T-1320).
@@ -360,6 +362,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
           crest: { coverage: 'not_supplied', url: null },
         },
         goals: 2,
+        appearances: 2,
         minutes: {
           coverage: 'available',
           total: 180,
@@ -380,6 +383,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
           crest: { coverage: 'not_supplied', url: null },
         },
         goals: 1,
+        appearances: 1,
         minutes: {
           coverage: 'not_supplied',
           total: null,
@@ -471,6 +475,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     } finally {
       await pool.query(`UPDATE competition SET football_data_division = NULL WHERE id = $1`, [
         COMPETITION,
+      ]);
+    }
+  });
+
+  it('reads a league the model does not hold by its country, never a second tier (T-1444, D-234)', async () => {
+    const get = async () =>
+      (
+        await app.inject({ method: 'GET', url: `/competitions/${COMPETITION}` })
+      ).json() as CompetitionPage;
+    await pool.query(
+      `UPDATE competition SET country_id = (SELECT id FROM country WHERE code = 'KSA') WHERE id = $1`,
+      [COMPETITION],
+    );
+    try {
+      // The selected season is 2025/26, and Saudi Arabia's entry is for that season.
+      const listed = (await get()).zones;
+      expect(listed).toMatchObject({ state: 'listed', teams: 18 });
+      if (listed.state !== 'listed') throw new Error('unreachable');
+      expect(listed.zones).toContainEqual({ kind: 'relegation', from: 16, to: 18 });
+      await pool.query(`UPDATE competition SET tier = 2 WHERE id = $1`, [COMPETITION]);
+      expect((await get()).zones).toEqual({ state: 'not_listed', reason: 'no_division' });
+    } finally {
+      await pool.query(`UPDATE competition SET country_id = $2, tier = NULL WHERE id = $1`, [
+        COMPETITION,
+        ENGLAND,
       ]);
     }
   });

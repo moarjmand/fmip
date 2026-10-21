@@ -9,8 +9,13 @@ import type {
   FollowSuggestionsResponse,
   LeagueZoneEntry,
   BoardPlayer,
+  CoachPage,
   PlayerPage,
   PlayerProviderSeasons,
+  TeamSeasonStats,
+  PlayerTransfers,
+  TeamTransfers,
+  PlayerSeasonMinutes,
   SeasonSummary,
   SuggestedCompetition,
   SuggestedTeam,
@@ -34,8 +39,18 @@ import { LEADERS_LIMIT, StandingsService } from '../standings/standings.service'
 import { buildBracket, tieOf } from './internal/bracket';
 import { contextTable, phaseOf } from './internal/competition-context';
 import { PostgresCompetitionStore } from './internal/competition-store';
-import { leadersModule, leadersWithMinutes } from './internal/leaders';
+import {
+  candidatesForTop,
+  leadersModule,
+  leadersWithMinutes,
+  rankByFigure,
+  wholeOnlyIfRecorded,
+} from './internal/leaders';
+import { readCoachPage, readTeamHeadCoach } from './internal/coach-read';
 import { readProviderSeasons } from './internal/player-provider-seasons';
+import { readTeamSeasonStats } from './internal/team-season-stats';
+import { readPlayerTransfers, readTeamTransfers } from './internal/transfers';
+import { providerBoards, readProviderLeaders } from './internal/provider-leaders';
 import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
@@ -72,6 +87,32 @@ export class CatalogService {
   ) {}
 
   /**
+   * The coach page (T-1439, D-230): the coach, his career at the teams we
+   * carry with their crests, and the line-ups that name him. `null` for a
+   * person who is not a coach, or no such person.
+   */
+  async coach(id: string, locale: string | null = null): Promise<CoachPage | null> {
+    const rows = await readCoachPage(this.pool, id, locale);
+    if (rows === null) return null;
+    const spells = rows.career.data ?? [];
+    const media = await this.media.index({
+      team: spells.map((s) => s.team.id),
+      person: [id],
+    });
+    return {
+      ...rows,
+      coach: { ...rows.coach, photo: media.photo(id) },
+      career: {
+        ...rows.career,
+        data:
+          rows.career.data === null
+            ? null
+            : spells.map((s) => ({ ...s, team: { ...s.team, crest: media.crest(s.team.id) } })),
+      },
+    };
+  }
+
+  /**
    * A player's season totals and career as the provider counts them (T-1431,
    * D-223), apart from the record our line-ups support. `null` for no such player.
    */
@@ -79,6 +120,30 @@ export class CatalogService {
     const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
     if (rowCount === 0) return null;
     return readProviderSeasons(this.pool, id);
+  }
+
+  /**
+   * A team's season statistics as the provider counts them (T-1437, D-228).
+   * `null` for no such team.
+   */
+  async teamSeasonStats(id: string, season: string | null): Promise<TeamSeasonStats | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM team WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readTeamSeasonStats(this.pool, id, season);
+  }
+
+  /** A player's transfers as the provider lists them (T-1440, D-231). `null` for no such player. */
+  async playerTransfers(id: string, locale: string | null): Promise<PlayerTransfers | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readPlayerTransfers(this.pool, id, locale);
+  }
+
+  /** A club's arrivals and departures as the provider lists them (T-1440, D-231). `null` for no such club. */
+  async teamTransfers(id: string, locale: string | null): Promise<TeamTransfers | null> {
+    const { rowCount } = await this.pool.query(`SELECT 1 FROM team WHERE id = $1`, [id]);
+    if (rowCount === 0) return null;
+    return readTeamTransfers(this.pool, id, locale);
   }
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */
@@ -250,15 +315,16 @@ export class CatalogService {
       return { kind: seasons.length === 0 ? 'no_seasons' : 'unknown_season' };
 
     const knockout = playsKnockoutBracket(competition);
-    // Under a minutes floor every scorer is read, since the first ten by
-    // goals may not be the first ten that reached it (T-824).
+    // Every scorer and every board row is read, then ranked here: a tie at the
+    // cut-off is broken by appearances, which only the line-ups know (T-1441).
     const [
       stages,
       { fixtures, lastUpdatedAt },
       coverage,
       table,
-      scorers,
-      boards,
+      recordedScorers,
+      recordedBoards,
+      tally,
       bracketFixtures,
       division,
     ] = await Promise.all([
@@ -266,8 +332,9 @@ export class CatalogService {
       this.competitions_.fixtures(selected.id),
       this.competitions_.coverage(selected.id),
       this.standings.table(selected.id),
-      this.standings.leaders(selected.id, minMinutes === null ? LEADERS_LIMIT : null),
+      this.standings.leaders(selected.id, null),
       this.standings.boards(selected.id),
+      this.standings.incidentTally(selected.id),
       knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
       this.competitions_.division(id),
     ]);
@@ -276,44 +343,114 @@ export class CatalogService {
     const groupTables = stages.some((s) => s.kind === 'group')
       ? await this.standings.groupStandings(selected.id)
       : null;
-    // The boards beyond goals (T-943) are read whole, so their minutes are
-    // read only for the rows each board can show without a floor.
-    const shown = <T extends { person: { id: string } }>(rows: T[] | null) =>
-      (rows ?? []).slice(0, minMinutes === null ? LEADERS_LIMIT : undefined);
-    const minutes = await this.players_.minutesByPerson(
+
+    // D-232: our own incidents are the source. Only a season of which we store
+    // none falls back to the provider's season totals, if it has any.
+    const providerLines =
+      tally.incidents === 0
+        ? await readProviderLeaders(this.pool, competition.id, selected.label)
+        : [];
+    const fromProvider = providerLines.length > 0;
+    const provider = fromProvider ? providerBoards(providerLines) : null;
+    const scorers = provider?.scorers ?? wholeOnlyIfRecorded(recordedScorers, tally);
+    const assistsModule = provider?.assists ?? wholeOnlyIfRecorded(recordedBoards.assists, tally);
+    const cardsModule = provider?.cards ?? wholeOnlyIfRecorded(recordedBoards.cards, tally);
+
+    // The tables as ranked rows. Each is cut to the rows that can make the
+    // table once ties are broken, unless a floor is asked for, which needs all.
+    const onlyWith = <T>(module: Covered<T[]>, has: (row: T) => boolean): Covered<T[]> => ({
+      ...module,
+      data: module.data === null ? null : module.data.filter(has),
+    });
+    const tables = {
+      scorers: { module: scorers, figure: (r: { goals: number }) => r.goals },
+      assists: { module: assistsModule, figure: (r: { assists: number }) => r.assists },
+      clean_sheets: {
+        module: recordedBoards.clean_sheets,
+        figure: (r: { clean_sheets: number }) => r.clean_sheets,
+      },
+      yellow_cards: {
+        module: onlyWith(cardsModule, (r) => r.yellow_cards > 0),
+        figure: (r: { yellow_cards: number }) => r.yellow_cards,
+      },
+      red_cards: {
+        module: onlyWith(cardsModule, (r) => r.red_cards > 0),
+        figure: (r: { red_cards: number }) => r.red_cards,
+      },
+    };
+    const candidates = <T extends { person: { id: string } }>(
+      module: Covered<T[]>,
+      figure: (row: T) => number,
+    ): T[] =>
+      module.data === null
+        ? []
+        : minMinutes === null
+          ? candidatesForTop(module.data, figure, LEADERS_LIMIT)
+          : module.data;
+    const picked = {
+      scorers: candidates(tables.scorers.module, tables.scorers.figure),
+      assists: candidates(tables.assists.module, tables.assists.figure),
+      clean_sheets: candidates(tables.clean_sheets.module, tables.clean_sheets.figure),
+      yellow_cards: candidates(tables.yellow_cards.module, tables.yellow_cards.figure),
+      red_cards: candidates(tables.red_cards.module, tables.red_cards.figure),
+    };
+    const ids = (rows: { person: { id: string } }[]) => rows.map((r) => r.person.id);
+    // Minutes and appearances from our line-ups for the recorded tables (the
+    // boards count the main competition only, D-209), from the provider's
+    // own lines for the provider's.
+    const recordedMinutes = await this.players_.minutesByPerson(
       [selected.id],
       [
-        ...new Set(
-          [
-            ...(scorers.data ?? []),
-            ...shown(boards.assists.data),
-            ...shown(boards.clean_sheets.data),
-            ...shown(boards.cards.data),
-          ].map((s) => s.person.id),
-        ),
+        ...new Set([
+          ...(fromProvider ? [] : [...ids(picked.scorers), ...ids(picked.assists)]),
+          ...ids(picked.clean_sheets),
+          ...(fromProvider ? [] : [...ids(picked.yellow_cards), ...ids(picked.red_cards)]),
+        ]),
       ],
       null,
-      // The boards count the main competition only, so their minutes do too (D-209).
       true,
     );
-    const filtered = leadersWithMinutes(scorers.data ?? [], minutes, minMinutes, LEADERS_LIMIT);
-    const board = <T extends { person: { id: string } }>(module: Covered<T[]>) => {
-      const result = leadersWithMinutes(shown(module.data), minutes, minMinutes, LEADERS_LIMIT);
+    const minutes = provider === null ? recordedMinutes : provider.minutes;
+    const board = <T extends { person: { id: string; name: string } }>(
+      module: Covered<T[]>,
+      rows: T[],
+      figure: (row: T) => number,
+      minutesOf: ReadonlyMap<string, PlayerSeasonMinutes>,
+    ) => {
+      const result = leadersWithMinutes(
+        rankByFigure(rows, figure, minutesOf),
+        minutesOf,
+        minMinutes,
+        LEADERS_LIMIT,
+      );
       return { module: leadersModule(module, result), unproven: result.unproven };
     };
-    const assists = board(boards.assists);
-    const cleanSheets = board(boards.clean_sheets);
-    const cards = board(boards.cards);
+    const scored = board(tables.scorers.module, picked.scorers, tables.scorers.figure, minutes);
+    const assists = board(tables.assists.module, picked.assists, tables.assists.figure, minutes);
+    const cleanSheets = board(
+      tables.clean_sheets.module,
+      picked.clean_sheets,
+      tables.clean_sheets.figure,
+      recordedMinutes,
+    );
+    const yellows = board(
+      tables.yellow_cards.module,
+      picked.yellow_cards,
+      tables.yellow_cards.figure,
+      minutes,
+    );
+    const reds = board(tables.red_cards.module, picked.red_cards, tables.red_cards.figure, minutes);
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     const upcoming = fixtures.filter((f) => f.status !== 'finished');
     // The logo, the table's crests and the leaders' photos from our own origin
     // (T-1320), and the other boards' rows too (T-1321), in one query.
-    const leaders = leadersModule(scorers, filtered);
+    const leaders = scored.module;
     const boardRows = [
       ...(leaders.data ?? []),
       ...(assists.module.data ?? []),
       ...(cleanSheets.module.data ?? []),
-      ...(cards.module.data ?? []),
+      ...(yellows.module.data ?? []),
+      ...(reds.module.data ?? []),
     ];
     const media = await this.media.index({
       competition: [competition.id],
@@ -376,7 +513,18 @@ export class CatalogService {
         // T-1167 (D-171): the committed list, never the feed's standings.
         zones: leagueZonesFor(
           leagueZoneList as LeagueZoneEntry[],
-          { kind: competition.kind, division },
+          {
+            kind: competition.kind,
+            division,
+            // D-234: a league the model does not hold is keyed by its country.
+            country:
+              competition.scope === 'domestic' &&
+              competition.gender === 'men' &&
+              competition.age_group === 'senior'
+                ? (competition.country?.code ?? null)
+                : null,
+            tier: competition.tier,
+          },
           selected.label,
         ),
         results,
@@ -387,19 +535,22 @@ export class CatalogService {
         },
         leaders_filter: {
           min_minutes: minMinutes,
-          unproven: filtered.unproven,
+          unproven: scored.unproven,
           presets: [...LEADERS_MINUTES_PRESETS],
         },
         boards: {
           assists: boardWithMedia(assists.module),
           clean_sheets: boardWithMedia(cleanSheets.module),
-          cards: boardWithMedia(cards.module),
+          yellow_cards: boardWithMedia(yellows.module),
+          red_cards: boardWithMedia(reds.module),
           unproven: {
             assists: assists.unproven,
             clean_sheets: cleanSheets.unproven,
-            cards: cards.unproven,
+            yellow_cards: yellows.unproven,
+            red_cards: reds.unproven,
           },
         },
+        leaders_source: fromProvider ? 'provider_totals' : 'recorded',
         bracket:
           bracketFixtures === null
             ? null
@@ -438,10 +589,16 @@ export class CatalogService {
       squad.players.map((p) => p.person.id),
       id,
     );
-    // The crest (T-1320) and the squad's photos (T-1321) from our own origin, in one query.
+    // The head coach by the provider's coaches endpoint (T-1439, D-230), told
+    // apart from the coach the latest line-up names.
+    const headCoach = await readTeamHeadCoach(this.pool, id, locale, lineup?.coach?.id ?? null);
+    // The crest (T-1320) and the squad's and coach's photos (T-1321) from our own origin, in one query.
     const media = await this.media.index({
       team: [id],
-      person: squad.players.map((p) => p.person.id),
+      person: [
+        ...squad.players.map((p) => p.person.id),
+        ...(headCoach.data === null ? [] : [headCoach.data.person.id]),
+      ],
     });
     const team = { ...found, crest: media.crest(id) };
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
@@ -471,6 +628,19 @@ export class CatalogService {
         ),
         splits: buildSplits(seasons, splitFixtures),
         manager: managerOf(lineup),
+        head_coach:
+          headCoach.data === null
+            ? { ...headCoach, data: null }
+            : {
+                ...headCoach,
+                data: {
+                  ...headCoach.data,
+                  person: {
+                    ...headCoach.data.person,
+                    photo: media.photo(headCoach.data.person.id),
+                  },
+                },
+              },
         fixture_ground: ground,
         followers,
         last_updated_at: lastUpdatedAt,

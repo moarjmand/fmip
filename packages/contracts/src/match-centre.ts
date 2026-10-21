@@ -19,6 +19,24 @@ export interface MatchTeam extends ScoreCardTeam {
   coach: { id: string; name: string } | null;
 }
 
+/** What a pitch is laid with (T-1438). */
+export type VenueSurface = 'grass' | 'artificial' | 'hybrid';
+
+/**
+ * A ground's card on the match page (T-1438, D-229). Each fact is null when
+ * the provider has not given it. `coverage` is over the address, capacity
+ * and surface: `available` all three, `limited` some, `not_supplied` none
+ * after the provider was asked, `delayed` none because it has not been asked
+ * yet. The picture carries its own coverage, from our own origin (D-176).
+ */
+export interface VenueDetails {
+  address: string | null;
+  capacity: number | null;
+  surface: VenueSurface | null;
+  image: EntityMedia;
+  coverage: CoverageState;
+}
+
 export interface MatchHeader {
   id: string;
   kickoff_at: string;
@@ -47,9 +65,19 @@ export interface MatchHeader {
     penalties: ScoreLine | null;
     aggregate: ScoreLine | null;
   };
-  venue: { id: string; name: string; city: string | null } | null;
+  venue: {
+    id: string;
+    name: string;
+    city: string | null;
+    /** The ground's card (T-1438, D-229); absent where a builder does not attach it. */
+    details?: VenueDetails;
+  } | null;
   is_neutral_venue: boolean;
-  referee: { id: string; name: string } | null;
+  /**
+   * The referee as the provider names him, plain text (T-1438, D-229): no
+   * entity, no page, never a key. Null when the source has named nobody.
+   */
+  referee: { name: string } | null;
   attendance: number | null;
   /** Playing periods with real start and end times; an open `ended_at` is the one in progress. */
   periods: MatchPeriod[];

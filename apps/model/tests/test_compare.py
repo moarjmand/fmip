@@ -24,7 +24,7 @@ from fmip_model.backtest.compare import (
 )
 from fmip_model.backtest.metrics import Forecast
 from fmip_model.backtest.walk_forward import BacktestMatch
-from fmip_model.model.version import BASELINE, PUBLISHED, load_candidate, load_candidates
+from fmip_model.model.version import BASELINE, PUBLISHED, load_candidate
 
 TEAMS = [f"C{i}" for i in range(10)]
 START = date(2024, 8, 1)
@@ -188,8 +188,8 @@ def test_a_candidate_file_can_set_the_default_constants_and_the_elo_weight(
 def test_the_reference_is_the_newest_other_candidate_else_published(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # None in shadow since 0.6.0 was published (D-191): the reference is the published version.
-    assert load_candidates() == {}
+    # None in shadow: the reference is the published version (D-191).
+    monkeypatch.setattr(compare, "load_candidates", lambda: {})
     proposal = replace(PUBLISHED, version="99.0.0")
     assert choose_reference(proposal, None) == PUBLISHED
     assert choose_reference(proposal, "published") == PUBLISHED

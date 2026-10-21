@@ -3,6 +3,7 @@
     python -m fmip_model.training.load football-data --seasons 2324 2425 --divisions E0 SP1
     python -m fmip_model.training.load clubelo --days 2024-08-01 2025-08-01
     python -m fmip_model.training.load records --divisions IR1
+    python -m fmip_model.training.load football-data-extra --divisions AT1 US1 --since 2020/21
 
 Each (source, scope) is one ``source_load`` row: opened first, then the file
 is fetched, hashed, parsed and upserted inside one transaction, then the load
@@ -24,7 +25,7 @@ from collections.abc import Callable, Sequence
 import httpx
 
 from .clubelo import parse_elo
-from .football_data import parse_matches
+from .football_data import MatchRow, parse_extra_matches, parse_matches
 from .records import RecordedMatch, as_text, by_season, recorded_matches, team_ids
 from .sources import (
     CLUB_ELO,
@@ -32,6 +33,7 @@ from .sources import (
     OUR_RECORDS,
     Source,
     clubelo_snapshot_url,
+    football_data_extra_url,
     football_data_url,
     records_url,
     season_label,
@@ -94,6 +96,44 @@ def load_football_data(
                     write,
                 )
             )
+    return results
+
+
+def load_football_data_extra(
+    store: TrainingStore,
+    divisions: Sequence[str],
+    *,
+    since: str,
+    fetch: Fetch = fetch_text,
+) -> list[LoadResult]:
+    """An extra league's one file (T-1442, D-233), the seasons from ``since`` on.
+
+    One load per division, its scope the division itself (the service's daily
+    reload looks loads up by it, as it does our records'). A division another
+    source holds is refused, as ``records`` refuses one.
+    """
+    if len(since) != 7 or since[4] != "/":
+        raise ValueError(f"since must be a season label such as 2020/21, received {since!r}")
+    results: list[LoadResult] = []
+    for division in divisions:
+
+        def write(load_id: str, text: str, division: str = division) -> int:
+            foreign = store.foreign_division(division, FOOTBALL_DATA.id)
+            if foreign is not None:
+                raise ValueError(f"division {division} already holds {foreign} rows")
+            seasons: dict[str, list[MatchRow]] = {}
+            for season, row in parse_extra_matches(text, division):
+                if season >= since:
+                    seasons.setdefault(season, []).append(row)
+            if not seasons:
+                raise ValueError(f"no completed match from {since} in the file of {division}")
+            return sum(store.upsert_matches(load_id, s, rows) for s, rows in seasons.items())
+
+        results.append(
+            load_one(
+                store, FOOTBALL_DATA, division, football_data_extra_url(division), fetch, write
+            )
+        )
     return results
 
 
@@ -163,6 +203,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     rc = sub.add_parser("records", help="our own finished matches, per division (D-083)")
     rc.add_argument("--divisions", nargs="+", required=True, help="e.g. IR1")
 
+    fx = sub.add_parser(
+        "football-data-extra", help="football-data.co.uk's extra leagues, one file each (D-233)"
+    )
+    fx.add_argument("--divisions", nargs="+", required=True, help="e.g. AT1 CH1 US1")
+    fx.add_argument("--since", required=True, help="the first season kept, e.g. 2020/21")
+
     args = parser.parse_args(argv)
 
     database_url = os.environ.get("DATABASE_URL")
@@ -174,6 +220,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if args.source == "football-data":
             results = load_football_data(store, args.seasons, args.divisions)
+        elif args.source == "football-data-extra":
+            results = load_football_data_extra(store, args.divisions, since=args.since)
         elif args.source == "records":
             results = load_records(store, args.divisions)
         else:

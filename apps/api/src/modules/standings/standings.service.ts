@@ -1,12 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import type { CoverageState, Covered, GroupTable, TableRow } from '@fmip/contracts';
 import { covered } from '../fixtures/fixtures.service';
-import { PostgresStandingsStore, type BoardRow, type Scorer } from './internal/standings-store';
+import {
+  PostgresStandingsStore,
+  type BoardRow,
+  type IncidentTally,
+  type Scorer,
+} from './internal/standings-store';
 import { rankGroup, rankTable } from './internal/table';
 
 // The module's public surface. Other modules import from this file only.
 export { FORM_WINDOW, rankGroup, rankTable, type Result } from './internal/table';
-export type { BoardRow, Scorer } from './internal/standings-store';
+export type { BoardRow, IncidentTally, Scorer } from './internal/standings-store';
 
 /** The boards beyond goals as the standings boundary knows them (T-943): no minutes yet. */
 export interface Boards {
@@ -15,7 +20,8 @@ export interface Boards {
   cards: Covered<BoardRow<{ yellow_cards: number; red_cards: number }>[]>;
 }
 
-export const LEADERS_LIMIT = 10;
+/** Rows each leader table shows (T-1441: twenty; ties at the cut-off are broken, not all shown). */
+export const LEADERS_LIMIT = 20;
 
 /** One group of a group stage as it stands (T-1333; T-1336 adds what the page needs). */
 export interface SeasonGroupTable {
@@ -142,6 +148,11 @@ export class StandingsService {
       this.store.declared(seasonId, 'incidents'),
     ]);
     return covered(leaders, leaders.length === 0, declared, lastUpdatedAt);
+  }
+
+  /** How much of the season's main competition the stored incidents cover (T-1441). */
+  incidentTally(seasonId: string): Promise<IncidentTally> {
+    return this.store.incidentTally(seasonId);
   }
 
   /**

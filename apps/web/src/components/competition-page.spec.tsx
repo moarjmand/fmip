@@ -16,6 +16,7 @@ vi.mock('@/lib/auth-actions', () => ({
 
 const {
   CompetitionBand,
+  BoardList,
   CompetitionFollow,
   CoveragePanel,
   FixtureRow,
@@ -23,7 +24,9 @@ const {
   LiveFreshness,
   MatchweekPanel,
   NoTableNote,
+  ProviderTotalsNote,
   QualifyingNote,
+  ScorerList,
 } = await import('./competition-page');
 const { StandingsTable } = await import('./standings-table');
 
@@ -122,9 +125,11 @@ function page(over: Partial<CompetitionPage> = {}): CompetitionPage {
     boards: {
       assists: { coverage: 'not_supplied', last_updated_at: null, data: null },
       clean_sheets: { coverage: 'not_supplied', last_updated_at: null, data: null },
-      cards: { coverage: 'not_supplied', last_updated_at: null, data: null },
-      unproven: { assists: 0, clean_sheets: 0, cards: 0 },
+      yellow_cards: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      red_cards: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      unproven: { assists: 0, clean_sheets: 0, yellow_cards: 0, red_cards: 0 },
     },
+    leaders_source: 'recorded',
     bracket: null,
     coverage: { standings: 'available', lineups: 'limited', scores: 'delayed' },
     last_updated_at: '2026-10-01T12:00:00.000Z',
@@ -486,6 +491,60 @@ describe('coverage, never the old uppercase words', () => {
       <LeagueNumbersPanel numbers={leagueNumbers(results.slice(0, 2))} locale="en" />,
     );
     expect(early).toContain('The main competition has no result with a score yet');
+  });
+});
+
+describe('the player tables (T-1441)', () => {
+  const minutes = {
+    coverage: 'available',
+    total: 900,
+    matches: 10,
+    matches_with_minutes: 10,
+    supplied_minutes: 900,
+  } as const;
+  const none = {
+    coverage: 'not_supplied',
+    total: null,
+    matches: 0,
+    matches_with_minutes: 0,
+    supplied_minutes: 0,
+  } as const;
+  const who = (id: string) => ({ person: { id, name: `Player ${id}` }, team: null });
+
+  it('shows each scorer appearances, and says so when none is recorded', () => {
+    const html = renderToStaticMarkup(
+      <ScorerList
+        locale="en"
+        leaders={[
+          { ...who('a'), goals: 9, minutes, appearances: 10 },
+          { ...who('b'), goals: 9, minutes: none, appearances: null },
+        ]}
+      />,
+    );
+    expect(html).toContain('10 appearances');
+    expect(html).toContain('appearances not recorded');
+    expect(html.indexOf('Player a')).toBeLessThan(html.indexOf('Player b'));
+  });
+
+  it('shows a yellow or a red board own figure and appearances', () => {
+    const row = { ...who('c'), minutes, appearances: 1, yellow_cards: 4, red_cards: 1 };
+    const yellow = renderToStaticMarkup(
+      <BoardList rows={[row]} board="yellow_cards" locale="fa" />,
+    );
+    expect(yellow).toContain('۴');
+    expect(yellow).toContain('۱ بازی');
+    const red = renderToStaticMarkup(<BoardList rows={[row]} board="red_cards" locale="en" />);
+    expect(red).toContain('1 appearance<');
+    expect(red).not.toContain('1 appearances');
+  });
+
+  it('names the provider totals as the source, in the reader language', () => {
+    expect(renderToStaticMarkup(<ProviderTotalsNote locale="en" />)).toContain(
+      'our statistics source',
+    );
+    const fa = renderToStaticMarkup(<ProviderTotalsNote locale="fa" />);
+    expect(fa).toContain('data-testid="leaders-provider-totals"');
+    expect(fa).toContain('منبع آماری');
   });
 });
 

@@ -37,6 +37,8 @@ export type MatchSlot =
   | 'headToHead'
   | 'coverage'
   | 'context'
+  // The ground's card (T-1438), from the server: a ground does not change in play.
+  | 'venue'
   | 'players'
   | 'forecast'
   | 'analysis'
@@ -222,6 +224,7 @@ export function MatchCentreView({
         <Region id="verdict">{slots.verdict}</Region>
         {slots.summary}
         <Region id="context">{slots.context}</Region>
+        {slots.venue}
         <Region id="news">{slots.news}</Region>
       </Panel>
     ),

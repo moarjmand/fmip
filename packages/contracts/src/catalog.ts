@@ -5,6 +5,7 @@
  * and player pages follow.
  */
 
+import type { TeamHeadCoach } from './coaches';
 import type { CoverageState, Covered } from './coverage';
 import type { LeagueZones } from './league-zones';
 import type { EntityMedia } from './media';
@@ -192,6 +193,13 @@ export interface Leader {
    * carries the feed's minutes.
    */
   minutes: PlayerSeasonMinutes;
+  /**
+   * Matches the player played in this season of the competition (T-1441):
+   * from our line-ups, or the provider's own count when the board is
+   * `provider_totals`. Null when no line-up of ours names the player, which
+   * is not a season of none.
+   */
+  appearances: number | null;
 }
 
 /**
@@ -228,6 +236,8 @@ export interface BoardPlayer {
   /** The team the row counts for; null when the participant is unknown. `crest`: our own origin (T-1321). */
   team: { id: string; name: string; crest?: EntityMedia } | null;
   minutes: PlayerSeasonMinutes;
+  /** Matches played (T-1441), as on `Leader`; null when none is recorded. */
+  appearances: number | null;
 }
 
 /** Assists: the scorer's assist on a goal or penalty goal, as the feed records it. */
@@ -247,7 +257,11 @@ export interface CleanSheetLeader extends BoardPlayer {
   starts_in_goal: number;
 }
 
-/** Cards: a second yellow counts as a red, as on the player page; ranked by reds, then yellows. */
+/**
+ * Cards: a second yellow counts as a red, as on the player page. Each row
+ * carries both counts; the yellow board is ranked by yellows and the red
+ * board by reds (T-1441).
+ */
 export interface CardLeader extends BoardPlayer {
   yellow_cards: number;
   red_cards: number;
@@ -265,9 +279,23 @@ export interface CardLeader extends BoardPlayer {
 export interface LeaderBoards {
   assists: Covered<AssistLeader[]>;
   clean_sheets: Covered<CleanSheetLeader[]>;
-  cards: Covered<CardLeader[]>;
-  unproven: { assists: number; clean_sheets: number; cards: number };
+  /** Players with at least one yellow card, ranked by yellows (T-1441). */
+  yellow_cards: Covered<CardLeader[]>;
+  /** Players with at least one red card, ranked by reds (T-1441). */
+  red_cards: Covered<CardLeader[]>;
+  unproven: { assists: number; clean_sheets: number; yellow_cards: number; red_cards: number };
 }
+
+/**
+ * Where a season's scorers, assists and cards come from (T-1441, D-232):
+ * `recorded` is counted from the incidents and line-ups we store, whole or
+ * partly; `provider_totals` is API-Football's own season totals
+ * (`player_season_stat`, T-1431), used only for a season of which we store no
+ * incident at all, and by construction `limited` (only the players the
+ * provider has been asked about appear). The clean-sheets board is always
+ * `recorded`.
+ */
+export type LeadersSource = 'recorded' | 'provider_totals';
 
 export interface SeasonFixture {
   id: string;
@@ -410,8 +438,10 @@ export interface CompetitionPage {
   /** Top goalscorers from recorded goals, behind `leaders_filter` when one is asked for. */
   leaders: Covered<Leader[]>;
   leaders_filter: LeadersFilter;
-  /** Assists, clean sheets and cards, each its own module (T-943). */
+  /** Assists, clean sheets and yellow and red cards, each its own module (T-943, T-1441). */
   boards: LeaderBoards;
+  /** Where the scorers, assists and cards come from (T-1441). */
+  leaders_source: LeadersSource;
   /**
    * The knockout rounds for a continental cup (T-630); null for a
    * competition that does not play them.
@@ -598,6 +628,12 @@ export interface TeamPage {
   splits: TeamCompetitionSplits[];
   /** The coach named on the team's most recent line-up (T-944, D-119). */
   manager: TeamManager;
+  /**
+   * The head coach by the provider's coaches endpoint (T-1439, D-230).
+   * Optional: an API older than T-1439 does not send it, which reads as
+   * `not_supplied`.
+   */
+  head_coach?: Covered<TeamHeadCoach>;
   /**
    * Where the club plays at home this season when no home ground is recorded
    * for it (`team.venue` null; T-1394, D-209): the ground most of its home

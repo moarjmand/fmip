@@ -107,6 +107,31 @@ def test_the_committed_list_parses_and_every_place_is_inside_its_table() -> None
         assert len(entry.bands()) == entry.teams
 
 
+def test_an_entry_keyed_by_country_is_not_read_by_the_model() -> None:
+    raw = json.loads(REPOSITORY.read_text(encoding="utf-8"))
+    by_country = [e for e in raw if "country" in e]
+    assert by_country, "the committed list holds entries keyed by country (D-234)"
+    parsed = parse(raw)
+    # Only the entries with a division reach the model, and none is lost.
+    assert len(parsed) == len(raw) - len(by_country)
+    assert all(division and "country" not in division for division, _ in parsed)
+
+
+def test_a_country_entry_past_the_table_is_still_refused() -> None:
+    raw = [
+        {
+            "country": "BEL",
+            "season": "2026/27",
+            "teams": 18,
+            "zones": [{"kind": "relegation", "from": 17, "to": 20}],
+            "complete": False,
+            "sources": ["https://example.org"],
+        }
+    ]
+    with pytest.raises(ValueError, match="BEL 2026/27: relegation is not inside the table"):
+        parse(raw)
+
+
 def test_a_place_past_the_table_is_refused(tmp_path: Path) -> None:
     raw = [
         {

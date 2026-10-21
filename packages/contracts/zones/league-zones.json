@@ -617,5 +617,362 @@
       "https://en.wikipedia.org/wiki/2025%E2%80%9326_AFC_Champions_League_Elite"
     ],
     "note": "Second place enters the AFC Champions League Elite through its play-off."
+  },
+  {
+    "country": "BEL",
+    "season": "2026/27",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://www.proleague.be/nieuws/qanda-wat-verandert-er-aan-het-competitieformat",
+      "https://www.vrt.be/vrtnws/en/2025/02/27/belgium_s-top-football-flight-returns-to-18-club-format-without/",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Belgian_Pro_League",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "Eighteen clubs play 34 rounds with no split and no play-offs, so the table is the official order; the last two go down. Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "SCO",
+    "season": "2026/27",
+    "teams": 12,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 11,
+        "to": 11
+      },
+      {
+        "kind": "relegation",
+        "from": 12,
+        "to": 12
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://spfl.co.uk/admin/filemanager/images/shares/pdfs/June%202026%20Rules%20and%20Regs.pdf",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Scottish_Premiership",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "The league splits into a top six and a bottom six after 33 matches, with points carried over in full and no club crossing halves, so the table summed over every result can differ from the official order across the split. 12th is relegated and 11th plays the Premiership/Championship play-off (SPFL rules C8 to C10). Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "AUT",
+    "season": "2026/27",
+    "teams": 12,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://www.weekend.at/sport/bundesliga-punkteteilung-abschaffung-2026",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Austrian_Football_Bundesliga",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "The league splits into two groups of six after 22 matches; from 2026/27 the points are no longer halved, but no club crosses groups, so the table summed over every result can differ from the official order across the split. The relegation rule for 2026/27 was not found in a source, so no relegation place is marked. Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "SUI",
+    "season": "2026/27",
+    "teams": 12,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 11,
+        "to": 11
+      },
+      {
+        "kind": "relegation",
+        "from": 12,
+        "to": 12
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://sfl.ch/de/articles/die-sfl-prasentiert-den-datenplan-fur-die-saison-202526",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Swiss_Super_League",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "The league splits into two groups of six after 33 matches with points carried over in full and no club crossing groups, so the table summed over every result can differ from the official order across the split. 12th is relegated and 11th plays a two-leg play-off against the second of the Challenge League; the league's own page cited is the 2025/26 schedule, and the 2026/27 rule is read from Wikipedia. Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "DEN",
+    "season": "2026/27",
+    "teams": 12,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation",
+        "from": 11,
+        "to": 12
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://cms.divisionsforeningen.dk/assets/9594e52f-ba79-4e16-bb11-44e7f89e2344",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Danish_Superliga",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "The league splits into two groups of six after 22 matches with points carried over in full and no club crossing groups, so the table summed over every result can differ from the official order across the split. The last two go down directly (Turneringsregler 2026-27, 5.3 and 6.1). Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "CZE",
+    "season": "2026/27",
+    "teams": 16,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 14,
+        "to": 15
+      },
+      {
+        "kind": "relegation",
+        "from": 16,
+        "to": 16
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Czech_First_League",
+      "https://www.flashscore.pl/wiadomosci/fotbal-chance-liga-vse-podstatne-o-chance-lize-terminy-system-nadstavby-i-prestupova-obdobi/0pK6EL4F/",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "Three groups (1 to 6, 7 to 10, 11 to 16) follow 30 matches, with points carried over in full and no club crossing groups, so the table summed over every result can differ from the official order across the split. 16th is relegated; 14th and 15th play the second league's 2nd and 3rd. The federation's regulations were not reached: the rules are read from Wikipedia and a press explainer. Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "POL",
+    "season": "2026/27",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation",
+        "from": 16,
+        "to": 18
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Ekstraklasa",
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_Ekstraklasa",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "Eighteen clubs play 34 rounds with no split. The three-club relegation is read from Wikipedia's 2025/26 and 2026/27 pages; the league's regulation text was not found. Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "CRO",
+    "season": "2026/27",
+    "teams": 10,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 9,
+        "to": 9
+      },
+      {
+        "kind": "relegation",
+        "from": 10,
+        "to": 10
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://hns-cff.hr/files/documents/24410/Odluka%20o%20sustavu%20stalnih%20natjecanja.pdf",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Croatian_Football_League",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "Ten clubs play 36 rounds with no split. The federation's decision on the competition system says the last club goes down directly and, from 2024/25, 9th plays a two-leg qualification against the First League's runner-up; Wikipedia's 2026/27 page describes no play-off, and the federation's text is followed. Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "SRB",
+    "season": "2026/27",
+    "teams": 14,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation",
+        "from": 11,
+        "to": 14
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://www.superliga.rs/wp-content/uploads/2026/06/Propozicije-SLS-26-27.pdf",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Serbian_SuperLiga",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "Fourteen clubs play 26 rounds, then a top six and a bottom eight with points carried over in full; the top group cannot finish below 6th and the bottom group cannot finish above 7th, so the table summed over every result can differ from the official order at that border. The last four go down (Propozicije 2026/27, Art. 27 and 29). Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "GRE",
+    "season": "2026/27",
+    "teams": 14,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation",
+        "from": 13,
+        "to": 14
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://www.foxbet.gr/308029/play-off-superleague",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_Super_League_Greece",
+      "https://en.wikipedia.org/wiki/2027%E2%80%9328_UEFA_Champions_League"
+    ],
+    "note": "Three groups (1 to 4, 5 to 8, 9 to 14) follow 26 matches; points carry over in full for the first and last groups and are halved for the middle one, and no club crosses groups, so the table summed over every result can differ from the official order across the split. The last two go down. The league's own regulation was not reachable; the rules are read from a betting-site explainer and Wikipedia. Only the champion's Champions League place is listed: every association has one. Further places for 2027/28 appear only on Wikipedia's page for that competition, not in a UEFA access list, so none is marked."
+  },
+  {
+    "country": "BRA",
+    "season": "2026/27",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "copa_libertadores",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 20
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2026_Campeonato_Brasileiro_S%C3%A9rie_A",
+      "https://www.netvasco.com.br/n/375008/cbf-confirma-que-o-brasileiro-2026-tera-cinco-vagas-diretas-na-libertadores-e-a-copa-do-brasil-duas",
+      "https://en.wikipedia.org/wiki/2025_Campeonato_Brasileiro_S%C3%A9rie_A"
+    ],
+    "note": "The 2026/27 label stands for the calendar-year 2026 season. The first four enter the 2027 Libertadores group stage in every report; the fifth is reported as a group-stage place by one source and a preliminary-stage place by another, so it is not marked. The Copa do Brasil winner can add places. Four clubs go down (as in 2025); the CBF regulation text was not read."
+  },
+  {
+    "country": "UAE",
+    "season": "2025/26",
+    "teams": 14,
+    "zones": [
+      {
+        "kind": "afc_champions_league_elite",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 13,
+        "to": 14
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_UAE_Pro_League",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_AFC_Champions_League_Elite",
+      "https://qna.org.qa/en/News-Area/News/2026-4/24/afc-professional-football-committee-adopts-key-changes-to-elevate-asian-club-football"
+    ],
+    "note": "First to third entered the AFC Champions League Elite league stage and fourth its preliminary stage; the AFC's slot counts are official, but the league's own mapping of places to slots was not found, so it is read from where the clubs ended. The 2026/27 relegation count and AFC places were not found, so that season is not listed."
+  },
+  {
+    "country": "QAT",
+    "season": "2025/26",
+    "teams": 12,
+    "zones": [
+      {
+        "kind": "afc_champions_league_elite",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 11,
+        "to": 11
+      },
+      {
+        "kind": "relegation",
+        "from": 12,
+        "to": 12
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_Qatar_Stars_League",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_AFC_Champions_League_Elite",
+      "https://assets.the-afc.com/downloads/tournament-regulations/AFC-Men%27s-Club-Competitions-2026-27-Slot-Allocation-4-May-2026.pdf"
+    ],
+    "note": "The AFC gave Qatar three Elite league-stage places: the champion, the runner-up and the Amir Cup winner (not a table place). The federation's mapping was not found, so it is read from where the clubs ended. The 2026/27 rules were not found, so that season is not listed."
+  },
+  {
+    "country": "KSA",
+    "season": "2025/26",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "afc_champions_league_elite",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation",
+        "from": 16,
+        "to": 18
+      }
+    ],
+    "complete": false,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2025%E2%80%9326_Saudi_Pro_League",
+      "https://en.wikipedia.org/wiki/2026%E2%80%9327_AFC_Champions_League_Elite",
+      "https://assets.the-afc.com/downloads/tournament-regulations/AFC-Men%27s-Club-Competitions-2026-27-Slot-Allocation-4-May-2026.pdf"
+    ],
+    "note": "The AFC gave Saudi Arabia three direct Elite places and two preliminary ones; first to third took the direct ones. How the fourth and fifth places map to the other slots was unclear in the sources, so they are not marked. The 2026/27 rules were not found, so that season is not listed."
   }
 ]

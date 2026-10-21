@@ -484,12 +484,10 @@ export class IngestStore implements SquadStore {
       fixture.venue?.externalId ?? null,
       fixture.venue,
     );
-    const refereeId = await this.resolveId(
-      provider,
-      'person',
-      fixture.referee?.externalId ?? null,
-      fixture.referee,
-    );
+    // The referee is plain name text (T-1438, D-229): never resolved to a
+    // person, never a key. An answer that names nobody keeps the stored name
+    // (an appointment is not withdrawn by a list that leaves it out).
+    const refereeName = fixture.referee?.name.trim() || null;
     // The edition the provider says this match belongs to, not the one the poll
     // started from: a fixture list can straddle two seasons, and the label is
     // unique per competition by constraint.
@@ -512,7 +510,7 @@ export class IngestStore implements SquadStore {
         const { rows } = await client.query<{ id: string }>(
           `INSERT INTO fixture
              (season_id, stage_id, round, kickoff_at, status, minute, venue_id,
-              is_neutral_venue, referee_id)
+              is_neutral_venue, referee_name)
            VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8)
            RETURNING id`,
           [
@@ -523,7 +521,7 @@ export class IngestStore implements SquadStore {
             fixture.status,
             minute,
             venueId,
-            refereeId,
+            refereeName,
           ],
         );
         fixtureId = rows[0]?.id ?? null;
@@ -533,10 +531,11 @@ export class IngestStore implements SquadStore {
         const { rowCount } = await client.query(
           `UPDATE fixture
               SET stage_id = $2, round = $3, kickoff_at = $4, status = $5, minute = $6,
-                  venue_id = $7, referee_id = $8
+                  venue_id = $7, referee_name = COALESCE($8, referee_name)
             WHERE id = $1
-              AND (stage_id, round, kickoff_at, status, minute, venue_id, referee_id)
-                  IS DISTINCT FROM ($2, $3, $4::timestamptz, $5, $6::smallint, $7, $8)`,
+              AND (stage_id, round, kickoff_at, status, minute, venue_id, referee_name)
+                  IS DISTINCT FROM ($2, $3, $4::timestamptz, $5, $6::smallint, $7,
+                                    COALESCE($8, referee_name))`,
           [
             fixtureId,
             stageId,
@@ -545,7 +544,7 @@ export class IngestStore implements SquadStore {
             fixture.status,
             minute,
             venueId,
-            refereeId,
+            refereeName,
           ],
         );
         changed += rowCount ?? 0;

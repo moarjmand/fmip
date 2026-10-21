@@ -237,6 +237,7 @@ export const KIND_KEY: Record<string, MessageKey> = {
 export const ZONE_KEY: Record<LeagueZoneKind, MessageKey> = {
   champions_league: 'competitionPage.zone.championsLeague',
   afc_champions_league_elite: 'competitionPage.zone.afcChampionsLeagueElite',
+  copa_libertadores: 'competitionPage.zone.copaLibertadores',
   promotion: 'competitionPage.zone.promotion',
   promotion_playoff: 'competitionPage.zone.promotionPlayoff',
   relegation_playoff: 'competitionPage.zone.relegationPlayoff',
@@ -246,6 +247,7 @@ export const ZONE_KEY: Record<LeagueZoneKind, MessageKey> = {
 export const ZONE_MARK: Record<LeagueZoneKind, string> = {
   champions_league: 'border-s-accent',
   afc_champions_league_elite: 'border-s-accent',
+  copa_libertadores: 'border-s-accent',
   promotion: 'border-s-accent',
   promotion_playoff: 'border-s-strong',
   relegation_playoff: 'border-s-warning',

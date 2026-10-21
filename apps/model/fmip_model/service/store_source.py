@@ -13,9 +13,15 @@ from ..model.cross_league import CROSS_LEAGUE
 from ..model.data import elo_on, every_match_before, matches_before
 from ..model.dixon_coles import MatchObservation
 from ..model.own_elo import for_division
-from ..training.load import Fetch, fetch_text, load_clubelo, load_records
+from ..training.load import (
+    Fetch,
+    fetch_text,
+    load_clubelo,
+    load_football_data_extra,
+    load_records,
+)
 from ..training.own_elo import compute_day, ratings_on, store_run
-from ..training.sources import CLUB_ELO, OUR_RECORDS
+from ..training.sources import CLUB_ELO, EXTRA_DIVISIONS, FOOTBALL_DATA, OUR_RECORDS
 from ..training.store import TrainingStore
 from .contract import EloSourceState
 from .forecaster import TrainingSource
@@ -28,6 +34,15 @@ CLUBELO_ASK_INTERVAL = timedelta(hours=6)
 #: The service's own ask gives up sooner than the loader's CLI default: it runs
 #: beside forecasts, and a source that hangs is a source that did not answer.
 CLUBELO_TIMEOUT_SECONDS = 20.0
+
+
+#: An extra league's file (T-1442) is one download of every season; the daily
+#: reload gives up as soon as Club Elo's ask does, for the same reason.
+EXTRA_TIMEOUT_SECONDS = 20.0
+
+
+def _extra_fetch(url: str) -> str:
+    return fetch_text(url, timeout=EXTRA_TIMEOUT_SECONDS)
 
 
 #: A day's own Elo that failed to compute is tried again after this long (T-921).
@@ -43,6 +58,8 @@ class PostgresTrainingSource(TrainingSource):
 
     A division of our own records (D-083) changes every match day, so it is
     refreshed through the loader once a day, before the day's first read of it.
+    So is a division of football-data.co.uk's extra leagues (T-1442, D-233),
+    one file of every season: its newest stored season onwards is read again.
     A refresh that fails is recorded as a failed load by the loader, logged
     here, and the copy already held is used.
     """
@@ -55,8 +72,10 @@ class PostgresTrainingSource(TrainingSource):
         clubelo_refresh: bool = True,
         clubelo_fetch: Fetch = _clubelo_fetch,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        extra_fetch: Fetch = _extra_fetch,
     ) -> None:
         self.database_url = database_url
+        self.extra_fetch = extra_fetch
         self.today = today
         self.clubelo_refresh = clubelo_refresh
         self.clubelo_fetch = clubelo_fetch
@@ -239,7 +258,13 @@ class PostgresTrainingSource(TrainingSource):
             try:
                 if store.loaded_from(division, OUR_RECORDS.id):
                     load_records(store, [division])
+                elif division in EXTRA_DIVISIONS and store.loaded_from(division, FOOTBALL_DATA.id):
+                    newest = store.newest_season(division)
+                    if newest is not None:
+                        load_football_data_extra(
+                            store, [division], since=newest, fetch=self.extra_fetch
+                        )
             except Exception:  # noqa: BLE001 - the loader recorded it; the held copy stands
-                log.exception("refreshing %s from our records failed", division)
+                log.exception("refreshing %s failed", division)
             finally:
                 store.close()

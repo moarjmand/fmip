@@ -19,7 +19,10 @@ import type {
   MatchStatRow,
   PlayerMatchMetric,
   ScoreLine,
+  VenueDetails,
+  VenueSurface,
 } from '@fmip/contracts';
+import { NO_MEDIA } from '@fmip/contracts';
 import { incidentDetail } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
@@ -67,7 +70,10 @@ interface RawHeader {
   venue_id: string | null;
   venue_name: string | null;
   venue_city: string | null;
-  referee_id: string | null;
+  venue_address: string | null;
+  venue_capacity: number | null;
+  venue_surface: VenueSurface | null;
+  venue_asked: boolean;
   referee_name: string | null;
   home_pid: string;
   home_id: string;
@@ -110,6 +116,35 @@ const SCORE_KINDS = [
 const ref = (id: string | null, name: string | null): { id: string; name: string } | null =>
   id !== null && name !== null ? { id, name } : null;
 
+/**
+ * A ground's card (T-1438, D-229) from its stored facts. The picture is
+ * attached by `FixturesService` from the media index; here it is not
+ * supplied. Coverage is over the three facts: all, some, none -- and none
+ * from a ground never asked about is `delayed`, not the provider declining.
+ */
+export function venueDetails(seen: {
+  address: string | null;
+  capacity: number | null;
+  surface: VenueSurface | null;
+  asked: boolean;
+}): VenueDetails {
+  const present = [seen.address, seen.capacity, seen.surface].filter((v) => v !== null).length;
+  return {
+    address: seen.address,
+    capacity: seen.capacity,
+    surface: seen.surface,
+    image: NO_MEDIA,
+    coverage:
+      present === 3
+        ? 'available'
+        : present > 0
+          ? 'limited'
+          : seen.asked
+            ? 'not_supplied'
+            : 'delayed',
+  };
+}
+
 /** SQL for the match centre. Reads only; the `fixtures` boundary owns these tables. */
 @Injectable()
 export class PostgresMatchCentreStore {
@@ -124,7 +159,10 @@ export class PostgresMatchCentreStore {
               c.short_name AS competition_short_name, c.country_id,
               f.stage_id, st.name AS stage_name, st.kind AS stage_kind,
               f.venue_id, v.name AS venue_name, v.city AS venue_city,
-              f.referee_id, COALESCE(r.known_as, r.full_name) AS referee_name,
+              v.address AS venue_address, v.capacity AS venue_capacity, v.surface AS venue_surface,
+              EXISTS (SELECT 1 FROM venue_detail_fetch vd
+                       WHERE vd.venue_id = f.venue_id AND vd.answered_at IS NOT NULL) AS venue_asked,
+              f.referee_name,
               h.id AS home_pid, th.id AS home_id, th.name AS home_name,
               th.short_name AS home_short_name, th.code AS home_code, h.formation AS home_formation,
               hc.id AS home_coach_id, COALESCE(hc.known_as, hc.full_name) AS home_coach_name,
@@ -164,7 +202,6 @@ export class PostgresMatchCentreStore {
          JOIN competition c ON c.id = se.competition_id
          LEFT JOIN stage st ON st.id = f.stage_id
          LEFT JOIN venue v ON v.id = f.venue_id
-         LEFT JOIN person r ON r.id = f.referee_id
          JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
          JOIN team th ON th.id = h.team_id
          LEFT JOIN person hc ON hc.id = h.coach_id
@@ -221,10 +258,20 @@ export class PostgresMatchCentreStore {
         scores,
         venue:
           r.venue_id !== null && r.venue_name !== null
-            ? { id: r.venue_id, name: r.venue_name, city: r.venue_city }
+            ? {
+                id: r.venue_id,
+                name: r.venue_name,
+                city: r.venue_city,
+                details: venueDetails({
+                  address: r.venue_address,
+                  capacity: r.venue_capacity,
+                  surface: r.venue_surface,
+                  asked: r.venue_asked,
+                }),
+              }
             : null,
         is_neutral_venue: r.is_neutral_venue,
-        referee: ref(r.referee_id, r.referee_name),
+        referee: r.referee_name !== null ? { name: r.referee_name } : null,
         attendance: r.attendance,
         periods: (r.periods ?? []).map((p) => ({
           kind: p.kind,
