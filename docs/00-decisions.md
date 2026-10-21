@@ -11408,3 +11408,52 @@ name check and goes to review.
 **Rejected.** *Name alone* (rule 1). *Shirt alone*: a data error in either
 source's numbering would map the wrong person silently. *Reviewing every
 player by hand*: 1,319 players on the first day.
+
+## D-229 — Grounds, clubs and the referee from the plan we pay for; the referee is a name, never an entity
+
+**Status:** Accepted · 2026-10-21 (the maintainer: use the API-Football Ultra subscription fully; the referee "as plain name text: no referee entity, no referee page") · **Task:** T-1438 · **Follows:** D-176, D-183, rules 1-3
+
+**Context.** `venue.capacity`, `latitude` and `longitude`, `team.founded_year`
+and `team.home_venue_id` have existed since T-010 and were always empty, and
+`fixture.referee_id` was never set: the adapter read the referee with no id,
+so the resolver dropped it. The plan already answers all of it: `/teams` for a
+competition's season lists every team with its founding year and its home
+ground in full, `/venues` describes one ground, and every fixture answer we
+already get names the referee.
+
+**Decision.**
+1. **Grounds.** `venue` gains `address` and `surface` (`grass`, `artificial`
+   or `hybrid`; the adapter maps the provider's words, anything else is
+   empty). `capacity` is filled. `latitude` and `longitude` stay empty: the
+   provider sends no coordinates, and none is derived. The ground's picture is
+   stored and served by us like a crest (D-176, kind `venue`).
+2. **Clubs.** A held club's `founded_year` and `home_venue_id` come from its
+   entry in a season's `/teams` answer. A national team's entry is read for
+   nothing: its ground and "founded" are its federation's.
+3. **How it is asked.** A second pass of the daily `squads` job, in the bulk
+   tier: each competition season with a match once (one request describes a
+   whole league's clubs and grounds), the current season again after 30 days;
+   then each mapped ground no club answer described, by id, once a month.
+   Paced with `AskPacer`, at most `INGESTION_CLUB_FACTS_BATCH` asks and 60
+   seconds a day. Not a new job: it is the same monthly club data, and a new
+   job name would touch the run table's job list that parallel work changes.
+4. **What is written.** Only teams and grounds `provider_mapping` knows (rule
+   1); others are counted, never created or queued. A fact an answer gives
+   replaces the stored one (a renovated ground, a club that moved); a fact it
+   leaves out is kept. The catalogue's ground name stands; a city is filled
+   only where none is stored.
+5. **The referee** is `fixture.referee_name`, plain text as the provider
+   names him, the ", Country" it appends dropped. No entity, no page, never a
+   key; `referee_id` stays unused. An answer naming nobody keeps the stored
+   name.
+6. **Shown with its coverage.** The match page's ground card is `available`
+   with address, capacity and surface, `limited` with some, `not_supplied`
+   when the provider was asked and gave none, `delayed` when it has not been
+   asked yet; the picture carries its own. The team page already shows the
+   founding year and the ground, and says so when there is no ground.
+
+**Rejected.** *A referee entity and page*: the maintainer's choice; the
+provider gives no referee id, so it would be a name as a key (rule 1).
+*Asking `/teams?id=` per club*: one request a club where one a season
+describes twenty. *Coordinates from a geocoder*: an invented value (rule 3)
+and a new dependency.

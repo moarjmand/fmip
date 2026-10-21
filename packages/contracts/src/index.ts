@@ -367,6 +367,8 @@ export type {
   MatchStatRow,
   MatchTeam,
   PlayerMatchMetric,
+  VenueDetails,
+  VenueSurface,
 } from './match-centre';
 // The match centre's key players (blueprint 4.2, T-841): a stated rule, not a judgement.
 export { KEY_PLAYERS_PER_SIDE } from './key-players';

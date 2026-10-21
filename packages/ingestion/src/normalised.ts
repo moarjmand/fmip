@@ -437,6 +437,39 @@ export interface NormalisedSquadPlayer extends EntityRef {
   position: Position | null;
 }
 
+/** What a pitch is laid with (T-1438, D-229); a provider's other words are `null`. */
+export const VENUE_SURFACES = ['grass', 'artificial', 'hybrid'] as const;
+export type VenueSurface = (typeof VENUE_SURFACES)[number];
+
+/**
+ * A ground as the provider describes it (T-1438, D-229): the name and city,
+ * the street address, the capacity (a whole number above zero), the surface,
+ * and the provider's https address for a picture of it (`imageUrl`, inside
+ * ingestion only, like `EntityRef.imageUrl`). Each is `null` when unsaid or
+ * unreadable. No coordinates: the provider sends none.
+ */
+export interface NormalisedVenueFacts {
+  externalId: string;
+  name: string;
+  city: string | null;
+  address: string | null;
+  capacity: number | null;
+  surface: VenueSurface | null;
+  imageUrl: string | null;
+}
+
+/**
+ * One team of a competition's season as the provider lists it (T-1438):
+ * whether it is a national team, the year it was founded (1800 to 2100) and
+ * its home ground, each `null` when unsaid.
+ */
+export interface NormalisedTeamFacts {
+  team: EntityRef;
+  national: boolean | null;
+  foundedYear: number | null;
+  venue: NormalisedVenueFacts | null;
+}
+
 export interface NormalisedPlayerStat {
   side: Side;
   player: EntityRef;

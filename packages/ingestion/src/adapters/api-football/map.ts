@@ -149,6 +149,20 @@ function score(value: unknown): { home: number; away: number } | null {
   return home === null || away === null || home < 0 || away < 0 ? null : { home, away };
 }
 
+/**
+ * The referee as plain name text (T-1438, D-229): the provider writes
+ * "Anthony Taylor, England" or "M. Oliver", so the country after a comma is
+ * dropped and entities decoded. Never an entity: no id comes with it.
+ */
+export function refereeName(value: unknown): string | null {
+  const s = str(value);
+  if (s === null) return null;
+  const name = decodeEntities(s.split(',')[0] ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return /\p{L}/u.test(name) && name.length <= 120 ? name : null;
+}
+
 const DAY_MS = 86_400_000;
 
 /** True when a kick-off is at least a day after the moment the answer arrived. */
@@ -208,7 +222,7 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
   const stageKind = round === null ? null : stageKindOf(round);
   const venue = rec(fixture.venue);
   const venueName = str(venue.name);
-  const referee = str(fixture.referee);
+  const referee = refereeName(fixture.referee);
   const elapsed = int(statusRec.elapsed);
   const goals = score(it.goals);
 

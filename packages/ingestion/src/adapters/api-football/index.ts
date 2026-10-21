@@ -20,6 +20,8 @@ import type {
   NormalisedSeasonCoverage,
   NormalisedSquadPlayer,
   NormalisedStanding,
+  NormalisedTeamFacts,
+  NormalisedVenueFacts,
 } from '../../normalised';
 import type {
   AdapterConfig,
@@ -50,6 +52,7 @@ import {
   mapStatistics,
   seasonYear,
 } from './map';
+import { mapTeamFacts, mapVenue } from './club-facts';
 import { mapPlayerCareer, mapPlayerSeason } from './player-seasons';
 
 export const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
@@ -409,6 +412,45 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapPlayerCareer(result.data.response),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/teams?league=&season=`: every team of the season with its founding
+   * year and home ground, one request (T-1438, D-229). One page: the
+   * provider does not page this answer.
+   */
+  async getSeasonTeams(query: StandingsQuery): Promise<AdapterResult<NormalisedTeamFacts[]>> {
+    const season = seasonYear(query.seasonLabel);
+    if (season === null) {
+      return {
+        ok: false,
+        error: { kind: 'unsupported', message: `cannot read a season from "${query.seasonLabel}"` },
+        requests: 0,
+      };
+    }
+    const result = await this.call('/teams', {
+      league: query.competitionExternalId,
+      season: String(season),
+    });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapTeamFacts(result.data.response),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /** `/venues?id=`: one ground's capacity, address, surface and picture, one request (T-1438). */
+  async getVenue(venueExternalId: string): Promise<AdapterResult<NormalisedVenueFacts | null>> {
+    const result = await this.call('/venues', { id: venueExternalId });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapVenue(result.data.response, venueExternalId),
       requests: 1,
       fetchedAt: result.receivedAt,
     };

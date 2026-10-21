@@ -24,6 +24,7 @@ import { FilledMessage } from '@/components/filled-message';
 import { Module } from '@/components/match-centre-cards';
 import { MatchLineupsView } from '@/components/match-lineups';
 import { MessageText } from '@/components/message-text';
+import { VenueCard } from '@/components/venue-card';
 import { Score, ScorePair } from '@/components/score';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
@@ -222,6 +223,7 @@ export function MatchCentreView({
         <Region id="verdict">{slots.verdict}</Region>
         {slots.summary}
         <Region id="context">{slots.context}</Region>
+        <VenueCard venue={f.venue} locale={locale} words={words} />
         <Region id="news">{slots.news}</Region>
       </Panel>
     ),

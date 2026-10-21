@@ -8065,6 +8065,48 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.venue.title": {
+    "source": "Venue",
+    "text": "ورزشگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.venue.capacity": {
+    "source": "Capacity {count}",
+    "text": "گنجایش {count}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.venue.surface.grass": {
+    "source": "Grass pitch",
+    "text": "زمین چمن طبیعی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.venue.surface.artificial": {
+    "source": "Artificial pitch",
+    "text": "زمین چمن مصنوعی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.venue.surface.hybrid": {
+    "source": "Hybrid pitch",
+    "text": "زمین چمن هیبریدی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.venue.notSupplied": {
+    "source": "The source does not describe this ground.",
+    "text": "منبع داده مشخصاتی از این ورزشگاه نداده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.venue.notYet": {
+    "source": "This ground's details have not been fetched yet.",
+    "text": "مشخصات این ورزشگاه هنوز دریافت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.lastUpdate": {
     "source": "Last data update {time}",
     "text": "آخرین به‌روزرسانی داده‌ها {time}",

@@ -6649,6 +6649,41 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.venue.title": {
+    "source": "Venue",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.venue.capacity": {
+    "source": "Capacity {count}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.venue.surface.grass": {
+    "source": "Grass pitch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.venue.surface.artificial": {
+    "source": "Artificial pitch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.venue.surface.hybrid": {
+    "source": "Hybrid pitch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.venue.notSupplied": {
+    "source": "The source does not describe this ground.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.venue.notYet": {
+    "source": "This ground's details have not been fetched yet.",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.lastUpdate": {
     "source": "Last data update {time}",
     "text": "",

@@ -131,6 +131,7 @@ export class FixturesService {
       team: [header.home.id, header.away.id],
       competition: [header.competition.id],
       person: [...lineups.home, ...lineups.away].map((p) => p.id),
+      venue: header.venue === null ? [] : [header.venue.id],
     });
     const withPhoto = <P extends { id: string }>(p: P) => ({ ...p, photo: media.photo(p.id) });
     const fixture = {
@@ -138,6 +139,13 @@ export class FixturesService {
       competition: { ...header.competition, logo: media.logo(header.competition.id) },
       home: { ...header.home, crest: media.crest(header.home.id) },
       away: { ...header.away, crest: media.crest(header.away.id) },
+      venue:
+        header.venue === null || header.venue.details === undefined
+          ? header.venue
+          : {
+              ...header.venue,
+              details: { ...header.venue.details, image: media.venue(header.venue.id) },
+            },
     };
     const bothSides = lineups.home.length > 0 && lineups.away.length > 0;
     // A finished match whose detail has not been asked for yet is owed it: a
