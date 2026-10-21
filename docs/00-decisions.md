@@ -11371,3 +11371,40 @@ reader who has chosen no territory is shown no highlight on a match page.
 6. **The E2E seed** gains one clip for the finished seeded match, offered
    everywhere, on a reserved `example.com` address, so the journey meets a
    listed clip.
+
+## D-227 — A source's player is mapped by our line-up when the match, the side, the shirt and the name agree
+
+**Status:** Accepted · 2026-10-21 (the maintainer: "auto-link Highlightly players when the match, team, shirt number and name agree, and send the rest to review as now") · **Task:** T-1436 · **Follows:** D-224, rule 1
+
+**Context.** The box-score job (T-1432, D-224) places each of Highlightly's
+players through `provider_mapping`, and only a reviewer created those rows.
+On its first day it fetched 31 box scores and showed nothing: all 1,319
+players waited in the review queue, each with the person our line-up gave
+that shirt as a hint. Reviewing every player of every match by hand does not
+keep up, and the hint is right almost every time.
+
+**Decision.**
+1. A player the source lists for a match is mapped to one of our people when
+   all four hold: the same match (placed through `provider_mapping`, never a
+   name), the same side (the source's team mapped to that participant's team),
+   the same shirt in our line-up for that side, and the names agree.
+2. **Names agree** when they share a word once accents, case, initials and
+   common particles and suffixes (`de`, `van`, `da`, `jr`, `junior`, ...)
+   are set aside. The match, side and shirt identify the player; the name only
+   checks that the shirt was not worn by someone else that day.
+3. The mapping is written through the resolver's `link`, the one audited
+   way a mapping comes to exist, as `rule:box-score-lineup` with the match,
+   the shirt and the source's name in the note; the queue row is closed.
+4. A player a reviewer marked ignored is never mapped by the rule. A name
+   that disagrees, a missing shirt, or a side we cannot place leaves the
+   player queued with the hint, as before.
+5. The run reports how many players the rule mapped (`players_linked`).
+
+**Why this keeps rule 1.** Rule 1 forbids a *name* as a key. Here the key is
+the line-up we already hold, for the same match and side; the name is a
+second check, never the identifier. A wrong shirt in either source fails the
+name check and goes to review.
+
+**Rejected.** *Name alone* (rule 1). *Shirt alone*: a data error in either
+source's numbering would map the wrong person silently. *Reviewing every
+player by hand*: 1,319 players on the first day.

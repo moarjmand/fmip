@@ -20,9 +20,11 @@ import { HighlightlyQuota } from './highlightly-quota.service';
 import {
   BOX_SCORE_BATCH,
   type BoxScoreCandidate,
+  LINEUP_RULE_ACTOR,
   type PlayerPlacement,
   REASK_AFTER_HOURS,
   boxScoreRows,
+  namesAgree,
 } from './internal/box-score-feed';
 import { PostgresBoxScoreStore } from './internal/box-score-store';
 import {
@@ -51,8 +53,11 @@ const HOUR_MS = 60 * 60 * 1000;
  * keep the expected-goals figures as a source of their own
  * (`fixture_player_expected`), never blended with API-Football's numbers.
  *
- * A player the source names that we have not mapped is queued for review
- * (`unresolved_entity`, with the match's line-up shirt beside it as a hint)
+ * A player the source names that we have not mapped is placed by the
+ * line-up rule (T-1436, D-227) when our line-up for the same match and side
+ * has someone in the same shirt whose name agrees: that is recorded as a
+ * mapping, audited as `rule:box-score-lineup`. Anyone else is queued for
+ * review (`unresolved_entity`, with the line-up's shirt beside it as a hint)
  * and counted; a box score with players still unplaced is asked for again
  * after `REASK_AFTER_HOURS` inside the window.
  *
@@ -117,6 +122,7 @@ export class BoxScoreFeedService implements OnModuleInit, OnApplicationShutdown 
       not_ready: 0,
       unmatched: { team_unmapped: 0, no_fixture: 0, ambiguous: 0 },
       players_unresolved: 0,
+      players_linked: 0,
       requests: 0,
       stopped: null,
     };
@@ -246,7 +252,7 @@ export class BoxScoreFeedService implements OnModuleInit, OnApplicationShutdown 
       summary.not_ready += 1;
       return;
     }
-    const people = await this.people(candidate, competitionId, score, teams);
+    const people = await this.people(candidate, competitionId, score, teams, summary);
     const decided = boxScoreRows(score, candidate, teams, people);
     if (decided.kind === 'not_ready') {
       summary.not_ready += 1;
@@ -267,15 +273,18 @@ export class BoxScoreFeedService implements OnModuleInit, OnApplicationShutdown 
 
   /**
    * The source's player ids -> ours, through the resolver. An unmapped one is
-   * queued for review with what a reviewer needs: the name the source gave,
-   * our team and match, and the shirt number -- with the person our line-up
-   * gives that shirt, as a hint to check, never a mapping (rule 1).
+   * queued with what a reviewer needs: the name the source gave, our team and
+   * match, and the shirt number, with the person our line-up gives that shirt.
+   * That person becomes the mapping only by the line-up rule (T-1436, D-227):
+   * same match, same side, same shirt, and the names agree. A shirt alone, or
+   * a name alone, is never enough (rule 1).
    */
   private async people(
     candidate: BoxScoreCandidate,
     competitionId: string,
     score: NormalisedBoxScore,
     teams: ReadonlyMap<string, string | null>,
+    summary: BoxScoreFeedRun,
   ): Promise<Map<string, PlayerPlacement>> {
     const sides = [candidate.homeParticipantId, candidate.awayParticipantId].filter(
       (id): id is string => id !== null,
@@ -292,29 +301,55 @@ export class BoxScoreFeedService implements OnModuleInit, OnApplicationShutdown 
             : null;
       for (const player of side.players) {
         if (people.has(player.externalId)) continue;
-        const hint =
-          player.shirtNumber === null
-            ? null
-            : (shirts.find(
+        const shirt =
+          player.shirtNumber === null || participant === null
+            ? undefined
+            : shirts.find(
                 (s) => s.participantId === participant && s.shirtNumber === player.shirtNumber,
-              )?.personId ?? null);
-        const resolution = await this.resolver.resolve(
-          { provider: 'highlightly', entityType: 'person', externalId: player.externalId },
-          {
-            name: player.name,
-            seenIn: competitionId,
-            fixture: candidate.fixtureId,
-            team,
-            shirtNumber: player.shirtNumber,
-            lineupPerson: hint,
-          },
-        );
-        people.set(
-          player.externalId,
-          resolution.kind === 'resolved'
-            ? { kind: 'resolved', personId: resolution.internalId }
-            : { kind: 'unresolved' },
-        );
+              );
+        const hint = shirt?.personId ?? null;
+        const ref = {
+          provider: 'highlightly',
+          entityType: 'person',
+          externalId: player.externalId,
+        } as const;
+        const resolution = await this.resolver.resolve(ref, {
+          name: player.name,
+          seenIn: competitionId,
+          fixture: candidate.fixtureId,
+          team,
+          shirtNumber: player.shirtNumber,
+          lineupPerson: hint,
+        });
+        if (resolution.kind === 'resolved') {
+          people.set(player.externalId, { kind: 'resolved', personId: resolution.internalId });
+          continue;
+        }
+        // The line-up rule: a reviewer's ignore stands, and a name that disagrees stays queued.
+        if (
+          resolution.kind === 'queued' &&
+          shirt !== undefined &&
+          namesAgree(player.name, shirt.names)
+        ) {
+          const linked = await this.resolver.link(
+            ref,
+            shirt.personId,
+            LINEUP_RULE_ACTOR,
+            `fixture ${candidate.fixtureId}, shirt ${String(player.shirtNumber)}, "${player.name}"`,
+          );
+          if (linked.kind === 'linked' || linked.kind === 'already_linked') {
+            summary.players_linked += 1;
+            people.set(player.externalId, { kind: 'resolved', personId: linked.internalId });
+            continue;
+          }
+          this.log.warn('line-up rule could not map a player; left for review', {
+            event: 'box_score.lineup_rule_refused',
+            fixture_id: candidate.fixtureId,
+            external_id: player.externalId,
+            outcome: linked.kind,
+          });
+        }
+        people.set(player.externalId, { kind: 'unresolved' });
       }
     }
     return people;

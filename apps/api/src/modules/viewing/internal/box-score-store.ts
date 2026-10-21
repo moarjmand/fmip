@@ -11,6 +11,8 @@ export interface LineupShirt {
   participantId: string;
   shirtNumber: number;
   personId: string;
+  /** The names we hold for that person (full name, known-as), for the line-up rule (T-1436). */
+  names: string[];
 }
 
 /**
@@ -85,15 +87,19 @@ export class PostgresBoxScoreStore {
       participant_id: string;
       shirt_number: number;
       person_id: string;
+      full_name: string | null;
+      known_as: string | null;
     }>(
-      `SELECT participant_id, shirt_number, person_id FROM lineup
-        WHERE participant_id = ANY($1::uuid[]) AND shirt_number IS NOT NULL`,
+      `SELECT l.participant_id, l.shirt_number, l.person_id, p.full_name, p.known_as
+         FROM lineup l JOIN person p ON p.id = l.person_id
+        WHERE l.participant_id = ANY($1::uuid[]) AND l.shirt_number IS NOT NULL`,
       [participantIds],
     );
     return rows.map((r) => ({
       participantId: r.participant_id,
       shirtNumber: r.shirt_number,
       personId: r.person_id,
+      names: [r.full_name, r.known_as].filter((n): n is string => n !== null && n !== ''),
     }));
   }
 

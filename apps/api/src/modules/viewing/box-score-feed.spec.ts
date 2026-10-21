@@ -11,9 +11,11 @@ import {
   BOX_SCORE_DEFAULT_BATCH,
   type BoxScoreCandidate,
   type ExpectedRow,
+  LINEUP_RULE_ACTOR,
   type PlayerPlacement,
   boxScoreBatch,
   boxScoreRows,
+  namesAgree,
 } from './internal/box-score-feed';
 import type { LineupShirt, PostgresBoxScoreStore } from './internal/box-score-store';
 import { feedConfig } from './internal/highlight-feed';
@@ -176,12 +178,16 @@ function service(
   candidates: BoxScoreCandidate[],
   mapped: ReadonlyMap<string, string>,
   batch = 60,
+  // Our line-up's shirt 16 for Lazio; by default its name is not the source's, so it is only a hint.
+  lineupNames: string[] = ['Someone Else'],
+  ignored: ReadonlySet<string> = new Set(),
 ) {
   const stored: { fixtureId: string; rows: ExpectedRow[]; players: number; unresolved: number }[] =
     [];
   const queued: { externalId: string; entityType: string; payload: unknown }[] = [];
+  const linked: { externalId: string; internalId: string; actor: string }[] = [];
   const shirts: LineupShirt[] = [
-    { participantId: 'part-laz', shirtNumber: 16, personId: 'frattesi' },
+    { participantId: 'part-laz', shirtNumber: 16, personId: 'frattesi', names: lineupNames },
   ];
   const store = {
     candidates: () => Promise.resolve(candidates),
@@ -199,7 +205,13 @@ function service(
       const internalId = mapped.get(`${ref.entityType}:${ref.externalId}`);
       if (internalId !== undefined) return Promise.resolve({ kind: 'resolved', internalId });
       queued.push({ externalId: ref.externalId, entityType: ref.entityType, payload });
+      if (ignored.has(ref.externalId))
+        return Promise.resolve({ kind: 'ignored', unresolvedId: 'u' });
       return Promise.resolve({ kind: 'queued', unresolvedId: 'u', seenCount: 1 });
+    },
+    link: (ref: { externalId: string }, internalId: string, actor: string) => {
+      linked.push({ externalId: ref.externalId, internalId, actor });
+      return Promise.resolve({ kind: 'linked', internalId });
     },
   } as unknown as EntityResolverService;
   const failures = { watch: () => undefined } as unknown as FailureCountsService;
@@ -210,6 +222,7 @@ function service(
     quota,
     stored,
     queued,
+    linked,
   };
 }
 
@@ -283,6 +296,36 @@ describe('the box-score job', () => {
     expect(zaccagni?.payload).toMatchObject({ shirtNumber: 10, lineupPerson: null });
   });
 
+  it('maps a player by the line-up rule when the shirt and the name agree (T-1436)', async () => {
+    const { jobs, stored, linked } = service(KEY, recordedProvider(), [candidate()], MAPPED, 60, [
+      'Davide Frattesi',
+    ]);
+    const run = await jobs.run(NOW);
+    expect(linked).toEqual([
+      { externalId: idOf(SCORE, 'D. Frattesi'), internalId: 'frattesi', actor: LINEUP_RULE_ACTOR },
+    ]);
+    expect(run).toMatchObject({ players_linked: 1, players_unresolved: 44 });
+    expect(stored[0]).toMatchObject({ players: 47, unresolved: 44 });
+    expect(stored[0]!.rows.some((r) => r.personId === 'frattesi')).toBe(true);
+  });
+
+  it('never maps by the shirt alone, nor a player a reviewer ignored', async () => {
+    const other = service(KEY, recordedProvider(), [candidate()], MAPPED);
+    expect(await other.jobs.run(NOW)).toMatchObject({ players_linked: 0, players_unresolved: 45 });
+    expect(other.linked).toEqual([]);
+    const ignored = service(
+      KEY,
+      recordedProvider(),
+      [candidate()],
+      MAPPED,
+      60,
+      ['Davide Frattesi'],
+      new Set([idOf(SCORE, 'D. Frattesi')]),
+    );
+    expect(await ignored.jobs.run(NOW)).toMatchObject({ players_linked: 0 });
+    expect(ignored.linked).toEqual([]);
+  });
+
   it('asks nothing for a held match, and nothing at all when every match of the day is held', async () => {
     const provider = recordedProvider();
     const { jobs, stored } = service(KEY, provider, [candidate({ held: true })], MAPPED);
@@ -346,5 +389,25 @@ describe('the box-score job', () => {
     expect(await tight.jobs.run(NOW)).toMatchObject({ requests: 2, stopped: 'quota', stored: 0 });
     expect(tight.quota.reading()).toEqual({ configured: true, requestsToday: 1, budget: 1 });
     expect(tight.jobs.health()).toMatchObject({ requests_today: 1, daily_budget: 1, batch: 60 });
+  });
+});
+
+describe('namesAgree (T-1436)', () => {
+  it('agrees on a shared word, setting aside accents, case and initials', () => {
+    expect(namesAgree('D. Frattesi', ['Davide Frattesi'])).toBe(true);
+    expect(
+      namesAgree('Vinicius Jr.', ['Vinícius José Paixão de Oliveira Júnior', 'Vinícius Júnior']),
+    ).toBe(true);
+    expect(namesAgree('F. de Jong', ['Frenkie de Jong'])).toBe(true);
+    expect(namesAgree('Rodrygo', ['Rodrygo Silva de Goes'])).toBe(true);
+  });
+
+  it('disagrees when only particles, suffixes or initials are shared, or nothing is', () => {
+    expect(namesAgree('M. Zaccagni', ['Davide Frattesi'])).toBe(false);
+    expect(namesAgree('L. de Vries', ['Frenkie de Jong'])).toBe(false);
+    expect(namesAgree('A. Junior', ['Junior Firpo'])).toBe(false);
+    expect(namesAgree('Jr.', ['Neymar Jr'])).toBe(false);
+    expect(namesAgree('D.', ['Davide Frattesi'])).toBe(false);
+    expect(namesAgree('D. Frattesi', [])).toBe(false);
   });
 });
