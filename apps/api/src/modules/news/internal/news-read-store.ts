@@ -153,25 +153,44 @@ export class PostgresNewsReadStore {
     return rows[0]?.found === true;
   }
 
-  /** Newest first, by the publisher's time (else the fetch time); `before` pages back. */
+  /** The windows `latest` reads through (T-1450); a subclass in a spec reads unbounded. */
+  protected readonly newestWindows: readonly (string | null)[] = NEWEST_WINDOWS;
+
+  /**
+   * Newest first, by the publisher's time (else the fetch time); `before` pages back.
+   *
+   * T-1450: with no filter that narrows the stories, the section is read
+   * through `newestWindows`, the last of them unbounded. A window that fills
+   * the rows a page reads holds exactly the rows the unbounded read would
+   * return (see `Query.recent`), so only a short window is ever read whole.
+   */
   async latest(
     filters: NewsFilters,
     locale: string | null,
     before: string | null,
     limit: number,
   ): Promise<StoryPage_> {
-    const q = new Query(filters, locale);
-    const cursor = before === null ? '' : `AND sc.at < ${q.param(before)}::timestamptz`;
-    return this.page(
-      q,
-      `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
-         FROM story_card sc
-        WHERE TRUE ${cursor}
-        ORDER BY sc.at DESC, sc.story_id
-        LIMIT ${q.fetch(limit)}`,
-      limit,
-      true,
-    );
+    const windows = new Query(filters, locale).narrowed ? [null] : this.newestWindows;
+    for (const window of windows) {
+      const q = new Query(filters, locale);
+      const cursor = before === null ? '' : `AND sc.at < ${q.param(before)}::timestamptz`;
+      if (window !== null) {
+        q.recent(before === null ? 'now()' : `${q.param(before)}::timestamptz`, window);
+      }
+      const rows = await this.rows(
+        q,
+        `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
+           FROM story_card sc
+          WHERE TRUE ${cursor}
+          ORDER BY sc.at DESC, sc.story_id
+          LIMIT ${q.fetch(limit)}`,
+      );
+      if (window === null || rows.length === fetchSize(limit)) {
+        return this.finish(q, rows, limit, true);
+      }
+    }
+    // `newestWindows` ends unbounded, so the loop has returned.
+    return { cards: [], nextBefore: null };
   }
 
   /**
@@ -194,6 +213,20 @@ export class PostgresNewsReadStore {
     const window = q.param(`${windowHours} hours`);
     const discussionWeight = q.param(TRENDING_WEIGHTS.discussion);
     const saveWeight = q.param(TRENDING_WEIGHTS.saves);
+    // T-1450: only a story saved, or about a match discussed, inside the window can rank.
+    q.pick(`s0.id IN (
+      SELECT sa.story_id FROM saved_article sa WHERE sa.saved_at >= now() - ${window}::interval
+      UNION
+      SELECT m.story_id
+        FROM article m
+        JOIN article_entity e ON e.article_id = m.id AND e.entity_type = 'fixture'
+        JOIN (
+          SELECT p.fixture_id, p.created_at FROM panel_post p WHERE p.removed_at IS NULL
+          UNION ALL
+          SELECT p.fixture_id, r.created_at
+            FROM panel_reaction r JOIN panel_post p ON p.id = r.post_id
+           WHERE p.removed_at IS NULL
+        ) u ON u.fixture_id = e.entity_id AND u.created_at >= now() - ${window}::interval)`);
     return this.page(
       q,
       `, discussed AS (
@@ -245,6 +278,9 @@ export class PostgresNewsReadStore {
    */
   async breaking(locale: string | null, limit: number): Promise<StoryPage_> {
     const q = new Query(NO_FILTERS, locale);
+    q.pick(
+      `s0.id IN (SELECT story_id FROM story_breaking WHERE cleared_at IS NULL AND ends_at > now())`,
+    );
     return this.page(
       q,
       `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
@@ -260,6 +296,7 @@ export class PostgresNewsReadStore {
   /** What editors selected and have not cleared, newest selection first. */
   async debate(filters: NewsFilters, locale: string | null, limit: number): Promise<StoryPage_> {
     const q = new Query(filters, locale);
+    q.pick(`s0.id IN (SELECT story_id FROM story_debate WHERE cleared_at IS NULL)`);
     return this.page(
       q,
       `SELECT sc.*, NULL::int AS participants, d.selected_at AS debate_selected_at, d.note AS debate_note
@@ -285,6 +322,10 @@ export class PostgresNewsReadStore {
     const teams = q.param(followed.teams);
     const competitions = q.param(followed.competitions);
     const persons = q.param(followed.persons);
+    q.pick(`s0.id IN (SELECT m.story_id FROM article m JOIN article_entity e ON e.article_id = m.id
+       WHERE (e.entity_type = 'team' AND e.entity_id = ANY(${teams}::uuid[]))
+          OR (e.entity_type = 'competition' AND e.entity_id = ANY(${competitions}::uuid[]))
+          OR (e.entity_type = 'person' AND e.entity_id = ANY(${persons}::uuid[])))`);
     return this.page(
       q,
       `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
@@ -488,6 +529,10 @@ export class PostgresNewsReadStore {
     const teams = q.param(found.teams ?? []);
     const from = q.param(since.toISOString());
     const to = q.param(until.toISOString());
+    q.pick(`s0.id IN (SELECT m.story_id FROM article m JOIN article_entity e ON e.article_id = m.id
+       WHERE (e.entity_type = 'fixture' AND e.entity_id = ${match}::uuid)
+          OR (e.entity_type = 'team' AND e.entity_id = ANY(${teams}::uuid[])))`);
+    q.publishedSince(`${from}::timestamptz`);
     const page = await this.page(
       q,
       `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note,
@@ -540,13 +585,16 @@ export class PostgresNewsReadStore {
       },
       locale,
     );
+    const person = q.param(personId);
+    q.pick(`s0.id IN (SELECT m.story_id FROM article m JOIN article_entity e ON e.article_id = m.id
+       WHERE e.entity_type = 'person' AND e.entity_id = ${person}::uuid)`);
     return this.page(
       q,
       `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
          FROM story_card sc
         WHERE EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
                        WHERE m.story_id = sc.story_id
-                         AND e.entity_type = 'person' AND e.entity_id = ${q.param(personId)}::uuid)
+                         AND e.entity_type = 'person' AND e.entity_id = ${person}::uuid)
         ORDER BY sc.at DESC, sc.story_id
         LIMIT ${q.fetch(limit)}`,
       limit,
@@ -566,7 +614,22 @@ export class PostgresNewsReadStore {
    * it was left out, after the last row read.
    */
   private async page(q: Query, select: string, limit: number, paged: boolean): Promise<StoryPage_> {
+    return this.finish(q, await this.rows(q, select), limit, paged);
+  }
+
+  /** The rows a section's select reads over the card. */
+  private async rows(q: Query, select: string): Promise<CardRow[]> {
     const { rows } = await this.pool.query<CardRow>(`${q.storyCard()} ${select}`, q.params);
+    return rows;
+  }
+
+  /** `page` on rows already read. */
+  private async finish(
+    q: Query,
+    rows: CardRow[],
+    limit: number,
+    paged: boolean,
+  ): Promise<StoryPage_> {
     const copies = await this.copies(rows, q.locale);
     const listed = rows.filter(
       (r) =>
@@ -730,6 +793,16 @@ export const FUTURE_GRACE = '10 minutes';
 /** How many rows a section reads for a page of `limit` cards (`Query.fetch`). */
 const fetchSize = (limit: number): number => limit * 2 + 10;
 
+/**
+ * The windows the unfiltered latest section is read through (T-1450),
+ * back from `before` or now, the last unbounded. Production gains about forty
+ * stories an hour, so the first window almost always fills a page.
+ */
+export const NEWEST_WINDOWS: readonly (string | null)[] = ['3 hours', '1 day', '7 days', null];
+
+/** The instant a card is ordered by: the article's first publication, else its fetch. */
+const FIRST_SEEN = `COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id), a.fetched_at)`;
+
 /** No filter at all: the match page's related news reads every story. */
 export const NO_FILTERS: NewsFilters = {
   country: null,
@@ -752,6 +825,13 @@ class Query {
   readonly params: unknown[] = [];
   windowHours: number | null = null;
   private readonly where: string[] = [];
+  /**
+   * T-1450: conditions on `s0.id` that every story the section can list
+   * meets -- a superset, never a filter of its own (the WHERE above still
+   * decides). With any, the card is built only for the stories they pick,
+   * not for every story there is.
+   */
+  private readonly picks: string[] = [];
   private readonly language: string;
   /** The reader's locale as a parameter: which sources' articles they are shown (D-178). */
   private readonly reader: string;
@@ -762,33 +842,34 @@ class Query {
   ) {
     this.reader = this.param(locale);
     this.language = this.param(filters.language);
-    if (filters.team !== null) {
+    const linked = (type: string, id: string): void => {
+      const entity = this.param(id);
       this.where.push(`EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
-         WHERE m.story_id = s.id AND e.entity_type = 'team' AND e.entity_id = ${this.param(filters.team)}::uuid)`);
-    }
-    if (filters.competition !== null) {
-      this.where.push(`EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
-         WHERE m.story_id = s.id AND e.entity_type = 'competition' AND e.entity_id = ${this.param(filters.competition)}::uuid)`);
-    }
+         WHERE m.story_id = s.id AND e.entity_type = '${type}' AND e.entity_id = ${entity}::uuid)`);
+      this
+        .pick(`s0.id IN (SELECT m.story_id FROM article m JOIN article_entity e ON e.article_id = m.id
+         WHERE e.entity_type = '${type}' AND e.entity_id = ${entity}::uuid)`);
+    };
+    if (filters.team !== null) linked('team', filters.team);
+    if (filters.competition !== null) linked('competition', filters.competition);
     if (filters.type !== null) {
+      const type = this.param(filters.type);
       this.where.push(`EXISTS (SELECT 1 FROM story_label fl
-         WHERE fl.story_id = s.id AND fl.superseded_at IS NULL AND fl.story_type = ${this.param(filters.type)}::text)`);
+         WHERE fl.story_id = s.id AND fl.superseded_at IS NULL AND fl.story_type = ${type}::text)`);
+      this.pick(`s0.id IN (SELECT story_id FROM story_label
+         WHERE superseded_at IS NULL AND story_type = ${type}::text)`);
     }
-    if (filters.player !== null) {
-      this.where.push(`EXISTS (SELECT 1 FROM article m JOIN article_entity e ON e.article_id = m.id
-         WHERE m.story_id = s.id AND e.entity_type = 'person' AND e.entity_id = ${this.param(filters.player)}::uuid)`);
-    }
+    if (filters.player !== null) linked('person', filters.player);
     // T-1003 (D-124): calendar days in the viewer's zone, against the story's
     // first publication -- the same instant the cards are ordered by.
-    const first = `COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id), a.fetched_at)`;
     if (filters.from !== null) {
-      this.where.push(
-        `${first} >= (${this.param(filters.from)}::date)::timestamp AT TIME ZONE ${this.param(filters.time_zone)}::text`,
-      );
+      const from = `(${this.param(filters.from)}::date)::timestamp AT TIME ZONE ${this.param(filters.time_zone)}::text`;
+      this.where.push(`${FIRST_SEEN} >= ${from}`);
+      this.publishedSince(from);
     }
     if (filters.to !== null) {
       this.where.push(
-        `${first} < ((${this.param(filters.to)}::date + 1)::timestamp AT TIME ZONE ${this.param(filters.time_zone)}::text)`,
+        `${FIRST_SEEN} < ((${this.param(filters.to)}::date + 1)::timestamp AT TIME ZONE ${this.param(filters.time_zone)}::text)`,
       );
     }
     if (filters.country !== null) {
@@ -816,24 +897,66 @@ class Query {
     return `$${this.params.length}`;
   }
 
+  /** Narrows the stories the card is built for (`picks`); `s0` is the story. */
+  pick(condition: string): void {
+    this.picks.push(condition);
+  }
+
+  /** Whether the filters already narrow the stories (then `latest` needs no window). */
+  get narrowed(): boolean {
+    return this.picks.length > 0;
+  }
+
+  /**
+   * Picks the stories a report of which was fetched, or has a version
+   * published, at or after `since` (an SQL timestamp). It holds every story
+   * whose card is ordered at or after it: a card's instant is its article's
+   * first publication, else that article's fetch.
+   */
+  publishedSince(since: string): void {
+    this.pick(`s0.id IN (
+      SELECT story_id FROM article WHERE fetched_at >= ${since}
+      UNION
+      SELECT pa.story_id FROM article_version pv JOIN article pa ON pa.id = pv.article_id
+       WHERE pv.published_at >= ${since})`);
+  }
+
+  /**
+   * Lists only the cards ordered within `window` back from `anchor` (T-1450).
+   * Every story left out is ordered before the window starts, so when the
+   * window fills a page's rows, those rows are the unbounded read's.
+   */
+  recent(anchor: string, window: string): void {
+    const since = `(${anchor} - ${this.param(window)}::interval)`;
+    this.where.push(`${FIRST_SEEN} >= ${since}`);
+    this.publishedSince(since);
+  }
+
   storyCard(): string {
     // T-1391 (D-207): a story whose publisher dates it in the future is not
     // listed until that time comes -- a scheduled page ("listen live on the
     // 24th") is not news yet, and dated ahead it would sit on top of every
     // newest-first list. FUTURE_GRACE allows a publisher's clock a little skew.
     const notFuture = [
-      `COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id), a.fetched_at)
-         <= now() + interval '${FUTURE_GRACE}'`,
+      `${FIRST_SEEN} <= now() + interval '${FUTURE_GRACE}'`,
       `(v.published_at IS NULL OR v.published_at <= now() + interval '${FUTURE_GRACE}')`,
     ];
     const where = `WHERE ${[...this.where, ...notFuture].join(' AND ')}`;
-    return `WITH story_card AS (
+    // MATERIALIZED, so the planner starts from the picked stories: inlined, it
+    // built every card first and applied the pick as a semi-join over them.
+    const picked =
+      this.picks.length === 0
+        ? { cte: '', from: 'story s' }
+        : {
+            cte: `story_pick AS MATERIALIZED (SELECT s0.id FROM story s0 WHERE ${this.picks.join(' AND ')}),`,
+            from: 'story_pick sp JOIN story s ON s.id = sp.id',
+          };
+    return `WITH ${picked.cte} story_card AS (
       SELECT s.id AS story_id, a.id AS article_id, a.url, a.fetched_at,
              src.id AS source_id, src.name AS source_name, src.homepage_url, src.rights,
              src.via_source_id IS NOT NULL AS searched,
              v.headline, v.summary, v.byline, v.language, v.published_at, v.origin, v.review_state,
-             COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = a.id),
-                      a.fetched_at) AS at,
+             ${FIRST_SEEN} AS at,
              (SELECT count(*)::int - 1 FROM article m JOIN news_source ms ON ms.id = m.source_id
                WHERE m.story_id = s.id
                  AND news_visible_to(ms.same_language_only, ms.language, ${this.reader}::text))
@@ -844,7 +967,7 @@ class Query {
              img.file_key AS image_file_key, img.credit AS image_credit,
              img.licence AS image_licence, img.licence_url AS image_licence_url,
              img.width AS image_width, img.height AS image_height
-        FROM story s
+        FROM ${picked.from}
         JOIN article a ON a.id = story_shown_article(s.id, s.promoted_article_id, ${this.reader}::text)
         JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
         ${shownImageJoin('a')}
