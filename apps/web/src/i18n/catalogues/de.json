@@ -8400,6 +8400,21 @@
     "text": "",
     "status": "untranslated"
   },
+  "team.headCoach.label": {
+    "source": "Head coach",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.headCoach.since": {
+    "source": "since {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "team.headCoach.lineupDisagrees": {
+    "source": "The latest line-up names {name} as coach: the provider's list may not show the change yet.",
+    "text": "",
+    "status": "untranslated"
+  },
   "team.squad.minutes": {
     "source": "Minutes are for this team in the competitions above, from each match's player figures: \"at least\" where some matches have none.",
     "text": "",
@@ -11112,6 +11127,96 @@
   },
   "playerPage.col.conceded": {
     "source": "Conceded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.title": {
+    "source": "Coach",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.metaDescription": {
+    "source": "{name}: coaching career, the teams coached and the line-ups we hold.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.unreachable": {
+    "source": "The service is unreachable right now, so this coach cannot be shown.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.eyebrow": {
+    "source": "Coach",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.currentTeam": {
+    "source": "Coaching now",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.noCurrentTeam": {
+    "source": "No current team in the provider's list",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.career": {
+    "source": "Career",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.careerIntro": {
+    "source": "Spells as the data provider lists them, at the teams we cover. A spell with no end date is called current only when no later coach of that team is listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.current": {
+    "source": "Current",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.present": {
+    "source": "present",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.endNotGiven": {
+    "source": "end not given",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.startNotGiven": {
+    "source": "start not given",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.notCarried": {
+    "source": "The provider lists {count} more spells at teams we do not cover.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.lineups": {
+    "source": "Line-ups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.lineupsCount": {
+    "source": "Named as coach on {count} line-ups we hold.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.lineupsLatest": {
+    "source": "Latest: {team}, {date}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.noLineups": {
+    "source": "No line-up we hold names this coach.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.noData": {
+    "source": "The provider has not described this coach yet.",
     "text": "",
     "status": "untranslated"
   },

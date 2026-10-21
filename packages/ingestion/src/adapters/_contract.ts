@@ -8,6 +8,7 @@
 import type {
   NormalisedAbsence,
   NormalisedCareerEntry,
+  NormalisedCoach,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
@@ -170,11 +171,22 @@ export interface ProviderAdapter {
    * replayed call.
    */
   getPlayerCareer?(personExternalId: string): Promise<AdapterResult<NormalisedCareerEntry[]>>;
+  /**
+   * Every coach the provider lists for a team -- the current one and those
+   * before him -- each with his career (T-1439, D-230). One request. An empty
+   * list when it lists none. Optional, like `getSquad`, and not a replayed call.
+   */
+  getTeamCoaches?(teamExternalId: string): Promise<AdapterResult<NormalisedCoach[]>>;
 }
 
 export type AdapterCall = Exclude<
   keyof Omit<ProviderAdapter, 'manifest'>,
-  'getSquad' | 'getSeasonCoverage' | 'getPersonProfile' | 'getPlayerSeason' | 'getPlayerCareer'
+  | 'getSquad'
+  | 'getSeasonCoverage'
+  | 'getPersonProfile'
+  | 'getPlayerSeason'
+  | 'getPlayerCareer'
+  | 'getTeamCoaches'
 >;
 
 export const ADAPTER_CALLS: readonly AdapterCall[] = [

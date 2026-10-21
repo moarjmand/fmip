@@ -428,6 +428,36 @@ export interface NormalisedPersonProfile {
 }
 
 /**
+ * A coach's spell at a team as the provider lists it (T-1439, D-230): ISO
+ * calendar dates, `start` null when the provider gave none and `end` null
+ * while the spell is open or when it gave none -- the provider leaves some
+ * spells open after the coach has gone, so an open spell is a claim, not a
+ * fact, and the reader decides which open spell is current.
+ */
+export interface NormalisedCoachSpell {
+  team: EntityRef;
+  start: string | null;
+  end: string | null;
+}
+
+/**
+ * A coach as the provider's coaches endpoint describes him (T-1439, D-230).
+ * `ref.externalId` is in the provider's coach id space, which is not its
+ * player id space: an adapter whose provider numbers coaches and players
+ * apart writes it with its own prefix, so one number never names two people
+ * in `provider_mapping` (rule 1). `name` is the full name or `null` without
+ * both halves; `bio` the birth date and nationality, each `null` when unsaid.
+ * `career` newest first.
+ */
+export interface NormalisedCoach {
+  ref: EntityRef;
+  name: NormalisedPersonName | null;
+  dateOfBirth: string | null;
+  nationality: NormalisedNationality | null;
+  career: NormalisedCoachSpell[];
+}
+
+/**
  * A player in a club's current squad listing (T-1324, T-1428): the ref and
  * photo, and the shirt number (1 to 99) and position the listing gives, each
  * `null` when it gives none.

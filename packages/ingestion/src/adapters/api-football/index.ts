@@ -11,6 +11,7 @@
 import type {
   NormalisedAbsence,
   NormalisedCareerEntry,
+  NormalisedCoach,
   NormalisedFixture,
   NormalisedFixtureDetail,
   NormalisedLineup,
@@ -50,6 +51,7 @@ import {
   mapStatistics,
   seasonYear,
 } from './map';
+import { mapCoaches } from './coaches';
 import { mapPlayerCareer, mapPlayerSeason } from './player-seasons';
 
 export const API_FOOTBALL_BASE_URL = 'https://v3.football.api-sports.io';
@@ -409,6 +411,21 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapPlayerCareer(result.data.response),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/coachs?team=`: every coach the provider lists for a team, each with his
+   * career, one request (T-1439, D-230). The endpoint is not paged.
+   */
+  async getTeamCoaches(teamExternalId: string): Promise<AdapterResult<NormalisedCoach[]>> {
+    const result = await this.call('/coachs', { team: teamExternalId });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapCoaches(result.data.response),
       requests: 1,
       fetchedAt: result.receivedAt,
     };

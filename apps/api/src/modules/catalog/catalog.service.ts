@@ -9,6 +9,7 @@ import type {
   FollowSuggestionsResponse,
   LeagueZoneEntry,
   BoardPlayer,
+  CoachPage,
   PlayerPage,
   PlayerProviderSeasons,
   SeasonSummary,
@@ -35,6 +36,7 @@ import { buildBracket, tieOf } from './internal/bracket';
 import { contextTable, phaseOf } from './internal/competition-context';
 import { PostgresCompetitionStore } from './internal/competition-store';
 import { leadersModule, leadersWithMinutes } from './internal/leaders';
+import { readCoachPage, readTeamHeadCoach } from './internal/coach-read';
 import { readProviderSeasons } from './internal/player-provider-seasons';
 import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
@@ -70,6 +72,32 @@ export class CatalogService {
     private readonly standings: StandingsService,
     private readonly media: MediaService,
   ) {}
+
+  /**
+   * The coach page (T-1439, D-230): the coach, his career at the teams we
+   * carry with their crests, and the line-ups that name him. `null` for a
+   * person who is not a coach, or no such person.
+   */
+  async coach(id: string, locale: string | null = null): Promise<CoachPage | null> {
+    const rows = await readCoachPage(this.pool, id, locale);
+    if (rows === null) return null;
+    const spells = rows.career.data ?? [];
+    const media = await this.media.index({
+      team: spells.map((s) => s.team.id),
+      person: [id],
+    });
+    return {
+      ...rows,
+      coach: { ...rows.coach, photo: media.photo(id) },
+      career: {
+        ...rows.career,
+        data:
+          rows.career.data === null
+            ? null
+            : spells.map((s) => ({ ...s, team: { ...s.team, crest: media.crest(s.team.id) } })),
+      },
+    };
+  }
 
   /**
    * A player's season totals and career as the provider counts them (T-1431,
@@ -438,10 +466,16 @@ export class CatalogService {
       squad.players.map((p) => p.person.id),
       id,
     );
-    // The crest (T-1320) and the squad's photos (T-1321) from our own origin, in one query.
+    // The head coach by the provider's coaches endpoint (T-1439, D-230), told
+    // apart from the coach the latest line-up names.
+    const headCoach = await readTeamHeadCoach(this.pool, id, locale, lineup?.coach?.id ?? null);
+    // The crest (T-1320) and the squad's and coach's photos (T-1321) from our own origin, in one query.
     const media = await this.media.index({
       team: [id],
-      person: squad.players.map((p) => p.person.id),
+      person: [
+        ...squad.players.map((p) => p.person.id),
+        ...(headCoach.data === null ? [] : [headCoach.data.person.id]),
+      ],
     });
     const team = { ...found, crest: media.crest(id) };
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
@@ -471,6 +505,19 @@ export class CatalogService {
         ),
         splits: buildSplits(seasons, splitFixtures),
         manager: managerOf(lineup),
+        head_coach:
+          headCoach.data === null
+            ? { ...headCoach, data: null }
+            : {
+                ...headCoach,
+                data: {
+                  ...headCoach.data,
+                  person: {
+                    ...headCoach.data.person,
+                    photo: media.photo(headCoach.data.person.id),
+                  },
+                },
+              },
         fixture_ground: ground,
         followers,
         last_updated_at: lastUpdatedAt,

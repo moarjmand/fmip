@@ -1,4 +1,5 @@
 import type {
+  CoachPage,
   GroupAppealResponse,
   GroupHistoryResponse,
   GroupInviteLinksResponse,
@@ -819,6 +820,11 @@ export function fetchPlayer(id: string, locale?: string): Promise<ApiResult<Play
  */
 export function fetchPlayerProviderSeasons(id: string): Promise<ApiResult<PlayerProviderSeasons>> {
   return apiRequest<PlayerProviderSeasons>(`/players/${encodeURIComponent(id)}/provider-seasons`);
+}
+
+/** `GET /coaches/:id?locale=` (T-1439, D-230): the coach page. Public. */
+export function fetchCoach(id: string, locale?: string): Promise<ApiResult<CoachPage>> {
+  return apiRequest<CoachPage>(withLocale(`/coaches/${encodeURIComponent(id)}`, locale));
 }
 
 /** `GET /teams/:id?locale=` (T-036, T-303): the team page. Public. */

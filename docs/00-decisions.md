@@ -11408,3 +11408,90 @@ name check and goes to review.
 **Rejected.** *Name alone* (rule 1). *Shirt alone*: a data error in either
 source's numbering would map the wrong person silently. *Reviewing every
 player by hand*: 1,319 players on the first day.
+
+## D-230 — Coaches have their own id space; a team's coach and a coach's career come from the provider's coaches list, by our ids only
+
+**Status:** Accepted · 2026-10-21 (agent; one of the data items the maintainer asked for on 2026-10-21 to use the Ultra plan fully, the identity repair under the standing delegation of 2026-09-26) · **Task:** T-1439 · **Follows:** D-079, D-119, D-147, D-176, D-183, D-220
+
+**Context.** Line-ups name a coach (`fixture_participant.coach_id`, about 76%
+of sides); the team page shows the latest line-up's coach as the manager
+(D-119), and nothing says who coaches a club now, since when, or where he
+coached before. API-Football's `/coachs?team=` lists every coach a team has
+had, each with his birth date, nationality, photo and career (team, start,
+end). A read-only look on 2026-10-21 found what stood in the way: the
+provider numbers coaches apart from players -- coach 4 is Guardiola, player
+4 a goalkeeper -- and we had resolved a line-up's coach as `person` under his
+bare number, the same key a player of that number has. On production 1,967
+people were named as a coach; 532 of them were also named as players, so one
+row stood for two people (Guardiola's had played a match in goal; "Manuel
+Akanji" had coached 132 line-ups). D-220's bio pass had already stepped
+around this by never asking about a coach.
+
+**Decision.**
+1. **A coach's provider number is `coach:<n>`.** The API-Football adapter
+   writes it so everywhere it names a coach -- the line-ups' coach block and
+   the coaches endpoint -- and a player keeps his bare number (rule 1: one
+   key, one person). The prefix lives in the adapter and the migration only;
+   the API treats external ids as opaque.
+2. **What is stored is moved, not guessed** (migration `1765882000000`). A
+   person named only as a coach -- never in a line-up, an incident, a
+   player's statistics, an absence, a squad listing, a spell, the provider's
+   season lines or career -- has his mapping renamed to `coach:<n>`. A
+   person named both ways keeps the bare number (the player's: every player
+   job asks by it); the line-ups that named him as their coach are moved to
+   `coach_reference_split` and their `coach_id` cleared -- a gap, which D-147
+   already reads as "unknown", rather than the wrong man -- and a photo
+   stored for him from the provider's coach images is dropped. Each moved
+   reference is put back by the `coaches` job once `coach:<n>` maps to a
+   person, adopted from the review queue like any person (D-079): never
+   created here, never matched by name.
+3. **A team's current coach is the open spell that started last.** The
+   provider leaves spells open after a coach has gone (Maresca's Chelsea
+   spell, Guardiola's at City), so an open spell is a claim. Among the
+   coaches the provider lists with an open spell at a team we asked about,
+   the one whose spell started last is current; two starting the same latest
+   day, or several without a start, are no answer. A team never asked has no
+   head coach (`not_supplied`), and a spell at a team never asked is not
+   called current. The coach page writes an open spell that is not current
+   as "end not given", never "present".
+4. **Shown beside the line-up's coach, not instead of it.** The team page's
+   `head_coach` is the provider's current coach, linked to the new coach page
+   (`/coach/[id]`, `GET /coaches/:id`); D-119's manager stays the latest
+   line-up's coach. When the two differ, the page shows the head coach and
+   says the latest line-up names someone else -- the list may be behind a
+   change -- rather than choosing. With no head coach, the line-up's coach is
+   shown as before, now linked to the coach page.
+5. **Only teams we carry.** A career spell is kept only at a team
+   `provider_mapping` knows; the rest are counted (`spells_not_carried`) and
+   make the career `limited`. A coach's birth date and nationality fill only
+   empty fields (D-220's rule); his name is the adopted one.
+6. **Fetched on the bulk tier (D-183).** The `coaches` job runs hourly at
+   :52 and asks for each mapped club and national team of a current season:
+   first, then when a line-up newer than the last answer names a coach the
+   stored careers do not make current, then 30 days after the last answer --
+   changes first. At most `INGESTION_COACHES_BATCH` (60) teams a run, spaced
+   by the `AskPacer` (500 ms), none past 30 seconds, none once the day's
+   requests reach the bulk share; an unanswered ask is retried after a day,
+   five times. About 1,460 teams: a first pass of about a day, then about 50
+   requests a day plus the changes. `people_names` no longer asks for a
+   player profile of anyone named as a coach or holding a coaching spell.
+
+**Alternatives.** *A `coach` entity type in `provider_mapping`*: the same
+separation, but every table, check and queue rule that knows `person` would
+need a second kind for the same table, and adoption (D-079) would need a
+command of its own. *Match coaches across the two id spaces by name*: rule 1.
+*Give each collided row to the role it is named for more often*: the minority
+role's rows (line-ups, incidents, statistics) would have to be deleted or
+re-pointed to a person nobody has identified yet. *Take the provider's
+`team` field as the current coach*: it is the provider's own reading of the
+career and was stale for Guardiola. *Replace D-119's manager with the head
+coach*: the line-up is the fact about the latest match, and a lagging list
+would hide a sacking the line-ups already show.
+
+**Consequences.** `NormalisedCoach`, `getTeamCoaches`, `CoachPage`,
+`TeamHeadCoach` and the optional `TeamPage.head_coach` exist. Left as found:
+the review queue's pending bare-number rows that a coach's line-up created
+before this release cannot be told from players' (adopting one names a
+player number after a coach), and 138 of the 532 collided rows carry a
+coach's name, having been adopted from a coach first; both are a follow-up
+that reads them against the provider's player profiles.

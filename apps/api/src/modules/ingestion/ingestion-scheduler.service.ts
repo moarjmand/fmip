@@ -54,6 +54,10 @@ export const SCHEDULE: Record<IngestJob, string> = {
   // `INGESTION_PLAYER_SEASONS_BATCH` players' seasons or careers for at most
   // 30 seconds (T-1431). Mostly idle between match days once backfilled.
   player_seasons: '6,16,26,36,46,56 * * * *',
+  // Hourly, on a minute no other job holds: each run asks at most
+  // `INGESTION_COACHES_BATCH` teams' coaches for at most 30 seconds (T-1439),
+  // each team about once a month and after a line-up names a new coach.
+  coaches: '52 * * * *',
 };
 
 /** Job schedulers are keyed by id, so re-registering one replaces it. */

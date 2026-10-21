@@ -38,6 +38,8 @@ import { PersonNameStore } from './internal/person-name-store';
 import { KitColourStore } from './internal/kit-colour-store';
 import { kitColoursBatch, sweepKitColours } from './internal/kit-colours';
 import { PEOPLE_NAMES_RUN_MS, peopleNamesBatch, sweepPeopleNames } from './internal/person-names';
+import { CoachStore } from './internal/coach-store';
+import { coachesBatch, sweepCoaches } from './internal/coaches';
 import { PlayerSeasonStore } from './internal/player-season-store';
 import { playerSeasonsBatch, sweepPlayerSeasons } from './internal/player-seasons';
 import { squadsPerDay, sweepSquads } from './internal/squad-sweep';
@@ -314,6 +316,8 @@ export class IngestionJobsService {
     process.env.INGESTION_PLAYER_SEASONS_BATCH,
   );
   private readonly playerSeasonStore: PlayerSeasonStore;
+  private readonly coachesBatch = coachesBatch(process.env.INGESTION_COACHES_BATCH);
+  private readonly coachStore: CoachStore;
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
 
@@ -333,6 +337,7 @@ export class IngestionJobsService {
     this.personBios = new PersonBioStore(pool);
     this.kitColourStore = new KitColourStore(pool);
     this.playerSeasonStore = new PlayerSeasonStore(pool);
+    this.coachStore = new CoachStore(pool, resolver, media);
   }
 
   /** Runs one job by name. The scheduler and the tests both come through here. */
@@ -356,7 +361,56 @@ export class IngestionJobsService {
         return this.kitColours(now);
       case 'player_seasons':
         return this.playerSeasons(now);
+      case 'coaches':
+        return this.coaches(now);
     }
+  }
+
+  /**
+   * Each team's coaches and their careers (T-1439, D-230): every club and
+   * national team of a current season is asked once, again when a newer
+   * line-up names a coach the stored careers do not make current, and again
+   * after 30 days, within `INGESTION_COACHES_BATCH` a run and the bulk tier
+   * of the budget, the asks spaced by the `AskPacer`. First, at no cost, the
+   * line-ups' coach references the coach id space moved out are put back for
+   * each coach adopted since. `itemsWritten` is coaches written, spells kept
+   * and references put back.
+   */
+  coaches(now: Date = new Date()): Promise<JobReport> {
+    return this.track('coaches', async (source) => {
+      const shares = parseTierShares(process.env);
+      const sweep = await sweepCoaches({
+        provider: source.provider,
+        adapter: source.adapter,
+        store: this.coachStore,
+        now,
+        // The replay source has no coaches recorded: asking would only fail.
+        batch: this.sources.kind === 'replay' ? 0 : this.coachesBatch,
+        budget: this.sources.dailyBudget ?? null,
+        bulkPercent: 'error' in shares ? DEFAULT_TIER_SHARES.bulk : shares.bulk,
+        requestsToday: await this.runs.requestsToday(source.provider, now),
+        pacer: new AskPacer(),
+      });
+      this.log.log('coaches', {
+        event: 'ingest.coaches',
+        provider: source.provider,
+        asked: sweep.asked,
+        answered: sweep.answered,
+        coaches: sweep.coaches,
+        spells: sweep.spells,
+        queued: sweep.queued,
+        restored: sweep.restored,
+        ...(sweep.idle === undefined ? {} : { idle: sweep.idle }),
+      });
+      const partial = sweep.refused.join('; ');
+      return {
+        job: 'coaches',
+        provider: source.provider,
+        itemsSeen: sweep.answered,
+        itemsWritten: sweep.written,
+        ...(partial === '' ? {} : { partial }),
+      };
+    });
   }
 
   /**

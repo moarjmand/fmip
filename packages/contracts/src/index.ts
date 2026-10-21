@@ -236,6 +236,8 @@ export type {
   TeamSummary,
   TeamsResponse,
 } from './catalog';
+// Coaches: the coach page and the team page's head coach (T-1439, D-230).
+export type { CoachCareerSpell, CoachCareerTeam, CoachPage, TeamHeadCoach } from './coaches';
 // A player's season totals and career as the provider counts them (T-1431, D-223).
 export type {
   PlayerProviderCareerTeam,

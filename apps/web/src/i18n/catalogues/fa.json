@@ -10219,6 +10219,24 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "team.headCoach.label": {
+    "source": "Head coach",
+    "text": "سرمربی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "team.headCoach.since": {
+    "source": "since {date}",
+    "text": "از {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "team.headCoach.lineupDisagrees": {
+    "source": "The latest line-up names {name} as coach: the provider's list may not show the change yet.",
+    "text": "آخرین ترکیب، {name} را مربی معرفی کرده است؛ شاید فهرست تأمین‌کننده هنوز این تغییر را نشان ندهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "team.squad.minutes": {
     "source": "Minutes are for this team in the competitions above, from each match's player figures: \"at least\" where some matches have none.",
     "text": "دقیقه‌ها مربوط به این تیم در رقابت‌های بالا است و از آمار تک‌تک بازیکنان در هر بازی گرفته شده است؛ جایی که برای برخی بازی‌ها رقمی نیامده، «دست‌کم» نوشته شده است.",
@@ -13558,6 +13576,114 @@
   "playerPage.col.conceded": {
     "source": "Conceded",
     "text": "گل خورده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.title": {
+    "source": "Coach",
+    "text": "مربی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.metaDescription": {
+    "source": "{name}: coaching career, the teams coached and the line-ups we hold.",
+    "text": "{name}: کارنامهٔ مربیگری، تیم‌هایی که مربی‌شان بوده و ترکیب‌هایی که در اختیار داریم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.unreachable": {
+    "source": "The service is unreachable right now, so this coach cannot be shown.",
+    "text": "سرویس فعلاً در دسترس نیست؛ برای همین این مربی نمایش داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.eyebrow": {
+    "source": "Coach",
+    "text": "مربی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.currentTeam": {
+    "source": "Coaching now",
+    "text": "تیم فعلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.noCurrentTeam": {
+    "source": "No current team in the provider's list",
+    "text": "در فهرست تأمین‌کننده تیم فعلی‌ای ندارد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.career": {
+    "source": "Career",
+    "text": "کارنامه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.careerIntro": {
+    "source": "Spells as the data provider lists them, at the teams we cover. A spell with no end date is called current only when no later coach of that team is listed.",
+    "text": "دوره‌ها همان‌طور که تأمین‌کنندهٔ داده فهرست کرده است، در تیم‌هایی که پوشش می‌دهیم. دوره‌ای که تاریخ پایان ندارد فقط وقتی «فعلی» خوانده می‌شود که مربی دیگری از آن تیم بعد از او فهرست نشده باشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.current": {
+    "source": "Current",
+    "text": "فعلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.present": {
+    "source": "present",
+    "text": "اکنون",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.endNotGiven": {
+    "source": "end not given",
+    "text": "پایان اعلام نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.startNotGiven": {
+    "source": "start not given",
+    "text": "شروع اعلام نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.notCarried": {
+    "source": "The provider lists {count} more spells at teams we do not cover.",
+    "text": "تأمین‌کننده {count} دورهٔ دیگر در تیم‌هایی فهرست کرده که آن‌ها را پوشش نمی‌دهیم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.lineups": {
+    "source": "Line-ups",
+    "text": "ترکیب‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.lineupsCount": {
+    "source": "Named as coach on {count} line-ups we hold.",
+    "text": "در {count} ترکیبِ ثبت‌شده نزد ما، مربی معرفی شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.lineupsLatest": {
+    "source": "Latest: {team}, {date}.",
+    "text": "آخرین: {team}، {date}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.noLineups": {
+    "source": "No line-up we hold names this coach.",
+    "text": "هیچ ترکیبی نزد ما این مربی را معرفی نکرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "coachPage.noData": {
+    "source": "The provider has not described this coach yet.",
+    "text": "تأمین‌کننده هنوز این مربی را توصیف نکرده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

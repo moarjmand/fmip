@@ -12,6 +12,7 @@ import type {
   CompetitionDirectoryResponse,
   CompetitionPage,
   CompetitionsResponse,
+  CoachPage,
   CountriesResponse,
   FollowSuggestionsResponse,
   PlayerPage,
@@ -26,6 +27,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NO_COMPETITION: ApiError = { error: 'not_found', message: 'No such competition.' };
 const NO_TEAM: ApiError = { error: 'not_found', message: 'No such team.' };
 const NO_PLAYER: ApiError = { error: 'not_found', message: 'No such player.' };
+const NO_COACH: ApiError = { error: 'not_found', message: 'No such coach.' };
 const NO_FIXTURE: ApiError = { error: 'not_found', message: 'No such fixture.' };
 const NO_SEASON: ApiError = {
   error: 'not_found',
@@ -120,6 +122,15 @@ export class CatalogController {
     if (!UUID.test(id)) throw new NotFoundException(NO_PLAYER);
     const found = await this.catalog.playerProviderSeasons(id.toLowerCase());
     if (found === null) throw new NotFoundException(NO_PLAYER);
+    return found;
+  }
+
+  /** The coach page (T-1439, D-230). Public. */
+  @Get('coaches/:id')
+  async coach(@Param('id') id: string, @Query('locale') locale: unknown): Promise<CoachPage> {
+    if (!UUID.test(id)) throw new NotFoundException(NO_COACH);
+    const found = await this.catalog.coach(id.toLowerCase(), localeOf(locale));
+    if (found === null) throw new NotFoundException(NO_COACH);
     return found;
   }
 
