@@ -659,16 +659,23 @@ export class PostgresNewsReadStore {
    */
   private async copies(rows: CardRow[], locale: string | null): Promise<Set<string>> {
     if (rows.length === 0) return new Set();
+    // T-1457: the rows' keys are computed once, and each is looked up through
+    // the index on `news_text_key(headline)`, one row at a time (the LATERAL
+    // with LIMIT). Left to itself the planner, misjudging how many sources a
+    // reader is shown, hashed every visible version's key instead: 1.5-1.8 s
+    // for an English reader on 18,000 versions.
     const { rows: hit } = await this.pool.query<{ story_id: string }>(
-      `SELECT c.story_id
-         FROM unnest($1::uuid[], $2::text[], $3::text[], $4::timestamptz[]) AS c(story_id, headline, summary, at)
-        WHERE news_text_key(c.headline) <> ''
-          AND EXISTS (
+      `WITH c AS MATERIALIZED (
+         SELECT story_id, news_text_key(headline) AS key, summary, at
+           FROM unnest($1::uuid[], $2::text[], $3::text[], $4::timestamptz[]) AS u(story_id, headline, summary, at))
+       SELECT c.story_id
+         FROM c
+         JOIN LATERAL (
                 SELECT 1
                   FROM article_version tv
                   JOIN article ta ON ta.id = tv.article_id
                   JOIN news_source ts ON ts.id = ta.source_id AND ts.dropped_at IS NULL
-                 WHERE news_text_key(tv.headline) = news_text_key(c.headline)
+                 WHERE news_text_key(tv.headline) = c.key
                    AND ta.story_id <> c.story_id
                    AND news_visible_to(ts.same_language_only, ts.language, $5::text)
                    AND (tv.summary IS NULL OR c.summary IS NULL
@@ -677,7 +684,9 @@ export class PostgresNewsReadStore {
                                  ta.fetched_at), ta.story_id)
                        < (c.at, c.story_id)
                    AND COALESCE((SELECT min(published_at) FROM article_version WHERE article_id = ta.id),
-                                ta.fetched_at) >= c.at - $7::interval)`,
+                                ta.fetched_at) >= c.at - $7::interval
+                 LIMIT 1) earlier ON TRUE
+        WHERE c.key <> ''`,
       [
         rows.map((r) => r.story_id),
         rows.map((r) => r.headline),
@@ -914,10 +923,15 @@ class Query {
    * first publication, else that article's fetch.
    */
   publishedSince(since: string): void {
+    // T-1457: only a report the reader can be shown counts (a card's article is
+    // one: `story_shown_article` and the card's join keep to them), so an
+    // English reader's window holds English stories, not every story fetched.
+    const shown = `JOIN news_source ps ON ps.id = pa.source_id AND ps.dropped_at IS NULL
+         AND news_visible_to(ps.same_language_only, ps.language, ${this.reader}::text)`;
     this.pick(`s0.id IN (
-      SELECT story_id FROM article WHERE fetched_at >= ${since}
+      SELECT pa.story_id FROM article pa ${shown} WHERE pa.fetched_at >= ${since}
       UNION
-      SELECT pa.story_id FROM article_version pv JOIN article pa ON pa.id = pv.article_id
+      SELECT pa.story_id FROM article_version pv JOIN article pa ON pa.id = pv.article_id ${shown}
        WHERE pv.published_at >= ${since})`);
   }
 

@@ -151,7 +151,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     fetchFollowing(cookie),
     readGuestChoices(),
     session ? fetchFirstRun(cookie) : null,
-    fetchNewsSection('', locale, cookie),
+    // T-1457: only what the page shows -- one more, as the breaking lead
+    // may be among them -- not a whole page of the section.
+    fetchNewsSection(`?limit=${HOME_STORIES + 1}`, locale, cookie),
     // T-1004 (D-125): read at render, so an expired mark is gone now.
     fetchBreakingNews(locale),
     // T-1161 (D-153): the matches an editor features now.

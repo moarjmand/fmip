@@ -248,6 +248,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
     expect((await section('section=opinion')).status).toBe(400);
   });
 
+  it('carries no more cards than a page asks for, and refuses a limit out of range (T-1457)', async () => {
+    const one = await section(`section=latest&team=${HOME}&limit=1`);
+    expect(one.status).toBe(200);
+    expect(one.body.stories.data!.map((c) => c.story_id)).toEqual([matchStory]);
+    const both = await section(`section=latest&country=${ENGLAND}&limit=40`);
+    expect(both.status).toBe(200);
+    for (const limit of ['0', '41', '2.5', 'six', '-1']) {
+      expect((await section(`section=latest&limit=${limit}`)).status, limit).toBe(400);
+    }
+  });
+
   it('ranks trending by distinct members in the public discussion, and says that is all it counts', async () => {
     const before = await section('section=trending');
     expect(before.body.stories.coverage).toBe('limited');
