@@ -539,7 +539,9 @@ describe('the player tables (T-1441)', () => {
   });
 
   it('names the provider totals as the source, in the reader language', () => {
-    expect(renderToStaticMarkup(<ProviderTotalsNote locale="en" />)).toContain('our statistics source');
+    expect(renderToStaticMarkup(<ProviderTotalsNote locale="en" />)).toContain(
+      'our statistics source',
+    );
     const fa = renderToStaticMarkup(<ProviderTotalsNote locale="fa" />);
     expect(fa).toContain('data-testid="leaders-provider-totals"');
     expect(fa).toContain('منبع آماری');
