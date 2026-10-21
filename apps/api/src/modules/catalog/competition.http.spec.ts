@@ -349,7 +349,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect(page.fixtures).toHaveLength(1);
     expect(page.fixtures[0]).toMatchObject({ status: 'scheduled', score: null, round: 'Matchday' });
 
-    expect(page.leaders.coverage).toBe('available');
+    // Four goals scored (3-1), three named by incidents: possibly short (T-1441).
+    expect(page.leaders.coverage).toBe('limited');
+    expect(page.leaders_source).toBe('recorded');
     expect(page.leaders.data).toEqual([
       {
         // Nothing stored for either: said so (T-1320).
@@ -360,6 +362,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
           crest: { coverage: 'not_supplied', url: null },
         },
         goals: 2,
+        appearances: 2,
         minutes: {
           coverage: 'available',
           total: 180,
@@ -380,6 +383,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
           crest: { coverage: 'not_supplied', url: null },
         },
         goals: 1,
+        appearances: 1,
         minutes: {
           coverage: 'not_supplied',
           total: null,

@@ -1,0 +1,99 @@
+{
+  "name": "transfers-haaland",
+  "recordedAt": "2026-10-21T16:47:30.000Z",
+  "note": "Read-only, from the production API container on the Ultra plan (T-1440). The whole answer, as served.",
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://v3.football.api-sports.io/transfers?player=1100",
+      "status": 200,
+      "body": {
+        "get": "transfers",
+        "parameters": {
+          "player": "1100"
+        },
+        "errors": [],
+        "results": 1,
+        "paging": {
+          "current": 1,
+          "total": 1
+        },
+        "response": [
+          {
+            "player": {
+              "id": 1100,
+              "name": "E. Haaland"
+            },
+            "update": "2025-07-29T11:42:35+00:00",
+            "transfers": [
+              {
+                "date": "2022-07-01",
+                "type": "€ 75M",
+                "teams": {
+                  "in": {
+                    "id": 50,
+                    "name": "Manchester City",
+                    "logo": "https://media.api-sports.io/football/teams/50.png"
+                  },
+                  "out": {
+                    "id": 165,
+                    "name": "Borussia Dortmund",
+                    "logo": "https://media.api-sports.io/football/teams/165.png"
+                  }
+                }
+              },
+              {
+                "date": "2020-01-01",
+                "type": "€ 20M",
+                "teams": {
+                  "in": {
+                    "id": 165,
+                    "name": "Borussia Dortmund",
+                    "logo": "https://media.api-sports.io/football/teams/165.png"
+                  },
+                  "out": {
+                    "id": 571,
+                    "name": "Red Bull Salzburg",
+                    "logo": "https://media.api-sports.io/football/teams/571.png"
+                  }
+                }
+              },
+              {
+                "date": "2019-01-01",
+                "type": "€ 5M",
+                "teams": {
+                  "in": {
+                    "id": 571,
+                    "name": "Red Bull Salzburg",
+                    "logo": "https://media.api-sports.io/football/teams/571.png"
+                  },
+                  "out": {
+                    "id": 329,
+                    "name": "Molde",
+                    "logo": "https://media.api-sports.io/football/teams/329.png"
+                  }
+                }
+              },
+              {
+                "date": "2017-02-01",
+                "type": "N/A",
+                "teams": {
+                  "in": {
+                    "id": 329,
+                    "name": "Molde",
+                    "logo": "https://media.api-sports.io/football/teams/329.png"
+                  },
+                  "out": {
+                    "id": 2142,
+                    "name": "Bryne",
+                    "logo": "https://media.api-sports.io/football/teams/2142.png"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

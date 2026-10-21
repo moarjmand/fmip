@@ -2,7 +2,15 @@ import type { Covered } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import type { Scorer } from '../standings/standings.service';
 import { minMinutesOf } from './catalog.controller';
-import { leadersModule, leadersWithMinutes, reachesFloor } from './internal/leaders';
+import {
+  appearancesOf,
+  candidatesForTop,
+  leadersModule,
+  leadersWithMinutes,
+  rankByFigure,
+  reachesFloor,
+  wholeOnlyIfRecorded,
+} from './internal/leaders';
 import { NO_LINEUPS, seasonMinutes } from './internal/player-store';
 
 const scorer = (id: string, goals: number): Scorer => ({
@@ -117,5 +125,85 @@ describe('minMinutesOf (T-824)', () => {
     for (const bad of ['-1', '9.5', 'lots', '10001', '999999']) {
       expect(minMinutesOf(bad)).toEqual({ ok: false });
     }
+  });
+});
+
+describe('rankByFigure (T-1441)', () => {
+  const row = (id: string, name: string, goals: number) => ({ person: { id, name }, goals });
+  const apps = new Map([
+    ['a', seasonMinutes(30, 30, 2700)],
+    ['b', seasonMinutes(12, 12, 1000)],
+    ['c', seasonMinutes(12, 12, 1100)],
+  ]);
+
+  it('orders by the figure, then fewer appearances, then name', () => {
+    const rows = [row('a', 'Zed', 9), row('b', 'Yan', 9), row('c', 'Abe', 9), row('d', 'Top', 10)];
+    expect(rankByFigure(rows, (r) => r.goals, apps).map((r) => r.person.id)).toEqual([
+      'd', // most goals
+      'c', // 9 goals in 12 matches, level with b: "Abe" before "Yan"
+      'b',
+      'a', // 9 goals in 30 matches
+    ]);
+  });
+
+  it('puts a player whose appearances are not recorded after those whose are, then by name', () => {
+    const rows = [row('x', 'Ann', 5), row('b', 'Bea', 5), row('y', 'Cal', 5)];
+    expect(rankByFigure(rows, (r) => r.goals, apps).map((r) => r.person.id)).toEqual([
+      'b',
+      'x',
+      'y',
+    ]);
+  });
+
+  it('falls back to the id so the order never depends on the query', () => {
+    const rows = [row('2', 'Same', 3), row('1', 'Same', 3)];
+    expect(rankByFigure(rows, (r) => r.goals, new Map()).map((r) => r.person.id)).toEqual([
+      '1',
+      '2',
+    ]);
+  });
+
+  it('does not change its input', () => {
+    const rows = [row('a', 'A', 1), row('b', 'B', 2)];
+    rankByFigure(rows, (r) => r.goals, new Map());
+    expect(rows.map((r) => r.person.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('candidatesForTop (T-1441)', () => {
+  const figures = [5, 4, 4, 4, 3, 1];
+  it('keeps every row tied at the cut-off, so the tie-break can choose among them', () => {
+    expect(candidatesForTop(figures, (n) => n, 2)).toEqual([5, 4, 4, 4]);
+  });
+  it('keeps all rows when there are no more than the limit', () => {
+    expect(candidatesForTop(figures, (n) => n, 10)).toEqual(figures);
+  });
+  it('cuts cleanly where the limit falls between figures', () => {
+    expect(candidatesForTop(figures, (n) => n, 1)).toEqual([5]);
+  });
+});
+
+describe('appearancesOf (T-1441)', () => {
+  it('is the matches played, and null when no line-up names the player', () => {
+    expect(appearancesOf(seasonMinutes(7, 7, 600))).toBe(7);
+    expect(appearancesOf(NO_LINEUPS)).toBeNull();
+  });
+});
+
+describe('wholeOnlyIfRecorded (T-1441)', () => {
+  const module: Covered<number[]> = { coverage: 'available', last_updated_at: null, data: [1] };
+  it('downgrades to limited when fewer goals are recorded than the scores add up to', () => {
+    expect(wholeOnlyIfRecorded(module, { scoredGoals: 10, recordedGoals: 9 }).coverage).toBe(
+      'limited',
+    );
+  });
+  it('leaves a fully recorded season as it was declared', () => {
+    expect(wholeOnlyIfRecorded(module, { scoredGoals: 10, recordedGoals: 10 }).coverage).toBe(
+      'available',
+    );
+  });
+  it('never upgrades or touches a module that is already less than available', () => {
+    const delayed: Covered<number[]> = { ...module, coverage: 'delayed' };
+    expect(wholeOnlyIfRecorded(delayed, { scoredGoals: 10, recordedGoals: 0 })).toBe(delayed);
   });
 });

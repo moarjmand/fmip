@@ -37,6 +37,7 @@ const PERSIAN_CLUBS_CUPS = '1765869000000_persian-club-names-cups.sql';
 const PERSIAN_CLUBS_FA_CUP = '1765870000000_persian-club-names-fa-cup.sql';
 const PERSIAN_CLUBS_EUROPE_LEAGUES = '1765871000000_persian-club-names-europe-leagues.sql';
 const PERSIAN_CLUBS_WORLD = '1765872000000_persian-club-names-world.sql';
+const PERSIAN_NATIONAL_TEAMS = '1765885000000_persian-national-team-names.sql';
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
   '?locale= on every surface',
@@ -472,6 +473,70 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         }
       },
     );
+
+    it("writes the Persian national-team names by the provider's id, for senior men's sides only (T-1443)", async () => {
+      // The up section, rolled back: a senior men's side mapped to Germany's
+      // id, a namesake under another id, a women's side under Brazil's id and
+      // a club under Argentina's id. Only the first is named.
+      const sql = readFileSync(
+        join(
+          __dirname,
+          '..',
+          '..',
+          '..',
+          '..',
+          '..',
+          'packages',
+          'db',
+          'migrations',
+          PERSIAN_NATIONAL_TEAMS,
+        ),
+        'utf8',
+      );
+      const up = sql.slice(0, sql.indexOf('-- Down Migration'));
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const { rowCount } = await client.query(
+          `SELECT 1 FROM provider_mapping
+            WHERE provider = 'api_football' AND entity_type = 'team' AND external_id = ANY($1::text[])`,
+          [['25', '999925', '6', '26']],
+        );
+        if (rowCount !== 0) return;
+        const germany = randomUUID();
+        const namesake = randomUUID();
+        const women = randomUUID();
+        const club = randomUUID();
+        await client.query(
+          `INSERT INTO team (id, name, kind, gender, country_id) VALUES
+           ($1, 'Germany', 'national', 'men', $5), ($2, 'Germany', 'national', 'men', $5),
+           ($3, 'Brazil W', 'national', 'women', $5), ($4, 'Argentina', 'club', 'men', NULL)`,
+          [germany, namesake, women, club, SPAIN],
+        );
+        await client.query(
+          `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id) VALUES
+           ('api_football', 'team', '25', $1), ('api_football', 'team', '999925', $2),
+           ('api_football', 'team', '6', $3), ('api_football', 'team', '26', $4)`,
+          [germany, namesake, women, club],
+        );
+        await client.query(up);
+        const { rows } = await client.query<{ entity_id: string; alias: string }>(
+          `SELECT entity_id::text, alias FROM entity_alias
+            WHERE entity_id = ANY($1::uuid[]) AND kind = 'name' AND language = 'fa'`,
+          [[germany, namesake, women, club]],
+        );
+        expect(rows).toEqual([{ entity_id: germany, alias: 'آلمان' }]);
+        await client.query(up);
+        const again = await client.query(
+          `SELECT 1 FROM entity_alias WHERE entity_id = $1 AND kind = 'name' AND language = 'fa'`,
+          [germany],
+        );
+        expect(again.rowCount).toBe(1);
+      } finally {
+        await client.query('ROLLBACK');
+        client.release();
+      }
+    });
 
     it('keeps the canonical names without a locale, and with one nobody has written', async () => {
       for (const locale of ['', 'de-x', '!!']) {

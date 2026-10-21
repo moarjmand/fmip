@@ -942,7 +942,22 @@ function PlayerRow({
           </span>
         )}
         {minutes && (
-          <MinutesFigure locale={locale} minutes={row.minutes} className="text-xs text-muted" />
+          <span className="flex flex-wrap items-baseline gap-x-2 text-xs text-muted">
+            <span data-testid="appearances">
+              {row.appearances === null ? (
+                <span className="italic">
+                  <Translated locale={locale} message="competition.leaders.appearancesNone" />
+                </span>
+              ) : (
+                <Translated
+                  locale={locale}
+                  message="competition.leaders.appearances"
+                  count={row.appearances}
+                />
+              )}
+            </span>
+            <MinutesFigure locale={locale} minutes={row.minutes} className="text-xs text-muted" />
+          </span>
         )}
       </span>
       {figure}
@@ -986,6 +1001,19 @@ export function ScorerList({
   );
 }
 
+/**
+ * Said above the Players tab when its tables are the provider's season totals
+ * and not our own count (T-1441, D-232): which source, and that it lists only
+ * the players the provider has been asked about, so a leader may be missing.
+ */
+export function ProviderTotalsNote({ locale }: { locale: string }) {
+  return (
+    <p className="text-sm text-muted lg:col-span-2" data-testid="leaders-provider-totals">
+      <Translated locale={locale} message="competition.leaders.providerTotals" />
+    </p>
+  );
+}
+
 /** The boards beyond goals (T-943), in the order the page shows them. */
 export const BOARDS = [
   {
@@ -1001,10 +1029,16 @@ export const BOARDS = [
     none: 'competition.boards.noCleanSheets',
   },
   {
-    key: 'cards',
-    testId: 'board-cards',
-    title: 'competition.boards.cards',
-    none: 'competition.boards.noCards',
+    key: 'yellow_cards',
+    testId: 'board-yellow-cards',
+    title: 'competition.boards.yellowCards',
+    none: 'competition.boards.noYellowCards',
+  },
+  {
+    key: 'red_cards',
+    testId: 'board-red-cards',
+    title: 'competition.boards.redCards',
+    none: 'competition.boards.noRedCards',
   },
 ] as const;
 
@@ -1033,7 +1067,7 @@ export function BoardList({
   );
 }
 
-/** A board row's own figure: assists, clean sheets over starts in goal, or reds and yellows. */
+/** A board row's own figure: assists, clean sheets over starts in goal, yellows or reds. */
 function BoardFigure({
   locale,
   row,
@@ -1060,21 +1094,11 @@ function BoardFigure({
       </span>
     );
   }
-  if ('red_cards' in row) {
-    return (
-      <span className="flex items-baseline gap-3 text-sm tabular-nums">
-        <span>
-          <Translated locale={locale} message="competition.boards.red" count={row.red_cards} />
-        </span>
-        <span>
-          <Translated
-            locale={locale}
-            message="competition.boards.yellow"
-            count={row.yellow_cards}
-          />
-        </span>
-      </span>
-    );
+  if (board === 'yellow_cards' && 'yellow_cards' in row) {
+    return <Figure locale={locale} value={row.yellow_cards} />;
+  }
+  if (board === 'red_cards' && 'red_cards' in row) {
+    return <Figure locale={locale} value={row.red_cards} />;
   }
   return null;
 }

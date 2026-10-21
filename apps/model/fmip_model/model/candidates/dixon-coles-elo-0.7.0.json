@@ -1,0 +1,104 @@
+{
+  "name": "dixon-coles-elo",
+  "version": "0.7.0",
+  "history_days": 1100,
+  "elo_prior": "own",
+  "source": "T-1442, D-233: 0.6.0 (every constant, the window, our own Elo as the prior and the cross-league fit unchanged) forecasting eleven more divisions, each judged against uniform by python -m fmip_model.backtest.new_divisions over 2025-07-01..2026-10-20 (reports/dixon-coles-elo-0.7.0): from football-data.co.uk, Greece (G1, a main file) and the extra leagues Switzerland (CH1), Denmark (DK1), MLS (US1), Brazil (BR1) and Argentina (AR1); from our own records (D-083), Czechia (CZ1), Croatia (HR1), Serbia (RS1), Saudi Arabia (SA1) and the UAE (AE1). They fit with 0.6.0's default xi and ridge, except where those failed and backtest.tune's method (T-1372) chose a pair on 2024/25 that also won on the window: DK1 and AR1. Austria (AT1), Poland (PL1) and Qatar (QA1) failed even so and are not forecast; their entries keep the pair they were judged with.",
+  "divisions": [
+    "E0",
+    "E1",
+    "SP1",
+    "D1",
+    "I1",
+    "F1",
+    "N1",
+    "P1",
+    "T1",
+    "B1",
+    "SC0",
+    "IR1",
+    "XL",
+    "G1",
+    "CH1",
+    "DK1",
+    "US1",
+    "BR1",
+    "AR1",
+    "CZ1",
+    "HR1",
+    "RS1",
+    "SA1",
+    "AE1"
+  ],
+  "per_division": {
+    "E0": {
+      "xi": 0.002,
+      "ridge": 0.003
+    },
+    "SP1": {
+      "xi": 0.003,
+      "ridge": 0.3
+    },
+    "D1": {
+      "xi": 0.001,
+      "ridge": 0.3
+    },
+    "I1": {
+      "xi": 0.001,
+      "ridge": 0.3
+    },
+    "F1": {
+      "xi": 0.003,
+      "ridge": 0.3
+    },
+    "N1": {
+      "xi": 0.003,
+      "ridge": 0.3
+    },
+    "P1": {
+      "xi": 0.0005,
+      "ridge": 0.3
+    },
+    "T1": {
+      "xi": 0.004,
+      "ridge": 0.01
+    },
+    "B1": {
+      "xi": 0.003,
+      "ridge": 0.3
+    },
+    "SC0": {
+      "xi": 0.001,
+      "ridge": 0.3
+    },
+    "IR1": {
+      "xi": 0.002,
+      "ridge": 3
+    },
+    "AT1": {
+      "xi": 0.002,
+      "ridge": 3
+    },
+    "DK1": {
+      "xi": 0.001,
+      "ridge": 3
+    },
+    "QA1": {
+      "xi": 0.002,
+      "ridge": 0.3
+    },
+    "PL1": {
+      "xi": 0.001,
+      "ridge": 0.3
+    },
+    "AR1": {
+      "xi": 0.001,
+      "ridge": 0.3
+    }
+  },
+  "cross_league": {
+    "xi": 0.0005,
+    "team_ridge": 4,
+    "group_ridge": 0.001
+  }
+}

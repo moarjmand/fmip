@@ -430,6 +430,79 @@ describe('a club’s match row', () => {
   });
 });
 
+describe("the band's head coach (T-1439, D-230)", () => {
+  const NO_MEDIA = { coverage: 'not_supplied', url: null } as const;
+  const lineupCoach = {
+    coach: {
+      coverage: 'available' as const,
+      last_updated_at: null,
+      data: { id: 'p-pep', name: 'Pep Guardiola' },
+    },
+    lineup_fixture: { id: 'f-0', kickoff_at: '2026-10-18T14:00:00.000Z' },
+  };
+  const band = (p: TeamPage, locale = 'en') =>
+    renderToStaticMarkup(
+      <ClubBand
+        page={p}
+        locale={locale}
+        timeZone="UTC"
+        tab="overview"
+        follow={null}
+        territory={undefined}
+      />,
+    );
+
+  it('links the head coach to his page, and says when the latest line-up names another', () => {
+    const html = band(
+      page({
+        manager: lineupCoach,
+        head_coach: {
+          coverage: 'available',
+          last_updated_at: '2026-10-21T10:00:00.000Z',
+          data: {
+            person: { id: 'p-maresca', name: 'Enzo Maresca', photo: NO_MEDIA },
+            since: '2026-08-01',
+            lineup_disagrees: true,
+          },
+        },
+      }),
+    );
+    expect(html).toContain('Head coach');
+    expect(html).toContain('href="/en/coach/p-maresca"');
+    expect(html).toContain('since 2026-08-01');
+    expect(html).toContain('The latest line-up names Pep Guardiola as coach');
+    expect(html).not.toContain('data-testid="manager"');
+    expect(
+      band(
+        page({
+          manager: lineupCoach,
+          head_coach: {
+            coverage: 'available',
+            last_updated_at: null,
+            data: {
+              person: { id: 'p-maresca', name: 'انزو مارسکا', photo: NO_MEDIA },
+              since: null,
+              lineup_disagrees: false,
+            },
+          },
+        }),
+        'fa',
+      ),
+    ).toContain('سرمربی');
+  });
+
+  it("falls back to the line-up's coach, linked to the coach page, without a head coach", () => {
+    for (const headCoach of [
+      undefined,
+      { coverage: 'not_supplied' as const, last_updated_at: null, data: null },
+    ]) {
+      const html = band(page({ manager: lineupCoach, head_coach: headCoach }));
+      expect(html).toContain('href="/en/coach/p-pep"');
+      expect(html).not.toContain('data-testid="head-coach"');
+    }
+  });
+});
+
 describe('the squad', () => {
   it('shows the cards with the squad’s coverage, and says when positions or numbers are missing', () => {
     const html = renderToStaticMarkup(

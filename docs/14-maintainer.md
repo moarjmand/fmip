@@ -287,6 +287,55 @@ division another source already holds is refused. The model service reloads
 such a division once a day before its first fit, so new results arrive without
 a weekly step.
 
+**Fourteen more leagues (T-1442, D-233).** Greece is a football-data.co.uk
+main file (`G1`); Austria, Switzerland, Denmark, Poland, MLS, Brazil and
+Argentina are its "extra leagues", one file per country with every season;
+Czechia, Croatia, Serbia, Saudi Arabia, Qatar and the UAE come from our own
+records. Load them, say which division each competition is, write the bridge,
+and check it:
+
+```bash
+docker compose run --rm model python -m fmip_model.training.load football-data \
+  --seasons 2021 2122 2223 2324 2425 2526 2627 --divisions G1
+docker compose run --rm model python -m fmip_model.training.load football-data-extra \
+  --divisions AT1 CH1 DK1 PL1 US1 BR1 AR1 --since 2020/21
+
+catalog --set-division --competition 197 --division G1  --by you@your-domain
+catalog --set-division --competition 218 --division AT1 --by you@your-domain
+catalog --set-division --competition 207 --division CH1 --by you@your-domain
+catalog --set-division --competition 119 --division DK1 --by you@your-domain
+catalog --set-division --competition 106 --division PL1 --by you@your-domain
+catalog --set-division --competition 253 --division US1 --by you@your-domain
+catalog --set-division --competition 71  --division BR1 --by you@your-domain
+catalog --set-division --competition 128 --division AR1 --by you@your-domain
+catalog --alias-training --by you@your-domain
+
+for pair in 345:CZ1 210:HR1 286:RS1 307:SA1 305:QA1 301:AE1; do
+  catalog --set-division --competition ${pair%%:*} --division ${pair##*:} --by you@your-domain
+done
+docker compose run --rm -T model python -m fmip_model.training.load records \
+  --divisions CZ1 HR1 RS1 SA1 QA1 AE1
+```
+
+`--alias-training` should report every newest-season result of the eight
+football-data divisions agreeing with ours. After a promotion, the club's
+line comes from the results themselves, never from a name that looks alike:
+
+```bash
+docker compose run --rm -T model python -m fmip_model.training.aliases propose --division AT1
+```
+
+prints the list's lines for the clubs whose stored results line up with our
+fixtures, and names on stderr the ones it could not place; read them, then add
+the lines to `packages/db/scripts/data/training-aliases.csv`. The model
+service reloads an extra league's file once a day from its newest stored
+season, as it reloads our records; Greece's file is loaded each week with the
+other main files. The published version does not forecast these leagues: its
+successor `dixon-coles-elo@0.7.0` forecasts eleven of them in shadow until its
+record before kick-off earns its promotion (D-191). Austria, Poland and Qatar
+did not pass its backtest; they are loaded, and stay "not in the model's
+training" on the site until a later version passes them.
+
 **Phase 6's eight competitions (T-502, T-503), as run on 2026-09-26.** The ids,
 dates and divisions are the provider's and football-data.co.uk's on that day;
 the alias list already carries the six leagues' clubs:
