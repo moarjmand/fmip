@@ -84,55 +84,6 @@ export type LeagueZones =
       reason: 'not_a_league' | 'no_division' | 'season_not_listed';
     };
 
-const SEASON = /^\d{4}\/\d{2}$/;
-const DIVISION = /^[A-Z]{1,2}[0-9C]$/;
-const COUNTRY = /^[A-Z]{3}$/;
-
-/** What identifies an entry in messages: its division or its country. */
-const keyOf = (e: LeagueZoneEntry): string => e.division ?? `${e.country ?? '?'}`;
-
-/**
- * Every way the list can be wrong, as sentences; empty when it is sound. A
- * place past the table's size, bands that overlap, a band upside down, a
- * repeated key or a source that is not an https address all fail.
- */
-export function leagueZoneProblems(entries: readonly LeagueZoneEntry[]): string[] {
-  const problems: string[] = [];
-  const seen = new Set<string>();
-  for (const e of entries) {
-    const key = `${keyOf(e)} ${e.season}`;
-    if ((e.division === undefined) === (e.country === undefined))
-      problems.push(`${key}: exactly one of division and country is needed`);
-    if (e.division !== undefined && !DIVISION.test(e.division))
-      problems.push(`${key}: division is not a code`);
-    if (e.country !== undefined && !COUNTRY.test(e.country))
-      problems.push(`${key}: country is not a three-letter code`);
-    if (!SEASON.test(e.season)) problems.push(`${key}: season is not a label like 2025/26`);
-    if (seen.has(key)) problems.push(`${key}: listed twice`);
-    seen.add(key);
-    if (!Number.isInteger(e.teams) || e.teams < 2)
-      problems.push(`${key}: teams must be at least 2`);
-    if (e.sources.length === 0) problems.push(`${key}: no source`);
-    for (const s of e.sources) {
-      if (!s.startsWith('https://')) problems.push(`${key}: source ${s} is not https`);
-    }
-    const taken = new Set<number>();
-    for (const z of e.zones) {
-      if (!(LEAGUE_ZONE_KINDS as readonly string[]).includes(z.kind))
-        problems.push(`${key}: unknown kind ${z.kind}`);
-      if (!Number.isInteger(z.from) || !Number.isInteger(z.to) || z.from < 1 || z.to < z.from)
-        problems.push(`${key}: ${z.kind} ${z.from}-${z.to} is not a band`);
-      if (z.to > e.teams)
-        problems.push(`${key}: ${z.kind} reaches place ${z.to} of a ${e.teams}-club table`);
-      for (let p = z.from; p <= z.to; p += 1) {
-        if (taken.has(p)) problems.push(`${key}: place ${p} is in two zones`);
-        taken.add(p);
-      }
-    }
-  }
-  return problems;
-}
-
 /**
  * The competition as the lookup reads it. `country` is the FIFA trigram of a
  * senior men's domestic league and is left null for anything else; `tier` is
@@ -160,7 +111,11 @@ export function leagueZonesFor(
   const country = competition.country ?? null;
   const topFlight =
     competition.tier === undefined || competition.tier === null || competition.tier === 1;
-  if (competition.division === null && (country === null || !topFlight))
+  // Neither key finds anything in the list for this competition (rule 3).
+  if (
+    competition.division === null &&
+    (country === null || !topFlight || !entries.some((x) => x.country === country))
+  )
     return { state: 'not_listed', reason: 'no_division' };
   const e =
     entries.find(

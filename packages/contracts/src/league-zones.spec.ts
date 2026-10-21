@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { leagueZoneProblems } from './league-zones-check';
 import {
   type LeagueZoneEntry,
   type ZoneCompetition,
-  leagueZoneProblems,
   leagueZonesFor,
   zoneOfPlace,
 } from './league-zones';
@@ -161,6 +161,11 @@ describe('leagueZonesFor', () => {
     expect(leagueZonesFor(byCountry, league({}), '2025/26')).toEqual({
       state: 'not_listed',
       reason: 'season_not_listed',
+    });
+    // A country the list never names has no key at all, as a league without a division had.
+    expect(leagueZonesFor(byCountry, league({ country: 'NED' }), '2026/27')).toEqual({
+      state: 'not_listed',
+      reason: 'no_division',
     });
     // A division with an entry wins over the country.
     const both = [entry({ division: 'B1', season: '2026/27', teams: 18, zones: [] }), ...byCountry];

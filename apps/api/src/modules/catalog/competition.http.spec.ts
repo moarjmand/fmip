@@ -475,6 +475,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     }
   });
 
+  it('reads a league the model does not hold by its country, never a second tier (T-1444, D-234)', async () => {
+    const get = async () =>
+      (
+        await app.inject({ method: 'GET', url: `/competitions/${COMPETITION}` })
+      ).json() as CompetitionPage;
+    await pool.query(
+      `UPDATE competition SET country_id = (SELECT id FROM country WHERE code = 'KSA') WHERE id = $1`,
+      [COMPETITION],
+    );
+    try {
+      // The selected season is 2025/26, and Saudi Arabia's entry is for that season.
+      const listed = (await get()).zones;
+      expect(listed).toMatchObject({ state: 'listed', teams: 18 });
+      if (listed.state !== 'listed') throw new Error('unreachable');
+      expect(listed.zones).toContainEqual({ kind: 'relegation', from: 16, to: 18 });
+      await pool.query(`UPDATE competition SET tier = 2 WHERE id = $1`, [COMPETITION]);
+      expect((await get()).zones).toEqual({ state: 'not_listed', reason: 'no_division' });
+    } finally {
+      await pool.query(`UPDATE competition SET country_id = $2, tier = NULL WHERE id = $1`, [
+        COMPETITION,
+        ENGLAND,
+      ]);
+    }
+  });
+
   it('answers 404 for an unknown competition or a season that is not its own', async () => {
     expect(
       (await app.inject({ method: 'GET', url: `/competitions/${randomUUID()}` })).statusCode,
