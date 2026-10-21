@@ -147,6 +147,11 @@ export interface BoxScoreFeedRun {
   unmatched: { team_unmapped: number; no_fixture: number; ambiguous: number };
   /** Players the stored box scores listed that are not yet mapped to ours: queued for review. */
   players_unresolved: number;
+  /**
+   * Players mapped this run by the line-up rule (T-1436, D-227): same match,
+   * same side, our line-up's shirt, and the name agrees.
+   */
+  players_linked: number;
   requests: number;
   /** Why the run stopped early: the shared daily ceiling (`quota`) or this run's batch, or null. */
   stopped: 'quota' | 'batch' | null;

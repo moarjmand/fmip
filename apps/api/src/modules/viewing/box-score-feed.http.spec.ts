@@ -18,7 +18,8 @@ import { ViewingModule } from './viewing.module';
  * found on the source's list through the mapping table, its box score asked
  * once, each player placed through `provider_mapping` (never a name), the
  * figures stored as their own source with the record of the answer; an
- * unmapped player is queued for review with the line-up's shirt as a hint; a
+ * unmapped player is queued for review with the line-up's shirt as a hint,
+ * and mapped by the line-up rule only when the name agrees too (T-1436); a
  * box score with players unplaced is asked again only after the re-ask
  * interval, and replaced whole; the schema refuses what the rules refuse.
  *
@@ -58,7 +59,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the box-scor
   const competition = randomUUID();
   const season = randomUUID();
   const teams = [randomUUID(), randomUUID()];
-  const people = { scorer: randomUUID(), keeper: randomUUID(), stranger: randomUUID() };
+  const people = {
+    scorer: randomUUID(),
+    keeper: randomUUID(),
+    stranger: randomUUID(),
+    bench: randomUUID(),
+  };
   const fixture = randomUUID();
   const kickoff = new Date(Date.now() - 5 * 60 * 60 * 1000);
   kickoff.setUTCMilliseconds(0);
@@ -148,14 +154,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the box-scor
       `INSERT INTO team (id, name, kind, gender) VALUES ($1, $3, 'club', 'men'), ($2, $4, 'club', 'men')`,
       [teams[0], teams[1], `Home ${RUN}`, `Away ${RUN}`],
     );
-    await pool.query(`INSERT INTO person (id, full_name) VALUES ($1, $4), ($2, $5), ($3, $6)`, [
-      people.scorer,
-      people.keeper,
-      people.stranger,
-      `Scorer ${RUN}`,
-      `Keeper ${RUN}`,
-      `Stranger ${RUN}`,
-    ]);
+    // The stranger's name on our side is not the one the source gives: the shirt alone maps nobody.
+    await pool.query(
+      `INSERT INTO person (id, full_name) VALUES ($1, $5), ($2, $6), ($3, $7), ($4, $8)`,
+      [
+        people.scorer,
+        people.keeper,
+        people.stranger,
+        people.bench,
+        `Scorer ${RUN}`,
+        `Keeper ${RUN}`,
+        `Outsider ${RUN}`,
+        `Billy Bench ${RUN}`,
+      ],
+    );
     await pool.query(
       `INSERT INTO fixture (id, season_id, round, kickoff_at, status)
        VALUES ($1, $2, 'Round 7', $3, 'finished')`,
@@ -198,7 +210,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the box-scor
     await pool.query(`DELETE FROM fixture WHERE id = $1`, [fixture]);
     await pool.query(
       `DELETE FROM provider_mapping WHERE provider = 'highlightly' AND external_id = ANY($1::text[])`,
-      [[LEAGUE, HOME, AWAY, SCORER, KEEPER, STRANGER]],
+      [[LEAGUE, HOME, AWAY, SCORER, KEEPER, STRANGER, BENCH]],
     );
     await pool.query(
       `DELETE FROM unresolved_entity WHERE provider = 'highlightly' AND external_id = ANY($1::text[])`,
@@ -307,6 +319,41 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the box-scor
       { person_id: people.stranger, metric: 'xg', value: 0.2, source: 'highlightly' },
     ]);
     expect(after.filter((r) => r.person_id === people.scorer && r.metric === 'xg')).toHaveLength(1);
+  });
+
+  it('maps a player by the line-up rule when the match, side, shirt and name agree (T-1436)', async () => {
+    // Our line-up puts Billy Bench in the home shirt 14 the source gives "B. Bench".
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture_participant WHERE fixture_id = $1 AND side = 'home'`,
+      [fixture],
+    );
+    await pool.query(
+      `INSERT INTO lineup (participant_id, person_id, role, shirt_number) VALUES ($1, $2, 'bench', 14)`,
+      [rows[0]!.id, people.bench],
+    );
+    await pool.query(
+      `UPDATE fixture_box_score SET fetched_at = now() - interval '13 hours' WHERE fixture_id = $1`,
+      [fixture],
+    );
+    expect(await jobs.run()).toMatchObject({
+      asked: 1,
+      stored: 1,
+      players_linked: 1,
+      players_unresolved: 0,
+    });
+    const mapped = await pool.query<{ internal_id: string }>(
+      `SELECT internal_id FROM provider_mapping
+        WHERE provider = 'highlightly' AND entity_type = 'person' AND external_id = $1`,
+      [BENCH],
+    );
+    expect(mapped.rows).toEqual([{ internal_id: people.bench }]);
+    const queue = await pool.query<{ status: string }>(
+      `SELECT status FROM unresolved_entity
+        WHERE provider = 'highlightly' AND entity_type = 'person' AND external_id = $1`,
+      [BENCH],
+    );
+    expect(queue.rows).toEqual([{ status: 'resolved' }]);
+    // A substitute who never came on has no figures to keep; the mapping is what the rule adds.
   });
 
   it('refuses, in the schema, another source, an unknown metric, and a negative expectation', async () => {

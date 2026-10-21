@@ -17,6 +17,55 @@ export const BOX_SCORE_DEFAULT_BATCH = 60;
  */
 export const REASK_AFTER_HOURS = 12;
 
+/** Who the line-up rule's mappings are recorded as (T-1436, D-227); the audit trail names it. */
+export const LINEUP_RULE_ACTOR = 'rule:box-score-lineup';
+
+/** Particles and suffixes that two different people's names share too often to prove anything. */
+const NAME_NOISE = new Set([
+  'al',
+  'bin',
+  'da',
+  'das',
+  'de',
+  'del',
+  'den',
+  'der',
+  'di',
+  'do',
+  'dos',
+  'du',
+  'el',
+  'ibn',
+  'jr',
+  'junior',
+  'la',
+  'le',
+  'van',
+  'von',
+]);
+
+function nameWords(name: string): Set<string> {
+  const folded = name.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+  return new Set(
+    folded.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 2 && !NAME_NOISE.has(w)),
+  );
+}
+
+/**
+ * Whether the source's name for a player agrees with a name we hold for the
+ * person our line-up puts in the same shirt (T-1436, D-227): they share a
+ * word once accents, case, initials and particles are set aside ("D.
+ * Frattesi" and "Davide Frattesi", "Vinícius Júnior" and "Vinicius Jr."). The
+ * match, the side and the shirt do the identifying; the name is the check that
+ * the shirt was not worn by someone else, so a disagreement leaves the player
+ * for review.
+ */
+export function namesAgree(sourceName: string, ours: readonly string[]): boolean {
+  const theirs = nameWords(sourceName);
+  if (theirs.size === 0) return false;
+  return ours.some((name) => [...nameWords(name)].some((word) => theirs.has(word)));
+}
+
 /** The injection token for the batch, read from the environment once at boot. */
 export const BOX_SCORE_BATCH = Symbol('BOX_SCORE_BATCH');
 
