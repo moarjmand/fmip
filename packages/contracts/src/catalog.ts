@@ -5,6 +5,7 @@
  * and player pages follow.
  */
 
+import type { TeamHeadCoach } from './coaches';
 import type { CoverageState, Covered } from './coverage';
 import type { LeagueZones } from './league-zones';
 import type { EntityMedia } from './media';
@@ -598,6 +599,12 @@ export interface TeamPage {
   splits: TeamCompetitionSplits[];
   /** The coach named on the team's most recent line-up (T-944, D-119). */
   manager: TeamManager;
+  /**
+   * The head coach by the provider's coaches endpoint (T-1439, D-230).
+   * Optional: an API older than T-1439 does not send it, which reads as
+   * `not_supplied`.
+   */
+  head_coach?: Covered<TeamHeadCoach>;
   /**
    * Where the club plays at home this season when no home ground is recorded
    * for it (`team.venue` null; T-1394, D-209): the ground most of its home

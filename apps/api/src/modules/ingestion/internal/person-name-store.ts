@@ -53,6 +53,11 @@ export class PersonNameStore implements PersonNamesStore {
           AND f.answered_at IS NULL
           AND (f.asked_at IS NULL OR f.asked_at < $2)
           AND (f.attempts IS NULL OR f.attempts < $3)
+          -- A coach is not asked for a player's profile: his number is in the
+          -- provider's coach id space (T-1439, D-230), and the same number is
+          -- another man's player profile.
+          AND NOT EXISTS (SELECT 1 FROM fixture_participant fp WHERE fp.coach_id = p.id)
+          AND NOT EXISTS (SELECT 1 FROM coach_spell cs WHERE cs.person_id = p.id)
           AND NOT EXISTS (
             SELECT 1 FROM audit_log a
              WHERE a.target_type = 'person' AND a.target_id = p.id::text

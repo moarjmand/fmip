@@ -11409,6 +11409,274 @@ name check and goes to review.
 source's numbering would map the wrong person silently. *Reviewing every
 player by hand*: 1,319 players on the first day.
 
+## D-228 — A team's season statistics as the provider counts them, beside our own table, with shoot-out-polluted figures withheld
+
+**Status:** Accepted · 2026-10-21 (agent; one of the data items the maintainer asked for on 2026-10-21 to use the Ultra plan fully) · **Task:** T-1437 · **Follows:** D-014, D-183, D-223
+
+**Context.** The team page's table and home-and-away figures are computed
+from the matches we ingest. API-Football's `/teams/statistics?league=&season=&team=`
+adds what our matches alone do not hold in one place: goals by band of
+minutes, clean sheets, failure to score, penalties scored and missed, the
+biggest wins and defeats, the longest runs and the formations used. Recorded
+answers (`_fixtures/api-football-team-statistics/`) showed two traps: a
+league's minute bands miss its own goal total by a goal or two (68 for 69),
+and a cup's count the kicks of a penalty shoot-out -- FA Cup 2024/25 has 12
+goals in the bands for 4 scored, 8 of them under "106-120", and `penalty`
+counts 8 scored of 10.
+
+**Decision.**
+1. **Shown as the provider's.** A module of its own on the team page's Stats
+   tab, titled with the provider's name and its fetch time, below our own
+   home-and-away panels; nothing is added to or compared with our figures.
+2. **One row per team and season**, replaced by each answer
+   (`team_season_stat`), a count the provider left out stored as NULL and
+   shown as a dash. An answer with no statistics (a season of no match)
+   deletes the row and records `supplied = false`, so the page says the
+   provider has none rather than showing zeros.
+3. **Withheld, not corrected.** When the minute bands miss the goal total by
+   more than the larger of two goals and a tenth of the total, the bands and
+   the penalties are both withheld (`bands_withheld`), and the page says why.
+   We do not subtract the shoot-out: the answer does not say how many kicks it
+   counted, and guessing would invent a figure (rule 3).
+4. **Who is asked, and when.** The `team_seasons` job, bulk tier (D-183),
+   every ten minutes, asks for each team with a finished match in a season we
+   hold, team and competition both mapped to the provider (rule 1): a past
+   season once; a current season when never asked, a week after the last
+   answer, and after each match the team played there once it is six hours
+   old. `INGESTION_TEAM_SEASONS_BATCH` (100, at most 200, 0 off), no more than
+   30 seconds a run, asks spaced by `AskPacer`; five unanswered asks in a row
+   and the ask is no longer made.
+5. **Coverage.** `available` for a season given whole; `limited` when a count,
+   the form or the bands are missing or withheld; `not_supplied` before the
+   provider was asked (`asked: false`) or when it has none.
+
+**Cost.** About one request per team and competition season: some 7,000 to
+backfill 2020/21 onwards, then roughly 1,000 a week for current seasons --
+well inside the bulk share of 75,000 a day.
+
+**Rejected.** *Subtracting the shoot-out from the bands*: the kicks' minute
+band and count are not given apart from the goals. *Computing these from our
+own matches*: possible for leagues we ingest fully, but not for past seasons
+before our data or matches without incidents; the provider's figures are
+shown as the provider's instead. *One job with `player_seasons`*: a different
+target (team and season, not player) and refresh rule; a job of its own keeps
+both simple.
+
+## D-229 — Grounds, clubs and the referee from the plan we pay for; the referee is a name, never an entity
+
+**Status:** Accepted · 2026-10-21 (the maintainer: use the API-Football Ultra subscription fully; the referee "as plain name text: no referee entity, no referee page") · **Task:** T-1438 · **Follows:** D-176, D-183, rules 1-3
+
+**Context.** `venue.capacity`, `latitude` and `longitude`, `team.founded_year`
+and `team.home_venue_id` have existed since T-010 and were always empty, and
+`fixture.referee_id` was never set: the adapter read the referee with no id,
+so the resolver dropped it. The plan already answers all of it: `/teams` for a
+competition's season lists every team with its founding year and its home
+ground in full, `/venues` describes one ground, and every fixture answer we
+already get names the referee.
+
+**Decision.**
+1. **Grounds.** `venue` gains `address` and `surface` (`grass`, `artificial`
+   or `hybrid`; the adapter maps the provider's words, anything else is
+   empty). `capacity` is filled. `latitude` and `longitude` stay empty: the
+   provider sends no coordinates, and none is derived. The ground's picture is
+   stored and served by us like a crest (D-176, kind `venue`).
+2. **Clubs.** A held club's `founded_year` and `home_venue_id` come from its
+   entry in a season's `/teams` answer. A national team's entry is read for
+   nothing: its ground and "founded" are its federation's.
+3. **How it is asked.** A second pass of the daily `squads` job, in the bulk
+   tier: each competition season with a match once (one request describes a
+   whole league's clubs and grounds), the current season again after 30 days;
+   then each mapped ground no club answer described, by id, once a month.
+   Paced with `AskPacer`, at most `INGESTION_CLUB_FACTS_BATCH` asks and 60
+   seconds a day. Not a new job: it is the same monthly club data, and a new
+   job name would touch the run table's job list that parallel work changes.
+4. **What is written.** Only teams and grounds `provider_mapping` knows (rule
+   1); others are counted, never created or queued. A fact an answer gives
+   replaces the stored one (a renovated ground, a club that moved); a fact it
+   leaves out is kept. The catalogue's ground name stands; a city is filled
+   only where none is stored.
+5. **The referee** is `fixture.referee_name`, plain text as the provider
+   names him, the ", Country" it appends dropped. No entity, no page, never a
+   key; `referee_id` stays unused. An answer naming nobody keeps the stored
+   name.
+6. **Shown with its coverage.** The match page's ground card is `available`
+   with address, capacity and surface, `limited` with some, `not_supplied`
+   when the provider was asked and gave none, `delayed` when it has not been
+   asked yet; the picture carries its own. The team page already shows the
+   founding year and the ground, and says so when there is no ground.
+
+**Rejected.** *A referee entity and page*: the maintainer's choice; the
+provider gives no referee id, so it would be a name as a key (rule 1).
+*Asking `/teams?id=` per club*: one request a club where one a season
+describes twenty. *Coordinates from a geocoder*: an invented value (rule 3)
+and a new dependency.
+
+## D-230 — Coaches have their own id space; a team's coach and a coach's career come from the provider's coaches list, by our ids only
+
+**Status:** Accepted · 2026-10-21 (agent; one of the data items the maintainer asked for on 2026-10-21 to use the Ultra plan fully, the identity repair under the standing delegation of 2026-09-26) · **Task:** T-1439 · **Follows:** D-079, D-119, D-147, D-176, D-183, D-220
+
+**Context.** Line-ups name a coach (`fixture_participant.coach_id`, about 76%
+of sides); the team page shows the latest line-up's coach as the manager
+(D-119), and nothing says who coaches a club now, since when, or where he
+coached before. API-Football's `/coachs?team=` lists every coach a team has
+had, each with his birth date, nationality, photo and career (team, start,
+end). A read-only look on 2026-10-21 found what stood in the way: the
+provider numbers coaches apart from players -- coach 4 is Guardiola, player
+4 a goalkeeper -- and we had resolved a line-up's coach as `person` under his
+bare number, the same key a player of that number has. On production 1,967
+people were named as a coach; 532 of them were also named as players, so one
+row stood for two people (Guardiola's had played a match in goal; "Manuel
+Akanji" had coached 132 line-ups). D-220's bio pass had already stepped
+around this by never asking about a coach.
+
+**Decision.**
+1. **A coach's provider number is `coach:<n>`.** The API-Football adapter
+   writes it so everywhere it names a coach -- the line-ups' coach block and
+   the coaches endpoint -- and a player keeps his bare number (rule 1: one
+   key, one person). The prefix lives in the adapter and the migration only;
+   the API treats external ids as opaque.
+2. **What is stored is moved, not guessed** (migration `1765882000000`). A
+   person named only as a coach -- never in a line-up, an incident, a
+   player's statistics, an absence, a squad listing, a spell, the provider's
+   season lines or career -- has his mapping renamed to `coach:<n>`. A
+   person named both ways keeps the bare number (the player's: every player
+   job asks by it); the line-ups that named him as their coach are moved to
+   `coach_reference_split` and their `coach_id` cleared -- a gap, which D-147
+   already reads as "unknown", rather than the wrong man -- and a photo
+   stored for him from the provider's coach images is dropped. Each moved
+   reference is put back by the `coaches` job once `coach:<n>` maps to a
+   person, adopted from the review queue like any person (D-079): never
+   created here, never matched by name.
+3. **A team's current coach is the open spell that started last.** The
+   provider leaves spells open after a coach has gone (Maresca's Chelsea
+   spell, Guardiola's at City), so an open spell is a claim. Among the
+   coaches the provider lists with an open spell at a team we asked about,
+   the one whose spell started last is current; two starting the same latest
+   day, or several without a start, are no answer. A team never asked has no
+   head coach (`not_supplied`), and a spell at a team never asked is not
+   called current. The coach page writes an open spell that is not current
+   as "end not given", never "present".
+4. **Shown beside the line-up's coach, not instead of it.** The team page's
+   `head_coach` is the provider's current coach, linked to the new coach page
+   (`/coach/[id]`, `GET /coaches/:id`); D-119's manager stays the latest
+   line-up's coach. When the two differ, the page shows the head coach and
+   says the latest line-up names someone else -- the list may be behind a
+   change -- rather than choosing. With no head coach, the line-up's coach is
+   shown as before, now linked to the coach page.
+5. **Only teams we carry.** A career spell is kept only at a team
+   `provider_mapping` knows; the rest are counted (`spells_not_carried`) and
+   make the career `limited`. A coach's birth date and nationality fill only
+   empty fields (D-220's rule); his name is the adopted one.
+6. **Fetched on the bulk tier (D-183).** The `coaches` job runs hourly at
+   :52 and asks for each mapped club and national team of a current season:
+   first, then when a line-up newer than the last answer names a coach the
+   stored careers do not make current, then 30 days after the last answer --
+   changes first. At most `INGESTION_COACHES_BATCH` (60) teams a run, spaced
+   by the `AskPacer` (500 ms), none past 30 seconds, none once the day's
+   requests reach the bulk share; an unanswered ask is retried after a day,
+   five times. About 1,460 teams: a first pass of about a day, then about 50
+   requests a day plus the changes. `people_names` no longer asks for a
+   player profile of anyone named as a coach or holding a coaching spell.
+
+**Alternatives.** *A `coach` entity type in `provider_mapping`*: the same
+separation, but every table, check and queue rule that knows `person` would
+need a second kind for the same table, and adoption (D-079) would need a
+command of its own. *Match coaches across the two id spaces by name*: rule 1.
+*Give each collided row to the role it is named for more often*: the minority
+role's rows (line-ups, incidents, statistics) would have to be deleted or
+re-pointed to a person nobody has identified yet. *Take the provider's
+`team` field as the current coach*: it is the provider's own reading of the
+career and was stale for Guardiola. *Replace D-119's manager with the head
+coach*: the line-up is the fact about the latest match, and a lagging list
+would hide a sacking the line-ups already show.
+
+**Consequences.** `NormalisedCoach`, `getTeamCoaches`, `CoachPage`,
+`TeamHeadCoach` and the optional `TeamPage.head_coach` exist. Left as found:
+the review queue's pending bare-number rows that a coach's line-up created
+before this release cannot be told from players' (adopting one names a
+player number after a coach), and 138 of the 532 collided rows carry a
+coach's name, having been adopted from a coach first; both are a follow-up
+that reads them against the provider's player profiles.
+
+## D-231 — Transfers from the licensed feed, by club and by player, as records of the provider; transfer news and its alerts stay stories
+
+**Status:** Accepted · 2026-10-21 (the maintainer: "Yes, add them", when asked whether to use the Ultra plan's spare requests for transfers) · **Task:** T-1440 · **Supersedes:** the part of D-166 that kept the feed's transfer endpoint unread · **Follows:** D-014, D-123, D-127, D-166, D-183, D-223
+
+**Context.** D-166 (2026-09-30) made transfer and availability alerts from
+typed stories and left API-Football's transfer and injury endpoints unread:
+they would spend the live data's budget, and their terms for alerts were
+unchecked. Since then the plan is Ultra (75,000 requests a day, D-014), the
+2026-10-20 audit found less than a fifth of it in use, and bulk work has its
+own share of the budget (D-183). On 2026-10-21 the maintainer asked for the
+subscription to be used fully, transfers among the new data. A read of
+`/transfers?team=50` and `/transfers?player=1100` that day (two requests,
+recorded in `packages/ingestion/src/adapters/_fixtures/api-football-transfers/`)
+showed what the answer holds: one entry per player, each move with a day, a
+type and the two clubs, back to 1996 for a large club (1,031 moves for 341
+players), and some sides without an id.
+
+**Decision.**
+1. **Read `/transfers`, by club and by player.** The `transfers` job (bulk
+   tier, every ten minutes, `INGESTION_TRANSFERS_BATCH` asks a run, 60 unless
+   set, each paced by `AskPacer`, none past 30 seconds) asks for each club of
+   a current season, then each player named in a current season's line-up:
+   first when never asked, then again once the last answer is a week old
+   while a transfer window is open (1 June to 15 September, 1 January to
+   15 February, UTC) and a month old otherwise (`transfersRefreshDays` in
+   `@fmip/ingestion`). Unanswered asks are repeated after a day, five times
+   at most; a quota refusal ends the run. Each answer replaces that club's
+   or player's stored moves.
+2. **Shown as the provider's records.** A "Transfers, as API-Football lists
+   them" section on the club page's Squad tab (arrivals and departures,
+   newest first, 25 each with the totals) and on the player page's Career
+   tab (every move). Each has its own coverage badge and fetched time:
+   `not_supplied` before the first answer and when the answer lists no move
+   (the two say different sentences), `delayed` once the last answer is older
+   than twice the refresh, `available` otherwise. A player not yet asked about
+   himself shows the moves the clubs' answers list for him, each once, as
+   `limited`, with a sentence saying moves between other clubs may be missing.
+3. **Identity (rule 1).** The player and both clubs of a move are joined to
+   ours through `provider_mapping` only, and then named and linked as our
+   catalogue names them. A player or club we do not hold keeps the provider's
+   name as plain text: never a link, never a key, never matched to an entity
+   of ours by its name, and no catalogue row is created from these answers.
+   The provider's name is stored beside a mapped id too, so a row still reads
+   if a mapping is removed. Two quirks of the answers are handled in the
+   adapter: a "Free agent" move whose destination has no id names the player
+   himself ("Stones John"), so that side is read as no club; and a move from a
+   club to itself ("Raise", a youth player promoted) is not a move and is
+   dropped.
+4. **Types as written.** The provider's word becomes `loan`, `loan_return`
+   ("Return from loan", "Back from Loan"), `free` ("Free", "Free Transfer",
+   "Free agent"), `transfer` (a permanent move with no fee given), `fee`, or
+   `unknown` ("N/A", "-", "Raise", anything else). A fee is kept and shown
+   exactly as the provider writes it ("€ 75M", "7M €", "£ 1.5M" after its HTML
+   entity is decoded): never converted to one currency, summed, ranked or
+   called a club's spending (rule 3: no value we did not receive).
+5. **What stands from D-166.** Transfer *news* stays news: a rumour, a
+   "linked with", a report or a confirmation in the press is a story typed
+   `transfer` (D-123), shown and alerted on as D-166 says. The structured
+   list holds only moves the provider records; nothing from it is shown as
+   news, and nothing in a story is written into it. The `transfer_news` alert
+   kind is still made from typed stories only: a stored move sends no alert,
+   because the feed's terms for alerts are still unchecked. The injury
+   endpoint stays unread, and a player's availability stays D-127's.
+
+**Budget.** At most 60 asks a run, six runs an hour: 8,640 a day at the
+ceiling, all inside the bulk share. The first pass asks every current club
+and line-up player once; after it, a club or player costs one request a week
+in a window and one a month outside, which on the current catalogue is a few
+hundred requests a day.
+
+**Rejected.** *Clubs only*: a player's moves between clubs we do not follow
+would never appear, and his page would look complete when it is not.
+*Players only*: the club page's arrivals would wait for each player to be
+asked. *A daily refresh*: transfers change in windows, and a day's staleness
+outside them is not news. *Creating clubs from the answers' names*: rule 1,
+and a name-only club would be a page with nothing behind it. *Converting fees
+to euros*: the provider gives no rate or date, and a converted figure would
+be ours, not its.
+
 ## D-233 — The model learns fourteen more leagues, from football-data.co.uk's extra files and our own records, through a version that names its divisions
 
 **Status:** Accepted · 2026-10-21 (the maintainer: use the API-Football subscription fully, with past seasons back to 2020/21 and the leagues the model skips) · **Task:** T-1442 · **Follows:** D-016, D-080, D-083, D-140, D-191, rule 1, rule 5
