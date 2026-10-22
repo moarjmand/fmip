@@ -6,6 +6,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { Test } from '@nestjs/testing';
 import type { MatchCentre } from '@fmip/contracts';
 import { Pool } from 'pg';
+import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { FixturesModule } from '../fixtures/fixtures.module';
@@ -97,7 +98,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the entity m
     fetcher = moduleRef.get(MediaFetchService);
 
     await pool.query(`DELETE FROM entity_media WHERE entity_id = ANY($1::uuid[])`, [
-      [REAL_MADRID, PERSEPOLIS, SALAH, ...people],
+      [REAL_MADRID, PERSEPOLIS, SALAH, BRUNO, ...people],
     ]);
     await pool.query(
       `INSERT INTO fixture (id, season_id, round, kickoff_at, status)
@@ -127,7 +128,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the entity m
   afterAll(async () => {
     await pool?.query(`DELETE FROM fixture WHERE id = $1`, [match]);
     await pool?.query(`DELETE FROM entity_media WHERE entity_id = ANY($1::uuid[])`, [
-      [REAL_MADRID, PERSEPOLIS, SALAH, ...people],
+      [REAL_MADRID, PERSEPOLIS, SALAH, BRUNO, ...people],
     ]);
     await pool?.end();
     await app?.close();
@@ -192,6 +193,80 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the entity m
     });
     expect(old.statusCode).toBe(200);
     expect(old.headers['cache-control']).toBe(SHORT);
+
+    // T-1461: the address carries the type's extension, which the edge caches
+    // by; the bare version written before stays valid.
+    const named = await app.inject({
+      method: 'GET',
+      url: `/media/crest/${REAL_MADRID}/${version}.png`,
+    });
+    expect(named.statusCode).toBe(200);
+    expect(named.headers['content-type']).toBe('image/png');
+    expect(named.headers['cache-control']).toBe(IMMUTABLE);
+    expect(named.rawPayload.equals(CREST)).toBe(true);
+    const stale = await app.inject({
+      method: 'GET',
+      url: `/media/crest/${REAL_MADRID}/000000000000.png`,
+    });
+    expect(stale.headers['cache-control']).toBe(SHORT);
+  });
+
+  it('serves a raster image at the widths a surface draws, as WebP made once (T-1462)', async () => {
+    // A real 150-pixel PNG, as the provider sends: the variants must decode it.
+    const photo = await sharp({
+      create: {
+        width: 150,
+        height: 150,
+        channels: 4,
+        background: { r: Math.floor(Math.random() * 255), g: 40, b: 90, alpha: 1 },
+      },
+    })
+      .png()
+      .toBuffer();
+    answer(`${SOURCE}/players/702.png`, photo);
+    await media.note('api_football', 'person', BRUNO, `${SOURCE}/players/702.png`);
+    await fetcher.runDue(new Date());
+    const version = versionOf(sha256Of(photo));
+    expect((await media.index({ person: [BRUNO] })).photo(BRUNO)).toEqual({
+      coverage: 'available',
+      url: `/api/media/photo/${BRUNO}/${version}.png`,
+    });
+
+    for (const width of [48, 96, 192]) {
+      const variant = await app.inject({
+        method: 'GET',
+        url: `/media/photo/${BRUNO}/${version}-${width}.webp`,
+      });
+      expect(variant.statusCode).toBe(200);
+      expect(variant.headers['content-type']).toBe('image/webp');
+      expect(variant.headers['cache-control']).toBe(IMMUTABLE);
+      expect(variant.headers.etag).toBe(`"${sha256Of(photo)}-${width}"`);
+      const meta = await sharp(variant.rawPayload).metadata();
+      expect(meta.format).toBe('webp');
+      // Fitted inside the width, never enlarged past the original's 150.
+      expect(meta.width).toBe(Math.min(width, 150));
+      expect(variant.rawPayload.length).toBeLessThan(photo.length);
+      // The second ask reads the kept file: the same bytes.
+      const again = await app.inject({
+        method: 'GET',
+        url: `/media/photo/${BRUNO}/${version}-${width}.webp`,
+      });
+      expect(again.rawPayload.equals(variant.rawPayload)).toBe(true);
+    }
+    // Only the widths we make.
+    expect(
+      (await app.inject({ method: 'GET', url: `/media/photo/${BRUNO}/${version}-50.webp` }))
+        .statusCode,
+    ).toBe(404);
+    // A stored file the library cannot read is served as stored, briefly.
+    const crest = await app.inject({
+      method: 'GET',
+      url: `/media/crest/${REAL_MADRID}/${versionOf(sha256Of(CREST))}-48.webp`,
+    });
+    expect(crest.statusCode).toBe(200);
+    expect(crest.headers['content-type']).toBe('image/png');
+    expect(crest.headers['cache-control']).toBe(SHORT);
+    expect(crest.rawPayload.equals(CREST)).toBe(true);
   });
 
   it('answers 404 for an image nobody stored, a wrong kind and a malformed id', async () => {
@@ -235,7 +310,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the entity m
     const centre = response.json<MatchCentre>();
     expect(centre.fixture.home.crest).toEqual({
       coverage: 'available',
-      url: `/api/media/crest/${REAL_MADRID}/${versionOf(sha256Of(CREST))}`,
+      url: `/api/media/crest/${REAL_MADRID}/${versionOf(sha256Of(CREST))}.png`,
     });
     expect(centre.fixture.away.crest).toEqual({ coverage: 'not_supplied', url: null });
     expect(centre.fixture.competition.logo).toEqual({ coverage: 'not_supplied', url: null });

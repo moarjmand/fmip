@@ -202,9 +202,14 @@ export class MediaStore {
   }
 
   /** The stored-image hashes of these entities, for building our own addresses. */
-  async available(
-    ids: Partial<Record<MediaEntityType, readonly string[]>>,
-  ): Promise<{ entityType: MediaEntityType; entityId: string; sha256: string }[]> {
+  async available(ids: Partial<Record<MediaEntityType, readonly string[]>>): Promise<
+    {
+      entityType: MediaEntityType;
+      entityId: string;
+      sha256: string;
+      contentType: MediaContentType;
+    }[]
+  > {
     const team = [...(ids.team ?? [])];
     const competition = [...(ids.competition ?? [])];
     const person = [...(ids.person ?? [])];
@@ -214,8 +219,9 @@ export class MediaStore {
       entity_type: MediaEntityType;
       entity_id: string;
       sha256: string;
+      content_type: MediaContentType;
     }>(
-      `SELECT entity_type, entity_id, sha256 FROM entity_media
+      `SELECT entity_type, entity_id, sha256, content_type FROM entity_media
         WHERE state = 'available'
           AND ((entity_type = 'team' AND entity_id = ANY($1::uuid[]))
             OR (entity_type = 'competition' AND entity_id = ANY($2::uuid[]))
@@ -227,6 +233,7 @@ export class MediaStore {
       entityType: r.entity_type,
       entityId: r.entity_id,
       sha256: r.sha256,
+      contentType: r.content_type,
     }));
   }
 
