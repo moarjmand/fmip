@@ -6,11 +6,14 @@ export {
   MEDIA_EXTENSIONS,
   MEDIA_KINDS,
   MEDIA_PATH_PREFIX,
+  MEDIA_WIDTHS,
   NO_MEDIA,
+  mediaSized,
   mediaUrl,
   mediaVersionOf,
+  mediaWidthOf,
 } from './media';
-export type { EntityMedia, MediaContentType, MediaKind } from './media';
+export type { EntityMedia, MediaContentType, MediaKind, MediaWidth } from './media';
 
 // The founder's analysis (blueprint 6.5, T-130). One of three prediction
 // products, and deliberately sharing no type with the other two (rule 6).
