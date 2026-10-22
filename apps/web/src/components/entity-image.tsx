@@ -1,4 +1,4 @@
-import { MEDIA_PATH_PREFIX, type EntityMedia } from '@fmip/contracts';
+import { MEDIA_PATH_PREFIX, mediaSized, type EntityMedia } from '@fmip/contracts';
 import { Pictured } from '@/components/lite-mode';
 import { cx } from '@/components/ui/cx';
 
@@ -109,7 +109,8 @@ export function EntityImage({
       // A plain image on purpose: no optimiser route, no client JS (see above).
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={media.url}
+        // T-1462: the WebP made for twice this box, not the provider's file.
+        src={mediaSized(media.url, size)}
         width={size}
         height={size}
         alt={decorative ? '' : name}

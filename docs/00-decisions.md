@@ -11912,3 +11912,48 @@ already uses 350 MB of swap; double-buffering more of a 2.5 GB database
 would push the other containers out. *A larger `work_mem`*: up to 100
 connections times several sorts each; 8 MB covers the sorts measured.
 *PgTune's output as is*: it assumes Postgres has the machine to itself.
+
+## D-242 — Crests, logos and photos are served at their drawn size as WebP, made by sharp
+
+**Status:** Accepted · 2026-10-22 (the maintainer asked that every GTmetrix finding be fixed by us, by any route; the parent session's phase-3 brief) · **Task:** T-1462 · **Follows:** D-176, D-089
+
+**The problem.** The provider's crests and logos are 150-pixel PNGs of 60 to
+160 kB, drawn at 18 to 96 CSS pixels: 26 of them, 1.66 MB, were most of the
+homepage's weight in GTmetrix's run of 2026-10-21 (properly size images:
+1.61 MB to save; next-gen formats: 1.51 MB). D-176 kept `next/image` out
+(an optimiser route and client JavaScript on every page) and stored only
+the provider's file.
+
+**Decision.**
+
+1. **A variant per width, made on first ask and kept.** `GET
+   /media/:kind/:id/<version>-<width>.webp` serves the stored image fitted
+   inside a square of `width` (never enlarged), as WebP at quality 80,
+   transparency kept. The widths are `MEDIA_WIDTHS` (48, 96, 192): few, so
+   the edge and the volume hold few copies. The file is written under
+   `MEDIA_DIR/variants/` by the original's sha256 and the width, so it is
+   made once for every entity sharing the image and never goes stale; the
+   address carries the version, so it is `immutable` like the original.
+2. **The surface asks for twice its box.** `EntityImage` draws
+   `mediaSized(url, size)`: the smallest width at least twice the box, for a
+   sharp image on a high-density screen; `width` and `height` stay the box.
+   An SVG, which has no pixels to save, is served as stored.
+3. **sharp** (libvips), 0.35.4 -- already in the lockfile as Next's optional
+   dependency -- becomes a dependency of the API. Prebuilt binaries for
+   Alpine (musl) and glibc; one image at a time and no in-memory cache, for
+   the two-core box.
+4. **WebP only, no `<picture>` fallback.** Every browser the site supports
+   decodes WebP (Safari since 14, 2020); a fallback would add an element per
+   image to a page Lighthouse already finds large.
+5. **A file the library cannot read** is served as stored for five minutes
+   rather than failing: the page still shows the crest.
+
+Measured on a production logo: 90,381 bytes as stored, 1,520 at 48 pixels,
+3,738 at 96.
+
+**Rejected.** *`next/image`* (D-176: an optimiser route and client
+JavaScript). *Variants made at fetch time in a migration-backed table*
+(the same bytes, plus a schema and a backfill for every stored image).
+*Content negotiation on `Accept`* (Cloudflare's free plan does not vary its
+cache on `Accept`: one reader's WebP would be served to the next). *AVIF*
+(slower to encode on two cores, little smaller at 48 pixels).
