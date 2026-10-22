@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
   // to be a deliberate edit. Linting is not a build concern in Next 16 — it
   // runs as its own `pnpm lint` task.
   typescript: { ignoreBuildErrors: false },
+  // The page's stylesheet goes into the HTML as <style> instead of a <link>
+  // (T-1469, D-246): on a phone, the two CSS requests held the first paint
+  // back by about 1.8 s (PageSpeed, 2026-10-22). The cost is ~13 kB more per
+  // HTML answer and no CSS cached across visits; a guest's page is itself
+  // cached at the edge (D-244), so the trade is paid once per 30 seconds.
+  experimental: { inlineCss: true },
 };
 
 export default nextConfig;

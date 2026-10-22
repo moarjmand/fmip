@@ -27,7 +27,7 @@ export function FirstRunOffer({ locale }: { locale: string }) {
           className="font-semibold underline"
           data-testid="first-run-start"
         >
-          <Translated locale={locale} message="firstRun.offer.start" />
+          <Translated locale={locale} message="firstRun.title" />
         </Link>
         <form action={dismiss} className="contents">
           <button type="submit" className="underline" data-testid="first-run-dismiss">
