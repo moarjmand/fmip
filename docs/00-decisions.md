@@ -12024,3 +12024,13 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** The first paint waits on no request after the HTML. Each HTML answer is about 13 kB larger compressed, and a returning reader's browser no longer reuses a cached stylesheet; a guest's page is itself held at the edge for 30 seconds (D-244), and on a phone one round trip costs more than 13 kB. The `@font-face` rules travel with the CSS as before; which fonts a page names, and so downloads, is unchanged (D-243). If the larger HTML ever shows in the server response budget (T-808), this is the setting to revisit.
 
+## D-247 — A slow connection found after load makes the next page lite, not this one
+
+**Status:** Accepted · 2026-10-22 (agent, under the maintainer's "do all the remaining tasks right now, all of them yourself") · **Task:** T-1470 · **Amends:** D-205 point 3 · **Follows:** D-244, D-246
+
+**Context.** D-205 had `LiteProvider` turn lite mode on after hydration when the Network Information API reported a slow connection the server could not see: images not yet drawn left out, fonts falling back, lists compacted, the banner shown. PageSpeed's desktop run of 2026-10-22 measured a layout shift of 0.282 on `/en`; a guest at 1350x940 with the connection reported as 3G reproduces 0.10 on every load from that switch alone (the banner's 45 px and the live strip compacting), against 0.002 on a fast one. Meanwhile the switch saves almost nothing: the HTML -- whose CSS is now inline (D-246) -- has already asked for its images and fonts before any script runs.
+
+**Decision.** The page a reader is looking at keeps the mode the server drew it in. A slow connection a script finds is written to the hint cookie `fmip_slow`, as before, and the next page is rendered lite by the server, its banner in the HTML. The rest of D-205 stands: `Save-Data` and the hint make the first byte lite, the reader's own choice (`fmip_lite`) applies when they make it, and a fast connection still clears the hint without changing the page.
+
+**Consequences.** A guest on a slow connection sees one full page and then lite ones; nothing moves under them. The hint cookie is named `fmip_*`, so from the second page on their pages bypass the edge cache (D-244) and come lite from the origin.
+
