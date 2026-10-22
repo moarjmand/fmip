@@ -48,7 +48,12 @@ export class PersonBioStore implements PersonBiosStore {
           AND f.answered_at IS NULL
           AND (f.asked_at IS NULL OR f.asked_at < $2)
           AND (f.attempts IS NULL OR f.attempts < $3)
+          -- A coach is never asked for a player's profile (D-230): by his id,
+          -- which is all one adopted from a line-up has (T-1474), by a match
+          -- he coached, or by a spell.
+          AND m.external_id NOT LIKE 'coach:%'
           AND NOT EXISTS (SELECT 1 FROM fixture_participant fp WHERE fp.coach_id = p.id)
+          AND NOT EXISTS (SELECT 1 FROM coach_spell cs WHERE cs.person_id = p.id)
           AND NOT EXISTS (SELECT 1 FROM fixture fx WHERE fx.referee_id = p.id)
         ORDER BY EXISTS (SELECT 1 FROM team_squad_member s WHERE s.person_id = p.id) DESC,
                  f.asked_at NULLS FIRST, p.id
