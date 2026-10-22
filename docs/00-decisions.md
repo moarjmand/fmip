@@ -12068,3 +12068,18 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** A burst costs up to seven seconds instead of a stale table. The 50 open double-header findings resolve at the next sweep.
 
+## D-251 — A data audit of the stored feed, and what it changed
+
+**Status:** Accepted · 2026-10-23 (agent, at the maintainer's request: "verify the data being received and already received, deeply and carefully") · **Task:** T-1475 · **Follows:** D-083, D-097, D-110, D-250
+
+**What was checked, on production.**
+1. **Against an independent source.** `training.match` holds football-data.co.uk's results for eleven European divisions (2023-07 to 2026-10), linked to our teams by `training.team_alias`. Every one of the 7,756 matches both hold agrees on the full-time score; 7,755 agree on the half-time score. The one difference (Konyaspor v Gençlerbirliği, 2026-03-19) is theirs: our only goal of the match is at 85'.
+2. **Internal consistency over all 72,886 fixtures.** No fixture is live more than four hours after kick-off, scheduled a day after it, finished in the future, finished without a score, or without exactly one home and one away side. No player appears twice in one line-up; no person has an impossible age or height; no shots-on-target figure exceeds shots, and no accurate passes exceed passes.
+3. **Goals against the score.** Of 23,770 finished matches with a timeline, 22,719 add up exactly. 1,025 of the 1,051 that do not are past matches whose detail is queued again since the people were adopted (D-250 era); the rest are mostly early FA Cup rounds the feed covers thinly. Goals the VAR cancelled were checked as a cause of inflated scorer counts and ruled out: in 34 of the 36 matches where a goal and a "goal cancelled" sit together, the goal is the valid one.
+
+**What it changed.**
+- Seventy-seven fixtures whose timeline or line-up disagrees although their detail was fetched were queued for a re-ask (D-110) under the maintainer's account with a reason, each audited: an incident whose player the feed named by a temporary id is set aside at ingestion and comes back only on a new fetch (Levante v Athletic Club, 2026-10-21: the 90+8 goal by an id resolved the next day).
+- `duplicate_fixture` also finds the same two teams with home and away swapped kicking off within three hours (T-1475): six friendlies were held twice that way.
+
+**Left as the provider's.** Four line-ups that name one player id on both sides, three friendlies whose half-time score exceeds the full-time one, a 2024 date on a 2020/21 Persian Gulf Pro League match, and Albacete in two Copa del Rey ties on one day are the feed's records; they are not corrected by hand (rule 3).
+

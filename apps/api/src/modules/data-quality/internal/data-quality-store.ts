@@ -4,6 +4,7 @@ import type { Pool, PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import {
   DUPLICATE_WINDOW_DAYS,
+  SWAPPED_WINDOW_HOURS,
   type Finding,
   type GoalsRow,
   LIVE_OVERRUN_MINUTES,
@@ -552,7 +553,7 @@ export class DataQualityStore {
       this.pool.query<PairRow>(
         `SELECT ${REF}, g.id AS "otherFixtureId",
                 f.kickoff_at AS "kickoffAt", g.kickoff_at AS "otherKickoffAt",
-                f.status, g.status AS "otherStatus"
+                f.status, g.status AS "otherStatus", false AS swapped
            FROM fixture_participant fh
            JOIN fixture_participant gh
              ON gh.team_id = fh.team_id AND gh.side = 'home' AND gh.fixture_id > fh.fixture_id
@@ -565,8 +566,28 @@ export class DataQualityStore {
           WHERE fh.side = 'home'
             AND ${inScope(2)}
             AND f.status <> 'cancelled' AND g.status <> 'cancelled'
-            AND abs(extract(epoch FROM g.kickoff_at - f.kickoff_at)) <= $1::int * 86400`,
-        [DUPLICATE_WINDOW_DAYS, seasonId],
+            AND abs(extract(epoch FROM g.kickoff_at - f.kickoff_at)) <= $1::int * 86400
+         UNION ALL
+         -- The same two teams with home and away swapped, at the same time
+         -- (T-1475): the provider's second record of a friendly, never a
+         -- second leg, which is days apart.
+         SELECT ${REF}, g.id AS "otherFixtureId",
+                f.kickoff_at AS "kickoffAt", g.kickoff_at AS "otherKickoffAt",
+                f.status, g.status AS "otherStatus", true AS swapped
+           FROM fixture_participant fh
+           JOIN fixture_participant ga
+             ON ga.team_id = fh.team_id AND ga.side = 'away' AND ga.fixture_id > fh.fixture_id
+           JOIN fixture f ON f.id = fh.fixture_id
+           JOIN fixture g ON g.id = ga.fixture_id AND g.season_id = f.season_id
+           JOIN fixture_participant fa ON fa.fixture_id = f.id AND fa.side = 'away'
+           JOIN fixture_participant gh
+             ON gh.fixture_id = g.id AND gh.side = 'home' AND gh.team_id = fa.team_id
+           JOIN season s ON s.id = f.season_id
+          WHERE fh.side = 'home'
+            AND ${inScope(2)}
+            AND f.status <> 'cancelled' AND g.status <> 'cancelled'
+            AND abs(extract(epoch FROM g.kickoff_at - f.kickoff_at)) <= $3::int * 3600`,
+        [DUPLICATE_WINDOW_DAYS, seasonId, SWAPPED_WINDOW_HOURS],
       ),
     ]);
     return {
