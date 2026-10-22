@@ -210,7 +210,7 @@ describe("a player's season in every competition (T-1431)", () => {
 
   it('counts a refusal as one request', async () => {
     const result = await adapterAnswering({
-      errors: { rateLimit: 'Too many requests' },
+      errors: { requests: 'limit reached for the day' },
       response: [],
     }).getPlayerSeason!('90001', '2026');
     expect(result).toMatchObject({ ok: false, requests: 1, error: { kind: 'quota' } });

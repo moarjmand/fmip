@@ -56,6 +56,9 @@ export class PersonNameStore implements PersonNamesStore {
           -- A coach is not asked for a player's profile: his number is in the
           -- provider's coach id space (T-1439, D-230), and the same number is
           -- another man's player profile.
+          -- Known as a coach by the id itself (T-1473): one adopted from a
+          -- line-up has neither a match nor a spell recorded yet.
+          AND m.external_id NOT LIKE 'coach:%'
           AND NOT EXISTS (SELECT 1 FROM fixture_participant fp WHERE fp.coach_id = p.id)
           AND NOT EXISTS (SELECT 1 FROM coach_spell cs WHERE cs.person_id = p.id)
           AND NOT EXISTS (

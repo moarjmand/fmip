@@ -266,6 +266,16 @@ describe('duplicate_fixture', () => {
     expect(other?.detail).toBe(one?.detail);
   });
 
+  it('is quiet for two matches both played on different days, a double-header (T-1473)', () => {
+    const played = { ...pair, status: 'finished', otherStatus: 'finished' };
+    // 28 h 45 min apart, both with a result: two matches.
+    expect(duplicateFixture(played)).toBeNull();
+    // Both finished within a day of each other: one match stored twice is still possible.
+    expect(
+      duplicateFixture({ ...played, otherKickoffAt: new Date('2026-09-21T14:00:00Z') }),
+    ).toMatchObject({ check: 'duplicate_fixture' });
+  });
+
   it('is quiet for a cancelled one, and for a pair further apart than three days', () => {
     expect(duplicateFixture({ ...pair, status: 'cancelled' })).toBeNull();
     expect(
