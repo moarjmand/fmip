@@ -6,6 +6,7 @@ import { FORECAST_REASON_KEY, fill, filled, formatPercent } from '@/lib/words';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 import { cx } from '@/components/ui/cx';
+import { ModelVersion } from '@/components/model-version';
 
 /**
  * The statistical model's forecast as a bar (T-1388, D-206): the model's
@@ -128,7 +129,7 @@ export function ForecastBar({
   const meta = (
     <>
       <span dir="ltr" className="text-model">
-        {forecast.model_version}
+        <ModelVersion version={forecast.model_version} />
       </span>
       <FilledMessage
         message={words['forecastBar.computed']}

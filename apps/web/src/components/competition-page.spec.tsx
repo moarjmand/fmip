@@ -329,7 +329,7 @@ describe('the Overview’s round', () => {
     expect(html).toContain('data-size="row"');
     expect(html).toContain('46.0%');
     // The model id and its computation time are on screen with every figure (blueprint 6.2).
-    expect(html).toContain('dixon-coles-elo@0.6.0');
+    expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
     expect(html).toContain('data-state="unreachable"');
     expect(html).toContain('data-state="none"');
     expect(html).toContain('Tehran time');

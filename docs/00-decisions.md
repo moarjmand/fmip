@@ -11957,3 +11957,34 @@ JavaScript). *Variants made at fetch time in a migration-backed table*
 *Content negotiation on `Accept`* (Cloudflare's free plan does not vary its
 cache on `Accept`: one reader's WebP would be served to the next). *AVIF*
 (slower to encode on two cores, little smaller at 48 pixels).
+
+## D-243 — An English page names no Persian web font; no font is preloaded
+
+**Status:** Accepted · 2026-10-22 (agent, under the parent session's phase-3 brief: load only what `/en` needs, subset, preload the one critical face) · **Task:** T-1464 · **Follows:** D-089, D-198, D-205, T-1463
+
+**The problem.** GTmetrix's `/en` fetched six woff2 files, 318 kB, among them
+Vazirmatn's Arabic subset (46 kB): the Latin stacks named Vazirmatn after the
+system faces, so on a device whose system face has no Arabic (GTmetrix's
+Linux) the language picker's one Persian word fetched it.
+
+**Decision.**
+
+1. **No Persian web font in a Latin stack.** `--font-latin` and
+   `--font-serif` end in the device's own faces; the Persian roles
+   (`--font-sans` on a Persian page, `--font-naskh`) keep Vazirmatn and
+   Markazi Text. A Persian word on an English page is drawn by the device.
+2. **The rest of `/en`'s faces stay.** Mona Sans (with its width axis, used
+   in 24 places), Newsreader and its italic (the "Today" heading, the
+   dateline and the headlines above the fold) and Geist Mono (the live
+   strip's times) are all drawn above the fold. Each is already subset by
+   `unicode-range` (fontsource's latin and latin-ext files), and a browser
+   fetches only the subsets the page's text needs.
+3. **No preload.** A preload is fetched whatever the page draws, which breaks
+   lite mode's promise of no web font (D-205) for the reader whose slow
+   connection only a script detects after the HTML is parsed; it would also
+   compete with the stylesheet on the critical path. With T-1463's matched
+   fallbacks, a face that arrives after first paint no longer moves the page.
+
+**Rejected.** *Dropping Newsreader's italic* (a design change: the dateline
+is italic by D-198). *`next/font`* (generates its own preloads, see 3, and
+replaces D-089's self-hosting arrangement for no gain here).

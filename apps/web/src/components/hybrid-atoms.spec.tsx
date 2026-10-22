@@ -69,7 +69,7 @@ describe('ForecastBar', () => {
     );
     // Always the model id and the time, in the mono face.
     expect(html).toMatch(/font-mono[^"]*" data-testid="forecast-bar-meta"/);
-    expect(html).toContain('dixon-coles-elo@0.6.0');
+    expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
     expect(html).toMatch(/computed <time dateTime="2026-10-11T09:30:00.000Z">11 Oct, 09:30 UTC/);
   });
 
@@ -79,7 +79,9 @@ describe('ForecastBar', () => {
     expect(html).toContain('۴۶٫۴٪');
     expect(html).toContain('محاسبه‌شده');
     // The model id stays a left-to-right island inside Persian.
-    expect(html).toContain('<span dir="ltr" class="text-model">dixon-coles-elo@0.6.0</span>');
+    expect(html).toContain(
+      '<span dir="ltr" class="text-model">dixon-coles-elo<span>@</span>0.6.0</span>',
+    );
     // Nothing physical: the direction does the mirroring (rule 7).
     expect(html).not.toMatch(/\b(ml|mr|pl|pr|left|right)-/);
   });
@@ -453,7 +455,7 @@ describe('NextMatchCard', () => {
     expect(html).toContain('Esteghlal');
     expect(html).toContain('17:00');
     expect(html).toContain('Tehran time');
-    expect(html).toContain('dixon-coles-elo@0.6.0');
+    expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
     expect(html).toContain('data-state="listed"');
     expect(html).toContain('<bdi>IRIB TV3</bdi>');
     expect(html).toContain('<bdi>Telewebion</bdi>');

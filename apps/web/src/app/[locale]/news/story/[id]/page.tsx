@@ -39,6 +39,7 @@ import { canonicalUrl, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { LinkOut, Notice } from '@/components/ui';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
+import { ModelVersion } from '@/components/model-version';
 
 export const dynamic = 'force-dynamic';
 
@@ -259,7 +260,7 @@ export default async function StoryPage({
                         params={{
                           version: (
                             <span dir="ltr" className="font-mono text-xs">
-                              {expected.summary.model_version}
+                              <ModelVersion version={expected.summary.model_version} />
                             </span>
                           ),
                         }}

@@ -23,6 +23,7 @@ import {
   hourlySeries,
   sparkBars,
 } from '@/lib/system';
+import { ModelVersion } from '@/components/model-version';
 
 /**
  * The sections of the System page (T-804). Each takes its report or `null`,
@@ -727,7 +728,9 @@ export function CandidatesSection({
                     data-version={candidate.model_version}
                   >
                     <td className={cell}>
-                      <code>{candidate.model_version}</code>
+                      <code>
+                        <ModelVersion version={candidate.model_version} />
+                      </code>
                       {candidate.in_shadow === null && (
                         <span className="block text-xs text-muted">in shadow: not known</span>
                       )}

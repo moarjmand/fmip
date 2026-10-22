@@ -7,6 +7,7 @@ import type {
   AdminModelAccuracyResponse,
 } from '@fmip/contracts';
 import { Card } from '@/components/ui';
+import { ModelVersion } from '@/components/model-version';
 
 /**
  * Accuracy over time, for the console (T-1369, D-187): every model version in
@@ -227,7 +228,11 @@ export function ModelAccuracyReport({
           overall === undefined ? null : (
             <Card
               key={`${overall.role}-${overall.model_version}`}
-              heading={`${overall.model_version}, ${roleLabel(overall.role)}`}
+              heading={
+                <>
+                  <ModelVersion version={overall.model_version} />, {roleLabel(overall.role)}
+                </>
+              }
               headingLevel={2}
               data-testid="accuracy-series"
               data-role={overall.role}

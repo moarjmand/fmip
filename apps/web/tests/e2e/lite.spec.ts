@@ -105,6 +105,19 @@ test('the same page out of lite mode does load its web fonts (the check above ca
   expect((await loadedFaces(page)).length).toBeGreaterThan(0);
 });
 
+test('an English page fetches no Persian face, even for the language picker’s word (T-1464)', async ({
+  page,
+}) => {
+  const seen = watch(page);
+  await page.goto('/en');
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('html')).toHaveAttribute('data-lite', 'off');
+  expect(seen.fonts.filter((url) => /vazirmatn|markazi/i.test(url))).toEqual([]);
+  expect((await loadedFaces(page)).filter((family) => /Vazirmatn|Markazi/.test(family))).toEqual(
+    [],
+  );
+});
+
 test('a slow connection only a script sees turns lite on, and the next page is lite from the server', async ({
   page,
   baseURL,

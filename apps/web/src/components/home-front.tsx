@@ -30,6 +30,7 @@ import { dateIn, formatKickoff, statusLabel } from '@/lib/scores';
 import { formatPercent } from '@/lib/words';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { forecastBarWords, scoresWords } from '@/lib/words-server';
+import { ModelVersion } from '@/components/model-version';
 
 /**
  * The homepage's main column in the Hybrid design (T-1382, D-200; boards h1
@@ -664,7 +665,7 @@ export function KeyMatches({
       <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
         {versions.map((version) => (
           <span key={version} dir="ltr" className="font-mono text-model">
-            {version}
+            <ModelVersion version={version} />
           </span>
         ))}
         {latest !== undefined && (

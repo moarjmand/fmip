@@ -78,3 +78,22 @@ test.describe('SEO surface without JavaScript', () => {
     expect(xml).not.toContain('/x-rtl/');
   });
 });
+
+/**
+ * T-1465: nothing in a page's HTML reads as an e-mail address. Cloudflare's
+ * Email Obfuscation rewrites anything that does into a link of its own and
+ * adds a decoding script to the page; a model version such as
+ * `dixon-coles-elo@0.6.0` did, five times on the homepage. Scripts are left
+ * out: the obfuscator does not rewrite them, and the page's data travels in them.
+ */
+test.describe('no text reads as an e-mail address', () => {
+  const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/;
+  for (const path of ['/en', '/en/match/00000000-0000-4000-8000-000000000901']) {
+    test(path, async ({ request }) => {
+      const response = await request.get(path);
+      expect(response.status()).toBe(200);
+      const html = (await response.text()).replace(/<script\b[\s\S]*?<\/script>/g, '');
+      expect(EMAIL.exec(html)?.[0] ?? null).toBeNull();
+    });
+  }
+});

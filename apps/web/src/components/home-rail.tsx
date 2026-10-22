@@ -27,6 +27,7 @@ import { STORY_TYPE_KEY, VERSION_STATUS_KEY, storyHref, versionStatus } from '@/
 import { formatKickoff } from '@/lib/scores';
 import { fromTeamSide } from '@/lib/team';
 import { formatFixed, formatSigned } from '@/lib/words';
+import { ModelVersion } from '@/components/model-version';
 
 /**
  * The homepage's side column and its news in the Hybrid design (T-1382,
@@ -223,7 +224,7 @@ export function AccuracyCard({
           <p className="mt-1 flex flex-wrap gap-x-2 font-mono [:root:is(:lang(fa),:lang(ar))_&]:font-sans text-xs text-caption">
             {figure.modelVersions.map((version) => (
               <span key={version} dir="ltr" className="text-model">
-                {version}
+                <ModelVersion version={version} />
               </span>
             ))}
             {figure.lastUpdatedAt !== null && (

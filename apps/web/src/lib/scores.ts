@@ -4,6 +4,7 @@ import { formatDate, formatDateTime, formatDaysAgo, formatNumber, formatTime } f
 import type { Message } from '@/i18n/messages';
 import { fill, formatMinute } from '@/lib/words';
 import { filterParams, readFilterSelection, type ScoresFilterSelection } from './scores-filters';
+import { dateTimeFormat } from '@/lib/intl-cache';
 
 /**
  * The scores page's pure helpers (T-031): which day the page shows, the
@@ -33,7 +34,8 @@ export function isTimeZone(value: string): boolean {
 
 /** The calendar date of `now` in `timeZone`, as YYYY-MM-DD. */
 export function dateIn(timeZone: string, now: Date): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
+  // T-1466: one formatter per zone, not one per call.
+  const parts = dateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
     month: '2-digit',
