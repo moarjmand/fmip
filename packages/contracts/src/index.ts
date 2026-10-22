@@ -2,8 +2,15 @@ export { COVERAGE_STATES, hasData, isCoverageState } from './coverage';
 export type { CoverageState, Covered } from './coverage';
 
 // Crests, logos and photos from our own origin (T-1320, D-176).
-export { MEDIA_KINDS, MEDIA_PATH_PREFIX, NO_MEDIA, mediaUrl } from './media';
-export type { EntityMedia, MediaKind } from './media';
+export {
+  MEDIA_EXTENSIONS,
+  MEDIA_KINDS,
+  MEDIA_PATH_PREFIX,
+  NO_MEDIA,
+  mediaUrl,
+  mediaVersionOf,
+} from './media';
+export type { EntityMedia, MediaContentType, MediaKind } from './media';
 
 // The founder's analysis (blueprint 6.5, T-130). One of three prediction
 // products, and deliberately sharing no type with the other two (rule 6).

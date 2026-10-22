@@ -1,6 +1,6 @@
 import { Controller, Get, Headers, Inject, NotFoundException, Param, Res } from '@nestjs/common';
 import type { MediaKind } from '@fmip/contracts';
-import { MEDIA_KINDS } from '@fmip/contracts';
+import { MEDIA_KINDS, mediaVersionOf } from '@fmip/contracts';
 import type { FastifyReply } from 'fastify';
 import { versionOf } from './internal/image-check';
 import type { MediaFiles } from './internal/media-files';
@@ -21,7 +21,8 @@ export const IMAGE_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox
 
 /**
  * `GET /media/:kind/:id/:version` (T-1320, D-176): a stored crest, logo or
- * photo, streamed from the media volume. Public. The web app answers the same
+ * photo, streamed from the media volume. `:version` is `<version>.<extension>`
+ * (T-1461), or the bare version an address written before carried. Public. The web app answers the same
  * path under `/api/media` on the site's own origin and hands it here, so a
  * reader's browser talks to nobody else.
  *
@@ -51,7 +52,8 @@ export class MediaController {
       throw new NotFoundException({ error: 'not_found', message: 'No such image.' });
 
     const etag = `"${row.sha256}"`;
-    const cacheControl = version === versionOf(row.sha256) ? IMMUTABLE : SHORT;
+    // T-1461: the address ends in the type's extension; an older one has none.
+    const cacheControl = mediaVersionOf(version) === versionOf(row.sha256) ? IMMUTABLE : SHORT;
     reply
       .header('etag', etag)
       .header('cache-control', cacheControl)

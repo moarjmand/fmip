@@ -192,6 +192,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the entity m
     });
     expect(old.statusCode).toBe(200);
     expect(old.headers['cache-control']).toBe(SHORT);
+
+    // T-1461: the address carries the type's extension, which the edge caches
+    // by; the bare version written before stays valid.
+    const named = await app.inject({
+      method: 'GET',
+      url: `/media/crest/${REAL_MADRID}/${version}.png`,
+    });
+    expect(named.statusCode).toBe(200);
+    expect(named.headers['content-type']).toBe('image/png');
+    expect(named.headers['cache-control']).toBe(IMMUTABLE);
+    expect(named.rawPayload.equals(CREST)).toBe(true);
+    const stale = await app.inject({
+      method: 'GET',
+      url: `/media/crest/${REAL_MADRID}/000000000000.png`,
+    });
+    expect(stale.headers['cache-control']).toBe(SHORT);
   });
 
   it('answers 404 for an image nobody stored, a wrong kind and a malformed id', async () => {
@@ -235,7 +251,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the entity m
     const centre = response.json<MatchCentre>();
     expect(centre.fixture.home.crest).toEqual({
       coverage: 'available',
-      url: `/api/media/crest/${REAL_MADRID}/${versionOf(sha256Of(CREST))}`,
+      url: `/api/media/crest/${REAL_MADRID}/${versionOf(sha256Of(CREST))}.png`,
     });
     expect(centre.fixture.away.crest).toEqual({ coverage: 'not_supplied', url: null });
     expect(centre.fixture.competition.logo).toEqual({ coverage: 'not_supplied', url: null });

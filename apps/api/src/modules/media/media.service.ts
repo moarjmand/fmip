@@ -96,7 +96,7 @@ export class MediaService {
       const kind = KIND_OF[row.entityType];
       found.set(`${kind}:${row.entityId}`, {
         coverage: 'available',
-        url: mediaUrl(kind, row.entityId, versionOf(row.sha256)),
+        url: mediaUrl(kind, row.entityId, versionOf(row.sha256), row.contentType),
       });
     }
     const of = (kind: MediaKind) => (id: string) => found.get(`${kind}:${id}`) ?? NO_MEDIA;
