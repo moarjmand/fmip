@@ -265,12 +265,22 @@ export const DUPLICATE_WINDOW_DAYS = 3;
  */
 export const BOTH_PLAYED_APART_HOURS = 24;
 
+/**
+ * Two fixtures of the same two teams with home and away swapped are one match
+ * only when they kick off within this many hours of each other (T-1475): the
+ * provider's second record of a friendly, sides reversed. A two-legged tie's
+ * legs are days apart.
+ */
+export const SWAPPED_WINDOW_HOURS = 3;
+
 export interface PairRow extends FixtureRef {
   otherFixtureId: string;
   kickoffAt: Date;
   otherKickoffAt: Date;
   status: string;
   otherStatus: string;
+  /** The other fixture has this one's home team away and its away team at home (T-1475). */
+  swapped?: boolean;
 }
 
 /**
@@ -278,15 +288,18 @@ export interface PairRow extends FixtureRef {
  * kicking off within three days: the provider issued a second id for one
  * match (a rearrangement, a re-import) and both are on the scores page. A
  * cancelled one is the provider saying so, and not a duplicate; nor are two
- * that were both played on different days (T-1473).
+ * that were both played on different days (T-1473). The same two teams with
+ * sides swapped at the same time are one match too (T-1475).
  */
 export function duplicateFixture(row: PairRow): Finding | null {
   if (row.fixtureId === row.otherFixtureId) return null;
   if (row.status === 'cancelled' || row.otherStatus === 'cancelled') return null;
   const apart = Math.abs(row.kickoffAt.getTime() - row.otherKickoffAt.getTime());
   if (apart > DUPLICATE_WINDOW_DAYS * 24 * 60 * 60 * 1000) return null;
+  const swapped = row.swapped === true;
+  if (swapped && apart > SWAPPED_WINDOW_HOURS * 60 * 60 * 1000) return null;
   const bothPlayed = row.status === 'finished' && row.otherStatus === 'finished';
-  if (bothPlayed && apart >= BOTH_PLAYED_APART_HOURS * 60 * 60 * 1000) return null;
+  if (!swapped && bothPlayed && apart >= BOTH_PLAYED_APART_HOURS * 60 * 60 * 1000) return null;
   const [first, second] = [row.fixtureId, row.otherFixtureId].sort() as [string, string];
   // The statuses in kick-off order, so the detail reads the same whichever way round the pair was read.
   const ordered = [
@@ -297,7 +310,9 @@ export function duplicateFixture(row: PairRow): Finding | null {
     ...onFixture(
       'duplicate_fixture',
       { ...row, fixtureId: first },
-      `the same home and away teams twice within ${DUPLICATE_WINDOW_DAYS} days (${ordered[0]!.status}, then ${ordered[1]!.status})`,
+      swapped
+        ? `the same two teams at the same time, home and away swapped (${ordered[0]!.status}, then ${ordered[1]!.status})`
+        : `the same home and away teams twice within ${DUPLICATE_WINDOW_DAYS} days (${ordered[0]!.status}, then ${ordered[1]!.status})`,
       `${first}:${second}`,
     ),
     relatedFixtureId: second,

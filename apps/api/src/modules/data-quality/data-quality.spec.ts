@@ -276,6 +276,25 @@ describe('duplicate_fixture', () => {
     ).toMatchObject({ check: 'duplicate_fixture' });
   });
 
+  it('names the same two teams at the same time with sides swapped, both played (T-1475)', () => {
+    const mirrored = {
+      ...pair,
+      otherKickoffAt: pair.kickoffAt,
+      status: 'finished',
+      otherStatus: 'finished',
+      swapped: true,
+    };
+    expect(duplicateFixture(mirrored)).toMatchObject({
+      check: 'duplicate_fixture',
+      detail:
+        'the same two teams at the same time, home and away swapped (finished, then finished)',
+    });
+    // A second leg, days later with the sides reversed, is a match of its own.
+    expect(
+      duplicateFixture({ ...mirrored, otherKickoffAt: new Date('2026-09-27T15:00:00Z') }),
+    ).toBeNull();
+  });
+
   it('is quiet for a cancelled one, and for a pair further apart than three days', () => {
     expect(duplicateFixture({ ...pair, status: 'cancelled' })).toBeNull();
     expect(
