@@ -4897,12 +4897,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "firstRun.offer.start": {
-    "source": "Start",
-    "text": "شروع",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "achievements.title": {
     "source": "Achievements",
     "text": "دستاوردها",

@@ -12004,3 +12004,13 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Rejected.** *A two-hour edge TTL* (the free plan's floor), which is too old for a live score page. *Caching by Cloudflare rule alone*, since the TTL cannot be set low enough. *Setting the header in the web app*, because Next marks dynamic pages `no-store` itself; the edge in front of it is the one place that sees the request and the response together.
 
+## D-246 — A page's CSS is inlined into its HTML
+
+**Status:** Accepted · 2026-10-22 (the maintainer: "do all the remaining tasks right now, all of them yourself") · **Task:** T-1469 · **Follows:** D-240, D-243, D-244
+
+**Context.** After the GTmetrix phases and the edge cache, PageSpeed (mobile, slow 4G) still scored `/en` 84, and its largest finding was two render-blocking stylesheets, 14.6 kB together, estimated at 1.8 s: the browser cannot paint until it has asked for them and they have arrived.
+
+**Decision.** `experimental.inlineCss` in `next.config.ts`: Next writes the page's CSS into the HTML as one `<style>` instead of `<link rel="stylesheet">`. Production only, App Router only, as Next documents it.
+
+**Consequences.** The first paint waits on no request after the HTML. Each HTML answer is about 13 kB larger compressed, and a returning reader's browser no longer reuses a cached stylesheet; a guest's page is itself held at the edge for 30 seconds (D-244), and on a phone one round trip costs more than 13 kB. The `@font-face` rules travel with the CSS as before; which fonts a page names, and so downloads, is unchanged (D-243). If the larger HTML ever shows in the server response budget (T-808), this is the setting to revisit.
+
