@@ -118,7 +118,7 @@ test('an English page fetches no Persian face, even for the language picker’s 
   );
 });
 
-test('a slow connection only a script sees turns lite on, and the next page is lite from the server', async ({
+test('a slow connection only a script sees leaves this page as drawn, and the next page is lite from the server (T-1470)', async ({
   page,
   baseURL,
 }) => {
@@ -128,10 +128,16 @@ test('a slow connection only a script sees turns lite on, and the next page is l
   });
   const first = await page.goto('/en/scores');
   expect(await first!.text()).toContain('data-lite="off"');
-  await expect(page.locator('html')).toHaveAttribute('data-lite', 'on');
-  await expect(page.getByTestId('lite-banner')).toContainText('slow connection detected');
-  const cookies = await page.context().cookies(baseURL);
-  expect(cookies.find((c) => c.name === 'fmip_slow')?.value).toBe('1');
+  // The hint is written for the next page (D-247)...
+  await expect
+    .poll(
+      async () =>
+        (await page.context().cookies(baseURL)).find((c) => c.name === 'fmip_slow')?.value,
+    )
+    .toBe('1');
+  // ...and the page already drawn does not move under the reader.
+  await expect(page.locator('html')).toHaveAttribute('data-lite', 'off');
+  await expect(page.getByTestId('lite-banner')).toHaveCount(0);
   // This first page was rendered before anyone knew: its fonts may still be
   // arriving. Only the next page's requests count.
   await page.waitForLoadState('networkidle');
@@ -142,6 +148,7 @@ test('a slow connection only a script sees turns lite on, and the next page is l
   const seen = watch(second);
   const next = await second.goto('/en/settings');
   expect(await next!.text()).toContain('data-lite="on"');
+  await expect(second.getByTestId('lite-banner')).toContainText('slow connection detected');
   await second.waitForLoadState('networkidle');
   expect(seen.fonts).toEqual([]);
   expect(seen.images).toEqual([]);

@@ -22,6 +22,7 @@ const HERE = __dirname;
 const LAYOUT = readFileSync(join(HERE, '..', 'app', '[locale]', 'layout.tsx'), 'utf8');
 const GLOBALS = readFileSync(join(HERE, '..', 'app', 'globals.css'), 'utf8');
 const SETTINGS = readFileSync(join(HERE, '..', 'app', '[locale]', 'settings', 'page.tsx'), 'utf8');
+const PROVIDER = readFileSync(join(HERE, 'lite-mode.tsx'), 'utf8');
 
 const CREST: EntityMedia = { coverage: 'available', url: '/api/media/crest/t-1/0123456789ab' };
 const PHOTO: NewsImage = {
@@ -87,6 +88,21 @@ describe('images in lite mode', () => {
 
   it('are drawn outside any provider (an error page, a spec): lite mode is off by default', () => {
     expect(renderToStaticMarkup(IMAGES).match(/<img /g)).toHaveLength(5);
+  });
+});
+
+describe('a slow connection found after load (T-1470, D-247)', () => {
+  it('is remembered for the next page and leaves this one as the server drew it', () => {
+    // Lite mode comes from the server's own answer alone; what the browser
+    // reports goes only to the hint cookie, so the page never moves under the
+    // reader once drawn.
+    expect(PROVIDER).toContain('liteMode(preference, slow);');
+    expect(PROVIDER).not.toMatch(/liteMode\([^)]*seen/);
+    expect(PROVIDER).toContain('slowCookieString(seen,');
+  });
+
+  it('draws images on a guest page the server did not render lite', () => {
+    expect(within('auto', false, IMAGES).match(/<img /g)).toHaveLength(5);
   });
 });
 

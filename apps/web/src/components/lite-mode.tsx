@@ -23,13 +23,14 @@ import {
  *
  * The server already rendered the page lite or not (`data-lite` on <html>,
  * from the choice, `Save-Data` and the hint cookie: `readLite`), and this
- * starts from exactly that, so hydration matches. Then it asks what only a
- * script can: the Network Information API. On `auto`, a slow connection
- * turns lite mode on at once -- the images not yet drawn are not drawn, the
- * fonts fall back, the live surfaces poll -- and is written to the hint
- * cookie, so the next page is lite from the server's first byte. A fast one
- * clears the hint for the next page and leaves this page as it was rendered:
- * the page never flips back under the reader.
+ * keeps exactly that, so hydration matches. Then it asks what only a script
+ * can: the Network Information API. On `auto`, a slow connection is written
+ * to the hint cookie, so the next page is lite from the server's first byte;
+ * a fast one clears the hint. Either way this page stays as it was rendered
+ * (T-1470, D-247): by the time a script can ask, the HTML has already asked
+ * for its images and fonts, so turning lite mode on here saved little and
+ * moved the whole page under the reader -- the banner pushed in, the fonts
+ * and lists redrawn.
  *
  * `useLite()` is the mode for any client component; `Pictured` is how a
  * server component draws an image only when lite mode is off.
@@ -76,7 +77,8 @@ export function LiteProvider({
   children: ReactNode;
 }) {
   const seen = useSyncExternalStore(subscribe, browserSlow, serverSlow);
-  const { on, reason } = liteMode(preference, slow || seen === true);
+  // What the server rendered, and only that: `seen` is for the next page.
+  const { on, reason } = liteMode(preference, slow);
 
   // The next page's render: a slow connection is remembered for the server;
   // a fast one clears an old hint. Where the browser cannot say, nothing changes.
@@ -86,8 +88,8 @@ export function LiteProvider({
     document.cookie = slowCookieString(seen, window.location.protocol === 'https:');
   }, [seen]);
 
-  // The fonts and the compact lists follow <html>, which the server rendered;
-  // a slow connection found after load moves it here.
+  // The fonts and the compact lists follow <html>; kept in step with what the
+  // server renders after the reader's own switch (`setLiteAction`).
   useEffect(() => {
     document.documentElement.dataset.lite = on ? 'on' : 'off';
   }, [on]);
