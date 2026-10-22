@@ -1,3 +1,4 @@
+import { dateTimeFormat, numberFormat, relativeTimeFormat } from '@/lib/intl-cache';
 import { DEFAULT_LOCALE, type Locale, isLocale, isPseudoLocale } from './locales';
 
 /**
@@ -47,7 +48,7 @@ function at(iso: string | number): Date {
  * Spanish, "05.01.2025, 16:28" in German.
  */
 export function formatDateTime(locale: Locale | string, iso: string, timeZone: string): string {
-  return new Intl.DateTimeFormat(intlLocale(locale), {
+  return dateTimeFormat(intlLocale(locale), {
     dateStyle: 'medium',
     timeStyle: 'short',
     timeZone,
@@ -67,7 +68,7 @@ export function formatTime(
   timeZone: string,
   options: { seconds?: boolean } = {},
 ): string {
-  return new Intl.DateTimeFormat(intlLocale(locale), {
+  return dateTimeFormat(intlLocale(locale), {
     timeZone,
     hour: '2-digit',
     minute: '2-digit',
@@ -90,7 +91,7 @@ export function formatDate(
     'weekday' | 'day' | 'month' | 'year' | 'hour' | 'minute' | 'hourCycle'
   >,
 ): string {
-  return new Intl.DateTimeFormat(intlLocale(locale), { timeZone, ...parts }).format(at(iso));
+  return dateTimeFormat(intlLocale(locale), { timeZone, ...parts }).format(at(iso));
 }
 
 /**
@@ -116,7 +117,7 @@ export function formatVersionStamp(locale: Locale | string, iso: string, timeZon
  * Persian month name would cover a different stretch of days.
  */
 export function formatGregorianMonth(locale: Locale | string, yearMonth: string): string {
-  return new Intl.DateTimeFormat(intlLocale(locale), {
+  return dateTimeFormat(intlLocale(locale), {
     calendar: 'gregory',
     year: 'numeric',
     month: 'long',
@@ -126,7 +127,7 @@ export function formatGregorianMonth(locale: Locale | string, yearMonth: string)
 
 /** A count somebody reads -- an attendance, a capacity -- with the locale's grouping. */
 export function formatNumber(locale: Locale | string, value: number): string {
-  return new Intl.NumberFormat(intlLocale(locale)).format(value);
+  return numberFormat(intlLocale(locale)).format(value);
 }
 
 /**
@@ -136,7 +137,7 @@ export function formatNumber(locale: Locale | string, value: number): string {
  * separator is added.
  */
 export function localDigits(locale: Locale | string, text: string): string {
-  const digits = new Intl.NumberFormat(intlLocale(locale), { useGrouping: false });
+  const digits = numberFormat(intlLocale(locale), { useGrouping: false });
   return text.replace(/[0-9]/g, (digit) => digits.format(Number(digit)));
 }
 
@@ -146,7 +147,7 @@ export function localDigits(locale: Locale | string, text: string): string {
  * day into "yesterday"; the date and time beside it are the caller's.
  */
 export function formatDaysAgo(locale: Locale | string, days: number): string {
-  return new Intl.RelativeTimeFormat(intlLocale(locale), { numeric: 'auto' }).format(-days, 'day');
+  return relativeTimeFormat(intlLocale(locale), { numeric: 'auto' }).format(-days, 'day');
 }
 
 /**
@@ -157,7 +158,7 @@ export function formatDaysAgo(locale: Locale | string, days: number): string {
  * moment a little ahead of the clock reads as now, never "in 2s".
  */
 export function formatAgo(locale: Locale | string, elapsedMs: number): string {
-  const format = new Intl.RelativeTimeFormat(intlLocale(locale), { style: 'narrow' });
+  const format = relativeTimeFormat(intlLocale(locale), { style: 'narrow' });
   const seconds = Math.max(0, Math.floor(elapsedMs / 1000));
   if (seconds < 60) return format.format(-seconds, 'second');
   const minutes = Math.floor(seconds / 60);
