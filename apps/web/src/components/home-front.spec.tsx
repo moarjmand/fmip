@@ -129,7 +129,7 @@ describe('the lead match card', () => {
     expect(html).toContain('1st of 16 · 16 pts');
     expect(html).toContain('2nd of 16 · 15 pts');
     expect(html).toContain('data-testid="forecast-bar" data-state="available"');
-    expect(html).toContain('dixon-coles-elo@0.6.0');
+    expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
     expect(html).toContain('data-coverage-badge="limited"');
     expect(html).toContain('href="/en/match/f1"');
     expect(html).toContain('href="/en/about#model"');
@@ -309,7 +309,7 @@ describe('today’s key matches', () => {
     expect(html).toContain('data-coverage-badge="limited"');
     expect(html).toContain('2 more matches on the scores page');
     expect(html).toContain('All 5 competitions on the scores page');
-    expect(html).toContain('dixon-coles-elo@0.6.0');
+    expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
   });
 
   it('calls the coverage available when every row has a forecast', () => {
@@ -377,7 +377,7 @@ describe('the side column', () => {
     expect(html).toContain('0.198');
     expect(html).toContain('Sample: 12 matches');
     expect(html).toContain('a uniform guess scores 0.231');
-    expect(html).toContain('dixon-coles-elo@0.6.0');
+    expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
     expect(html).toContain('href="/en/model-accuracy"');
     const none = renderToStaticMarkup(
       <AccuracyCard figure={null} reachable locale="en" timeZone="UTC" />,

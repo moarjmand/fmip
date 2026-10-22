@@ -39,6 +39,7 @@ import { COVERAGE_KEY } from '@/components/score-card';
 import { Score, nameIsolate, pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { CoverageBadge, Icon, Notice } from '@/components/ui';
+import { ModelVersion } from '@/components/model-version';
 
 /**
  * The model forecast on the match centre (T-065, blueprint 6.1–6.4): the
@@ -344,7 +345,7 @@ function Latest({
             version: formatFixed(locale, version.version_number, 0),
             kind: kindLabel(version.kind, locale),
             time: stamp(version.computed_at),
-            model: version.model_version,
+            model: <ModelVersion version={version.model_version} />,
             completeness:
               version.data_completeness === null
                 ? t(locale, 'forecast.unknown')
@@ -893,7 +894,7 @@ function ModelDetails({
                           {formatFixed(locale, version.version_number, 0)}
                           {' · '}
                           <span dir="ltr" className="text-model">
-                            {version.model_version}
+                            <ModelVersion version={version.model_version} />
                           </span>
                         </td>
                         <td className="py-2 pe-3 font-mono text-xs text-caption">

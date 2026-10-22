@@ -1,6 +1,7 @@
 import Link from '@/components/ui/link';
 import type { CandidateRecord, CandidateRecordsResponse } from '@fmip/contracts';
 import { Card, Notice } from '@/components/ui';
+import { ModelVersion } from '@/components/model-version';
 
 /**
  * The candidates in shadow and their records, for the console (T-1103,
@@ -34,7 +35,7 @@ function CandidateSection({
   const reached = record.pre_kickoff_evaluated >= minimum;
   return (
     <Card
-      heading={record.model_version}
+      heading={<ModelVersion version={record.model_version} />}
       headingLevel={2}
       data-testid="candidate-record"
       data-model-version={record.model_version}

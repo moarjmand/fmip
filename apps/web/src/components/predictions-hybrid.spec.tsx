@@ -130,7 +130,7 @@ describe('ForecastList by day', () => {
     expect(rows).toEqual(['true', 'false']);
     expect(html).toContain('Superseded · kept');
     expect(html).toContain('55.8%');
-    expect(html).toContain('dixon-coles@1.0.0');
+    expect(html).toContain('dixon-coles<span>@</span>1.0.0');
     expect(html).toContain('href="/en/match/00000000-0000-4000-8000-000000000901#forecast"');
   });
 
@@ -330,7 +330,7 @@ describe('ModelExpected in a match report', () => {
     const html = expected();
     expect(html).toContain('data-lane="model"');
     expect(html).toContain('What the model expected');
-    expect(html).toContain('dixon-coles-elo@0.6.0');
+    expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
     expect(html).toContain('08 Oct, 09:30 UTC');
     expect(html).toMatch(/Result: <bdi>Tractor<\/bdi> .*1.*–.*1.* <bdi>Esteghlal<\/bdi>\./);
     expect(html).toContain('Ranked probability score for this forecast: 0.126');
