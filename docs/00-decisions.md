@@ -12064,6 +12064,7 @@ replaces D-089's self-hosting arrangement for no gain here).
 1. The API-Football adapter asks again after 2 s, then 5 s, when the answer is the per-minute refusal (`rateLimit` in the envelope's errors, or HTTP 429). The day's quota (`requests`) is never retried: another ask today cannot cure it. Each attempt is a request, counted by the run's tally (T-501).
 2. A person whose provider id is a coach's (`coach:`, D-230) is never owed a player profile, whatever else is recorded about him.
 3. Two finished fixtures of the same pairing at least 24 hours apart were both played and are not a duplicate. A pair within a day, or with one not finished, is still a finding (D-097), so a match stored twice is still caught.
+4. The watchdog's `data_quality` condition counts findings on a match that is live or kicked off within the last six hours and not later than now: its window had no end, so a finding on any future fixture held the condition at `degraded` (from 2026-10-21, a friendly set for 15 November).
 
 **Consequences.** A burst costs up to seven seconds instead of a stale table. The 50 open double-header findings resolve at the next sweep.
 

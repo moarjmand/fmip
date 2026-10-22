@@ -172,7 +172,7 @@ export class DataQualityStore {
    * The watchdog's count (T-821): open, unreviewed findings about a match
    * that is live or kicked off since `horizon`, first seen before `seenBefore`.
    */
-  async liveContradictions(horizon: Date, seenBefore: Date): Promise<number> {
+  async liveContradictions(horizon: Date, seenBefore: Date, now: Date): Promise<number> {
     const { rows } = await this.pool.query<{ n: number }>(
       `SELECT count(*)::int AS n
          FROM data_quality_finding d
@@ -180,8 +180,10 @@ export class DataQualityStore {
         WHERE d.resolved_at IS NULL
           AND d.reviewed_at IS NULL
           AND d.first_seen_at <= $2
-          AND (f.status = 'live' OR f.kickoff_at >= $1)`,
-      [horizon, seenBefore],
+          -- Kicked off within the horizon, never still to come (T-1473): a
+          -- finding on next month's fixture is not about a match today.
+          AND (f.status = 'live' OR (f.kickoff_at >= $1 AND f.kickoff_at <= $3))`,
+      [horizon, seenBefore, now],
     );
     return rows[0]?.n ?? 0;
   }
