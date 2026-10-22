@@ -5,7 +5,12 @@ import type { IngestionHealth } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
-import { INTERRUPTED_RUN_ERROR, IngestRunsService, utcMidnight } from './ingest-runs.service';
+import {
+  FINISH_RETRY_DELAYS_MS,
+  INTERRUPTED_RUN_ERROR,
+  IngestRunsService,
+  utcMidnight,
+} from './ingest-runs.service';
 import { IngestionModule } from './ingestion.module';
 import { CountingTransport } from './internal/request-meter';
 import { PostgresRunStore } from './internal/run-store';
@@ -187,6 +192,55 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
         WHERE id = $1`,
       [other[0]!.id],
     );
+    warn.mockRestore();
+  });
+
+  it('writes a run’s outcome once the database is back, and keeps one it never could (T-1472)', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const store = app.get(PostgresRunStore);
+    const sleep = vi
+      .spyOn(runs as unknown as { sleep: (ms: number) => Promise<void> }, 'sleep')
+      .mockResolvedValue(undefined);
+    const gone = new Error('the database system is shutting down');
+
+    // Postgres away for two tries: the third writes the real outcome.
+    const finish = vi
+      .spyOn(store, 'finish')
+      .mockRejectedValueOnce(gone)
+      .mockRejectedValueOnce(gone);
+    await runs.track('football_data_org', 'post_match', 'restart:test', async () => ({
+      result: null,
+      itemsSeen: 2,
+      itemsWritten: 2,
+    }));
+    const { rows } = await pool.query<{ id: string; status: string; items_written: number }>(
+      `SELECT id, status, items_written FROM ingest_run WHERE scope = 'restart:test'`,
+    );
+    ids.push(...rows.map((r) => r.id));
+    expect(rows).toMatchObject([{ status: 'succeeded', items_written: 2 }]);
+    expect(sleep.mock.calls.map((c) => c[0])).toEqual([1_000, 2_000]);
+    expect(warn.mock.calls.map((c) => (c[1] as { event?: string })?.event)).toContain(
+      'ingest.finish_retry',
+    );
+
+    // Away for good: the job fails, and the run is still this process's to close.
+    finish.mockRejectedValue(gone);
+    await expect(
+      runs.track('football_data_org', 'post_match', 'restart-forever:test', async () => ({
+        result: null,
+        itemsSeen: 0,
+        itemsWritten: 0,
+      })),
+    ).rejects.toThrow(gone.message);
+    expect(sleep).toHaveBeenCalledTimes(2 + FINISH_RETRY_DELAYS_MS.length);
+    finish.mockRestore();
+    await runs.beforeApplicationShutdown();
+    const { rows: kept } = await pool.query<{ id: string; status: string; error: string }>(
+      `SELECT id, status, error FROM ingest_run WHERE scope = 'restart-forever:test'`,
+    );
+    ids.push(...kept.map((r) => r.id));
+    expect(kept).toMatchObject([{ status: 'failed', error: INTERRUPTED_RUN_ERROR }]);
+    sleep.mockRestore();
     warn.mockRestore();
   });
 
