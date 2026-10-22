@@ -78,12 +78,42 @@ describe('the site fonts', () => {
     for (const [stylesheet] of FACES) expect(LAYOUT).toContain(`import '${stylesheet}';`);
   });
 
-  it('are each named first in the stack of their role', () => {
-    expect(GLOBALS).toMatch(/--font-sans:\s*'Vazirmatn Variable',\s*system-ui/);
-    expect(GLOBALS).toMatch(/--font-latin:\s*'Mona Sans Variable',\s*system-ui/);
-    expect(GLOBALS).toMatch(/--font-serif:\s*'Newsreader Variable',/);
-    expect(GLOBALS).toMatch(/--font-naskh:\s*'Markazi Text Variable',\s*'Vazirmatn Variable'/);
-    expect(GLOBALS).toMatch(/--font-mono:\s*'Geist Mono Variable',/);
+  it('are each named first in the stack of their role, their matched fallback second', () => {
+    expect(GLOBALS).toMatch(
+      /--font-sans:\s*'Vazirmatn Variable',\s*'Vazirmatn Fallback',\s*system-ui/,
+    );
+    expect(GLOBALS).toMatch(
+      /--font-latin:\s*'Mona Sans Variable',\s*'Mona Sans Fallback',\s*system-ui/,
+    );
+    expect(GLOBALS).toMatch(/--font-serif:\s*'Newsreader Variable',\s*'Newsreader Fallback',/);
+    expect(GLOBALS).toMatch(
+      /--font-naskh:\s*'Markazi Text Variable',\s*'Markazi Text Fallback',\s*'Vazirmatn Variable'/,
+    );
+    expect(GLOBALS).toMatch(/--font-mono:\s*'Geist Mono Variable',\s*'Geist Mono Fallback',/);
+  });
+
+  it('have their fallbacks as local faces scaled to their metrics, which download nothing (T-1463)', () => {
+    for (const family of [
+      'Mona Sans Fallback',
+      'Newsreader Fallback',
+      'Geist Mono Fallback',
+      'Vazirmatn Fallback',
+      'Markazi Text Fallback',
+    ]) {
+      const start = GLOBALS.indexOf(`font-family: '${family}';`);
+      expect(start, family).toBeGreaterThan(0);
+      const rules = GLOBALS.slice(start, GLOBALS.indexOf('}', start));
+      expect(rules, family).toMatch(/src: local\('[^']+'\)(, local\('[^']+'\))*;/);
+      expect(rules, family).not.toContain('url(');
+      for (const descriptor of [
+        'size-adjust',
+        'ascent-override',
+        'descent-override',
+        'unicode-range',
+      ]) {
+        expect(rules, `${family} ${descriptor}`).toContain(`${descriptor}:`);
+      }
+    }
   });
 
   it('follow the page’s script: Mona Sans for a Latin page, Markazi Text for Persian display', () => {

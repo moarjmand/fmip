@@ -35,24 +35,29 @@
  * `text-display-1` (28px) to `text-display-7` (168px), for editorial
  * headlines, data-mode stats, titles and the score. Their line heights are
  * tight for Latin and opened up for Arabic script in the base layer.
+ *
+ * Each web font is followed by a local face matched to its metrics (T-1463),
+ * so the text drawn while it loads takes the same room: see the faces below.
  */
 @theme {
   --font-sans:
-    'Vazirmatn Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans',
-    'Noto Sans Arabic', Tahoma, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-    'Noto Color Emoji';
-  --font-latin:
-    'Mona Sans Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans',
-    'Vazirmatn Variable', 'Noto Sans Arabic', Tahoma, Arial, sans-serif, 'Apple Color Emoji',
+    'Vazirmatn Variable', 'Vazirmatn Fallback', system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Noto Sans', 'Noto Sans Arabic', Tahoma, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Noto Color Emoji';
+  --font-latin:
+    'Mona Sans Variable', 'Mona Sans Fallback', system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Noto Sans', 'Vazirmatn Variable', 'Noto Sans Arabic', Tahoma, Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
   --font-serif:
-    'Newsreader Variable', 'Iowan Old Style', Georgia, 'Times New Roman', 'Vazirmatn Variable',
+    'Newsreader Variable', 'Newsreader Fallback', 'Iowan Old Style', Georgia, 'Times New Roman',
+    'Vazirmatn Variable', serif;
+  --font-naskh:
+    'Markazi Text Variable', 'Markazi Text Fallback', 'Vazirmatn Variable', 'Noto Naskh Arabic',
     serif;
-  --font-naskh: 'Markazi Text Variable', 'Vazirmatn Variable', 'Noto Naskh Arabic', serif;
   --font-article: var(--font-serif);
   --font-mono:
-    'Geist Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono',
-    monospace;
+    'Geist Mono Variable', 'Geist Mono Fallback', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    'Liberation Mono', monospace;
 
   --text-*: initial;
   --text-xs: 0.75rem;
@@ -460,4 +465,86 @@ body {
     color: var(--token-text);
     font-weight: 700;
   }
+}
+
+/*
+ * Fallback faces matched to the web fonts (T-1463). While a web font loads,
+ * text is drawn in a face installed on the device; when the web font arrives
+ * the text is redrawn, and if the two differ in width and height the lines
+ * re-wrap and the page shifts -- every layout shift Lighthouse found on /en
+ * on 2026-10-22 was a web font arriving. Each face below is a local font
+ * scaled to its web font's average advance (`size-adjust`), with the web
+ * font's ascent and descent, so the swap changes the glyphs and not the
+ * layout. The values were measured in Chromium from the woff2 files against
+ * each local font over a frequency-weighted sample (Latin or Persian), as
+ * Next's adjustFontFallback does; a metric-compatible clone (Liberation,
+ * Arimo, Tinos, Cousine, Gelasio) takes the same values where the font
+ * itself is missing. `local()` only: nothing is downloaded, in lite mode or
+ * out of it. Each is named second in its role's stack, after its web font.
+ */
+@font-face {
+  font-family: 'Mona Sans Fallback';
+  src: local('Arial'), local('Liberation Sans'), local('Arimo');
+  size-adjust: 103.35%;
+  ascent-override: 105.47%;
+  descent-override: 30.96%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+/*
+ * The same family for condensed text (`font-stretch-condensed`, Mona Sans's
+ * width axis at 75 %): a browser picks the face whose stretch matches, and
+ * Arial, which has no condensed form, is scaled to condensed Mona Sans's
+ * advance instead (67.9 % at weight 400, 71.0 % at 700), its line box kept.
+ */
+@font-face {
+  font-family: 'Mona Sans Fallback';
+  src: local('Arial'), local('Liberation Sans'), local('Arimo');
+  font-stretch: 50% 87.5%;
+  size-adjust: 69.47%;
+  ascent-override: 156.9%;
+  descent-override: 46.06%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Newsreader Fallback';
+  src: local('Georgia'), local('Gelasio');
+  size-adjust: 96.11%;
+  ascent-override: 76.99%;
+  descent-override: 28.09%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Geist Mono Fallback';
+  src: local('Courier New'), local('Liberation Mono'), local('Cousine');
+  size-adjust: 99.98%;
+  ascent-override: 101.02%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Vazirmatn Fallback';
+  src: local('Tahoma');
+  size-adjust: 94.13%;
+  ascent-override: 109.43%;
+  descent-override: 57.37%;
+  line-gap-override: 0%;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+@font-face {
+  font-family: 'Markazi Text Fallback';
+  src: local('Times New Roman'), local('Liberation Serif'), local('Tinos');
+  size-adjust: 91.56%;
+  ascent-override: 91.74%;
+  descent-override: 39.32%;
+  line-gap-override: 0%;
+  unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
 }
