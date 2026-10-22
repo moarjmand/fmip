@@ -232,6 +232,7 @@ export class DataQualityService {
       this.store.liveContradictions(
         new Date(now.getTime() - LIVE_HORIZON_MINUTES * 60_000),
         new Date(now.getTime() - LIVE_MIN_AGE_MINUTES * 60_000),
+        now,
       ),
     ]);
     let sweptAt: Date | null = null;

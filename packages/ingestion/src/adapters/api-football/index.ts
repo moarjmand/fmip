@@ -85,6 +85,22 @@ type Envelope = { response: unknown[]; errors: Record<string, string> };
  * `errors` (an object when there are any, an empty array when not). This
  * turns the envelope into either the `response` array or an `AdapterError`.
  */
+/** The pauses before asking again after a per-minute refusal (T-1473). */
+export const RATE_LIMIT_RETRY_MS: readonly number[] = [2_000, 5_000];
+
+const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * The provider's per-minute limit, as opposed to the day's quota (`requests`),
+ * which another ask today cannot cure. API-Football says it in the envelope
+ * of a 200 answer (seen on production, 2026-10-20 to 22).
+ */
+function isRateLimit(error: AdapterError): boolean {
+  // The envelope's own word only: an HTTP 429 is also how our budget
+  // (`BudgetedTransport`) refuses an ask, and that refusal holds all day.
+  return error.kind === 'quota' && error.message.includes('rateLimit:');
+}
+
 function envelope(
   response: TransportResponse,
 ): { ok: true; data: Envelope } | { ok: false; error: AdapterError } {
@@ -153,8 +169,28 @@ class ApiFootballAdapter implements ProviderAdapter {
     });
   }
 
-  /** One request → envelope, with transport failures turned into a result. */
+  /**
+   * One request → envelope, with transport failures turned into a result. A
+   * per-minute refusal is asked again after a pause (T-1473): it says "not
+   * this second", not "not today", and a job that bursts -- standings asks
+   * every competition within three seconds -- otherwise loses its table for
+   * an hour.
+   */
   private async call(
+    path: string,
+    params: Record<string, string>,
+  ): Promise<
+    { ok: true; data: Envelope; receivedAt: string } | { ok: false; error: AdapterError }
+  > {
+    for (let attempt = 0; ; attempt += 1) {
+      const result = await this.callOnce(path, params);
+      const delay = RATE_LIMIT_RETRY_MS[attempt];
+      if (result.ok || delay === undefined || !isRateLimit(result.error)) return result;
+      await pause(delay);
+    }
+  }
+
+  private async callOnce(
     path: string,
     params: Record<string, string>,
   ): Promise<

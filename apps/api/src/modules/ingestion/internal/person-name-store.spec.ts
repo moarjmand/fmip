@@ -27,6 +27,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people n
     edited: randomUUID(),
     adopted: randomUUID(),
     changing: randomUUID(),
+    coach: randomUUID(),
   };
   const ext = (n: string) => `t1398-${RUN}-${n}`;
   const ids: string[] = Object.values(p);
@@ -80,6 +81,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people n
         [ext(String(i)), id],
       );
     }
+    // A coach adopted from a line-up: no match or spell yet, only his id says so (T-1473).
+    await pool.query(`INSERT INTO person (id, full_name) VALUES ($1, 'N. Saglam')`, [p.coach]);
+    await pool.query(
+      `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+       VALUES ('api_football', 'person', $1, $2)`,
+      [`coach:${ext('coach')}`, p.coach],
+    );
     // Adopted under the name still stored: the feed's name, so it may be asked about.
     // Adopted under another name than the one stored now: somebody changed it.
     // Any other audited action on the person: a person chose the name.
@@ -115,6 +123,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people n
     expect(owed).toEqual([p.short, p.shortFailed, p.adopted, p.changing].sort());
     const salah = (await due()).find((x) => x.personId === p.short);
     expect(salah).toMatchObject({ storedName: 'M. Salah', externalId: ext('0') });
+  });
+
+  it('never owes a coach a player profile, known by his id alone (T-1473)', async () => {
+    expect((await due()).map((x) => x.personId)).not.toContain(p.coach);
   });
 
   it('asks an unanswered person again only after the retry interval, and only so often', async () => {

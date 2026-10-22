@@ -12054,3 +12054,17 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** A brief database restart costs a job its batch, not its lock. A job's worker can be held up to half a minute while the database is away.
 
+## D-250 — A per-minute refusal is asked again; two played matches are not a duplicate
+
+**Status:** Accepted · 2026-10-22 (agent, from a production audit the maintainer asked for: "review deeply and do all the remaining tasks yourself") · **Task:** T-1473 · **Follows:** D-097, D-183, D-213, D-230, T-1422
+
+**Context.** Three faults, each seen in production's records of 2026-10-20 to 2026-10-22. API-Football refuses a burst with its per-minute `rateLimit` although the day's budget is far from spent; `standings` (39 asks in three seconds) and `fixtures` were cut short by it after a paced bulk job, ten and seven times in a day, leaving a table stale until the next hourly run. `people_names` asked for player profiles of coaches adopted from line-ups, wasting asks and failing runs. And `duplicate_fixture` had 50 open findings, all of them real separate matches.
+
+**Decision.**
+1. The API-Football adapter asks again after 2 s, then 5 s, when the answer is the per-minute refusal (`rateLimit` in the envelope's errors, which is how API-Football says it). An HTTP 429 is not retried: it is also how our own budget (`BudgetedTransport`) refuses an ask. The day's quota (`requests`) is never retried: another ask today cannot cure it. Each attempt is a request, counted by the run's tally (T-501).
+2. A person whose provider id is a coach's (`coach:`, D-230) is never owed a player profile, whatever else is recorded about him.
+3. Two finished fixtures of the same pairing at least 24 hours apart were both played and are not a duplicate. A pair within a day, or with one not finished, is still a finding (D-097), so a match stored twice is still caught.
+4. The watchdog's `data_quality` condition counts findings on a match that is live or kicked off within the last six hours and not later than now: its window had no end, so a finding on any future fixture held the condition at `degraded` (from 2026-10-21, a friendly set for 15 November).
+
+**Consequences.** A burst costs up to seven seconds instead of a stale table. The 50 open double-header findings resolve at the next sweep.
+

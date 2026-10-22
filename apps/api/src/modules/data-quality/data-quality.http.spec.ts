@@ -455,6 +455,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     expect((await dataQuality.liveContradictions(later)).open).toBe(before.open - 1);
   });
 
+  it('counts for the watchdog a match kicked off in the last six hours, never one still to come (T-1473)', async () => {
+    // The goals finding is on a match kicking off 2031-01-11 15:00.
+    const kickedOff = await dataQuality.liveContradictions(new Date('2031-01-11T16:00:00Z'));
+    const toCome = await dataQuality.liveContradictions(new Date('2031-01-11T14:00:00Z'));
+    expect(kickedOff.open).toBeGreaterThan(toCome.open);
+  });
+
   it("a batch marks one check's open findings in one season reviewed, with one audit row naming them", async () => {
     // A second short line-up in the season, so the batch is more than one finding.
     const second = await fixture('lineup2', UNITED, MADRID, '2031-03-01T15:00:00Z', 'finished');

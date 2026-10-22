@@ -258,6 +258,13 @@ export function fixtureMappedTwice(row: MappingRow): Finding | null {
 /** Two fixtures this close with the same home and away teams are one match (D-097). */
 export const DUPLICATE_WINDOW_DAYS = 3;
 
+/**
+ * Two finished fixtures at least this far apart were both played (T-1473):
+ * national teams meet twice in a friendly double-header, and MLS paired
+ * clubs within three days in 2020. One match is not played on two days.
+ */
+export const BOTH_PLAYED_APART_HOURS = 24;
+
 export interface PairRow extends FixtureRef {
   otherFixtureId: string;
   kickoffAt: Date;
@@ -270,13 +277,16 @@ export interface PairRow extends FixtureRef {
  * Two fixtures of one season, the same home team and the same away team,
  * kicking off within three days: the provider issued a second id for one
  * match (a rearrangement, a re-import) and both are on the scores page. A
- * cancelled one is the provider saying so, and not a duplicate.
+ * cancelled one is the provider saying so, and not a duplicate; nor are two
+ * that were both played on different days (T-1473).
  */
 export function duplicateFixture(row: PairRow): Finding | null {
   if (row.fixtureId === row.otherFixtureId) return null;
   if (row.status === 'cancelled' || row.otherStatus === 'cancelled') return null;
   const apart = Math.abs(row.kickoffAt.getTime() - row.otherKickoffAt.getTime());
   if (apart > DUPLICATE_WINDOW_DAYS * 24 * 60 * 60 * 1000) return null;
+  const bothPlayed = row.status === 'finished' && row.otherStatus === 'finished';
+  if (bothPlayed && apart >= BOTH_PLAYED_APART_HOURS * 60 * 60 * 1000) return null;
   const [first, second] = [row.fixtureId, row.otherFixtureId].sort() as [string, string];
   // The statuses in kick-off order, so the detail reads the same whichever way round the pair was read.
   const ordered = [

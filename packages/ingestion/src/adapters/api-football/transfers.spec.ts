@@ -119,7 +119,7 @@ describe('the adapter', () => {
 
   it('says what the provider refused', async () => {
     const transport = new Scripted([
-      { status: 200, body: { errors: { rateLimit: 'Too many requests' } }, receivedAt: 'x' },
+      { status: 200, body: { errors: { requests: 'limit reached for the day' } }, receivedAt: 'x' },
     ]);
     const adapter = createApiFootballAdapter(transport, { apiKey: 'test' });
     const result = await adapter.getTeamTransfers!('50');

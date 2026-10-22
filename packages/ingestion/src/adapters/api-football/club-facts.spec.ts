@@ -171,7 +171,7 @@ describe("a season's teams (T-1438)", () => {
 
   it('counts a refusal as one request', async () => {
     const result = await adapterAnswering({
-      errors: { rateLimit: 'Too many requests' },
+      errors: { requests: 'limit reached for the day' },
       response: [],
     }).getSeasonTeams!({ competitionExternalId: '39', seasonLabel: '2025/26' });
     expect(result).toMatchObject({ ok: false, requests: 1, error: { kind: 'quota' } });
