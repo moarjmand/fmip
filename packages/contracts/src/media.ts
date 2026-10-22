@@ -23,7 +23,7 @@ export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 /**
  * Where the web app answers for a stored image, on the site's own origin:
- * `${MEDIA_PATH_PREFIX}/<kind>/<entity uuid>/<version>`. The web app hands the
+ * `${MEDIA_PATH_PREFIX}/<kind>/<entity uuid>/<version>.<extension>`. The web app hands the
  * request to the API's `GET /media/<kind>/<id>/<version>`.
  */
 export const MEDIA_PATH_PREFIX = '/api/media';
@@ -31,7 +31,7 @@ export const MEDIA_PATH_PREFIX = '/api/media';
 export type EntityMedia =
   | {
       coverage: 'available';
-      /** Our own relative address, e.g. `/api/media/crest/<uuid>/<version>`. */
+      /** Our own relative address, e.g. `/api/media/crest/<uuid>/<version>.png`. */
       url: string;
     }
   | { coverage: 'not_supplied'; url: null };
@@ -39,7 +39,39 @@ export type EntityMedia =
 /** The one value for "no image", so every surface says it the same way. */
 export const NO_MEDIA: EntityMedia = { coverage: 'not_supplied', url: null };
 
-/** Our own address for a stored image of `kind` for entity `id` at `version`. */
-export function mediaUrl(kind: MediaKind, id: string, version: string): string {
-  return `${MEDIA_PATH_PREFIX}/${kind}/${id}/${version}`;
+/**
+ * The file extension of each type we store (T-1461). The address ends in it
+ * because Cloudflare keeps a response at the edge by the path's extension
+ * unless a dashboard rule says otherwise: `/api/media/crest/<id>/<version>`,
+ * with no extension, was fetched from the origin on every view despite being
+ * `immutable`.
+ */
+export const MEDIA_EXTENSIONS = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/svg+xml': 'svg',
+  'image/webp': 'webp',
+} as const;
+export type MediaContentType = keyof typeof MEDIA_EXTENSIONS;
+
+/**
+ * Our own address for a stored image of `kind` for entity `id` at `version`,
+ * ending in the extension of its type: `/api/media/crest/<uuid>/<version>.png`.
+ */
+export function mediaUrl(
+  kind: MediaKind,
+  id: string,
+  version: string,
+  contentType: MediaContentType,
+): string {
+  return `${MEDIA_PATH_PREFIX}/${kind}/${id}/${version}.${MEDIA_EXTENSIONS[contentType]}`;
+}
+
+/**
+ * The version an address's last segment names: `abc123def456.png` and the
+ * addresses written before T-1461, `abc123def456`, alike.
+ */
+export function mediaVersionOf(segment: string): string {
+  const dot = segment.indexOf('.');
+  return dot === -1 ? segment : segment.slice(0, dot);
 }
