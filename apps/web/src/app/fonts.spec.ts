@@ -92,6 +92,15 @@ describe('the site fonts', () => {
     expect(GLOBALS).toMatch(/--font-mono:\s*'Geist Mono Variable',\s*'Geist Mono Fallback',/);
   });
 
+  it('fetch no Persian face for a Latin page: its stacks name none (T-1464)', () => {
+    for (const role of ['--font-latin', '--font-serif']) {
+      const stack = new RegExp(`${role}:([^;]*);`).exec(GLOBALS)?.[1] ?? '';
+      expect(stack, role).toContain('Variable');
+      expect(stack, role).not.toContain('Vazirmatn');
+      expect(stack, role).not.toContain('Markazi');
+    }
+  });
+
   it('have their fallbacks as local faces scaled to their metrics, which download nothing (T-1463)', () => {
     for (const family of [
       'Mona Sans Fallback',

@@ -38,6 +38,13 @@
  *
  * Each web font is followed by a local face matched to its metrics (T-1463),
  * so the text drawn while it loads takes the same room: see the faces below.
+ *
+ * The Latin stacks name no Persian web font (T-1464). On an English page the
+ * only Persian is a word or two -- the language picker's "فارسی" -- and a
+ * device without Arabic in its system face (GTmetrix's Linux) fell through
+ * the stack to Vazirmatn and fetched 46 kB for it; the device's own Arabic
+ * face draws it now. A Persian page draws Persian in `--font-sans` and
+ * `--font-naskh`, which keep Vazirmatn.
  */
 @theme {
   --font-sans:
@@ -46,11 +53,11 @@
     'Segoe UI Emoji', 'Noto Color Emoji';
   --font-latin:
     'Mona Sans Variable', 'Mona Sans Fallback', system-ui, -apple-system, 'Segoe UI', Roboto,
-    'Noto Sans', 'Vazirmatn Variable', 'Noto Sans Arabic', Tahoma, Arial, sans-serif,
-    'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+    'Noto Sans', 'Noto Sans Arabic', Tahoma, Arial, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Noto Color Emoji';
   --font-serif:
     'Newsreader Variable', 'Newsreader Fallback', 'Iowan Old Style', Georgia, 'Times New Roman',
-    'Vazirmatn Variable', serif;
+    serif;
   --font-naskh:
     'Markazi Text Variable', 'Markazi Text Fallback', 'Vazirmatn Variable', 'Noto Naskh Arabic',
     serif;
