@@ -45,17 +45,33 @@ export const NOT_MEASURED = [
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * How long one request may take, headers and body together (T-1471). Node's
+ * own limits are five minutes for each, so a provider that stalled kept a
+ * post-match batch open for half an hour on 2026-10-22, one stuck request
+ * after another, and the job's lock with it. A provider answers in well
+ * under a second; a request past this is a transport failure, which the
+ * adapter reports like any other.
+ */
+export const REQUEST_TIMEOUT_MS = 30_000;
+
 /** A `Transport` that times each request and delegates to `fetch`. */
 export class TimedTransport implements Transport {
   readonly latenciesMs: number[] = [];
 
-  constructor(private readonly fetchImpl: typeof fetch = fetch) {}
+  constructor(
+    private readonly fetchImpl: typeof fetch = fetch,
+    private readonly timeoutMs: number = REQUEST_TIMEOUT_MS,
+  ) {}
 
   async request(url: string, init: TransportInit = {}): Promise<TransportResponse> {
     const started = Date.now();
+    // One signal for the whole exchange: it also aborts a body still arriving.
+    const signal = AbortSignal.timeout(this.timeoutMs);
     const response = await this.fetchImpl(url, {
       method: init.method ?? 'GET',
       headers: init.headers,
+      signal,
     });
     const text = await response.text();
     this.latenciesMs.push(Date.now() - started);

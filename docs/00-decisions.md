@@ -12034,3 +12034,13 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** A guest on a slow connection sees one full page and then lite ones; nothing moves under them. The hint cookie is named `fmip_*`, so from the second page on their pages bypass the edge cache (D-244) and come lite from the origin.
 
+## D-248 — A provider request is given 30 seconds
+
+**Status:** Accepted · 2026-10-22 (agent, under the maintainer's "do all the remaining tasks right now, all of them yourself") · **Task:** T-1471 · **Follows:** D-044, D-245, T-1422
+
+**Context.** The API's live transport is the bake-off's `TimedTransport`, a thin wrapper around `fetch` with no limit of its own. Node's fetch waits up to five minutes for headers and five for the body. On 2026-10-22 a `post_match` run stopped fetching at 11:02 and stayed open, holding the job's lock, until it was closed by hand at 11:40.
+
+**Decision.** Every request carries `AbortSignal.timeout(30 s)` covering headers and body. A provider answers in well under a second; 30 seconds leaves room for a slow whole-season fixture list. A request that runs out is a `transport` failure, which the adapters already turn into a result, so a run records it and moves on to its next match.
+
+**Consequences.** A stalled provider costs a batch at most 30 seconds per request instead of ten minutes. A run can still be long when many requests time out in a row; the stale-run reclaim (T-537) and the shutdown close (D-245) remain behind it.
+
