@@ -12044,3 +12044,13 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** A stalled provider costs a batch at most 30 seconds per request instead of ten minutes. A run can still be long when many requests time out in a row; the stale-run reclaim (T-537) and the shutdown close (D-245) remain behind it.
 
+## D-249 — A run's outcome is retried while the database is away
+
+**Status:** Accepted · 2026-10-22 (agent, under the maintainer's "do all the remaining tasks right now, all of them yourself") · **Task:** T-1472 · **Amends:** D-245 · **Follows:** D-044, T-537, T-1435
+
+**Context.** After D-245, runs were still left open by deploys. The stopped container's log (captured during the 12:01 UTC rollout) showed the cause: the rollout recreated Postgres, every job in flight failed on its connection, and writing that failure failed in the same seconds. `finish` had already forgotten the run, so the shutdown hook closed nothing, and the job stayed locked until the two-hour reclaim. A one-off API process on production, sent a real SIGTERM, closed its own open run, so the hook itself works.
+
+**Decision.** `IngestRunsService.track` writes a run's outcome exactly once, through `finishSurely`: on failure it waits 1, 2, 4, 8 and 15 s and tries again, about 30 s in all, long enough for Postgres to come back. A run leaves this process's open set only when its outcome is written; if it never can be, the shutdown hook (D-245) still closes it. And a rollout no longer touches Postgres: `deploy/rollout.sh` runs its migration with `docker compose run --rm --no-deps migrate`, because letting Compose start the dependency recreated Postgres -- under the running jobs -- whenever its settings differed from `.env`, as they do while archiving is paused by hand. Any other `docker compose run` on the server still needs `PG_ARCHIVE_MODE=off` in its environment (or `--no-deps`) for the same reason.
+
+**Consequences.** A brief database restart costs a job its batch, not its lock. A job's worker can be held up to half a minute while the database is away.
+

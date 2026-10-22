@@ -51,6 +51,15 @@ export const STALE_RUN_MS = 2 * 60 * 60 * 1000;
 export const INTERRUPTED_RUN_ERROR =
   'interrupted: the process running it was stopped (a deploy or a restart)';
 
+/**
+ * How long a run's outcome is retried when it cannot be written (T-1472): a
+ * deploy that recreates Postgres takes it away for a few seconds, the job in
+ * flight fails on its connection, and the write of that failure fails with
+ * it -- leaving the run open, and the job locked, until the two-hour reclaim.
+ * About half a minute in all, enough for Postgres to come back.
+ */
+export const FINISH_RETRY_DELAYS_MS: readonly number[] = [1_000, 2_000, 4_000, 8_000, 15_000];
+
 /** Postgres unique violation: the "already running" lock on `ingest_run`. */
 const UNIQUE_VIOLATION = '23505';
 
@@ -154,7 +163,8 @@ export class IngestRunsService implements OnModuleInit, BeforeApplicationShutdow
   }
 
   async finish(id: string, outcome: RunOutcome): Promise<IngestRun | null> {
-    this.open.delete(id);
+    // Forgotten only once written: a run whose outcome could not be stored is
+    // still this process's to close at shutdown (T-1472).
     const run = await this.store.finish(id, {
       status: outcome.status,
       itemsSeen: outcome.itemsSeen,
@@ -162,6 +172,7 @@ export class IngestRunsService implements OnModuleInit, BeforeApplicationShutdow
       error: outcome.error ?? null,
       requests: outcome.requests ?? null,
     });
+    this.open.delete(id);
     if (run === null) {
       this.log.warn(`finish() for a run that is not open`, {
         event: 'ingest.finish_unknown',
@@ -193,6 +204,32 @@ export class IngestRunsService implements OnModuleInit, BeforeApplicationShutdow
       });
     }
     return run;
+  }
+
+  /**
+   * `finish`, tried again while the database is away (T-1472). The last
+   * failure is thrown; the run then stays in this process's open set.
+   */
+  async finishSurely(id: string, outcome: RunOutcome): Promise<IngestRun | null> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await this.finish(id, outcome);
+      } catch (error: unknown) {
+        const delay = FINISH_RETRY_DELAYS_MS[attempt];
+        if (delay === undefined) throw error;
+        this.log.warn(`run outcome not written, retrying in ${delay} ms: ${String(error)}`, {
+          event: 'ingest.finish_retry',
+          run_id: id,
+          attempt: attempt + 1,
+        });
+        await this.sleep(delay);
+      }
+    }
+  }
+
+  /** A pause between retries; replaced in a spec. */
+  protected sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -241,21 +278,13 @@ export class IngestRunsService implements OnModuleInit, BeforeApplicationShutdow
   ): Promise<T> {
     const id = await this.start(provider, job, scope);
     const tally: RequestTally = { requests: 0 };
+    let done: Awaited<ReturnType<typeof work>>;
     try {
       // Every request the run sends draws on its tier of the day's budget
       // (T-1365); a job may narrow part of its work to a lower one.
-      const done = await withRequestTally(tally, () => withBudgetTier(tierOfRun(job, scope), work));
-      const partial = withBudgetNote(done.partial, tally);
-      await this.finish(id, {
-        status: partial === undefined ? 'succeeded' : 'partial',
-        itemsSeen: done.itemsSeen,
-        itemsWritten: done.itemsWritten,
-        error: partial ?? null,
-        requests: tally.requests,
-      });
-      return done.result;
+      done = await withRequestTally(tally, () => withBudgetTier(tierOfRun(job, scope), work));
     } catch (error: unknown) {
-      await this.finish(id, {
+      await this.finishSurely(id, {
         status: 'failed',
         itemsSeen: 0,
         itemsWritten: 0,
@@ -265,6 +294,17 @@ export class IngestRunsService implements OnModuleInit, BeforeApplicationShutdow
       });
       throw error;
     }
+    // Outside the `try`: an outcome that cannot be written is not the work
+    // failing, and is not retried a second time as a failure (T-1472).
+    const partial = withBudgetNote(done.partial, tally);
+    await this.finishSurely(id, {
+      status: partial === undefined ? 'succeeded' : 'partial',
+      itemsSeen: done.itemsSeen,
+      itemsWritten: done.itemsWritten,
+      error: partial ?? null,
+      requests: tally.requests,
+    });
+    return done.result;
   }
 
   /**
