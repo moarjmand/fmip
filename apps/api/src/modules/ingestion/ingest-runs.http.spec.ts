@@ -182,9 +182,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
     const next = await runs.start('football_data_org', 'post_match', 'shutdown:test');
     ids.push(next);
     await runs.finish(next, { status: 'succeeded', itemsSeen: 0, itemsWritten: 0 });
-    await pool.query(`UPDATE ingest_run SET status = 'failed', finished_at = now() WHERE id = $1`, [
-      other[0]!.id,
-    ]);
+    await pool.query(
+      `UPDATE ingest_run SET status = 'failed', finished_at = now(), error = 'test cleanup'
+        WHERE id = $1`,
+      [other[0]!.id],
+    );
     warn.mockRestore();
   });
 
