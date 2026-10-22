@@ -25,6 +25,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people b
     coach: randomUUID(),
     unmapped: randomUUID(),
     partly: randomUUID(),
+    adoptedCoach: randomUUID(),
   };
   const team = randomUUID();
   const fixture = randomUUID();
@@ -57,15 +58,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people b
               ($3, 'F. Ull', DATE '1990-01-01', (SELECT id FROM country WHERE code = 'ENG'), 180, 'left'),
               ($4, 'C. Oach', NULL, NULL, NULL, NULL),
               ($5, 'U. Nmapped', NULL, NULL, NULL, NULL),
-              ($6, 'P. Artly', DATE '1995-05-05', NULL, 170, NULL)`,
-      [p.player, p.listed, p.full, p.coach, p.unmapped, p.partly],
+              ($6, 'P. Artly', DATE '1995-05-05', NULL, 170, NULL),
+              ($7, 'Nico Estevez', NULL, NULL, NULL, NULL)`,
+      [p.player, p.listed, p.full, p.coach, p.unmapped, p.partly, p.adoptedCoach],
     );
     for (const [key, id] of Object.entries(p)) {
       if (key === 'unmapped') continue;
+      // A coach adopted from a line-up: no match or spell yet, his id says so (T-1474).
+      const external = key === 'adoptedCoach' ? `coach:${ext(key)}` : ext(key);
       await pool.query(
         `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
          VALUES ('api_football', 'person', $1, $2)`,
-        [ext(key), id],
+        [external, id],
       );
     }
     await pool.query(`INSERT INTO team (id, name, kind, gender) VALUES ($1, $2, 'club', 'men')`, [
@@ -93,7 +97,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people b
     await pool.query(`DELETE FROM fixture_participant WHERE fixture_id = $1`, [fixture]);
     await pool.query(`DELETE FROM fixture WHERE id = $1`, [fixture]);
     await pool.query(`DELETE FROM team WHERE id = $1`, [team]);
-    await pool.query(`DELETE FROM provider_mapping WHERE external_id LIKE $1`, [`t1428-${RUN}-%`]);
+    await pool.query(
+      `DELETE FROM provider_mapping WHERE external_id LIKE $1 OR external_id LIKE $2`,
+      [`t1428-${RUN}-%`, `coach:t1428-${RUN}-%`],
+    );
     await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [ids]);
     await pool.end();
   });

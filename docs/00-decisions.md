@@ -12062,7 +12062,7 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Decision.**
 1. The API-Football adapter asks again after 2 s, then 5 s, when the answer is the per-minute refusal (`rateLimit` in the envelope's errors, which is how API-Football says it). An HTTP 429 is not retried: it is also how our own budget (`BudgetedTransport`) refuses an ask. The day's quota (`requests`) is never retried: another ask today cannot cure it. Each attempt is a request, counted by the run's tally (T-501).
-2. A person whose provider id is a coach's (`coach:`, D-230) is never owed a player profile, whatever else is recorded about him.
+2. A person whose provider id is a coach's (`coach:`, D-230) is never owed a player profile, whatever else is recorded about him -- in the name pass and the bio pass alike, and the API-Football adapter refuses such an id itself without a request (T-1474).
 3. Two finished fixtures of the same pairing at least 24 hours apart were both played and are not a duplicate. A pair within a day, or with one not finished, is still a finding (D-097), so a match stored twice is still caught.
 4. The watchdog's `data_quality` condition counts findings on a match that is live or kicked off within the last six hours and not later than now: its window had no end, so a finding on any future fixture held the condition at `degraded` (from 2026-10-21, a friendly set for 15 November).
 

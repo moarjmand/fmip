@@ -40,6 +40,7 @@ import type {
   TransportResponse,
 } from '../_contract';
 import {
+  COACH_ID_PREFIX,
   isRecord,
   liveExtras,
   mapFixture,
@@ -419,6 +420,18 @@ class ApiFootballAdapter implements ProviderAdapter {
   async getPersonProfile(
     personExternalId: string,
   ): Promise<AdapterResult<NormalisedPersonProfile | null>> {
+    // A coach's number names another man's player profile (D-230): never sent
+    // (T-1474), whichever job asks.
+    if (personExternalId.startsWith(COACH_ID_PREFIX)) {
+      return {
+        ok: false,
+        error: {
+          kind: 'unsupported',
+          message: `${personExternalId} is a coach; no player profile`,
+        },
+        requests: 0,
+      };
+    }
     const result = await this.call('/players/profiles', { player: personExternalId });
     if (!result.ok) return { ok: false, error: result.error, requests: 1 };
     return {

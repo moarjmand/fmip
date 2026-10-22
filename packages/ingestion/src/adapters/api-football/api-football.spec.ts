@@ -845,6 +845,22 @@ describe('a player profile (T-1398)', () => {
     const result = await adapter.getPersonProfile!('80001');
     expect(result).toMatchObject({ ok: false, requests: 1, error: { kind: 'quota' } });
   });
+
+  it('never asks the player-profile endpoint about a coach id (T-1474)', async () => {
+    let asked = 0;
+    const adapter = createApiFootballAdapter(
+      {
+        request: async () => {
+          asked += 1;
+          return { status: 200, body: { errors: [], response: [] }, receivedAt: 'x' };
+        },
+      },
+      { apiKey: 'test-key' },
+    );
+    const result = await adapter.getPersonProfile!('coach:9500');
+    expect(asked).toBe(0);
+    expect(result).toMatchObject({ ok: false, requests: 0, error: { kind: 'unsupported' } });
+  });
 });
 
 describe('a standings table names its group (T-1333)', () => {
