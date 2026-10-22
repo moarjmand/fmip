@@ -19,10 +19,26 @@ const html = (node: React.ReactElement) => renderToStaticMarkup(node);
 const srcs = (markup: string) => [...markup.matchAll(/<img [^>]*src="([^"]*)"/g)].map((m) => m[1]);
 
 describe('EntityImage', () => {
+  it('asks for the WebP made for twice its box, not the stored file (T-1462)', () => {
+    const named: EntityMedia = {
+      coverage: 'available',
+      url: '/api/media/crest/t-1/0123456789ab',
+    };
+    expect(
+      srcs(html(<EntityImage media={named} kind="crest" name="Liverpool" size={22} />)),
+    ).toEqual(['/api/media/crest/t-1/0123456789ab-48.webp']);
+    expect(
+      srcs(html(<EntityImage media={named} kind="crest" name="Liverpool" size={96} />)),
+    ).toEqual(['/api/media/crest/t-1/0123456789ab-192.webp']);
+    const out = html(<EntityImage media={named} kind="crest" name="Liverpool" size={40} />);
+    expect(out).toContain('width="40"');
+    expect(out).toContain('height="40"');
+  });
+
   it('draws a stored crest as a sized, lazy, decorative image beside its name', () => {
     const out = html(<EntityImage media={CREST} kind="crest" name="Liverpool" size={22} />);
     expect(out).toMatch(/^<img /);
-    expect(out).toContain('src="/api/media/crest/t-1/0123456789ab"');
+    expect(out).toContain('src="/api/media/crest/t-1/0123456789ab-48.webp"');
     expect(out).toContain('width="22"');
     expect(out).toContain('height="22"');
     expect(out).toContain('alt=""');

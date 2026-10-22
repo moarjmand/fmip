@@ -1,8 +1,18 @@
-import { Controller, Get, Headers, Inject, NotFoundException, Param, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Headers,
+  Inject,
+  Logger,
+  NotFoundException,
+  Param,
+  Res,
+} from '@nestjs/common';
 import type { MediaKind } from '@fmip/contracts';
-import { MEDIA_KINDS } from '@fmip/contracts';
+import { MEDIA_KINDS, MEDIA_WIDTHS, mediaVersionOf, mediaWidthOf } from '@fmip/contracts';
 import type { FastifyReply } from 'fastify';
 import { versionOf } from './internal/image-check';
+import { webpVariant } from './internal/image-variant';
 import type { MediaFiles } from './internal/media-files';
 import { MEDIA_FILES } from './media-fetch.service';
 import { MediaService } from './media.service';
@@ -21,7 +31,8 @@ export const IMAGE_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox
 
 /**
  * `GET /media/:kind/:id/:version` (T-1320, D-176): a stored crest, logo or
- * photo, streamed from the media volume. Public. The web app answers the same
+ * photo, streamed from the media volume. `:version` is the version, or
+ * `<version>-<width>.webp` for a sized variant (T-1462). Public. The web app answers the same
  * path under `/api/media` on the site's own origin and hands it here, so a
  * reader's browser talks to nobody else.
  *
@@ -30,6 +41,8 @@ export const IMAGE_CSP = "default-src 'none'; style-src 'unsafe-inline'; sandbox
  */
 @Controller('media')
 export class MediaController {
+  private readonly log = new Logger('Media');
+
   constructor(
     private readonly media: MediaService,
     @Inject(MEDIA_FILES) private readonly files: MediaFiles,
@@ -43,15 +56,25 @@ export class MediaController {
     @Headers('if-none-match') ifNoneMatch: string | undefined,
     @Res() reply: FastifyReply,
   ): Promise<void> {
-    if (!(MEDIA_KINDS as readonly string[]).includes(kind) || !UUID.test(id)) {
+    // T-1462: `<version>-<width>.webp` asks for a variant, at a width we make.
+    const width = mediaWidthOf(version);
+    if (
+      !(MEDIA_KINDS as readonly string[]).includes(kind) ||
+      !UUID.test(id) ||
+      (width !== null && !(MEDIA_WIDTHS as readonly number[]).includes(width))
+    ) {
       throw new NotFoundException({ error: 'not_found', message: 'No such image.' });
     }
     const row = await this.media.served(kind as MediaKind, id.toLowerCase());
     if (row === null)
       throw new NotFoundException({ error: 'not_found', message: 'No such image.' });
 
-    const etag = `"${row.sha256}"`;
-    const cacheControl = version === versionOf(row.sha256) ? IMMUTABLE : SHORT;
+    const etag =
+      width === null || row.contentType === 'image/svg+xml'
+        ? `"${row.sha256}"`
+        : `"${row.sha256}-${width}"`;
+    // A variant's segment names the version before its width (T-1462).
+    const cacheControl = mediaVersionOf(version) === versionOf(row.sha256) ? IMMUTABLE : SHORT;
     reply
       .header('etag', etag)
       .header('cache-control', cacheControl)
@@ -61,14 +84,32 @@ export class MediaController {
       await reply.status(304).send();
       return;
     }
-    const file = await this.files.open(row.storageKey);
+    // An SVG has no pixels to save: its variant is the file itself.
+    let sized = width !== null && row.contentType !== 'image/svg+xml';
+    let file: Awaited<ReturnType<MediaFiles['open']>> = null;
+    if (sized && width !== null) {
+      try {
+        file = await this.files.variant(row, width, (bytes) => webpVariant(bytes, width));
+      } catch {
+        // A file the image library cannot read is served as stored, briefly,
+        // rather than as an error: the page still shows the crest.
+        sized = false;
+        reply.header('cache-control', SHORT);
+        this.log.warn('a stored image could not be resized', {
+          event: 'media.variant_failed',
+          id: row.id,
+          width,
+        });
+      }
+    }
+    if (!sized) file = await this.files.open(row.storageKey);
     if (file === null) {
       await this.media.lost(row.id);
       throw new NotFoundException({ error: 'not_found', message: 'No such image.' });
     }
     await reply
       .status(200)
-      .header('content-type', row.contentType)
+      .header('content-type', sized ? 'image/webp' : row.contentType)
       .header('content-length', String(file.size))
       .send(file.stream);
   }
