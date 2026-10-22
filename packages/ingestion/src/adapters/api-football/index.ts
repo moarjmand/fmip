@@ -92,10 +92,13 @@ const pause = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
 
 /**
  * The provider's per-minute limit, as opposed to the day's quota (`requests`),
- * which another ask today cannot cure.
+ * which another ask today cannot cure. API-Football says it in the envelope
+ * of a 200 answer (seen on production, 2026-10-20 to 22).
  */
 function isRateLimit(error: AdapterError): boolean {
-  return error.kind === 'quota' && (error.status === 429 || error.message.includes('rateLimit:'));
+  // The envelope's own word only: an HTTP 429 is also how our budget
+  // (`BudgetedTransport`) refuses an ask, and that refusal holds all day.
+  return error.kind === 'quota' && error.message.includes('rateLimit:');
 }
 
 function envelope(
