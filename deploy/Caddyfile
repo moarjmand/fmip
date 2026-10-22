@@ -89,6 +89,29 @@ import cloudflare-ranges.caddy
 		}
 	}
 
+	# Guests' copies of the busiest pages may be kept at Cloudflare's edge for
+	# 30 seconds (T-1467, D-244). The web app answers every page `private,
+	# no-store`; for a plain page request from a reader who carries none of our
+	# cookies (no session, no first-run choice, no theme, text size, contrast,
+	# motion or lite-mode setting: every one is named `fmip_*`) and has not
+	# asked to save data, the answer says `s-maxage=30` instead. Cloudflare's
+	# cache rule for the same paths follows the origin's header (the free
+	# plan's shortest rule TTL is two hours) and skips any request carrying an
+	# `fmip_*` cookie. `max-age=0` keeps browsers asking every time, so a
+	# reader who signs in never sees a guest's copy. Router requests (`RSC`,
+	# prefetch, state tree) are never marked. Every live module carries its own
+	# freshness stamp and catches up over its stream once loaded (rule 4).
+	@guest_html {
+		method GET
+		path /en /fa /en/scores /fa/scores /en/match/* /fa/match/* /en/competition/* /fa/competition/*
+		not header Cookie *fmip_*
+		not header Save-Data on
+		header !RSC
+		header !Next-Router-Prefetch
+		header !Next-Router-State-Tree
+	}
+	header @guest_html >Cache-Control "public, max-age=0, s-maxage=30"
+
 	# Everything else is the web app. A `handle` block rather than a bare
 	# directive, so the two are mutually exclusive and the socket above can
 	# never also be handed to `web`.

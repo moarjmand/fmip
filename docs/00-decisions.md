@@ -11988,3 +11988,19 @@ Linux) the language picker's one Persian word fetched it.
 **Rejected.** *Dropping Newsreader's italic* (a design change: the dateline
 is italic by D-198). *`next/font`* (generates its own preloads, see 3, and
 replaces D-089's self-hosting arrangement for no gain here).
+
+## D-244 — Guests' pages are kept at the edge for 30 seconds, told by the origin
+
+**Status:** Accepted · 2026-10-22 (the maintainer: "Yes, build the 30-second guest page cache at Cloudflare: check the cookie names in code first, then add the cache rule") · **Task:** T-1467 · **Follows:** D-048, D-240, D-241, rule 4
+
+**Context.** After the GTmetrix work (T-1450 to T-1466) a page still takes 0.6 to 1.3 s to render at the origin, and Cloudflare forwards every HTML request because the web app answers `private, no-store`. Most readers are guests, and a guest's page does not depend on who they are.
+
+**Decision.**
+1. For a plain `GET` of `/en`, `/fa`, `/en/scores`, `/fa/scores` and the match and competition pages under both locales, Caddy replaces the web app's `Cache-Control` with `public, max-age=0, s-maxage=30` when the request carries no cookie named `fmip_*`, no `Save-Data: on`, and none of Next's router headers (`RSC`, `Next-Router-Prefetch`, `Next-Router-State-Tree`). Every cookie that changes what a reader sees is named `fmip_*` (checked in code on 2026-10-22: session, first run, held notice, theme, text size, contrast, motion, lite, slow).
+2. A Cloudflare cache rule ("guest pages") over the same paths, skipping any request whose Cookie header contains `fmip_`, any `Save-Data: on` request and any `RSC` request, makes them eligible for cache and takes the edge TTL from the origin's header. The free plan's rules cannot set a TTL under two hours; the origin's `s-maxage` can.
+3. `max-age=0` keeps browsers from keeping a page, so a reader who signs in or changes a setting never sees a guest's copy, and Cloudflare does not cache a response that sets a cookie.
+
+**Rule 4.** A page served from the edge is at most 30 seconds old, and every live module on it carries its own `last_updated_at` and catches up over its stream or poll once loaded, so nothing stale is shown as current.
+
+**Rejected.** *A two-hour edge TTL* (the free plan's floor), which is too old for a live score page. *Caching by Cloudflare rule alone*, since the TTL cannot be set low enough. *Setting the header in the web app*, because Next marks dynamic pages `no-store` itself; the edge in front of it is the one place that sees the request and the response together.
+
