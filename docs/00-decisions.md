@@ -12004,6 +12004,16 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Rejected.** *A two-hour edge TTL* (the free plan's floor), which is too old for a live score page. *Caching by Cloudflare rule alone*, since the TTL cannot be set low enough. *Setting the header in the web app*, because Next marks dynamic pages `no-store` itself; the edge in front of it is the one place that sees the request and the response together.
 
+## D-245 — A stopping API closes the ingest runs it leaves open
+
+**Status:** Accepted · 2026-10-22 (the maintainer: "do all the remaining tasks right now, all of them yourself") · **Task:** T-1468 · **Follows:** D-044, T-537
+
+**Context.** An open `ingest_run` row is the job's lock (a partial unique index on `(provider, job)`), and one whose process died is reclaimed only after `STALE_RUN_MS`, two hours (T-537). A rollout (`deploy/rollout.sh`) starts the new API container and then stops the old one with SIGTERM and a 30 s grace; a backlog batch takes about two and a half minutes, so a deploy that lands mid-run leaves the row open. On 2026-10-22 that cost the `post_match` job two hours: the backlog fell 800 matches behind, and a full-time alert in that window would have been as late.
+
+**Decision.** `IngestRunsService` tracks the runs its own process opened and has not finished. Nest's `beforeApplicationShutdown` -- after every `onModuleDestroy`, before any `onApplicationShutdown` -- closes the ones still open as failed, with `interrupted: the process running it was stopped (a deploy or a restart)`. The database pool's drain moves from `onModuleDestroy` to `onApplicationShutdown` so the write can happen. Only this process's own ids are closed, never another container's, and the two-hour reclaim stays for a process that is killed without a SIGTERM.
+
+**Consequences.** The replacing container opens the job at its next tick. Should the interrupted job finish within the grace after all, its `finish` finds the run closed and only warns (`ingest.finish_unknown`); its writes are upserts, so a batch the new process repeats writes nothing twice.
+
 ## D-246 — A page's CSS is inlined into its HTML
 
 **Status:** Accepted · 2026-10-22 (the maintainer: "do all the remaining tasks right now, all of them yourself") · **Task:** T-1469 · **Follows:** D-240, D-243, D-244

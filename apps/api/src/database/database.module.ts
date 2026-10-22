@@ -1,4 +1,4 @@
-import { Global, Inject, Logger, Module, type OnModuleDestroy } from '@nestjs/common';
+import { Global, Inject, Logger, Module, type OnApplicationShutdown } from '@nestjs/common';
 import { Pool } from 'pg';
 
 /** Injection token for the shared `pg.Pool`. Modules ask for this, never for `Pool` by class. */
@@ -63,12 +63,15 @@ export function createPool(connectionString: string, log = new Logger('Database'
   ],
   exports: [PG_POOL],
 })
-export class DatabaseModule implements OnModuleDestroy {
+export class DatabaseModule implements OnApplicationShutdown {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
   // Nest calls this on SIGTERM (enableShutdownHooks in main.ts). Draining the
   // pool lets in-flight queries finish instead of being cut off with the socket.
-  async onModuleDestroy(): Promise<void> {
+  // The last of Nest's shutdown hooks, not `onModuleDestroy`: a module's own
+  // `beforeApplicationShutdown` may still write, as ingestion closes the runs
+  // a stopping process leaves open (T-1468).
+  async onApplicationShutdown(): Promise<void> {
     await this.pool.end();
   }
 }
