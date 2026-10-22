@@ -5,7 +5,7 @@ import type { IngestionHealth } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
-import { IngestRunsService, utcMidnight } from './ingest-runs.service';
+import { INTERRUPTED_RUN_ERROR, IngestRunsService, utcMidnight } from './ingest-runs.service';
 import { IngestionModule } from './ingestion.module';
 import { CountingTransport } from './internal/request-meter';
 import { PostgresRunStore } from './internal/run-store';
@@ -147,6 +147,44 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingest runs'
       { code: '23505' },
     );
     await runs.finish(fresh, { status: 'succeeded', itemsSeen: 0, itemsWritten: 0 });
+    warn.mockRestore();
+  });
+
+  it('closes the runs it left open when the process stops, and no other (T-1468)', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    // Another process's run: open, and not this service's to close.
+    const { rows: other } = await pool.query<{ id: string }>(
+      `INSERT INTO ingest_run (provider, job, scope) VALUES ('football_data_org', 'standings', 'other:test')
+       RETURNING id`,
+    );
+    ids.push(other[0]!.id);
+    const finished = await runs.start('football_data_org', 'lineups', 'shutdown:test');
+    ids.push(finished);
+    await runs.finish(finished, { status: 'succeeded', itemsSeen: 0, itemsWritten: 0 });
+    const open = await runs.start('football_data_org', 'post_match', 'shutdown:test');
+    ids.push(open);
+
+    await runs.beforeApplicationShutdown();
+
+    const { rows } = await pool.query<{ id: string; status: string; error: string | null }>(
+      `SELECT id, status, error FROM ingest_run WHERE id = ANY($1::uuid[])`,
+      [[other[0]!.id, finished, open]],
+    );
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    expect(byId.get(open)).toMatchObject({ status: 'failed', error: INTERRUPTED_RUN_ERROR });
+    expect(byId.get(finished)).toMatchObject({ status: 'succeeded', error: null });
+    expect(byId.get(other[0]!.id)).toMatchObject({ status: 'running' });
+    expect(warn.mock.calls.map((c) => (c[1] as { event?: string })?.event)).toContain(
+      'ingest.run_interrupted',
+    );
+
+    // The lock is free again: the replacing process opens the job at once.
+    const next = await runs.start('football_data_org', 'post_match', 'shutdown:test');
+    ids.push(next);
+    await runs.finish(next, { status: 'succeeded', itemsSeen: 0, itemsWritten: 0 });
+    await pool.query(`UPDATE ingest_run SET status = 'failed', finished_at = now() WHERE id = $1`, [
+      other[0]!.id,
+    ]);
     warn.mockRestore();
   });
 

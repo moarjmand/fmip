@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type BeforeApplicationShutdown,
+  type OnModuleInit,
+} from '@nestjs/common';
 import type { IngestRun, IngestRunStatus, IngestionHealth } from '@fmip/contracts';
 import { PostgresRunStore } from './internal/run-store';
 import { withRequestTally, type RequestTally } from './internal/request-meter';
@@ -35,6 +41,16 @@ export const RECENT_RUNS = 20;
  */
 export const STALE_RUN_MS = 2 * 60 * 60 * 1000;
 
+/**
+ * What a run left open by a stopping process is closed with (T-1468). A
+ * rollout stops the old API container while a backlog batch may still be
+ * running; left open, that run held the job's lock until `STALE_RUN_MS`
+ * passed, and the post-match job -- the backlog and a just-finished match's
+ * full-time alike -- stood still for two hours after every deploy.
+ */
+export const INTERRUPTED_RUN_ERROR =
+  'interrupted: the process running it was stopped (a deploy or a restart)';
+
 /** Postgres unique violation: the "already running" lock on `ingest_run`. */
 const UNIQUE_VIOLATION = '23505';
 
@@ -57,8 +73,10 @@ export interface RunOutcome {
  * call `start` and `finish`; nothing else writes `ingest_run`.
  */
 @Injectable()
-export class IngestRunsService implements OnModuleInit {
+export class IngestRunsService implements OnModuleInit, BeforeApplicationShutdown {
   private readonly log = new Logger('Ingestion');
+  /** The runs this process opened and has not finished (T-1468). */
+  private readonly open = new Set<string>();
 
   constructor(
     private readonly store: PostgresRunStore,
@@ -103,6 +121,17 @@ export class IngestRunsService implements OnModuleInit {
     scope: string | null = null,
     now: Date = new Date(),
   ): Promise<string> {
+    const id = await this.openRun(provider, job, scope, now);
+    this.open.add(id);
+    return id;
+  }
+
+  private async openRun(
+    provider: string,
+    job: string,
+    scope: string | null,
+    now: Date,
+  ): Promise<string> {
     try {
       return await this.store.start(provider, job, scope);
     } catch (error: unknown) {
@@ -125,6 +154,7 @@ export class IngestRunsService implements OnModuleInit {
   }
 
   async finish(id: string, outcome: RunOutcome): Promise<IngestRun | null> {
+    this.open.delete(id);
     const run = await this.store.finish(id, {
       status: outcome.status,
       itemsSeen: outcome.itemsSeen,
@@ -163,6 +193,31 @@ export class IngestRunsService implements OnModuleInit {
       });
     }
     return run;
+  }
+
+  /**
+   * Nest calls this on SIGTERM, before any `onApplicationShutdown` -- the
+   * database pool ends in one of those (T-1468). A run this process still
+   * has open is closed as failed, so the container that replaces it can open
+   * the job again at its next tick. Should the job finish within the stop
+   * grace after all, its `finish` finds the run closed and only warns.
+   */
+  async beforeApplicationShutdown(): Promise<void> {
+    const ids = [...this.open];
+    this.open.clear();
+    if (ids.length === 0) return;
+    try {
+      const closed = await this.store.closeOpen(ids, INTERRUPTED_RUN_ERROR);
+      this.log.warn(`closed ${closed} run(s) left open by this process stopping`, {
+        event: 'ingest.run_interrupted',
+        closed,
+      });
+    } catch (error: unknown) {
+      this.log.warn(`runs left open at shutdown not closed: ${String(error)}`, {
+        event: 'ingest.run_interrupted_unclosed',
+        runs: ids.length,
+      });
+    }
   }
 
   /**

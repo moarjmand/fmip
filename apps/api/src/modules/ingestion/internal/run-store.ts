@@ -77,6 +77,17 @@ export class PostgresRunStore {
     return rowCount ?? 0;
   }
 
+  /** Closes the given runs that are still open as failed (T-1468); the number closed. */
+  async closeOpen(ids: string[], error: string): Promise<number> {
+    if (ids.length === 0) return 0;
+    const { rowCount } = await this.pool.query(
+      `UPDATE ingest_run SET status = 'failed', finished_at = now(), error = $2
+        WHERE id = ANY($1::uuid[]) AND status = 'running'`,
+      [ids, error],
+    );
+    return rowCount ?? 0;
+  }
+
   async finish(
     id: string,
     outcome: {
