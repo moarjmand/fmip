@@ -120,7 +120,10 @@ if [ "${#SERVICES[@]}" -eq 0 ]; then
     docker compose --profile tools build model api web migrate
   fi
   log "migrating the database"
-  docker compose run --rm migrate
+  # --no-deps: Postgres is already up, and letting Compose start the
+  # dependency recreated it whenever its settings differed from .env (archiving
+  # paused by hand, T-1472) -- under every job then running.
+  docker compose run --rm --no-deps migrate
 fi
 
 for service in "${SERVICES[@]}"; do
