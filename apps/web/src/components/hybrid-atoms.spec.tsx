@@ -79,7 +79,9 @@ describe('ForecastBar', () => {
     expect(html).toContain('۴۶٫۴٪');
     expect(html).toContain('محاسبه‌شده');
     // The model id stays a left-to-right island inside Persian.
-    expect(html).toContain('<span dir="ltr" class="text-model">dixon-coles-elo<span>@</span>0.6.0</span>');
+    expect(html).toContain(
+      '<span dir="ltr" class="text-model">dixon-coles-elo<span>@</span>0.6.0</span>',
+    );
     // Nothing physical: the direction does the mirroring (rule 7).
     expect(html).not.toMatch(/\b(ml|mr|pl|pr|left|right)-/);
   });
