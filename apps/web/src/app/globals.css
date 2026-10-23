@@ -366,6 +366,29 @@ body {
 }
 
 /*
+ * The scores page's date picker (T-1482). On a phone it folds behind "Choose
+ * a date"; from 640px, where the browser can style a closed <details>'s
+ * content slot, it is no box at all and the summary is hidden, as the
+ * header's Menu does above. Elsewhere it stays a working disclosure.
+ */
+@media (width >= 40rem) {
+  @supports selector(::details-content) {
+    .date-fold,
+    .date-fold::details-content {
+      display: contents;
+    }
+
+    .date-fold::details-content {
+      content-visibility: visible;
+    }
+
+    .date-fold > summary {
+      display: none;
+    }
+  }
+}
+
+/*
  * Text size (T-621, blueprint 2.2). Every size above, and Tailwind's spacing,
  * is in rem, so the root's font size scales the whole page as one: a
  * percentage of the browser's own setting, which a reader may already have

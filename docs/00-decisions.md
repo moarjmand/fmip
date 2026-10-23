@@ -12127,3 +12127,17 @@ replaces D-089's self-hosting arrangement for no gain here).
 **Rejected.** *Smaller links or tighter gaps*: at 1024px the links need about 480px and the row leaves about 390. *Moving a link into a "More" menu*: it hides a section behind a press, and needs a script or a second disclosure.
 
 **Consequences.** The header is one row taller between 1024 and 1279px. It is drawn on the server, so nothing moves after load (no layout shift).
+
+## D-256 — Maintainer's answers to the UI/UX review of 2026-10-23
+
+**Status:** Accepted · 2026-10-23 (the maintainer, asked one question at a time) · **Tasks:** T-1482, T-1483 · **Follows:** D-207, D-199, rule 4
+
+**Context.** The five-lens review (T-1477..T-1481 fixed what needed no product decision) left four questions that change behaviour or labels.
+
+**Decision.**
+1. **The /fa guest's time zone stays UTC.** Only /en guests get UK time by default (D-207 unchanged).
+2. **Calendar-year seasons show their year alone** ("2026", not "2026/27") — Libertadores, Brasileirão, Argentina, MLS and the like (T-1483).
+3. **On a phone the scores page's date picker folds** behind "Choose a date", so the first match is on the first screen; the day strip stays (T-1482).
+4. **A block of matches still to come says "Unchanged since …"** instead of "Updated …"; once a match has started the block says "Updated" as before (T-1482).
+
+**Consequences.** Stored season labels are not renamed: they identify seasons to the feed and the catalogue tools; only what a page shows changes.

@@ -179,17 +179,19 @@ describe('card labels', () => {
 const SAME_DAY = Date.parse('2025-01-05T18:00:00.000Z');
 
 describe('blockUpdatedLabel', () => {
+  // Finished matches: a block of matches to come says "Unchanged since" (T-1482).
+  const played = (over: Partial<ScoreCard>) => card({ status: 'finished', ...over });
   it('says one time when every card in the block agrees', () => {
-    expect(blockUpdatedLabel([card({}), card({})], 'en', 'UTC', EN_WORDS, SAME_DAY)).toBe(
+    expect(blockUpdatedLabel([played({}), played({})], 'en', 'UTC', EN_WORDS, SAME_DAY)).toBe(
       'Updated 10:00',
     );
   });
 
   it('says the oldest and the newest when they differ, never the newest alone', () => {
     const cards = [
-      card({ last_updated_at: '2025-01-05T16:31:00.000Z' }),
-      card({ last_updated_at: '2025-01-05T10:00:00.000Z' }),
-      card({ last_updated_at: '2025-01-05T14:05:00.000Z' }),
+      played({ last_updated_at: '2025-01-05T16:31:00.000Z' }),
+      played({ last_updated_at: '2025-01-05T10:00:00.000Z' }),
+      played({ last_updated_at: '2025-01-05T14:05:00.000Z' }),
     ];
     expect(blockUpdatedLabel(cards, 'en', 'Asia/Tehran', EN_WORDS, SAME_DAY)).toBe(
       'Updated between 13:30 and 20:01',
@@ -198,8 +200,8 @@ describe('blockUpdatedLabel', () => {
 
   it('dates a block whose oldest card is from another day (T-1371)', () => {
     const cards = [
-      card({ last_updated_at: '2025-01-05T16:31:00.000Z' }),
-      card({ last_updated_at: '2025-01-03T10:00:00.000Z' }),
+      played({ last_updated_at: '2025-01-05T16:31:00.000Z' }),
+      played({ last_updated_at: '2025-01-03T10:00:00.000Z' }),
     ];
     expect(blockUpdatedLabel(cards, 'en', 'UTC', EN_WORDS, SAME_DAY)).toBe(
       'Updated between 2 days ago (3 Jan 2025, 10:00) and 16:31',
@@ -208,6 +210,23 @@ describe('blockUpdatedLabel', () => {
 
   it('says nothing for an empty block', () => {
     expect(blockUpdatedLabel([], 'en', 'UTC', EN_WORDS)).toBeNull();
+  });
+
+  it('says "Unchanged since" the newest change over matches still to come (T-1482)', () => {
+    const cards = [
+      card({ status: 'scheduled', last_updated_at: '2025-01-05T16:31:00.000Z' }),
+      card({ status: 'scheduled', last_updated_at: '2025-01-03T10:00:00.000Z' }),
+    ];
+    expect(blockUpdatedLabel(cards, 'en', 'UTC', EN_WORDS, SAME_DAY)).toBe('Unchanged since 16:31');
+    expect(blockUpdatedLabel(cards, 'fa', 'UTC', scoresWords('fa').m, SAME_DAY)).toContain(
+      'بدون تغییر از',
+    );
+    // A started match in the block: what changed is said as before.
+    const started = [
+      ...cards,
+      card({ status: 'live', last_updated_at: '2025-01-05T17:00:00.000Z' }),
+    ];
+    expect(blockUpdatedLabel(started, 'en', 'UTC', EN_WORDS, SAME_DAY)).toMatch(/^Updated between/);
   });
 });
 
