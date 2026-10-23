@@ -54,7 +54,7 @@ export class PostgresCompetitionStore {
       away_id: string;
     }>(
       `SELECT f.id, f.kickoff_at, f.round, f.group_name,
-              se.id AS season_id, se.label AS season_label,
+              se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
               c.id AS competition_id, c.name AS competition_name,
               c.kind AS competition_kind, c.scope AS competition_scope,
               st.id AS stage_id, st.name AS stage_name, st.kind AS stage_kind, st.legs AS stage_legs,
@@ -162,7 +162,7 @@ export class PostgresCompetitionStore {
       end_date: string;
       is_current: boolean;
     }>(
-      `SELECT id, label, start_date::text, end_date::text, is_current
+      `SELECT id, season_display_label(label, start_date) AS label, start_date::text, end_date::text, is_current
          FROM season WHERE competition_id = $1
         ORDER BY start_date DESC, label DESC`,
       [competitionId],

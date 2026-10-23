@@ -101,7 +101,7 @@ async function seasonLines(
     goals_conceded: number | null;
     rating: number | null;
   }>(
-    `SELECT s.season_year, se.label AS season_label,
+    `SELECT s.season_year, season_display_label(se.label, se.start_date) AS season_label,
             c.id AS competition_id, c.name AS competition_name,
             c.short_name AS competition_short_name,
             t.id AS team_id, t.name AS team_name, t.short_name AS team_short_name,
@@ -118,7 +118,7 @@ async function seasonLines(
        JOIN competition c ON c.id = s.competition_id
        JOIN team t ON t.id = s.team_id
        LEFT JOIN LATERAL (
-         SELECT x.label FROM season x
+         SELECT x.label, x.start_date FROM season x
           WHERE x.competition_id = s.competition_id AND ${LABEL_YEAR} = s.season_year::text
           ORDER BY x.start_date DESC LIMIT 1
        ) se ON TRUE

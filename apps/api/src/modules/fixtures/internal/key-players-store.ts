@@ -45,7 +45,7 @@ export class PostgresKeyPlayersStore {
       away_name: string;
     }>(
       `SELECT f.id, f.kickoff_at, f.status, c.id AS competition_id, c.name AS competition_name,
-              se.id AS season_id, se.label AS season_label,
+              se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
               th.id AS home_id, th.name AS home_name, ta.id AS away_id, ta.name AS away_name
          FROM fixture f
          JOIN season se ON se.id = f.season_id

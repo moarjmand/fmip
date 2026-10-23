@@ -126,13 +126,13 @@ export class PostgresTeamStore {
     }>(
       `SELECT DISTINCT c.id AS competition_id, c.name AS competition_name,
               c.short_name AS competition_short_name,
-              se.id AS season_id, se.label AS season_label, se.is_current
+              se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label, se.is_current
          FROM fixture f
          JOIN fixture_participant p ON p.fixture_id = f.id AND p.team_id = $1
          JOIN season se ON se.id = f.season_id
          JOIN competition c ON c.id = se.competition_id
         WHERE se.is_current OR f.status IN ('scheduled', 'live', 'postponed', 'suspended')
-        ORDER BY c.name, se.label DESC`,
+        ORDER BY c.name, season_label DESC`,
       [teamId],
     );
     return rows.map((r) => ({
@@ -178,7 +178,7 @@ export class PostgresTeamStore {
     }>(
       `SELECT f.id, f.kickoff_at, f.status, f.round, f.stage_id, st.name AS stage_name,
               c.id AS competition_id, c.name AS competition_name, c.short_name AS competition_short_name,
-              se.id AS season_id, se.label AS season_label,
+              se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
               a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
               -- The latest score, so extra time counts, as the bracket and the

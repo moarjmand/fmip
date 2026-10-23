@@ -131,7 +131,7 @@ const toChoice = (r: ChoiceRow): TeamSeasonStatsChoice => ({
   },
 });
 
-const CHOICE_COLUMNS = `se.id AS season_id, se.label, se.is_current,
+const CHOICE_COLUMNS = `se.id AS season_id, season_display_label(se.label, se.start_date) AS label, se.is_current,
   c.id AS competition_id, c.name AS competition_name, c.short_name AS competition_short_name`;
 
 /** The seasons a team played a match in, current first, then newest. */

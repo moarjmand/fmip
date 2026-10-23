@@ -166,7 +166,7 @@ export class PostgresScoresStore {
     const { rows } = await this.pool.query<Row>(
       `WITH scope AS (
          SELECT f.id, f.kickoff_at, f.status, f.minute, f.round, f.leg, f.updated_at,
-                se.id AS season_id, se.label AS season_label,
+                se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
                 c.id AS competition_id, c.name AS competition_name,
                 c.short_name AS competition_short_name,
                 CASE WHEN EXISTS (SELECT 1 FROM competition_display_order lo WHERE lo.locale = $10)
