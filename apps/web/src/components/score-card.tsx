@@ -152,7 +152,9 @@ export function ScoreCard({
         className="flex min-h-11 min-w-0 flex-col justify-center gap-0.5 py-2 ps-2 pe-11 hover:bg-surface-raised lite:gap-0 lite:py-1"
         data-testid="match-link"
       >
-        <span className="flex min-w-0 items-center gap-2">
+        {/* Tighter on a phone (T-1484): at 375px each name had 75px and "Nottingham"
+            needed 75.3, so it still broke inside the word after T-1479. */}
+        <span className="flex min-w-0 items-center gap-2 max-sm:gap-1">
           <span
             className={`w-12 shrink-0 text-xs leading-tight hyphens-auto [overflow-wrap:anywhere] ${live ? 'font-semibold text-live' : 'text-muted'}`}
             data-testid="score-status"
