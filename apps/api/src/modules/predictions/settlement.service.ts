@@ -45,13 +45,15 @@ export class SettlementService {
     const rows = predictions
       .map((p) => settleOne(p, verdict))
       .filter((r): r is NonNullable<typeof r> => r !== null);
-    const { runId } = await this.store.record(fixtureId, rows, predictions.length - rows.length);
+    // What the run actually wrote: another run may have settled some of
+    // these between the read above and the write (T-1476).
+    const written = await this.store.record(fixtureId, rows, predictions.length - rows.length);
     return {
       kind: 'settled',
-      runId,
-      settled: rows.filter((r) => r.status === 'settled').length,
-      voided: rows.filter((r) => r.status === 'void').length,
-      unchanged: predictions.length - rows.length,
+      runId: written.runId,
+      settled: written.settled,
+      voided: written.voided,
+      unchanged: written.unchanged,
     };
   }
 

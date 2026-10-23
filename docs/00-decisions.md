@@ -12083,3 +12083,13 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Left as the provider's.** Four line-ups that name one player id on both sides, three friendlies whose half-time score exceeds the full-time one, a 2024 date on a 2020/21 Persian Gulf Pro League match, and Albacete in two Copa del Rey ties on one day are the feed's records; they are not corrected by hand (rule 3).
 
+## D-252 — Overlapping settlement runs serialise on the fixture
+
+**Status:** Accepted · 2026-10-23 (agent, under the maintainer's "continue") · **Task:** T-1476 · **Follows:** D-038, rule 8
+
+**Context.** A settlement run reads a fixture's predictions and their newest settlements, decides what is owed, and writes it in one transaction. Nothing stopped a second run over the same fixture from reading in between, and the unique index `settlement_one_settled_per_prediction` then refused its insert, failing the whole run. The index kept the data right (one settlement per prediction, rule 8); the run's failure was the defect. It surfaced as a flaky CI spec, and production can meet it whenever the scheduled pass and an operator's run, or two containers in a rollout, overlap.
+
+**Decision.** `record` begins its transaction with `pg_advisory_xact_lock` on the fixture and reads each prediction's newest settlement again under the lock. A prediction already settled, or already voided for the same reason, is left alone and counted unchanged; the rest is written. The run row and the service's answer carry what was written, not what was planned.
+
+**Consequences.** Runs over one fixture queue for the length of a transaction; runs over different fixtures do not wait for each other. A re-run that finds nothing owed still records its run, as before.
+

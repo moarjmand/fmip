@@ -294,6 +294,23 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('settlement',
     ).rejects.toMatchObject({ code: '23001' });
   });
 
+  it('two runs at once settle each prediction once, and neither fails (T-1476)', async () => {
+    const id = await openFixture();
+    await put(id, users[0]!.cookie, { outcome: 'home', confidence: 4 });
+    await put(id, users[1]!.cookie, { outcome: 'draw', confidence: 1 });
+    await finish(id, 'finished', { home: 3, away: 1 });
+    const service = app.get(SettlementService);
+    const runs = await Promise.all([service.settleFixture(id), service.settleFixture(id)]);
+    const settled = runs.map((r) => (r.kind === 'settled' ? r.settled : -1)).sort();
+    // One run wrote both; the other found them settled under the lock.
+    expect(settled).toEqual([0, 2]);
+    const { rows } = await pool.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM settlement WHERE fixture_id = $1 AND status = 'settled'`,
+      [id],
+    );
+    expect(rows[0]?.n).toBe('2');
+  });
+
   it('settleDue settles every final fixture that still owes a settlement', async () => {
     const id = await openFixture();
     await put(id, users[1]!.cookie, { outcome: 'away', confidence: 1 });
