@@ -12093,3 +12093,15 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** Runs over one fixture queue for the length of a transaction; runs over different fixtures do not wait for each other. A re-run that finds nothing owed still records its run, as before.
 
+
+## D-253 — A shoot-out is shown as a shoot-out, found from the score it adds up to
+
+**Status:** Accepted · 2026-10-23 (agent, UI/UX review under the maintainer's brief) · **Task:** T-1477 · **Follows:** rule 3, D-209
+
+**Context.** The feed records each kick of a penalty shoot-out as a penalty scored or missed at a minute past the end of play (90+1, 91, 120+3 ...), with nothing on the incident that marks it as a kick. The pages listed them by minute, so a shoot-out read as a string of penalties in added time, and the scores list showed "Pens 0–0" without the shoot-out's score.
+
+**Decision.** The web finds the kicks rather than the API storing a new flag: they are the trailing run of penalty incidents whose scored kicks per side equal the stored shoot-out score (`scores.penalties`); of the runs that match, the longest, so an opening miss belongs to it. When the score is missing or no run adds up to it, nothing is reclassified. The kicks are numbered in order and shown as their own block; the shoot-out score is on the score card's row.
+
+**Rejected.** *Keeping the provider's `comments` ("Penalty Shootout") on the incident*: it needs a migration, a contract field and a re-fetch of every past match, for what the stored score already decides. *Classifying by minute* (every penalty after 90 or 120): a penalty in added time is real, and a cup tie without extra time goes to kicks at 90.
+
+**Consequences.** A shoot-out whose kicks the feed lists incompletely (a missing scorer) does not add up and stays listed by minute, as before.

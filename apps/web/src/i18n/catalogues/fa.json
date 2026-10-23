@@ -7819,6 +7819,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "scores.card.penalties": {
+    "source": "Pens {score}",
+    "text": "پنالتی {score}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.card.kick": {
+    "source": "Kick {n}",
+    "text": "ضربه‌ی {n}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "scores.card.redCard": {
     "source": "one red card",
     "text": "یک کارت قرمز",
@@ -15094,6 +15106,18 @@
   "matchCentre.latestFirst": {
     "source": "Latest first. Names and minutes are as recorded for the match.",
     "text": "تازه‌ترین در بالا. نام‌ها و دقیقه‌ها از داده‌های بازی می‌آیند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.shootout": {
+    "source": "Penalty shoot-out",
+    "text": "ضربات پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.shootoutKick": {
+    "source": "Kick {n}",
+    "text": "ضربه‌ی {n}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

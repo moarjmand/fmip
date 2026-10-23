@@ -2,6 +2,7 @@ import type { CoverageState, ScoreCard as ScoreCardData, ScoreCardIncident } fro
 import Link from '@/components/ui/link';
 import { formatNumber } from '@/i18n/format';
 import { isBehind } from '@/lib/live';
+import { shootoutStart } from '@/lib/match';
 import { formatKickoff, formatStamp, scoreLabel, statusLabel } from '@/lib/scores';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
 import { stageAndRoundLabels } from '@/lib/stage-label';
@@ -113,13 +114,24 @@ export function ScoreCard({
             `${n(card.scores.aggregate.home)}–${n(card.scores.aggregate.away)}`,
           ),
         });
+  // The shoot-out decides a tie the full-time score leaves level (T-1477).
+  const shootout =
+    card.scores.penalties === null
+      ? null
+      : fill(m['scores.card.penalties'].text, {
+          score: pairIsolate(
+            locale,
+            `${n(card.scores.penalties.home)}–${n(card.scores.penalties.away)}`,
+          ),
+        });
+  const kicksFrom = shootoutStart(card.incidents, card.scores.penalties);
   const stageBits = [
     ...stageAndRoundLabels(card.stage?.name, card.round, (key) => m[key].text, locale),
     leg,
     aggregate,
   ].filter((bit): bit is string => typeof bit === 'string' && bit !== '');
   // What stays on the row under the teams: what changes the score's meaning.
-  const rowBits = [showCompetition ? card.competition.name : null, leg, aggregate].filter(
+  const rowBits = [showCompetition ? card.competition.name : null, leg, aggregate, shootout].filter(
     (bit): bit is string => bit !== null,
   );
   const live = card.status === 'live';
@@ -236,9 +248,14 @@ export function ScoreCard({
             <ul className="flex flex-wrap gap-x-3" data-testid="incidents">
               {card.incidents.map((incident, index) => (
                 <li key={index}>
-                  <span dir="ltr">
-                    {formatMinute(locale, incident.minute, incident.added_time)}
-                  </span>{' '}
+                  {/* A shoot-out kick is numbered, never given a minute of play (T-1477). */}
+                  {kicksFrom !== null && index >= kicksFrom ? (
+                    fill(m['scores.card.kick'].text, { n: n(index - kicksFrom + 1) })
+                  ) : (
+                    <span dir="ltr">
+                      {formatMinute(locale, incident.minute, incident.added_time)}
+                    </span>
+                  )}{' '}
                   <MessageText message={m[INCIDENT_KEY[incident.kind]]} />
                   {incident.player !== null ? ` · ${incident.player}` : ''}
                   {incident.side !== null

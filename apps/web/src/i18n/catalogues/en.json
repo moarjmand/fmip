@@ -1371,6 +1371,8 @@
   "scores.announce.redCard": "Red card for {team}.",
   "scores.card.leg": "Leg {leg}",
   "scores.card.aggregate": "Agg {score}",
+  "scores.card.penalties": "Pens {score}",
+  "scores.card.kick": "Kick {n}",
   "scores.card.redCard": "one red card",
   "scores.card.redCards": {
     "one": "{count} red card",
@@ -2714,6 +2716,8 @@
   "matchCentre.keyEvents": "Key events",
   "matchCentre.kickedOff": "Kick-off",
   "matchCentre.latestFirst": "Latest first. Names and minutes are as recorded for the match.",
+  "matchCentre.shootout": "Penalty shoot-out",
+  "matchCentre.shootoutKick": "Kick {n}",
   "matchCentre.lineups.pitchLabel": "Line-ups on the pitch: {away} in the top half, {home} in the bottom half",
   "matchCentre.lineups.pitchNote": "Home side at the bottom. Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
   "matchCentre.lineups.pitchNoteGrid": "Home side at the bottom. Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",

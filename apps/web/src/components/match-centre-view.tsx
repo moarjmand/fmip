@@ -11,7 +11,7 @@ import type {
 import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
-import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, statValue } from '@/lib/match';
+import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, shootoutStart, statValue } from '@/lib/match';
 import { isBehind } from '@/lib/live';
 import { formatKickoff, formatStamp, freshnessStamp, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
@@ -457,7 +457,7 @@ function Hero({
           ) : (
             <ScorePair locale={locale} className={figure} testId="score">
               {n(headline.home)}
-              <span className="mx-[0.12em] align-[0.12em] text-[0.45em] text-caption">–</span>
+              <span className="mx-[0.12em] align-[0.5em] text-[0.45em] text-caption">–</span>
               {n(headline.away)}
             </ScorePair>
           )}
@@ -643,93 +643,124 @@ function Timeline({
       testId="timeline"
       words={words}
     >
-      {(incidents) => (
-        <>
-          {/* Nothing recorded is said, never an empty card (rule 3). */}
-          {incidents.length === 0 && (
-            <p dir="auto" className="text-sm text-muted" data-testid="no-events">
-              <MessageText message={m['matchCentre.noEventsYet']} />
-            </p>
-          )}
-          <ol className="flex flex-col text-sm">
-            {[...incidents].reverse().map((i) => (
-              <li
-                key={i.id}
-                className="grid grid-cols-[3.5rem_2.25rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5"
-              >
-                <span className="font-mono text-muted tabular-nums">
-                  <span dir="ltr">{formatMinute(locale, i.minute, i.added_time)}</span>
-                </span>
-                <IncidentMark kind={i.kind} />
-                <span className="min-w-0 [overflow-wrap:anywhere]">
-                  <b className="block font-bold text-fg">
-                    <MessageText message={m[INCIDENT_KEY[i.kind]]} />
-                    {i.side !== null ? (
-                      <>
-                        {' · '}
-                        <bdi>{i.side === 'home' ? f.home.name : f.away.name}</bdi>
-                      </>
-                    ) : null}
-                    <IncidentDetail detail={i.detail} words={words} />
-                  </b>
-                  <span className="text-muted">
-                    {i.player !== null && (
-                      <Link href={`/${locale}/player/${i.player.id}`} className="underline">
-                        {listName(locale, i.player.name)}
-                      </Link>
+      {(incidents) => {
+        // A shoot-out is its own block, its kicks in order and numbered, never
+        // penalties at minutes of added time (T-1477).
+        const kicksFrom = shootoutStart(incidents, f.scores.penalties);
+        const play = kicksFrom === null ? incidents : incidents.slice(0, kicksFrom);
+        const rows = [
+          ...(kicksFrom === null ? [] : incidents.slice(kicksFrom)).map((i, k) => ({
+            i,
+            kick: k + 1,
+          })),
+          ...[...play].reverse().map((i) => ({ i, kick: null })),
+        ];
+        return (
+          <>
+            {/* Nothing recorded is said, never an empty card (rule 3). */}
+            {incidents.length === 0 && (
+              <p dir="auto" className="text-sm text-muted" data-testid="no-events">
+                <MessageText message={m['matchCentre.noEventsYet']} />
+              </p>
+            )}
+            <ol className="flex flex-col text-sm">
+              {kicksFrom !== null && f.scores.penalties !== null && (
+                <li
+                  className="border-b border-default py-2.5 font-bold text-fg"
+                  data-testid="shootout"
+                >
+                  <MessageText message={m['matchCentre.shootout']} />{' '}
+                  <Score
+                    home={f.scores.penalties.home}
+                    away={f.scores.penalties.away}
+                    locale={locale}
+                  />
+                </li>
+              )}
+              {rows.map(({ i, kick }) => (
+                <li
+                  key={i.id}
+                  className="grid grid-cols-[3.5rem_2.25rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5"
+                  data-kick={kick ?? undefined}
+                >
+                  <span className="font-mono text-muted tabular-nums">
+                    {kick !== null ? (
+                      fill(m['matchCentre.shootoutKick'].text, { n: formatNumber(locale, kick) })
+                    ) : (
+                      <span dir="ltr">{formatMinute(locale, i.minute, i.added_time)}</span>
                     )}
-                    {i.related_player !== null &&
-                      (i.kind === 'substitution' ? (
-                        <>
-                          {' ↔ '}
-                          <Link
-                            href={`/${locale}/player/${i.related_player.id}`}
-                            className="underline"
-                          >
-                            {listName(locale, i.related_player.name)}
-                          </Link>
-                        </>
-                      ) : (
+                  </span>
+                  <IncidentMark kind={i.kind} />
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    <b className="block font-bold text-fg">
+                      <MessageText message={m[INCIDENT_KEY[i.kind]]} />
+                      {i.side !== null ? (
                         <>
                           {' · '}
-                          <FilledMessage
-                            message={m['matchCentre.assist']}
-                            params={{
-                              player: (
-                                <Link
-                                  href={`/${locale}/player/${i.related_player.id}`}
-                                  className="underline"
-                                >
-                                  {listName(locale, i.related_player.name)}
-                                </Link>
-                              ),
-                            }}
-                          />
+                          <bdi>{i.side === 'home' ? f.home.name : f.away.name}</bdi>
                         </>
-                      ))}
+                      ) : null}
+                      <IncidentDetail detail={i.detail} words={words} />
+                    </b>
+                    <span className="text-muted">
+                      {i.player !== null && (
+                        <Link href={`/${locale}/player/${i.player.id}`} className="underline">
+                          {listName(locale, i.player.name)}
+                        </Link>
+                      )}
+                      {i.related_player !== null &&
+                        (i.kind === 'substitution' ? (
+                          <>
+                            {' ↔ '}
+                            <Link
+                              href={`/${locale}/player/${i.related_player.id}`}
+                              className="underline"
+                            >
+                              {listName(locale, i.related_player.name)}
+                            </Link>
+                          </>
+                        ) : (
+                          <>
+                            {' · '}
+                            <FilledMessage
+                              message={m['matchCentre.assist']}
+                              params={{
+                                player: (
+                                  <Link
+                                    href={`/${locale}/player/${i.related_player.id}`}
+                                    className="underline"
+                                  >
+                                    {listName(locale, i.related_player.name)}
+                                  </Link>
+                                ),
+                              }}
+                            />
+                          </>
+                        ))}
+                    </span>
                   </span>
-                </span>
-              </li>
-            ))}
-            {started && (
-              <li className="grid grid-cols-[3.5rem_2.25rem_minmax(0,1fr)] items-center gap-3 py-2.5">
-                <span className="font-mono text-muted tabular-nums">
-                  {formatKickoff(locale, f.kickoff_at, timeZone)}
-                </span>
-                <IncidentMark kind="kickoff" />
-                <b className="font-bold text-fg">
-                  <MessageText message={m['matchCentre.kickedOff']} />
-                </b>
-              </li>
+                </li>
+              ))}
+              {started && (
+                <li className="grid grid-cols-[3.5rem_2.25rem_minmax(0,1fr)] items-center gap-3 py-2.5">
+                  <span className="font-mono text-muted tabular-nums">
+                    {formatKickoff(locale, f.kickoff_at, timeZone)}
+                  </span>
+                  <IncidentMark kind="kickoff" />
+                  <b className="font-bold text-fg">
+                    <MessageText message={m['matchCentre.kickedOff']} />
+                  </b>
+                </li>
+              )}
+            </ol>
+            {incidents.length > 0 && (
+              <p className="text-xs text-caption">
+                <MessageText message={m['matchCentre.latestFirst']} />
+              </p>
             )}
-          </ol>
-          {incidents.length > 0 && (
-            <p className="text-xs text-caption">
-              <MessageText message={m['matchCentre.latestFirst']} />
-            </p>
-          )}
-        </>
-      )}
+          </>
+        );
+      }}
     </Module>
   );
 }
