@@ -13,8 +13,10 @@ export const MIN_SIMILARITY = 0.45;
 /**
  * SQL for entity search (D-039): names and aliases folded through
  * `search_key()` (lower-cased, accents removed), matched by trigram word
- * similarity or prefix, best match per entity kept, ranked by score then
- * name. Inactive teams and competitions are left out.
+ * similarity or prefix, best match per entity kept, ranked by score, then a
+ * name or alias that is exactly the query (T-1481: "liverpool" put AFC
+ * Liverpool and City of Liverpool, both scoring 1 on the word, before
+ * Liverpool), then name. Inactive teams and competitions are left out.
  */
 @Injectable()
 export class PostgresSearchStore {
@@ -40,7 +42,8 @@ export class PostgresSearchStore {
                   CASE WHEN search_key(t.name) LIKE q.key || '%' THEN 1 ELSE 0 END,
                   CASE WHEN t.short_name IS NOT NULL AND search_key(t.short_name) = q.key THEN 1 ELSE 0 END,
                   CASE WHEN t.code IS NOT NULL AND lower(t.code) = q.key THEN 1 ELSE 0 END
-                ) AS score
+                ) AS score,
+                search_key(t.name) = q.key AS exact
            FROM team t CROSS JOIN q
            LEFT JOIN country co ON co.id = t.country_id
           WHERE t.is_active
@@ -51,7 +54,8 @@ export class PostgresSearchStore {
                   word_similarity(q.key, search_key(c.name)),
                   CASE WHEN search_key(c.name) LIKE q.key || '%' THEN 1 ELSE 0 END,
                   CASE WHEN c.short_name IS NOT NULL AND search_key(c.short_name) = q.key THEN 1 ELSE 0 END
-                )
+                ),
+                search_key(c.name) = q.key
            FROM competition c CROSS JOIN q
            LEFT JOIN country co ON co.id = c.country_id
           WHERE c.is_active
@@ -67,7 +71,8 @@ export class PostgresSearchStore {
                   COALESCE(word_similarity(q.key, search_key(p.known_as)), 0),
                   CASE WHEN search_key(p.full_name) LIKE q.key || '%' THEN 1 ELSE 0 END,
                   CASE WHEN p.known_as IS NOT NULL AND search_key(p.known_as) LIKE q.key || '%' THEN 1 ELSE 0 END
-                )
+                ),
+                search_key(p.full_name) = q.key OR COALESCE(search_key(p.known_as) = q.key, false)
            FROM person p CROSS JOIN q
          UNION ALL
          -- Aliases of any kind, each resolved to its entity's canonical name.
@@ -88,18 +93,19 @@ export class PostgresSearchStore {
                 GREATEST(
                   word_similarity(q.key, search_key(a.alias)),
                   CASE WHEN search_key(a.alias) LIKE q.key || '%' THEN 1 ELSE 0 END
-                )
+                ),
+                search_key(a.alias) = q.key
            FROM entity_alias a CROSS JOIN q
        ),
        best AS (
-         SELECT DISTINCT ON (type, id) type, id, name, secondary, matched_on, alias, score
+         SELECT DISTINCT ON (type, id) type, id, name, secondary, matched_on, alias, score, exact
            FROM hits
           WHERE score >= $4 AND type = ANY($2::text[]) AND name IS NOT NULL
-          ORDER BY type, id, score DESC, matched_on
+          ORDER BY type, id, score DESC, exact DESC, matched_on
        )
        SELECT type, id, name, secondary, matched_on, alias, round(score::numeric, 3)::text AS score
          FROM best
-        ORDER BY score DESC, name, type
+        ORDER BY score DESC, exact DESC, name, type
         LIMIT $3`,
       [q, types, limit, MIN_SIMILARITY],
     );
