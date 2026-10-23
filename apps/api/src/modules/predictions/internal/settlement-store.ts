@@ -176,28 +176,59 @@ export class PostgresSettlementStore {
     }));
   }
 
-  /** One run: the run row plus every new settlement, in one transaction. */
+  /**
+   * One run: the run row plus every new settlement, in one transaction.
+   *
+   * Two runs for one fixture can overlap -- the scheduler's pass and an
+   * operator's, or two processes during a rollout -- and both read a
+   * prediction as unsettled before either writes (T-1476). So the run takes a
+   * lock on the fixture for its transaction and reads each prediction's
+   * newest settlement again under it: a prediction already settled, or voided
+   * for the same reason, is left as it is and counted unchanged, and the later
+   * run writes only what is still owed instead of failing on
+   * `settlement_one_settled_per_prediction`.
+   */
   async record(
     fixtureId: string,
     rows: NewSettlement[],
     unchanged: number,
-  ): Promise<{ runId: string }> {
+  ): Promise<{ runId: string; settled: number; voided: number; unchanged: number }> {
     const client: PoolClient = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query(`SELECT pg_advisory_xact_lock(hashtext('settlement:' || $1::text))`, [
+        fixtureId,
+      ]);
+      const { rows: current } = await client.query<{
+        prediction_id: string;
+        status: 'settled' | 'void';
+        void_reason: SettlementVoidReason | null;
+      }>(
+        `SELECT DISTINCT ON (prediction_id) prediction_id, status, void_reason
+           FROM settlement WHERE prediction_id = ANY($1::uuid[])
+          ORDER BY prediction_id, settled_at DESC, id DESC`,
+        [rows.map((r) => r.predictionId)],
+      );
+      const now = new Map(current.map((c) => [c.prediction_id, c]));
+      const owed = rows.filter((r) => {
+        const c = now.get(r.predictionId);
+        if (c === undefined) return true;
+        if (c.status === 'settled') return false;
+        return !(r.status === 'void' && c.void_reason === r.voidReason);
+      });
+      const counts = {
+        settled: owed.filter((r) => r.status === 'settled').length,
+        voided: owed.filter((r) => r.status === 'void').length,
+        unchanged: unchanged + rows.length - owed.length,
+      };
       const run = await client.query<{ id: string }>(
         `INSERT INTO settlement_run (fixture_id, settled, voided, unchanged)
          VALUES ($1, $2, $3, $4) RETURNING id`,
-        [
-          fixtureId,
-          rows.filter((r) => r.status === 'settled').length,
-          rows.filter((r) => r.status === 'void').length,
-          unchanged,
-        ],
+        [fixtureId, counts.settled, counts.voided, counts.unchanged],
       );
       const runId = run.rows[0]?.id;
       if (runId === undefined) throw new Error('settlement_run insert returned no row');
-      for (const r of rows) {
+      for (const r of owed) {
         await client.query(
           `INSERT INTO settlement (run_id, prediction_id, version_id, fixture_id, status, void_reason,
                                    actual_home, actual_away, outcome_correct, score_predicted,
@@ -220,7 +251,7 @@ export class PostgresSettlementStore {
         );
       }
       await client.query('COMMIT');
-      return { runId };
+      return { runId, ...counts };
     } catch (error: unknown) {
       await client.query('ROLLBACK');
       throw error;

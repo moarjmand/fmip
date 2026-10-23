@@ -69,7 +69,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           accept_rules: true,
         },
       });
-      expect(response.statusCode).toBe(201);
+      // The body names the cause when this fails (T-1476: a rare 500 in CI).
+      expect(response.statusCode, response.body).toBe(201);
       cookies.set(label, cookieValue(response.headers['set-cookie']));
       const { rows } = await pool.query<{ id: string }>(
         `UPDATE user_account SET email_verified_at = now() WHERE username = $1 RETURNING id`,
