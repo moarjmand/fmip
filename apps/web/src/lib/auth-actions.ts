@@ -82,6 +82,12 @@ export async function registerAction(
     timezone: text(formData, 'timezone'),
     accept_rules: formData.get('accept_rules') === 'on',
   };
+  // The list has no preselected country (T-1480): an unchosen one is said in
+  // the reader's words, not the API's schema message.
+  if (body.country_id === '') {
+    const choose = say(locale, 'auth.register.countryRequired');
+    return { ok: false, message: choose, fields: { country_id: choose } };
+  }
 
   const result = await apiRequest<SessionResponse>('/auth/register', {
     method: 'POST',

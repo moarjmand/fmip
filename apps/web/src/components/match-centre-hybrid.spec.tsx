@@ -913,3 +913,64 @@ describe('the community against the result', () => {
     expect(community(null)).toContain('data-state="unreachable"');
   });
 });
+
+describe('the match centre says what happened in words (T-1478)', () => {
+  const full = (c: MatchCentre, locale = 'en') =>
+    renderToStaticMarkup(
+      <MatchCentreView
+        words={matchWords(locale)}
+        centre={c}
+        timeZone="UTC"
+        locale={locale}
+        hero={{}}
+      />,
+    );
+  const sub = {
+    id: 'i1',
+    sequence: 1,
+    minute: 64,
+    added_time: null,
+    kind: 'substitution' as const,
+    side: 'home' as const,
+    player: { id: 'p-off', name: 'Jorge Carrascal' },
+    related_player: { id: 'p-on', name: 'Giorgian de Arrascaeta' },
+    detail: null,
+  };
+
+  it('names the match in one heading', () => {
+    const html = full(centre({}));
+    expect(html.match(/<h1/g)).toHaveLength(1);
+    expect(html).toContain('<h1 class="sr-only">Tractor v Esteghlal</h1>');
+  });
+
+  it('says who came on and who went off', () => {
+    const html = full({
+      ...centre({}),
+      timeline: { coverage: 'available', last_updated_at: null, data: [sub] },
+    });
+    expect(html).not.toContain('↔');
+    expect(html).toMatch(/Arrascaeta<\/a> on · <a[^>]*>[^<]*Carrascal<\/a> off/);
+    const fa = full(
+      { ...centre({}), timeline: { coverage: 'available', last_updated_at: null, data: [sub] } },
+      'fa',
+    );
+    expect(fa).toContain('وارد شد');
+    expect(fa).toContain('خارج شد');
+  });
+
+  it('leaves out a substitute who never came on (rule 3)', () => {
+    const html = full({
+      ...centre({}),
+      player_statistics: {
+        coverage: 'available',
+        last_updated_at: null,
+        data: [
+          { id: 'p1', name: 'Played Starter', side: 'home', stats: { minutes: 90, rating: 7.2 } },
+          { id: 'p2', name: 'Unused Bench', side: 'home', stats: { minutes: 0, rating: 0 } },
+        ],
+      },
+    });
+    expect(html).toContain('Starter');
+    expect(html).not.toContain('Bench<');
+  });
+});

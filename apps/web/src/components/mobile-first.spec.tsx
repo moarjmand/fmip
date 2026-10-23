@@ -63,10 +63,10 @@ describe('a match on the scores list', () => {
     expect(html).toMatch(/data-testid="score-status"[^>]*>67′</);
     expect(html).toMatch(/text-live[^"]*" data-testid="score-status"/);
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight" title="Liverpool">Liverpool<\/bdi>/,
+      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm" title="Liverpool">Liverpool<\/bdi>/,
     );
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight" title="Manchester United">/,
+      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm" title="Manchester United">/,
     );
     expect(html).toContain('min-h-11');
     expect(html).toContain('aria-label="one red card"');
@@ -119,7 +119,7 @@ describe('a match on the scores list', () => {
     );
     expect(full).toMatch(/data-testid="card-forecast" data-state="available"/);
     expect(full).toContain('46.4%');
-    expect(full).toContain('version 3');
+    expect(full).toContain('forecast no. 3');
     expect(full).toContain('not published until 5 members have predicted');
     expect(full).toContain('href="/en/watch"');
 

@@ -22,8 +22,9 @@ const SHOWN = [...THEME_PREFERENCES].sort((a, b) => POSITION[a] - POSITION[b]);
  * paper whatever it says. Three submit buttons in one
  * form, the pressed one marked with `aria-pressed`: it works before any script
  * has loaded, a screen reader hears which is on, and the choice is one press.
- * `compact` sits in the site header on every page; `full` is the one in
- * Settings, with room for its explanation around it.
+ * `compact` sits in the site header on every page -- in the phone's Menu its
+ * buttons are a thumb's 44px (T-1479), in the desktop row small; `full` is
+ * the one in Settings, with room for its explanation around it.
  */
 export function ThemeSwitch({
   locale,
@@ -42,7 +43,7 @@ export function ThemeSwitch({
       <div
         role="group"
         aria-labelledby={labelId}
-        className={`flex items-center ${compact ? 'gap-1 text-xs' : 'gap-2 text-sm'}`}
+        className={`flex items-center ${compact ? 'gap-2 text-sm lg:gap-1 lg:text-xs' : 'gap-2 text-sm'}`}
       >
         <span id={labelId} className={compact ? 'sr-only' : 'me-2 font-medium'}>
           <Translated locale={locale} message="theme.label" />
@@ -55,7 +56,7 @@ export function ThemeSwitch({
             value={theme}
             aria-pressed={theme === current}
             data-testid={`theme-${theme}`}
-            className={`rounded border border-strong ${compact ? 'px-1.5 py-0.5' : 'px-3 py-1.5'} ${
+            className={`rounded border border-strong ${compact ? 'min-h-touch px-3 lg:min-h-0 lg:px-1.5 lg:py-0.5' : 'px-3 py-1.5'} ${
               theme === current ? 'bg-accent font-semibold text-on-accent' : 'bg-canvas text-fg'
             }`}
           >

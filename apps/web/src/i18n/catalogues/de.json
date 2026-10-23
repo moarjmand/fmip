@@ -411,6 +411,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.accuracy.versions": {
+    "source": "Model versions in this sample:",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.accuracy.updated": {
     "source": "updated {date}",
     "text": "",
@@ -635,7 +640,7 @@
     "status": "untranslated"
   },
   "home.panels.title": {
-    "source": "On today’s match discussions",
+    "source": "Today’s match discussions",
     "text": "",
     "status": "untranslated"
   },
@@ -1182,6 +1187,16 @@
   },
   "auth.register.country": {
     "source": "Country or territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.countryChoose": {
+    "source": "Choose your country or territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.countryRequired": {
+    "source": "Choose your country or territory.",
     "text": "",
     "status": "untranslated"
   },
@@ -2275,7 +2290,7 @@
     "status": "untranslated"
   },
   "summary.reason.rejected": {
-    "source": "The last attempt was turned down by the grounding check and is not shown.",
+    "source": "No summary is shown: the last draft did not agree with the match record, so it was held back.",
     "text": "",
     "status": "untranslated"
   },
@@ -6268,7 +6283,7 @@
     "status": "untranslated"
   },
   "scores.filter.more": {
-    "source": "Country, competition and stage",
+    "source": "Filter by country, competition and stage",
     "text": "",
     "status": "untranslated"
   },
@@ -6452,6 +6467,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "scores.card.penalties": {
+    "source": "Pens {score}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.card.kick": {
+    "source": "Kick {n}",
+    "text": "",
+    "status": "untranslated"
+  },
   "scores.card.redCard": {
     "source": "one red card",
     "text": "",
@@ -6549,12 +6574,12 @@
     "status": "untranslated"
   },
   "scores.card.model.version": {
-    "source": "the statistical model, version {version}, computed {time}, before kick-off",
+    "source": "the statistical model, forecast no. {version}, computed {time}, before kick-off",
     "text": "",
     "status": "untranslated"
   },
   "scores.card.model.noProbabilities": {
-    "source": "no probabilities in version {version}. {reason}",
+    "source": "no probabilities in forecast no. {version}. {reason}",
     "text": "",
     "status": "untranslated"
   },
@@ -12384,6 +12409,26 @@
   },
   "matchCentre.latestFirst": {
     "source": "Latest first. Names and minutes are as recorded for the match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.subOn": {
+    "source": "{player} on",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.subOff": {
+    "source": "{player} off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.shootout": {
+    "source": "Penalty shoot-out",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.shootoutKick": {
+    "source": "Kick {n}",
     "text": "",
     "status": "untranslated"
   },

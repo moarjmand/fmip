@@ -8,7 +8,6 @@ import type {
 import type { CoverageState } from '@fmip/contracts';
 import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatDate, formatNumber } from '@/i18n/format';
-import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { type MessageKey, plural } from '@/i18n/messages';
 import { pageLocale, say } from '@/lib/competition';
 
@@ -47,12 +46,11 @@ export const POSITION_KEY: Record<NonNullable<PlayerSpell['position']>, MessageK
 
 /**
  * A calendar date the API holds as `YYYY-MM-DD` (a birth date, the start of a
- * spell). English shows it as stored, as it always has; any other locale gets
- * it in its own calendar and digits (T-1304) -- Persian in the Solar Hijri
- * calendar, as `Intl` writes it (D-175).
+ * spell), in the reader's own calendar and digits (T-1304) -- Persian in the
+ * Solar Hijri calendar, as `Intl` writes it (D-175). English reads "30
+ * December 1990", no longer the stored "1990-12-30" (T-1478).
  */
 export function dayText(locale: string, iso: string): string {
-  if (pageLocale(locale) === DEFAULT_LOCALE) return iso;
   return formatDate(locale, `${iso}T00:00:00Z`, 'UTC', {
     day: 'numeric',
     month: 'long',

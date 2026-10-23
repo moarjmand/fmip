@@ -126,6 +126,8 @@ describe('the lead match card', () => {
     expect(html).not.toContain('Regular Season');
     expect(html).toContain('Today 17:00 · Tehran time');
     expect(html).toContain('Yadegar-e-Emam Stadium');
+    // One isolate for name and city (T-1479), so a Persian line keeps the comma between them.
+    expect(html).toContain('<bdi>Yadegar-e-Emam Stadium, Tabriz</bdi>');
     expect(html).toContain('1st of 16 · 16 pts');
     expect(html).toContain('2nd of 16 · 15 pts');
     expect(html).toContain('data-testid="forecast-bar" data-state="available"');
@@ -378,6 +380,8 @@ describe('the side column', () => {
     expect(html).toContain('Sample: 12 matches');
     expect(html).toContain('a uniform guess scores 0.231');
     expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
+    // The versions are named as what they are (T-1479).
+    expect(html).toContain('Model versions in this sample:');
     expect(html).toContain('href="/en/model-accuracy"');
     const none = renderToStaticMarkup(
       <AccuracyCard figure={null} reachable locale="en" timeZone="UTC" />,
@@ -468,5 +472,29 @@ describe('the side column', () => {
     expect(html).toMatch(/Last<\/b> · <b class="text-fg">W<\/b>/);
     expect(html).toContain('This team’s matches could not be loaded.');
     expect(html).toContain('href="/en/following"');
+  });
+});
+
+describe('the top five links each club, and the accuracy card names its versions (T-1479)', () => {
+  it('opens the club from the homepage table', () => {
+    const page = {
+      competition: { id: 'c1', name: 'Premier League', short_name: null, localised_name: null },
+      season: { id: 's1', label: '2026/27' },
+      table: {
+        coverage: 'available',
+        last_updated_at: null,
+        data: [
+          {
+            position: 1,
+            team: { id: 't-city', name: 'Manchester City' },
+            played: 7,
+            goal_difference: 12,
+            points: 21,
+          },
+        ],
+      },
+    } as unknown as CompetitionTable;
+    const html = renderToStaticMarkup(<TableTopFive page={page} locale="en" />);
+    expect(html).toMatch(/href="\/en\/team\/t-city"[^>]*><bdi>Manchester City<\/bdi>/);
   });
 });

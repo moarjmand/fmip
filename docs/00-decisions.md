@@ -12093,3 +12093,37 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** Runs over one fixture queue for the length of a transaction; runs over different fixtures do not wait for each other. A re-run that finds nothing owed still records its run, as before.
 
+
+## D-253 — A shoot-out is shown as a shoot-out, found from the score it adds up to
+
+**Status:** Accepted · 2026-10-23 (agent, UI/UX review under the maintainer's brief) · **Task:** T-1477 · **Follows:** rule 3, D-209
+
+**Context.** The feed records each kick of a penalty shoot-out as a penalty scored or missed at a minute past the end of play (90+1, 91, 120+3 ...), with nothing on the incident that marks it as a kick. The pages listed them by minute, so a shoot-out read as a string of penalties in added time, and the scores list showed "Pens 0–0" without the shoot-out's score.
+
+**Decision.** The web finds the kicks rather than the API storing a new flag: they are the trailing run of penalty incidents whose scored kicks per side equal the stored shoot-out score (`scores.penalties`); of the runs that match, the longest, so an opening miss belongs to it. When the score is missing or no run adds up to it, nothing is reclassified. The kicks are numbered in order and shown as their own block; the shoot-out score is on the score card's row.
+
+**Rejected.** *Keeping the provider's `comments` ("Penalty Shootout") on the incident*: it needs a migration, a contract field and a re-fetch of every past match, for what the stored score already decides. *Classifying by minute* (every penalty after 90 or 120): a penalty in added time is real, and a cup tie without extra time goes to kicks at 90.
+
+**Consequences.** A shoot-out whose kicks the feed lists incompletely (a missing scorer) does not add up and stays listed by minute, as before.
+
+## D-254 — The match centre's words: who came on, who did not play, one heading
+
+**Status:** Accepted · 2026-10-23 (agent, UI/UX review under the maintainer's brief) · **Task:** T-1478 · **Follows:** rule 3, D-202, T-1304
+
+**Context.** The review of the live match centre found figures and words a reader could not trust or parse: unused substitutes listed with 0 minutes and a 0.0 rating, substitutions as two names around an arrow, two top-level headings, an internal check named in the summary's place, a forecast's sequence number called a "version" in Latin digits on /fa, and English dates in their stored ISO form.
+
+**Decision.** A player with 0 minutes is not a row of the player statistics: those zeroes were never earned, and the adapter already drops a player the provider gives no minutes. A substitution names the player coming on and the player going off. The match is named once, in an `<h1>` for screen readers; the band keeps its look. The withheld summary says why in the reader's terms. A forecast's number is "forecast no. N" in the reader's digits. `dayText` formats English dates like every other locale.
+
+**Consequences.** Production's stored rows are unchanged; the pages read them differently. A player the provider lists at 0 minutes with real figures (none seen) would also be left out.
+
+## D-255 — Below 1280px the header's links take a row of their own
+
+**Status:** Accepted · 2026-10-23 (agent, UI/UX review under the maintainer's brief) · **Task:** T-1479 · **Amends:** D-199 point 1
+
+**Context.** D-199 put the mark, the nav and the tools on one row from 768px (1024px since #561). With seven links since T-1434, the row no longer fits below about 1280px: the links wrapped inside their box and left "Highlights" alone on a second line, while the tools kept the end.
+
+**Decision.** From 1024 to 1279px the nav takes the header's second row whole, under the mark and the tools; from 1280px it is one row as before; below 1024px the Menu is unchanged. In that Menu the theme buttons are 44px, the touch size D-198 names.
+
+**Rejected.** *Smaller links or tighter gaps*: at 1024px the links need about 480px and the row leaves about 390. *Moving a link into a "More" menu*: it hides a section behind a press, and needs a script or a second disclosure.
+
+**Consequences.** The header is one row taller between 1024 and 1279px. It is drawn on the server, so nothing moves after load (no layout shift).

@@ -469,7 +469,7 @@ describe("the band's head coach (T-1439, D-230)", () => {
     );
     expect(html).toContain('Head coach');
     expect(html).toContain('href="/en/coach/p-maresca"');
-    expect(html).toContain('since 2026-08-01');
+    expect(html).toContain('since 1 August 2026');
     expect(html).toContain('The latest line-up names Pep Guardiola as coach');
     expect(html).not.toContain('data-testid="manager"');
     expect(

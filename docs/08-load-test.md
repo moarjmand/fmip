@@ -180,8 +180,8 @@ made per row, a timeout -- does.
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
 | home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
-| scores `/en/scores` | 174.0 / 175 (raised 2026-10-22, T-1462) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 184.8 / 185 (raised 2026-10-21, T-1432) | 77 / 76 / 300 |
+| scores `/en/scores` | 174.9 / 175 (raised 2026-10-22, T-1462) | 21 / 31 / 150 |
+| match centre `/en/match/…0901` | 185.4 / 186 (raised 2026-10-23, T-1477) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
@@ -248,6 +248,16 @@ crests in a client component, so `EntityImage`'s choice of the sized WebP
 What it buys is the images: on the homepage 26 crests and logos fall from
 1.66 MB to about 60 kB, and the scores page draws more of them. The budget
 goes to 175. No library was added to the client.
+
+**The raise of 2026-10-23 (T-1477, D-253).** A penalty shoot-out is found
+among the incidents and drawn as its own numbered block, in the match
+centre's key events and on the score card: `shootoutStart` and the kick
+rows are in both live views' first load, because the key events update
+during a shoot-out like the rest of the timeline. Scores 174.0 to 174.9,
+within its 175; the match centre 184.8 to 185.4 against 185, so its budget
+goes to 186. Finding the kicks on the server would have meant a new field in
+the scores and match contracts for a rule the client already has the data
+for. No library was added.
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the

@@ -95,3 +95,41 @@ describe('a score card names the stage and round in the reader’s words', () =>
     expect(html).not.toContain('<span>League A</span>');
   });
 });
+
+describe('a score card says how a shoot-out ended (T-1477)', () => {
+  const finished: Partial<ScoreCardData> = {
+    status: 'finished',
+    scores: {
+      current: { home: 0, away: 0 },
+      half_time: { home: 0, away: 0 },
+      full_time: { home: 0, away: 0 },
+      extra_time: null,
+      penalties: { home: 1, away: 2 },
+      aggregate: null,
+    },
+    incidents: [
+      { kind: 'red_card', minute: 50, added_time: null, side: 'away', player: 'B. Red' },
+      { kind: 'penalty_goal', minute: 91, added_time: null, side: 'home', player: 'H. One' },
+      { kind: 'penalty_goal', minute: 92, added_time: null, side: 'away', player: 'A. One' },
+      { kind: 'penalty_missed', minute: 93, added_time: null, side: 'home', player: 'H. Two' },
+      { kind: 'penalty_goal', minute: 94, added_time: null, side: 'away', player: 'A. Two' },
+    ],
+  };
+
+  it('puts the shoot-out score on the row and numbers the kicks', () => {
+    const html = render('en', finished);
+    // The score is isolated left to right (U+2066 ... U+2069).
+    expect(html).toContain('Pens ⁦1–2⁩');
+    expect(html).toContain('Kick 1');
+    expect(html).toContain('Kick 4');
+    // A kick is not a minute of play; the red card keeps its minute.
+    expect(html).not.toContain('91′');
+    expect(html).toContain('50′');
+  });
+
+  it('says it in Persian on /fa', () => {
+    const html = render('fa', finished);
+    expect(html).toContain('ضربه‌ی ۱');
+    expect(html).toContain('پنالتی');
+  });
+});
