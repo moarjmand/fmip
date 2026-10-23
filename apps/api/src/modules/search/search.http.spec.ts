@@ -139,6 +139,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
     expect(limited.results).toHaveLength(1);
   });
 
+  it('puts the exact name before names that only contain it (T-1481)', async () => {
+    const exact = randomUUID();
+    const longer = randomUUID();
+    await pool.query(
+      `INSERT INTO team (id, name, short_name, code, kind, gender, country_id) VALUES
+         ($1, $3, NULL, NULL, 'club', 'men', $5),
+         ($2, $4, NULL, NULL, 'club', 'men', $5)`,
+      [exact, longer, `Quokkaton${RUN}`, `AAA Quokkaton${RUN}`, ENGLAND],
+    );
+    try {
+      const found = (await search(`q=${encodeURIComponent(`quokkaton${RUN}`)}&types=team`)).results
+        .map((r) => r.id)
+        .filter((id) => id === exact || id === longer);
+      // Alphabetically "AAA ..." would come first; both score 1 on the word.
+      expect(found).toEqual([exact, longer]);
+    } finally {
+      await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[exact, longer]]);
+    }
+  });
+
   it('finds a person stored in full by the short form the feed printed, kept as an alias (T-1398)', async () => {
     const results = ours(await search(`q=${encodeURIComponent(`Q. Ravensworth${RUN}`)}`));
     expect(results[0]).toMatchObject({
