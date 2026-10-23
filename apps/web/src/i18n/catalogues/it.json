@@ -411,6 +411,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.accuracy.versions": {
+    "source": "Model versions in this sample:",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.accuracy.updated": {
     "source": "updated {date}",
     "text": "",
@@ -635,7 +640,7 @@
     "status": "untranslated"
   },
   "home.panels.title": {
-    "source": "On today’s match discussions",
+    "source": "Today’s match discussions",
     "text": "",
     "status": "untranslated"
   },
@@ -6268,7 +6273,7 @@
     "status": "untranslated"
   },
   "scores.filter.more": {
-    "source": "Country, competition and stage",
+    "source": "Filter by country, competition and stage",
     "text": "",
     "status": "untranslated"
   },

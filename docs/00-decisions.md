@@ -12115,3 +12115,15 @@ replaces D-089's self-hosting arrangement for no gain here).
 **Decision.** A player with 0 minutes is not a row of the player statistics: those zeroes were never earned, and the adapter already drops a player the provider gives no minutes. A substitution names the player coming on and the player going off. The match is named once, in an `<h1>` for screen readers; the band keeps its look. The withheld summary says why in the reader's terms. A forecast's number is "forecast no. N" in the reader's digits. `dayText` formats English dates like every other locale.
 
 **Consequences.** Production's stored rows are unchanged; the pages read them differently. A player the provider lists at 0 minutes with real figures (none seen) would also be left out.
+
+## D-255 — Below 1280px the header's links take a row of their own
+
+**Status:** Accepted · 2026-10-23 (agent, UI/UX review under the maintainer's brief) · **Task:** T-1479 · **Amends:** D-199 point 1
+
+**Context.** D-199 put the mark, the nav and the tools on one row from 768px (1024px since #561). With seven links since T-1434, the row no longer fits below about 1280px: the links wrapped inside their box and left "Highlights" alone on a second line, while the tools kept the end.
+
+**Decision.** From 1024 to 1279px the nav takes the header's second row whole, under the mark and the tools; from 1280px it is one row as before; below 1024px the Menu is unchanged. In that Menu the theme buttons are 44px, the touch size D-198 names.
+
+**Rejected.** *Smaller links or tighter gaps*: at 1024px the links need about 480px and the row leaves about 390. *Moving a link into a "More" menu*: it hides a section behind a press, and needs a script or a second disclosure.
+
+**Consequences.** The header is one row taller between 1024 and 1279px. It is drawn on the server, so nothing moves after load (no layout shift).

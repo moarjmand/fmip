@@ -503,6 +503,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "home.accuracy.versions": {
+    "source": "Model versions in this sample:",
+    "text": "نسخه‌های مدل در این نمونه:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "home.accuracy.updated": {
     "source": "updated {date}",
     "text": "به‌روزرسانی {date}",
@@ -774,8 +780,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "home.panels.title": {
-    "source": "On today’s match discussions",
-    "text": "در میزگردهای مسابقه‌های امروز",
+    "source": "Today’s match discussions",
+    "text": "میزگردهای مسابقه‌های امروز",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -7598,8 +7604,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "scores.filter.more": {
-    "source": "Country, competition and stage",
-    "text": "کشور، رقابت و مرحله",
+    "source": "Filter by country, competition and stage",
+    "text": "فیلتر بر اساس کشور، رقابت و مرحله",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

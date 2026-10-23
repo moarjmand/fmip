@@ -53,9 +53,11 @@ export const COVERAGE_KEY = {
  */
 /**
  * A team's name wraps onto a second line before it is cut: at 360 px one line
- * left "Nassaji Maz…" and "Aluminium …" on a real match day (T-1202).
+ * left "Nassaji Maz…" and "Aluminium …" on a real match day (T-1202). On a
+ * phone it is a step smaller, so a word fits its column before it breaks: at
+ * 375 px "Nottingham Forest" read "Nottingh / am…" (T-1479).
  */
-const NAME = 'line-clamp-2 break-words leading-tight';
+const NAME = 'line-clamp-2 break-words leading-tight max-sm:text-sm';
 
 export function ScoreCard({
   card,

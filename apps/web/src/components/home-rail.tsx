@@ -103,7 +103,10 @@ export function TableTopFive({ page, locale }: { page: CompetitionTable; locale:
                       name={row.team.name}
                       size={20}
                     />
-                    <bdi>{row.team.name}</bdi>
+                    {/* Each club opens its page, as on the full table (T-1479). */}
+                    <Link href={`/${l}/team/${row.team.id}`} className="hover:underline">
+                      <bdi>{row.team.name}</bdi>
+                    </Link>
                   </span>
                 </td>
                 <td className="w-8 py-2 text-end text-muted">{n(row.played)}</td>
@@ -222,6 +225,12 @@ export function AccuracyCard({
             />
           </p>
           <p className="mt-1 flex flex-wrap gap-x-2 font-mono [:root:is(:lang(fa),:lang(ar))_&]:font-sans text-xs text-caption">
+            {/* Named (T-1479): two bare version strings read as noise. */}
+            {figure.modelVersions.length > 0 && (
+              <span className="font-sans">
+                <Translated locale={l} message="home.accuracy.versions" />
+              </span>
+            )}
             {figure.modelVersions.map((version) => (
               <span key={version} dir="ltr" className="text-model">
                 <ModelVersion version={version} />

@@ -113,3 +113,15 @@ describe('the switch', () => {
     expect(html).toContain('text-on-accent');
   });
 });
+
+describe('the header at every width (T-1479)', () => {
+  it('gives the phone Menu thumb-sized theme buttons and keeps the desktop row small', () => {
+    const SWITCH = readFileSync(join(HERE, 'theme-switch.tsx'), 'utf8');
+    expect(SWITCH).toContain("'min-h-touch px-3 lg:min-h-0 lg:px-1.5 lg:py-0.5'");
+  });
+
+  it('puts the seven links on a row of their own below 1280px, never one link under the rest', () => {
+    expect(HEADER).toContain('lg:max-xl:order-last lg:max-xl:basis-full');
+    expect(HEADER).toContain('lg:max-xl:ms-auto');
+  });
+});

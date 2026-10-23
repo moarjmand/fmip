@@ -91,6 +91,7 @@
     "other": "Sample: {count} matches"
   },
   "home.accuracy.baseline": "· a uniform guess scores {rps}",
+  "home.accuracy.versions": "Model versions in this sample:",
   "home.accuracy.updated": "updated {date}",
   "home.accuracy.link": "How accurate is our model?",
   "home.accuracy.unreachable": "The model’s accuracy could not be loaded.",
@@ -138,7 +139,7 @@
     "one": "{count} unread",
     "other": "{count} unread"
   },
-  "home.panels.title": "On today’s match discussions",
+  "home.panels.title": "Today’s match discussions",
   "home.panels.unreachable": "Today’s match discussions could not be loaded.",
   "home.panels.empty": "Nothing has been posted on today’s match discussions yet.",
   "home.panels.theMatch": "The match",
@@ -1334,7 +1335,7 @@
   "scores.filter.favourites": "Favourites only",
   "scores.timesIn": "Times: {zoneName}",
   "scores.timesInGuest": "Times: {zoneName} (sign in for your own zone)",
-  "scores.filter.more": "Country, competition and stage",
+  "scores.filter.more": "Filter by country, competition and stage",
   "scores.filter.moreActive": "Country, competition and stage (filtered)",
   "scores.filter.country": "Country",
   "scores.filter.allCountries": "All countries",
