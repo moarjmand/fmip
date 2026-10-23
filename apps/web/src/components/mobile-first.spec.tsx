@@ -70,6 +70,8 @@ describe('a match on the scores list', () => {
     );
     expect(html).toContain('min-h-11');
     expect(html).toContain('aria-label="one red card"');
+    // Tighter gaps on a phone, so a name's longest word fits its column (T-1484).
+    expect(html).toContain('class="flex min-w-0 items-center gap-2 max-sm:gap-1"');
   });
 
   it('keeps every label, behind a disclosure named for the match', () => {
