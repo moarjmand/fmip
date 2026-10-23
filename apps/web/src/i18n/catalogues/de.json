@@ -6242,6 +6242,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "scores.chooseDate": {
+    "source": "Choose a date",
+    "text": "",
+    "status": "untranslated"
+  },
   "scores.showDay": {
     "source": "Show day",
     "text": "",
@@ -6409,6 +6414,11 @@
   },
   "scores.updatedBetween": {
     "source": "Updated between {oldest} and {newest}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.unchangedSince": {
+    "source": "Unchanged since {time}",
     "text": "",
     "status": "untranslated"
   },

@@ -320,18 +320,27 @@ export function scoreLabel(card: ScoreCard, locale = 'en'): string {
  * cards agree, else the oldest and the newest, never the newest alone, which
  * would make an older row look current. A row that is behind still says so
  * on the row itself. A time on another day says so (`freshnessStamp`, T-1371).
+ *
+ * A block of matches still to come says "Unchanged since" its newest change
+ * (T-1482, the maintainer's choice of 2026-10-23): "Updated 27 days ago"
+ * over today's kick-offs read as data gone stale, when nothing about those
+ * fixtures had changed. The newest change is true of every row: none changed
+ * after it. Once a match in the block has started, it is "Updated" again.
  */
 export function blockUpdatedLabel(
-  cards: readonly Pick<ScoreCard, 'last_updated_at'>[],
+  cards: readonly Pick<ScoreCard, 'last_updated_at' | 'status'>[],
   locale: string,
   timeZone: string,
-  words: Record<'scores.updated' | 'scores.updatedBetween', Message>,
+  words: Record<'scores.updated' | 'scores.updatedBetween' | 'scores.unchangedSince', Message>,
   now?: Date | number,
 ): string | null {
   const times = cards.map((c) => Date.parse(c.last_updated_at)).filter((t) => !Number.isNaN(t));
   if (times.length === 0) return null;
   const stamp = (ms: number): string =>
     formatStamp(locale, new Date(ms).toISOString(), timeZone, now);
+  if (cards.every((c) => c.status === 'scheduled')) {
+    return fill(words['scores.unchangedSince'].text, { time: stamp(Math.max(...times)) });
+  }
   const oldest = stamp(Math.min(...times));
   const newest = stamp(Math.max(...times));
   return oldest === newest

@@ -7567,6 +7567,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "scores.chooseDate": {
+    "source": "Choose a date",
+    "text": "انتخاب تاریخ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "scores.showDay": {
     "source": "Show day",
     "text": "نمایش روز",
@@ -7768,6 +7774,12 @@
   "scores.updatedBetween": {
     "source": "Updated between {oldest} and {newest}",
     "text": "به‌روزشده بین {oldest} و {newest}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.unchangedSince": {
+    "source": "Unchanged since {time}",
+    "text": "بدون تغییر از {time}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

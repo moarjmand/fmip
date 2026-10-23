@@ -119,6 +119,7 @@ export const SCORES_KEYS = [
   'scores.loadedAt',
   'scores.updated',
   'scores.updatedBetween',
+  'scores.unchangedSince',
   'scores.card.leg',
   'scores.card.aggregate',
   'scores.card.penalties',
