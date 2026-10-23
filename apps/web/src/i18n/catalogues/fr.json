@@ -1190,6 +1190,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "auth.register.countryChoose": {
+    "source": "Choose your country or territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.countryRequired": {
+    "source": "Choose your country or territory.",
+    "text": "",
+    "status": "untranslated"
+  },
   "auth.register.language": {
     "source": "Language",
     "text": "",

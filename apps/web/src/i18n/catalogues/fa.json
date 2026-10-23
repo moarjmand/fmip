@@ -1445,6 +1445,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "auth.register.countryChoose": {
+    "source": "Choose your country or territory",
+    "text": "کشور یا قلمرو خود را انتخاب کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.countryRequired": {
+    "source": "Choose your country or territory.",
+    "text": "کشور یا قلمرو خود را انتخاب کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "auth.register.language": {
     "source": "Language",
     "text": "زبان",

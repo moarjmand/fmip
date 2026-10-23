@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { ActionForm, type Field } from '@/components/action-form';
+import { DeviceTimeZone } from '@/components/device-time-zone';
 import { fetchCountries, fetchMe } from '@/lib/api';
 import { readGuestChoices } from '@/lib/first-run-cookie';
 import { readInviter } from '@/lib/invite';
@@ -117,7 +118,13 @@ export default async function RegisterPage({
       label: t(lang, 'auth.register.country'),
       type: 'select',
       required: true,
-      options: countries.map((c) => ({ value: c.id, label: c.name })),
+      // No country is preselected (T-1480): the list opened on its first
+      // entry, so a reader who did not look registered in Afghanistan.
+      defaultValue: '',
+      options: [
+        { value: '', label: t(lang, 'auth.register.countryChoose') },
+        ...countries.map((c) => ({ value: c.id, label: c.name })),
+      ],
     },
     {
       name: 'preferred_language',
@@ -168,6 +175,10 @@ export default async function RegisterPage({
           working: message(lang, 'auth.form.working'),
         }}
       />
+      {/* A zone the guest confirmed stands; otherwise this device's own replaces UTC. */}
+      {guest.timezone === undefined && (
+        <DeviceTimeZone form="register-form" field="timezone" unless="UTC" />
+      )}
       <p className="text-sm">
         <Translated locale={locale} message="auth.register.already" />{' '}
         <Link href={`/${locale}/login`}>

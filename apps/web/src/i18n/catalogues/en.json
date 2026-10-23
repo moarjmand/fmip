@@ -254,6 +254,8 @@
   "auth.register.closed": "Registration is not open yet: no country has been set up to choose from.",
   "auth.register.usernameHint": "3 to 20 characters: lower-case letters, digits, underscore. Shown on leaderboards.",
   "auth.register.country": "Country or territory",
+  "auth.register.countryChoose": "Choose your country or territory",
+  "auth.register.countryRequired": "Choose your country or territory.",
   "auth.register.language": "Language",
   "auth.register.timezone": "Time zone",
   "auth.register.acceptRules": "I accept the platform rules.",
