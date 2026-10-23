@@ -57,7 +57,7 @@ export function CardForecastSummary({
             className="text-muted"
             message={m['scores.card.model.version']}
             params={{
-              version: f.version,
+              version: formatNumber(locale, f.version),
               time: (
                 <time dateTime={f.computed_at}>
                   {formatVersionStamp(locale, f.computed_at, timeZone)}

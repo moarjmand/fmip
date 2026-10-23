@@ -278,8 +278,16 @@ export default async function ScoresPage({
       {options !== null &&
         (filtered ||
           options.countries.length + options.competitions.length + options.stages.length > 0) && (
-          <details open={filtered} className="text-sm" data-testid="more-filters">
-            <summary className="flex min-h-11 cursor-pointer items-center font-medium">
+          <details open={filtered} className="group text-sm" data-testid="more-filters">
+            {/* A flex summary loses the browser's triangle, so it draws its own (T-1479):
+                without one the line read as a heading, not a control. */}
+            <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
+              <span
+                aria-hidden="true"
+                className="transition-transform group-open:rotate-90 rtl:-scale-x-100"
+              >
+                ▸
+              </span>
               <Translated
                 locale={locale}
                 message={filtered ? 'scores.filter.moreActive' : 'scores.filter.more'}

@@ -161,10 +161,13 @@ export async function SiteHeader({
               <PrimaryNav
                 locale={locale}
                 labels={resolved(lang, NAV_LABELS)}
-                className="flex flex-col lg:order-2 lg:min-w-0 lg:flex-1 lg:flex-row lg:flex-wrap lg:gap-0.5"
+                className="flex flex-col lg:order-2 lg:min-w-0 lg:flex-1 lg:flex-row lg:flex-wrap lg:gap-0.5 lg:max-xl:order-last lg:max-xl:basis-full"
               />
               {/* Nothing until a second language is finished (T-306) and not held back (T-1163). */}
-              <div className="lg:order-3">
+              {/* Below 1280px the seven links do not fit beside the tools: they
+                  take the header's second row whole rather than wrapping one
+                  link under the rest (T-1479), and the tools keep the end. */}
+              <div className="lg:order-3 lg:max-xl:ms-auto">
                 <LanguagePicker
                   languages={offeredLanguages(offeredGiven(holds))}
                   label={attribute(lang, 'shell.language')}

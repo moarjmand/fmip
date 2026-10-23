@@ -75,6 +75,44 @@ export function minuteLabel(minute: number, addedTime: number | null, locale = '
   return formatMinute(locale, minute, addedTime);
 }
 
+/**
+ * Where a penalty shoot-out starts among a match's incidents in match order,
+ * or `null` (T-1477). The feed records each kick as a penalty scored or
+ * missed at a minute past the end of play (91′, 120+3′), so a plain list
+ * showed a shoot-out as penalties in added time. The kicks are the trailing
+ * run of penalty incidents whose scored kicks, per side, are exactly the
+ * shoot-out's score: the longest such run, so a miss that opens the shoot-out
+ * is kept in it. With no shoot-out score, or no run that adds up to it, the
+ * list is left as recorded rather than guessed at (rule 3).
+ */
+export function shootoutStart(
+  incidents: readonly { kind: string; side: 'home' | 'away' | null }[],
+  penalties: { home: number; away: number } | null,
+): number | null {
+  if (penalties === null || penalties.home + penalties.away === 0) return null;
+  let start = incidents.length;
+  while (
+    start > 0 &&
+    (incidents[start - 1]!.kind === 'penalty_goal' ||
+      incidents[start - 1]!.kind === 'penalty_missed')
+  ) {
+    start -= 1;
+  }
+  for (let from = start; from < incidents.length; from += 1) {
+    let home = 0;
+    let away = 0;
+    for (const incident of incidents.slice(from)) {
+      if (incident.kind !== 'penalty_goal') continue;
+      if (incident.side === 'home') home += 1;
+      else if (incident.side === 'away') away += 1;
+    }
+    if (home === penalties.home && away === penalties.away) return from;
+    // A shorter run only scores fewer: none further on can add up.
+    if (home < penalties.home || away < penalties.away) return null;
+  }
+  return null;
+}
+
 /** A statistic as shown, in the locale's digits: percentages with the sign, xG to two places. */
 export function statValue(metric: MatchStatMetric, value: number | null, locale = 'en'): string {
   if (value === null) return '–';

@@ -282,13 +282,13 @@ export function LeadMatchCard({
         </p>
         {card.venue !== null && (
           <p className="text-sm text-muted">
-            <bdi>{card.venue.name}</bdi>
-            {card.venue.city !== null && (
-              <>
-                {', '}
-                <bdi>{card.venue.city}</bdi>
-              </>
-            )}
+            {/* One isolate (T-1479): two Latin names in a Persian line put the
+                comma between them on the wrong side ("Sirjan ,Gol Gohar"). */}
+            <bdi>
+              {card.venue.city === null
+                ? card.venue.name
+                : `${card.venue.name}, ${card.venue.city}`}
+            </bdi>
           </p>
         )}
       </div>
