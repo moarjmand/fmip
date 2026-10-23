@@ -2275,7 +2275,7 @@
     "status": "untranslated"
   },
   "summary.reason.rejected": {
-    "source": "The last attempt was turned down by the grounding check and is not shown.",
+    "source": "No summary is shown: the last draft did not agree with the match record, so it was held back.",
     "text": "",
     "status": "untranslated"
   },
@@ -6559,12 +6559,12 @@
     "status": "untranslated"
   },
   "scores.card.model.version": {
-    "source": "the statistical model, version {version}, computed {time}, before kick-off",
+    "source": "the statistical model, forecast no. {version}, computed {time}, before kick-off",
     "text": "",
     "status": "untranslated"
   },
   "scores.card.model.noProbabilities": {
-    "source": "no probabilities in version {version}. {reason}",
+    "source": "no probabilities in forecast no. {version}. {reason}",
     "text": "",
     "status": "untranslated"
   },
@@ -12394,6 +12394,16 @@
   },
   "matchCentre.latestFirst": {
     "source": "Latest first. Names and minutes are as recorded for the match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.subOn": {
+    "source": "{player} on",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.subOff": {
+    "source": "{player} off",
     "text": "",
     "status": "untranslated"
   },

@@ -2768,8 +2768,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "summary.reason.rejected": {
-    "source": "The last attempt was turned down by the grounding check and is not shown.",
-    "text": "آخرین تلاش در بررسی انطباق با سوابق بازی رد شد و نمایش داده نمی‌شود.",
+    "source": "No summary is shown: the last draft did not agree with the match record, so it was held back.",
+    "text": "خلاصه‌ای نمایش داده نمی‌شود: آخرین پیش‌نویس با سوابق بازی همخوانی نداشت و کنار گذاشته شد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -7952,14 +7952,14 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "scores.card.model.version": {
-    "source": "the statistical model, version {version}, computed {time}, before kick-off",
-    "text": "مدل آماری، نسخه‌ی {version}، محاسبه‌شده در {time}، پیش از شروع بازی",
+    "source": "the statistical model, forecast no. {version}, computed {time}, before kick-off",
+    "text": "مدل آماری، پیش‌بینی شماره‌ی {version}، محاسبه‌شده در {time}، پیش از شروع بازی",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "scores.card.model.noProbabilities": {
-    "source": "no probabilities in version {version}. {reason}",
-    "text": "نسخه‌ی {version} احتمالی ندارد. {reason}",
+    "source": "no probabilities in forecast no. {version}. {reason}",
+    "text": "پیش‌بینی شماره‌ی {version} احتمالی ندارد. {reason}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -15106,6 +15106,18 @@
   "matchCentre.latestFirst": {
     "source": "Latest first. Names and minutes are as recorded for the match.",
     "text": "تازه‌ترین در بالا. نام‌ها و دقیقه‌ها از داده‌های بازی می‌آیند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.subOn": {
+    "source": "{player} on",
+    "text": "{player} وارد شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.subOff": {
+    "source": "{player} off",
+    "text": "{player} خارج شد",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

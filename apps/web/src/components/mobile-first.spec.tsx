@@ -119,7 +119,7 @@ describe('a match on the scores list', () => {
     );
     expect(full).toMatch(/data-testid="card-forecast" data-state="available"/);
     expect(full).toContain('46.4%');
-    expect(full).toContain('version 3');
+    expect(full).toContain('forecast no. 3');
     expect(full).toContain('not published until 5 members have predicted');
     expect(full).toContain('href="/en/watch"');
 

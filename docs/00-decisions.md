@@ -12105,3 +12105,13 @@ replaces D-089's self-hosting arrangement for no gain here).
 **Rejected.** *Keeping the provider's `comments` ("Penalty Shootout") on the incident*: it needs a migration, a contract field and a re-fetch of every past match, for what the stored score already decides. *Classifying by minute* (every penalty after 90 or 120): a penalty in added time is real, and a cup tie without extra time goes to kicks at 90.
 
 **Consequences.** A shoot-out whose kicks the feed lists incompletely (a missing scorer) does not add up and stays listed by minute, as before.
+
+## D-254 — The match centre's words: who came on, who did not play, one heading
+
+**Status:** Accepted · 2026-10-23 (agent, UI/UX review under the maintainer's brief) · **Task:** T-1478 · **Follows:** rule 3, D-202, T-1304
+
+**Context.** The review of the live match centre found figures and words a reader could not trust or parse: unused substitutes listed with 0 minutes and a 0.0 rating, substitutions as two names around an arrow, two top-level headings, an internal check named in the summary's place, a forecast's sequence number called a "version" in Latin digits on /fa, and English dates in their stored ISO form.
+
+**Decision.** A player with 0 minutes is not a row of the player statistics: those zeroes were never earned, and the adapter already drops a player the provider gives no minutes. A substitution names the player coming on and the player going off. The match is named once, in an `<h1>` for screen readers; the band keeps its look. The withheld summary says why in the reader's terms. A forecast's number is "forecast no. N" in the reader's digits. `dayText` formats English dates like every other locale.
+
+**Consequences.** Production's stored rows are unchanged; the pages read them differently. A player the provider lists at 0 minutes with real figures (none seen) would also be left out.

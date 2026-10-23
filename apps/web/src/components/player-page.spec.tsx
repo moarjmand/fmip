@@ -186,7 +186,7 @@ describe('the player band', () => {
     expect(html).toMatch(
       /data-testid="current-team-lineup".*href="\/en\/team\/liverpool".*Liverpool/,
     );
-    expect(html).toContain('from the latest line-up that names this player, 2026-10-11');
+    expect(html).toContain('from the latest line-up that names this player, 11 October 2026');
     expect(html).toContain('no current spell on record');
     expect(html).not.toContain('No current team on record');
     // In Persian, the sentence is the catalogue's and the date the Persian calendar's.
@@ -211,7 +211,7 @@ describe('the player band', () => {
     expect(html).toMatch(/Date of birth.*data-coverage-badge="not_supplied"/);
     const born = band(page({ person: { ...page().person, date_of_birth: '1992-09-21' } }));
     expect(born).not.toContain('Date of birth');
-    expect(born).toContain('born 1992-09-21');
+    expect(born).toContain('born 21 September 1992');
   });
 });
 

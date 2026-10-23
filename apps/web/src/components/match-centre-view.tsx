@@ -432,9 +432,13 @@ function Hero({
         </span>
       </p>
 
+      {/* One heading names the match (T-1478); the band below draws it. */}
+      <h1 className="sr-only">
+        {fill(m['matchCentre.fixtureTitle'].text, { home: f.home.name, away: f.away.name })}
+      </h1>
       {/* Home, score, away from the inline start: the whole band mirrors on /fa. */}
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 md:items-center md:gap-10">
-        <h1 data-testid="home-team" className="min-w-0">
+        <div data-testid="home-team" className="min-w-0">
           <Link
             href={`/${locale}/team/${f.home.id}`}
             className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-end md:gap-5 md:text-end"
@@ -442,7 +446,7 @@ function Hero({
             <bdi className={name}>{f.home.name}</bdi>
             <Crest team={f.home} className="max-md:order-first" />
           </Link>
-        </h1>
+        </div>
         <div className="flex flex-col items-center gap-2.5">
           {f.status === 'scheduled' ? (
             // Before kick-off the band's figure is the kick-off time, never a 0-0.
@@ -496,7 +500,7 @@ function Hero({
             </span>
           )}
         </div>
-        <h1 data-testid="away-team" className="min-w-0">
+        <div data-testid="away-team" className="min-w-0">
           <Link
             href={`/${locale}/team/${f.away.id}`}
             className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-start md:gap-5 md:text-start"
@@ -504,7 +508,7 @@ function Hero({
             <Crest team={f.away} />
             <bdi className={name}>{f.away.name}</bdi>
           </Link>
-        </h1>
+        </div>
       </div>
 
       {/* Under the score, full width so the names keep their columns on a phone:
@@ -703,40 +707,68 @@ function Timeline({
                       <IncidentDetail detail={i.detail} words={words} />
                     </b>
                     <span className="text-muted">
-                      {i.player !== null && (
-                        <Link href={`/${locale}/player/${i.player.id}`} className="underline">
-                          {listName(locale, i.player.name)}
-                        </Link>
-                      )}
-                      {i.related_player !== null &&
-                        (i.kind === 'substitution' ? (
-                          <>
-                            {' ↔ '}
-                            <Link
-                              href={`/${locale}/player/${i.related_player.id}`}
-                              className="underline"
-                            >
-                              {listName(locale, i.related_player.name)}
+                      {i.kind === 'substitution' &&
+                      i.player !== null &&
+                      i.related_player !== null ? (
+                        // Who came on and who went off, in words (T-1478): an
+                        // arrow between two names said neither.
+                        <>
+                          <FilledMessage
+                            message={m['matchCentre.subOn']}
+                            params={{
+                              player: (
+                                <Link
+                                  href={`/${locale}/player/${i.related_player.id}`}
+                                  className="underline"
+                                >
+                                  {listName(locale, i.related_player.name)}
+                                </Link>
+                              ),
+                            }}
+                          />
+                          {' · '}
+                          <FilledMessage
+                            message={m['matchCentre.subOff']}
+                            params={{
+                              player: (
+                                <Link
+                                  href={`/${locale}/player/${i.player.id}`}
+                                  className="underline"
+                                >
+                                  {listName(locale, i.player.name)}
+                                </Link>
+                              ),
+                            }}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          {i.player !== null && (
+                            <Link href={`/${locale}/player/${i.player.id}`} className="underline">
+                              {listName(locale, i.player.name)}
                             </Link>
-                          </>
-                        ) : (
-                          <>
-                            {' · '}
-                            <FilledMessage
-                              message={m['matchCentre.assist']}
-                              params={{
-                                player: (
-                                  <Link
-                                    href={`/${locale}/player/${i.related_player.id}`}
-                                    className="underline"
-                                  >
-                                    {listName(locale, i.related_player.name)}
-                                  </Link>
-                                ),
-                              }}
-                            />
-                          </>
-                        ))}
+                          )}
+                          {i.related_player !== null &&
+                            (i.kind === 'substitution' ? null : (
+                              <>
+                                {' · '}
+                                <FilledMessage
+                                  message={m['matchCentre.assist']}
+                                  params={{
+                                    player: (
+                                      <Link
+                                        href={`/${locale}/player/${i.related_player.id}`}
+                                        className="underline"
+                                      >
+                                        {listName(locale, i.related_player.name)}
+                                      </Link>
+                                    ),
+                                  }}
+                                />
+                              </>
+                            ))}
+                        </>
+                      )}
                     </span>
                   </span>
                 </li>
@@ -923,7 +955,10 @@ function PlayerStatistics({
               ['away', f.away.name],
             ] as const
           ).map(([side, team]) => {
-            const rows = players.filter((p) => p.side === side);
+            // A substitute who never came on did not play (T-1478): the feed
+            // still lists him at 0 minutes with a 0.0 rating, figures that
+            // were never earned, so he is not a row (rule 3).
+            const rows = players.filter((p) => p.side === side && p.stats.minutes !== 0);
             if (rows.length === 0) return null;
             return (
               // A named region a keyboard can reach and scroll with the arrow keys.
