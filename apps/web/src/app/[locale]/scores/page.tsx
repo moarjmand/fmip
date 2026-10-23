@@ -199,54 +199,73 @@ export default async function ScoresPage({
         ))}
       </nav>
 
-      {/* The day first, then the steps: on a phone the date and its button take
+      {/* On a phone the picker and the steps fold behind one control (T-1482,
+          the maintainer's choice of 2026-10-23), so the first match is on the
+          first screen; the day strip above covers the week. Open when the day
+          shown is not on the strip. From 640px it is no box at all (globals.css). */}
+      <details
+        className="date-fold group"
+        open={!strip.some((day) => day.isSelected)}
+        data-testid="date-fold"
+      >
+        <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
+          <span
+            aria-hidden="true"
+            className="transition-transform group-open:rotate-90 rtl:-scale-x-100"
+          >
+            ▸
+          </span>
+          <Translated locale={locale} message="scores.chooseDate" />
+        </summary>
+        {/* The day first, then the steps: on a phone the date and its button take
           one row and the two steps the next, so neither is squeezed (T-605). */}
-      <div className="flex flex-wrap items-end gap-2 text-sm" data-testid="date-picker">
-        <form
-          method="get"
-          action={`/${locale}/scores`}
-          className="flex min-w-0 basis-full items-end gap-2 sm:basis-auto"
-        >
-          {hidden([zoneField, ...flagFields, ...filterParams(filters)])}
-          <label className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex flex-wrap items-end gap-2 text-sm" data-testid="date-picker">
+          <form
+            method="get"
+            action={`/${locale}/scores`}
+            className="flex min-w-0 basis-full items-end gap-2 sm:basis-auto"
+          >
+            {hidden([zoneField, ...flagFields, ...filterParams(filters)])}
+            <label className="flex min-w-0 flex-1 flex-col gap-1">
+              <span>
+                <Translated locale={locale} message="scores.date" />
+              </span>
+              <input
+                type="date"
+                name="date"
+                required
+                defaultValue={q.date}
+                className={`${inputClass} min-h-11 w-full min-w-0`}
+                data-testid="date-input"
+              />
+            </label>
+            <Button type="submit" className="min-h-11 shrink-0 font-medium">
+              <Translated locale={locale} message="scores.showDay" />
+            </Button>
+          </form>
+          {/* The arrows are bidi-mirrored characters, so they point the right way in RTL. */}
+          <ButtonLink
+            href={pageHref(locale, q, { date: shiftDate(q.date, -1) })}
+            className={stepClass}
+            data-testid="previous-day"
+          >
+            <span aria-hidden="true">‹</span>
             <span>
-              <Translated locale={locale} message="scores.date" />
+              <Translated locale={locale} message="scores.previousDay" />
             </span>
-            <input
-              type="date"
-              name="date"
-              required
-              defaultValue={q.date}
-              className={`${inputClass} min-h-11 w-full min-w-0`}
-              data-testid="date-input"
-            />
-          </label>
-          <Button type="submit" className="min-h-11 shrink-0 font-medium">
-            <Translated locale={locale} message="scores.showDay" />
-          </Button>
-        </form>
-        {/* The arrows are bidi-mirrored characters, so they point the right way in RTL. */}
-        <ButtonLink
-          href={pageHref(locale, q, { date: shiftDate(q.date, -1) })}
-          className={stepClass}
-          data-testid="previous-day"
-        >
-          <span aria-hidden="true">‹</span>
-          <span>
-            <Translated locale={locale} message="scores.previousDay" />
-          </span>
-        </ButtonLink>
-        <ButtonLink
-          href={pageHref(locale, q, { date: shiftDate(q.date, 1) })}
-          className={stepClass}
-          data-testid="next-day"
-        >
-          <span>
-            <Translated locale={locale} message="scores.nextDay" />
-          </span>
-          <span aria-hidden="true">›</span>
-        </ButtonLink>
-      </div>
+          </ButtonLink>
+          <ButtonLink
+            href={pageHref(locale, q, { date: shiftDate(q.date, 1) })}
+            className={stepClass}
+            data-testid="next-day"
+          >
+            <span>
+              <Translated locale={locale} message="scores.nextDay" />
+            </span>
+            <span aria-hidden="true">›</span>
+          </ButtonLink>
+        </div>
+      </details>
 
       <div className="flex flex-wrap items-center gap-x-1 gap-y-0 text-sm" data-testid="filters">
         <Link href={pageHref(locale, q, { live: false })} className={linkClass(!q.live)}>

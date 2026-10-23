@@ -154,7 +154,7 @@ export class PostgresMatchCentreStore {
     const { rows } = await this.pool.query<RawHeader>(
       `SELECT f.id, f.kickoff_at, f.status, f.minute, f.round, f.group_name, f.leg,
               f.is_neutral_venue, f.attendance, f.updated_at,
-              se.id AS season_id, se.label AS season_label,
+              se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
               c.id AS competition_id, c.name AS competition_name,
               c.short_name AS competition_short_name, c.country_id,
               f.stage_id, st.name AS stage_name, st.kind AS stage_kind,

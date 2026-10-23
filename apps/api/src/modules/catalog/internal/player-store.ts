@@ -314,7 +314,7 @@ export class PostgresPlayerStore {
            FROM named n
           GROUP BY n.season_id, n.team_id
        )
-       SELECT se.id AS season_id, se.label AS season_label,
+       SELECT se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
               c.id AS competition_id, c.name AS competition_name, c.short_name AS competition_short_name,
               t.id AS team_id, t.name AS team_name,
               k.starts::text, k.sub_appearances::text, k.goals::text, k.assists::text,
@@ -455,7 +455,7 @@ export class PostgresPlayerStore {
     }>(
       `SELECT f.id, f.kickoff_at, f.status, f.round, f.stage_id, st.name AS stage_name,
               c.id AS competition_id, c.name AS competition_name, c.short_name AS competition_short_name,
-              se.id AS season_id, se.label AS season_label,
+              se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
               a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
               -- The latest score, so extra time counts, as the team page reads
