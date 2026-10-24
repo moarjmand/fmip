@@ -58,10 +58,16 @@ describe('a page of the Highlights list', () => {
     expect(highlightsPage(INDEX, DE, null, 1).ids).toEqual(['a', 'b', 'c', 'd', 'e']);
   });
 
-  it('offers a reader with no territory only the clips offered everywhere', () => {
+  it('lists a reader with no territory every clip, and says which are restricted', () => {
     const page = highlightsPage(INDEX, NONE, null, 1);
-    expect(page.ids).toEqual(['a', 'd', 'e']);
-    expect(page.total).toBe(3);
+    expect(page.ids).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(page.total).toBe(5);
+    expect(page.restricted).toEqual(['b', 'c']);
+  });
+
+  it('restricts nothing with a territory chosen, and only the page shown', () => {
+    expect(highlightsPage(INDEX, DE, null, 1).restricted).toEqual([]);
+    expect(highlightsPage(INDEX, NONE, null, 2, 2).restricted).toEqual(['c']);
   });
 
   it('filters by competition, and offers every competition with a clip, most first', () => {
@@ -73,9 +79,9 @@ describe('a page of the Highlights list', () => {
       { id: 'liga', name: 'La Liga', short_name: null, count: 1 },
     ]);
     // A competition with no clip offered here is not offered as a filter.
-    expect(highlightsPage(INDEX, NONE, null, 1).competitions.map((c) => c.id)).toEqual([
-      'pl',
-      'liga',
+    expect(highlightsPage(INDEX, IR, null, 1).competitions).toEqual([
+      { id: 'pl', name: 'Premier League', short_name: null, count: 2 },
+      { id: 'liga', name: 'La Liga', short_name: null, count: 1 },
     ]);
   });
 
@@ -88,7 +94,12 @@ describe('a page of the Highlights list', () => {
   });
 
   it('is empty for an empty feed (rule 3: the page says so)', () => {
-    expect(highlightsPage([], GB, null, 1)).toEqual({ ids: [], total: 0, competitions: [] });
+    expect(highlightsPage([], GB, null, 1)).toEqual({
+      ids: [],
+      restricted: [],
+      total: 0,
+      competitions: [],
+    });
   });
 });
 

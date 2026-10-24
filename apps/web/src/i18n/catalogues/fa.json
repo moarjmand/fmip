@@ -15403,9 +15403,15 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "highlights.everywhere": {
-    "source": "Choose your territory to see every highlight offered there. Until then only the clips offered in every country are listed.",
-    "text": "کشور خود را انتخاب کنید تا همهٔ هایلایت‌هایی که آنجا در دسترس است را ببینید. تا آن موقع فقط خلاصه‌هایی فهرست می‌شوند که در همهٔ کشورها در دسترس‌اند.",
+  "highlights.allListed": {
+    "source": "Every highlight we hold is listed. Some are limited to certain countries and may not play where you are: choose your territory to see only the ones offered there.",
+    "text": "همهٔ هایلایت‌هایی که داریم فهرست شده‌اند. برخی فقط در کشورهای خاصی در دسترس‌اند و ممکن است جایی که هستید پخش نشوند: کشور خود را انتخاب کنید تا فقط آن‌هایی را ببینید که آنجا در دسترس است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.restricted": {
+    "source": "May not play in your country",
+    "text": "ممکن است در کشور شما پخش نشود",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

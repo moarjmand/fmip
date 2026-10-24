@@ -4,8 +4,8 @@ import { expect, test } from '@playwright/test';
 /**
  * The Highlights page with the seed behind it (T-1434, D-226). The seed holds
  * one verified clip, for the finished Liverpool v Manchester United, offered
- * in every territory: a guest who chose no territory is shown it, with the
- * sentence that clips limited to some countries wait for a territory; the
+ * in every territory: a guest who chose no territory is shown it, unmarked,
+ * with the sentence that every clip is listed (T-1488, D-260); the
  * clip names its match (a link to the match page) and its publisher (a link
  * out, never a player); the competition filter and the territory chooser
  * keep each other in the address. Keyboard and axe included.
@@ -18,7 +18,7 @@ const PREMIER_LEAGUE = '00000000-0000-4000-8000-000000000201';
 test.describe('Highlights page', () => {
   test('lists the clip with its match and publisher, link only', async ({ page }) => {
     await page.goto('/en/highlights');
-    await expect(page.getByTestId('highlights-everywhere')).toBeVisible();
+    await expect(page.getByTestId('highlights-all')).toBeVisible();
 
     const item = page.locator(`[data-testid="highlight-item"][data-fixture="${FINISHED_MATCH}"]`);
     await expect(item).toBeVisible();
@@ -32,6 +32,8 @@ test.describe('Highlights page', () => {
     await expect(out).toHaveAttribute('href', 'https://example.com/highlights/e2e-0901');
     await expect(out).toHaveAttribute('rel', /noopener/);
     await expect(out).toContainText('Example Publisher');
+    // Offered everywhere: nothing to warn about.
+    await expect(item.getByTestId('highlight-restricted')).toHaveCount(0);
     // Link only (D-184): nothing is played here.
     await expect(page.locator('main iframe, main video')).toHaveCount(0);
   });
@@ -47,13 +49,13 @@ test.describe('Highlights page', () => {
     );
     await expect(page.getByTestId('highlight-item')).not.toHaveCount(0);
 
-    // A guest picks a territory: the filter stays, the "everywhere" sentence goes.
+    // A guest picks a territory: the filter stays, the "every clip" sentence goes.
     const form = page.getByTestId('viewing-territory-form');
     await form.getByLabel('Territory').selectOption({ label: 'Iran' });
     await form.getByRole('button').click();
     await expect(page).toHaveURL(/territory=IR/);
     await expect(page).toHaveURL(new RegExp(`competition=${PREMIER_LEAGUE}`));
-    await expect(page.getByTestId('highlights-everywhere')).toHaveCount(0);
+    await expect(page.getByTestId('highlights-all')).toHaveCount(0);
     await expect(page.getByTestId('highlight-match').first()).toHaveAttribute(
       'href',
       /territory=IR/,

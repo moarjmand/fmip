@@ -12642,8 +12642,13 @@
     "text": "",
     "status": "untranslated"
   },
-  "highlights.everywhere": {
-    "source": "Choose your territory to see every highlight offered there. Until then only the clips offered in every country are listed.",
+  "highlights.allListed": {
+    "source": "Every highlight we hold is listed. Some are limited to certain countries and may not play where you are: choose your territory to see only the ones offered there.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.restricted": {
+    "source": "May not play in your country",
     "text": "",
     "status": "untranslated"
   },

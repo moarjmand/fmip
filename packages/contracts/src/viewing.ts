@@ -210,6 +210,13 @@ export interface HighlightListItem {
     score: { home: number; away: number } | null;
     penalties: { home: number; away: number } | null;
   };
+  /**
+   * True when the clip's territory rule limits it to some countries and the
+   * reader has chosen no territory (T-1488, D-260): it is listed, and may not
+   * play where they are. Always false with a territory chosen, where only
+   * clips offered there are listed.
+   */
+  restricted: boolean;
   last_updated_at: string;
 }
 
@@ -227,16 +234,15 @@ export interface HighlightCompetition {
  *
  * `territory` is answered as on a match page (T-312). With one chosen, a clip
  * is listed where its rule offers it there (`offeredIn`); with none
- * (`offered: 'everywhere'`), only clips whose rule offers them in every
- * territory -- a clip limited to some countries waits for the reader to say
- * where they are. `total` counts the clips under the filter; an empty
+ * (`offered: 'all'`, T-1488, D-260), every clip is listed and one limited to
+ * some countries carries `restricted: true`. `total` counts the clips under the filter; an empty
  * `items` on page 1 is the empty state, never a missing one (rule 3).
  * `last_updated_at` is when the newest listed clip was read, `null` with none.
  */
 export interface HighlightsResponse {
   generated_at: string;
   territory: ViewingTerritory;
-  offered: 'territory' | 'everywhere';
+  offered: 'territory' | 'all';
   competition: string | null;
   competitions: HighlightCompetition[];
   page: number;

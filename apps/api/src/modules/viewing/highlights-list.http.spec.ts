@@ -15,7 +15,8 @@ import { ViewingModule } from './viewing.module';
  * `GET /highlights` against a real database (T-1434, D-226): the feed's clips
  * of this file's own competition, newest match first, each with its match
  * and publisher; a chosen territory gets what the match page's rule offers
- * there, a reader with none only the clips offered everywhere; a withdrawn
+ * there, a reader with none every clip, those limited to some countries
+ * marked restricted (T-1488, D-260); a withdrawn
  * clip is never listed; the competition filter, the paging and the refusals.
  *
  * Every row here is this file's own; a parallel spec's clips may be listed
@@ -167,11 +168,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the Highligh
     expect((await list('&territory=ir')).items.map((c) => c.id)).toEqual([clips[0]]);
   });
 
-  it('lists a reader with no territory only the clips offered everywhere', async () => {
+  it('lists a reader with no territory every clip, the limited ones restricted', async () => {
     const none = await list('');
     expect(none.territory).toEqual({ state: 'not_chosen' });
-    expect(none.offered).toBe('everywhere');
-    expect(none.items.map((c) => c.id)).toEqual([clips[0]]);
+    expect(none.offered).toBe('all');
+    expect(none.items.map((c) => [c.id, c.restricted])).toEqual([
+      [clips[0], false],
+      [clips[1], true],
+      [clips[2], true],
+    ]);
+    expect((await list('&territory=GB')).items.every((c) => !c.restricted)).toBe(true);
   });
 
   it('never lists a withdrawn clip, and offers the competition in the filter', async () => {
