@@ -115,8 +115,8 @@ export class ViewingService {
   }
 
   /**
-   * The Highlights page (T-1434, D-226): every feed clip offered to this
-   * reader, newest match first, one page of it with the competitions the
+   * The Highlights page (T-1434, D-226, D-260): every feed clip offered to
+   * this reader, or every clip with none chosen, newest match first, one page of it with the competitions the
    * filter offers. Which clips is `highlightsPage`'s choice; the details are
    * read for the page's clips only.
    */
@@ -127,7 +127,8 @@ export class ViewingService {
   ): Promise<HighlightsResponse> {
     const chosen = highlightsPage(await this.store.feedIndex(), territory, competition, page);
     const rows = await this.store.feedItems(chosen.ids);
-    const items = rows.map(listItem);
+    const restricted = new Set(chosen.restricted);
+    const items = rows.map((row) => listItem(row, restricted.has(row.id)));
     const newest = rows.reduce<Date | null>(
       (at, row) => (at === null || row.fetched_at > at ? row.fetched_at : at),
       null,
@@ -135,7 +136,7 @@ export class ViewingService {
     return {
       generated_at: new Date().toISOString(),
       territory,
-      offered: territory.state === 'chosen' ? 'territory' : 'everywhere',
+      offered: territory.state === 'chosen' ? 'territory' : 'all',
       competition,
       competitions: chosen.competitions,
       page,
@@ -271,13 +272,14 @@ function feedHighlight(row: FeedHighlightRow, territory: string): Highlight {
 }
 
 /**
- * Which clips a page of the Highlights list holds (T-1434, D-226), pure. A
- * clip is offered by its territory rule: in the chosen territory
- * (`offeredIn`, the match page's rule), or in every territory when none is
- * chosen (`offeredEverywhere`). The filter's competitions are those with an
- * offered clip, whatever competition is picked, by how many then by name;
- * `total` and the page's ids are under the competition picked. The index is
- * already newest first.
+ * Which clips a page of the Highlights list holds (T-1434, D-226), pure. With
+ * a territory chosen, a clip is listed where its rule offers it there
+ * (`offeredIn`, the match page's rule). With none, every clip is listed
+ * (T-1488, D-260), and those not offered in every territory
+ * (`offeredEverywhere`) come back in `restricted`, to be said so. The
+ * filter's competitions are those with a listed clip, whatever competition is
+ * picked, by how many then by name; `total` and the page's ids are under the
+ * competition picked. The index is already newest first.
  */
 export function highlightsPage(
   index: readonly FeedIndexRow[],
@@ -285,13 +287,15 @@ export function highlightsPage(
   competition: string | null,
   page: number,
   size = HIGHLIGHTS_PAGE_SIZE,
-): { ids: string[]; total: number; competitions: HighlightCompetition[] } {
-  const offered = index.filter((row) => {
-    const rule = { allowed: row.allowed_territories, blocked: row.blocked_territories };
-    return territory.state === 'chosen'
-      ? offeredIn(rule, territory.territory.code)
-      : offeredEverywhere(rule);
+): { ids: string[]; restricted: string[]; total: number; competitions: HighlightCompetition[] } {
+  const rule = (row: FeedIndexRow) => ({
+    allowed: row.allowed_territories,
+    blocked: row.blocked_territories,
   });
+  const offered =
+    territory.state === 'chosen'
+      ? index.filter((row) => offeredIn(rule(row), territory.territory.code))
+      : index;
   const counts = new Map<string, HighlightCompetition>();
   for (const row of offered) {
     const held = counts.get(row.competition_id) ?? {
@@ -309,8 +313,13 @@ export function highlightsPage(
   const filtered =
     competition === null ? offered : offered.filter((row) => row.competition_id === competition);
   const start = (page - 1) * size;
+  const shown = filtered.slice(start, start + size);
   return {
-    ids: filtered.slice(start, start + size).map((row) => row.id),
+    ids: shown.map((row) => row.id),
+    restricted:
+      territory.state === 'chosen'
+        ? []
+        : shown.filter((row) => !offeredEverywhere(rule(row))).map((row) => row.id),
     total: filtered.length,
     competitions,
   };
@@ -322,7 +331,7 @@ export function highlightsPage(
  * holds extra time where it was played, else full time), and the shoot-out
  * beside it, never added to it.
  */
-function listItem(row: FeedItemRow): HighlightListItem {
+function listItem(row: FeedItemRow, restricted: boolean): HighlightListItem {
   const scores = row.scores ?? {};
   const score = scores.current ?? scores.full_time ?? null;
   const team = (id: string, name: string, short_name: string | null) => ({ id, name, short_name });
@@ -347,6 +356,7 @@ function listItem(row: FeedItemRow): HighlightListItem {
         ? { home: scores.penalties.home, away: scores.penalties.away }
         : null,
     },
+    restricted,
     last_updated_at: row.fetched_at.toISOString(),
   };
 }

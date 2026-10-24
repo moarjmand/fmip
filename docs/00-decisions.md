@@ -12180,3 +12180,15 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** The worst case is losing up to a day, not minutes, until point-in-time recovery returns. At today's 0.55 GB a dump, the budget holds about twelve days; as the data grows it holds fewer, never fewer than three. B2 measures its cap over time, so uploads may stay refused for some hours after the deletion. Bringing point-in-time recovery back is in `docs/07-backups.md`.
 
+
+## D-260 — With no territory chosen, the Highlights page lists every clip and says which may not play
+
+**Status:** Accepted · 2026-10-25 (the maintainer chose "1-b" of the options after the highlights-count diagnosis) · **Task:** T-1488 · **Amends:** D-226 point 2 · **Follows:** T-1434, D-184, rules 3-4
+
+**Context.** The maintainer found the Highlights page thin. The diagnosis of 2026-10-24 found the feed healthy (410 clips stored since 2026-10-12, every competition mapped, nothing unmatched, about 50 of the 5,000 daily requests a run) and the matches without a clip to be matches Highlightly holds no verified clip for. But a guest saw only 267 of the 410: under D-226 a reader with no territory was listed only the clips offered in every territory, and the 143 with an allow or block list waited for the reader to choose one, which few do.
+
+**Decision.** With no territory chosen, `GET /highlights` lists every clip (`offered: 'all'`); each one whose rule is not "everywhere" (`offeredEverywhere`) carries `restricted: true`, and the page marks it "May not play in your country". The notice above the list says every clip is listed and that choosing a territory narrows it to the ones offered there. With a territory chosen nothing changes: only clips offered there are listed, and none is marked. The filter's counts follow the clips listed.
+
+**Rejected.** *Inferring the territory from the connection (Cloudflare's country header)*: many readers here use a VPN, so the guess would be wrong exactly where it matters, and it would offer a clip blocked where the reader really is without saying so. *Keeping D-226's rule*: a third of the clips stayed invisible to most readers.
+
+**Consequences.** A guest sees every clip; a restricted one is said to be so rather than hidden, which is what D-226 rejected listing without (a clip blocked where the reader is, offered as if it played). The match page is unchanged: there a reader with no territory still sees no feed highlight.

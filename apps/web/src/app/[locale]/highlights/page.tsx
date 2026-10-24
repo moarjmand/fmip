@@ -47,8 +47,8 @@ const NONE = { coverage: 'not_supplied', last_updated_at: null, data: null } as 
  * Which clips is the API's answer for the reader's territory, by the match
  * page's rule (`offeredIn`): the member's stored one, or the one a guest
  * picks here, which then travels with every link on the page. With none,
- * only the clips offered everywhere are listed, and the page says why
- * others may be missing. A filter by competition and pages of twenty; an
+ * every clip is listed (T-1488, D-260), each one limited to some countries
+ * saying it may not play there, and the page says how to narrow the list. A filter by competition and pages of twenty; an
  * empty list and an unreachable API each have their own sentence (rule 3).
  */
 export default async function HighlightsPage({
@@ -111,9 +111,9 @@ export default async function HighlightsPage({
         </Notice>
       ) : (
         <>
-          {data.offered === 'everywhere' && (
-            <Notice tone="info" data-testid="highlights-everywhere">
-              <Translated locale={locale} message="highlights.everywhere" />
+          {data.offered === 'all' && (
+            <Notice tone="info" data-testid="highlights-all">
+              <Translated locale={locale} message="highlights.allListed" />
             </Notice>
           )}
 
@@ -230,7 +230,8 @@ export default async function HighlightsPage({
 
 /**
  * One clip: the competition and the date, the match (teams and score, a link
- * to its page), then the way out to the clip, naming who publishes it.
+ * to its page), whether it may not play in the reader's country (T-1488),
+ * then the way out to the clip, naming who publishes it.
  */
 function HighlightRow({
   locale,
@@ -298,6 +299,11 @@ function HighlightRow({
             </span>
           )}
         </Link>
+        {item.restricted && (
+          <p className="text-xs text-caption" data-testid="highlight-restricted">
+            <Translated locale={locale} message="highlights.restricted" />
+          </p>
+        )}
       </div>
       <LinkOut
         href={item.url}
