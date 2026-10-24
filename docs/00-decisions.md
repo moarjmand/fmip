@@ -12142,6 +12142,16 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** Stored season labels are not renamed: they identify seasons to the feed and the catalogue tools; only what a page shows changes.
 
+## D-257 — The Render preview is retired
+
+**Status:** Accepted · 2026-10-24 (the maintainer: "retire it", choosing between retiring and repairing it) · **Task:** T-1485 · **Supersedes:** D-064 (the preview's host), D-051 · **Follows:** D-048, D-071
+
+**Context.** The preview (D-064) was the public address the product ran on before there was a server: development fixture data, a banner saying so, Render for the container and a Neon free database. Since T-074 the production site at traveltohormuz.ir has served real data, and every product check since has been made there. Render kept rebuilding the preview on each merge to main; the build had failed every time since at least 2026-10-12, sending a "deploy failed" e-mail per merge, and the preview no longer answered. Its build log is visible only in the Render account, which the agent does not hold.
+
+**Decision.** Retire the preview rather than repair it. `render.yaml` sets `autoDeploy: false` and states the retirement; `docs/11-preview.md` and the project map record it. The Dockerfile and supervisor under `deploy/preview/` stay in the repository as the record of how it ran. Suspending or deleting the Render service, and the Neon project, are for the account owner in those dashboards.
+
+**Consequences.** Merges to main no longer start a Render build once Render has read the change, so the e-mails stop; if the service was not created from this blueprint, they stop only when the owner suspends it. There is no longer a public copy running fixture data; a rehearsal of a risky change is the laptop rehearsal (`docs/09-deploy.md`) or production itself.
+
 ## D-258 — The watchdog's live feed is measured as the pages measure it
 
 **Status:** Accepted · 2026-10-24 (agent, from production's alert mail of 2026-10-21..24) · **Task:** T-1486 · **Amends:** D-095 (`live_feed`) · **Follows:** D-045, D-209, rule 4
