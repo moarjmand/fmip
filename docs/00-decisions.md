@@ -12167,9 +12167,9 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** A half-time, a break before extra time or penalties, and added time at 45 or 90 no longer mail while the provider answers. A match in play unchanged 20 minutes still mails (`degraded`); a live list that stops answering still mails within 20 minutes for a match at a break, and `ingest:live` within 5 for all; a match frozen at a stopped clock mails `failing` at 40 minutes.
 
-## D-258 — Backups live within B2's free 10 GB until the remote is paid for
+## D-259 — Backups live within B2's free 10 GB until the remote is paid for
 
-**Status:** Accepted · 2026-10-24 (the maintainer approved: delete the point-in-time files, keep daily dumps within 7 GB, compress with zstd) · **Task:** T-1486 · **Amends:** D-032, D-157, D-192 · **Follows:** D-219
+**Status:** Accepted · 2026-10-24 (the maintainer approved: delete the point-in-time files, keep daily dumps within 7 GB, compress with zstd) · **Task:** T-1487 · **Amends:** D-032, D-157, D-192 · **Follows:** D-219
 
 **Context.** The off-provider remote is Backblaze B2 on its free tier, which refuses every upload once 10 GB are stored. Point-in-time recovery (D-157) filled it on 2026-10-12: the WAL archive alone was 6 GiB. From then on the daily dump could not leave the server either, and the watchdog's `backup` condition has been failing since. Archiving was switched off on 2026-10-20 in an emergency, so the WAL on the remote could no longer be replayed to anything after that day. Paying for more storage is the maintainer's, and has not happened yet.
 
