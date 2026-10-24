@@ -40,7 +40,7 @@ still a backup; a repository with them is a leak).
 | Local | `BACKUP_DIR` on the VPS (default `./backups`) | `BACKUP_KEEP_LOCAL_DAYS`, default 7 | Fast restore after an application mistake |
 | Off-provider | `BACKUP_RCLONE_REMOTE`, an rclone remote on **another company's** storage | `BACKUP_KEEP_REMOTE_DAYS`, default 90, and the newest within `BACKUP_REMOTE_BUDGET_GB` (default 7 GiB, never fewer than `BACKUP_REMOTE_MIN_COPIES`, 3) | Survives losing the VPS, the account, or the provider |
 
-**On a free remote (T-1486, D-258).** Backblaze B2's free tier stops every
+**On a free remote (T-1487, D-259).** Backblaze B2's free tier stops every
 upload at 10 GB, and a dump grows with the data (150 MB in September, 550 MB
 by late October), so an age alone does not keep the remote under its cap. After
 each copy `backup.sh` keeps the newest dumps while they fit
@@ -182,7 +182,7 @@ observed number stays the dump's age. With archiving off nothing changes.
 
 ## Point-in-time recovery (T-845, D-157)
 
-> **Paused since 2026-10-20, retired from the remote on 2026-10-24 (D-258).**
+> **Paused since 2026-10-20, retired from the remote on 2026-10-24 (D-259).**
 > The WAL archive filled B2's free 10 GB and stopped every upload, the daily
 > dumps included. Archiving is off on production (`PG_ARCHIVE_MODE=off` in the
 > environment Postgres is recreated with), `fmip-wal-ship.timer` is disabled,

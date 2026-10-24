@@ -16,7 +16,7 @@
 #                            (unset = local only, and the script says so)
 #   BACKUP_KEEP_REMOTE_DAYS  remote copies older than this go     (default 90)
 #   BACKUP_REMOTE_BUDGET_GB  the newest remote dumps are kept within this many GiB,
-#                            the rest go (default 7; 0 = no budget; T-1486, D-258)
+#                            the rest go (default 7; 0 = no budget; T-1487, D-259)
 #   BACKUP_REMOTE_MIN_COPIES never fewer remote dumps than this, budget or not (default 3)
 #   BACKUP_RCLONE_CONFIG     rclone.conf with the remote          (default ~/.config/rclone/rclone.conf)
 #   BACKUP_MEDIA_VOLUME      the media volume copied to <remote>/media/ (default fmip_media,
@@ -80,7 +80,7 @@ echo "==> pg_dump $POSTGRES_DB -> $DUMP"
 # Custom format: compressed, restorable table by table, and pg_restore can
 # list its contents. --no-owner/--no-privileges so a restore into a database
 # owned by another role (the drill, a new VPS) needs no role juggling.
-# zstd at level 9 (T-1486): a third smaller than gzip at 6 on the feed's
+# zstd at level 9 (T-1487): a third smaller than gzip at 6 on the feed's
 # largest tables, so more days fit the off-provider budget.
 docker compose exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
   --format=custom --compress=zstd:9 --no-owner --no-privileges > "$DUMP"
@@ -133,7 +133,7 @@ if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   # Only the top level: media/ and the point-in-time copies keep their own rules.
   rclone delete --max-depth 1 --min-age "${BACKUP_KEEP_REMOTE_DAYS}d" "$BACKUP_RCLONE_REMOTE/"
 
-  # A size budget as well as an age (T-1486, D-258): a free remote has a hard
+  # A size budget as well as an age (T-1487, D-259): a free remote has a hard
   # cap, and a dump grows with the data. The newest dumps are kept while they
   # fit BACKUP_REMOTE_BUDGET_GB, never fewer than BACKUP_REMOTE_MIN_COPIES;
   # each older dump goes with its manifest. Names carry the time, so a reverse
