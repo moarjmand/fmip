@@ -219,7 +219,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
 
   it('the real probes read the schema: every statement they run is valid SQL', async () => {
     const observed = await app.get(LiveProbes).observe(new Date());
-    expect(observed.live).toMatchObject({ inProgress: expect.any(Number) as number });
+    expect(Array.isArray(observed.live)).toBe(true);
     expect(observed.delivery).not.toHaveProperty('unreadable');
     expect(observed.ingest).not.toHaveProperty('unreadable');
     expect(observed.dataQuality).not.toHaveProperty('unreadable');
