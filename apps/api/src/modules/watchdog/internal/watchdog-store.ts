@@ -8,7 +8,7 @@ import type {
 } from '@fmip/contracts';
 import type { Pool, PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
-import type { Reading, RunRecord, WalArchiveRecord } from './conditions';
+import type { LiveMatchSeen, Reading, RunRecord, WalArchiveRecord } from './conditions';
 import { type StoredCondition, isAlert } from './transition';
 
 /**
@@ -248,41 +248,48 @@ export class WatchdogStore {
   }
 
   /**
-   * Matches in progress: how many, when the longest-unchanged one last
-   * changed, and how many have been unchanged for `behindAfterMs` or more.
-   * Measured against `now` from the application, not the database clock.
+   * Every match in progress (T-1486): its clock, its last change and when the
+   * provider's live list last answered about it. The watchdog's condition
+   * measures each (`liveFeed`); nothing is aged here, against either clock.
    */
-  async liveFixtures(
-    now: Date,
-    behindAfterMs: number,
-  ): Promise<{ inProgress: number; oldestChangeAt: Date | null; behind: number }> {
+  async liveFixtures(): Promise<LiveMatchSeen[]> {
     const { rows } = await this.pool.query<{
-      in_progress: string;
-      oldest: Date | null;
-      behind: string;
+      id: string;
+      status: 'live' | 'suspended';
+      minute: number | null;
+      changed: Date;
+      live_answered_at: Date | null;
     }>(
       // A match's last change is the one the scores page shows (D-045): the
-      // newest of the fixture, its score and its incidents.
-      `WITH live AS (
-         SELECT GREATEST(
-                  f.updated_at,
-                  (SELECT max(sc.updated_at) FROM fixture_score sc WHERE sc.fixture_id = f.id),
-                  (SELECT max(i.updated_at) FROM incident i WHERE i.fixture_id = f.id)
-                ) AS changed
-           FROM fixture f
-          WHERE f.status IN ('live', 'suspended'))
-       SELECT count(*)::text AS in_progress,
-              min(changed) AS oldest,
-              count(*) FILTER (WHERE changed <= $1)::text AS behind
-         FROM live`,
-      [new Date(now.getTime() - behindAfterMs)],
+      // newest of the fixture, its score and its incidents. Its live answer is
+      // the pages' too (D-209, `liveAnsweredAtSql` in the fixtures module):
+      // the newest completed `live` run, of a provider the match is mapped
+      // to, that read at least one match. Written out here because the
+      // watchdog reads the tables, not another module's internals.
+      `SELECT f.id, f.status, f.minute,
+              GREATEST(
+                f.updated_at,
+                (SELECT max(sc.updated_at) FROM fixture_score sc WHERE sc.fixture_id = f.id),
+                (SELECT max(i.updated_at) FROM incident i WHERE i.fixture_id = f.id)
+              ) AS changed,
+              (SELECT max(run.finished_at)
+                 FROM provider_mapping pm
+                 CROSS JOIN LATERAL (
+                   SELECT r.finished_at FROM ingest_run r
+                    WHERE r.provider = pm.provider AND r.job = 'live'
+                      AND r.status IN ('succeeded', 'partial') AND r.items_seen > 0
+                    ORDER BY r.started_at DESC LIMIT 1) run
+                WHERE pm.entity_type = 'fixture' AND pm.internal_id = f.id) AS live_answered_at
+         FROM fixture f
+        WHERE f.status IN ('live', 'suspended')`,
     );
-    const row = rows[0];
-    return {
-      inProgress: Number(row?.in_progress ?? 0),
-      oldestChangeAt: row?.oldest ?? null,
-      behind: Number(row?.behind ?? 0),
-    };
+    return rows.map((r) => ({
+      fixtureId: r.id,
+      status: r.status,
+      minute: r.minute,
+      changedAt: r.changed,
+      liveAnsweredAt: r.live_answered_at,
+    }));
   }
 
   /** Outcomes per channel of the deliveries carried since `since` (T-330's record). */

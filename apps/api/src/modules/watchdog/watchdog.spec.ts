@@ -7,8 +7,10 @@ import {
   DATA_QUALITY_THRESHOLD,
   DELIVERY_THRESHOLD,
   ELO_SOURCE_THRESHOLD,
+  BREAK_ALLOWANCE_SECONDS,
   INGEST_THRESHOLDS,
   LIVE_FEED_THRESHOLD,
+  type LiveMatchSeen,
   MODEL_SERVICE_THRESHOLD,
   QUEUE_FAILURE_THRESHOLD,
   REQUEST_BUDGET_THRESHOLD,
@@ -95,32 +97,89 @@ describe('ingest:<job>', () => {
 });
 
 describe('live_feed', () => {
+  const t = LIVE_FEED_THRESHOLD;
+  /** A match unchanged for `unchanged` seconds, whose live list answered 30 seconds ago. */
+  const match = (
+    minute: number | null,
+    unchanged: number,
+    over: Partial<LiveMatchSeen> = {},
+  ): LiveMatchSeen => ({
+    fixtureId: `f-${String(minute)}-${String(unchanged)}`,
+    status: 'live',
+    minute,
+    changedAt: ago(unchanged),
+    liveAnsweredAt: ago(30),
+    ...over,
+  });
+
   it('is ok with nothing in progress, and says so rather than measuring', () => {
-    expect(liveFeed({ inProgress: 0, oldestChangeAt: null, behind: 0 }, NOW)).toMatchObject({
+    expect(liveFeed([], NOW)).toMatchObject({
       level: 'ok',
       observed: null,
       note: 'no match in progress',
     });
   });
 
-  it('does not fire at half-time: fifteen unchanged minutes are ok', () => {
-    expect(liveFeed({ inProgress: 2, oldestChangeAt: ago(15 * 60), behind: 0 }, NOW).level).toBe(
-      'ok',
-    );
-  });
-
-  it('is degraded past twenty minutes and failing past forty', () => {
-    const t = LIVE_FEED_THRESHOLD;
-    expect(
-      liveFeed({ inProgress: 3, oldestChangeAt: ago(t.degraded), behind: 1 }, NOW),
-    ).toMatchObject({
+  it('is degraded past twenty minutes and failing past forty for a match in play', () => {
+    expect(liveFeed([match(63, 15 * 60), match(20, 60)], NOW).level).toBe('ok');
+    expect(liveFeed([match(63, t.degraded), match(20, 60), match(71, 90)], NOW)).toMatchObject({
       level: 'degraded',
       observed: t.degraded,
-      note: '3 in progress, 1 unchanged for 20 minutes or more',
+      note: '3 in progress, 1 behind for 20 minutes or more',
     });
-    expect(liveFeed({ inProgress: 1, oldestChangeAt: ago(t.failing), behind: 1 }, NOW).level).toBe(
-      'failing',
-    );
+    expect(liveFeed([match(63, t.failing)], NOW).level).toBe('failing');
+  });
+
+  // Production, 2026-10-21..24: every incident was a match held at 45 through
+  // the added time and the interval, 20 to 34 minutes, recovering by itself.
+  it('does not fire at half-time while the provider answers', () => {
+    expect(liveFeed([match(45, 34 * 60), match(70, 60)], NOW)).toMatchObject({
+      level: 'ok',
+      observed: 60,
+      note: "2 in progress, 0 behind for 20 minutes or more (1 at half-time or another break, counted from the provider's last answer)",
+    });
+    // The other breaks and added time: 90 before extra time, 105, 120 before penalties.
+    for (const minute of [90, 105, 120]) {
+      expect(liveFeed([match(minute, 25 * 60)], NOW).level).toBe('ok');
+    }
+  });
+
+  it('fires at half-time once the provider stops answering', () => {
+    expect(liveFeed([match(45, 30 * 60, { liveAnsweredAt: ago(t.degraded) })], NOW)).toMatchObject({
+      level: 'degraded',
+      observed: t.degraded,
+      note: "1 in progress, 1 behind for 20 minutes or more (1 at half-time or another break, counted from the provider's last answer)",
+    });
+    expect(liveFeed([match(45, 30 * 60, { liveAnsweredAt: null })], NOW).level).toBe('degraded');
+  });
+
+  it('reads a match frozen at a stopped clock past the allowance as failing', () => {
+    expect(BREAK_ALLOWANCE_SECONDS).toBe(t.failing);
+    expect(liveFeed([match(45, BREAK_ALLOWANCE_SECONDS - 1)], NOW).level).toBe('ok');
+    expect(liveFeed([match(45, BREAK_ALLOWANCE_SECONDS)], NOW)).toMatchObject({
+      level: 'failing',
+      observed: BREAK_ALLOWANCE_SECONDS,
+      note: '1 in progress, 1 behind for 20 minutes or more',
+    });
+  });
+
+  it('keeps a suspended match current while the provider answers, however long', () => {
+    expect(liveFeed([match(67, 90 * 60, { status: 'suspended' })], NOW).level).toBe('ok');
+    expect(
+      liveFeed([match(67, 90 * 60, { status: 'suspended', liveAnsweredAt: null })], NOW).level,
+    ).toBe('failing');
+  });
+
+  // 2026-10-24 13:07 UTC: "13 in progress, 0 unchanged for 20 minutes or more"
+  // at degraded -- 1199.6 seconds rounded up to the threshold while the count
+  // beside it compared exact times.
+  it('never reads degraded with nobody behind', () => {
+    const almost = new Date(NOW.getTime() - t.degraded * 1000 + 400);
+    expect(liveFeed([match(63, 0, { changedAt: almost })], NOW)).toMatchObject({
+      level: 'ok',
+      observed: t.degraded - 1,
+      note: '1 in progress, 0 behind for 20 minutes or more',
+    });
   });
 });
 
@@ -178,7 +237,7 @@ describe('highlightly_budget', () => {
 function observationsForBudget(): Observations {
   return {
     ingest: [],
-    live: { inProgress: 0, oldestChangeAt: null, behind: 0 },
+    live: [],
     budget: { requestsToday: 0, budget: 100 },
     queues: [],
     model: { configured: false },
@@ -493,7 +552,7 @@ describe('restore_drill', () => {
     const readings = readingsOf(
       {
         ingest: [],
-        live: { inProgress: 0, oldestChangeAt: null, behind: 0 },
+        live: [],
         budget: { requestsToday: 0, budget: null },
         queues: [],
         model: { configured: false },
@@ -669,7 +728,7 @@ describe('readingsOf', () => {
         lastStartedAt: ago(30),
       },
     ],
-    live: { inProgress: 0, oldestChangeAt: null, behind: 0 },
+    live: [],
     budget: { requestsToday: 10, budget: 100 },
     queues: [{ queue: 'ingestion', failedLastHour: 0 }],
     model: { configured: true, ok: true },
@@ -894,7 +953,7 @@ describe('candidate:<version> (T-1165)', () => {
   describe('through readingsOf', () => {
     const base: Observations = {
       ingest: [],
-      live: { inProgress: 0, oldestChangeAt: null, behind: 0 },
+      live: [],
       budget: { requestsToday: 0, budget: 100 },
       queues: [],
       model: { configured: true, ok: true },

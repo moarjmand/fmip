@@ -12,6 +12,7 @@ import {
   type EloSourceSeen,
   ingestJob,
   liveFeed,
+  type LiveMatchSeen,
   modelService,
   highlightlyBudget,
   queueFailures,
@@ -45,7 +46,8 @@ export interface Observations {
         lastStartedAt: Date | null;
       }[]
     | Unreadable;
-  live: { inProgress: number; oldestChangeAt: Date | null; behind: number } | Unreadable;
+  /** Every match in progress (T-1486). */
+  live: readonly LiveMatchSeen[] | Unreadable;
   budget: { requestsToday: number; budget: number | null } | Unreadable;
   queues: ({ queue: string; failedLastHour: number } | { queue: string; unreadable: string })[];
   model:
@@ -125,7 +127,7 @@ export function readingsOf(
   out.push(
     unreadable(seen.live)
       ? {
-          ...liveFeed({ inProgress: 0, oldestChangeAt: null, behind: 0 }, now),
+          ...liveFeed([], now),
           level: 'unknown',
           note: seen.live.unreadable,
         }

@@ -25,6 +25,7 @@ import {
   WATCHDOG_PROBES,
   type WatchdogProbes,
 } from './internal/probes';
+import type { LiveMatchSeen } from './internal/conditions';
 import type { Observations } from './internal/readings';
 import { WatchdogSchedulerService } from './watchdog-scheduler.service';
 import { WatchdogModule } from './watchdog.module';
@@ -43,6 +44,15 @@ function cookieValue(setCookie: string | string[] | undefined): string {
   return /^fmip_session=([^;]*)/.exec(header ?? '')?.[1] ?? '';
 }
 
+/** A match in play (minute 63) unchanged for `minutes`. */
+const inPlay = (now: Date, minutes: number): LiveMatchSeen => ({
+  fixtureId: `in-play-${String(minutes)}`,
+  status: 'live',
+  minute: 63,
+  changedAt: new Date(now.getTime() - minutes * 60_000),
+  liveAnsweredAt: new Date(now.getTime() - 30_000),
+});
+
 /** Observations a test sets; the probes answer whatever is current. */
 let seen: Observations;
 const quiet = (now: Date): Observations => ({
@@ -55,7 +65,7 @@ const quiet = (now: Date): Observations => ({
       lastStartedAt: new Date(now.getTime() - 30_000),
     },
   ],
-  live: { inProgress: 0, oldestChangeAt: null, behind: 0 },
+  live: [],
   budget: { requestsToday: 10, budget: 100 },
   queues: [{ queue: 'ingestion', failedLastHour: 0 }],
   model: { configured: false },
@@ -175,7 +185,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
     const now = new Date();
     seen = {
       ...quiet(now),
-      live: { inProgress: 2, oldestChangeAt: new Date(now.getTime() - 45 * 60_000), behind: 1 },
+      live: [inPlay(now, 45), inPlay(now, 2)],
     };
     const first = await watchdog.tick(now);
     expect(first?.events.map((e) => [e.condition, e.kind])).toEqual([['live_feed', 'raised']]);
@@ -209,7 +219,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
 
   it('the real probes read the schema: every statement they run is valid SQL', async () => {
     const observed = await app.get(LiveProbes).observe(new Date());
-    expect(observed.live).toMatchObject({ inProgress: expect.any(Number) as number });
+    expect(Array.isArray(observed.live)).toBe(true);
     expect(observed.delivery).not.toHaveProperty('unreadable');
     expect(observed.ingest).not.toHaveProperty('unreadable');
     expect(observed.dataQuality).not.toHaveProperty('unreadable');
@@ -303,7 +313,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
       now = later();
       seen = {
         ...quiet(now),
-        live: { inProgress: 1, oldestChangeAt: new Date(now.getTime() - 50 * 60_000), behind: 1 },
+        live: [inPlay(now, 50)],
       };
       const raised = await watchdog.tick(now);
       now = later();
