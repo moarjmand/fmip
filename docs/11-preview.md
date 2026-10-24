@@ -1,5 +1,10 @@
 # The public preview
 
+> **Retired on 2026-10-24 (T-1485, D-257).** The production site at
+> traveltohormuz.ir (`docs/09-deploy.md`) replaced it. `render.yaml` no longer
+> deploys it (`autoDeploy: false`), and the Render service is suspended or
+> deleted by the account owner. What follows is kept as the record of how it ran.
+
 **What this is.** A public HTTPS address with a **stable** name, on which the
 whole product runs — including the live scores stream, which the quick tunnel of
 T-085 cannot carry. It is where the live path gets tested in public before there

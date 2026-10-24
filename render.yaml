@@ -1,4 +1,10 @@
-# The public preview (T-086, D-064).
+# The public preview (T-086, D-064) -- RETIRED on 2026-10-24 (T-1485, D-257).
+#
+# The production site (traveltohormuz.ir, docs/09-deploy.md) replaced it. Its
+# builds had failed on every merge since mid-October and it no longer served,
+# so it no longer deploys: `autoDeploy: false` below. The service itself is
+# suspended or deleted in Render's dashboard by the account owner; this file is
+# kept so the history of D-064 stays readable, not to be deployed again.
 #
 # Render builds `deploy/preview/Dockerfile` from this repository and runs it, so
 # there is no image to push and nothing here holds a credential: the one secret
@@ -30,6 +36,8 @@ services:
     plan: free
     region: frankfurt
     branch: main
+    # Retired (D-257): a merge to main no longer builds it.
+    autoDeploy: false
     dockerfilePath: ./deploy/preview/Dockerfile
     dockerContext: .
     # `/en` renders through the API, so a healthy answer here means both
