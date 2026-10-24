@@ -15,6 +15,9 @@
 #   BACKUP_RCLONE_REMOTE     rclone destination, e.g. offsite:fmip-backups
 #                            (unset = local only, and the script says so)
 #   BACKUP_KEEP_REMOTE_DAYS  remote copies older than this go     (default 90)
+#   BACKUP_REMOTE_BUDGET_GB  the newest remote dumps are kept within this many GiB,
+#                            the rest go (default 7; 0 = no budget; T-1486, D-258)
+#   BACKUP_REMOTE_MIN_COPIES never fewer remote dumps than this, budget or not (default 3)
 #   BACKUP_RCLONE_CONFIG     rclone.conf with the remote          (default ~/.config/rclone/rclone.conf)
 #   BACKUP_MEDIA_VOLUME      the media volume copied to <remote>/media/ (default fmip_media,
 #                            `off` skips it; T-1341)
@@ -45,6 +48,8 @@ set +a
 BACKUP_DIR="${BACKUP_DIR:-./backups}"
 BACKUP_KEEP_LOCAL_DAYS="${BACKUP_KEEP_LOCAL_DAYS:-7}"
 BACKUP_KEEP_REMOTE_DAYS="${BACKUP_KEEP_REMOTE_DAYS:-90}"
+BACKUP_REMOTE_BUDGET_GB="${BACKUP_REMOTE_BUDGET_GB:-7}"
+BACKUP_REMOTE_MIN_COPIES="${BACKUP_REMOTE_MIN_COPIES:-3}"
 BACKUP_RCLONE_CONFIG="${BACKUP_RCLONE_CONFIG:-$HOME/.config/rclone/rclone.conf}"
 BACKUP_MEDIA_VOLUME="${BACKUP_MEDIA_VOLUME:-fmip_media}"
 
@@ -75,8 +80,10 @@ echo "==> pg_dump $POSTGRES_DB -> $DUMP"
 # Custom format: compressed, restorable table by table, and pg_restore can
 # list its contents. --no-owner/--no-privileges so a restore into a database
 # owned by another role (the drill, a new VPS) needs no role juggling.
+# zstd at level 9 (T-1486): a third smaller than gzip at 6 on the feed's
+# largest tables, so more days fit the off-provider budget.
 docker compose exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-  --format=custom --compress=6 --no-owner --no-privileges > "$DUMP"
+  --format=custom --compress=zstd:9 --no-owner --no-privileges > "$DUMP"
 
 STEP='manifest'
 echo "==> manifest $MANIFEST"
@@ -125,6 +132,37 @@ if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   echo "==> prune remote copies older than $BACKUP_KEEP_REMOTE_DAYS days"
   # Only the top level: media/ and the point-in-time copies keep their own rules.
   rclone delete --max-depth 1 --min-age "${BACKUP_KEEP_REMOTE_DAYS}d" "$BACKUP_RCLONE_REMOTE/"
+
+  # A size budget as well as an age (T-1486, D-258): a free remote has a hard
+  # cap, and a dump grows with the data. The newest dumps are kept while they
+  # fit BACKUP_REMOTE_BUDGET_GB, never fewer than BACKUP_REMOTE_MIN_COPIES;
+  # each older dump goes with its manifest. Names carry the time, so a reverse
+  # sort puts the newest first.
+  if [ "$BACKUP_REMOTE_BUDGET_GB" != '0' ]; then
+    STEP='remote budget'
+    BUDGET_BYTES=$(( BACKUP_REMOTE_BUDGET_GB * 1024 * 1024 * 1024 ))
+    echo "==> keep the newest remote dumps within ${BACKUP_REMOTE_BUDGET_GB} GiB (at least $BACKUP_REMOTE_MIN_COPIES)"
+    kept=0
+    used=0
+    full=no
+    while read -r path size; do
+      [ -n "$path" ] || continue
+      # Once one dump does not fit, every older one goes too: the copies kept
+      # are always the newest run of days, never a gap with an old one behind it.
+      if [ "$kept" -lt "$BACKUP_REMOTE_MIN_COPIES" ] ||
+         { [ "$full" = no ] && [ $(( used + size )) -le "$BUDGET_BYTES" ]; }; then
+        kept=$(( kept + 1 ))
+        used=$(( used + size ))
+      else
+        full=yes
+        echo "    over budget: $path"
+        rclone deletefile "$BACKUP_RCLONE_REMOTE/$path"
+        rclone deletefile "$BACKUP_RCLONE_REMOTE/${path%.dump}.manifest" || true
+      fi
+    done < <(rclone lsf --max-depth 1 --files-only --format 'ps' --separator ' ' \
+               --include 'fmip-*.dump' "$BACKUP_RCLONE_REMOTE/" | sort -r)
+    echo "    kept $kept dumps, $used bytes"
+  fi
   COPIES="off-provider copy verified, $REMOTE_SIZE bytes"
 
   # --- crests, logos, player and news photos (T-1341) -------------------------

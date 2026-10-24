@@ -12166,3 +12166,17 @@ replaces D-089's self-hosting arrangement for no gain here).
 **Rejected.** *A longer threshold for every match*: a stalled match in play would wait 35+ minutes. *Raising only after several consecutive bad ticks*: these held 1 to 14 ticks, so it would only delay them, and it delays a real stall too. *No recovery mail for an unsent alert*: every `raised` is sent, so there is no such case; with the false raises gone the recoveries go too. *Storing the provider's half-time flag*: the adapter knows `HT` (`halfTimeBreak`), but a column needs a migration and the minute already says it for every provider; D-209 chose the same.
 
 **Consequences.** A half-time, a break before extra time or penalties, and added time at 45 or 90 no longer mail while the provider answers. A match in play unchanged 20 minutes still mails (`degraded`); a live list that stops answering still mails within 20 minutes for a match at a break, and `ingest:live` within 5 for all; a match frozen at a stopped clock mails `failing` at 40 minutes.
+
+## D-258 — Backups live within B2's free 10 GB until the remote is paid for
+
+**Status:** Accepted · 2026-10-24 (the maintainer approved: delete the point-in-time files, keep daily dumps within 7 GB, compress with zstd) · **Task:** T-1486 · **Amends:** D-032, D-157, D-192 · **Follows:** D-219
+
+**Context.** The off-provider remote is Backblaze B2 on its free tier, which refuses every upload once 10 GB are stored. Point-in-time recovery (D-157) filled it on 2026-10-12: the WAL archive alone was 6 GiB. From then on the daily dump could not leave the server either, and the watchdog's `backup` condition has been failing since. Archiving was switched off on 2026-10-20 in an emergency, so the WAL on the remote could no longer be replayed to anything after that day. Paying for more storage is the maintainer's, and has not happened yet.
+
+**Decision.**
+1. Point-in-time recovery is paused: archiving stays off, `fmip-wal-ship.timer` is disabled, and the remote's `wal/` and `base/` are deleted (9.44 to 2.82 GiB).
+2. The daily dump is the off-provider copy. `backup.sh` keeps the newest dumps within `BACKUP_REMOTE_BUDGET_GB` (default 7 GiB), never fewer than `BACKUP_REMOTE_MIN_COPIES` (3), and deletes each older one with its manifest, so the kept copies are always the newest run of days. Media (~0.5 GB) sits beside them.
+3. Dumps are compressed with zstd at level 9 instead of gzip at 6: a third smaller on the feed's largest tables, so about twice as many days fit the budget as at the old size. The restore drill's `postgres:18-alpine` reads it.
+
+**Consequences.** The worst case is losing up to a day, not minutes, until point-in-time recovery returns. At today's 0.55 GB a dump, the budget holds about twelve days; as the data grows it holds fewer, never fewer than three. B2 measures its cap over time, so uploads may stay refused for some hours after the deletion. Bringing point-in-time recovery back is in `docs/07-backups.md`.
+

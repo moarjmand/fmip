@@ -38,7 +38,17 @@ still a backup; a repository with them is a leak).
 | Copy | Location | Kept | Why |
 | --- | --- | --- | --- |
 | Local | `BACKUP_DIR` on the VPS (default `./backups`) | `BACKUP_KEEP_LOCAL_DAYS`, default 7 | Fast restore after an application mistake |
-| Off-provider | `BACKUP_RCLONE_REMOTE`, an rclone remote on **another company's** storage | `BACKUP_KEEP_REMOTE_DAYS`, default 90 | Survives losing the VPS, the account, or the provider |
+| Off-provider | `BACKUP_RCLONE_REMOTE`, an rclone remote on **another company's** storage | `BACKUP_KEEP_REMOTE_DAYS`, default 90, and the newest within `BACKUP_REMOTE_BUDGET_GB` (default 7 GiB, never fewer than `BACKUP_REMOTE_MIN_COPIES`, 3) | Survives losing the VPS, the account, or the provider |
+
+**On a free remote (T-1486, D-258).** Backblaze B2's free tier stops every
+upload at 10 GB, and a dump grows with the data (150 MB in September, 550 MB
+by late October), so an age alone does not keep the remote under its cap. After
+each copy `backup.sh` keeps the newest dumps while they fit
+`BACKUP_REMOTE_BUDGET_GB` and deletes each older one with its manifest, the
+newest `BACKUP_REMOTE_MIN_COPIES` always kept. With media (~0.5 GB) beside
+them, 7 GiB leaves room under the cap. Dumps are compressed with zstd at level
+9, a third smaller than gzip. Point-in-time recovery is paused while the remote
+is free (below).
 
 The off-provider copy is the one that matters. `backup.sh` warns loudly when
 `BACKUP_RCLONE_REMOTE` is unset, and refuses to call the run a success if
@@ -171,6 +181,16 @@ have waited 30 minutes to be archived or the newest attempt was refused,
 observed number stays the dump's age. With archiving off nothing changes.
 
 ## Point-in-time recovery (T-845, D-157)
+
+> **Paused since 2026-10-20, retired from the remote on 2026-10-24 (D-258).**
+> The WAL archive filled B2's free 10 GB and stopped every upload, the daily
+> dumps included. Archiving is off on production (`PG_ARCHIVE_MODE=off` in the
+> environment Postgres is recreated with), `fmip-wal-ship.timer` is disabled,
+> and the remote's `wal/` and `base/` were deleted with the maintainer's
+> approval: without archiving they could not be replayed past 2026-10-20. To
+> bring it back once the remote is paid for: set `PG_ARCHIVE_MODE=on` in
+> `.env`, recreate Postgres, `sudo systemctl enable --now fmip-wal-ship.timer`,
+> and take a fresh base with `bash scripts/backup/pitr.sh base`.
 
 The daily dump loses up to a day. Point-in-time recovery keeps every change:
 Postgres's own WAL archiving, shipped through the same crypt remote. No new
