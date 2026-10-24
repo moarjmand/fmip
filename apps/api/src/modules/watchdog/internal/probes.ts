@@ -14,7 +14,6 @@ import { BOX_SCORE_QUEUE } from '../../viewing/box-score-feed.service';
 import { HIGHLIGHT_FEED_QUEUE } from '../../viewing/highlight-feed.service';
 import { HighlightlyQuota } from '../../viewing/highlightly-quota.service';
 import { WeeklyRangesCheck } from './cloudflare-ranges';
-import { LIVE_FEED_THRESHOLD } from './conditions';
 import type { Observations, Unreadable } from './readings';
 import { WatchdogStore } from './watchdog-store';
 
@@ -87,7 +86,7 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
           const rows = await this.runs.jobCompletions();
           return rows.map((r) => ({ ...r, job: r.job as string }));
         }),
-        orUnreadable(() => this.store.liveFixtures(now, LIVE_FEED_THRESHOLD.degraded * 1000)),
+        orUnreadable(() => this.store.liveFixtures()),
         orUnreadable(async () => {
           const health = await this.runs.ingestionHealth(now);
           return { requestsToday: health.requests_today, budget: health.request_budget };

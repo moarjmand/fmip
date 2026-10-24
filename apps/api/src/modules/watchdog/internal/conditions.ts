@@ -1,4 +1,9 @@
-import type { CandidateShadowHealth, WatchdogLevel, WatchdogThreshold } from '@fmip/contracts';
+import {
+  type CandidateShadowHealth,
+  type WatchdogLevel,
+  type WatchdogThreshold,
+  liveFreshnessFrom,
+} from '@fmip/contracts';
 
 /**
  * The watchdog's conditions (T-801), each a pure function from what the
@@ -119,26 +124,61 @@ export function ingestJob(
 }
 
 /**
- * Seconds since the longest-unchanged match in progress last changed.
+ * How long the longest-behind match in progress has gone without news, in
+ * seconds: since its last change, or -- where no clock moves -- since the
+ * provider's live list last answered about it (T-1486, D-258).
  *
  * Not D-045's two minutes: that rule is right for a page ("the last known,
- * not the current") and wrong for waking somebody, because half-time is a
- * match in progress whose data does not change for fifteen minutes. So:
- * `degraded` at 20 minutes (longer than any half-time), `failing` at 40. A
- * feed that stops for every match at once is caught sooner by `ingest:live`.
+ * not the current") and wrong for waking somebody. `degraded` at 20 minutes,
+ * `failing` at 40. A feed that stops for every match at once is caught sooner
+ * by `ingest:live`.
+ *
+ * The stored minute stands at 45 from the 45th minute through the added time
+ * and the interval, which on production is 20 to 35 minutes with nothing to
+ * change (2026-10-21..24: every `live_feed` incident was a match at 45). So a
+ * match is measured by the pages' own rule, `liveFreshnessFrom` (D-209): at a
+ * stopped clock (45, 90, 105, 120) or suspended, the later of its last change
+ * and the live list's last answer counts. A live match at a stopped clock for
+ * `BREAK_ALLOWANCE_SECONDS` or more is measured from its last change again:
+ * no break is that long, so it is a feed that froze at the minute, and it
+ * reads `failing` at once. A suspended match is the provider's own word and
+ * keeps the answer however long.
  */
 export const LIVE_FEED_THRESHOLD: WatchdogThreshold = {
   unit: 'seconds',
   degraded: 20 * MINUTE,
   failing: 40 * MINUTE,
 };
+export const BREAK_ALLOWANCE_SECONDS = 40 * MINUTE;
 
-export function liveFeed(
-  seen: { inProgress: number; oldestChangeAt: Date | null; behind: number },
-  now: Date,
-): Reading {
+/** One match in progress as the watchdog reads it. */
+export interface LiveMatchSeen {
+  fixtureId: string;
+  status: 'live' | 'suspended';
+  minute: number | null;
+  /** The newest of the fixture, its score and its incidents (D-045). */
+  changedAt: Date;
+  /** The live list's newest answer from a provider the match is mapped to (D-209). */
+  liveAnsweredAt: Date | null;
+}
+
+/** The moment one match in progress is measured from, in ms since the epoch. */
+export function liveMeasuredFrom(match: LiveMatchSeen, now: Date): number {
+  const changed = match.changedAt.getTime();
+  if (match.status === 'live' && now.getTime() - changed >= BREAK_ALLOWANCE_SECONDS * 1000) {
+    return changed;
+  }
+  return liveFreshnessFrom({
+    status: match.status,
+    minute: match.minute,
+    last_updated_at: match.changedAt.toISOString(),
+    live_answered_at: match.liveAnsweredAt?.toISOString() ?? null,
+  });
+}
+
+export function liveFeed(matches: readonly LiveMatchSeen[], now: Date): Reading {
   const threshold = LIVE_FEED_THRESHOLD;
-  if (seen.inProgress === 0 || seen.oldestChangeAt === null) {
+  if (matches.length === 0) {
     return {
       key: 'live_feed',
       level: 'ok',
@@ -147,13 +187,28 @@ export function liveFeed(
       note: 'no match in progress',
     };
   }
-  const observed = Math.max(0, Math.round((now.getTime() - seen.oldestChangeAt.getTime()) / 1000));
+  // Floored, and `behind` counted from the same ages, so the level and the
+  // count beside it always agree ("degraded, 0 behind" was a rounding).
+  let observed = 0;
+  let behind = 0;
+  let answered = 0;
+  for (const match of matches) {
+    const from = liveMeasuredFrom(match, now);
+    const age = Math.max(0, Math.floor((now.getTime() - from) / 1000));
+    observed = Math.max(observed, age);
+    if (age >= threshold.degraded) behind += 1;
+    if (from > match.changedAt.getTime()) answered += 1;
+  }
+  const breaks =
+    answered === 0
+      ? ''
+      : ` (${answered} at half-time or another break, counted from the provider's last answer)`;
   return {
     key: 'live_feed',
     level: levelOf(observed, threshold),
     observed,
     threshold,
-    note: `${seen.inProgress} in progress, ${seen.behind} unchanged for ${threshold.degraded / MINUTE} minutes or more`,
+    note: `${matches.length} in progress, ${behind} behind for ${threshold.degraded / MINUTE} minutes or more${breaks}`,
   };
 }
 
