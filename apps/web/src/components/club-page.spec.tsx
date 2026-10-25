@@ -193,7 +193,8 @@ describe('the club band', () => {
     expect(html).toContain(`href="/en/team/${TEAM}?tab=squad"`);
     // No club colour exists in our data (D-204): the brand rule and the brand tab bar.
     expect(html).toContain('bg-accent');
-    expect(html).toContain('shadow-[inset_0_-3px_0_var(--token-accent)]');
+    // The open section tab: ink over the saffron rule (T-1510).
+    expect(html).toContain('border-accent font-extrabold text-fg');
     expect(html).not.toMatch(/style="[^"]*(?:background|color)/);
     // The manager line says why there is no name instead of inventing one.
     expect(html).toContain('data-testid="manager-none"');

@@ -2,7 +2,7 @@ import Link from '@/components/ui/link';
 import type { CSSProperties, ReactNode } from 'react';
 import type { PlayerMatch, PlayerPage, PlayerSeasonRecord } from '@fmip/contracts';
 import { Coverage, Panel, When, zoneWords } from '@/components/competition-page';
-import { LinkTabs } from '@/components/entity-band';
+import { SectionTabs } from '@/components/ui/section-tabs';
 import { EntityImage } from '@/components/entity-image';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
@@ -142,7 +142,7 @@ export function PlayerHeader({
         </div>
       </div>
       <div className="page-frame">
-        <LinkTabs
+        <SectionTabs
           label={say(locale, 'competitionPage.sections')}
           testId="player-tab"
           tabs={PLAYER_TABS.map((key) => ({

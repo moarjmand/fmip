@@ -12,7 +12,7 @@ import { EntityImage } from '@/components/entity-image';
 import { ForecastBar } from '@/components/forecast-bar';
 import { FounderAnalysisBrief } from '@/components/founder-analysis';
 import { MessageText } from '@/components/message-text';
-import { CommunityLane, ModelLane, ThreeProductsNote } from '@/components/product-lanes';
+import { CommunityVoice, ModelVoice, ThreeProductsNote } from '@/components/voices';
 import { Score, ScorePair } from '@/components/score';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
@@ -537,7 +537,7 @@ export function BigMatch({
         {side(card.away, standing(l, awayRow, tableSize), true)}
       </div>
       <div className="flex flex-wrap gap-4 p-4 md:p-6">
-        <ModelLane locale={l} className="min-w-0 flex-[3_1_26rem]">
+        <ModelVoice locale={l} className="min-w-0 flex-[3_1_26rem]">
           <p className="text-sm text-muted">
             <Translated locale={l} message="home.hero.model" />
           </p>
@@ -560,7 +560,7 @@ export function BigMatch({
               locale={l}
             />
           )}
-        </ModelLane>
+        </ModelVoice>
         <div className="flex min-w-0 flex-[2_1_17rem] flex-col gap-4">
           <FounderAnalysisBrief
             analysis={founder}
@@ -570,7 +570,7 @@ export function BigMatch({
             timeZone={timeZone}
             locale={l}
           />
-          <CommunityLane locale={l}>
+          <CommunityVoice locale={l}>
             <CommunityPicksBrief
               consensus={consensus}
               revealed={revealed}
@@ -579,7 +579,7 @@ export function BigMatch({
               href={match}
               locale={l}
             />
-          </CommunityLane>
+          </CommunityVoice>
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-4 md:px-6 md:pb-6">
