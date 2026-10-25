@@ -21,7 +21,11 @@ import { cx } from '@/components/ui/cx';
  * `ThreeProductsNote` is the footnote where the three meet on one page.
  */
 
-const FRAME = 'flex flex-col gap-3 rounded-tile border-t-3 p-4';
+// On a surface card, not a tint of the product's colour (T-1491): the model's
+// turquoise reaches 4.5:1 on the Day ground with little to spare (4.62:1), and
+// an 8% tint of itself took the lane's own name to 4.18:1. The colour stays on
+// the top edge, the name and the icon.
+const FRAME = 'flex flex-col gap-3 rounded-tile border-t-3 bg-surface p-4';
 const KICKER = 'flex items-center gap-2 text-sm font-extrabold tracking-wide';
 
 /** The statistical model's lane: the model colour and the bars icon. */
@@ -35,7 +39,7 @@ export function ModelLane({
   className?: string;
 }) {
   return (
-    <div className={cx(FRAME, 'border-model bg-model/8', className)} data-lane="model">
+    <div className={cx(FRAME, 'border-model', className)} data-lane="model">
       <p className={cx(KICKER, 'text-model')}>
         <Icon name="model" />
         <Translated locale={locale} message="lanes.model.title" />
@@ -56,7 +60,7 @@ export function FounderLane({
   className?: string;
 }) {
   return (
-    <div className={cx(FRAME, 'border-founder bg-founder/8', className)} data-lane="founder">
+    <div className={cx(FRAME, 'border-founder', className)} data-lane="founder">
       <p className={cx(KICKER, 'text-founder')}>
         <Icon name="founder" />
         <Translated locale={locale} message="lanes.founder.title" />
@@ -77,7 +81,7 @@ export function CommunityLane({
   className?: string;
 }) {
   return (
-    <div className={cx(FRAME, 'border-community bg-community/8', className)} data-lane="community">
+    <div className={cx(FRAME, 'border-community', className)} data-lane="community">
       <p className={cx(KICKER, 'text-community')}>
         <Icon name="community" />
         <Translated locale={locale} message="lanes.community.title" />

@@ -220,7 +220,8 @@ describe('the three lanes', () => {
     ] as const;
     for (const [html, lane, name] of lanes) {
       expect(html).toContain(`data-lane="${lane}"`);
-      expect(html).toContain(`border-${lane} bg-${lane}/8`);
+      expect(html).toContain(`border-${lane}`);
+      expect(html).toContain('bg-surface');
       expect(html).toContain(`data-icon="${lane}"`);
       expect(html).toContain(name);
       for (const other of ['model', 'founder', 'community'].filter((o) => o !== lane)) {
