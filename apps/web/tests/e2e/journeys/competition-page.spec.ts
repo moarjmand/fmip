@@ -57,7 +57,7 @@ for (const width of [390, 1440]) {
         // The phone board's short "Model"; the full name from sm up (T-1558).
         const modelName = width === 390 ? modelShort : model;
         if (modelName !== null)
-          await expect(page.getByTestId('competition-tab-model')).toHaveText(modelName);
+          await expect(page.getByTestId('competition-tab-model')).toHaveAccessibleName(modelName);
         const first = await box(page, 'competition-tab-overview');
         const second = await box(page, 'competition-tab-table');
         if (dir === 'rtl') expect(first.x).toBeGreaterThan(second.x);
