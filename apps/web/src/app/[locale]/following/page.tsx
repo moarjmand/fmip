@@ -43,7 +43,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/following',
-    title: `${t(resolved, 'feed.title')} · FMIP`,
+    title: `${t(resolved, 'feed.title')} · Stadiomind`,
     description: t(resolved, 'followingPage.description'),
     index: false,
   });

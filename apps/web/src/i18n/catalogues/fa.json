@@ -228,8 +228,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "home.firstVisit.link": {
-    "source": "What FMIP is, and how a rating is earned",
-    "text": "FMIP چیست و امتیاز عملکرد چگونه به دست می‌آید",
+    "source": "What Stadiomind is, and how a rating is earned",
+    "text": "Stadiomind چیست و امتیاز عملکرد چگونه به دست می‌آید",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -636,8 +636,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "home.welcome.label": {
-    "source": "New to FMIP",
-    "text": "تازه به FMIP آمده‌اید",
+    "source": "New to Stadiomind",
+    "text": "تازه به Stadiomind آمده‌اید",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -870,8 +870,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "about.meta.title": {
-    "source": "What FMIP is",
-    "text": "FMIP چیست",
+    "source": "What Stadiomind is",
+    "text": "Stadiomind چیست",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -1008,8 +1008,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "rulesPage.meta.description": {
-    "source": "The rules every member accepts: what FMIP is for, what is not allowed, and how leaving works.",
-    "text": "قوانینی که هر عضو می‌پذیرد: FMIP برای چیست، چه کارهایی مجاز نیست و ترک آن چگونه است.",
+    "source": "The rules every member accepts: what Stadiomind is for, what is not allowed, and how leaving works.",
+    "text": "قوانینی که هر عضو می‌پذیرد: Stadiomind برای چیست، چه کارهایی مجاز نیست و ترک آن چگونه است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -1020,8 +1020,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "offline.body": {
-    "source": "FMIP needs a connection for live scores, matches and predictions. Nothing cached is shown as current: when you are back online, the pages will load fresh.",
-    "text": "FMIP برای نتایج زنده، بازی‌ها و پیش‌بینی‌ها به اتصال اینترنت نیاز دارد. هیچ داده‌ی ذخیره‌شده‌ای به‌عنوان داده‌ی جاری نشان داده نمی‌شود: وقتی دوباره آنلاین شوید، صفحه‌ها از نو بارگیری می‌شوند.",
+    "source": "Stadiomind needs a connection for live scores, matches and predictions. Nothing cached is shown as current: when you are back online, the pages will load fresh.",
+    "text": "Stadiomind برای نتایج زنده، بازی‌ها و پیش‌بینی‌ها به اتصال اینترنت نیاز دارد. هیچ داده‌ی ذخیره‌شده‌ای به‌عنوان داده‌ی جاری نشان داده نمی‌شود: وقتی دوباره آنلاین شوید، صفحه‌ها از نو بارگیری می‌شوند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -1524,8 +1524,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "auth.verify.back": {
-    "source": "Back to FMIP",
-    "text": "بازگشت به FMIP",
+    "source": "Back to Stadiomind",
+    "text": "بازگشت به Stadiomind",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -1794,8 +1794,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "profile.inviteTitle": {
-    "source": "Join me on FMIP",
-    "text": "در FMIP به من بپیوندید",
+    "source": "Join me on Stadiomind",
+    "text": "در Stadiomind به من بپیوندید",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -2286,8 +2286,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "languageHold.notice": {
-    "source": "this language is held back for now, so FMIP is shown in English. Your choice is kept, and applies again when the language returns.",
-    "text": "این زبان فعلاً کنار گذاشته شده است، برای همین FMIP به انگلیسی نمایش داده می‌شود. انتخاب شما حفظ می‌شود و با بازگشت این زبان دوباره اعمال می‌شود.",
+    "source": "this language is held back for now, so Stadiomind is shown in English. Your choice is kept, and applies again when the language returns.",
+    "text": "این زبان فعلاً کنار گذاشته شده است، برای همین Stadiomind به انگلیسی نمایش داده می‌شود. انتخاب شما حفظ می‌شود و با بازگشت این زبان دوباره اعمال می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -4334,8 +4334,8 @@
     "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
   "story.sources.forecast": {
-    "source": "Forecast: FMIP’s statistical model, stored version {version}",
-    "text": "پیش‌بینی: مدل آماری FMIP، نسخه ذخیره‌شده {version}",
+    "source": "Forecast: Stadiomind’s statistical model, stored version {version}",
+    "text": "پیش‌بینی: مدل آماری Stadiomind، نسخه ذخیره‌شده {version}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -4748,8 +4748,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "firstRun.title": {
-    "source": "Make FMIP yours",
-    "text": "FMIP را به سلیقه‌ی خودتان تنظیم کنید",
+    "source": "Make Stadiomind yours",
+    "text": "Stadiomind را به سلیقه‌ی خودتان تنظیم کنید",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -4796,14 +4796,14 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "firstRun.language.question": {
-    "source": "Which language should FMIP use?",
-    "text": "FMIP به چه زبانی نمایش داده شود؟",
+    "source": "Which language should Stadiomind use?",
+    "text": "Stadiomind به چه زبانی نمایش داده شود؟",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "firstRun.language.onlyOne": {
-    "source": "FMIP speaks English for now. Other languages are offered here once their translation is finished, and not before.",
-    "text": "FMIP فعلاً فقط به زبان انگلیسی است. زبان‌های دیگر پس از تکمیل ترجمه‌شان اینجا ارائه می‌شوند، نه پیش از آن.",
+    "source": "Stadiomind speaks English for now. Other languages are offered here once their translation is finished, and not before.",
+    "text": "Stadiomind فعلاً فقط به زبان انگلیسی است. زبان‌های دیگر پس از تکمیل ترجمه‌شان اینجا ارائه می‌شوند، نه پیش از آن.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -4910,8 +4910,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "firstRun.offer.text": {
-    "source": "Make FMIP yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
-    "text": "FMIP را به سلیقه‌ی خودتان تنظیم کنید: زبان، کشور محل تماشا، منطقه‌ی زمانی و تیم‌های محبوبتان را انتخاب کنید. از هر مرحله می‌توانید بگذرید.",
+    "source": "Make Stadiomind yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
+    "text": "Stadiomind را به سلیقه‌ی خودتان تنظیم کنید: زبان، کشور محل تماشا، منطقه‌ی زمانی و تیم‌های محبوبتان را انتخاب کنید. از هر مرحله می‌توانید بگذرید.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -10448,8 +10448,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "leaderboard.language.note": {
-    "source": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see.",
-    "text": "زبان هر عضو همان زبانی است که در تنظیمات برای FMIP انتخاب کرده است. این زبان عمومی نیست، بنابراین این جدول فقط اعضایی را نشان می‌دهد که اجازه دارید سابقه‌ی پیش‌بینی‌هایشان را ببینید.",
+    "source": "A member's language is the one they chose for Stadiomind in Settings. It is not public, so this board shows only members whose prediction history you may see.",
+    "text": "زبان هر عضو همان زبانی است که در تنظیمات برای Stadiomind انتخاب کرده است. این زبان عمومی نیست، بنابراین این جدول فقط اعضایی را نشان می‌دهد که اجازه دارید سابقه‌ی پیش‌بینی‌هایشان را ببینید.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -10688,8 +10688,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "predictions.page.title": {
-    "source": "Predictions · FMIP",
-    "text": "پیش‌بینی‌ها · FMIP",
+    "source": "Predictions · Stadiomind",
+    "text": "پیش‌بینی‌ها · Stadiomind",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -10868,8 +10868,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "leaderboardPage.title": {
-    "source": "Leaderboard · FMIP",
-    "text": "جدول برترین‌ها · FMIP",
+    "source": "Leaderboard · Stadiomind",
+    "text": "جدول برترین‌ها · Stadiomind",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -11132,14 +11132,14 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "leaderboardPage.among.friendsLanguage": {
-    "source": "among you and your friends who use FMIP in {language}",
-    "text": "در میان شما و دوستانتان که FMIP را به زبان {language} به کار می‌برید",
+    "source": "among you and your friends who use Stadiomind in {language}",
+    "text": "در میان شما و دوستانتان که Stadiomind را به زبان {language} به کار می‌برید",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "leaderboardPage.among.membersLanguage": {
-    "source": "among members who use FMIP in {language}",
-    "text": "در میان اعضایی که FMIP را به زبان {language} به کار می‌برند",
+    "source": "among members who use Stadiomind in {language}",
+    "text": "در میان اعضایی که Stadiomind را به زبان {language} به کار می‌برند",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -11205,12 +11205,12 @@
   },
   "leaderboardPage.empty.friendsLanguage": {
     "source": {
-      "one": "Neither you nor any of your friends who uses FMIP in {language} has {count} settled prediction{where}{when} yet.",
-      "other": "Neither you nor any of your friends who uses FMIP in {language} has {count} settled predictions{where}{when} yet."
+      "one": "Neither you nor any of your friends who uses Stadiomind in {language} has {count} settled prediction{where}{when} yet.",
+      "other": "Neither you nor any of your friends who uses Stadiomind in {language} has {count} settled predictions{where}{when} yet."
     },
     "forms": {
-      "one": "نه شما و نه هیچ‌یک از دوستانتان که FMIP را به زبان {language} به کار می‌برد، هنوز {count} پیش‌بینی تسویه‌شده{where}{when} ندارید.",
-      "other": "نه شما و نه هیچ‌یک از دوستانتان که FMIP را به زبان {language} به کار می‌برد، هنوز {count} پیش‌بینی تسویه‌شده{where}{when} ندارید."
+      "one": "نه شما و نه هیچ‌یک از دوستانتان که Stadiomind را به زبان {language} به کار می‌برد، هنوز {count} پیش‌بینی تسویه‌شده{where}{when} ندارید.",
+      "other": "نه شما و نه هیچ‌یک از دوستانتان که Stadiomind را به زبان {language} به کار می‌برد، هنوز {count} پیش‌بینی تسویه‌شده{where}{when} ندارید."
     },
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -11229,12 +11229,12 @@
   },
   "leaderboardPage.empty.membersLanguage": {
     "source": {
-      "one": "No member who uses FMIP in {language} has {count} settled prediction{where}{when} yet.",
-      "other": "No member who uses FMIP in {language} has {count} settled predictions{where}{when} yet."
+      "one": "No member who uses Stadiomind in {language} has {count} settled prediction{where}{when} yet.",
+      "other": "No member who uses Stadiomind in {language} has {count} settled predictions{where}{when} yet."
     },
     "forms": {
-      "one": "هنوز هیچ عضوی که FMIP را به زبان {language} به کار می‌برد، {count} پیش‌بینی تسویه‌شده{where}{when} ندارد.",
-      "other": "هنوز هیچ عضوی که FMIP را به زبان {language} به کار می‌برد، {count} پیش‌بینی تسویه‌شده{where}{when} ندارد."
+      "one": "هنوز هیچ عضوی که Stadiomind را به زبان {language} به کار می‌برد، {count} پیش‌بینی تسویه‌شده{where}{when} ندارد.",
+      "other": "هنوز هیچ عضوی که Stadiomind را به زبان {language} به کار می‌برد، {count} پیش‌بینی تسویه‌شده{where}{when} ندارد."
     },
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -11474,8 +11474,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "analysis.desk.title": {
-    "source": "Founder's analysis · FMIP",
-    "text": "تحلیل بنیان‌گذار · FMIP",
+    "source": "Founder's analysis · Stadiomind",
+    "text": "تحلیل بنیان‌گذار · Stadiomind",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -14936,8 +14936,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "shared.og.memberAlt": {
-    "source": "A member of FMIP, their rating and latest settled predictions",
-    "text": "یکی از اعضای FMIP، امتیاز عملکرد او و تازه‌ترین پیش‌بینی‌های تسویه‌شده‌اش",
+    "source": "A member of Stadiomind, their rating and latest settled predictions",
+    "text": "یکی از اعضای Stadiomind، امتیاز عملکرد او و تازه‌ترین پیش‌بینی‌های تسویه‌شده‌اش",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -15002,8 +15002,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "lanes.model.origin": {
-    "source": "Computed by FMIP’s statistical model from match data. Not a person’s opinion.",
-    "text": "محاسبه‌شده با مدل آماری FMIP از داده‌های بازی. نظر هیچ شخصی نیست.",
+    "source": "Computed by Stadiomind’s statistical model from match data. Not a person’s opinion.",
+    "text": "محاسبه‌شده با مدل آماری Stadiomind از داده‌های بازی. نظر هیچ شخصی نیست.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -15320,8 +15320,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "competitions.metaDescription": {
-    "source": "Every league and cup FMIP follows, grouped by country and region, each with its own page.",
-    "text": "همهٔ لیگ‌ها و جام‌هایی که FMIP دنبال می‌کند، به تفکیک کشور و منطقه، هر کدام با صفحهٔ خودش.",
+    "source": "Every league and cup Stadiomind follows, grouped by country and region, each with its own page.",
+    "text": "همهٔ لیگ‌ها و جام‌هایی که Stadiomind دنبال می‌کند، به تفکیک کشور و منطقه، هر کدام با صفحهٔ خودش.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -15386,8 +15386,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "highlights.metaDescription": {
-    "source": "Official highlight links for the matches FMIP follows, newest first, filtered by competition. Each opens on the publisher's own site.",
-    "text": "پیوند خلاصه‌های رسمی بازی‌هایی که FMIP دنبال می‌کند، تازه‌ترین‌ها اول، با فیلتر رقابت. هر پیوند در سایت خود ناشر باز می‌شود.",
+    "source": "Official highlight links for the matches Stadiomind follows, newest first, filtered by competition. Each opens on the publisher's own site.",
+    "text": "پیوند خلاصه‌های رسمی بازی‌هایی که Stadiomind دنبال می‌کند، تازه‌ترین‌ها اول، با فیلتر رقابت. هر پیوند در سایت خود ناشر باز می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

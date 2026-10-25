@@ -44,7 +44,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/u/${encodeURIComponent(name)}`,
-    title: `${memberName(locale, { username: name })} · FMIP`,
+    title: `${memberName(locale, { username: name })} · Stadiomind`,
   });
 }
 

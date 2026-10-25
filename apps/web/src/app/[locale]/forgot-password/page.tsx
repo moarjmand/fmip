@@ -12,7 +12,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  return { title: `${t(lang, 'auth.forgot.metaTitle')} · FMIP` };
+  return { title: `${t(lang, 'auth.forgot.metaTitle')} · Stadiomind` };
 }
 
 export default async function ForgotPasswordPage({

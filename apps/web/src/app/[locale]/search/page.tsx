@@ -51,7 +51,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/search',
-    title: `${say(locale, 'nav.search')} · FMIP`,
+    title: `${say(locale, 'nav.search')} · Stadiomind`,
     description: say(locale, 'searchPage.metaDescription'),
     index: readSearchTerm(query) === '',
   });

@@ -24,7 +24,7 @@ export const dynamic = 'force-dynamic';
 
 // An operator's page: never indexed.
 export const metadata: Metadata = {
-  title: 'Administration · FMIP',
+  title: 'Administration · Stadiomind',
   robots: { index: false, follow: false },
 };
 

@@ -94,7 +94,7 @@ export async function generateMetadata({
     path: '',
     // The only page in the layout's own segment, so the layout's title
     // template does not reach it and it carries the marker itself (T-087).
-    title: rootTitle('FMIP', locale),
+    title: rootTitle('Stadiomind', locale),
     description: t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shell.meta.description'),
   });
 }

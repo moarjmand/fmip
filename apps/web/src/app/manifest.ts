@@ -10,8 +10,8 @@ import { MARK_COLOURS } from '@/lib/brand-colours';
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'FMIP — Football Match Intelligence Platform',
-    short_name: 'FMIP',
+    name: 'Stadiomind',
+    short_name: 'Stadiomind',
     description:
       'Football match intelligence: live scores, match centre, forecasts and predictions.',
     id: `/${DEFAULT_LOCALE}`,

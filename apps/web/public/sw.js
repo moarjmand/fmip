@@ -72,7 +72,7 @@ self.addEventListener('fetch', (event) => {
 // route it opens, sent by the API to this browser's push service. Shown as
 // the browser's notification; a click opens the route in this app.
 self.addEventListener('push', (event) => {
-  let payload = { title: 'FMIP', body: '', url: '/' };
+  let payload = { title: 'Stadiomind', body: '', url: '/' };
   try {
     payload = { ...payload, ...(event.data ? event.data.json() : {}) };
   } catch {

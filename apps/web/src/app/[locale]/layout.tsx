@@ -61,7 +61,7 @@ export async function generateMetadata({
     ...pageMetadata({
       locale,
       path: '',
-      title: 'FMIP',
+      title: 'Stadiomind',
       description: t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shell.meta.description'),
     }),
     // On a deployment whose football is fixture data, every page title says so
@@ -73,7 +73,7 @@ export async function generateMetadata({
       ? {
           title: {
             template: demonstrationTitleTemplate(locale),
-            default: demonstrationTitle('FMIP', locale),
+            default: demonstrationTitle('Stadiomind', locale),
           },
         }
       : {}),
@@ -89,7 +89,7 @@ export async function generateMetadata({
       ],
       apple: '/icons/apple-touch-icon.png',
     },
-    appleWebApp: { capable: true, title: 'FMIP', statusBarStyle: 'default' },
+    appleWebApp: { capable: true, title: 'Stadiomind', statusBarStyle: 'default' },
   };
 }
 

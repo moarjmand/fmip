@@ -56,7 +56,7 @@ function Brand({ host }: { host: string }): ReactElement {
       }}
     >
       <BrandMark size={40} />
-      <div style={{ display: 'flex' }}>{`FMIP · ${host}`}</div>
+      <div style={{ display: 'flex' }}>{`Stadiomind · ${host}`}</div>
     </div>
   );
 }
@@ -67,7 +67,7 @@ export function PlainCard(): ReactElement {
     <Frame>
       <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
         <BrandMark size={96} />
-        <div style={{ display: 'flex', fontSize: 72, fontWeight: 700 }}>FMIP</div>
+        <div style={{ display: 'flex', fontSize: 72, fontWeight: 700 }}>Stadiomind</div>
       </div>
       <div style={{ display: 'flex', fontSize: 34, color: MUTED }}>
         Live scores, match centres and forecasts

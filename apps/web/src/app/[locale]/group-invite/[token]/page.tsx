@@ -23,7 +23,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return {
-    title: `${t(resolved, 'groupsPage.invite.title')} · FMIP`,
+    title: `${t(resolved, 'groupsPage.invite.title')} · Stadiomind`,
     robots: { index: false, follow: false },
     referrer: 'no-referrer',
   };

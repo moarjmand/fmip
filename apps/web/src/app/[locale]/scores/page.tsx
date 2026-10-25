@@ -53,7 +53,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/scores',
-    title: `${t(resolved, 'nav.scores')} · FMIP`,
+    title: `${t(resolved, 'nav.scores')} · Stadiomind`,
     description: t(resolved, 'scores.metaDescription'),
   });
 }

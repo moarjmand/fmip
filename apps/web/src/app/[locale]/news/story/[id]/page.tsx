@@ -54,7 +54,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const storyTitle = `${t(resolved, 'storyPage.title')} · FMIP`;
+  const storyTitle = `${t(resolved, 'storyPage.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title: storyTitle, robots: { index: false, follow: false } };
   const result = await fetchStory(id, readStoryQuery(query).language, locale);
   if (!result.ok) return pageMetadata({ locale, path: `/news/story/${id}`, title: storyTitle });
@@ -62,7 +62,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/news/story/${id}`,
-    title: `${story.headline} · FMIP`,
+    title: `${story.headline} · Stadiomind`,
     // The publisher's own summary, or their headline again: nothing is written for them.
     description:
       story.summary ??

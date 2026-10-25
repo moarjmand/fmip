@@ -41,7 +41,7 @@ export async function generateMetadata({
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   const other = readCompareWith(query);
   const noindex = {
-    title: `${say(locale, 'compare.title')} · FMIP`,
+    title: `${say(locale, 'compare.title')} · Stadiomind`,
     robots: { index: false, follow: false },
   };
   if (!UUID.test(id) || other.state !== 'id' || other.id === id.toLowerCase()) return noindex;
@@ -54,7 +54,7 @@ export async function generateMetadata({
     title: `${say(locale, 'competitionPage.versus', {
       home: displayName(a.data.person),
       away: displayName(b.data.person),
-    })} · FMIP`,
+    })} · Stadiomind`,
     description: say(locale, 'compare.metaDescription', {
       a: a.data.person.full_name,
       b: b.data.person.full_name,

@@ -93,7 +93,7 @@ describe('the share cards', () => {
       }),
     );
     expect(shapes(table)).toEqual(day);
-    expect(table).toContain('FMIP · example.org');
+    expect(table).toContain('Stadiomind · example.org');
   });
 });
 

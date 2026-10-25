@@ -16,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  return pageMetadata({ locale, path: '/groups', title: "A group's history · FMIP" });
+  return pageMetadata({ locale, path: '/groups', title: "A group's history · Stadiomind" });
 }
 
 /**
