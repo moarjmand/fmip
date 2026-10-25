@@ -9,7 +9,7 @@ import {
   fetchPlayerProviderSeasons,
   fetchPlayerTransfers,
 } from '@/lib/api';
-import { EntityFollow, MoreLink } from '@/components/competition-page';
+import { EntityFollow, MoreLink, zoneWords } from '@/components/competition-page';
 import { JsonLd } from '@/components/json-ld';
 import { PlayerAvailabilitySection } from '@/components/player-availability';
 import { ProviderCareerPanel, ProviderSeasonsPanel } from '@/components/player-provider-seasons';
@@ -36,6 +36,7 @@ import {
   playerTabHref,
   readPlayerTab,
   readSeasonFilter,
+  seasonLabelOf,
   seasonsOf,
 } from '@/lib/player';
 import { pageMetadata, playerJsonLd } from '@/lib/seo';
@@ -126,7 +127,9 @@ export default async function PlayerPage({
   const seasons = seasonsOf(record);
   // The season filter belongs to Matches and Stats; elsewhere every season shows.
   const seasonId = tab === 'matches' || tab === 'stats' ? readSeasonFilter(query) : null;
-  const matches = filterMatches(page.recent_matches.data ?? [], seasonId);
+  // A season is its label across competitions (T-1565): the id picks the label.
+  const seasonLabel = seasonLabelOf(record, page.recent_matches.data ?? [], seasonId);
+  const matches = filterMatches(page.recent_matches.data ?? [], seasonLabel);
 
   return (
     <main data-mode="data" className="pb-16" data-testid="player-page" data-tab={tab}>
@@ -153,13 +156,16 @@ export default async function PlayerPage({
           <div className="flex flex-wrap items-start gap-5 md:gap-6">
             <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-5 md:gap-6">
               <SeasonTilesPanel page={page} locale={locale} />
-              <RecordPanel
-                page={page}
-                rows={record}
-                locale={locale}
-                full={false}
-                testId="career-record"
-              />
+              {/* With no record the tiles already say so; a second empty table would repeat it (T-1569). */}
+              {record.length > 0 && (
+                <RecordPanel
+                  page={page}
+                  rows={record}
+                  locale={locale}
+                  full={false}
+                  testId="career-record"
+                />
+              )}
             </div>
             <aside className="flex min-w-0 flex-[1_1_21rem] flex-col gap-5">
               <LastMatchesPanel
@@ -190,6 +196,10 @@ export default async function PlayerPage({
                 />
               </div>
               <Updated page={page} locale={locale} timeZone={timeZone} />
+              {/* The dates, the kick-off and the checks above are in this zone (T-1566). */}
+              <p className="text-xs text-muted" data-testid="player-zone">
+                {zoneWords(locale, timeZone)}
+              </p>
             </aside>
           </div>
         )}
@@ -200,7 +210,7 @@ export default async function PlayerPage({
               locale={locale}
               tab="matches"
               seasons={seasons}
-              seasonId={seasonId}
+              current={seasonLabel}
             />
             <PlayerMatchesPanel page={page} matches={matches} locale={locale} timeZone={timeZone} />
           </>
@@ -232,11 +242,11 @@ export default async function PlayerPage({
               locale={locale}
               tab="stats"
               seasons={seasons}
-              seasonId={seasonId}
+              current={seasonLabel}
             />
             <RecordPanel
               page={page}
-              rows={filterRecord(record, seasonId)}
+              rows={filterRecord(record, seasonLabel)}
               locale={locale}
               full
               testId="record"

@@ -111,7 +111,8 @@ export function PlayerHeader({
           >
             <EntityImage media={p.photo} kind="photo" name={name} size={96} aboveFold />
           </span>
-          <div className="flex min-w-0 flex-[1_1_18rem] flex-col items-center gap-2 md:items-start">
+          {/* The basis is for the desktop row only: in the phone's column it is a height (T-1567). */}
+          <div className="flex min-w-0 flex-col items-center gap-2 md:flex-[1_1_18rem] md:items-start">
             {eyebrow.length > 0 && (
               <p
                 className="text-xs font-bold text-muted uppercase ltr:tracking-wider"
@@ -647,25 +648,30 @@ function MinutesCell({ locale, row }: { locale: string; row: PlayerSeasonRecord 
   );
 }
 
-/** The seasons the record covers as pills, keeping the open tab (Matches or Stats). */
+/**
+ * The seasons the record covers as pills, keeping the open tab (Matches or
+ * Stats): one per label, `current` the label chosen (T-1565), each a 44px
+ * target on a phone (T-1568).
+ */
 export function SeasonFilter({
   page,
   locale,
   tab,
   seasons,
-  seasonId,
+  current,
 }: {
   page: PlayerPage;
   locale: string;
   tab: 'matches' | 'stats';
   seasons: { id: string; label: string }[];
-  seasonId: string | null;
+  /** The chosen season's label; null for every season. */
+  current: string | null;
 }) {
   if (seasons.length < 2) return null;
-  const pill = (current: boolean) =>
+  const pill = (chosen: boolean) =>
     cx(
-      'inline-flex min-h-8 items-center rounded-pill px-3 tabular-nums',
-      current ? 'bg-fg font-bold text-canvas' : 'border border-default text-muted hover:text-fg',
+      'inline-flex min-h-touch items-center rounded-pill px-3 tabular-nums md:min-h-8',
+      chosen ? 'bg-fg font-bold text-canvas' : 'border border-default text-muted hover:text-fg',
     );
   return (
     <nav
@@ -678,8 +684,8 @@ export function SeasonFilter({
       </span>
       <Link
         href={playerTabHref(locale, page.person.id, tab)}
-        aria-current={seasonId === null ? 'true' : undefined}
-        className={pill(seasonId === null)}
+        aria-current={current === null ? 'true' : undefined}
+        className={pill(current === null)}
       >
         <Translated locale={locale} message="playerPage.allSeasons" />
       </Link>
@@ -687,8 +693,8 @@ export function SeasonFilter({
         <Link
           key={season.id}
           href={playerTabHref(locale, page.person.id, tab, season.id)}
-          aria-current={seasonId === season.id ? 'true' : undefined}
-          className={pill(seasonId === season.id)}
+          aria-current={current === season.label ? 'true' : undefined}
+          className={pill(current === season.label)}
         >
           {localDigits(locale, season.label)}
         </Link>
@@ -795,14 +801,17 @@ export function LastMatchesPanel({
                     {roleLabel(locale, m)}
                   </span>
                 </span>
+                {/* One line each, so the side column keeps the sides' names whole (T-1569). */}
                 <span
                   className={cx(
-                    'text-end text-xs',
+                    'flex flex-col items-end text-xs whitespace-nowrap',
                     contribution.length > 0 ? 'font-extrabold text-accent' : 'text-caption',
                   )}
                   data-testid="player-match-contribution"
                 >
-                  {contribution.length > 0 ? contribution.join(' · ') : '–'}
+                  {contribution.length > 0
+                    ? contribution.map((part) => <span key={part}>{part}</span>)
+                    : '–'}
                 </span>
               </li>
             );
