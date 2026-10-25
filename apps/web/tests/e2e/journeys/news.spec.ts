@@ -15,7 +15,7 @@ test.describe('news sections', () => {
   test('the four sections, each saying what it holds', async ({ page }) => {
     await page.goto('/en/news');
     await expect(page.getByTestId('title')).toHaveText('News');
-    const nav = page.getByTestId('news-sections');
+    const nav = page.getByTestId('section');
     for (const section of ['latest', 'trending', 'debate', 'following']) {
       await expect(nav.getByTestId(`section-${section}`)).toBeVisible();
     }
