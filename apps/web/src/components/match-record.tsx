@@ -11,14 +11,7 @@ import { NOT_YET } from '@/lib/match';
 import { filled } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
-import {
-  CARD,
-  COVERAGE_KEY,
-  Card,
-  MODULE_HEADING,
-  Module,
-  TITLE,
-} from '@/components/match-centre-cards';
+import { COVERAGE_KEY, Card, Module } from '@/components/match-centre-cards';
 import { MessageText } from '@/components/message-text';
 import { Score } from '@/components/score';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
@@ -70,25 +63,26 @@ export function HeadToHead({
       words={words}
     >
       {(meetings) => (
-        <ul className="flex flex-col divide-y divide-default text-sm">
+        <ul className="flex flex-col divide-y divide-default text-sm tabular-nums">
           {meetings.map((meeting) => (
             <li
               key={meeting.fixture_id}
-              className="grid grid-cols-[6.5rem_1fr] items-start gap-x-3 py-1.5"
+              className="grid grid-cols-[5.5rem_minmax(0,1fr)] items-start gap-x-3 py-2"
             >
               <time dateTime={meeting.kickoff_at} className="text-xs text-muted tabular-nums">
                 {formatShortDate(locale, meeting.kickoff_at, timeZone)}
               </time>
               <span className="flex min-w-0 flex-col">
+                {/* The winner in bold, so the row reads without its colour. */}
                 <span>
-                  <bdi>{meeting.home.name}</bdi>{' '}
+                  <bdi className={winner(meeting.full_time, 'home')}>{meeting.home.name}</bdi>{' '}
                   <Score
                     home={meeting.full_time.home}
                     away={meeting.full_time.away}
                     className="font-bold"
                     locale={locale}
                   />{' '}
-                  <bdi>{meeting.away.name}</bdi>
+                  <bdi className={winner(meeting.full_time, 'away')}>{meeting.away.name}</bdi>
                 </span>
                 <span className="text-xs text-muted">
                   {meeting.competition.name}
@@ -103,18 +97,29 @@ export function HeadToHead({
   );
 }
 
-/** The season's declared coverage per module, each with its badge. */
+/** The side that won a meeting, set in bold; a draw sets neither. */
+function winner(score: { home: number; away: number }, side: 'home' | 'away'): string | undefined {
+  const margin = side === 'home' ? score.home - score.away : score.away - score.home;
+  return margin > 0 ? 'font-bold text-fg' : undefined;
+}
+
+/**
+ * The data footer (the canvas's "Data on this page", T-1497): the season's
+ * declared coverage per module, each with its badge, on a dashed card in the
+ * receipts' type, at the foot of every tab.
+ */
 export function Coverage({ centre, words }: { centre: MatchCentre; words: MatchWords }) {
   const m = words.m;
   const moduleState = (coverage: CoverageState): Message => m[COVERAGE_KEY[coverage]];
   return (
-    <section className={CARD} data-testid="coverage">
-      <h2 className={MODULE_HEADING}>
-        <span className={TITLE}>
-          <MessageText message={m['matchCentre.coverage']} />
-        </span>
+    <section
+      className="flex min-w-0 flex-col gap-2.5 rounded-card border border-dashed border-default p-4"
+      data-testid="coverage"
+    >
+      <h2 className="font-mono text-xs font-semibold text-muted uppercase [:root:is(:lang(fa),:lang(ar))_&]:font-sans">
+        <MessageText message={m['matchCentre.coverage']} />
       </h2>
-      <ul className="flex flex-wrap gap-2 text-xs">
+      <ul className="flex flex-wrap gap-1.5 text-xs">
         {(Object.entries(centre.coverage) as [CoverageModule, CoverageState][]).map(
           ([module, state]) => (
             <li

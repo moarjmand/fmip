@@ -12529,22 +12529,22 @@
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchLabel": {
-    "source": "Line-ups on the pitch: {away} in the top half, {home} in the bottom half",
+    "source": "Line-ups on the pitch: {home} and {away}, each goalkeeper at his own goal",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNote": {
-    "source": "Home side at the bottom. Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
+    "source": "Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNoteGrid": {
-    "source": "Home side at the bottom. Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",
+    "source": "Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNoteMixed": {
-    "source": "Home side at the bottom. {grid}: each player where the line-up places him. {roles}: placed by the formation and the role each was given, in shirt-number order along each line, because its line-up does not say who played on which side.",
+    "source": "{grid}: each player where the line-up places him. {roles}: placed by the formation and the role each was given, in shirt-number order along each line, because its line-up does not say who played on which side.",
     "text": "",
     "status": "untranslated"
   },
