@@ -399,6 +399,9 @@ function Hero({
   );
   const live = f.status === 'live' && !behind;
   const scorers = scorersOf(centre, locale);
+  // Each side's name is a 44px target on a phone (T-1553), centred in its
+  // column there; from 768px the line's own height, aligned by its row.
+  const teamLink = 'flex min-h-touch min-w-0 items-center justify-center md:block md:min-h-0';
   return (
     <header
       className="flex flex-col gap-4 bg-surface pt-3 [box-shadow:0_0_0_100vmax_var(--token-surface),0_1px_0_100vmax_var(--token-border)] [clip-path:inset(0_-100vmax_-1px)] md:gap-5 md:pt-4"
@@ -467,7 +470,7 @@ function Hero({
         <div data-testid="home-team" className="min-w-0">
           <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-end md:gap-5 md:text-end">
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
-              <Link href={`/${locale}/team/${f.home.id}`} className="min-w-0">
+              <Link href={`/${locale}/team/${f.home.id}`} className={teamLink}>
                 <bdi className={name}>{f.home.name}</bdi>
               </Link>
               {scorers.home !== '' && (
@@ -530,7 +533,7 @@ function Hero({
           <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-start md:gap-5 md:text-start">
             <Crest team={f.away} />
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
-              <Link href={`/${locale}/team/${f.away.id}`} className="min-w-0">
+              <Link href={`/${locale}/team/${f.away.id}`} className={teamLink}>
                 <bdi className={name}>{f.away.name}</bdi>
               </Link>
               {scorers.away !== '' && (
