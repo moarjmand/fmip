@@ -11,8 +11,8 @@ import { expect, test } from '@playwright/test';
  * A picture is only worth comparing if it is the same every time:
  * - both clocks are fixed: the browser's here, the server's by
  *   `fixed-clock.cjs` (the server writes "today" into the scores day strip,
- *   the date picker and the home page's date line), and the spec refuses to
- *   run without it;
+ *   the date picker and the home page's date line), and the spec runs only
+ *   with it: CI's E2E job runs it as its own step, "Visual baseline";
  * - motion is reduced and Playwright stops animations and hides the caret;
  * - every font is loaded before the shot, and lite mode (which swaps the web
  *   fonts for system faces) is off;
@@ -23,10 +23,6 @@ import { expect, test } from '@playwright/test';
  * image of the same version): a Windows or macOS render differs in its
  * anti-aliasing, so on any other platform the spec is skipped. To remake them
  * after an intended change, see docs/08-load-test.md, "Visual baseline".
- *
- * Until the pages of T-1494..T-1500 have all landed there is nothing worth
- * keeping, so the spec runs only when asked to write (`VISUAL=update`), and
- * CI's step uploads what it wrote.
  */
 
 const MATCH = '00000000-0000-4000-8000-000000000901';
@@ -50,25 +46,21 @@ const VIEWS = [
 /** A Saturday evening in UTC, the same instant `fixed-clock.cjs` starts the server at. */
 const CLOCK = new Date('2026-10-24T18:00:00Z');
 
-const UPDATE = process.env.VISUAL === 'update';
+// Playwright's web server inherits this process's environment, so the
+// server's clock is fixed exactly when this one is.
+const FIXED_SERVER_CLOCK = (process.env.NODE_OPTIONS ?? '').includes('fixed-clock.cjs');
 
-test.skip(!UPDATE, 'the baselines are taken once T-1494..T-1500 have landed (T-1502)');
 test.skip(process.platform !== 'linux', 'the baselines are Linux renders');
+test.skip(
+  !FIXED_SERVER_CLOCK,
+  'needs NODE_OPTIONS=--require=<absolute path of tests/e2e/fixed-clock.cjs>',
+);
 
 test.use({
   serviceWorkers: 'block',
   reducedMotion: 'reduce',
   locale: 'en-GB',
   timezoneId: 'Europe/London',
-});
-
-test.beforeAll(() => {
-  // Playwright's web server inherits this process's environment, so the
-  // server's clock is fixed exactly when this one is.
-  expect(
-    process.env.NODE_OPTIONS ?? '',
-    'start with NODE_OPTIONS=--require=<absolute path of tests/e2e/fixed-clock.cjs>',
-  ).toContain('fixed-clock.cjs');
 });
 
 for (const view of VIEWS) {
