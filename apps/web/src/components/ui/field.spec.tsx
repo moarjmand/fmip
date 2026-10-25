@@ -66,6 +66,12 @@ describe('TextField', () => {
     expect(cls).toContain('text-sm');
     expect(controlClasses()).toContain('px-3 py-2');
   });
+
+  it('is a 44px touch target: md everywhere, sm on a phone (T-1573)', () => {
+    expect(controlClasses('md').split(' ')).toContain('min-h-touch');
+    expect(controlClasses('sm').split(' ')).toContain('max-md:min-h-touch');
+    expect(controlClasses('sm').split(' ')).not.toContain('min-h-touch');
+  });
 });
 
 describe('TextArea and Select', () => {

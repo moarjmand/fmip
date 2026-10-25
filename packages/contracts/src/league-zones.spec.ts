@@ -43,6 +43,15 @@ describe('the committed league-zone list', () => {
     }
   });
 
+  it('gives every note its Persian, and no Persian without a note (T-1557)', () => {
+    for (const e of LIST) {
+      const key = `${e.division ?? e.country} ${e.season}`;
+      expect(e.note_fa === undefined, key).toBe(e.note === undefined);
+      // Persian letters, not the English note copied over.
+      if (e.note_fa !== undefined) expect(e.note_fa, key).toMatch(/[؀-ۿ]/);
+    }
+  });
+
   it('marks no place a split league could put in the other half', () => {
     // A club never crosses halves in a split league, so the table summed over
     // every result is only exact at the ends: the champion's place and the last
