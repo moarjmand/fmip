@@ -206,6 +206,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
       expect((await get(`/fixtures/${randomUUID()}/panel`)).statusCode).toBe(404);
     });
 
+    it('says a path that cannot be a match id is no match, not a server fault (T-1575)', async () => {
+      expect((await get('/fixtures/not-a-match/panel')).statusCode).toBe(404);
+      expect((await get('/fixtures/not-a-match/panel/permission')).statusCode).toBe(404);
+    });
+
     it('says a match with no discussion has none, rather than showing an empty one', async () => {
       // T-253. A fixture nobody opened a panel on and one where nobody has
       // spoken both come back with no posts, and only the second is something a
@@ -421,6 +426,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the match pa
           await app.inject({
             method: 'DELETE',
             url: `/fixtures/${match}/panel/${randomUUID()}`,
+            headers: as(writer),
+          })
+        ).statusCode,
+      ).toBe(404);
+      expect(
+        (
+          await app.inject({
+            method: 'DELETE',
+            url: `/fixtures/${match}/panel/not-a-post`,
             headers: as(writer),
           })
         ).statusCode,
