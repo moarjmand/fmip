@@ -19,6 +19,13 @@ export interface ShellLink {
   match: readonly string[];
 }
 
+/**
+ * Where Predictions and Predict lead (T-1519, D-269): the matches page's "Not
+ * picked yet" view. A guest has no picks, so the page shows them every match,
+ * each Pick asking them to sign in.
+ */
+const PICKS = '/scores?unpicked=1';
+
 /** Every page under Competitions and Leagues: the directory, a competition, a club, a player, a coach. */
 const LEAGUES = ['/competitions', '/competition', '/team', '/player', '/coach'];
 
@@ -28,10 +35,12 @@ const LEAGUES = ['/competitions', '/competition', '/team', '/player', '/coach'];
  * home, so the homepage has no entry of its own. Matches is the scores page
  * and the matches below it; Competitions the directory and every
  * competition, club, player and coach page; The model the model's record.
+ * Predictions leads to the matches still to pick (T-1519, D-269: picks are
+ * made on the matches page) and is current on the prediction league.
  */
 export const HEADER_NAV: readonly ShellLink[] = [
   { id: 'matches', path: '/scores', match: ['/scores', '/match'] },
-  { id: 'predictions', path: '/predictions', match: ['/predictions', '/leaderboard'] },
+  { id: 'predictions', path: PICKS, match: ['/leaderboard'] },
   {
     id: 'competitions',
     path: '/competitions',
@@ -48,7 +57,7 @@ export const HEADER_NAV: readonly ShellLink[] = [
  * page has one current link.
  */
 export const MORE_NAV: readonly ShellLink[] = [
-  { id: 'analysis', path: '/predictions#analysis', match: ['/analyses', '/founder'] },
+  { id: 'analysis', path: '/scores#analysis', match: ['/analyses', '/founder'] },
   { id: 'watch', path: '/watch', match: ['/watch'] },
   { id: 'highlights', path: '/highlights', match: ['/highlights'] },
 ];
@@ -76,8 +85,8 @@ export function tabBarLinks(signedIn: boolean): readonly ShellLink[] {
     { id: 'matches', path: '/scores', match: ['', '/scores', '/match', '/watch'] },
     {
       id: 'predict',
-      path: '/predictions',
-      match: ['/predictions', '/leaderboard', '/model-accuracy', '/analyses', '/founder'],
+      path: PICKS,
+      match: ['/leaderboard', '/model-accuracy', '/analyses', '/founder'],
     },
     {
       id: 'leagues',

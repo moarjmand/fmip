@@ -150,7 +150,6 @@ const FIELDS: Record<string, Rule> = {
  */
 const USERNAME_ONLY: [file: string, needle: string][] = [
   ['app/[locale]/leaderboard/page.tsx', 'member={entry}'],
-  ['app/[locale]/predictions/page.tsx', 'member={entry}'],
   ['app/[locale]/groups/[slug]/page.tsx', 'member={entry}'],
   ['app/[locale]/u/[username]/page.tsx', 'isDeletedMember(name)'],
 ];

@@ -152,16 +152,20 @@ test.describe('layout mirrors under rtl', () => {
     });
   }
 
-  // T-1383: the Predictions page and its model rows mirror too.
-  test('/x-rtl/predictions is right-to-left, its measure on the right', async ({ page }) => {
+  // T-1383, T-1519: the old Predictions address lands on the matches page,
+  // which mirrors whole -- its title on the right, the founder's analysis
+  // section in the list's column.
+  test('/x-rtl/predictions lands on the matches page, right to left', async ({ page }) => {
     await page.goto('/x-rtl/predictions');
+    await expect(page).toHaveURL(/\/x-rtl\/scores$/);
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('main')).toHaveAttribute('data-mode', 'editorial');
     const width = page.viewportSize()?.width ?? 1280;
     const box = await page.getByTestId('title').boundingBox();
     expect(box).not.toBeNull();
     if (box !== null) expect(box.x + box.width).toBeGreaterThan(width * 0.75);
+    const analysis = (await page.getByTestId('matches-analysis').boundingBox())!;
+    expect(analysis.x + analysis.width).toBeGreaterThan(width * 0.5);
   });
 
   // T-1387: lite mode's banner -- the words at the inline start, the switch at
