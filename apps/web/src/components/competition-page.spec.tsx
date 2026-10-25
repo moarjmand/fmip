@@ -6,7 +6,6 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { message } from '@/i18n/messages';
 import { leagueNumbers } from '@/lib/competition-overview';
-import { forecastBarWords } from '@/lib/words-server';
 
 // The server actions need a request; the component only binds them.
 vi.mock('@/lib/auth-actions', () => ({
@@ -15,26 +14,21 @@ vi.mock('@/lib/auth-actions', () => ({
 }));
 
 const {
-  CompetitionBand,
   BoardList,
   CompetitionFollow,
   CoveragePanel,
-  FixtureRow,
   LeagueNumbersPanel,
   LiveFreshness,
-  MatchweekPanel,
-  NoTableNote,
   ProviderTotalsNote,
   QualifyingNote,
   ScorerList,
 } = await import('./competition-page');
-const { StandingsTable } = await import('./standings-table');
 
 /**
- * The competition page in the Hybrid design (T-1385, D-203): the band in the
- * brand's colours with the follow control and the tabs, the round with the
- * model's three-way, a score beside its own team on `/fa`, the projection
- * slot that is never a figure, and every module's coverage as a badge.
+ * The competition page's shared modules (T-1385, D-203): the follow control,
+ * live freshness, every module's coverage as a badge, the season in figures
+ * and the players' boards. The page's own header, table, rows and model card
+ * (T-1498) are tested beside the page, in `competition-cards.spec.tsx`.
  */
 
 const ID = '00000000-0000-4000-8000-000000000201';
@@ -137,69 +131,6 @@ function page(over: Partial<CompetitionPage> = {}): CompetitionPage {
   } as CompetitionPage;
 }
 
-const band = (p: CompetitionPage, locale = 'en', tab: 'overview' | 'table' = 'overview') =>
-  renderToStaticMarkup(
-    <CompetitionBand
-      page={p}
-      locale={locale}
-      timeZone="UTC"
-      tab={tab}
-      tabs={['overview', 'table', 'fixtures', 'results', 'players', 'stats']}
-      minMinutes={null}
-      matchweek={null}
-      follow={null}
-    />,
-  );
-
-describe('the band and the tabs', () => {
-  it('names the country, kind, tier and season, and marks the open tab', () => {
-    const html = band(page());
-    expect(html).toContain('Iran · League · Tier 1 · Season 2026/27');
-    expect(html).toContain('data-testid="title"');
-    expect(html).toContain('1 match played');
-    expect(html.match(/aria-current="page"/g)).toHaveLength(1);
-    expect(html).toMatch(/aria-current="page"[^>]*data-testid="competition-tab-overview"/);
-    expect(html).toContain('href="/en/competition/' + ID + '?tab=table"');
-    // Brand colours only: the green rule and the green tab bar, no club colour.
-    expect(html).toContain('bg-accent');
-    // The open section tab: ink over the saffron rule (T-1510).
-    expect(html).toContain('border-accent font-extrabold text-fg');
-  });
-
-  it("counts a cup's played matches from the main competition and names the qualifying ones (T-1394)", () => {
-    const results = [
-      fixture({ status: 'finished', score: { home: 1, away: 0 }, qualifying: true }),
-      fixture({ status: 'finished', score: { home: 2, away: 0 }, qualifying: true }),
-      fixture({ status: 'finished', score: { home: 0, away: 1 }, qualifying: false }),
-    ];
-    const html = band(page({ results }));
-    expect(html).toContain('1 match played');
-    expect(html).toContain('2 in qualifying');
-    expect(band(page())).not.toContain('in qualifying');
-  });
-
-  it('keeps the open tab when the season changes', () => {
-    const html = band(page(), 'en', 'table');
-    expect(html).toContain(`href="/en/competition/${ID}?season=s1&amp;tab=table"`);
-  });
-
-  it('writes the season in Persian digits on /fa', () => {
-    const html = band(page(), 'fa');
-    expect(html).toContain('فصل ۲۰۲۶/۲۷');
-    expect(html).toContain('۱ بازی انجام‌شده');
-    expect(html).not.toMatch(/2026\/27/);
-  });
-
-  it('calls the table tab the knockout rounds for a cup with no table', () => {
-    const cup = page({
-      competition: { ...page().competition, kind: 'cup' },
-      table: { coverage: 'not_supplied', last_updated_at: null, data: [] },
-    });
-    expect(band(cup)).toContain('Knockout rounds');
-    expect(renderToStaticMarkup(<NoTableNote locale="en" />)).toContain('has no table');
-  });
-});
-
 describe('following the competition', () => {
   const competition: FollowedEntity = {
     entity_type: 'competition',
@@ -259,114 +190,6 @@ describe('following the competition', () => {
   });
 });
 
-describe('a match row', () => {
-  it('stacks the sides with home first, each score beside its own side, in Persian digits on /fa', () => {
-    const finished = fixture({ status: 'finished', score: { home: 6, away: 1 } });
-    const en = renderToStaticMarkup(
-      <ul>
-        <FixtureRow fixture={finished} locale="en" timeZone="UTC" />
-      </ul>,
-    );
-    // The Design System's match row (T-1508): home above away, the scores stacked at the end.
-    expect(en).toMatch(/data-side="home".*Sepahan.*data-side="away".*Fajr Sepasi/);
-    expect(en).toContain('data-testid="match-row-score"><span>6</span><span>1</span>');
-    // At full time the winner is bold and the loser muted.
-    expect(en).toMatch(/font-bold" data-side="home"/);
-    expect(en).toMatch(/font-medium text-muted" data-side="away"/);
-    expect(en).toContain('>FT<');
-    const fa = renderToStaticMarkup(
-      <ul>
-        <FixtureRow fixture={finished} locale="fa" timeZone="UTC" />
-      </ul>,
-    );
-    // Home first in the DOM, so the direction puts the status on the right.
-    expect(fa).toContain('data-testid="match-row-score"><span>۶</span><span>۱</span>');
-    expect(fa).not.toContain('<span>6</span>');
-    expect(fa).not.toMatch(/\b(ml|mr|pl|pr|left|right)-/);
-  });
-
-  it('says a postponed match is postponed and a live one is live', () => {
-    const html = renderToStaticMarkup(
-      <ul>
-        <FixtureRow fixture={fixture({ status: 'postponed' })} locale="en" timeZone="UTC" />
-        <FixtureRow
-          fixture={fixture({ id: 'x', status: 'live', score: { home: 1, away: 1 } })}
-          locale="en"
-          timeZone="UTC"
-        />
-      </ul>,
-    );
-    expect(html).toContain('postponed');
-    expect(html).toMatch(
-      /text-live" data-testid="match-row-when"><span data-testid="fixture-status">live</,
-    );
-    // The live score is in the live colour too.
-    expect(html).toMatch(/text-live" data-testid="match-row-score"/);
-  });
-});
-
-describe('the Overview’s round', () => {
-  const words = forecastBarWords('en');
-  const week = {
-    label: 'Matchweek 8',
-    state: 'next' as const,
-    fixtures: [fixture(), fixture({ id: 'f2' }), fixture({ id: 'f3' })],
-    more: 0,
-  };
-
-  it('gives each match the model’s three-way, or the sentence for why not', () => {
-    const html = renderToStaticMarkup(
-      <MatchweekPanel
-        matchweek={week}
-        page={page()}
-        locale="en"
-        timeZone="Asia/Tehran"
-        forecastWords={words}
-        freshness={null}
-        forecasts={{
-          [week.fixtures[0]!.id]: {
-            state: 'available',
-            home: 46,
-            draw: 34,
-            away: 20,
-            version: 3,
-            model_version: 'dixon-coles-elo@0.6.0',
-            computed_at: '2026-09-30T08:00:00.000Z',
-          },
-          f2: { state: 'unreachable' },
-        }}
-      />,
-    );
-    expect(html.match(/data-testid="fixture"/g)).toHaveLength(3);
-    // The Design System's match row (T-1508): the three figures over a thin bar.
-    expect(html).toContain('46.0%');
-    // The model id and its computation time are on screen with every figure (blueprint 6.2).
-    expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
-    // No forecast is a badge, never an empty bar; one not loaded says so instead.
-    expect(html).toContain('data-forecast="unreachable"');
-    expect(html).toMatch(/data-coverage-badge="delayed".*Not loaded/);
-    expect(html).toContain('data-forecast="none"');
-    expect(html).toMatch(/data-coverage-badge="not_supplied".*No forecast/);
-    expect(html).toContain('Tehran time');
-  });
-
-  it('says there is no match rather than drawing an empty list', () => {
-    const html = renderToStaticMarkup(
-      <MatchweekPanel
-        matchweek={null}
-        page={page()}
-        locale="en"
-        timeZone="UTC"
-        forecastWords={words}
-        freshness={null}
-        forecasts={{}}
-      />,
-    );
-    expect(html).toContain('data-testid="matchweek-empty"');
-    expect(html).not.toContain('data-testid="fixture"');
-  });
-});
-
 describe('freshness where a module is live (rule 4)', () => {
   const freshness = {
     'freshness.checked': message('en', 'freshness.checked'),
@@ -410,42 +233,6 @@ describe('freshness where a module is live (rule 4)', () => {
         />,
       ),
     ).toBe('');
-  });
-});
-
-describe('the table', () => {
-  it('leaves the season projection empty and labelled, never a figure (rule 3)', () => {
-    const html = renderToStaticMarkup(
-      <StandingsTable rows={page().table.data!} locale="en" zones={null} summary projection />,
-    );
-    expect(html).toContain('Season projection · coming later');
-    const cells = html.match(/<td[^>]*data-projection="empty"[^>]*><\/td>/g) ?? [];
-    expect(cells).toHaveLength(6);
-    expect(html).toContain('data-testid="projection-head"');
-  });
-
-  it('reads the form oldest to newest and signs the goal difference', () => {
-    const html = renderToStaticMarkup(
-      <StandingsTable rows={page().table.data!} locale="en" zones={null} summary />,
-    );
-    const first = html.slice(html.indexOf('data-testid="form"'));
-    // The contract says W W D W L, most recent first; the run reads L W D W W.
-    expect(
-      [...first.slice(0, first.indexOf('</span></td>')).matchAll(/data-result="(\w)"/g)].map(
-        (m) => m[1],
-      ),
-    ).toEqual(['L', 'W', 'D', 'W', 'W']);
-    expect(html).toContain('+7');
-    expect(html).toContain('−2');
-    expect(html).not.toContain('data-projection');
-  });
-
-  it('writes the table in Persian digits on /fa', () => {
-    const html = renderToStaticMarkup(
-      <StandingsTable rows={page().table.data!} locale="fa" zones={null} summary />,
-    );
-    expect(html).toContain('>۱۶<');
-    expect(html).toContain('+۷');
   });
 });
 
@@ -570,7 +357,7 @@ describe('the page’s layout', () => {
     expect(PAGE).toContain('data-mode="data"');
   });
 
-  it('asks the model for the round in one request, never one per match', () => {
+  it('asks the model for a list of matches in one request, never one per match', () => {
     expect(PAGE).toContain('fetchForecastSummaries(ids)');
     expect(PAGE.match(/fetchForecastSummaries\(/g)).toHaveLength(1);
   });

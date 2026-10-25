@@ -1,4 +1,12 @@
-import type { CompetitionPage, CoverageState, SeasonFixture, SeasonSummary } from '@fmip/contracts';
+import type {
+  AccuracyMetrics,
+  AccuracyPoint,
+  CompetitionPage,
+  CoverageState,
+  PublicModelAccuracyResponse,
+  SeasonFixture,
+  SeasonSummary,
+} from '@fmip/contracts';
 import { formatNumber, intlLocale } from '@/i18n/format';
 import { competitionQuery, stageNames } from '@/lib/competition';
 
@@ -11,23 +19,36 @@ import { competitionQuery, stageNames } from '@/lib/competition';
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-/** The page's sections, in the order the tab bar shows them. */
+/**
+ * The page's sections, in the order the tab bar shows them (T-1498, D-274):
+ * the Stadiomind canvas's six. Fixtures and results are one Matches tab.
+ */
 export const COMPETITION_TABS = [
   'overview',
   'table',
-  'fixtures',
-  'results',
+  'matches',
   'players',
-  'stats',
+  'model',
+  'news',
 ] as const;
 export type CompetitionTab = (typeof COMPETITION_TABS)[number];
 
+/**
+ * The Hybrid page's tab addresses (T-1385), kept working: a shared link to
+ * `?tab=fixtures` or `?tab=results` opens Matches, `?tab=stats` the Overview,
+ * whose coverage module it held.
+ */
+const RETIRED_TABS: Record<string, CompetitionTab> = {
+  fixtures: 'matches',
+  results: 'matches',
+  stats: 'overview',
+};
+
 /** `?tab=`: one of the page's sections; anything else (or nothing) is the Overview. */
 export function readTabParam(params: SearchParams): CompetitionTab {
-  const raw = Array.isArray(params.tab) ? params.tab[0] : params.tab;
-  return (COMPETITION_TABS as readonly string[]).includes(raw ?? '')
-    ? (raw as CompetitionTab)
-    : 'overview';
+  const raw = (Array.isArray(params.tab) ? params.tab[0] : params.tab) ?? '';
+  if ((COMPETITION_TABS as readonly string[]).includes(raw)) return raw as CompetitionTab;
+  return RETIRED_TABS[raw] ?? 'overview';
 }
 
 /**
@@ -264,4 +285,133 @@ export function seasonDigits(locale: string, label: string): string {
 export function clubCount(page: Pick<CompetitionPage, 'table'>): number | null {
   const rows = page.table.data ?? [];
   return rows.length === 0 ? null : rows.length;
+}
+
+// ---------------------------------------------------------------------------
+// The day's matches (T-1498)
+// ---------------------------------------------------------------------------
+
+/** A calendar day in the reader's zone, `YYYY-MM-DD`. */
+export function dayKey(iso: string, timeZone: string): string {
+  // en-CA writes the ISO order; the digits are Latin whatever the page's locale.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(iso));
+}
+
+export interface MatchDay {
+  /** `YYYY-MM-DD` in the reader's zone. */
+  day: string;
+  /** That day's matches by kick-off, played, playing or to come. */
+  fixtures: SeasonFixture[];
+}
+
+/**
+ * A scheduled match this long past its kick-off with no word from the feed
+ * does not make its day "the next match day": it is late news, not the plan.
+ */
+const STALE_SCHEDULED_MS = 6 * 60 * 60 * 1000;
+
+function sameDay(
+  page: Pick<CompetitionPage, 'results' | 'fixtures'>,
+  day: string,
+  timeZone: string,
+): SeasonFixture[] {
+  return [...page.fixtures, ...page.results]
+    .filter((f) => dayKey(f.kickoff_at, timeZone) === day)
+    .sort(byKickoff);
+}
+
+/**
+ * The Overview's day of matches (T-1498): the day, in the reader's zone, of
+ * the first match being played or still to come, with every match of the
+ * competition that day, finished ones included. Null when the season has
+ * nothing left to play: the page says so rather than showing an old day.
+ */
+export function nextMatchDay(
+  page: Pick<CompetitionPage, 'results' | 'fixtures'>,
+  timeZone: string,
+  now: number,
+): MatchDay | null {
+  const first = [...page.fixtures]
+    .filter(
+      (f) =>
+        f.status === 'live' ||
+        (f.status === 'scheduled' && Date.parse(f.kickoff_at) > now - STALE_SCHEDULED_MS),
+    )
+    .sort(byKickoff)[0];
+  if (first === undefined) return null;
+  const day = dayKey(first.kickoff_at, timeZone);
+  return { day, fixtures: sameDay(page, day, timeZone) };
+}
+
+/**
+ * The latest day with a result before `before` (the Overview's match day,
+ * whose own results it already shows), in the reader's zone; null with none.
+ */
+export function lastResultDay(
+  page: Pick<CompetitionPage, 'results' | 'fixtures'>,
+  timeZone: string,
+  before: string | null,
+): MatchDay | null {
+  const days = page.results
+    .filter((f) => f.status === 'finished')
+    .map((f) => dayKey(f.kickoff_at, timeZone))
+    .filter((d) => before === null || d < before)
+    .sort();
+  const day = days[days.length - 1];
+  if (day === undefined) return null;
+  return {
+    day,
+    fixtures: sameDay(page, day, timeZone).filter((f) => f.status === 'finished'),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The model in this league (T-1498)
+// ---------------------------------------------------------------------------
+
+/**
+ * How the statistical model's published pre-kick-off forecasts have scored
+ * in this competition (`GET /model/accuracy`, T-1369): only the model, never
+ * the founder's analysis or the community (rule 6). `unreachable`: the
+ * answer did not come; `not_supplied`: nothing in this league is scored yet,
+ * or the model has not forecast it -- no figure is shown (rule 3).
+ */
+export type LeagueModel =
+  | { state: 'unreachable' }
+  | { state: 'not_supplied' }
+  | {
+      state: 'scored';
+      /** The newest month with a scored match. */
+      latest: AccuracyPoint;
+      /** Every month with a scored match, newest first. */
+      months: AccuracyPoint[];
+      total: AccuracyMetrics;
+      modelVersions: string[];
+      lastUpdatedAt: string | null;
+    };
+
+export function leagueModel(
+  answer: PublicModelAccuracyResponse | null,
+  competitionId: string,
+): LeagueModel {
+  if (answer === null) return { state: 'unreachable' };
+  const series = answer.competitions.find((s) => s.competition?.id === competitionId);
+  const months = (series?.points ?? [])
+    .filter((p) => p.coverage !== 'not_supplied' && p.matches > 0)
+    .reverse();
+  const latest = months[0];
+  if (series === undefined || latest === undefined) return { state: 'not_supplied' };
+  return {
+    state: 'scored',
+    latest,
+    months,
+    total: series.total,
+    modelVersions: series.model_versions,
+    lastUpdatedAt: answer.last_updated_at,
+  };
 }
