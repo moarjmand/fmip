@@ -12,10 +12,23 @@
  * which these values do not.
  */
 export const BRAND_COLOURS = {
-  canvas: '#fafaf7',
-  text: '#15181d',
-  'text-muted': '#3e4651',
-  border: '#dadde2',
-  accent: '#0b6b3a',
+  canvas: '#f2f3f1',
+  text: '#121518',
+  'text-muted': '#4c5660',
+  border: '#dce0e2',
+  accent: '#8a5300',
   'on-accent': '#ffffff',
+} as const;
+
+/**
+ * The D-089 mark's colours: the green tile and its white "F", which the
+ * committed app icons (`public/icons`), the manifest and `theme-color` share.
+ * The Stadiomind palette (D-263) moved the tokens to saffron, but the mark,
+ * the icons and the browser's tint move together when T-1492 draws the
+ * Stadiomind mark (D-262); until then they keep this green, so an icon and
+ * the inline mark never disagree. TODO(T-1492): remove with the old mark.
+ */
+export const MARK_COLOURS = {
+  tile: '#0b6b3a',
+  figure: '#ffffff',
 } as const;

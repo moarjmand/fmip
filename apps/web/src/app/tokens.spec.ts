@@ -7,7 +7,7 @@ import { BRAND_COLOURS } from '@/lib/brand-colours';
  * The colour tokens (T-602, D-089) keep their promises.
  *
  * Every pair a page actually draws -- text of each role on each background,
- * text on the green, a field's edge and the focus ring on each background --
+ * text on saffron, a field's edge and the focus ring on each background --
  * meets WCAG 2 AA in both themes: 4.5:1 for text, 3:1 for a control's edge
  * and the focus indicator. The figures are computed here from the values in
  * tokens.css, not copied, and the figures written in its comments must match
@@ -49,7 +49,7 @@ const DARK_MORE_COPIES = [
   block(":root:not([data-theme='light']):not([data-contrast='standard'])"),
 ];
 
-// Editorial mode (D-198): the header and editorial pages, on paper whatever
+// Editorial mode (D-198): the header and editorial pages, on Day whatever
 // the theme -- the light values, plain and with more contrast.
 const EDITORIAL = block("\n[data-mode='editorial']");
 const EDITORIAL_MORE = [
@@ -122,7 +122,7 @@ describe.each([
     }
   });
 
-  it('text on the green is AA, plain and pressed', () => {
+  it('text on saffron is AA, plain and pressed', () => {
     for (const background of ON_ACCENT_BACKGROUNDS) {
       expect(
         contrast(value(theme, '--token-on-accent'), value(theme, background)),
@@ -160,7 +160,7 @@ describe.each([
     }
   });
 
-  it('text on the green is AAA, plain and pressed', () => {
+  it('text on saffron is AAA, plain and pressed', () => {
     for (const background of ON_ACCENT_BACKGROUNDS) {
       expect(
         contrast(value(theme, '--token-on-accent'), value(theme, background)),
@@ -269,19 +269,16 @@ describe('the tokens themselves', () => {
     expect([...DARK_CHOSEN.keys()].sort()).toEqual(names);
   });
 
-  it('put a data page on the stage: Day is the sunk ground, Night the canvas (D-198)', () => {
-    expect(value(LIGHT, '--token-stage')).toBe('#f1f2ee');
-    expect(value(DARK, '--token-canvas')).toBe('#06080c');
-    for (const light of [LIGHT, LIGHT_MORE]) {
-      expect(value(light, '--token-stage')).toBe(value(light, '--token-surface-raised'));
-    }
-    for (const dark of [DARK, DARK_MORE]) {
-      expect(value(dark, '--token-stage')).toBe(value(dark, '--token-canvas'));
+  it('put a data page on the stage: the page ground in both themes (D-263)', () => {
+    expect(value(LIGHT, '--token-canvas')).toBe('#f2f3f1');
+    expect(value(DARK, '--token-canvas')).toBe('#0f1215');
+    for (const theme of [LIGHT, LIGHT_MORE, DARK, DARK_MORE]) {
+      expect(value(theme, '--token-stage')).toBe(value(theme, '--token-canvas'));
     }
   });
 
-  it('keep editorial mode on paper: the light values, whatever the theme (D-198)', () => {
-    expect(value(LIGHT, '--token-canvas')).toBe('#fafaf7');
+  it('keep editorial mode on Day: the light values, whatever the theme (D-198, D-263)', () => {
+    expect(value(EDITORIAL, '--token-canvas')).toBe('#f2f3f1');
     const pairs = [[EDITORIAL, LIGHT], ...EDITORIAL_MORE.map((copy) => [copy, LIGHT_MORE])];
     for (const [copy, of] of pairs) {
       if (copy === undefined || of === undefined) throw new Error('missing block');
@@ -310,11 +307,21 @@ describe('the tokens themselves', () => {
     }
   });
 
-  it('keep one green: D-089 #0b6b3a on light, lifted to #1ed38a on Night (D-198)', () => {
-    expect(value(LIGHT, '--token-accent')).toBe('#0b6b3a');
-    expect(value(DARK, '--token-accent')).toBe('#1ed38a');
-    // The mark is drawn in the light green in both themes.
-    expect(BRAND_COLOURS.accent).toBe('#0b6b3a');
+  it('keep saffron for the brand and turquoise for the model alone (D-263)', () => {
+    // Saffron itself on Night, the Design System's `saffron-text` on Day.
+    expect(value(DARK, '--token-accent')).toBe('#eba53c');
+    expect(value(LIGHT, '--token-accent')).toBe('#8a5300');
+    expect(value(DARK, '--token-model')).toBe('#3cc4be');
+    expect(value(LIGHT, '--token-model')).toBe('#0e7a75');
+    // No other role borrows the model's colour, in any theme (rule 6).
+    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE]) {
+      const model = value(theme, '--token-model');
+      for (const token of TEXT.filter((name) => name !== '--token-model')) {
+        expect(value(theme, token), token).not.toBe(model);
+      }
+    }
+    // D-198's green has left every block.
+    expect(TOKENS).not.toMatch(/#0b6b3a|#1ed38a/);
   });
 
   it('are what every Tailwind colour class in globals.css reads', () => {

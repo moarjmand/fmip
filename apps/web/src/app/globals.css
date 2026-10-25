@@ -11,9 +11,9 @@
  *
  *   font-sans     the interface and body text. Vazirmatn on an Arabic-script
  *                 page (fa, ar); on every other page the base layer below
- *                 points it at `--font-latin`, Mona Sans. Data numerals,
+ *                 points it at `--font-latin`, Archivo (D-263). Data numerals,
  *                 scores and data-mode display are this family at 900, with
- *                 `font-stretch-condensed` (Mona Sans has a width axis;
+ *                 `font-stretch-condensed` (Archivo has a width axis;
  *                 Vazirmatn has none, so in Persian weight does the work).
  *   font-serif    editorial display, standfirsts and headings: Newsreader,
  *                 and Markazi Text on an Arabic-script page.
@@ -52,7 +52,7 @@
     'Noto Sans', 'Noto Sans Arabic', Tahoma, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Noto Color Emoji';
   --font-latin:
-    'Mona Sans Variable', 'Mona Sans Fallback', system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Archivo Variable', 'Archivo Fallback', system-ui, -apple-system, 'Segoe UI', Roboto,
     'Noto Sans', 'Noto Sans Arabic', Tahoma, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Noto Color Emoji';
   --font-serif:
@@ -156,7 +156,7 @@
 
 /*
  * The font roles follow the page's script (D-198): Latin-script pages draw
- * the interface in Mona Sans; Arabic-script pages keep Vazirmatn for it and
+ * the interface in Archivo; Arabic-script pages keep Vazirmatn for it and
  * for an article's body, take Markazi Text for editorial display, and open
  * up the display line heights, which Arabic's ascenders and descenders need
  * (Persian article body: 17px on a line twice that). On <html> only, where
@@ -513,28 +513,31 @@ body {
  * out of it. Each is named second in its role's stack, after its web font.
  */
 @font-face {
-  font-family: 'Mona Sans Fallback';
+  font-family: 'Archivo Fallback';
   src: local('Arial'), local('Liberation Sans'), local('Arimo');
-  size-adjust: 103.35%;
-  ascent-override: 105.47%;
-  descent-override: 30.96%;
+  size-adjust: 97.23%;
+  ascent-override: 90.3%;
+  descent-override: 21.6%;
   line-gap-override: 0%;
   unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
 }
 
 /*
- * The same family for condensed text (`font-stretch-condensed`, Mona Sans's
+ * The same family for condensed text (`font-stretch-condensed`, Archivo's
  * width axis at 75 %): a browser picks the face whose stretch matches, and
- * Arial, which has no condensed form, is scaled to condensed Mona Sans's
- * advance instead (67.9 % at weight 400, 71.0 % at 700), its line box kept.
+ * Arial, which has no condensed form, is scaled to condensed Archivo's
+ * advance instead (77.9 % at weight 400, 77.5 % at 700, before the same
+ * Chromium correction as the upright face), its line box kept. Archivo's
+ * metrics were taken from the woff2 with fontTools and corrected by the
+ * ratio Mona Sans's Chromium measurement bore to the same method (T-1491).
  */
 @font-face {
-  font-family: 'Mona Sans Fallback';
+  font-family: 'Archivo Fallback';
   src: local('Arial'), local('Liberation Sans'), local('Arimo');
   font-stretch: 50% 87.5%;
-  size-adjust: 69.47%;
-  ascent-override: 156.9%;
-  descent-override: 46.06%;
+  size-adjust: 76.36%;
+  ascent-override: 114.98%;
+  descent-override: 27.5%;
   line-gap-override: 0%;
   unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
 }

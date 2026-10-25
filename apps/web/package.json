@@ -21,9 +21,9 @@
   },
   "dependencies": {
     "@fmip/contracts": "workspace:*",
+    "@fontsource-variable/archivo": "^5.2.8",
     "@fontsource-variable/geist-mono": "^5.3.0",
     "@fontsource-variable/markazi-text": "^5.3.0",
-    "@fontsource-variable/mona-sans": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@fontsource-variable/vazirmatn": "^5.3.0",
     "next": "^16.3.4",

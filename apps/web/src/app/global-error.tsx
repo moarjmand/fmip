@@ -4,9 +4,9 @@ import { useParams, usePathname } from 'next/navigation';
 import { ErrorPageBody, errorPageLocale, useErrorPageMessages } from '@/components/error-page';
 import { directionOf } from '@/i18n/locales';
 import '@fontsource-variable/vazirmatn';
-// The interface face of a Latin-script page (D-198); the error page draws no
+// The interface face of a Latin-script page (D-198, D-263); the error page draws no
 // editorial or mono text, so it needs no other family.
-import '@fontsource-variable/mona-sans/wdth.css';
+import '@fontsource-variable/archivo/wdth.css';
 import './globals.css';
 
 /**

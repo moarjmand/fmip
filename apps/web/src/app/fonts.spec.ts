@@ -7,8 +7,9 @@ import { describe, expect, it } from 'vitest';
 /**
  * T-601: the site's fonts are served from this site. No request leaves it for
  * a font -- not at build time and not in a reader's browser. Vazirmatn since
- * D-089; Mona Sans, Newsreader, Geist Mono and Markazi Text since the Hybrid
- * design (T-1380, D-198), each checked the same way.
+ * D-089; Newsreader, Geist Mono and Markazi Text since the Hybrid design
+ * (T-1380, D-198) and Archivo since the Stadiomind one (T-1491, D-263), each
+ * checked the same way.
  */
 
 const WEB = fileURLToPath(new URL('../../', import.meta.url));
@@ -23,7 +24,7 @@ const GLOBALS = readFileSync(join(WEB, 'src/app/globals.css'), 'utf8');
  */
 const FACES: [stylesheet: string, family: string, subsets: string[]][] = [
   ['@fontsource-variable/vazirmatn', 'Vazirmatn Variable', ['arabic', 'latin-wght']],
-  ['@fontsource-variable/mona-sans/wdth.css', 'Mona Sans Variable', ['latin-wdth']],
+  ['@fontsource-variable/archivo/wdth.css', 'Archivo Variable', ['latin-wdth']],
   ['@fontsource-variable/newsreader', 'Newsreader Variable', ['latin-wght-normal']],
   ['@fontsource-variable/newsreader/wght-italic.css', 'Newsreader Variable', ['latin-wght-italic']],
   ['@fontsource-variable/geist-mono', 'Geist Mono Variable', ['latin-wght']],
@@ -83,7 +84,7 @@ describe('the site fonts', () => {
       /--font-sans:\s*'Vazirmatn Variable',\s*'Vazirmatn Fallback',\s*system-ui/,
     );
     expect(GLOBALS).toMatch(
-      /--font-latin:\s*'Mona Sans Variable',\s*'Mona Sans Fallback',\s*system-ui/,
+      /--font-latin:\s*'Archivo Variable',\s*'Archivo Fallback',\s*system-ui/,
     );
     expect(GLOBALS).toMatch(/--font-serif:\s*'Newsreader Variable',\s*'Newsreader Fallback',/);
     expect(GLOBALS).toMatch(
@@ -103,7 +104,7 @@ describe('the site fonts', () => {
 
   it('have their fallbacks as local faces scaled to their metrics, which download nothing (T-1463)', () => {
     for (const family of [
-      'Mona Sans Fallback',
+      'Archivo Fallback',
       'Newsreader Fallback',
       'Geist Mono Fallback',
       'Vazirmatn Fallback',
@@ -125,7 +126,7 @@ describe('the site fonts', () => {
     }
   });
 
-  it('follow the page’s script: Mona Sans for a Latin page, Markazi Text for Persian display', () => {
+  it('follow the page’s script: Archivo for a Latin page, Markazi Text for Persian display', () => {
     const latin = /:root:not\(:lang\(fa\), :lang\(ar\)\) \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';
     expect(latin).toContain('--font-sans: var(--font-latin);');
     const arabic = /:root:is\(:lang\(fa\), :lang\(ar\)\) \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';
