@@ -35,7 +35,7 @@ import { tabHref } from '@/lib/competition-overview';
 import { withTerritory } from '@/lib/viewing';
 
 /**
- * The club page's Overview in the Stadiomind Club board (T-1499, D-267):
+ * The club page's Overview in the Stadiomind Club board (T-1499, D-276):
  * the main column's recent results and home and away record, the side
  * column's matches coming up, top scorer, squad and the table around the
  * club, and the band's standing. Each module states its coverage where the
@@ -160,7 +160,7 @@ export function BandStanding({ page, locale }: { page: TeamPage; locale: string 
  * "Recent results" (T-1499): the last `RECENT_RESULTS` across competitions,
  * each a link to its match -- the day, the result tile, the opponent with
  * "v" or "at" and "home", the score from the club's side (its goals first,
- * at the line's start, D-267) and the competition. On a phone the day and
+ * at the line's start, D-276) and the competition. On a phone the day and
  * the competition go under the opponent, and the form leads the card.
  */
 export function RecentResults({
@@ -502,7 +502,7 @@ export function ComingUp({
 }
 
 /**
- * The top scorer (T-1499, T-1528, D-266): the club's leading scorer in one
+ * The top scorer (T-1499, T-1528, D-275): the club's leading scorer in one
  * competition from our recorded goals, with the photo we hold, everyone level
  * on the most named. With no goal recorded, or no goals sent, a sentence
  * under the badge -- never a scorer on nought.

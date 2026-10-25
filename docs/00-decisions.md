@@ -12360,7 +12360,7 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** The live view grows by the axis, the scorers, the best rated and the chip, measured against the 191 KB ceiling in `perf-budgets.json`. `globals.css`'s tab rules name each tab. The pitch's note no longer says "home side at the bottom", which is true only on a phone.
 
-## D-267 — The club page follows the Club board, keeps its five tabs, and reads results from the club's side
+## D-276 — The club page follows the Club board, keeps its five tabs, and reads results from the club's side
 
 **Status:** Accepted · 2026-10-25 · **Task:** T-1499 (with T-1528, T-1529)
 

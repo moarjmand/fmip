@@ -39,7 +39,7 @@ describe('EntityBand', () => {
       expect(out).toContain(`${token}:${white}`);
     }
     // The tabs and the follow button stay below the fill, on the theme's
-    // surface: the colour is the band's, never a control's (D-267).
+    // surface: the colour is the band's, never a control's (D-276).
     const fill = out.slice(0, out.indexOf('data-testid="tabs"'));
     expect(fill).toContain('background-color:#c41f17');
     expect(fill).not.toContain('Follow');

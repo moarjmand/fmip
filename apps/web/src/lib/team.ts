@@ -337,7 +337,7 @@ export function homeAwayLean(locale: string, splits: TeamCompetitionSplits): str
 }
 
 /**
- * The top scorer the Overview shows (T-1528, D-266): the first competition
+ * The top scorer the Overview shows (T-1528, D-275): the first competition
  * in which a goal for the club is recorded, else the first one, so its state
  * is still said; null when the API sent none (older than T-1528) or the club
  * has no competition.

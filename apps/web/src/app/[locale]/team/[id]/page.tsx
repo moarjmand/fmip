@@ -85,7 +85,7 @@ async function nextForecast(fixture: TeamPageFixture | null): Promise<CardForeca
 
 /**
  * The team page (blueprint 5.2, T-036), in the Stadiomind Club board
- * (T-1499, D-267; tabs since T-1386, D-204): following Day and Night, under
+ * (T-1499, D-276; tabs since T-1386, D-204): following Day and Night, under
  * a band filled with the club's colour when one is known (the only place it
  * appears), with where the club stands at its end and follow beside the
  * tabs. It opens on the Overview -- the next match with the model's forecast

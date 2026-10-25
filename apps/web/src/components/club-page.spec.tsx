@@ -25,7 +25,7 @@ const { NextMatchCard } = await import('./next-match-card');
 
 /**
  * The club page (T-1386, D-204; the Stadiomind Club board since T-1499,
- * D-267): the surface band when no club colour is known, where the club
+ * D-276): the surface band when no club colour is known, where the club
  * stands at its end, the tabs as links, the recent results and the home and
  * away record with every missing figure said, each score in Persian digits
  * on `/fa`, the top scorer, the squad with its coverage, the table around
@@ -483,7 +483,7 @@ describe('recent results and coming up', () => {
   });
 });
 
-describe('the top scorer (T-1528, D-266)', () => {
+describe('the top scorer (T-1528, D-275)', () => {
   const entry = (data: { person: { id: string; name: string }; goals: number }[] | null) => ({
     competition: { id: 'pgpl', name: 'Persian Gulf Pro League', short_name: 'Pro League' },
     season: { id: 's1', label: '2026/27', is_current: true },

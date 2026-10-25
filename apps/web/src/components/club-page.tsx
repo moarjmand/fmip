@@ -47,7 +47,7 @@ import { withTerritory } from '@/lib/viewing';
 
 /**
  * The club page (T-1386, D-204; the Stadiomind Club board since T-1499,
- * D-267): the band, the tabs and the modules of the tabs beyond the
+ * D-276): the band, the tabs and the modules of the tabs beyond the
  * Overview, whose own modules are in `club-overview.tsx`. Every module
  * states its coverage with a `CoverageBadge` where the API declares one
  * (rule 3); a figure the API does not count is left out with a sentence,
