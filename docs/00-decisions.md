@@ -12244,7 +12244,7 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** The new budgets are home 163, scores 180, match centre 191, competition 163 KB at most, raised in the PR that needs them. PageSpeed is measured after the foundation and after the last page (T-1502).
 
-## D-265 — The visual baseline is Linux renders of the no-API pages, with both clocks fixed
+## D-266 — The visual baseline is Linux renders of the no-API pages, with both clocks fixed
 
 **Status:** Accepted · 2026-10-25 (T-1502, under the maintainer's standing approval for the redesign) · **Task:** T-1502 · **Follows:** D-264
 
