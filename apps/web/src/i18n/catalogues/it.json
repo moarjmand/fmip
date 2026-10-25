@@ -11372,7 +11372,7 @@
     "status": "untranslated"
   },
   "playerPage.minutesNote": {
-    "source": "Minutes are recorded per match: “at least” marks a season where some matches have none, “not supplied” one where none do. Advanced statistics and availability are not held for this player and are not shown.",
+    "source": "Minutes are recorded per match: “at least” marks a season where some matches have none, “not supplied” one where none do. Advanced statistics are not held for this player and are not shown.",
     "text": "",
     "status": "untranslated"
   },
@@ -11475,33 +11475,68 @@
     "text": "",
     "status": "untranslated"
   },
-  "playerPage.tile.apps": {
-    "source": "Appearances",
-    "text": "",
-    "status": "untranslated"
-  },
-  "playerPage.tile.cards": {
-    "source": "Yellow / red cards",
-    "text": "",
-    "status": "untranslated"
-  },
   "playerPage.tile.minutes": {
-    "source": "Minutes played",
-    "text": "",
-    "status": "untranslated"
-  },
-  "playerPage.alsoThisSeason": {
-    "source": "Also this season: {list}. Every competition is in the record below.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "playerPage.fullRecord": {
-    "source": "Full record with minutes",
+    "source": "{minutes} min",
     "text": "",
     "status": "untranslated"
   },
   "playerPage.allMatches": {
     "source": "All matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.born": {
+    "source": "born {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.seasonHeading": {
+    "source": "Season {season}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.minutesAtLeast": {
+    "source": "at least {minutes} min",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.minutesMissing": {
+    "source": "minutes not supplied",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.per90": {
+    "source": "{value} per 90",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.club": {
+    "source": "Club",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.sub": {
+    "source": "Sub",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.careerBySeason": {
+    "source": "Career by season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.careerCaption": {
+    "source": "{name}: career by season and competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.careerNote": {
+    "source": "Built from the line-ups and incidents we hold, newest season first.",
     "text": "",
     "status": "untranslated"
   },

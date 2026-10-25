@@ -45,6 +45,7 @@ import {
   leadersModule,
   leadersWithMinutes,
   rankByFigure,
+  teamTopScorers,
   wholeOnlyIfRecorded,
 } from './internal/leaders';
 import { readCoachPage, readTeamHeadCoach } from './internal/coach-read';
@@ -615,22 +616,41 @@ export class CatalogService {
     if (found === null) return { kind: 'unknown_team' };
     const seasons = await this.teams_.seasons(id);
     const seasonIds = seasons.map((s) => s.season.id);
-    const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures, lineup, ground] =
-      await Promise.all([
-        this.teams_.fixtures(id, seasonIds),
-        this.teams_.squad(id),
-        this.teams_.followers(id),
-        Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
-        this.teams_.splitFixtures(id, seasonIds),
-        this.teams_.latestLineup(id),
-        // No ground recorded: where this season's home matches were played (D-209).
-        found.venue === null
-          ? this.teams_.fixtureGround(
-              id,
-              seasons.filter((s) => s.season.is_current).map((s) => s.season.id),
-            )
-          : Promise.resolve(null),
-      ]);
+    const [
+      { fixtures, lastUpdatedAt },
+      squad,
+      followers,
+      tables,
+      splitFixtures,
+      lineup,
+      ground,
+      seasonScorers,
+    ] = await Promise.all([
+      this.teams_.fixtures(id, seasonIds),
+      this.teams_.squad(id),
+      this.teams_.followers(id),
+      Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
+      this.teams_.splitFixtures(id, seasonIds),
+      this.teams_.latestLineup(id),
+      // No ground recorded: where this season's home matches were played (D-209).
+      found.venue === null
+        ? this.teams_.fixtureGround(
+            id,
+            seasons.filter((s) => s.season.is_current).map((s) => s.season.id),
+          )
+        : Promise.resolve(null),
+      // The top scorer per competition (T-1528, D-275), counted as the
+      // competition page counts its scorers: whole only if recorded.
+      Promise.all(
+        seasons.map(async (s) => {
+          const [scorers, tally] = await Promise.all([
+            this.standings.leaders(s.season.id, null),
+            this.standings.incidentTally(s.season.id),
+          ]);
+          return teamTopScorers(wholeOnlyIfRecorded(scorers, tally), id);
+        }),
+      ),
+    ]);
     // Minutes for this team over the seasons the page covers (T-824).
     const squadMinutes = await this.players_.minutesByPerson(
       seasonIds,
@@ -646,6 +666,7 @@ export class CatalogService {
       person: [
         ...squad.players.map((p) => p.person.id),
         ...(headCoach.data === null ? [] : [headCoach.data.person.id]),
+        ...seasonScorers.flatMap((module) => (module.data ?? []).map((r) => r.person.id)),
       ],
     });
     const team = { ...found, crest: media.crest(id) };
@@ -675,6 +696,23 @@ export class CatalogService {
           squad.lastUpdatedAt,
         ),
         splits: buildSplits(seasons, splitFixtures),
+        top_scorers: seasons.map((s, i) => {
+          const module = seasonScorers[i]!;
+          return {
+            competition: s.competition,
+            season: s.season,
+            scorers: {
+              ...module,
+              data:
+                module.data === null
+                  ? null
+                  : module.data.map((r) => ({
+                      person: { ...r.person, photo: media.photo(r.person.id) },
+                      goals: r.goals,
+                    })),
+            },
+          };
+        }),
         manager: managerOf(lineup),
         head_coach:
           headCoach.data === null

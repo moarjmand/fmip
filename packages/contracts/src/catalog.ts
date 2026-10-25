@@ -592,6 +592,28 @@ export interface TeamCompetitionSplits {
   last_updated_at: string | null;
 }
 
+/** A club's scorer in one competition's season (T-1528): goals for this club only. */
+export interface TeamScorer {
+  /** `photo`: from our own origin (T-1321). */
+  person: { id: string; name: string; photo?: EntityMedia };
+  goals: number;
+}
+
+/**
+ * The club's top scorer in one competition's season (T-1528, D-275), counted
+ * as the competition page counts its scorers: our recorded goal incidents of
+ * the main competition (D-209, D-232), goals for this club only. `scorers` is
+ * every player level on the most goals, by name; empty when the club has no
+ * recorded goal. Its coverage is the season's scorers' coverage: `limited`
+ * while the season's recorded goals fall short of its scores, `not_supplied`
+ * when no incidents are held for the season.
+ */
+export interface TeamTopScorers {
+  competition: { id: string; name: string; short_name: string | null };
+  season: { id: string; label: string; is_current: boolean };
+  scorers: Covered<TeamScorer[]>;
+}
+
 /** `GET /teams/:id`. */
 export interface TeamPage {
   team: {
@@ -636,6 +658,12 @@ export interface TeamPage {
    * `competitions` entry and in the same order.
    */
   splits: TeamCompetitionSplits[];
+  /**
+   * The top scorer per competition (T-1528), one entry per `competitions`
+   * entry and in the same order. Optional: an API older than T-1528 does not
+   * send it, which reads as `not_supplied`.
+   */
+  top_scorers?: TeamTopScorers[];
   /** The coach named on the team's most recent line-up (T-944, D-119). */
   manager: TeamManager;
   /**
