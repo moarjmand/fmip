@@ -279,6 +279,7 @@ The deep review of the rebuilt match centre on production in every state (before
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-1550 | The score band named a penalty shoot-out's kicks as goals (Palmeiras v Fluminense: "Mauricio 91′ · Gustavo Gómez 93′ …"); before kick-off and on a postponed match the timeline, statistics, player statistics, xG and line-ups said "Not supplied for this match" although the season covers them; the timeline axis said "1 cards" | T-1497 | `- [x]` The band's scorers stop where the shoot-out starts (spec). `- [x]` Before kick-off a module the season covers says "From kick-off" and why; one it does not cover keeps "Not supplied"; a postponed or cancelled match says "Not played"; once played the coverage state is back (specs, en and fa). `- [x]` The axis's name carries no plural |
+| `[ ]` T-1553 | 44px targets on a phone in the match centre: Share (37x20 on production), "Sign in to follow this match" (164x15) and each side's name in the score band (75x20) | T-1497 | `- [ ]` Each at least 44px high at 360px (`journeys/target-size.spec.ts`), the line's own height from 768px. `- [ ]` axe with `target-size` passes on the match centre at 360 and 1280px |
 
 ## Page speed (GTmetrix, 2026-10-21)
 
