@@ -301,7 +301,7 @@ describe('the front page (T-1382, D-200; T-1495, D-270)', () => {
   });
 
   it('shows the newest month with a scored match, and nothing when none is scored', () => {
-    const point = (period: string, matches: number, rps: number | null) => ({
+    const point = (period: string, matches: number, rps: number | null, accuracy = 0.5) => ({
       period,
       period_start: `${period}-01`,
       forecasts: matches,
@@ -310,13 +310,25 @@ describe('the front page (T-1382, D-200; T-1495, D-270)', () => {
       log_loss: null,
       brier: null,
       rps,
-      accuracy: null,
+      accuracy: rps === null ? null : accuracy,
       uniform_rps: rps === null ? null : 0.23,
+    });
+    const league = (id: string, points: ReturnType<typeof point>[]) => ({
+      competition: { id, name: id.toUpperCase() },
+      model_versions: [],
+      points,
     });
     const answer = (points: ReturnType<typeof point>[]) =>
       ({
         period: 'month',
+        minimum_matches: 30,
         overall: { competition: null, model_versions: ['dixon-coles-elo@0.6.0'], points },
+        competitions: [
+          league('bl', [point('2026-10', 8, 0.24, 0.44)]),
+          league('ucl', [point('2026-10', 4, 0.18, 0.667)]),
+          // Nothing scored this month: left out, not shown as nought.
+          league('pgpl', [point('2026-09', 20, 0.2, 0.6)]),
+        ],
         last_updated_at: '2026-10-08T03:00:00Z',
       }) as unknown as PublicModelAccuracyResponse;
     const figure = accuracyFigure(
@@ -327,6 +339,9 @@ describe('the front page (T-1382, D-200; T-1495, D-270)', () => {
     expect(figure?.periodStart).toBe('2026-10-01');
     expect(figure?.metrics.coverage).toBe('limited');
     expect(figure?.modelVersions).toEqual(['dixon-coles-elo@0.6.0']);
+    // T-1516: each league's same month, the favourite winning most often first.
+    expect(figure?.competitions.map((c) => c.id)).toEqual(['ucl', 'bl']);
+    expect(figure?.minimumMatches).toBe(30);
     expect(accuracyFigure(answer([point('2026-10', 0, null)]))).toBeNull();
   });
 

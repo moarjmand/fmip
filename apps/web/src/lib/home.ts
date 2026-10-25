@@ -35,8 +35,10 @@ import { optionsState } from './viewing';
  * already on it (T-505 keeps the season's schedule).
  */
 export const HOME_DAYS = 14;
-/** How many table rows the side column shows: the top five. */
-export const HOME_TABLE_ROWS = 5;
+/** How many table rows the side column shows: the top six (T-1516). */
+export const HOME_TABLE_ROWS = 6;
+/** How many competitions the model's month lists, the most accurate first. */
+export const HOME_MONTH_LEAGUES = 6;
 /** How many competitions "today by competition" lists before "All N matches". */
 export const KEY_GROUPS = 6;
 /** How many matches of one competition it lists before "N more". */
@@ -306,6 +308,14 @@ export interface AccuracyFigure {
   metrics: AccuracyMetrics;
   modelVersions: string[];
   lastUpdatedAt: string | null;
+  /**
+   * Each competition's figures for the same period (T-1516), the favourite
+   * winning most often first, at most `HOME_MONTH_LEAGUES`; one with no match
+   * scored in it is left out, not shown as nought.
+   */
+  competitions: { id: string; name: string; metrics: AccuracyMetrics }[];
+  /** Below this many matches a figure is `limited` (`ACCURACY_MINIMUM_MATCHES`). */
+  minimumMatches: number;
 }
 
 export function accuracyFigure(answer: PublicModelAccuracyResponse): AccuracyFigure | null {
@@ -313,6 +323,20 @@ export function accuracyFigure(answer: PublicModelAccuracyResponse): AccuracyFig
     .reverse()
     .find((p) => p.coverage !== 'not_supplied' && p.rps !== null);
   if (point === undefined) return null;
+  const competitions = answer.competitions
+    .flatMap((series) => {
+      const same = series.points.find((p) => p.period === point.period);
+      return series.competition === null || same === undefined || same.accuracy === null
+        ? []
+        : [{ id: series.competition.id, name: series.competition.name, metrics: same }];
+    })
+    .sort(
+      (a, b) =>
+        (b.metrics.accuracy ?? 0) - (a.metrics.accuracy ?? 0) ||
+        b.metrics.matches - a.metrics.matches ||
+        a.name.localeCompare(b.name),
+    )
+    .slice(0, HOME_MONTH_LEAGUES);
   return {
     period: point.period,
     periodKind: answer.period,
@@ -320,6 +344,8 @@ export function accuracyFigure(answer: PublicModelAccuracyResponse): AccuracyFig
     metrics: point,
     modelVersions: answer.overall.model_versions,
     lastUpdatedAt: answer.last_updated_at,
+    competitions,
+    minimumMatches: answer.minimum_matches,
   };
 }
 

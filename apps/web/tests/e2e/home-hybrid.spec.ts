@@ -54,6 +54,12 @@ test.describe('the home page without an API', () => {
         await page.goto(`/${locale}`);
         await expect(page.getByTestId('title')).toBeVisible();
         await expect(page.getByTestId('home-matches-none')).toBeVisible();
+        // The upset card says it could not be loaded, once on the screen:
+        // after the hero on a phone, in the side column on a desktop (T-1516).
+        const upset = page.locator('[data-testid="home-upset"]:visible');
+        await expect(upset).toHaveCount(1);
+        await expect(upset).toHaveAttribute('data-state', 'unreachable');
+        await expect(upset).toHaveAttribute('data-placement', width === 390 ? 'main' : 'side');
         const main = await box(page, '[aria-labelledby="home-today"]');
         const side = await box(page, '[data-testid="home-accuracy"]');
         if (width === 390) expect(side.y).toBeGreaterThan(main.y);
@@ -175,6 +181,36 @@ const version = (fixtureId: string) => ({
 
 function answer(path: string, query: URLSearchParams, scenario: Scenario): unknown {
   if (path === '/scores') return scores(scenario);
+  // T-1507 (D-265): the day's biggest miss, for the side column (T-1516).
+  if (path === '/model/upset') {
+    return {
+      date: query.get('date'),
+      time_zone: query.get('tz') ?? 'UTC',
+      finished_matches: 1,
+      still_to_play: 1,
+      last_updated_at: minutes(-1),
+      coverage: 'available',
+      reason: null,
+      upset: {
+        fixture_id: 'm-done',
+        kickoff_at: minutes(-150),
+        competition: { id: EPL.id, name: EPL.name, short_name: null },
+        season_id: `${EPL.id}-s`,
+        home_team: { id: 'm-done-h', name: 'Arsenal', short_name: null },
+        away_team: { id: 'm-done-a', name: 'Everton', short_name: null },
+        score: { home: 2, away: 0 },
+        outcome: 'home',
+        probability: 0.2112,
+        probabilities: { home: 0.2112, draw: 0.2476, away: 0.5412 },
+        forecast: {
+          version_number: 2,
+          kind: 'early',
+          model_version: 'dixon-coles-elo@0.6.0',
+          computed_at: minutes(-24 * 60),
+        },
+      },
+    };
+  }
   if (path === '/forecasts/pre-kickoff') {
     return {
       fixtures: (query.get('fixtures') ?? '').split(',').map((id) => {
@@ -258,6 +294,21 @@ test.describe('the home page with the scores', () => {
         await expect(page.getByTestId('home-live')).toContainText('Esteghlal');
         await expect(page.getByTestId('home-today-group').first()).toBeVisible();
         await expect(page.getByTestId('home-hero-receipt')).toBeVisible();
+        const upset = page.locator('[data-testid="home-upset"]:visible');
+        await expect(upset).toHaveCount(1);
+        await expect(upset).toHaveAttribute('data-state', 'available');
+        await expect(upset).toContainText('Arsenal');
+        await expect(upset.getByTestId('home-upset-score')).toHaveText(
+          locale === 'fa' ? '۲–۰' : '2–0',
+        );
+        if (width === 390) {
+          // HomePhone's order: the hero, then the card, then today.
+          const hero = await box(page, '[data-testid="home-hero"]');
+          const card = await box(page, '[data-testid="home-upset"][data-placement="main"]');
+          const today = await box(page, '[data-testid="home-matches"]');
+          expect(card.y).toBeGreaterThan(hero.y);
+          expect(today.y).toBeGreaterThan(card.y);
+        }
         if (locale === 'fa') {
           await expect(page.getByTestId('home-hero-xg')).toContainText('۱٫۶۲');
           await expect(page.getByTestId('home-hero-score')).toHaveText('۲–۱');
