@@ -326,7 +326,7 @@ const expected = (props: Partial<Parameters<typeof ModelExpected>[0]> = {}, loca
 describe('ModelExpected in a match report', () => {
   it('shows the pre-match forecast with its version and time, the result and the score, in the model lane', () => {
     const html = expected();
-    expect(html).toContain('data-lane="model"');
+    expect(html).toContain('data-voice="model"');
     expect(html).toContain('What the model expected');
     expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
     expect(html).toContain('08 Oct, 09:30 UTC');

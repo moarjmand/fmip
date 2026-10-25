@@ -221,10 +221,10 @@ describe('three forecasts, kept apart', () => {
 
   it('gives each product its own lane, says the founder has none, and the note once', () => {
     const html = three({});
-    expect(html.match(/data-lane="(\w+)"/g)).toEqual([
-      'data-lane="model"',
-      'data-lane="founder"',
-      'data-lane="community"',
+    expect(html.match(/data-voice="(\w+)"/g)).toEqual([
+      'data-voice="model"',
+      'data-voice="founder"',
+      'data-voice="community"',
     ]);
     expect(html).toContain('The founder has not written an analysis of this match.');
     expect(html.match(/data-testid="three-products-note"/g)).toHaveLength(1);

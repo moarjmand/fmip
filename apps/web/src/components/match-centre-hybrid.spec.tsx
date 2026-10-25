@@ -794,7 +794,7 @@ describe('the model against the result', () => {
 
   it('shows the scored pre-match version, what it gave the result and its RPS', () => {
     const html = model(forecasts, evaluations);
-    expect(html).toContain('data-lane="model"');
+    expect(html).toContain('data-voice="model"');
     expect(html).toContain('Result: a draw. The model gave it 34.0%.');
     expect(html).toMatch(/data-testid="model-verdict-rps"[^]*0\.126/);
     expect(html).toContain('ranked probability score for this match · 0 is perfect');
@@ -864,7 +864,7 @@ describe('the founder against the result', () => {
 
   it('settles the published pick on the result, signed', () => {
     const right = founder(analysis('draw', { home: 1, away: 1 }));
-    expect(right).toContain('data-lane="founder"');
+    expect(right).toContain('data-voice="founder"');
     expect(right).toContain('data-state="right"');
     expect(right).toContain('The result matched the pick. The score was exact too.');
     expect(right).toContain('data-testid="founder-signature"');

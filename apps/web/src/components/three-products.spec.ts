@@ -89,7 +89,7 @@ describe('the three products stay three on the page', () => {
     // The front page shows the three side by side for the day's biggest match,
     // which is the second place a single "prediction" box would be tempting.
     const front = source('home-front.tsx');
-    expect(front).toContain('<ModelLane');
+    expect(front).toContain('<ModelVoice');
     expect(front).toContain('<FounderAnalysisBrief');
     expect(front).toContain('<CommunityPicksBrief');
     expect(front).toContain('<ThreeProductsNote');
@@ -126,8 +126,8 @@ describe('the three products stay three on the page', () => {
     const forecast = source('forecast-panel.tsx');
     expect(forecast).not.toMatch(/CommunitySplit|Consensus|InlinePick|PredictionForm|Prediction\b/);
     // The founder's and the community's sections stand in their own lanes.
-    expect(page).toContain('<FounderLane');
-    expect(page).toContain('<CommunityLane');
+    expect(page).toContain('<FounderVoice');
+    expect(page).toContain('<CommunityVoice');
     expect(page).toContain('<ThreeProductsNote');
   });
 
@@ -175,25 +175,26 @@ describe('the three products stay three on the page', () => {
     expect(links).not.toMatch(/ForecastVersion|ForecastSummary|CommunityConsensus|FounderAnalysis/);
   });
 
-  it('gives the three their own lanes and bars, none of which can be handed another product (T-1388)', () => {
-    // The lanes: three components, no prop that chooses a product. A `Lane`
-    // taking `product: 'model' | 'founder' | 'community'` is the shortcut.
-    const lanes = source('product-lanes.tsx');
-    for (const name of ['ModelLane', 'FounderLane', 'CommunityLane']) {
+  it('gives the three their own voices and bars, none of which can be handed another product (T-1388, T-1509)', () => {
+    // The voices: three components, no prop that chooses a product. A `Voice`
+    // taking `kind: 'model' | 'founder' | 'community'`, as the Design System's
+    // reference is written, is the shortcut.
+    const lanes = source('voices.tsx');
+    for (const name of ['ModelVoice', 'FounderVoice', 'CommunityVoice']) {
       expect(lanes).toContain(`export function ${name}(`);
     }
     expect(lanes).not.toMatch(/'model'\s*\|\s*'founder'|'founder'\s*\|\s*'community'/);
     // Code only: the file's prose argues about products and lanes at length.
     const code = lanes.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[\r\n])\s*\/\/.*/g, '$1');
-    expect(code).not.toMatch(/\b(source|product|lane)\s*[:?]/);
-    // Each panel stands in its own lane.
-    expect(source('forecast-panel.tsx')).toContain('<ModelLane');
-    expect(source('founder-analysis.tsx')).toContain('<FounderLane');
+    expect(code).not.toMatch(/\b(source|product|lane|kind)\s*[:?]/);
+    // Each panel stands in its own voice.
+    expect(source('forecast-panel.tsx')).toContain('<ModelVoice');
+    expect(source('founder-analysis.tsx')).toContain('<FounderVoice');
     const page = readFileSync(
       join(COMPONENTS, '..', 'app', '[locale]', 'match', '[id]', 'page.tsx'),
       'utf8',
     );
-    expect(page).toContain('<CommunityLane');
+    expect(page).toContain('<CommunityVoice');
     expect(page).toContain('<ThreeProductsNote');
     // The model's bar draws the model only, in the model's colour; the
     // community's spread has its own bar in its own file and colour.

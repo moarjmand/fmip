@@ -11,15 +11,15 @@ import type { CardForecast } from '@/lib/score-card-products';
 import { CommunityForecastPanel, CommunitySplit } from './community-consensus';
 import { NextMatchCard } from './next-match-card';
 import { PredictionForm, type PredictionFormWords, pickState } from './prediction-form';
-import { CommunityLane, FounderLane, ModelLane, ThreeProductsNote } from './product-lanes';
 
 /**
  * The Hybrid design's shared data atoms (T-1388, D-206) not yet rebuilt to
- * the Design System, each in its states: the three lanes, the pick before
- * and after, and the next-match card -- in English and in Persian, where the
- * reading order turns round and the digits are Persian. The coverage badge,
- * the freshness stamp and the link-out have their own specs (T-1493), and so
- * do the forecast bar, the receipt and the match row (T-1508).
+ * the Design System, each in its states: the community spread, the pick
+ * before and after, and the next-match card -- in English and in Persian,
+ * where the reading order turns round and the digits are Persian. The
+ * coverage badge, the freshness stamp and the link-out have their own specs
+ * (T-1493), and so do the forecast bar, the receipt and the match row
+ * (T-1508) and the three voices (T-1509).
  */
 
 const AVAILABLE: CardForecast = {
@@ -31,38 +31,6 @@ const AVAILABLE: CardForecast = {
   model_version: 'dixon-coles-elo@0.6.0',
   computed_at: '2026-10-11T09:30:00.000Z',
 };
-
-describe('the three lanes', () => {
-  it('give each product its own colour, icon and name, and the note says they stay separate', () => {
-    const lanes = [
-      [renderToStaticMarkup(<ModelLane locale="en">x</ModelLane>), 'model', 'Statistical model'],
-      [
-        renderToStaticMarkup(<FounderLane locale="en">x</FounderLane>),
-        'founder',
-        'Founder’s analysis',
-      ],
-      [
-        renderToStaticMarkup(<CommunityLane locale="en">x</CommunityLane>),
-        'community',
-        'Community picks',
-      ],
-    ] as const;
-    for (const [html, lane, name] of lanes) {
-      expect(html).toContain(`data-lane="${lane}"`);
-      expect(html).toContain(`border-${lane}`);
-      expect(html).toContain('bg-surface');
-      expect(html).toContain(`data-icon="${lane}"`);
-      expect(html).toContain(name);
-      for (const other of ['model', 'founder', 'community'].filter((o) => o !== lane)) {
-        expect(html).not.toContain(`-${other}`);
-      }
-    }
-    expect(renderToStaticMarkup(<ThreeProductsNote locale="en" />)).toContain(
-      'Three separate products.',
-    );
-    expect(renderToStaticMarkup(<ModelLane locale="fa">x</ModelLane>)).toContain('مدل آماری');
-  });
-});
 
 const CONSENSUS: CommunityConsensusResponse = {
   coverage: 'available',

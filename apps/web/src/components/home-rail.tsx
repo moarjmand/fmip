@@ -14,7 +14,7 @@ import { LinkedSentence } from '@/components/linked-sentence';
 import { RuleHeading, zoneName } from '@/components/home-front';
 import { MessageText } from '@/components/message-text';
 import { NewsCardImage, NewsImageCredit, drawableNewsImage } from '@/components/news-image';
-import { CommunityLane, FounderLane } from '@/components/product-lanes';
+import { CommunityVoice, FounderVoice } from '@/components/voices';
 import { Score } from '@/components/score';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
@@ -542,7 +542,7 @@ export function ColumnAndPicks({
   const l = asLocale(locale);
   return (
     <div className="grid gap-3.5 md:grid-cols-2">
-      <FounderLane locale={l}>
+      <FounderVoice locale={l}>
         {analyses === null || analyses.length === 0 ? (
           <p className="text-sm text-muted" data-testid="home-founder-none">
             <Translated locale={l} message="home.founder.none" />
@@ -555,8 +555,8 @@ export function ColumnAndPicks({
             heading={<Translated locale={l} message="home.founder.heading" />}
           />
         )}
-      </FounderLane>
-      <CommunityLane locale={l}>
+      </FounderVoice>
+      <CommunityVoice locale={l}>
         <p className="text-sm text-muted">
           <Translated locale={l} message="home.community.body" />
         </p>
@@ -568,7 +568,7 @@ export function ColumnAndPicks({
         >
           <Translated locale={l} message="home.community.cta" />
         </ButtonLink>
-      </CommunityLane>
+      </CommunityVoice>
     </div>
   );
 }

@@ -13,7 +13,7 @@ import { ForecastBar } from '@/components/forecast-bar';
 import { FounderAnalysisBrief } from '@/components/founder-analysis';
 import { MessageText } from '@/components/message-text';
 import { NewsPhoto } from '@/components/news-image';
-import { CommunityLane, ModelLane, ThreeProductsNote } from '@/components/product-lanes';
+import { CommunityVoice, ModelVoice, ThreeProductsNote } from '@/components/voices';
 import { Score } from '@/components/score';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
@@ -404,7 +404,7 @@ export function ThreeForecasts({
         }
       />
       <div className="grid gap-3 md:grid-cols-3">
-        <ModelLane locale={l}>
+        <ModelVoice locale={l}>
           <ForecastBar
             forecast={forecast}
             home={card.home.name}
@@ -416,7 +416,7 @@ export function ThreeForecasts({
             words={forecastBarWords(l)}
             compact
           />
-        </ModelLane>
+        </ModelVoice>
         <FounderAnalysisBrief
           analysis={founder}
           home={card.home.name}
@@ -425,7 +425,7 @@ export function ThreeForecasts({
           timeZone={timeZone}
           locale={l}
         />
-        <CommunityLane locale={l}>
+        <CommunityVoice locale={l}>
           <CommunityPicksBrief
             consensus={consensus}
             revealed={revealed}
@@ -434,7 +434,7 @@ export function ThreeForecasts({
             href={match}
             locale={l}
           />
-        </CommunityLane>
+        </CommunityVoice>
       </div>
       <ThreeProductsNote locale={l} className="mt-2.5" />
     </section>

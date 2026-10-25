@@ -34,7 +34,7 @@ import { forecastBarWords } from '@/lib/words-server';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { FilledMessage } from '@/components/filled-message';
 import { ForecastBar } from '@/components/forecast-bar';
-import { ModelLane } from '@/components/product-lanes';
+import { ModelVoice } from '@/components/voices';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Score, nameIsolate, pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
@@ -72,7 +72,7 @@ export function ForecastPanel({
 
   if (forecasts === null) {
     return (
-      <ModelLane locale={locale}>
+      <ModelVoice locale={locale}>
         <section className="flex flex-col gap-2" data-testid="forecast" data-coverage="unreachable">
           <h2 className="text-lg font-semibold">
             <Translated locale={locale} message="forecast.title" />
@@ -81,14 +81,14 @@ export function ForecastPanel({
             <Translated locale={locale} message="forecast.unreachable" />
           </Notice>
         </section>
-      </ModelLane>
+      </ModelVoice>
     );
   }
 
   const latest = forecasts.latest;
   return (
     // Its own lane, colour and name (T-1388, rule 6): the model's, and only the model's.
-    <ModelLane locale={locale}>
+    <ModelVoice locale={locale}>
       <ForecastSection
         forecasts={forecasts}
         evaluations={evaluations}
@@ -99,7 +99,7 @@ export function ForecastPanel({
         stamp={stamp}
         locale={l}
       />
-    </ModelLane>
+    </ModelVoice>
   );
 }
 
@@ -462,7 +462,7 @@ export function ModelVerdict({
         });
   const p = version?.probabilities ?? null;
   return (
-    <ModelLane locale={l}>
+    <ModelVoice locale={l}>
       <div className="flex flex-col gap-3" data-testid="model-verdict">
         <p className="text-sm text-muted">
           <Translated locale={l} message="forecast.verdict.frozen" />
@@ -517,7 +517,7 @@ export function ModelVerdict({
           <Translated locale={l} message="forecast.verdict.accuracy" />
         </Link>
       </div>
-    </ModelLane>
+    </ModelVoice>
   );
 }
 
@@ -984,7 +984,7 @@ export function ModelExpected({
     summary === 'unreachable' ? { state: 'unreachable' } : cardForecast(summary);
   const score = result ?? evaluation?.actual ?? null;
   return (
-    <ModelLane locale={l}>
+    <ModelVoice locale={l}>
       <section className="flex flex-col gap-3" data-testid="story-model-expected">
         <h2 className="font-serif text-2xl font-semibold">
           <Translated locale={l} message="story.expected.title" />
@@ -1040,6 +1040,6 @@ export function ModelExpected({
           </Link>
         </p>
       </section>
-    </ModelLane>
+    </ModelVoice>
   );
 }

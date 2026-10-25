@@ -6,7 +6,7 @@ import type {
   FounderOutcome,
 } from '@fmip/contracts';
 import { formatKickoff } from '@/lib/scores';
-import { FounderLane } from '@/components/product-lanes';
+import { FounderVoice } from '@/components/voices';
 import { ScorePair } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { interpolate, message, t } from '@/i18n/messages';
@@ -97,7 +97,7 @@ export function FounderAnalysisPanel({
     // Most matches have none — the blueprint scopes this to important fixtures —
     // so its absence is stated once and quietly, not as a gap.
     return (
-      <FounderLane locale={l}>
+      <FounderVoice locale={l}>
         <section className="flex flex-col gap-2" data-testid="founder-analysis" data-state="none">
           <h2 className="text-lg font-semibold">
             <Translated locale={l} message="analysis.founder.title" />
@@ -106,7 +106,7 @@ export function FounderAnalysisPanel({
             <Translated locale={l} message="analysis.founder.none" />
           </p>
         </section>
-      </FounderLane>
+      </FounderVoice>
     );
   }
 
@@ -130,7 +130,7 @@ export function FounderAnalysisPanel({
 
   return (
     // Its own lane, colour and name (T-1388, rule 6): one person's view, signed.
-    <FounderLane locale={l}>
+    <FounderVoice locale={l}>
       <section
         className="flex flex-col gap-3"
         data-testid="founder-analysis"
@@ -209,7 +209,7 @@ export function FounderAnalysisPanel({
           </details>
         )}
       </section>
-    </FounderLane>
+    </FounderVoice>
   );
 }
 
@@ -240,15 +240,15 @@ export function FounderAnalysisBrief({
   const current = analysis?.analysis?.versions[0] ?? null;
   if (analysis === null || analysis.analysis === null || current === null) {
     return (
-      <FounderLane locale={l}>
+      <FounderVoice locale={l}>
         <p className="text-sm text-muted" data-testid="founder-brief" data-state="none">
           <Translated locale={l} message="analysis.founder.none" />
         </p>
-      </FounderLane>
+      </FounderVoice>
     );
   }
   return (
-    <FounderLane locale={l}>
+    <FounderVoice locale={l}>
       <div className="flex flex-col gap-2" data-testid="founder-brief" data-state="available">
         <p className="text-sm">
           <strong>{outcomeLabel(l, current.predicted_outcome, home, away)}</strong>
@@ -279,7 +279,7 @@ export function FounderAnalysisBrief({
           <Translated locale={l} message="analysis.founder.read" />
         </Link>
       </div>
-    </FounderLane>
+    </FounderVoice>
   );
 }
 
@@ -312,11 +312,11 @@ export function FounderVerdict({
   const current = analysis?.analysis?.versions[0] ?? null;
   if (analysis === null || analysis.analysis === null || current === null) {
     return (
-      <FounderLane locale={l}>
+      <FounderVoice locale={l}>
         <p className="text-sm text-muted" data-testid="founder-verdict" data-state="none">
           <Translated locale={l} message="analysis.founder.none" />
         </p>
-      </FounderLane>
+      </FounderVoice>
     );
   }
   const actual: FounderOutcome =
@@ -327,7 +327,7 @@ export function FounderVerdict({
     current.predicted_score.home === result.home &&
     current.predicted_score.away === result.away;
   return (
-    <FounderLane locale={l}>
+    <FounderVoice locale={l}>
       <div
         className="flex flex-col gap-2"
         data-testid="founder-verdict"
@@ -371,7 +371,7 @@ export function FounderVerdict({
           locale={locale}
         />
       </div>
-    </FounderLane>
+    </FounderVoice>
   );
 }
 
