@@ -2,8 +2,9 @@ import {
   PANEL_LATEST_BATCH,
   type AccuracyMetrics,
   type AccuracyPeriod,
+  type ForecastVersion,
   type MatchViewing,
-  type NewsStoryCard,
+  type ModelLeadingFactor,
   type PanelLatest,
   type PublicModelAccuracyResponse,
   type ScoreCard,
@@ -13,7 +14,7 @@ import {
   type ViewingOption,
 } from '@fmip/contracts';
 import { formatDate } from '@/i18n/format';
-import { dateIn } from './scores';
+import { dateIn, shiftDate } from './scores';
 import { optionsState } from './viewing';
 
 /**
@@ -34,12 +35,14 @@ import { optionsState } from './viewing';
  * already on it (T-505 keeps the season's schedule).
  */
 export const HOME_DAYS = 14;
-/** How many table rows the side column shows: the top five. */
-export const HOME_TABLE_ROWS = 5;
-/** How many competitions "Today's key matches" lists before "All competitions". */
-export const KEY_GROUPS = 10;
+/** How many table rows the side column shows: the top six (T-1516). */
+export const HOME_TABLE_ROWS = 6;
+/** How many competitions the model's month lists, the most accurate first. */
+export const HOME_MONTH_LEAGUES = 6;
+/** How many competitions "today by competition" lists before "All N matches". */
+export const KEY_GROUPS = 6;
 /** How many matches of one competition it lists before "N more". */
-export const KEY_ROWS = 6;
+export const KEY_ROWS = 4;
 /** How many followed teams "My teams" asks about (one team page each). */
 export const HOME_MY_TEAMS = 4;
 /** How many stories the news grid shows. */
@@ -96,40 +99,129 @@ const involves = (card: ScoreCard, teams: ReadonlySet<string>): boolean =>
   teams.has(card.home.id) || teams.has(card.away.id);
 
 /**
- * The day's biggest match, for the lead slot (D-200): the first day from
- * today with a match still to be played or in play, and on it the teams a
- * member follows first, then a match an editor features (D-153), then the
- * competitions' stated order (D-154, the answer's group order), then the
- * earliest kick-off. Finished and called-off matches never lead; with none
- * open in the two weeks there is no lead match.
+ * How many competitions, in the answer's order (D-154), hold the big matches
+ * when nobody follows a team in it and no editor features one: the Pro
+ * League, the Champions League and the big leagues come first in that order.
  */
-export function leadMatch(
+export const BIG_COMPETITIONS = 6;
+
+/** Where the hero's match stands: in play, or the next big one and on which day. */
+export type HeroSlot = 'live' | 'today' | 'tomorrow' | 'later';
+
+export interface HeroMatch {
+  card: ScoreCard;
+  slot: HeroSlot;
+}
+
+/**
+ * The big match the home opens on (D-263 point 4, D-270): a big match in play
+ * takes the slot; when none is, the next big one. A match is big when it is a
+ * followed team's (a member's own), one an editor features (D-153), or one of
+ * the first `BIG_COMPETITIONS` competitions in the answer's order (D-154),
+ * ranked in that order. The next big one is looked for today and tomorrow,
+ * else on the first day with a match; there the tier ranks first, then the
+ * day, the competitions' order and the earliest kick-off. A live match ranks
+ * before a scheduled one of its tier, never before a bigger one. Finished and
+ * called-off matches never lead; with nothing open there is no hero.
+ */
+export function heroMatch(
   scores: ScoresResponse,
   today: string,
   timeZone: string,
   followedTeams: ReadonlySet<string> = new Set(),
   featured: ReadonlySet<string> = new Set(),
-): ScoreCard | null {
+  big = BIG_COMPETITIONS,
+): HeroMatch | null {
   const order = new Map(scores.groups.map((group, index) => [group.competition.id, index]));
-  const open = allCards(scores).filter(
-    (card) => OPEN.has(card.status) && dayOf(card, timeZone) >= today,
-  );
-  const day = open.map((card) => dayOf(card, timeZone)).sort()[0];
-  if (day === undefined) return null;
+  const rank = (card: ScoreCard) => order.get(card.competition.id) ?? order.size;
   const tier = (card: ScoreCard) =>
-    involves(card, followedTeams) ? 0 : featured.has(card.id) ? 1 : 2;
-  return (
-    open
-      .filter((card) => dayOf(card, timeZone) === day)
-      .sort(
-        (a, b) =>
-          tier(a) - tier(b) ||
-          (order.get(a.competition.id) ?? order.size) -
-            (order.get(b.competition.id) ?? order.size) ||
-          a.kickoff_at.localeCompare(b.kickoff_at) ||
-          a.id.localeCompare(b.id),
-      )[0] ?? null
+    involves(card, followedTeams) ? 0 : featured.has(card.id) ? 1 : rank(card) < big ? 2 : 3;
+  const cards = allCards(scores);
+  const live = cards.filter((card) => card.status === 'live' && tier(card) < 3);
+  const scheduled = cards.filter(
+    (card) => card.status === 'scheduled' && dayOf(card, timeZone) >= today,
   );
+  const days = [...new Set(scheduled.map((card) => dayOf(card, timeZone)))].sort();
+  const soon = days.filter((day) => day <= shiftDate(today, 1));
+  const window = new Set(soon.length > 0 ? soon : days.slice(0, 1));
+  const [best] = [...live, ...scheduled.filter((card) => window.has(dayOf(card, timeZone)))].sort(
+    (a, b) =>
+      tier(a) - tier(b) ||
+      Number(b.status === 'live') - Number(a.status === 'live') ||
+      dayOf(a, timeZone).localeCompare(dayOf(b, timeZone)) ||
+      rank(a) - rank(b) ||
+      a.kickoff_at.localeCompare(b.kickoff_at) ||
+      a.id.localeCompare(b.id),
+  );
+  if (best === undefined) return null;
+  const day = dayOf(best, timeZone);
+  const slot: HeroSlot =
+    best.status === 'live'
+      ? 'live'
+      : day === today
+        ? 'today'
+        : day === shiftDate(today, 1)
+          ? 'tomorrow'
+          : 'later';
+  return { card: best, slot };
+}
+
+/** How many live matches the strip shows before "all live matches". */
+export const LIVE_STRIP = 8;
+
+/** Every match in play, in the competitions' order (D-154), then by kick-off. */
+export function liveCards(scores: ScoresResponse): ScoreCard[] {
+  const order = new Map(scores.groups.map((group, index) => [group.competition.id, index]));
+  return allCards(scores)
+    .filter((card) => card.status === 'live')
+    .sort(
+      (a, b) =>
+        (order.get(a.competition.id) ?? order.size) - (order.get(b.competition.id) ?? order.size) ||
+        a.kickoff_at.localeCompare(b.kickoff_at) ||
+        a.id.localeCompare(b.id),
+    );
+}
+
+/**
+ * When the live answer was last heard from: the newest of the live matches'
+ * provider answers, else of their last changes (rule 4). `null` with none.
+ */
+export function liveCheckedAt(cards: readonly ScoreCard[]): string | null {
+  return (
+    cards
+      .map((card) => card.live_answered_at ?? card.last_updated_at)
+      .sort((a, b) => b.localeCompare(a))[0] ?? null
+  );
+}
+
+/**
+ * The version the hero reads its figures from: the match's last version
+ * computed before kick-off, the one the bar shows and the evaluation scores
+ * (D-031), never a later one. `null` when none was.
+ */
+export function heroVersion(
+  versions: readonly ForecastVersion[] | null,
+  kickoffAt: string,
+): ForecastVersion | null {
+  return (
+    [...(versions ?? [])]
+      .filter((version) => version.computed_at < kickoffAt)
+      .sort((a, b) => b.version_number - a.version_number)[0] ?? null
+  );
+}
+
+/** The factors that moved a version most, by size, at most `limit`. */
+export function topFactors(version: ForecastVersion, limit = 3): ModelLeadingFactor[] {
+  return [...(version.leading_factors ?? [])]
+    .sort((a, b) => Math.abs(b.magnitude) - Math.abs(a.magnitude))
+    .slice(0, limit);
+}
+
+/** The round every match of a group shares, for its heading; `null` when they differ or have none. */
+export function sharedRound(cards: readonly ScoreCard[]): string | null {
+  const rounds = new Set(cards.map((card) => card.round));
+  const [round] = rounds;
+  return rounds.size === 1 && round !== undefined ? round : null;
 }
 
 export interface KeyGroup {
@@ -190,36 +282,14 @@ export function keyMatchGroups(
   return out;
 }
 
-/** How many competitions play on `day`: the "All N competitions" link's number. */
-export function competitionsOn(scores: ScoresResponse, day: string, timeZone: string): number {
-  return new Set(
-    allCards(scores)
-      .filter((card) => dayOf(card, timeZone) === day)
-      .map((card) => card.competition.id),
-  ).size;
+/** How many matches are played on `day`: the "All N matches" link's number. */
+export function matchesOn(scores: ScoresResponse, day: string, timeZone: string): number {
+  return allCards(scores).filter((card) => dayOf(card, timeZone) === day).length;
 }
 
 /** A team's row in a league table, for the lead card's "1st of 16 · 16 pts"; `null` when absent. */
 export function tableRowOf(rows: readonly TableRow[] | null, teamId: string): TableRow | null {
   return rows?.find((row) => row.team.id === teamId) ?? null;
-}
-
-/**
- * The lead story (D-200): the newest story an editor has marked breaking and
- * whose mark is still in force (D-125). The API has no "lead" or "featured"
- * story of its own; the breaking mark is the one editorial act that puts a
- * story at the top, and it ends by itself. The rest stay in the strip.
- */
-export function leadStory(stories: readonly NewsStoryCard[] | null): {
-  lead: NewsStoryCard | null;
-  rest: NewsStoryCard[];
-} {
-  const marked = (stories ?? []).filter((story) => story.breaking !== null);
-  const lead =
-    [...marked].sort((a, b) =>
-      (b.breaking?.marked_at ?? '').localeCompare(a.breaking?.marked_at ?? ''),
-    )[0] ?? null;
-  return { lead, rest: marked.filter((story) => story !== lead) };
 }
 
 /**
@@ -238,6 +308,14 @@ export interface AccuracyFigure {
   metrics: AccuracyMetrics;
   modelVersions: string[];
   lastUpdatedAt: string | null;
+  /**
+   * Each competition's figures for the same period (T-1516), the favourite
+   * winning most often first, at most `HOME_MONTH_LEAGUES`; one with no match
+   * scored in it is left out, not shown as nought.
+   */
+  competitions: { id: string; name: string; metrics: AccuracyMetrics }[];
+  /** Below this many matches a figure is `limited` (`ACCURACY_MINIMUM_MATCHES`). */
+  minimumMatches: number;
 }
 
 export function accuracyFigure(answer: PublicModelAccuracyResponse): AccuracyFigure | null {
@@ -245,6 +323,20 @@ export function accuracyFigure(answer: PublicModelAccuracyResponse): AccuracyFig
     .reverse()
     .find((p) => p.coverage !== 'not_supplied' && p.rps !== null);
   if (point === undefined) return null;
+  const competitions = answer.competitions
+    .flatMap((series) => {
+      const same = series.points.find((p) => p.period === point.period);
+      return series.competition === null || same === undefined || same.accuracy === null
+        ? []
+        : [{ id: series.competition.id, name: series.competition.name, metrics: same }];
+    })
+    .sort(
+      (a, b) =>
+        (b.metrics.accuracy ?? 0) - (a.metrics.accuracy ?? 0) ||
+        b.metrics.matches - a.metrics.matches ||
+        a.name.localeCompare(b.name),
+    )
+    .slice(0, HOME_MONTH_LEAGUES);
   return {
     period: point.period,
     periodKind: answer.period,
@@ -252,6 +344,8 @@ export function accuracyFigure(answer: PublicModelAccuracyResponse): AccuracyFig
     metrics: point,
     modelVersions: answer.overall.model_versions,
     lastUpdatedAt: answer.last_updated_at,
+    competitions,
+    minimumMatches: answer.minimum_matches,
   };
 }
 

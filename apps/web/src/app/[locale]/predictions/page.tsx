@@ -13,12 +13,7 @@ import { ForecastList } from '@/components/forecast-panel';
 import { MemberName } from '@/components/member-name';
 import { ModelAccuracyRecent } from '@/components/model-accuracy';
 import { InlinePick } from '@/components/prediction-section';
-import {
-  CommunityLane,
-  FounderLane,
-  ModelLane,
-  ThreeProductsNote,
-} from '@/components/product-lanes';
+import { CommunityVoice, FounderVoice, ModelVoice, ThreeProductsNote } from '@/components/voices';
 import {
   fetchConsensusList,
   fetchForecastList,
@@ -339,9 +334,9 @@ export default async function PredictionsPage({
           />
         )}
 
-        <ModelLane locale={locale}>
+        <ModelVoice locale={locale}>
           <ModelAccuracyRecent locale={locale} report={accuracy.ok ? accuracy.data : null} />
-        </ModelLane>
+        </ModelVoice>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/*
@@ -354,7 +349,7 @@ export default async function PredictionsPage({
             before kick-off, as blueprint 6.5 says, never sealed (D-206).
           */}
           <div id="analysis" className="scroll-mt-4">
-            <FounderLane locale={locale} className="h-full">
+            <FounderVoice locale={locale} className="h-full">
               {founder.ok && founder.data.analyses.length > 0 ? (
                 <FounderAnalysisFeed
                   analyses={founder.data.analyses}
@@ -379,10 +374,10 @@ export default async function PredictionsPage({
                   </p>
                 </section>
               )}
-            </FounderLane>
+            </FounderVoice>
           </div>
           <div id="community" className="scroll-mt-4">
-            <CommunityLane locale={locale} className="h-full">
+            <CommunityVoice locale={locale} className="h-full">
               {consensus !== null && !consensus.ok ? (
                 <section className="flex flex-col gap-2" data-testid="predictions-consensus">
                   <h2 className="font-serif text-2xl font-semibold">
@@ -400,7 +395,7 @@ export default async function PredictionsPage({
                   locale={locale}
                 />
               )}
-            </CommunityLane>
+            </CommunityVoice>
           </div>
         </div>
         <ThreeProductsNote locale={locale} />

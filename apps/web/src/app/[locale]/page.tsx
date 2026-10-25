@@ -3,21 +3,21 @@ import type { ScoreCard } from '@fmip/contracts';
 import { BreakingStrip } from '@/components/breaking-strip';
 import { FirstRunOffer } from '@/components/first-run-offer';
 import {
+  BigMatch,
   HomeDateline,
-  KeyMatches,
-  LeadMatchCard,
-  LeadStory,
+  LiveNow,
   RuleHeading,
-  ThreeForecasts,
+  TodayByCompetition,
 } from '@/components/home-front';
 import {
-  AccuracyCard,
   Broadcasts,
   ColumnAndPicks,
   GuestWelcome,
+  MonthFigures,
   MyTeams,
   NewsGrid,
-  TableTopFive,
+  TableExcerpt,
+  UpsetCard,
 } from '@/components/home-rail';
 import {
   FriendPredictionsSection,
@@ -37,12 +37,14 @@ import {
   fetchFirstRun,
   fetchFollowing,
   fetchForecastSummaries,
+  fetchForecasts,
   fetchFounderAnalysis,
   fetchFounderFeed,
   fetchFriendPredictions,
   fetchGroupDiscussions,
   fetchMe,
   fetchModelAccuracy,
+  fetchModelUpset,
   fetchNewsSection,
   fetchOwnPrediction,
   fetchPanelLatest,
@@ -54,21 +56,23 @@ import {
   HOME_DAYS,
   HOME_MY_TEAMS,
   HOME_STORIES,
+  LIVE_STRIP,
   accuracyFigure,
   allCards,
-  competitionsOn,
   featuredNotes,
+  heroMatch,
+  heroVersion,
   homeBroadcasts,
   homePanels,
   keyDay,
   keyMatchGroups,
-  leadMatch,
-  leadStory,
+  liveCards,
+  liveCheckedAt,
+  matchesOn,
   tableCompetition,
   tableRowOf,
   todayFixtureIds,
 } from '@/lib/home';
-import { stageName } from '@/lib/competition';
 import { rootTitle } from '@/lib/demonstration';
 import { readGuestChoices } from '@/lib/first-run-cookie';
 import { feedsStale } from '@/lib/news';
@@ -117,11 +121,12 @@ async function loadForecasts(ids: string[]): Promise<Map<string, CardForecast>> 
 }
 
 /**
- * The homepage in the Hybrid design (T-1382, D-200; boards h1 and h9): an
- * editorial front page on paper whatever the theme. The lead story, else the
- * day's biggest match; the three forecasts kept apart for that match; the
- * day's key matches by competition; beside them the league's top five, the
- * model's accuracy, today's broadcasts and the member's teams; then the news.
+ * The home page in the Stadiomind design (T-1495, D-263, D-270; the canvas
+ * boards Home and HomePhone): the day's heading, the matches in play, the big
+ * match with the model's forecast and the other two voices kept apart, and
+ * today by competition; beside them the league's table, the model's figures,
+ * today's broadcasts and the member's teams; then the member's sections and
+ * the news (blueprint 2.3).
  *
  * Three rounds of requests, each in parallel (D-115, D-200): what needs no
  * zone, then the scores in the reader's zone, then what the scores choose.
@@ -147,21 +152,20 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     groupTalk,
   ] = await Promise.all([
     fetchMe(cookie),
-    // The member's teams: "Your teams" first, the lead match, "My teams".
+    // The member's teams: their own card in "today", the hero, "My teams".
     fetchFollowing(cookie),
     readGuestChoices(),
     session ? fetchFirstRun(cookie) : null,
-    // T-1457: only what the page shows -- one more, as the breaking lead
-    // may be among them -- not a whole page of the section.
-    fetchNewsSection(`?limit=${HOME_STORIES + 1}`, locale, cookie),
+    // T-1457: only what the page shows, not a whole page of the section.
+    fetchNewsSection(`?limit=${HOME_STORIES}`, locale, cookie),
     // T-1004 (D-125): read at render, so an expired mark is gone now.
     fetchBreakingNews(locale),
     // T-1161 (D-153): the matches an editor features now.
     fetchFeaturedMatches(),
     // The founder's analysis of what is coming (T-132).
     fetchFounderFeed({ limit: 3 }),
-    // T-1369 (D-187): the public accuracy figures.
-    fetchModelAccuracy('week'),
+    // T-1369 (D-187): the public accuracy figures, by month (T-1516, D-270).
+    fetchModelAccuracy('month'),
     session ? fetchFriendPredictions(cookie) : null,
     session ? fetchGroupDiscussions(cookie) : null,
   ]);
@@ -184,14 +188,19 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   // Round 2: the scores, asked without the session (D-200) so the groups come
   // in the competitions' stated order (D-154); the member's teams are lifted
   // here from what they follow.
-  const scores = await fetchScores(
-    new URLSearchParams({
-      from: today,
-      to: shiftDate(today, HOME_DAYS - 1),
-      tz: timeZone,
-    }).toString(),
-    undefined,
-  );
+  const [scores, upset] = await Promise.all([
+    fetchScores(
+      new URLSearchParams({
+        from: today,
+        to: shiftDate(today, HOME_DAYS - 1),
+        tz: timeZone,
+      }).toString(),
+      undefined,
+    ),
+    // T-1507 (D-265): the day's biggest miss, on the day the scores call today.
+    fetchModelUpset({ date: today, tz: timeZone }),
+  ]);
+  const upsetAnswer = upset.ok ? upset.data : null;
   const followedTeams = new Set(
     member ? (following ?? []).filter((e) => e.entity_type === 'team').map((e) => e.entity_id) : [],
   );
@@ -199,9 +208,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const day = scores.ok ? keyDay(scores.data, today, timeZone) : null;
   const groups =
     scores.ok && day !== null ? keyMatchGroups(scores.data, day, timeZone, followedTeams) : [];
-  const lead = scores.ok
-    ? leadMatch(scores.data, today, timeZone, followedTeams, new Set(notes.keys()))
+  const hero = scores.ok
+    ? heroMatch(scores.data, today, timeZone, followedTeams, new Set(notes.keys()))
     : null;
+  const lead = hero?.card ?? null;
+  const live = scores.ok ? liveCards(scores.data) : [];
   const tableId = scores.ok ? tableCompetition(scores.data) : null;
   const todayIds = scores.ok ? todayFixtureIds(scores.data, today, timeZone) : [];
   const todayCards = scores.ok
@@ -212,16 +223,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const myTeams = member
     ? (following ?? []).filter((e) => e.entity_type === 'team').slice(0, HOME_MY_TEAMS)
     : [];
-  const forecastIds = [
-    ...new Set([
-      ...(lead === null ? [] : [lead.id]),
-      ...groups.flatMap((g) => g.cards.map((c) => c.id)),
-    ]),
-  ];
 
   // Round 3: what the scores chose, in parallel.
   const [
     forecasts,
+    versions,
     table,
     leadTable,
     founder,
@@ -231,7 +237,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     viewing,
     teamPages,
   ] = await Promise.all([
-    loadForecasts(forecastIds),
+    loadForecasts(lead === null ? [] : [lead.id]),
+    // The hero's versions, for what the bar's version stored (T-1495).
+    lead !== null ? fetchForecasts(lead.id) : null,
     // T-1460: the tables alone, not the whole competition pages.
     tableId !== null ? fetchCompetitionTable(tableId, locale) : null,
     lead !== null && lead.competition.id !== tableId
@@ -245,78 +253,80 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     Promise.all(myTeams.map((team) => fetchTeam(team.entity_id, locale))),
   ]);
 
-  const { lead: story, rest: breakingRest } = leadStory(
-    breaking.ok ? breaking.data.stories.data : null,
-  );
+  // Every story still marked breaking, the newest mark first (D-125).
+  const marked = (breaking.ok ? (breaking.data.stories.data ?? []) : [])
+    .filter((story) => story.breaking !== null)
+    .sort((a, b) => (b.breaking?.marked_at ?? '').localeCompare(a.breaking?.marked_at ?? ''));
   const leadTablePage = lead === null ? null : lead.competition.id === tableId ? table : leadTable;
   const leadRows =
     leadTablePage !== null && leadTablePage.ok ? leadTablePage.data.table.data : null;
+  const leadVersion =
+    lead !== null && versions !== null && versions.ok
+      ? heroVersion(versions.data.versions, lead.kickoff_at)
+      : null;
+  // The bar is of the version the figures come from when it could be read,
+  // else the pre-kick-off summary, so the two never disagree.
   const leadForecast: CardForecast =
-    lead === null ? { state: 'none' } : (forecasts.get(lead.id) ?? { state: 'unreachable' });
+    lead === null
+      ? { state: 'none' }
+      : leadVersion !== null
+        ? cardForecast(leadVersion)
+        : (forecasts.get(lead.id) ?? { state: 'unreachable' });
   const panels =
     panelsLatest === null ? [] : panelsLatest.ok ? homePanels(panelsLatest.data.panels) : null;
   const cardsById = new Map<string, ScoreCard>(
     scores.ok ? allCards(scores.data).map((card) => [card.id, card] as const) : [],
   );
-  const stories = news.ok
-    ? (news.data.stories.data ?? [])
-        .filter((s) => s.story_id !== story?.story_id)
-        .slice(0, HOME_STORIES)
-    : [];
-  const context =
-    lead === null
-      ? null
-      : [
-          lead.competition.short_name ?? lead.competition.name,
-          lead.round === null ? null : stageName(locale, lead.round),
-        ]
-          .filter((part) => part !== null)
-          .join(' · ');
+  const stories = news.ok ? (news.data.stories.data ?? []).slice(0, HOME_STORIES) : [];
+  const scoresHref = `/${locale}/scores`;
 
   return (
-    <main data-mode="editorial" className="pb-12">
+    <main className="pb-12">
       <JsonLd data={websiteJsonLd(locale)} />
-      <div className="page-frame">
-        <HomeDateline locale={lang} timeZone={timeZone} now={now.toISOString()} context={context} />
-      </div>
-      <div className="page-frame flex flex-col gap-8 pt-6">
-        {breakingRest.length > 0 && <BreakingStrip locale={locale} stories={breakingRest} />}
+      <div className="page-frame flex flex-col gap-6 pt-6">
+        {marked.length > 0 && <BreakingStrip locale={locale} stories={marked} />}
         {offerFirstRun && <FirstRunOffer locale={locale} />}
+        <HomeDateline locale={lang} timeZone={timeZone} now={now.toISOString()} />
 
-        <div className="flex flex-wrap gap-x-12 gap-y-10">
-          <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-8">
-            {story !== null && <LeadStory story={story} locale={lang} timeZone={timeZone} />}
-            {lead !== null && (
-              <LeadMatchCard
-                card={lead}
-                forecast={leadForecast}
-                homeRow={tableRowOf(leadRows, lead.home.id)}
-                awayRow={tableRowOf(leadRows, lead.away.id)}
-                tableSize={leadRows?.length ?? 0}
-                note={notes.get(lead.id) ?? null}
-                today={today}
+        <div className="flex flex-wrap items-start gap-6">
+          <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-6">
+            {live.length > 0 && (
+              <LiveNow
+                cards={live.slice(0, LIVE_STRIP)}
+                total={live.length}
+                checkedAt={liveCheckedAt(live)}
+                scoresHref={scoresHref}
                 locale={lang}
                 timeZone={timeZone}
               />
             )}
-            {lead !== null && (
-              <ThreeForecasts
-                card={lead}
+            {hero !== null && (
+              <BigMatch
+                hero={hero}
                 forecast={leadForecast}
+                version={leadVersion}
+                homeRow={tableRowOf(leadRows, hero.card.home.id)}
+                awayRow={tableRowOf(leadRows, hero.card.away.id)}
+                tableSize={leadRows?.length ?? 0}
+                note={notes.get(hero.card.id) ?? null}
                 founder={founder !== null && founder.ok ? founder.data : null}
                 consensus={consensus !== null && consensus.ok ? consensus.data : null}
                 revealed={
-                  ownPick != null || lead.status !== 'scheduled' || isLocked(lead.kickoff_at)
+                  ownPick != null ||
+                  hero.card.status !== 'scheduled' ||
+                  isLocked(hero.card.kickoff_at)
                 }
                 locale={lang}
                 timeZone={timeZone}
               />
             )}
+            {/* After the hero on a phone, as HomePhone has it; in the side column on a desktop. */}
+            <UpsetCard answer={upsetAnswer} placement="main" locale={lang} timeZone={timeZone} />
             {!scores.ok || day === null ? (
-              <section aria-labelledby="home-key" data-testid="home-matches-none">
+              <section aria-labelledby="home-today" data-testid="home-matches-none">
                 <RuleHeading
-                  id="home-key"
-                  title={<Translated locale={lang} message="home.key.title" />}
+                  id="home-today"
+                  title={<Translated locale={lang} message="home.today.title" />}
                 />
                 <p className="text-sm text-muted">
                   <Translated
@@ -326,15 +336,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 </p>
               </section>
             ) : (
-              <KeyMatches
+              <TodayByCompetition
                 groups={groups}
                 isToday={day === today}
                 day={day}
-                forecasts={forecasts}
-                notes={notes}
-                competitions={competitionsOn(scores.data, day, timeZone)}
-                scoresHref={`/${locale}/scores${day === today ? '' : `?date=${day}`}`}
-                signedIn={member}
+                total={matchesOn(scores.data, day, timeZone)}
+                scoresHref={`${scoresHref}${day === today ? '' : `?date=${day}`}`}
                 locale={lang}
                 timeZone={timeZone}
               />
@@ -362,9 +369,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             />
           </div>
 
-          <aside className="flex min-w-0 flex-[1_1_21rem] flex-col gap-8 xl:max-w-[26.25rem]">
-            {table !== null && table.ok && <TableTopFive page={table.data} locale={lang} />}
-            <AccuracyCard
+          <aside className="flex min-w-0 flex-[1_1_21rem] flex-col gap-6 xl:max-w-[26.25rem]">
+            <UpsetCard answer={upsetAnswer} placement="side" locale={lang} timeZone={timeZone} />
+            {table !== null && table.ok && (
+              <TableExcerpt page={table.data} locale={lang} timeZone={timeZone} />
+            )}
+            <MonthFigures
               figure={accuracy.ok ? accuracyFigure(accuracy.data) : null}
               reachable={accuracy.ok}
               locale={lang}

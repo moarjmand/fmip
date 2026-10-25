@@ -21,17 +21,20 @@ import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
-import { Module } from '@/components/match-centre-cards';
+import { CARD, Module, RatingChip } from '@/components/match-centre-cards';
 import { MatchLineupsView } from '@/components/match-lineups';
 import { MessageText } from '@/components/message-text';
 import { Score, ScorePair } from '@/components/score';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
-import { LiveBadge } from '@/components/ui/live-badge';
+import { Fragment } from 'react';
 
 /** The server-rendered panels the page slots between the live modules (T-605). */
 export type MatchSlot =
+  // The Summary's opening card (T-1497): what the model forecast, and what happened.
+  | 'outcome'
   | 'summary'
+  // The three voices against the result, after full time.
   | 'verdict'
   // What does not move in play, rendered on the server (`match-record.tsx`).
   | 'form'
@@ -63,14 +66,14 @@ export interface MatchHero {
 type Key = keyof MatchWords['m'];
 
 /**
- * The phone's tabs (T-1384, D-202), in their order, each with its label and
- * the anchor its link opens. On a phone one tab's sections show at a time;
- * from 768px every section is open in columns and the tabs are not drawn.
- * The tabs are plain anchors: `globals.css` shows the tab that holds the
- * page's `:target` (the Summary when there is none), so a tab, a deep link
- * (`#lineups`, `#forecast`) and a page with no script all work alike. The
- * statistical model, the founder's analysis and the community stay three
- * sections inside Predictions (rule 6).
+ * The match's section tabs (T-1384, D-202; T-1497), in their order, each
+ * with its label and the anchor its link opens. On a phone one tab's
+ * sections show at a time; from 768px every section is open, in a main and
+ * a side column, and the tabs are jump links. The tabs are plain anchors:
+ * `globals.css` shows the tab that holds the page's `:target` (the Summary
+ * when there is none), so a tab, a deep link (`#lineups`, `#forecast`) and a
+ * page with no script all work alike. The statistical model, the founder's
+ * analysis and the community stay three sections inside Predictions (rule 6).
  */
 export const TABS = [
   ['summary', 'matchCentre.tab.summary'],
@@ -218,15 +221,13 @@ export function MatchCentreView({
   const panels: Record<MatchTab, React.ReactNode> = {
     summary: (
       <Panel tab="summary" id="summary">
+        {/* What the model forecast and what happened, then the three voices (T-1497). */}
+        {slots.outcome}
+        <Region id="verdict">{slots.verdict}</Region>
         <Region id="timeline">
           <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
         </Region>
-        {/* After full time: what each product forecast, against the result. */}
-        <Region id="verdict">{slots.verdict}</Region>
         {slots.summary}
-        <Region id="context">{slots.context}</Region>
-        {slots.venue}
-        <Region id="news">{slots.news}</Region>
       </Panel>
     ),
     stats: (
@@ -234,8 +235,6 @@ export function MatchCentreView({
         <Statistics centre={centre} locale={locale} words={words} />
         <PlayerStatistics centre={centre} locale={locale} words={words} />
         <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
-        {slots.form}
-        {slots.headToHead}
       </Region>
     ),
     lineups: (
@@ -247,24 +246,19 @@ export function MatchCentreView({
             testId="lineups"
             words={words}
             empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
+            notInYet={f.status === 'live'}
           >
             {(lineups) => (
               <MatchLineupsView
                 home={f.home}
                 away={f.away}
                 lineups={lineups}
+                ratings={ratingsOf(centre)}
                 locale={locale}
                 words={words}
               />
             )}
           </Module>
-          <Availability
-            centre={centre}
-            locale={locale}
-            timeZone={timeZone}
-            now={now}
-            words={words}
-          />
         </Region>
         <Region id="players">{slots.players}</Region>
       </Panel>
@@ -289,12 +283,13 @@ export function MatchCentreView({
     ),
   };
 
-  // The columns from 768px: what happened, who played, what was forecast.
-  // On a phone the columns are no box at all and the tabs choose.
-  const COLUMN = 'flex min-w-0 grow flex-col gap-5 max-md:contents [&:not(:has(>*))]:hidden';
+  // From 768px a main column and a side column (the Design System's 999 1
+  // 640px and 1 1 340px), the side wrapping under the main where the page is
+  // narrow; on a phone the columns are no box at all and the tabs choose.
+  const COLUMN = 'flex min-w-0 flex-col gap-6 max-md:contents';
 
   return (
-    <div className="flex flex-col gap-5" data-match-root="">
+    <div className="flex flex-col gap-5 md:gap-6" data-match-root="">
       <Hero
         centre={centre}
         locale={locale}
@@ -302,58 +297,60 @@ export function MatchCentreView({
         now={now}
         hero={hero}
         words={words}
+        tabs={tabs}
       />
 
-      <nav
-        aria-label={m['matchCentre.onThisPage'].text}
-        className="sticky top-0 z-20 -mx-4 overflow-x-auto border-b border-default bg-stage px-2 md:hidden"
-        data-testid="section-nav"
-      >
-        <ul className="flex">
-          {tabs.map(([tab, label]) => (
-            <li key={tab} className="shrink-0">
-              <a
-                href={`#${tab}`}
-                data-tab-link={tab}
-                className="inline-flex min-h-touch items-center px-2.5 text-sm font-medium whitespace-nowrap text-muted"
-              >
-                <MessageText message={m[label]} />
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
       <div
-        className="flex flex-col gap-5 md:flex-row md:flex-wrap md:items-start"
+        className="flex flex-col gap-5 md:flex-row md:flex-wrap md:items-start md:gap-6"
         data-match-tabs=""
       >
-        <div className={cx(COLUMN, 'md:basis-90')} data-column="events">
+        <div className={cx(COLUMN, 'md:grow-999 md:basis-160')} data-column="main">
           {panels.summary}
           {panels.stats}
-        </div>
-        <div className={cx(COLUMN, 'md:basis-100')} data-column="teams">
           {panels.lineups}
-          {panels.discussion}
-        </div>
-        <div className={cx(COLUMN, 'md:basis-90')} data-column="forecasts">
           {panels.predictions}
           {panels.watch}
+          {panels.discussion}
         </div>
+        <aside className={cx(COLUMN, 'gap-5 md:grow md:basis-85')} data-column="side">
+          {/* Beside the Summary: the best rated, who was missing, the past
+              meetings; beside the statistics, each side's form. */}
+          <div className="flex min-w-0 flex-col gap-5" data-tab="summary">
+            <TopRated centre={centre} locale={locale} words={words} />
+            <Availability
+              centre={centre}
+              locale={locale}
+              timeZone={timeZone}
+              now={now}
+              words={words}
+            />
+            {slots.headToHead}
+            <Region id="context">{slots.context}</Region>
+            {slots.venue}
+            <Region id="news">{slots.news}</Region>
+          </div>
+          {slots.form !== undefined && (
+            <div className="flex min-w-0 flex-col gap-5" data-tab="stats">
+              {slots.form}
+            </div>
+          )}
+          {/* The data footer: every module's state, on every tab. */}
+          {slots.coverage}
+        </aside>
       </div>
-
-      {slots.coverage}
     </div>
   );
 }
 
 /**
- * The score band (boards h4, h5, h10): competition and round, both sides with
- * their crests, the score large and condensed between them -- each side's
- * goals beside that side in either direction (D-193, `ScorePair`) -- the
- * status (the live minute in red), the stream's freshness stamp (rule 4),
- * where to watch, then the match's facts; after full time the official
- * highlight first.
+ * The score band (the canvas's Match, MatchPhone and LivePhone boards,
+ * T-1497): on the surface, across the page. Competition and round; both
+ * sides with their crests, the score large and narrow between them -- each
+ * side's goals beside that side in either direction (D-193, `ScorePair`) --
+ * and each side's scorers under its name; live, the saffron live badge above
+ * the score, the minute along a bar and the stream's freshness stamp under
+ * it (rule 4); where to watch; the match's facts; after full time the
+ * official highlight; and the section tabs at its foot.
  */
 function Hero({
   centre,
@@ -362,6 +359,7 @@ function Hero({
   now,
   hero,
   words,
+  tabs,
 }: {
   centre: MatchCentre;
   locale: string;
@@ -369,6 +367,7 @@ function Hero({
   now: number | undefined;
   hero: MatchHero;
   words: MatchWords;
+  tabs: readonly (readonly [MatchTab, Key])[];
 }) {
   const m = words.m;
   const n = (value: number): string => formatNumber(locale, value);
@@ -389,27 +388,26 @@ function Hero({
   const venue =
     f.venue === null ? null : `${f.venue.name}${f.venue.city !== null ? `, ${f.venue.city}` : ''}`;
   const name = cx(
-    'block max-w-full font-black leading-[0.95] break-words hyphens-auto',
-    naskh
-      ? 'text-lg md:text-display-1'
-      : 'text-lg uppercase font-stretch-condensed md:text-display-1 lg:text-display-2',
+    'block max-w-full text-base leading-tight font-extrabold hyphens-auto [overflow-wrap:anywhere] md:text-3xl md:leading-none',
   );
   const figure = cx(
-    'font-sans font-black tabular-nums whitespace-nowrap',
+    'font-sans font-extrabold tabular-nums whitespace-nowrap',
     naskh
-      ? 'text-display-4 leading-[1.1] md:text-display-5'
-      : 'text-display-4 leading-[0.85] font-stretch-condensed md:text-display-6',
+      ? 'text-display-3 leading-[1.1] md:text-display-5'
+      : 'text-display-4 leading-[0.9] font-stretch-condensed md:text-display-5',
+    f.status === 'live' && !behind && 'text-live',
   );
   const live = f.status === 'live' && !behind;
+  const scorers = scorersOf(centre, locale);
   return (
     <header
-      className="flex flex-col gap-4 border-b border-default pb-4 md:pb-6"
+      className="flex flex-col gap-4 bg-surface pt-3 [box-shadow:0_0_0_100vmax_var(--token-surface),0_1px_0_100vmax_var(--token-border)] [clip-path:inset(0_-100vmax_-1px)] md:gap-5 md:pt-4"
       data-testid="match-header"
     >
-      <p className="flex flex-wrap items-center gap-x-2 text-sm font-semibold text-muted">
+      <p className="flex flex-wrap items-center gap-x-2 text-sm text-caption">
         <Link
           href={`/${locale}/competition/${f.competition.id}?season=${f.season.id}`}
-          className="inline-flex min-h-touch items-center gap-2 underline md:min-h-0"
+          className="inline-flex min-h-touch items-center gap-2 font-semibold text-muted underline md:min-h-0"
           data-testid="competition-link"
         >
           <EntityImage
@@ -437,18 +435,51 @@ function Hero({
       <h1 className="sr-only">
         {fill(m['matchCentre.fixtureTitle'].text, { home: f.home.name, away: f.away.name })}
       </h1>
-      {/* Home, score, away from the inline start: the whole band mirrors on /fa. */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 md:items-center md:gap-10">
-        <div data-testid="home-team" className="min-w-0">
-          <Link
-            href={`/${locale}/team/${f.home.id}`}
-            className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-end md:gap-5 md:text-end"
+
+      {f.status === 'live' && (
+        // The live badge (Design System `LiveBadge`): saffron, with its dot;
+        // amber words instead when the feed has fallen behind (rule 4).
+        <p className="-mb-2 flex justify-center">
+          <span
+            className={cx(
+              'inline-flex min-h-7.5 items-center gap-2 rounded-pill px-3 text-sm font-extrabold uppercase',
+              live ? 'bg-live/15 text-live' : 'bg-warning/15 text-warning',
+            )}
+            data-testid="live-badge"
           >
-            <bdi className={name}>{f.home.name}</bdi>
+            {live && (
+              <>
+                <span aria-hidden="true" className="live-dot size-2 rounded-full bg-live" />
+                {status !== m['status.live'].text && (
+                  <span>
+                    <MessageText message={m['status.live']} /> ·{' '}
+                  </span>
+                )}
+              </>
+            )}
+            <span data-testid="match-status">{status}</span>
+          </span>
+        </p>
+      )}
+
+      {/* Home, score, away from the inline start: the whole band mirrors on /fa. */}
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 md:items-center md:gap-8">
+        <div data-testid="home-team" className="min-w-0">
+          <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-end md:gap-5 md:text-end">
+            <span className="flex max-w-full min-w-0 flex-col gap-1.5">
+              <Link href={`/${locale}/team/${f.home.id}`} className="min-w-0">
+                <bdi className={name}>{f.home.name}</bdi>
+              </Link>
+              {scorers.home !== '' && (
+                <span className="text-xs text-muted md:text-sm" data-testid="scorers-home">
+                  {scorers.home}
+                </span>
+              )}
+            </span>
             <Crest team={f.home} className="max-md:order-first" />
-          </Link>
+          </div>
         </div>
-        <div className="flex flex-col items-center gap-2.5">
+        <div className="flex flex-col items-center gap-2">
           {f.status === 'scheduled' ? (
             // Before kick-off the band's figure is the kick-off time, never a 0-0.
             <span className={figure} data-testid="match-status">
@@ -462,7 +493,7 @@ function Hero({
           ) : (
             <ScorePair locale={locale} className={figure} testId="score">
               {n(headline.home)}
-              <span className="mx-[0.12em] align-[0.5em] text-[0.45em] text-caption">–</span>
+              <span className="mx-[0.06em]">–</span>
               {n(headline.away)}
             </ScorePair>
           )}
@@ -476,43 +507,73 @@ function Hero({
                 })}
               </time>
             </span>
-          ) : live ? (
-            <LiveBadge
-              label={
-                status !== m['status.live'].text ? (
-                  <MessageText message={m['status.live']} />
-                ) : undefined
-              }
-            >
-              <span data-testid="match-status">{status}</span>
-            </LiveBadge>
           ) : (
-            <span
-              className={cx(
-                'inline-flex min-h-7.5 items-center gap-2 rounded-pill px-3 text-sm font-extrabold',
-                behind ? 'bg-warning/15 text-warning' : 'bg-surface-raised text-fg',
-              )}
-            >
-              <span data-testid="match-status">{status}</span>
-            </span>
+            f.status !== 'live' && (
+              <span className="text-xs font-bold text-muted md:text-sm">
+                <span data-testid="match-status">{status}</span>
+                {f.scores.half_time !== null && (
+                  <>
+                    {' · '}
+                    <MessageText message={m['status.halfTime']} />{' '}
+                    <Score
+                      home={f.scores.half_time.home}
+                      away={f.scores.half_time.away}
+                      locale={locale}
+                    />
+                  </>
+                )}
+              </span>
+            )
           )}
         </div>
         <div data-testid="away-team" className="min-w-0">
-          <Link
-            href={`/${locale}/team/${f.away.id}`}
-            className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-start md:gap-5 md:text-start"
-          >
+          <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-start md:gap-5 md:text-start">
             <Crest team={f.away} />
-            <bdi className={name}>{f.away.name}</bdi>
-          </Link>
+            <span className="flex max-w-full min-w-0 flex-col gap-1.5">
+              <Link href={`/${locale}/team/${f.away.id}`} className="min-w-0">
+                <bdi className={name}>{f.away.name}</bdi>
+              </Link>
+              {scorers.away !== '' && (
+                <span className="text-xs text-muted md:text-sm" data-testid="scorers-away">
+                  {scorers.away}
+                </span>
+              )}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Under the score, full width so the names keep their columns on a phone:
-          the stream's freshness stamp, then where to watch. */}
-      {(hero.live !== undefined || hero.watch !== undefined) && (
-        <div className="-mt-2 flex flex-col items-center gap-2 text-center">
-          {hero.live}
+      {/* Live: the minute along the match, then kick-off and the stream's stamp. */}
+      {f.status === 'live' && (
+        <div className="flex flex-col gap-1.5" data-testid="live-progress">
+          {f.minute !== null && (
+            <span aria-hidden="true" className="block h-1 rounded-pill bg-surface-raised">
+              <span
+                className="block h-1 rounded-pill bg-accent"
+                style={{ inlineSize: `${Math.min(f.minute / 90, 1) * 100}%` }}
+              />
+            </span>
+          )}
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 font-mono text-xs text-caption [:root:is(:lang(fa),:lang(ar))_&]:font-sans">
+            <span>
+              <FilledMessage
+                message={m['scores.card.kickoff']}
+                params={{
+                  time: (
+                    <time dateTime={f.kickoff_at}>
+                      {formatKickoff(locale, f.kickoff_at, timeZone)}
+                    </time>
+                  ),
+                }}
+              />
+            </span>
+            {hero.live}
+          </div>
+        </div>
+      )}
+      {(hero.watch !== undefined || (f.status !== 'live' && hero.live !== undefined)) && (
+        <div className="-mt-1 flex flex-col items-center gap-2 text-center">
+          {f.status !== 'live' && hero.live}
           {hero.watch}
         </div>
       )}
@@ -533,33 +594,6 @@ function Hero({
       {hero.highlights}
 
       <ul className="flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-muted">
-        {f.scores.half_time !== null && (
-          <li>
-            <MessageText message={m['status.halfTime']} />{' '}
-            <Score home={f.scores.half_time.home} away={f.scores.half_time.away} locale={locale} />
-          </li>
-        )}
-        {f.scores.aggregate !== null && (
-          <li>
-            <MessageText message={m['status.aggregate']} />{' '}
-            <Score home={f.scores.aggregate.home} away={f.scores.aggregate.away} locale={locale} />
-          </li>
-        )}
-        {f.scores.penalties !== null && (
-          <li>
-            <MessageText message={m['status.penalties']} />{' '}
-            <Score home={f.scores.penalties.home} away={f.scores.penalties.away} locale={locale} />
-          </li>
-        )}
-        {venue !== null && (
-          <li>
-            {f.is_neutral_venue ? (
-              <MessageText message={filled(m['matchCentre.neutralVenue'], { venue })} />
-            ) : (
-              venue
-            )}
-          </li>
-        )}
         <li>
           <FilledMessage
             message={m['scores.card.kickoff']}
@@ -572,6 +606,15 @@ function Hero({
             }}
           />
         </li>
+        {venue !== null && (
+          <li>
+            {f.is_neutral_venue ? (
+              <MessageText message={filled(m['matchCentre.neutralVenue'], { venue })} />
+            ) : (
+              venue
+            )}
+          </li>
+        )}
         <li>
           <MessageText
             message={filled(m['matchCentre.referee'], {
@@ -586,7 +629,23 @@ function Hero({
             />
           </li>
         )}
-        <li data-testid="last-update">
+        {f.scores.aggregate !== null && (
+          <li>
+            <MessageText message={m['status.aggregate']} />{' '}
+            <Score home={f.scores.aggregate.home} away={f.scores.aggregate.away} locale={locale} />
+          </li>
+        )}
+        {f.scores.penalties !== null && (
+          <li>
+            <MessageText message={m['status.penalties']} />{' '}
+            <Score home={f.scores.penalties.home} away={f.scores.penalties.away} locale={locale} />
+          </li>
+        )}
+        <li
+          data-testid="last-update"
+          className="font-mono text-xs text-caption [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
+        >
+          <span aria-hidden="true">● </span>
           {checked === null ? (
             <FilledMessage
               message={m['matchCentre.lastUpdate']}
@@ -600,16 +659,62 @@ function Hero({
           )}
         </li>
       </ul>
+
+      {/* The section tabs (Design System `Tabs`): plain anchors, the saffron
+          edge under the one on show (globals.css), scrolling sideways on a phone. */}
+      <nav
+        aria-label={m['matchCentre.onThisPage'].text}
+        className="-mx-4 overflow-x-auto px-2 md:mx-0 md:px-0"
+        data-testid="section-nav"
+      >
+        <ul className="flex gap-0.5">
+          {tabs.map(([tab, label]) => (
+            <li key={tab} className="shrink-0">
+              <a
+                href={`#${tab}`}
+                data-tab-link={tab}
+                className="inline-flex min-h-touch items-center px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg"
+              >
+                <MessageText message={m[label]} />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </header>
   );
 }
 
-/** A side's crest on a white tile, so a dark crest reads on the Night stage. */
+/**
+ * Each side's scorers for the band, "Jackson 6′, 60′", in the order they
+ * scored. None at all when the timeline holds an own goal: which side it
+ * counts for is not certain from the feed, and a scorer under the wrong
+ * name would be invented (rule 3; the alerts make the same choice).
+ */
+function scorersOf(centre: MatchCentre, locale: string): Record<'home' | 'away', string> {
+  const none = { home: '', away: '' };
+  const incidents = centre.timeline.data;
+  if (incidents === null || incidents.some((i) => i.kind === 'own_goal')) return none;
+  const by: Record<'home' | 'away', Map<string, string[]>> = { home: new Map(), away: new Map() };
+  for (const i of incidents) {
+    if ((i.kind !== 'goal' && i.kind !== 'penalty_goal') || i.side === null || i.player === null)
+      continue;
+    const name = listName(locale, i.player.name);
+    const minutes = by[i.side].get(name) ?? [];
+    minutes.push(formatMinute(locale, i.minute, i.added_time));
+    by[i.side].set(name, minutes);
+  }
+  const line = (side: 'home' | 'away') =>
+    [...by[side]].map(([name, minutes]) => `${name} ${minutes.join(', ')}`).join(' · ');
+  return { home: line('home'), away: line('away') };
+}
+
+/** A side's crest on a white tile, so a dark crest reads on the Night ground. */
 function Crest({ team, className }: { team: MatchCentre['fixture']['home']; className?: string }) {
   return (
     <span
       className={cx(
-        'inline-grid size-14 shrink-0 place-items-center rounded-tile border border-default bg-surface md:size-21 md:rounded-card',
+        'inline-grid size-13 shrink-0 place-items-center rounded-tile border border-default bg-surface md:size-21 md:rounded-card',
         className,
       )}
     >
@@ -618,10 +723,23 @@ function Crest({ team, className }: { team: MatchCentre['fixture']['home']; clas
   );
 }
 
+/** Goals and cards on the axis; every other incident is in the list only. */
+const AXIS_KINDS = new Set<MatchIncident['kind']>([
+  'goal',
+  'penalty_goal',
+  'own_goal',
+  'yellow_card',
+  'second_yellow_card',
+  'red_card',
+]);
+
 /**
- * The key events (boards h4, h5): latest first, each with its minute, a
- * mark for its kind and the side, then the players. Kick-off closes the list
- * once the match has started.
+ * The timeline (the canvas's "How it unfolded"; T-1497): an axis from
+ * kick-off to the last minute with half-time marked, each goal a dot and
+ * each card a card, the home side's above the line and the away side's
+ * below, the axis running with the reading direction; then the events as a
+ * list in two columns, one per side, from 768px. After full time the list
+ * reads in order from kick-off; while the match is on, latest first.
  */
 function Timeline({
   centre,
@@ -637,25 +755,42 @@ function Timeline({
   const m = words.m;
   const f = centre.fixture;
   const started = f.status !== 'scheduled';
+  const finished = f.status === 'finished';
   return (
     <Module
-      title={m[f.status === 'finished' ? 'matchCentre.keyEvents' : 'matchCentre.timeline']}
+      title={m[finished ? 'matchCentre.keyEvents' : 'matchCentre.timeline']}
       module={centre.timeline}
       testId="timeline"
       words={words}
+      notInYet={f.status === 'live'}
     >
       {(incidents) => {
         // A shoot-out is its own block, its kicks in order and numbered, never
         // penalties at minutes of added time (T-1477).
         const kicksFrom = shootoutStart(incidents, f.scores.penalties);
         const play = kicksFrom === null ? incidents : incidents.slice(0, kicksFrom);
-        const rows = [
-          ...(kicksFrom === null ? [] : incidents.slice(kicksFrom)).map((i, k) => ({
-            i,
-            kick: k + 1,
-          })),
-          ...[...play].reverse().map((i) => ({ i, kick: null })),
-        ];
+        const kicks = (kicksFrom === null ? [] : incidents.slice(kicksFrom)).map((i, k) => ({
+          i,
+          kick: k + 1,
+        }));
+        const inPlay = (finished ? play : [...play].reverse()).map((i) => ({ i, kick: null }));
+        const rows = finished ? [...inPlay, ...kicks] : [...kicks, ...inPlay];
+        const kickoff = started && (
+          <li
+            key="kickoff"
+            className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 last:border-b-0 md:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1fr)]"
+          >
+            <span className="font-mono text-muted tabular-nums">
+              {formatKickoff(locale, f.kickoff_at, timeZone)}
+            </span>
+            <span className="flex items-center gap-3 md:col-span-2">
+              <IncidentMark kind="kickoff" />
+              <b className="font-bold text-fg">
+                <MessageText message={m['matchCentre.kickedOff']} />
+              </b>
+            </span>
+          </li>
+        );
         return (
           <>
             {/* Nothing recorded is said, never an empty card (rule 3). */}
@@ -664,125 +799,49 @@ function Timeline({
                 <MessageText message={m['matchCentre.noEventsYet']} />
               </p>
             )}
+            {play.length > 0 && <Axis incidents={play} locale={locale} words={words} />}
             <ol className="flex flex-col text-sm">
-              {kicksFrom !== null && f.scores.penalties !== null && (
-                <li
-                  className="border-b border-default py-2.5 font-bold text-fg"
-                  data-testid="shootout"
-                >
-                  <MessageText message={m['matchCentre.shootout']} />{' '}
-                  <Score
-                    home={f.scores.penalties.home}
-                    away={f.scores.penalties.away}
-                    locale={locale}
-                  />
-                </li>
+              {kicksFrom !== null && f.scores.penalties !== null && !finished && (
+                <Shootout centre={centre} locale={locale} words={words} />
               )}
-              {rows.map(({ i, kick }) => (
-                <li
-                  key={i.id}
-                  className="grid grid-cols-[3.5rem_2.25rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5"
-                  data-kick={kick ?? undefined}
-                >
-                  <span className="font-mono text-muted tabular-nums">
-                    {kick !== null ? (
-                      fill(m['matchCentre.shootoutKick'].text, { n: formatNumber(locale, kick) })
-                    ) : (
-                      <span dir="ltr">{formatMinute(locale, i.minute, i.added_time)}</span>
-                    )}
-                  </span>
-                  <IncidentMark kind={i.kind} />
-                  <span className="min-w-0 [overflow-wrap:anywhere]">
-                    <b className="block font-bold text-fg">
-                      <MessageText message={m[INCIDENT_KEY[i.kind]]} />
-                      {i.side !== null ? (
-                        <>
-                          {' · '}
-                          <bdi>{i.side === 'home' ? f.home.name : f.away.name}</bdi>
-                        </>
-                      ) : null}
-                      <IncidentDetail detail={i.detail} words={words} />
-                    </b>
-                    <span className="text-muted">
-                      {i.kind === 'substitution' &&
-                      i.player !== null &&
-                      i.related_player !== null ? (
-                        // Who came on and who went off, in words (T-1478): an
-                        // arrow between two names said neither.
-                        <>
-                          <FilledMessage
-                            message={m['matchCentre.subOn']}
-                            params={{
-                              player: (
-                                <Link
-                                  href={`/${locale}/player/${i.related_player.id}`}
-                                  className="underline"
-                                >
-                                  {listName(locale, i.related_player.name)}
-                                </Link>
-                              ),
-                            }}
-                          />
-                          {' · '}
-                          <FilledMessage
-                            message={m['matchCentre.subOff']}
-                            params={{
-                              player: (
-                                <Link
-                                  href={`/${locale}/player/${i.player.id}`}
-                                  className="underline"
-                                >
-                                  {listName(locale, i.player.name)}
-                                </Link>
-                              ),
-                            }}
-                          />
-                        </>
+              {finished && kickoff}
+              {rows.map(({ i, kick }, index) => (
+                <Fragment key={i.id}>
+                  {finished && kick === 1 && f.scores.penalties !== null && (
+                    <Shootout centre={centre} locale={locale} words={words} />
+                  )}
+                  <li
+                    className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 md:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1fr)]"
+                    data-kick={kick ?? undefined}
+                    data-side={i.side ?? undefined}
+                    data-index={index}
+                  >
+                    <span className="font-mono text-muted tabular-nums">
+                      {kick !== null ? (
+                        fill(m['matchCentre.shootoutKick'].text, { n: formatNumber(locale, kick) })
                       ) : (
-                        <>
-                          {i.player !== null && (
-                            <Link href={`/${locale}/player/${i.player.id}`} className="underline">
-                              {listName(locale, i.player.name)}
-                            </Link>
-                          )}
-                          {i.related_player !== null &&
-                            (i.kind === 'substitution' ? null : (
-                              <>
-                                {' · '}
-                                <FilledMessage
-                                  message={m['matchCentre.assist']}
-                                  params={{
-                                    player: (
-                                      <Link
-                                        href={`/${locale}/player/${i.related_player.id}`}
-                                        className="underline"
-                                      >
-                                        {listName(locale, i.related_player.name)}
-                                      </Link>
-                                    ),
-                                  }}
-                                />
-                              </>
-                            ))}
-                        </>
+                        <span dir="ltr">{formatMinute(locale, i.minute, i.added_time)}</span>
                       )}
                     </span>
-                  </span>
-                </li>
+                    <span
+                      className={cx(
+                        'flex min-w-0 items-center gap-3',
+                        i.side === 'away'
+                          ? 'md:col-start-3'
+                          : i.side === null
+                            ? 'md:col-span-2'
+                            : 'md:col-start-2',
+                      )}
+                    >
+                      <IncidentMark kind={i.kind} />
+                      <IncidentText incident={i} centre={centre} locale={locale} words={words} />
+                    </span>
+                  </li>
+                </Fragment>
               ))}
-              {started && (
-                <li className="grid grid-cols-[3.5rem_2.25rem_minmax(0,1fr)] items-center gap-3 py-2.5">
-                  <span className="font-mono text-muted tabular-nums">
-                    {formatKickoff(locale, f.kickoff_at, timeZone)}
-                  </span>
-                  <IncidentMark kind="kickoff" />
-                  <b className="font-bold text-fg">
-                    <MessageText message={m['matchCentre.kickedOff']} />
-                  </b>
-                </li>
-              )}
+              {!finished && kickoff}
             </ol>
-            {incidents.length > 0 && (
+            {incidents.length > 0 && !finished && (
               <p className="text-xs text-caption">
                 <MessageText message={m['matchCentre.latestFirst']} />
               </p>
@@ -793,6 +852,160 @@ function Timeline({
     </Module>
   );
 }
+
+function Shootout({
+  centre,
+  locale,
+  words,
+}: {
+  centre: MatchCentre;
+  locale: string;
+  words: MatchWords;
+}) {
+  const penalties = centre.fixture.scores.penalties;
+  if (penalties === null) return null;
+  return (
+    <li className="border-b border-default py-2.5 font-bold text-fg" data-testid="shootout">
+      <MessageText message={words.m['matchCentre.shootout']} />{' '}
+      <Score home={penalties.home} away={penalties.away} locale={locale} />
+    </li>
+  );
+}
+
+/** One incident's words: its kind and side, then who (T-1478: who came on, who went off). */
+function IncidentText({
+  incident: i,
+  centre,
+  locale,
+  words,
+}: {
+  incident: MatchIncident;
+  centre: MatchCentre;
+  locale: string;
+  words: MatchWords;
+}) {
+  const m = words.m;
+  const f = centre.fixture;
+  const player = (p: { id: string; name: string }) => (
+    <Link href={`/${locale}/player/${p.id}`} className="underline">
+      {listName(locale, p.name)}
+    </Link>
+  );
+  return (
+    <span className="min-w-0 [overflow-wrap:anywhere]">
+      <b className="block font-bold text-fg">
+        <MessageText message={m[INCIDENT_KEY[i.kind]]} />
+        {i.side !== null ? (
+          <>
+            {' · '}
+            <bdi>{i.side === 'home' ? f.home.name : f.away.name}</bdi>
+          </>
+        ) : null}
+        <IncidentDetail detail={i.detail} words={words} />
+      </b>
+      <span className="text-muted">
+        {i.kind === 'substitution' && i.player !== null && i.related_player !== null ? (
+          <>
+            <FilledMessage
+              message={m['matchCentre.subOn']}
+              params={{ player: player(i.related_player) }}
+            />
+            {' · '}
+            <FilledMessage
+              message={m['matchCentre.subOff']}
+              params={{ player: player(i.player) }}
+            />
+          </>
+        ) : (
+          <>
+            {i.player !== null && player(i.player)}
+            {i.related_player !== null && i.kind !== 'substitution' && (
+              <>
+                {' · '}
+                <FilledMessage
+                  message={m['matchCentre.assist']}
+                  params={{ player: player(i.related_player) }}
+                />
+              </>
+            )}
+          </>
+        )}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * The axis: where on the clock each goal and card fell. A minute of added
+ * time sits after its half's last minute; the first half's are pressed
+ * together at half-time so the second half keeps its place. The picture is
+ * described for a screen reader; the list under it says every event in words.
+ */
+function Axis({
+  incidents,
+  locale,
+  words,
+}: {
+  incidents: MatchIncident[];
+  locale: string;
+  words: MatchWords;
+}) {
+  const marked = incidents.filter((i) => AXIS_KINDS.has(i.kind) && i.side !== null);
+  const at = (i: MatchIncident) => i.minute + (i.added_time ?? 0) * (i.minute <= 45 ? 0.15 : 1);
+  const end = Math.max(90, ...marked.map(at));
+  const pos = (minute: number) => `${(Math.min(minute, end) / end) * 100}%`;
+  const goals = marked.filter((i) => GOAL_KINDS.has(i.kind)).length;
+  return (
+    <div
+      role="img"
+      aria-label={fill(words.m['matchCentre.axis'].text, {
+        goals: formatNumber(locale, goals),
+        cards: formatNumber(locale, marked.length - goals),
+      })}
+      className="relative h-23"
+      data-testid="timeline-axis"
+    >
+      <span className="absolute inset-x-0 top-11.5 h-0.5 bg-border" />
+      <span
+        className="absolute top-7.5 h-8.5 w-px bg-caption"
+        style={{ insetInlineStart: pos(45) }}
+      />
+      <span
+        className="absolute top-17.5 font-mono text-xs text-caption"
+        style={{ insetInlineStart: pos(45) }}
+      >
+        <MessageText message={words.m['status.halfTime']} />
+      </span>
+      {marked.map((i) => {
+        const goal = GOAL_KINDS.has(i.kind);
+        const home = i.side === 'home';
+        return (
+          <span
+            key={i.id}
+            data-kind={i.kind}
+            data-side={i.side}
+            className={cx(
+              'absolute',
+              goal
+                ? cx(
+                    'size-4.5 -translate-x-1/2 rounded-full rtl:translate-x-1/2',
+                    home ? 'top-4.5 bg-accent' : 'top-14 bg-border-strong',
+                  )
+                : cx(
+                    'h-2.75 w-2 -translate-x-1/2 rounded-xs rtl:translate-x-1/2',
+                    home ? 'top-7.5' : 'top-12.75',
+                    i.kind === 'yellow_card' ? 'bg-warning' : 'bg-danger',
+                  ),
+            )}
+            style={{ insetInlineStart: pos(at(i)) }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+const GOAL_KINDS = new Set<MatchIncident['kind']>(['goal', 'penalty_goal', 'own_goal']);
 
 /** A small mark for an incident's kind, in tokens: a ball, a card's colour, an arrow. */
 function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
@@ -815,7 +1028,7 @@ function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
   return (
     <span
       aria-hidden="true"
-      className="grid size-9 place-items-center rounded-control bg-surface-raised text-fg"
+      className="grid size-8 shrink-0 place-items-center rounded-control bg-surface-raised text-fg"
     >
       {shape}
     </span>
@@ -823,11 +1036,11 @@ function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
 }
 
 /**
- * The team statistics as a dense grid of tiles (T-1384): each metric's two
- * figures large and condensed, its name between them, and the two shares as
- * bars from the middle out -- the home side's in the brand green, the away
- * side's neutral; never a club colour. A side the provider left out is "–"
- * and there is no bar for that row.
+ * The team statistics (Design System `StatBar`): each metric's two figures
+ * at the ends, its name between them, and a split bar under it -- the home
+ * side's share in ink from the inline start, the away side's grey; never a
+ * club colour. A side the provider left out is "–" and there is no bar for
+ * that row. While the match is on and nothing has come, "Not in yet".
  */
 function Statistics({
   centre,
@@ -839,16 +1052,28 @@ function Statistics({
   words: MatchWords;
 }) {
   const m = words.m;
+  const f = centre.fixture;
   return (
     <Module
       title={m['matchCentre.statistics']}
       module={centre.statistics}
       testId="statistics"
       words={words}
+      notInYet={f.status === 'live'}
     >
       {(rows) => (
         <>
-          <ul className="grid grid-cols-1 gap-2 @md:grid-cols-2" data-testid="stat-grid">
+          <p aria-hidden="true" className="-mt-1 flex gap-3.5 text-xs text-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2.5 rounded-xs bg-fg" />
+              <bdi>{f.home.name}</bdi>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2.5 rounded-xs bg-border-strong" />
+              <bdi>{f.away.name}</bdi>
+            </span>
+          </p>
+          <ul className="flex flex-col gap-3.5" data-testid="stat-grid">
             {rows.map((row) => (
               <StatTile key={row.metric} row={row} locale={locale} words={words} />
             ))}
@@ -884,37 +1109,33 @@ function StatTile({
 }) {
   const total = (row.home ?? 0) + (row.away ?? 0);
   const bars = row.home !== null && row.away !== null && total > 0;
-  const figure = 'text-2xl leading-none font-black font-stretch-condensed tabular-nums';
   return (
-    <li
-      className="flex flex-col gap-2 rounded-tile bg-surface-raised px-3 py-2.5"
-      data-metric={row.metric}
-    >
-      <div className="grid grid-cols-[minmax(3rem,auto)_minmax(0,1fr)_minmax(3rem,auto)] items-center gap-2">
-        <b className={figure}>
+    <li className="flex flex-col gap-1.5 tabular-nums" data-metric={row.metric}>
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <b className="font-bold">
           <span dir="ltr">{statValue(row.metric, row.home, locale)}</span>
         </b>
-        <span className="text-center text-xs text-muted">
+        <span className="text-center text-muted">
           <MessageText message={words.m[STAT_KEY[row.metric]]} />
         </span>
-        <b className={cx(figure, 'text-end')}>
+        <b className="font-bold">
           <span dir="ltr">{statValue(row.metric, row.away, locale)}</span>
         </b>
       </div>
       {bars && (
-        <div aria-hidden="true" className="flex h-1.5 gap-1">
-          <span className="flex flex-1 justify-end overflow-hidden rounded-xs bg-canvas">
+        <div aria-hidden="true" className="flex h-2 gap-0.75">
+          {(row.home ?? 0) > 0 && (
             <span
-              className="rounded-xs bg-accent"
-              style={{ inlineSize: `${((row.home ?? 0) / total) * 100}%` }}
+              className="rounded-pill bg-fg"
+              style={{ flexGrow: row.home ?? 0, flexBasis: 0 }}
             />
-          </span>
-          <span className="flex flex-1 overflow-hidden rounded-xs bg-canvas">
+          )}
+          {(row.away ?? 0) > 0 && (
             <span
-              className="rounded-xs bg-muted"
-              style={{ inlineSize: `${((row.away ?? 0) / total) * 100}%` }}
+              className="rounded-pill bg-border-strong"
+              style={{ flexGrow: row.away ?? 0, flexBasis: 0 }}
             />
-          </span>
+          )}
         </div>
       )}
     </li>
@@ -1169,7 +1390,7 @@ function Availability({
             )}
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 text-sm @md:grid-cols-2">
+          <div className="flex flex-col gap-3 text-sm">
             {(
               [
                 ['home', f.home.name],
@@ -1201,6 +1422,121 @@ function Availability({
         )
       }
     </Module>
+  );
+}
+
+/** Every rating the feed gave, by player id; none for a player it did not rate. */
+export function ratingsOf(centre: MatchCentre): Map<string, number> {
+  const ratings = new Map<string, number>();
+  for (const p of centre.player_statistics.data ?? []) {
+    const rating = p.stats.rating;
+    if (rating !== undefined && (p.stats.minutes ?? 1) > 0) ratings.set(p.id, rating);
+  }
+  return ratings;
+}
+
+/**
+ * The best rated (the canvas's "Top rated" and "Ratings, best six"; T-1497):
+ * the highest rating of the match with that player's goals, assists and xG
+ * where they were supplied, then the best six. From the feed's ratings only;
+ * with none there is no card, since the statistics already say why (rule 3).
+ */
+function TopRated({
+  centre,
+  locale,
+  words,
+}: {
+  centre: MatchCentre;
+  locale: string;
+  words: MatchWords;
+}) {
+  const m = words.m;
+  const f = centre.fixture;
+  const ratings = ratingsOf(centre);
+  const best = (centre.player_statistics.data ?? [])
+    .filter((p) => ratings.has(p.id))
+    .sort((a, b) => (ratings.get(b.id) ?? 0) - (ratings.get(a.id) ?? 0))
+    .slice(0, 6);
+  const top = best[0];
+  if (top === undefined) return null;
+  const team = (side: 'home' | 'away') => (side === 'home' ? f.home : f.away);
+  const photo = [...(centre.lineups.data?.home ?? []), ...(centre.lineups.data?.away ?? [])].find(
+    (p) => p.id === top.id,
+  )?.photo;
+  const xg = centre.player_expected_goals.data?.find((p) => p.id === top.id)?.figures.xg;
+  const figures: [string, Key][] = [];
+  if (top.stats.goals !== undefined)
+    figures.push([formatNumber(locale, top.stats.goals), 'matchCentre.player.goals']);
+  if (top.stats.assists !== undefined)
+    figures.push([formatNumber(locale, top.stats.assists), 'matchCentre.player.assists']);
+  if (xg !== undefined) figures.push([formatFixed(locale, xg, 2), 'matchCentre.expectedGoals.xg']);
+  return (
+    <section className={CARD} data-testid="top-rated">
+      <h2 className="text-xs font-extrabold tracking-wider text-accent uppercase">
+        <MessageText message={m['matchCentre.topRated']} />
+      </h2>
+      <div className="flex items-center gap-3.5">
+        <EntityImage media={photo} kind="photo" name={top.name} size={48} />
+        <span className="flex min-w-0 flex-col gap-1">
+          <Link
+            href={`/${locale}/player/${top.id}`}
+            className="text-lg leading-tight font-extrabold text-fg"
+          >
+            {listName(locale, top.name)}
+          </Link>
+          <span className="text-sm text-muted">
+            <bdi>{team(top.side).name}</bdi>
+            {top.stats.minutes !== undefined && (
+              <>
+                {' · '}
+                <MessageText
+                  message={filled(m['matchCentre.minutesPlayed'], {
+                    minutes: formatNumber(locale, top.stats.minutes),
+                  })}
+                />
+              </>
+            )}
+          </span>
+        </span>
+        <RatingChip value={ratings.get(top.id) ?? 0} locale={locale} size="large" />
+      </div>
+      {figures.length > 0 && (
+        <dl className="grid grid-cols-3 gap-2.5 tabular-nums">
+          {figures.map(([value, label]) => (
+            <div key={label} className="flex flex-col-reverse gap-0.5">
+              <dt className="text-xs text-caption">
+                <MessageText message={m[label]} />
+              </dt>
+              <dd className="text-2xl leading-none font-extrabold font-stretch-condensed">
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <h3 className="border-t border-default pt-3 text-sm font-extrabold">
+        <MessageText message={m['matchCentre.bestSix']} />
+      </h3>
+      <ol className="-mt-1 flex flex-col divide-y divide-default text-sm" data-testid="best-rated">
+        {best.map((p) => (
+          <li key={p.id} className="flex items-center gap-2.5 py-2">
+            <EntityImage
+              media={team(p.side).crest}
+              kind="crest"
+              name={team(p.side).name}
+              size={20}
+            />
+            <Link href={`/${locale}/player/${p.id}`} className="min-w-0 truncate">
+              {listName(locale, p.name)}
+            </Link>
+            <RatingChip value={ratings.get(p.id) ?? 0} locale={locale} className="ms-auto" />
+          </li>
+        ))}
+      </ol>
+      <p className="font-mono text-xs text-caption [:root:is(:lang(fa),:lang(ar))_&]:font-sans">
+        <MessageText message={m['matchCentre.ratingsNote']} />
+      </p>
+    </section>
   );
 }
 

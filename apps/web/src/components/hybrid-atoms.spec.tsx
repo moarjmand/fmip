@@ -8,20 +8,18 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { message } from '@/i18n/messages';
 import type { CardForecast } from '@/lib/score-card-products';
-import { forecastBarWords } from '@/lib/words-server';
 import { CommunityForecastPanel, CommunitySplit } from './community-consensus';
-import { ForecastBar } from './forecast-bar';
 import { NextMatchCard } from './next-match-card';
 import { PredictionForm, type PredictionFormWords, pickState } from './prediction-form';
-import { CommunityLane, FounderLane, ModelLane, ThreeProductsNote } from './product-lanes';
 
 /**
  * The Hybrid design's shared data atoms (T-1388, D-206) not yet rebuilt to
- * the Design System, each in its states: the forecast bar with and without a
- * forecast, the three lanes, the pick before and after, and the next-match
- * card -- in English and in Persian, where the reading order turns round and
- * the digits are Persian. The coverage badge, the freshness stamp and the
- * link-out have their own specs (T-1493).
+ * the Design System, each in its states: the community spread, the pick
+ * before and after, and the next-match card -- in English and in Persian,
+ * where the reading order turns round and the digits are Persian. The
+ * coverage badge, the freshness stamp and the link-out have their own specs
+ * (T-1493), and so do the forecast bar, the receipt and the match row
+ * (T-1508) and the three voices (T-1509).
  */
 
 const AVAILABLE: CardForecast = {
@@ -33,110 +31,6 @@ const AVAILABLE: CardForecast = {
   model_version: 'dixon-coles-elo@0.6.0',
   computed_at: '2026-10-11T09:30:00.000Z',
 };
-
-const bar = (forecast: CardForecast, locale = 'en', started = false) =>
-  renderToStaticMarkup(
-    <ForecastBar
-      forecast={forecast}
-      home="Tractor"
-      away="Esteghlal"
-      started={started}
-      locale={locale}
-      timeZone="UTC"
-      words={forecastBarWords(locale)}
-    />,
-  );
-
-/** The `data-outcome` values in document order: the reading order of the segments. */
-const outcomeOrder = (html: string) =>
-  [...html.matchAll(/<span data-outcome="(\w+)" class="rounded-sm/g)].map((m) => m[1]);
-
-describe('ForecastBar', () => {
-  it('draws one hue in three steps, labelled, with the model id and computation time', () => {
-    const html = bar(AVAILABLE);
-    expect(html).toContain('data-state="available"');
-    // One hue: the model token at full, 55% and 25%, home strongest.
-    expect(html).toMatch(/data-outcome="home" class="rounded-sm bg-model"/);
-    expect(html).toMatch(/data-outcome="draw" class="rounded-sm bg-model\/55"/);
-    expect(html).toMatch(/data-outcome="away" class="rounded-sm bg-model\/25"/);
-    expect(html).not.toMatch(/bg-(community|founder|accent)/);
-    expect(html).toContain('46.4%');
-    expect(html).toContain('33.6%');
-    expect(html).toContain('20.0%');
-    expect(html).toContain(
-      'aria-label="Model forecast: Tractor 46.4%, draw 33.6%, Esteghlal 20.0%"',
-    );
-    // Always the model id and the time, in the mono face.
-    expect(html).toMatch(/font-mono[^"]*" data-testid="forecast-bar-meta"/);
-    expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
-    expect(html).toMatch(/computed <time dateTime="2026-10-11T09:30:00.000Z">11 Oct, 09:30 UTC/);
-  });
-
-  it('keeps home first in the source, so a right-to-left page puts it on the right, in Persian digits', () => {
-    const html = bar(AVAILABLE, 'fa');
-    expect(outcomeOrder(html)).toEqual(['home', 'draw', 'away']);
-    expect(html).toContain('۴۶٫۴٪');
-    expect(html).toContain('محاسبه‌شده');
-    // The model id stays a left-to-right island inside Persian.
-    expect(html).toContain(
-      '<span dir="ltr" class="text-model">dixon-coles-elo<span>@</span>0.6.0</span>',
-    );
-    // Nothing physical: the direction does the mirroring (rule 7).
-    expect(html).not.toMatch(/\b(ml|mr|pl|pr|left|right)-/);
-  });
-
-  it('says in words when there is no forecast, never an empty bar', () => {
-    const none = bar({ state: 'none' });
-    expect(none).toContain('data-state="none"');
-    expect(none).toContain('No model forecast for this match yet.');
-    expect(none).not.toContain('role="img"');
-    expect(bar({ state: 'none' }, 'en', true)).toContain(
-      'The model had no forecast for this match before kick-off.',
-    );
-    expect(
-      bar({
-        state: 'unavailable',
-        reason: 'no_history',
-        version: 2,
-        computed_at: AVAILABLE.computed_at,
-      }),
-    ).toContain('The model gave no probabilities in version 2.');
-    expect(bar({ state: 'unreachable' })).toContain('could not be loaded');
-    expect(bar({ state: 'none' }, 'fa')).toContain('مدل آماری هنوز');
-  });
-});
-
-describe('the three lanes', () => {
-  it('give each product its own colour, icon and name, and the note says they stay separate', () => {
-    const lanes = [
-      [renderToStaticMarkup(<ModelLane locale="en">x</ModelLane>), 'model', 'Statistical model'],
-      [
-        renderToStaticMarkup(<FounderLane locale="en">x</FounderLane>),
-        'founder',
-        'Founder’s analysis',
-      ],
-      [
-        renderToStaticMarkup(<CommunityLane locale="en">x</CommunityLane>),
-        'community',
-        'Community picks',
-      ],
-    ] as const;
-    for (const [html, lane, name] of lanes) {
-      expect(html).toContain(`data-lane="${lane}"`);
-      expect(html).toContain(`border-${lane}`);
-      expect(html).toContain('bg-surface');
-      expect(html).toContain(`data-icon="${lane}"`);
-      expect(html).toContain(name);
-      for (const other of ['model', 'founder', 'community'].filter((o) => o !== lane)) {
-        expect(html).not.toContain(`-${other}`);
-      }
-    }
-    expect(renderToStaticMarkup(<ThreeProductsNote locale="en" />)).toContain(
-      'Three separate products.',
-    );
-    expect(renderToStaticMarkup(<ModelLane locale="fa">x</ModelLane>)).toContain('مدل آماری');
-  });
-});
 
 const CONSENSUS: CommunityConsensusResponse = {
   coverage: 'available',

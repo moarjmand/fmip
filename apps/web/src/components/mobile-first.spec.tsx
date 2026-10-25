@@ -296,18 +296,24 @@ describe('the match centre', () => {
     expect(header).toContain('data-testid="match-header"');
     expect(header).toMatch(/data-testid="match-status">67′</);
     expect(header).toMatch(/<bdi class="[^"]*">Liverpool<\/bdi>/);
-    // The live minute in the live badge, with the word and the pulsing dot (T-1384, T-1493).
-    expect(header).toMatch(/data-live-badge=""[^>]*><span aria-hidden="true" class="live-dot/);
-    // The score large and condensed, home first in the page's direction (D-193).
-    expect(header).toMatch(/<span dir="ltr" class="[^"]*font-black[^"]*" data-testid="score">2</);
+    // The live badge in saffron, with the word and the pulsing dot (T-1497).
+    expect(header).toMatch(
+      /bg-live\/15 text-live" data-testid="live-badge"><span aria-hidden="true" class="live-dot/,
+    );
+    // The score large and narrow, home first in the page's direction (D-193).
+    expect(header).toMatch(
+      /<span dir="ltr" class="[^"]*font-stretch-condensed[^"]*" data-testid="score">2</,
+    );
     // 16:30 UTC is 20:00 in Tehran.
     expect(header).toMatch(/Kick-off <time dateTime="2025-01-05T16:30:00.000Z">[^<]*20:00/);
     expect(header).toContain('Last data update');
   });
 
-  it('has a phone tab bar of plain anchors, each to a section that exists (T-1384)', () => {
+  it('has a tab bar of plain anchors, each to a section that exists (T-1384, T-1497)', () => {
     const nav = html.slice(html.indexOf('<nav'), html.indexOf('</nav>'));
-    expect(nav).toContain('md:hidden');
+    // At every width, at the foot of the score band: jump links from 768px.
+    expect(nav).toContain('data-testid="section-nav"');
+    expect(html.indexOf('data-testid="section-nav"')).toBeLessThan(html.indexOf('</header>'));
     for (const [tab, label] of TABS) {
       expect(nav).toContain(`href="#${tab}"`);
       expect(nav).toContain(`data-tab-link="${tab}"`);
@@ -325,12 +331,16 @@ describe('the match centre', () => {
     }
   });
 
-  it('lays the sections out in three columns from 768px and as tabs below it', () => {
+  it('lays the sections out in a main and a side column from 768px and as tabs below it', () => {
     expect(html).toContain('data-match-tabs=""');
-    for (const column of ['events', 'teams', 'forecasts']) {
-      expect(html).toContain(`data-column="${column}"`);
+    for (const column of ['main', 'side']) {
+      expect(html).toMatch(new RegExp(`max-md:contents[^"]*" data-column="${column}"`));
     }
-    expect(html).toMatch(/max-md:contents[^"]*" data-column="events"/);
+    // The Design System's flex: the main column 999 1 640px, the side 1 1 340px.
+    expect(html).toMatch(/md:grow-999 md:basis-160" data-column="main"/);
+    expect(html).toMatch(/md:grow md:basis-85" data-column="side"/);
+    // The side column's sections belong to the Summary tab on a phone.
+    expect(html).toMatch(/data-column="side"><div class="[^"]*" data-tab="summary">/);
   });
 
   it('keeps the model, the founder and the community in three sections, in that order', () => {
@@ -348,14 +358,13 @@ describe('the match centre', () => {
     expect(at('predictions')).toBeLessThan(at('forecast'));
   });
 
-  it('draws the statistics as a grid of tiles with their bars, in the brand green only', () => {
+  it('draws each statistic as a split bar, home in ink and away in grey (Design System StatBar)', () => {
     const stats = html.slice(html.indexOf('data-testid="statistics"'));
     expect(stats).toContain('data-testid="stat-grid"');
-    expect(stats).toContain('@md:grid-cols-2');
     expect(stats).toMatch(/data-metric="shots"/);
-    // 10 of 14 shots: the home bar 71.4% of its half, the away 28.6%.
-    expect(stats).toMatch(/bg-accent" style="inline-size:71\.42\d*%"/);
-    expect(stats).toMatch(/bg-muted" style="inline-size:28\.57\d*%"/);
+    // 10 of 14 shots: the two shares of one bar, home from the inline start.
+    expect(stats).toMatch(/bg-fg" style="flex-grow:10;flex-basis:0"/);
+    expect(stats).toMatch(/bg-border-strong" style="flex-grow:4;flex-basis:0"/);
     // Never a club colour: the brand green and the neutral token only.
     expect(stats.slice(0, stats.indexOf('</section>'))).not.toMatch(/bg-(model|founder|community)/);
   });

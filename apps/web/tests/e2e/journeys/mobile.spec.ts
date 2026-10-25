@@ -154,21 +154,23 @@ test('the match centre reaches each section through its tabs, without script', a
   await context.close();
 });
 
-test('the match centre opens every section side by side from 768px, with no tabs', async ({
+test('the match centre opens every section from 768px, a main and a side column, the tabs as jump links', async ({
   browser,
 }) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const page = await context.newPage();
   await page.goto(`/en/match/${PLAYED_MATCH}`);
-  await expect(page.getByTestId('section-nav')).toBeHidden();
+  // The tabs stay, at the foot of the score band, and jump to their sections (T-1497).
+  await expect(page.getByTestId('section-nav')).toBeVisible();
   for (const id of ['timeline', 'lineups', 'forecast', 'analysis', 'community', 'watch']) {
     await expect(page.locator(`#${id}`)).toBeVisible();
   }
-  // Three columns at 1280px: the line-ups beside the key events.
-  const events = await page.locator('[data-column="events"]').boundingBox();
-  const teams = await page.locator('[data-column="teams"]').boundingBox();
-  expect(events).not.toBeNull();
-  expect(teams).not.toBeNull();
-  if (events !== null && teams !== null) expect(teams.x).toBeGreaterThan(events.x);
+  // Two columns at 1280px: the side column (the past meetings, the data
+  // footer) beside the main one.
+  const main = await page.locator('[data-column="main"]').boundingBox();
+  const side = await page.locator('[data-column="side"]').boundingBox();
+  expect(main).not.toBeNull();
+  expect(side).not.toBeNull();
+  if (main !== null && side !== null) expect(side.x).toBeGreaterThan(main.x + main.width - 1);
   await context.close();
 });
