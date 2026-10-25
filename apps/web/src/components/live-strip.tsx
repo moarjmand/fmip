@@ -30,9 +30,8 @@ import { type StatusKey, dateIn } from '@/lib/scores';
  * all: never an empty box that looks like a quiet day (rule 3). When the
  * answer may be behind, the strip says so (rule 4, `LiveStripAge`).
  *
- * The strip is on white in both themes and both modes, as the header is on
- * paper: `data-mode="editorial"` keeps the light values, `bg-surface` paints
- * the white.
+ * The strip is on the surface and follows the theme, as the header does
+ * (D-267).
  */
 
 const KEPT = new Map<string, KeptAnswer<Awaited<ReturnType<typeof fetchScores>>>>();
@@ -127,7 +126,6 @@ export function LiveStripView({
   return (
     <nav
       aria-labelledby={labelId}
-      data-mode="editorial"
       data-testid="live-strip"
       data-competition={group.competition.id}
       className="border-b border-default bg-surface"
