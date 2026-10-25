@@ -88,7 +88,13 @@ test.describe('SEO surface without JavaScript', () => {
  */
 test.describe('no text reads as an e-mail address', () => {
   const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/;
-  for (const path of ['/en', '/en/match/00000000-0000-4000-8000-000000000901']) {
+  // T-1580: the competition page's receipt and the model page's versions too.
+  for (const path of [
+    '/en',
+    '/en/match/00000000-0000-4000-8000-000000000901',
+    '/en/competition/00000000-0000-4000-8000-000000000201?tab=model',
+    '/en/model-accuracy',
+  ]) {
     test(path, async ({ request }) => {
       const response = await request.get(path);
       expect(response.status()).toBe(200);

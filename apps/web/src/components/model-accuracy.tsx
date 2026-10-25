@@ -6,7 +6,9 @@ import type {
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
 import Link from '@/components/ui/link';
+import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
+import { ModelVersions } from '@/components/model-version';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
 import { formatDate, formatGregorianMonth, formatNumber } from '@/i18n/format';
@@ -217,10 +219,10 @@ function SeriesBlock({
             </table>
           </div>
           <p className="text-xs text-muted">
-            <MessageText
-              message={filled(message(lang, 'modelAccuracy.versions'), {
-                versions: series.model_versions.join(', '),
-              })}
+            {/* Each version an element, never "name@x.y.z" as one run (T-1580). */}
+            <FilledMessage
+              message={message(lang, 'modelAccuracy.versions')}
+              params={{ versions: <ModelVersions versions={series.model_versions} /> }}
             />
           </p>
         </>
