@@ -9,8 +9,9 @@ import { CompetitionsDirectory } from './competitions-directory';
 
 /**
  * The competitions bar and the All competitions page's list (T-1433), drawn:
- * the landmark, "All competitions" first, each competition to its page, the
- * current one marked, the words in Persian, and only logical CSS.
+ * the landmark, each competition to its page as a pill, "All competitions"
+ * at the end (T-1513), the current one marked, the words in Persian, and
+ * only logical CSS.
  */
 
 let pathname = '/en';
@@ -41,13 +42,13 @@ beforeEach(() => {
 });
 
 describe('the competitions bar', () => {
-  it('is a named landmark: All competitions first, then each competition to its page', () => {
+  it('is a named landmark: each competition to its page, then All competitions (T-1513)', () => {
     const html = bar('en');
     expect(html).toMatch(/<nav aria-label="Competitions"/);
     expect([...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1])).toEqual([
-      '/en/competitions',
       '/en/competition/pgpl',
       '/en/competition/epl',
+      '/en/competitions',
     ]);
     expect(html).toContain('All competitions');
     expect(html).not.toContain('aria-current');
@@ -79,6 +80,22 @@ describe('the competitions bar', () => {
     const html = bar('en', []);
     expect(html.match(/<li/g)).toHaveLength(1);
     expect(html).toContain('/en/competitions');
+  });
+
+  it('draws the Design System pills, and is not drawn on a phone (D-267)', () => {
+    const html = bar('en');
+    const nav = /<nav[^>]*>/.exec(html)?.[0] ?? '';
+    expect(nav).toContain('max-md:hidden');
+    expect(nav).not.toContain('data-mode');
+    expect(html.match(/class="pill-entry focus-inset"/g)).toHaveLength(2);
+    expect(html).toContain('class="pill-all focus-inset"');
+    // The arrow turns with the writing direction, and a screen reader skips it.
+    expect(html).toContain(
+      '<span aria-hidden="true" class="inline-block rtl:-scale-x-100">→</span>',
+    );
+    const css = readFileSync(join(__dirname, '..', 'app', 'globals.css'), 'utf8');
+    expect(css).toMatch(/@utility pill-entry \{[\s\S]*?rounded-pill border border-default/);
+    expect(css).toMatch(/&\[aria-current='page'\] > span \{\s*@apply border-accent/);
   });
 
   it('sits right under the header, before the live strip', () => {

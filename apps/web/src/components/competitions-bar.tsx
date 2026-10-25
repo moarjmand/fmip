@@ -21,9 +21,10 @@ async function loadDirectory(lang: string) {
 }
 
 /**
- * The competitions bar (T-1433): right under the header on every page, the
- * main competitions in the product's order (D-207) as a row that scrolls
- * sideways, after "All competitions", which opens the page with every one.
+ * The competitions bar (T-1433, T-1513): right under the header on every
+ * page from 768px, the main competitions in the product's order (D-207) as
+ * a row of pills that scrolls sideways, then "All competitions", which opens
+ * the page with every one.
  *
  * One request per language, shared between pages for a few seconds as the
  * live strip's is (`sharedAnswer`). Rendered on the server with the header,

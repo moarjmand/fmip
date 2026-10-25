@@ -179,10 +179,10 @@ made per row, a timeout -- does.
 
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
-| home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
-| scores `/en/scores` | 174.9 / 175 (raised 2026-10-22, T-1462) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 185.4 / 186 (raised 2026-10-23, T-1477) | 77 / 76 / 300 |
-| competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
+| home `/en` | 155.5 / 158 (2026-10-25, T-1494) | 38 / 50 / 200 |
+| scores `/en/scores` | 175.2 / 176 (raised 2026-10-25, T-1494, D-264) | 21 / 31 / 150 |
+| match centre `/en/match/…0901` | 185.7 / 186 (raised 2026-10-23, T-1477) | 77 / 76 / 300 |
+| competition `/en/competition/…0201` | 156.2 / 158 (2026-10-25, T-1494) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
 The scores budget was raised from 230 to 236 (T-1004), then home and
@@ -259,6 +259,18 @@ goes to 186. Finding the kicks on the server would have meant a new field in
 the scores and match contracts for a rule the client already has the data
 for. No library was added.
 
+**The raise of 2026-10-25 (T-1494, D-264, D-267).** The Stadiomind navigation
+is on every page: the header's More (the founder's analysis, Watch and
+Highlights, a disclosure that closes when a link is chosen) and the five new
+tabs, with their icons and which one is current, are in the shell's client
+chunk, which every route loads. The looks were moved into CSS utilities
+(`nav-entry`, `more-panel`, `tab-entry` in `globals.css`) so the components
+carry no class strings for them; what is left is 0.26 kB gzip. Scores 174.9
+to 175.2 against 175, so its budget goes to 176, the first kilobyte of the
+5 kB D-264 allows it: the scores page's own rebuild (T-1496) may take it to
+180 and no further. Home, the match centre and the competition page stay
+within theirs. No library was added.
+
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the
 API against the migrated, seeded database (as for the journeys), then
@@ -273,6 +285,48 @@ the measured / budget table above. Lowering one after a page gets lighter is
 the same edit and needs no reason. A new route is budgeted by adding an
 entry: `appRoute` as `.next/server/app` lays it out, `path` a real address of
 it in the seed.
+
+## Visual baseline (T-1502)
+
+`apps/web/tests/e2e/visual.spec.ts` keeps a picture of every page the
+Stadiomind redesign rebuilt (home, scores, the match centre on the seed's
+`…0901`, a competition, a club, a player) in Night and Day, at 1280 px and at
+390 px: 24 full-page shots in `tests/e2e/visual.spec.ts-snapshots/`. They are
+taken against the production build without an API, as the rest of the
+`chromium` project runs, so each page is in its unreachable state with the
+whole shell, the type and the colours.
+
+What makes a shot repeatable: both clocks are fixed at 2026-10-24 18:00 UTC
+-- the browser's by `page.clock.setFixedTime`, the web server's by
+`tests/e2e/fixed-clock.cjs`, loaded with
+`NODE_OPTIONS=--require=<its absolute path>` (the server writes
+"today" into the scores day strip, the date picker and the home page's date
+line; the clock is shifted, not stopped, so timers still run) -- and the spec
+refuses to run without it. Motion is reduced (the device and
+`fmip_motion=reduce`) and Playwright stops animations and hides the caret;
+`document.fonts` has loaded every face before the shot; lite mode is off
+(`fmip_lite=off`, so the web fonts are drawn and not the system stack); the
+browser's language (`en-GB`) and time zone (`Europe/London`) are set and the
+service worker is blocked.
+
+**Linux only.** The committed pictures are rendered by CI's Ubuntu runner;
+Windows and macOS anti-alias text differently, so the spec skips itself on any
+platform but Linux and a picture made on one must never be committed.
+
+**Until the pages land** the spec writes instead of comparing: it runs only
+with `VISUAL=update`, which CI's E2E job sets in its step "Visual baseline",
+and the job uploads the 24 pictures as the artifact `visual-baseline`. The
+final T-1502 pull request commits that artifact and turns the step into the
+comparison.
+
+**Remaking a picture after an intended change**, in either of two ways: take
+the `visual-baseline` artifact of a CI run of the branch, or render in the
+Playwright image of the pinned version from the root of a clean clone (never
+a checkout whose `node_modules` were installed on Windows, which the install
+inside would overwrite):
+`docker run --rm -v "$PWD":/w -w /w/apps/web -e VISUAL=update -e NODE_OPTIONS=--require=/w/apps/web/tests/e2e/fixed-clock.cjs mcr.microsoft.com/playwright:v1.63.0-noble sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm exec playwright test visual.spec.ts --update-snapshots=all"`.
+Commit the changed pictures in the pull request that changed the page, and
+say in it which pages moved and why.
 
 ## Match alerts (T-834)
 
