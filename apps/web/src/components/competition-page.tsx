@@ -31,6 +31,7 @@ import {
   STATUS_KEY,
   ZONE_KEY,
   ZONE_MARK,
+  pageLocale,
   say,
   zoneBand,
   zonesAbsentLine,
@@ -445,8 +446,35 @@ export function ZoneLegend({ locale, zones }: { locale: string; zones: LeagueZon
           </>
         )}
       </p>
-      {zones.note !== null && <p>{zones.note}</p>}
+      <ZoneNote locale={locale} zones={zones} />
     </div>
+  );
+}
+
+/**
+ * The league's own note (T-1167) in the page's language: Persian on `/fa`
+ * (T-1557), else the English it was written in, marked as English so a
+ * screen reader reads it as such rather than in the page's voice.
+ */
+function ZoneNote({
+  locale,
+  zones,
+}: {
+  locale: string;
+  zones: Extract<LeagueZones, { state: 'listed' }>;
+}) {
+  if (zones.note === null) return null;
+  const lang = pageLocale(locale);
+  const persian = lang === 'fa' ? (zones.note_fa ?? null) : null;
+  if (persian !== null) return <p data-testid="table-zones-note">{persian}</p>;
+  return (
+    <p
+      data-testid="table-zones-note"
+      lang={lang === 'en' ? undefined : 'en'}
+      dir={lang === 'en' ? undefined : 'ltr'}
+    >
+      {zones.note}
+    </p>
   );
 }
 

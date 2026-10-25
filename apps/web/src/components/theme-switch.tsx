@@ -74,7 +74,7 @@ export function ThemeSwitch({
             value={theme}
             aria-pressed={theme === current}
             data-testid={`theme-${theme}`}
-            className={`rounded border border-strong ${compact ? `min-h-touch px-3 lg:size-10 lg:min-h-0 lg:items-center lg:justify-center lg:border-default lg:px-0 ${theme === next ? 'lg:flex' : 'lg:hidden'}` : 'px-3 py-1.5'} ${
+            className={`rounded border border-strong ${compact ? `min-h-touch px-3 lg:size-10 lg:min-h-0 lg:items-center lg:justify-center lg:border-default lg:px-0 ${theme === next ? 'lg:flex' : 'lg:hidden'}` : 'inline-flex min-h-touch items-center px-3'} ${
               theme === current ? 'bg-accent font-semibold text-on-accent' : 'bg-canvas text-fg'
             }`}
           >

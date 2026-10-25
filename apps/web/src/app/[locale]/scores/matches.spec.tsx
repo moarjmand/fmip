@@ -118,9 +118,10 @@ describe("the row's model cell", () => {
   });
 
   it('gives three whole numbers totalling 100, as blueprint 6.2 asks (T-1545)', () => {
-    // Toulouse v Troyes on 25 Oct 2026 read 67 · 20 · 14 with each rounded alone.
+    // Toulouse v Troyes on 25 Oct 2026 read 67 · 20 · 14 with each rounded alone;
+    // the largest share absorbs the gap (`wholePercentages`, T-1555).
     const html = cell({ ...AVAILABLE, home: 66.6, draw: 19.6, away: 13.8 });
-    expect(html).toMatch(/<span>67<\/span><span>19<\/span><span>14<\/span>/);
+    expect(html).toMatch(/<span>66<\/span><span>20<\/span><span>14<\/span>/);
     // The bar and its name keep the stored shares.
     expect(html).toContain('flex-grow:66.6');
     expect(html).toContain('Barcelona 66.6%');

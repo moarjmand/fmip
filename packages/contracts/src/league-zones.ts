@@ -63,6 +63,8 @@ export interface LeagueZoneEntry {
   sources: string[];
   /** What a reader should know: a place not listed and why, a changed format. */
   note?: string;
+  /** The same note in Persian, for `/fa` (T-1557): every note has one. */
+  note_fa?: string;
 }
 
 /** The competition page's zones for the selected season. */
@@ -74,6 +76,8 @@ export type LeagueZones =
       complete: boolean;
       sources: string[];
       note: string | null;
+      /** `note` in Persian (T-1557); a page in another language shows `note`. */
+      note_fa?: string | null;
     }
   | {
       state: 'not_listed';
@@ -133,6 +137,7 @@ export function leagueZonesFor(
     complete: e.complete,
     sources: e.sources,
     note: e.note ?? null,
+    note_fa: e.note_fa ?? null,
   };
 }
 

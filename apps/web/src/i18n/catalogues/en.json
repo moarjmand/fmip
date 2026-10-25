@@ -2203,6 +2203,7 @@
   "competitionPage.tab.stats": "Stats",
   "competitionPage.tab.matches": "Matches",
   "competitionPage.tab.model": "Model in this league",
+  "competitionPage.tab.modelShort": "Model",
   "competitionPage.tab.news": "News",
   "competitionPage.back": "Back to all competitions",
   "competitionPage.seasonMenu": "Season {season}: choose another season",
@@ -2227,6 +2228,7 @@
   "competitionPage.model.matches": "matches",
   "competitionPage.model.limited": "Limited: fewer than {minimum} matches is too few to judge the model in one league.",
   "competitionPage.model.notSupplied": "No forecast the model made here before kick-off has been scored yet, so there is nothing to judge it by.",
+  "competitionPage.model.notSuppliedSeason": "No forecast the model made before kick-off in this season has been scored, so there is nothing to judge it by here.",
   "competitionPage.model.more": "The model month by month",
   "competitionPage.model.record": "The model’s full record",
   "competitionPage.model.months": "Month by month",
@@ -2242,6 +2244,7 @@
   "competitionPage.follow.unreachable": "Whether you follow this competition cannot be checked right now.",
   "competitionPage.fullTable": "Full table",
   "competitionPage.noTable": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
+  "competitionPage.noTableFriendly": "Friendlies are single matches, not a league or a cup, so there is no table. The matches are under Matches.",
   "competitionPage.boards.mainPhase": {
     "one": "Counted over the main competition, from the league or group stage on; the {count} qualifying match before it is not included.",
     "other": "Counted over the main competition, from the league or group stage on; the {count} qualifying matches before it are not included."
@@ -2791,7 +2794,7 @@
   "competitions.bar.all": "All competitions",
   "competitions.title": "All competitions",
   "competitions.metaDescription": "Every league and cup Stadiomind follows, grouped by country and region, each with its own page.",
-  "competitions.lead": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
+  "competitions.lead": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, matches, players and the model in that league.",
   "competitions.filter": "Find a competition or country",
   "competitions.jump": "Countries and regions",
   "competitions.group.international": "International",

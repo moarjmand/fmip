@@ -21,9 +21,12 @@ import { cx } from './cx';
 
 export type FieldSize = 'sm' | 'md';
 
+// A field is a 44px touch target on a phone (T-1573): `md` everywhere, `sm`
+// (the dense filter rows) below 768px, where a thumb rather than a pointer
+// reaches it.
 const CONTROL: Record<FieldSize, string> = {
-  sm: 'rounded border border-strong bg-transparent px-2 py-1 text-sm text-start',
-  md: 'rounded border border-strong bg-transparent px-3 py-2 text-start',
+  sm: 'rounded border border-strong bg-transparent px-2 py-1 text-sm text-start max-md:min-h-touch',
+  md: 'rounded border border-strong bg-transparent px-3 py-2 text-start min-h-touch',
 };
 
 /** The class list of a bare control, for a field whose label lives elsewhere (a score box in a sentence). */

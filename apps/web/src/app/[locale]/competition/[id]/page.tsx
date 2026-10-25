@@ -101,7 +101,7 @@ export async function generateMetadata({
     path,
     title: `${c.localised_name ?? c.name} ${seasonLabel} · Stadiomind`,
     description: say(locale, 'competitionPage.metaDescription', {
-      name: c.name,
+      name: c.localised_name ?? c.name,
       season: seasonLabel,
     }),
   });
@@ -196,7 +196,13 @@ export default async function CompetitionPage({
       : tab === 'matches'
         ? await forecastsFor(upcoming(page))
         : {};
-  const model = leagueModel(accuracy?.ok === true ? accuracy.data : null, page.competition.id);
+  // Only the months of the season on the page (T-1556, D-278): an older season
+  // never shows this month's record.
+  const model = leagueModel(
+    accuracy?.ok === true ? accuracy.data : null,
+    page.competition.id,
+    page.season,
+  );
   const l = pageLocale(locale);
   const freshnessWords: FreshnessWords = {
     'freshness.checked': message(l, 'freshness.checked'),
@@ -242,6 +248,7 @@ export default async function CompetitionPage({
                   model={model}
                   locale={locale}
                   timeZone={timeZone}
+                  pastSeason={!page.season.is_current}
                   more={{
                     href: tabHref(locale, page.competition.id, page.season, 'model'),
                     label: 'competitionPage.model.more',
@@ -255,7 +262,14 @@ export default async function CompetitionPage({
         {tab === 'table' && <TableTab {...ctx} />}
         {tab === 'matches' && <MatchesTab {...ctx} forecasts={forecasts} />}
         {tab === 'players' && <PlayersTab page={page} locale={locale} timeZone={timeZone} />}
-        {tab === 'model' && <ModelTab model={model} locale={locale} timeZone={timeZone} />}
+        {tab === 'model' && (
+          <ModelTab
+            model={model}
+            locale={locale}
+            timeZone={timeZone}
+            pastSeason={!page.season.is_current}
+          />
+        )}
         {tab === 'news' && (
           <NewsTab
             page={page}
@@ -296,7 +310,15 @@ function TableModules({
     return (
       <Card testId="no-table" title={say(locale, 'competitionPage.tab.table')}>
         <Empty testId="no-table" locale={locale}>
-          <Translated locale={locale} message="competitionPage.noTable" />
+          {/* Friendlies are not played in knockout rounds either (T-1559). */}
+          <Translated
+            locale={locale}
+            message={
+              page.competition.kind === 'friendly'
+                ? 'competitionPage.noTableFriendly'
+                : 'competitionPage.noTable'
+            }
+          />
         </Empty>
       </Card>
     );
@@ -396,10 +418,12 @@ function ModelTab({
   model,
   locale,
   timeZone,
+  pastSeason,
 }: {
   model: LeagueModel;
   locale: string;
   timeZone: string;
+  pastSeason: boolean;
 }) {
   return (
     <div className="flex flex-wrap items-start gap-5">
@@ -408,6 +432,7 @@ function ModelTab({
           model={model}
           locale={locale}
           timeZone={timeZone}
+          pastSeason={pastSeason}
           more={{ href: `/${locale}/model-accuracy`, label: 'competitionPage.model.record' }}
         />
       </div>
@@ -446,7 +471,7 @@ function NewsTab({
             locale={locale}
             timeZone={timeZone}
             heading={say(locale, 'competitionPage.founderHeading', {
-              name: page.competition.name,
+              name: page.competition.localised_name ?? page.competition.name,
             })}
           />
         </div>
@@ -492,8 +517,8 @@ function PlayersTab({ page, locale, timeZone }: { page: Page; locale: string; ti
                     aria-current={current ? 'true' : undefined}
                     className={
                       current
-                        ? 'inline-flex min-h-8 items-center rounded-pill bg-fg px-3 font-bold text-canvas'
-                        : 'inline-flex min-h-8 items-center rounded-pill border border-default px-3 text-muted hover:text-fg'
+                        ? 'inline-flex min-h-touch items-center rounded-pill bg-fg px-3 font-bold text-canvas sm:min-h-8'
+                        : 'inline-flex min-h-touch items-center rounded-pill border border-default px-3 text-muted hover:text-fg sm:min-h-8'
                     }
                   >
                     {preset === null ? (

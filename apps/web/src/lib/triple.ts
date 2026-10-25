@@ -41,25 +41,17 @@ export function sharesToPercentages(triple: Triple): Triple {
 }
 
 /**
- * Three percentages (totalling 100.0) as whole numbers totalling exactly 100,
- * for a row that has room for no decimals (T-1545). Each rounding on its own
- * showed 67 · 20 · 14 on a real match; here each share is cut to its whole
- * number and the points left over go to the largest remainders, home first
- * on a tie.
+ * Three percentages as whole numbers totalling exactly 100, for a surface
+ * that prints "45 · 25 · 30" (T-1555): rounding each on its own can print
+ * 41 · 29 · 31. The largest absorbs the gap, as `sharesToPercentages` does.
  */
-export function wholePercentages(triple: Triple): Triple {
-  const tenths = [triple.home, triple.draw, triple.away].map((value) => Math.round(value * 10));
-  const whole = tenths.map((value) => Math.floor(value / 10));
-  let left = 100 - whole.reduce((sum, value) => sum + value, 0);
-  const order = [0, 1, 2].sort(
-    (a, b) => ((tenths[b] ?? 0) % 10) - ((tenths[a] ?? 0) % 10) || a - b,
-  );
-  for (const index of order) {
-    if (left <= 0) break;
-    whole[index] = (whole[index] ?? 0) + 1;
-    left -= 1;
-  }
-  return { home: whole[0] ?? 0, draw: whole[1] ?? 0, away: whole[2] ?? 0 };
+export function wholePercentages(percent: Triple): Triple {
+  const values = [percent.home, percent.draw, percent.away].map((value) => Math.round(value));
+  const gap = 100 - values.reduce((sum, value) => sum + value, 0);
+  const exact = [percent.home, percent.draw, percent.away];
+  const largest = exact.indexOf(Math.max(...exact));
+  values[largest] = (values[largest] ?? 0) + gap;
+  return { home: values[0] ?? 0, draw: values[1] ?? 0, away: values[2] ?? 0 };
 }
 
 /**

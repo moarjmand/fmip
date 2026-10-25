@@ -25,34 +25,27 @@ describe('shares as percentages', () => {
   });
 });
 
-describe('whole percentages for a row (T-1545)', () => {
-  it('totals exactly 100 where rounding each would give 101 or 99', () => {
-    // Toulouse v Troyes on 25 Oct 2026: 66.6 · 19.6 · 13.8 read 67 · 20 · 14.
-    expect(wholePercentages({ home: 66.6, draw: 19.6, away: 13.8 })).toEqual({
-      home: 67,
-      draw: 19,
-      away: 14,
-    });
-    expect(wholePercentages({ home: 33.4, draw: 33.3, away: 33.3 })).toEqual({
-      home: 34,
-      draw: 33,
-      away: 33,
-    });
-    for (const t of [
-      { home: 42.5, draw: 25.5, away: 32 },
-      { home: 0.4, draw: 0.4, away: 99.2 },
-      { home: 50, draw: 25, away: 25 },
-    ]) {
-      const w = wholePercentages(t);
-      expect(w.home + w.draw + w.away).toBe(100);
-    }
+describe('whole percentages', () => {
+  it('totals exactly 100 where rounding each would print 101 (T-1555)', () => {
+    // Bournemouth v Leeds on production: 40.6 · 28.9 · 30.5 printed 41 · 29 · 31.
+    const result = wholePercentages({ home: 40.6, draw: 28.9, away: 30.5 });
+
+    expect(result.home + result.draw + result.away).toBe(100);
+    expect(result).toEqual({ home: 40, draw: 29, away: 31 });
   });
 
-  it('keeps a whole share as it is', () => {
-    expect(wholePercentages({ home: 50, draw: 25, away: 25 })).toEqual({
-      home: 50,
+  it('totals 100 where rounding each would print 99, the gap to the largest', () => {
+    const result = wholePercentages({ home: 33.4, draw: 33.4, away: 33.2 });
+
+    expect(result.home + result.draw + result.away).toBe(100);
+    expect(result.home).toBe(34);
+  });
+
+  it('leaves a triple that already totals 100 alone', () => {
+    expect(wholePercentages({ home: 45, draw: 25, away: 30 })).toEqual({
+      home: 45,
       draw: 25,
-      away: 25,
+      away: 30,
     });
   });
 });

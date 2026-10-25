@@ -7,6 +7,7 @@ import type {
   SeasonFixture,
   SeasonSummary,
 } from '@fmip/contracts';
+import { ACCURACY_MINIMUM_MATCHES } from '@fmip/contracts';
 import { formatNumber, intlLocale } from '@/i18n/format';
 import { competitionQuery, stageNames } from '@/lib/competition';
 
@@ -398,20 +399,71 @@ export type LeagueModel =
 export function leagueModel(
   answer: PublicModelAccuracyResponse | null,
   competitionId: string,
+  /** The season on the page: only its months count (T-1556, D-278). */
+  season?: Pick<SeasonSummary, 'start_date' | 'end_date'>,
 ): LeagueModel {
   if (answer === null) return { state: 'unreachable' };
   const series = answer.competitions.find((s) => s.competition?.id === competitionId);
-  const months = (series?.points ?? [])
-    .filter((p) => p.coverage !== 'not_supplied' && p.matches > 0)
-    .reverse();
+  const points = series?.points ?? [];
+  const inSeason =
+    season === undefined ? points : points.filter((p) => monthInSeason(p.period_start, season));
+  const months = inSeason.filter((p) => p.coverage !== 'not_supplied' && p.matches > 0).reverse();
   const latest = months[0];
   if (series === undefined || latest === undefined) return { state: 'not_supplied' };
   return {
     state: 'scored',
     latest,
     months,
-    total: series.total,
+    // Every month is the season's: the API's own total stands. Otherwise
+    // the season's months are summed here, each figure weighted by matches.
+    total: inSeason.length === points.length ? series.total : monthsTotal(months),
     modelVersions: series.model_versions,
     lastUpdatedAt: answer.last_updated_at,
+  };
+}
+
+/**
+ * Whether a month (`YYYY-MM-01`) shares a day with the season. A month that
+ * straddles two seasons counts on both pages: the record is kept by month.
+ */
+export function monthInSeason(
+  periodStart: string,
+  season: Pick<SeasonSummary, 'start_date' | 'end_date'>,
+): boolean {
+  const first = periodStart.slice(0, 10);
+  // Lexical comparison of ISO dates; "-31" is past every month's last day.
+  const last = `${periodStart.slice(0, 7)}-31`;
+  return first <= season.end_date.slice(0, 10) && last >= season.start_date.slice(0, 10);
+}
+
+/**
+ * Several months as one row: the matches and forecasts added up, every
+ * figure the average over the matches (each month's figure weighted by its
+ * matches, which is exact: a match is scored in one month only), and the
+ * coverage read from the matches as the API reads it.
+ */
+export function monthsTotal(months: readonly AccuracyMetrics[]): AccuracyMetrics {
+  const matches = months.reduce((sum, m) => sum + m.matches, 0);
+  const mean = (pick: (m: AccuracyMetrics) => number | null): number | null => {
+    let weight = 0;
+    let sum = 0;
+    for (const m of months) {
+      const value = pick(m);
+      if (value === null || m.matches === 0) continue;
+      weight += m.matches;
+      sum += value * m.matches;
+    }
+    return weight === 0 ? null : sum / weight;
+  };
+  return {
+    forecasts: months.reduce((sum, m) => sum + m.forecasts, 0),
+    matches,
+    coverage:
+      matches === 0 ? 'not_supplied' : matches < ACCURACY_MINIMUM_MATCHES ? 'limited' : 'available',
+    log_loss: mean((m) => m.log_loss),
+    brier: mean((m) => m.brier),
+    rps: mean((m) => m.rps),
+    accuracy: mean((m) => m.accuracy),
+    uniform_rps: mean((m) => m.uniform_rps),
   };
 }
