@@ -462,10 +462,43 @@ describe('the career by season', () => {
           { id: 's2', label: '2026/27' },
           { id: 's1', label: '2025/26' },
         ]}
-        seasonId="s1"
+        current="2025/26"
       />,
     );
     expect(pills).toContain(`href="/en/player/${PERSON}?tab=stats&amp;season=s1"`);
+    // The chosen one by its label (T-1565), each pill 44px on a phone (T-1568).
+    expect(pills.match(/aria-current="true"/g)).toHaveLength(1);
+    expect(pills).toMatch(/aria-current="true"[^>]*>2025\/26</);
+    expect(pills.match(/min-h-touch/g)).toHaveLength(3);
+  });
+
+  it('keeps a season one season when he played it in two competitions or moved mid-way (T-1565)', () => {
+    // Lommel's 2026/27 in the Belgian league and Casa Pia's in the Portuguese
+    // are two season ids with one label; the API lists a cup's season after
+    // an older league season.
+    const rows = [
+      row({ goals: 2 }),
+      row({
+        season: { id: 'cup-s2', label: '2026/27' },
+        competition: { id: 'cup', name: 'Hazfi Cup', short_name: null },
+        goals: 1,
+      }),
+      row({ season: { id: 's1', label: '2025/26' } }),
+      row({
+        season: { id: 'cup-s1', label: '2025/26' },
+        competition: { id: 'cup', name: 'Hazfi Cup', short_name: null },
+      }),
+    ];
+    const p = page({ record: { coverage: 'available', last_updated_at: null, data: rows } });
+    const tiles = renderToStaticMarkup(<SeasonTilesPanel page={p} locale="en" />);
+    expect(tiles).toContain('data-testid="tile-season"');
+    expect(tiles.match(/data-testid="tile-competition"/g)).toHaveLength(2);
+    expect(tiles).toContain('Hazfi Cup');
+    const table = renderToStaticMarkup(
+      <RecordPanel page={p} rows={rows} locale="en" full={false} testId="career-record" />,
+    );
+    expect(table.match(/scope="rowgroup"/g)).toHaveLength(2);
+    expect(table.match(/rowSpan="2"|rowspan="2"/g)).toHaveLength(2);
   });
 });
 
@@ -474,6 +507,7 @@ describe('the matches', () => {
     const p = page();
     const matches = [
       match({ goals: 2, assists: 0 }),
+      match({ fixture: { ...match().fixture, id: 'f3' }, goals: 1, assists: 1 }),
       match({
         fixture: { ...match().fixture, id: 'f2' },
         assists: 0,
@@ -484,8 +518,12 @@ describe('the matches', () => {
     const html = renderToStaticMarkup(
       <LastMatchesPanel page={p} matches={matches} locale="en" timeZone="UTC" />,
     );
-    expect(html.match(/data-testid="player-match"/g)).toHaveLength(2);
-    expect(html).toMatch(/data-testid="player-match-contribution">2 goals</);
+    expect(html.match(/data-testid="player-match"/g)).toHaveLength(3);
+    expect(html).toMatch(/data-testid="player-match-contribution"><span>2 goals<\/span></);
+    // One line each, so the side column keeps the sides' names (T-1569).
+    expect(html).toMatch(
+      /data-testid="player-match-contribution"><span>1 goal<\/span><span>1 assist<\/span></,
+    );
     expect(html).toMatch(/data-testid="player-match-contribution">–</);
     expect(html).toContain('Unused sub');
     expect(html).toContain('8 Oct');
@@ -579,6 +617,19 @@ describe('the clubs and the next match', () => {
     expect(html).toContain('data-testid="player-availability"');
     expect(html).toMatch(/<h2[^>]*>Next match</);
     expect(html).toContain('data-coverage-badge="not_supplied"');
+  });
+});
+
+describe('the review of 2026-10-26', () => {
+  it('gives the name block its basis only in the desktop row, not as a phone height (T-1567)', () => {
+    expect(COMPONENT).toContain('md:flex-[1_1_18rem]');
+    expect(COMPONENT).not.toMatch(/[s"]flex-[1_1_18rem]/);
+  });
+
+  it('names the zone of the Overview’s times, and leaves out a second empty table (T-1566, T-1569)', () => {
+    expect(PAGE).toContain('data-testid="player-zone"');
+    expect(PAGE).toContain('{record.length > 0 && (');
+    expect(PAGE).toContain('seasonLabelOf(');
   });
 });
 

@@ -94,30 +94,53 @@ export function readSeasonFilter(params: SearchParams): string | null {
   return raw !== undefined && UUID.test(raw) ? raw.toLowerCase() : null;
 }
 
-/** The seasons the record covers, newest first as the record is, each once. */
+/**
+ * The seasons the record covers, newest first as the record is, each label
+ * once (T-1565). Every competition has a season of its own, so a player's
+ * 2026/27 is one id in the league and another in a cup or in the league he
+ * moved to mid-season; the reader's season is the label, and the pill links
+ * with the first id that carries it.
+ */
 export function seasonsOf(record: readonly PlayerSeasonRecord[]): { id: string; label: string }[] {
   const seen = new Set<string>();
   const seasons: { id: string; label: string }[] = [];
   for (const row of record) {
-    if (seen.has(row.season.id)) continue;
-    seen.add(row.season.id);
+    if (seen.has(row.season.label)) continue;
+    seen.add(row.season.label);
     seasons.push(row.season);
   }
   return seasons;
 }
 
-export function filterRecord(
+/** The label of `?season=<id>`, from any row or match that carries the id; null when none does. */
+export function seasonLabelOf(
   record: readonly PlayerSeasonRecord[],
-  seasonId: string | null,
-): PlayerSeasonRecord[] {
-  return seasonId === null ? [...record] : record.filter((r) => r.season.id === seasonId);
-}
-
-export function filterMatches(
   matches: readonly PlayerMatch[],
   seasonId: string | null,
+): string | null {
+  if (seasonId === null) return null;
+  const season =
+    record.find((r) => r.season.id === seasonId)?.season ??
+    matches.find((m) => m.fixture.season.id === seasonId)?.fixture.season;
+  return season?.label ?? null;
+}
+
+/** The rows of one season by its label (every competition's), or every row. */
+export function filterRecord(
+  record: readonly PlayerSeasonRecord[],
+  seasonLabel: string | null,
+): PlayerSeasonRecord[] {
+  return seasonLabel === null ? [...record] : record.filter((r) => r.season.label === seasonLabel);
+}
+
+/** The matches of one season by its label (every competition's), or every match. */
+export function filterMatches(
+  matches: readonly PlayerMatch[],
+  seasonLabel: string | null,
 ): PlayerMatch[] {
-  return seasonId === null ? [...matches] : matches.filter((m) => m.fixture.season.id === seasonId);
+  return seasonLabel === null
+    ? [...matches]
+    : matches.filter((m) => m.fixture.season.label === seasonLabel);
 }
 
 /** Appearances as the sum of starts and substitute appearances. */
@@ -212,8 +235,9 @@ export function spellsCoverage(spells: readonly PlayerSpell[]): CoverageState {
 
 /**
  * The season the Overview's tiles show: the record's first row (the newest
- * season, as the API orders it), and the other competitions of that season,
- * which the tiles do not add in.
+ * season, as the API orders it), and the other competitions of that season
+ * by its label (T-1565: each competition's season has its own id), which the
+ * tiles do not add in.
  */
 export function latestSeason(record: readonly PlayerSeasonRecord[]): {
   row: PlayerSeasonRecord;
@@ -221,7 +245,7 @@ export function latestSeason(record: readonly PlayerSeasonRecord[]): {
 } | null {
   const row = record[0];
   if (row === undefined) return null;
-  return { row, others: record.slice(1).filter((r) => r.season.id === row.season.id) };
+  return { row, others: record.slice(1).filter((r) => r.season.label === row.season.label) };
 }
 
 // ---------------------------------------------------------------------------
@@ -231,14 +255,16 @@ export function latestSeason(record: readonly PlayerSeasonRecord[]): {
 
 /**
  * The record's rows by season, in the record's order (newest season first),
- * each season once with its rows: the career table's row groups.
+ * each season once with its rows: the career table's row groups. A season is
+ * its label (T-1565), so a cup's 2025/26 joins the league's even where the
+ * API lists it after an older season.
  */
 export function seasonGroups(
   record: readonly PlayerSeasonRecord[],
 ): { season: PlayerSeasonRecord['season']; rows: PlayerSeasonRecord[] }[] {
   const groups: { season: PlayerSeasonRecord['season']; rows: PlayerSeasonRecord[] }[] = [];
   for (const row of record) {
-    const group = groups.find((g) => g.season.id === row.season.id);
+    const group = groups.find((g) => g.season.label === row.season.label);
     if (group === undefined) groups.push({ season: row.season, rows: [row] });
     else group.rows.push(row);
   }
