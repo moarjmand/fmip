@@ -1,5 +1,6 @@
 import type {
   AuthUser,
+  FounderAnalysisSummary,
   Prediction,
   ScoreCard as ScoreCardData,
   ScoresResponse,
@@ -19,6 +20,7 @@ import {
 import { isOpenForPick, onlyUnpicked } from '@/lib/scores-filters';
 import { forecastBarWords, scoresWords } from '@/lib/words-server';
 import { MatchPreview } from './match-preview';
+import { MatchesAnalysis } from './matches-analysis';
 
 /**
  * Matches and predictions on one page (T-1496, D-268): the row's model cell,
@@ -270,6 +272,45 @@ describe('an old /predictions address', () => {
         other: 'x',
       }),
     ).toBe('/fa/scores?date=2026-10-26&tz=Asia%2FTehran&competition=c1');
+  });
+});
+
+describe('the founder’s analysis under the list (T-1519)', () => {
+  const analysis = (analyses: FounderAnalysisSummary[] | null, locale = 'en'): string =>
+    renderToStaticMarkup(<MatchesAnalysis locale={locale} timeZone="UTC" analyses={analyses} />);
+  const ONE: FounderAnalysisSummary = {
+    fixture: {
+      id: ID,
+      kickoff_at: '2026-10-25T19:00:00.000Z',
+      status: 'scheduled',
+      competition: { id: 'c', name: 'La Liga' },
+      home: { id: 'h', name: 'Sevilla' },
+      away: { id: 'a', name: 'Betis' },
+    },
+    author: { id: 'f', display_name: 'The founder' },
+    predicted_outcome: 'home',
+    predicted_score: { home: 2, away: 1 },
+    confidence: 3,
+    excerpt: 'Sevilla at home.',
+    published_at: '2026-10-24T09:00:00.000Z',
+    version_number: 1,
+  };
+
+  it('stands at #analysis in the founder’s voice alone, with the league and the model’s record', () => {
+    const html = analysis([ONE]);
+    expect(html).toContain('id="analysis"');
+    expect(html.match(/data-voice="[a-z]+"/g)).toEqual(['data-voice="founder"']);
+    expect(html).toContain('data-testid="founder-feed"');
+    expect(html).toContain(`href="/en/match/${ID}"`);
+    expect(html).toContain('href="/en/leaderboard"');
+    expect(html).toContain('href="/en/model-accuracy"');
+  });
+
+  it('says when nothing is written, or the service did not answer (rule 3)', () => {
+    expect(analysis([])).toContain('has not published an analysis recently');
+    expect(analysis([])).not.toContain('founder-feed');
+    expect(analysis(null)).toContain('unreachable right now');
+    expect(analysis(null, 'fa')).toContain('href="/fa/leaderboard"');
   });
 });
 

@@ -81,11 +81,11 @@ describe('the header nav', () => {
     expect(ids(html, 'nav')).toEqual(ORDER);
     expect([...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1])).toEqual([
       '/en/scores',
-      '/en/predictions',
+      '/en/scores?unpicked=1',
       '/en/competitions',
       '/en/model-accuracy',
       '/en/news',
-      '/en/predictions#analysis',
+      '/en/scores#analysis',
       '/en/watch',
       '/en/highlights',
     ]);

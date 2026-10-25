@@ -12319,6 +12319,21 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** The Predictions page, its redirect to this page and a new home for the founder's analysis and the leaderboard link are T-1519, split off to keep this PR within its size. The old card's `<details>` is gone; unit and E2E specs that opened it read the preview instead.
 
+## D-269 — The Predictions page goes: its address redirects to the matches page, the founder's analysis moves there, Predictions leads to the picks still to make
+
+**Status:** Accepted · 2026-10-25 (decided within the coordinating session's grant, from D-268, D-267 and the blueprint) · **Task:** T-1519 · **Follows:** D-199, D-201, D-206, D-267, D-268
+
+**Context.** D-268 made the matches page the place picks are made, and left the old Predictions page (T-137, D-201: the model's list by day, the founder's analysis, the community's consensus list, the model's recent months and a top-ten leaderboard) and its address to this task. The header's Predictions, the phone's Predict and More's Analysis (`/predictions#analysis`) all still led there.
+
+**Decision.**
+1. `/{locale}/predictions` is a permanent redirect (308) to `/{locale}/scores`, keeping `date`, `tz` and `competition` and dropping anything else; the browser carries a `#analysis` fragment across it.
+2. The founder's analysis gets a home on the matches page, under the list, at `#analysis`: the five newest analyses (`GET /founder-analyses?limit=5`) in the founder's voice, the empty and unanswered feeds said in it (rule 3), then links to the prediction league (`/leaderboard`) and the model's record (`/model-accuracy`). It stands in its own voice, apart from the rows' model percentages and the preview's pick and split (rule 6).
+3. The old page's other sections are not rebuilt: the model's list by day is the matches page's rows and preview, the community's consensus list is the split the preview shows once picked (D-206), the model's recent months are `/model-accuracy`, the top ten is `/leaderboard`. Their components (`ForecastList`, `CommunityConsensusList`, `ModelAccuracyRecent`), the day buckets in `predictions-days.ts`, `fetchForecastList` and the 45 catalogue keys only they used go.
+4. Navigation: the header's Predictions and the phone's Predict lead to `/scores?unpicked=1`, the matches still to pick (a guest has none and sees every match, each Pick asking them to sign in); More's Analysis leads to `/scores#analysis`. The current entry is still decided by path alone: Matches is current on the matches page in every view, Predictions on the leaderboard, and Predict on the leaderboard, the model's record and the analysis pages. The navigation e2e therefore checks that Predictions and Predict land on the picks view with Matches current.
+5. The home's community call to action ("make your pick") leads to `/scores?unpicked=1` too.
+
+**Consequences.** One fewer page and one fewer place the three products meet; `three-products.spec.ts` now guards the matches page, its preview and its analysis section. Journey 2.1, the a11y, RTL and product-name specs read the matches page. Reading the query in the shell's navigation (so Predictions could be current on `?unpicked=1`) was rejected: the layout's client nav would need `useSearchParams` and a Suspense boundary on every page for one highlight.
+
 ## D-270 — The home page opens on the big match, and keeps the blueprint's other sections below the canvas
 
 **Status:** Accepted · 2026-10-25 (decided within the coordinating session's grant, from the canvas, D-263 and the blueprint) · **Task:** T-1495, T-1516 · **Follows:** D-153, D-154, D-200, D-263

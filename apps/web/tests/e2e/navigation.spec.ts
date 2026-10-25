@@ -17,7 +17,6 @@ const ROUTES = [
   '',
   '/scores',
   `/match/${MATCH}`,
-  '/predictions',
   '/leaderboard',
   '/competitions',
   '/model-accuracy',
@@ -30,12 +29,17 @@ const ROUTES = [
   '/no-such-page',
 ];
 
+/**
+ * Each tab, where it leads, and the tab current there. Predict leads to the
+ * matches still to pick (T-1519, D-269): a view of the matches page, so
+ * Matches is the current tab there.
+ */
 const TABS = [
-  ['tab-matches', /\/scores$/],
-  ['tab-predict', /\/predictions$/],
-  ['tab-leagues', /\/competitions$/],
-  ['tab-news', /\/news$/],
-  ['tab-you', /\/login$/],
+  ['tab-matches', /\/scores$/, 'tab-matches'],
+  ['tab-predict', /\/scores\?unpicked=1$/, 'tab-matches'],
+  ['tab-leagues', /\/competitions$/, 'tab-leagues'],
+  ['tab-news', /\/news$/, 'tab-news'],
+  ['tab-you', /\/login$/, 'tab-you'],
 ] as const;
 
 /** The outline a keyboard-focused element draws. */
@@ -71,10 +75,10 @@ test.describe('on a 390px phone', () => {
   test('clicks through all five tabs, each marked current where it leads', async ({ page }) => {
     await page.goto('/en');
     await expect(page.getByTestId('tab-matches')).toHaveAttribute('aria-current', 'page');
-    for (const [id, url] of TABS) {
+    for (const [id, url, current] of TABS) {
       await page.getByTestId(id).click();
       await expect(page).toHaveURL(url);
-      await expect(page.getByTestId(id)).toHaveAttribute('aria-current', 'page');
+      await expect(page.getByTestId(current)).toHaveAttribute('aria-current', 'page');
       await expect(page.locator('[data-testid="tab-bar"] [aria-current="page"]')).toHaveCount(1);
     }
   });
@@ -148,19 +152,23 @@ test.describe('on a 1440px screen', () => {
     });
   }
 
-  test('the header nav leads to its five pages, and More to its three', async ({ page }) => {
+  test('the header nav leads to its five places, and More to its three', async ({ page }) => {
     await page.goto('/en');
-    for (const [id, url] of [
-      ['nav-matches', /\/en\/scores$/],
-      ['nav-predictions', /\/en\/predictions$/],
-      ['nav-competitions', /\/en\/competitions$/],
-      ['nav-model', /\/en\/model-accuracy$/],
-      ['nav-news', /\/en\/news$/],
+    // Predictions leads to the matches still to pick, a view of Matches
+    // (T-1519, D-269); it is current on the prediction league.
+    for (const [id, url, current] of [
+      ['nav-matches', /\/en\/scores$/, 'nav-matches'],
+      ['nav-predictions', /\/en\/scores\?unpicked=1$/, 'nav-matches'],
+      ['nav-competitions', /\/en\/competitions$/, 'nav-competitions'],
+      ['nav-model', /\/en\/model-accuracy$/, 'nav-model'],
+      ['nav-news', /\/en\/news$/, 'nav-news'],
     ] as const) {
       await page.getByTestId(id).click();
       await expect(page).toHaveURL(url);
-      await expect(page.getByTestId(id)).toHaveAttribute('aria-current', 'page');
+      await expect(page.getByTestId(current)).toHaveAttribute('aria-current', 'page');
     }
+    await page.goto('/en/leaderboard');
+    await expect(page.getByTestId('nav-predictions')).toHaveAttribute('aria-current', 'page');
     const more = page.getByTestId('nav-more');
     await more.locator('summary').click();
     await page.getByTestId('nav-watch').click();
