@@ -247,7 +247,7 @@ export function ScoreCard({
           }
           className={`inline-flex min-h-11 items-center justify-center gap-1 justify-self-end rounded-control px-2.5 text-sm font-bold whitespace-nowrap ${
             selected
-              ? 'bg-accent text-on-accent'
+              ? 'bg-brand text-on-brand'
               : mine
                 ? 'text-live'
                 : 'border border-default hover:bg-surface-raised'

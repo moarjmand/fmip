@@ -315,7 +315,7 @@ export default async function ScoresPage({
                   aria-current={d.isSelected ? 'date' : undefined}
                   className={`flex min-h-11 min-w-14 shrink-0 flex-col items-center justify-center rounded-md px-3 whitespace-nowrap sm:flex-row sm:gap-1 ${
                     d.isSelected
-                      ? 'bg-accent font-extrabold text-on-accent'
+                      ? 'bg-brand font-extrabold text-on-brand'
                       : 'font-semibold text-muted hover:bg-surface-raised'
                   }`}
                 >

@@ -180,7 +180,7 @@ made per row, a timeout -- does.
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
 | home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
-| scores `/en/scores` | 177.0 / 180 (raised 2026-10-25, T-1496, D-264) | 21 / 31 / 150 |
+| scores `/en/scores` | 172.0 / 180 (raised 2026-10-25, T-1496, D-264) | 21 / 31 / 150 |
 | match centre `/en/match/…0901` | 185.4 / 186 (raised 2026-10-23, T-1477) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
 
@@ -264,7 +264,8 @@ are one page: each row has a Pick that opens the match's preview, and the
 preview holds the pick form (`PredictionForm`, the match centre's own), so
 the form and its server action's client reference are in the scores page's
 first load: 174.9 to 177.0 kB gzip. The budget goes to 180, the once-only
-5 kB D-264 allows a rebuilt page. The row's percentages, its Pick and the
+5 kB D-264 allows a rebuilt page. With T-1493's change merged (the error page
+no longer pulls in the `ui` barrel) the page measures 172.0. The row's percentages, its Pick and the
 "Not picked yet" view add little: they are a link, a thin bar and a filter
 over the snapshot the list already holds. No library was added.
 

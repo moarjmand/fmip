@@ -94,8 +94,8 @@ export function CardForecastSummary({
   );
 }
 
-/** The model's three steps of its one colour, home strongest, as the bar draws them. */
-const STEPS = { home: 'bg-model', draw: 'bg-model/55', away: 'bg-model/25' } as const;
+/** The Design System's forecast-bar segments (T-1493): home the model's colour, draw and away its own two. */
+const STEPS = { home: 'bg-model', draw: 'bg-prob-draw', away: 'bg-prob-away' } as const;
 
 /**
  * The model's cell on a match row (T-1496, the Design System's compact
