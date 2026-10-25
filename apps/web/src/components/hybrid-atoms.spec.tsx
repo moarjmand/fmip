@@ -6,23 +6,22 @@ import type {
 } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { message, resolveMessages } from '@/i18n/messages';
+import { message } from '@/i18n/messages';
 import type { CardForecast } from '@/lib/score-card-products';
 import { forecastBarWords } from '@/lib/words-server';
 import { CommunityForecastPanel, CommunitySplit } from './community-consensus';
 import { ForecastBar } from './forecast-bar';
-import { FreshnessStamp } from './freshness-stamp';
 import { NextMatchCard } from './next-match-card';
 import { PredictionForm, type PredictionFormWords, pickState } from './prediction-form';
 import { CommunityLane, FounderLane, ModelLane, ThreeProductsNote } from './product-lanes';
-import { CoverageBadge, LinkOut } from './ui';
 
 /**
- * The Hybrid design's shared data atoms (T-1388, D-206), each in its states:
- * the forecast bar with and without a forecast, the freshness stamp fresh
- * and behind, the four coverage badges, the three lanes, the link-out, the
- * pick before and after, and the next-match card -- in English and in
- * Persian, where the reading order turns round and the digits are Persian.
+ * The Hybrid design's shared data atoms (T-1388, D-206) not yet rebuilt to
+ * the Design System, each in its states: the forecast bar with and without a
+ * forecast, the three lanes, the pick before and after, and the next-match
+ * card -- in English and in Persian, where the reading order turns round and
+ * the digits are Persian. The coverage badge, the freshness stamp and the
+ * link-out have their own specs (T-1493).
  */
 
 const AVAILABLE: CardForecast = {
@@ -104,102 +103,6 @@ describe('ForecastBar', () => {
     ).toContain('The model gave no probabilities in version 2.');
     expect(bar({ state: 'unreachable' })).toContain('could not be loaded');
     expect(bar({ state: 'none' }, 'fa')).toContain('مدل آماری هنوز');
-  });
-});
-
-const FRESH_WORDS = resolveMessages('en', ['freshness.checked', 'freshness.behind']);
-const NOW = Date.parse('2026-10-11T10:00:00.000Z');
-
-describe('FreshnessStamp', () => {
-  const stamp = (agoMs: number, extra: { behind?: boolean; locale?: string } = {}) =>
-    renderToStaticMarkup(
-      <FreshnessStamp
-        checkedAt={NOW - agoMs}
-        now={NOW}
-        staleAfterMs={45_000}
-        behind={extra.behind}
-        locale={extra.locale ?? 'en'}
-        words={
-          extra.locale === 'fa'
-            ? resolveMessages('fa', ['freshness.checked', 'freshness.behind'])
-            : FRESH_WORDS
-        }
-      />,
-    );
-
-  it('says how long ago the check was, quietly, while it is within the threshold', () => {
-    const html = stamp(8_000);
-    expect(html).toContain('data-freshness="current"');
-    expect(html).toContain('text-muted');
-    expect(html).toMatch(/Last checked <time[^>]*>8 sec(\.)? ago<\/time>/);
-    expect(html).not.toContain('may be behind');
-  });
-
-  it('turns to the warning colour and says "may be behind" past the threshold', () => {
-    const html = stamp(4 * 60_000);
-    expect(html).toContain('data-freshness="behind"');
-    expect(html).toContain('text-warning');
-    expect(html).toMatch(/4 min(\.)? ago<\/time> · may be behind/);
-  });
-
-  it('is behind whenever the surface already knows it is, however recent the last word', () => {
-    expect(stamp(2_000, { behind: true })).toContain('data-freshness="behind"');
-  });
-
-  it('speaks Persian with Persian digits', () => {
-    const html = stamp(8_000, { locale: 'fa' });
-    expect(html).toContain('آخرین بررسی');
-    expect(html).toContain('۸ ثانیه پیش');
-  });
-
-  it('shows nothing without a clock, rather than an age that would be wrong when read', () => {
-    expect(
-      renderToStaticMarkup(
-        <FreshnessStamp
-          checkedAt={NOW}
-          now={undefined}
-          staleAfterMs={45_000}
-          locale="en"
-          words={FRESH_WORDS}
-        />,
-      ),
-    ).toBe('');
-  });
-});
-
-describe('CoverageBadge', () => {
-  const badge = (state: 'available' | 'limited' | 'not_supplied' | 'delayed') =>
-    renderToStaticMarkup(<CoverageBadge state={state} label={state} />);
-
-  it('gives each of the four states its own icon as well as its colour', () => {
-    const icons = (['available', 'limited', 'not_supplied', 'delayed'] as const).map(
-      (state) => /data-icon="(\w+)"/.exec(badge(state))?.[1],
-    );
-    expect(icons).toEqual(['check', 'limited', 'dash', 'clock']);
-    expect(new Set(icons).size).toBe(4);
-    expect(badge('available')).toContain('text-success');
-    expect(badge('limited')).toContain('text-warning');
-    expect(badge('delayed')).toContain('text-warning');
-    // Not supplied is the quiet one, and its edge is dashed: not hue alone.
-    expect(badge('not_supplied')).toContain('border-dashed border-caption text-caption');
-    expect(badge('available')).toContain('data-coverage-badge="available"');
-  });
-});
-
-describe('LinkOut', () => {
-  it('always names who hosts the destination, with the external-link mark', () => {
-    const inline = renderToStaticMarkup(<LinkOut href="https://example.org/tv3" host="IRIB TV3" />);
-    expect(inline).toContain('href="https://example.org/tv3"');
-    expect(inline).toContain('rel="noopener noreferrer"');
-    expect(inline).toContain('<bdi>IRIB TV3</bdi>');
-    expect(inline).toContain('data-icon="external"');
-    const button = renderToStaticMarkup(
-      <LinkOut href="https://example.org/clip" host="the publisher" look="button" icon="play">
-        Official highlights
-      </LinkOut>,
-    );
-    expect(button).toContain('Official highlights (<bdi>the publisher</bdi>)');
-    expect(button).toContain('min-h-touch');
   });
 });
 

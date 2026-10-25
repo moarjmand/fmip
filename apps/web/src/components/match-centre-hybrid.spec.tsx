@@ -533,10 +533,11 @@ describe('the score band', () => {
     expect(html).not.toContain('live-dot');
   });
 
-  it('live shows the minute in red with the live word, and the stream line under it', () => {
+  it('live shows the minute in the live badge with the live word, and the stream line under it', () => {
     const html = band(centre({}), 'en', { live: <p data-testid="live-state">STAMP</p> });
+    // The Design System's LiveBadge (T-1493): a saffron pill, the dot, "Live · 78′".
     expect(html).toMatch(
-      /text-live"><span aria-hidden="true" class="live-dot[^"]*"><\/span><span>Live <\/span><span data-testid="match-status">78′</,
+      /data-live-badge=""[^>]*text-live[^>]*><span aria-hidden="true" class="live-dot[^"]*"><\/span><span>Live · <\/span><span data-testid="match-status">78′</,
     );
     expect(html.indexOf('data-testid="match-status"')).toBeLessThan(html.indexOf('STAMP'));
   });

@@ -4,7 +4,9 @@ import type * as Messages from '@/i18n/messages';
 import type { Message, MessageKey } from '@/i18n/messages';
 import { useClientMessages } from '@/components/client-messages';
 import { MessageText } from '@/components/message-text';
-import { Button, ButtonLink } from '@/components/ui';
+// The button module itself, not the `ui` barrel (T-1493): this page is in a
+// chunk every route loads, and the barrel would bring every shared atom with it.
+import { Button, ButtonLink } from '@/components/ui/button';
 
 /**
  * What every error page says (T-809): a page that does not exist, and a page

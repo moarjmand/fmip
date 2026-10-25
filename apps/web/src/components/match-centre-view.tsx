@@ -27,6 +27,7 @@ import { MessageText } from '@/components/message-text';
 import { Score, ScorePair } from '@/components/score';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
+import { LiveBadge } from '@/components/ui/live-badge';
 
 /** The server-rendered panels the page slots between the live modules (T-605). */
 export type MatchSlot =
@@ -475,27 +476,23 @@ function Hero({
                 })}
               </time>
             </span>
+          ) : live ? (
+            <LiveBadge
+              label={
+                status !== m['status.live'].text ? (
+                  <MessageText message={m['status.live']} />
+                ) : undefined
+              }
+            >
+              <span data-testid="match-status">{status}</span>
+            </LiveBadge>
           ) : (
             <span
               className={cx(
                 'inline-flex min-h-7.5 items-center gap-2 rounded-pill px-3 text-sm font-extrabold',
-                live
-                  ? 'bg-live/15 text-live'
-                  : behind
-                    ? 'bg-warning/15 text-warning'
-                    : 'bg-surface-raised text-fg',
+                behind ? 'bg-warning/15 text-warning' : 'bg-surface-raised text-fg',
               )}
             >
-              {live && (
-                <>
-                  <span aria-hidden="true" className="live-dot size-2 rounded-full bg-live" />
-                  {status !== m['status.live'].text && (
-                    <span>
-                      <MessageText message={m['status.live']} />{' '}
-                    </span>
-                  )}
-                </>
-              )}
               <span data-testid="match-status">{status}</span>
             </span>
           )}

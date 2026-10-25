@@ -7,18 +7,17 @@ import { cx } from '@/components/ui/cx';
 /** The stamp's words, resolved on the server for the reader's locale (T-1303). */
 export type FreshnessWords = Record<'freshness.checked' | 'freshness.behind', Message>;
 
-/** The ring's length: a circle of radius 5.5. */
-const RING = 2 * Math.PI * 5.5;
-
 /**
- * "Last checked 8 sec ago" on a live surface (rule 4, T-1388, D-206): when
- * the page last heard from the feed, as an age the reader does not have to
- * work out, and a ring that empties as the check gets older. Past the
- * surface's own freshness threshold -- the one the code already keys on, never
- * a new one: `STALE_AFTER_MS` for the live stream (D-045's heartbeat), or a
- * stored row's own -- the whole stamp turns to the warning colour and says
- * "may be behind", so a stale picture is never shown as current. `behind`
- * forces that state when the surface already knows (the stream broke).
+ * "Last checked 8 sec ago" on a live surface (rule 4; the Design System's
+ * `Freshness`, T-1493, D-263): when the page last heard from the feed, as an
+ * age the reader does not have to work out, in the machine-fact mono face and
+ * the caption colour, after a dot. Past the surface's own freshness threshold
+ * -- the one the code already keys on, never a new one: `STALE_AFTER_MS` for
+ * the live stream (D-045's heartbeat), or a stored row's own -- the whole
+ * stamp turns to the warning saffron, the dot to a triangle, and it says "may
+ * be behind", so a stale picture is never shown as current and the change
+ * does not rest on colour alone. `behind` forces that state when the surface
+ * already knows (the stream broke).
  *
  * Pure: the clock is the caller's (`now`), so a server render without one
  * shows nothing rather than an age that would be wrong by the time it is
@@ -50,49 +49,17 @@ export function FreshnessStamp({
   if (Number.isNaN(at)) return null;
   const age = Math.max(0, now - at);
   const stale = behind || age > staleAfterMs;
-  // What is left of the threshold, drawn as the ring; a quarter once stale,
-  // so the ring still reads as a ring and the colour carries the warning.
-  const left = stale ? 0.25 : 1 - Math.min(1, age / staleAfterMs);
   return (
     <span
       className={cx(
-        'inline-flex items-center gap-1.5 text-xs font-medium',
-        stale ? 'text-warning' : 'text-muted',
+        'inline-flex items-baseline gap-1.5 font-mono text-xs [:root:is(:lang(fa),:lang(ar))_&]:font-sans',
+        stale ? 'font-semibold text-warning' : 'text-caption',
         className,
       )}
       data-testid={testId}
       data-freshness={stale ? 'behind' : 'current'}
     >
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 14 14"
-        aria-hidden="true"
-        focusable="false"
-        className="shrink-0"
-      >
-        <circle
-          cx="7"
-          cy="7"
-          r="5.5"
-          fill="none"
-          stroke="currentColor"
-          strokeOpacity={0.25}
-          strokeWidth="2"
-        />
-        <circle
-          cx="7"
-          cy="7"
-          r="5.5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeDasharray={RING}
-          strokeDashoffset={RING * (1 - left)}
-          transform="rotate(-90 7 7)"
-          className={stale ? undefined : 'text-accent'}
-        />
-      </svg>
+      <span aria-hidden="true">{stale ? '▲' : '●'}</span>
       <span>
         <FilledMessage
           message={words['freshness.checked']}
