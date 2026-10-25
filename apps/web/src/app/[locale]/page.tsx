@@ -10,13 +10,14 @@ import {
   TodayByCompetition,
 } from '@/components/home-front';
 import {
-  AccuracyCard,
   Broadcasts,
   ColumnAndPicks,
   GuestWelcome,
+  MonthFigures,
   MyTeams,
   NewsGrid,
-  TableTopFive,
+  TableExcerpt,
+  UpsetCard,
 } from '@/components/home-rail';
 import {
   FriendPredictionsSection,
@@ -43,6 +44,7 @@ import {
   fetchGroupDiscussions,
   fetchMe,
   fetchModelAccuracy,
+  fetchModelUpset,
   fetchNewsSection,
   fetchOwnPrediction,
   fetchPanelLatest,
@@ -162,8 +164,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     fetchFeaturedMatches(),
     // The founder's analysis of what is coming (T-132).
     fetchFounderFeed({ limit: 3 }),
-    // T-1369 (D-187): the public accuracy figures.
-    fetchModelAccuracy('week'),
+    // T-1369 (D-187): the public accuracy figures, by month (T-1516, D-270).
+    fetchModelAccuracy('month'),
     session ? fetchFriendPredictions(cookie) : null,
     session ? fetchGroupDiscussions(cookie) : null,
   ]);
@@ -186,14 +188,19 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   // Round 2: the scores, asked without the session (D-200) so the groups come
   // in the competitions' stated order (D-154); the member's teams are lifted
   // here from what they follow.
-  const scores = await fetchScores(
-    new URLSearchParams({
-      from: today,
-      to: shiftDate(today, HOME_DAYS - 1),
-      tz: timeZone,
-    }).toString(),
-    undefined,
-  );
+  const [scores, upset] = await Promise.all([
+    fetchScores(
+      new URLSearchParams({
+        from: today,
+        to: shiftDate(today, HOME_DAYS - 1),
+        tz: timeZone,
+      }).toString(),
+      undefined,
+    ),
+    // T-1507 (D-265): the day's biggest miss, on the day the scores call today.
+    fetchModelUpset({ date: today, tz: timeZone }),
+  ]);
+  const upsetAnswer = upset.ok ? upset.data : null;
   const followedTeams = new Set(
     member ? (following ?? []).filter((e) => e.entity_type === 'team').map((e) => e.entity_id) : [],
   );
@@ -313,6 +320,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 timeZone={timeZone}
               />
             )}
+            {/* After the hero on a phone, as HomePhone has it; in the side column on a desktop. */}
+            <UpsetCard answer={upsetAnswer} placement="main" locale={lang} timeZone={timeZone} />
             {!scores.ok || day === null ? (
               <section aria-labelledby="home-today" data-testid="home-matches-none">
                 <RuleHeading
@@ -361,8 +370,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
 
           <aside className="flex min-w-0 flex-[1_1_21rem] flex-col gap-6 xl:max-w-[26.25rem]">
-            {table !== null && table.ok && <TableTopFive page={table.data} locale={lang} />}
-            <AccuracyCard
+            <UpsetCard answer={upsetAnswer} placement="side" locale={lang} timeZone={timeZone} />
+            {table !== null && table.ok && (
+              <TableExcerpt page={table.data} locale={lang} timeZone={timeZone} />
+            )}
+            <MonthFigures
               figure={accuracy.ok ? accuracyFigure(accuracy.data) : null}
               reachable={accuracy.ok}
               locale={lang}
