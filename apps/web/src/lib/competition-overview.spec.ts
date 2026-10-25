@@ -15,6 +15,8 @@ import {
   leagueModel,
   leagueNumbers,
   mainResults,
+  monthInSeason,
+  monthsTotal,
   nextMatchDay,
   perMatch,
   readTabParam,
@@ -418,5 +420,88 @@ describe('the model in this league (T-1498)', () => {
     expect(model.modelVersions).toEqual(['dixon-coles-elo@0.6.0']);
     // The answer is never mutated: its points stay oldest first.
     expect(series.points[0]!.period).toBe('2026-09');
+  });
+
+  describe('on one season’s page (T-1556, D-278)', () => {
+    const series = {
+      competition: { id: 'c1', name: 'Premier League' },
+      model_versions: ['dixon-coles-elo@0.6.0'],
+      total: metrics(70),
+      points: [
+        metrics(10, {
+          period: '2026-05',
+          period_start: '2026-05-01',
+          accuracy: 0.4,
+          rps: 0.25,
+          uniform_rps: 0.24,
+        }),
+        metrics(30, {
+          period: '2026-09',
+          period_start: '2026-09-01',
+          accuracy: 0.5,
+          rps: 0.2,
+          uniform_rps: 0.24,
+        }),
+        metrics(30, {
+          period: '2026-10',
+          period_start: '2026-10-01',
+          accuracy: 0.6,
+          rps: 0.22,
+          uniform_rps: 0.25,
+        }),
+      ],
+    };
+    const current = { start_date: '2026-08-15', end_date: '2027-05-23' };
+    const past = { start_date: '2025-08-16', end_date: '2026-05-24' };
+
+    it('counts only the season’s months, and sums them into the season’s total', () => {
+      const model = leagueModel(answer([series]), 'c1', current);
+      expect(model.state).toBe('scored');
+      if (model.state !== 'scored') return;
+      expect(model.months.map((m) => m.period)).toEqual(['2026-10', '2026-09']);
+      expect(model.total.matches).toBe(60);
+      expect(model.total.coverage).toBe('available');
+      expect(model.total.accuracy).toBeCloseTo(0.55, 10);
+      expect(model.total.rps).toBeCloseTo(0.21, 10);
+      expect(model.total.uniform_rps).toBeCloseTo(0.245, 10);
+    });
+
+    it('never shows an older season this month’s record', () => {
+      const model = leagueModel(answer([series]), 'c1', past);
+      expect(model.state).toBe('scored');
+      if (model.state !== 'scored') return;
+      expect(model.latest.period).toBe('2026-05');
+      expect(model.total.matches).toBe(10);
+      expect(model.total.coverage).toBe('limited');
+      const before = { start_date: '2024-08-16', end_date: '2025-05-25' };
+      expect(leagueModel(answer([series]), 'c1', before).state).toBe('not_supplied');
+    });
+
+    it('keeps the API’s own total when every month is the season’s', () => {
+      const whole = { start_date: '2026-01-01', end_date: '2027-05-31' };
+      const model = leagueModel(answer([series]), 'c1', whole);
+      if (model.state !== 'scored') throw new Error('not scored');
+      expect(model.total).toBe(series.total);
+    });
+
+    it('reads a month as the season’s when the two share a day, at both ends', () => {
+      expect(monthInSeason('2026-08-01', current)).toBe(true);
+      expect(monthInSeason('2027-05-01', current)).toBe(true);
+      expect(monthInSeason('2026-07-01', current)).toBe(false);
+      expect(monthInSeason('2027-06-01', current)).toBe(false);
+    });
+
+    it('sums nothing into nothing: no figure without a match', () => {
+      expect(monthsTotal([])).toEqual({
+        forecasts: 0,
+        matches: 0,
+        coverage: 'not_supplied',
+        log_loss: null,
+        brier: null,
+        rps: null,
+        accuracy: null,
+        uniform_rps: null,
+      });
+    });
   });
 });
