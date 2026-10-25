@@ -98,10 +98,10 @@ const parts = (markup: string): string[] =>
 describe('the strip', () => {
   const html = render('en');
 
-  it('is labelled "Today · <competition>", on white in both themes', () => {
+  it('is labelled "Today · <competition>", on the surface of the theme (D-267)', () => {
     expect(html).toContain('Today · Pro League');
     const root = /<nav[^>]*data-testid="live-strip"[^>]*>/.exec(html)?.[0] ?? '';
-    expect(root).toContain('data-mode="editorial"');
+    expect(root).not.toContain('data-mode');
     expect(root).toContain('bg-surface');
     expect(root).toContain('aria-labelledby="live-strip-label"');
   });

@@ -37,7 +37,8 @@
  * The two dark blocks carry the same declarations; the spec refuses a drift.
  *
  * Editorial mode (D-198): an element marked `data-mode="editorial"` -- the
- * header, and the editorial pages not yet rebuilt -- stays on the Day values
+ * editorial pages not yet rebuilt; the header follows the theme (D-267) --
+ * stays on the Day values
  * whatever the theme, until the redesign removes the mark page by page
  * (D-263). The last blocks of this file give it the light values (and light
  * with more contrast, when that applies); custom properties set on an
@@ -484,8 +485,9 @@
 }
 
 /*
- * Editorial mode (D-198): the header and the editorial pages stay on the Day
- * values whatever the theme, until each is rebuilt (D-263). The Day values,
+ * Editorial mode (D-198): the editorial pages stay on the Day values
+ * whatever the theme, until each is rebuilt (D-263); the header no longer
+ * carries the mark (D-267). The Day values,
  * set on the marked element...
  */
 [data-mode='editorial'] {

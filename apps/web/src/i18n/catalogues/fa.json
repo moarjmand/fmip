@@ -143,12 +143,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.nav.today": {
-    "source": "Today",
-    "text": "امروز",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "shell.nav.analysis": {
     "source": "Analysis",
     "text": "تحلیل",
@@ -167,27 +161,63 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.tab.results": {
-    "source": "Scores",
-    "text": "نتایج",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "shell.tab.predictions": {
-    "source": "Predictions",
-    "text": "پیش‌بینی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "shell.tab.news": {
     "source": "News",
     "text": "اخبار",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.tab.me": {
-    "source": "Me",
-    "text": "من",
+  "shell.nav.matches": {
+    "source": "Matches",
+    "text": "بازی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.competitions": {
+    "source": "Competitions",
+    "text": "رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.model": {
+    "source": "The model",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.more": {
+    "source": "More",
+    "text": "بیشتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.matches": {
+    "source": "Matches",
+    "text": "بازی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.predict": {
+    "source": "Predict",
+    "text": "پیش‌بینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.leagues": {
+    "source": "Leagues",
+    "text": "لیگ‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.you": {
+    "source": "You",
+    "text": "شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.search.placeholder": {
+    "source": "Teams, players, competitions",
+    "text": "تیم، بازیکن، رقابت",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -12217,30 +12247,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "competitionPage.col.goalsFor": {
-    "source": "GF",
-    "text": "زده",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.col.goalsForTitle": {
-    "source": "Goals for",
-    "text": "گل زده",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.col.goalsAgainst": {
-    "source": "GA",
-    "text": "خورده",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.col.goalsAgainstTitle": {
-    "source": "Goals against",
-    "text": "گل خورده",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "competitionPage.col.goalDifference": {
     "source": "GD",
     "text": "تفاضل",
@@ -12541,12 +12547,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "competitionPage.seasonLabel": {
-    "source": "Season {season}",
-    "text": "فصل {season}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "competitionPage.sections": {
     "source": "Sections",
     "text": "بخش‌ها",
@@ -12595,6 +12595,186 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.tab.matches": {
+    "source": "Matches",
+    "text": "بازی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.tab.model": {
+    "source": "Model in this league",
+    "text": "مدل در این لیگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.tab.news": {
+    "source": "News",
+    "text": "اخبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.back": {
+    "source": "Back to all competitions",
+    "text": "بازگشت به همه رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.seasonMenu": {
+    "source": "Season {season}: choose another season",
+    "text": "فصل {season}: انتخاب فصلی دیگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.tableCaption": {
+    "source": "{name} table",
+    "text": "جدول رده‌بندی {name}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.formLatestFirst": {
+    "source": "Form: the last five results, most recent first.",
+    "text": "فرم: پنج نتیجه‌ی آخر، از تازه‌ترین.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.goals": {
+    "source": "Goals",
+    "text": "گل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.col.goalsTitle": {
+    "source": "Goals scored and conceded",
+    "text": "گل زده و خورده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.day.title": {
+    "source": "Next matches",
+    "text": "بازی‌های پیش رو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.day.modelHead": {
+    "source": "model %",
+    "text": "درصد مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.day.none": {
+    "source": "Nothing is left to play this season.",
+    "text": "در این فصل بازی دیگری باقی نمانده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.day.noForecast": {
+    "source": "No forecast",
+    "text": "بدون پیش‌بینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.day.forecastUnreachable": {
+    "source": "Forecast not loaded",
+    "text": "پیش‌بینی بارگیری نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.day.forecastLabel": {
+    "source": "The model: home win {home}%, draw {draw}%, away win {away}%",
+    "text": "مدل آماری: برد میزبان {home}٪، مساوی {draw}٪، برد مهمان {away}٪",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.day.receipt": {
+    "source": "The model’s percentages, home · draw · away: its latest forecast before kick-off ({versions}); every version and when it was computed are on the match page. {zone}.",
+    "text": "درصدهای مدل آماری، میزبان · مساوی · مهمان: آخرین پیش‌بینی آن پیش از شروع بازی ({versions})؛ همه‌ی نسخه‌ها و زمان محاسبه‌شان در صفحه‌ی بازی آمده است. {zone}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.day.results": {
+    "source": "Results · {day}",
+    "text": "نتایج · {day}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.matches.modelFirst": {
+    "source": "The model’s percentages are shown for the next {number} matches; later ones are on each match page.",
+    "text": "درصدهای مدل برای {number} بازی بعدی آمده است؛ بازی‌های بعدتر را در صفحه‌ی هر بازی ببینید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.tag": {
+    "source": "MODEL",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.heading": {
+    "source": "The model in this league",
+    "text": "مدل آماری در این لیگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.title": {
+    "source": "In this league · {month}",
+    "text": "در این لیگ · {month}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.favouriteWon": {
+    "source": "favourite won",
+    "text": "برد گزینه‌ی محتمل‌تر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.rpsBlind": {
+    "source": "RPS ({rps} guessing)",
+    "text": "RPS (حدس تصادفی: {rps})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.matches": {
+    "source": "matches",
+    "text": "بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.limited": {
+    "source": "Limited: fewer than {minimum} matches is too few to judge the model in one league.",
+    "text": "محدود: کمتر از {minimum} بازی برای داوری درباره‌ی مدل در یک لیگ کافی نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.notSupplied": {
+    "source": "No forecast the model made here before kick-off has been scored yet, so there is nothing to judge it by.",
+    "text": "هنوز هیچ پیش‌بینی پیش از شروع بازی مدل در این لیگ ارزیابی نشده است، پس معیاری برای داوری نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.more": {
+    "source": "The model month by month",
+    "text": "مدل، ماه به ماه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.record": {
+    "source": "The model’s full record",
+    "text": "کارنامه‌ی کامل مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.months": {
+    "source": "Month by month",
+    "text": "ماه به ماه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.model.only": {
+    "source": "The statistical model’s published forecasts only: the founder’s analysis and the community’s picks are not counted.",
+    "text": "فقط پیش‌بینی‌های منتشرشده‌ی مدل آماری: تحلیل بنیان‌گذار و انتخاب‌های جامعه شمرده نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.facts.clubs": {
     "source": {
       "one": "{count} club",
@@ -12604,42 +12784,6 @@
       "one": "{count} باشگاه",
       "other": "{count} باشگاه"
     },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.facts.played": {
-    "source": {
-      "one": "{count} match played",
-      "other": "{count} matches played"
-    },
-    "forms": {
-      "one": "{count} بازی انجام‌شده",
-      "other": "{count} بازی انجام‌شده"
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.facts.qualifying": {
-    "source": {
-      "one": "{count} in qualifying",
-      "other": "{count} in qualifying"
-    },
-    "forms": {
-      "one": "{count} در مرحله‌ی مقدماتی",
-      "other": "{count} در مرحله‌ی مقدماتی"
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.facts.nextRound": {
-    "source": "next: {round}, {day}",
-    "text": "بعدی: {round}، {day}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.facts.next": {
-    "source": "next match: {day}",
-    "text": "بازی بعدی: {day}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -12673,105 +12817,15 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "competitionPage.matchweek.none": {
-    "source": "Matches",
-    "text": "بازی‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.matchweek.next": {
-    "source": "Next matches",
-    "text": "بازی‌های پیش رو",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.matchweek.latest": {
-    "source": "Latest matches",
-    "text": "آخرین بازی‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.matchweek.seasonOver": {
-    "source": "Nothing is left to play this season; these are its last matches.",
-    "text": "بازی دیگری از این فصل باقی نمانده است؛ این‌ها آخرین بازی‌های آن هستند.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.matchweek.note": {
-    "source": "Model probabilities: home · draw · away. {zone}.",
-    "text": "احتمال‌های مدل آماری: میزبان · مساوی · مهمان. {zone}.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.matchweek.more": {
-    "source": {
-      "one": "{count} more match in this round",
-      "other": "{count} more matches in this round"
-    },
-    "forms": {
-      "one": "{count} بازی دیگر در این دور",
-      "other": "{count} بازی دیگر در این دور"
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.tableSummary": {
-    "source": "Table · summary",
-    "text": "جدول · خلاصه",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "competitionPage.fullTable": {
     "source": "Full table",
     "text": "جدول کامل",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "competitionPage.formOrder": {
-    "source": "Form: the last five results, oldest to newest.",
-    "text": "فرم: پنج نتیجه‌ی آخر، از قدیمی به جدید.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "competitionPage.noTable": {
-    "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Fixtures and Results.",
-    "text": "این رقابت در دورهای حذفی برگزار می‌شود و جدول رده‌بندی ندارد. دورهای آن در بخش‌های برنامه و نتایج آمده است.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.projection.head": {
-    "source": "Season projection · coming later",
-    "text": "پیش‌بینی فصل · به‌زودی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.projection.title": {
-    "source": "Title",
-    "text": "قهرمانی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.projection.topFour": {
-    "source": "Top 4",
-    "text": "چهار تیم اول",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.projection.relegation": {
-    "source": "Relegation",
-    "text": "سقوط",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.projection.note": {
-    "source": "The model’s title, top-four and relegation chances will fill the dashed columns once the season simulation ships. Until then they stay empty, never estimated.",
-    "text": "شانس قهرمانی، چهار تیم اول و سقوط از مدل آماری، پس از آماده شدن شبیه‌سازی فصل در ستون‌های خط‌چین می‌آید. تا آن زمان این ستون‌ها خالی می‌مانند و هرگز تخمینی در آن‌ها نوشته نمی‌شود.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.allPlayers": {
-    "source": "All scorers and boards",
-    "text": "همه‌ی گلزنان و جدول‌های بازیکنان",
+    "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
+    "text": "این رقابت در دورهای حذفی برگزار می‌شود و جدول رده‌بندی ندارد. دورهای آن در بخش بازی‌ها آمده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
