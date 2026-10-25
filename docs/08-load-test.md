@@ -179,10 +179,10 @@ made per row, a timeout -- does.
 
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
-| home `/en` | 155.5 / 158 (2026-10-25, T-1494) | 38 / 50 / 200 |
+| home `/en` | 150.3 / 158 (2026-10-25, T-1502, after T-1495) | 38 / 50 / 200 |
 | scores `/en/scores` | 172.2 / 180 (raised 2026-10-25, T-1496, D-264) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 187.6 / 191 (raised 2026-10-25, T-1497, D-264) | 77 / 76 / 300 |
-| competition `/en/competition/…0201` | 156.2 / 158 (2026-10-25, T-1494) | 29 / 39 / 150 |
+| match centre `/en/match/…0901` | 182.6 / 191 (2026-10-25, T-1502; raised by T-1497, D-264) | 77 / 76 / 300 |
+| competition `/en/competition/…0201` | 151.1 / 158 (2026-10-25, T-1502, after T-1498) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
 The scores budget was raised from 230 to 236 (T-1004), then home and
@@ -290,6 +290,15 @@ no longer pulls in the `ui` barrel) the page measures 172.2. The row's percentag
 "Not picked yet" view add little: they are a link, a thin bar and a filter
 over the snapshot the list already holds. No library was added.
 
+**After the redesign (T-1502, 2026-10-25).** Measured on main once every
+rebuilt page had landed (T-1493..T-1500 and their follow-ups, `0e7993bd`):
+home 150.3, scores 172.2, match centre 182.6, competition 151.1 kB gzip.
+D-264 allowed each page one raise of at most 5 kB, to home 163, scores 180,
+match centre 191 and competition 163. Scores and the match centre took
+theirs (180, 191). Home and competition did not need theirs, so their
+budgets stay at 158; D-264's 163 remains the most they may be raised to,
+once, for new behaviour the canvas shows.
+
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the
 API against the migrated, seeded database (as for the journeys), then
@@ -332,20 +341,73 @@ service worker is blocked.
 Windows and macOS anti-alias text differently, so the spec skips itself on any
 platform but Linux and a picture made on one must never be committed.
 
-**Until the pages land** the spec writes instead of comparing: it runs only
-with `VISUAL=update`, which CI's E2E job sets in its step "Visual baseline",
-and the job uploads the 24 pictures as the artifact `visual-baseline`. The
-final T-1502 pull request commits that artifact and turns the step into the
-comparison.
+**In CI** the E2E job compares the pictures in its own step, "Visual
+baseline", the only place the server's clock is fixed: the main "Run
+Playwright" step skips the spec, because its other specs must see the real
+date. The pictures were committed on 2026-10-25, rendered by the runner from
+`0e7993bd` plus the T-1502 changes, once every rebuilt page had landed.
 
-**Remaking a picture after an intended change**, in either of two ways: take
-the `visual-baseline` artifact of a CI run of the branch, or render in the
-Playwright image of the pinned version from the root of a clean clone (never
-a checkout whose `node_modules` were installed on Windows, which the install
-inside would overwrite):
-`docker run --rm -v "$PWD":/w -w /w/apps/web -e VISUAL=update -e NODE_OPTIONS=--require=/w/apps/web/tests/e2e/fixed-clock.cjs mcr.microsoft.com/playwright:v1.63.0-noble sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm exec playwright test visual.spec.ts --update-snapshots=all"`.
-Commit the changed pictures in the pull request that changed the page, and
-say in it which pages moved and why.
+**Remaking a picture after an intended change.** When a page differs from
+its picture, the step fails, and the next step renders the new pictures on
+the same runner (`--update-snapshots=changed`) and uploads the whole folder
+as the artifact `visual-baseline`. Download it from the failed run
+(`gh run download <run> -n visual-baseline -D apps/web/tests/e2e/visual.spec.ts-snapshots`),
+look at what moved, and commit the pictures in the pull request that changed
+the page, saying which pages moved and why. To render them without CI, use
+the Playwright image of the pinned version, from the root of a clean clone
+(never a checkout whose `node_modules` were installed on Windows: the
+install inside would overwrite them):
+`docker run --rm -v "$PWD":/w -w /w/apps/web -e NODE_OPTIONS=--require=/w/apps/web/tests/e2e/fixed-clock.cjs mcr.microsoft.com/playwright:v1.63.0-noble sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm exec playwright test visual.spec.ts --update-snapshots=changed"`.
+
+## PageSpeed after the redesign (T-1502)
+
+PageSpeed Insights (Lighthouse 13.5.0; mobile is a Moto G Power on slow
+4G, desktop a 1350 x 940 window) against production, https://traveltohormuz.ir,
+on 2026-10-25 between 18:22 and 20:04 UK time, a Sunday with matches in
+play. The match page is Liverpool v Brighton
+(`/en/match/2cddf547-22ca-48de-90b4-d4cb2ce00289`, full time). Production
+served the rebuilt home and Matches pages.
+
+| Page | Form | Performance | FCP | LCP | TBT | CLS | Speed Index |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/en` | mobile | **97** | 1.8 s | 1.8 s | 19 ms | 0.068 | 1.8 s |
+| `/en` | desktop | 75 | 0.5 s | 0.6 s | 6 ms | 0.811 | 1.1 s |
+| `/en/scores` | mobile | **97** | 2.1 s | 2.3 s | 9 ms | 0.001 | 2.1 s |
+| `/en/scores` | desktop | 76 | 0.5 s | 0.6 s | 5 ms | 0.802 | 0.5 s |
+| match | mobile | 89 | 2.9 s | 3.2 s | 45 ms | 0.021 | 2.9 s |
+| match | desktop | 75 | 0.6 s | 0.7 s | 9 ms | 0.824 | 0.8 s |
+
+**The bar is met.** T-1502 asks for 90 or better on mobile for `/en` and
+`/en/scores`; both score 97. The same day, before T-1494..T-1500 reached
+production (about 13:50 UK time), `/en` scored 99 on mobile (LCP 1.7 s,
+CLS 0.003) and `/en/scores` had an LCP of 1.8 s on mobile and 0.7 s on
+desktop with a CLS of 0.01; those runs' desktop scores were not read
+reliably and are not recorded.
+
+**The biggest causes, largest first.**
+1. **The desktop header wraps when Archivo arrives (CLS about 0.80 on every
+   page, desktop only).** Lighthouse's filmstrip shows the header on one row
+   in the fallback face, then the Sign-in button drops to a second row once
+   Archivo has loaded, so the header grows and `#content` moves down
+   (0.802 of the shift on every page; the culprit named is
+   `archivo-latin-wdth-normal.woff2`). Production's header also carries the
+   «فارسی» link, which the no-API build in CI does not draw, so the visual
+   baseline at 1280 px never sees the wrap. In a warm browser at 1290 and
+   1350 px the row still fits; with a cold cache it does not. T-1534.
+2. **The match centre's LCP on a phone (3.2 s, 89).** The largest paint is
+   the forecast-against-reality note, with 580 ms of element render delay
+   after a 2.9 s first paint. T-1536.
+3. **Font-swap shifts on a phone.** The home page's live strip shifts by
+   0.068 when Archivo and Newsreader arrive, over D-264's 0.05; the match
+   centre's outcome bar by 0.021. T-1536.
+4. **Smaller, on every page:** about 55 kB of unused JavaScript and 24 kB of
+   legacy JavaScript (polyfills for features every supported browser has),
+   and a 4-5 kB cache-lifetime saving. Not worth a task each yet.
+
+**Not performance, found on the way.** The scores page's selected row (the
+one with `aria-current`) draws the model's three percentages below 4.5:1
+on its highlight (Lighthouse's colour-contrast audit, on production's data).
+CI's axe runs see the page without an API and so without rows. T-1535.
 
 ## Match alerts (T-834)
 

@@ -12276,7 +12276,9 @@ replaces D-089's self-hosting arrangement for no gain here).
 4. Only Linux renders are committed and compared; on another platform the spec skips. The pictures come from CI's runner (its `visual-baseline` artifact) or the Playwright image of the pinned version.
 5. Until T-1494..T-1500 have landed the spec only writes (`VISUAL=update`) and CI uploads the result; the final T-1502 pull request commits the pictures and turns on the comparison.
 
-**Consequences.** A pull request that changes one of the six pages on purpose also commits its new pictures, taken from that branch's CI artifact. axe runs on the same pages in the same four views (`a11y.spec.ts`).
+**Consequences.** A pull request that changes one of the six pages on purpose also commits its new pictures, taken from that branch's CI run: a failed comparison renders the new ones on the runner and uploads them. axe runs on the same pages in the same four views (`a11y.spec.ts`).
+
+**How T-1502 finished it (2026-10-25).** Once T-1493..T-1500 had landed, the 24 pictures were rendered by CI's runner from main (`0e7993bd`) with the comparison switched on, and committed. The spec now runs wherever the server's clock is fixed on Linux, which is only CI's "Visual baseline" step; the main Playwright step skips it, because the other specs must see the real date. When the comparison fails, the next step renders the new pictures with `--update-snapshots=changed` and uploads them as `visual-baseline`. The page budgets after the redesign: scores (180) and the match centre (191) took D-264's one raise; home (150.3 kB measured) and competition (151.1) did not need theirs and stay at 158, so D-264's 163 stays the ceiling they may be raised to once. PageSpeed after the redesign met the task's bar (97 on mobile on /en and /en/scores); the desktop header's wrap on a cold load (CLS 0.80, desktop 75-76), the match centre's phone LCP and a contrast fault on the scores page's selected row became T-1534..T-1536 (docs/08, "PageSpeed after the redesign").
 
 ## D-267 — The navigation follows the theme, keeps a More, and gives phones five tabs
 
