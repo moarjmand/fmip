@@ -103,6 +103,10 @@
   "home.month.better": "better than a blind three-way guess (RPS {rps} against {uniform})",
   "home.month.worse": "worse than a blind three-way guess (RPS {rps} against {uniform})",
   "home.month.limited": "Limited: a league with fewer than {minimum} matches is too few to call.",
+  "home.month.leagueMatches": {
+    "one": "{count} match",
+    "other": "{count} matches"
+  },
   "home.month.link": "Calibration report",
   "home.lead.coverage": "Scores coverage:",
   "home.lead.open": "Open match centre",

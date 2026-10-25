@@ -242,7 +242,8 @@ describe('plurals (T-301)', () => {
     // T-1516: two added (the upset card's day, the month's matches), one
     // retired (the accuracy card's sample).
     // T-1499: one added (the top scorer's goals).
-    expect(pluralKeys).toHaveLength(97);
+    // T-1540: one added (a league's matches in the model's month).
+    expect(pluralKeys).toHaveLength(98);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);
