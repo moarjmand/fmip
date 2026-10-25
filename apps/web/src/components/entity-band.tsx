@@ -4,16 +4,15 @@ import { cx } from '@/components/ui/cx';
 import { bandColours } from '@/lib/band-colour';
 
 /**
- * The top band of a club or a player page in the Hybrid data mode (T-1386,
- * D-204). The maintainer's rule is that a club's colour may appear here and
- * nowhere else on the page. With no colour known the band is the brand's, as
- * on the competition page (D-203): the theme's surface with a green rule
- * along its top and a green bar under the open tab, so it follows Day and
- * Night. With one (T-1418, D-218: `team.colour`, ours, never a provider
- * field) the identity block above the tabs is filled with it, and every text
- * on it is white or the ink at 4.5:1 or more (`bandColours`, darkened when
- * neither reaches it). Below the band, tabs, links and buttons are brand
- * green whatever the club.
+ * The top band of a club or a player page (T-1386, D-204), in the
+ * Stadiomind Club board (T-1499, D-267). The maintainer's rule is that a
+ * club's colour may appear here and nowhere else on the page. With no colour
+ * known the band is the theme's surface, so it follows Day and Night. With
+ * one (T-1418, D-218: `team.colour`, ours, never a provider field) the
+ * identity block above the tabs is filled with it, and every text on it is
+ * white or the ink at 4.5:1 or more (`bandColours`, darkened when neither
+ * reaches it). The tabs sit under it on the surface with the actions (follow)
+ * at their end, saffron under the open tab whatever the club.
  */
 export function EntityBand({
   testId,
@@ -21,6 +20,7 @@ export function EntityBand({
   eyebrow,
   title,
   details,
+  aside,
   actions,
   tabs,
   colour,
@@ -34,7 +34,9 @@ export function EntityBand({
   title: string;
   /** Under the name: the canonical name, the ground, the identity line. */
   details: ReactNode;
-  /** Follow and compare. */
+  /** At the end of the identity block: where the club stands (T-1499). */
+  aside?: ReactNode;
+  /** Follow and compare, at the end of the tab row. */
   actions: ReactNode;
   tabs: ReactNode;
   /** The club's colour, `#rrggbb`, when one is known (T-1418). */
@@ -53,12 +55,11 @@ export function EntityBand({
         } as CSSProperties);
   return (
     <div className="border-b border-default bg-surface" data-testid={testId}>
-      {paint === null && <div aria-hidden="true" className="h-1 bg-accent" />}
-      <div style={filled} data-band={paint === null ? 'brand' : 'club'}>
+      <div style={filled} data-band={paint === null ? 'surface' : 'club'}>
         <div className="page-frame">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-4 pt-6 pb-4 text-fg md:pt-7">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-4 py-5 text-fg md:py-8">
             {media}
-            <div className="min-w-0 flex-[1_1_20rem]">
+            <div className="min-w-0 flex-[1_1_18rem]">
               <p
                 className="text-xs font-bold text-muted uppercase ltr:tracking-wider"
                 data-testid="band-eyebrow"
@@ -66,18 +67,25 @@ export function EntityBand({
                 {eyebrow}
               </p>
               <h1
-                className="mt-1.5 font-sans text-display-2 font-black font-stretch-condensed break-words uppercase md:text-display-3 lg:text-display-4 [:root:is(:lang(fa),:lang(ar))_&]:text-display-1 md:[:root:is(:lang(fa),:lang(ar))_&]:text-display-2"
+                className="mt-1 font-sans text-display-1 leading-none font-extrabold font-stretch-semi-expanded break-words md:text-display-3 [:root:is(:lang(fa),:lang(ar))_&]:leading-normal md:[:root:is(:lang(fa),:lang(ar))_&]:text-display-2"
                 data-testid="title"
               >
                 {title}
               </h1>
               {details}
             </div>
-            <div className="flex flex-col items-start gap-2">{actions}</div>
+            {aside !== undefined && aside !== null && (
+              <div className="flex flex-col items-start gap-1 sm:ms-auto sm:items-end sm:text-end">
+                {aside}
+              </div>
+            )}
           </div>
         </div>
       </div>
-      <div className={cx('page-frame', paint !== null && 'pt-1')}>{tabs}</div>
+      <div className="page-frame flex flex-wrap items-center gap-x-4">
+        <div className="min-w-0 flex-[1_1_16rem]">{tabs}</div>
+        <div className="flex shrink-0 flex-col items-start gap-2 py-2">{actions}</div>
+      </div>
     </div>
   );
 }
@@ -85,7 +93,7 @@ export function EntityBand({
 /**
  * The band's tab bar (T-1386): links, so each tab is a URL that works
  * without JavaScript and fetches only what it shows (D-203). The open tab
- * is the ink with a green bar under it; the rest are the caption colour.
+ * is the ink with a saffron bar under it; the rest are the caption colour.
  */
 export function LinkTabs({
   label,

@@ -2,15 +2,20 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import type { MatchViewing, TeamPageFixture } from '@fmip/contracts';
 import {
+  AroundThem,
+  ComingUp,
+  RecentResults,
+  RecordPanel,
+  SquadCard,
+  TopScorerCard,
+} from '@/components/club-overview';
+import {
   ClubBand,
   FixturesPanel,
-  MatchesPanel,
   NoNextMatch,
   ResultsPanel,
-  SeasonPanels,
   SplitsPanels,
   SquadPanel,
-  TablePanels,
 } from '@/components/club-page';
 import { EntityFollow, LiveFreshness } from '@/components/competition-page';
 import type { FreshnessWords } from '@/components/freshness-stamp';
@@ -39,7 +44,7 @@ import { pageLocale, say } from '@/lib/competition';
 import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { OVERVIEW_MATCHES, type TeamTab, readTeamTab, seasonFigures } from '@/lib/team';
+import { type TeamTab, readTeamTab } from '@/lib/team';
 import { readStatsSeason } from '@/lib/team-season-stats';
 import { readTerritoryQuery } from '@/lib/viewing';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
@@ -79,16 +84,18 @@ async function nextForecast(fixture: TeamPageFixture | null): Promise<CardForeca
 }
 
 /**
- * The team page (blueprint 5.2, T-036), in the Hybrid design's data mode
- * (T-1386, D-204): on the stage, following Day and Night, under a band in
- * the brand's colours (no club colour is in our data) with follow, and in
- * tabs. It opens on the Overview -- the next match with the model's
- * forecast and its version and who broadcasts it, the season in tiles,
- * the latest fixtures and results, the squad, where the club stands, the
- * news and the founder's analysis -- and the other tabs hold what the page
- * always had: every fixture with where to watch it, every result, the squad
- * by position with minutes, and home and away. An unreachable API is said
- * out loud. Its words come from the catalogue (T-1304).
+ * The team page (blueprint 5.2, T-036), in the Stadiomind Club board
+ * (T-1499, D-267; tabs since T-1386, D-204): following Day and Night, under
+ * a band filled with the club's colour when one is known (the only place it
+ * appears), with where the club stands at its end and follow beside the
+ * tabs. It opens on the Overview -- the next match with the model's forecast
+ * or "No forecast yet" and who broadcasts it, the recent results, the home
+ * and away record, the founder's analysis and the news; beside them the
+ * matches coming up, the top scorer, the squad with its coverage and the
+ * table around the club -- and the other tabs hold every fixture with where
+ * to watch it, every result, the squad by position with minutes, and home
+ * and away. An unreachable API is said out loud. Its words come from the
+ * catalogue (T-1304).
  */
 export default async function TeamPage({
   params,
@@ -191,8 +198,10 @@ export default async function TeamPage({
       />
       <div className="page-frame flex flex-col gap-5 pt-6">
         {overview && (
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-            <div className="flex min-w-0 flex-col gap-5">
+          // The Club board's two columns (D-263): the main one wraps above the
+          // side one on narrow screens, the next match first.
+          <div className="flex flex-wrap items-start gap-5">
+            <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-5">
               {page.next_match === null ? (
                 <NoNextMatch locale={locale} />
               ) : (
@@ -208,34 +217,10 @@ export default async function TeamPage({
                   timeZone={timeZone}
                 />
               )}
-              <SeasonPanels
-                figures={seasonFigures(page.competitions, page.splits)}
-                locale={locale}
-              />
-              <MatchesPanel
-                page={page}
-                locale={locale}
-                timeZone={timeZone}
-                limit={OVERVIEW_MATCHES}
-                territory={guestTerritory}
-                freshness={liveFreshness(
-                  page.next_match === null ? page.fixtures : [page.next_match, ...page.fixtures],
-                )}
-              />
-              <SquadPanel page={page} locale={locale} full={false} />
-            </div>
-            <div className="flex min-w-0 flex-col gap-5">
-              <TablePanels page={page} locale={locale} />
-              {/* The news module's own heading, set in the panels' style. */}
-              <div className="rounded-card border border-default bg-surface p-4 sm:p-5 [&_h2]:text-sm [&_h2]:font-extrabold [&_h2]:uppercase ltr:[&_h2]:tracking-wider">
-                <EntityNews
-                  locale={locale}
-                  timeZone={timeZone}
-                  news={news?.ok === true ? news.data : null}
-                />
-              </div>
+              <RecentResults page={page} locale={locale} timeZone={timeZone} />
+              <RecordPanel page={page} locale={locale} />
               {founder?.ok === true && founder.data.analyses.length > 0 && (
-                <div className="rounded-card border border-default border-t-3 border-t-founder bg-surface p-4 sm:p-5 [&_h2]:text-sm [&_h2]:font-extrabold">
+                <div className="rounded-card border border-default bg-surface p-4 sm:p-5 [&_h2]:text-sm [&_h2]:font-extrabold">
                   <FounderAnalysisFeed
                     analyses={founder.data.analyses}
                     locale={locale}
@@ -244,6 +229,28 @@ export default async function TeamPage({
                   />
                 </div>
               )}
+              {/* The news module's own heading, set in the cards' style. */}
+              <div className="rounded-card border border-default bg-surface p-4 sm:p-5 [&_h2]:text-base [&_h2]:font-extrabold">
+                <EntityNews
+                  locale={locale}
+                  timeZone={timeZone}
+                  news={news?.ok === true ? news.data : null}
+                />
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-[1_1_21rem] flex-col gap-5">
+              <ComingUp
+                page={page}
+                locale={locale}
+                timeZone={timeZone}
+                territory={guestTerritory}
+                freshness={liveFreshness(
+                  page.next_match === null ? page.fixtures : [page.next_match, ...page.fixtures],
+                )}
+              />
+              <TopScorerCard page={page} locale={locale} />
+              <SquadCard page={page} locale={locale} />
+              <AroundThem page={page} locale={locale} />
             </div>
           </div>
         )}

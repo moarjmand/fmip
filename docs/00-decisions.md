@@ -12359,3 +12359,18 @@ replaces D-089's self-hosting arrangement for no gain here).
 7. Until T-1493's stacked PRs land, the outcome bar, the receipt and the rating chip are the page's own (in `forecast-reality.tsx` and `match-centre-cards.tsx`); they move to the shared components when those merge.
 
 **Consequences.** The live view grows by the axis, the scorers, the best rated and the chip, measured against the 191 KB ceiling in `perf-budgets.json`. `globals.css`'s tab rules name each tab. The pitch's note no longer says "home side at the bottom", which is true only on a phone.
+
+## D-267 — The club page follows the Club board, keeps its five tabs, and reads results from the club's side
+
+**Status:** Accepted · 2026-10-25 · **Task:** T-1499 (with T-1528, T-1529)
+
+**Context.** The Club and ClubPhone boards (D-263) redraw the club page: a band filled with the club's colour with the standing at its end, follow beside the tabs, the next match, recent results, the home and away record, then coming up, the top scorer, the squad and the table around the club. The boards' tabs (Overview, Matches, Squad, Season stats, Transfers, News) differ from the page's.
+
+**Decision.**
+1. The band: with `team.colour` the identity block is filled (D-218, `bandColours`: white or the ink at 4.5:1, darkened when neither reaches it); without one it is the theme's surface, with no rule. The club's competition, place and points from its table sit at the band's end; follow moves to the end of the tab row, so no control is painted in the club's colour.
+2. The page keeps its five tabs and URLs (Overview, Fixtures, Results, Squad, Stats; transfers on the Squad tab, the news on the Overview): the boards' set would move working links for no new data.
+3. The Overview has the boards' two columns. "Recent results" lists six across competitions, each read from the club's side as the board writes it: "v Fulham home" or "at Newcastle", and the score with the club's goals first, beside its result letter. The Fixtures and Results tabs keep both teams with the home side first (D-193).
+4. "… so far" is the first competition with counted matches: a row per split on desktop, three tiles and a sentence comparing points per match home and away on phones. The founder's analysis keeps its own card and is never summarised (rule 6).
+5. The side column's squad lists the first twelve with the squad's coverage, or the sentence when none is on record; the board's "Remind me when it is out" is not built, since no such reminder exists.
+
+**Consequences.** `MatchesPanel`, `SeasonPanels` and `TablePanels` are gone; `EntityBand` gains `aside`, and the player and coach pages get the follow button beside their tabs too.
