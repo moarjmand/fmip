@@ -136,7 +136,7 @@ describe('the header at every width (T-1479)', () => {
     // The field shrinks to its icon rather than pushing the tools on; below
     // 1280px it is the search link, and the mark stands without its name.
     expect(HEADER).toContain('xl:ms-auto xl:flex xl:max-w-64 xl:min-w-11 xl:grow xl:basis-64');
-    expect(HEADER).toContain('`${tool} shrink-0 lg:ms-auto xl:hidden`');
+    expect(HEADER).toContain('`${tool} lg:ms-auto lg:shrink-0 xl:hidden`');
     expect(HEADER).toContain('lg:text-lg lg:max-xl:sr-only');
   });
 });

@@ -164,7 +164,7 @@ export async function SiteHeader({
         >
           <Link
             href={href('')}
-            className="me-auto flex min-h-touch shrink-0 items-center gap-2.5 font-latin text-fg lg:-order-2 lg:me-0"
+            className="me-auto flex min-h-touch items-center gap-2.5 font-latin text-fg lg:-order-2 lg:me-0 lg:shrink-0"
             data-testid="nav-home"
           >
             {/* The mark in the colours of the ground it stands on (D-267):
@@ -187,7 +187,7 @@ export async function SiteHeader({
             href={href('/search')}
             aria-label={search.text}
             lang={search.lang}
-            className={`${tool} shrink-0 lg:ms-auto xl:hidden`}
+            className={`${tool} lg:ms-auto lg:shrink-0 xl:hidden`}
             data-testid="nav-search"
           >
             <Icon>
