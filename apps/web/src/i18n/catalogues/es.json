@@ -8126,6 +8126,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "forecast.factorNote.teamStrength": {
+    "source": "net strength (attack minus defence) from recent results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.teamStrengthElo": {
+    "source": "net strength (attack minus defence) from recent results and the Elo prior",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.homeAdvantage": {
+    "source": "league-wide home advantage learned from the training window",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.attackVsDefence": {
+    "source": "how the sides' attacks match up against the opposing defences",
+    "text": "",
+    "status": "untranslated"
+  },
   "forecast.noEloPrior": {
     "source": "No Elo prior this time: the long-term ratings were not available when this version was computed, so team strength rests on results alone.",
     "text": "",
