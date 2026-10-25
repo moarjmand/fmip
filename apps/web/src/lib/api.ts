@@ -54,7 +54,6 @@ import type {
   FixtureNewsResponse,
   FollowingFeed,
   FollowingResponse,
-  ForecastListResponse,
   ForecastSummaryListResponse,
   ForecastVersionsResponse,
   FounderAnalysesResponse,
@@ -1120,18 +1119,6 @@ export function fetchFounderFeed(
 }
 
 /**
- * `GET /forecasts?fixtures=` and `GET /consensus?fixtures=` (T-136): each
- * product for a set of fixtures, one request each.
- *
- * Two calls rather than one combined endpoint, because they are two of the
- * three prediction products and nothing should make it easy to hand one where
- * the other was promised (rule 6).
- */
-export function fetchForecastList(fixtureIds: string[]): Promise<ApiResult<ForecastListResponse>> {
-  return apiRequest<ForecastListResponse>(`/forecasts?fixtures=${fixtureIds.join(',')}`);
-}
-
-/**
  * The member's homepage (blueprint 2.3, T-942, D-115): one request per
  * section for the whole page, never one per item. Friends' calls and group
  * discussions need a session; the panels are public like the panel itself.
@@ -1167,6 +1154,12 @@ export function fetchForecastSummaries(
   );
 }
 
+/**
+ * `GET /consensus?fixtures=` (T-136): the community's product for a set of
+ * fixtures. The model's comes from its own batch, never a combined endpoint:
+ * nothing should make it easy to hand one product where another was promised
+ * (rule 6).
+ */
 export function fetchConsensusList(
   fixtureIds: string[],
 ): Promise<ApiResult<ConsensusListResponse>> {

@@ -15,8 +15,10 @@ const PAGES = [
   '/en',
   '/en/scores',
   '/en/leaderboard',
-  // The editorial pages of T-1383 (D-201), in their no-API states.
-  '/en/predictions',
+  // The editorial pages of T-1383 (D-201), in their no-API states; the old
+  // Predictions page is the matches page now (T-1519), checked as a member
+  // reaches it from Predictions.
+  '/en/scores?unpicked=1',
   '/en/model-accuracy',
   '/en/search',
   '/en/search?q=real',
@@ -33,7 +35,7 @@ const PAGES = [
   '/en/welcome?step=teams',
   '/x-rtl/scores',
   '/x-rtl/rules',
-  '/x-rtl/predictions',
+  '/x-rtl/scores?unpicked=1',
   '/x-rtl/welcome?step=territory',
 ];
 

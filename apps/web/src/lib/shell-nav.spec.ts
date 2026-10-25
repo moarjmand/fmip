@@ -17,10 +17,10 @@ describe('the header nav', () => {
     ]);
   });
 
-  it('leads to the pages that exist: scores, predictions, the directory, the model, news', () => {
+  it('leads to the pages that exist: scores, the picks to make, the directory, the model, news', () => {
     expect(HEADER_NAV.map((link) => link.path)).toEqual([
       '/scores',
-      '/predictions',
+      '/scores?unpicked=1',
       '/competitions',
       '/model-accuracy',
       '/news',
@@ -29,7 +29,7 @@ describe('the header nav', () => {
 
   it('keeps the analysis, Watch and Highlights under More', () => {
     expect(MORE_NAV.map((link) => [link.id, link.path])).toEqual([
-      ['analysis', '/predictions#analysis'],
+      ['analysis', '/scores#analysis'],
       ['watch', '/watch'],
       ['highlights', '/highlights'],
     ]);
@@ -45,7 +45,8 @@ describe('the header nav', () => {
     expect(currentLink('/en/competition/abc', HEADER_NAV)).toBe('competitions');
     expect(currentLink('/en/team/abc', HEADER_NAV)).toBe('competitions');
     expect(currentLink('/en/player/abc', HEADER_NAV)).toBe('competitions');
-    expect(currentLink('/en/predictions', HEADER_NAV)).toBe('predictions');
+    // Picks are made on the matches page (T-1519): Matches is current there.
+    expect(currentLink('/en/scores?unpicked=1', HEADER_NAV)).toBe('matches');
     expect(currentLink('/en/leaderboard?min=10', HEADER_NAV)).toBe('predictions');
     expect(currentLink('/en/model-accuracy', HEADER_NAV)).toBe('model');
     expect(currentLink('/en/news/story/1', HEADER_NAV)).toBe('news');
@@ -97,7 +98,8 @@ describe('the bottom tab bar', () => {
     expect(currentLink('/en/scores', tabs)).toBe('matches');
     expect(currentLink('/en/match/x', tabs)).toBe('matches');
     expect(currentLink('/en/watch', tabs)).toBe('matches');
-    expect(currentLink('/fa/predictions', tabs)).toBe('predict');
+    expect(currentLink('/fa/leaderboard', tabs)).toBe('predict');
+    expect(tabs.find((link) => link.id === 'predict')?.path).toBe('/scores?unpicked=1');
     expect(currentLink('/fa/analyses/x', tabs)).toBe('predict');
     expect(currentLink('/en/model-accuracy', tabs)).toBe('predict');
     expect(currentLink('/en/competitions', tabs)).toBe('leagues');

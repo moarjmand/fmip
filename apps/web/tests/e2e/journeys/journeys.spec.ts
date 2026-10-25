@@ -131,25 +131,41 @@ test.describe('blueprint journeys', () => {
     await expect(page.getByTestId('consensus-weighted')).toHaveCount(0);
   });
 
-  test('2.1 the Predictions page keeps the three products in three sections', async () => {
-    // The page blueprint 2.1 names, and the page rule 6 was written for: it is
-    // the one place all three prediction products appear together, which makes
-    // "today's predictions, ranked, tagged with where each came from" the
-    // obvious design and the forbidden one.
+  test('2.1 the matches page keeps the three products in their own places', async () => {
+    // Blueprint 2.1's Predictions, and the page rule 6 was written for. Since
+    // D-268 and D-269 it is the matches page: the model's percentages in each
+    // row, the pick and the community's split in the preview, the founder's
+    // analysis in its own section. An old /predictions address still lands
+    // there, with its day and zone.
     await page.goto(`/en/predictions?date=${PLAYED_DAY}&tz=UTC`);
+    await expect(page).toHaveURL(
+      (url) => url.pathname === '/en/scores' && url.search === `?date=${PLAYED_DAY}&tz=UTC`,
+    );
+    await expect(page.getByTestId('title')).toHaveText('Matches');
 
-    await expect(page.getByTestId('title')).toHaveText('Predictions');
-    // All four of them, each under its own heading. A section that vanishes
-    // when it is empty would leave a reader unable to tell whether there is
-    // nothing to show or whether the site forgot to ask.
-    await expect(page.getByRole('heading', { name: 'Model forecasts' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /Founder.s analysis/ })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Community consensus' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Prediction leaderboard' })).toBeVisible();
+    // The model's cell in its row, never a blended "prediction".
+    await expect(page.getByTestId('row-forecast').first()).toBeVisible();
 
-    // And each product's own section, from its own endpoint.
-    await expect(page.getByTestId('predictions-model')).toBeVisible();
-    await expect(page.getByTestId('predictions-consensus')).toBeVisible();
+    // The founder's analysis, in the founder's voice and nobody else's. A
+    // section that vanished when empty would leave a reader unable to tell
+    // whether nothing is written or the site forgot to ask, so it stays.
+    const analysis = page.getByTestId('matches-analysis');
+    await expect(analysis).toBeVisible();
+    await expect(analysis.locator('[data-voice="founder"]')).toHaveCount(1);
+    await expect(analysis.locator('[data-voice="model"], [data-voice="community"]')).toHaveCount(0);
+    await expect(analysis.getByTestId('matches-leaderboard-link')).toHaveAttribute(
+      'href',
+      '/en/leaderboard',
+    );
+    await expect(analysis.getByTestId('matches-accuracy-link')).toHaveAttribute(
+      'href',
+      '/en/model-accuracy',
+    );
+
+    // The header's Analysis: the old address and its fragment, carried over.
+    await page.goto('/en/predictions#analysis');
+    await expect(page).toHaveURL(/\/en\/scores#analysis$/);
+    await expect(page.locator('#analysis')).toBeInViewport();
   });
 
   test('18.3 privileges follow rating and sample, never points', async ({ request }) => {
