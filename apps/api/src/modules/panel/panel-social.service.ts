@@ -30,6 +30,7 @@ import { PostgresPanelSocialStore } from './internal/panel-social-store';
 const BLOCKED = 'PL003';
 /** And for "that post has been taken down". */
 const REMOVED = 'PL007';
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type ReactOutcome = 'ok' | 'no_post' | 'removed';
 export type FollowOutcome = 'ok' | 'no_member' | 'blocked' | 'self';
@@ -82,6 +83,8 @@ export class PanelSocialService {
     reaction: PanelReaction,
     on: boolean,
   ): Promise<ReactOutcome> {
+    // A path that cannot be a post id is no post, not a `::uuid` 500 (T-1575).
+    if (!UUID.test(postId)) return 'no_post';
     const author = await this.store.authorOf(postId);
     if (author === null) return 'no_post';
     try {
