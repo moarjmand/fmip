@@ -15,7 +15,6 @@ import {
   cardVersion,
   leadTime,
 } from '../app/[locale]/match/[id]/forecast-reality';
-import { RatingChip } from './match-centre-cards';
 import { MatchCentreView, ratingsOf } from './match-centre-view';
 import { MatchLineupsView } from './match-lineups';
 
@@ -334,14 +333,18 @@ describe('live', () => {
 
   it('carries the live badge, the minute along the match and the freshness stamp', () => {
     const html = view(centre(), Date.parse('2026-10-24T11:41:10.000Z'));
-    expect(html).toContain('data-testid="live-badge"');
+    expect(html).toMatch(/data-testid="live-badge" data-live="true"><span data-live-badge=""/);
     expect(html).toMatch(/inline-size:12\.2/);
     expect(html).not.toContain('data-testid="feed-behind"');
   });
 
   it('says when the feed has fallen behind, in the warning colour, never as current (rule 4)', () => {
     const html = view(centre(), Date.parse('2026-10-24T12:30:00.000Z'));
-    expect(html).toMatch(/bg-warning\/15 text-warning" data-testid="live-badge"/);
+    // No live badge while the feed may be behind: amber words instead.
+    expect(html).toMatch(
+      /data-testid="live-badge" data-live="false"><span class="[^"]*bg-warning\/15[^"]*text-warning">/,
+    );
+    expect(html).not.toContain('data-live-badge');
     expect(html).not.toContain('live-dot');
     expect(html).toContain('data-testid="feed-behind"');
     expect(html).toContain('The data for this match is behind');
@@ -500,14 +503,21 @@ const eleven = () => [
 ];
 
 describe('ratings', () => {
-  it('colours a rating by its band, never a chip for a player without one', () => {
-    const chip = (value: number) => renderToStaticMarkup(<RatingChip value={value} locale="en" />);
-    expect(chip(8.9)).toContain('bg-accent');
-    expect(chip(7.1)).toContain('bg-model');
-    expect(chip(6.4)).toContain('bg-surface-raised');
-    expect(chip(5.7)).toContain('bg-muted');
-    expect(chip(6.4)).toContain('>6.4<');
-    expect(renderToStaticMarkup(<RatingChip value={7} locale="fa" />)).toContain('>۷٫۰<');
+  it('draws a rating on the Design System chip, in the reader’s digits (T-1523)', () => {
+    const home = eleven();
+    const html = (locale: 'en' | 'fa') =>
+      renderToStaticMarkup(
+        <MatchLineupsView
+          home={team('h', 'Aston Villa')}
+          away={team('a', 'Leeds')}
+          lineups={{ home, away: eleven() }}
+          ratings={new Map([[home[0]!.id, 7]])}
+          locale={locale}
+          words={matchWords(locale)}
+        />,
+      );
+    expect(html('en')).toMatch(/data-rating-band="good" class="[^"]*">7\.0</);
+    expect(html('fa')).toMatch(/data-rating-band="good" class="[^"]*">۷٫۰</);
   });
 
   it('puts the ratings on the pitch, the best rated in saffron, and turns it from 768px', () => {
@@ -532,10 +542,10 @@ describe('ratings', () => {
     expect(html).toMatch(
       /class="relative flex flex-col[^"]*md:flex-row-reverse[^"]*" data-testid="lineup-pitch"/,
     );
-    expect(html).toContain('data-rating="8.9"');
-    expect(html).toContain('data-rating="5.7"');
-    expect(html.match(/data-rating=/g)).toHaveLength(2);
-    expect(html).toMatch(/bg-accent text-on-accent">11</);
+    expect(html).toMatch(/data-rating-band="top" class="[^"]*">8\.9</);
+    expect(html).toMatch(/data-rating-band="low" class="[^"]*">5\.7</);
+    expect(html.match(/data-rating-band=/g)).toHaveLength(2);
+    expect(html).toContain(`bg-accent text-on-accent">${home[10]!.shirt_number}<`);
   });
 
   it('names the best rated with the best six, from the feed’s ratings only', () => {
@@ -553,9 +563,11 @@ describe('ratings', () => {
     expect([...ratingsOf(c).keys()]).not.toContain('s7');
     const html = section(view(c), 'top-rated');
     expect(html).toContain('Top rated');
-    expect(html).toMatch(/Rated 1<\/a>[^]*data-rating="8.9"/);
-    const best = [...html.matchAll(/data-rating="([\d.]+)"/g)].map((m) => m[1]);
-    expect(best).toEqual(['8.9', '8.9', '7.7', '7.6', '7.5', '7.1', '7']);
+    expect(html).toMatch(/Rated 1<\/a>[^]*data-rating-band="top"/);
+    const best = [...html.matchAll(/data-rating-band="\w+" class="[^"]*">([\d.]+)</g)].map(
+      (m) => m[1],
+    );
+    expect(best).toEqual(['8.9', '8.9', '7.7', '7.6', '7.5', '7.1', '7.0']);
     // Nothing rated, no card.
     expect(view(centre())).not.toContain('data-testid="top-rated"');
   });

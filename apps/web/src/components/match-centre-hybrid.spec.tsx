@@ -536,7 +536,7 @@ describe('the score band', () => {
   it('live shows the saffron badge with the minute above the score, and the stream line under it', () => {
     const html = band(centre({}), 'en', { live: <p data-testid="live-state">STAMP</p> });
     expect(html).toMatch(
-      /text-live" data-testid="live-badge"><span aria-hidden="true" class="live-dot[^"]*"><\/span><span>Live[^<]*<\/span><span data-testid="match-status">78′</,
+      /data-testid="live-badge" data-live="true"><span data-live-badge="" class="[^"]*text-live[^"]*"><span aria-hidden="true" class="live-dot[^"]*"><\/span><span>Live[^<]*<\/span><span data-testid="match-status">78′</,
     );
     expect(html.indexOf('data-testid="live-badge"')).toBeLessThan(
       html.indexOf('data-testid="score"'),

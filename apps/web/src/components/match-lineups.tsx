@@ -2,12 +2,12 @@ import type { MatchLineupPlayer, MatchLineups, MatchTeam } from '@fmip/contracts
 import Link from '@/components/ui/link';
 import { formatNumber } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
-import { RatingChip } from '@/components/match-centre-cards';
+import { RatingChip } from '@/components/ui/rating-chip';
 import { MessageText } from '@/components/message-text';
 import { ltrIsolate, nameIsolate } from '@/components/score';
 import { type PitchLines, pitchShape } from '@/lib/formation';
 import { listName } from '@/lib/person-name';
-import { fill, filled } from '@/lib/words';
+import { fill, filled, formatFixed } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 
 /**
@@ -346,7 +346,7 @@ function PitchPlayer({
           {p.is_captain ? ` ${words.m['matchCentre.captain'].text}` : ''}
         </span>
       </Link>
-      {rating !== undefined && <RatingChip value={rating} locale={locale} />}
+      {rating !== undefined && <RatingChip value={rating} text={formatFixed(locale, rating, 1)} />}
     </li>
   );
 }
