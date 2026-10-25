@@ -272,7 +272,7 @@ export class IdentityService {
     );
     await this.mailer.send({
       to: user.email,
-      subject: 'Reset your FMIP password',
+      subject: 'Reset your Stadiomind password',
       text: [
         `Hello ${user.display_name},`,
         '',
@@ -454,7 +454,7 @@ export class IdentityService {
     );
     await this.mailer.send({
       to: user.email,
-      subject: 'Verify your FMIP e-mail address',
+      subject: 'Verify your Stadiomind e-mail address',
       text: [
         `Hello ${user.display_name},`,
         '',

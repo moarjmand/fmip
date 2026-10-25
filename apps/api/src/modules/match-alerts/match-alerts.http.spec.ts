@@ -329,7 +329,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(pushesTo('home')).toEqual([
         {
           userId: members.get('home'),
-          title: 'FMIP',
+          title: 'Stadiomind',
           body: 'Kick-off: Alert Home v Alert Away.',
           url: `/en/match/${FIXTURE}`,
         },

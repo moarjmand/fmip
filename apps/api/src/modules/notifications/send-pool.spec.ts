@@ -160,7 +160,7 @@ describe('carrying over the pool', () => {
       email: null,
       push: {
         userId: items[0]!.user_id,
-        title: 'FMIP',
+        title: 'Stadiomind',
         body: items.map((item) => item.headline).join(' / '),
         url: '/en/notifications',
       },
@@ -180,7 +180,12 @@ describe('carrying over the pool', () => {
     const { service, sent, recorded, statements } = carrier(rows);
     service.registerBatch(['match_goal'], (items) => ({
       email: null,
-      push: { userId: items[0]!.user_id, title: 'FMIP', body: 'goals', url: '/en/notifications' },
+      push: {
+        userId: items[0]!.user_id,
+        title: 'Stadiomind',
+        body: 'goals',
+        url: '/en/notifications',
+      },
     }));
     expect(await service.carry(undefined, 250)).toEqual({ due: 250, carried: 250 });
     expect(statements).toEqual({ claims: 1, records: 1 });

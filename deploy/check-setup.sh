@@ -194,7 +194,7 @@ else
     notes+=('E-mail: set SMTP_URL, DELIVERY_EMAIL_FROM and DELIVERY_EMAIL_PROVIDER=smtp in .env, then restart the API (docs/14-maintainer.md, T-330).')
   fi
   if [ "$(value_of env_DELIVERY_EMAIL_FROM)" = 'empty' ] && [ "$(value_of env_SMTP_URL)" = 'set' ]; then
-    notes+=('E-mail: DELIVERY_EMAIL_FROM is empty. It is the visible sender, e.g. FMIP <no-reply@your-domain>.')
+    notes+=('E-mail: DELIVERY_EMAIL_FROM is empty. It is the visible sender, e.g. Stadiomind <no-reply@your-domain>.')
   fi
 fi
 

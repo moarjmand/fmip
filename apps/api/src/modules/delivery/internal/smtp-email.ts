@@ -33,7 +33,7 @@ export function smtpSettingsFromEnv(env: NodeJS.ProcessEnv = process.env): SmtpS
   }
   if (from === '') {
     throw new Error(
-      'DELIVERY_EMAIL_PROVIDER=smtp needs DELIVERY_EMAIL_FROM, the address every message is sent from (e.g. "FMIP <no-reply@your-domain>")',
+      'DELIVERY_EMAIL_PROVIDER=smtp needs DELIVERY_EMAIL_FROM, the address every message is sent from (e.g. "Stadiomind <no-reply@your-domain>")',
     );
   }
   return { url, from };

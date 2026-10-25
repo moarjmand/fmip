@@ -77,7 +77,7 @@ function header(
   total: number,
 ): string {
   const title =
-    `FMIP · The statistical model's accuracy · Week of ${dayLabel(weekStart)}` +
+    `Stadiomind · The statistical model's accuracy · Week of ${dayLabel(weekStart)}` +
     (total > 1 ? ` (${part}/${total})` : '');
   const named = versions.length === 0 ? '' : ` (${versions.join(', ')})`;
   return (

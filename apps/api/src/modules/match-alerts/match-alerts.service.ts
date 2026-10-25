@@ -42,7 +42,7 @@ const JOB_OPTIONS: JobsOptions = {
   removeOnFail: 50,
 };
 /** The push's title, as every notification's is. */
-const PUSH_TITLE = 'FMIP';
+const PUSH_TITLE = 'Stadiomind';
 /**
  * The page a match-alert `carry()` pass reads. Larger than the timer's
  * hundred: a member's alerts of one pass leave as one push, so the fewer

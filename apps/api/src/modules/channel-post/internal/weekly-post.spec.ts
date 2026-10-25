@@ -84,7 +84,7 @@ describe('composeWeeklyPost', () => {
     const text = post?.messages[0] ?? '';
     const lines = text.split('\n');
     expect(lines[0]).toBe(
-      "FMIP · The statistical model's accuracy · Week of Monday 12 October 2026",
+      "Stadiomind · The statistical model's accuracy · Week of Monday 12 October 2026",
     );
     expect(lines[1]).toBe(
       "How the statistical model's published forecasts (dixon-coles@1.2.0) did on the matches played from Monday 12 October 2026 to Sunday 18 October 2026 (UTC), each match counted once, by its last forecast before kick-off.",
