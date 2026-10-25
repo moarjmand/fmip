@@ -233,4 +233,21 @@ describe('the competition context panel', () => {
     );
     expect(unreachable).toContain('data-state="unreachable"');
   });
+
+  it("writes the season in the page's digits: «۲۰۸۵/۸۶» on /fa (T-1501)", () => {
+    const render = (locale: string) =>
+      renderToStaticMarkup(
+        <CompetitionContextPanel
+          locale={locale}
+          timeZone="UTC"
+          context={{
+            ...base,
+            table: { coverage: 'not_supplied', last_updated_at: null, data: null },
+          }}
+        />,
+      );
+    expect(render('fa')).toContain('<bdi>۲۰۸۵/۸۶</bdi>');
+    expect(render('fa')).not.toContain('2085/86');
+    expect(render('en')).toContain('<bdi>2085/86</bdi>');
+  });
 });
