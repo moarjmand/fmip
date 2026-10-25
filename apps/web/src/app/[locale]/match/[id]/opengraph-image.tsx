@@ -1,5 +1,7 @@
 import { ImageResponse } from 'next/og';
+import { drawCard } from '@/components/draw-card';
 import { MatchCardImage, PlainCard } from '@/components/share-card-image';
+import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { fetchForecasts, fetchMatchCentre } from '@/lib/api';
 import { siteUrl } from '@/lib/seo';
 import { cardImageMetadata, CARD_SIZE, matchCardText } from '@/lib/share-card';
@@ -32,17 +34,20 @@ export default async function Image({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;
-}): Promise<ImageResponse> {
+}): Promise<Response> {
   const { id } = await params;
   const host = new URL(siteUrl()).host;
   if (!UUID.test(id)) return new ImageResponse(<PlainCard />, size);
 
-  const [match, forecasts] = await Promise.all([fetchMatchCentre(id), fetchForecasts(id)]);
+  // The words on a card stay English (T-1309), and so do the names the API
+  // answers for it (T-1506): a Persian name sent `next/og` for a font it could
+  // not read, and the card answered 502.
+  const [match, forecasts] = await Promise.all([
+    fetchMatchCentre(id, DEFAULT_LOCALE),
+    fetchForecasts(id),
+  ]);
   if (!match.ok) return new ImageResponse(<PlainCard />, size);
 
   const latest = forecasts.ok ? forecasts.data.latest : null;
-  return new ImageResponse(
-    <MatchCardImage text={matchCardText(match.data.fixture, latest)} host={host} />,
-    size,
-  );
+  return drawCard(<MatchCardImage text={matchCardText(match.data.fixture, latest)} host={host} />);
 }

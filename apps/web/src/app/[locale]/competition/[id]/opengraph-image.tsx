@@ -1,4 +1,6 @@
 import { ImageResponse } from 'next/og';
+import { drawCard } from '@/components/draw-card';
+import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { PlainCard, TableCardImage } from '@/components/share-card-image';
 import { fetchCompetition } from '@/lib/api';
 import { siteUrl } from '@/lib/seo';
@@ -33,12 +35,13 @@ export default async function Image({
   params,
 }: {
   params: Promise<{ locale: string; id: string }>;
-}): Promise<ImageResponse> {
-  const { locale, id } = await params;
+}): Promise<Response> {
+  const { id } = await params;
   const host = new URL(siteUrl()).host;
   if (!UUID.test(id)) return new ImageResponse(<PlainCard />, size);
 
-  const page = await fetchCompetition(id, '', locale);
+  // English names, as on every card (T-1309, T-1506).
+  const page = await fetchCompetition(id, '', DEFAULT_LOCALE);
   if (!page.ok) return new ImageResponse(<PlainCard />, size);
-  return new ImageResponse(<TableCardImage text={tableCardText(page.data)} host={host} />, size);
+  return drawCard(<TableCardImage text={tableCardText(page.data)} host={host} />);
 }
