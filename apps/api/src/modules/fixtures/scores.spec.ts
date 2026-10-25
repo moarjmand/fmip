@@ -89,6 +89,11 @@ describe('parseScoresQuery', () => {
     expect(isTimeZone('Europe/London')).toBe(true);
     expect(isTimeZone('Asia/Tehran')).toBe(true);
     expect(isTimeZone('Nowhere/Land')).toBe(false);
+    // An offset is not a zone name: Postgres would read it sign reversed (T-1575).
+    expect(isTimeZone('+03:30')).toBe(false);
+    expect(isTimeZone('-05:00')).toBe(false);
+    expect(isTimeZone('UTC')).toBe(true);
+    expect(isTimeZone('Etc/GMT+3')).toBe(true);
     expect(dateIn('Pacific/Auckland', NOW)).toBe('2025-01-06');
     expect(dateIn('America/Los_Angeles', NOW)).toBe('2025-01-05');
   });

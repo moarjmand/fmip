@@ -428,6 +428,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('viewing', ()
     expect(body.fixtures.map((f) => f.fixture_id)).toEqual([other, fixture]);
     expect(body.fixtures[0]?.options).toMatchObject({ coverage: 'available', data: [] });
 
+    // An upper-case id is the same match, and a repeated territory is read
+    // as its first value, never a 500 (T-1575).
+    const shouted = await app.inject({
+      method: 'GET',
+      url: `/viewing?fixture=${fixture.toUpperCase()}&territory=IR&territory=GB`,
+    });
+    expect(shouted.statusCode).toBe(200);
+    expect(shouted.json<ViewingBatchResponse>().fixtures.map((f) => f.fixture_id)).toEqual([
+      fixture,
+    ]);
+
     const empty = await app.inject({ method: 'GET', url: '/viewing' });
     expect(empty.statusCode).toBe(400);
     const tooMany = await app.inject({
