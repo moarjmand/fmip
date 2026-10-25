@@ -13712,10 +13712,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "playerPage.minutesNote": {
-    "source": "Minutes are recorded per match: “at least” marks a season where some matches have none, “not supplied” one where none do. Advanced statistics and availability are not held for this player and are not shown.",
-    "text": "دقیقه‌ها برای هر بازی جداگانه ثبت می‌شوند: «دست‌کم» یعنی فصلی که برخی بازی‌هایش بی‌دقیقه آمده‌اند، و «ارائه نشده» یعنی فصلی که هیچ بازی‌اش دقیقه نداشته است. آمار پیشرفته و وضعیت حضور این بازیکن در اختیار ما نیست و نشان داده نمی‌شود.",
+    "source": "Minutes are recorded per match: “at least” marks a season where some matches have none, “not supplied” one where none do. Advanced statistics are not held for this player and are not shown.",
+    "text": "دقیقه‌ها برای هر بازی جداگانه ثبت می‌شوند: «دست‌کم» یعنی فصلی که برخی بازی‌هایش بی‌دقیقه آمده‌اند، و «ارائه نشده» یعنی فصلی که هیچ بازی‌اش دقیقه نداشته است. آمار پیشرفته‌ی این بازیکن در اختیار ما نیست و نشان داده نمی‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
+    "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "playerPage.minutesAtLeast": {
     "source": "at least {minutes}",
@@ -13843,39 +13843,81 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "playerPage.tile.apps": {
-    "source": "Appearances",
-    "text": "حضور",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "playerPage.tile.cards": {
-    "source": "Yellow / red cards",
-    "text": "کارت زرد / قرمز",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "playerPage.tile.minutes": {
-    "source": "Minutes played",
-    "text": "دقیقه‌های بازی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "playerPage.alsoThisSeason": {
-    "source": "Also this season: {list}. Every competition is in the record below.",
-    "text": "همچنین در این فصل: {list}. همه‌ی رقابت‌ها در کارنامه‌ی زیر آمده‌اند.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "playerPage.fullRecord": {
-    "source": "Full record with minutes",
-    "text": "کارنامه‌ی کامل با دقیقه‌ها",
+    "source": "{minutes} min",
+    "text": "{minutes} دقیقه",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "playerPage.allMatches": {
     "source": "All matches",
     "text": "همه‌ی بازی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.born": {
+    "source": "born {date}",
+    "text": "متولد {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.seasonHeading": {
+    "source": "Season {season}",
+    "text": "فصل {season}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.tile.allCompetitions": {
+    "source": "All competitions",
+    "text": "همه‌ی رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.tile.minutesAtLeast": {
+    "source": "at least {minutes} min",
+    "text": "دست‌کم {minutes} دقیقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.tile.minutesMissing": {
+    "source": "minutes not supplied",
+    "text": "دقیقه‌ها ارائه نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.tile.per90": {
+    "source": "{value} per 90",
+    "text": "{value} در هر ۹۰ دقیقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.club": {
+    "source": "Club",
+    "text": "باشگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.col.sub": {
+    "source": "Sub",
+    "text": "تعویضی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.careerBySeason": {
+    "source": "Career by season",
+    "text": "کارنامه فصل به فصل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.careerCaption": {
+    "source": "{name}: career by season and competition",
+    "text": "{name}: کارنامه به تفکیک فصل و رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.careerNote": {
+    "source": "Built from the line-ups and incidents we hold, newest season first.",
+    "text": "ساخته‌شده از ترکیب‌ها و رویدادهای ثبت‌شده‌ی ما، جدیدترین فصل در بالا.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

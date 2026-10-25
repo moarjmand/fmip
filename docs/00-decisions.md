@@ -12299,6 +12299,23 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **How T-1513 applied it (2026-10-25).** The competitions bar is the Design System's row of pills: each main competition is a rounded pill with a hairline and its logo, the one being read edged in saffron on the raised surface, and "All competitions" comes last in saffron text with an arrow that turns under RTL. Each link is the 44px target, with the pill drawn inside it, and the focus ring sits inside the link so the row's sideways scroll cannot cut it. From 768px only: on a phone the Leagues tab leads to every competition, and the row would push the page down by a line. The looks are CSS utilities keyed on `aria-current`, as the nav's are, so the shell's client chunk does not grow.
 
+## D-271 — The Stadiomind player page: the club only in the photo's ring, facts with their coverage, the career by season in its own box
+
+**Status:** Accepted · 2026-10-25 (agent, under the maintainer's standing approval) · **Task:** T-1500 · **Amends:** D-204 (the Hybrid player page)
+
+**Context.** The canvas's Player and PlayerPhone boards (https://claude.ai/artifact/X5qzAJELjXfdsYcHcMUvAn) show a header with the photo in a ring of the club's colour, four facts (age, height, foot and a last rating), tiles per competition, a career table, the last six matches and the next match; the phone adds section tabs. Our data holds no per-player match rating on `GET /players/:id`, no club/national-team flag on a record row, and no home or away in the availability's next fixture.
+
+**Decision.**
+1. The club's colour appears only as the 3px ring round the photo (D-263); a club with no colour on record gets the theme's strong line. The band is the plain surface, no longer filled.
+2. The facts are age (with the birth date under it), height and foot, each the figure we hold or the "not supplied" badge. The canvas's "Last rating" is left out: the player endpoint carries no rating, and adding one is an API change of its own, not a page's.
+3. The season's tiles: one per competition (and team, where the season has more than one, so a national side is named), goals large, then appearances, minutes ("at least" where only some came, "minutes not supplied" where none) and goals per 90 only over whole minutes of at least 90; with more than one row a first "All competitions" tile. No "club goals" tile: a record row does not say whether its team is a club.
+4. The career table groups rows by season (a row-group header cell), with starts, substitute appearances, goals, assists and minutes; the Stats tab adds the cards. It keeps a 40rem minimum width and scrolls inside its own focusable region named by its caption, so a phone never scrolls the page sideways.
+5. The last six matches show both sides with the score between them in the page's direction (D-193), never "v Opponent" with a score whose order the reader must guess; goals and assists in the saffron text colour, a dash when none.
+6. The next match is the availability card (T-1007) headed "Next match": the team and opponent as the feed gives them (no home or away is claimed), the kick-off, then the availability with its coverage.
+7. The tabs stay Overview, Matches, Career, Stats (the phone board's "Season" and "News" are the Overview, which keeps the news); the desktop board shows none, but each tab is a URL that fetches only what it shows (D-203).
+
+**Consequences.** The player page drops `EntityBand` (T-1499's) for its own header in `components/player-page.tsx`. Four catalogue keys of the Hybrid tiles left the catalogues; the minutes note no longer says availability is not held, since the page shows it.
+
 ## D-274 — The Stadiomind competition page: the canvas's six tabs, the full table on the Overview, the model's league record beside it
 
 **Status:** Accepted · 2026-10-25 (decided by the agent from the canvas, the Design System and D-262 to D-264, under the maintainer's standing approval) · **Task:** T-1498 · **Amends:** D-203 (the Hybrid competition page)
