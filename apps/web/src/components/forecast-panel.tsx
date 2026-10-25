@@ -476,11 +476,12 @@ export function ModelVerdict({
           home={home}
           away={away}
           started
+          outcome={outcome}
           locale={l}
           timeZone={timeZone}
           zone={zoneWords(l, timeZone)}
           words={forecastBarWords(l)}
-          size="compact"
+          compact
         />
         {p !== null && (
           <p className="text-sm font-semibold" data-testid="model-verdict-result">
@@ -701,7 +702,7 @@ function ModelMatchRow({
           timeZone={timeZone}
           zone={zoneWords(locale, timeZone)}
           words={words}
-          size="compact"
+          compact
         />
       </div>
       {pick !== undefined && <div className="md:ps-15">{pick}</div>}
@@ -996,6 +997,15 @@ export function ModelExpected({
           home={home}
           away={away}
           started
+          outcome={
+            score === null
+              ? null
+              : score.home > score.away
+                ? 'home'
+                : score.home < score.away
+                  ? 'away'
+                  : 'draw'
+          }
           locale={l}
           timeZone={timeZone}
           zone={zoneWords(l, timeZone)}

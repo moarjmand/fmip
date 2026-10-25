@@ -112,7 +112,7 @@ export function NextMatchCard({
         timeZone={timeZone}
         zone={zone}
         words={forecastBarWords(l)}
-        size="compact"
+        compact
       />
 
       <Broadcasters viewing={viewing} fixtureId={fixture.id} locale={l} />

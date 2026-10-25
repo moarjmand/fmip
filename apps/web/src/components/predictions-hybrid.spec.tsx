@@ -158,9 +158,7 @@ describe('ForecastList by day', () => {
     expect(html).toContain('۱٫۴۲');
     expect(html).toContain('ساعت‌ها به وقت UTC');
     // Home first in the source, so the direction puts it on the right.
-    const order = [...html.matchAll(/<span data-outcome="(\w+)" class="rounded-sm/g)].map(
-      (m) => m[1],
-    );
+    const order = [...html.matchAll(/<span data-segment="(\w+)"/g)].map((m) => m[1]);
     expect(order.slice(0, 3)).toEqual(['home', 'draw', 'away']);
     expect(html).not.toMatch(/\b(ml|mr|pl|pr|left|right)-/);
   });

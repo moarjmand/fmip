@@ -259,22 +259,29 @@ describe('following the competition', () => {
 });
 
 describe('a match row', () => {
-  it('puts the score between the sides, home first, in the page’s direction', () => {
+  it('stacks the sides with home first, each score beside its own side, in Persian digits on /fa', () => {
     const finished = fixture({ status: 'finished', score: { home: 6, away: 1 } });
     const en = renderToStaticMarkup(
       <ul>
         <FixtureRow fixture={finished} locale="en" timeZone="UTC" />
       </ul>,
     );
-    expect(en).toMatch(/Sepahan.*dir="ltr"[^>]*data-testid="fixture-score">6 – 1<.*Fajr Sepasi/);
+    // The Design System's match row (T-1508): home above away, the scores stacked at the end.
+    expect(en).toMatch(/data-side="home".*Sepahan.*data-side="away".*Fajr Sepasi/);
+    expect(en).toContain('data-testid="match-row-score"><span>6</span><span>1</span>');
+    // At full time the winner is bold and the loser muted.
+    expect(en).toMatch(/font-bold" data-side="home"/);
+    expect(en).toMatch(/font-medium text-muted" data-side="away"/);
+    expect(en).toContain('>FT<');
     const fa = renderToStaticMarkup(
       <ul>
         <FixtureRow fixture={finished} locale="fa" timeZone="UTC" />
       </ul>,
     );
-    // Home first in the DOM; the pair right to left, so its six sits on the home side.
-    expect(fa).toMatch(/Sepahan.*dir="rtl"[^>]*data-testid="fixture-score">۶ – ۱<.*Fajr Sepasi/);
-    expect(fa).not.toMatch(/>6 – 1</);
+    // Home first in the DOM, so the direction puts the status on the right.
+    expect(fa).toContain('data-testid="match-row-score"><span>۶</span><span>۱</span>');
+    expect(fa).not.toContain('<span>6</span>');
+    expect(fa).not.toMatch(/\b(ml|mr|pl|pr|left|right)-/);
   });
 
   it('says a postponed match is postponed and a live one is live', () => {
@@ -289,7 +296,11 @@ describe('a match row', () => {
       </ul>,
     );
     expect(html).toContain('postponed');
-    expect(html).toMatch(/text-live[^>]*>live</);
+    expect(html).toMatch(
+      /text-live" data-testid="match-row-when"><span data-testid="fixture-status">live</,
+    );
+    // The live score is in the live colour too.
+    expect(html).toMatch(/text-live" data-testid="match-row-score"/);
   });
 });
 
@@ -326,12 +337,15 @@ describe('the Overview’s round', () => {
       />,
     );
     expect(html.match(/data-testid="fixture"/g)).toHaveLength(3);
-    expect(html).toContain('data-size="row"');
+    // The Design System's match row (T-1508): the three figures over a thin bar.
     expect(html).toContain('46.0%');
     // The model id and its computation time are on screen with every figure (blueprint 6.2).
     expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');
-    expect(html).toContain('data-state="unreachable"');
-    expect(html).toContain('data-state="none"');
+    // No forecast is a badge, never an empty bar; one not loaded says so instead.
+    expect(html).toContain('data-forecast="unreachable"');
+    expect(html).toMatch(/data-coverage-badge="delayed".*Not loaded/);
+    expect(html).toContain('data-forecast="none"');
+    expect(html).toMatch(/data-coverage-badge="not_supplied".*No forecast/);
     expect(html).toContain('Tehran time');
   });
 

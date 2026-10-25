@@ -414,7 +414,7 @@ export function ThreeForecasts({
             timeZone={timeZone}
             zone={zoneName(l, timeZone)}
             words={forecastBarWords(l)}
-            size="compact"
+            compact
           />
         </ModelLane>
         <FounderAnalysisBrief

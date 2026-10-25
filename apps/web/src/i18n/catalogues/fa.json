@@ -14995,6 +14995,30 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "forecastBar.happened": {
+    "source": "happened",
+    "text": "رخ داد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecastBar.version": {
+    "source": "v{version}",
+    "text": "نسخه {version}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecastBar.noForecast": {
+    "source": "No forecast",
+    "text": "بدون پیش‌بینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecastBar.notLoaded": {
+    "source": "Not loaded",
+    "text": "بارگیری نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "lanes.model.title": {
     "source": "Statistical model",
     "text": "مدل آماری",

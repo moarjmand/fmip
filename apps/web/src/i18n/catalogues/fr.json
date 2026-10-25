@@ -12306,6 +12306,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "forecastBar.happened": {
+    "source": "happened",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.version": {
+    "source": "v{version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.noForecast": {
+    "source": "No forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.notLoaded": {
+    "source": "Not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
   "lanes.model.title": {
     "source": "Statistical model",
     "text": "",

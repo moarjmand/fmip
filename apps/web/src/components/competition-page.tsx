@@ -1,4 +1,5 @@
 import Link from '@/components/ui/link';
+import { MatchRow } from '@/components/match-row';
 import type { ReactNode } from 'react';
 import type {
   AssistLeader,
@@ -15,10 +16,9 @@ import type {
 } from '@fmip/contracts';
 import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { EntityImage } from '@/components/entity-image';
-import { ForecastBar, type ForecastBarWords } from '@/components/forecast-bar';
+import type { ForecastBarWords } from '@/components/forecast-bar';
 import { FreshnessStamp, type FreshnessWords } from '@/components/freshness-stamp';
 import { MinutesFigure } from '@/components/minutes-figure';
-import { Score } from '@/components/score';
 import { FollowIntentMark } from '@/components/push-offer-mark';
 import { PushOfferFor } from '@/components/push-offer-for';
 import { Stamp } from '@/components/stamp';
@@ -602,10 +602,12 @@ export function When({
 }
 
 /**
- * One match as a row (T-1385): when, the two sides with the score between
- * them -- home first from the inline start, so on `/fa` the home side and
- * its goals are on the right (D-193) -- and, where the page has it, the
- * model's three-way under it. The row opens the match centre.
+ * One match as a row (T-1385; the Design System's `MatchRow`, T-1508): the
+ * kick-off time and day, or what happened instead; home above away; the
+ * score, or before kick-off the model's three percentages where the page has
+ * them, with the model's receipt under the row. On `/fa` the grid follows
+ * the reading direction, so the status is on the right. The row opens the
+ * match centre.
  */
 export function FixtureRow({
   fixture,
@@ -621,51 +623,60 @@ export function FixtureRow({
   forecast?: CardForecast;
   forecastWords?: ForecastBarWords;
 }) {
-  const home = fixture.home.short_name ?? fixture.home.name;
-  const away = fixture.away.short_name ?? fixture.away.name;
+  const status = fixture.status as FixtureStatus;
+  const day = formatDate(locale, fixture.kickoff_at, timeZone, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+  const time = formatDate(locale, fixture.kickoff_at, timeZone, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const word = STATUS_KEY[status];
+  const row =
+    status === 'scheduled'
+      ? 'scheduled'
+      : status === 'finished'
+        ? 'ft'
+        : status === 'live'
+          ? 'live'
+          : 'off';
   return (
-    <li className="border-b border-default last:border-b-0" data-testid="fixture">
-      <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-2.5 py-2.5">
-        <When fixture={fixture} locale={locale} timeZone={timeZone} />
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Link
-            href={`/${locale}/match/${fixture.id}`}
-            className="flex min-h-7 min-w-0 items-center gap-2 text-sm font-semibold hover:underline focus-visible:underline"
-            data-testid="fixture-link"
-          >
-            <bdi className="min-w-0 truncate">{home}</bdi>
-            {fixture.score === null ? (
-              <span className="shrink-0 font-medium text-caption">
-                {say(locale, 'competitionPage.v')}
-              </span>
-            ) : (
-              <Score
-                home={fixture.score.home}
-                away={fixture.score.away}
-                locale={locale}
-                separator=" – "
-                className="shrink-0 font-sans text-base font-black font-stretch-condensed tabular-nums"
-                testId="fixture-score"
-              />
-            )}
-            <bdi className="min-w-0 truncate">{away}</bdi>
-          </Link>
-          {forecast !== undefined && forecastWords !== undefined && (
-            <ForecastBar
-              forecast={forecast}
-              home={home}
-              away={away}
-              started={fixture.status !== 'scheduled'}
-              locale={locale}
-              timeZone={timeZone}
-              zone={zoneWords(locale, timeZone)}
-              words={forecastWords}
-              size="row"
-            />
-          )}
-        </div>
-      </div>
-    </li>
+    <MatchRow
+      testId="fixture"
+      href={`/${locale}/match/${fixture.id}`}
+      status={row}
+      when={
+        row === 'scheduled' ? (
+          <time dateTime={fixture.kickoff_at}>{time}</time>
+        ) : row === 'ft' ? (
+          <Translated locale={locale} message="status.fullTime" />
+        ) : (
+          <span data-testid="fixture-status">
+            {word === undefined ? status : say(locale, word)}
+          </span>
+        )
+      }
+      sub={row === 'live' ? undefined : <time dateTime={fixture.kickoff_at}>{day}</time>}
+      home={{
+        name: fixture.home.short_name ?? fixture.home.name,
+        score: fixture.score?.home ?? null,
+      }}
+      away={{
+        name: fixture.away.short_name ?? fixture.away.name,
+        score: fixture.score?.away ?? null,
+      }}
+      model={
+        forecast !== undefined && forecastWords !== undefined
+          ? { forecast, words: forecastWords }
+          : undefined
+      }
+      locale={locale}
+      timeZone={timeZone}
+      zone={zoneWords(locale, timeZone)}
+    />
   );
 }
 

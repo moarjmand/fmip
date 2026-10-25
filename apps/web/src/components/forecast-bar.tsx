@@ -5,19 +5,24 @@ import type { CardForecast } from '@/lib/score-card-products';
 import { FORECAST_REASON_KEY, fill, filled, formatPercent } from '@/lib/words';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
-import { cx } from '@/components/ui/cx';
 import { ModelVersion } from '@/components/model-version';
+import { Receipt } from '@/components/receipt';
+import { cx } from '@/components/ui/cx';
 
 /**
- * The statistical model's forecast as a bar (T-1388, D-206): the model's
- * lane colour only, in three lightness steps -- home the full colour, the
- * draw lighter, away lightest -- the three outcomes labelled with their
- * percentages below, and **always** the model id and the computation time
- * under it (blueprint 6.2: the version and time are always on screen). One
- * product: this takes the model's answer and nothing else, so it cannot be
- * handed the community's spread or the founder's call (rule 6,
- * `three-products.spec.ts`). The members' spread has its own bar in its own
- * file and its own colour.
+ * The statistical model's forecast as a bar (the Design System's
+ * `ForecastBar`, T-1508, D-263): the three outcomes with their percentages
+ * written above one bar -- home in the model's colour, the draw neutral, away
+ * the model's colour lightened, apart in lightness so the bar reads without
+ * hue -- and **always** the model's receipt under it (blueprint 6.2: the
+ * version and time are always on screen). One product: this takes the
+ * model's answer and nothing else, so it cannot be handed the community's
+ * spread or the founder's call (rule 6, `three-products.spec.ts`).
+ *
+ * After full time a page may pass `outcome`, what happened: that segment
+ * turns saffron and its label says "happened". The forecast itself is the
+ * stored version's, never adjusted (rule 5). `compact` drops the labels and
+ * prints the three numbers under a thin bar, for a card or a lane.
  *
  * No forecast is a sentence, never an empty bar (rule 3): not computed yet,
  * none before kick-off, a version with no probabilities and why, or the
@@ -33,10 +38,14 @@ import { ModelVersion } from '@/components/model-version';
 export const FORECAST_BAR_KEYS = [
   'forecastBar.label',
   'forecastBar.computed',
+  'forecastBar.version',
+  'forecastBar.happened',
   'forecastBar.none',
   'forecastBar.noneBefore',
   'forecastBar.unavailable',
   'forecastBar.unreachable',
+  'forecastBar.noForecast',
+  'forecastBar.notLoaded',
   'forecast.draw',
   'scores.card.model.couldNotAnswer',
   ...Object.values(FORECAST_REASON_KEY),
@@ -44,19 +53,75 @@ export const FORECAST_BAR_KEYS = [
 
 export type ForecastBarWords = Record<(typeof FORECAST_BAR_KEYS)[number], Message>;
 
-/** The three steps of the model's colour, home strongest (the design's one hue, three lightnesses). */
-const STEPS = { home: 'bg-model', draw: 'bg-model/55', away: 'bg-model/25' } as const;
+export type Outcome = 'home' | 'draw' | 'away';
+
+/** Each segment's fill: home the model colour, draw neutral, away lighter; what happened, saffron. */
+const FILL: Record<Outcome, string> = {
+  home: 'bg-model',
+  draw: 'bg-prob-draw',
+  away: 'bg-prob-away',
+};
+
+type Available = Extract<CardForecast, { state: 'available' }>;
+
+/** The model's receipt for a forecast: its model, its version, when it was computed. */
+export function ForecastReceipt({
+  forecast,
+  locale,
+  timeZone,
+  zone,
+  words,
+  className,
+}: {
+  forecast: Available;
+  locale: string;
+  timeZone: string;
+  zone?: string;
+  words: ForecastBarWords;
+  className?: string;
+}) {
+  return (
+    <Receipt
+      className={className}
+      testId="forecast-bar-meta"
+      items={[
+        <span key="model" dir="ltr">
+          <ModelVersion version={forecast.model_version} />
+        </span>,
+        <MessageText
+          key="version"
+          message={filled(words['forecastBar.version'], {
+            version: formatNumber(locale, forecast.version),
+          })}
+        />,
+        <FilledMessage
+          key="computed"
+          message={words['forecastBar.computed']}
+          params={{
+            time: (
+              <time dateTime={forecast.computed_at}>
+                {formatVersionStamp(locale, forecast.computed_at, timeZone)}
+                {zone !== undefined ? ` ${zone}` : timeZone === 'UTC' ? ' UTC' : ''}
+              </time>
+            ),
+          }}
+        />,
+      ]}
+    />
+  );
+}
 
 export function ForecastBar({
   forecast,
   home,
   away,
   started = false,
+  outcome,
   locale,
   timeZone,
   zone,
   words,
-  size = 'default',
+  compact = false,
   className,
 }: {
   forecast: CardForecast;
@@ -64,6 +129,8 @@ export function ForecastBar({
   away: string;
   /** The match has kicked off, so "not yet" would be the wrong sentence. */
   started?: boolean;
+  /** After full time: the outcome that happened, which the bar marks in saffron. */
+  outcome?: Outcome | null;
   locale: string;
   timeZone: string;
   /**
@@ -73,13 +140,8 @@ export function ForecastBar({
    */
   zone?: string;
   words: ForecastBarWords;
-  /**
-   * `compact` for a card or a lane (an 8px bar); `default` for a section's
-   * own forecast; `row` for a line in a list of matches (T-1385): a short
-   * bar, the three percentages home · draw · away, and the model id and time
-   * on the same line, wrapping on a phone.
-   */
-  size?: 'default' | 'compact' | 'row';
+  /** A thin bar with the three numbers under it, for a card or a lane. */
+  compact?: boolean;
   className?: string;
 }) {
   if (forecast.state !== 'available') {
@@ -100,8 +162,7 @@ export function ForecastBar({
     return (
       <p
         className={cx(
-          'rounded-control border border-dashed border-model text-muted',
-          size === 'row' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm',
+          'rounded-control border border-dashed border-caption px-3 py-2 text-sm text-muted',
           className,
         )}
         data-testid="forecast-bar"
@@ -117,115 +178,132 @@ export function ForecastBar({
     { key: 'draw', name: words['forecast.draw'], value: forecast.draw },
     { key: 'away', name: away, value: forecast.away },
   ] as const;
-  const label = words['forecastBar.label'];
   const pct = (value: number) => formatPercent(locale, value);
-  const ariaLabel = fill(label.text, {
-    home,
-    homePct: pct(forecast.home),
-    drawPct: pct(forecast.draw),
-    away,
-    awayPct: pct(forecast.away),
-  });
-  const meta = (
-    <>
-      <span dir="ltr" className="text-model">
-        <ModelVersion version={forecast.model_version} />
-      </span>
-      <FilledMessage
-        message={words['forecastBar.computed']}
-        params={{
-          time: (
-            <time dateTime={forecast.computed_at}>
-              {formatVersionStamp(locale, forecast.computed_at, timeZone)}
-              {zone !== undefined ? ` ${zone}` : timeZone === 'UTC' ? ' UTC' : ''}
-            </time>
-          ),
-        }}
-      />
-    </>
-  );
-  if (size === 'row') {
-    // One line in a list of matches: the outcomes' names are the row's own
-    // teams, so the figures stand alone, home first in the reading direction.
-    return (
-      <div
-        className={cx('flex flex-wrap items-center gap-x-2.5 gap-y-1', className)}
-        data-testid="forecast-bar"
-        data-state="available"
-        data-size="row"
-      >
-        <div
-          role="img"
-          aria-label={ariaLabel}
-          lang={label.status === 'untranslated' ? DEFAULT_LOCALE : undefined}
-          className="flex h-2 w-24 shrink-0 gap-0.5"
-        >
-          {outcomes.map(({ key, value }) => (
+  const happened = outcome ?? null;
+  return (
+    <div
+      className={cx('flex flex-col gap-2', className)}
+      data-testid="forecast-bar"
+      data-state="available"
+      data-outcome-happened={happened ?? undefined}
+      data-size={compact ? 'compact' : 'default'}
+    >
+      {!compact && (
+        <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm font-bold tabular-nums">
+          {outcomes.map(({ key, name, value }) => (
             <span
               key={key}
               data-outcome={key}
-              className={cx('rounded-xs', STEPS[key])}
-              style={{ flexGrow: Math.max(value, 1.5), flexBasis: 0 }}
-            />
-          ))}
-        </div>
-        <span aria-hidden="true" className="text-xs font-semibold text-muted tabular-nums">
-          {outcomes.map(({ key, value }, i) => (
-            <span key={key}>
-              {i > 0 && ' · '}
-              <bdi>{pct(value)}</bdi>
+              className={
+                happened === key ? 'text-accent' : key === 'draw' ? 'text-muted' : 'text-fg'
+              }
+            >
+              {typeof name === 'string' ? <bdi>{name}</bdi> : <MessageText message={name} />}{' '}
+              <span dir="ltr">{pct(value)}</span>
+              {happened === key && (
+                <>
+                  {' · '}
+                  <MessageText message={words['forecastBar.happened']} />
+                </>
+              )}
             </span>
           ))}
-        </span>
-        <span
-          className="inline-flex flex-wrap items-center gap-x-2 font-mono text-xs text-caption [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
-          data-testid="forecast-bar-meta"
-        >
-          {meta}
-        </span>
-      </div>
-    );
-  }
+        </div>
+      )}
+      <ForecastStrip
+        forecast={forecast}
+        home={home}
+        away={away}
+        outcome={happened}
+        locale={locale}
+        words={words}
+        compact={compact}
+      />
+      <ForecastReceipt
+        forecast={forecast}
+        locale={locale}
+        timeZone={timeZone}
+        zone={zone}
+        words={words}
+      />
+    </div>
+  );
+}
+
+/**
+ * The bar itself, and in `compact` the three numbers under it, without the
+ * labels or the receipt: what a match row draws in its end column, with the
+ * receipt on its own line under the row (`match-row.tsx`). Anywhere else, use
+ * `ForecastBar`, which always carries the receipt.
+ */
+export function ForecastStrip({
+  forecast,
+  home,
+  away,
+  outcome = null,
+  locale,
+  words,
+  compact = false,
+  className,
+}: {
+  forecast: Available;
+  home: string;
+  away: string;
+  outcome?: Outcome | null;
+  locale: string;
+  words: ForecastBarWords;
+  compact?: boolean;
+  className?: string;
+}) {
+  const label = words['forecastBar.label'];
+  const pct = (value: number) => formatPercent(locale, value);
+  const shares = [
+    { key: 'home', value: forecast.home },
+    { key: 'draw', value: forecast.draw },
+    { key: 'away', value: forecast.away },
+  ] as const;
   return (
-    <div
-      className={cx('flex flex-col', className)}
-      data-testid="forecast-bar"
-      data-state="available"
-    >
+    <div className={cx('flex flex-col gap-1.5', className)}>
       <div
         role="img"
-        aria-label={ariaLabel}
+        aria-label={fill(label.text, {
+          home,
+          homePct: pct(forecast.home),
+          drawPct: pct(forecast.draw),
+          away,
+          awayPct: pct(forecast.away),
+        })}
         lang={label.status === 'untranslated' ? DEFAULT_LOCALE : undefined}
-        className={cx('flex gap-0.75', size === 'compact' ? 'h-2' : 'h-3')}
+        className={cx('flex gap-0.5 overflow-hidden rounded-pill', compact ? 'h-2' : 'h-3')}
       >
-        {outcomes.map(({ key, value }) => (
+        {shares.map(({ key, value }) => (
           <span
             key={key}
-            data-outcome={key}
-            className={cx('rounded-sm', STEPS[key])}
+            data-segment={key}
+            className={outcome === key ? 'bg-brand' : FILL[key]}
             // The share of the bar is the probability itself; a floor keeps a
             // 2% outcome visible as a sliver rather than a gap.
             style={{ flexGrow: Math.max(value, 1.5), flexBasis: 0 }}
           />
         ))}
       </div>
-      <div className="mt-2 flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm text-muted">
-        {outcomes.map(({ key, name, value }) => (
-          <span key={key} className="inline-flex items-center gap-1.5" data-outcome={key}>
-            <span aria-hidden="true" className={cx('size-2.5 rounded-xs', STEPS[key])} />
-            {typeof name === 'string' ? <bdi>{name}</bdi> : <MessageText message={name} />}
-            <b className="font-extrabold text-fg tabular-nums" dir="ltr">
+      {compact && (
+        // The figures are in the bar's own label, so a screen reader hears them once.
+        <div
+          aria-hidden="true"
+          className="flex justify-between gap-2 font-mono text-xs text-model tabular-nums [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
+        >
+          {shares.map(({ key, value }) => (
+            <span
+              key={key}
+              data-outcome={key}
+              className={outcome === key ? 'text-accent' : undefined}
+            >
               {pct(value)}
-            </b>
-          </span>
-        ))}
-      </div>
-      <p
-        className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-xs text-caption"
-        data-testid="forecast-bar-meta"
-      >
-        {meta}
-      </p>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
