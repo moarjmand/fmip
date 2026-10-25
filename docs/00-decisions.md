@@ -12243,3 +12243,18 @@ replaces D-089's self-hosting arrangement for no gain here).
 3. New components are server components unless they need state (the pick buttons, the date strip, tabs on phones); fonts load with `font-display: swap` and size-adjusted fallbacks so CLS stays under 0.05.
 
 **Consequences.** The new budgets are home 163, scores 180, match centre 191, competition 163 KB at most, raised in the PR that needs them. PageSpeed is measured after the foundation and after the last page (T-1502).
+
+## D-265 — The visual baseline is Linux renders of the no-API pages, with both clocks fixed
+
+**Status:** Accepted · 2026-10-25 (T-1502, under the maintainer's standing approval for the redesign) · **Task:** T-1502 · **Follows:** D-264
+
+**Context.** T-1502 keeps a picture of every rebuilt page in Night, Day and at 390 px and compares it in CI. A screenshot test is only useful if two runs of an unchanged page agree, and the pages write the server's "today" into what they draw (the scores day strip and date picker, the home page's date line). CI runs Ubuntu; the maintainer's machine is Windows, whose text anti-aliasing differs.
+
+**Decision.**
+1. Six pages (home, scores, the seed's match `…0901`, a competition, a club, a player) in four views: Night and Day, each at 1280 px and at 390 px; 24 full-page pictures, in the `chromium` project against the production build without an API, so each page is its unreachable state.
+2. Both clocks are fixed at 2026-10-24 18:00 UTC: the browser's with `page.clock.setFixedTime`, the web server's with a `--require` preload (`tests/e2e/fixed-clock.cjs`) that shifts `Date` to that instant and lets it run on. Fixing the server's clock keeps the day strip and the dates in the picture; masking them would have left the scores page's most designed control out of its own baseline.
+3. Reduced motion, animations stopped, every font loaded, lite mode off, `en-GB` in `Europe/London`, the service worker blocked. A tolerance of 0.2% of the pixels, room for anti-aliasing only.
+4. Only Linux renders are committed and compared; on another platform the spec skips. The pictures come from CI's runner (its `visual-baseline` artifact) or the Playwright image of the pinned version.
+5. Until T-1494..T-1500 have landed the spec only writes (`VISUAL=update`) and CI uploads the result; the final T-1502 pull request commits the pictures and turns on the comparison.
+
+**Consequences.** A pull request that changes one of the six pages on purpose also commits its new pictures, taken from that branch's CI artifact. axe runs on the same pages in the same four views (`a11y.spec.ts`).
