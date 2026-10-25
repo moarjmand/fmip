@@ -209,6 +209,28 @@ jobs:
       - name: Run Playwright
         run: pnpm --filter @fmip/web e2e
 
+      # T-1502: the visual baseline of the rebuilt pages. Until T-1494..T-1500
+      # have all landed there is nothing worth keeping, so the spec writes
+      # (VISUAL=update) on this Linux runner instead of comparing, and the
+      # pictures are uploaded; the final T-1502 PR commits them and turns
+      # this step into the comparison.
+      - name: Visual baseline (writing, not yet comparing)
+        id: visual
+        if: ${{ !cancelled() }}
+        env:
+          VISUAL: update
+          # The web server's clock, fixed: the pages write "today" (T-1502).
+          NODE_OPTIONS: --require=${{ github.workspace }}/apps/web/tests/e2e/fixed-clock.cjs
+        run: pnpm --filter @fmip/web exec playwright test visual.spec.ts --update-snapshots=all
+
+      - name: Upload the visual baseline
+        if: ${{ !cancelled() && steps.visual.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baseline
+          path: apps/web/tests/e2e/visual.spec.ts-snapshots/
+          retention-days: 14
+
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v4
