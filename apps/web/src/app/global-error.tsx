@@ -31,7 +31,7 @@ export default function GlobalError({
   return (
     <html lang={locale} dir={directionOf(locale)}>
       <body>
-        <title>FMIP</title>
+        <title>Stadiomind</title>
         <ErrorPageBody locale={locale} kind="failed" messages={messages} onRetry={retry} />
       </body>
     </html>

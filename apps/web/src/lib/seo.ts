@@ -82,7 +82,7 @@ export function pageMetadata(
       title: shared,
       ...(meta.description !== undefined ? { description: meta.description } : {}),
       url: canonical,
-      siteName: 'FMIP',
+      siteName: 'Stadiomind',
       type: 'website',
       locale: meta.locale,
     },
@@ -103,7 +103,7 @@ export function websiteJsonLd(locale: string, origin = siteUrl()): JsonLd {
   return {
     '@context': CONTEXT,
     '@type': 'WebSite',
-    name: 'FMIP',
+    name: 'Stadiomind',
     url: canonicalUrl(locale, '', origin),
     inLanguage: locale,
     potentialAction: {

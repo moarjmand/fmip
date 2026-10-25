@@ -76,7 +76,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, id } = await params;
   const resolved = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const title = `${t(resolved, 'matchCentre.title')} · FMIP`;
+  const title = `${t(resolved, 'matchCentre.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title, robots: { index: false, follow: false } };
   const result = await fetchMatchCentre(id);
   if (!result.ok) return pageMetadata({ locale, path: `/match/${id}`, title });
@@ -85,7 +85,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/match/${f.id}`,
-    title: `${interpolate(t(resolved, 'matchCentre.fixtureTitle'), teams)} · FMIP`,
+    title: `${interpolate(t(resolved, 'matchCentre.fixtureTitle'), teams)} · Stadiomind`,
     description: interpolate(t(resolved, 'matchCentre.metaDescription'), {
       ...teams,
       competition: f.competition.name,

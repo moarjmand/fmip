@@ -57,7 +57,7 @@ export async function generateMetadata({
     locale,
     // The sections are one page with four views; the filters do not make new ones.
     path: q.section === 'latest' ? '/news' : `/news?section=${q.section}`,
-    title: `${t(resolved, SECTION_KEY[q.section])} · ${t(resolved, 'news.title')} · FMIP`,
+    title: `${t(resolved, SECTION_KEY[q.section])} · ${t(resolved, 'news.title')} · Stadiomind`,
     description: t(resolved, 'newsPage.description'),
   });
 }

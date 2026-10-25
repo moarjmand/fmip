@@ -244,8 +244,10 @@ export async function SiteHeader({
             data-testid="nav-home"
           >
             <BrandMark size={32} className="shrink-0" />
-            <span className="text-2xl leading-none font-black tracking-wide font-stretch-condensed lg:text-3xl">
-              FMIP
+            {/* The wordmark (D-262): Archivo 850 at 125% width, in capitals by
+              CSS so a screen reader says the name rather than its letters. */}
+            <span className="text-lg leading-none font-[850] tracking-wide uppercase font-stretch-expanded lg:text-xl">
+              Stadiomind
             </span>
           </Link>
           <Link

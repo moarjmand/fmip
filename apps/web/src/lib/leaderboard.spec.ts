@@ -257,13 +257,13 @@ describe('a language board (T-844)', () => {
       competition: null,
       language: 'ar',
     });
-    expect(text).toContain('among members who use FMIP in Arabic');
+    expect(text).toContain('among members who use Stadiomind in Arabic');
     expect(text).toContain('prediction history is visible to you');
   });
 
   it('says so when no member of that language reaches the floor', () => {
     expect(emptyBoardSentence('everyone', { kind: 'all' }, 30, false, 'en', null, 'tr')).toBe(
-      'No member who uses FMIP in Turkish has 30 settled predictions yet.',
+      'No member who uses Stadiomind in Turkish has 30 settled predictions yet.',
     );
   });
 

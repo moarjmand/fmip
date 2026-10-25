@@ -190,7 +190,7 @@
     "status": "untranslated"
   },
   "home.firstVisit.link": {
-    "source": "What FMIP is, and how a rating is earned",
+    "source": "What Stadiomind is, and how a rating is earned",
     "text": "",
     "status": "untranslated"
   },
@@ -522,7 +522,7 @@
     "status": "untranslated"
   },
   "home.welcome.label": {
-    "source": "New to FMIP",
+    "source": "New to Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -713,7 +713,7 @@
     "status": "untranslated"
   },
   "about.meta.title": {
-    "source": "What FMIP is",
+    "source": "What Stadiomind is",
     "text": "",
     "status": "untranslated"
   },
@@ -826,7 +826,7 @@
     "status": "untranslated"
   },
   "rulesPage.meta.description": {
-    "source": "The rules every member accepts: what FMIP is for, what is not allowed, and how leaving works.",
+    "source": "The rules every member accepts: what Stadiomind is for, what is not allowed, and how leaving works.",
     "text": "",
     "status": "untranslated"
   },
@@ -836,7 +836,7 @@
     "status": "untranslated"
   },
   "offline.body": {
-    "source": "FMIP needs a connection for live scores, matches and predictions. Nothing cached is shown as current: when you are back online, the pages will load fresh.",
+    "source": "Stadiomind needs a connection for live scores, matches and predictions. Nothing cached is shown as current: when you are back online, the pages will load fresh.",
     "text": "",
     "status": "untranslated"
   },
@@ -1256,7 +1256,7 @@
     "status": "untranslated"
   },
   "auth.verify.back": {
-    "source": "Back to FMIP",
+    "source": "Back to Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -1481,7 +1481,7 @@
     "status": "untranslated"
   },
   "profile.inviteTitle": {
-    "source": "Join me on FMIP",
+    "source": "Join me on Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -1886,7 +1886,7 @@
     "status": "untranslated"
   },
   "languageHold.notice": {
-    "source": "this language is held back for now, so FMIP is shown in English. Your choice is kept, and applies again when the language returns.",
+    "source": "this language is held back for now, so Stadiomind is shown in English. Your choice is kept, and applies again when the language returns.",
     "text": "",
     "status": "untranslated"
   },
@@ -3562,7 +3562,7 @@
     "status": "untranslated"
   },
   "story.sources.forecast": {
-    "source": "Forecast: FMIP’s statistical model, stored version {version}",
+    "source": "Forecast: Stadiomind’s statistical model, stored version {version}",
     "text": "",
     "status": "untranslated"
   },
@@ -3899,7 +3899,7 @@
     "status": "untranslated"
   },
   "firstRun.title": {
-    "source": "Make FMIP yours",
+    "source": "Make Stadiomind yours",
     "text": "",
     "status": "untranslated"
   },
@@ -3939,12 +3939,12 @@
     "status": "untranslated"
   },
   "firstRun.language.question": {
-    "source": "Which language should FMIP use?",
+    "source": "Which language should Stadiomind use?",
     "text": "",
     "status": "untranslated"
   },
   "firstRun.language.onlyOne": {
-    "source": "FMIP speaks English for now. Other languages are offered here once their translation is finished, and not before.",
+    "source": "Stadiomind speaks English for now. Other languages are offered here once their translation is finished, and not before.",
     "text": "",
     "status": "untranslated"
   },
@@ -4034,7 +4034,7 @@
     "status": "untranslated"
   },
   "firstRun.offer.text": {
-    "source": "Make FMIP yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
+    "source": "Make Stadiomind yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
     "text": "",
     "status": "untranslated"
   },
@@ -8589,7 +8589,7 @@
     "status": "untranslated"
   },
   "leaderboard.language.note": {
-    "source": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see.",
+    "source": "A member's language is the one they chose for Stadiomind in Settings. It is not public, so this board shows only members whose prediction history you may see.",
     "text": "",
     "status": "untranslated"
   },
@@ -8787,7 +8787,7 @@
     "status": "untranslated"
   },
   "predictions.page.title": {
-    "source": "Predictions · FMIP",
+    "source": "Predictions · Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -8929,7 +8929,7 @@
     "status": "untranslated"
   },
   "leaderboardPage.title": {
-    "source": "Leaderboard · FMIP",
+    "source": "Leaderboard · Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -9147,12 +9147,12 @@
     "status": "untranslated"
   },
   "leaderboardPage.among.friendsLanguage": {
-    "source": "among you and your friends who use FMIP in {language}",
+    "source": "among you and your friends who use Stadiomind in {language}",
     "text": "",
     "status": "untranslated"
   },
   "leaderboardPage.among.membersLanguage": {
-    "source": "among members who use FMIP in {language}",
+    "source": "among members who use Stadiomind in {language}",
     "text": "",
     "status": "untranslated"
   },
@@ -9204,8 +9204,8 @@
   },
   "leaderboardPage.empty.friendsLanguage": {
     "source": {
-      "one": "Neither you nor any of your friends who uses FMIP in {language} has {count} settled prediction{where}{when} yet.",
-      "other": "Neither you nor any of your friends who uses FMIP in {language} has {count} settled predictions{where}{when} yet."
+      "one": "Neither you nor any of your friends who uses Stadiomind in {language} has {count} settled prediction{where}{when} yet.",
+      "other": "Neither you nor any of your friends who uses Stadiomind in {language} has {count} settled predictions{where}{when} yet."
     },
     "forms": {},
     "status": "untranslated"
@@ -9220,8 +9220,8 @@
   },
   "leaderboardPage.empty.membersLanguage": {
     "source": {
-      "one": "No member who uses FMIP in {language} has {count} settled prediction{where}{when} yet.",
-      "other": "No member who uses FMIP in {language} has {count} settled predictions{where}{when} yet."
+      "one": "No member who uses Stadiomind in {language} has {count} settled prediction{where}{when} yet.",
+      "other": "No member who uses Stadiomind in {language} has {count} settled predictions{where}{when} yet."
     },
     "forms": {},
     "status": "untranslated"
@@ -9416,7 +9416,7 @@
     "status": "untranslated"
   },
   "analysis.desk.title": {
-    "source": "Founder's analysis · FMIP",
+    "source": "Founder's analysis · Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -12257,7 +12257,7 @@
     "status": "untranslated"
   },
   "shared.og.memberAlt": {
-    "source": "A member of FMIP, their rating and latest settled predictions",
+    "source": "A member of Stadiomind, their rating and latest settled predictions",
     "text": "",
     "status": "untranslated"
   },
@@ -12312,7 +12312,7 @@
     "status": "untranslated"
   },
   "lanes.model.origin": {
-    "source": "Computed by FMIP’s statistical model from match data. Not a person’s opinion.",
+    "source": "Computed by Stadiomind’s statistical model from match data. Not a person’s opinion.",
     "text": "",
     "status": "untranslated"
   },
@@ -12573,7 +12573,7 @@
     "status": "untranslated"
   },
   "competitions.metaDescription": {
-    "source": "Every league and cup FMIP follows, grouped by country and region, each with its own page.",
+    "source": "Every league and cup Stadiomind follows, grouped by country and region, each with its own page.",
     "text": "",
     "status": "untranslated"
   },
@@ -12628,7 +12628,7 @@
     "status": "untranslated"
   },
   "highlights.metaDescription": {
-    "source": "Official highlight links for the matches FMIP follows, newest first, filtered by competition. Each opens on the publisher's own site.",
+    "source": "Official highlight links for the matches Stadiomind follows, newest first, filtered by competition. Each opens on the publisher's own site.",
     "text": "",
     "status": "untranslated"
   },

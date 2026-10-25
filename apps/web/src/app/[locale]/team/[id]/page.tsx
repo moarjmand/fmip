@@ -54,7 +54,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
   const { locale, id } = await params;
-  const fallback = `${say(locale, 'teamPage.title')} · FMIP`;
+  const fallback = `${say(locale, 'teamPage.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title: fallback, robots: { index: false, follow: false } };
   const result = await fetchTeam(id, locale);
   if (!result.ok) return pageMetadata({ locale, path: `/team/${id}`, title: fallback });
@@ -64,7 +64,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/team/${t.id}`,
-    title: `${t.localised_name ?? t.name} · FMIP`,
+    title: `${t.localised_name ?? t.name} · Stadiomind`,
     description: say(locale, 'teamPage.metaDescription', { name: t.name }),
   });
 }

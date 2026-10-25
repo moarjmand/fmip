@@ -78,7 +78,7 @@ export async function generateMetadata({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
-  const fallback = `${say(locale, 'competitionPage.title')} · FMIP`;
+  const fallback = `${say(locale, 'competitionPage.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title: fallback, robots: { index: false, follow: false } };
   const season = readSeasonParam(query);
   const result = await fetchCompetition(id, competitionQuery(season), locale);
@@ -91,7 +91,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path,
-    title: `${c.localised_name ?? c.name} ${result.data.season.label} · FMIP`,
+    title: `${c.localised_name ?? c.name} ${result.data.season.label} · Stadiomind`,
     description: say(locale, 'competitionPage.metaDescription', {
       name: c.name,
       season: result.data.season.label,

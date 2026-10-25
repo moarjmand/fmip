@@ -39,7 +39,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return {
-    title: `${t(lang, 'nav.settings')} · FMIP`,
+    title: `${t(lang, 'nav.settings')} · Stadiomind`,
     robots: { index: false, follow: false },
   };
 }

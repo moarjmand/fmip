@@ -76,10 +76,10 @@ describe('urls', () => {
 describe('pageMetadata', () => {
   it('sets canonical, language alternates with x-default, indexing and Open Graph', () => {
     const meta = pageMetadata(
-      { locale: 'en', path: '/scores', title: 'Scores · FMIP', description: 'Today.' },
+      { locale: 'en', path: '/scores', title: 'Scores · Stadiomind', description: 'Today.' },
       ORIGIN,
     );
-    expect(meta.title).toBe('Scores · FMIP');
+    expect(meta.title).toBe('Scores · Stadiomind');
     expect(meta.alternates).toEqual({
       canonical: 'https://fmip.example/en/scores',
       languages: {
@@ -91,7 +91,7 @@ describe('pageMetadata', () => {
     expect(meta.robots).toEqual({ index: true, follow: true });
     expect(meta.openGraph).toMatchObject({
       url: 'https://fmip.example/en/scores',
-      siteName: 'FMIP',
+      siteName: 'Stadiomind',
       locale: 'en',
     });
   });

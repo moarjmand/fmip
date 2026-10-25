@@ -18,7 +18,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/model-accuracy',
-    title: `${t(lang, 'modelAccuracy.meta.title')} · FMIP`,
+    title: `${t(lang, 'modelAccuracy.meta.title')} · Stadiomind`,
     description: t(lang, 'modelAccuracy.meta.description'),
   });
 }

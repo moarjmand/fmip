@@ -111,8 +111,8 @@ test.describe('progressive web app', () => {
       icons: { src: string; sizes: string; type: string; purpose?: string }[];
       theme_color: string;
     };
-    expect(manifest.name).toContain('FMIP');
-    expect(manifest.short_name).toBe('FMIP');
+    expect(manifest.name).toBe('Stadiomind');
+    expect(manifest.short_name).toBe('Stadiomind');
     expect(manifest.start_url).toBe('/en/scores');
     expect(manifest.display).toBe('standalone');
     expect(manifest.icons.map((i) => i.sizes)).toEqual(

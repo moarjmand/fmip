@@ -32,7 +32,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/watch',
-    title: `${say(locale, 'viewing.pageTitle')} · FMIP`,
+    title: `${say(locale, 'viewing.pageTitle')} · Stadiomind`,
     description: say(locale, 'watch.metaDescription'),
   });
 }

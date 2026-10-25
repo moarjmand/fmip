@@ -16,7 +16,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  return { title: `${t(lang, 'nav.signIn')} · FMIP` };
+  return { title: `${t(lang, 'nav.signIn')} · Stadiomind` };
 }
 export const dynamic = 'force-dynamic';
 

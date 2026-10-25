@@ -23,7 +23,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/rules',
-    title: `${t(lang, 'rules.title')} · FMIP`,
+    title: `${t(lang, 'rules.title')} · Stadiomind`,
     description: t(lang, 'rulesPage.meta.description'),
   });
 }

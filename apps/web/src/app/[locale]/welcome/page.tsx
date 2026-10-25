@@ -23,7 +23,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   return {
-    title: `${t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'welcome.meta.title')} · FMIP`,
+    title: `${t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'welcome.meta.title')} · Stadiomind`,
     robots: { index: false, follow: false },
   };
 }

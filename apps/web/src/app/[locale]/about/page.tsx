@@ -21,7 +21,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/about',
-    title: `${t(lang, 'about.meta.title')} · FMIP`,
+    title: `${t(lang, 'about.meta.title')} · Stadiomind`,
     description: t(lang, 'about.meta.description'),
   });
 }
