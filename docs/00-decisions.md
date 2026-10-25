@@ -12299,6 +12299,43 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **How T-1513 applied it (2026-10-25).** The competitions bar is the Design System's row of pills: each main competition is a rounded pill with a hairline and its logo, the one being read edged in saffron on the raised surface, and "All competitions" comes last in saffron text with an arrow that turns under RTL. Each link is the 44px target, with the pill drawn inside it, and the focus ring sits inside the link so the row's sideways scroll cannot cut it. From 768px only: on a phone the Leagues tab leads to every competition, and the row would push the page down by a line. The looks are CSS utilities keyed on `aria-current`, as the nav's are, so the shell's client chunk does not grow.
 
+## D-270 — The home page opens on the big match, and keeps the blueprint's other sections below the canvas
+
+**Status:** Accepted · 2026-10-25 (decided within the coordinating session's grant, from the canvas, D-263 and the blueprint) · **Task:** T-1495, T-1516 · **Follows:** D-153, D-154, D-200, D-263
+
+**Context.** The canvas boards Home and HomePhone show six blocks: the matches in play, the big match with the model's forecast and the other two voices, today by competition, the "forecast against reality" card, a table excerpt and the model's month in figures. Blueprint 2.3 also asks for news, breaking alerts, friends' predictions, group discussions, panels, broadcasts and the member's teams, which the boards leave out. D-263 point 4 says a big live match takes the hero's slot, without saying what makes a match big.
+
+**Decision.**
+1. A match is big when it is a followed team's, one an editor features (D-153), or one of the first six competitions in the scores answer's order (D-154: the Pro League, the Champions League, the big leagues). The hero ranks by that tier, then a match in play before a scheduled one, then the day, the competitions' order and the kick-off. A live match outside those six never takes the slot; a live match never takes it from a bigger scheduled one (an editor's feature tomorrow beats a big league's match in play today). With nothing in play the slot is the next big match today or tomorrow, else on the first day with one; its label says which ("Live now", "Today's big one", "Tomorrow's big one", "The next big one").
+2. The hero's figures (expected goals, the three likeliest scores, the factors that moved it most, the receipt with version, kind and sample) come from the match's last version computed before kick-off, the one its bar shows; when that version cannot be read the bar falls back to the pre-kick-off summary and the figures are left out.
+3. The three voices stay in their three lanes inside the hero (rule 6), with the note that they are three products.
+4. The page keeps one `<h1>`, "Today", above the blocks with the day and time in the reader's zone; it carries the inline-start accent the RTL check measures. The today block is headed "Matches by competition" (or "Matches · <day>" when today has none).
+5. Today by competition shows six competitions of four matches each, a member's teams first in a card of their own; a card names its round when every match shares one, else its count. The editor's note shows on the hero only.
+6. The live strip lists every match in play (at most eight chips), with when the live answer was last heard from; a stale answer says "behind" beside the minute (rule 4). It is not drawn when nothing is in play.
+7. Below the canvas blocks the page keeps the blueprint's sections as they were: breaking strip, first run, friends' predictions, group discussions, panels, the founder's column, broadcasts, the member's teams, the guest welcome and the news. The lead story (the newest breaking story above the match) is retired: every marked story stays in the breaking strip. The phone's day strip stays the matches page's (T-1496); the home links to it.
+8. The page follows the theme (D-263 point 2); `data-mode="editorial"` leaves it.
+
+**How T-1516 applied it (2026-10-25).** The side column takes the canvas's three blocks. "Forecast against reality" reads `GET /model/upset` (D-265) for the reader's day and zone, in the same round as the scores: the score, the three probabilities as a bar with the outcome that happened in saffron (`bg-accent`, the one place the model's bar takes the moment's colour), the share the model gave it, how many matches it was chosen from, its version, kind and computation time, and the way to the match. No such match is `not_supplied` with its reason in words, no answer is "could not be loaded"; the card is never an empty frame. HomePhone puts it straight after the hero, so the page draws it twice and shows one: after the hero below 1024 px, atop the side column above. The canvas's possession and xG sentence is not in the API and is left out rather than written by hand. The table excerpt is the first competition's top six with its season, coverage and last update. The model's month asks `GET /model/accuracy` by month (it asked by week since T-1414): the newest month with a match scored, how often the favourite won on how many matches, how much better (or worse) its RPS was than a uniform guess with both figures, the same share per competition (at most six, the most accurate first; a competition with nothing scored that month is left out), and a "limited" line naming the minimum when any figure is under it.
+
+**Consequences.** The key-matches table with the model's percentages per row leaves the home; the percentages stay on the matches page. The side column's canvas blocks (the upset card on `GET /model/upset`, D-265; the table excerpt; the month in figures) are T-1516, after T-1507 merges, so the home's first PR stays within the file count.
+
+## D-271 — The Stadiomind player page: the club only in the photo's ring, facts with their coverage, the career by season in its own box
+
+**Status:** Accepted · 2026-10-25 (agent, under the maintainer's standing approval) · **Task:** T-1500 · **Amends:** D-204 (the Hybrid player page)
+
+**Context.** The canvas's Player and PlayerPhone boards (https://claude.ai/artifact/X5qzAJELjXfdsYcHcMUvAn) show a header with the photo in a ring of the club's colour, four facts (age, height, foot and a last rating), tiles per competition, a career table, the last six matches and the next match; the phone adds section tabs. Our data holds no per-player match rating on `GET /players/:id`, no club/national-team flag on a record row, and no home or away in the availability's next fixture.
+
+**Decision.**
+1. The club's colour appears only as the 3px ring round the photo (D-263); a club with no colour on record gets the theme's strong line. The band is the plain surface, no longer filled.
+2. The facts are age (with the birth date under it), height and foot, each the figure we hold or the "not supplied" badge. The canvas's "Last rating" is left out: the player endpoint carries no rating, and adding one is an API change of its own, not a page's.
+3. The season's tiles: one per competition (and team, where the season has more than one, so a national side is named), goals large, then appearances, minutes ("at least" where only some came, "minutes not supplied" where none) and goals per 90 only over whole minutes of at least 90; with more than one row a first "All competitions" tile. No "club goals" tile: a record row does not say whether its team is a club.
+4. The career table groups rows by season (a row-group header cell), with starts, substitute appearances, goals, assists and minutes; the Stats tab adds the cards. It keeps a 40rem minimum width and scrolls inside its own focusable region named by its caption, so a phone never scrolls the page sideways.
+5. The last six matches show both sides with the score between them in the page's direction (D-193), never "v Opponent" with a score whose order the reader must guess; goals and assists in the saffron text colour, a dash when none.
+6. The next match is the availability card (T-1007) headed "Next match": the team and opponent as the feed gives them (no home or away is claimed), the kick-off, then the availability with its coverage.
+7. The tabs stay Overview, Matches, Career, Stats (the phone board's "Season" and "News" are the Overview, which keeps the news); the desktop board shows none, but each tab is a URL that fetches only what it shows (D-203).
+
+**Consequences.** The player page drops `EntityBand` (T-1499's) for its own header in `components/player-page.tsx`. Four catalogue keys of the Hybrid tiles left the catalogues; the minutes note no longer says availability is not held, since the page shows it.
+
 ## D-274 — The Stadiomind competition page: the canvas's six tabs, the full table on the Overview, the model's league record beside it
 
 **Status:** Accepted · 2026-10-25 (decided by the agent from the canvas, the Design System and D-262 to D-264, under the maintainer's standing approval) · **Task:** T-1498 · **Amends:** D-203 (the Hybrid competition page)
@@ -12315,3 +12352,30 @@ replaces D-089's self-hosting arrangement for no gain here).
 7. The header, the cards and the rows are server components beside the page (`app/[locale]/competition/[id]/`), the season menu a `details` element: the page adds no client JavaScript, so its budget stays 158 KB.
 
 **Consequences.** `CompetitionBand`, `FixtureRow`, `MatchweekPanel`, `RoundsPanel`, `ProjectionNote` and `NoTableNote` leave `competition-page.tsx`, which keeps the modules the club, player and coach pages share; 23 catalogue keys that only they used are retired. T-1508's shared match row can replace `MatchLine` later without changing the page's states.
+
+## D-275 — The club page's top scorer is counted from our recorded goals, per competition
+
+**Status:** Accepted · 2026-10-25 · **Task:** T-1528 (split from T-1499)
+
+**Context.** The Club board shows a top scorer ("TOP SCORER · PL"). `GET /teams/:id` had none, and the competition page's scorers list stops at its top rows, so a club's best scorer may not be in it.
+
+**Decision.** `TeamPage.top_scorers` holds one entry per `competitions` entry: the season's scorers as the competition page counts them (our goal incidents of the main competition, D-209, D-232; `limited` while the season's recorded goals fall short of its scores) cut to goals for this club, and every player level on the most, by name. A club with no recorded goal is an empty list under the season's state; a season with no incidents is `not_supplied`. The provider's season totals, the competition page's fallback when we hold no incidents (D-232), are not read here: such a season answers `not_supplied`. Starts are not shown, since they are not counted for this figure.
+
+**Consequences.** Two more queries per competition on the team page (the season's scorers, its incident tally). The field is optional, so a web page in front of an older API reads it as `not_supplied`.
+
+## D-272 — The Stadiomind match centre: the model's card first, two columns, one pitch that turns
+
+**Status:** Accepted · 2026-10-25 (decided from the canvas's Match, MatchPhone and LivePhone boards, the Design System and D-263 under the maintainer's standing approval) · **Task:** T-1497, T-1522 · **Follows:** D-202, D-263, D-264
+
+**Context.** The canvas shows the match centre as a score band on the surface with the section tabs at its foot, then a main column (the Summary's "What was forecast, what happened" card, the three voices, the timeline with an axis, the stats, a horizontal pitch with ratings) and a side column (top rated, ratings, missing players, the last meetings, the data footer); on a phone the same sections under tabs, the pitch stacked; live, a saffron badge, the minute along a bar, the freshness stamp and "Not in yet" for what the feed has not sent. The page was at 185.5 of 186 KB of first-load JavaScript, with 191 KB the ceiling (D-264).
+
+**Decision.**
+1. The Summary opens with the model's card, drawn on the server and the model's alone (rule 6): after full time the bar with the outcome's segment in saffron and labelled "happened", the model's expected goals against the match's own xG and the goals, the five likeliest scorelines and whether the result was among them; live, the version from before kick-off marked as fixed; before kick-off, the latest. Under it every stored version by number, each as it was computed (rule 5), and the receipt of the version the card is about. The version after kick-off is the one the evaluation scored, else the last before kick-off, as `ModelVerdict` chooses. The three voices follow, from their three files.
+2. The canvas's explanatory paragraph is not written per match: a fixed sentence gives the share the model gave what happened and points to the model's record, since a sentence about a match's play would need an author (rule 3).
+3. The scorers under each name are left out when the timeline holds an own goal: the feed does not say which side an own goal counts for, and the alerts make the same choice.
+4. One pitch markup turns with the width: stacked on a phone (away above, home below) and horizontal from 768px (home from the inline start), mirrored on a right-to-left page with each line's order following the mirror. Shirt numbers replace photos on the pitch, as the canvas draws them; the rating chip uses the Design System's four bands, the best rated in saffron. The page carries one pitch, not two, which keeps the bundle within its ceiling.
+5. The section tabs are drawn at every width, inside the band: on a phone they choose what shows (no script, as D-202), from 768px they jump to the open sections. A section shows by the tab it names, so the Summary can hold the side column's sections too.
+6. "Not in yet" replaces the coverage badge on a live match's module that has nothing yet, with a sentence that nothing is estimated meanwhile; after full time the same gap shows its coverage state.
+7. Until T-1493's stacked PRs land, the outcome bar, the receipt and the rating chip are the page's own (in `forecast-reality.tsx` and `match-centre-cards.tsx`); they move to the shared components when those merge.
+
+**Consequences.** The live view grows by the axis, the scorers, the best rated and the chip, measured against the 191 KB ceiling in `perf-budgets.json`. `globals.css`'s tab rules name each tab. The pitch's note no longer says "home side at the bottom", which is true only on a phone.

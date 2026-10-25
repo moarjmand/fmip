@@ -14,9 +14,10 @@ const KIND_MESSAGE = {
 } as const;
 
 /**
- * The player page's current availability (blueprint 5.3, T-1007, D-127):
- * the team's next scheduled match and what the feed's absence list says about
- * the player for it. Nothing is said before the feed was asked; once asked, a
+ * The player page's next match and his availability for it (blueprint 5.3,
+ * T-1007, D-127; the Stadiomind card, T-1500): the team's next scheduled
+ * match, when it kicks off, and what the feed's absence list says about the
+ * player for it. Nothing is said before the feed was asked; once asked, a
  * player it does not list is "not listed", never "fit" (T-103), and the time
  * of the ask is always shown, with a warning once it is old (rule 4).
  */
@@ -36,24 +37,13 @@ export function PlayerAvailabilitySection({
   return (
     <section
       aria-labelledby="player-availability-heading"
-      className="flex min-w-0 flex-col gap-2 rounded-card border border-default bg-surface p-4 sm:p-5"
+      className="flex min-w-0 flex-col gap-2 rounded-card border border-default bg-surface p-4"
       data-testid="player-availability"
       data-state={state}
     >
-      {/* The Hybrid panel's heading and the listing's coverage beside it (T-1386). */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5">
-        <h2
-          id="player-availability-heading"
-          className="flex items-center text-sm font-extrabold text-fg uppercase ltr:tracking-wider"
-        >
-          <span aria-hidden="true" className="me-2.5 inline-block h-3.5 w-1 -skew-x-12 bg-accent" />
-          <Translated locale={locale} message="player.availability.title" />
-        </h2>
-        <CoverageBadge
-          state={listing.coverage}
-          label={say(locale, COVERAGE_KEY[listing.coverage])}
-        />
-      </div>
+      <h2 id="player-availability-heading" className="text-sm font-extrabold">
+        <Translated locale={locale} message="player.availability.nextMatch" />
+      </h2>
       {team === null ? (
         <p className="text-sm text-muted">
           <Translated locale={locale} message="player.availability.noTeam" />
@@ -74,21 +64,37 @@ export function PlayerAvailabilitySection({
               <Translated locale={locale} message="player.availability.noNextMatch" />
             </p>
           ) : (
-            <p className="text-sm" data-testid="player-availability-fixture">
-              <Translated locale={locale} message="player.availability.nextMatch" />
-              {': '}
-              <Link href={`/${locale}/match/${fixture.id}`} className="underline">
-                {team.name}
-                {fixture.opponent === null ? '' : ` – ${fixture.opponent.name}`}
+            <p className="flex flex-col gap-0.5" data-testid="player-availability-fixture">
+              <Link
+                href={`/${locale}/match/${fixture.id}`}
+                className="text-sm font-bold text-fg hover:underline focus-visible:underline"
+              >
+                <bdi>{team.name}</bdi>
+                {fixture.opponent === null ? (
+                  ''
+                ) : (
+                  <>
+                    {' – '}
+                    <bdi>{fixture.opponent.name}</bdi>
+                  </>
+                )}
               </Link>
-              {' · '}
-              <time dateTime={fixture.kickoff_at}>
+              <time dateTime={fixture.kickoff_at} className="text-sm text-muted">
                 {formatDateTime(locale, fixture.kickoff_at, timeZone)}
               </time>
             </p>
           )}
         </>
       )}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-default pt-2.5">
+        <h3 className="text-xs font-bold text-caption">
+          <Translated locale={locale} message="player.availability.title" />
+        </h3>
+        <CoverageBadge
+          state={listing.coverage}
+          label={say(locale, COVERAGE_KEY[listing.coverage])}
+        />
+      </div>
       {reason === 'not_asked' && (
         <p className="text-sm text-muted">
           <Translated locale={locale} message="player.availability.notAsked" />

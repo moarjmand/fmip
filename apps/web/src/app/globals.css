@@ -616,37 +616,55 @@ body {
 }
 
 /*
- * The match centre's tabs on a phone (T-1384, D-202). Below 768px one tab's
+ * The match centre's tabs (T-1384, D-202; T-1497). Below 768px one tab's
  * sections show at a time: the tab that holds the page's `:target` -- the
  * section a tab's link, a deep link (`#lineups`, `#forecast`) or a post's
- * anchor opened -- or the Summary when nothing in the tabs is targeted. The
- * tabs are plain anchors, so this needs no script and a page with none
- * behaves the same. From 768px every section is open, in columns, and the
- * tabs are not drawn. The tab bar marks the tab on show the same way.
+ * anchor opened -- or the Summary when nothing in a tab is targeted. A tab's
+ * sections may sit in both columns (the Summary's side column: the best
+ * rated, the absences, the past meetings), so a section shows by the tab it
+ * names, not by holding the target itself. The tabs are plain anchors, so
+ * this needs no script and a page with none behaves the same. From 768px
+ * every section is open, in a main and a side column, and the tabs jump to
+ * them. The tab bar marks the tab on show the same way at every width.
  */
 @media (width < 48rem) {
-  [data-match-tabs]:not(:has(:target)) [data-tab]:not([data-tab='summary']),
-  [data-match-tabs]:has(:target) [data-tab]:not(:target, :has(:target)) {
+  [data-match-tabs]:not(:has([data-tab]:target, [data-tab] :target))
+    [data-tab]:not([data-tab='summary']),
+  [data-match-tabs]:has([data-tab='summary']:target, [data-tab='summary'] :target)
+    [data-tab]:not([data-tab='summary']),
+  [data-match-tabs]:has([data-tab='lineups']:target, [data-tab='lineups'] :target)
+    [data-tab]:not([data-tab='lineups']),
+  [data-match-tabs]:has([data-tab='stats']:target, [data-tab='stats'] :target)
+    [data-tab]:not([data-tab='stats']),
+  [data-match-tabs]:has([data-tab='predictions']:target, [data-tab='predictions'] :target)
+    [data-tab]:not([data-tab='predictions']),
+  [data-match-tabs]:has([data-tab='watch']:target, [data-tab='watch'] :target)
+    [data-tab]:not([data-tab='watch']),
+  [data-match-tabs]:has([data-tab='discussion']:target, [data-tab='discussion'] :target)
+    [data-tab]:not([data-tab='discussion']) {
     display: none;
   }
+}
 
-  [data-match-root]:not(:has([data-match-tabs] :target)) [data-tab-link='summary'],
-  [data-match-root]:has([data-tab='summary']:target, [data-tab='summary'] :target)
-    [data-tab-link='summary'],
-  [data-match-root]:has([data-tab='lineups']:target, [data-tab='lineups'] :target)
-    [data-tab-link='lineups'],
-  [data-match-root]:has([data-tab='stats']:target, [data-tab='stats'] :target)
-    [data-tab-link='stats'],
-  [data-match-root]:has([data-tab='predictions']:target, [data-tab='predictions'] :target)
-    [data-tab-link='predictions'],
-  [data-match-root]:has([data-tab='watch']:target, [data-tab='watch'] :target)
-    [data-tab-link='watch'],
-  [data-match-root]:has([data-tab='discussion']:target, [data-tab='discussion'] :target)
-    [data-tab-link='discussion'] {
-    box-shadow: inset 0 -3px 0 var(--token-accent);
-    color: var(--token-text);
-    font-weight: 700;
-  }
+[data-match-root]:not(
+    :has([data-match-tabs] [data-tab]:target, [data-match-tabs] [data-tab] :target)
+  )
+  [data-tab-link='summary'],
+[data-match-root]:has([data-tab='summary']:target, [data-tab='summary'] :target)
+  [data-tab-link='summary'],
+[data-match-root]:has([data-tab='lineups']:target, [data-tab='lineups'] :target)
+  [data-tab-link='lineups'],
+[data-match-root]:has([data-tab='stats']:target, [data-tab='stats'] :target)
+  [data-tab-link='stats'],
+[data-match-root]:has([data-tab='predictions']:target, [data-tab='predictions'] :target)
+  [data-tab-link='predictions'],
+[data-match-root]:has([data-tab='watch']:target, [data-tab='watch'] :target)
+  [data-tab-link='watch'],
+[data-match-root]:has([data-tab='discussion']:target, [data-tab='discussion'] :target)
+  [data-tab-link='discussion'] {
+  box-shadow: inset 0 -3px 0 var(--token-accent);
+  color: var(--token-text);
+  font-weight: 800;
 }
 
 /*

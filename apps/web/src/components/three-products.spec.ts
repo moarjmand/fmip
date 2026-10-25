@@ -83,6 +83,15 @@ describe('the three products stay three on the page', () => {
     expect(page).toContain('<ForecastPanel');
     expect(page).toContain('<CommunityForecastPanel');
     expect(page).not.toMatch(/<PredictionPanel/);
+    // The Summary's opening card (T-1497) is the model's alone: the founder
+    // and the community follow it as their own voices, from their own files.
+    expect(page).toContain('<ForecastReality');
+    const card = readFileSync(
+      join(COMPONENTS, '..', 'app', '[locale]', 'match', '[id]', 'forecast-reality.tsx'),
+      'utf8',
+    );
+    const code = card.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[\r\n])\s*\/\/.*/g, '$1');
+    expect(code).not.toMatch(/founder|community|consensus/i);
   });
 
   it('keeps the homepage’s "three forecasts" three lanes from three files (T-1382)', () => {

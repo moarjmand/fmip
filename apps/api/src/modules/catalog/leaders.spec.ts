@@ -9,6 +9,7 @@ import {
   leadersWithMinutes,
   rankByFigure,
   reachesFloor,
+  teamTopScorers,
   wholeOnlyIfRecorded,
 } from './internal/leaders';
 import { NO_LINEUPS, seasonMinutes } from './internal/player-store';
@@ -205,5 +206,38 @@ describe('wholeOnlyIfRecorded (T-1441)', () => {
   it('never upgrades or touches a module that is already less than available', () => {
     const delayed: Covered<number[]> = { ...module, coverage: 'delayed' };
     expect(wholeOnlyIfRecorded(delayed, { scoredGoals: 10, recordedGoals: 0 })).toBe(delayed);
+  });
+});
+
+describe('teamTopScorers (T-1528)', () => {
+  const row = (id: string, team: string | null, goals: number): Scorer => ({
+    person: { id, name: id },
+    team: team === null ? null : { id: team, name: team },
+    goals,
+  });
+  const module = (data: Scorer[] | null): Covered<Scorer[]> => ({
+    coverage: data === null ? 'not_supplied' : 'limited',
+    last_updated_at: data === null ? null : '2026-10-01T00:00:00.000Z',
+    data,
+  });
+
+  it('keeps the club’s goals only, and every player level on the most, by name', () => {
+    const season = module([
+      row('zed', 'other', 9),
+      row('bea', 'club', 4),
+      row('amy', 'club', 4),
+      row('cal', 'club', 2),
+      row('dan', null, 5),
+    ]);
+    const top = teamTopScorers(season, 'club');
+    expect(top.data!.map((r) => r.person.id)).toEqual(['amy', 'bea']);
+    expect(top.coverage).toBe('limited');
+    expect(top.last_updated_at).toBe('2026-10-01T00:00:00.000Z');
+  });
+
+  it('is an empty list for a club with no recorded goal, and not_supplied stays so', () => {
+    expect(teamTopScorers(module([row('zed', 'other', 3)]), 'club').data).toEqual([]);
+    const none = teamTopScorers(module(null), 'club');
+    expect(none).toEqual({ coverage: 'not_supplied', last_updated_at: null, data: null });
   });
 });

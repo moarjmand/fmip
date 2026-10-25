@@ -280,6 +280,51 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     ]);
   });
 
+  it('names the club’s top scorer per competition from our recorded goals (T-1528)', async () => {
+    const [first, second] = fixtures;
+    // The striker scored both of alpha's goals against beta and its one at
+    // gamma; the keeper none. Beta's 3-0 over gamma has no incidents stored,
+    // so the season's recorded goals (3) fall short of its scores (7).
+    const sides = await pool.query<{ id: string; fixture_id: string }>(
+      `SELECT id, fixture_id FROM fixture_participant WHERE fixture_id = ANY($1::uuid[]) AND team_id = $2`,
+      [[first, second], TEAMS.alpha],
+    );
+    const goals = sides.rows.flatMap((side) =>
+      side.fixture_id === first ? [side.id, side.id] : [side.id],
+    );
+    for (const [sequence, participant] of goals.entries()) {
+      await pool.query(
+        `INSERT INTO incident (fixture_id, participant_id, person_id, kind, minute, sequence)
+         SELECT fixture_id, id, $2, 'goal', 50, $3 FROM fixture_participant WHERE id = $1`,
+        [participant, STRIKER, sequence + 1],
+      );
+    }
+    try {
+      const alpha = (
+        await app.inject({ method: 'GET', url: `/teams/${TEAMS.alpha}` })
+      ).json() as TeamPage;
+      expect(alpha.top_scorers).toHaveLength(1);
+      const [entry] = alpha.top_scorers!;
+      expect(entry).toMatchObject({
+        competition: { id: COMPETITION },
+        season: { id: SEASON, is_current: true },
+      });
+      expect(entry!.scorers.coverage).toBe('limited');
+      expect(entry!.scorers.data).toEqual([
+        { person: { id: STRIKER, name: `Test Striker ${RUN}`, photo: NO_PHOTO }, goals: 3 },
+      ]);
+      // Beta has no recorded goal: an empty list, never a scorer on nought.
+      const beta = (
+        await app.inject({ method: 'GET', url: `/teams/${TEAMS.beta}` })
+      ).json() as TeamPage;
+      expect(beta.top_scorers![0]!.scorers.data).toEqual([]);
+    } finally {
+      await pool.query(`DELETE FROM incident WHERE fixture_id = ANY($1::uuid[])`, [
+        [first, second],
+      ]);
+    }
+  });
+
   it('names the team in the language asked for, beside the name, and null when nobody has (T-303)', async () => {
     await pool.query(
       `INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
