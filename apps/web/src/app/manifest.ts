@@ -19,6 +19,8 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
+    // The ink of the icons' tile (T-1492): the splash screen around the icon
+    // and the installed app's bar, which have one colour whatever the theme.
     background_color: MARK_COLOURS.tile,
     theme_color: MARK_COLOURS.tile,
     lang: DEFAULT_LOCALE,

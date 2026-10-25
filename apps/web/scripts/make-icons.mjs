@@ -1,4 +1,4 @@
-// Draws the PWA icons (T-082) from the mark (T-604, D-089) without an image
+// Draws the PWA icons (T-082) and the favicon from the mark (T-1492, D-262) without an image
 // library: `public/icons/mark.svg` is read, its shapes rasterised with 4x4
 // supersampling, and the result written as PNG through zlib.
 //
@@ -7,7 +7,7 @@
 //
 // Writing also records `scripts/make-icons.manifest.json`: the SHA-256 of the
 // mark, of this script and of every icon it wrote. `brand-mark.spec.ts` checks
-// the committed files against it in milliseconds; rasterising all four icons
+// the committed files against it in milliseconds; rasterising all five icons
 // is CPU-bound (about a second alone, over five on a busy CI runner beside the
 // other suites), so the full `--check`, which also fails on a stale manifest,
 // runs once as its own CI step (`pnpm --filter @fmip/web icons:check`).
@@ -34,6 +34,8 @@ const SAMPLES = 4;
 const MASKABLE_SCALE = 0.8;
 
 const ICONS = [
+  // The favicon where a browser does not draw `mark.svg` itself.
+  ['icon-32.png', 32, { maskable: false }],
   ['icon-192.png', 192, { maskable: false }],
   ['icon-512.png', 512, { maskable: false }],
   ['icon-maskable-512.png', 512, { maskable: true }],

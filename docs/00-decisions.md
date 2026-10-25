@@ -12195,7 +12195,7 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 ## D-262 — The product is named Stadiomind
 
-**Status:** Accepted · 2026-10-25 (the maintainer: "the name now, the domain later") · **Task:** T-1490, T-1492
+**Status:** Accepted · 2026-10-25 (the maintainer: "the name now, the domain later") · **Task:** T-1490, T-1492, T-1503, T-1504
 
 **Context.** The maintainer wanted a complete redesign (2026-10-16) and a real brand name first: serious, analytical, English only, with a free .com. Four naming rounds (2026-10-18 to 20) scored about 270 names; the maintainer chose Stadiomind for the redesign on 2026-10-24. The site still calls itself by the working name and lives at traveltohormuz.ir.
 
@@ -12207,6 +12207,8 @@ replaces D-089's self-hosting arrangement for no gain here).
 5. The repository, packages, database and internal identifiers keep the name FMIP; only reader-facing text changes.
 
 **Consequences.** Share cards and e-mails change their sender name and look at once with T-1492. Search engines see a new title on the same domain; nothing is redirected yet.
+
+**How T-1492 applied it (2026-10-25).** The name and the mark were split into three tasks at the maintainer's word: the mark (T-1492), the name on the site (T-1503) and the name in the API (T-1504). The mark is drawn as the Design System's logos give it, never recoloured: the bars alone in the Day set on paper (the header, which D-198 keeps on paper in both themes, and the share cards) and in the Night set on ink. The favicon and the app icons put the Night bars on a tile of the Night canvas, #0f1215, at twice the logo's scale, so an icon reads on a light or a dark home screen alike; a 32 px PNG joins them for browsers that do not draw the SVG favicon. The manifest's splash and bar take that ink; the page's `theme-color` follows the device, the Day ground on a light one and the ink on a dark one. The D-089 green left the code.
 
 ## D-263 — The Stadiomind visual system replaces the Hybrid palette and display faces
 
