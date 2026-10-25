@@ -209,6 +209,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         expect((await put(`/panel-posts/${randomUUID()}/reactions/agree`, fan)).statusCode).toBe(
           404,
         );
+        // Not a 500 from a `::uuid` cast (T-1575).
+        expect((await put('/panel-posts/not-a-post/reactions/agree', fan)).statusCode).toBe(404);
       });
 
       it('counts them on the public panel, with no session needed to read them', async () => {
