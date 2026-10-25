@@ -242,6 +242,8 @@ export type {
   TeamPage,
   TeamManager,
   TeamPageFixture,
+  TeamScorer,
+  TeamTopScorers,
   TeamSplitRecord,
   TeamStatAverage,
   TeamSummary,

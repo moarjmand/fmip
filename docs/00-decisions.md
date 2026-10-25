@@ -12332,3 +12332,13 @@ replaces D-089's self-hosting arrangement for no gain here).
 7. The header, the cards and the rows are server components beside the page (`app/[locale]/competition/[id]/`), the season menu a `details` element: the page adds no client JavaScript, so its budget stays 158 KB.
 
 **Consequences.** `CompetitionBand`, `FixtureRow`, `MatchweekPanel`, `RoundsPanel`, `ProjectionNote` and `NoTableNote` leave `competition-page.tsx`, which keeps the modules the club, player and coach pages share; 23 catalogue keys that only they used are retired. T-1508's shared match row can replace `MatchLine` later without changing the page's states.
+
+## D-275 — The club page's top scorer is counted from our recorded goals, per competition
+
+**Status:** Accepted · 2026-10-25 · **Task:** T-1528 (split from T-1499)
+
+**Context.** The Club board shows a top scorer ("TOP SCORER · PL"). `GET /teams/:id` had none, and the competition page's scorers list stops at its top rows, so a club's best scorer may not be in it.
+
+**Decision.** `TeamPage.top_scorers` holds one entry per `competitions` entry: the season's scorers as the competition page counts them (our goal incidents of the main competition, D-209, D-232; `limited` while the season's recorded goals fall short of its scores) cut to goals for this club, and every player level on the most, by name. A club with no recorded goal is an empty list under the season's state; a season with no incidents is `not_supplied`. The provider's season totals, the competition page's fallback when we hold no incidents (D-232), are not read here: such a season answers `not_supplied`. Starts are not shown, since they are not counted for this figure.
+
+**Consequences.** Two more queries per competition on the team page (the season's scorers, its incident tally). The field is optional, so a web page in front of an older API reads it as `not_supplied`.
