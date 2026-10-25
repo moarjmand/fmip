@@ -46,6 +46,8 @@ describe('Button', () => {
     expect(ghost).toContain('underline');
     expect(ghost).toContain('text-sm');
     expect(ghost).not.toMatch(/\bpx-|\bborder\b|\brounded\b/);
+    // A ghost at the touch size keeps its look in a 44px box (T-1573).
+    expect(buttonClasses({ variant: 'ghost', size: 'md' })).toContain('min-h-touch');
   });
 
   it('gives a chosen toggle the saffron edge and tint, and only then', () => {
