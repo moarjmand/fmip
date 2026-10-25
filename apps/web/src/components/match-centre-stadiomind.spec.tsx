@@ -4,6 +4,7 @@ import type {
   ForecastVersionsResponse,
   MatchCentre,
   MatchIncident,
+  MatchLineupPlayer,
 } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -16,6 +17,7 @@ import {
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { RatingChip } from './match-centre-cards';
 import { MatchCentreView, ratingsOf } from './match-centre-view';
+import { MatchLineupsView } from './match-lineups';
 
 /**
  * The Stadiomind match centre (T-1497): the Summary's "what was forecast,
@@ -414,6 +416,26 @@ describe('live', () => {
 // Ratings: on the pitch and the best rated
 // ---------------------------------------------------------------------------
 
+let next = 0;
+const starter = (position: MatchLineupPlayer['position']): MatchLineupPlayer => {
+  next += 1;
+  return {
+    id: `p${next}`,
+    name: `Player ${next}`,
+    role: 'starter',
+    shirt_number: next,
+    position,
+    is_captain: false,
+    grid: null,
+  };
+};
+const eleven = () => [
+  starter('goalkeeper'),
+  ...Array.from({ length: 4 }, () => starter('defender')),
+  ...Array.from({ length: 4 }, () => starter('midfielder')),
+  ...Array.from({ length: 2 }, () => starter('forward')),
+];
+
 describe('ratings', () => {
   it('colours a rating by its band, never a chip for a player without one', () => {
     const chip = (value: number) => renderToStaticMarkup(<RatingChip value={value} locale="en" />);
@@ -423,6 +445,34 @@ describe('ratings', () => {
     expect(chip(5.7)).toContain('bg-muted');
     expect(chip(6.4)).toContain('>6.4<');
     expect(renderToStaticMarkup(<RatingChip value={7} locale="fa" />)).toContain('>۷٫۰<');
+  });
+
+  it('puts the ratings on the pitch, the best rated in saffron, and turns it from 768px', () => {
+    const home = eleven();
+    const away = eleven();
+    const ratings = new Map([
+      [home[10]!.id, 8.9],
+      [away[0]!.id, 5.7],
+    ]);
+    const html = renderToStaticMarkup(
+      <MatchLineupsView
+        home={team('h', 'Aston Villa')}
+        away={team('a', 'Manchester City')}
+        lineups={{ home, away }}
+        ratings={ratings}
+        locale="en"
+        words={matchWords('en')}
+      />,
+    );
+    // One pitch: stacked on a phone, horizontal from 768px, home from the start.
+    expect(html).toMatch(/data-testid="lineup-pitch"[^>]*/);
+    expect(html).toMatch(
+      /class="relative flex flex-col[^"]*md:flex-row-reverse[^"]*" data-testid="lineup-pitch"/,
+    );
+    expect(html).toContain('data-rating="8.9"');
+    expect(html).toContain('data-rating="5.7"');
+    expect(html.match(/data-rating=/g)).toHaveLength(2);
+    expect(html).toMatch(/bg-accent text-on-accent">11</);
   });
 
   it('names the best rated with the best six, from the feed’s ratings only', () => {

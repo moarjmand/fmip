@@ -132,18 +132,18 @@ describe('the line-ups on a pitch', () => {
     const home = html.slice(html.indexOf('data-testid="pitch-home"'));
     // Away: goalkeeper's row first (a row of one), then four, four, two.
     expect(
-      [...away.matchAll(/<ol class="flex justify-around py-1.5">(.*?)<\/ol>/g)].map(
+      [...away.matchAll(/<ol class="flex justify-around py-1.5[^"]*">(.*?)<\/ol>/g)].map(
         (m) => (m[1] ?? '').split('<li').length - 1,
       ),
     ).toEqual([1, 4, 4, 2]);
     // Home: forwards first, goalkeeper last.
     expect(
-      [...home.matchAll(/<ol class="flex justify-around py-1.5">(.*?)<\/ol>/g)].map(
+      [...home.matchAll(/<ol class="flex justify-around py-1.5[^"]*">(.*?)<\/ol>/g)].map(
         (m) => (m[1] ?? '').split('<li').length - 1,
       ),
     ).toEqual([3, 3, 4, 1]);
     expect(html).toContain(
-      'aria-label="Line-ups on the pitch: Esteghlal in the top half, Tractor in the bottom half"',
+      'aria-label="Line-ups on the pitch: Tractor and Esteghlal, each goalkeeper at his own goal"',
     );
     expect(html).toContain(EN['matchCentre.lineups.pitchNote']);
     // Every name still goes to the player page.
@@ -176,7 +176,7 @@ describe('the line-ups on a pitch', () => {
   it('says it in Persian, the formation kept left to right inside the sentence', () => {
     const html = render('4-3-3', '4-2-3-1', 'fa');
     expect(html).toContain('داده‌ها نمی‌گویند هر هافبک در کدام خطِ آرایش ⁦4-2-3-1⁩ بازی کرد');
-    expect(html).toContain('میزبان در پایین.');
+    expect(html).toContain('ترکیب‌ها در زمین: Tractor و Esteghlal');
     expect(html).not.toContain('data-translation="untranslated"');
   });
 
@@ -310,7 +310,7 @@ describe("the pitch from the line-up's places", () => {
     return [
       ...html
         .slice(start, end)
-        .matchAll(/<ol dir="ltr" class="flex justify-around py-1.5">(.*?)<\/ol>/g),
+        .matchAll(/<ol dir="ltr" class="flex justify-around py-1.5[^"]*">(.*?)<\/ol>/g),
     ].map((m) => [...(m[1] ?? '').matchAll(/title="(r\dc\d)"/g)].map((n) => n[1]));
   };
   const render = (locale: string, home = fourTwoThreeOne(), away = threeFourTwoOne()) =>
@@ -375,7 +375,7 @@ describe("the pitch from the line-up's places", () => {
     expect(html).toMatch(/data-testid="pitch-away" data-placed-by="roles"/);
     expect(html).toMatch(/data-testid="pitch-home" data-placed-by="grid"/);
     expect(html).toContain(
-      'Home side at the bottom. ⁨Tractor⁩: each player where the line-up places him. ⁨Esteghlal⁩: placed by the formation',
+      '⁨Tractor⁩: each player where the line-up places him. ⁨Esteghlal⁩: placed by the formation',
     );
   });
 

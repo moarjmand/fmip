@@ -274,6 +274,105 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.live.title": {
+    "source": "Live now",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.live.updated": {
+    "source": "updated {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.live.all": {
+    "source": "All live matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.today": {
+    "source": "Today’s big one",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.tomorrow": {
+    "source": "Tomorrow’s big one",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.later": {
+    "source": "The next big one",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.model": {
+    "source": "What the numbers expect",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.xg": {
+    "source": "Expected goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.scorelines": {
+    "source": "Likeliest scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.factors": {
+    "source": "What moved it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.favours": {
+    "source": "towards {team}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.receipt": {
+    "source": "Version {version} · {kind} · fitted on {matches} matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.nextVersion": {
+    "source": "A new version follows when line-ups are confirmed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.today.title": {
+    "source": "Matches by competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.today.titleOn": {
+    "source": "Matches · {day}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.today.all": {
+    "source": {
+      "one": "{count} match",
+      "other": "All {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.today.more": {
+    "source": {
+      "one": "{count} more match",
+      "other": "{count} more matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.today.count": {
+    "source": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "home.lead.coverage": {
     "source": "Scores coverage:",
     "text": "",
@@ -284,93 +383,9 @@
     "text": "",
     "status": "untranslated"
   },
-  "home.lead.how": {
-    "source": "How the model works",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.three.title": {
-    "source": "Three forecasts, kept apart",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.title": {
-    "source": "Today’s key matches",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.titleOn": {
-    "source": "Key matches · {day}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.model": {
-    "source": "Model",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.intro": {
-    "source": "Every competition, grouped in the site’s order of competitions.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.introMember": {
-    "source": "The teams you follow come first.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.kickoff": {
-    "source": "KO",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.match": {
-    "source": "Match",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.home": {
-    "source": "Home",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.away": {
-    "source": "Away",
-    "text": "",
-    "status": "untranslated"
-  },
   "home.key.yours": {
     "source": "Your teams",
     "text": "",
-    "status": "untranslated"
-  },
-  "home.key.noForecast": {
-    "source": "No model forecast",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.more": {
-    "source": {
-      "one": "{count} more match on the scores page",
-      "other": "{count} more matches on the scores page"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "home.key.blankNote": {
-    "source": {
-      "one": "{count} match has no model forecast yet, so its cells are blank.",
-      "other": "{count} matches have no model forecast yet, so their cells are blank."
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "home.key.all": {
-    "source": {
-      "one": "All {count} competition on the scores page",
-      "other": "All {count} competitions on the scores page"
-    },
-    "forms": {},
     "status": "untranslated"
   },
   "home.key.empty": {
@@ -12617,22 +12632,22 @@
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchLabel": {
-    "source": "Line-ups on the pitch: {away} in the top half, {home} in the bottom half",
+    "source": "Line-ups on the pitch: {home} and {away}, each goalkeeper at his own goal",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNote": {
-    "source": "Home side at the bottom. Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
+    "source": "Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNoteGrid": {
-    "source": "Home side at the bottom. Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",
+    "source": "Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNoteMixed": {
-    "source": "Home side at the bottom. {grid}: each player where the line-up places him. {roles}: placed by the formation and the role each was given, in shirt-number order along each line, because its line-up does not say who played on which side.",
+    "source": "{grid}: each player where the line-up places him. {roles}: placed by the formation and the role each was given, in shirt-number order along each line, because its line-up does not say who played on which side.",
     "text": "",
     "status": "untranslated"
   },
