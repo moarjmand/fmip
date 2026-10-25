@@ -10,9 +10,9 @@ const INK = BRAND_COLOURS.text;
 describe('contrast', () => {
   it('matches D-204’s reference figures', () => {
     expect(contrast(WHITE, '#000000')).toBeCloseTo(21, 5);
-    expect(contrast(WHITE, BRAND_COLOURS.accent)).toBeCloseTo(6.61, 2);
+    expect(contrast(WHITE, '#0b6b3a')).toBeCloseTo(6.61, 2);
     expect(contrast(WHITE, '#c41f17')).toBeCloseTo(5.91, 2);
-    expect(contrast(INK, '#c41f17')).toBeCloseTo(3.01, 1);
+    expect(contrast(INK, '#c41f17')).toBeCloseTo(3.1, 1);
     expect(luminance('#ffffff')).toBeCloseTo(1, 6);
   });
 
@@ -36,10 +36,10 @@ describe('bandColours', () => {
     expect(orange?.fill).toBe('#e87d1e');
     expect(orange?.text).toBe(INK);
     // A mid green neither text reaches: darkened in steps, white on it.
-    expect(Math.max(contrast('#3f8f5a', WHITE), contrast('#3f8f5a', INK))).toBeLessThan(4.5);
-    const green = bandColours('#3f8f5a');
+    expect(Math.max(contrast('#3a8a55', WHITE), contrast('#3a8a55', INK))).toBeLessThan(4.5);
+    const green = bandColours('#3a8a55');
     expect(green?.text).toBe(WHITE);
-    expect(green?.fill).not.toBe('#3f8f5a');
+    expect(green?.fill).not.toBe('#3a8a55');
     expect(contrast(green!.fill, WHITE)).toBeGreaterThanOrEqual(BAND_MIN_CONTRAST);
   });
 

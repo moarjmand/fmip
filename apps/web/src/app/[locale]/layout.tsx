@@ -13,7 +13,7 @@ import {
   demonstrationTitleTemplate,
   isDemonstrationData,
 } from '@/lib/demonstration';
-import { BRAND_COLOURS } from '@/lib/brand-colours';
+import { MARK_COLOURS } from '@/lib/brand-colours';
 import { pageMetadata, siteUrl } from '@/lib/seo';
 import { readAppearance, readLite, readTheme } from '@/lib/theme-cookie';
 import { LITE_BANNER_KEYS } from '@/lib/lite';
@@ -25,13 +25,13 @@ import { LiteProvider } from '@/components/lite-mode';
 // the scripts it shows and no request leaves the site for a font. Imported
 // before globals.css, which names the family.
 import '@fontsource-variable/vazirmatn';
-// The Hybrid families (T-1380, D-198), the same way: Mona Sans with its width
+// The Hybrid families (T-1380, D-198; Archivo since D-263), the same way: Archivo with its width
 // axis (the interface on a Latin-script page, condensed 900 for data
 // numerals), Newsreader upright and italic (English editorial; the italic is
 // the founder's voice), Geist Mono (versions, timestamps) and Markazi Text
 // (Persian editorial display). A face downloads only where a page uses it and
 // only for the scripts on that page, by `unicode-range`.
-import '@fontsource-variable/mona-sans/wdth.css';
+import '@fontsource-variable/archivo/wdth.css';
 import '@fontsource-variable/newsreader';
 import '@fontsource-variable/newsreader/wght-italic.css';
 import '@fontsource-variable/geist-mono';
@@ -93,7 +93,7 @@ export async function generateMetadata({
 }
 
 export const viewport: Viewport = {
-  themeColor: BRAND_COLOURS.accent,
+  themeColor: MARK_COLOURS.tile,
   width: 'device-width',
   initialScale: 1,
 };

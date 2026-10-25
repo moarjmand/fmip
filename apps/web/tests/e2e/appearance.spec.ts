@@ -68,7 +68,7 @@ test('a guest sets each in Settings, it says which is on, and it lasts', async (
   // 0.01ms transition, and a read inside that frame sees the old size).
   await expect.poll(() => page.evaluate(ROOT_FONT_SIZE)).toBe('20px');
 
-  expect(await page.evaluate(MUTED)).toBe('#3e4651');
+  expect(await page.evaluate(MUTED)).toBe('#4c5660');
   await page.getByTestId('appearance-contrast-more').click();
   await expect(html).toHaveAttribute('data-contrast', 'more');
   expect(await page.evaluate(MUTED)).toBe('#2b313a');
@@ -100,16 +100,16 @@ test.describe('contrast nobody chose follows the device', () => {
     await page.goto('/en/scores');
     expect(await page.evaluate(MUTED)).toBe('#2b313a');
     await page.emulateMedia({ colorScheme: 'dark', contrast: 'more' });
-    expect(await page.evaluate(MUTED)).toBe('#cad1da');
+    expect(await page.evaluate(MUTED)).toBe('#cad1d8');
     await page.emulateMedia({ colorScheme: 'dark', contrast: 'no-preference' });
-    expect(await page.evaluate(MUTED)).toBe('#a7b1bf');
+    expect(await page.evaluate(MUTED)).toBe('#a3acb5');
   });
 
   test('standard, once chosen, holds whatever the device says', async ({ page, baseURL }) => {
     await choose(page, { fmip_contrast: 'standard', fmip_theme: 'dark' }, baseURL);
     await page.emulateMedia({ colorScheme: 'light', contrast: 'more' });
     await page.goto('/en/scores');
-    expect(await page.evaluate(MUTED)).toBe('#a7b1bf');
+    expect(await page.evaluate(MUTED)).toBe('#a3acb5');
   });
 });
 

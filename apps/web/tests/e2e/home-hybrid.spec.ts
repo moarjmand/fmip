@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test';
  * right in English, on the left under `dir="rtl"`.
  */
 
-const PAPER = 'rgb(250, 250, 247)';
+const PAPER = 'rgb(242, 243, 241)';
 
 test.describe('the Hybrid homepage', () => {
   for (const theme of ['light', 'dark'] as const) {
