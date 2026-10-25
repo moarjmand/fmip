@@ -13,7 +13,7 @@ import {
   demonstrationTitleTemplate,
   isDemonstrationData,
 } from '@/lib/demonstration';
-import { MARK_COLOURS } from '@/lib/brand-colours';
+import { BRAND_COLOURS, MARK_COLOURS } from '@/lib/brand-colours';
 import { pageMetadata, siteUrl } from '@/lib/seo';
 import { readAppearance, readLite, readTheme } from '@/lib/theme-cookie';
 import { LITE_BANNER_KEYS } from '@/lib/lite';
@@ -84,6 +84,7 @@ export async function generateMetadata({
     icons: {
       icon: [
         { url: '/icons/mark.svg', type: 'image/svg+xml' },
+        { url: '/icons/icon-32.png', sizes: '32x32', type: 'image/png' },
         { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       ],
       apple: '/icons/apple-touch-icon.png',
@@ -93,7 +94,12 @@ export async function generateMetadata({
 }
 
 export const viewport: Viewport = {
-  themeColor: MARK_COLOURS.tile,
+  // The browser's tint follows the device's scheme (T-1492): the Day ground
+  // on a light device, the Night one -- the icons' ink -- on a dark one.
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: BRAND_COLOURS.canvas },
+    { media: '(prefers-color-scheme: dark)', color: MARK_COLOURS.tile },
+  ],
   width: 'device-width',
   initialScale: 1,
 };

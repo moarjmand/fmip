@@ -132,7 +132,13 @@ test.describe('progressive web app', () => {
       'href',
       '/manifest.webmanifest',
     );
-    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0b6b3a');
+    // One tint per device scheme (T-1492): the Day ground, the Night one.
+    await expect(
+      page.locator('meta[name="theme-color"][media="(prefers-color-scheme: light)"]'),
+    ).toHaveAttribute('content', '#f2f3f1');
+    await expect(
+      page.locator('meta[name="theme-color"][media="(prefers-color-scheme: dark)"]'),
+    ).toHaveAttribute('content', '#0f1215');
     await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute(
       'href',
       '/icons/apple-touch-icon.png',
