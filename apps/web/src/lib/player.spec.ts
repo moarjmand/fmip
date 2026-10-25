@@ -9,6 +9,7 @@ import {
   minutesText,
   readSeasonFilter,
   roleLabel,
+  seasonLabelOf,
   seasonsOf,
   spellPeriod,
 } from './player';
@@ -16,9 +17,12 @@ import { afterTimeNote } from './team';
 
 const ID_A = '00000000-0000-4000-8000-000000000301';
 const ID_B = '00000000-0000-4000-8000-000000000302';
+// The cup's own 2025/26: every competition has a season of its own (T-1565).
+const ID_C = '00000000-0000-4000-8000-000000000303';
+const LABEL: Record<string, string> = { [ID_A]: '2024/25', [ID_B]: '2025/26', [ID_C]: '2025/26' };
 
 const row = (seasonId: string, competition: string): PlayerSeasonRecord => ({
-  season: { id: seasonId, label: seasonId === ID_A ? '2024/25' : '2025/26' },
+  season: { id: seasonId, label: LABEL[seasonId] ?? 'S' },
   competition: { id: competition, name: competition, short_name: null },
   team: { id: 't', name: 'T' },
   starts: 3,
@@ -44,7 +48,7 @@ const match = (seasonId: string, role: PlayerMatch['role'], cameOn = false): Pla
     round: null,
     stage: null,
     competition: { id: 'c', name: 'C', short_name: null },
-    season: { id: seasonId, label: 'S' },
+    season: { id: seasonId, label: LABEL[seasonId] ?? 'S' },
     home: { id: 'a', name: 'A', short_name: null },
     away: { id: 'b', name: 'B', short_name: null },
     score: { home: 1, away: 0 },
@@ -94,24 +98,33 @@ describe('labels', () => {
 });
 
 describe('season selector', () => {
-  const record = [row(ID_B, 'league'), row(ID_B, 'cup'), row(ID_A, 'league')];
-  const matches = [match(ID_B, 'starter'), match(ID_A, 'bench', true)];
+  const record = [row(ID_B, 'league'), row(ID_C, 'cup'), row(ID_A, 'league')];
+  const matches = [match(ID_B, 'starter'), match(ID_C, 'bench', true), match(ID_A, 'starter')];
 
-  it('reads the filter and lists each season once in record order', () => {
+  it('reads the filter and lists each season once by its label, in record order (T-1565)', () => {
     expect(readSeasonFilter({})).toBeNull();
     expect(readSeasonFilter({ season: 'all' })).toBeNull();
     expect(readSeasonFilter({ season: ID_A.toUpperCase() })).toBe(ID_A);
+    // The league's and the cup's 2025/26 are one season to the reader.
     expect(seasonsOf(record)).toEqual([
       { id: ID_B, label: '2025/26' },
       { id: ID_A, label: '2024/25' },
     ]);
   });
 
-  it('filters the record and the matches, or keeps everything', () => {
+  it('turns either competition’s id into the season’s label, or none for an unknown one', () => {
+    expect(seasonLabelOf(record, matches, ID_C)).toBe('2025/26');
+    expect(seasonLabelOf([], matches, ID_C)).toBe('2025/26');
+    expect(seasonLabelOf(record, matches, '00000000-0000-4000-8000-000000000399')).toBeNull();
+    expect(seasonLabelOf(record, matches, null)).toBeNull();
+  });
+
+  it('filters the record and the matches by the label, every competition in it, or keeps everything', () => {
     expect(filterRecord(record, null)).toHaveLength(3);
-    expect(filterRecord(record, ID_A).map((r) => r.competition.id)).toEqual(['league']);
-    expect(filterMatches(matches, ID_B).map((m) => m.role)).toEqual(['starter']);
-    expect(filterMatches(matches, null)).toHaveLength(2);
+    expect(filterRecord(record, '2025/26').map((r) => r.competition.id)).toEqual(['league', 'cup']);
+    expect(filterRecord(record, '2024/25').map((r) => r.competition.id)).toEqual(['league']);
+    expect(filterMatches(matches, '2025/26').map((m) => m.role)).toEqual(['starter', 'bench']);
+    expect(filterMatches(matches, null)).toHaveLength(3);
   });
 });
 
