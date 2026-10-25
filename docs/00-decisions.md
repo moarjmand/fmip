@@ -12192,3 +12192,46 @@ replaces D-089's self-hosting arrangement for no gain here).
 **Rejected.** *Inferring the territory from the connection (Cloudflare's country header)*: many readers here use a VPN, so the guess would be wrong exactly where it matters, and it would offer a clip blocked where the reader really is without saying so. *Keeping D-226's rule*: a third of the clips stayed invisible to most readers.
 
 **Consequences.** A guest sees every clip; a restricted one is said to be so rather than hidden, which is what D-226 rejected listing without (a clip blocked where the reader is, offered as if it played). The match page is unchanged: there a reader with no territory still sees no feed highlight.
+
+## D-262 — The product is named Stadiomind
+
+**Status:** Accepted · 2026-10-25 (the maintainer: "the name now, the domain later") · **Task:** T-1490, T-1492
+
+**Context.** The maintainer wanted a complete redesign (2026-10-16) and a real brand name first: serious, analytical, English only, with a free .com. Four naming rounds (2026-10-18 to 20) scored about 270 names; the maintainer chose Stadiomind for the redesign on 2026-10-24. The site still calls itself by the working name and lives at traveltohormuz.ir.
+
+**Decision.**
+1. The product's public name is Stadiomind, on every surface the reader sees: page titles and metadata, the web manifest, share cards, e-mails, the header and footer, the about page.
+2. The mark is three rounded bars, home, draw and away (the maintainer's pick of six, 2026-10-25), with the name set in Archivo at 125% width. Sources: the Stadiomind Design System (https://claude.ai/artifact/XXXSf9yhanxxCLcMtuYyrC, Logos).
+3. The domain stays traveltohormuz.ir until the maintainer buys stadiomind.com; moving domains is its own task then.
+4. On /fa the name is written in Latin letters until the maintainer chooses a Persian form.
+5. The repository, packages, database and internal identifiers keep the name FMIP; only reader-facing text changes.
+
+**Consequences.** Share cards and e-mails change their sender name and look at once with T-1492. Search engines see a new title on the same domain; nothing is redirected yet.
+
+## D-263 — The Stadiomind visual system replaces the Hybrid palette and display faces
+
+**Status:** Accepted · 2026-10-25 (the maintainer's answers on the redesign canvas, 2026-10-24 and 25) · **Task:** T-1491 · **Supersedes:** D-198 in its palette, display faces and brand colour; keeps its theme switch and the three-voice rule · **Follows:** D-089, D-207
+
+**Context.** The canvas "Stadiomind Redesign" (https://claude.ai/artifact/X5qzAJELjXfdsYcHcMUvAn, 16 boards, real production data of 2026-10-24) was built from a brief the maintainer answered on 2026-10-24: English first, phone and desktop equally, Sofascore and Opta Analyst as references, the current look generic and the layout weak, new colours welcome, every page from scratch. Competitor colours were measured on their live sites: blue is taken three times (Sofascore #374DF5, 365Scores, OneFootball), green by FotMob, red-pink by Flashscore, aubergine and pink by Opta Analyst. None of them shows a forecast's version, time or coverage. The maintainer accepted every recommendation of the interactive round.
+
+**Decision.**
+1. Colour, option A: an ink ground (#0F1215 Night, #F2F3F1 Day), saffron #EBA53C for the brand and the moment (primary action, selected tab and date, live minute, the reader's own picks, the top rating) and turquoise #2BB3AD for the model and nothing else. The full token list, with Day text shades that pass 4.5:1, is the Design System's `tokens.json`; `tokens.css` and `brand-colours.ts` take those values.
+2. The theme follows the device, with the existing Auto / Day / Night switch (D-198's mechanism stays).
+3. Type: Archivo (variable, width axis) replaces Mona Sans for the interface, headings and scores; Geist Mono stays for receipts and stamps; Newsreader stays for the founder's analysis in English and Markazi Text for it in Persian; Vazirmatn stays for Persian interface text. All self-hosted (D-089), so `fonts.spec.ts` keeps refusing a font host.
+4. Layout choices: the home opens on the day's big match with the model's forecast (a big live match takes its place); the "forecast against reality" card stays on the home; the match centre's Summary opens with what was forecast and what happened, every version listed; the desktop line-up is one horizontal pitch with both sides; matches and predictions are one page, each row with the model's three percentages and a Pick action; the phone has five tabs (Matches, Predict, Leagues, News, You); a club's colour appears only in its page's top band.
+5. The Design System's 13 components are the reference for the web components; the web app keeps its own React code and Tailwind classes, built to match them.
+
+**Consequences.** Every colour token changes value, so `tokens.spec.ts`, `raw-colours.spec.ts` and the share-card renderers move together in T-1491. The editorial/data mode split of D-198 is no longer needed and is removed page by page as each page is rebuilt.
+
+## D-264 — The redesign ships foundation first, then page by page, within a 5 KB allowance
+
+**Status:** Accepted · 2026-10-25 (the maintainer) · **Task:** T-1490 · **Amends:** the page budgets of T-808 (docs/08-load-test.md)
+
+**Context.** The match centre sits at 184.8 of 186 KB of first-load JavaScript and the scores page at 174 of 175 KB, so a redesign that adds client code would fail CI. A switch behind a flag would keep two looks alive for weeks.
+
+**Decision.**
+1. Foundation first: one PR changes the tokens, fonts and logo for the whole site (T-1491, T-1492); the shared components and navigation follow (T-1493, T-1494); then each page is rebuilt in its own PR (T-1495 to T-1500). Between them the site mixes new colours with old layouts for a few days; no flag.
+2. Each budgeted page (home, scores, match centre, competition) may grow its first-load JavaScript by at most 5 KB gzip over today's budget, once, and only for new behaviour the canvas shows. Server response budgets do not change. `perf-budgets.json` and docs/08 record each raise with its reason.
+3. New components are server components unless they need state (the pick buttons, the date strip, tabs on phones); fonts load with `font-display: swap` and size-adjusted fallbacks so CLS stays under 0.05.
+
+**Consequences.** The new budgets are home 163, scores 180, match centre 191, competition 163 KB at most, raised in the PR that needs them. PageSpeed is measured after the foundation and after the last page (T-1502).
