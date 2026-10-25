@@ -60,6 +60,10 @@ export const MORE_NAV: readonly ShellLink[] = [
   { id: 'analysis', path: '/scores#analysis', match: ['/analyses', '/founder'] },
   { id: 'watch', path: '/watch', match: ['/watch'] },
   { id: 'highlights', path: '/highlights', match: ['/highlights'] },
+  // What the platform is and its rules (T-1572): linked from nowhere else
+  // once a guest's first-visit card is gone, and never for a member.
+  { id: 'about', path: '/about', match: ['/about'] },
+  { id: 'rules', path: '/rules', match: ['/rules'] },
 ];
 
 /** The member's own pages: where "You" is current. */

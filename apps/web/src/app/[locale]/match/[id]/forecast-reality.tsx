@@ -13,6 +13,7 @@ import { type MessageKey, interpolate, t } from '@/i18n/messages';
 import { kindLabel, percentages, unavailableLabel } from '@/lib/forecast';
 import { formatFixed, formatPercent } from '@/lib/words';
 import { zoneWords } from '@/lib/reader-time-zone';
+import { AtApart } from '@/components/model-version';
 import { pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
@@ -251,7 +252,10 @@ export function ForecastReality({
           className="border-t border-dashed border-default pt-2.5 font-mono text-xs leading-relaxed text-model [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
           data-testid="receipt"
         >
-          {receipt(locale, version, fixture.kickoff_at, timeZone, status === 'live')}
+          {/* The model version's `@` set apart: no address in the HTML (T-1580). */}
+          <AtApart
+            text={receipt(locale, version, fixture.kickoff_at, timeZone, status === 'live')}
+          />
         </p>
       )}
     </article>

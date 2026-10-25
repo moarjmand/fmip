@@ -274,7 +274,7 @@ function HighlightRow({
         <Link
           href={withTerritory(`/${locale}/match/${fixture.id}`, territory)}
           className={inlineTargetClasses(
-            'flex flex-wrap items-center gap-x-2 text-base font-semibold',
+            'flex flex-wrap items-center gap-x-2 text-base font-semibold max-md:min-h-touch',
           )}
           data-testid="highlight-match"
         >

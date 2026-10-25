@@ -68,7 +68,7 @@ function Signature({
         {
           time: (
             <time dateTime={publishedAt}>
-              {isoDay(l, publishedAt)} {formatKickoff(locale, publishedAt, timeZone)}
+              {isoDay(l, publishedAt, timeZone)} {formatKickoff(locale, publishedAt, timeZone)}
             </time>
           ),
         },
@@ -411,7 +411,7 @@ export function FounderAnalysisFeed({
             <p className="text-xs text-muted">
               {entry.fixture.competition.name} ·{' '}
               <time dateTime={entry.fixture.kickoff_at}>
-                {isoDay(l, entry.fixture.kickoff_at)}{' '}
+                {isoDay(l, entry.fixture.kickoff_at, timeZone)}{' '}
                 {formatKickoff(locale, entry.fixture.kickoff_at, timeZone)}
               </time>
             </p>

@@ -128,6 +128,11 @@ function page(over: Partial<CompetitionPage> = {}): CompetitionPage {
   } as CompetitionPage;
 }
 
+/** A model version written as one run, which Cloudflare's Email Obfuscation rewrites (T-1580). */
+const ADDRESS = /\S+@\d+\.\d+\.\d+/;
+/** The words a reader sees and a screen reader reads: the markup taken away. */
+const text = (html: string) => html.replace(/<[^>]+>/g, '');
+
 const header = (p: CompetitionPage, locale = 'en', tab: CompetitionTab = 'overview') =>
   renderToStaticMarkup(
     <CompetitionHeader
@@ -412,7 +417,9 @@ describe('the day’s matches', () => {
     expect(html.match(/data-testid="fixture"/g)).toHaveLength(2);
     expect(html).toContain('data-forecast="available"');
     expect(html).toContain('data-forecast="none"');
-    expect(html).toContain('dixon-coles-elo@0.6.0');
+    // The version as the reader sees it, never one run an obfuscator reads as an address (T-1580).
+    expect(text(html)).toContain('(dixon-coles-elo@0.6.0)');
+    expect(html).not.toMatch(ADDRESS);
     expect(html).toContain('UK time');
     expect(html).toContain('model %');
     expect(html).not.toContain('data-freshness');
@@ -560,7 +567,8 @@ describe('the model in this league', () => {
     expect(html.match(/data-testid="league-model-month"/g)).toHaveLength(3);
     expect(html.indexOf('October 2026')).toBeLessThan(html.indexOf('September 2026'));
     expect(html).toContain('All months');
-    expect(html).toContain('dixon-coles-elo@0.6.0');
+    expect(text(html)).toContain('Model versions: dixon-coles-elo@0.6.0.');
+    expect(html).not.toMatch(ADDRESS);
     expect(html).toContain('not counted');
     // Wider than a phone: its own box a keyboard can reach and scroll (T-1558).
     expect(html).toMatch(
