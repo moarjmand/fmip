@@ -32,6 +32,16 @@ import { MAX_POST_LENGTH, PanelService } from './panel.service';
 
 const NO_MATCH: ApiError = { error: 'not_found', message: 'No such match.' };
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The fixture id from the path, or a 404 for one that cannot be an id (T-1575):
+ * a malformed id would otherwise reach a `::uuid` cast and come back as a 500.
+ */
+function fixtureIdOf(raw: string): string {
+  if (!UUID.test(raw)) throw new NotFoundException(NO_MATCH);
+  return raw.toLowerCase();
+}
 
 /**
  * What each refusal says to the person it refuses.
@@ -85,7 +95,7 @@ export class PanelController {
   ): Promise<MatchPanelPage> {
     const n = Number.parseInt(limit ?? '', 10);
     const page = await this.panel.panel(
-      fixtureId,
+      fixtureIdOf(fixtureId),
       cursor,
       Number.isInteger(n) && n > 0 ? n : undefined,
     );
@@ -105,7 +115,8 @@ export class PanelController {
     @Param('id') fixtureId: string,
     @Req() request: FastifyRequest,
   ): Promise<PanelPermission> {
-    return this.panel.permissionFor(await this.viewer(request), fixtureId);
+    const id = fixtureIdOf(fixtureId);
+    return this.panel.permissionFor(await this.viewer(request), id);
   }
 
   @Post()
@@ -115,6 +126,7 @@ export class PanelController {
     @Body() body: SubmitPanelPostRequest,
     @Req() request: FastifyRequest,
   ): Promise<PanelPost> {
+    const id = fixtureIdOf(fixtureId);
     const user = await this.viewer(request);
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
 
@@ -135,9 +147,9 @@ export class PanelController {
     if (typeof link === 'string') {
       throw new BadRequestException({ error: 'validation', message: link } satisfies ApiError);
     }
-    if (!(await this.panel.fixtureExists(fixtureId))) throw new NotFoundException(NO_MATCH);
+    if (!(await this.panel.fixtureExists(id))) throw new NotFoundException(NO_MATCH);
 
-    const outcome = await this.panel.post(user, fixtureId, text, link);
+    const outcome = await this.panel.post(user, id, text, link);
     if (outcome.ok && outcome.post !== undefined) return outcome.post;
     if (outcome.badLink !== undefined) {
       // The database refused the link, not the member: a 400 naming which
@@ -182,7 +194,7 @@ export class PanelController {
     // Somebody else's post, an already-removed one, or one that never existed
     // are all 404. Distinguishing them would answer "does this post exist" for
     // anybody who guessed an id.
-    if (!(await this.panel.removeOwn(postId, user.id))) {
+    if (!UUID.test(postId) || !(await this.panel.removeOwn(postId.toLowerCase(), user.id))) {
       throw new NotFoundException({
         error: 'not_found',
         message: 'No post of yours with that id.',
@@ -190,8 +202,6 @@ export class PanelController {
     }
   }
 }
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * The newest posts on several matches' public panels (blueprint 2.3, T-942,
