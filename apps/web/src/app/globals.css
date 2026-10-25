@@ -172,6 +172,38 @@
 }
 
 /*
+ * The competition pills under the header (T-1513, D-267,
+ * `components/competitions-bar-links.tsx`). `pill-entry`: the link is the
+ * 44px target, the pill its inner box, a hairline round a logo and a name;
+ * the competition being read is edged in saffron on the raised surface.
+ * `pill-all`: "All competitions" at the end, saffron text and an arrow, no
+ * edge, as the canvas draws it.
+ */
+@utility pill-entry {
+  @apply flex min-h-touch items-center whitespace-nowrap;
+
+  & > span {
+    @apply flex items-center gap-2 rounded-pill border border-default px-3 py-1.5 text-[0.8125rem] font-semibold text-fg;
+  }
+
+  &:hover > span {
+    @apply border-strong;
+  }
+
+  &[aria-current='page'] > span {
+    @apply border-accent bg-surface-raised font-bold;
+  }
+}
+
+@utility pill-all {
+  @apply flex min-h-touch items-center gap-1 px-3 text-[0.8125rem] font-bold whitespace-nowrap text-accent hover:underline;
+
+  &[aria-current='page'] {
+    @apply underline underline-offset-4;
+  }
+}
+
+/*
  * A box that scrolls sideways shows it (T-1395): a soft shade on each edge
  * that still hides columns, gone once that edge is reached. Scroll shadows:
  * the surface-coloured covers move with the content (`local`) and hide the
