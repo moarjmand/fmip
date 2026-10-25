@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
 import { ForecastPanel, ModelVerdict } from '@/components/forecast-panel';
+import { ForecastReality } from './forecast-reality';
 import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CompetitionContextPanel } from '@/components/competition-context';
 import {
@@ -200,6 +201,15 @@ export default async function MatchPage({
       ? (fixture.scores.full_time ?? fixture.scores.current)
       : null;
   const viewingData = viewing !== null && viewing.ok ? viewing.data : null;
+  // The match's own expected goals, for the Summary's "expected and scored".
+  const xgRow =
+    result.ok && result.data.statistics.data !== null
+      ? result.data.statistics.data.find((row) => row.metric === 'expected_goals')
+      : undefined;
+  const matchXg =
+    xgRow !== undefined && xgRow.home !== null && xgRow.away !== null
+      ? { home: xgRow.home, away: xgRow.away }
+      : null;
   const words = matchWords(locale);
   const now = new Date().getTime();
 
@@ -272,6 +282,20 @@ export default async function MatchPage({
                   final !== null ? <HighlightsLink locale={locale} viewing={viewingData} /> : null,
               }}
               slots={{
+                // The Summary opens with what the model forecast and, after
+                // full time, what happened (T-1497): the model's card alone,
+                // drawn on the server; the three voices follow it.
+                outcome: (
+                  <ForecastReality
+                    forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
+                    evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
+                    fixture={result.data.fixture}
+                    final={final}
+                    matchXg={matchXg}
+                    timeZone={timeZone}
+                    locale={locale}
+                  />
+                ),
                 // What does not move in play, drawn here so its code stays out
                 // of the page's client bundle (T-1384).
                 form: (

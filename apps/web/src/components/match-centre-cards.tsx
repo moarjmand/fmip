@@ -2,7 +2,10 @@ import type { CoverageState, Covered } from '@fmip/contracts';
 import type { Message } from '@/i18n/messages';
 import type { MatchWords } from '@/lib/words-server';
 import { MessageText } from '@/components/message-text';
+import { formatFixed } from '@/lib/words';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
+import { cx } from '@/components/ui/cx';
+import { Icon } from '@/components/ui/icons';
 
 /**
  * A coverage state's words, as catalogue keys. The scores card has the same
@@ -50,7 +53,7 @@ export function Card({
 
 /** A data card on the stage (D-198: `rounded-card`), a container for its own grid. */
 export const CARD =
-  '@container flex min-w-0 flex-col gap-3 rounded-card border border-default bg-surface p-4 md:p-5';
+  '@container flex min-w-0 flex-col gap-3.5 rounded-card border border-default bg-surface p-4 md:px-6 md:py-5';
 
 /**
  * The same card around a panel the page renders on the server (the summary,
@@ -76,11 +79,11 @@ export function VerdictCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className={CARD} data-testid="verdict">
-      <h2 className={MODULE_HEADING}>
-        <span className={TITLE}>{title}</span>
-      </h2>
-      <div className="grid grid-cols-1 gap-3 @3xl:grid-cols-3">{children}</div>
+    <section className="flex min-w-0 flex-col gap-3" data-testid="verdict">
+      <h2 className="sr-only">{title}</h2>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-4">
+        {children}
+      </div>
       {note}
     </section>
   );
@@ -89,9 +92,8 @@ export function VerdictCard({
 /** A module's title and its coverage badge, a gap between them in either direction. */
 export const MODULE_HEADING = 'flex flex-wrap items-center justify-between gap-x-2 gap-y-1';
 
-/** The title's mark: the brand green's slanted bar before it (board h4), the green only. */
-export const TITLE =
-  "text-sm font-extrabold uppercase text-fg before:me-2 before:inline-block before:h-3.5 before:w-1 before:-skew-x-12 before:bg-accent before:align-[-1px] before:content-['']";
+/** A section's name (the Design System's section heading): wide, heavy, sentence case. */
+export const TITLE = 'text-base font-extrabold text-fg font-stretch-semi-expanded md:text-lg';
 
 /**
  * A module: its card, its title and its coverage badge (the Hybrid badge,
@@ -106,6 +108,7 @@ export function Module<T>({
   testId,
   words,
   empty,
+  notInYet = false,
   children,
 }: {
   title: Message;
@@ -114,6 +117,12 @@ export function Module<T>({
   words: MatchWords;
   /** Says why a `not_supplied` module is empty, where more is known (T-1364). */
   empty?: Key | null;
+  /**
+   * The match is on (T-1497): a module with nothing yet says "Not in yet"
+   * and that nothing is estimated meanwhile, rather than "not supplied",
+   * which would read as a verdict on a feed that may still send it.
+   */
+  notInYet?: boolean;
   children: (data: T) => React.ReactNode;
 }) {
   const m = words.m;
@@ -121,24 +130,78 @@ export function Module<T>({
     module.coverage === 'delayed'
       ? 'matchCentre.moduleDelayed'
       : (empty ?? 'matchCentre.moduleNotSupplied');
+  const waiting = notInYet && module.data === null;
   return (
     <section className={CARD} data-testid={testId} data-coverage={module.coverage}>
       <h2 className={MODULE_HEADING}>
         <span className={TITLE}>
           <MessageText message={title} />
         </span>
-        <CoverageBadge
-          state={module.coverage}
-          label={<MessageText message={m[COVERAGE_KEY[module.coverage]]} />}
-        />
+        {waiting ? (
+          <span
+            dir="auto"
+            className="inline-flex min-h-6 items-center gap-1 rounded-pill border border-dashed border-caption px-2 text-xs font-semibold text-muted"
+            data-testid="not-in-yet"
+          >
+            <Icon name="clock" size={12} />
+            <MessageText message={m['matchCentre.notInYet']} />
+          </span>
+        ) : (
+          <CoverageBadge
+            state={module.coverage}
+            label={<MessageText message={m[COVERAGE_KEY[module.coverage]]} />}
+          />
+        )}
       </h2>
       {module.data === null ? (
         <p dir="auto" className="text-sm text-muted">
-          <MessageText message={m[why]} />
+          <MessageText message={m[waiting ? 'matchCentre.notInYetWhy' : why]} />
         </p>
       ) : (
         children(module.data)
       )}
     </section>
+  );
+}
+
+/**
+ * A player's match rating (Design System `RatingChip`), one decimal, in
+ * bands that differ in lightness as well as hue: under 6 grey, 6 to 6.9
+ * neutral, 7 to 7.9 turquoise, 8 and up saffron. From the feed only: a
+ * player without a rating gets no chip, never a zero.
+ */
+export function RatingChip({
+  value,
+  locale,
+  size = 'small',
+  className,
+}: {
+  value: number;
+  locale: string;
+  size?: 'small' | 'large';
+  className?: string;
+}) {
+  const band =
+    value >= 8
+      ? 'bg-accent text-on-accent'
+      : value >= 7
+        ? 'bg-model text-canvas'
+        : value >= 6
+          ? 'border border-default bg-surface-raised text-fg'
+          : 'bg-muted text-canvas';
+  return (
+    <span
+      className={cx(
+        'inline-block rounded-xs font-extrabold tabular-nums',
+        size === 'large'
+          ? 'ms-auto rounded-control px-2.5 py-1.5 text-2xl leading-none font-stretch-condensed'
+          : 'px-1.5 text-xs leading-5',
+        band,
+        className,
+      )}
+      data-rating={value}
+    >
+      {formatFixed(locale, value, 1)}
+    </span>
   );
 }

@@ -15307,6 +15307,210 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.modelTag": {
+    "source": "Model",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.title": {
+    "source": "What was forecast, what happened",
+    "text": "آنچه پیش‌بینی شد و آنچه رخ داد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.before": {
+    "source": "Before kick-off",
+    "text": "پیش از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.happened": {
+    "source": "{outcome} · happened",
+    "text": "{outcome} · رخ داد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.note": {
+    "source": "The model gave what happened {probability} before kick-off. A forecast is a share, not a promise: what matters is whether calls like this come true at the rate they claim.",
+    "text": "مدل پیش از شروع بازی به آنچه رخ داد {probability} داده بود. پیش‌بینی یک سهم است، نه یک وعده: مهم این است که پیش‌بینی‌هایی از این دست به همان نسبتی که می‌گویند درست درآیند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.calibration": {
+    "source": "The model's record",
+    "text": "کارنامه‌ی مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.goals": {
+    "source": "Goals: expected and scored",
+    "text": "گل‌ها: مورد انتظار و زده‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.modelXg": {
+    "source": "Model, before kick-off",
+    "text": "مدل، پیش از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.matchXg": {
+    "source": "Chances created (match xG)",
+    "text": "موقعیت‌های ساخته‌شده (xG بازی)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.goalsScored": {
+    "source": "Goals",
+    "text": "گل‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.likeliest": {
+    "source": "Likeliest scores before kick-off",
+    "text": "محتمل‌ترین نتیجه‌ها پیش از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.among": {
+    "source": "{score} was among them.",
+    "text": "{score} در میان آن‌ها بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.notAmong": {
+    "source": "{score} was not among them.",
+    "text": "{score} در میان آن‌ها نبود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.versions": {
+    "source": "Every version, never edited",
+    "text": "همه‌ی نسخه‌ها، هیچ‌کدام ویرایش‌نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.version": {
+    "source": "v{version}",
+    "text": "نسخه‌ی {version}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.version": {
+    "source": "v{version} computed {time}",
+    "text": "نسخه‌ی {version}، محاسبه‌شده {time}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.minutes": {
+    "source": "{n} min before kick-off",
+    "text": "{n} دقیقه پیش از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.hours": {
+    "source": "{n} h before kick-off",
+    "text": "{n} ساعت پیش از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.days": {
+    "source": "{n} days before kick-off",
+    "text": "{n} روز پیش از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.after": {
+    "source": "after kick-off",
+    "text": "پس از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.fitted": {
+    "source": "fitted {date} on {matches} matches",
+    "text": "برازش‌شده در {date} بر {matches} بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.since": {
+    "source": "since {month}",
+    "text": "از {month}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.eloOn": {
+    "source": "Elo prior on",
+    "text": "با پیش‌فرض Elo",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.eloOff": {
+    "source": "no Elo prior",
+    "text": "بدون پیش‌فرض Elo",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.complete": {
+    "source": "inputs complete",
+    "text": "ورودی‌ها کامل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.limited": {
+    "source": "inputs limited",
+    "text": "ورودی‌ها محدود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.receipt.fixed": {
+    "source": "fixed at kick-off, not changed during play",
+    "text": "در شروع بازی ثابت شد و در طول بازی تغییر نکرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.axis": {
+    "source": "Timeline of the match: {goals} goals and {cards} cards by minute, the home side's above the line and the away side's below",
+    "text": "خط زمانی بازی: {goals} گل و {cards} کارت بر پایه‌ی دقیقه، رویدادهای میزبان بالای خط و میهمان زیر آن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.notInYet": {
+    "source": "Not in yet",
+    "text": "هنوز نرسیده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.notInYetWhy": {
+    "source": "Not received for this match yet. It appears here as soon as it arrives; nothing is estimated in the meantime.",
+    "text": "هنوز برای این بازی دریافت نشده است. به محض رسیدن اینجا نشان داده می‌شود؛ تا آن زمان هیچ چیزی تخمین زده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.topRated": {
+    "source": "Top rated",
+    "text": "بهترین نمره",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.bestSix": {
+    "source": "Ratings, best six",
+    "text": "نمره‌ها، شش نفر برتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.minutesPlayed": {
+    "source": "{minutes} min",
+    "text": "{minutes} دقیقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.ratingsNote": {
+    "source": "Ratings and xG as the licensed match data supplies them",
+    "text": "نمره‌ها و xG همان‌گونه که داده‌ی دارای مجوز بازی ارائه می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.hero.watch": {
     "source": "Watch:",
     "text": "تماشا:",

@@ -181,7 +181,7 @@ made per row, a timeout -- does.
 | --- | --- | --- |
 | home `/en` | 155.5 / 158 (2026-10-25, T-1494) | 38 / 50 / 200 |
 | scores `/en/scores` | 175.2 / 176 (raised 2026-10-25, T-1494, D-264) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 185.7 / 186 (raised 2026-10-23, T-1477) | 77 / 76 / 300 |
+| match centre `/en/match/…0901` | 187.6 / 191 (raised 2026-10-25, T-1497, D-264) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 156.2 / 158 (2026-10-25, T-1494) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
@@ -270,6 +270,15 @@ to 175.2 against 175, so its budget goes to 176, the first kilobyte of the
 5 kB D-264 allows it: the scores page's own rebuild (T-1496) may take it to
 180 and no further. Home, the match centre and the competition page stay
 within theirs. No library was added.
+
+**The raise of 2026-10-25 (T-1497, D-264, D-272).** The Stadiomind match
+centre: the live view gains the timeline's axis, each side's scorers in the
+score band, the best rated with the rating chip and the live badge's minute
+bar, all of which move during a match. The Summary's forecast card, its
+versions and receipt are drawn on the server and cost the client nothing.
+185.7 (after T-1494's navigation) to 187.6; T-1522's pitch, its stacked
+follow-up, adds about 0.3. The budget goes to 191, D-264's one-off ceiling
+for this page, leaving about 3 kB for the shared components (T-1493). No library was added.
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the
