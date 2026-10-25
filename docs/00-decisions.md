@@ -12278,6 +12278,8 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** `tokens.css` keeps the editorial block for the pages not yet rebuilt; nothing in the shell carries the mark any more. The old catalogue keys for Today and the old tabs left all nine catalogues; the new ones are in Persian for /fa. The competition pills' own look (rounded pills, "All competitions" at the end, phones without them) is T-1513.
 
+**How T-1513 applied it (2026-10-25).** The competitions bar is the Design System's row of pills: each main competition is a rounded pill with a hairline and its logo, the one being read edged in saffron on the raised surface, and "All competitions" comes last in saffron text with an arrow that turns under RTL. Each link is the 44px target, with the pill drawn inside it, and the focus ring sits inside the link so the row's sideways scroll cannot cut it. From 768px only: on a phone the Leagues tab leads to every competition, and the row would push the page down by a line. The looks are CSS utilities keyed on `aria-current`, as the nav's are, so the shell's client chunk does not grow.
+
 ## D-274 — The Stadiomind competition page: the canvas's six tabs, the full table on the Overview, the model's league record beside it
 
 **Status:** Accepted · 2026-10-25 (decided by the agent from the canvas, the Design System and D-262 to D-264, under the maintainer's standing approval) · **Task:** T-1498 · **Amends:** D-203 (the Hybrid competition page)

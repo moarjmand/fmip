@@ -31,6 +31,27 @@ test.describe('competitions bar and page, no API', () => {
     await expect(page.getByTestId('competitions-item')).toHaveCount(0);
   });
 
+  test('is drawn on a wide screen only: on a phone the Leagues tab leads to every competition', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/en/scores');
+    await expect(page.getByTestId('competitions-bar')).toBeHidden();
+    await page.getByTestId('tab-leagues').click();
+    await expect(page).toHaveURL(/\/en\/competitions$/);
+  });
+
+  test('gives All competitions a 44px target and a ring inside it', async ({ page }) => {
+    await page.goto('/en/scores');
+    const all = page.getByTestId('competitions-bar-all');
+    expect((await all.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await all.focus();
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Tab');
+    await expect(all).toBeFocused();
+    expect(await all.evaluate((element) => getComputedStyle(element).outlineOffset)).toBe('-2px');
+  });
+
   test('is in Persian on /fa, and mirrors under the rtl pseudo-locale', async ({ page }) => {
     await page.goto('/fa/competitions');
     await expect(page.getByTestId('title')).toHaveText('همه رقابت‌ها');
@@ -41,7 +62,8 @@ test.describe('competitions bar and page, no API', () => {
     const title = page.getByTestId('title');
     await expect(title).toHaveCSS('border-right-width', '4px');
     await expect(title).toHaveCSS('border-left-width', '0px');
-    // The bar starts at the inline start: "All competitions" is on the right.
+    // The bar starts at the inline start: with nothing else in it, "All
+    // competitions" is on the right (T-1513 puts it last, after the pills).
     const bar = await page.getByTestId('competitions-bar').boundingBox();
     const all = await page.getByTestId('competitions-bar-all').boundingBox();
     expect(all!.x + all!.width).toBeGreaterThan(bar!.x + bar!.width / 2);
