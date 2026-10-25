@@ -78,36 +78,48 @@ test('the scores controls are thumb-sized and the day strip scrolls inside itsel
   expect(strip).toBe('auto');
 });
 
-test('the header is one row on a phone, the rest behind its Menu and in the tab bar', async ({
+test('the header is one row on a phone: the wordmark, search and the Menu, with the tab bar below', async ({
   page,
 }) => {
   await page.goto('/en/scores');
   const header = page.locator('header').first();
-  // The Menu, the mark and search (T-1381, D-199): one row of 44px targets.
+  // The wordmark, search and the Menu (D-263, D-267): one row of 44px targets.
   expect((await header.boundingBox())?.height ?? 0).toBeLessThan(68);
   await expect(page.getByTestId('nav-search')).toBeVisible();
-  await expect(page.getByTestId('nav-scores')).toBeHidden();
+  await expect(page.getByTestId('nav-search-form')).toBeHidden();
+  await expect(page.getByTestId('nav-matches')).toBeHidden();
   await expect(page.getByTestId('nav-sign-in')).toBeHidden();
+  // The wordmark at the inline start, search and the Menu at the end.
+  const x = async (id: string) => (await page.getByTestId(id).boundingBox())?.x ?? -1;
+  expect(await x('nav-home')).toBeLessThan(await x('nav-search'));
+  expect(await x('nav-search')).toBeLessThan(await x('nav-menu'));
 
   // The five sections are in the bottom tab bar, fixed, each at least 56px.
   const bar = page.getByTestId('tab-bar');
   await expect(bar).toBeVisible();
-  for (const id of ['tab-today', 'tab-results', 'tab-predictions', 'tab-news', 'tab-me']) {
+  for (const id of ['tab-matches', 'tab-predict', 'tab-leagues', 'tab-news', 'tab-you']) {
     expect((await page.getByTestId(id).boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(56);
   }
-  await expect(page.getByTestId('tab-results')).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByTestId('tab-matches')).toHaveAttribute('aria-current', 'page');
   const box = await bar.boundingBox();
   expect((box?.y ?? 0) + (box?.height ?? 0)).toBeCloseTo(800, 0);
 
   const menu = page.getByTestId('nav-menu');
-  await menu.locator('summary').click();
-  for (const id of ['nav-today', 'nav-scores', 'nav-watch', 'nav-settings-guest', 'nav-sign-in']) {
+  await menu.locator(':scope > summary').click();
+  // The nav and More's links are listed together, then the reader's controls.
+  for (const id of ['nav-matches', 'nav-model', 'nav-watch', 'nav-settings-guest', 'nav-sign-in']) {
     await expect(page.getByTestId(id)).toBeVisible();
   }
+  await expect(page.getByTestId('nav-more').locator('summary')).toBeHidden();
   await expect(menu.getByRole('button', { name: 'Night' })).toBeVisible();
   expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   expect(results.violations.map((v) => v.id)).toEqual([]);
+
+  // The Menu closes when the reader moves on.
+  await page.getByTestId('nav-model').click();
+  await expect(page).toHaveURL(/\/en\/model-accuracy$/);
+  await expect(page.getByTestId('nav-matches')).toBeHidden();
 });
 
 test('on a tablet the header keeps its Menu, since the nav does not fit one row (T-1390)', async ({
@@ -115,37 +127,56 @@ test('on a tablet the header keeps its Menu, since the nav does not fit one row 
 }) => {
   await page.setViewportSize({ width: 800, height: 1000 });
   await page.goto('/fa/scores');
-  await expect(page.getByTestId('nav-menu').locator('summary')).toBeVisible();
+  await expect(page.getByTestId('nav-menu').locator(':scope > summary')).toBeVisible();
   await expect(page.getByTestId('tab-bar')).toBeHidden();
   expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
   const bar = await page.locator('header').first().boundingBox();
   expect(bar?.height ?? 999).toBeLessThan(100);
 });
 
-test('on a wide screen the header is laid out inline, with no Menu and no tab bar', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
+for (const width of [1280, 1440]) {
+  test(`at ${width}px the header is one row, with no Menu and no tab bar`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto('/en/scores');
+    await expect(page.getByTestId('nav-menu').locator(':scope > summary')).toBeHidden();
+    await expect(page.getByTestId('tab-bar')).toBeHidden();
+    await expect(page.getByTestId('nav-search')).toBeHidden();
+    for (const id of ['nav-matches', 'nav-model', 'nav-more', 'nav-search-form', 'nav-sign-in']) {
+      await expect(page.getByTestId(id)).toBeVisible();
+    }
+    // One row (D-267): the wordmark, the nav in its order, More, then search,
+    // the theme and the way in.
+    const seq = [
+      'nav-home',
+      'nav-matches',
+      'nav-predictions',
+      'nav-competitions',
+      'nav-model',
+      'nav-news',
+      'nav-more',
+      'nav-search-form',
+      'theme-switch-compact',
+      'nav-sign-in',
+    ];
+    const boxes = await Promise.all(seq.map((id) => page.getByTestId(id).boundingBox()));
+    const xs = boxes.map((b) => b?.x ?? -1);
+    expect(xs).toEqual([...xs].sort((a, b) => a - b));
+    const tops = boxes.map((b) => Math.round((b?.y ?? 0) + (b?.height ?? 0) / 2));
+    for (const top of tops) expect(Math.abs(top - tops[0]!)).toBeLessThanOrEqual(2);
+    await expect(page.getByTestId('nav-matches')).toHaveAttribute('aria-current', 'page');
+    expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+  });
+}
+
+test('at 1024px the nav takes the second row whole, the tools keep the first', async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 800 });
   await page.goto('/en/scores');
-  await expect(page.getByTestId('nav-menu').locator('summary')).toBeHidden();
-  await expect(page.getByTestId('tab-bar')).toBeHidden();
-  for (const id of ['nav-today', 'nav-scores', 'nav-watch', 'nav-search', 'nav-sign-in']) {
-    await expect(page.getByTestId(id)).toBeVisible();
-  }
-  // One row (D-199): the mark, the nav in its order, then search, then the way in.
-  const x = async (id: string) => (await page.getByTestId(id).boundingBox())?.x ?? -1;
-  const seq = [
-    'nav-home',
-    'nav-today',
-    'nav-scores',
-    'nav-predictions',
-    'nav-analysis',
-    'nav-news',
-    'nav-watch',
-    'nav-search',
-    'nav-sign-in',
-  ];
-  const xs = await Promise.all(seq.map(x));
-  expect(xs).toEqual([...xs].sort((a, b) => a - b));
-  await expect(page.getByTestId('nav-scores')).toHaveAttribute('aria-current', 'page');
+  const box = async (id: string) => (await page.getByTestId(id).boundingBox())!;
+  const home = await box('nav-home');
+  const matches = await box('nav-matches');
+  const more = await box('nav-more');
+  expect(matches.y).toBeGreaterThan(home.y + home.height - 1);
+  expect(Math.abs(more.y - matches.y)).toBeLessThanOrEqual(2);
+  await expect(page.getByTestId('nav-search-form')).toBeVisible();
+  expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
 });

@@ -12243,3 +12243,39 @@ replaces D-089's self-hosting arrangement for no gain here).
 3. New components are server components unless they need state (the pick buttons, the date strip, tabs on phones); fonts load with `font-display: swap` and size-adjusted fallbacks so CLS stays under 0.05.
 
 **Consequences.** The new budgets are home 163, scores 180, match centre 191, competition 163 KB at most, raised in the PR that needs them. PageSpeed is measured after the foundation and after the last page (T-1502).
+
+## D-266 — The visual baseline is Linux renders of the no-API pages, with both clocks fixed
+
+**Status:** Accepted · 2026-10-25 (T-1502, under the maintainer's standing approval for the redesign) · **Task:** T-1502 · **Follows:** D-264
+
+**Context.** T-1502 keeps a picture of every rebuilt page in Night, Day and at 390 px and compares it in CI. A screenshot test is only useful if two runs of an unchanged page agree, and the pages write the server's "today" into what they draw (the scores day strip and date picker, the home page's date line). CI runs Ubuntu; the maintainer's machine is Windows, whose text anti-aliasing differs.
+
+**Decision.**
+1. Six pages (home, scores, the seed's match `…0901`, a competition, a club, a player) in four views: Night and Day, each at 1280 px and at 390 px; 24 full-page pictures, in the `chromium` project against the production build without an API, so each page is its unreachable state.
+2. Both clocks are fixed at 2026-10-24 18:00 UTC: the browser's with `page.clock.setFixedTime`, the web server's with a `--require` preload (`tests/e2e/fixed-clock.cjs`) that shifts `Date` to that instant and lets it run on. Fixing the server's clock keeps the day strip and the dates in the picture; masking them would have left the scores page's most designed control out of its own baseline.
+3. Reduced motion, animations stopped, every font loaded, lite mode off, `en-GB` in `Europe/London`, the service worker blocked. A tolerance of 0.2% of the pixels, room for anti-aliasing only.
+4. Only Linux renders are committed and compared; on another platform the spec skips. The pictures come from CI's runner (its `visual-baseline` artifact) or the Playwright image of the pinned version.
+5. Until T-1494..T-1500 have landed the spec only writes (`VISUAL=update`) and CI uploads the result; the final T-1502 pull request commits the pictures and turns on the comparison.
+
+**Consequences.** A pull request that changes one of the six pages on purpose also commits its new pictures, taken from that branch's CI artifact. axe runs on the same pages in the same four views (`a11y.spec.ts`).
+
+## D-267 — The navigation follows the theme, keeps a More, and gives phones five tabs
+
+**Status:** Accepted · 2026-10-25 (decided by the agent from the Design System and the canvas, with the maintainer's standing approval) · **Task:** T-1494 · **Supersedes:** D-198's editorial mode for the header, the live strip and the competitions bar; D-199's header nav and tab bar · **Follows:** D-263, D-264
+
+**Context.** Since D-198 the header has stood on paper in both themes ("editorial mode"), with a double rule under it, and its nav read Today, Scores, Predictions, Analysis, News, Watch, Highlights; the phone's tab bar read Today, Results, Predictions, News, Me. The Stadiomind Design System is Night-first: its header, pills and `TabBar` are drawn on the theme's own grounds, the header reads Matches, Predictions, Competitions, The model, News with search, the theme and Sign in at the end, and the phone has five tabs, Matches, Predict, Leagues, News, You, with search in its header. A paper header over a Night page would be the one Day surface left on it.
+
+**Decision.**
+1. The header, the live strip under it, the competitions bar and the tab bar follow the theme: the header is the raised surface on a phone and the page's own ground from 768px, with a hairline under it, and the mark is drawn in the colours of the ground it stands on (both sets in the page, the theme showing one; the bars are never recoloured, D-262). Editorial mode stays only on the pages not yet rebuilt.
+2. The desktop nav is Matches (`/scores`), Predictions, Competitions (`/competitions`), The model (`/model-accuracy`), News. The wordmark leads home, which has no entry of its own. The current entry is ink on the raised surface, as the Design System draws it.
+3. The founder's analysis, Watch and Highlights, which the Design System's header has no place for, stay one click away under **More**, a disclosure at the end of the nav, rather than being dropped. In the phone's and tablet's Menu, More is no box: its links are listed with the rest.
+4. Search is a field in the bar from 1024px ("Teams, players, competitions", a GET form to the search page, so it works without script) and a 44px button in the header below it.
+5. The theme switch keeps Auto, Day and Night (D-263 point 2); in the desktop bar they are 40px icons with their words kept for a screen reader, in the Menu 44px buttons with their words. Sign in is the header's one saffron button.
+6. The phone's tabs are Matches (`/scores`, current on the homepage too, as the canvas's phone home shows), Predict (`/predictions`, the leaderboard, the model and the analysis), Leagues (`/competitions` and every competition, club, player and coach page), News (and Highlights), You (Settings for a member, Sign in for a guest). The current tab is saffron and bold; each is at least 56px tall.
+7. A phone keeps the Menu beside search: the canvas's phone header shows the wordmark and search alone, but the language, the theme, The model and More's pages need a way in that the five tabs do not give.
+
+**Rejected.** *Keeping the header on paper*: one Day band over every Night page, which the Design System does not draw. *Dropping Watch, Highlights and the analysis from the header*: their pages would be reachable only from other pages. *A sixth tab*: the Design System fixes five.
+
+**Consequences.** `tokens.css` keeps the editorial block for the pages not yet rebuilt; nothing in the shell carries the mark any more. The old catalogue keys for Today and the old tabs left all nine catalogues; the new ones are in Persian for /fa. The competition pills' own look (rounded pills, "All competitions" at the end, phones without them) is T-1513.
+
+**How T-1513 applied it (2026-10-25).** The competitions bar is the Design System's row of pills: each main competition is a rounded pill with a hairline and its logo, the one being read edged in saffron on the raised surface, and "All competitions" comes last in saffron text with an arrow that turns under RTL. Each link is the 44px target, with the pill drawn inside it, and the focus ring sits inside the link so the row's sideways scroll cannot cut it. From 768px only: on a phone the Leagues tab leads to every competition, and the row would push the page down by a line. The looks are CSS utilities keyed on `aria-current`, as the nav's are, so the shell's client chunk does not grow.

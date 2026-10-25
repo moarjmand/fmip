@@ -49,7 +49,7 @@ const DARK_MORE_COPIES = [
   block(":root:not([data-theme='light']):not([data-contrast='standard'])"),
 ];
 
-// Editorial mode (D-198): the header and editorial pages, on Day whatever
+// Editorial mode (D-198): the editorial pages not yet rebuilt, on Day whatever
 // the theme -- the light values, plain and with more contrast.
 const EDITORIAL = block("\n[data-mode='editorial']");
 const EDITORIAL_MORE = [

@@ -143,12 +143,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.nav.today": {
-    "source": "Today",
-    "text": "امروز",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "shell.nav.analysis": {
     "source": "Analysis",
     "text": "تحلیل",
@@ -167,27 +161,63 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.tab.results": {
-    "source": "Scores",
-    "text": "نتایج",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "shell.tab.predictions": {
-    "source": "Predictions",
-    "text": "پیش‌بینی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "shell.tab.news": {
     "source": "News",
     "text": "اخبار",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.tab.me": {
-    "source": "Me",
-    "text": "من",
+  "shell.nav.matches": {
+    "source": "Matches",
+    "text": "بازی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.competitions": {
+    "source": "Competitions",
+    "text": "رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.model": {
+    "source": "The model",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.nav.more": {
+    "source": "More",
+    "text": "بیشتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.matches": {
+    "source": "Matches",
+    "text": "بازی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.predict": {
+    "source": "Predict",
+    "text": "پیش‌بینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.leagues": {
+    "source": "Leagues",
+    "text": "لیگ‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.tab.you": {
+    "source": "You",
+    "text": "شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.search.placeholder": {
+    "source": "Teams, players, competitions",
+    "text": "تیم، بازیکن، رقابت",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

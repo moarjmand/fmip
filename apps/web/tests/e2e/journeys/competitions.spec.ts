@@ -30,14 +30,16 @@ test.describe('competitions bar', () => {
     );
   });
 
-  test('is reached by keyboard, All competitions first', async ({ page }) => {
+  test('is reached by keyboard, All competitions last (T-1513)', async ({ page }) => {
     await page.goto('/en/scores');
     const all = page.getByTestId('competitions-bar-all');
-    await all.focus();
+    const last = page.getByTestId('competitions-bar-item').last();
+    await last.focus();
     await page.keyboard.press('Tab');
-    await expect(page.getByTestId('competitions-bar-item').first()).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
     await expect(all).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(last).toBeFocused();
+    await page.keyboard.press('Tab');
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/\/en\/competitions$/);
   });
