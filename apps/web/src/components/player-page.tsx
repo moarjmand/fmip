@@ -2,7 +2,8 @@ import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import type { PlayerMatch, PlayerPage, PlayerSeasonRecord } from '@fmip/contracts';
 import { Coverage, Panel, When, zoneWords } from '@/components/competition-page';
-import { EntityBand, LinkTabs, MissingTile, StatTile, TileGrid } from '@/components/entity-band';
+import { EntityBand, MissingTile, StatTile, TileGrid } from '@/components/entity-band';
+import { SectionTabs } from '@/components/ui/section-tabs';
 import { EntityImage } from '@/components/entity-image';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
@@ -112,7 +113,7 @@ export function PlayerBand({
         </>
       }
       tabs={
-        <LinkTabs
+        <SectionTabs
           label={say(locale, 'competitionPage.sections')}
           testId="player-tab"
           tabs={PLAYER_TABS.map((key) => ({

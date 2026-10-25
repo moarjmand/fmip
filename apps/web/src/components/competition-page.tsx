@@ -1,5 +1,6 @@
 import Link from '@/components/ui/link';
 import { MatchRow } from '@/components/match-row';
+import { SectionTabs } from '@/components/ui/section-tabs';
 import type { ReactNode } from 'react';
 import type {
   AssistLeader,
@@ -325,33 +326,19 @@ export function CompetitionBand({
             })}
           </nav>
         )}
-        <nav
-          aria-label={say(locale, 'competitionPage.sections')}
-          className="-mb-px flex gap-1 overflow-x-auto"
-          data-testid="competition-tabs"
-        >
-          {tabs.map((t) => {
-            const current = t === tab;
-            return (
-              <Link
-                key={t}
-                href={tabHref(locale, c.id, page.season, t, t === 'players' ? minMinutes : null)}
-                aria-current={current ? 'page' : undefined}
-                data-testid={`competition-tab-${t}`}
-                className={cx(
-                  'inline-flex min-h-12 shrink-0 items-center px-3.5 text-sm whitespace-nowrap',
-                  current
-                    ? 'font-bold text-fg shadow-[inset_0_-3px_0_var(--token-accent)]'
-                    : 'font-medium text-caption hover:text-fg',
-                )}
-              >
-                {t === 'table' && !hasTable(page)
-                  ? say(locale, 'competitionPage.tab.knockout')
-                  : say(locale, TAB_KEY[t])}
-              </Link>
-            );
-          })}
-        </nav>
+        <SectionTabs
+          label={say(locale, 'competitionPage.sections')}
+          testId="competition-tab"
+          tabs={tabs.map((t) => ({
+            key: t,
+            href: tabHref(locale, c.id, page.season, t, t === 'players' ? minMinutes : null),
+            label:
+              t === 'table' && !hasTable(page)
+                ? say(locale, 'competitionPage.tab.knockout')
+                : say(locale, TAB_KEY[t]),
+            current: t === tab,
+          }))}
+        />
       </div>
     </div>
   );

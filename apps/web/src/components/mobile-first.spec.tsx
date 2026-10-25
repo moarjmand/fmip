@@ -353,15 +353,15 @@ describe('the match centre', () => {
     expect(at('predictions')).toBeLessThan(at('forecast'));
   });
 
-  it('draws the statistics as a grid of tiles with their bars, in the brand green only', () => {
+  it('draws the statistics as a grid of tiles with their split bars, in ink and grey only', () => {
     const stats = html.slice(html.indexOf('data-testid="statistics"'));
     expect(stats).toContain('data-testid="stat-grid"');
     expect(stats).toContain('@md:grid-cols-2');
     expect(stats).toMatch(/data-metric="shots"/);
-    // 10 of 14 shots: the home bar 71.4% of its half, the away 28.6%.
-    expect(stats).toMatch(/bg-accent" style="inline-size:71\.42\d*%"/);
-    expect(stats).toMatch(/bg-muted" style="inline-size:28\.57\d*%"/);
-    // Never a club colour: the brand green and the neutral token only.
+    // 10 of 14 shots: the home share 71.4% of the bar in ink, the away 28.6% in grey (T-1510).
+    expect(stats).toMatch(/bg-fg" style="inline-size:71\.42\d*%" data-side="home"/);
+    expect(stats).toMatch(/bg-caption" style="inline-size:28\.57\d*%" data-side="away"/);
+    // Never a club colour, and no product's colour: ink and grey only.
     expect(stats.slice(0, stats.indexOf('</section>'))).not.toMatch(/bg-(model|founder|community)/);
   });
 

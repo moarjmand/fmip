@@ -162,7 +162,8 @@ describe('the band and the tabs', () => {
     expect(html).toContain('href="/en/competition/' + ID + '?tab=table"');
     // Brand colours only: the green rule and the green tab bar, no club colour.
     expect(html).toContain('bg-accent');
-    expect(html).toContain('shadow-[inset_0_-3px_0_var(--token-accent)]');
+    // The open section tab: ink over the saffron rule (T-1510).
+    expect(html).toContain('border-accent font-extrabold text-fg');
   });
 
   it("counts a cup's played matches from the main competition and names the qualifying ones (T-1394)", () => {

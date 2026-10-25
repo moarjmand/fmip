@@ -28,6 +28,8 @@ import { Score, ScorePair } from '@/components/score';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
 import { LiveBadge } from '@/components/ui/live-badge';
+import { RatingChip } from '@/components/ui/rating-chip';
+import { StatBar } from '@/components/ui/stat-bar';
 
 /** The server-rendered panels the page slots between the live modules (T-605). */
 export type MatchSlot =
@@ -823,11 +825,11 @@ function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
 }
 
 /**
- * The team statistics as a dense grid of tiles (T-1384): each metric's two
- * figures large and condensed, its name between them, and the two shares as
- * bars from the middle out -- the home side's in the brand green, the away
- * side's neutral; never a club colour. A side the provider left out is "–"
- * and there is no bar for that row.
+ * The team statistics as a dense grid of tiles (T-1384), each the Design
+ * System's `StatBar` (T-1510): the two figures large and condensed, the
+ * metric's name between them, the home side's share in ink and the away
+ * side's in grey under it; never a club colour. A side the provider left out
+ * is "–" and there is no bar for that row.
  */
 function Statistics({
   centre,
@@ -882,41 +884,15 @@ function StatTile({
   locale: string;
   words: MatchWords;
 }) {
-  const total = (row.home ?? 0) + (row.away ?? 0);
-  const bars = row.home !== null && row.away !== null && total > 0;
-  const figure = 'text-2xl leading-none font-black font-stretch-condensed tabular-nums';
   return (
-    <li
-      className="flex flex-col gap-2 rounded-tile bg-surface-raised px-3 py-2.5"
-      data-metric={row.metric}
-    >
-      <div className="grid grid-cols-[minmax(3rem,auto)_minmax(0,1fr)_minmax(3rem,auto)] items-center gap-2">
-        <b className={figure}>
-          <span dir="ltr">{statValue(row.metric, row.home, locale)}</span>
-        </b>
-        <span className="text-center text-xs text-muted">
-          <MessageText message={words.m[STAT_KEY[row.metric]]} />
-        </span>
-        <b className={cx(figure, 'text-end')}>
-          <span dir="ltr">{statValue(row.metric, row.away, locale)}</span>
-        </b>
-      </div>
-      {bars && (
-        <div aria-hidden="true" className="flex h-1.5 gap-1">
-          <span className="flex flex-1 justify-end overflow-hidden rounded-xs bg-canvas">
-            <span
-              className="rounded-xs bg-accent"
-              style={{ inlineSize: `${((row.home ?? 0) / total) * 100}%` }}
-            />
-          </span>
-          <span className="flex flex-1 overflow-hidden rounded-xs bg-canvas">
-            <span
-              className="rounded-xs bg-muted"
-              style={{ inlineSize: `${((row.away ?? 0) / total) * 100}%` }}
-            />
-          </span>
-        </div>
-      )}
+    <li className="rounded-tile bg-surface-raised px-3 py-2.5" data-metric={row.metric}>
+      <StatBar
+        label={<MessageText message={words.m[STAT_KEY[row.metric]]} />}
+        home={row.home}
+        away={row.away}
+        homeText={statValue(row.metric, row.home, locale)}
+        awayText={statValue(row.metric, row.away, locale)}
+      />
     </li>
   );
 }
@@ -995,7 +971,15 @@ function PlayerStatistics({
                         </th>
                         {PLAYER_COLUMNS.map(([metric]) => (
                           <td key={metric} className="px-2 py-1 text-end tabular-nums">
-                            {playerCell(locale, player, metric)}
+                            {metric === 'rating' && player.stats.rating !== undefined ? (
+                              // The feed's rating on its band's chip (T-1510); none, no chip.
+                              <RatingChip
+                                value={player.stats.rating}
+                                text={playerCell(locale, player, metric)}
+                              />
+                            ) : (
+                              playerCell(locale, player, metric)
+                            )}
                           </td>
                         ))}
                       </tr>
