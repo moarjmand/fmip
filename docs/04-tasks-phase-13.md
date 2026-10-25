@@ -279,6 +279,7 @@ The deep review of the rebuilt match centre on production in every state (before
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
 | `[x]` T-1550 | The score band named a penalty shoot-out's kicks as goals (Palmeiras v Fluminense: "Mauricio 91′ · Gustavo Gómez 93′ …"); before kick-off and on a postponed match the timeline, statistics, player statistics, xG and line-ups said "Not supplied for this match" although the season covers them; the timeline axis said "1 cards" | T-1497 | `- [x]` The band's scorers stop where the shoot-out starts (spec). `- [x]` Before kick-off a module the season covers says "From kick-off" and why; one it does not cover keeps "Not supplied"; a postponed or cancelled match says "Not played"; once played the coverage state is back (specs, en and fa). `- [x]` The axis's name carries no plural |
+| `[x]` T-1552 | The model's leading factors showed the model service's English note on every page, /fa included ("league-wide home advantage learned from the training window"). The panel says what each factor measures from the catalogue by its kind, the Elo prior named under team strength only when the stored inputs used it | T-1497 | `- [x]` `factorNote` in en and fa, with and without the Elo prior (`forecast.spec.ts`). `- [x]` No English in the factor list on /fa |
 
 ## Page speed (GTmetrix, 2026-10-21)
 
