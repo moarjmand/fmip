@@ -209,22 +209,28 @@ jobs:
       - name: Run Playwright
         run: pnpm --filter @fmip/web e2e
 
-      # T-1502: the visual baseline of the rebuilt pages. Until T-1494..T-1500
-      # have all landed there is nothing worth keeping, so the spec writes
-      # (VISUAL=update) on this Linux runner instead of comparing, and the
-      # pictures are uploaded; the final T-1502 PR commits them and turns
-      # this step into the comparison.
-      - name: Visual baseline (writing, not yet comparing)
+      # T-1502: the visual baseline of the rebuilt pages, compared with the
+      # Linux pictures committed in apps/web/tests/e2e/visual.spec.ts-snapshots
+      # (D-266). Its own step because the web server's clock is fixed for it,
+      # which the other specs must not see.
+      - name: Visual baseline
         id: visual
         if: ${{ !cancelled() }}
         env:
-          VISUAL: update
-          # The web server's clock, fixed: the pages write "today" (T-1502).
+          # The web server's clock, fixed: the pages write "today".
           NODE_OPTIONS: --require=${{ github.workspace }}/apps/web/tests/e2e/fixed-clock.cjs
-        run: pnpm --filter @fmip/web exec playwright test visual.spec.ts --update-snapshots=all
+        run: pnpm --filter @fmip/web exec playwright test visual.spec.ts
 
-      - name: Upload the visual baseline
-        if: ${{ !cancelled() && steps.visual.outcome != 'skipped' }}
+      # A page changed on purpose: the new pictures, rendered on this runner,
+      # for the pull request to commit (docs/08-load-test.md, "Visual baseline").
+      - name: Visual baseline, the new pictures
+        if: ${{ !cancelled() && steps.visual.outcome == 'failure' }}
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/apps/web/tests/e2e/fixed-clock.cjs
+        run: pnpm --filter @fmip/web exec playwright test visual.spec.ts --update-snapshots=changed
+
+      - name: Upload the new pictures
+        if: ${{ !cancelled() && steps.visual.outcome == 'failure' }}
         uses: actions/upload-artifact@v4
         with:
           name: visual-baseline
