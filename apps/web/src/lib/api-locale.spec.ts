@@ -6,7 +6,7 @@ vi.mock('next/headers', () => ({
   headers: async () => new Headers(reader === null ? {} : { 'x-fmip-locale': reader }),
 }));
 
-const { fetchAdminOverview, fetchCompetition, fetchMatchCentre, fetchScores } =
+const { fetchAdminOverview, fetchCompetition, fetchMatchCentre, fetchModelUpset, fetchScores } =
   await import('./api');
 
 describe('the API client asks for names in the reader language (T-1312)', () => {
@@ -47,5 +47,12 @@ describe('the API client asks for names in the reader language (T-1312)', () => 
     await fetchMatchCentre('abc');
     expect(urls[0]).toMatch(/\/fixtures\/abc\?locale=en$/);
     expect(urls[1]).toMatch(/\/fixtures\/abc$/);
+  });
+
+  it("asks for the model's upset of the day in the reader's zone and language (T-1507)", async () => {
+    await fetchModelUpset({ date: '2026-10-25', tz: 'Asia/Tehran' });
+    await fetchModelUpset();
+    expect(urls[0]).toMatch(/\/model\/upset\?date=2026-10-25&tz=Asia%2FTehran&locale=fa$/);
+    expect(urls[1]).toMatch(/\/model\/upset\?locale=fa$/);
   });
 });
