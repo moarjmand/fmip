@@ -30,6 +30,7 @@ import {
   LEADERS_MINUTES_PRESETS,
   SUGGESTED_TEAMS_PER_COMPETITION,
   leagueZonesFor,
+  stillToPlay,
 } from '@fmip/contracts';
 import leagueZoneList from '@fmip/contracts/zones/league-zones.json';
 import { Pool } from 'pg';
@@ -681,7 +682,9 @@ export class CatalogService {
           season: s.season,
           context: tableContext(tables[i]!, id),
         })),
-        next_match: upcoming[0] ?? null,
+        // A cancelled, abandoned or postponed match is no one's next match
+        // (T-1560); it stays in `fixtures` with its status.
+        next_match: upcoming.find((f) => stillToPlay(f.status)) ?? null,
         previous_match: results[0] ?? null,
         fixtures: upcoming,
         results,

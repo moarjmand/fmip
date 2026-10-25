@@ -89,3 +89,19 @@ for (const width of [390, 1440]) {
     }
   });
 }
+
+test.describe('the club page’s tabs on a 360px phone (T-1564)', () => {
+  test.use({ viewport: { width: 360, height: 800 } });
+
+  for (const locale of ['en', 'fa'] as const) {
+    test(`/${locale} opens the tab row scrolled to the open tab, the last one too`, async ({
+      page,
+    }) => {
+      await page.goto(`/${locale}/team/${MAN_UTD}?tab=stats`);
+      const stats = page.getByTestId('team-tab-stats');
+      await expect(stats).toHaveAttribute('aria-current', 'page');
+      await expect(stats).toBeInViewport({ ratio: 1 });
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    });
+  }
+});

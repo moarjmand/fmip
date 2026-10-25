@@ -8,6 +8,7 @@ import type {
   TeamPage,
   TeamPageFixture,
 } from '@fmip/contracts';
+import { stillToPlay } from '@fmip/contracts';
 import { BandStanding } from '@/components/club-overview';
 import { Coverage, MoreLink, Panel, When, zoneWords } from '@/components/competition-page';
 import { EntityBand } from '@/components/entity-band';
@@ -20,9 +21,9 @@ import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
 import { inlineTargetClasses } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
-import { formatNumber, intlLocale, localDigits } from '@/i18n/format';
+import { formatDate, formatNumber, intlLocale, localDigits } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
-import { FORM_KEY, formatFixtureDate, say } from '@/lib/competition';
+import { FORM_KEY, say } from '@/lib/competition';
 import { POSITION_KEY as PLAYER_POSITION_KEY, dayText } from '@/lib/player';
 import {
   METRIC_KEY,
@@ -128,12 +129,23 @@ export function ClubBand({
             </p>
           )}
           <p className="mt-2 text-sm font-medium text-muted">
+            {/* Each part isolated (T-1561): a ground named in Latin letters on
+                /fa would otherwise pull the separators and figures into its
+                own direction and scramble the line. */}
             {t.venue !== null ? (
-              `${
-                t.venue.city !== null
-                  ? say(locale, 'teamPage.venueCity', { venue: t.venue.name, city: t.venue.city })
-                  : t.venue.name
-              }${t.venue.capacity !== null ? ` · ${formatNumber(locale, t.venue.capacity)}` : ''}`
+              <>
+                <bdi data-testid="team-ground">
+                  {t.venue.city !== null
+                    ? say(locale, 'teamPage.venueCity', { venue: t.venue.name, city: t.venue.city })
+                    : t.venue.name}
+                </bdi>
+                {t.venue.capacity !== null && (
+                  <>
+                    {' · '}
+                    <bdi>{formatNumber(locale, t.venue.capacity)}</bdi>
+                  </>
+                )}
+              </>
             ) : page.fixture_ground != null ? (
               // No ground recorded: where this season's home matches were
               // played, said to come from them (T-1394, D-209).
@@ -154,9 +166,9 @@ export function ClubBand({
               <Translated locale={locale} message="teamPage.noGround" />
             )}
             {' · '}
-            <span data-testid="followers">
+            <bdi data-testid="followers">
               <Translated locale={locale} message="team.followerCount" count={page.followers} />
-            </span>
+            </bdi>
           </p>
           <Manager page={page} locale={locale} timeZone={timeZone} />
         </>
@@ -199,7 +211,7 @@ function Manager({ page, locale, timeZone }: { page: TeamPage; locale: string; t
             href={`/${locale}/coach/${head.person.id}`}
             className={inlineTargetClasses('font-semibold hover:underline')}
           >
-            {head.person.name}
+            <bdi>{head.person.name}</bdi>
           </Link>
           {head.since !== null && (
             <span className="text-xs text-muted">
@@ -225,7 +237,7 @@ function Manager({ page, locale, timeZone }: { page: TeamPage; locale: string; t
                 href={`/${locale}/coach/${coach.data.id}`}
                 className={inlineTargetClasses('font-semibold hover:underline')}
               >
-                {coach.data.name}
+                <bdi>{coach.data.name}</bdi>
               </Link>{' '}
               <span className="text-xs text-muted">
                 <Translated locale={locale} message="team.manager.named" />{' '}
@@ -233,8 +245,14 @@ function Manager({ page, locale, timeZone }: { page: TeamPage; locale: string; t
                   href={`/${locale}/match/${fixture.id}`}
                   className={inlineTargetClasses('underline')}
                 >
+                  {/* The day alone, as the head coach's "since" reads it (T-1562):
+                      the full stamp came out in a scrambled order in Persian. */}
                   <time dateTime={fixture.kickoff_at}>
-                    {formatFixtureDate(locale, fixture.kickoff_at, timeZone)}
+                    {formatDate(locale, fixture.kickoff_at, timeZone, {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
                   </time>
                 </Link>
               </span>
@@ -383,19 +401,23 @@ export function FixturesPanel({
                 teamId={page.team.id}
                 locale={locale}
                 timeZone={timeZone}
+                // Where to watch it, for a match still to play (T-1560): a
+                // cancelled or postponed one has nothing to tune in to.
                 below={
-                  <div className="ps-[5.625rem]">
-                    <ViewingPanel
-                      variant="line"
-                      locale={locale}
-                      timeZone={timeZone}
-                      viewing={viewing.get(fixture.id) ?? null}
-                      kickoffAt={fixture.kickoff_at}
-                      status={fixture.status}
-                      signedIn={signedIn}
-                      href={withTerritory(`/${locale}/match/${fixture.id}`, territory)}
-                    />
-                  </div>
+                  stillToPlay(fixture.status) && (
+                    <div className="ps-[5.625rem]">
+                      <ViewingPanel
+                        variant="line"
+                        locale={locale}
+                        timeZone={timeZone}
+                        viewing={viewing.get(fixture.id) ?? null}
+                        kickoffAt={fixture.kickoff_at}
+                        status={fixture.status}
+                        signedIn={signedIn}
+                        href={withTerritory(`/${locale}/match/${fixture.id}`, territory)}
+                      />
+                    </div>
+                  )
                 }
               />
             ))}

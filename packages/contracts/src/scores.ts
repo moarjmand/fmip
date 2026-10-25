@@ -33,6 +33,17 @@ export interface ScoreLine {
 }
 
 /**
+ * Whether a match not yet finished is still on the calendar (T-1560): it is
+ * to be played, or is being played. A cancelled, abandoned or awarded match
+ * will not be played, and a postponed one has lost its date, so none of them
+ * is anyone's "next match" or "coming up". They stay in a fixture list, each
+ * with its status said.
+ */
+export function stillToPlay(status: FixtureStatus | string): boolean {
+  return status === 'scheduled' || status === 'live' || status === 'suspended';
+}
+
+/**
  * Freshness of a live fixture's data (rule 4, T-083, D-045). A match in
  * progress whose data has not changed for this long is `stale`: the feed
  * is behind, and the page must say so instead of showing the last minute as

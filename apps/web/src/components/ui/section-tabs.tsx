@@ -7,7 +7,9 @@ import Link from './link';
  * so each tab is a URL that works without JavaScript and fetches only what it
  * shows (D-203). The open tab is ink and bold over a saffron rule, and says
  * so in `aria-current`; the rest are muted. The row never wraps: on a phone it
- * scrolls sideways. Each tab is a 44px target. The saffron rule is the
+ * scrolls sideways, and opens scrolled to the open tab (T-1564,
+ * `scroll-initial-target`), so a reader on the last tab sees where they are;
+ * a browser without it shows the row's start, as before. Each tab is a 44px target. The saffron rule is the
  * accent, which keeps 3:1 on the Day ground, where the bright fill would not.
  * Server-component safe.
  */
@@ -32,7 +34,7 @@ export function SectionTabs({
           className={cx(
             'inline-flex min-h-touch shrink-0 items-center border-b-3 px-3.5 text-sm whitespace-nowrap',
             tab.current
-              ? 'border-accent font-extrabold text-fg'
+              ? 'border-accent font-extrabold text-fg [scroll-initial-target:nearest]'
               : 'border-transparent font-semibold text-muted hover:text-fg',
           )}
         >

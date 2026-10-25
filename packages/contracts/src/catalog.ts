@@ -645,7 +645,7 @@ export interface TeamPage {
   };
   /** Competitions with a current season, or one the team still has matches in. */
   competitions: TeamCompetition[];
-  /** The soonest match not yet finished, and the most recent finished one. */
+  /** The soonest match still to play (`stillToPlay`, T-1560), and the most recent finished one. */
   next_match: TeamPageFixture | null;
   previous_match: TeamPageFixture | null;
   /** Not finished, soonest first; finished, newest first. Across the seasons above. */
