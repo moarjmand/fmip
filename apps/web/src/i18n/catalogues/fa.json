@@ -526,8 +526,20 @@
   },
   "home.month.limited": {
     "source": "Limited: a league with fewer than {minimum} matches is too few to call.",
-    "text": "محدود: لیگی با کمتر از {minimum} بازی برای داوری کم است.",
+    "text": "ناقص: لیگی با کمتر از {minimum} بازی برای داوری کم است.",
     "status": "translated"
+  },
+  "home.month.leagueMatches": {
+    "source": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "forms": {
+      "one": "{count} بازی",
+      "other": "{count} بازی"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "home.month.link": {
     "source": "Calibration report",

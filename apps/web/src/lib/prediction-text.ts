@@ -119,7 +119,17 @@ export function utcStamp(locale: string, iso: string): string {
  * printed), the locale's own date elsewhere.
  */
 export function isoDay(locale: string, iso: string, timeZone = 'UTC'): string {
-  if (asLocale(locale) === DEFAULT_LOCALE) return iso.slice(0, 10);
+  // T-1542: the day in the zone the time beside it is in, not always UTC's.
+  if (asLocale(locale) === DEFAULT_LOCALE) {
+    return timeZone === 'UTC'
+      ? iso.slice(0, 10)
+      : new Intl.DateTimeFormat('en-CA', {
+          timeZone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date(iso));
+  }
   return formatDate(locale, iso, timeZone, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 

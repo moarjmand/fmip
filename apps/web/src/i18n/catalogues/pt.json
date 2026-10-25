@@ -459,6 +459,14 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.month.leagueMatches": {
+    "source": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "home.month.link": {
     "source": "Calibration report",
     "text": "",

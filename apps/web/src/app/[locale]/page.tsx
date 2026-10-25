@@ -366,6 +366,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             <ColumnAndPicks
               analyses={founderFeed.ok ? founderFeed.data.analyses : null}
               locale={lang}
+              timeZone={timeZone}
             />
           </div>
 
