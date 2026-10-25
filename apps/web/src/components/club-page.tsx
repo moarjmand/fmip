@@ -10,7 +10,8 @@ import type {
 } from '@fmip/contracts';
 import { BandStanding } from '@/components/club-overview';
 import { Coverage, MoreLink, Panel, When, zoneWords } from '@/components/competition-page';
-import { EntityBand, LinkTabs } from '@/components/entity-band';
+import { EntityBand } from '@/components/entity-band';
+import { SectionTabs } from '@/components/ui/section-tabs';
 import { EntityImage } from '@/components/entity-image';
 import { MinutesFigure } from '@/components/minutes-figure';
 import { Score } from '@/components/score';
@@ -162,7 +163,7 @@ export function ClubBand({
       }
       actions={follow}
       tabs={
-        <LinkTabs
+        <SectionTabs
           label={say(locale, 'competitionPage.sections')}
           testId="team-tab"
           tabs={TEAM_TABS.map((key) => ({

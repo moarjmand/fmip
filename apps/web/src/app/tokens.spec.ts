@@ -91,6 +91,14 @@ const TEXT = [
 ];
 const NON_TEXT = ['--token-border-strong', '--token-focus'];
 const ON_ACCENT_BACKGROUNDS = ['--token-accent', '--token-accent-strong'];
+// Text on a fill of its own (T-1493): the Design System's bright saffron
+// button and the rating chips. The figure in each comment is against its fill.
+const ON_FILL: Record<string, string[]> = {
+  '--token-on-accent': ON_ACCENT_BACKGROUNDS,
+  '--token-on-brand': ['--token-brand'],
+  '--token-on-rating-low': ['--token-rating-low'],
+  '--token-on-rating-good': ['--token-rating-good'],
+};
 
 function value(theme: Map<string, Declaration>, name: string): string {
   const found = theme.get(name);
@@ -130,11 +138,20 @@ describe.each([
     }
   });
 
+  it.each(Object.entries(ON_FILL))('%s is AA text on its fill', (token, fills) => {
+    for (const fill of fills) {
+      expect(
+        contrast(value(theme, token), value(theme, fill)),
+        `${token} on ${fill}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it('every figure written in a comment is the one the values give', () => {
     let checked = 0;
     for (const [token, { comment }] of theme) {
       const written = [...(comment ?? '').matchAll(/\b\d+\.\d{2}\b/g)].map((m) => Number(m[0]));
-      const against = token === '--token-on-accent' ? ON_ACCENT_BACKGROUNDS : FIGURES_AGAINST;
+      const against = ON_FILL[token] ?? FIGURES_AGAINST;
       written.forEach((figure, index) => {
         const background = against[index] ?? '(none)';
         expect(figure, `${token} against ${background}`).toBe(
@@ -164,6 +181,15 @@ describe.each([
     for (const background of ON_ACCENT_BACKGROUNDS) {
       expect(
         contrast(value(theme, '--token-on-accent'), value(theme, background)),
+      ).toBeGreaterThanOrEqual(7);
+    }
+  });
+
+  it.each(Object.entries(ON_FILL))('%s is AAA text on its fill', (token, fills) => {
+    for (const fill of fills) {
+      expect(
+        contrast(value(theme, token), value(theme, fill)),
+        `${token} on ${fill}`,
       ).toBeGreaterThanOrEqual(7);
     }
   });
@@ -264,7 +290,7 @@ describe('more contrast, as a whole (T-621)', () => {
 describe('the tokens themselves', () => {
   it('declare the same names in light and in both ways to dark', () => {
     const names = [...LIGHT.keys()].sort();
-    expect(names.length).toBe(20);
+    expect(names.length).toBe(28);
     expect([...DARK.keys()].sort()).toEqual(names);
     expect([...DARK_CHOSEN.keys()].sort()).toEqual(names);
   });
@@ -322,6 +348,31 @@ describe('the tokens themselves', () => {
     }
     // D-198's green has left every block.
     expect(TOKENS).not.toMatch(/#0b6b3a|#1ed38a/);
+  });
+
+  it('give buttons the bright saffron fill with ink text, in both themes (T-1493)', () => {
+    // The Design System's `saffron` and `on-saffron`: the same fill on Day
+    // and Night, unlike the accent, which Day darkens to read as text.
+    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE]) {
+      expect(value(theme, '--token-brand')).toBe('#eba53c');
+    }
+    expect(value(LIGHT, '--token-on-brand')).toBe('#1a1206');
+    expect(value(DARK, '--token-on-brand')).toBe('#1a1206');
+  });
+
+  it('draw the forecast bar in three lightnesses, home the model colour itself (T-1493)', () => {
+    // Home, draw and away differ in lightness, so the bar reads without hue;
+    // the three percentages are always written beside it.
+    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE]) {
+      const [home, draw, away] = [
+        value(theme, '--token-model'),
+        value(theme, '--token-prob-draw'),
+        value(theme, '--token-prob-away'),
+      ];
+      expect(contrast(home, draw), 'home and draw').toBeGreaterThanOrEqual(1.2);
+      expect(contrast(draw, away), 'draw and away').toBeGreaterThanOrEqual(1.2);
+      expect(contrast(home, away), 'home and away').toBeGreaterThanOrEqual(1.2);
+    }
   });
 
   it('are what every Tailwind colour class in globals.css reads', () => {

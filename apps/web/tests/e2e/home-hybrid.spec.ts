@@ -318,8 +318,8 @@ test.describe('the home page with the scores', () => {
 
         // The three voices: side by side on a desktop, the model's lane on
         // the inline start; one under another on a phone.
-        const model = await box(page, '[data-testid="home-hero"] [data-lane="model"]');
-        const founder = await box(page, '[data-testid="home-hero"] [data-lane="founder"]');
+        const model = await box(page, '[data-testid="home-hero"] [data-voice="model"]');
+        const founder = await box(page, '[data-testid="home-hero"] [data-voice="founder"]');
         if (width === 390) expect(founder.y).toBeGreaterThan(model.y);
         else if (locale === 'en') expect(model.x + model.width).toBeLessThanOrEqual(founder.x);
         else expect(founder.x + founder.width).toBeLessThanOrEqual(model.x);

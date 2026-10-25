@@ -20,6 +20,12 @@
  * analysis and the community picks are told apart by type and label, in ink
  * and ink-muted, never by a colour of the model's (CLAUDE.md rule 6).
  *
+ * Fills with text of their own (T-1493): `brand` is the Design System's
+ * bright saffron, the same in both themes, for the primary button and the
+ * top rating, with ink (`on-brand`) on it; the accent stays the saffron that
+ * reads as text. The forecast bar's draw and away segments and the rating
+ * chip's low and good bands complete the set; home is the model colour.
+ *
  * Three ways to reach dark, one set of values:
  *   - `:root` alone is light;
  *   - with `data-theme="system"` (or none) on <html>, the device decides,
@@ -110,6 +116,22 @@
   --token-founder: #121518;
   /* The community picks lane: ink-muted, told apart by its label: 6.72 / 7.48 / 7.03. */
   --token-community: #4c5660;
+  /* The brand fill (the Design System's `saffron`): the primary button, the top rating; carries on-brand text. */
+  --token-brand: #eba53c;
+  /* Text on the brand fill, ink: 8.81 on brand. */
+  --token-on-brand: #1a1206;
+  /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
+  --token-prob-draw: #a8b0b7;
+  /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
+  --token-prob-away: #7ccfc8;
+  /* A match rating under six, a grey chip. */
+  --token-rating-low: #56616b;
+  /* Text on the low rating chip: 6.33 on rating-low. */
+  --token-on-rating-low: #ffffff;
+  /* A match rating from seven to under eight, the Design System's turquoise chip. */
+  --token-rating-good: #2bb3ad;
+  /* Text on the good rating chip: 7.30 on rating-good. */
+  --token-on-rating-good: #0f1215;
 }
 
 /* More contrast on Day (T-621): every text role 7:1 or better. Chosen... */
@@ -151,6 +173,22 @@
   --token-founder: #050608;
   /* The community lane: 11.77 / 13.10 / 12.30. */
   --token-community: #2b313a;
+  /* The brand fill (the Design System's `saffron`): the primary button, the top rating; carries on-brand text. */
+  --token-brand: #eba53c;
+  /* Text on the brand fill, ink: 8.81 on brand. */
+  --token-on-brand: #1a1206;
+  /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
+  --token-prob-draw: #a8b0b7;
+  /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
+  --token-prob-away: #7ccfc8;
+  /* A match rating under six, a grey chip. */
+  --token-rating-low: #4b555e;
+  /* Text on the low rating chip: 7.61 on rating-low. */
+  --token-on-rating-low: #ffffff;
+  /* A match rating from seven to under eight, the Design System's turquoise chip. */
+  --token-rating-good: #2bb3ad;
+  /* Text on the good rating chip: 7.30 on rating-good. */
+  --token-on-rating-good: #0f1215;
 }
 
 /* ...or not chosen, and the device asks for it: the same values. */
@@ -177,6 +215,14 @@
     --token-model: #0b5c58;
     --token-founder: #050608;
     --token-community: #2b313a;
+    --token-brand: #eba53c;
+    --token-on-brand: #1a1206;
+    --token-prob-draw: #a8b0b7;
+    --token-prob-away: #7ccfc8;
+    --token-rating-low: #4b555e;
+    --token-on-rating-low: #ffffff;
+    --token-rating-good: #2bb3ad;
+    --token-on-rating-good: #0f1215;
   }
 }
 
@@ -224,6 +270,22 @@
     --token-founder: #eef0f1;
     /* 8.16 / 7.52 / 6.80. */
     --token-community: #a3acb5;
+    /* The brand fill (the Design System's `saffron`): the primary button, the top rating; carries on-brand text. */
+    --token-brand: #eba53c;
+    /* Text on the brand fill, ink: 8.81 on brand. */
+    --token-on-brand: #1a1206;
+    /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
+    --token-prob-draw: #56616b;
+    /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
+    --token-prob-away: #9edcd7;
+    /* A match rating under six, a grey chip. */
+    --token-rating-low: #56616b;
+    /* Text on the low rating chip: 6.33 on rating-low. */
+    --token-on-rating-low: #ffffff;
+    /* A match rating from seven to under eight, the Design System's turquoise chip. */
+    --token-rating-good: #2bb3ad;
+    /* Text on the good rating chip: 7.30 on rating-good. */
+    --token-on-rating-good: #0f1215;
   }
 }
 
@@ -250,6 +312,14 @@
   --token-model: #3cc4be;
   --token-founder: #eef0f1;
   --token-community: #a3acb5;
+  --token-brand: #eba53c;
+  --token-on-brand: #1a1206;
+  --token-prob-draw: #56616b;
+  --token-prob-away: #9edcd7;
+  --token-rating-low: #56616b;
+  --token-on-rating-low: #ffffff;
+  --token-rating-good: #2bb3ad;
+  --token-on-rating-good: #0f1215;
 }
 
 /* More contrast on Night (T-621): Night chosen, more chosen. */
@@ -291,6 +361,22 @@
   --token-founder: #fafbfc;
   /* The community lane: 13.62 / 12.63 / 11.69. */
   --token-community: #cad1d8;
+  /* The brand fill (the Design System's `saffron`): the primary button, the top rating; carries on-brand text. */
+  --token-brand: #eba53c;
+  /* Text on the brand fill, ink: 9.98 on brand. */
+  --token-on-brand: #000000;
+  /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
+  --token-prob-draw: #56616b;
+  /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
+  --token-prob-away: #9edcd7;
+  /* A match rating under six, a grey chip. */
+  --token-rating-low: #4b555e;
+  /* Text on the low rating chip: 7.61 on rating-low. */
+  --token-on-rating-low: #ffffff;
+  /* A match rating from seven to under eight, the Design System's turquoise chip. */
+  --token-rating-good: #2bb3ad;
+  /* Text on the good rating chip: 8.15 on rating-good. */
+  --token-on-rating-good: #000000;
 }
 
 /* The device's Night, more chosen. */
@@ -317,6 +403,14 @@
     --token-model: #3cc4be;
     --token-founder: #fafbfc;
     --token-community: #cad1d8;
+    --token-brand: #eba53c;
+    --token-on-brand: #000000;
+    --token-prob-draw: #56616b;
+    --token-prob-away: #9edcd7;
+    --token-rating-low: #4b555e;
+    --token-on-rating-low: #ffffff;
+    --token-rating-good: #2bb3ad;
+    --token-on-rating-good: #000000;
   }
 }
 
@@ -344,6 +438,14 @@
     --token-model: #3cc4be;
     --token-founder: #fafbfc;
     --token-community: #cad1d8;
+    --token-brand: #eba53c;
+    --token-on-brand: #000000;
+    --token-prob-draw: #56616b;
+    --token-prob-away: #9edcd7;
+    --token-rating-low: #4b555e;
+    --token-on-rating-low: #ffffff;
+    --token-rating-good: #2bb3ad;
+    --token-on-rating-good: #000000;
   }
 }
 
@@ -371,6 +473,14 @@
     --token-model: #3cc4be;
     --token-founder: #fafbfc;
     --token-community: #cad1d8;
+    --token-brand: #eba53c;
+    --token-on-brand: #000000;
+    --token-prob-draw: #56616b;
+    --token-prob-away: #9edcd7;
+    --token-rating-low: #4b555e;
+    --token-on-rating-low: #ffffff;
+    --token-rating-good: #2bb3ad;
+    --token-on-rating-good: #000000;
   }
 }
 
@@ -402,6 +512,14 @@
   --token-model: #0e7a75;
   --token-founder: #121518;
   --token-community: #4c5660;
+  --token-brand: #eba53c;
+  --token-on-brand: #1a1206;
+  --token-prob-draw: #a8b0b7;
+  --token-prob-away: #7ccfc8;
+  --token-rating-low: #56616b;
+  --token-on-rating-low: #ffffff;
+  --token-rating-good: #2bb3ad;
+  --token-on-rating-good: #0f1215;
 }
 
 /* ...and Day with more contrast, chosen... */
@@ -427,6 +545,14 @@
   --token-model: #0b5c58;
   --token-founder: #050608;
   --token-community: #2b313a;
+  --token-brand: #eba53c;
+  --token-on-brand: #1a1206;
+  --token-prob-draw: #a8b0b7;
+  --token-prob-away: #7ccfc8;
+  --token-rating-low: #4b555e;
+  --token-on-rating-low: #ffffff;
+  --token-rating-good: #2bb3ad;
+  --token-on-rating-good: #0f1215;
 }
 
 /* ...or asked for by the device. */
@@ -453,5 +579,13 @@
     --token-model: #0b5c58;
     --token-founder: #050608;
     --token-community: #2b313a;
+    --token-brand: #eba53c;
+    --token-on-brand: #1a1206;
+    --token-prob-draw: #a8b0b7;
+    --token-prob-away: #7ccfc8;
+    --token-rating-low: #4b555e;
+    --token-on-rating-low: #ffffff;
+    --token-rating-good: #2bb3ad;
+    --token-on-rating-good: #0f1215;
   }
 }

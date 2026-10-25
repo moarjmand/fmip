@@ -1,6 +1,4 @@
-import Link from '@/components/ui/link';
 import type { CSSProperties, ReactNode } from 'react';
-import { cx } from '@/components/ui/cx';
 import { bandColours } from '@/lib/band-colour';
 
 /**
@@ -87,42 +85,6 @@ export function EntityBand({
         <div className="flex shrink-0 flex-col items-start gap-2 py-2">{actions}</div>
       </div>
     </div>
-  );
-}
-
-/**
- * The band's tab bar (T-1386): links, so each tab is a URL that works
- * without JavaScript and fetches only what it shows (D-203). The open tab
- * is the ink with a saffron bar under it; the rest are the caption colour.
- */
-export function LinkTabs({
-  label,
-  testId,
-  tabs,
-}: {
-  label: string;
-  testId: string;
-  tabs: { key: string; href: string; label: string; current: boolean }[];
-}) {
-  return (
-    <nav aria-label={label} className="-mb-px flex gap-1 overflow-x-auto" data-testid={testId}>
-      {tabs.map((tab) => (
-        <Link
-          key={tab.key}
-          href={tab.href}
-          aria-current={tab.current ? 'page' : undefined}
-          data-testid={`${testId}-${tab.key}`}
-          className={cx(
-            'inline-flex min-h-12 shrink-0 items-center px-3.5 text-sm whitespace-nowrap',
-            tab.current
-              ? 'font-bold text-fg shadow-[inset_0_-3px_0_var(--token-accent)]'
-              : 'font-medium text-caption hover:text-fg',
-          )}
-        >
-          {tab.label}
-        </Link>
-      ))}
-    </nav>
   );
 }
 
