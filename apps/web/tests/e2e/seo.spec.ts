@@ -13,7 +13,7 @@ test.describe('SEO surface without JavaScript', () => {
   test('a page carries its content, canonical URL and language alternates', async ({ page }) => {
     await page.goto('/en/scores');
 
-    await expect(page.getByTestId('title')).toHaveText('Scores');
+    await expect(page.getByTestId('title')).toHaveText('Matches');
     await expect(page.getByTestId('nav-scores')).toBeVisible();
     await expect(page.getByTestId('nav-predictions')).toBeVisible();
     await expect(page.getByTestId('nav-search')).toBeVisible();

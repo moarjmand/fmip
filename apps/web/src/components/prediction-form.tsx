@@ -69,6 +69,7 @@ export function PredictionForm({
   shareUrl,
   split,
   words,
+  initiallyOpen = false,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   current: Prediction | null;
@@ -83,9 +84,14 @@ export function PredictionForm({
    */
   split?: ReactNode;
   words: PredictionFormWords;
+  /**
+   * Open on the outcomes rather than on "Make your pick": the matches page's
+   * preview (T-1496), reached by the row's own Pick, which was the first press.
+   */
+  initiallyOpen?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
-  const [opened, setOpened] = useState(false);
+  const [opened, setOpened] = useState(initiallyOpen);
   const latest = current?.latest ?? null;
   const fieldError = (name: string): string | undefined =>
     state !== null && !state.ok ? state.fields?.[name] : undefined;

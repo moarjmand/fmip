@@ -157,17 +157,17 @@ const card = (over: Partial<ScoreCardData> = {}): ScoreCardData => ({
 
 describe('a score row with crests', () => {
   for (const locale of ['en', 'fa'] as const) {
-    it(`puts each crest on the inner side, beside the score (${locale})`, () => {
+    it(`puts each crest at the inline start of its team's line, before the name (${locale})`, () => {
       const out = html(
         <ScoreCard words={scoresWords(locale)} card={card()} timeZone="UTC" locale={locale} />,
       );
       const home = out.slice(
         out.indexOf('data-testid="home-team"'),
-        out.indexOf('data-testid="score"'),
+        out.indexOf('data-testid="away-team"'),
       );
       const away = out.slice(out.indexOf('data-testid="away-team"'));
-      // Home: the name, then the crest next to the score; away: the mark, then the name.
-      expect(home.indexOf('Esteghlal</bdi>')).toBeLessThan(home.indexOf('<img'));
+      // The teams are stacked (T-1496): on each line the crest or its mark, then the name.
+      expect(home.indexOf('<img')).toBeLessThan(home.indexOf('Esteghlal</bdi>'));
       expect(away.indexOf('data-coverage="not_supplied"')).toBeLessThan(
         away.indexOf('Persepolis</bdi>'),
       );

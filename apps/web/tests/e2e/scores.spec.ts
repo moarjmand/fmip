@@ -10,13 +10,22 @@ test.describe('scores page', () => {
   test('renders the day strip and filters, and names an unreachable service', async ({ page }) => {
     await page.goto('/en/scores');
 
-    await expect(page.getByTestId('title')).toHaveText('Scores');
+    // Matches and predictions are one page (T-1496).
+    await expect(page.getByTestId('title')).toHaveText('Matches');
     const days = page.getByTestId('day-strip').getByRole('link');
     await expect(days).toHaveCount(7);
-    await expect(days.nth(0)).toHaveText('Yesterday');
-    await expect(days.nth(1)).toHaveText('Today');
+    // The named day, then the day of the month.
+    await expect(days.nth(0)).toHaveText(/^Yesterday\s*\d{1,2}$/);
+    await expect(days.nth(1)).toHaveText(/^Today\s*\d{1,2}$/);
     await expect(days.nth(1)).toHaveAttribute('aria-current', 'date');
     await expect(page.getByTestId('filters').getByRole('link', { name: 'Live' })).toBeVisible();
+    // A guest has no picks and no teams: those two views are a member's.
+    await expect(page.getByTestId('view-unpicked')).toHaveCount(0);
+    await expect(page.getByTestId('view-mine')).toHaveCount(0);
+    await expect(page.getByTestId('filters').getByRole('link', { name: 'All' })).toHaveAttribute(
+      'aria-current',
+      'true',
+    );
     // A guest on /en with no zone of their own reads UK time (T-1391, D-207).
     await expect(page.getByTestId('timezone')).toContainText(
       'Times: UK time (sign in for your own zone)',
@@ -75,8 +84,16 @@ test.describe('scores page', () => {
     await page.goto('/x-rtl/scores');
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    const title = page.getByTestId('title');
-    await expect(title).toHaveCSS('border-right-width', '4px');
-    await expect(title).toHaveCSS('border-left-width', '0px');
+    // The title and the day strip start at the inline start: the right.
+    const width = page.viewportSize()?.width ?? 1280;
+    for (const id of ['title', 'day-strip']) {
+      const box = await page.getByTestId(id).boundingBox();
+      expect(box).not.toBeNull();
+      if (box !== null) expect(box.x + box.width).toBeGreaterThan(width * 0.5);
+    }
+    const days = page.getByTestId('day-strip').getByRole('link');
+    const first = await days.nth(0).boundingBox();
+    const second = await days.nth(1).boundingBox();
+    if (first !== null && second !== null) expect(first.x).toBeGreaterThan(second.x);
   });
 });

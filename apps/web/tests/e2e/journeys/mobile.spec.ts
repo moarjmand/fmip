@@ -79,31 +79,37 @@ for (const theme of ['light', 'dark'] as const) {
   }
 }
 
-test('a match row is one thumb-sized line, and its details open in place', async ({ page }) => {
+test('a match row is one thumb-sized row, and its details open in the preview', async ({
+  page,
+}) => {
   await page.goto(`/en/scores?date=${PLAYED_DAY}`);
   const row = page.getByTestId('score-card').first();
   const link = row.getByTestId('match-link');
   const box = await link.boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
-  // One row: status, the two names and the score share a centre line. A
-  // long name wraps onto a second line before it is cut (T-1202), so the
-  // parts are compared by their middles, not their tops.
+  // T-1496: the teams are stacked, home above away, each beside its own
+  // goals; the status sits between their two lines.
   const middle = async (id: string) => {
     const b = await row.getByTestId(id).boundingBox();
     return b === null ? -1 : b.y + b.height / 2;
   };
   const status = await middle('score-status');
-  expect(Math.abs((await middle('home-team')) - status)).toBeLessThan(12);
-  expect(Math.abs((await middle('away-team')) - status)).toBeLessThan(12);
+  expect(await middle('home-team')).toBeLessThan(status);
+  expect(await middle('away-team')).toBeGreaterThan(status);
+  expect(Math.abs((await middle('home-score')) - (await middle('home-team')))).toBeLessThan(6);
 
-  // The labels, the model's and the community's lines are there, one press away.
-  await expect(row.getByTestId('card-labels')).toBeHidden();
-  const toggle = row.locator('summary');
-  expect((await toggle.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
-  await toggle.click();
-  await expect(row.getByTestId('card-labels')).toBeVisible();
-  // T-940: the model's line is there too, with a figure or the reason it has none.
-  await expect(row.getByTestId('card-forecast')).toContainText('Model forecast:');
+  // The labels, the model's and the community's lines are one press away:
+  // the row's own Pick (or View) opens the preview above the list on a phone.
+  await expect(page.getByTestId('match-preview')).toBeHidden();
+  const pick = row.getByTestId('row-pick');
+  expect((await pick.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await pick.click();
+  await expect(page).toHaveURL(/pick=/);
+  const preview = page.getByTestId('match-preview');
+  await expect(preview).toBeVisible();
+  await expect(preview.getByTestId('card-labels')).toBeVisible();
+  // T-940: the model's bar is there too, with its receipt or the reason it has none.
+  await expect(preview.getByTestId('forecast-bar')).toBeVisible();
   expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
 
   // Each competition says once when its matches last changed.

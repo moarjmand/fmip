@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { MatchCentreView, SECTIONS, TABS } from './match-centre-view';
 import { Coverage, HeadToHead, MatchForm } from './match-record';
-import { ScoreCard } from './score-card';
+import { CardDetails, ScoreCard } from './score-card';
 import { EN } from '@/i18n/messages';
 import { matchWords, scoresWords } from '@/lib/words-server';
 
@@ -12,8 +12,8 @@ const MATCH_EN = matchWords('en');
 
 /**
  * Scores and the match centre, phone first (T-605). Rendered, not read from
- * the source: what is asserted is the markup a phone gets -- one line per
- * match with the rest behind a disclosure that keeps every label, and a
+ * the source: what is asserted is the markup a phone gets -- one row per
+ * match with the rest in its preview's details (T-1496), and a
  * match page whose sections are plain anchors, the three prediction products
  * three of them.
  */
@@ -61,33 +61,31 @@ describe('a match on the scores list', () => {
     expect(html).toContain('data-testid="match-link"');
     expect(html).toContain('href="/en/match/00000000-0000-4000-8000-000000000901"');
     expect(html).toMatch(/data-testid="score-status"[^>]*>67′</);
-    expect(html).toMatch(/text-live[^"]*" data-testid="score-status"/);
+    expect(html).toMatch(/text-live" data-testid="score-status"/);
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm" title="Liverpool">Liverpool<\/bdi>/,
+      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm font-semibold" title="Liverpool">Liverpool<\/bdi>/,
     );
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm" title="Manchester United">/,
+      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm font-semibold" title="Manchester United">/,
     );
     expect(html).toContain('min-h-11');
     expect(html).toContain('aria-label="one red card"');
-    // Tighter gaps on a phone, so a name's longest word fits its column (T-1484).
-    expect(html).toContain('class="flex min-w-0 items-center gap-2 max-sm:gap-1"');
+    // T-1496: the teams stacked, each with its own goals at the line's end.
+    expect(html).toMatch(/data-testid="home-score"[^>]*>2</);
+    expect(html).toMatch(/data-testid="away-score"[^>]*>1</);
   });
 
-  it('keeps every label, behind a disclosure named for the match', () => {
-    expect(html).toContain('<details');
-    expect(html).toContain('Details: Liverpool v Manchester United');
-    for (const id of [
-      'score-card',
-      'home-team',
-      'away-team',
-      'score',
-      'incidents',
-      'card-labels',
-    ]) {
+  it('keeps every label in the preview’s details, none on the row (T-1496)', () => {
+    expect(html).not.toContain('<details');
+    for (const id of ['score-card', 'home-team', 'away-team', 'home-score', 'row-forecast']) {
       expect(html).toContain(`data-testid="${id}"`);
     }
-    const details = html.slice(html.indexOf('<details'));
+    const details = renderToStaticMarkup(
+      <CardDetails words={SCORES_EN} card={card()} timeZone="UTC" locale="en" revealed />,
+    );
+    for (const id of ['incidents', 'card-labels']) {
+      expect(details).toContain(`data-testid="${id}"`);
+    }
     // T-940: three lines, each saying why when it has no figure.
     expect(details).toContain('data-testid="card-forecast" data-state="not_loaded"');
     expect(details).toContain('data-testid="card-community" data-state="not_loaded"');
@@ -99,25 +97,24 @@ describe('a match on the scores list', () => {
 
   it('carries the model line, the community totals and the viewing line, each named (T-940)', () => {
     const full = renderToStaticMarkup(
-      <ul>
-        <ScoreCard
-          words={SCORES_EN}
-          card={card({ status: 'scheduled', minute: null })}
-          timeZone="UTC"
-          locale="en"
-          forecast={{
-            state: 'available',
-            home: 46.4,
-            draw: 26.2,
-            away: 27.4,
-            version: 3,
-            model_version: 'dixon-coles-elo@0.3.0',
-            computed_at: '2025-01-05T15:30:00.000Z',
-          }}
-          community={{ state: 'below_floor' }}
-          viewing={{ state: 'ask' }}
-        />
-      </ul>,
+      <CardDetails
+        words={SCORES_EN}
+        card={card({ status: 'scheduled', minute: null })}
+        timeZone="UTC"
+        locale="en"
+        revealed
+        forecast={{
+          state: 'available',
+          home: 46.4,
+          draw: 26.2,
+          away: 27.4,
+          version: 3,
+          model_version: 'dixon-coles-elo@0.3.0',
+          computed_at: '2025-01-05T15:30:00.000Z',
+        }}
+        community={{ state: 'below_floor' }}
+        viewing={{ state: 'ask' }}
+      />,
     );
     expect(full).toMatch(/data-testid="card-forecast" data-state="available"/);
     expect(full).toContain('46.4%');
@@ -126,17 +123,16 @@ describe('a match on the scores list', () => {
     expect(full).toContain('href="/en/watch"');
 
     const none = renderToStaticMarkup(
-      <ul>
-        <ScoreCard
-          words={SCORES_EN}
-          card={card()}
-          timeZone="UTC"
-          locale="en"
-          forecast={{ state: 'none' }}
-          community={{ state: 'available', sample: 7, home: 4, draw: 1, away: 2 }}
-          viewing={{ state: 'nothing_listed', territory: 'Iran' }}
-        />
-      </ul>,
+      <CardDetails
+        words={SCORES_EN}
+        card={card()}
+        timeZone="UTC"
+        locale="en"
+        revealed
+        forecast={{ state: 'none' }}
+        community={{ state: 'available', sample: 7, home: 4, draw: 1, away: 2 }}
+        viewing={{ state: 'nothing_listed', territory: 'Iran' }}
+      />,
     );
     expect(none).toContain('the model had no forecast for this match before kick-off.');
     expect(none).toContain('of 7 members, not the model');
@@ -153,7 +149,7 @@ describe('a match on the scores list', () => {
         showCompetition
       />,
     );
-    const meta = row.slice(row.indexOf('data-testid="row-meta"'), row.indexOf('<details'));
+    const meta = row.slice(row.indexOf('data-testid="row-meta"'), row.indexOf('</a>'));
     expect(meta).toContain('Premier League');
     expect(meta).toContain('Leg 2');
     expect(meta).toContain('Agg');
@@ -169,9 +165,8 @@ describe('a match on the scores list', () => {
         now={Date.parse('2025-01-05T18:00:00Z')}
       />,
     );
-    const behind = row.indexOf('data-testid="behind"');
-    expect(behind).toBeGreaterThan(-1);
-    expect(behind).toBeLessThan(row.indexOf('<details'));
+    expect(row).toContain('data-testid="behind"');
+    expect(row).toContain('role="status"');
     expect(row).toMatch(/data-testid="score-status"[^>]*>Behind</);
   });
 });
@@ -392,19 +387,24 @@ describe('the match centre', () => {
 });
 
 describe('the scores card and the match centre in Persian (T-1303)', () => {
-  const card_ = renderToStaticMarkup(
-    <ul>
-      <ScoreCard words={scoresWords('fa')} card={card()} timeZone="UTC" locale="fa" />
-    </ul>,
-  );
+  const card_ =
+    renderToStaticMarkup(
+      <ul>
+        <ScoreCard words={scoresWords('fa')} card={card()} timeZone="UTC" locale="fa" />
+      </ul>,
+    ) +
+    renderToStaticMarkup(
+      <CardDetails words={scoresWords('fa')} card={card()} timeZone="UTC" locale="fa" revealed />,
+    );
   const view = renderToStaticMarkup(
     <FullView words={matchWords('fa')} centre={centre} timeZone="Asia/Tehran" locale="fa" />,
   );
 
   it('says the card in Persian, with the minute and the score in Persian digits, isolated', () => {
     expect(card_).toMatch(/data-testid="score-status"[^>]*>۶۷′</);
-    // Isolated right to left (T-1375): the home goals on the home side.
-    expect(card_).toMatch(/<span dir="rtl"[^>]*data-testid="score">۲ – ۱</);
+    // Each side's goals on its own line, beside its own team (T-1375, T-1496).
+    expect(card_).toMatch(/data-testid="home-score"[^>]*>۲</);
+    expect(card_).toMatch(/data-testid="away-score"[^>]*>۱</);
     expect(card_).toContain('aria-label="یک کارت قرمز"');
     expect(card_).toContain('شروع بازی');
     expect(card_).toContain('نتایج: موجود');

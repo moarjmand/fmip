@@ -7604,8 +7604,146 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "scores.filter.favourites": {
-    "source": "Favourites only",
-    "text": "فقط محبوب‌ها",
+    "source": "My teams",
+    "text": "تیم‌های من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.title": {
+    "source": "Matches",
+    "text": "مسابقه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.filter.unpicked": {
+    "source": "Not picked yet",
+    "text": "هنوز انتخاب نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.filter.label": {
+    "source": "Show",
+    "text": "نمایش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.modelLegend": {
+    "source": "Model chances: home · draw · away",
+    "text": "احتمال‌های مدل: میزبان · مساوی · میهمان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.competitionsNav": {
+    "source": "Competitions on this day",
+    "text": "رقابت‌های این روز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.allCompetitions": {
+    "source": "All competitions",
+    "text": "همهٔ رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.unpickedEmpty": {
+    "source": "Nothing left to pick on this day: every match still open has your pick, or none is open.",
+    "text": "در این روز چیزی برای انتخاب نمانده است: یا همهٔ مسابقه‌های باز را انتخاب کرده‌اید یا هیچ مسابقه‌ای باز نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.row.pick": {
+    "source": "Pick",
+    "text": "انتخاب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.row.picked": {
+    "source": "Picked",
+    "text": "انتخاب شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.row.view": {
+    "source": "View",
+    "text": "نمایش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.row.pickLabel": {
+    "source": "Pick: {home} v {away}",
+    "text": "انتخاب: {home} - {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.row.pickedLabel": {
+    "source": "Your pick is in: {home} v {away}",
+    "text": "انتخاب شما ثبت شده است: {home} - {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.row.viewLabel": {
+    "source": "Preview: {home} v {away}",
+    "text": "پیش‌نمایش: {home} - {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.row.modelNotLoaded": {
+    "source": "Not loaded",
+    "text": "بارگذاری نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.row.communitySealed": {
+    "source": "Community predictions: shown once you pick, or at kick-off.",
+    "text": "پیش‌بینی‌های کاربران: پس از انتخاب شما یا در لحظهٔ شروع بازی نشان داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.preview.label": {
+    "source": "Match preview",
+    "text": "پیش‌نمایش مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.preview.versus": {
+    "source": "v",
+    "text": "-",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.preview.yourPick": {
+    "source": "Your pick",
+    "text": "انتخاب شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.preview.model": {
+    "source": "Model",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.preview.modelNote": {
+    "source": "shown beside your pick, never mixed in",
+    "text": "کنار انتخاب شما، هرگز آمیخته با آن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.preview.full": {
+    "source": "Full match page",
+    "text": "صفحهٔ کامل مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.preview.close": {
+    "source": "Close the preview",
+    "text": "بستن پیش‌نمایش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.preview.none": {
+    "source": "Choose Pick on a match to see it here with the pick form.",
+    "text": "روی «انتخاب» یک مسابقه بزنید تا با فرم انتخاب اینجا نشان داده شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
