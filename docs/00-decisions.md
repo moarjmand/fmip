@@ -12243,3 +12243,22 @@ replaces D-089's self-hosting arrangement for no gain here).
 3. New components are server components unless they need state (the pick buttons, the date strip, tabs on phones); fonts load with `font-display: swap` and size-adjusted fallbacks so CLS stays under 0.05.
 
 **Consequences.** The new budgets are home 163, scores 180, match centre 191, competition 163 KB at most, raised in the PR that needs them. PageSpeed is measured after the foundation and after the last page (T-1502).
+
+## D-265 — The model's biggest miss of a day: which day, which competitions, which matches
+
+**Status:** Accepted · 2026-10-25 (agent, from the code and D-031, D-114, D-209; revisable by the maintainer) · **Task:** T-1507 (the API of T-1495's "forecast against reality" card) · **Follows:** D-263, D-264, rules 3, 5, 6
+
+**Context.** The new home page (D-263, item 4) keeps a "forecast against reality" card: the day's finished match whose result the statistical model rated least likely, among competitions with full coverage. The row left three things open: which day, what full coverage is, and what a void match counts as.
+
+**Decision.** `GET /model/upset?date=YYYY-MM-DD&tz=Area/City`, public, read-only (rule 5).
+
+1. **The day** is the calendar day in the zone asked, both optional and read as `GET /scores` reads them: `tz` defaults to UTC and `date` to today in that zone. The home page passes the reader's zone, so the card's day is the day its scores list calls today; another day is the same call with `date`.
+2. **Full coverage** is two facts already stored, not a new list: the season's `scores` coverage profile is `available` (computed from our rows, T-027, as the scores list shows it), and the model's forecast was made on complete data (`data_completeness = 'available'`, what `coverageOf` calls `available`). A season that is `limited`, `delayed` or unprofiled, and a forecast on limited data, do not take part.
+3. **The forecast** is the match's last published version computed before kick-off, as the scores card and the evaluation pick it (D-114, D-209). If that version is unavailable or on limited data the match does not take part; an earlier version is not used in its place, because it was not the model's last word. A version computed after kick-off never counts. Shadow candidates never count.
+4. **The result** is the full-time score, the one the evaluation scores against (D-031). Only a `finished` match with a full-time score takes part: postponed, cancelled, abandoned and awarded matches (the ones a prediction settles void) were not played to the result the forecast was about, and are neither candidates nor counted.
+5. **The least likely** is the lowest probability the version gave the outcome that happened; ties go to the earlier kick-off, then the fixture id.
+6. **The answer** names the match by canonical ids with its names, the score, the outcome, the probability given it and all three, and the version (number, kind, model version, when computed), with the day's count of finished matches and matches still to play in fully covered competitions, so a card can say "so far". With no match it is `coverage: 'not_supplied'` with `reason` `no_finished_match` or `no_covered_forecast` and `upset: null` (rule 3).
+
+**Alternatives considered.** The request's date in UTC only: "today" on the home page is the reader's day, and the scores list already reads it that way. The competitions the model fits directly (a football-data division): a cup match on the cross-league scale is still the published model's answer, and the forecast's own completeness already says whether the model had what it wanted. The accuracy page's 30-match minimum: it qualifies a competition's track record, not one match's forecast.
+
+**Consequences.** New module `apps/api/src/modules/model-upset`, contract `ModelUpsetResponse`, web fetcher `fetchModelUpset`. No migration. T-1495 draws the card.
