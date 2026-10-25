@@ -5,6 +5,7 @@ import type {
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
+import { useId } from 'react';
 import Link from '@/components/ui/link';
 import { MessageText } from '@/components/message-text';
 import { COVERAGE_KEY } from '@/components/score-card';
@@ -142,14 +143,26 @@ function SeriesBlock({
 }) {
   const weekly = period === 'week';
   const head = 'py-1 pe-3 text-end font-semibold';
+  const captionId = useId();
   return (
     <div className="flex flex-col gap-2" data-coverage={series.total.coverage}>
       <Standing lang={lang} metrics={series.total} minimum={minimum} />
       {series.total.coverage !== 'not_supplied' && (
         <>
-          <div className="overflow-x-auto">
+          {/*
+            The table scrolls sideways on a phone, so its box is a named region
+            a keyboard can reach and scroll (axe `scrollable-region-focusable`,
+            T-1571), as the player's career table is.
+          */}
+          <div
+            className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-focus"
+            role="region"
+            aria-labelledby={captionId}
+            tabIndex={0}
+            data-testid="accuracy-months-scroll"
+          >
             <table className="w-full text-start text-sm" data-testid="accuracy-months">
-              <caption className="pb-2 text-start text-muted">
+              <caption id={captionId} className="pb-2 text-start text-muted">
                 <Translated
                   locale={lang}
                   message={
