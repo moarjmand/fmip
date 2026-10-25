@@ -12568,6 +12568,176 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.modelTag": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.title": {
+    "source": "What was forecast, what happened",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.before": {
+    "source": "Before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.happened": {
+    "source": "{outcome} · happened",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.note": {
+    "source": "The model gave what happened {probability} before kick-off. A forecast is a share, not a promise: what matters is whether calls like this come true at the rate they claim.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.calibration": {
+    "source": "The model's record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.goals": {
+    "source": "Goals: expected and scored",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.modelXg": {
+    "source": "Model, before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.matchXg": {
+    "source": "Chances created (match xG)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.goalsScored": {
+    "source": "Goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.likeliest": {
+    "source": "Likeliest scores before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.among": {
+    "source": "{score} was among them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.notAmong": {
+    "source": "{score} was not among them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.versions": {
+    "source": "Every version, never edited",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.version": {
+    "source": "v{version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.version": {
+    "source": "v{version} computed {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.minutes": {
+    "source": "{n} min before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.hours": {
+    "source": "{n} h before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.days": {
+    "source": "{n} days before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.after": {
+    "source": "after kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.fitted": {
+    "source": "fitted {date} on {matches} matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.since": {
+    "source": "since {month}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.eloOn": {
+    "source": "Elo prior on",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.eloOff": {
+    "source": "no Elo prior",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.complete": {
+    "source": "inputs complete",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.limited": {
+    "source": "inputs limited",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.fixed": {
+    "source": "fixed at kick-off, not changed during play",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.axis": {
+    "source": "Timeline of the match: {goals} goals and {cards} cards by minute, the home side's above the line and the away side's below",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notInYet": {
+    "source": "Not in yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notInYetWhy": {
+    "source": "Not received for this match yet. It appears here as soon as it arrives; nothing is estimated in the meantime.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.topRated": {
+    "source": "Top rated",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.bestSix": {
+    "source": "Ratings, best six",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.minutesPlayed": {
+    "source": "{minutes} min",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.ratingsNote": {
+    "source": "Ratings and xG as the licensed match data supplies them",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.hero.watch": {
     "source": "Watch:",
     "text": "",

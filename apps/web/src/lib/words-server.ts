@@ -304,6 +304,15 @@ export const MATCH_KEYS = [
   'matchCentre.lineups.noRoles',
   'matchCentre.lineups.linesUnknown',
   'matchCentre.lineups.mismatch',
+  // The Stadiomind match centre (T-1497): the axis, the live "Not in yet"
+  // state and the best rated.
+  'matchCentre.axis',
+  'matchCentre.notInYet',
+  'matchCentre.notInYetWhy',
+  'matchCentre.topRated',
+  'matchCentre.bestSix',
+  'matchCentre.minutesPlayed',
+  'matchCentre.ratingsNote',
 ] as const;
 
 export type MatchWords = ClientWords<(typeof MATCH_KEYS)[number]>;
