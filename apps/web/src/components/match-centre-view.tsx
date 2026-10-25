@@ -253,6 +253,7 @@ export function MatchCentreView({
                 home={f.home}
                 away={f.away}
                 lineups={lineups}
+                ratings={ratingsOf(centre)}
                 locale={locale}
                 words={words}
               />
