@@ -824,7 +824,7 @@ export function ColumnAndPicks({
           <Translated locale={l} message="home.community.body" />
         </p>
         <ButtonLink
-          href={`/${locale}/predictions`}
+          href={`/${locale}/scores?unpicked=1`}
           variant="secondary"
           size="md"
           className="self-start"

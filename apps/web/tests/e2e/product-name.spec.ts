@@ -12,7 +12,7 @@ const PAGES = [
   '/en',
   '/en/scores',
   '/en/about',
-  '/en/predictions',
+  '/en/scores#analysis',
   '/en/model-accuracy',
   '/en/login',
   '/en/register',

@@ -11,6 +11,7 @@ import { LiveScores } from '@/components/live-scores';
 import {
   fetchConsensusList,
   fetchForecastSummaries,
+  fetchFounderFeed,
   fetchIngestionHealth,
   fetchMe,
   fetchMyPredictions,
@@ -60,6 +61,7 @@ import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { MatchPreview, NoPreview } from './match-preview';
+import { MatchesAnalysis } from './matches-analysis';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,6 +85,9 @@ function allCards(res: ScoresResponse): ScoreCard[] {
   return [...res.pinned, ...res.groups.flatMap((group) => group.fixtures)];
 }
 
+/** The founder's newest analyses under the list (T-1519). */
+const ANALYSES = 5;
+
 /**
  * Matches and predictions on one page (T-1496, D-268; blueprint 4.1 and 2.1):
  * one day at a time in the viewer's zone, the day strip, four views (All,
@@ -97,6 +102,10 @@ function allCards(res: ScoresResponse): ScoreCard[] {
  * country, competition and stage filters offering only what the day holds.
  * Both are plain GET forms, and every view, filter and open preview is an
  * address, so all of it works without JavaScript and can be shared.
+ *
+ * T-1519 (D-269): the old Predictions page's other content lands here, under
+ * the list: the founder's analysis (`#analysis`) and the links to the
+ * prediction league and the model's record.
  */
 export default async function ScoresPage({
   params,
@@ -115,9 +124,11 @@ export default async function ScoresPage({
   const asked = readScoresQuery(query, zone.timeZone);
   const q = me === null ? { ...asked, unpicked: false } : asked;
   const view = scoresView(q);
-  const [result, ingestion] = await Promise.all([
+  const [result, ingestion, founder] = await Promise.all([
     fetchScores(apiQuery(q), cookie),
     fetchIngestionHealth(),
+    // The founder's analysis, its own product in its own section (T-1519).
+    fetchFounderFeed({ limit: ANALYSES }),
   ]);
   const filters = q.filters ?? NO_FILTERS;
   // An empty day (an international break, a winter pause) points at the next
@@ -578,6 +589,11 @@ export default async function ScoresPage({
               )}
             </>
           )}
+          <MatchesAnalysis
+            locale={locale}
+            timeZone={q.timezone}
+            analyses={founder.ok ? founder.data.analyses : null}
+          />
         </div>
       </div>
     </main>

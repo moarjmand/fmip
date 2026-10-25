@@ -9392,42 +9392,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.community.listTitle": {
-    "source": "Community consensus",
-    "text": "نظر جمعی کاربران",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "matchCentre.community.listNone": {
-    "source": {
-      "one": "No match here has {count} prediction yet, so there is no consensus to show.",
-      "other": "No match here has {count} predictions yet, so there is no consensus to show."
-    },
-    "forms": {
-      "one": "هنوز هیچ بازی‌ای در این فهرست {count} پیش‌بینی ندارد، بنابراین نظر جمعی‌ای برای نمایش نیست.",
-      "other": "هنوز هیچ بازی‌ای در این فهرست {count} پیش‌بینی ندارد، بنابراین نظر جمعی‌ای برای نمایش نیست."
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "matchCentre.community.listLine": {
-    "source": "{home} {homePct}, draw {drawPct}, {away} {awayPct}",
-    "text": "{home} {homePct}، مساوی {drawPct}، {away} {awayPct}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "matchCentre.community.listHidden": {
-    "source": {
-      "one": "{count} member has picked. Make your pick to see how members split.",
-      "other": "{count} members have picked. Make your pick to see how they split."
-    },
-    "forms": {
-      "one": "{count} کاربر انتخاب کرده است. برای دیدن نظر جمعی، خودتان انتخاب کنید.",
-      "other": "{count} کاربر انتخاب کرده‌اند. برای دیدن نظر جمعی، خودتان انتخاب کنید."
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "matchCentre.home": {
     "source": "Home",
     "text": "میزبان",
@@ -9836,18 +9800,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "modelAccuracy.recent.intro": {
-    "source": "Every forecast made before kick-off is scored once the match is over, with the ranked probability score (RPS): 0 is perfect, lower is better. “RPS if guessing” is what one third for each outcome would have scored. Every month is published, good or bad.",
-    "text": "هر پیش‌بینیِ پیش از شروع بازی، پس از پایان بازی با امتیاز احتمال رتبه‌ای (RPS) سنجیده می‌شود: صفر یعنی بی‌نقص و کمتر یعنی بهتر. «RPS با حدس تصادفی» امتیازی است که یک‌سوم برای هر نتیجه می‌گرفت. هر ماه منتشر می‌شود، خوب یا بد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "modelAccuracy.recent.full": {
-    "source": "Full accuracy report",
-    "text": "گزارش کامل دقت",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "forecast.aDraw": {
     "source": "a draw",
     "text": "تساوی",
@@ -10067,114 +10019,6 @@
   "forecast.listSeparator": {
     "source": ", ",
     "text": "، ",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.title": {
-    "source": "Model forecasts",
-    "text": "پیش‌بینی‌های مدل آماری",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.intro": {
-    "source": "The statistical model. Not the founder’s view, and not the community’s.",
-    "text": "مدل آماری. نه نظر بنیان‌گذار است و نه نظر کاربران.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.more": {
-    "source": "Expected goals, likeliest scorelines and versions",
-    "text": "گل‌های مورد انتظار، محتمل‌ترین نتیجه‌ها و نسخه‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.xg": {
-    "source": "Expected goals",
-    "text": "گل‌های مورد انتظار",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.xgNone": {
-    "source": "This version has no expected goals.",
-    "text": "این نسخه گل مورد انتظار ندارد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.xgNote": {
-    "source": "The model’s expected goals before kick-off, not live xG.",
-    "text": "گل‌های مورد انتظار مدل پیش از شروع بازی، نه xG زنده.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.scorelines": {
-    "source": "Likeliest scorelines",
-    "text": "محتمل‌ترین نتیجه‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.scorelinesNone": {
-    "source": "This version has no scorelines.",
-    "text": "این نسخه نتیجه‌ای ندارد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.history": {
-    "source": "Forecast version history",
-    "text": "تاریخچه نسخه‌های پیش‌بینی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.version": {
-    "source": "Version",
-    "text": "نسخه",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.computed": {
-    "source": "Computed",
-    "text": "زمان محاسبه",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.status": {
-    "source": "Status",
-    "text": "وضعیت",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.current": {
-    "source": "Current",
-    "text": "فعلی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.superseded": {
-    "source": "Superseded · kept",
-    "text": "جایگزین‌شده · نگه‌داشته",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.historyNote": {
-    "source": "Each version stores its inputs, model version and computation time; a new forecast is a new row, never an edit.",
-    "text": "هر نسخه ورودی‌ها، نسخه مدل و زمان محاسبه‌اش را نگه می‌دارد؛ پیش‌بینی تازه یک ردیف تازه است، نه ویرایش ردیف قبلی.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.historyElsewhere": {
-    "source": {
-      "one": "{count} earlier version is kept on the match page.",
-      "other": "{count} earlier versions are kept on the match page."
-    },
-    "forms": {
-      "one": "{count} نسخه قبلی در صفحه بازی نگه داشته شده است.",
-      "other": "{count} نسخه قبلی در صفحه بازی نگه داشته شده است."
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.list.matchPage": {
-    "source": "Full forecast on the match page",
-    "text": "پیش‌بینی کامل در صفحه بازی",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -10898,117 +10742,9 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "predictions.page.title": {
-    "source": "Predictions · Stadiomind",
-    "text": "پیش‌بینی‌ها · Stadiomind",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.description": {
-    "source": "Model forecasts, the founder’s analysis, community consensus and the prediction leaderboard — each one separate, each one attributed.",
-    "text": "پیش‌بینی مدل آماری، تحلیل بنیان‌گذار، نظر جمعی کاربران و جدول برترین‌های پیش‌بینی؛ هر کدام جدا، و هر کدام با نام صاحبش.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.intro": {
-    "source": "Three separate answers to the same question, and the leaderboard of who gets them right. The site never averages them or presents one as another.",
-    "text": "سه پاسخ جدا به یک پرسش، و جدول برترین‌های کسانی که درست پیش‌بینی می‌کنند. سایت هرگز از این سه میانگین نمی‌گیرد و هیچ‌کدام را به جای دیگری نشان نمی‌دهد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.allScores": {
-    "source": "All scores",
-    "text": "همه‌ی نتایج",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.kicker": {
-    "source": "Three products, side by side",
-    "text": "سه محصول، کنار هم",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.jump": {
-    "source": "The three products on this page",
-    "text": "سه محصول این صفحه",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.zone": {
-    "source": "Times: {zoneName}",
-    "text": "ساعت‌ها به وقت {timezone}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.emptyDays": {
-    "source": "No matches in these {count} days.",
-    "text": "در این {count} روز بازی‌ای نیست.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.omitted": {
-    "source": {
-      "one": "{count} more match in these days is not listed here. Choose a competition to see it.",
-      "other": "{count} more matches in these days are not listed here. Choose a competition to see them."
-    },
-    "forms": {
-      "one": "{count} بازی دیگر در این روزها اینجا فهرست نشده است. برای دیدنش یک رقابت را انتخاب کنید.",
-      "other": "{count} بازی دیگر در این روزها اینجا فهرست نشده است. برای دیدنشان یک رقابت را انتخاب کنید."
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "predictions.page.pickNote": {
     "source": "“Make your pick” records a community pick only; it never changes the model’s numbers. The community split stays hidden until you pick.",
     "text": "«انتخاب کنید» فقط یک انتخاب در نظر جمعی کاربران ثبت می‌کند و هرگز اعداد مدل را تغییر نمی‌دهد. تا انتخاب نکرده‌اید، نظر جمعی پنهان می‌ماند.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.filter.label": {
-    "source": "Filter by competition",
-    "text": "پالایش بر اساس رقابت",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.filter.title": {
-    "source": "Competition",
-    "text": "رقابت",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.filter.all": {
-    "source": "All competitions",
-    "text": "همه رقابت‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.day.today": {
-    "source": "Today",
-    "text": "امروز",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.day.tomorrow": {
-    "source": "Tomorrow",
-    "text": "فردا",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.day.matches": {
-    "source": {
-      "one": "{count} match",
-      "other": "{count} matches"
-    },
-    "forms": {
-      "one": "{count} بازی",
-      "other": "{count} بازی"
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.unreachable": {
-    "source": "The scores service is unreachable right now, so the matches to predict on cannot be listed.",
-    "text": "سرویس نتایج اکنون در دسترس نیست، بنابراین بازی‌هایی که می‌شود پیش‌بینی کرد فهرست نمی‌شوند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -11021,54 +10757,6 @@
   "predictions.page.founderUnreachable": {
     "source": "The analysis service is unreachable right now.",
     "text": "سرویس تحلیل اکنون در دسترس نیست.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.leaderboardTitle": {
-    "source": "Prediction leaderboard",
-    "text": "جدول برترین‌های پیش‌بینی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.leaderboardNote": {
-    "source": "Ranked by Performance Rating, which is earned from settled predictions — never bought with activity.",
-    "text": "رتبه‌بندی بر اساس امتیاز عملکرد است که از پیش‌بینی‌های تسویه‌شده به دست می‌آید؛ هرگز با فعالیت بیشتر خریده نمی‌شود.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.leaderboardUnreachable": {
-    "source": "The leaderboard is unreachable right now.",
-    "text": "جدول برترین‌ها اکنون در دسترس نیست.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.leaderboardEmpty": {
-    "source": "Nobody has enough settled predictions for a rating yet.",
-    "text": "هنوز هیچ‌کس پیش‌بینی تسویه‌شده‌ی کافی برای گرفتن امتیاز ندارد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.entry": {
-    "source": {
-      "one": "· {rating} from {count} settled",
-      "other": "· {rating} from {count} settled"
-    },
-    "forms": {
-      "one": "· {rating} از {count} پیش‌بینی تسویه‌شده",
-      "other": "· {rating} از {count} پیش‌بینی تسویه‌شده"
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.entryProvisional": {
-    "source": {
-      "one": "· {rating} from {count} settled, provisional",
-      "other": "· {rating} from {count} settled, provisional"
-    },
-    "forms": {
-      "one": "· {rating} از {count} پیش‌بینی تسویه‌شده، موقت",
-      "other": "· {rating} از {count} پیش‌بینی تسویه‌شده، موقت"
-    },
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
