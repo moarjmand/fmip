@@ -18,8 +18,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export type ParsedScoresQuery =
   { ok: true; filters: ScoresFilters } | { ok: false; fields: Record<string, string> };
 
-/** Whether `Intl` knows the zone. Postgres would reject an unknown one anyway. */
+/**
+ * A zone name `Intl` knows. Names only (T-1575): `Intl` also takes an offset
+ * such as `+03:30`, which Postgres reads the POSIX way, sign reversed, so the
+ * day would be drawn seven hours from where the reader asked.
+ */
+const ZONE_NAME = /^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)*$/;
+
 export function isTimeZone(value: string): boolean {
+  if (!ZONE_NAME.test(value)) return false;
   try {
     new Intl.DateTimeFormat('en-US', { timeZone: value });
     return true;
