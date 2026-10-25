@@ -12749,7 +12749,7 @@
     "status": "untranslated"
   },
   "matchCentre.axis": {
-    "source": "Timeline of the match: {goals} goals and {cards} cards by minute, the home side's above the line and the away side's below",
+    "source": "Timeline of the match by minute (goals: {goals}, cards: {cards}), the home side's above the line and the away side's below",
     "text": "",
     "status": "untranslated"
   },
@@ -12760,6 +12760,26 @@
   },
   "matchCentre.notInYetWhy": {
     "source": "Not received for this match yet. It appears here as soon as it arrives; nothing is estimated in the meantime.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.fromKickoff": {
+    "source": "From kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.fromKickoffWhy": {
+    "source": "Recorded once the match kicks off; nothing is shown before then.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notPlayed": {
+    "source": "Not played",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notPlayedWhy": {
+    "source": "The match was not played, so there is nothing to record.",
     "text": "",
     "status": "untranslated"
   },
