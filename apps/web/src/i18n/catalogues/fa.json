@@ -329,6 +329,114 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "home.live.title": {
+    "source": "Live now",
+    "text": "اکنون زنده",
+    "status": "translated"
+  },
+  "home.live.updated": {
+    "source": "updated {time}",
+    "text": "به‌روزشده {time}",
+    "status": "translated"
+  },
+  "home.live.all": {
+    "source": "All live matches",
+    "text": "همه‌ی بازی‌های زنده",
+    "status": "translated"
+  },
+  "home.hero.today": {
+    "source": "Today’s big one",
+    "text": "بازی بزرگ امروز",
+    "status": "translated"
+  },
+  "home.hero.tomorrow": {
+    "source": "Tomorrow’s big one",
+    "text": "بازی بزرگ فردا",
+    "status": "translated"
+  },
+  "home.hero.later": {
+    "source": "The next big one",
+    "text": "بازی بزرگ بعدی",
+    "status": "translated"
+  },
+  "home.hero.model": {
+    "source": "What the numbers expect",
+    "text": "آنچه اعداد انتظار دارند",
+    "status": "translated"
+  },
+  "home.hero.xg": {
+    "source": "Expected goals",
+    "text": "گل‌های مورد انتظار",
+    "status": "translated"
+  },
+  "home.hero.scorelines": {
+    "source": "Likeliest scores",
+    "text": "محتمل‌ترین نتیجه‌ها",
+    "status": "translated"
+  },
+  "home.hero.factors": {
+    "source": "What moved it",
+    "text": "آنچه پیش‌بینی را جابه‌جا کرد",
+    "status": "translated"
+  },
+  "home.hero.favours": {
+    "source": "towards {team}",
+    "text": "به سود {team}",
+    "status": "translated"
+  },
+  "home.hero.receipt": {
+    "source": "Version {version} · {kind} · fitted on {matches} matches",
+    "text": "نسخه‌ی {version} · {kind} · برازش‌شده بر {matches} بازی",
+    "status": "translated"
+  },
+  "home.hero.nextVersion": {
+    "source": "A new version follows when line-ups are confirmed.",
+    "text": "با قطعی شدن ترکیب‌ها نسخه‌ی تازه‌ای می‌آید.",
+    "status": "translated"
+  },
+  "home.today.title": {
+    "source": "Matches by competition",
+    "text": "بازی‌ها به تفکیک رقابت",
+    "status": "translated"
+  },
+  "home.today.titleOn": {
+    "source": "Matches · {day}",
+    "text": "بازی‌ها · {day}",
+    "status": "translated"
+  },
+  "home.today.all": {
+    "source": {
+      "one": "{count} match",
+      "other": "All {count} matches"
+    },
+    "forms": {
+      "one": "{count} بازی",
+      "other": "همه‌ی {count} بازی"
+    },
+    "status": "translated"
+  },
+  "home.today.more": {
+    "source": {
+      "one": "{count} more match",
+      "other": "{count} more matches"
+    },
+    "forms": {
+      "one": "{count} بازی دیگر",
+      "other": "{count} بازی دیگر"
+    },
+    "status": "translated"
+  },
+  "home.today.count": {
+    "source": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "forms": {
+      "one": "{count} بازی",
+      "other": "{count} بازی"
+    },
+    "status": "translated"
+  },
   "home.lead.coverage": {
     "source": "Scores coverage:",
     "text": "پوشش نتایج:",
@@ -341,117 +449,9 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "home.lead.how": {
-    "source": "How the model works",
-    "text": "مدل چگونه کار می‌کند",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.three.title": {
-    "source": "Three forecasts, kept apart",
-    "text": "سه پیش‌بینی، جدا از هم",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.title": {
-    "source": "Today’s key matches",
-    "text": "بازی‌های امروز",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.titleOn": {
-    "source": "Key matches · {day}",
-    "text": "بازی‌های مهم · {day}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.model": {
-    "source": "Model",
-    "text": "مدل",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.intro": {
-    "source": "Every competition, grouped in the site’s order of competitions.",
-    "text": "همه‌ی رقابت‌ها، دسته‌بندی‌شده به ترتیب رقابت‌های سایت.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.introMember": {
-    "source": "The teams you follow come first.",
-    "text": "تیم‌هایی که دنبال می‌کنید اول می‌آیند.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.kickoff": {
-    "source": "KO",
-    "text": "ساعت",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.match": {
-    "source": "Match",
-    "text": "بازی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.home": {
-    "source": "Home",
-    "text": "میزبان",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.away": {
-    "source": "Away",
-    "text": "میهمان",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "home.key.yours": {
     "source": "Your teams",
     "text": "تیم‌های شما",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.noForecast": {
-    "source": "No model forecast",
-    "text": "بدون پیش‌بینی مدل",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.more": {
-    "source": {
-      "one": "{count} more match on the scores page",
-      "other": "{count} more matches on the scores page"
-    },
-    "forms": {
-      "one": "{count} بازی دیگر در صفحه‌ی نتایج",
-      "other": "{count} بازی دیگر در صفحه‌ی نتایج"
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.blankNote": {
-    "source": {
-      "one": "{count} match has no model forecast yet, so its cells are blank.",
-      "other": "{count} matches have no model forecast yet, so their cells are blank."
-    },
-    "forms": {
-      "one": "{count} بازی هنوز پیش‌بینی مدل ندارد، پس خانه‌هایش خالی است.",
-      "other": "{count} بازی هنوز پیش‌بینی مدل ندارند، پس خانه‌هایشان خالی است."
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.key.all": {
-    "source": {
-      "one": "All {count} competition on the scores page",
-      "other": "All {count} competitions on the scores page"
-    },
-    "forms": {
-      "one": "همه‌ی {count} رقابت در صفحه‌ی نتایج",
-      "other": "همه‌ی {count} رقابت در صفحه‌ی نتایج"
-    },
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

@@ -234,9 +234,11 @@ describe('plurals (T-301)', () => {
     // T-1431: one added (the competitions and teams the provider named that
     // our catalogue does not hold). T-1441: one added (a player's
     // appearances), two retired (the cards board's red and yellow counts,
-    // now the board's own figure). T-1498: three retired with the Hybrid
-    // band and round (the matches played, the qualifying matches beside
-    // them, the matches more in the round).
+    // now the board's own figure). T-1495: three added (a day's matches, those
+    // a competition's card leaves out, a card's count), three retired (the
+    // key matches' table). T-1498: three retired with the Hybrid band and
+    // round (the matches played, the qualifying matches beside them, the
+    // matches more in the round).
     expect(pluralKeys).toHaveLength(95);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
