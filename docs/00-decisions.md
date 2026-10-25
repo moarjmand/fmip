@@ -12299,6 +12299,24 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **How T-1513 applied it (2026-10-25).** The competitions bar is the Design System's row of pills: each main competition is a rounded pill with a hairline and its logo, the one being read edged in saffron on the raised surface, and "All competitions" comes last in saffron text with an arrow that turns under RTL. Each link is the 44px target, with the pill drawn inside it, and the focus ring sits inside the link so the row's sideways scroll cannot cut it. From 768px only: on a phone the Leagues tab leads to every competition, and the row would push the page down by a line. The looks are CSS utilities keyed on `aria-current`, as the nav's are, so the shell's client chunk does not grow.
 
+## D-270 — The home page opens on the big match, and keeps the blueprint's other sections below the canvas
+
+**Status:** Accepted · 2026-10-25 (decided within the coordinating session's grant, from the canvas, D-263 and the blueprint) · **Task:** T-1495, T-1516 · **Follows:** D-153, D-154, D-200, D-263
+
+**Context.** The canvas boards Home and HomePhone show six blocks: the matches in play, the big match with the model's forecast and the other two voices, today by competition, the "forecast against reality" card, a table excerpt and the model's month in figures. Blueprint 2.3 also asks for news, breaking alerts, friends' predictions, group discussions, panels, broadcasts and the member's teams, which the boards leave out. D-263 point 4 says a big live match takes the hero's slot, without saying what makes a match big.
+
+**Decision.**
+1. A match is big when it is a followed team's, one an editor features (D-153), or one of the first six competitions in the scores answer's order (D-154: the Pro League, the Champions League, the big leagues). The hero ranks by that tier, then a match in play before a scheduled one, then the day, the competitions' order and the kick-off. A live match outside those six never takes the slot; a live match never takes it from a bigger scheduled one (an editor's feature tomorrow beats a big league's match in play today). With nothing in play the slot is the next big match today or tomorrow, else on the first day with one; its label says which ("Live now", "Today's big one", "Tomorrow's big one", "The next big one").
+2. The hero's figures (expected goals, the three likeliest scores, the factors that moved it most, the receipt with version, kind and sample) come from the match's last version computed before kick-off, the one its bar shows; when that version cannot be read the bar falls back to the pre-kick-off summary and the figures are left out.
+3. The three voices stay in their three lanes inside the hero (rule 6), with the note that they are three products.
+4. The page keeps one `<h1>`, "Today", above the blocks with the day and time in the reader's zone; it carries the inline-start accent the RTL check measures. The today block is headed "Matches by competition" (or "Matches · <day>" when today has none).
+5. Today by competition shows six competitions of four matches each, a member's teams first in a card of their own; a card names its round when every match shares one, else its count. The editor's note shows on the hero only.
+6. The live strip lists every match in play (at most eight chips), with when the live answer was last heard from; a stale answer says "behind" beside the minute (rule 4). It is not drawn when nothing is in play.
+7. Below the canvas blocks the page keeps the blueprint's sections as they were: breaking strip, first run, friends' predictions, group discussions, panels, the founder's column, broadcasts, the member's teams, the guest welcome and the news. The lead story (the newest breaking story above the match) is retired: every marked story stays in the breaking strip. The phone's day strip stays the matches page's (T-1496); the home links to it.
+8. The page follows the theme (D-263 point 2); `data-mode="editorial"` leaves it.
+
+**Consequences.** The key-matches table with the model's percentages per row leaves the home; the percentages stay on the matches page. The side column's canvas blocks (the upset card on `GET /model/upset`, D-265; the table excerpt; the month in figures) are T-1516, after T-1507 merges, so the home's first PR stays within the file count.
+
 ## D-271 — The Stadiomind player page: the club only in the photo's ring, facts with their coverage, the career by season in its own box
 
 **Status:** Accepted · 2026-10-25 (agent, under the maintainer's standing approval) · **Task:** T-1500 · **Amends:** D-204 (the Hybrid player page)
