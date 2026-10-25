@@ -4,6 +4,7 @@ import { CommunitySplit } from '@/components/community-consensus';
 import { EntityImage } from '@/components/entity-image';
 import { ForecastBar, type ForecastBarWords } from '@/components/forecast-bar';
 import { InlinePick } from '@/components/prediction-section';
+import { FilledMessage } from '@/components/filled-message';
 import { CardDetails } from '@/components/score-card';
 import { Translated } from '@/components/translated';
 import { Icon } from '@/components/ui';
@@ -12,7 +13,7 @@ import { attribute } from '@/i18n/messages';
 import { isLocked } from '@/lib/prediction-form';
 import { asLocale, matchTitle } from '@/lib/prediction-text';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
-import { formatKickoff, scoreLine } from '@/lib/scores';
+import { formatKickoff, formatStamp, scoreLine, statusLabel } from '@/lib/scores';
 import type { ScoresWords } from '@/lib/words-server';
 
 /**
@@ -29,6 +30,12 @@ import type { ScoresWords } from '@/lib/words-server';
  *
  * `id="pick"`: the row's Pick links here, so on a phone, where this stands
  * above the list, the page scrolls to it.
+ *
+ * T-1545: once the match has started the status stands under the score (a
+ * live 1–1 read as a final one without it) with, while it is live, the time
+ * the score was last updated, since the preview is the page's snapshot and
+ * the list's stream does not reach it (rule 4). A guest after kick-off is told
+ * picks are locked rather than shown an empty "Your pick".
  */
 export function MatchPreview({
   card,
@@ -42,6 +49,7 @@ export function MatchPreview({
   community,
   viewing,
   closeHref,
+  now,
   words,
   forecastWords,
 }: {
@@ -59,6 +67,8 @@ export function MatchPreview({
   viewing: CardViewing | undefined;
   /** The page without this preview; absent where the preview was not asked for. */
   closeHref?: string;
+  /** The page's clock, ms since epoch: a status that is behind says so (T-083). */
+  now: number;
   words: ScoresWords;
   forecastWords: ForecastBarWords;
 }) {
@@ -68,6 +78,8 @@ export function MatchPreview({
   // kick-off every pick is locked and the split is anyone's (D-206).
   const revealed = locked || current !== null;
   const line = scoreLine(card);
+  const started = card.status !== 'scheduled';
+  const live = card.status === 'live';
   const when = `${formatDate(locale, card.kickoff_at, timeZone, { weekday: 'short' })} ${formatKickoff(locale, card.kickoff_at, timeZone)}`;
   const close = attribute(l, 'scores.preview.close');
   const side = (which: 'home' | 'away') => (
@@ -126,30 +138,60 @@ export function MatchPreview({
       </h2>
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5 p-4.5 text-center">
         {side('home')}
-        {line === null ? (
-          <span className="text-sm text-caption">
-            <Translated locale={l} message="scores.preview.versus" />
-          </span>
-        ) : (
-          // Home goals on the home side, in either direction (T-1375).
-          <span
-            className="flex gap-2 text-2xl font-extrabold tabular-nums"
-            data-testid="preview-score"
-          >
-            <span>{formatNumber(locale, line.home)}</span>
-            <span aria-hidden="true" className="text-caption">
-              –
+        <div className="flex flex-col items-center gap-1">
+          {line === null ? (
+            <span className="text-sm text-caption">
+              <Translated locale={l} message="scores.preview.versus" />
             </span>
-            <span>{formatNumber(locale, line.away)}</span>
-          </span>
-        )}
+          ) : (
+            // Home goals on the home side, in either direction (T-1375).
+            <span
+              className={`flex gap-2 text-2xl font-extrabold tabular-nums ${live ? 'text-live' : ''}`}
+              data-testid="preview-score"
+            >
+              <span>{formatNumber(locale, line.home)}</span>
+              <span aria-hidden="true" className="text-caption">
+                –
+              </span>
+              <span>{formatNumber(locale, line.away)}</span>
+            </span>
+          )}
+          {started && (
+            <span
+              className={`text-xs font-bold tabular-nums ${live ? 'text-live' : 'text-muted'}`}
+              data-testid="preview-status"
+              data-status={card.status}
+            >
+              {statusLabel(card, locale, timeZone, now, words.m)}
+            </span>
+          )}
+        </div>
         {side('away')}
+        {live && (
+          <p className="col-span-full text-xs text-caption" data-testid="preview-updated">
+            <FilledMessage
+              message={words.m['scores.updated']}
+              params={{
+                time: (
+                  <time dateTime={card.last_updated_at}>
+                    {formatStamp(locale, card.last_updated_at, timeZone, now)}
+                  </time>
+                ),
+              }}
+            />
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 px-4.5 pb-4.5">
         <h3 className="text-sm font-extrabold">
           <Translated locale={l} message="scores.preview.yourPick" />
         </h3>
+        {locked && me === null && (
+          <p className="text-sm text-muted" data-testid="preview-locked">
+            <Translated locale={l} message="predictions.section.locked" />
+          </p>
+        )}
         <InlinePick
           locale={locale}
           fixture={{
@@ -172,9 +214,12 @@ export function MatchPreview({
             ) : undefined
           }
         />
-        <p className="text-xs leading-normal text-caption">
-          <Translated locale={l} message="predictions.page.pickNote" />
-        </p>
+        {/* What "Make your pick" does, while it can still be pressed. */}
+        {!locked && (
+          <p className="text-xs leading-normal text-caption">
+            <Translated locale={l} message="predictions.page.pickNote" />
+          </p>
+        )}
       </div>
 
       <div
@@ -182,7 +227,8 @@ export function MatchPreview({
         data-testid="preview-model"
       >
         <p className="flex flex-wrap items-center gap-2">
-          <span className="rounded-sm bg-model/15 px-1.5 py-0.5 font-mono text-[0.625rem] font-semibold tracking-wide text-model uppercase [:root:is(:lang(fa),:lang(ar))_&]:font-sans">
+          {/* An outline, not a tint: on its own tint the Day turquoise measured 4.2:1 (T-1545). */}
+          <span className="rounded-sm border border-model px-1.5 py-0.5 font-mono text-[0.625rem] font-semibold tracking-wide text-model uppercase [:root:is(:lang(fa),:lang(ar))_&]:font-sans">
             <Translated locale={l} message="scores.preview.model" />
           </span>
           <span className="text-sm text-muted">
@@ -214,6 +260,7 @@ export function MatchPreview({
           card={card}
           timeZone={timeZone}
           locale={locale}
+          now={now}
           forecast={forecast}
           community={community}
           viewing={viewing}
