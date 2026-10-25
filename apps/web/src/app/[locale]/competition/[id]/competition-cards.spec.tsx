@@ -150,8 +150,19 @@ describe('the header and the section tabs', () => {
     expect(html).toMatch(/aria-current="page"[^>]*data-testid="competition-tab-overview"/);
     expect(html).toMatch(/data-testid="competition-tab-overview"[^>]*border-accent/);
     expect(html).toContain(`href="/en/competition/${ID}?tab=model"`);
-    for (const label of ['Overview', 'Table', 'Matches', 'Players', 'Model in this league', 'News'])
+    for (const label of ['Overview', 'Table', 'Matches', 'Players', 'News'])
       expect(html).toContain(`>${label}</a>`);
+    // The phone board's short "Model", the full name from sm up (T-1558).
+    expect(html).toContain('<span class="sm:hidden">Model</span>');
+    expect(html).toContain('<span class="hidden sm:inline">Model in this league</span>');
+  });
+
+  it('opens the sideways-scrolling tabs at the current one on a phone (T-1558)', () => {
+    const html = header(page(), 'en', 'news');
+    expect(html.match(/scroll-initial-target:nearest/g)).toHaveLength(1);
+    expect(html).toMatch(
+      /aria-current="page"[^>]*data-testid="competition-tab-news"[^>]*scroll-initial-target/,
+    );
   });
 
   it('keeps the open tab in every season’s link, and leads a phone back to the leagues', () => {
@@ -248,6 +259,33 @@ describe('the table', () => {
     expect(html).toContain('>۲۱<');
     expect(html).toContain('+۱۱');
   });
+
+  it('gives the league’s note in Persian on /fa, and marks the English one elsewhere (T-1557)', () => {
+    const noted: LeagueZones = {
+      ...listed,
+      note: 'A tie on points for first place is settled by a play-off.',
+      note_fa: 'اگر دو تیم برای مقام اول هم‌امتیاز شوند، قهرمان در یک دیدار پلی‌آف تعیین می‌شود.',
+    };
+    const at = (locale: string) =>
+      renderToStaticMarkup(
+        <TableCard page={page({ zones: noted })} locale={locale} timeZone="UTC" />,
+      );
+    const fa = at('fa');
+    expect(fa).toContain('<p data-testid="table-zones-note">اگر دو تیم');
+    expect(fa).not.toContain('settled by a play-off');
+    expect(at('en')).toContain('<p data-testid="table-zones-note">A tie on points');
+    // A language with no translation keeps the English, said to be English.
+    expect(at('de')).toContain('<p data-testid="table-zones-note" lang="en" dir="ltr">A tie');
+  });
+
+  it('sets each form letter apart, so Persian letters never join into a word (T-1557)', () => {
+    const html = renderToStaticMarkup(<TableCard page={page()} locale="fa" timeZone="UTC" />);
+    const form = html.slice(html.indexOf('data-testid="form"'));
+    expect(form).toMatch(
+      /^data-testid="form"><span aria-hidden="true" class="inline-flex gap-\[0.2em\]">/,
+    );
+    expect(form).toMatch(/<span data-result="L">ش<\/span><span data-result="W">ب<\/span>/);
+  });
 });
 
 const available: CardForecast = {
@@ -277,6 +315,23 @@ describe('a match row', () => {
       </ul>,
     );
     expect(fa).toMatch(/Liverpool.*dir="rtl"[^>]*data-testid="fixture-score">۲–۱<.*Brighton/);
+  });
+
+  it('lets a long name wrap rather than cutting it short (T-1555)', () => {
+    const long = fixture({
+      home: { ...fixture().home, name: 'Nottingham Forest', short_name: null },
+      away: { ...fixture().away, name: 'Wolverhampton Wanderers', short_name: null },
+    });
+    const html = renderToStaticMarkup(
+      <ul>
+        <MatchLine fixture={long} locale="en" timeZone="UTC" forecast={available} />
+      </ul>,
+    );
+    expect(html).toContain('Nottingham Forest');
+    expect(html).toContain('Wolverhampton Wanderers');
+    expect(html).not.toContain('truncate');
+    expect(html).toMatch(/data-testid="fixture-teams"/);
+    expect(html).toMatch(/class="[^"]*break-words[^"]*"[^>]*data-testid="fixture-teams"/);
   });
 
   it('says a postponed match is postponed and a live one is live', () => {
@@ -321,6 +376,14 @@ describe('a match row', () => {
     expect(renderToStaticMarkup(<ModelFigures locale="fa" forecast={available} />)).toContain(
       '۴۸ · ۲۵ · ۲۷',
     );
+  });
+
+  it('prints whole percentages that total 100, never 101 (blueprint 6.2, T-1555)', () => {
+    const html = renderToStaticMarkup(
+      <ModelFigures locale="en" forecast={{ ...available, home: 40.6, draw: 28.9, away: 30.5 }} />,
+    );
+    expect(html).toContain('40 · 29 · 31');
+    expect(html).toContain('home win 40%, draw 29%, away win 31%');
   });
 });
 
@@ -432,12 +495,13 @@ describe('the model in this league', () => {
     modelVersions: ['dixon-coles-elo@0.6.0'],
     lastUpdatedAt: '2026-10-25T06:00:00.000Z',
   });
-  const card = (model: LeagueModel, locale = 'en') =>
+  const card = (model: LeagueModel, locale = 'en', pastSeason = false) =>
     renderToStaticMarkup(
       <ModelCard
         model={model}
         locale={locale}
         timeZone="UTC"
+        pastSeason={pastSeason}
         more={{
           href: `/${locale}/competition/${ID}?tab=model`,
           label: 'competitionPage.model.more',
@@ -471,6 +535,13 @@ describe('the model in this league', () => {
     expect(html).not.toContain('%<');
   });
 
+  it('says of an older season that nothing in it was scored (T-1556)', () => {
+    const html = card({ state: 'not_supplied' }, 'en', true);
+    expect(html).toContain('in this season has been scored');
+    expect(html).toContain('data-coverage-badge="not_supplied"');
+    expect(card({ state: 'not_supplied' }, 'fa', true)).toContain('این فصل');
+  });
+
   it('says the accuracy could not be loaded, with no badge pretending to know', () => {
     const html = card({ state: 'unreachable' });
     expect(html).toContain('data-testid="league-model-unreachable"');
@@ -491,6 +562,11 @@ describe('the model in this league', () => {
     expect(html).toContain('All months');
     expect(html).toContain('dixon-coles-elo@0.6.0');
     expect(html).toContain('not counted');
+    // Wider than a phone: its own box a keyboard can reach and scroll (T-1558).
+    expect(html).toMatch(
+      /role="region" aria-labelledby="league-model-months-heading" tabindex="0"/,
+    );
+    expect(html).toContain('id="league-model-months-heading"');
     expect(
       renderToStaticMarkup(<ModelMonths model={{ state: 'not_supplied' }} locale="en" />),
     ).toBe('');
