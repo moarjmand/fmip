@@ -156,7 +156,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('carry', () =
     const push = pushes.filter((p) => p.userId === ids.get(ada));
     expect(push).toHaveLength(1);
     expect(push[0]).toMatchObject({
-      title: 'FMIP',
+      title: 'Stadiomind',
       body: `${bob} sent you a friend request.`,
       url: `/en/u/${bob}`,
     });

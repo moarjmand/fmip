@@ -60,7 +60,7 @@ describe('vapidSettingsFromEnv', () => {
 describe('WebPushChannel', () => {
   const push = {
     userId: 'u',
-    title: 'FMIP',
+    title: 'Stadiomind',
     body: 'ada sent you a friend request.',
     url: '/en/u/ada',
   };
@@ -77,7 +77,7 @@ describe('WebPushChannel', () => {
       'https://push.example/d2',
     ]);
     expect(JSON.parse(sent[0]!.payload)).toEqual(
-      push.userId ? { title: 'FMIP', body: push.body, url: push.url } : null,
+      push.userId ? { title: 'Stadiomind', body: push.body, url: push.url } : null,
     );
     expect(touched).toEqual(['d1', 'd2']);
     expect(channel.provider).toBe('webpush');

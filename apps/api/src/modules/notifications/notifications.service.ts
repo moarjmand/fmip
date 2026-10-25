@@ -84,7 +84,7 @@ export const CARRY_PAGE = 100;
  */
 export const DRAIN_BOUNDS: DrainBounds = { maxPasses: 500, maxMs: 4 * 60_000 };
 /** The push's title; the sentence is its body. */
-const PUSH_TITLE = 'FMIP';
+const PUSH_TITLE = 'Stadiomind';
 
 /**
  * Emitting in-product notifications (blueprint 12.2, T-271).

@@ -108,6 +108,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('/auth', () =
     expect(mailer.sent).toHaveLength(1);
     expect(mailer.sent[0]?.to).toBe(registration.email);
     expect(mailer.sent[0]?.text).toContain('http://web.test/en/verify-email?token=');
+    // The product's public name, never the working one (T-1504, D-262).
+    expect(mailer.sent[0]?.subject).toBe('Verify your Stadiomind e-mail address');
+    expect(mailer.sent[0]?.text).not.toContain('FMIP');
     verifyToken = tokenFromMail(mailer.sent[0]?.text ?? '');
   });
 
@@ -259,6 +262,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('/auth', () =
     expect(known.json()).toEqual(unknown.json());
     expect(mailer.sent.length).toBe(before + 1);
     expect(mailer.sent.at(-1)?.text).toContain('http://web.test/en/reset-password?token=');
+    expect(mailer.sent.at(-1)?.subject).toBe('Reset your Stadiomind password');
+    expect(mailer.sent.at(-1)?.text).not.toContain('FMIP');
   });
 
   it('resets the password, revokes every session, and spends the token', async () => {

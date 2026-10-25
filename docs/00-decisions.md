@@ -12212,6 +12212,8 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **How T-1503 applied it (2026-10-25).** Every page title, the root metadata, Open Graph's site name, the structured data, the manifest (name and short name), the iOS home-screen title, the share cards, the push notification's fallback title in the service worker and the header say Stadiomind. The header's wordmark is set as the Design System sets it: Archivo 850 at 125% width, in capitals by CSS so a screen reader says the name and not its letters; it fits a 320 px phone. All nine catalogues changed in the English source each translation records as well as in its text, so no translation turned stale by the rename, and the Persian text keeps the name in Latin letters (point 4). Comments, packages and identifiers keep FMIP (point 5).
 
+**How T-1504 applied it (2026-10-25).** The API's reader-facing text says Stadiomind: the verification and password-reset e-mail subjects, the push title of match alerts and notifications, and the first line of the daily, results and weekly channel posts. The sender's display name is not in the code: it is `DELIVERY_EMAIL_FROM` in the server's `.env`, whose examples (the API's boot error, `deploy/check-setup.sh`, `docs/14-maintainer.md`) now show `Stadiomind <no-reply@your-domain>`. The news crawler's user agent (`fmip-news`) is an identifier publishers' robots rules name, and stays (point 5).
+
 ## D-263 — The Stadiomind visual system replaces the Hybrid palette and display faces
 
 **Status:** Accepted · 2026-10-25 (the maintainer's answers on the redesign canvas, 2026-10-24 and 25) · **Task:** T-1491 · **Supersedes:** D-198 in its palette, display faces and brand colour; keeps its theme switch and the three-voice rule · **Follows:** D-089, D-207

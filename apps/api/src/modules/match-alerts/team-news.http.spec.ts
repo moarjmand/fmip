@@ -276,7 +276,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(pushesTo('on')).toEqual([
         {
           userId: members.get('on'),
-          title: 'FMIP',
+          title: 'Stadiomind',
           body: 'Team news: Saka (News Home) will miss News Home v News Away, injured.',
           url: `/en/match/${FIXTURE}#lineups`,
         },
