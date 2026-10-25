@@ -130,3 +130,25 @@ export function leadersModule<S, L>(
     result.unproven > 0 && scorers.coverage === 'available' ? 'limited' : scorers.coverage;
   return { coverage, last_updated_at: scorers.last_updated_at, data: result.leaders };
 }
+
+/**
+ * The club's top scorers in a season (T-1528, D-275): the season's scorers
+ * cut to goals for `teamId`, every player level on the most, by name then
+ * id. The module's coverage and last update pass through, so a club with
+ * no recorded goal is an empty list under the season's state, and a season
+ * with no incidents stays `not_supplied` -- never a scorer on nought.
+ */
+export function teamTopScorers<T extends { person: { id: string; name: string }; goals: number }>(
+  module: Covered<(T & { team: { id: string } | null })[]>,
+  teamId: string,
+): Covered<T[]> {
+  if (module.data === null) return { ...module, data: null };
+  const own = module.data.filter((row) => row.team?.id === teamId && row.goals > 0);
+  const most = Math.max(0, ...own.map((row) => row.goals));
+  const top = own
+    .filter((row) => row.goals === most)
+    .sort(
+      (a, b) => compareText(a.person.name, b.person.name) || compareText(a.person.id, b.person.id),
+    );
+  return { ...module, data: top };
+}

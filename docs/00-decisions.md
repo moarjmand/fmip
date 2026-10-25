@@ -12279,3 +12279,14 @@ replaces D-089's self-hosting arrangement for no gain here).
 **Consequences.** `tokens.css` keeps the editorial block for the pages not yet rebuilt; nothing in the shell carries the mark any more. The old catalogue keys for Today and the old tabs left all nine catalogues; the new ones are in Persian for /fa. The competition pills' own look (rounded pills, "All competitions" at the end, phones without them) is T-1513.
 
 **How T-1513 applied it (2026-10-25).** The competitions bar is the Design System's row of pills: each main competition is a rounded pill with a hairline and its logo, the one being read edged in saffron on the raised surface, and "All competitions" comes last in saffron text with an arrow that turns under RTL. Each link is the 44px target, with the pill drawn inside it, and the focus ring sits inside the link so the row's sideways scroll cannot cut it. From 768px only: on a phone the Leagues tab leads to every competition, and the row would push the page down by a line. The looks are CSS utilities keyed on `aria-current`, as the nav's are, so the shell's client chunk does not grow.
+
+## D-275 — The club page's top scorer is counted from our recorded goals, per competition
+
+**Status:** Accepted · 2026-10-25 · **Task:** T-1528 (split from T-1499)
+
+**Context.** The Club board shows a top scorer ("TOP SCORER · PL"). `GET /teams/:id` had none, and the competition page's scorers list stops at its top rows, so a club's best scorer may not be in it.
+
+**Decision.** `TeamPage.top_scorers` holds one entry per `competitions` entry: the season's scorers as the competition page counts them (our goal incidents of the main competition, D-209, D-232; `limited` while the season's recorded goals fall short of its scores) cut to goals for this club, and every player level on the most, by name. A club with no recorded goal is an empty list under the season's state; a season with no incidents is `not_supplied`. The provider's season totals, the competition page's fallback when we hold no incidents (D-232), are not read here: such a season answers `not_supplied`. Starts are not shown, since they are not counted for this figure.
+
+**Consequences.** Two more queries per competition on the team page (the season's scorers, its incident tally). The field is optional, so a web page in front of an older API reads it as `not_supplied`.
+
