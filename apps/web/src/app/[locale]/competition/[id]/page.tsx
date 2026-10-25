@@ -2,33 +2,27 @@ import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
 import type { CompetitionPage as Page, Covered } from '@fmip/contracts';
+import { MAX_FORECAST_FIXTURES } from '@fmip/contracts';
 import {
   BOARDS,
   BoardList,
-  CompetitionBand,
   CompetitionFollow,
   CoveragePanel,
-  CoveredPanel,
   LeagueNumbersPanel,
   LiveFreshness,
-  MatchweekPanel,
-  MoreLink,
-  NoTableNote,
-  ProjectionNote,
   QualifyingNote,
-  RoundsPanel,
   ProviderTotalsNote,
   ScorerList,
-  ZoneLegend,
 } from '@/components/competition-page';
 import type { FreshnessWords } from '@/components/freshness-stamp';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { KnockoutBracket } from '@/components/knockout-bracket';
 import { EntityNews } from '@/components/related-news';
-import { GroupTables, StandingsTable, showsLeagueTable } from '@/components/standings-table';
+import { GroupTables, showsLeagueTable } from '@/components/standings-table';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
+import { formatNumber } from '@/i18n/format';
 import { message } from '@/i18n/messages';
 import {
   fetchCompetition,
@@ -37,6 +31,7 @@ import {
   fetchForecastSummaries,
   fetchFounderFeed,
   fetchMe,
+  fetchModelAccuracy,
 } from '@/lib/api';
 import {
   competitionQuery,
@@ -48,11 +43,14 @@ import {
 } from '@/lib/competition';
 import {
   type CompetitionTab,
-  type Matchweek,
+  type LeagueModel,
   availableTabs,
   currentMatchweek,
   hasTable,
+  lastResultDay,
+  leagueModel,
   leagueNumbers,
+  nextMatchDay,
   readTabParam,
   roundGroups,
   tabHref,
@@ -60,15 +58,23 @@ import {
 import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { competitionJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { forecastBarWords } from '@/lib/words-server';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
+import {
+  Card,
+  CoveredCard,
+  DayCard,
+  Empty,
+  ModelCard,
+  ModelMonths,
+  ResultsCard,
+  RoundsCard,
+  TableCard,
+} from './competition-cards';
+import { CompetitionHeader } from './competition-header';
 
 export const dynamic = 'force-dynamic';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Scorers on the Overview's short list (T-1385); the Players tab has them all. */
-const OVERVIEW_SCORERS = 5;
 
 export async function generateMetadata({
   params,
@@ -100,12 +106,12 @@ export async function generateMetadata({
 }
 
 /**
- * The model's latest pre-kick-off forecast for each match of the Overview's
- * round (T-1385): one request for the whole round (at most
- * `MATCHWEEK_LIMIT`), never one per match. A request that fails marks every
- * match `unreachable`, which the bar says in words (rule 3).
+ * The model's latest pre-kick-off forecast for each of these matches: one
+ * request for all of them (at most `MAX_FORECAST_FIXTURES`), never one per
+ * match. A request that fails marks every match `unreachable`, which the row
+ * says in words (rule 3).
  */
-async function roundForecasts(ids: string[]): Promise<Record<string, CardForecast>> {
+async function forecastsFor(ids: string[]): Promise<Record<string, CardForecast>> {
   if (ids.length === 0) return {};
   const answer = await fetchForecastSummaries(ids);
   const found = new Map(
@@ -119,16 +125,24 @@ async function roundForecasts(ids: string[]): Promise<Record<string, CardForecas
   );
 }
 
+/** The fixtures still to come that the Matches tab asks the model about, soonest first. */
+function upcoming(page: Page): string[] {
+  return page.fixtures
+    .filter((f) => f.status === 'scheduled' || f.status === 'live')
+    .slice(0, MAX_FORECAST_FIXTURES)
+    .map((f) => f.id);
+}
+
 /**
- * The competition page (blueprint 5.1, T-035), in the Hybrid design's data
- * mode (T-1385, D-203): on the stage, following Day and Night, under a band
- * in the brand's colours with the follow button, and in tabs. It opens on
- * the Overview -- the table's summary, this round's matches with the model's
- * three-way, the top scorers, the season in figures and the news -- and the
- * other tabs hold what the page always had: the full table with its groups
- * and knockout rounds, fixtures and results by round, the players' boards,
- * and the coverage. Every module states its coverage; none is drawn as if
- * it had data it does not (rule 3). An unreachable API is said out loud.
+ * The competition page (blueprint 5.1, T-035) in the Stadiomind design
+ * (T-1498, D-274): the header with the season menu, follow and the section
+ * tabs, then the tab. The Overview is the canvas's: the full table with the
+ * form, and beside it the day's matches with the model's percentages, the
+ * latest results and the model in this league with its coverage badge; the
+ * season's coverage closes it. Table, Matches, Players, the model's months
+ * and News are tabs of their own. Every module states its coverage; none is
+ * drawn as if it had data it does not (rule 3). An unreachable API is said
+ * out loud.
  */
 export default async function CompetitionPage({
   params,
@@ -142,22 +156,22 @@ export default async function CompetitionPage({
   const seasonParam = readSeasonParam(query);
   const minMinutes = readMinMinutesParam(query);
   const requested = readTabParam(query);
-  const overview = requested === 'overview';
   const cookie = await sessionCookieHeader();
-  const [result, me, following, founder, news] = await Promise.all([
+  const [result, me, following, founder, news, accuracy] = await Promise.all([
     fetchCompetition(id, competitionQuery(seasonParam, minMinutes), locale),
     fetchMe(cookie),
     fetchFollowing(cookie),
-    // The Overview's own modules; the other tabs do not ask for them.
-    overview ? fetchFounderFeed({ competition: id, limit: 3 }) : null,
-    overview ? fetchEntityNews('competition', id, locale) : null,
+    // Each tab asks only for its own modules.
+    requested === 'news' ? fetchFounderFeed({ competition: id, limit: 3 }) : null,
+    requested === 'news' ? fetchEntityNews('competition', id, locale) : null,
+    requested === 'overview' || requested === 'model' ? fetchModelAccuracy('month') : null,
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
     return (
       <main data-mode="data" className="pb-16">
         <div className="page-frame flex flex-col gap-4 pt-8">
-          <h1 className="text-2xl font-semibold">
+          <h1 className="text-2xl font-extrabold font-stretch-semi-expanded">
             <Translated locale={locale} message="competitionPage.title" />
           </h1>
           <Notice tone="danger" data-testid="competition-unreachable">
@@ -171,31 +185,33 @@ export default async function CompetitionPage({
   const { timeZone } = await pageTimeZone(locale, me);
   const tabs = availableTabs(page);
   const tab: CompetitionTab = tabs.includes(requested) ? requested : 'overview';
-  const matchweek = currentMatchweek(locale, page);
+  // The moment this answer is rendered: what the next match day and a live list's age count from (rule 4).
+  const now = new Date().getTime();
+  const day = tab === 'overview' ? nextMatchDay(page, timeZone, now) : null;
   const forecasts =
-    tab === 'overview' && matchweek !== null
-      ? await roundForecasts(matchweek.fixtures.map((f) => f.id))
-      : {};
+    tab === 'overview' && day !== null
+      ? await forecastsFor(day.fixtures.slice(0, MAX_FORECAST_FIXTURES).map((f) => f.id))
+      : tab === 'matches'
+        ? await forecastsFor(upcoming(page))
+        : {};
+  const model = leagueModel(accuracy?.ok === true ? accuracy.data : null, page.competition.id);
   const l = pageLocale(locale);
   const freshnessWords: FreshnessWords = {
     'freshness.checked': message(l, 'freshness.checked'),
     'freshness.behind': message(l, 'freshness.behind'),
   };
-  // The moment this answer is rendered: how old a live list's last change is (rule 4).
-  const now = new Date().getTime();
   const ctx = { page, locale, timeZone, now, freshnessWords };
 
   return (
     <main data-mode="data" className="pb-16" data-testid="competition-page" data-tab={tab}>
       <JsonLd data={competitionJsonLd(locale, page)} />
-      <CompetitionBand
+      <CompetitionHeader
         page={page}
         locale={locale}
-        timeZone={timeZone}
         tab={tab}
         tabs={tabs}
         minMinutes={minMinutes}
-        matchweek={matchweek}
+        matchweek={currentMatchweek(locale, page)}
         follow={
           <CompetitionFollow
             locale={locale}
@@ -206,52 +222,46 @@ export default async function CompetitionPage({
           />
         }
       />
-      <div className="page-frame flex flex-col gap-5 pt-6">
+      <div className="page-frame flex flex-col gap-5 pt-5 sm:pt-6">
         {tab === 'overview' && (
-          <Overview
-            {...ctx}
-            matchweek={matchweek}
-            forecasts={forecasts}
+          <>
+            <div className="flex flex-wrap items-start gap-5 lg:gap-6">
+              <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-5">
+                <TableModules page={page} locale={locale} timeZone={timeZone} />
+              </div>
+              <div className="flex min-w-0 flex-[1_1_21rem] flex-col gap-5">
+                <DayCard {...ctx} day={day} forecasts={forecasts} />
+                <ResultsCard
+                  day={lastResultDay(page, timeZone, day?.day ?? null)}
+                  locale={locale}
+                  timeZone={timeZone}
+                />
+                <ModelCard
+                  model={model}
+                  locale={locale}
+                  timeZone={timeZone}
+                  more={{
+                    href: tabHref(locale, page.competition.id, page.season, 'model'),
+                    label: 'competitionPage.model.more',
+                  }}
+                />
+              </div>
+            </div>
+            <CoveragePanel page={page} locale={locale} timeZone={timeZone} />
+          </>
+        )}
+        {tab === 'table' && <TableTab {...ctx} />}
+        {tab === 'matches' && <MatchesTab {...ctx} forecasts={forecasts} />}
+        {tab === 'players' && <PlayersTab page={page} locale={locale} timeZone={timeZone} />}
+        {tab === 'model' && <ModelTab model={model} locale={locale} timeZone={timeZone} />}
+        {tab === 'news' && (
+          <NewsTab
+            page={page}
+            locale={locale}
+            timeZone={timeZone}
             founder={founder?.ok === true ? founder.data.analyses : []}
             news={news?.ok === true ? news.data : null}
           />
-        )}
-        {tab === 'table' && <TableTab {...ctx} />}
-        {tab === 'fixtures' && (
-          <RoundsPanel
-            testId="fixtures"
-            title={<Translated locale={locale} message="competitionPage.fixtures" />}
-            groups={roundGroups(locale, page.fixtures)}
-            empty={<Translated locale={locale} message="competitionPage.noFixtures" />}
-            locale={locale}
-            timeZone={timeZone}
-            freshness={
-              <LiveFreshness
-                fixtures={page.fixtures}
-                checkedAt={page.last_updated_at}
-                now={now}
-                locale={locale}
-                words={freshnessWords}
-              />
-            }
-          />
-        )}
-        {tab === 'results' && (
-          <RoundsPanel
-            testId="results"
-            title={<Translated locale={locale} message="competitionPage.results" />}
-            groups={roundGroups(locale, page.results)}
-            empty={<Translated locale={locale} message="competitionPage.noResults" />}
-            locale={locale}
-            timeZone={timeZone}
-          />
-        )}
-        {tab === 'players' && <PlayersTab page={page} locale={locale} timeZone={timeZone} />}
-        {tab === 'stats' && (
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
-            <LeagueNumbersPanel numbers={leagueNumbers(page.results)} locale={locale} />
-            <CoveragePanel page={page} locale={locale} timeZone={timeZone} />
-          </div>
         )}
       </div>
     </main>
@@ -267,194 +277,179 @@ interface TabProps {
 }
 
 /**
- * The Overview (T-1385): the table's summary first (or, for a cup with no
- * table, the sentence that says so), then this round, the top scorers and
- * the season in figures beside it, and the news and the founder's analysis
- * under it. On a phone it is one column in that order.
- */
-function Overview({
-  page,
-  locale,
-  timeZone,
-  now,
-  freshnessWords,
-  matchweek,
-  forecasts,
-  founder,
-  news,
-}: TabProps & {
-  matchweek: Matchweek | null;
-  forecasts: Record<string, CardForecast>;
-  founder: Parameters<typeof FounderAnalysisFeed>[0]['analyses'];
-  news: Parameters<typeof EntityNews>[0]['news'];
-}) {
-  const c = page.competition;
-  return (
-    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)] lg:grid-rows-[auto_1fr]">
-      <div className="flex min-w-0 flex-col gap-5">
-        {hasTable(page) ? (
-          <TableModules page={page} locale={locale} timeZone={timeZone} summary />
-        ) : (
-          <NoTableNote locale={locale} />
-        )}
-      </div>
-      <div className="flex min-w-0 flex-col gap-5 lg:row-span-2">
-        <MatchweekPanel
-          matchweek={matchweek}
-          page={page}
-          locale={locale}
-          timeZone={timeZone}
-          forecasts={forecasts}
-          forecastWords={forecastBarWords(locale)}
-          freshness={
-            <LiveFreshness
-              fixtures={matchweek?.fixtures ?? []}
-              checkedAt={page.last_updated_at}
-              now={now}
-              locale={locale}
-              words={freshnessWords}
-            />
-          }
-        />
-        <CoveredPanel
-          locale={locale}
-          timeZone={timeZone}
-          title={<Translated locale={locale} message="competitionPage.topScorers" />}
-          module={page.leaders}
-          testId="leaders"
-          empty={
-            page.leaders_filter.min_minutes !== null && page.leaders.data !== null ? (
-              <Translated locale={locale} message="competition.leaders.noneReach" />
-            ) : undefined
-          }
-          intro={<QualifyingNote results={page.results} locale={locale} />}
-          footer={
-            (page.leaders.data ?? []).length > 0 ? (
-              <MoreLink href={tabHref(locale, c.id, page.season, 'players')}>
-                <Translated locale={locale} message="competitionPage.allPlayers" />
-              </MoreLink>
-            ) : undefined
-          }
-        >
-          {(leaders) => <ScorerList leaders={leaders} locale={locale} limit={OVERVIEW_SCORERS} />}
-        </CoveredPanel>
-        <LeagueNumbersPanel numbers={leagueNumbers(page.results)} locale={locale} />
-      </div>
-      <div className="flex min-w-0 flex-col gap-5">
-        {/* The news module's own heading, set in the panels' style. */}
-        <div className="rounded-card border border-default bg-surface p-4 sm:p-5 [&_h2]:text-sm [&_h2]:font-extrabold [&_h2]:uppercase ltr:[&_h2]:tracking-wider">
-          <EntityNews locale={locale} timeZone={timeZone} news={news} />
-        </div>
-        {founder.length > 0 && (
-          <div className="rounded-card border border-default border-t-3 border-t-founder bg-surface p-4 sm:p-5 [&_h2]:text-sm [&_h2]:font-extrabold">
-            <FounderAnalysisFeed
-              analyses={founder}
-              locale={locale}
-              timeZone={timeZone}
-              heading={say(locale, 'competitionPage.founderHeading', { name: c.name })}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/**
  * The season's tables (T-1336): the league table when it has rows or no
- * group stage, every group's table when there is one. `summary` is the
- * Overview's: the ranking columns and a link to the whole.
+ * group stage, every group's table when there is one, and for a cup played
+ * only in knockout rounds the sentence that it has no table.
  */
 function TableModules({
   page,
   locale,
   timeZone,
-  summary = false,
 }: {
   page: Page;
   locale: string;
   timeZone: string;
-  summary?: boolean;
 }) {
-  const c = page.competition;
-  // The model's season projection is a league's: a planned slot, never a figure (D-203).
-  const projection = c.kind === 'league';
-  const full = tabHref(locale, c.id, page.season, 'table');
+  if (!hasTable(page)) {
+    return (
+      <Card testId="no-table" title={say(locale, 'competitionPage.tab.table')}>
+        <Empty testId="no-table" locale={locale}>
+          <Translated locale={locale} message="competitionPage.noTable" />
+        </Empty>
+      </Card>
+    );
+  }
   return (
     <>
-      {showsLeagueTable(page) && (
-        <CoveredPanel
-          locale={locale}
-          timeZone={timeZone}
-          title={
-            <Translated
-              locale={locale}
-              message={summary ? 'competitionPage.tableSummary' : 'competitionPage.table'}
-            />
-          }
-          module={page.table}
-          testId="table"
-          footer={
-            <>
-              {!summary && <ZoneLegend locale={locale} zones={page.zones} />}
-              {(page.table.data ?? []).length > 0 && (
-                <p className="text-xs text-muted" data-testid="form-order">
-                  <Translated locale={locale} message="competitionPage.formOrder" />
-                </p>
-              )}
-              {projection && <ProjectionNote locale={locale} />}
-              {summary && (page.table.data ?? []).length > 0 && (
-                <MoreLink href={full}>
-                  <Translated locale={locale} message="competitionPage.fullTable" />
-                </MoreLink>
-              )}
-            </>
-          }
-        >
-          {(rows) => (
-            <StandingsTable
-              rows={rows}
-              locale={locale}
-              zones={page.zones}
-              summary={summary}
-              projection={projection}
-            />
-          )}
-        </CoveredPanel>
-      )}
+      {showsLeagueTable(page) && <TableCard page={page} locale={locale} timeZone={timeZone} />}
       {page.group_tables !== null && (
-        <CoveredPanel
-          locale={locale}
-          timeZone={timeZone}
+        <CoveredCard
+          testId="group-tables"
           title={<Translated locale={locale} message="competitionPage.groupTables" />}
           module={page.group_tables}
-          testId="group-tables"
-          footer={
-            summary ? (
-              <MoreLink href={full}>
-                <Translated locale={locale} message="competitionPage.fullTable" />
-              </MoreLink>
-            ) : undefined
-          }
+          locale={locale}
+          timeZone={timeZone}
         >
-          {(groups) => <GroupTables groups={groups} locale={locale} summary={summary} />}
-        </CoveredPanel>
+          {(groups) => <GroupTables groups={groups} locale={locale} />}
+        </CoveredCard>
       )}
     </>
   );
 }
 
-/** The Table tab: every table, then the knockout rounds of a cup that plays them (T-630). */
+/** The Table tab: every table, a cup's knockout rounds (T-630), and the season in figures. */
 function TableTab({ page, locale, timeZone }: TabProps) {
   return (
     <>
       {hasTable(page) && <TableModules page={page} locale={locale} timeZone={timeZone} />}
       {page.bracket !== null && (
-        <div className="rounded-card border border-default bg-surface p-4 sm:p-5 [&_h2]:text-sm [&_h2]:font-extrabold [&_h2]:uppercase ltr:[&_h2]:tracking-wider">
+        <div className="rounded-tile border border-default bg-surface p-4 sm:p-4.5 [&_h2]:text-lg [&_h2]:font-extrabold">
           <KnockoutBracket bracket={page.bracket} locale={locale} timeZone={timeZone} />
         </div>
       )}
+      <LeagueNumbersPanel numbers={leagueNumbers(page.results)} locale={locale} />
     </>
+  );
+}
+
+/** The Matches tab: the fixtures to come with the model's percentages, then the results, by round. */
+function MatchesTab({
+  page,
+  locale,
+  timeZone,
+  now,
+  freshnessWords,
+  forecasts,
+}: TabProps & { forecasts: Record<string, CardForecast> }) {
+  const asked = Object.keys(forecasts).length;
+  const toCome = page.fixtures.filter((f) => f.status === 'scheduled' || f.status === 'live');
+  return (
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+      <RoundsCard
+        testId="fixtures"
+        title={<Translated locale={locale} message="competitionPage.fixtures" />}
+        groups={roundGroups(locale, page.fixtures)}
+        empty={<Translated locale={locale} message="competitionPage.noFixtures" />}
+        locale={locale}
+        timeZone={timeZone}
+        forecasts={forecasts}
+        aside={
+          <>
+            <LiveFreshness
+              fixtures={page.fixtures}
+              checkedAt={page.last_updated_at}
+              now={now}
+              locale={locale}
+              words={freshnessWords}
+            />
+            {asked > 0 && (
+              <span className="text-xs font-semibold text-model">
+                <Translated locale={locale} message="competitionPage.day.modelHead" />
+              </span>
+            )}
+          </>
+        }
+        footer={
+          toCome.length > asked
+            ? say(locale, 'competitionPage.matches.modelFirst', {
+                number: formatNumber(locale, asked),
+              })
+            : undefined
+        }
+      />
+      <RoundsCard
+        testId="results"
+        title={<Translated locale={locale} message="competitionPage.results" />}
+        groups={roundGroups(locale, page.results)}
+        empty={<Translated locale={locale} message="competitionPage.noResults" />}
+        locale={locale}
+        timeZone={timeZone}
+      />
+    </div>
+  );
+}
+
+/** The Model tab: the model in this league, then month by month (T-1498). */
+function ModelTab({
+  model,
+  locale,
+  timeZone,
+}: {
+  model: LeagueModel;
+  locale: string;
+  timeZone: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-start gap-5">
+      <div className="flex min-w-0 flex-[1_1_21rem] flex-col gap-5">
+        <ModelCard
+          model={model}
+          locale={locale}
+          timeZone={timeZone}
+          more={{ href: `/${locale}/model-accuracy`, label: 'competitionPage.model.record' }}
+        />
+      </div>
+      <div className="flex min-w-0 flex-[999_1_36rem] flex-col gap-5">
+        <ModelMonths model={model} locale={locale} />
+      </div>
+    </div>
+  );
+}
+
+/** The News tab: related news, then the founder's analysis of this competition in its own box (rule 6). */
+function NewsTab({
+  page,
+  locale,
+  timeZone,
+  founder,
+  news,
+}: {
+  page: Page;
+  locale: string;
+  timeZone: string;
+  founder: Parameters<typeof FounderAnalysisFeed>[0]['analyses'];
+  news: Parameters<typeof EntityNews>[0]['news'];
+}) {
+  const box =
+    'rounded-tile border border-default bg-surface p-4 sm:p-4.5 [&_h2]:text-lg [&_h2]:font-extrabold';
+  return (
+    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
+      <div className={box}>
+        <EntityNews locale={locale} timeZone={timeZone} news={news} />
+      </div>
+      {founder.length > 0 && (
+        <div className={box}>
+          <FounderAnalysisFeed
+            analyses={founder}
+            locale={locale}
+            timeZone={timeZone}
+            heading={say(locale, 'competitionPage.founderHeading', {
+              name: page.competition.name,
+            })}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -465,7 +460,7 @@ function PlayersTab({ page, locale, timeZone }: { page: Page; locale: string; ti
   return (
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
       {page.leaders_source === 'provider_totals' && <ProviderTotalsNote locale={locale} />}
-      <CoveredPanel
+      <CoveredCard
         locale={locale}
         timeZone={timeZone}
         title={<Translated locale={locale} message="competitionPage.topScorers" />}
@@ -528,14 +523,14 @@ function PlayersTab({ page, locale, timeZone }: { page: Page; locale: string; ti
         }
       >
         {(leaders) => <ScorerList leaders={leaders} locale={locale} />}
-      </CoveredPanel>
+      </CoveredCard>
       {BOARDS.map((board) => {
         const boardModule = page.boards[board.key] as Covered<
           Parameters<typeof BoardList>[0]['rows']
         >;
         const unproven = page.boards.unproven[board.key];
         return (
-          <CoveredPanel
+          <CoveredCard
             locale={locale}
             timeZone={timeZone}
             key={board.key}
@@ -562,7 +557,7 @@ function PlayersTab({ page, locale, timeZone }: { page: Page; locale: string; ti
             }
           >
             {(rows) => <BoardList rows={rows} board={board.key} locale={locale} />}
-          </CoveredPanel>
+          </CoveredCard>
         );
       })}
     </div>
