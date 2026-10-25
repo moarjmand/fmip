@@ -245,7 +245,8 @@ describe('plurals (T-301)', () => {
     // T-1519: seven retired with the old Predictions page (a day's matches,
     // the matches left out, the earlier versions, the consensus list's two
     // counts, a leaderboard entry and a provisional one).
-    expect(pluralKeys).toHaveLength(90);
+    // T-1540: one added (a league's matches in the model's month).
+    expect(pluralKeys).toHaveLength(91);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

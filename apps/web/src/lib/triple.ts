@@ -41,6 +41,20 @@ export function sharesToPercentages(triple: Triple): Triple {
 }
 
 /**
+ * Three percentages as whole numbers totalling exactly 100, for a surface
+ * that prints "45 · 25 · 30" (T-1555): rounding each on its own can print
+ * 41 · 29 · 31. The largest absorbs the gap, as `sharesToPercentages` does.
+ */
+export function wholePercentages(percent: Triple): Triple {
+  const values = [percent.home, percent.draw, percent.away].map((value) => Math.round(value));
+  const gap = 100 - values.reduce((sum, value) => sum + value, 0);
+  const exact = [percent.home, percent.draw, percent.away];
+  const largest = exact.indexOf(Math.max(...exact));
+  values[largest] = (values[largest] ?? 0) + gap;
+  return { home: values[0] ?? 0, draw: values[1] ?? 0, away: values[2] ?? 0 };
+}
+
+/**
  * `a - b`, outcome by outcome, in whatever unit both were in.
  *
  * This is the comparison blueprint 4.2 asks for between the community forecast

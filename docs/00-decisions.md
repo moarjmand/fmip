@@ -12352,6 +12352,8 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **How T-1516 applied it (2026-10-25).** The side column takes the canvas's three blocks. "Forecast against reality" reads `GET /model/upset` (D-265) for the reader's day and zone, in the same round as the scores: the score, the three probabilities as a bar with the outcome that happened in saffron (`bg-accent`, the one place the model's bar takes the moment's colour), the share the model gave it, how many matches it was chosen from, its version, kind and computation time, and the way to the match. No such match is `not_supplied` with its reason in words, no answer is "could not be loaded"; the card is never an empty frame. HomePhone puts it straight after the hero, so the page draws it twice and shows one: after the hero below 1024 px, atop the side column above. The canvas's possession and xG sentence is not in the API and is left out rather than written by hand. The table excerpt is the first competition's top six with its season, coverage and last update. The model's month asks `GET /model/accuracy` by month (it asked by week since T-1414): the newest month with a match scored, how often the favourite won on how many matches, how much better (or worse) its RPS was than a uniform guess with both figures, the same share per competition (at most six, the most accurate first; a competition with nothing scored that month is left out), and a "limited" line naming the minimum when any figure is under it.
 
+**How the home review applied it (T-1540, 2026-10-26).** "The most accurate first" put a league with 17 matches above the Champions League's 36, and five of the six were under the minimum with nothing on their row to say so. The leagues on at least the minimum now come first, the most accurate first among them, then the limited ones; every row says how many matches it is on, and a limited row is dimmed and named for a screen reader. The "limited" line under the list stays.
+
 **Consequences.** The key-matches table with the model's percentages per row leaves the home; the percentages stay on the matches page. The side column's canvas blocks (the upset card on `GET /model/upset`, D-265; the table excerpt; the month in figures) are T-1516, after T-1507 merges, so the home's first PR stays within the file count.
 
 ## D-271 — The Stadiomind player page: the club only in the photo's ring, facts with their coverage, the career by season in its own box
@@ -12458,6 +12460,19 @@ replaces D-089's self-hosting arrangement for no gain here).
 3. The journeys check the chosen row with axe in Day and Night, and that its ground is the token itself. With no forecast in the seed, the percentages' own ratios rest on `tokens.spec.ts`. Seeding a stored forecast would change what the other journeys assert about that match ("Not supplied").
 
 **Consequences.** Other saffron washes (`bg-accent/10` on the club page's own table row, the coach page's chip, the lite banner) are unchanged; they can move to the token when they are rebuilt.
+## D-278 — The competition page's model record is the season's: only the months the season shares
+
+**Status:** Accepted · 2026-10-26 (decided by the agent in the competition review, under the maintainer's standing approval) · **Task:** T-1556 · **Amends:** D-274 (item 4)
+
+**Context.** D-274 put "the model in this league" beside the table: the newest month with a scored match, and every month on the Model tab. The months were the competition's, not the season's, so the 2025/26 Premier League page on production showed "In this league · October 2026" -- a record from a season that page is not about. `GET /model/accuracy` answers by month and competition; it has no season.
+
+**Decision.**
+1. On a season's page the card and the Model tab read only the months that share a day with the season (`start_date` to `end_date`). A month that straddles two seasons counts on both pages: the record is kept by month and is not split.
+2. The "All months" row is then those months summed: matches and forecasts added, every figure the average over the matches (each month weighted by its matches, which is exact because a match is scored in one month only), the coverage read from the matches as the API reads it. When every month is the season's, the API's own total stands.
+3. An older season with no scored month says "No forecast the model made before kick-off in this season has been scored" with a `not_supplied` badge, and no figure (rule 3).
+
+**Consequences.** No API change. A season the model was not yet published for (everything before October 2026 on production) shows the empty state rather than a later season's numbers.
+
 ## D-279 — Fallback faces by weight and width, the last boundary's styles on demand, the match page's reads at once
 
 **Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1536 · **Follows:** D-246, D-264, T-1463

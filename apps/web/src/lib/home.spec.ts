@@ -345,6 +345,40 @@ describe('the front page (T-1382, D-200; T-1495, D-270)', () => {
     expect(accuracyFigure(answer([point('2026-10', 0, null)]))).toBeNull();
   });
 
+  it('lists the leagues on a full sample before the limited ones (T-1540)', () => {
+    const point = (matches: number, accuracy: number) => ({
+      period: '2026-10',
+      period_start: '2026-10-01',
+      forecasts: matches,
+      matches,
+      coverage: matches < 30 ? 'limited' : 'available',
+      log_loss: null,
+      brier: null,
+      rps: 0.2,
+      accuracy,
+      uniform_rps: 0.24,
+    });
+    // Production, October 2026: Süper Lig's 24 matches topped the list over
+    // the Champions League's 36.
+    const figure = accuracyFigure({
+      period: 'month',
+      minimum_matches: 30,
+      overall: { competition: null, model_versions: [], points: [point(459, 0.551)] },
+      competitions: [
+        ['tsl', 24, 0.708],
+        ['ucl', 36, 0.667],
+        ['pt', 17, 0.647],
+        ['pl', 30, 0.5],
+      ].map(([id, matches, accuracy]) => ({
+        competition: { id, name: id },
+        model_versions: [],
+        points: [point(matches as number, accuracy as number)],
+      })),
+      last_updated_at: null,
+    } as unknown as PublicModelAccuracyResponse);
+    expect(figure?.competitions.map((c) => c.id)).toEqual(['ucl', 'pl', 'tsl', 'pt']);
+  });
+
   it('lists today’s broadcasts only where a source lists one, and says why when none', () => {
     const today = [
       pgpl('a', 'scheduled', '2026-10-08T17:00:00Z'),

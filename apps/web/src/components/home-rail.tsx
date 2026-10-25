@@ -298,7 +298,7 @@ export function TableExcerpt({
             {rows.map((row) => (
               <tr key={row.team.id} className="border-t border-default">
                 <td className="py-2 ps-4 text-caption">{n(row.position)}</td>
-                <td className="py-2">
+                <td>
                   <span className="flex min-w-0 items-center gap-2 font-semibold">
                     <EntityImage
                       media={row.team.crest}
@@ -307,7 +307,11 @@ export function TableExcerpt({
                       size={20}
                     />
                     {/* Each club opens its page, as on the full table (T-1479). */}
-                    <Link href={`/${l}/team/${row.team.id}`} className="hover:underline">
+                    {/* T-1541: the link is the row's height, 44px, a phone's touch target. */}
+                    <Link
+                      href={`/${l}/team/${row.team.id}`}
+                      className="inline-flex min-h-touch min-w-0 items-center hover:underline"
+                    >
                       <bdi>{row.team.name}</bdi>
                     </Link>
                   </span>
@@ -425,25 +429,48 @@ export function MonthFigures({
           </div>
           {figure.competitions.length > 0 && (
             <ul className="flex flex-col gap-2 text-sm tabular-nums">
-              {figure.competitions.map((c) => (
-                <li
-                  key={c.id}
-                  className="grid grid-cols-[minmax(0,1fr)_5.5rem_3.25rem] items-center gap-2.5"
-                  data-testid="home-month-league"
-                  data-coverage={c.metrics.coverage}
-                >
-                  <bdi className="truncate">{c.name}</bdi>
-                  <span aria-hidden="true" className="h-1.5 rounded-pill bg-surface-raised">
-                    <span
-                      className="block h-1.5 rounded-pill bg-model"
-                      style={{ inlineSize: `${(c.metrics.accuracy ?? 0) * 100}%` }}
-                    />
-                  </span>
-                  <span className="text-end">
-                    {formatPercent(l, (c.metrics.accuracy ?? 0) * 100)}
-                  </span>
-                </li>
-              ))}
+              {figure.competitions.map((c) => {
+                // T-1540: how many matches each share is on, and one under the
+                // minimum dimmed and named, so it never reads as a full figure.
+                const thin = c.metrics.coverage === 'limited';
+                return (
+                  <li
+                    key={c.id}
+                    className="grid grid-cols-[minmax(0,1fr)_5.5rem_3.25rem] items-center gap-2.5"
+                    data-testid="home-month-league"
+                    data-coverage={c.metrics.coverage}
+                  >
+                    <span className="flex min-w-0 items-baseline gap-1.5">
+                      <bdi className="truncate">{c.name}</bdi>
+                      <span className="shrink-0 text-xs text-caption">
+                        <Translated
+                          locale={l}
+                          message="home.month.leagueMatches"
+                          count={c.metrics.matches}
+                        />
+                        {thin && (
+                          <span className="sr-only">
+                            {' '}
+                            <Translated locale={l} message="status.coverage.limited" />
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                    <span aria-hidden="true" className="h-1.5 rounded-pill bg-surface-raised">
+                      <span
+                        className={cx(
+                          'block h-1.5 rounded-pill',
+                          thin ? 'bg-model/40' : 'bg-model',
+                        )}
+                        style={{ inlineSize: `${(c.metrics.accuracy ?? 0) * 100}%` }}
+                      />
+                    </span>
+                    <span className={cx('text-end', thin && 'text-caption')}>
+                      {formatPercent(l, (c.metrics.accuracy ?? 0) * 100)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
           {limited && (
@@ -768,9 +795,12 @@ export function MyTeams({
 export function ColumnAndPicks({
   analyses,
   locale,
+  timeZone,
 }: {
   analyses: FounderAnalysisSummary[] | null;
   locale: string;
+  /** The reader's zone, for each analysed match's kick-off (T-1542). */
+  timeZone: string;
 }) {
   const l = asLocale(locale);
   return (
@@ -784,7 +814,7 @@ export function ColumnAndPicks({
           <FounderAnalysisFeed
             analyses={analyses}
             locale={locale}
-            timeZone="UTC"
+            timeZone={timeZone}
             heading={<Translated locale={l} message="home.founder.heading" />}
           />
         )}
@@ -888,7 +918,7 @@ export function GuestWelcome({ locale, children }: { locale: string; children: R
   return (
     <section
       aria-label={t(l, 'home.welcome.label')}
-      className="flex flex-col gap-2 border border-default bg-surface px-4 py-3.5 text-sm"
+      className="flex flex-col gap-2 rounded-tile border border-default bg-surface px-4 py-3.5 text-sm"
     >
       {children}
     </section>

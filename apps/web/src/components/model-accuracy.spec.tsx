@@ -88,6 +88,15 @@ describe('ModelAccuracy (T-1369)', () => {
     expect(out.match(/data-testid="accuracy-months"/g)).toHaveLength(2);
   });
 
+  it('makes each sideways-scrolling table a named region the keyboard reaches (T-1571)', () => {
+    const out = html(report({}));
+    const regions = [
+      ...out.matchAll(/<div[^>]*role="region" aria-labelledby="([^"]+)" tabindex="0"[^>]*>/g),
+    ];
+    expect(regions).toHaveLength(2);
+    for (const [, id] of regions) expect(out).toContain(`<caption id="${id}"`);
+  });
+
   it('says there is no accuracy at all when nothing has been scored', () => {
     const out = html(
       report({
