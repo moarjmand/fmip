@@ -12350,6 +12350,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.tab.modelShort": {
+    "source": "Model",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.tab.news": {
     "source": "News",
     "text": "اخبار",
@@ -12494,6 +12500,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.model.notSuppliedSeason": {
+    "source": "No forecast the model made before kick-off in this season has been scored, so there is nothing to judge it by here.",
+    "text": "هیچ پیش‌بینی‌ای که مدل آماری پیش از شروع بازی‌های این فصل داده، ارزیابی نشده است؛ پس اینجا چیزی برای سنجیدن آن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.model.more": {
     "source": "The model month by month",
     "text": "مدل، ماه به ماه",
@@ -12569,6 +12581,12 @@
   "competitionPage.noTable": {
     "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
     "text": "این رقابت در دورهای حذفی برگزار می‌شود و جدول رده‌بندی ندارد. دورهای آن در بخش بازی‌ها آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.noTableFriendly": {
+    "source": "Friendlies are single matches, not a league or a cup, so there is no table. The matches are under Matches.",
+    "text": "بازی‌های دوستانه دیدارهای جداگانه‌اند، نه لیگ یا جام، پس جدولی ندارند. بازی‌ها زیر «بازی‌ها» آمده‌اند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -15663,8 +15681,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "competitions.lead": {
-    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
-    "text": "همهٔ لیگ‌ها و جام‌هایی که دنبال می‌کنیم، به تفکیک کشور و منطقه. یکی را انتخاب کنید تا صفحه‌اش باز شود: جدول، برنامه، نتایج و برترین‌ها.",
+    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, matches, players and the model in that league.",
+    "text": "همهٔ لیگ‌ها و جام‌هایی که دنبال می‌کنیم، به تفکیک کشور و منطقه. یکی را انتخاب کنید تا صفحه‌اش باز شود: جدول، بازی‌ها، بازیکنان و مدل آماری در آن لیگ.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

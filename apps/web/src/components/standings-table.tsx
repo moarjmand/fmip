@@ -119,15 +119,16 @@ export const FORM_LOOK: Record<FormResult, string> = {
  * The form as the canvas writes it (T-1498): the letters in Geist Mono, the
  * most recent first, as the contract lists them and the note under the
  * table says. Letters, not colours (D-263); the run is read out once, in
- * words.
+ * words. Each letter is a flex item of its own: Persian letters set in one
+ * run join into a word ("شبببب"), which no reader can parse (T-1557).
  */
 export function FormLetters({ locale, form }: { locale: string; form: FormResult[] }) {
   return (
     <span
-      className="font-mono text-xs tracking-[0.2em] [:root:is(:lang(fa),:lang(ar))_&]:font-sans [:root:is(:lang(fa),:lang(ar))_&]:tracking-normal"
+      className="font-mono text-xs [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
       data-testid="form"
     >
-      <span aria-hidden="true">
+      <span aria-hidden="true" className="inline-flex gap-[0.2em]">
         {form.map((result, i) => (
           <span key={i} data-result={result}>
             {say(locale, FORM_KEY[result])}
@@ -212,10 +213,11 @@ export function StandingsTable({
           {rows.map((row) => (
             <tr key={row.team.id} className="border-t border-default" data-testid="table-row">
               <PlaceCell locale={locale} position={row.position} zones={zones} start={start} />
-              <td className="px-1.5 py-1">
+              <td className="px-1.5 py-0">
+                {/* The row's height is the link's: a 44px target on a phone (T-1558). */}
                 <Link
                   href={`/${locale}/team/${row.team.id}`}
-                  className="inline-flex min-h-8 items-center gap-2 font-bold hover:underline focus-visible:underline"
+                  className="inline-flex min-h-touch items-center gap-2 font-bold hover:underline focus-visible:underline"
                 >
                   <EntityImage media={row.team.crest} kind="crest" name={row.team.name} size={20} />
                   {row.team.name}

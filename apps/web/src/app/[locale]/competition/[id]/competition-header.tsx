@@ -110,15 +110,26 @@ export function CompetitionHeader({
                 aria-current={current ? 'page' : undefined}
                 data-testid={`competition-tab-${t}`}
                 className={cx(
-                  'inline-flex min-h-touch shrink-0 items-center border-b-3 px-3.5 text-sm whitespace-nowrap',
+                  'inline-flex min-h-touch shrink-0 items-center border-b-3 px-3 text-sm whitespace-nowrap sm:px-3.5',
                   current
-                    ? 'border-accent font-extrabold text-fg'
+                    ? // The row scrolls on a phone: the browser opens it at the current tab (T-1558).
+                      'border-accent font-extrabold text-fg [scroll-initial-target:nearest]'
                     : 'border-transparent font-semibold text-muted hover:text-fg',
                 )}
               >
-                {t === 'table' && !hasTable(page)
-                  ? say(locale, 'competitionPage.tab.knockout')
-                  : say(locale, TAB_KEY[t])}
+                {t === 'table' && !hasTable(page) ? (
+                  say(locale, 'competitionPage.tab.knockout')
+                ) : t === 'model' ? (
+                  // The phone board's short "Model" (CompetitionPhone), the full name from sm up.
+                  <>
+                    <span className="sm:hidden">
+                      {say(locale, 'competitionPage.tab.modelShort')}
+                    </span>
+                    <span className="hidden sm:inline">{say(locale, TAB_KEY[t])}</span>
+                  </>
+                ) : (
+                  say(locale, TAB_KEY[t])
+                )}
               </Link>
             );
           })}

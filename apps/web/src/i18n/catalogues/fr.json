@@ -10183,6 +10183,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.tab.modelShort": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.tab.news": {
     "source": "News",
     "text": "",
@@ -10303,6 +10308,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.model.notSuppliedSeason": {
+    "source": "No forecast the model made before kick-off in this season has been scored, so there is nothing to judge it by here.",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.model.more": {
     "source": "The model month by month",
     "text": "",
@@ -10363,6 +10373,11 @@
   },
   "competitionPage.noTable": {
     "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.noTableFriendly": {
+    "source": "Friendlies are single matches, not a league or a cup, so there is no table. The matches are under Matches.",
     "text": "",
     "status": "untranslated"
   },
@@ -12904,7 +12919,7 @@
     "status": "untranslated"
   },
   "competitions.lead": {
-    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
+    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, matches, players and the model in that league.",
     "text": "",
     "status": "untranslated"
   },

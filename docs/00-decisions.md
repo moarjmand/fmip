@@ -12458,3 +12458,16 @@ replaces D-089's self-hosting arrangement for no gain here).
 3. The journeys check the chosen row with axe in Day and Night, and that its ground is the token itself. With no forecast in the seed, the percentages' own ratios rest on `tokens.spec.ts`. Seeding a stored forecast would change what the other journeys assert about that match ("Not supplied").
 
 **Consequences.** Other saffron washes (`bg-accent/10` on the club page's own table row, the coach page's chip, the lite banner) are unchanged; they can move to the token when they are rebuilt.
+
+## D-278 — The competition page's model record is the season's: only the months the season shares
+
+**Status:** Accepted · 2026-10-26 (decided by the agent in the competition review, under the maintainer's standing approval) · **Task:** T-1556 · **Amends:** D-274 (item 4)
+
+**Context.** D-274 put "the model in this league" beside the table: the newest month with a scored match, and every month on the Model tab. The months were the competition's, not the season's, so the 2025/26 Premier League page on production showed "In this league · October 2026" -- a record from a season that page is not about. `GET /model/accuracy` answers by month and competition; it has no season.
+
+**Decision.**
+1. On a season's page the card and the Model tab read only the months that share a day with the season (`start_date` to `end_date`). A month that straddles two seasons counts on both pages: the record is kept by month and is not split.
+2. The "All months" row is then those months summed: matches and forecasts added, every figure the average over the matches (each month weighted by its matches, which is exact because a match is scored in one month only), the coverage read from the matches as the API reads it. When every month is the season's, the API's own total stands.
+3. An older season with no scored month says "No forecast the model made before kick-off in this season has been scored" with a `not_supplied` badge, and no figure (rule 3).
+
+**Consequences.** No API change. A season the model was not yet published for (everything before October 2026 on production) shows the empty state rather than a later season's numbers.
