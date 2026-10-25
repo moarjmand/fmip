@@ -301,8 +301,8 @@ describe('the match centre', () => {
     expect(header).toContain('data-testid="match-header"');
     expect(header).toMatch(/data-testid="match-status">67′</);
     expect(header).toMatch(/<bdi class="[^"]*">Liverpool<\/bdi>/);
-    // The live minute in red, with the word and the pulsing dot (T-1384).
-    expect(header).toMatch(/bg-live\/15 text-live"><span aria-hidden="true" class="live-dot/);
+    // The live minute in the live badge, with the word and the pulsing dot (T-1384, T-1493).
+    expect(header).toMatch(/data-live-badge=""[^>]*><span aria-hidden="true" class="live-dot/);
     // The score large and condensed, home first in the page's direction (D-193).
     expect(header).toMatch(/<span dir="ltr" class="[^"]*font-black[^"]*" data-testid="score">2</);
     // 16:30 UTC is 20:00 in Tehran.
