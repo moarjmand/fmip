@@ -418,7 +418,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     expect(asked.availability.coverage).toBe('available');
     expect(asked.availability.last_updated_at).not.toBeNull();
     expect(asked.availability.data).toMatchObject([
-      { id: SALAH, side: 'home', status: 'doubtful', kind: 'injury', reason: 'Knock' },
+      // The provider's words, and ours for a page in any language (T-1601).
+      {
+        id: SALAH,
+        side: 'home',
+        status: 'doubtful',
+        kind: 'injury',
+        reason: 'Knock',
+        reason_code: 'knock',
+      },
     ]);
 
     const nobody = (await get(EARLIER[1])).json() as MatchCentre;

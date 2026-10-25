@@ -175,6 +175,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       await app.inject({ method: 'GET', url: `/players/${PLAYER}` })
     ).json() as PlayerPage;
     expect(page.record.coverage).toBe('available');
+    // The open spell names the position (T-1603).
+    expect(page.position).toMatchObject({
+      coverage: 'available',
+      data: { value: 'midfielder', basis: 'spell' },
+    });
     expect(page.record.data).toEqual([
       {
         season: { id: SEASON, label: '2025/26' },
@@ -303,6 +308,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
     await minutes(sub.alpha, 25);
     const unused = await fixture('2025-11-15T15:00:00Z', [0, 0]);
     await lineup(unused.alpha, 'bench');
+    // No spell and no squad listing: the line-ups say defender, as played (T-1603).
+    expect(
+      ((await app.inject({ method: 'GET', url: `/players/${TIMED}` })).json() as PlayerPage)
+        .position,
+    ).toMatchObject({ coverage: 'limited', data: { value: 'defender', basis: 'lineup' } });
     expect(await record()).toEqual({
       coverage: 'available',
       total: 115,

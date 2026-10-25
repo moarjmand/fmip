@@ -53,7 +53,12 @@ import { readProviderSeasons } from './internal/player-provider-seasons';
 import { readTeamSeasonStats } from './internal/team-season-stats';
 import { readPlayerTransfers, readTeamTransfers } from './internal/transfers';
 import { providerBoards, readProviderLeaders } from './internal/provider-leaders';
-import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
+import {
+  NO_LINEUPS,
+  PostgresPlayerStore,
+  availabilityOf,
+  positionOf,
+} from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
 
@@ -158,19 +163,24 @@ export class CatalogService {
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
     const found = await this.players_.person(id, locale);
     if (found === null) return { kind: 'unknown_player' };
-    const [spells, record, recent, availability, media] = await Promise.all([
+    const [spells, record, recent, availability, media, positions] = await Promise.all([
       this.players_.spells(id),
       this.players_.record(id),
       this.players_.recent(id, RECENT_MATCHES),
       this.players_.availability(id),
       this.media.index({ person: [id] }),
+      this.players_.positionSources(id),
     ]);
     const person = { ...found, photo: media.photo(id) };
+    const currentSpell = spells.find((s) => s.end_date === null) ?? null;
     return {
       kind: 'ok',
       page: {
         person,
-        current_spell: spells.find((s) => s.end_date === null) ?? null,
+        current_spell: currentSpell,
+        // A player with no open spell still has a position our squad
+        // listings or line-ups name (T-1603).
+        position: positionOf(currentSpell, positions),
         spells,
         record: derived(record, 1, recent.lastUpdatedAt),
         recent_matches: derived(recent.matches, 1, recent.lastUpdatedAt),

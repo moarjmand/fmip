@@ -11,7 +11,7 @@
  */
 
 import type { Covered } from './coverage';
-import type { MatchAbsenceGap } from './match-centre';
+import type { AbsenceReasonCode, MatchAbsenceGap } from './match-centre';
 
 /** How many players a side shows. */
 export const KEY_PLAYERS_PER_SIDE = 3;
@@ -23,7 +23,10 @@ export const KEY_PLAYERS_PER_SIDE = 3;
 export interface KeyPlayerAvailability {
   status: 'out' | 'doubtful' | 'not_listed';
   kind: 'injury' | 'suspension' | 'illness' | 'other' | null;
+  /** The feed's own words, English whatever the reader's language. */
   reason: string | null;
+  /** The reason in our words (T-1601); always sent, optional for older readers. */
+  reason_code?: AbsenceReasonCode | null;
 }
 
 export interface KeyPlayer {
