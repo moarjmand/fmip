@@ -18,7 +18,7 @@ import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { listName } from '@/lib/person-name';
 import { stageAndRoundLabels } from '@/lib/stage-label';
 import type { MatchWords } from '@/lib/words-server';
-import { formatDate, formatDateTime } from '@/i18n/format';
+import { formatDate, formatDateTime, localDigits } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
 import { CARD, Module, RatingChip } from '@/components/match-centre-cards';
@@ -420,7 +420,7 @@ function Hero({
           {f.competition.name}
         </Link>
         <span>
-          · {f.season.label}
+          · {localDigits(locale, f.season.label)}
           {stageAndRoundLabels(f.stage?.name, f.round, (key) => m[key].text, locale).map(
             (label) => ` · ${label}`,
           )}
