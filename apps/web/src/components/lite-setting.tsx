@@ -36,7 +36,7 @@ export function LiteSetting({ locale, current }: { locale: string; current: Lite
             value={value}
             aria-pressed={value === current}
             data-testid={`appearance-lite-${value}`}
-            className={`rounded border border-strong px-3 py-1.5 ${
+            className={`inline-flex min-h-touch items-center rounded border border-strong px-3 ${
               value === current ? 'bg-accent font-semibold text-on-accent' : 'bg-canvas text-fg'
             }`}
           >

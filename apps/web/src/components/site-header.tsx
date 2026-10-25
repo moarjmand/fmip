@@ -47,6 +47,8 @@ const NAV_LABELS: Record<string, MessageKey> = {
   analysis: 'shell.nav.analysis',
   watch: 'nav.watch',
   highlights: 'nav.highlights',
+  about: 'about.meta.title',
+  rules: 'rules.title',
 };
 
 /** The bottom tab bar's words (`tabBarLinks`). */

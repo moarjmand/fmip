@@ -27,12 +27,16 @@ describe('the header nav', () => {
     ]);
   });
 
-  it('keeps the analysis, Watch and Highlights under More', () => {
+  it('keeps the analysis, Watch, Highlights, About and the rules under More', () => {
     expect(MORE_NAV.map((link) => [link.id, link.path])).toEqual([
       ['analysis', '/scores#analysis'],
       ['watch', '/watch'],
       ['highlights', '/highlights'],
+      ['about', '/about'],
+      ['rules', '/rules'],
     ]);
+    expect(currentLink('/fa/about', MORE_NAV)).toBe('about');
+    expect(currentLink('/en/rules', MORE_NAV)).toBe('rules');
   });
 
   it('marks the section a page belongs to, and nothing on the homepage', () => {
