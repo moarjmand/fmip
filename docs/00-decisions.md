@@ -12429,3 +12429,32 @@ replaces D-089's self-hosting arrangement for no gain here).
 5. The side column's squad lists the first twelve with the squad's coverage, or the sentence when none is on record; the board's "Remind me when it is out" is not built, since no such reminder exists.
 
 **Consequences.** `MatchesPanel`, `SeasonPanels` and `TablePanels` are gone; `EntityBand` gains `aside`, and the player and coach pages get the follow button beside their tabs too.
+
+## D-273 — The desktop header is one row at every width; the search field gives way first
+
+**Status:** Accepted · 2026-10-26 (decided by the agent from PageSpeed's findings, with the maintainer's standing approval) · **Task:** T-1534 · **Amends:** D-267 point 4; T-1479's second row at 1024px
+
+**Context.** On PageSpeed's cold desktop load (1350px) the header was drawn on one row in the fallback face, then Sign in dropped to a second row once Archivo arrived; the header grew by 28px and the whole page moved (CLS about 0.80, desktop scores 75-76 on `/en`, `/en/scores` and a match page; `docs/08-load-test.md`, "PageSpeed after the redesign"). The row could wrap because it was a wrapping flex row and the search field would not shrink below its input's own width; production also draws the «فارسی» link, which CI's build without an API does not, so no check saw the wrap. From 1024px to 1279px the nav already took a second row of its own by design (T-1479).
+
+**Decision.**
+1. From 1024px the header is one 64px row that never wraps, so a face arriving late cannot change its height.
+2. The search field is what gives way: from 1280px it takes the room the rest leave, up to 16rem, and shrinks to its icon before anything else would move. The wordmark, the nav, the language link, the theme, Settings and Sign in keep their size.
+3. From 1024px to 1279px the field folds into the 44px search link (the one the phone has), after the nav, and the mark stands without its name, which stays for a screen reader. There is then room for the nav, search, the language link, the theme, Settings and Sign in on one row in either language.
+4. A member's name in the bar is cut short (11rem) rather than pushing the row wider.
+
+**Rejected.** *A second row at 1024px (T-1479)*: stable, but the acceptance asks for one row, and a header that changes shape between 1279 and 1280px is two designs to keep. *Tuning the fallback face's metrics alone*: whatever difference is left would still decide whether a full row wraps. *Dropping the language link or Settings from the bar*: both have no other way in on a desktop.
+
+**Consequences.** `tests/e2e/header-row.spec.ts` checks one 64px row at 1024, 1280 and 1350px on `/en` and `/fa`, with the language link put in as `LanguagePicker` draws it and the web fonts refused and loaded; `tests/e2e/journeys/header-row.spec.ts` checks the real link with the API behind the app. The PageSpeed re-run after the deploy is the coordinator's.
+
+## D-277 — The chosen row stands on a solid selected ground, not a saffron wash
+
+**Status:** Accepted · 2026-10-26 (under the maintainer's standing approval) · **Task:** T-1535 · **Follows:** D-263, D-268
+
+**Context.** The scores page marks the row its preview shows (`aria-current`) with `bg-accent/10`, a 10% saffron wash. On Day that wash takes the model's turquoise percentages to 4.48:1 on the surface and 4.05:1 on the page ground, under AA; Lighthouse's colour-contrast audit found it on production. CI's axe never saw it: without an API the page has no rows, and the journeys' seed stores no forecast.
+
+**Decision.**
+1. A new token, `--token-selected` (`bg-selected`), is the chosen row's ground: a solid saffron tint, `#fdf6ec` on Day (also with more contrast and in editorial mode), `#242321` at Night and `#181612` at Night with more contrast. `tokens.spec.ts` checks every text role on it as on the other grounds: 4.5:1, or 7:1 with more contrast. The model's percentages are at 4.82:1 on Day and 7.35:1 at Night.
+2. The fix is in the token, not in the row's text: the percentages keep the model's colour (rule 6), and so do the status, the names and the badge.
+3. The journeys check the chosen row with axe in Day and Night, and that its ground is the token itself. With no forecast in the seed, the percentages' own ratios rest on `tokens.spec.ts`. Seeding a stored forecast would change what the other journeys assert about that match ("Not supplied").
+
+**Consequences.** Other saffron washes (`bg-accent/10` on the club page's own table row, the coach page's chip, the lite banner) are unchanged; they can move to the token when they are rebuilt.

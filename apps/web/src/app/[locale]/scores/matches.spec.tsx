@@ -169,6 +169,14 @@ describe("the row's Pick", () => {
     expect(row('en', { pickHref: undefined })).not.toContain('data-testid="row-pick"');
   });
 
+  it('draws the previewed row on the solid selected ground, never a saffron wash (T-1535)', () => {
+    // A 10% wash put the model's percentages under 4.5:1 on Day; the token is
+    // checked against every text role in tokens.spec.ts.
+    const html = row('en', { selected: true });
+    expect(html).toContain('data-selected:bg-selected');
+    expect(html).not.toMatch(/bg-accent\/\d+/);
+  });
+
   it('is in Persian on /fa', () => {
     const html = row('fa');
     expect(html).toContain('>انتخاب<');

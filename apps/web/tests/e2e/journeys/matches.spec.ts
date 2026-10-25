@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { member, registerAndVerify } from './members';
 
@@ -18,6 +19,7 @@ const OPEN_MATCH = '00000000-0000-4000-8000-000000000902';
 const OPEN_DAY = '2099-01-01';
 const PLAYED_DAY = '2025-01-05';
 const RUN = Date.now().toString(36).slice(-6);
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 const VIEWPORTS = [
   { name: 'phone', width: 390, height: 844 },
@@ -153,6 +155,56 @@ test.describe('a pick made from a row', () => {
       await page.getByTestId('view-unpicked').click();
       await expect(page).toHaveURL(/unpicked=1/);
       await expect(openRow(page)).toHaveCount(0);
+      await context.close();
+    });
+  }
+});
+
+/**
+ * T-1535: the chosen row (`aria-current`) is drawn on `--token-selected`, a
+ * solid saffron tint, where the old 10% wash put the model's percentages under
+ * 4.5:1 on Day. axe reads the row in Day and Night. The seed stores no
+ * forecast, so here the row carries its status, names, coverage badge and
+ * Pick; the percentages' own ratios on this ground are `tokens.spec.ts`'s,
+ * which checks every text role on it in all twelve token blocks.
+ */
+test.describe('the selected row', () => {
+  for (const theme of ['light', 'dark'] as const) {
+    test(`reads at AA on its highlight (${theme === 'dark' ? 'Night' : 'Day'})`, async ({
+      browser,
+      baseURL,
+    }) => {
+      const context = await browser.newContext({
+        viewport: VIEWPORTS[1],
+        colorScheme: theme,
+      });
+      await context.addCookies([
+        { name: 'fmip_theme', value: theme, url: baseURL ?? '' },
+        { name: 'fmip_lite', value: 'off', url: baseURL ?? '' },
+      ]);
+      const page = await context.newPage();
+      await page.goto(`/en/scores?date=${OPEN_DAY}&tz=UTC&pick=${OPEN_MATCH}`);
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      const row = openRow(page);
+      await expect(row).toHaveAttribute('aria-current', 'true');
+      // The ground is the token, solid, not a wash over whatever is behind.
+      const [ground, token] = await row.evaluate((el) => {
+        const probe = document.createElement('span');
+        probe.style.backgroundColor = 'var(--token-selected)';
+        document.body.append(probe);
+        const value = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return [getComputedStyle(el).backgroundColor, value];
+      });
+      expect(ground).toBe(token);
+
+      const results = await new AxeBuilder({ page })
+        .include('[data-testid="score-card"][aria-current="true"]')
+        .withTags(TAGS)
+        .analyze();
+      expect(results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`)).toEqual(
+        [],
+      );
       await context.close();
     });
   }

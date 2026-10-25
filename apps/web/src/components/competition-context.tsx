@@ -19,7 +19,7 @@ import {
   tieLine,
 } from '@/lib/competition-context';
 import { legLabel, legLine } from '@/lib/bracket';
-import { formatNumber, formatVersionStamp } from '@/i18n/format';
+import { formatNumber, formatVersionStamp, localDigits } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { message } from '@/i18n/messages';
 import { zoneWords } from '@/lib/reader-time-zone';
@@ -96,7 +96,7 @@ export function CompetitionContextPanel({
         >
           {context.competition.name}
         </Link>{' '}
-        {context.season.label}
+        <bdi>{localDigits(locale, context.season.label)}</bdi>
       </p>
       {data !== null ? (
         <Table

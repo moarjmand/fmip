@@ -317,6 +317,7 @@
   --color-surface: var(--token-surface);
   --color-surface-raised: var(--token-surface-raised);
   --color-stage: var(--token-stage);
+  --color-selected: var(--token-selected);
   --color-fg: var(--token-text);
   --color-muted: var(--token-text-muted);
   --color-caption: var(--token-caption);

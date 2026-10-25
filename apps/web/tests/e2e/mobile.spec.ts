@@ -168,15 +168,23 @@ for (const width of [1280, 1440]) {
   });
 }
 
-test('at 1024px the nav takes the second row whole, the tools keep the first', async ({ page }) => {
+test('at 1024px the header is still one row: the mark, the nav, then search as a link (T-1534)', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1024, height: 800 });
   await page.goto('/en/scores');
   const box = async (id: string) => (await page.getByTestId(id).boundingBox())!;
   const home = await box('nav-home');
   const matches = await box('nav-matches');
   const more = await box('nav-more');
-  expect(matches.y).toBeGreaterThan(home.y + home.height - 1);
-  expect(Math.abs(more.y - matches.y)).toBeLessThanOrEqual(2);
-  await expect(page.getByTestId('nav-search-form')).toBeVisible();
+  const search = await box('nav-search');
+  const signIn = await box('nav-sign-in');
+  for (const b of [matches, more, search, signIn]) {
+    expect(Math.abs(b.y + b.height / 2 - (home.y + home.height / 2))).toBeLessThanOrEqual(2);
+  }
+  expect(home.x).toBeLessThan(matches.x);
+  expect(more.x).toBeLessThan(search.x);
+  expect(search.x).toBeLessThan(signIn.x);
+  await expect(page.getByTestId('nav-search-form')).toBeHidden();
   expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
 });
