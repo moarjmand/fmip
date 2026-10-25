@@ -76,7 +76,7 @@ export interface PowerIndexComponentValue {
 
 /** What a component's note says (T-1602), each with the values it names. */
 export type PowerIndexNoteCode =
-  | 'rest_days' // values: days, matches, window
+  | 'rest_days' // values: days, matches, `window`
   | 'context_not_modelled'
   | 'form_window' // values: matches
   | 'venue_record' // values: side ('home' | 'away'), matches
