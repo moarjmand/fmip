@@ -167,7 +167,9 @@ describe('what was forecast, what happened (the Summary card)', () => {
 
   it('carries the receipt: model, version, time, lead, kind and what it was fitted on', () => {
     const html = card('finished');
-    expect(html).toContain(
+    // The `@` set apart: no "name@x.y.z" run for Cloudflare to rewrite (T-1580).
+    expect(html).not.toMatch(/\S+@\d+\.\d+\.\d+/);
+    expect(html.replace(/<[^>]+>/g, '')).toContain(
       'dixon-coles-elo@0.6.0 · v3 computed 24 Oct, 12:03 UK time, 27 min before kick-off · Confirmed line-ups · fitted 23 Oct on 1,120 matches since Oct 2023 · Elo prior on · inputs complete',
     );
   });
