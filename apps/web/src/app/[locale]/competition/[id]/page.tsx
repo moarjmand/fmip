@@ -22,7 +22,7 @@ import { EntityNews } from '@/components/related-news';
 import { GroupTables, showsLeagueTable } from '@/components/standings-table';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
-import { formatNumber } from '@/i18n/format';
+import { formatNumber, localDigits } from '@/i18n/format';
 import { message } from '@/i18n/messages';
 import {
   fetchCompetition,
@@ -94,13 +94,15 @@ export async function generateMetadata({
   const path = result.data.season.is_current
     ? `/competition/${c.id}`
     : `/competition/${c.id}?season=${result.data.season.id}`;
+  // The season in the page's digits, as the header draws it (D-193).
+  const seasonLabel = localDigits(locale, result.data.season.label);
   return pageMetadata({
     locale,
     path,
-    title: `${c.localised_name ?? c.name} ${result.data.season.label} · Stadiomind`,
+    title: `${c.localised_name ?? c.name} ${seasonLabel} · Stadiomind`,
     description: say(locale, 'competitionPage.metaDescription', {
       name: c.name,
-      season: result.data.season.label,
+      season: seasonLabel,
     }),
   });
 }

@@ -1,6 +1,6 @@
 import Link from '@/components/ui/link';
 import type { Covered, KeyPlayers, KeyPlayersSide } from '@fmip/contracts';
-import { formatNumber } from '@/i18n/format';
+import { formatNumber, localDigits } from '@/i18n/format';
 import {
   ABSENCE_STATE_KEY,
   absenceState,
@@ -92,7 +92,7 @@ export function KeyPlayersPanel({
         )}
       </p>
       <p dir="auto" className="text-xs text-muted" data-testid="key-players-rule">
-        {ruleNote(players.competition.name, players.season.label, locale)}
+        {ruleNote(players.competition.name, localDigits(locale, players.season.label), locale)}
       </p>
     </section>
   );
