@@ -179,6 +179,19 @@ test.describe('on a 1440px screen', () => {
     await expect(page.locator('[data-testid="primary-nav"] [aria-current="page"]')).toHaveCount(1);
   });
 
+  test('More also leads to what Stadiomind is and to its rules (T-1572)', async ({ page }) => {
+    for (const [id, url] of [
+      ['nav-about', /\/en\/about$/],
+      ['nav-rules', /\/en\/rules$/],
+    ] as const) {
+      await page.goto('/en/scores');
+      await page.getByTestId('nav-more').locator('summary').click();
+      await page.getByTestId(id).click();
+      await expect(page).toHaveURL(url);
+      await expect(page.getByTestId(id)).toHaveAttribute('aria-current', 'page');
+    }
+  });
+
   test('searches from the field in the bar', async ({ page }) => {
     await page.goto('/en/scores');
     const field = page.getByTestId('nav-search-input');
