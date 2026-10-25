@@ -373,6 +373,97 @@
     "forms": {},
     "status": "untranslated"
   },
+  "home.modelTag": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.title": {
+    "source": "Forecast against reality",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.gave": {
+    "source": "The model gave {team} {pct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.gaveDraw": {
+    "source": "The model gave the draw {pct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.among": {
+    "source": {
+      "one": "The only match of {count} finished today in a fully covered competition.",
+      "other": "The least likely result of {count} matches finished today in fully covered competitions."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.upset.version": {
+    "source": "version {version}, {kind}, computed {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.link": {
+    "source": "What the model missed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.noFinished": {
+    "source": "No match in a fully covered competition has finished today yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.noForecast": {
+    "source": "None of today’s finished matches had a forecast made on complete data.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.unreachable": {
+    "source": "The model’s biggest miss today could not be loaded.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.table.caption": {
+    "source": "{competition}: the top six",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.title": {
+    "source": "How it is doing · {month}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.favourite": {
+    "source": {
+      "one": "favourite won, {count} match",
+      "other": "favourite won, {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.month.better": {
+    "source": "better than a blind three-way guess (RPS {rps} against {uniform})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.worse": {
+    "source": "worse than a blind three-way guess (RPS {rps} against {uniform})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.limited": {
+    "source": "Limited: a league with fewer than {minimum} matches is too few to call.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.link": {
+    "source": "Calibration report",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.lead.coverage": {
     "source": "Scores coverage:",
     "text": "",
@@ -398,16 +489,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "home.table.title": {
-    "source": "{competition} · top five",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.table.goalDifference": {
-    "source": "Goal difference",
-    "text": "",
-    "status": "untranslated"
-  },
   "home.table.none": {
     "source": "No league table has been computed for this season yet.",
     "text": "",
@@ -423,34 +504,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "home.accuracy.title": {
-    "source": "Model accuracy · {month}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.accuracy.titleWeek": {
-    "source": "Model accuracy · week of {date}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.accuracy.rps": {
-    "source": "ranked probability score · lower is better",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.accuracy.sample": {
-    "source": {
-      "one": "Sample: {count} match",
-      "other": "Sample: {count} matches"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "home.accuracy.baseline": {
-    "source": "· a uniform guess scores {rps}",
-    "text": "",
-    "status": "untranslated"
-  },
   "home.accuracy.versions": {
     "source": "Model versions in this sample:",
     "text": "",
@@ -458,11 +511,6 @@
   },
   "home.accuracy.updated": {
     "source": "updated {date}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.accuracy.link": {
-    "source": "How accurate is our model?",
     "text": "",
     "status": "untranslated"
   },
@@ -568,16 +616,6 @@
   },
   "home.table.team": {
     "source": "Team",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.table.played": {
-    "source": "Played",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.table.points": {
-    "source": "Points",
     "text": "",
     "status": "untranslated"
   },

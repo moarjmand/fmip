@@ -437,6 +437,103 @@
     },
     "status": "translated"
   },
+  "home.modelTag": {
+    "source": "Model",
+    "text": "مدل",
+    "status": "translated"
+  },
+  "home.upset.title": {
+    "source": "Forecast against reality",
+    "text": "پیش‌بینی در برابر واقعیت",
+    "status": "translated"
+  },
+  "home.upset.gave": {
+    "source": "The model gave {team} {pct}.",
+    "text": "مدل به {team} {pct} شانس داده بود.",
+    "status": "translated"
+  },
+  "home.upset.gaveDraw": {
+    "source": "The model gave the draw {pct}.",
+    "text": "مدل به تساوی {pct} شانس داده بود.",
+    "status": "translated"
+  },
+  "home.upset.among": {
+    "source": {
+      "one": "The only match of {count} finished today in a fully covered competition.",
+      "other": "The least likely result of {count} matches finished today in fully covered competitions."
+    },
+    "forms": {
+      "one": "تنها بازیِ تمام‌شده از {count} بازی امروز در رقابت‌های با پوشش کامل.",
+      "other": "کم‌احتمال‌ترین نتیجه از {count} بازی تمام‌شده‌ی امروز در رقابت‌های با پوشش کامل."
+    },
+    "status": "translated"
+  },
+  "home.upset.version": {
+    "source": "version {version}, {kind}, computed {time}",
+    "text": "نسخه‌ی {version}، {kind}، محاسبه‌شده {time}",
+    "status": "translated"
+  },
+  "home.upset.link": {
+    "source": "What the model missed",
+    "text": "آنچه مدل ندید",
+    "status": "translated"
+  },
+  "home.upset.noFinished": {
+    "source": "No match in a fully covered competition has finished today yet.",
+    "text": "امروز هنوز بازی‌ای در رقابت‌های با پوشش کامل تمام نشده است.",
+    "status": "translated"
+  },
+  "home.upset.noForecast": {
+    "source": "None of today’s finished matches had a forecast made on complete data.",
+    "text": "هیچ‌یک از بازی‌های تمام‌شده‌ی امروز پیش‌بینی‌ای بر داده‌ی کامل نداشت.",
+    "status": "translated"
+  },
+  "home.upset.unreachable": {
+    "source": "The model’s biggest miss today could not be loaded.",
+    "text": "بزرگ‌ترین خطای امروز مدل بارگیری نشد.",
+    "status": "translated"
+  },
+  "home.table.caption": {
+    "source": "{competition}: the top six",
+    "text": "{competition}: شش تیم بالای جدول",
+    "status": "translated"
+  },
+  "home.month.title": {
+    "source": "How it is doing · {month}",
+    "text": "عملکرد مدل · {month}",
+    "status": "translated"
+  },
+  "home.month.favourite": {
+    "source": {
+      "one": "favourite won, {count} match",
+      "other": "favourite won, {count} matches"
+    },
+    "forms": {
+      "one": "پیروزی تیم محبوب، {count} بازی",
+      "other": "پیروزی تیم محبوب، {count} بازی"
+    },
+    "status": "translated"
+  },
+  "home.month.better": {
+    "source": "better than a blind three-way guess (RPS {rps} against {uniform})",
+    "text": "بهتر از حدس کورِ سه‌حالته (RPS {rps} در برابر {uniform})",
+    "status": "translated"
+  },
+  "home.month.worse": {
+    "source": "worse than a blind three-way guess (RPS {rps} against {uniform})",
+    "text": "بدتر از حدس کورِ سه‌حالته (RPS {rps} در برابر {uniform})",
+    "status": "translated"
+  },
+  "home.month.limited": {
+    "source": "Limited: a league with fewer than {minimum} matches is too few to call.",
+    "text": "محدود: لیگی با کمتر از {minimum} بازی برای داوری کم است.",
+    "status": "translated"
+  },
+  "home.month.link": {
+    "source": "Calibration report",
+    "text": "گزارش دقت مدل",
+    "status": "translated"
+  },
   "home.lead.coverage": {
     "source": "Scores coverage:",
     "text": "پوشش نتایج:",
@@ -467,18 +564,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "home.table.title": {
-    "source": "{competition} · top five",
-    "text": "{competition} · پنج تیم اول",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.table.goalDifference": {
-    "source": "Goal difference",
-    "text": "تفاضل گل",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "home.table.none": {
     "source": "No league table has been computed for this season yet.",
     "text": "هنوز جدولی برای این فصل محاسبه نشده است.",
@@ -497,42 +582,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "home.accuracy.title": {
-    "source": "Model accuracy · {month}",
-    "text": "دقت مدل · {month}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.accuracy.titleWeek": {
-    "source": "Model accuracy · week of {date}",
-    "text": "دقت مدل · هفته‌ی {date}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.accuracy.rps": {
-    "source": "ranked probability score · lower is better",
-    "text": "امتیاز احتمال رتبه‌ای · هرچه کمتر، بهتر",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.accuracy.sample": {
-    "source": {
-      "one": "Sample: {count} match",
-      "other": "Sample: {count} matches"
-    },
-    "forms": {
-      "one": "نمونه: {count} بازی",
-      "other": "نمونه: {count} بازی"
-    },
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.accuracy.baseline": {
-    "source": "· a uniform guess scores {rps}",
-    "text": "· حدس یکنواخت {rps} می‌گیرد",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "home.accuracy.versions": {
     "source": "Model versions in this sample:",
     "text": "نسخه‌های مدل در این نمونه:",
@@ -542,12 +591,6 @@
   "home.accuracy.updated": {
     "source": "updated {date}",
     "text": "به‌روزرسانی {date}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.accuracy.link": {
-    "source": "How accurate is our model?",
-    "text": "مدل ما چقدر دقیق است؟",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -674,18 +717,6 @@
   "home.table.team": {
     "source": "Team",
     "text": "تیم",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.table.played": {
-    "source": "Played",
-    "text": "بازی‌شده",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "home.table.points": {
-    "source": "Points",
-    "text": "امتیاز",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
