@@ -54,9 +54,12 @@ export class ViewingController {
   ) {}
 
   private async territory(
-    asked: string | undefined,
+    raw: string | string[] | undefined,
     request: FastifyRequest,
   ): Promise<ViewingTerritory> {
+    // A repeated key arrives as an array: the first one counts, as on
+    // `/scores`, never a TypeError and a 500 (T-1575).
+    const asked = Array.isArray(raw) ? raw[0] : raw;
     const viewer = await this.identity.authenticate(
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
@@ -68,12 +71,13 @@ export class ViewingController {
   @Get('fixtures/:id/viewing')
   async one(
     @Param('id') id: string,
-    @Query('territory') asked: string | undefined,
+    @Query('territory') asked: string | string[] | undefined,
     @Req() request: FastifyRequest,
   ): Promise<MatchViewing> {
     if (!UUID.test(id)) throw new NotFoundException(NO_FIXTURE);
     const territory = await this.territory(asked, request);
-    const [match] = await this.viewing.forFixtures([id], territory);
+    // Lower case, as the database answers (T-1575).
+    const [match] = await this.viewing.forFixtures([id.toLowerCase()], territory);
     if (match === undefined) throw new NotFoundException(NO_FIXTURE);
     return match;
   }
@@ -81,14 +85,14 @@ export class ViewingController {
   @Get('viewing')
   async many(
     @Query('fixture') fixture: string | string[] | undefined,
-    @Query('territory') asked: string | undefined,
+    @Query('territory') asked: string | string[] | undefined,
     @Req() request: FastifyRequest,
   ): Promise<ViewingBatchResponse> {
     const given = (Array.isArray(fixture) ? fixture : fixture === undefined ? [] : [fixture])
       .flatMap((value) => value.split(','))
       .map((value) => value.trim())
       .filter((value) => value !== '');
-    const ids = [...new Set(given)];
+    const ids = [...new Set(given.map((value) => value.toLowerCase()))];
     if (ids.length === 0 || ids.length > MAX_BATCH || ids.some((id) => !UUID.test(id))) {
       throw new BadRequestException({
         error: 'validation',
@@ -110,7 +114,7 @@ export class ViewingController {
    */
   @Get('highlights')
   async highlights(
-    @Query('territory') asked: string | undefined,
+    @Query('territory') asked: string | string[] | undefined,
     @Query('competition') competition: unknown,
     @Query('page') page: unknown,
     @Req() request: FastifyRequest,

@@ -26,7 +26,7 @@ export class ForecastListController {
   constructor(private readonly forecasts: ForecastService) {}
 
   @Get()
-  async list(@Query('fixtures') fixtures?: string): Promise<ForecastListResponse> {
+  async list(@Query('fixtures') fixtures?: string | string[]): Promise<ForecastListResponse> {
     return { fixtures: await this.forecasts.latestFor(parseFixtures(fixtures)) };
   }
 
@@ -36,7 +36,9 @@ export class ForecastListController {
    * scores card. Same cap and the same refusal of a malformed id.
    */
   @Get('pre-kickoff')
-  async preKickoff(@Query('fixtures') fixtures?: string): Promise<ForecastSummaryListResponse> {
+  async preKickoff(
+    @Query('fixtures') fixtures?: string | string[],
+  ): Promise<ForecastSummaryListResponse> {
     return { fixtures: await this.forecasts.preKickoffFor(parseFixtures(fixtures)) };
   }
 }
@@ -48,9 +50,12 @@ export class ForecastListController {
  * give a caller with one typo a shorter list and no way to tell which match is
  * missing from it.
  */
-export function parseFixtures(raw: string | undefined): string[] {
-  const ids = (raw ?? '')
-    .split(',')
+export function parseFixtures(raw: string | string[] | undefined): string[] {
+  // A repeated key arrives as an array (T-1575): read it as one list, never a
+  // TypeError and a 500.
+  const ids = [raw ?? '']
+    .flat()
+    .flatMap((value) => value.split(','))
     .map((part) => part.trim())
     .filter((part) => part !== '');
 
