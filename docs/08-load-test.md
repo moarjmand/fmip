@@ -394,6 +394,10 @@ reliably and are not recorded.
    «فارسی» link, which the no-API build in CI does not draw, so the visual
    baseline at 1280 px never sees the wrap. In a warm browser at 1290 and
    1350 px the row still fits; with a cold cache it does not. T-1534.
+   Fixed in T-1534 (D-273): the row no longer wraps at any width, the search
+   field shrinks first and folds into a link below 1280 px, and
+   `tests/e2e/header-row.spec.ts` checks one 64 px row at 1024, 1280 and
+   1350 px with the language link, in the fallback face and in Archivo.
 2. **The match centre's LCP on a phone (3.2 s, 89).** The largest paint is
    the forecast-against-reality note, with 580 ms of element render delay
    after a 2.9 s first paint. T-1536.

@@ -87,11 +87,13 @@ function Icon({ children }: { children: React.ReactNode }) {
  * the Design System's header does: the raised surface on a phone, the page's
  * ground from 768px, where the competition pills continue it below.
  *
- * From 1280px one row: the wordmark, the nav (Matches, Predictions,
+ * From 1024px one row, always (T-1534: a row that wrapped when Archivo
+ * arrived moved the whole page): the wordmark, the nav (Matches, Predictions,
  * Competitions, The model, News, then More with the founder's analysis,
  * Watch and Highlights), then at the end the search field, the other
  * language, the theme (Auto, Day, Night) and Sign in or the member's menu.
- * From 1024px the nav takes a second row. On a phone or a tablet it is the
+ * The search field is what gives way: it shrinks first, and below 1280px it
+ * is a search link and the mark stands without its name. On a phone or a tablet it is the
  * wordmark, search and the Menu (`<details>`, no script), which holds the nav,
  * the language, the theme and the account; on a phone the five main
  * sections are also in the bottom tab bar.
@@ -99,7 +101,7 @@ function Icon({ children }: { children: React.ReactNode }) {
  * One copy of every link: from 1024px `.site-menu` in globals.css makes the
  * disclosure `display: contents` (where `::details-content` can be styled),
  * so its contents are laid out in the bar itself. Search is the one control
- * drawn twice, as a link on a phone and a field in the bar, each with its own
+ * drawn twice, as a link below 1280px and a field from there, each with its own
  * test id.
  *
  * Every label goes through `Translated` or a resolved `Message` (T-151): on
@@ -158,11 +160,11 @@ export async function SiteHeader({
         <nav
           aria-label={primary.text}
           lang={primary.lang}
-          className="page-frame flex min-h-15 items-center gap-x-2 lg:min-h-16 lg:flex-wrap lg:gap-x-4 lg:gap-y-1"
+          className="page-frame flex min-h-15 items-center gap-x-2 lg:h-16 lg:gap-x-4"
         >
           <Link
             href={href('')}
-            className="me-auto flex min-h-touch items-center gap-2.5 font-latin text-fg lg:me-0"
+            className="me-auto flex min-h-touch items-center gap-2.5 font-latin text-fg lg:-order-2 lg:me-0 lg:shrink-0"
             data-testid="nav-home"
           >
             {/* The mark in the colours of the ground it stands on (D-267):
@@ -171,18 +173,21 @@ export async function SiteHeader({
             <BrandMark size={26} ground="day" className="brand-mark-day shrink-0" />
             <BrandMark size={26} ground="night" className="brand-mark-night shrink-0" />
             {/* The wordmark (D-262): Archivo 850 at 125% width, in capitals by
-              CSS so a screen reader says the name rather than its letters. */}
-            <span className="text-base leading-none font-[850] tracking-wide uppercase font-stretch-expanded lg:text-lg">
+              CSS so a screen reader says the name rather than its letters.
+              From 1024px to 1279px the mark stands alone so the row holds
+              (T-1534), the name kept for a screen reader. */}
+            <span className="text-base leading-none font-[850] tracking-wide uppercase font-stretch-expanded lg:text-lg lg:max-xl:sr-only">
               Stadiomind
             </span>
           </Link>
           {/* On a phone and a tablet, search is in the header (D-263); from
-              1024px it is the field in the bar, below. */}
+              1024px it follows the nav, and from 1280px it is the field in
+              the bar, below. */}
           <Link
             href={href('/search')}
             aria-label={search.text}
             lang={search.lang}
-            className={`${tool} lg:hidden`}
+            className={`${tool} lg:ms-auto lg:shrink-0 xl:hidden`}
             data-testid="nav-search"
           >
             <Icon>
@@ -201,23 +206,25 @@ export async function SiteHeader({
               </Icon>
             </summary>
             <div className="site-menu-panel absolute inset-x-0 top-full z-30 flex max-h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto border-b border-default bg-surface px-4 py-3">
-              {/* Below 1280px the nav does not fit beside the tools: it takes
-                  the header's second row whole rather than wrapping one link
-                  under the rest (T-1479), and the tools keep the first. */}
+              {/* After the wordmark and before search (`order`: the search
+                  link comes first in the source, for the phone). */}
               <PrimaryNav
                 locale={locale}
                 labels={resolved(lang, NAV_LABELS)}
-                className="flex flex-col lg:flex-row lg:items-center lg:gap-1 lg:max-xl:order-last lg:max-xl:basis-full"
+                className="flex flex-col lg:-order-1 lg:shrink-0 lg:flex-row lg:items-center lg:gap-1"
               />
               {/* The Design System's search field: a plain GET form, so it
-                  works before any script, landing on the search page. */}
+                  works before any script, landing on the search page. It is
+                  what gives way (T-1534): it takes the room the rest leave,
+                  up to 16rem, and shrinks to its icon before the row could
+                  wrap; below 1280px it folds into the search link. */}
               <form
                 action={href('/search')}
                 role="search"
-                className="site-search hidden lg:ms-auto lg:flex lg:max-w-64 lg:grow lg:basis-40"
+                className="site-search hidden xl:ms-auto xl:flex xl:max-w-64 xl:min-w-11 xl:grow xl:basis-64"
                 data-testid="nav-search-form"
               >
-                <label className="flex h-11 w-full items-center gap-2 rounded-control border border-default bg-surface px-3 text-caption focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus">
+                <label className="flex h-11 w-full min-w-0 items-center overflow-hidden gap-2 rounded-control border border-default bg-surface px-3 text-caption focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus">
                   <Icon>
                     <circle cx="11" cy="11" r="7" />
                     <path d="m20 20-4-4" />
@@ -229,7 +236,7 @@ export async function SiteHeader({
                     type="search"
                     name="q"
                     placeholder={placeholder.text}
-                    className="min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
+                    className="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
                     data-testid="nav-search-input"
                   />
                 </label>
@@ -277,8 +284,9 @@ export async function SiteHeader({
                 </div>
               ) : (
                 <details className="account-menu relative" data-testid="account-menu">
-                  <summary className="flex min-h-touch cursor-pointer list-none items-center gap-1 rounded-control px-3 text-sm font-semibold lg:border lg:border-default lg:bg-surface [&::-webkit-details-marker]:hidden">
-                    @{me.username}
+                  <summary className="flex min-h-touch cursor-pointer list-none items-center gap-1 rounded-control px-3 text-sm font-semibold lg:max-w-44 lg:border lg:border-default lg:bg-surface [&::-webkit-details-marker]:hidden">
+                    {/* A long name is cut short in the bar rather than pushing the row wider (T-1534). */}
+                    <span className="truncate">@{me.username}</span>
                     <span aria-hidden="true">▾</span>
                   </summary>
                   <div className="flex flex-col ps-3 lg:absolute lg:end-0 lg:top-full lg:z-40 lg:mt-1 lg:w-56 lg:rounded-control lg:border lg:border-default lg:bg-surface lg:px-2 lg:py-2">

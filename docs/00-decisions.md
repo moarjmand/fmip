@@ -12415,6 +12415,22 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** `MatchesPanel`, `SeasonPanels` and `TablePanels` are gone; `EntityBand` gains `aside`, and the player and coach pages get the follow button beside their tabs too.
 
+## D-273 — The desktop header is one row at every width; the search field gives way first
+
+**Status:** Accepted · 2026-10-26 (decided by the agent from PageSpeed's findings, with the maintainer's standing approval) · **Task:** T-1534 · **Amends:** D-267 point 4; T-1479's second row at 1024px
+
+**Context.** On PageSpeed's cold desktop load (1350px) the header was drawn on one row in the fallback face, then Sign in dropped to a second row once Archivo arrived; the header grew by 28px and the whole page moved (CLS about 0.80, desktop scores 75-76 on `/en`, `/en/scores` and a match page; `docs/08-load-test.md`, "PageSpeed after the redesign"). The row could wrap because it was a wrapping flex row and the search field would not shrink below its input's own width; production also draws the «فارسی» link, which CI's build without an API does not, so no check saw the wrap. From 1024px to 1279px the nav already took a second row of its own by design (T-1479).
+
+**Decision.**
+1. From 1024px the header is one 64px row that never wraps, so a face arriving late cannot change its height.
+2. The search field is what gives way: from 1280px it takes the room the rest leave, up to 16rem, and shrinks to its icon before anything else would move. The wordmark, the nav, the language link, the theme, Settings and Sign in keep their size.
+3. From 1024px to 1279px the field folds into the 44px search link (the one the phone has), after the nav, and the mark stands without its name, which stays for a screen reader. There is then room for the nav, search, the language link, the theme, Settings and Sign in on one row in either language.
+4. A member's name in the bar is cut short (11rem) rather than pushing the row wider.
+
+**Rejected.** *A second row at 1024px (T-1479)*: stable, but the acceptance asks for one row, and a header that changes shape between 1279 and 1280px is two designs to keep. *Tuning the fallback face's metrics alone*: whatever difference is left would still decide whether a full row wraps. *Dropping the language link or Settings from the bar*: both have no other way in on a desktop.
+
+**Consequences.** `tests/e2e/header-row.spec.ts` checks one 64px row at 1024, 1280 and 1350px on `/en` and `/fa`, with the language link put in as `LanguagePicker` draws it and the web fonts refused and loaded; `tests/e2e/journeys/header-row.spec.ts` checks the real link with the API behind the app. The PageSpeed re-run after the deploy is the coordinator's.
+
 ## D-277 — The chosen row stands on a solid selected ground, not a saffron wash
 
 **Status:** Accepted · 2026-10-26 (under the maintainer's standing approval) · **Task:** T-1535 · **Follows:** D-263, D-268

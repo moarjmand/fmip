@@ -128,8 +128,15 @@ describe('the header at every width (T-1479)', () => {
     expect(buttons.find((b) => /lg:flex/.test(b))).toContain('value="system"');
   });
 
-  it('puts the nav on a row of its own below 1280px, never one link under the rest', () => {
-    expect(HEADER).toContain('lg:max-xl:order-last lg:max-xl:basis-full');
-    expect(HEADER).toContain('lg:ms-auto');
+  it('keeps the bar one row from 1024px, the search giving way first (T-1534)', () => {
+    // A fixed height and no wrap: a face arriving late cannot add a row.
+    expect(HEADER).toContain('lg:h-16 lg:gap-x-4"');
+    expect(HEADER).not.toContain('lg:flex-wrap');
+    expect(HEADER).not.toContain('lg:max-xl:order-last');
+    // The field shrinks to its icon rather than pushing the tools on; below
+    // 1280px it is the search link, and the mark stands without its name.
+    expect(HEADER).toContain('xl:ms-auto xl:flex xl:max-w-64 xl:min-w-11 xl:grow xl:basis-64');
+    expect(HEADER).toContain('`${tool} lg:ms-auto lg:shrink-0 xl:hidden`');
+    expect(HEADER).toContain('lg:text-lg lg:max-xl:sr-only');
   });
 });
