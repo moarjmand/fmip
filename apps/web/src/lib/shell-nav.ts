@@ -19,30 +19,41 @@ export interface ShellLink {
   match: readonly string[];
 }
 
+/** Every page under Competitions and Leagues: the directory, a competition, a club, a player, a coach. */
+const LEAGUES = ['/competitions', '/competition', '/team', '/player', '/coach'];
+
 /**
- * The header's nav, in the order the Hybrid header gives (D-199): Today,
- * Scores, Predictions, Analysis, News, Watch, then Highlights (T-1434,
- * D-226), the page of every highlight link. The board's "Competitions" is
- * the competitions bar under the header instead (T-1433, D-225), whose
- * "All competitions" leads to `/competitions`. Analysis
- * is the founder's analysis, which is published on the Predictions page; its
- * own sections (`/analyses/<id>`, `/founder/<id>`) make it current.
+ * The header's nav, in the order the Stadiomind header gives (D-263, D-267):
+ * Matches, Predictions, Competitions, The model, News. The wordmark leads
+ * home, so the homepage has no entry of its own. Matches is the scores page
+ * and the matches below it; Competitions the directory and every
+ * competition, club, player and coach page; The model the model's record.
  */
 export const HEADER_NAV: readonly ShellLink[] = [
-  { id: 'today', path: '', match: [''] },
-  { id: 'scores', path: '/scores', match: ['/scores', '/match', '/competition'] },
+  { id: 'matches', path: '/scores', match: ['/scores', '/match'] },
+  { id: 'predictions', path: '/predictions', match: ['/predictions', '/leaderboard'] },
   {
-    id: 'predictions',
-    path: '/predictions',
-    match: ['/predictions', '/leaderboard', '/model-accuracy'],
+    id: 'competitions',
+    path: '/competitions',
+    match: LEAGUES,
   },
-  { id: 'analysis', path: '/predictions#analysis', match: ['/analyses', '/founder'] },
+  { id: 'model', path: '/model-accuracy', match: ['/model-accuracy'] },
   { id: 'news', path: '/news', match: ['/news'] },
+];
+
+/**
+ * The header's More (D-267): the sections the Design System's header has no
+ * place for, kept one click away rather than dropped. Each is current on its
+ * own pages, and More shows it; the header's five do not claim them, so a
+ * page has one current link.
+ */
+export const MORE_NAV: readonly ShellLink[] = [
+  { id: 'analysis', path: '/predictions#analysis', match: ['/analyses', '/founder'] },
   { id: 'watch', path: '/watch', match: ['/watch'] },
   { id: 'highlights', path: '/highlights', match: ['/highlights'] },
 ];
 
-/** The member's own pages: where "Me" is current. */
+/** The member's own pages: where "You" is current. */
 const ME_SECTIONS = [
   '/settings',
   '/u',
@@ -56,20 +67,25 @@ const ME_SECTIONS = [
 ] as const;
 
 /**
- * The bottom tab bar, phones only (D-199): Today, Results, Predictions, News,
- * Me. "Me" is the member's settings, or Sign in for a guest.
+ * The bottom tab bar, phones only (D-263, D-267): Matches, Predict, Leagues,
+ * News, You. Matches is current on the homepage too, as the canvas's phone
+ * home shows it; "You" is the member's settings, or Sign in for a guest.
  */
 export function tabBarLinks(signedIn: boolean): readonly ShellLink[] {
   return [
-    { id: 'today', path: '', match: [''] },
-    { id: 'results', path: '/scores', match: ['/scores', '/match', '/competition'] },
+    { id: 'matches', path: '/scores', match: ['', '/scores', '/match', '/watch'] },
     {
-      id: 'predictions',
+      id: 'predict',
       path: '/predictions',
       match: ['/predictions', '/leaderboard', '/model-accuracy', '/analyses', '/founder'],
     },
-    { id: 'news', path: '/news', match: ['/news'] },
-    { id: 'me', path: signedIn ? '/settings' : '/login', match: ME_SECTIONS },
+    {
+      id: 'leagues',
+      path: '/competitions',
+      match: LEAGUES,
+    },
+    { id: 'news', path: '/news', match: ['/news', '/highlights'] },
+    { id: 'you', path: signedIn ? '/settings' : '/login', match: ME_SECTIONS },
   ];
 }
 
