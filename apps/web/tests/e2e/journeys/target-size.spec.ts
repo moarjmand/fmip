@@ -17,7 +17,10 @@ const SALAH = '00000000-0000-4000-8000-000000000701';
 const PREMIER_LEAGUE = '00000000-0000-4000-8000-000000000201';
 
 const PAGES = [
-  { path: `/en/team/${MAN_UTD}`, ready: 'match-line' },
+  // The Overview opens on the next match card since T-1499; the club's
+  // fixture lines, with where to watch them, are on its Fixtures tab.
+  { path: `/en/team/${MAN_UTD}`, ready: 'next-match' },
+  { path: `/en/team/${MAN_UTD}?tab=fixtures`, ready: 'match-line' },
   { path: `/en/player/${SALAH}`, ready: 'current-team' },
   { path: `/en/competition/${PREMIER_LEAGUE}`, ready: 'fixture' },
 ];

@@ -13022,12 +13022,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "teamPage.competitions": {
-    "source": "Competitions",
-    "text": "رقابت‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "teamPage.noCompetition": {
     "source": "No current competition on record.",
     "text": "هیچ رقابت جاری‌ای ثبت نشده است.",
@@ -13049,6 +13043,132 @@
   "teamPage.splits": {
     "source": "Home and away",
     "text": "خانه و بیرون",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.recentResults": {
+    "source": "Recent results",
+    "text": "نتایج اخیر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.allCompetitions": {
+    "source": "All competitions",
+    "text": "همه‌ی رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.comingUp": {
+    "source": "Coming up",
+    "text": "بازی‌های پیش رو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.soFar": {
+    "source": "{competition} so far",
+    "text": "{competition} تا این‌جا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.record.caption": {
+    "source": "Home and away record of {name} in {competition}",
+    "text": "کارنامه‌ی خانه و بیرون {name} در {competition}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.record.betterAway": {
+    "source": "Better away ({away} pts from {awayPlayed}) than at home ({home} pts from {homePlayed}).",
+    "text": "بیرون از خانه بهتر بوده ({away} امتیاز از {awayPlayed} بازی) تا در خانه ({home} امتیاز از {homePlayed} بازی).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.record.betterHome": {
+    "source": "Better at home ({home} pts from {homePlayed}) than away ({away} pts from {awayPlayed}).",
+    "text": "در خانه بهتر بوده ({home} امتیاز از {homePlayed} بازی) تا بیرون از خانه ({away} امتیاز از {awayPlayed} بازی).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.record.level": {
+    "source": "As good away ({away} pts from {awayPlayed}) as at home ({home} pts from {homePlayed}).",
+    "text": "بیرون از خانه ({away} امتیاز از {awayPlayed} بازی) همان‌قدر خوب بوده که در خانه ({home} امتیاز از {homePlayed} بازی).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.topScorer": {
+    "source": "Top scorer · {competition}",
+    "text": "بهترین گلزن · {competition}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.topScorer.title": {
+    "source": "Top scorer",
+    "text": "بهترین گلزن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.topScorer.none": {
+    "source": "No goal for the club is recorded in {competition} yet.",
+    "text": "هنوز گلی از این باشگاه در {competition} ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.topScorer.notSupplied": {
+    "source": "This season’s goals are not on record yet.",
+    "text": "گل‌های این فصل هنوز ثبت نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.aroundThem": {
+    "source": "Around them",
+    "text": "در جدول",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.places": {
+    "source": "{competition} places {from} to {to}",
+    "text": "{competition}، رده‌های {from} تا {to}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.standing.points": {
+    "source": "{points} pts from {played}",
+    "text": "{points} امتیاز از {played} بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.versus": {
+    "source": "v {opponent}",
+    "text": "مقابل {opponent}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.at": {
+    "source": "at {opponent}",
+    "text": "در زمین {opponent}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.atHome": {
+    "source": "home",
+    "text": "خانه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.form": {
+    "source": "Form, newest first: {results}",
+    "text": "فرم، جدیدترین اول: {results}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.topScorer.goals": {
+    "source": {
+      "one": "{count} goal",
+      "other": "{count} goals"
+    },
+    "forms": {
+      "one": "{count} گل",
+      "other": "{count} گل"
+    },
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -13334,12 +13454,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "teamPage.tile.position": {
-    "source": "Position, of {total}",
-    "text": "رتبه، از {total}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "teamPage.tile.record": {
     "source": "Won · drawn · lost",
     "text": "برد · مساوی · باخت",
@@ -13349,12 +13463,6 @@
   "teamPage.tile.goals": {
     "source": "Goals for · against",
     "text": "گل زده · خورده",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "teamPage.matches": {
-    "source": "Fixtures and results",
-    "text": "بازی‌ها و نتایج",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

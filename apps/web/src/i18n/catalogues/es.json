@@ -10717,11 +10717,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "teamPage.competitions": {
-    "source": "Competitions",
-    "text": "",
-    "status": "untranslated"
-  },
   "teamPage.noCompetition": {
     "source": "No current competition on record.",
     "text": "",
@@ -10740,6 +10735,109 @@
   "teamPage.splits": {
     "source": "Home and away",
     "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.recentResults": {
+    "source": "Recent results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.comingUp": {
+    "source": "Coming up",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.soFar": {
+    "source": "{competition} so far",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.record.caption": {
+    "source": "Home and away record of {name} in {competition}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.record.betterAway": {
+    "source": "Better away ({away} pts from {awayPlayed}) than at home ({home} pts from {homePlayed}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.record.betterHome": {
+    "source": "Better at home ({home} pts from {homePlayed}) than away ({away} pts from {awayPlayed}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.record.level": {
+    "source": "As good away ({away} pts from {awayPlayed}) as at home ({home} pts from {homePlayed}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer": {
+    "source": "Top scorer · {competition}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer.title": {
+    "source": "Top scorer",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer.none": {
+    "source": "No goal for the club is recorded in {competition} yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer.notSupplied": {
+    "source": "This season’s goals are not on record yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.aroundThem": {
+    "source": "Around them",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.places": {
+    "source": "{competition} places {from} to {to}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.standing.points": {
+    "source": "{points} pts from {played}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.versus": {
+    "source": "v {opponent}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.at": {
+    "source": "at {opponent}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.atHome": {
+    "source": "home",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.form": {
+    "source": "Form, newest first: {results}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer.goals": {
+    "source": {
+      "one": "{count} goal",
+      "other": "{count} goals"
+    },
+    "forms": {},
     "status": "untranslated"
   },
   "teamPage.splitsFootnote": {
@@ -10971,11 +11069,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "teamPage.tile.position": {
-    "source": "Position, of {total}",
-    "text": "",
-    "status": "untranslated"
-  },
   "teamPage.tile.record": {
     "source": "Won · drawn · lost",
     "text": "",
@@ -10983,11 +11076,6 @@
   },
   "teamPage.tile.goals": {
     "source": "Goals for · against",
-    "text": "",
-    "status": "untranslated"
-  },
-  "teamPage.matches": {
-    "source": "Fixtures and results",
     "text": "",
     "status": "untranslated"
   },
