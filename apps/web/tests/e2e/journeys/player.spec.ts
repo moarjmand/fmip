@@ -51,12 +51,13 @@ for (const width of [390, 1440]) {
         expect(ageText.trim()).toMatch(age);
         await expect(page.getByTestId('facts').locator('[data-coverage-badge]')).toHaveCount(0);
 
-        // No line-ups in the seed: the season and the career say so.
+        // No line-ups in the seed: the season says so, once; the Overview
+        // draws no second, empty career table (T-1569).
         await expect(page.getByTestId('player-season-empty')).toBeVisible();
-        await expect(page.getByTestId('record-empty')).toBeVisible();
         await expect(
-          page.getByTestId('career-record').locator('[data-coverage-badge="not_supplied"]'),
+          page.getByTestId('player-season').locator('[data-coverage-badge="not_supplied"]'),
         ).toBeVisible();
+        await expect(page.getByTestId('career-record')).toHaveCount(0);
 
         await expect(page.getByTestId('recent-matches')).toBeVisible();
         await expect(page.getByTestId('player-availability')).toBeVisible();
@@ -70,7 +71,8 @@ for (const width of [390, 1440]) {
       page,
     }) => {
       await page.goto(`/en/player/${SALAH}`);
-      const main = await page.getByTestId('career-record').boundingBox();
+      // The season's block heads the main column whatever the seed holds.
+      const main = await page.getByTestId('player-season').boundingBox();
       const side = await page.getByTestId('recent-matches').boundingBox();
       if (main === null || side === null) throw new Error('a column has no box');
       if (width >= 1024) {
