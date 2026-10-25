@@ -7,8 +7,14 @@ import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';
 
 /**
- * The competitions bar's links (T-1433), the one part that needs the
- * pathname: which entry is current. The bar lives in the locale layout,
+ * The competitions bar's links (T-1433; drawn as the Design System's pills,
+ * T-1513, D-267): the main competitions as rounded pills under the header,
+ * then "All competitions" at the end, as the canvas puts it. Not drawn on a
+ * phone, where the tab bar's Leagues leads to every competition. Their looks
+ * are `pill-entry` and `pill-all` in globals.css, keyed on `aria-current`,
+ * so this client component carries no class strings for them (D-264).
+ *
+ * The bar's one part that needs the pathname: which entry is current. The bar lives in the locale layout,
  * which a client-side navigation does not render again, so the pathname is
  * read here (as `PrimaryNav` does). The words arrive resolved (T-1040),
  * and each logo arrives drawn by the server (`icon`): `EntityImage` imports
@@ -37,68 +43,43 @@ export function CompetitionsBarLinks({
 }) {
   const pathname = usePathname();
   const allHref = `/${locale}/competitions`;
-  const allCurrent = pathname === allHref;
-  const link = 'flex min-h-touch items-center gap-2 rounded-control px-3 text-sm whitespace-nowrap';
   return (
     <nav
       aria-label={navLabel.text}
       lang={navLabel.lang}
       data-testid="competitions-bar"
-      className="border-b border-default bg-canvas"
+      className="border-b border-default bg-canvas max-md:hidden"
     >
-      <ul className="page-frame flex items-center gap-1 overflow-x-auto py-1 [scrollbar-width:thin]">
-        <li className={`shrink-0 ${items.length > 0 ? 'me-1 border-e border-default pe-1' : ''}`}>
-          <Link
-            href={allHref}
-            aria-current={allCurrent ? 'page' : undefined}
-            data-testid="competitions-bar-all"
-            className={`${link} font-bold ${
-              allCurrent
-                ? 'text-accent shadow-[inset_0_-3px_0_var(--token-accent)]'
-                : 'text-fg hover:text-accent'
-            }`}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-              className="shrink-0"
+      <ul className="page-frame flex items-center gap-2 overflow-x-auto [scrollbar-width:thin]">
+        {items.map((item) => (
+          <li key={item.id} className="shrink-0">
+            <Link
+              href={`/${locale}/competition/${item.id}`}
+              aria-current={isCompetitionPath(pathname, locale, item.id) ? 'page' : undefined}
+              data-testid="competitions-bar-item"
+              data-competition={item.id}
+              className="pill-entry focus-inset"
             >
-              <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
-              <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
-              <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
-              <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
-            </svg>
-            <MessageText message={all} />
-          </Link>
-        </li>
-        {items.map((item) => {
-          const on = isCompetitionPath(pathname, locale, item.id);
-          return (
-            <li key={item.id} className="shrink-0">
-              <Link
-                href={`/${locale}/competition/${item.id}`}
-                aria-current={on ? 'page' : undefined}
-                data-testid="competitions-bar-item"
-                data-competition={item.id}
-                className={`${link} ${
-                  on
-                    ? 'font-bold text-accent shadow-[inset_0_-3px_0_var(--token-accent)]'
-                    : 'font-semibold text-fg hover:text-accent'
-                }`}
-              >
+              <span>
                 {item.icon}
                 <bdi>{item.label}</bdi>
-              </Link>
-            </li>
-          );
-        })}
+              </span>
+            </Link>
+          </li>
+        ))}
+        <li className="shrink-0">
+          <Link
+            href={allHref}
+            aria-current={pathname === allHref ? 'page' : undefined}
+            data-testid="competitions-bar-all"
+            className="pill-all focus-inset"
+          >
+            <MessageText message={all} />
+            <span aria-hidden="true" className="inline-block rtl:-scale-x-100">
+              →
+            </span>
+          </Link>
+        </li>
       </ul>
     </nav>
   );
