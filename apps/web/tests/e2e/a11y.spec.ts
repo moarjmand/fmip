@@ -53,6 +53,45 @@ test.describe('accessibility', () => {
   }
 
   /**
+   * The rebuilt Stadiomind pages (T-1502) in each view the visual baseline
+   * keeps: Night and Day, at a desktop width and at 390 px, with the web
+   * fonts (lite mode off). The list above sees them once, in the device's
+   * light scheme and at Playwright's default size.
+   */
+  const REBUILT = [
+    '/en',
+    '/en/scores',
+    '/en/match/00000000-0000-4000-8000-000000000901',
+    '/en/competition/00000000-0000-4000-8000-000000000201',
+    '/en/team/00000000-0000-4000-8000-000000000601',
+    '/en/player/00000000-0000-4000-8000-000000000701',
+  ];
+  for (const theme of ['dark', 'light'] as const) {
+    for (const width of [1280, 390]) {
+      test.describe(`the rebuilt pages, ${theme === 'dark' ? 'Night' : 'Day'} at ${width}px`, () => {
+        test.use({ viewport: { width, height: 844 }, colorScheme: theme });
+        test.beforeEach(async ({ context, baseURL }) => {
+          await context.addCookies([
+            { name: 'fmip_theme', value: theme, url: baseURL ?? '' },
+            { name: 'fmip_lite', value: 'off', url: baseURL ?? '' },
+          ]);
+        });
+
+        for (const path of REBUILT) {
+          test(`${path} has no WCAG 2.2 AA violations`, async ({ page }) => {
+            await page.goto(path);
+            await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+            const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+            expect(
+              results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`),
+            ).toEqual([]);
+          });
+        }
+      });
+    }
+  }
+
+  /**
    * axe files text drawn in its own background colour under "incomplete",
    * never as a violation, because the text might be meant to be hidden. The
    * primary buttons were exactly that for months -- `bg-current` paints the
