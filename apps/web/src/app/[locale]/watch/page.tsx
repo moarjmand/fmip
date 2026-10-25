@@ -99,7 +99,10 @@ export default async function WatchPage({
   });
   const guestTerritory = me === null ? territory : undefined;
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
+    // A 44px target on a phone, the old compact chip from 768px (T-1574).
+    `inline-flex min-h-touch items-center rounded px-2 md:min-h-0 md:py-1 ${
+      active ? 'bg-surface-raised font-semibold' : 'underline'
+    }`;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">

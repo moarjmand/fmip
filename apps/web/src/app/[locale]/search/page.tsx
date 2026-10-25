@@ -31,6 +31,9 @@ import { Button, Notice, TextField } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
+/** A result's link: a 44px target on a phone, the line's own height from 768px (T-1574). */
+const RESULT_LINK = 'inline-flex min-h-touch items-center font-medium underline md:min-h-0';
+
 /** Why the question was searched as keywords (T-422), as a sentence beside the results. */
 const REASON_KEY: Record<AskReason, MessageKey> = {
   no_model: 'search.reason.noModel',
@@ -212,7 +215,7 @@ export default async function SearchPage({
                         className="flex flex-wrap items-baseline gap-x-3 py-2"
                         data-testid="search-result"
                       >
-                        <Link href={resultHref(locale, hit)} className="font-medium underline">
+                        <Link href={resultHref(locale, hit)} className={RESULT_LINK}>
                           {hit.name}
                         </Link>
                         {hit.secondary !== null && (
@@ -250,8 +253,9 @@ export default async function SearchPage({
                   >
                     <Link
                       href={storyHref(locale, story.story_id, story.language)}
-                      className="font-medium underline"
+                      className={RESULT_LINK}
                       lang={story.language}
+                      dir="auto"
                     >
                       {story.headline}
                     </Link>
@@ -266,7 +270,7 @@ export default async function SearchPage({
                     className="flex flex-wrap items-baseline gap-x-3 py-2"
                     data-testid="search-group"
                   >
-                    <Link href={groupHref(locale, group.slug)} className="font-medium underline">
+                    <Link href={groupHref(locale, group.slug)} className={RESULT_LINK}>
                       {group.name}
                     </Link>
                     <span className="text-sm text-muted">
