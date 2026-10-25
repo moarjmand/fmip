@@ -12243,3 +12243,21 @@ replaces D-089's self-hosting arrangement for no gain here).
 3. New components are server components unless they need state (the pick buttons, the date strip, tabs on phones); fonts load with `font-display: swap` and size-adjusted fallbacks so CLS stays under 0.05.
 
 **Consequences.** The new budgets are home 163, scores 180, match centre 191, competition 163 KB at most, raised in the PR that needs them. PageSpeed is measured after the foundation and after the last page (T-1502).
+
+## D-271 — The Stadiomind player page: the club only in the photo's ring, facts with their coverage, the career by season in its own box
+
+**Status:** Accepted · 2026-10-25 (agent, under the maintainer's standing approval) · **Task:** T-1500 · **Amends:** D-204 (the Hybrid player page)
+
+**Context.** The canvas's Player and PlayerPhone boards (https://claude.ai/artifact/X5qzAJELjXfdsYcHcMUvAn) show a header with the photo in a ring of the club's colour, four facts (age, height, foot and a last rating), tiles per competition, a career table, the last six matches and the next match; the phone adds section tabs. Our data holds no per-player match rating on `GET /players/:id`, no club/national-team flag on a record row, and no home or away in the availability's next fixture.
+
+**Decision.**
+1. The club's colour appears only as the 3px ring round the photo (D-263); a club with no colour on record gets the theme's strong line. The band is the plain surface, no longer filled.
+2. The facts are age (with the birth date under it), height and foot, each the figure we hold or the "not supplied" badge. The canvas's "Last rating" is left out: the player endpoint carries no rating, and adding one is an API change of its own, not a page's.
+3. The season's tiles: one per competition (and team, where the season has more than one, so a national side is named), goals large, then appearances, minutes ("at least" where only some came, "minutes not supplied" where none) and goals per 90 only over whole minutes of at least 90; with more than one row a first "All competitions" tile. No "club goals" tile: a record row does not say whether its team is a club.
+4. The career table groups rows by season (a row-group header cell), with starts, substitute appearances, goals, assists and minutes; the Stats tab adds the cards. It keeps a 40rem minimum width and scrolls inside its own focusable region named by its caption, so a phone never scrolls the page sideways.
+5. The last six matches show both sides with the score between them in the page's direction (D-193), never "v Opponent" with a score whose order the reader must guess; goals and assists in the saffron text colour, a dash when none.
+6. The next match is the availability card (T-1007) headed "Next match": the team and opponent as the feed gives them (no home or away is claimed), the kick-off, then the availability with its coverage.
+7. The tabs stay Overview, Matches, Career, Stats (the phone board's "Season" and "News" are the Overview, which keeps the news); the desktop board shows none, but each tab is a URL that fetches only what it shows (D-203).
+
+**Consequences.** The player page drops `EntityBand` (T-1499's) for its own header in `components/player-page.tsx`. Four catalogue keys of the Hybrid tiles left the catalogues; the minutes note no longer says availability is not held, since the page shows it.
+

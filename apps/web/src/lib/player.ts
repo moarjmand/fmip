@@ -198,8 +198,8 @@ export function playerTabHref(
   return text === '' ? base : `${base}?${text}`;
 }
 
-/** Matches on the Overview's short list; the Matches tab has every one the API sent. */
-export const OVERVIEW_PLAYER_MATCHES = 5;
+/** Matches on the Overview's "last six" (T-1500); the Matches tab has every one the API sent. */
+export const OVERVIEW_PLAYER_MATCHES = 6;
 
 /**
  * The spells' coverage, by the rule the API gives the squad (`TeamPage.squad`):
@@ -222,4 +222,51 @@ export function latestSeason(record: readonly PlayerSeasonRecord[]): {
   const row = record[0];
   if (row === undefined) return null;
   return { row, others: record.slice(1).filter((r) => r.season.id === row.season.id) };
+}
+
+// ---------------------------------------------------------------------------
+// The Stadiomind player page (T-1500, D-271): the season's tiles and the
+// career table by season.
+// ---------------------------------------------------------------------------
+
+/**
+ * The record's rows by season, in the record's order (newest season first),
+ * each season once with its rows: the career table's row groups.
+ */
+export function seasonGroups(
+  record: readonly PlayerSeasonRecord[],
+): { season: PlayerSeasonRecord['season']; rows: PlayerSeasonRecord[] }[] {
+  const groups: { season: PlayerSeasonRecord['season']; rows: PlayerSeasonRecord[] }[] = [];
+  for (const row of record) {
+    const group = groups.find((g) => g.season.id === row.season.id);
+    if (group === undefined) groups.push({ season: row.season, rows: [row] });
+    else group.rows.push(row);
+  }
+  return groups;
+}
+
+/** A season's goals and appearances over every competition and team it has. */
+export function seasonTotals(rows: readonly PlayerSeasonRecord[]): {
+  goals: number;
+  appearances: number;
+} {
+  return rows.reduce(
+    (sum, row) => ({
+      goals: sum.goals + row.goals,
+      appearances: sum.appearances + appearances(row),
+    }),
+    { goals: 0, appearances: 0 },
+  );
+}
+
+/**
+ * Goals per 90 minutes, only from minutes the feed sent for every match the
+ * player played (`available`) and at least a whole match of them: "at least"
+ * minutes would make the rate look higher than it is, and a few minutes off
+ * the bench would make it meaningless. Null otherwise, and the tile leaves
+ * the rate out rather than estimate it (rule 3).
+ */
+export function goalsPer90(goals: number, minutes: PlayerSeasonMinutes): number | null {
+  if (minutes.coverage !== 'available' || minutes.total === null || minutes.total < 90) return null;
+  return (goals * 90) / minutes.total;
 }
