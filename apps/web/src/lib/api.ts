@@ -962,9 +962,15 @@ export function fetchLeaderboard(
   );
 }
 
-/** `GET /fixtures/:id`: the match centre payload (T-033). Public. */
-export function fetchMatchCentre(fixtureId: string): Promise<ApiResult<MatchCentre>> {
-  return apiRequest<MatchCentre>(`/fixtures/${encodeURIComponent(fixtureId)}`);
+/**
+ * `GET /fixtures/:id`: the match centre payload (T-033). Public. Names come in
+ * the reader's language unless `locale` chooses one (the share card, T-1506).
+ */
+export function fetchMatchCentre(
+  fixtureId: string,
+  locale?: string,
+): Promise<ApiResult<MatchCentre>> {
+  return apiRequest<MatchCentre>(withLocale(`/fixtures/${encodeURIComponent(fixtureId)}`, locale));
 }
 
 /** `GET /fixtures/:id/forecasts` (T-064): every version, oldest first, with coverage. Public. */

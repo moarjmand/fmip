@@ -13,6 +13,10 @@ const PAGES = [
   '/en/match/00000000-0000-4000-8000-000000000901',
   '/en/competition/00000000-0000-4000-8000-000000000101',
   '/en/u/someone',
+  // The Persian pages' cards (T-1506): drawn in English, never a 502.
+  '/fa/match/00000000-0000-4000-8000-000000000901',
+  '/fa/competition/00000000-0000-4000-8000-000000000101',
+  '/fa/u/someone',
 ];
 
 test.describe('share cards', () => {
