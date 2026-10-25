@@ -9916,26 +9916,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.col.goalsFor": {
-    "source": "GF",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.col.goalsForTitle": {
-    "source": "Goals for",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.col.goalsAgainst": {
-    "source": "GA",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.col.goalsAgainstTitle": {
-    "source": "Goals against",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.col.goalDifference": {
     "source": "GD",
     "text": "",
@@ -10186,11 +10166,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.seasonLabel": {
-    "source": "Season {season}",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.sections": {
     "source": "Sections",
     "text": "",
@@ -10231,38 +10206,162 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.tab.matches": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tab.model": {
+    "source": "Model in this league",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tab.news": {
+    "source": "News",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.back": {
+    "source": "Back to all competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.seasonMenu": {
+    "source": "Season {season}: choose another season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tableCaption": {
+    "source": "{name} table",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.formLatestFirst": {
+    "source": "Form: the last five results, most recent first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goals": {
+    "source": "Goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goalsTitle": {
+    "source": "Goals scored and conceded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.title": {
+    "source": "Next matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.modelHead": {
+    "source": "model %",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.none": {
+    "source": "Nothing is left to play this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.noForecast": {
+    "source": "No forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.forecastUnreachable": {
+    "source": "Forecast not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.forecastLabel": {
+    "source": "The model: home win {home}%, draw {draw}%, away win {away}%",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.receipt": {
+    "source": "The model’s percentages, home · draw · away: its latest forecast before kick-off ({versions}); every version and when it was computed are on the match page. {zone}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.results": {
+    "source": "Results · {day}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.matches.modelFirst": {
+    "source": "The model’s percentages are shown for the next {number} matches; later ones are on each match page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.tag": {
+    "source": "MODEL",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.heading": {
+    "source": "The model in this league",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.title": {
+    "source": "In this league · {month}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.favouriteWon": {
+    "source": "favourite won",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.rpsBlind": {
+    "source": "RPS ({rps} guessing)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.matches": {
+    "source": "matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.limited": {
+    "source": "Limited: fewer than {minimum} matches is too few to judge the model in one league.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.notSupplied": {
+    "source": "No forecast the model made here before kick-off has been scored yet, so there is nothing to judge it by.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.more": {
+    "source": "The model month by month",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.record": {
+    "source": "The model’s full record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.months": {
+    "source": "Month by month",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.only": {
+    "source": "The statistical model’s published forecasts only: the founder’s analysis and the community’s picks are not counted.",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.facts.clubs": {
     "source": {
       "one": "{count} club",
       "other": "{count} clubs"
     },
     "forms": {},
-    "status": "untranslated"
-  },
-  "competitionPage.facts.played": {
-    "source": {
-      "one": "{count} match played",
-      "other": "{count} matches played"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "competitionPage.facts.qualifying": {
-    "source": {
-      "one": "{count} in qualifying",
-      "other": "{count} in qualifying"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "competitionPage.facts.nextRound": {
-    "source": "next: {round}, {day}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.facts.next": {
-    "source": "next match: {day}",
-    "text": "",
     "status": "untranslated"
   },
   "competitionPage.follow.start": {
@@ -10290,86 +10389,13 @@
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.matchweek.none": {
-    "source": "Matches",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.next": {
-    "source": "Next matches",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.latest": {
-    "source": "Latest matches",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.seasonOver": {
-    "source": "Nothing is left to play this season; these are its last matches.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.note": {
-    "source": "Model probabilities: home · draw · away. {zone}.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.more": {
-    "source": {
-      "one": "{count} more match in this round",
-      "other": "{count} more matches in this round"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "competitionPage.tableSummary": {
-    "source": "Table · summary",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.fullTable": {
     "source": "Full table",
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.formOrder": {
-    "source": "Form: the last five results, oldest to newest.",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.noTable": {
-    "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Fixtures and Results.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.projection.head": {
-    "source": "Season projection · coming later",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.projection.title": {
-    "source": "Title",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.projection.topFour": {
-    "source": "Top 4",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.projection.relegation": {
-    "source": "Relegation",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.projection.note": {
-    "source": "The model’s title, top-four and relegation chances will fill the dashed columns once the season simulation ships. Until then they stay empty, never estimated.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.allPlayers": {
-    "source": "All scorers and boards",
+    "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
     "text": "",
     "status": "untranslated"
   },
