@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { difference, sharesToPercentages, signed } from './triple';
+import { difference, sharesToPercentages, signed, wholePercentages } from './triple';
 
 /**
  * The arithmetic the model and the community both need (T-135).
@@ -22,6 +22,31 @@ describe('shares as percentages', () => {
 
     expect(result.home + result.draw + result.away).toBeCloseTo(100, 10);
     expect(result.away).toBeGreaterThan(result.home);
+  });
+});
+
+describe('whole percentages', () => {
+  it('totals exactly 100 where rounding each would print 101 (T-1555)', () => {
+    // Bournemouth v Leeds on production: 40.6 · 28.9 · 30.5 printed 41 · 29 · 31.
+    const result = wholePercentages({ home: 40.6, draw: 28.9, away: 30.5 });
+
+    expect(result.home + result.draw + result.away).toBe(100);
+    expect(result).toEqual({ home: 40, draw: 29, away: 31 });
+  });
+
+  it('totals 100 where rounding each would print 99, the gap to the largest', () => {
+    const result = wholePercentages({ home: 33.4, draw: 33.4, away: 33.2 });
+
+    expect(result.home + result.draw + result.away).toBe(100);
+    expect(result.home).toBe(34);
+  });
+
+  it('leaves a triple that already totals 100 alone', () => {
+    expect(wholePercentages({ home: 45, draw: 25, away: 30 })).toEqual({
+      home: 45,
+      draw: 25,
+      away: 30,
+    });
   });
 });
 
