@@ -129,12 +129,15 @@ export function InlinePick({
   me,
   current,
   split,
+  open = false,
 }: {
   locale: string;
   fixture: { id: string; kickoff_at: string; home: string; away: string };
   me: AuthUser | null;
   current: Prediction | null;
   split: ReactNode;
+  /** Start on the outcomes, not on "Make your pick" (the matches page's preview, T-1496). */
+  open?: boolean;
 }) {
   const l = asLocale(locale);
   const locked = current?.locked ?? isLocked(fixture.kickoff_at);
@@ -183,6 +186,7 @@ export function InlinePick({
         shareUrl={canonicalUrl(locale, `/match/${fixture.id}`)}
         split={split}
         words={formWords(l, home, away, current)}
+        initiallyOpen={open}
       />
     </div>
   );

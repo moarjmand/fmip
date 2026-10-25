@@ -5,6 +5,7 @@ import type { ScoresWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 import { LtrNumeric } from '@/components/score';
+import { CoverageBadge } from '@/components/ui/coverage-badge';
 
 /**
  * The statistical model's line on a scores card (T-940, D-114). Only the
@@ -90,5 +91,90 @@ export function CardForecastSummary({
         <MessageText className="text-muted" message={m['scores.card.lineNotLoaded']} />
       )}
     </p>
+  );
+}
+
+/** The Design System's forecast-bar segments (T-1493): home the model's colour, draw and away its own two. */
+const STEPS = { home: 'bg-model', draw: 'bg-prob-draw', away: 'bg-prob-away' } as const;
+
+/**
+ * The model's cell on a match row (T-1496, the Design System's compact
+ * `ForecastBar`): a thin bar and the three percentages under it, home, draw,
+ * away, in the model's colour and nothing else's (rule 6). The version and
+ * the computation time are the preview's (`CardForecastSummary`), one press
+ * away. No forecast is the "Not supplied" badge, never an empty bar (rule 3);
+ * a batch that did not answer says it was not loaded.
+ */
+export function RowForecast({
+  forecast,
+  home,
+  away,
+  locale,
+  words,
+}: {
+  forecast: CardForecast | undefined;
+  home: string;
+  away: string;
+  locale: string;
+  words: ScoresWords;
+}) {
+  const f = forecast ?? { state: 'not_loaded' as const };
+  const m = words.m;
+  if (f.state === 'none' || f.state === 'unavailable') {
+    return (
+      <span className="min-w-0" data-testid="row-forecast" data-state={f.state}>
+        <CoverageBadge
+          state="not_supplied"
+          label={<MessageText message={m['status.coverage.notSupplied']} />}
+        />
+      </span>
+    );
+  }
+  if (f.state !== 'available') {
+    return (
+      <span className="min-w-0 text-xs text-muted" data-testid="row-forecast" data-state={f.state}>
+        <MessageText message={m['scores.row.modelNotLoaded']} />
+      </span>
+    );
+  }
+  const outcomes = [
+    { key: 'home', value: f.home },
+    { key: 'draw', value: f.draw },
+    { key: 'away', value: f.away },
+  ] as const;
+  const label = filled(m['forecastBar.label'], {
+    home,
+    homePct: formatPercent(locale, f.home),
+    drawPct: formatPercent(locale, f.draw),
+    away,
+    awayPct: formatPercent(locale, f.away),
+  });
+  return (
+    <span className="flex min-w-0 flex-col gap-1" data-testid="row-forecast" data-state="available">
+      <span
+        role="img"
+        aria-label={label.text}
+        lang={label.status === 'untranslated' ? 'en' : undefined}
+        className="flex h-1.5 gap-px overflow-hidden rounded-full sm:h-2 sm:gap-0.5"
+      >
+        {outcomes.map(({ key, value }) => (
+          <span
+            key={key}
+            data-outcome={key}
+            className={STEPS[key]}
+            // The share is the probability itself; a floor keeps 2% a sliver, not a gap.
+            style={{ flexGrow: Math.max(value, 1.5), flexBasis: 0 }}
+          />
+        ))}
+      </span>
+      <span
+        aria-hidden="true"
+        className="flex justify-between font-mono text-xs text-model tabular-nums [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
+      >
+        {outcomes.map(({ key, value }) => (
+          <span key={key}>{formatNumber(locale, Math.round(value))}</span>
+        ))}
+      </span>
+    </span>
   );
 }

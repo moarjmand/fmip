@@ -180,7 +180,7 @@ made per row, a timeout -- does.
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
 | home `/en` | 155.5 / 158 (2026-10-25, T-1494) | 38 / 50 / 200 |
-| scores `/en/scores` | 175.2 / 176 (raised 2026-10-25, T-1494, D-264) | 21 / 31 / 150 |
+| scores `/en/scores` | 172.2 / 180 (raised 2026-10-25, T-1496, D-264) | 21 / 31 / 150 |
 | match centre `/en/match/…0901` | 187.6 / 191 (raised 2026-10-25, T-1497, D-264) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 156.2 / 158 (2026-10-25, T-1494) | 29 / 39 / 150 |
 
@@ -279,6 +279,16 @@ versions and receipt are drawn on the server and cost the client nothing.
 185.7 (after T-1494's navigation) to 187.6; T-1522's pitch, its stacked
 follow-up, adds about 0.3. The budget goes to 191, D-264's one-off ceiling
 for this page, leaving about 3 kB for the shared components (T-1493). No library was added.
+
+**The raise of 2026-10-25 (T-1496, D-264, D-268).** Matches and predictions
+are one page: each row has a Pick that opens the match's preview, and the
+preview holds the pick form (`PredictionForm`, the match centre's own), so
+the form and its server action's client reference are in the scores page's
+first load: 174.9 to 177.0 kB gzip. The budget goes to 180, the once-only
+5 kB D-264 allows a rebuilt page. With T-1493's change merged (the error page
+no longer pulls in the `ui` barrel) the page measures 172.2. The row's percentages, its Pick and the
+"Not picked yet" view add little: they are a link, a thin bar and a filter
+over the snapshot the list already holds. No library was added.
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the

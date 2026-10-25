@@ -6351,7 +6351,122 @@
     "status": "untranslated"
   },
   "scores.filter.favourites": {
-    "source": "Favourites only",
+    "source": "My teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.title": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.unpicked": {
+    "source": "Not picked yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.label": {
+    "source": "Show",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.modelLegend": {
+    "source": "Model chances: home · draw · away",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.competitionsNav": {
+    "source": "Competitions on this day",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.unpickedEmpty": {
+    "source": "Nothing left to pick on this day: every match still open has your pick, or none is open.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.pick": {
+    "source": "Pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.picked": {
+    "source": "Picked",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.view": {
+    "source": "View",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.pickLabel": {
+    "source": "Pick: {home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.pickedLabel": {
+    "source": "Your pick is in: {home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.viewLabel": {
+    "source": "Preview: {home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.modelNotLoaded": {
+    "source": "Not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.communitySealed": {
+    "source": "Community predictions: shown once you pick, or at kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.label": {
+    "source": "Match preview",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.versus": {
+    "source": "v",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.yourPick": {
+    "source": "Your pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.model": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.modelNote": {
+    "source": "shown beside your pick, never mixed in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.full": {
+    "source": "Full match page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.close": {
+    "source": "Close the preview",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.none": {
+    "source": "Choose Pick on a match to see it here with the pick form.",
     "text": "",
     "status": "untranslated"
   },

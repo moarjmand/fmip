@@ -12,7 +12,7 @@
       "name": "scores",
       "appRoute": "/[locale]/scores",
       "path": "/en/scores",
-      "firstLoadJsGzipKB": 176,
+      "firstLoadJsGzipKB": 180,
       "serverResponseMedianMs": 150
     },
     {

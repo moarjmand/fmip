@@ -12299,6 +12299,24 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **How T-1513 applied it (2026-10-25).** The competitions bar is the Design System's row of pills: each main competition is a rounded pill with a hairline and its logo, the one being read edged in saffron on the raised surface, and "All competitions" comes last in saffron text with an arrow that turns under RTL. Each link is the 44px target, with the pill drawn inside it, and the focus ring sits inside the link so the row's sideways scroll cannot cut it. From 768px only: on a phone the Leagues tab leads to every competition, and the row would push the page down by a line. The looks are CSS utilities keyed on `aria-current`, as the nav's are, so the shell's client chunk does not grow.
 
+## D-268 — Matches and predictions are one page: rows with the model's percentages and a Pick, a preview with the pick form
+
+**Status:** Accepted · 2026-10-25 (from the canvas's Scores and ScoresPhone boards, D-263 point 4) · **Task:** T-1496 · **Follows:** D-114, D-206, D-263, D-264
+
+**Context.** The canvas "Stadiomind Redesign" puts the day's matches and the reader's picks on one page: a date strip, four views, the day's competitions as cards whose rows carry the model's three percentages and a Pick, and on a desktop a side column with one match and the pick form. The old scores card folded everything but the score behind a disclosure, and it showed the community's totals to anyone (T-940), while the Predictions page hid the split until the reader had picked (D-206). On one page the two rules cannot both stand.
+
+**Decision.**
+1. `/scores` is the page (its h1 and title "Matches"). Four views, one at a time, each an address: All, Live (`?live=1`), Not picked yet (`?unpicked=1`, matches not started and before kick-off that the member has not picked, applied to every live snapshot) and My teams (`?favourites=1`, the old favourites filter renamed). The last two are a member's; a guest is not offered them.
+2. A row is the Design System's match row: status or clock, both teams stacked, home first, each with its crest and, once started, its own goals at the line's end; then the model's latest pre-kick-off version as a thin bar with three whole percentages in the model's colour; then Pick. No forecast (none, or a version with no probabilities) is the `not_supplied` coverage badge, "Not supplied", never an empty bar; a batch that did not answer says "Not loaded". A leg, an aggregate, a shoot-out and a feed that is behind stay on the row.
+3. Pick opens the preview of that match (`?pick=<id>#pick`). Before kick-off it reads Pick, or Picked with a tick once the reader has a standing pick; after kick-off View, or Picked with a lock. The preview stands beside the list from 1024 px (sticky, its own scroll), showing the first match still open when none was chosen; on a phone it appears above the list only once a Pick asked for it, and the page scrolls to it. It holds the match, "Your pick" (the match centre's own form and server action, opened on the outcomes because Pick was the first press), the model's bar with its version and computation time beside it, never mixed in, a link to the match page, and what the old card's disclosure held (kick-off and venue, goals and cards, where to watch, coverage and update time).
+4. The community stays sealed until the reader has picked or kick-off has locked every pick (D-206), on this page everywhere: the pick form shows the split only once picked, and the details line that used to give every reader the community's totals says instead that they are shown after a pick or at kick-off.
+5. The member's picks come from one page of their own history (D-201's way); the previewed match is read directly. A match beyond that page reads Pick until it is opened, and its preview says the truth.
+6. From 1280 px a rail lists the day's competitions with their counts, links to the existing `?competition=` filter. The date picker, the day steps and the country, competition and stage filters stay as they were (T-633, T-1482).
+7. Saving a pick revalidates the matches page as well as the match page, so the row turns to Picked.
+8. The first-load budget rises once to 180 kB (D-264): the pick form is now in the scores page's first load (177.0 kB).
+
+**Consequences.** The Predictions page, its redirect to this page and a new home for the founder's analysis and the leaderboard link are T-1519, split off to keep this PR within its size. The old card's `<details>` is gone; unit and E2E specs that opened it read the preview instead.
+
 ## D-270 — The home page opens on the big match, and keeps the blueprint's other sections below the canvas
 
 **Status:** Accepted · 2026-10-25 (decided within the coordinating session's grant, from the canvas, D-263 and the blueprint) · **Task:** T-1495, T-1516 · **Follows:** D-153, D-154, D-200, D-263

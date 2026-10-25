@@ -12,7 +12,8 @@ import { scoresWords } from '@/lib/words-server';
  * home team is on the right. The score was isolated left to right (T-153),
  * which put its first number -- the home goals -- on the left, beside the away
  * team: Sepahan 6 Fajr Sepasi 1 read as the visitors' six on /fa. The pair is
- * now one run in the page's direction. The browser's geometry is asserted by
+ * one run in the page's direction; since T-1496 the teams are stacked and each
+ * line carries its own goals. The browser's geometry is asserted by
  * `tests/e2e/journeys/rtl-content.spec.ts`; this pins the markup it rests on.
  */
 const card: ScoreCardData = {
@@ -51,28 +52,27 @@ const render = (locale: 'en' | 'fa'): string =>
     </ul>,
   );
 
-/** The row's three parts in document order, which is their inline order. */
+/** The row's parts in document order: each team, then its own goals (T-1496). */
 function rowOrder(html: string): string[] {
-  return [...html.matchAll(/data-testid="(home-team|score|away-team)"/g)].map((m) => m[1]!);
+  return [...html.matchAll(/data-testid="(home-team|home-score|away-team|away-score)"/g)].map(
+    (m) => m[1]!,
+  );
 }
 
 describe('a score row in Persian (T-1375)', () => {
   const html = render('fa');
 
-  it('lays out home, score, away from the inline start, the right in Persian', () => {
-    expect(rowOrder(html)).toEqual(['home-team', 'score', 'away-team']);
+  it('stacks the teams, home first, each followed by its own goals', () => {
+    expect(rowOrder(html)).toEqual(['home-team', 'home-score', 'away-team', 'away-score']);
   });
 
-  it('isolates the score right to left, the home goals first, so they sit beside the home team', () => {
-    const score =
-      /<span dir="(\w+)" class="\[unicode-bidi:isolate\][^"]*" data-testid="score">([^<]*)</.exec(
-        html,
-      );
-    expect(score?.[1]).toBe('rtl');
-    // Home first in the document, in Persian digits: read right to left,
-    // "۶ – ۱" is Sepahan's six and then Fajr Sepasi's one.
-    expect(score?.[2]).toBe('۶ – ۱');
-    expect(html).not.toMatch(/dir="ltr"[^>]*data-testid="score"/);
+  it('puts the home goals on the home team’s line, so they can never sit beside the away team', () => {
+    // T-1496: the pair the row once isolated as one run is now two numbers,
+    // each on its own team's line, in Persian digits: Sepahan's six, Fajr Sepasi's one.
+    expect(html).toMatch(/title="سپاهان">سپاهان<\/bdi><span[^>]*data-testid="home-score">۶</);
+    expect(html).toMatch(
+      /title="Fajr Sepasi">Fajr Sepasi<\/bdi><span[^>]*data-testid="away-score">۱</,
+    );
   });
 
   it('isolates an aggregate on the row the same way', () => {
@@ -82,10 +82,10 @@ describe('a score row in Persian (T-1375)', () => {
 });
 
 describe('a score row in English', () => {
-  it('reads home first from the left, as before', () => {
+  it('reads home first, its goals beside it, as before', () => {
     const html = render('en');
-    expect(rowOrder(html)).toEqual(['home-team', 'score', 'away-team']);
-    expect(html).toMatch(/<span dir="ltr"[^>]*data-testid="score">6 – 1</);
+    expect(rowOrder(html)).toEqual(['home-team', 'home-score', 'away-team', 'away-score']);
+    expect(html).toMatch(/data-testid="home-score">6</);
   });
 });
 

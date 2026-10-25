@@ -61,6 +61,13 @@ export interface ScoresPageQuery {
   explicitTimezone: boolean;
   live: boolean;
   favourites: boolean;
+  /**
+   * Only the matches the member can still pick and has not (T-1496): the
+   * "Not picked yet" filter, applied to every snapshot in the browser.
+   */
+  unpicked?: boolean;
+  /** The match whose preview and pick form are open (T-1496), or none. */
+  pick?: string | null;
   /** Country, competition and stage (T-633); absent means none. */
   filters?: ScoresFilterSelection;
 }
@@ -106,8 +113,36 @@ export function readScoresQuery(
     explicitTimezone,
     live: flag(params.live),
     favourites: flag(params.favourites),
+    unpicked: flag(params.unpicked),
+    pick: readPick(first(params.pick)),
     filters: readFilterSelection(params),
   };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A match id from `?pick=`, or none: anything else is ignored, never sent on. */
+function readPick(value: string | undefined): string | null {
+  return value !== undefined && UUID.test(value) ? value.toLowerCase() : null;
+}
+
+/** The page's four views (T-1496): one at a time, each its own address. */
+export type ScoresView = 'all' | 'live' | 'unpicked' | 'mine';
+
+export function scoresView(
+  q: Pick<ScoresPageQuery, 'live' | 'favourites' | 'unpicked'>,
+): ScoresView {
+  if (q.live) return 'live';
+  if (q.favourites) return 'mine';
+  if (q.unpicked === true) return 'unpicked';
+  return 'all';
+}
+
+/** The query flags that select `view`, every other view's flag cleared. */
+export function viewFlags(
+  view: ScoresView,
+): Pick<ScoresPageQuery, 'live' | 'favourites' | 'unpicked'> {
+  return { live: view === 'live', favourites: view === 'mine', unpicked: view === 'unpicked' };
 }
 
 /** The API query string for this page state. */
@@ -122,7 +157,9 @@ export function apiQuery(q: ScoresPageQuery, to: string = q.date): string {
 export function pageHref(
   locale: string,
   q: ScoresPageQuery,
-  over: Partial<Pick<ScoresPageQuery, 'date' | 'live' | 'favourites' | 'filters'>> = {},
+  over: Partial<
+    Pick<ScoresPageQuery, 'date' | 'live' | 'favourites' | 'unpicked' | 'pick' | 'filters'>
+  > = {},
 ): string {
   const next = { ...q, ...over };
   const p = new URLSearchParams();
@@ -130,7 +167,25 @@ export function pageHref(
   if (next.explicitTimezone) p.set('tz', next.timezone);
   if (next.live) p.set('live', '1');
   if (next.favourites) p.set('favourites', '1');
+  if (next.unpicked === true) p.set('unpicked', '1');
   if (next.filters !== undefined) for (const [k, v] of filterParams(next.filters)) p.set(k, v);
+  // An open preview is kept only when asked for: another day or view closes it.
+  const pick = over.pick ?? null;
+  if (pick !== null) p.set('pick', pick);
+  const query = p.toString();
+  return `/${locale}/scores${query === '' ? '' : `?${query}`}`;
+}
+
+/**
+ * Where an old `/predictions` address now leads (T-1496): the matches page,
+ * keeping the day, the zone and the competition it asked for.
+ */
+export function predictionsRedirect(locale: string, params: Params): string {
+  const p = new URLSearchParams();
+  for (const key of ['date', 'tz', 'competition']) {
+    const value = first(params[key]);
+    if (value !== undefined && value !== '') p.set(key, value);
+  }
   const query = p.toString();
   return `/${locale}/scores${query === '' ? '' : `?${query}`}`;
 }
@@ -139,6 +194,10 @@ export interface DayLink {
   date: string;
   /** "Yesterday", "Today", "Tomorrow" or the weekday. */
   label: string;
+  /** The named day or the short weekday alone, for the strip's first line (T-1496). */
+  weekday: string;
+  /** The day of the month in the reader's digits, the strip's second line (T-1496). */
+  day: string;
   isToday: boolean;
   isSelected: boolean;
 }
@@ -159,6 +218,7 @@ export function dayStrip(
 ): DayLink[] {
   return DAY_OFFSETS.map((offset) => {
     const date = shiftDate(q.today, offset);
+    const at = `${date}T00:00:00Z`;
     const label =
       offset === -1
         ? words.yesterday
@@ -166,8 +226,11 @@ export function dayStrip(
           ? words.today
           : offset === 1
             ? words.tomorrow
-            : formatDate(locale, `${date}T00:00:00Z`, 'UTC', { weekday: 'short', day: 'numeric' });
-    return { date, label, isToday: offset === 0, isSelected: date === q.date };
+            : formatDate(locale, at, 'UTC', { weekday: 'short', day: 'numeric' });
+    const weekday =
+      offset >= -1 && offset <= 1 ? label : formatDate(locale, at, 'UTC', { weekday: 'short' });
+    const day = formatDate(locale, at, 'UTC', { day: 'numeric' });
+    return { date, label, weekday, day, isToday: offset === 0, isSelected: date === q.date };
   });
 }
 
@@ -303,11 +366,17 @@ export function statusLabel(
  * The headline score: the current one, or the full-time one once finished,
  * in the locale's digits (the caller isolates it left to right).
  */
+/** The goals the card shows: the full-time line once finished, else the current one. */
+export function scoreLine(
+  card: Pick<ScoreCard, 'status' | 'scores'>,
+): ScoreCard['scores']['current'] {
+  return card.status === 'finished'
+    ? (card.scores.full_time ?? card.scores.current)
+    : card.scores.current;
+}
+
 export function scoreLabel(card: ScoreCard, locale = 'en'): string {
-  const line =
-    card.status === 'finished'
-      ? (card.scores.full_time ?? card.scores.current)
-      : card.scores.current;
+  const line = scoreLine(card);
   return line === null
     ? '–'
     : `${formatNumber(locale, line.home)} – ${formatNumber(locale, line.away)}`;
