@@ -6390,6 +6390,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "scores.liveEmpty": {
+    "source": "No match on this day is in play.",
+    "text": "",
+    "status": "untranslated"
+  },
   "scores.row.pick": {
     "source": "Pick",
     "text": "",

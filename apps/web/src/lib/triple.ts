@@ -41,6 +41,28 @@ export function sharesToPercentages(triple: Triple): Triple {
 }
 
 /**
+ * Three percentages (totalling 100.0) as whole numbers totalling exactly 100,
+ * for a row that has room for no decimals (T-1545). Each rounding on its own
+ * showed 67 · 20 · 14 on a real match; here each share is cut to its whole
+ * number and the points left over go to the largest remainders, home first
+ * on a tie.
+ */
+export function wholePercentages(triple: Triple): Triple {
+  const tenths = [triple.home, triple.draw, triple.away].map((value) => Math.round(value * 10));
+  const whole = tenths.map((value) => Math.floor(value / 10));
+  let left = 100 - whole.reduce((sum, value) => sum + value, 0);
+  const order = [0, 1, 2].sort(
+    (a, b) => ((tenths[b] ?? 0) % 10) - ((tenths[a] ?? 0) % 10) || a - b,
+  );
+  for (const index of order) {
+    if (left <= 0) break;
+    whole[index] = (whole[index] ?? 0) + 1;
+    left -= 1;
+  }
+  return { home: whole[0] ?? 0, draw: whole[1] ?? 0, away: whole[2] ?? 0 };
+}
+
+/**
  * `a - b`, outcome by outcome, in whatever unit both were in.
  *
  * This is the comparison blueprint 4.2 asks for between the community forecast

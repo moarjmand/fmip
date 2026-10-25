@@ -7712,6 +7712,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "scores.liveEmpty": {
+    "source": "No match on this day is in play.",
+    "text": "در این روز هیچ مسابقه‌ای در جریان نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "scores.row.pick": {
     "source": "Pick",
     "text": "انتخاب",
