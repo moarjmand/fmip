@@ -4,7 +4,7 @@ import { cx } from '@/components/ui/cx';
 import { bandColours } from '@/lib/band-colour';
 
 /**
- * The top band of a club or a player page (T-1386, D-204), in the
+ * The top band of a club or a coach page (T-1386, D-204), in the
  * Stadiomind Club board (T-1499, D-276). The maintainer's rule is that a
  * club's colour may appear here and nowhere else on the page. With no colour
  * known the band is the theme's surface, so it follows Day and Night. With
