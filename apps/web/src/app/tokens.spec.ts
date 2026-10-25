@@ -74,8 +74,9 @@ export function contrast(a: string, b: string): number {
 // The figures in the comments are written against these three, in order...
 const FIGURES_AGAINST = ['--token-canvas', '--token-surface', '--token-surface-raised'];
 // ...and every pair is also checked on the stage, a data page's ground (D-198),
-// which repeats one of them (see 'the stage' below).
-const BACKGROUNDS = [...FIGURES_AGAINST, '--token-stage'];
+// which repeats one of them (see 'the stage' below), and on the chosen row's
+// ground, a saffron tint every text role must still read on (T-1535).
+const BACKGROUNDS = [...FIGURES_AGAINST, '--token-stage', '--token-selected'];
 const TEXT = [
   '--token-text',
   '--token-text-muted',
@@ -290,7 +291,7 @@ describe('more contrast, as a whole (T-621)', () => {
 describe('the tokens themselves', () => {
   it('declare the same names in light and in both ways to dark', () => {
     const names = [...LIGHT.keys()].sort();
-    expect(names.length).toBe(28);
+    expect(names.length).toBe(29);
     expect([...DARK.keys()].sort()).toEqual(names);
     expect([...DARK_CHOSEN.keys()].sort()).toEqual(names);
   });

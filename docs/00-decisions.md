@@ -12414,3 +12414,16 @@ replaces D-089's self-hosting arrangement for no gain here).
 5. The side column's squad lists the first twelve with the squad's coverage, or the sentence when none is on record; the board's "Remind me when it is out" is not built, since no such reminder exists.
 
 **Consequences.** `MatchesPanel`, `SeasonPanels` and `TablePanels` are gone; `EntityBand` gains `aside`, and the player and coach pages get the follow button beside their tabs too.
+
+## D-277 — The chosen row stands on a solid selected ground, not a saffron wash
+
+**Status:** Accepted · 2026-10-26 (under the maintainer's standing approval) · **Task:** T-1535 · **Follows:** D-263, D-268
+
+**Context.** The scores page marks the row its preview shows (`aria-current`) with `bg-accent/10`, a 10% saffron wash. On Day that wash takes the model's turquoise percentages to 4.48:1 on the surface and 4.05:1 on the page ground, under AA; Lighthouse's colour-contrast audit found it on production. CI's axe never saw it: without an API the page has no rows, and the journeys' seed stores no forecast.
+
+**Decision.**
+1. A new token, `--token-selected` (`bg-selected`), is the chosen row's ground: a solid saffron tint, `#fdf6ec` on Day (also with more contrast and in editorial mode), `#242321` at Night and `#181612` at Night with more contrast. `tokens.spec.ts` checks every text role on it as on the other grounds: 4.5:1, or 7:1 with more contrast. The model's percentages are at 4.82:1 on Day and 7.35:1 at Night.
+2. The fix is in the token, not in the row's text: the percentages keep the model's colour (rule 6), and so do the status, the names and the badge.
+3. The journeys check the chosen row with axe in Day and Night, and that its ground is the token itself. With no forecast in the seed, the percentages' own ratios rest on `tokens.spec.ts`. Seeding a stored forecast would change what the other journeys assert about that match ("Not supplied").
+
+**Consequences.** Other saffron washes (`bg-accent/10` on the club page's own table row, the coach page's chip, the lite banner) are unchanged; they can move to the token when they are rebuilt.
