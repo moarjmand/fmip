@@ -15771,7 +15771,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.axis": {
-    "source": "Timeline of the match: {goals} goals and {cards} cards by minute, the home side's above the line and the away side's below",
+    "source": "Timeline of the match by minute (goals: {goals}, cards: {cards}), the home side's above the line and the away side's below",
     "text": "خط زمانی بازی: {goals} گل و {cards} کارت بر پایه‌ی دقیقه، رویدادهای میزبان بالای خط و میهمان زیر آن",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -15785,6 +15785,30 @@
   "matchCentre.notInYetWhy": {
     "source": "Not received for this match yet. It appears here as soon as it arrives; nothing is estimated in the meantime.",
     "text": "هنوز برای این بازی دریافت نشده است. به محض رسیدن اینجا نشان داده می‌شود؛ تا آن زمان هیچ چیزی تخمین زده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.fromKickoff": {
+    "source": "From kick-off",
+    "text": "از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.fromKickoffWhy": {
+    "source": "Recorded once the match kicks off; nothing is shown before then.",
+    "text": "از لحظه‌ی شروع بازی ثبت می‌شود؛ پیش از آن چیزی نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.notPlayed": {
+    "source": "Not played",
+    "text": "برگزار نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.notPlayedWhy": {
+    "source": "The match was not played, so there is nothing to record.",
+    "text": "این بازی برگزار نشد، پس چیزی برای ثبت نیست.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
