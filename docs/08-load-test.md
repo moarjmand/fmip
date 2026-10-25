@@ -284,6 +284,48 @@ the same edit and needs no reason. A new route is budgeted by adding an
 entry: `appRoute` as `.next/server/app` lays it out, `path` a real address of
 it in the seed.
 
+## Visual baseline (T-1502)
+
+`apps/web/tests/e2e/visual.spec.ts` keeps a picture of every page the
+Stadiomind redesign rebuilt (home, scores, the match centre on the seed's
+`…0901`, a competition, a club, a player) in Night and Day, at 1280 px and at
+390 px: 24 full-page shots in `tests/e2e/visual.spec.ts-snapshots/`. They are
+taken against the production build without an API, as the rest of the
+`chromium` project runs, so each page is in its unreachable state with the
+whole shell, the type and the colours.
+
+What makes a shot repeatable: both clocks are fixed at 2026-10-24 18:00 UTC
+-- the browser's by `page.clock.setFixedTime`, the web server's by
+`tests/e2e/fixed-clock.cjs`, loaded with
+`NODE_OPTIONS=--require=<its absolute path>` (the server writes
+"today" into the scores day strip, the date picker and the home page's date
+line; the clock is shifted, not stopped, so timers still run) -- and the spec
+refuses to run without it. Motion is reduced (the device and
+`fmip_motion=reduce`) and Playwright stops animations and hides the caret;
+`document.fonts` has loaded every face before the shot; lite mode is off
+(`fmip_lite=off`, so the web fonts are drawn and not the system stack); the
+browser's language (`en-GB`) and time zone (`Europe/London`) are set and the
+service worker is blocked.
+
+**Linux only.** The committed pictures are rendered by CI's Ubuntu runner;
+Windows and macOS anti-alias text differently, so the spec skips itself on any
+platform but Linux and a picture made on one must never be committed.
+
+**Until the pages land** the spec writes instead of comparing: it runs only
+with `VISUAL=update`, which CI's E2E job sets in its step "Visual baseline",
+and the job uploads the 24 pictures as the artifact `visual-baseline`. The
+final T-1502 pull request commits that artifact and turns the step into the
+comparison.
+
+**Remaking a picture after an intended change**, in either of two ways: take
+the `visual-baseline` artifact of a CI run of the branch, or render in the
+Playwright image of the pinned version from the root of a clean clone (never
+a checkout whose `node_modules` were installed on Windows, which the install
+inside would overwrite):
+`docker run --rm -v "$PWD":/w -w /w/apps/web -e VISUAL=update -e NODE_OPTIONS=--require=/w/apps/web/tests/e2e/fixed-clock.cjs mcr.microsoft.com/playwright:v1.63.0-noble sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm exec playwright test visual.spec.ts --update-snapshots=all"`.
+Commit the changed pictures in the pull request that changed the page, and
+say in it which pages moved and why.
+
 ## Match alerts (T-834)
 
 The second live path: a goal becomes a push (T-830, D-098). The live job
