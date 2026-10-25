@@ -12244,6 +12244,25 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** The new budgets are home 163, scores 180, match centre 191, competition 163 KB at most, raised in the PR that needs them. PageSpeed is measured after the foundation and after the last page (T-1502).
 
+## D-265 — The model's biggest miss of a day: which day, which competitions, which matches
+
+**Status:** Accepted · 2026-10-25 (agent, from the code and D-031, D-114, D-209; revisable by the maintainer) · **Task:** T-1507 (the API of T-1495's "forecast against reality" card) · **Follows:** D-263, D-264, rules 3, 5, 6
+
+**Context.** The new home page (D-263, item 4) keeps a "forecast against reality" card: the day's finished match whose result the statistical model rated least likely, among competitions with full coverage. The row left three things open: which day, what full coverage is, and what a void match counts as.
+
+**Decision.** `GET /model/upset?date=YYYY-MM-DD&tz=Area/City`, public, read-only (rule 5).
+
+1. **The day** is the calendar day in the zone asked, both optional and read as `GET /scores` reads them: `tz` defaults to UTC and `date` to today in that zone. The home page passes the reader's zone, so the card's day is the day its scores list calls today; another day is the same call with `date`.
+2. **Full coverage** is two facts already stored, not a new list: the season's `scores` coverage profile is `available` (computed from our rows, T-027, as the scores list shows it), and the model's forecast was made on complete data (`data_completeness = 'available'`, what `coverageOf` calls `available`). A season that is `limited`, `delayed` or unprofiled, and a forecast on limited data, do not take part.
+3. **The forecast** is the match's last published version computed before kick-off, as the scores card and the evaluation pick it (D-114, D-209). If that version is unavailable or on limited data the match does not take part; an earlier version is not used in its place, because it was not the model's last word. A version computed after kick-off never counts. Shadow candidates never count.
+4. **The result** is the full-time score, the one the evaluation scores against (D-031). Only a `finished` match with a full-time score takes part: postponed, cancelled, abandoned and awarded matches (the ones a prediction settles void) were not played to the result the forecast was about, and are neither candidates nor counted.
+5. **The least likely** is the lowest probability the version gave the outcome that happened; ties go to the earlier kick-off, then the fixture id.
+6. **The answer** names the match by canonical ids with its names, the score, the outcome, the probability given it and all three, and the version (number, kind, model version, when computed), with the day's count of finished matches and matches still to play in fully covered competitions, so a card can say "so far". With no match it is `coverage: 'not_supplied'` with `reason` `no_finished_match` or `no_covered_forecast` and `upset: null` (rule 3).
+
+**Alternatives considered.** The request's date in UTC only: "today" on the home page is the reader's day, and the scores list already reads it that way. The competitions the model fits directly (a football-data division): a cup match on the cross-league scale is still the published model's answer, and the forecast's own completeness already says whether the model had what it wanted. The accuracy page's 30-match minimum: it qualifies a competition's track record, not one match's forecast.
+
+**Consequences.** New module `apps/api/src/modules/model-upset`, contract `ModelUpsetResponse`, web fetcher `fetchModelUpset`. No migration. T-1495 draws the card.
+
 ## D-266 — The visual baseline is Linux renders of the no-API pages, with both clocks fixed
 
 **Status:** Accepted · 2026-10-25 (T-1502, under the maintainer's standing approval for the redesign) · **Task:** T-1502 · **Follows:** D-264
@@ -12280,6 +12299,23 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **How T-1513 applied it (2026-10-25).** The competitions bar is the Design System's row of pills: each main competition is a rounded pill with a hairline and its logo, the one being read edged in saffron on the raised surface, and "All competitions" comes last in saffron text with an arrow that turns under RTL. Each link is the 44px target, with the pill drawn inside it, and the focus ring sits inside the link so the row's sideways scroll cannot cut it. From 768px only: on a phone the Leagues tab leads to every competition, and the row would push the page down by a line. The looks are CSS utilities keyed on `aria-current`, as the nav's are, so the shell's client chunk does not grow.
 
+## D-274 — The Stadiomind competition page: the canvas's six tabs, the full table on the Overview, the model's league record beside it
+
+**Status:** Accepted · 2026-10-25 (decided by the agent from the canvas, the Design System and D-262 to D-264, under the maintainer's standing approval) · **Task:** T-1498 · **Amends:** D-203 (the Hybrid competition page)
+
+**Context.** The canvas boards Competition and CompetitionPhone draw a different page from the Hybrid one: six tabs (Overview, Table, Matches, Players, Model in this league, News), the whole table with the form on the Overview, and beside it the day's matches with the model's three percentages, the latest results and "In this league" with its coverage badge. The Hybrid page had a summary table, the round with full forecast bars, the top scorers, the season in figures, news and the founder's feed on the Overview, a Stats tab, and an empty "season projection" slot in the table.
+
+**Decision.**
+1. Tabs: `overview`, `table`, `matches` (fixtures and results by round), `players`, `model`, `news`. The Hybrid addresses keep working: `?tab=fixtures` and `?tab=results` open Matches, `?tab=stats` the Overview.
+2. The Overview is the canvas's: the full table (every column, the goals as one "20:9" pair, the form as letters, most recent first), and at its inline end the day's matches, the latest results and the model card; the season's coverage module closes the page. The top scorers live on Players, the season in figures on Table, the news and the founder's feed on News (in their own boxes, never beside the model: rule 6).
+3. "The day's matches" is the day, in the reader's zone, of the first match being played or still to come (a match left "scheduled" more than six hours after kick-off does not set it), with every match that day. Each row shows the model's last pre-kick-off forecast as three whole percentages, or "No forecast" / "Forecast not loaded" in words; the receipt (model version, "latest before kick-off", the zone) is said once under the card and in full on the match page. "The latest results" is the last day with a finished match before that day.
+4. "The model in this league" reads `GET /model/accuracy` (the published model only): the newest month with a scored match in this competition — how often the favourite won, its RPS beside a uniform guess's, the matches — with that month's coverage badge (limited below `ACCURACY_MINIMUM_MATCHES`). No scored match: `not_supplied` and no figure; no answer: a sentence and no badge. The Model tab adds every month and the league's total.
+5. Zones stay as T-1167 drew them: a start-edge mark only where the feed lists the places (`zones.state === 'listed'`), otherwise the sentence under the table and no colour at all.
+6. The season projection slot (D-203) is dropped: the canvas has none, and an empty labelled column on every row taught nothing.
+7. The header, the cards and the rows are server components beside the page (`app/[locale]/competition/[id]/`), the season menu a `details` element: the page adds no client JavaScript, so its budget stays 158 KB.
+
+**Consequences.** `CompetitionBand`, `FixtureRow`, `MatchweekPanel`, `RoundsPanel`, `ProjectionNote` and `NoTableNote` leave `competition-page.tsx`, which keeps the modules the club, player and coach pages share; 23 catalogue keys that only they used are retired. T-1508's shared match row can replace `MatchLine` later without changing the page's states.
+
 ## D-275 — The club page's top scorer is counted from our recorded goals, per competition
 
 **Status:** Accepted · 2026-10-25 · **Task:** T-1528 (split from T-1499)
@@ -12289,4 +12325,3 @@ replaces D-089's self-hosting arrangement for no gain here).
 **Decision.** `TeamPage.top_scorers` holds one entry per `competitions` entry: the season's scorers as the competition page counts them (our goal incidents of the main competition, D-209, D-232; `limited` while the season's recorded goals fall short of its scores) cut to goals for this club, and every player level on the most, by name. A club with no recorded goal is an empty list under the season's state; a season with no incidents is `not_supplied`. The provider's season totals, the competition page's fallback when we hold no incidents (D-232), are not read here: such a season answers `not_supplied`. Starts are not shown, since they are not counted for this figure.
 
 **Consequences.** Two more queries per competition on the team page (the season's scorers, its incident tally). The field is optional, so a web page in front of an older API reads it as `not_supplied`.
-

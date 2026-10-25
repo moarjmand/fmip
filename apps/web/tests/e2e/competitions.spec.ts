@@ -69,3 +69,32 @@ test.describe('competitions bar and page, no API', () => {
     expect(all!.x + all!.width).toBeGreaterThan(bar!.x + bar!.width / 2);
   });
 });
+
+/**
+ * A competition's page without an API (T-1498): its name in the page's
+ * words and the sentence that it cannot be shown, never an empty table, in
+ * English, Persian and the right-to-left pseudo-locale, on a phone and a
+ * desktop, with nothing scrolling the page sideways.
+ */
+test.describe('a competition page, no API', () => {
+  const PREMIER_LEAGUE = '00000000-0000-4000-8000-000000000201';
+  for (const width of [390, 1440]) {
+    for (const [locale, dir] of [
+      ['en', 'ltr'],
+      ['fa', 'rtl'],
+      ['x-rtl', 'rtl'],
+    ] as const) {
+      test(`${locale} at ${width}px says it cannot be shown`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto(`/${locale}/competition/${PREMIER_LEAGUE}`);
+        await expect(page.locator('html')).toHaveAttribute('dir', dir);
+        await expect(page.getByTestId('competition-unreachable')).toBeVisible();
+        await expect(page.locator('table')).toHaveCount(0);
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow).toBeLessThanOrEqual(0);
+      });
+    }
+  }
+});

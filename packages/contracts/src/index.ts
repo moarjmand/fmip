@@ -354,6 +354,7 @@ export type {
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
 } from './forecast';
+export type { ModelUpset, ModelUpsetEntity, ModelUpsetGap, ModelUpsetResponse } from './forecast';
 export {
   ACCURACY_MINIMUM_MATCHES,
   ACCURACY_PERIODS,
