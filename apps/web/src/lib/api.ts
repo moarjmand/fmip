@@ -95,6 +95,7 @@ import type {
   AccuracyPeriod,
   AdminModelAccuracyResponse,
   PublicModelAccuracyResponse,
+  ModelUpsetResponse,
   NewsSectionResponse,
   NotificationSettings,
   PushState,
@@ -1415,6 +1416,23 @@ export function fetchModelAccuracy(
   period: AccuracyPeriod = 'month',
 ): Promise<ApiResult<PublicModelAccuracyResponse>> {
   return apiRequest<PublicModelAccuracyResponse>(`/model/accuracy?period=${period}`);
+}
+
+/**
+ * `GET /model/upset` (T-1507, D-265): the day's finished match whose result the
+ * published model's last pre-kick-off forecast rated least likely, or an explicit
+ * `not_supplied` with why. `date` (YYYY-MM-DD) and `tz` (IANA) default to today
+ * in UTC; pass the reader's zone so the day is the one their scores list shows.
+ * Names come in the reader's language like every read (T-1312). Public.
+ */
+export function fetchModelUpset(
+  options: { date?: string; tz?: string } = {},
+): Promise<ApiResult<ModelUpsetResponse>> {
+  const query = new URLSearchParams();
+  if (options.date !== undefined) query.set('date', options.date);
+  if (options.tz !== undefined) query.set('tz', options.tz);
+  const search = query.toString();
+  return apiRequest<ModelUpsetResponse>(`/model/upset${search === '' ? '' : `?${search}`}`);
 }
 
 /** `GET /fixtures/:id/key-players` (T-841): each side's most-used players by the stated rule. Public. */
