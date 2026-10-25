@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { cx } from '@/components/ui/cx';
 import { bandColours } from '@/lib/band-colour';
 
 /**
