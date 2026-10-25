@@ -72,8 +72,10 @@ test.describe('Highlights page', () => {
     await expect(page.getByTestId('highlight-item')).toHaveCount(0);
   });
 
-  test('is reached from the header nav by keyboard', async ({ page }) => {
+  test('is reached from the header nav by keyboard, through More', async ({ page }) => {
     await page.goto('/en');
+    await page.getByTestId('nav-more').locator('summary').focus();
+    await page.keyboard.press('Enter');
     await page.getByTestId('nav-highlights').focus();
     await page.keyboard.press('Enter');
     await expect(page).toHaveURL(/\/en\/highlights$/);

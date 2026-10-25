@@ -119,11 +119,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "shell.nav.today": {
-    "source": "Today",
-    "text": "",
-    "status": "untranslated"
-  },
   "shell.nav.analysis": {
     "source": "Analysis",
     "text": "",
@@ -139,23 +134,53 @@
     "text": "",
     "status": "untranslated"
   },
-  "shell.tab.results": {
-    "source": "Scores",
-    "text": "",
-    "status": "untranslated"
-  },
-  "shell.tab.predictions": {
-    "source": "Predictions",
-    "text": "",
-    "status": "untranslated"
-  },
   "shell.tab.news": {
     "source": "News",
     "text": "",
     "status": "untranslated"
   },
-  "shell.tab.me": {
-    "source": "Me",
+  "shell.nav.matches": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.nav.competitions": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.nav.model": {
+    "source": "The model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.nav.more": {
+    "source": "More",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.tab.matches": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.tab.predict": {
+    "source": "Predict",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.tab.leagues": {
+    "source": "Leagues",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.tab.you": {
+    "source": "You",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.search.placeholder": {
+    "source": "Teams, players, competitions",
     "text": "",
     "status": "untranslated"
   },
