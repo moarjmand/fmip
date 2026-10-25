@@ -194,9 +194,10 @@ describe('the club band', () => {
     expect(html).toContain('12 followers');
     expect(html).toMatch(/aria-current="page"[^>]*data-testid="team-tab-overview"/);
     expect(html).toContain(`href="/en/team/${TEAM}?tab=squad"`);
-    // No club colour known: the surface band, saffron under the open tab (T-1499).
+    // No club colour known: the surface band (T-1499).
     expect(html).toContain('data-band="surface"');
-    expect(html).toContain('shadow-[inset_0_-3px_0_var(--token-accent)]');
+    // The open section tab: ink over the saffron rule (T-1510).
+    expect(html).toContain('border-accent font-extrabold text-fg');
     // Where the club stands, at the end of the band: the place and its points.
     expect(html).toMatch(/data-testid="band-standing".*Pro League.*>1st<.*17 pts from 8/);
     expect(html).not.toMatch(/style="[^"]*(?:background|color)/);

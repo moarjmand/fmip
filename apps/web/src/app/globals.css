@@ -105,15 +105,15 @@
  * Shape and measure (D-198). Spacing is Tailwind's own 4-point scale (`p-1`
  * is 4px; the design's steps 4 to 64 are `1 2 3 4 6 8 12 16`). Radii by what
  * they round: an editorial block has none (`rounded-editorial`, rules rather
- * than boxes), a control or chip 10 (`rounded-control`), a data tile 16
- * (`rounded-tile`), a data card 20 (`rounded-card`), a pill fully round
- * (`rounded-pill`). `max-w-page` is the 1280px container, `max-w-measure` an
+ * than boxes), a control or chip 8 (`rounded-control`, the Design System's
+ * `radius-md`, T-1493), a data tile 16 (`rounded-tile`), a data card 20
+ * (`rounded-card`), a pill fully round (`rounded-pill`). `max-w-page` is the 1280px container, `max-w-measure` an
  * article's 680px; `page-frame` (below) is the container with its gutters.
  * `min-h-touch` / `min-w-touch` / `size-touch` are the 44px touch target.
  */
 @theme {
   --radius-editorial: 0;
-  --radius-control: 0.625rem;
+  --radius-control: 0.5rem;
   --radius-tile: 1rem;
   --radius-card: 1.25rem;
   --radius-pill: 999px;
@@ -298,6 +298,12 @@
  *   text-model  text-founder  text-community  (bg-, border-: the three
  *     prediction products' lanes, and nothing else -- CLAUDE.md rule 6)
  *   bg-accent  bg-accent-strong  bg-danger  ...
+ *   bg-brand  text-on-brand  (the Design System's bright saffron fill: the
+ *     primary button, the top rating chip; T-1493)
+ *   bg-prob-draw  bg-prob-away  (the forecast bar's draw and away segments;
+ *     home is bg-model)
+ *   bg-rating-low  text-on-rating-low  bg-rating-good  text-on-rating-good
+ *     (the match rating chip's bands)
  *   border-default  border-strong  (and border-accent, border-danger, ...)
  *   outline-focus  ring-focus  divide-default
  *
@@ -325,6 +331,14 @@
   --color-model: var(--token-model);
   --color-founder: var(--token-founder);
   --color-community: var(--token-community);
+  --color-brand: var(--token-brand);
+  --color-on-brand: var(--token-on-brand);
+  --color-prob-draw: var(--token-prob-draw);
+  --color-prob-away: var(--token-prob-away);
+  --color-rating-low: var(--token-rating-low);
+  --color-on-rating-low: var(--token-on-rating-low);
+  --color-rating-good: var(--token-rating-good);
+  --color-on-rating-good: var(--token-on-rating-good);
   --border-color-default: var(--token-border);
   --border-color-strong: var(--token-border-strong);
 }

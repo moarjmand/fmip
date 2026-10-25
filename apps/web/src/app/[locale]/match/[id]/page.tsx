@@ -12,7 +12,7 @@ import {
   CommunitySplit,
   CommunityVerdict,
 } from '@/components/community-consensus';
-import { CommunityLane, ThreeProductsNote } from '@/components/product-lanes';
+import { CommunityVoice, ThreeProductsNote } from '@/components/voices';
 import { isLocked } from '@/lib/prediction-form';
 import { FounderAnalysisPanel, FounderVerdict } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
@@ -363,7 +363,7 @@ export default async function MatchPage({
                         timeZone={timeZone}
                         locale={locale}
                       />
-                      <CommunityLane locale={locale}>
+                      <CommunityVoice locale={locale}>
                         <CommunityVerdict
                           consensus={consensus !== null && consensus.ok ? consensus.data : null}
                           result={final}
@@ -371,7 +371,7 @@ export default async function MatchPage({
                           away={result.data.fixture.away.name}
                           locale={locale}
                         />
-                      </CommunityLane>
+                      </CommunityVoice>
                     </VerdictCard>
                   ) : null,
                 context: (
@@ -418,7 +418,7 @@ export default async function MatchPage({
                     {/* The community picks lane (T-1388): the reader's own pick and
                     the members' spread, which opens only once they have picked or
                     kick-off has locked every pick, so it cannot anchor a pick. */}
-                    <CommunityLane locale={locale}>
+                    <CommunityVoice locale={locale}>
                       <PredictionSection
                         locale={locale}
                         fixture={result.data.fixture}
@@ -450,7 +450,7 @@ export default async function MatchPage({
                             : null
                         }
                       />
-                    </CommunityLane>
+                    </CommunityVoice>
                     {/* Where the three meet on one page, said once (T-1388). */}
                     <ThreeProductsNote locale={locale} />
                     {/* Below the founder's analysis and visibly not it: a fourth
