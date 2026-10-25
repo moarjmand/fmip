@@ -75,8 +75,10 @@ describe('ModelAccuracy (T-1369)', () => {
     expect(out).toContain('data-testid="accuracy-limited"');
     expect(out).toContain('Only 12 matches have been scored so far, fewer than 30');
     expect(out).toContain('October 2026');
+    // The text as read: the version's `@` is an element of its own (T-1580).
+    const read = out.replace(/<[^>]+>/g, '');
     for (const text of ['50.0%', '0.201', '0.249', '0.581', '0.988', 'dixon-coles-elo@0.1.0']) {
-      expect(out).toContain(text);
+      expect(read).toContain(text);
     }
     expect(out).not.toMatch(PHYSICAL);
   });
@@ -155,6 +157,13 @@ describe('ModelAccuracy (T-1369)', () => {
     const fa = html(weekly, 'fa');
     expect(fa).toContain('همه‌ی هفته‌ها');
     expect(fa).not.toContain('data-translation="untranslated"');
+  });
+
+  it('names the model versions with no "name@x.y.z" run in the HTML (T-1580)', () => {
+    const out = html(report({}));
+    // Cloudflare's Email Obfuscation rewrites such a run into "[email protected]".
+    expect(out).not.toMatch(/\S+@\d+\.\d+\.\d+/);
+    expect(out.replace(/<[^>]+>/g, '')).toContain('dixon-coles-elo@0.1.0');
   });
 
   it('says so when the API cannot be reached', () => {

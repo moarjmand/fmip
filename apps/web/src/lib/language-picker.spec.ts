@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { offeredLocales, pickerEntries, switchLocale } from './language-picker';
+import { offeredLanguages, offeredLocales, pickerEntries, switchLocale } from './language-picker';
+import { pickerEntriesFor } from './language-switch';
 import { type Locale, UNFINISHED_LOCALES } from '../i18n/locales';
 import { isShippable } from '../i18n/messages';
 
@@ -58,6 +59,16 @@ describe('what the picker shows', () => {
     const [, es] = pickerEntries('/en/match/abc?x=1'.split('?')[0] ?? '', done('en', 'es'));
     expect(es?.href).toBe('/es/match/abc');
   });
+
+  it("keeps the page's query, so the reader's filters and day survive (T-1572)", () => {
+    const languages = offeredLanguages(done('en', 'fa'));
+    const fa = (search: string) =>
+      pickerEntriesFor('/en/leaderboard', languages, search).find((e) => e.locale === 'fa')?.href;
+    expect(fa('period=month&language=fa')).toBe('/fa/leaderboard?period=month&language=fa');
+    expect(fa('?period=month')).toBe('/fa/leaderboard?period=month');
+    expect(fa('')).toBe('/fa/leaderboard');
+    expect(fa('?')).toBe('/fa/leaderboard');
+  });
 });
 
 describe('switching the locale of a pathname', () => {
@@ -87,7 +98,10 @@ describe('the component', () => {
     // the one the browser has and there is no hydration mismatch to guard.
     expect(SOURCE.startsWith("'use client'")).toBe(true);
     expect(SOURCE).toMatch(/usePathname\(\)/);
-    expect(SOURCE).toMatch(/pickerEntriesFor\(pathname, languages\)/);
+    expect(SOURCE).toMatch(/pickerEntriesFor\(pathname, languages, search\)/);
+    // The query is read under Suspense (T-1572): Next 16 requires it for
+    // `useSearchParams` on a prerendered route.
+    expect(SOURCE).toMatch(/<Suspense fallback=\{<Picker \{\.\.\.props\} search="" \/>\}>/);
     expect(SOURCE).not.toMatch(/isShippable|LOCALES|coverage\(/);
   });
 

@@ -3,15 +3,17 @@ import type { ReactNode } from 'react';
 import type { CompetitionPage, CoverageState, Covered, SeasonFixture } from '@fmip/contracts';
 import { ACCURACY_MINIMUM_MATCHES } from '@fmip/contracts';
 import { Coverage, LiveFreshness, ZoneLegend, zoneWords } from '@/components/competition-page';
+import { FilledMessage } from '@/components/filled-message';
 import type { FreshnessWords } from '@/components/freshness-stamp';
+import { ModelVersions } from '@/components/model-version';
 import { Score } from '@/components/score';
 import { Stamp } from '@/components/stamp';
 import { StandingsTable } from '@/components/standings-table';
 import { Translated } from '@/components/translated';
 import { cx } from '@/components/ui/cx';
 import { formatDate, formatGregorianMonth, formatNumber } from '@/i18n/format';
-import type { MessageKey } from '@/i18n/messages';
-import { STATUS_KEY, say } from '@/lib/competition';
+import { type MessageKey, message } from '@/i18n/messages';
+import { STATUS_KEY, pageLocale, say } from '@/lib/competition';
 import type { LeagueModel, MatchDay, RoundGroup } from '@/lib/competition-overview';
 import type { CardForecast } from '@/lib/score-card-products';
 import { wholePercentages } from '@/lib/triple';
@@ -476,12 +478,18 @@ export function DayCard({
       footer={
         day === null ? undefined : (
           <p data-testid="match-day-receipt">
-            {versions.length > 0
-              ? say(locale, 'competitionPage.day.receipt', {
-                  versions: versions.join(', '),
+            {versions.length > 0 ? (
+              // Each version an element, never "name@x.y.z" as one run (T-1580).
+              <FilledMessage
+                message={message(pageLocale(locale), 'competitionPage.day.receipt')}
+                params={{
+                  versions: <ModelVersions versions={versions} />,
                   zone: zoneWords(locale, timeZone),
-                })
-              : zoneWords(locale, timeZone)}
+                }}
+              />
+            ) : (
+              zoneWords(locale, timeZone)
+            )}
           </p>
         )
       }
@@ -773,7 +781,10 @@ export function ModelMonths({ model, locale }: { model: LeagueModel; locale: str
             <Translated locale={locale} message="modelAccuracy.table.caption" />
           </p>
           <p data-testid="league-model-versions">
-            {say(locale, 'modelAccuracy.versions', { versions: model.modelVersions.join(', ') })}
+            <FilledMessage
+              message={message(pageLocale(locale), 'modelAccuracy.versions')}
+              params={{ versions: <ModelVersions versions={model.modelVersions} /> }}
+            />
           </p>
           <p>
             <Translated locale={locale} message="competitionPage.model.only" />

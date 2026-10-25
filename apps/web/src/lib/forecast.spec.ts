@@ -2,6 +2,7 @@ import type { ForecastVersion } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   describeChange,
+  factorNote,
   favourite,
   framing,
   percentages,
@@ -82,6 +83,33 @@ describe('versionChanges', () => {
     expect(describeChange(same[1]!, 'A', 'B')).toBe(
       'No change in probabilities (manual recomputation).',
     );
+  });
+});
+
+describe('factorNote (T-1552)', () => {
+  const inputs = (eloUsed: boolean): ForecastVersion['inputs'] => ({
+    model_version: 'dixon-coles-elo@0.6.0',
+    fit_date: '2026-10-13',
+    matches_used: 685,
+    elo_used: eloUsed,
+    history_from: '2023-10-09',
+    data_completeness: 'available',
+  });
+
+  it('says what each factor measures from the catalogue, never the service’s English', () => {
+    expect(factorNote('home_advantage', { inputs: inputs(true) })).toBe(
+      'league-wide home advantage learned from the training window',
+    );
+    expect(factorNote('attack_vs_defence', { inputs: inputs(true) }, 'fa')).toBe(
+      'اینکه خط حمله‌ی هر تیم در برابر خط دفاع حریف چگونه است',
+    );
+  });
+
+  it('names the Elo prior under team strength only when the stored inputs used it', () => {
+    expect(factorNote('team_strength', { inputs: inputs(true) })).toMatch(/and the Elo prior$/);
+    expect(factorNote('team_strength', { inputs: inputs(false) })).not.toMatch(/Elo/);
+    expect(factorNote('team_strength', { inputs: null })).not.toMatch(/Elo/);
+    expect(factorNote('team_strength', { inputs: inputs(false) }, 'fa')).not.toMatch(/[A-Za-z]/);
   });
 });
 

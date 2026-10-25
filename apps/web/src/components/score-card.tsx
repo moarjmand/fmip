@@ -41,7 +41,10 @@ export const COVERAGE_KEY = {
  * stacked, home first, each with its crest and, once the match has started,
  * its own goals at the line's end, so a score always sits beside its own
  * team in either direction; then the model's three percentages (or "Not
- * supplied", never an empty bar, rule 3) and the Pick action.
+ * supplied", never an empty bar, rule 3) and the Pick action. Below 640 px
+ * the model's cell drops under the teams (T-1545): beside them it left a
+ * name 21 to 51 px, so "Paykan" broke in two and "Crystal Palace" read
+ * "Cry st…".
  *
  * The status and the teams are one link to the match centre, at least 44px
  * tall. Pick is its own link: it opens the page's preview of this match with
@@ -199,7 +202,7 @@ export function ScoreCard({
 
   return (
     <li
-      className="grid grid-cols-[2.75rem_minmax(0,1fr)_5.25rem_auto] items-center gap-x-2.5 px-4 data-selected:bg-selected sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] sm:gap-x-3.5"
+      className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-2.5 px-4 data-selected:bg-selected sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] sm:gap-x-3.5"
       data-testid="score-card"
       data-fixture-id={card.id}
       data-status={card.status}
@@ -208,7 +211,7 @@ export function ScoreCard({
     >
       <Link
         href={`/${locale}/match/${card.id}`}
-        className="col-span-2 grid min-h-11 grid-cols-subgrid items-center py-2.5 hover:[&_bdi]:underline"
+        className="col-span-2 grid min-h-11 grid-cols-subgrid items-center py-2.5 hover:[&_bdi]:underline max-sm:row-start-1 max-sm:pb-1.5"
         data-testid="match-link"
       >
         <span
@@ -234,10 +237,11 @@ export function ScoreCard({
         away={card.away.name}
         locale={locale}
         words={words}
+        className="max-sm:col-start-2 max-sm:row-start-2 max-sm:pb-2.5"
       />
 
       {pickHref === undefined ? (
-        <span />
+        <span className="max-sm:col-start-3 max-sm:row-span-2 max-sm:row-start-1" />
       ) : (
         <Link
           href={pickHref}
@@ -245,7 +249,7 @@ export function ScoreCard({
           aria-label={
             filled(m[PICK_LABEL[pick]], { home: card.home.name, away: card.away.name }).text
           }
-          className={`inline-flex min-h-11 items-center justify-center gap-1 justify-self-end rounded-control px-2.5 text-sm font-bold whitespace-nowrap ${
+          className={`inline-flex min-h-11 items-center justify-center gap-1 justify-self-end rounded-control px-2.5 text-sm font-bold whitespace-nowrap max-sm:col-start-3 max-sm:row-span-2 max-sm:row-start-1 ${
             selected
               ? 'bg-brand text-on-brand'
               : mine
