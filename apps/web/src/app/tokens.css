@@ -84,6 +84,8 @@
   --token-surface-raised: #f7f8f7;
   /* A data page's ground: the page ground, in both themes (D-263). */
   --token-stage: #f2f3f1;
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #fdf6ec;
   /* Body text, ink: 16.46 / 18.32 / 17.21. */
   --token-text: #121518;
   /* Secondary text, ink-muted: 6.72 / 7.48 / 7.03. */
@@ -141,6 +143,8 @@
   --token-surface: #ffffff;
   --token-surface-raised: #f7f8f7;
   --token-stage: #f2f3f1;
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #fdf6ec;
   /* Body text: 18.21 / 20.27 / 19.04. */
   --token-text: #050608;
   /* Secondary text, close to body text: 11.77 / 13.10 / 12.30. */
@@ -199,6 +203,8 @@
     --token-surface: #ffffff;
     --token-surface-raised: #f7f8f7;
     --token-stage: #f2f3f1;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #fdf6ec;
     --token-text: #050608;
     --token-text-muted: #2b313a;
     --token-caption: #4b525a;
@@ -238,6 +244,8 @@
     --token-surface-raised: #1f2429;
     /* A data page's ground: the page ground. */
     --token-stage: #0f1215;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #242321;
     /* 16.44 / 15.14 / 13.68. */
     --token-text: #eef0f1;
     /* 8.16 / 7.52 / 6.80. */
@@ -296,6 +304,8 @@
   --token-surface: #171b1f;
   --token-surface-raised: #1f2429;
   --token-stage: #0f1215;
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #242321;
   --token-text: #eef0f1;
   --token-text-muted: #a3acb5;
   --token-caption: #828c96;
@@ -329,6 +339,8 @@
   --token-surface: #0b0d0f;
   --token-surface-raised: #13171a;
   --token-stage: #000000;
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #181612;
   /* Body text: 20.27 / 18.79 / 17.40. */
   --token-text: #fafbfc;
   /* Secondary text, close to body text: 13.62 / 12.63 / 11.69. */
@@ -387,6 +399,8 @@
     --token-surface: #0b0d0f;
     --token-surface-raised: #13171a;
     --token-stage: #000000;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #181612;
     --token-text: #fafbfc;
     --token-text-muted: #cad1d8;
     --token-caption: #9ba3ab;
@@ -422,6 +436,8 @@
     --token-surface: #0b0d0f;
     --token-surface-raised: #13171a;
     --token-stage: #000000;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #181612;
     --token-text: #fafbfc;
     --token-text-muted: #cad1d8;
     --token-caption: #9ba3ab;
@@ -457,6 +473,8 @@
     --token-surface: #0b0d0f;
     --token-surface-raised: #13171a;
     --token-stage: #000000;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #181612;
     --token-text: #fafbfc;
     --token-text-muted: #cad1d8;
     --token-caption: #9ba3ab;
@@ -496,6 +514,8 @@
   --token-surface: #ffffff;
   --token-surface-raised: #f7f8f7;
   --token-stage: #f2f3f1;
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #fdf6ec;
   --token-text: #121518;
   --token-text-muted: #4c5660;
   --token-caption: #626c76;
@@ -529,6 +549,8 @@
   --token-surface: #ffffff;
   --token-surface-raised: #f7f8f7;
   --token-stage: #f2f3f1;
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #fdf6ec;
   --token-text: #050608;
   --token-text-muted: #2b313a;
   --token-caption: #4b525a;
@@ -563,6 +585,8 @@
     --token-surface: #ffffff;
     --token-surface-raised: #f7f8f7;
     --token-stage: #f2f3f1;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #fdf6ec;
     --token-text: #050608;
     --token-text-muted: #2b313a;
     --token-caption: #4b525a;

@@ -199,7 +199,7 @@ export function ScoreCard({
 
   return (
     <li
-      className="grid grid-cols-[2.75rem_minmax(0,1fr)_5.25rem_auto] items-center gap-x-2.5 px-4 data-selected:bg-accent/10 sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] sm:gap-x-3.5"
+      className="grid grid-cols-[2.75rem_minmax(0,1fr)_5.25rem_auto] items-center gap-x-2.5 px-4 data-selected:bg-selected sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] sm:gap-x-3.5"
       data-testid="score-card"
       data-fixture-id={card.id}
       data-status={card.status}
