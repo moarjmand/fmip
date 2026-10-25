@@ -43,7 +43,6 @@ export function CompetitionsBarLinks({
     <nav
       aria-label={navLabel.text}
       lang={navLabel.lang}
-      data-mode="editorial"
       data-testid="competitions-bar"
       className="border-b border-default bg-canvas"
     >

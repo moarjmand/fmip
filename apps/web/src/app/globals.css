@@ -135,6 +135,43 @@
 }
 
 /*
+ * The shell's navigations (T-1494, D-267, `components/shell-nav.tsx`). Their
+ * looks live here rather than in the client components' class strings, which
+ * every page would download as JavaScript (perf budgets, D-264); the current
+ * entry is styled by its `aria-current`, so the components only mark it.
+ *
+ * `nav-entry`: a row of the header's nav and of More, 44px tall; the current
+ * one (or More, `data-on`, when the page is one of its own) ink on the
+ * raised surface, as the Design System's header draws it.
+ */
+@utility nav-entry {
+  @apply flex min-h-touch items-center gap-1 rounded-control px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg lg:px-2.5;
+
+  &[aria-current='page'],
+  &[data-on] {
+    @apply bg-surface-raised font-bold text-fg;
+  }
+}
+
+/* More's list: in the Menu a plain list, from 1024px a panel below the bar. */
+@utility more-panel {
+  @apply flex flex-col lg:absolute lg:start-0 lg:top-full lg:z-40 lg:mt-1 lg:w-52 lg:rounded-control lg:border lg:border-default lg:bg-surface lg:p-1;
+}
+
+/*
+ * `tab-entry`: a tab of the phone's bar, the Design System's `TabBar` -- a
+ * 22px icon over its label, at least 56px tall (the 44px target and room for
+ * the label); the current one saffron and bold.
+ */
+@utility tab-entry {
+  @apply flex min-h-14 flex-col items-center justify-center gap-1 pt-2 pb-2.5 text-xs font-semibold text-muted;
+
+  &[aria-current='page'] {
+    @apply font-extrabold text-accent;
+  }
+}
+
+/*
  * A box that scrolls sideways shows it (T-1395): a soft shade on each edge
  * that still hides columns, gone once that edge is reached. Scroll shadows:
  * the surface-coloured covers move with the content (`local`) and hide the
@@ -301,9 +338,10 @@ body {
   }
 
   /*
-   * The two modes (D-198). `data-mode="editorial"` -- the header, and an
-   * editorial page's wrapper (home, stories, predictions, model accuracy,
-   * the founder's analysis) -- gets the paper values in tokens.css whatever
+   * The two modes (D-198). `data-mode="editorial"` -- an editorial page's
+   * wrapper not yet rebuilt (home, stories, predictions, model accuracy, the
+   * founder's analysis; the header follows the theme, D-267) -- gets the
+   * paper values in tokens.css whatever
    * the theme, and paints its own ground with them: the colours a child
    * inherits were resolved on <body>, in the theme's values, so the mark
    * says them again. `data-mode="data"` (live match, full time, competition,
@@ -338,6 +376,21 @@ body {
 }
 
 /*
+ * Two places where the ring moves (T-1494, D-267). The rule above is outside
+ * any layer, so it beats a utility class; these are too. A tab of the phone's
+ * tab bar draws it inside itself, where the edge of the screen cannot cut it.
+ * The header's search field rings its whole box (`focus-within` on the label),
+ * so the bare input inside draws none of its own.
+ */
+.focus-inset:focus-visible {
+  outline-offset: -2px;
+}
+
+.site-search input:focus-visible {
+  outline: none;
+}
+
+/*
  * The header's Menu (T-605, `components/site-header.tsx`). On a phone it is
  * a disclosure whose panel drops below the bar. From 1024px (`lg`, T-1390;
  * below it a tablet keeps the Menu, since the nav does not fit one row) it is no box at
@@ -360,6 +413,59 @@ body {
     }
 
     .site-menu > summary {
+      display: none;
+    }
+  }
+}
+
+/*
+ * The header's mark (T-1494, D-267). The header follows the theme, and the
+ * mark is never recoloured (D-262): it is drawn in the Day and the Night
+ * colours, and the theme shows one, by the same three ways tokens.css turns
+ * Night on (the device's dark, unless Day was chosen; or Night chosen).
+ */
+.brand-mark-night {
+  display: none;
+}
+
+:root[data-theme='dark'] .brand-mark-day {
+  display: none;
+}
+
+:root[data-theme='dark'] .brand-mark-night {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .brand-mark-day {
+    display: none;
+  }
+
+  :root:not([data-theme='light']) .brand-mark-night {
+    display: block;
+  }
+}
+
+/*
+ * The header's More (T-1494, D-267, `components/shell-nav.tsx`), the other
+ * way round: from 1024px a disclosure that drops below the bar, and inside
+ * the Menu of a phone or a tablet no box at all, so its links are listed
+ * with the rest of the nav rather than behind a second disclosure. A browser
+ * that cannot style the content slot keeps a working More in the Menu.
+ */
+@media (width < 64rem) {
+  @supports selector(::details-content) {
+    .more-menu,
+    .more-menu::details-content,
+    .more-menu-panel {
+      display: contents;
+    }
+
+    .more-menu::details-content {
+      content-visibility: visible;
+    }
+
+    .more-menu > summary {
       display: none;
     }
   }
