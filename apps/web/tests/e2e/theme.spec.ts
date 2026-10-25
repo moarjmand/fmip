@@ -35,13 +35,18 @@ for (const [theme, device, canvas] of [
       expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(
         canvas,
       );
-      // The header is in editorial mode (D-198): on paper whatever the theme.
+      // The header follows the theme (D-267): on a wide screen it stands on
+      // the page's own ground, and the mark is drawn in that theme's colours.
       expect(
         await page
           .locator('header')
           .first()
           .evaluate((element) => getComputedStyle(element).backgroundColor),
-      ).toBe('rgb(242, 243, 241)');
+      ).toBe(canvas);
+      const mark = theme === 'dark' ? 'night' : 'day';
+      const other = theme === 'dark' ? 'day' : 'night';
+      await expect(page.locator(`header .brand-mark-${mark}`)).toBeVisible();
+      await expect(page.locator(`header .brand-mark-${other}`)).toBeHidden();
     });
 
     for (const path of PAGES) {
@@ -56,14 +61,21 @@ for (const [theme, device, canvas] of [
   });
 }
 
-test('the header switch sets the theme, says which is on, and it lasts', async ({ page }) => {
+test('the header switch steps Auto, Day, Night, says which is on, and it lasts', async ({
+  page,
+}) => {
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/en/scores');
   const html = page.locator('html');
   await expect(html).toHaveAttribute('data-theme', 'system');
 
+  // On a wide screen the bar draws one button, the theme a press moves to (D-267).
   const header = page.getByTestId('theme-switch-compact');
   await expect(header.getByTestId('theme-system')).toHaveAttribute('aria-pressed', 'true');
+  await expect(header.getByTestId('theme-system')).toBeHidden();
+  await expect(header.getByRole('button', { name: 'Day' })).toBeVisible();
+  await header.getByTestId('theme-light').click();
+  await expect(html).toHaveAttribute('data-theme', 'light');
   await header.getByTestId('theme-dark').click();
   await expect(html).toHaveAttribute('data-theme', 'dark');
   await expect(header.getByTestId('theme-dark')).toHaveAttribute('aria-pressed', 'true');

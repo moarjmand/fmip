@@ -179,10 +179,10 @@ made per row, a timeout -- does.
 
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
-| home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
-| scores `/en/scores` | 174.9 / 175 (raised 2026-10-22, T-1462) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 185.4 / 186 (raised 2026-10-23, T-1477) | 77 / 76 / 300 |
-| competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
+| home `/en` | 155.5 / 158 (2026-10-25, T-1494) | 38 / 50 / 200 |
+| scores `/en/scores` | 175.2 / 176 (raised 2026-10-25, T-1494, D-264) | 21 / 31 / 150 |
+| match centre `/en/match/…0901` | 185.7 / 186 (raised 2026-10-23, T-1477) | 77 / 76 / 300 |
+| competition `/en/competition/…0201` | 156.2 / 158 (2026-10-25, T-1494) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
 The scores budget was raised from 230 to 236 (T-1004), then home and
@@ -258,6 +258,18 @@ within its 175; the match centre 184.8 to 185.4 against 185, so its budget
 goes to 186. Finding the kicks on the server would have meant a new field in
 the scores and match contracts for a rule the client already has the data
 for. No library was added.
+
+**The raise of 2026-10-25 (T-1494, D-264, D-267).** The Stadiomind navigation
+is on every page: the header's More (the founder's analysis, Watch and
+Highlights, a disclosure that closes when a link is chosen) and the five new
+tabs, with their icons and which one is current, are in the shell's client
+chunk, which every route loads. The looks were moved into CSS utilities
+(`nav-entry`, `more-panel`, `tab-entry` in `globals.css`) so the components
+carry no class strings for them; what is left is 0.26 kB gzip. Scores 174.9
+to 175.2 against 175, so its budget goes to 176, the first kilobyte of the
+5 kB D-264 allows it: the scores page's own rebuild (T-1496) may take it to
+180 and no further. Home, the match centre and the competition page stay
+within theirs. No library was added.
 
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the

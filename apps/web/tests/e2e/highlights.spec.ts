@@ -2,14 +2,16 @@ import { expect, test } from '@playwright/test';
 
 /**
  * The Highlights page without an API behind it (T-1434). What must hold
- * regardless of data: the header's nav leads to it and marks it current, and
+ * regardless of data: the header's More leads to it and marks it current, and
  * an unreachable service is said out loud rather than shown as an empty list
  * (rule 3); Persian, and mirrored under the rtl pseudo-locale.
  */
 test.describe('Highlights page, no API', () => {
   test('the nav leads here, and an unreachable API is named', async ({ page }) => {
     await page.goto('/en/scores');
+    // Under the header's More from 1280px (D-267).
     const nav = page.getByTestId('primary-nav');
+    await nav.getByTestId('nav-more').locator('summary').click();
     await nav.getByRole('link', { name: 'Highlights' }).click();
     await expect(page).toHaveURL(/\/en\/highlights$/);
     await expect(page.getByTestId('title')).toHaveText('Highlights');
