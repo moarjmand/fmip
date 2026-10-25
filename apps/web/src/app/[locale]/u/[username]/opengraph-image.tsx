@@ -17,6 +17,14 @@ export function generateImageMetadata({ params }: { params: { locale: string } }
   return cardImageMetadata('member', params);
 }
 
+/**
+ * Drawn per request (T-1505). An image route is cached by default, so without
+ * this Next.js renders it as a static route on first request; the API client
+ * reads the request's headers (the reader's locale), which a static render may
+ * not, and every card answered 500.
+ */
+export const dynamic = 'force-dynamic';
+
 const size = CARD_SIZE;
 
 export default async function Image({
