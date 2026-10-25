@@ -16,8 +16,8 @@ import { Translated } from '@/components/translated';
 import { Icon, LinkOut, inlineTargetClasses } from '@/components/ui';
 
 /**
- * "Next match" (T-1388, D-206): the top of a club page and the "My teams"
- * rail. The opponent, the date and kick-off in the reader's zone (named:
+ * "Next match" (T-1388, D-206; the Club board's card since T-1499): the top
+ * of a club page. The opponent, the date and kick-off in the reader's zone (named:
  * "Tehran time"), the statistical model's bar with its version and time --
  * or, with no forecast yet, a sentence saying so instead of empty lanes
  * (rule 3) -- and who broadcasts it in the reader's territory, each
@@ -59,14 +59,14 @@ export function NextMatchCard({
   return (
     <article
       aria-label={t(l, 'nextMatch.title')}
-      className="flex flex-col gap-3 rounded-tile border border-default border-t-3 border-t-fg bg-surface p-4"
+      className="flex min-w-0 flex-col overflow-hidden rounded-card border border-default bg-surface"
       data-testid="next-match"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-xs font-extrabold tracking-widest uppercase">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-default px-4 py-3 sm:px-5">
+        <span className="text-xs font-extrabold text-accent uppercase ltr:tracking-widest">
           <Translated locale={l} message="nextMatch.title" />
         </span>
-        <span className="text-sm text-caption">
+        <span className="text-sm text-muted">
           <bdi>{competition}</bdi>
           {round.map((label) => (
             <span key={label}>
@@ -74,48 +74,49 @@ export function NextMatchCard({
               <bdi>{label}</bdi>
             </span>
           ))}
+          <span data-testid="next-match-when">
+            {' · '}
+            {when} · {zone}
+          </span>
         </span>
       </div>
 
       <Link
         href={`/${locale}/match/${fixture.id}`}
-        className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5"
+        className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-5 sm:gap-5 sm:px-5 sm:py-6"
         data-testid="next-match-link"
       >
-        <b className="min-w-0 text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere]">
+        <b className="min-w-0 text-end text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
           <bdi>{fixture.home.name}</bdi>
         </b>
-        <span className="text-center">
-          <b
-            className="block text-2xl leading-none font-black font-stretch-condensed tabular-nums"
-            dir="ltr"
-          >
-            <time dateTime={fixture.kickoff_at}>
-              {formatKickoff(l, fixture.kickoff_at, timeZone)}
-            </time>
-          </b>
-          <span className="text-xs text-caption" data-testid="next-match-when">
-            {when} · {zone}
-          </span>
-        </span>
-        <b className="min-w-0 text-end text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere]">
+        <b
+          className="text-2xl leading-none font-black font-stretch-condensed tabular-nums sm:text-3xl"
+          dir="ltr"
+        >
+          <time dateTime={fixture.kickoff_at}>
+            {formatKickoff(l, fixture.kickoff_at, timeZone)}
+          </time>
+        </b>
+        <b className="min-w-0 text-start text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
           <bdi>{fixture.away.name}</bdi>
         </b>
       </Link>
 
-      <ForecastBar
-        forecast={forecast}
-        home={fixture.home.name}
-        away={fixture.away.name}
-        started={started}
-        locale={l}
-        timeZone={timeZone}
-        zone={zone}
-        words={forecastBarWords(l)}
-        compact
-      />
+      <div className="flex flex-col gap-3 px-4 pb-4 sm:px-5">
+        <ForecastBar
+          forecast={forecast}
+          home={fixture.home.name}
+          away={fixture.away.name}
+          started={started}
+          locale={l}
+          timeZone={timeZone}
+          zone={zone}
+          words={forecastBarWords(l)}
+          compact
+        />
 
-      <Broadcasters viewing={viewing} fixtureId={fixture.id} locale={l} />
+        <Broadcasters viewing={viewing} fixtureId={fixture.id} locale={l} />
+      </div>
     </article>
   );
 }

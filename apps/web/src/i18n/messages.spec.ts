@@ -224,7 +224,7 @@ describe('plurals (T-301)', () => {
         .pluralCategories,
     ].sort();
 
-  it('has ninety-six plural keys, one of them ordinal, and knows which they are', () => {
+  it('has ninety-seven plural keys, one of them ordinal, and knows which they are', () => {
     // T-1383: four added (a day's matches, the matches left out, the earlier
     // forecast versions, the members who have picked), one retired (the
     // model list's missing count, now each row's own sentence). T-1386: one
@@ -241,7 +241,8 @@ describe('plurals (T-301)', () => {
     // matches more in the round).
     // T-1516: two added (the upset card's day, the month's matches), one
     // retired (the accuracy card's sample).
-    expect(pluralKeys).toHaveLength(96);
+    // T-1499: one added (the top scorer's goals).
+    expect(pluralKeys).toHaveLength(97);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

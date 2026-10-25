@@ -5,9 +5,11 @@ import type {
   TeamAverageMetric,
   TeamCompetition,
   TeamCompetitionSplits,
+  TeamPage,
   TeamPageFixture,
   TeamSplitRecord,
   TeamStatAverage,
+  TeamTopScorers,
 } from '@fmip/contracts';
 import { formatNumber, intlLocale } from '@/i18n/format';
 import { type MessageKey, plural } from '@/i18n/messages';
@@ -238,8 +240,11 @@ export function teamTabHref(locale: string, teamId: string, tab: TeamTab): strin
   return tab === 'overview' ? base : `${base}?tab=${tab}`;
 }
 
-/** Matches to come and results on the Overview's short list, each; the tabs have them all. */
-export const OVERVIEW_MATCHES = 3;
+/** Results on the Overview's "Recent results" (T-1499, the Club board's six); the tab has them all. */
+export const RECENT_RESULTS = 6;
+
+/** Matches after the next one on the Overview's "Coming up" (T-1499); the Fixtures tab has them all. */
+export const COMING_UP = 4;
 
 /** Players on the Overview's squad grid; the Squad tab has everyone, by position. */
 export const OVERVIEW_SQUAD = 12;
@@ -272,4 +277,72 @@ export function seasonFigures(
     entry,
     splits: splits.find((s) => s.season.id === entry.season.id) ?? null,
   }));
+}
+
+/**
+ * The competition whose table the band and "Around them" read (T-1499): the
+ * first current competition with a table that places the club, with the
+ * matches it has played on that table; null when no table places it.
+ */
+export function mainStanding(
+  competitions: readonly TeamCompetition[],
+  teamId: string,
+): { entry: TeamCompetition; context: TableContext; played: number | null } | null {
+  for (const entry of competitions) {
+    const context = entry.context.data;
+    if (context === null) continue;
+    const own = context.rows.find((row) => row.team.id === teamId);
+    return { entry, context, played: own?.played ?? null };
+  }
+  return null;
+}
+
+/**
+ * The home and away record the Overview shows (T-1499): the first
+ * competition the API counted a finished match in, else the first one, so a
+ * club with figures nowhere still gets its sentence; null with no competition.
+ */
+export function recordFigures(
+  competitions: readonly TeamCompetition[],
+  splits: readonly TeamCompetitionSplits[],
+): SeasonFigures | null {
+  const figures = seasonFigures(competitions, splits);
+  return figures.find((f) => (f.splits?.total.played ?? 0) > 0) ?? figures[0] ?? null;
+}
+
+const points = (record: TeamSplitRecord) => record.won * 3 + record.drawn;
+
+/**
+ * "Better away (7 pts from 4) than at home (4 pts from 4)." (T-1499, the
+ * ClubPhone board): points per match compared, three for a win; null until
+ * the club has played both at home and away.
+ */
+export function homeAwayLean(locale: string, splits: TeamCompetitionSplits): string | null {
+  const { home, away } = splits;
+  if (home.played === 0 || away.played === 0) return null;
+  const perHome = points(home) / home.played;
+  const perAway = points(away) / away.played;
+  const key: MessageKey =
+    perAway > perHome
+      ? 'teamPage.record.betterAway'
+      : perHome > perAway
+        ? 'teamPage.record.betterHome'
+        : 'teamPage.record.level';
+  return say(locale, key, {
+    home: formatNumber(locale, points(home)),
+    homePlayed: formatNumber(locale, home.played),
+    away: formatNumber(locale, points(away)),
+    awayPlayed: formatNumber(locale, away.played),
+  });
+}
+
+/**
+ * The top scorer the Overview shows (T-1528, D-275): the first competition
+ * in which a goal for the club is recorded, else the first one, so its state
+ * is still said; null when the API sent none (older than T-1528) or the club
+ * has no competition.
+ */
+export function topScorerEntry(page: Pick<TeamPage, 'top_scorers'>): TeamTopScorers | null {
+  const entries = page.top_scorers ?? [];
+  return entries.find((e) => (e.scorers.data?.length ?? 0) > 0) ?? entries[0] ?? null;
 }
