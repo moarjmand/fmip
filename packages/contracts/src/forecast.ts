@@ -529,3 +529,75 @@ export interface PublicModelAccuracyResponse {
   competitions: PublicAccuracySeries[];
   last_updated_at: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// The model's biggest miss of a day (T-1507, D-265): the home page's
+// "forecast against reality" card. The statistical model's own published
+// pre-kick-off version, read and never written (rule 5); never the founder's
+// analysis or the community's consensus (rule 6).
+// ---------------------------------------------------------------------------
+
+/** One side of the match, or its competition, by canonical id (rule 1). */
+export interface ModelUpsetEntity {
+  id: string;
+  name: string;
+  short_name: string | null;
+}
+
+/**
+ * The finished match whose result the model rated least likely: what
+ * happened, and what the model said before kick-off, with whose version it
+ * was and when it was computed.
+ */
+export interface ModelUpset {
+  fixture_id: string;
+  kickoff_at: string;
+  competition: ModelUpsetEntity;
+  season_id: string;
+  home_team: ModelUpsetEntity;
+  away_team: ModelUpsetEntity;
+  /** The full-time score, the one the evaluation scores against (T-066). */
+  score: { home: number; away: number };
+  outcome: MatchOutcome;
+  /** The probability the model gave `outcome`, 0..1 at four decimals. */
+  probability: number;
+  /** All three, as the version stored them (they total exactly 1). */
+  probabilities: ModelProbabilities;
+  /** The match's last published version computed before kick-off. */
+  forecast: {
+    version_number: number;
+    kind: ForecastKind;
+    /** name@semver, as the model reported it. */
+    model_version: string;
+    computed_at: string;
+  };
+}
+
+/**
+ * Why no match qualifies: no finished match with a full-time score in a
+ * competition whose scores are fully covered, or finished matches but none
+ * whose last pre-kick-off forecast was available on complete data.
+ */
+export type ModelUpsetGap = 'no_finished_match' | 'no_covered_forecast';
+
+interface ModelUpsetDay {
+  /** The day asked, YYYY-MM-DD, in `time_zone`. */
+  date: string;
+  /** IANA zone the day is read in; UTC unless asked. */
+  time_zone: string;
+  /** Finished matches of the day in fully covered competitions. */
+  finished_matches: number;
+  /** Matches of the day in those competitions not over yet (scheduled, live, suspended). */
+  still_to_play: number;
+  /** When any of the day's matches in those competitions last changed; null with none. */
+  last_updated_at: string | null;
+}
+
+/**
+ * `GET /model/upset?date=YYYY-MM-DD&tz=Area/City` (T-1507, D-265). Public.
+ * Either a match, or an explicit `not_supplied` with the reason and no match
+ * (rule 3): never an empty card that looks populated.
+ */
+export type ModelUpsetResponse =
+  | (ModelUpsetDay & { coverage: 'available'; reason: null; upset: ModelUpset })
+  | (ModelUpsetDay & { coverage: 'not_supplied'; reason: ModelUpsetGap; upset: null });
