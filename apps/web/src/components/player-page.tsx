@@ -193,8 +193,17 @@ function ClubLine({ page, locale }: { page: PlayerPage; locale: string }) {
             <>
               <Link
                 href={`/${locale}/team/${spell.team.id}`}
-                className={inlineTargetClasses('font-bold text-fg hover:underline')}
+                className={inlineTargetClasses(
+                  'gap-1.5 align-middle font-bold text-fg hover:underline',
+                )}
               >
+                {/* The club's crest beside its name (T-1617). */}
+                <EntityImage
+                  media={spell.team.crest}
+                  kind="crest"
+                  name={spell.team.name}
+                  size={20}
+                />
                 {spell.team.name}
               </Link>
               {spell.on_loan ? ` · ${say(locale, 'teamPage.onLoan')}` : ''}
@@ -575,8 +584,15 @@ export function RecordPanel({
                     <td className="py-2.5 pe-3">
                       <Link
                         href={`/${locale}/team/${row.team.id}`}
-                        className={inlineTargetClasses('hover:underline')}
+                        className={inlineTargetClasses('gap-2 hover:underline')}
                       >
+                        {/* The club's crest (T-1617). */}
+                        <EntityImage
+                          media={row.team.crest}
+                          kind="crest"
+                          name={row.team.name}
+                          size={20}
+                        />
                         {row.team.name}
                       </Link>
                     </td>
@@ -715,6 +731,10 @@ function MatchLink({ match, locale }: { match: PlayerMatch; locale: string }) {
       href={`/${locale}/match/${fixture.id}`}
       className="flex min-h-7 min-w-0 items-center gap-2 text-sm font-semibold hover:underline focus-visible:underline"
     >
+      {/* Each side's crest before its name (T-1617). */}
+      <span className="hidden sm:contents">
+        <EntityImage media={fixture.home.crest} kind="crest" name={fixture.home.name} size={20} />
+      </span>
       <bdi className="min-w-0 truncate">{fixture.home.short_name ?? fixture.home.name}</bdi>
       {fixture.score === null ? (
         <span className="shrink-0 font-medium text-caption">
@@ -730,6 +750,9 @@ function MatchLink({ match, locale }: { match: PlayerMatch; locale: string }) {
           testId="player-match-score"
         />
       )}
+      <span className="hidden sm:contents">
+        <EntityImage media={fixture.away.crest} kind="crest" name={fixture.away.name} size={20} />
+      </span>
       <bdi className="min-w-0 truncate">{fixture.away.short_name ?? fixture.away.name}</bdi>
     </Link>
   );
@@ -974,13 +997,20 @@ export function SpellsPanel({ page, locale }: { page: PlayerPage; locale: string
           {page.spells.map((spell) => (
             <li
               key={`${spell.team.id}-${spell.start_date}`}
-              className="flex flex-wrap items-baseline gap-x-3 border-b border-default py-2 text-sm last:border-b-0"
+              className="flex flex-wrap items-center gap-x-3 border-b border-default py-2 text-sm last:border-b-0"
               data-testid="spell"
             >
               <Link
                 href={`/${locale}/team/${spell.team.id}`}
-                className={inlineTargetClasses('font-semibold hover:underline')}
+                className={inlineTargetClasses('gap-2 font-semibold hover:underline')}
               >
+                {/* The club's crest (T-1617). */}
+                <EntityImage
+                  media={spell.team.crest}
+                  kind="crest"
+                  name={spell.team.name}
+                  size={20}
+                />
                 {spell.team.name}
               </Link>
               <span className="text-muted">{spellPeriod(locale, spell)}</span>

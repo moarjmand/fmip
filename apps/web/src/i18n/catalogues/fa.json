@@ -732,6 +732,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "home.news.all": {
+    "source": "All news",
+    "text": "همهٔ اخبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "home.welcome.label": {
     "source": "New to Stadiomind",
     "text": "تازه به Stadiomind آمده‌اید",

@@ -620,6 +620,58 @@ describe('the clubs and the next match', () => {
   });
 });
 
+describe("the clubs' crests (T-1617)", () => {
+  const crest = (id: string) => ({
+    coverage: 'available' as const,
+    url: `/api/media/crest/${id}/0123456789ab.png`,
+  });
+  const srcs = (html: string) => [...html.matchAll(/<img [^>]*src="([^"]*)"/g)].map((m) => m[1]);
+  const spell = {
+    team: { id: 'tractor', name: 'Tractor', short_name: null, crest: crest('tractor') },
+    start_date: '2025-07-01',
+    end_date: null,
+    shirt_number: 1,
+    position: 'goalkeeper' as const,
+    on_loan: false,
+  };
+
+  it('draws the crest beside each club of the career and the current club', () => {
+    const p = page({ current_spell: spell, spells: [spell] });
+    const career = renderToStaticMarkup(<SpellsPanel page={p} locale="en" />);
+    expect(srcs(career)).toEqual(['/api/media/crest/tractor/0123456789ab-48.webp']);
+    expect(career).toMatch(/tractor\/0123456789ab-48\.webp.*Tractor/);
+    const header = renderToStaticMarkup(
+      <PlayerHeader page={p} locale="en" tab="overview" seasonId={null} follow={null} />,
+    );
+    expect(header).toContain('/api/media/crest/tractor/0123456789ab-48.webp');
+    expect(career).not.toMatch(PHYSICAL);
+  });
+
+  it('puts the crest on each record row and both crests on each match', () => {
+    const rows = [row({ team: { id: 'tractor', name: 'Tractor', crest: crest('tractor') } })];
+    const record = renderToStaticMarkup(
+      <RecordPanel page={page()} rows={rows} locale="en" full testId="record" />,
+    );
+    expect(srcs(record)).toEqual(['/api/media/crest/tractor/0123456789ab-48.webp']);
+    const m = match();
+    const matches = [
+      match({
+        fixture: {
+          ...m.fixture,
+          home: { ...m.fixture.home, crest: crest('tractor') },
+          away: { ...m.fixture.away, crest: { coverage: 'not_supplied', url: null } },
+        },
+      }),
+    ];
+    const html = renderToStaticMarkup(
+      <LastMatchesPanel page={page()} matches={matches} locale="en" timeZone="UTC" />,
+    );
+    // The home crest, then the away side's lettered mark: none is held for it.
+    expect(srcs(html)).toEqual(['/api/media/crest/tractor/0123456789ab-48.webp']);
+    expect(html).toMatch(/Tractor.*data-letters="E".*Esteghlal/s);
+  });
+});
+
 describe('the review of 2026-10-26', () => {
   it('gives the name block its basis only in the desktop row, not as a phone height (T-1567)', () => {
     expect(COMPONENT).toContain('md:flex-[1_1_18rem]');
