@@ -311,7 +311,9 @@ export interface AccuracyFigure {
   /**
    * Each competition's figures for the same period (T-1516), the favourite
    * winning most often first, at most `HOME_MONTH_LEAGUES`; one with no match
-   * scored in it is left out, not shown as nought.
+   * scored in it is left out, not shown as nought. T-1540: those on at least
+   * `minimumMatches` come before the limited ones, so a league's 17 matches
+   * never top the list over a full sample.
    */
   competitions: { id: string; name: string; metrics: AccuracyMetrics }[];
   /** Below this many matches a figure is `limited` (`ACCURACY_MINIMUM_MATCHES`). */
@@ -332,6 +334,7 @@ export function accuracyFigure(answer: PublicModelAccuracyResponse): AccuracyFig
     })
     .sort(
       (a, b) =>
+        Number(a.metrics.coverage === 'limited') - Number(b.metrics.coverage === 'limited') ||
         (b.metrics.accuracy ?? 0) - (a.metrics.accuracy ?? 0) ||
         b.metrics.matches - a.metrics.matches ||
         a.name.localeCompare(b.name),

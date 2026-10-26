@@ -116,3 +116,21 @@ for (const width of [390, 1440]) {
     }
   });
 }
+
+/**
+ * The header's language link leads to the same page in the other language,
+ * its query kept (T-1572): a reader who switches loses neither the day nor
+ * the filters. The link is drawn only when the API says Persian is offered,
+ * which is why this lives with the journeys.
+ */
+test('the language link keeps the page and its query', async ({ page }) => {
+  await page.goto('/en/scores?date=2025-01-05&tz=UTC');
+  const fa = page.getByTestId('language-fa');
+  await expect(fa).toHaveAttribute('href', '/fa/scores?date=2025-01-05&tz=UTC');
+  await fa.click();
+  await expect(page).toHaveURL(/\/fa\/scores\?date=2025-01-05&tz=UTC$/);
+  await expect(page.getByTestId('language-en')).toHaveAttribute(
+    'href',
+    '/en/scores?date=2025-01-05&tz=UTC',
+  );
+});

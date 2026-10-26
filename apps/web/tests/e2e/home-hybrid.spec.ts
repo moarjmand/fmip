@@ -54,6 +54,10 @@ test.describe('the home page without an API', () => {
         await page.goto(`/${locale}`);
         await expect(page.getByTestId('title')).toBeVisible();
         await expect(page.getByTestId('home-matches-none')).toBeVisible();
+        // T-1541: the first run's two controls are touch targets.
+        for (const id of ['first-run-start', 'first-run-dismiss']) {
+          expect((await box(page, `[data-testid="${id}"]`)).height).toBeGreaterThanOrEqual(44);
+        }
         // The upset card says it could not be loaded, once on the screen:
         // after the hero on a phone, in the side column on a desktop (T-1516).
         const upset = page.locator('[data-testid="home-upset"]:visible');
@@ -211,6 +215,60 @@ function answer(path: string, query: URLSearchParams, scenario: Scenario): unkno
       },
     };
   }
+  // T-1542: an analysis kicking off at 23:30 UTC in July, past midnight in
+  // the UK, so its day and time must both be the reader's.
+  if (path === '/founder-analyses') {
+    return {
+      analyses: [
+        {
+          fixture: {
+            id: 'm-later',
+            kickoff_at: '2099-07-01T23:30:00Z',
+            status: 'scheduled',
+            home: { id: 'm-later-h', name: 'Foolad', short_name: null },
+            away: { id: 'm-later-a', name: 'Sepahan', short_name: null },
+            competition: { id: PGPL.id, name: PGPL.name },
+          },
+          author: { id: 'founder', display_name: 'The founder' },
+          predicted_outcome: 'home',
+          predicted_score: null,
+          confidence: 3,
+          excerpt: 'Foolad at home.',
+          published_at: minutes(-60),
+          version_number: 1,
+        },
+      ],
+    };
+  }
+  // T-1540: a league on a full sample after one with a better share on a few.
+  if (path === '/model/accuracy') {
+    const point = (matches: number, accuracy: number) => ({
+      period: '2026-10',
+      period_start: '2026-10-01',
+      forecasts: matches,
+      matches,
+      coverage: matches < 30 ? 'limited' : 'available',
+      log_loss: 0.97,
+      brier: 0.57,
+      rps: 0.2,
+      accuracy,
+      uniform_rps: 0.24,
+    });
+    return {
+      period: 'month',
+      minimum_matches: 30,
+      overall: {
+        competition: null,
+        model_versions: ['dixon-coles-elo@0.6.0'],
+        points: [point(60, 0.55)],
+      },
+      competitions: [
+        { competition: EPL, model_versions: [], points: [point(24, 0.71)] },
+        { competition: PGPL, model_versions: [], points: [point(36, 0.58)] },
+      ],
+      last_updated_at: minutes(-60),
+    };
+  }
   if (path === '/forecasts/pre-kickoff') {
     return {
       fixtures: (query.get('fixtures') ?? '').split(',').map((id) => {
@@ -308,6 +366,17 @@ test.describe('the home page with the scores', () => {
           const today = await box(page, '[data-testid="home-matches"]');
           expect(card.y).toBeGreaterThan(hero.y);
           expect(today.y).toBeGreaterThan(card.y);
+        }
+        // T-1540: the league on a full sample first; the limited one after
+        // it, with its count.
+        const leagues = page.getByTestId('home-month-league');
+        await expect(leagues).toHaveCount(2);
+        await expect(leagues.first()).toHaveAttribute('data-coverage', 'available');
+        await expect(leagues.nth(1)).toHaveAttribute('data-coverage', 'limited');
+        await expect(leagues.nth(1)).toContainText(locale === 'fa' ? '۲۴' : '24');
+        if (locale === 'en') {
+          // T-1542: the founder's column in UK time, its day as well as its time.
+          await expect(page.getByTestId('founder-feed')).toContainText('2099-07-02 00:30');
         }
         if (locale === 'fa') {
           await expect(page.getByTestId('home-hero-xg')).toContainText('۱٫۶۲');

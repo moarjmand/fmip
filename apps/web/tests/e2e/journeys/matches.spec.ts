@@ -69,6 +69,18 @@ test.describe('the matches page', () => {
         if (rtl) expect(status.x).toBeGreaterThan(pick.x);
         else expect(status.x).toBeLessThan(pick.x);
         expect(pick.height).toBeGreaterThanOrEqual(44);
+        const team = (await row.getByTestId('home-team').boundingBox())!;
+        const cell = (await model.boundingBox())!;
+        if (viewport.width < 640) {
+          // T-1545: on a phone the model's cell stands under the teams, so a
+          // name keeps the row's width (beside them it had 21 to 51 px).
+          expect(cell.y).toBeGreaterThanOrEqual(team.y + team.height - 1);
+          expect(team.width).toBeGreaterThan(160);
+        } else {
+          expect(Math.abs(cell.y + cell.height / 2 - (status.y + status.height / 2))).toBeLessThan(
+            24,
+          );
+        }
 
         const preview = page.getByTestId('match-preview');
         if (viewport.width >= 1024) {

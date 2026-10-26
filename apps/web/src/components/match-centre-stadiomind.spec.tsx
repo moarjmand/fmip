@@ -166,7 +166,9 @@ describe('what was forecast, what happened (the Summary card)', () => {
 
   it('carries the receipt: model, version, time, lead, kind and what it was fitted on', () => {
     const html = card('finished');
-    expect(html).toContain(
+    // The `@` set apart: no "name@x.y.z" run for Cloudflare to rewrite (T-1580).
+    expect(html).not.toMatch(/\S+@\d+\.\d+\.\d+/);
+    expect(html.replace(/<[^>]+>/g, '')).toContain(
       'dixon-coles-elo@0.6.0 · v3 computed 24 Oct, 12:03 UK time, 27 min before kick-off · Confirmed line-ups · fitted 23 Oct on 1,120 matches since Oct 2023 · Elo prior on · inputs complete',
     );
   });
@@ -336,6 +338,20 @@ describe('live', () => {
     expect(html).toMatch(/data-testid="live-badge" data-live="true"><span data-live-badge=""/);
     expect(html).toMatch(/inline-size:12\.2/);
     expect(html).not.toContain('data-testid="feed-behind"');
+  });
+
+  it('says "HT" at the half-time interval, never a minute that looks stalled (T-1551)', () => {
+    const at = Date.parse('2026-10-24T11:41:10.000Z');
+    const html = view(centre({ minute: 45, at_half_time: true }), at);
+    expect(html).toMatch(/data-testid="match-status">HT</);
+    expect(html).not.toMatch(/data-testid="match-status">45′</);
+    // The second half: the minute again.
+    expect(view(centre({ minute: 46, at_half_time: false }), at)).toMatch(
+      /data-testid="match-status">46′</,
+    );
+    // Persian.
+    const fa = view(centre({ minute: 45, at_half_time: true }), at, 'fa');
+    expect(fa).not.toMatch(/data-testid="match-status">[۴4][۵5]/);
   });
 
   it('says when the feed has fallen behind, in the warning colour, never as current (rule 4)', () => {
