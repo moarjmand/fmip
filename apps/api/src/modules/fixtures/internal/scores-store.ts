@@ -220,7 +220,7 @@ export class PostgresScoresStore {
                 (SELECT max(sc.updated_at) FROM fixture_score sc WHERE sc.fixture_id = s.id),
                 (SELECT max(i.updated_at) FROM incident i WHERE i.fixture_id = s.id)
               ) AS last_updated_at,
-              ${liveAnsweredAtSql('s.id', 's.status')} AS live_answered_at
+              ${liveAnsweredAtSql('s.id', 's.status', 's.kickoff_at')} AS live_answered_at
          FROM scope s
          JOIN fixture_participant h ON h.fixture_id = s.id AND h.side = 'home'
          JOIN team th ON th.id = h.team_id

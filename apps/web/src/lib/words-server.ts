@@ -113,6 +113,7 @@ export const SCORES_KEYS = [
   ...INCIDENT_KEYS,
   ...STAGE_KEYS,
   'scores.empty',
+  'scores.liveEmpty',
   'scores.filteredEmpty',
   'scores.filter.clear',
   'scores.favourites',

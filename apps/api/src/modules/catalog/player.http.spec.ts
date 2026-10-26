@@ -320,6 +320,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       matches_with_minutes: 2,
       supplied_minutes: 115,
     });
+    // A finished match with no event stored at all (the start): its goals
+    // and cards are "at least", so the record is not whole (T-1579).
+    expect(
+      ((await app.inject({ method: 'GET', url: `/players/${TIMED}` })).json() as PlayerPage).record
+        .coverage,
+    ).toBe('limited');
 
     // Another start the feed sent no minutes for: the 115 is no longer the season.
     const silent = await fixture('2025-11-22T15:00:00Z', [0, 0]);

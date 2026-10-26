@@ -6398,6 +6398,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "scores.liveEmpty": {
+    "source": "No match on this day is in play.",
+    "text": "",
+    "status": "untranslated"
+  },
   "scores.row.pick": {
     "source": "Pick",
     "text": "",
@@ -8131,6 +8136,26 @@
   },
   "forecast.factor.attackVsDefence": {
     "source": "Attack against defence",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.teamStrength": {
+    "source": "net strength (attack minus defence) from recent results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.teamStrengthElo": {
+    "source": "net strength (attack minus defence) from recent results and the Elo prior",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.homeAdvantage": {
+    "source": "league-wide home advantage learned from the training window",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.attackVsDefence": {
+    "source": "how the sides' attacks match up against the opposing defences",
     "text": "",
     "status": "untranslated"
   },

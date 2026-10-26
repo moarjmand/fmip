@@ -252,6 +252,33 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     }
   });
 
+  it('says a live match is at half time only while it is live (T-1551)', async () => {
+    const { rows } = await pool.query<{ status: string; minute: number | null }>(
+      `SELECT status, minute FROM fixture WHERE id = $1`,
+      [MATCH],
+    );
+    const before = rows[0];
+    if (before === undefined) throw new Error('the match is not seeded');
+    const header = async () => ((await get(MATCH)).json() as MatchCentre).fixture;
+    try {
+      await pool.query(
+        `UPDATE fixture SET status = 'live', minute = 45, at_half_time = true WHERE id = $1`,
+        [MATCH],
+      );
+      expect((await header()).at_half_time).toBe(true);
+      // A status another path wrote never shows a stale interval.
+      await pool.query(`UPDATE fixture SET status = 'finished', minute = NULL WHERE id = $1`, [
+        MATCH,
+      ]);
+      expect((await header()).at_half_time).toBe(false);
+    } finally {
+      await pool.query(
+        `UPDATE fixture SET status = $2, minute = $3, at_half_time = false WHERE id = $1`,
+        [MATCH, before.status, before.minute],
+      );
+    }
+  });
+
   it('serves the timeline in order with sides by participant and both players of a substitution', async () => {
     const { timeline } = (await get(MATCH)).json() as MatchCentre;
     // The seeded profile says incidents are not supplied for this season, yet rows exist: limited.
