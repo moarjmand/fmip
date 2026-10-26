@@ -155,7 +155,8 @@ export function WatchLine({ locale, viewing }: { locale: string; viewing: MatchV
     return (
       <a
         href="#watch"
-        className={inlineTargetClasses('text-sm font-semibold underline')}
+        // A control of its own, not a word in a sentence: 44px on a phone (T-1608).
+        className={inlineTargetClasses('text-sm font-semibold underline max-md:min-h-touch')}
         data-testid="hero-watch"
         data-state={optionsState(viewing)}
       >

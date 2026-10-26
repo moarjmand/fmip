@@ -267,6 +267,15 @@ describe('NextMatchCard', () => {
     expect(html).toMatch(/data-testid="next-match-watch" data-state="unreachable"/);
   });
 
+  it('asks for the viewing country with a 44px target on a phone (T-1608)', () => {
+    const asked = {
+      ...VIEWING,
+      territory: { state: 'not_chosen' },
+    } as unknown as MatchViewing;
+    const link = /<a[^>]*href="\/en\/match\/[^"]*#watch"[^>]*>/.exec(card(AVAILABLE, asked))?.[0];
+    expect(link).toContain('max-md:min-h-touch');
+  });
+
   it('in Persian: the words, the zone and the digits are Persian', () => {
     const html = card(AVAILABLE, VIEWING, 'fa');
     expect(html).toContain('بازی بعدی');

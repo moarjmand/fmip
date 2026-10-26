@@ -202,7 +202,10 @@ export function CommunityPicksBrief({
       <div className="flex flex-col gap-2" data-testid="community-brief" data-spread="shown">
         <CommunitySplit consensus={consensus} home={home} away={away} locale={l} />
         {!revealed && (
-          <Link href={href} className="text-sm font-bold text-community underline">
+          <Link
+            href={href}
+            className="inline-flex min-h-touch items-center text-sm font-bold text-community underline md:min-h-0"
+          >
             <Translated locale={l} message="pick.make" />
           </Link>
         )}
@@ -217,7 +220,10 @@ export function CommunityPicksBrief({
       <p className="text-sm text-muted">
         <Translated locale={l} message="lanes.community.hidden" />
       </p>
-      <Link href={href} className="text-sm font-bold text-community underline">
+      <Link
+        href={href}
+        className="inline-flex min-h-touch items-center text-sm font-bold text-community underline md:min-h-0"
+      >
         <Translated locale={l} message="pick.make" />
       </Link>
     </div>
