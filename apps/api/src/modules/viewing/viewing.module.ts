@@ -3,6 +3,7 @@ import type { BoxScoreFeedHealth, HighlightsFeedHealth } from '@fmip/contracts';
 import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { IdentityModule } from '../identity/identity.module';
 import { EntityResolverService } from '../ingestion/ingestion.service';
+import { MediaModule } from '../media/media.module';
 import { ProfileModule } from '../profile/profile.module';
 import { BoxScoreFeedService } from './box-score-feed.service';
 import { HIGHLIGHT_FEED_CONFIG, HighlightFeedService } from './highlight-feed.service';
@@ -53,11 +54,12 @@ export class HighlightFeedHealthController {
  * (`HighlightlyQuota`, exported for the watchdog). Its own boundary:
  * not on the critical path (rule 9), so a match, its score and its forecast
  * never depend on it, and it imports only identity (who is asking), profile
- * (their territory), failure counts (the jobs' failures, T-1360) and the
- * ingestion boundary's public resolver (the feed's team ids, T-1366).
+ * (their territory), failure counts (the jobs' failures, T-1360), the
+ * ingestion boundary's public resolver (the feed's team ids, T-1366) and the
+ * media boundary (the Highlights page's crests and logos, T-1614).
  */
 @Module({
-  imports: [IdentityModule, ProfileModule, FailureCountsModule],
+  imports: [IdentityModule, ProfileModule, FailureCountsModule, MediaModule],
   controllers: [ViewingController, ViewingAdminController, HighlightFeedHealthController],
   providers: [
     PostgresViewingReadStore,

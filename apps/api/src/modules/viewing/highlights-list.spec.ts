@@ -1,9 +1,11 @@
-import type { ViewingTerritory } from '@fmip/contracts';
+import type { HighlightListItem, ViewingTerritory } from '@fmip/contracts';
+import { NO_MEDIA } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
+import { EMPTY_MEDIA_INDEX, type MediaIndex } from '../media/media.service';
 import { offeredEverywhere, offeredIn } from './internal/highlight-feed';
 import type { FeedIndexRow } from './internal/viewing-read-store';
 import { pageOf } from './viewing.controller';
-import { highlightsPage } from './viewing.service';
+import { highlightsPage, withHighlightMedia } from './viewing.service';
 
 /**
  * The Highlights list's choices (T-1434, D-226): which clips a reader is
@@ -114,5 +116,70 @@ describe('?page=', () => {
     expect(pageOf('1.5')).toBeNull();
     expect(pageOf('501')).toBeNull();
     expect(pageOf('abc')).toBeNull();
+  });
+});
+
+describe("the Highlights page's images (T-1614, D-285)", () => {
+  const crest = (id: string) => ({
+    coverage: 'available' as const,
+    url: `/api/media/crest/${id}/abc.png`,
+  });
+  const logo = (id: string) => ({
+    coverage: 'available' as const,
+    url: `/api/media/logo/${id}/def.svg`,
+  });
+  // Only the home side and the Premier League have an image stored.
+  const media: MediaIndex = {
+    ...EMPTY_MEDIA_INDEX,
+    crest: (id) => (id === 'home' ? crest(id) : NO_MEDIA),
+    logo: (id) => (id === 'pl' ? logo(id) : NO_MEDIA),
+  };
+  const item: HighlightListItem = {
+    id: 'clip',
+    url: 'https://www.youtube.com/watch?v=x',
+    publisher: 'Premier League',
+    source: { id: 'src', name: 'Highlightly', rights: 'link' },
+    fixture: {
+      id: 'fx',
+      kickoff_at: '2026-10-25T15:00:00.000Z',
+      status: 'finished',
+      competition: { id: 'pl', name: 'Premier League', short_name: null },
+      home: { id: 'home', name: 'Home FC', short_name: null },
+      away: { id: 'away', name: 'Away FC', short_name: null },
+      score: { home: 2, away: 1 },
+      penalties: null,
+    },
+    restricted: false,
+    last_updated_at: '2026-10-25T18:00:00.000Z',
+  };
+
+  it("gives each clip its crests and its competition's logo, and each filter entry its logo", () => {
+    const dressed = withHighlightMedia(
+      [item],
+      [
+        { id: 'pl', name: 'Premier League', short_name: null, count: 1 },
+        { id: 'liga', name: 'La Liga', short_name: null, count: 1 },
+      ],
+      media,
+    );
+    expect(dressed.items[0]!.fixture.home.crest).toEqual(crest('home'));
+    expect(dressed.items[0]!.fixture.competition.logo).toEqual(logo('pl'));
+    expect(dressed.competitions.map((c) => c.logo)).toEqual([logo('pl'), NO_MEDIA]);
+  });
+
+  it('says not_supplied for an image not stored, never an empty address (rule 3)', () => {
+    const dressed = withHighlightMedia([item], [], EMPTY_MEDIA_INDEX);
+    expect(dressed.items[0]!.fixture.away.crest).toEqual(NO_MEDIA);
+    expect(dressed.items[0]!.fixture.home.crest).toEqual(NO_MEDIA);
+    expect(dressed.items[0]!.fixture.competition.logo).toEqual(NO_MEDIA);
+  });
+
+  it('leaves the clip itself as it was', () => {
+    const [dressed] = withHighlightMedia([item], [], media).items;
+    const { crest: _home, ...home } = dressed!.fixture.home;
+    expect(home).toEqual(item.fixture.home);
+    expect(dressed!.url).toBe(item.url);
+    expect(dressed!.restricted).toBe(false);
+    expect(item.fixture.home).not.toHaveProperty('crest');
   });
 });

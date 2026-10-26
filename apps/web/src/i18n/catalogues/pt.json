@@ -13060,5 +13060,54 @@
     "source": "Pens",
     "text": "",
     "status": "untranslated"
+  },
+  "highlights.clipCount": {
+    "source": {
+      "one": "{count} highlight",
+      "other": "{count} highlights"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "highlights.competitionCount": {
+    "source": {
+      "one": "{count} competition",
+      "other": "{count} competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "highlights.moreCompetitions": {
+    "source": {
+      "one": "{count} more competition",
+      "other": "{count} more competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "highlights.featured": {
+    "source": "Latest highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.watch": {
+    "source": "Watch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.matchup": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.by": {
+    "source": "By {publisher}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.territory": {
+    "source": "Where are you watching?",
+    "text": "",
+    "status": "untranslated"
   }
 }
