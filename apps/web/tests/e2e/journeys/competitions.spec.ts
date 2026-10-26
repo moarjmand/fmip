@@ -20,6 +20,12 @@ test.describe('competitions bar', () => {
     const bar = page.getByRole('navigation', { name: 'Competitions' });
     await expect(bar.getByTestId('competitions-bar-item').first()).toBeVisible();
     await expect(bar.locator(`[data-competition="${PREMIER_LEAGUE}"]`)).toHaveCount(1);
+    // The seed plays nothing today, so each chip is a link and the Premier
+    // League's says its next match day, the seeded match ahead (T-1623, T-1624).
+    await expect(page.getByTestId('rail-drawer')).toHaveCount(0);
+    await expect(
+      bar.locator(`[data-competition="${PREMIER_LEAGUE}"] [data-testid="rail-status"]`),
+    ).toHaveAttribute('data-kind', 'day');
 
     await bar.locator(`[data-competition="${PREMIER_LEAGUE}"]`).click();
     await expect(page).toHaveURL(new RegExp(`/en/competition/${PREMIER_LEAGUE}`));

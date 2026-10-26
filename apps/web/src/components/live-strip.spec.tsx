@@ -4,12 +4,13 @@ import { describe, expect, it } from 'vitest';
 import { message } from '@/i18n/messages';
 import { chipState } from '@/lib/live-strip';
 import { scoresWords } from '@/lib/words-server';
-import { LiveStripView } from './live-strip';
+import { RailDrawer } from './live-strip';
 
 /**
- * The live strip drawn (T-1381, D-199): the three chip states, each a link to
- * its match, and the Persian chip mirrored with the home goals beside the
- * home team (D-193).
+ * The live strip drawn (T-1381, D-199), since T-1624 (D-292) the matchday
+ * rail's drawer: the three chip states, each a link to its match, the link to
+ * the league's page last, and the Persian chip mirrored with the home goals
+ * beside the home team (D-193).
  */
 
 const NOW = Date.parse('2026-10-11T15:00:00.000Z');
@@ -69,16 +70,14 @@ const CARDS = [
 function render(locale: 'en' | 'fa', behind = false): string {
   const words = scoresWords(locale).m;
   const label = message(locale, 'shell.strip.label');
+  const open = message(locale, 'shell.rail.open');
   return renderToStaticMarkup(
-    <LiveStripView
+    <RailDrawer
       locale={locale}
-      group={{
-        country: null,
-        competition: { id: 'pgpl', name: 'Pro League', short_name: null },
-        fixtures: CARDS,
-      }}
+      competition="pgpl"
       chips={CARDS.map((c) => ({ card: c, state: chipState(c, locale, 'UTC', NOW, words) }))}
       label={{ ...label, text: label.text.replace('{competition}', 'Pro League') }}
+      open={{ ...open, text: open.text.replace('{competition}', 'Pro League') }}
       versus={message(locale, 'shell.strip.versus')}
       note={message(locale, 'shell.strip.behind')}
       behindAt={NOW + 120_000}
@@ -106,8 +105,14 @@ describe('the strip', () => {
     expect(root).toContain('aria-labelledby="live-strip-label"');
   });
 
-  it('scrolls sideways', () => {
-    expect(html).toMatch(/<ul class="[^"]*overflow-x-auto[^"]*" data-testid="live-strip-chips">/);
+  it('scrolls sideways without a scrollbar, and ends with the league’s page (T-1624)', () => {
+    expect(html).toMatch(/<div class="scroll-row flex-1"><button[^>]*data-edge="start"/);
+    expect(html).toContain('data-testid="live-strip-chips"');
+    const open = /<a [^>]*data-testid="rail-open"[^>]*>[\s\S]*?<\/a>/.exec(html)?.[0] ?? '';
+    expect(open).toContain('href="/en/competition/pgpl"');
+    expect(open).toContain('Open Pro League');
+    // The last item of the row, after every match.
+    expect(html.lastIndexOf('strip-chip')).toBeLessThan(html.indexOf('rail-open'));
   });
 
   it('links every chip to its match, 44px tall, radius 10, white', () => {
@@ -186,5 +191,7 @@ describe('a chip in Persian (D-193)', () => {
 
   it('is labelled in Persian', () => {
     expect(html).toContain('امروز · Pro League');
+    expect(html).toContain('صفحه‌ی Pro League');
+    expect(html).toContain('href="/fa/competition/pgpl"');
   });
 });

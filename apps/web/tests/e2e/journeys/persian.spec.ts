@@ -65,15 +65,18 @@ async function asciiDigits(page: Page, outside: string): Promise<string[]> {
 
 /** The inline-start edge of each visible link or button in a bar, in order. */
 async function itemEdges(page: Page, testId: string): Promise<number[]> {
-  return page
-    .getByTestId(testId)
-    .locator('a, button')
-    .evaluateAll((items) =>
-      items
-        .map((item) => item.getBoundingClientRect())
-        .filter((box) => box.width > 0)
-        .map((box) => Math.round(box.right)),
-    );
+  return (
+    page
+      .getByTestId(testId)
+      // The rail's chevrons are a pointer's shortcut over the row, not items of it (T-1624).
+      .locator('a, button:not(.scroll-chevron)')
+      .evaluateAll((items) =>
+        items
+          .map((item) => item.getBoundingClientRect())
+          .filter((box) => box.width > 0)
+          .map((box) => Math.round(box.right)),
+      )
+  );
 }
 
 for (const width of [390, 1440]) {

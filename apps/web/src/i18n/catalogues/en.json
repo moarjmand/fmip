@@ -41,6 +41,12 @@
   "shell.strip.label": "Today · {competition}",
   "shell.strip.versus": "v",
   "shell.strip.behind": "May be behind",
+  "shell.rail.live": {
+    "one": "{count} live",
+    "other": "{count} live"
+  },
+  "shell.rail.myTeams": "My teams",
+  "shell.rail.open": "Open {competition}",
   "shell.demonstration": "Demonstration data. Every match, score, team and member on this site is development fixture data. None of it is real football, and nothing here has happened.",
   "shell.accountDeleted.title": "Account deleted",
   "home.firstVisit": "New here? {link}.",

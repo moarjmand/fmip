@@ -249,7 +249,8 @@ describe('plurals (T-301)', () => {
     // T-1612: one added (the competitions a country or region holds).
     // T-1614: three added (the Highlights page's clips, its competitions and
     // the filter's competitions past the first chips).
-    expect(pluralKeys).toHaveLength(95);
+    // T-1624: one added (the matchday rail's live count).
+    expect(pluralKeys).toHaveLength(96);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

@@ -177,7 +177,9 @@ describe('the header nav', () => {
     expect(HEADER).not.toContain('data-mode="editorial"');
     expect(HEADER).toContain('<header className="relative border-b border-default bg-surface');
     expect(HEADER).toMatch(/<PrimaryNav\s/);
-    expect(HEADER).toContain('<LiveStrip locale={locale} timeZone={timeZone} />');
+    expect(HEADER).toContain(
+      '<MatchdayRail locale={locale} timeZone={timeZone} signedIn={me !== null} />',
+    );
     expect(HEADER).toContain('data-testid="nav-search"');
     expect(HEADER).toContain('data-testid="nav-search-form"');
     // The mark in both sets of colours, the theme showing one.
