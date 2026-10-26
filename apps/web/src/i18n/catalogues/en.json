@@ -2814,6 +2814,11 @@
   "competitions.noMatch": "No competition we follow matches this search.",
   "competitions.unreachable": "The list of competitions could not be loaded just now. Please try again in a moment.",
   "competitions.empty": "No competitions are followed yet.",
+  "competitions.region.all": "All",
+  "competitions.count": {
+    "one": "{count} competition",
+    "other": "{count} competitions"
+  },
   "nav.highlights": "Highlights",
   "highlights.title": "Highlights",
   "highlights.metaDescription": "Official highlight links for the matches Stadiomind follows, newest first, filtered by competition. Each opens on the publisher's own site.",

@@ -1,4 +1,4 @@
-import type { CompetitionDirectoryEntry } from '@fmip/contracts';
+import type { CompetitionDirectoryEntry, EntityMedia } from '@fmip/contracts';
 
 /**
  * The competitions directory's pure choices (T-1433): what the header's
@@ -30,6 +30,10 @@ export interface DirectoryGroup {
   kind: 'international' | 'continental' | 'country';
   /** The country's name in the reader's language; `null` for the two region groups. */
   name: string | null;
+  /** The country's FIFA trigram (`ENG`), the address's word for it; `null` for a region. */
+  code: string | null;
+  /** The country's flag from our own origin (T-1611); absent for a region. */
+  flag?: EntityMedia;
   competitions: CompetitionDirectoryEntry[];
 }
 
@@ -62,6 +66,8 @@ export function directoryGroups(
       key: entry.country.id,
       kind: 'country' as const,
       name: entry.country.name,
+      code: entry.country.code,
+      ...(entry.country.flag === undefined ? {} : { flag: entry.country.flag }),
       competitions: [],
       placed: false,
     };
@@ -82,6 +88,7 @@ export function directoryGroups(
             key: 'international',
             kind: 'international' as const,
             name: null,
+            code: null,
             competitions: international,
           },
         ]
@@ -92,6 +99,7 @@ export function directoryGroups(
             key: 'continental',
             kind: 'continental' as const,
             name: null,
+            code: null,
             competitions: continental,
           },
         ]
@@ -137,4 +145,68 @@ export function matchesFilter(
     [entry.name, entry.short_name ?? '', entry.country?.name ?? '', groupName ?? ''].join(' '),
   );
   return words.every((word) => haystack.includes(word));
+}
+
+/**
+ * The word the address names a group by (T-1612, D-283): `international`,
+ * `continental`, or the country's code in lower case (`eng`, `esp`) --
+ * readable and shareable, where the country's id is neither. A country with
+ * no code (none today) is named by its id.
+ */
+export function groupSlug(group: Pick<DirectoryGroup, 'key' | 'kind' | 'code'>): string {
+  if (group.kind !== 'country') return group.kind;
+  return group.code === null || group.code === '' ? group.key : group.code.toLowerCase();
+}
+
+/**
+ * The group `?country=` chooses, by its slug, case aside; `null` (every
+ * group) for no value or one that names no group -- an old link to a
+ * country we no longer follow opens the whole list, not an empty one.
+ */
+export function chosenGroup(
+  groups: readonly Pick<DirectoryGroup, 'key' | 'kind' | 'code'>[],
+  value: string | null | undefined,
+): string | null {
+  const wanted = (value ?? '').trim().toLowerCase();
+  if (wanted === '') return null;
+  return groups.find((group) => groupSlug(group) === wanted)?.key ?? null;
+}
+
+/**
+ * The page's address for a choice and a filter: `/en/competitions`,
+ * `/en/competitions?country=eng`, `/fa/competitions?country=esp&q=...`. What
+ * a tile links to, so the choice works without a script and can be shared.
+ */
+export function directoryHref(locale: string, slug: string | null, filter: string): string {
+  const query = new URLSearchParams();
+  if (slug !== null) query.set('country', slug);
+  if (filter.trim() !== '') query.set('q', filter);
+  const search = query.toString();
+  return `/${locale}/competitions${search === '' ? '' : `?${search}`}`;
+}
+
+/**
+ * What the page shows for a choice and a filter (T-1612): the groups below,
+ * only the chosen one when a group is chosen, each with the competitions the
+ * filter matches and none left empty; and the groups whose tile stays in the
+ * chooser -- every group with a match, and the chosen one even without, so
+ * the reader can always see what is chosen and choose again.
+ */
+export function directoryView<G extends DirectoryGroup & { heading: string }>(
+  groups: readonly G[],
+  chosen: string | null,
+  filter: string,
+): { shown: G[]; tiles: G[] } {
+  const matched = groups.map((group) => ({
+    ...group,
+    competitions: group.competitions.filter((c) => matchesFilter(c, group.heading, filter)),
+  }));
+  return {
+    shown: matched.filter(
+      (group) => group.competitions.length > 0 && (chosen === null || group.key === chosen),
+    ),
+    tiles: groups.filter(
+      (group, i) => group.key === chosen || (matched[i]?.competitions.length ?? 0) > 0,
+    ),
+  };
 }

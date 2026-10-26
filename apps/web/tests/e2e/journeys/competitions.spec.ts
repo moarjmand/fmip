@@ -78,6 +78,83 @@ test.describe('All competitions page', () => {
     await expect(page.getByTestId('competitions-item')).toHaveCount(1);
   });
 
+  test('chooses a country from its tile, keeps it in the address, and All resets (T-1612)', async ({
+    page,
+  }) => {
+    await page.goto('/en/competitions');
+    const chooser = page.getByRole('navigation', { name: 'Countries and regions' });
+    const all = chooser.locator('[data-region="all"]');
+    const england = chooser.locator('[data-region="eng"]');
+    await expect(all).toHaveAttribute('aria-current', 'true');
+    // Each tile names its country, how many competitions we follow there, and
+    // draws a flag or the neutral box -- never a stand-in (the seed has no flags).
+    await expect(england).toContainText('England');
+    await expect(england).toContainText('2 competitions');
+    await expect(england.getByTestId('country-flag')).toHaveAttribute(
+      'data-coverage',
+      /^(available|not_supplied)$/,
+    );
+    await expect(
+      chooser.locator('[data-region="international"] [data-testid="region-mark"]'),
+    ).toHaveCount(1);
+
+    await england.click();
+    await expect(page).toHaveURL(/\/en\/competitions\?country=eng$/);
+    await expect(england).toHaveAttribute('aria-current', 'true');
+    await expect(all).not.toHaveAttribute('aria-current', 'true');
+    await expect(page.getByTestId('competitions-group')).toHaveCount(1);
+    await expect(page.getByTestId('competitions-item')).toHaveCount(2);
+    await expect(page.getByTestId('competitions-chosen')).toContainText('England');
+
+    // The filter narrows inside the choice, and both stay in the address.
+    await page.getByLabel('Find a competition or country').fill('cup');
+    await expect(page.getByTestId('competitions-item')).toHaveCount(1);
+    await expect(page).toHaveURL(/\?country=eng&q=cup$/);
+
+    await page.getByLabel('Find a competition or country').fill('');
+    await all.click();
+    await expect(page).toHaveURL(/\/en\/competitions$/);
+    expect(await page.getByTestId('competitions-group').count()).toBeGreaterThan(2);
+  });
+
+  test('answers a shared chosen address on the server, with its season on each card', async ({
+    page,
+  }) => {
+    await page.goto(`/en/competitions?country=ENG`);
+    await expect(
+      page
+        .getByRole('navigation', { name: 'Countries and regions' })
+        .locator('[data-region="eng"]'),
+    ).toHaveAttribute('aria-current', 'true');
+    await expect(page.getByTestId('competitions-group')).toHaveCount(1);
+    const premier = page.locator(`[data-competition="${PREMIER_LEAGUE}"]`);
+    await expect(premier).toContainText('League');
+    await expect(premier.getByTestId('competitions-item-season')).toHaveText(/^\d{4}(\/\d{2})?$/);
+    // A country we do not follow opens the whole list, not an empty one.
+    await page.goto('/en/competitions?country=atlantis');
+    expect(await page.getByTestId('competitions-group').count()).toBeGreaterThan(2);
+  });
+
+  test('is in Persian on /fa, with Persian digits', async ({ page }) => {
+    await page.goto('/fa/competitions?country=eng');
+    const chooser = page.getByRole('navigation', { name: 'کشورها و منطقه‌ها' });
+    await expect(chooser.locator('[data-region="all"]')).toContainText('همه');
+    await expect(chooser.locator('[data-region="eng"]')).toContainText('۲ رقابت');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  });
+
+  test.describe('without a script', () => {
+    test.use({ javaScriptEnabled: false });
+
+    test('a tile is a link the server answers', async ({ page }) => {
+      await page.goto('/en/competitions');
+      await page.locator('[data-region="esp"]').click();
+      await expect(page).toHaveURL(/\/en\/competitions\?country=esp$/);
+      await expect(page.getByTestId('competitions-group')).toHaveCount(1);
+      await expect(page.locator(`[data-competition="${LA_LIGA}"]`)).toBeVisible();
+    });
+  });
+
   for (const width of [1280, 360]) {
     test(`passes axe at ${width}px, target-size included`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });

@@ -15746,6 +15746,24 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitions.region.all": {
+    "source": "All",
+    "text": "همه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitions.count": {
+    "source": {
+      "one": "{count} competition",
+      "other": "{count} competitions"
+    },
+    "forms": {
+      "one": "{count} رقابت",
+      "other": "{count} رقابت"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "nav.highlights": {
     "source": "Highlights",
     "text": "هایلایت‌ها",

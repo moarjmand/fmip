@@ -12506,3 +12506,19 @@ replaces D-089's self-hosting arrangement for no gain here).
 5. An SVG flag is served as stored at every width (D-242): it has no pixels to save.
 
 **Rejected.** A flag package in the web app (a dependency, and a second source of truth for which flag a country has); emoji flags (Windows draws them as letters, and England and Scotland have none); asking `/countries` once (a new request for what the fixture lists already carry); matching the provider's country name to ours (names differ: "USA", "Türkiye"); a flag for a continental competition (no country is not a country).
+
+## D-283 — The All competitions page: a chooser of country tiles, kept in the address
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1612 · **Follows:** D-225, D-282
+
+**Context.** The All competitions page opened on a row of plain grey text chips (International, Continental, England, Spain ... United States), each an anchor to its group further down. The maintainer asked for them to be shown "more professionally, attractively and creatively, and selectable". The list below was a column of small logos and names.
+
+**Decision.**
+1. The chips become tiles: the country's flag (D-282; a dashed box with the country's code until one is stored, never a stand-in flag), or a globe for International and a folded map for Continental; the name; how many competitions we follow there; and up to four of their logos. An "All" tile comes first.
+2. Choosing a tile narrows the list to that group. A tile is a link to `?country=<slug>`, the slug being the region or the country's FIFA code in lower case (`?country=eng`): readable, shareable, and answered by the server without a script. With one, a plain click chooses in place and the address follows (a modified click still opens the link). An unknown slug opens the whole list.
+3. The chosen tile is marked `aria-current="true"`, edged in saffron and given a check, so the choice is never said by colour alone; a polite status says which group the list now shows. Links rather than `aria-pressed` buttons: a link is what works without a script and opens in a new tab.
+4. The filter (`?q=`) combines with the choice: the list shows the chosen group's competitions the filter matches; the chooser keeps every group with a match and the chosen one, so the reader can always see the choice and change it. The search form carries the choice with it.
+5. Each competition is a card: its logo at 48px through `EntityImage`, its name, its kind and its current season. `CompetitionDirectoryEntry` gains `season`, the current season's display label (D-256), `null` when there is none.
+6. On a phone the tiles scroll sideways in one row, the chosen one brought into view, their focus ring drawn inside; from 640px they are a grid. Every image is drawn by the server and handed to the client half, so neither `EntityImage` nor `@fmip/contracts` rides on the page's first load (T-808).
+
+**Rejected.** Radio buttons in the search form (a choice would need a submit button without a script, and pressing Enter in the filter would send the form's first button); the country's id in the address (not readable); hiding the chosen tile when the filter finds nothing in it; a flag package or emoji flags (D-282).
