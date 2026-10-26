@@ -22,7 +22,10 @@ import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime, localDigits } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
-import { CARD, Module, RatingChip } from '@/components/match-centre-cards';
+import { CARD, Module } from '@/components/match-centre-cards';
+import { LiveBadge } from '@/components/ui/live-badge';
+import { RatingChip } from '@/components/ui/rating-chip';
+import { StatBar } from '@/components/ui/stat-bar';
 import { MatchLineupsView } from '@/components/match-lineups';
 import { MessageText } from '@/components/message-text';
 import { Score, ScorePair } from '@/components/score';
@@ -448,28 +451,25 @@ function Hero({
       </h1>
 
       {f.status === 'live' && (
-        // The live badge (Design System `LiveBadge`): saffron, with its dot;
-        // amber words instead when the feed has fallen behind (rule 4).
-        <p className="-mb-2 flex justify-center">
-          <span
-            className={cx(
-              'inline-flex min-h-7.5 items-center gap-2 rounded-pill px-3 text-sm font-extrabold uppercase',
-              live ? 'bg-live/15 text-live' : 'bg-warning/15 text-warning',
-            )}
-            data-testid="live-badge"
-          >
-            {live && (
-              <>
-                <span aria-hidden="true" className="live-dot size-2 rounded-full bg-live" />
-                {status !== m['status.live'].text && (
-                  <span>
-                    <MessageText message={m['status.live']} /> ·{' '}
-                  </span>
-                )}
-              </>
-            )}
-            <span data-testid="match-status">{status}</span>
-          </span>
+        // The live badge (Design System `LiveBadge`, T-1523); when the feed has
+        // fallen behind, amber words and no badge: the match is not shown as
+        // live while its state may be old (rule 4).
+        <p className="-mb-2 flex justify-center" data-testid="live-badge" data-live={live}>
+          {live ? (
+            <LiveBadge
+              label={
+                status !== m['status.live'].text ? (
+                  <MessageText message={m['status.live']} />
+                ) : undefined
+              }
+            >
+              <span data-testid="match-status">{status}</span>
+            </LiveBadge>
+          ) : (
+            <span className="inline-flex min-h-7.5 items-center rounded-pill bg-warning/15 px-3 text-sm font-extrabold text-warning">
+              <span data-testid="match-status">{status}</span>
+            </span>
+          )}
         </p>
       )}
 
@@ -1099,7 +1099,7 @@ function Statistics({
               <bdi>{f.home.name}</bdi>
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-xs bg-border-strong" />
+              <span className="size-2.5 rounded-xs bg-caption" />
               <bdi>{f.away.name}</bdi>
             </span>
           </p>
@@ -1137,37 +1137,15 @@ function StatTile({
   locale: string;
   words: MatchWords;
 }) {
-  const total = (row.home ?? 0) + (row.away ?? 0);
-  const bars = row.home !== null && row.away !== null && total > 0;
   return (
-    <li className="flex flex-col gap-1.5 tabular-nums" data-metric={row.metric}>
-      <div className="flex items-baseline justify-between gap-3 text-sm">
-        <b className="font-bold">
-          <span dir="ltr">{statValue(row.metric, row.home, locale)}</span>
-        </b>
-        <span className="text-center text-muted">
-          <MessageText message={words.m[STAT_KEY[row.metric]]} />
-        </span>
-        <b className="font-bold">
-          <span dir="ltr">{statValue(row.metric, row.away, locale)}</span>
-        </b>
-      </div>
-      {bars && (
-        <div aria-hidden="true" className="flex h-2 gap-0.75">
-          {(row.home ?? 0) > 0 && (
-            <span
-              className="rounded-pill bg-fg"
-              style={{ flexGrow: row.home ?? 0, flexBasis: 0 }}
-            />
-          )}
-          {(row.away ?? 0) > 0 && (
-            <span
-              className="rounded-pill bg-border-strong"
-              style={{ flexGrow: row.away ?? 0, flexBasis: 0 }}
-            />
-          )}
-        </div>
-      )}
+    <li data-metric={row.metric}>
+      <StatBar
+        label={<MessageText message={words.m[STAT_KEY[row.metric]]} />}
+        home={row.home}
+        away={row.away}
+        homeText={statValue(row.metric, row.home, locale)}
+        awayText={statValue(row.metric, row.away, locale)}
+      />
     </li>
   );
 }
@@ -1530,7 +1508,11 @@ function TopRated({
             )}
           </span>
         </span>
-        <RatingChip value={ratings.get(top.id) ?? 0} locale={locale} size="large" />
+        <RatingChip
+          value={ratings.get(top.id) ?? 0}
+          text={formatFixed(locale, ratings.get(top.id) ?? 0, 1)}
+          className="ms-auto"
+        />
       </div>
       {figures.length > 0 && (
         <dl className="grid grid-cols-3 gap-2.5 tabular-nums">
@@ -1561,7 +1543,11 @@ function TopRated({
             <Link href={`/${locale}/player/${p.id}`} className="min-w-0 truncate">
               {listName(locale, p.name)}
             </Link>
-            <RatingChip value={ratings.get(p.id) ?? 0} locale={locale} className="ms-auto" />
+            <RatingChip
+              value={ratings.get(p.id) ?? 0}
+              text={formatFixed(locale, ratings.get(p.id) ?? 0, 1)}
+              className="ms-auto"
+            />
           </li>
         ))}
       </ol>

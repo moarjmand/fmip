@@ -296,9 +296,10 @@ describe('the match centre', () => {
     expect(header).toContain('data-testid="match-header"');
     expect(header).toMatch(/data-testid="match-status">67′</);
     expect(header).toMatch(/<bdi class="[^"]*">Liverpool<\/bdi>/);
-    // The live badge in saffron, with the word and the pulsing dot (T-1497).
+    // The live badge in saffron, with the word and the pulsing dot (T-1497,
+    // the Design System's LiveBadge since T-1523).
     expect(header).toMatch(
-      /bg-live\/15 text-live" data-testid="live-badge"><span aria-hidden="true" class="live-dot/,
+      /data-testid="live-badge" data-live="true"><span data-live-badge="" class="[^"]*bg-brand\/14[^"]*"><span aria-hidden="true" class="live-dot/,
     );
     // The score large and narrow, home first in the page's direction (D-193).
     expect(header).toMatch(
@@ -363,8 +364,8 @@ describe('the match centre', () => {
     expect(stats).toContain('data-testid="stat-grid"');
     expect(stats).toMatch(/data-metric="shots"/);
     // 10 of 14 shots: the two shares of one bar, home from the inline start.
-    expect(stats).toMatch(/bg-fg" style="flex-grow:10;flex-basis:0"/);
-    expect(stats).toMatch(/bg-border-strong" style="flex-grow:4;flex-basis:0"/);
+    expect(stats).toMatch(/bg-fg" style="inline-size:71\.42\d*%" data-side="home"/);
+    expect(stats).toMatch(/bg-caption" style="inline-size:28\.57\d*%" data-side="away"/);
     // Never a club colour: the brand green and the neutral token only.
     expect(stats.slice(0, stats.indexOf('</section>'))).not.toMatch(/bg-(model|founder|community)/);
   });
