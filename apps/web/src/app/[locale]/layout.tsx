@@ -6,6 +6,7 @@ import { ERROR_PAGE_KEYS } from '@/components/error-page';
 import { ServiceWorker } from '@/components/service-worker';
 import { Translated } from '@/components/translated';
 import { SiteHeader, SiteTabBar } from '@/components/site-header';
+import { SiteFooter } from '@/components/site-footer';
 import { DEFAULT_LOCALE, LOCALES, directionOf, isLocale } from '@/i18n/locales';
 import { resolveMessages, t } from '@/i18n/messages';
 import {
@@ -173,6 +174,10 @@ export default async function LocaleLayout({
           </div>
           {/* What a lite page leaves out, at its foot (T-1387). */}
           <LiteFootnote words={liteWords} />
+          {/* The site footer (T-1610, D-281): every section, what Stadiomind
+            is, its rules and the languages; before the tab bar's spacer, so
+            it is never under the bar. */}
+          <SiteFooter locale={locale} />
           {/* The phone's five main sections (T-1381, D-199); not drawn from 768px. */}
           <SiteTabBar locale={locale} />
           <ServiceWorker />

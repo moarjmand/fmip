@@ -143,12 +143,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.nav.analysis": {
-    "source": "Analysis",
-    "text": "تحلیل",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "shell.nav.news": {
     "source": "News",
     "text": "خبر",
@@ -218,6 +212,24 @@
   "shell.search.placeholder": {
     "source": "Teams, players, competitions",
     "text": "تیم، بازیکن، رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.footer.nav": {
+    "source": "Site links",
+    "text": "پیوندهای سایت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.footer.football": {
+    "source": "Football",
+    "text": "فوتبال",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.footer.tagline": {
+    "source": "Live football, a statistical model, the founder’s analysis and members’ predictions: side by side, never blended.",
+    "text": "فوتبال زنده، مدل آماری، تحلیل بنیان‌گذار و پیش‌بینی‌های اعضا: کنار هم، و هرگز درهم‌آمیخته.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -11183,6 +11195,18 @@
   "leaderboardPage.board": {
     "source": "Board",
     "text": "جدول",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "leaderboardPage.picksLead": {
+    "source": "A place on this board is earned by predicting. Make your picks on the matches still to be played.",
+    "text": "جایگاه هر عضو در این جدول با پیش‌بینی به دست می‌آید. برای بازی‌هایی که هنوز برگزار نشده‌اند انتخاب‌هایتان را ثبت کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "leaderboardPage.picksCta": {
+    "source": "Make your picks",
+    "text": "انتخاب‌هایتان را ثبت کنید",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

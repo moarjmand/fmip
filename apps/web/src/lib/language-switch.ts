@@ -26,6 +26,18 @@ export interface PickerEntry extends OfferedLanguage {
 }
 
 /**
+ * The short name the header's picker shows beside its globe (T-1610, D-281):
+ * the language's code in capitals ("EN"), or, for a language whose own
+ * script is not the Latin one, the short form its readers use («فا»). The
+ * full name is the autonym, said to a screen reader and listed in the menu.
+ */
+const SHORT_NAMES: Partial<Record<Locale, string>> = { fa: 'فا' };
+
+export function shortName(locale: Locale): string {
+  return SHORT_NAMES[locale] ?? locale.toUpperCase();
+}
+
+/**
  * The same pathname under another locale. The locale is the first segment when
  * there is one (`/es/scores` → `/fr/scores`); a pathname without one -- which
  * the proxy never serves, but a link may still be built from -- is prefixed.

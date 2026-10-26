@@ -1,7 +1,7 @@
 'use client';
 
 import Link from '@/components/ui/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';
 import { HEADER_NAV, MORE_NAV, type ShellLink, currentLink, tabBarLinks } from '@/lib/shell-nav';
@@ -13,19 +13,28 @@ import { HEADER_NAV, MORE_NAV, type ShellLink, currentLink, tabBarLinks } from '
  * pathname is read here (as `LanguagePicker` does) and the current entry
  * moves with the reader. The words arrive resolved from the header, a server
  * component (T-1040); the catalogues stay on the server.
+ *
+ * The query counts too (D-281): the matches page's "Not picked yet" view
+ * belongs to Predictions. `useSearchParams` is read with no Suspense boundary
+ * of its own: every page under the locale layout is rendered per request,
+ * where Next gives the query on the server, and a boundary here let the
+ * server stream the nav after the page's shell (`<template id="B:0">`), so a
+ * reader without script saw the fallback and a hidden second copy. A page
+ * prerendered statically would need one (the build says so).
  */
 
 type Labels = Readonly<Record<string, Message>>;
 
 /**
- * The header's nav (D-263, D-267): Matches, Predictions, Competitions, The
- * model, News (`HEADER_NAV`), then More (`MORE_NAV`: the founder's analysis,
- * Watch, Highlights). In the bar from 1024px, where More is a disclosure
- * that drops below it; on a phone or a tablet it is the list inside the
- * header's Menu, where globals.css makes More no box at all, so its three
- * links are listed with the rest. The current entry is ink on the raised
- * surface, as the Design System's header draws it (`nav-entry` in
- * globals.css); More is marked too when the page is one of its own.
+ * The header's nav (D-263, D-267, D-281): Matches, Competitions,
+ * Predictions, The model, News, Highlights (`HEADER_NAV`), then More
+ * (`MORE_NAV`: the founder's analysis and Watch). In the bar from 1024px,
+ * where More is a disclosure that drops below it; on a phone or a tablet it
+ * is the list inside the header's Menu, where globals.css makes More no box
+ * at all, so its two links are listed with the rest. The current entry is
+ * ink on the raised surface, as the Design System's header draws it
+ * (`nav-entry` in globals.css); More is marked too when the page is one of
+ * its own.
  *
  * Both disclosures close when the reader chooses a link: the layout is not
  * rendered again on a client-side navigation, so an open Menu or More would
@@ -41,8 +50,9 @@ export function PrimaryNav({
   className?: string;
 }) {
   const pathname = usePathname();
-  const current = currentLink(pathname, HEADER_NAV);
-  const more = currentLink(pathname, MORE_NAV);
+  const search = useSearchParams().toString();
+  const current = currentLink(pathname, HEADER_NAV, search);
+  const more = currentLink(pathname, MORE_NAV, search);
   // One renderer for both lists: each link is drawn once in the bundle.
   const items = (links: readonly ShellLink[], on: string | null) =>
     links.map((link) => (
@@ -134,7 +144,7 @@ export function BottomTabBar({
   navLabel: { text: string; lang?: string };
 }) {
   const links: readonly ShellLink[] = tabBarLinks(signedIn);
-  const current = currentLink(usePathname(), links);
+  const current = currentLink(usePathname(), links, useSearchParams().toString());
   return (
     <>
       <div aria-hidden="true" className="h-[calc(4.25rem+env(safe-area-inset-bottom))] md:hidden" />

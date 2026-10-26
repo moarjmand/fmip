@@ -129,8 +129,9 @@ describe('the header at every width (T-1479)', () => {
   });
 
   it('keeps the bar one row from 1024px, the search giving way first (T-1534)', () => {
-    // A fixed height and no wrap: a face arriving late cannot add a row.
-    expect(HEADER).toContain('lg:h-16 lg:gap-x-4"');
+    // A fixed height and no wrap: a face arriving late cannot add a row. The
+    // gaps are tighter below 1280px, where six sections share it (D-281).
+    expect(HEADER).toContain('lg:h-16 lg:gap-x-2.5 xl:gap-x-4"');
     expect(HEADER).not.toContain('lg:flex-wrap');
     expect(HEADER).not.toContain('lg:max-xl:order-last');
     // The field shrinks to its icon rather than pushing the tools on; below
