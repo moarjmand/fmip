@@ -378,7 +378,13 @@ function Hero({
   const headline =
     f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : f.scores.current;
   const behind = now !== undefined && isBehind(f, now);
-  const status = statusLabel(f, locale, timeZone, now, m);
+  // At the half-time interval the feed's minute stays at 45: the band says
+  // "HT" rather than a clock that looks stalled (T-1551). A feed that has
+  // fallen behind keeps its own words (rule 4).
+  const status =
+    f.status === 'live' && f.at_half_time === true && !behind
+      ? m['status.halfTime'].text
+      : statusLabel(f, locale, timeZone, now, m);
   // Every freshness time on the page says its day when it is not today (T-1371).
   const at = (iso: string) => <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time>;
   // The fixture lists re-ask hourly; a check after the last change is the

@@ -341,6 +341,20 @@ describe('live', () => {
     expect(html).not.toContain('data-testid="feed-behind"');
   });
 
+  it('says "HT" at the half-time interval, never a minute that looks stalled (T-1551)', () => {
+    const at = Date.parse('2026-10-24T11:41:10.000Z');
+    const html = view(centre({ minute: 45, at_half_time: true }), at);
+    expect(html).toMatch(/data-testid="match-status">HT</);
+    expect(html).not.toMatch(/data-testid="match-status">45′</);
+    // The second half: the minute again.
+    expect(view(centre({ minute: 46, at_half_time: false }), at)).toMatch(
+      /data-testid="match-status">46′</,
+    );
+    // Persian.
+    const fa = view(centre({ minute: 45, at_half_time: true }), at, 'fa');
+    expect(fa).not.toMatch(/data-testid="match-status">[۴4][۵5]/);
+  });
+
   it('says when the feed has fallen behind, in the warning colour, never as current (rule 4)', () => {
     const html = view(centre(), Date.parse('2026-10-24T12:30:00.000Z'));
     expect(html).toMatch(/bg-warning\/15 text-warning" data-testid="live-badge"/);
