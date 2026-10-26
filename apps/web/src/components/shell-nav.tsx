@@ -1,7 +1,8 @@
 'use client';
 
 import Link from '@/components/ui/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';
 import { HEADER_NAV, MORE_NAV, type ShellLink, currentLink, tabBarLinks } from '@/lib/shell-nav';
@@ -13,36 +14,48 @@ import { HEADER_NAV, MORE_NAV, type ShellLink, currentLink, tabBarLinks } from '
  * pathname is read here (as `LanguagePicker` does) and the current entry
  * moves with the reader. The words arrive resolved from the header, a server
  * component (T-1040); the catalogues stay on the server.
+ *
+ * The query counts too (D-281): the matches page's "Not picked yet" view
+ * belongs to Predictions. It is read under a Suspense boundary, as Next 16
+ * requires for `useSearchParams` on a prerendered route; until it is read,
+ * the entry is chosen by the pathname alone.
  */
 
 type Labels = Readonly<Record<string, Message>>;
 
 /**
- * The header's nav (D-263, D-267): Matches, Predictions, Competitions, The
- * model, News (`HEADER_NAV`), then More (`MORE_NAV`: the founder's analysis,
- * Watch, Highlights). In the bar from 1024px, where More is a disclosure
- * that drops below it; on a phone or a tablet it is the list inside the
- * header's Menu, where globals.css makes More no box at all, so its three
- * links are listed with the rest. The current entry is ink on the raised
- * surface, as the Design System's header draws it (`nav-entry` in
- * globals.css); More is marked too when the page is one of its own.
+ * The header's nav (D-263, D-267, D-281): Matches, Competitions,
+ * Predictions, The model, News, Highlights (`HEADER_NAV`), then More
+ * (`MORE_NAV`: the founder's analysis and Watch). In the bar from 1024px,
+ * where More is a disclosure that drops below it; on a phone or a tablet it
+ * is the list inside the header's Menu, where globals.css makes More no box
+ * at all, so its two links are listed with the rest. The current entry is
+ * ink on the raised surface, as the Design System's header draws it
+ * (`nav-entry` in globals.css); More is marked too when the page is one of
+ * its own.
  *
  * Both disclosures close when the reader chooses a link: the layout is not
  * rendered again on a client-side navigation, so an open Menu or More would
  * otherwise stay open over the new page.
  */
-export function PrimaryNav({
-  locale,
-  labels,
-  className,
-}: {
-  locale: string;
-  labels: Labels;
-  className?: string;
-}) {
+export function PrimaryNav(props: NavProps) {
+  return (
+    <Suspense fallback={<Nav {...props} search="" />}>
+      <NavWithQuery {...props} />
+    </Suspense>
+  );
+}
+
+type NavProps = { locale: string; labels: Labels; className?: string };
+
+function NavWithQuery(props: NavProps) {
+  return <Nav {...props} search={useSearchParams().toString()} />;
+}
+
+function Nav({ locale, labels, className, search }: NavProps & { search: string }) {
   const pathname = usePathname();
-  const current = currentLink(pathname, HEADER_NAV);
-  const more = currentLink(pathname, MORE_NAV);
+  const current = currentLink(pathname, HEADER_NAV, search);
+  const more = currentLink(pathname, MORE_NAV, search);
   // One renderer for both lists: each link is drawn once in the bundle.
   const items = (links: readonly ShellLink[], on: string | null) =>
     links.map((link) => (
@@ -121,20 +134,29 @@ const ICONS: Record<string, React.ReactNode> = {
  * the page so the last line of content is never under it. The focus ring is
  * drawn inside a tab, where the screen's edge cannot cut it.
  */
-export function BottomTabBar({
-  locale,
-  labels,
-  signedIn,
-  navLabel,
-}: {
+export function BottomTabBar(props: TabBarProps) {
+  return (
+    <Suspense fallback={<TabBar {...props} search="" />}>
+      <TabBarWithQuery {...props} />
+    </Suspense>
+  );
+}
+
+type TabBarProps = {
   locale: string;
   labels: Labels;
   signedIn: boolean;
   /** The landmark's name, resolved by the layout, with its marking. */
   navLabel: { text: string; lang?: string };
-}) {
+};
+
+function TabBarWithQuery(props: TabBarProps) {
+  return <TabBar {...props} search={useSearchParams().toString()} />;
+}
+
+function TabBar({ locale, labels, signedIn, navLabel, search }: TabBarProps & { search: string }) {
   const links: readonly ShellLink[] = tabBarLinks(signedIn);
-  const current = currentLink(usePathname(), links);
+  const current = currentLink(usePathname(), links, search);
   return (
     <>
       <div aria-hidden="true" className="h-[calc(4.25rem+env(safe-area-inset-bottom))] md:hidden" />

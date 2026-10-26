@@ -1,4 +1,8 @@
+import AxeBuilder from '@axe-core/playwright';
 import { type Page, expect, test } from '@playwright/test';
+
+/** The WCAG levels every page is held to, as elsewhere. */
+const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 /**
  * The Persian pass (T-1501) over the six rebuilt Stadiomind pages on `/fa`,
@@ -118,19 +122,74 @@ for (const width of [390, 1440]) {
 }
 
 /**
- * The header's language link leads to the same page in the other language,
+ * The header's language picker leads to the same page in the other language,
  * its query kept (T-1572): a reader who switches loses neither the day nor
- * the filters. The link is drawn only when the API says Persian is offered,
- * which is why this lives with the journeys.
+ * the filters. The picker is drawn only when the API says Persian is
+ * offered, which is why this lives with the journeys. Since D-281 it is the
+ * globe and the page's language in short, opening a list of every offered
+ * language in its own name, the page's own marked current.
  */
-test('the language link keeps the page and its query', async ({ page }) => {
+test('the language picker keeps the page and its query', async ({ page }) => {
   await page.goto('/en/scores?date=2025-01-05&tz=UTC');
+  const toggle = page.getByTestId('language-toggle');
+  await expect(toggle).toContainText('EN');
+  await toggle.click();
+  await expect(page.getByTestId('language-en')).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByTestId('language-en')).toHaveText('English');
   const fa = page.getByTestId('language-fa');
+  await expect(fa).toHaveText('فارسی');
   await expect(fa).toHaveAttribute('href', '/fa/scores?date=2025-01-05&tz=UTC');
   await fa.click();
   await expect(page).toHaveURL(/\/fa\/scores\?date=2025-01-05&tz=UTC$/);
+  await expect(page.getByTestId('language-toggle')).toContainText('فا');
   await expect(page.getByTestId('language-en')).toHaveAttribute(
     'href',
     '/en/scores?date=2025-01-05&tz=UTC',
   );
+  // It closed on the way.
+  await expect(page.getByTestId('language-en')).toBeHidden();
+});
+
+test('the language picker answers the keyboard and a screen reader', async ({ page }) => {
+  await page.goto('/en/scores');
+  const toggle = page.getByTestId('language-toggle');
+  // Named by the word and the language, not by the letters it shows.
+  await expect(toggle).toHaveAccessibleName(/Language\s*English/);
+  await toggle.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('language-fa')).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(page.getByTestId('language-en')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('language-fa')).toBeHidden();
+  await expect(toggle).toBeFocused();
+  // A click elsewhere closes it too.
+  await toggle.click();
+  await expect(page.getByTestId('language-fa')).toBeVisible();
+  await page.getByTestId('title').click();
+  await expect(page.getByTestId('language-fa')).toBeHidden();
+  const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+  expect(results.violations.map((v) => v.id)).toEqual([]);
+});
+
+test('on a phone the picker is in the Menu, 44px, and the footer offers the languages too', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/fa/scores');
+  await page.getByTestId('nav-menu').locator(':scope > summary').click();
+  const toggle = page.getByTestId('language-toggle');
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toContainText('زبان');
+  expect((await toggle.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await toggle.click();
+  const en = page.getByTestId('language-en');
+  expect((await en.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await en.click();
+  await expect(page).toHaveURL(/\/en\/scores$/);
+  // The Menu closed with it.
+  await expect(page.getByTestId('language-toggle')).toBeHidden();
+  const footer = page.getByTestId('footer-language-fa');
+  await expect(footer).toHaveAttribute('href', '/fa/scores');
+  await expect(page.getByTestId('footer-language-en')).toHaveAttribute('aria-current', 'page');
 });

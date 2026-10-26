@@ -7,13 +7,17 @@ import { BottomTabBar, PrimaryNav } from './shell-nav';
 
 /**
  * The header's nav and the phone's tab bar (T-1381, D-199; Stadiomind,
- * T-1494, D-267), drawn: the order, the current entry, the words in Persian,
- * and the tab bar's place (phones only, fixed, clear of the home indicator,
- * never over content).
+ * T-1494, D-267; T-1610, D-281), drawn: the order, the current entry (by the
+ * pathname and the query), the words in Persian, and the tab bar's place
+ * (phones only, fixed, clear of the home indicator, never over content).
  */
 
 let pathname = '/en';
-vi.mock('next/navigation', () => ({ usePathname: () => pathname }));
+let search = '';
+vi.mock('next/navigation', () => ({
+  usePathname: () => pathname,
+  useSearchParams: () => new URLSearchParams(search),
+}));
 
 const HEADER = readFileSync(join(__dirname, 'site-header.tsx'), 'utf8');
 const CSS = readFileSync(join(__dirname, '..', 'app', 'globals.css'), 'utf8');
@@ -31,16 +35,14 @@ const words = (locale: 'en' | 'fa', keys: Record<string, Parameters<typeof messa
 
 const NAV = {
   matches: 'shell.nav.matches',
-  predictions: 'nav.predictions',
   competitions: 'shell.nav.competitions',
+  predictions: 'nav.predictions',
   model: 'shell.nav.model',
   news: 'shell.nav.news',
-  more: 'shell.nav.more',
-  analysis: 'shell.nav.analysis',
-  watch: 'nav.watch',
   highlights: 'nav.highlights',
-  about: 'about.meta.title',
-  rules: 'rules.title',
+  more: 'shell.nav.more',
+  analysis: 'analysis.founder.title',
+  watch: 'nav.watch',
 } as const;
 
 const TABS = {
@@ -61,58 +63,64 @@ const tag = (html: string, testId: string): string =>
 
 beforeEach(() => {
   pathname = '/en';
+  search = '';
 });
 
 describe('the header nav', () => {
   const ORDER = [
     'matches',
-    'predictions',
     'competitions',
+    'predictions',
     'model',
     'news',
+    'highlights',
     'more',
     'analysis',
     'watch',
-    'highlights',
-    'about',
-    'rules',
   ];
   const nav = (locale: 'en' | 'fa' = 'en') =>
     renderToStaticMarkup(<PrimaryNav locale={locale} labels={words(locale, NAV)} />);
 
-  it('reads Matches, Predictions, Competitions, The model, News, then More, each to its page', () => {
+  it('reads Matches, Competitions, Predictions, The model, News, Highlights, then More, each to its page', () => {
     const html = nav();
     expect(ids(html, 'nav')).toEqual(ORDER);
     expect([...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1])).toEqual([
       '/en/scores',
-      '/en/scores?unpicked=1',
       '/en/competitions',
+      '/en/leaderboard',
       '/en/model-accuracy',
       '/en/news',
+      '/en/highlights',
       '/en/scores#analysis',
       '/en/watch',
-      '/en/highlights',
-      '/en/about',
-      '/en/rules',
     ]);
-    for (const word of ['Matches', 'Competitions', 'The model', 'More', 'Analysis']) {
+    for (const word of ['Matches', 'Predictions', 'The model', 'Highlights', 'More']) {
       expect(html).toContain(`>${word}<`);
     }
+    // The founder's analysis by name (rule 6): "Analysis" alone could be the model's.
+    expect(html).toContain('>Founder’s analysis<');
   });
 
-  it('keeps the analysis, Watch and Highlights in More, a disclosure', () => {
+  it('marks Predictions on the league and on the picks to make, Matches on the rest of the matches page', () => {
+    pathname = '/en/leaderboard';
+    expect(tag(nav(), 'nav-predictions')).toContain('aria-current="page"');
+    pathname = '/en/scores';
+    search = 'unpicked=1';
+    let html = nav();
+    expect(tag(html, 'nav-predictions')).toContain('aria-current="page"');
+    expect(html.match(/aria-current/g)).toHaveLength(1);
+    search = 'live=1';
+    html = nav();
+    expect(tag(html, 'nav-matches')).toContain('aria-current="page"');
+    expect(html.match(/aria-current/g)).toHaveLength(1);
+  });
+
+  it('keeps the founder’s analysis and Watch in More, a disclosure', () => {
     const more = /<details class="more-menu[^"]*" data-testid="nav-more">[\s\S]*<\/details>/.exec(
       nav(),
     )?.[0];
     expect(more).toBeDefined();
-    expect(ids(more ?? '', 'nav')).toEqual([
-      'more',
-      'analysis',
-      'watch',
-      'highlights',
-      'about',
-      'rules',
-    ]);
+    expect(ids(more ?? '', 'nav')).toEqual(['more', 'analysis', 'watch']);
     expect(more).toMatch(/<summary[^>]*>/);
   });
 
@@ -120,7 +128,16 @@ describe('the header nav', () => {
     pathname = '/fa';
     const html = nav('fa');
     expect(ids(html, 'nav')).toEqual(ORDER);
-    for (const word of ['بازی‌ها', 'پیش‌بینی‌ها', 'رقابت‌ها', 'مدل', 'بیشتر', 'تحلیل', 'تماشا']) {
+    for (const word of [
+      'بازی‌ها',
+      'پیش‌بینی‌ها',
+      'رقابت‌ها',
+      'مدل',
+      'هایلایت‌ها',
+      'بیشتر',
+      'تحلیل بنیان‌گذار',
+      'تماشا',
+    ]) {
       expect(html).toContain(`>${word}<`);
     }
   });
@@ -166,8 +183,10 @@ describe('the header nav', () => {
     // The mark in both sets of colours, the theme showing one.
     expect(HEADER).toContain('ground="day" className="brand-mark-day');
     expect(HEADER).toContain('ground="night" className="brand-mark-night');
-    // The other language only, each in its own name.
-    expect(HEADER).toMatch(/<LanguagePicker[\s\S]*?others\s*\/>/);
+    // The globe and its menu of every offered language (D-281), no longer the other one alone.
+    expect(HEADER).toMatch(
+      /<LanguagePicker\s+languages=\{[^}]*\)\}\s+label=\{attribute\(lang, 'shell\.language'\)\}\s*\/>/,
+    );
   });
 });
 
@@ -219,6 +238,15 @@ describe('the bottom tab bar', () => {
 
   it('marks Matches on the homepage', () => {
     expect(tag(render('en', false), 'tab-matches')).toContain('aria-current="page"');
+  });
+
+  it('marks Predict, not Matches, on the picks to make, where it leads (D-281)', () => {
+    pathname = '/en/scores';
+    search = 'unpicked=1';
+    const html = render('en', false);
+    expect(tag(html, 'tab-predict')).toContain('href="/en/scores?unpicked=1"');
+    expect(tag(html, 'tab-predict')).toContain('aria-current="page"');
+    expect(html.match(/aria-current/g)).toHaveLength(1);
   });
 
   it('sends You to Sign in for a guest and to Settings for a member', () => {

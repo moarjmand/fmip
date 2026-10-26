@@ -149,10 +149,11 @@ for (const width of [1280, 1440]) {
     const seq = [
       'nav-home',
       'nav-matches',
-      'nav-predictions',
       'nav-competitions',
+      'nav-predictions',
       'nav-model',
       'nav-news',
+      'nav-highlights',
       'nav-more',
       'nav-search-form',
       'theme-switch-compact',

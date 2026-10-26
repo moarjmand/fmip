@@ -119,11 +119,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "shell.nav.analysis": {
-    "source": "Analysis",
-    "text": "",
-    "status": "untranslated"
-  },
   "shell.nav.news": {
     "source": "News",
     "text": "",
@@ -181,6 +176,21 @@
   },
   "shell.search.placeholder": {
     "source": "Teams, players, competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.footer.nav": {
+    "source": "Site links",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.footer.football": {
+    "source": "Football",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.footer.tagline": {
+    "source": "Live football, a statistical model, the founder’s analysis and members’ predictions: side by side, never blended.",
     "text": "",
     "status": "untranslated"
   },
@@ -8920,6 +8930,16 @@
   },
   "leaderboardPage.board": {
     "source": "Board",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.picksLead": {
+    "source": "A place on this board is earned by predicting. Make your picks on the matches still to be played.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.picksCta": {
+    "source": "Make your picks",
     "text": "",
     "status": "untranslated"
   },

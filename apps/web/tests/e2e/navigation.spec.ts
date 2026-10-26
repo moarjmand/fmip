@@ -2,11 +2,14 @@ import AxeBuilder from '@axe-core/playwright';
 import { type Locator, type Page, expect, test } from '@playwright/test';
 
 /**
- * The Stadiomind navigation (T-1494, D-267) in a real browser, without an API
- * behind it: every route keeps a working nav on a 390px phone and a 1440px
- * screen, the phone's five tabs lead where they say and are 44px targets,
- * keyboard focus is visible on the tabs and in the header, and on /fa and the
- * rtl pseudo-locale the tab bar and the header are mirrored.
+ * The Stadiomind navigation (T-1494, D-267; T-1610, D-281) in a real
+ * browser, without an API behind it: every route keeps a working nav on a
+ * 390px phone and a 1440px screen, the phone's five tabs lead where they say
+ * and are 44px targets, keyboard focus is visible on the tabs and in the
+ * header, on /fa and the rtl pseudo-locale the tab bar and the header are
+ * mirrored, and the site footer ends every page above the tab bar. (Without
+ * an API no second language is offered, so the language picker is checked
+ * in the journeys project: `journeys/persian.spec.ts`.)
  */
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
@@ -31,12 +34,12 @@ const ROUTES = [
 
 /**
  * Each tab, where it leads, and the tab current there. Predict leads to the
- * matches still to pick (T-1519, D-269): a view of the matches page, so
- * Matches is the current tab there.
+ * matches still to pick (T-1519, D-269), a view of the matches page that is
+ * Predict's own (D-281), so Predict is the current tab there.
  */
 const TABS = [
   ['tab-matches', /\/scores$/, 'tab-matches'],
-  ['tab-predict', /\/scores\?unpicked=1$/, 'tab-matches'],
+  ['tab-predict', /\/scores\?unpicked=1$/, 'tab-predict'],
   ['tab-leagues', /\/competitions$/, 'tab-leagues'],
   ['tab-news', /\/news$/, 'tab-news'],
   ['tab-you', /\/login$/, 'tab-you'],
@@ -127,6 +130,28 @@ test.describe('on a 390px phone', () => {
     const x = async (id: string) => (await page.getByTestId(id).boundingBox())!.x;
     expect(await x('tab-matches')).toBeGreaterThan(await x('tab-you'));
   });
+
+  test('ends the page with the site footer, above the tab bar and never under it (D-281)', async ({
+    page,
+  }) => {
+    for (const locale of ['en', 'fa']) {
+      await page.goto(`/${locale}/scores`);
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      const box = (await page.getByTestId('footer-copyright').boundingBox())!;
+      const bar = (await page.getByTestId('tab-bar').boundingBox())!;
+      expect(box.y + box.height, locale).toBeLessThanOrEqual(bar.y + 1);
+      // Each of its links is a 44px target on a phone.
+      for (const id of ['footer-matches', 'footer-league', 'footer-rules']) {
+        expect((await page.getByTestId(id).boundingBox())!.height, id).toBeGreaterThanOrEqual(44);
+      }
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+      ).toBeLessThanOrEqual(0);
+    }
+    await expect(page.getByTestId('footer-football')).toContainText('فوتبال');
+    const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+  });
 });
 
 test.describe('on a 1440px screen', () => {
@@ -138,10 +163,11 @@ test.describe('on a 1440px screen', () => {
       for (const id of [
         'nav-home',
         'nav-matches',
-        'nav-predictions',
         'nav-competitions',
+        'nav-predictions',
         'nav-model',
         'nav-news',
+        'nav-highlights',
         'nav-more',
         'nav-search-form',
         'nav-sign-in',
@@ -149,47 +175,73 @@ test.describe('on a 1440px screen', () => {
         await expect(page.getByTestId(id), id).toBeVisible();
       }
       await expect(page.getByTestId('tab-bar')).toBeHidden();
+      await expect(page.getByTestId('site-footer')).toBeAttached();
     });
   }
 
-  test('the header nav leads to its five places, and More to its three', async ({ page }) => {
+  test('the header nav leads to its six places, each current where it leads, and More to its two', async ({
+    page,
+  }) => {
     await page.goto('/en');
-    // Predictions leads to the matches still to pick, a view of Matches
-    // (T-1519, D-269); it is current on the prediction league.
-    for (const [id, url, current] of [
-      ['nav-matches', /\/en\/scores$/, 'nav-matches'],
-      ['nav-predictions', /\/en\/scores\?unpicked=1$/, 'nav-matches'],
-      ['nav-competitions', /\/en\/competitions$/, 'nav-competitions'],
-      ['nav-model', /\/en\/model-accuracy$/, 'nav-model'],
-      ['nav-news', /\/en\/news$/, 'nav-news'],
+    // Predictions is the prediction league (D-281), no longer a second way
+    // to the matches page.
+    for (const [id, url] of [
+      ['nav-matches', /\/en\/scores$/],
+      ['nav-competitions', /\/en\/competitions$/],
+      ['nav-predictions', /\/en\/leaderboard$/],
+      ['nav-model', /\/en\/model-accuracy$/],
+      ['nav-news', /\/en\/news$/],
+      ['nav-highlights', /\/en\/highlights$/],
     ] as const) {
       await page.getByTestId(id).click();
       await expect(page).toHaveURL(url);
-      await expect(page.getByTestId(current)).toHaveAttribute('aria-current', 'page');
+      await expect(page.getByTestId(id)).toHaveAttribute('aria-current', 'page');
+      await expect(page.locator('[data-testid="primary-nav"] [aria-current="page"]')).toHaveCount(
+        1,
+      );
     }
-    await page.goto('/en/leaderboard');
+    // The picks to make are Predictions' view of the matches page.
+    await page.goto('/en/scores?unpicked=1');
     await expect(page.getByTestId('nav-predictions')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('nav-matches')).not.toHaveAttribute('aria-current', 'page');
     const more = page.getByTestId('nav-more');
     await more.locator('summary').click();
+    await expect(more.getByRole('link')).toHaveCount(2);
+    await expect(page.getByTestId('nav-analysis')).toHaveText('Founder’s analysis');
     await page.getByTestId('nav-watch').click();
     await expect(page).toHaveURL(/\/en\/watch$/);
     await expect(page.getByTestId('nav-watch')).toHaveAttribute('aria-current', 'page');
-    // More closes on the way, and nothing in the five is current.
+    // More closes on the way, and nothing in the six is current.
     await expect(page.getByTestId('nav-watch')).toBeHidden();
     await expect(page.locator('[data-testid="primary-nav"] [aria-current="page"]')).toHaveCount(1);
   });
 
-  test('More also leads to what Stadiomind is and to its rules (T-1572)', async ({ page }) => {
+  test('the prediction league leads to the picks to make (D-281)', async ({ page }) => {
+    await page.goto('/en/leaderboard');
+    const cta = page.getByTestId('leaderboard-picks-cta');
+    await expect(cta).toBeVisible();
+    await expect(cta).toHaveText('Make your picks');
+    await cta.click();
+    await expect(page).toHaveURL(/\/en\/scores\?unpicked=1$/);
+    await expect(page.getByTestId('nav-predictions')).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('the footer leads to what Stadiomind is, its rules and every section (D-281)', async ({
+    page,
+  }) => {
     for (const [id, url] of [
-      ['nav-about', /\/en\/about$/],
-      ['nav-rules', /\/en\/rules$/],
+      ['footer-about', /\/en\/about$/],
+      ['footer-rules', /\/en\/rules$/],
+      ['footer-league', /\/en\/leaderboard$/],
+      ['footer-highlights', /\/en\/highlights$/],
     ] as const) {
       await page.goto('/en/scores');
-      await page.getByTestId('nav-more').locator('summary').click();
       await page.getByTestId(id).click();
       await expect(page).toHaveURL(url);
-      await expect(page.getByTestId(id)).toHaveAttribute('aria-current', 'page');
     }
+    const footer = page.getByTestId('site-footer');
+    await expect(footer.getByRole('link')).toHaveCount(11);
+    await expect(footer).toContainText('© 2');
   });
 
   test('searches from the field in the bar', async ({ page }) => {
