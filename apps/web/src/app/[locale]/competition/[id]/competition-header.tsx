@@ -67,9 +67,15 @@ export function CompetitionHeader({
           >
             <Chevron to="back" />
           </Link>
-          <span className="grid size-12 shrink-0 place-items-center rounded-control border border-default bg-canvas p-1 sm:size-18 sm:rounded-tile sm:p-2">
-            <EntityImage media={c.logo} kind="logo" name={name} size={40} aboveFold />
-          </span>
+          {/* The logo's own white tile is the frame (T-1609, D-280), larger from sm. */}
+          <EntityImage
+            media={c.logo}
+            kind="logo"
+            name={name}
+            size={48}
+            aboveFold
+            className="sm:size-18 sm:rounded-tile sm:p-2"
+          />
           <div className="flex min-w-0 flex-[1_1_10rem] flex-col gap-1 sm:gap-1.5">
             <h1
               className="text-xl leading-tight font-extrabold break-words font-stretch-semi-expanded sm:text-display-3"
