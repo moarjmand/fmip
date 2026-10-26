@@ -5,7 +5,11 @@ import {
   BAR_COMPETITIONS,
   barCompetitions,
   barName,
+  chosenGroup,
   directoryGroups,
+  directoryHref,
+  directoryView,
+  groupSlug,
   foldName,
   matchesFilter,
 } from './competitions-directory';
@@ -29,6 +33,7 @@ function entry(
     country: null,
     order: null,
     logo: NO_MEDIA,
+    season: null,
     ...over,
   };
 }
@@ -128,5 +133,68 @@ describe('the filter', () => {
     // A region's heading counts: "continental" finds the continental cups.
     const ucl = LIST.find((c) => c.id === 'ucl')!;
     expect(matchesFilter(ucl, 'Continental', 'contin')).toBe(true);
+  });
+});
+
+describe('the chooser (T-1612)', () => {
+  const groups = directoryGroups(LIST, 'fa').map((g) => ({ ...g, heading: g.name ?? g.kind }));
+
+  it("names a group in the address by its region or its country's code", () => {
+    expect(groups.map(groupSlug)).toEqual([
+      'international',
+      'continental',
+      'irn',
+      'eng',
+      'esp',
+      'arg',
+      'bra',
+    ]);
+    expect(groups.find((g) => g.key === 'eng')).toMatchObject({ code: 'ENG' });
+    expect(groupSlug({ key: 'k1', kind: 'country', code: null })).toBe('k1');
+  });
+
+  it('reads the choice from the address, case aside, and nothing it does not know', () => {
+    expect(chosenGroup(groups, 'ENG')).toBe('eng');
+    expect(chosenGroup(groups, 'continental')).toBe('continental');
+    expect(chosenGroup(groups, 'atlantis')).toBeNull();
+    expect(chosenGroup(groups, '')).toBeNull();
+    expect(chosenGroup(groups, undefined)).toBeNull();
+  });
+
+  it('builds the address of a choice and a filter', () => {
+    expect(directoryHref('en', null, '')).toBe('/en/competitions');
+    expect(directoryHref('en', 'eng', ' ')).toBe('/en/competitions?country=eng');
+    expect(directoryHref('en', null, 'la liga')).toBe('/en/competitions?q=la+liga');
+    expect(directoryHref('fa', 'esp', 'liga')).toBe('/fa/competitions?country=esp&q=liga');
+  });
+
+  it('shows the chosen group only, the filter inside it, and keeps its tile', () => {
+    const all = directoryView(groups, null, '');
+    expect(all.shown.map((g) => g.key)).toEqual(groups.map((g) => g.key));
+    expect(all.tiles).toHaveLength(groups.length);
+
+    const england = directoryView(groups, 'eng', '');
+    expect(england.shown.map((g) => g.key)).toEqual(['eng']);
+    expect(england.tiles).toHaveLength(groups.length);
+
+    // A filter that matches only Spain: the tiles narrow to it and the choice.
+    const liga = directoryView(groups, 'eng', 'لالیگا');
+    expect(liga.shown).toEqual([]);
+    expect(liga.tiles.map((g) => g.key)).toEqual(['eng', 'esp']);
+    const spain = directoryView(groups, 'esp', 'لالیگا');
+    expect(spain.shown.map((g) => g.competitions.map((c) => c.id))).toEqual([['liga']]);
+  });
+
+  it("carries the country's flag onto its group, and none onto a region", () => {
+    const flag = { coverage: 'available' as const, url: '/api/media/flag/eng/abc123def456.svg' };
+    const [region, country] = directoryGroups(
+      [
+        entry('wc', 'World Cup', { scope: 'international' }),
+        entry('epl', 'Premier League', { country: { ...ENGLAND, flag } }),
+      ],
+      'en',
+    );
+    expect(country?.flag).toEqual(flag);
+    expect(region).not.toHaveProperty('flag');
   });
 });

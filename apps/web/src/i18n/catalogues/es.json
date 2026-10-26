@@ -13281,6 +13281,19 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitions.region.all": {
+    "source": "All",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.count": {
+    "source": {
+      "one": "{count} competition",
+      "other": "{count} competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "nav.highlights": {
     "source": "Highlights",
     "text": "",
