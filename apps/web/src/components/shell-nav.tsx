@@ -2,7 +2,6 @@
 
 import Link from '@/components/ui/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
 import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';
 import { HEADER_NAV, MORE_NAV, type ShellLink, currentLink, tabBarLinks } from '@/lib/shell-nav';
@@ -16,9 +15,12 @@ import { HEADER_NAV, MORE_NAV, type ShellLink, currentLink, tabBarLinks } from '
  * component (T-1040); the catalogues stay on the server.
  *
  * The query counts too (D-281): the matches page's "Not picked yet" view
- * belongs to Predictions. It is read under a Suspense boundary, as Next 16
- * requires for `useSearchParams` on a prerendered route; until it is read,
- * the entry is chosen by the pathname alone.
+ * belongs to Predictions. `useSearchParams` is read with no Suspense boundary
+ * of its own: every page under the locale layout is rendered per request,
+ * where Next gives the query on the server, and a boundary here let the
+ * server stream the nav after the page's shell (`<template id="B:0">`), so a
+ * reader without script saw the fallback and a hidden second copy. A page
+ * prerendered statically would need one (the build says so).
  */
 
 type Labels = Readonly<Record<string, Message>>;
@@ -38,22 +40,17 @@ type Labels = Readonly<Record<string, Message>>;
  * rendered again on a client-side navigation, so an open Menu or More would
  * otherwise stay open over the new page.
  */
-export function PrimaryNav(props: NavProps) {
-  return (
-    <Suspense fallback={<Nav {...props} search="" />}>
-      <NavWithQuery {...props} />
-    </Suspense>
-  );
-}
-
-type NavProps = { locale: string; labels: Labels; className?: string };
-
-function NavWithQuery(props: NavProps) {
-  return <Nav {...props} search={useSearchParams().toString()} />;
-}
-
-function Nav({ locale, labels, className, search }: NavProps & { search: string }) {
+export function PrimaryNav({
+  locale,
+  labels,
+  className,
+}: {
+  locale: string;
+  labels: Labels;
+  className?: string;
+}) {
   const pathname = usePathname();
+  const search = useSearchParams().toString();
   const current = currentLink(pathname, HEADER_NAV, search);
   const more = currentLink(pathname, MORE_NAV, search);
   // One renderer for both lists: each link is drawn once in the bundle.
@@ -134,29 +131,20 @@ const ICONS: Record<string, React.ReactNode> = {
  * the page so the last line of content is never under it. The focus ring is
  * drawn inside a tab, where the screen's edge cannot cut it.
  */
-export function BottomTabBar(props: TabBarProps) {
-  return (
-    <Suspense fallback={<TabBar {...props} search="" />}>
-      <TabBarWithQuery {...props} />
-    </Suspense>
-  );
-}
-
-type TabBarProps = {
+export function BottomTabBar({
+  locale,
+  labels,
+  signedIn,
+  navLabel,
+}: {
   locale: string;
   labels: Labels;
   signedIn: boolean;
   /** The landmark's name, resolved by the layout, with its marking. */
   navLabel: { text: string; lang?: string };
-};
-
-function TabBarWithQuery(props: TabBarProps) {
-  return <TabBar {...props} search={useSearchParams().toString()} />;
-}
-
-function TabBar({ locale, labels, signedIn, navLabel, search }: TabBarProps & { search: string }) {
+}) {
   const links: readonly ShellLink[] = tabBarLinks(signedIn);
-  const current = currentLink(usePathname(), links, search);
+  const current = currentLink(usePathname(), links, useSearchParams().toString());
   return (
     <>
       <div aria-hidden="true" className="h-[calc(4.25rem+env(safe-area-inset-bottom))] md:hidden" />
