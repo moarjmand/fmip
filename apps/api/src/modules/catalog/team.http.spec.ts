@@ -245,6 +245,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     });
     expect(page.previous_match).toMatchObject({ score: { home: 1, away: 1 } });
     expect(page.last_updated_at).not.toBeNull();
+    // Both crests and the competition's logo on every listed match, from our
+    // own origin or said not supplied, never left out (T-1617).
+    for (const f of [...page.fixtures, ...page.results]) {
+      expect(f.home.crest).toEqual({ coverage: 'not_supplied', url: null });
+      expect(f.away.crest).toEqual({ coverage: 'not_supplied', url: null });
+      expect(f.competition.logo).toEqual({ coverage: 'not_supplied', url: null });
+    }
+    expect(page.next_match?.away.crest).toEqual({ coverage: 'not_supplied', url: null });
+    expect(page.competitions[0]!.competition.logo).toEqual({ coverage: 'not_supplied', url: null });
+    expect(page.competitions[0]!.context.data!.rows.map((r) => r.team.crest)).toEqual(
+      page.competitions[0]!.context.data!.rows.map(() => ({ coverage: 'not_supplied', url: null })),
+    );
 
     expect(page.squad.coverage).toBe('available');
     expect(page.squad.data).toEqual([
