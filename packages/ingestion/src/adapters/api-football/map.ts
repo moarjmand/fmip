@@ -58,7 +58,9 @@ const int = (value: unknown): number | null =>
 /** API-Football ids are numbers; the contract wants them as strings. */
 const id = (value: unknown): string | null => {
   const n = int(value);
-  return n === null ? null : String(n);
+  // Positive only (T-1600): the provider writes 0 for "not known", and as an
+  // id it made one person, coach or venue of every unknown one (rule 1).
+  return n === null || n <= 0 ? null : String(n);
 };
 /**
  * An image address (`logo`, `photo`) as the provider gave it, when it is an

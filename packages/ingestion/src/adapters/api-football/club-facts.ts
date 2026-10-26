@@ -20,7 +20,9 @@ const int = (value: unknown): number | null =>
   typeof value === 'number' && Number.isInteger(value) ? value : null;
 const id = (value: unknown): string | null => {
   const n = int(value);
-  return n === null ? null : String(n);
+  // Positive only (T-1600): the provider writes 0 for "not known", and as an
+  // id it made one person, coach or venue of every unknown one (rule 1).
+  return n === null || n <= 0 ? null : String(n);
 };
 
 /** Text as the provider wrote it, made plain: entities decoded, whitespace collapsed; `null` when blank. */
