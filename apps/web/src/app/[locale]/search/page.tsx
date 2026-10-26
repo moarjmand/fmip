@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import type { AskReason, SearchType } from '@fmip/contracts';
 import type { ReactNode } from 'react';
+import { EntityImage } from '@/components/entity-image';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import { Translated } from '@/components/translated';
 import { type MessageKey, attribute } from '@/i18n/messages';
@@ -11,6 +12,7 @@ import { storyHref } from '@/lib/news';
 import {
   GROUP_VISIBILITY_KEY,
   MIN_QUERY_LENGTH,
+  RESULT_IMAGE_KIND,
   SECTION_EMPTY_KEY,
   SECTION_TITLE_KEY,
   TYPE_KEY,
@@ -33,7 +35,6 @@ export const dynamic = 'force-dynamic';
 
 /** A result's link: a 44px target on a phone, the line's own height from 768px (T-1574). */
 const RESULT_LINK = 'inline-flex min-h-touch items-center font-medium underline md:min-h-0';
-
 /** Why the question was searched as keywords (T-422), as a sentence beside the results. */
 const REASON_KEY: Record<AskReason, MessageKey> = {
   no_model: 'search.reason.noModel',
@@ -212,9 +213,16 @@ export default async function SearchPage({
                     {hits.map((hit) => (
                       <li
                         key={hit.id}
-                        className="flex flex-wrap items-baseline gap-x-3 py-2"
+                        className="flex flex-wrap items-center gap-x-3 py-2"
                         data-testid="search-result"
                       >
+                        {/* The crest, logo or photo we hold, or the lettered mark (T-1617). */}
+                        <EntityImage
+                          media={hit.image}
+                          kind={RESULT_IMAGE_KIND[hit.type]}
+                          name={hit.name}
+                          size={22}
+                        />
                         <Link href={resultHref(locale, hit)} className={RESULT_LINK}>
                           {hit.name}
                         </Link>

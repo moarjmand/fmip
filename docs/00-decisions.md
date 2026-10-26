@@ -12527,6 +12527,24 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Rejected.** A flag package in the web app (a dependency, and a second source of truth for which flag a country has); emoji flags (Windows draws them as letters, and England and Scotland have none); asking `/countries` once (a new request for what the fixture lists already carry); matching the provider's country name to ours (names differ: "USA", "Türkiye"); a flag for a continental competition (no country is not a country).
 
+## D-284 — The news front page: a lead, cards and a list in the section's own order; a story without a licensed photo gets a designed panel of what we own
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1613 · **Follows:** D-061, D-176, D-177, D-178, D-207
+
+**Context.** The maintainer asked for a more professional, attractive news page and for images in the home page's news. The news page was one column of text cards; the home page's six stories were headlines. On production on 2026-10-26, 2 of the 40 newest stories on `/en` and 2 of 40 on `/fa` had a licensed photo (D-177 allows only Mehr, Tasnim and Tehran Times, and D-207 shows `/en` English sources only), and many stories are filed under no entity at all. A page of photos is therefore not possible without inventing pictures, which rule 3 forbids.
+
+**Decision.**
+1. **A front page, in the section's order.** A section's first page is the lead story (its picture beside its words on a desktop, the headline in the editorial face), a row of four cards (picture above the headline), then the compact list (a 96 or 128 px picture on the inline start). An older page is the list alone. The page never re-ranks a section: latest stays newest first and trending most discussed first, so the lead is the first story whether or not it has a photo.
+2. **A licensed photo is drawn as before** (D-177): from `/media/news/`, its width and height said, its credit and licence beside it -- under the photo, or in a list row's words. Only the lead is loaded at once; everything else is lazy.
+3. **A story without one gets a designed panel, never a stand-in photo.** The panel is plainly a graphic: the Stadiomind pitch lines on the saffron edge, carrying the crests, logos and player photos we hold (D-176) of what the story is filed under, clubs first, at most three (two in a list row); when we hold none, the source's name set in type. A missing crest is left out of the panel rather than drawn as a lettered mark. The panel is decorative (`aria-hidden`), absent in lite mode, and links to the original out of the tab order, as the photo does.
+4. **The entity images come from the API.** `NewsEntity.media` (contracts) is the team's crest, the competition's logo or the person's photo from `MediaService`, `not_supplied` when none is stored and absent for a fixture; the news read store asks the media index once per read.
+5. **Every card says its source and its time.** The time is "3 hr ago" under a day and the date after, the full time on hover; a story whose publisher gave no time says so. Each story's tags are its clubs, competition, people and match, in that order, each a link to its page by id, a club with its crest and a competition with its logo, in a 44 px target on a phone.
+6. **The other sections as distinct blocks.** The unfiltered latest front page carries the heads of trending (five) and debate (three) beside its list, numbered, each linking to the original; an empty one says the API's reason for being empty (rule 3) and links to the section. Filtered pages, other sections and older pages do not.
+7. **The filters** are the same GET form in a panel: a disclosure with its own summary, the fields in a grid of two to four columns, open when a filter is set.
+8. **The home page's news** follows the same rules with the same components (part 3 of T-1613).
+
+**Rejected.** *Promoting the newest story with a photo to the lead*: it would reorder the latest section and pass a three-hour-old story off as the top one. *Stock or generic football pictures for stories without a photo*: they would pass for the story's photograph (rule 3). *Lettered marks on the panel*: a row of letters is a stand-in that reads as missing rather than designed. *A client-side carousel*: no new client JavaScript is needed for a front page.
+
 ## D-285 — Highlights as match posters drawn from our own crests and logos, never a video frame
 
 **Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round: "more professional, attractive and creative, with more images and logos") · **Task:** T-1614 · **Follows:** D-069, D-176, D-184, D-226, D-260, rules 2-3
@@ -12543,6 +12561,26 @@ replaces D-089's self-hosting arrangement for no gain here).
 **Rejected.** *Hotlinking the provider's thumbnail*: D-176 and D-184, and it would be a frame of someone else's video on our page. *A generated "video frame" (a still with a play button over a stadium photo)*: it would look like a thumbnail of the clip and is not one. *A select for the competitions*: a reader cannot see the logos or the counts, and the chips already work without script.
 
 **Consequences.** Every clip shows two crests and a logo where we hold them; the page asks the media table once per view. The header shows up to six competition logos only when at least three are held. Nothing is played or embedded, as before.
+
+## D-286 — The About page explains the site with a drawn flow and a map of its sections, in markup and CSS
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1615 · **Follows:** D-263, D-269
+
+**Context.** The maintainer asked for a more professional, attractive and creative site. The About page (T-523) was four paragraphs and a bulleted list: it said what the product is but showed nothing of how a match moves through it, and it pointed to no section but the scores and the leaderboard. Its readers are mostly first visits, the people the rules of the product (one match record, three predictions kept apart, versions never edited, ratings recomputable, missing data said) matter to most and are least visible to.
+
+**Decision.**
+1. The page opens on "How Stadiomind works": the path of one match in six steps -- licensed match data, the one match record and the surfaces it feeds, the three prediction products, kick-off, full time, and what each product builds. The model's forecast, the founder's analysis and the community's picks run in lanes of their own in the products' own colours (`--token-model`, `-founder`, `-community`), pass both gates separately and end at separate records: the model's public track record, the founder's calls checked against the result, each member's Performance Rating. No line joins two lanes (rule 6). The model's lane is drawn as a stack of versions; the record's card says missing data is labelled, not invented (rule 3); the records' note says a rating is recomputable (rule 8).
+2. The diagram is an ordered list of real text, drawn by CSS: the words are its text equivalent and the reading order is the flow. Only the wires (inline SVG) and the gate marks are pictures, `aria-hidden`. A figcaption says how to read it.
+3. Below 1024px the steps stack, with dotted wires between them; after the split the wire has three strands, one per lane. From 1024px the steps stand in five columns and the lanes, gates and records share rows through `subgrid`, so each lane draws its own wires with lengths known from two fixed custom properties: no script measures anything. Wires are drawn from the line's start, and `dir="rtl"` turns them round, so the flow and the dots run right to left on /fa.
+4. Motion is gentle and optional: the steps rise in turn (about 1.5 s in all) and dots flow along the wires. It runs only under `prefers-reduced-motion: no-preference` and without the member's `data-motion="reduce"`; otherwise the diagram is complete and still, which is also what the visual baseline photographs.
+5. "Find your way" follows it: the main sections as tiles in two groups, the football (Matches, Match centre, Competitions, News, Highlights, Watch) and the forecasts (The model, The founder's analysis, Predictions, Leaderboard). Each tile is a link with one line on what is there; a forecast tile wears its product's colour. The match centre has no page of its own to open on, so its tile leads to the matches and says "open any match".
+6. The page's own CSS is `app/[locale]/about/about.css`, imported by the page, so no other route loads it; icons the shared set lacks are the page's own (`about-icons.tsx`), drawn the same way. No new dependency, no client JavaScript.
+
+**Rejected.**
+- One SVG drawing of the whole diagram: its text would not wrap or translate, a Persian label longer than the English would overflow, and it would need a second text version for assistive technology.
+- A diagram library or a client-side animation: a dependency and a script for a page that needs neither.
+- Scroll-triggered animation: it needs a script, or `animation-timeline: view()`, which not every browser has; the diagram is near the top, so a reveal on load is seen.
+- Linking the match centre tile to one live match: it would need another API call on every view of the page, and the tile would change meaning with the day.
 
 ## D-287 — Player photos inside the line-up discs; the number circle stays for a missing photo
 

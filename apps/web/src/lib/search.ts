@@ -7,8 +7,16 @@ import type {
   SearchType,
 } from '@fmip/contracts';
 import { SEARCH_COMMUNITY_TYPES, SEARCH_ENTITY_TYPES } from '@fmip/contracts';
+import type { EntityImageKind } from '@/components/entity-image';
 import type { MessageKey } from '@/i18n/messages';
 import { say } from '@/lib/competition';
+
+/** Which image a result of each kind carries (T-1617): a team's crest, a competition's logo, a person's photo. */
+export const RESULT_IMAGE_KIND: Record<SearchEntityType, EntityImageKind> = {
+  team: 'crest',
+  competition: 'logo',
+  person: 'photo',
+};
 
 /**
  * The search page's pure helpers (T-038, T-642): the query the URL carries,
