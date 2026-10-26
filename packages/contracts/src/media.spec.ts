@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { MEDIA_EXTENSIONS, mediaSized, mediaUrl, mediaVersionOf, mediaWidthOf } from './media';
+import type { CountryRef } from './catalog';
+import {
+  MEDIA_EXTENSIONS,
+  MEDIA_KINDS,
+  NO_MEDIA,
+  mediaSized,
+  mediaUrl,
+  mediaVersionOf,
+  mediaWidthOf,
+} from './media';
 
 /**
  * Media addresses (T-1461): each ends in its type's extension, so the edge
@@ -55,5 +64,23 @@ describe('mediaSized (T-1462)', () => {
     expect(mediaWidthOf('abc123def456.png')).toBeNull();
     expect(mediaWidthOf('abc123def456')).toBeNull();
     expect(mediaVersionOf('abc123def456-96.webp')).toBe('abc123def456');
+  });
+});
+
+describe('flags (T-1611, D-282)', () => {
+  it('is a kind of its own, served like the rest', () => {
+    expect(MEDIA_KINDS).toContain('flag');
+    const id = '00000000-0000-4000-8000-000000000201';
+    const svg = mediaUrl('flag', id, 'abc123def456', 'image/svg+xml');
+    expect(svg).toBe(`/api/media/flag/${id}/abc123def456.svg`);
+    // The provider draws its flags as SVG, served as stored.
+    expect(mediaSized(svg, 20)).toBe(svg);
+  });
+
+  it('rides beside a country as an optional field', () => {
+    const country: CountryRef = { id: 'c', name: 'England', code: 'ENG', flag: NO_MEDIA };
+    const bare: CountryRef = { id: 'c', name: 'England', code: 'ENG' };
+    expect(country.flag?.coverage).toBe('not_supplied');
+    expect(bare.flag).toBeUndefined();
   });
 });

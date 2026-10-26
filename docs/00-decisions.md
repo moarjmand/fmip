@@ -12511,3 +12511,18 @@ replaces D-089's self-hosting arrangement for no gain here).
 - Inverting or recolouring logos: a mark is never recoloured.
 
 **Consequences.** Three tokens per block (32); `tokens.spec.ts` checks the tile is white everywhere, the edge and the halo are the surface on Day, and on Night the tile stands 7:1 and the halo 4.5:1 off every ground. The halo is a CSS filter on each crest, also on Day, where it draws nothing visible.
+
+## D-282 — Country flags are entity media, noted from the fixture lists
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1611 · **Follows:** D-176, D-242
+
+**Context.** The All competitions page groups competitions by country with plain text, and the maintainer asked for it to look more professional and creative. API-Football names each league's country flag in every fixture list, standings and league answer (`league.flag`, `country.flag`), on the same host as the crests (`media.api-sports.io/flags/<code>.svg`). `EntityImage` drew no flag because no decision covered a flag package, and D-176 forbids hotlinking a provider image. Every flag of the 25 countries the directory listed on 2026-10-26 (and a few others) was read that day: each is an SVG of 640 by 480 with `image/svg+xml`, the largest (Serbia, with its arms) 494 kB, under the 512 kB cap, and none carries a script, a handler, a foreign object or a reference outside itself (Portugal's reuses its own shapes by `<use xlink:href="#a">`).
+
+**Decision.**
+1. A flag is an `entity_media` row like a crest: entity type `country`, kind `flag` (`MEDIA_KINDS`), the kind check widened by migration `1765894000000`, served at `/api/media/flag/<country uuid>/<version>.svg`, the provider's address only in `source_url`.
+2. It is noted from the fixture lists the jobs already read, with no new request: the adapter carries `league.flag` as `CompetitionRef.countryFlagUrl` beside the logo; the ingest store notes it against the country our catalogue gives the competition (read once per process), when the list names the competition it was asked for. The provider's country name is never matched to a country (rule 1). A competition of no country (continental, international) notes nothing, and the provider sends no flag for one anyway.
+3. No backfill: rows appear as the fixture lists are read and the media job copies them on its usual five-minute tick, flags first with the competitions.
+4. Contracts: `CountryRef` (`id`, `name`, `code`, optional `flag`) for the directory's country, the competition page's (and table's) country, the team page's country and the player's nationality. `NO_MEDIA` when none is stored; the field is absent only where the answer did not ask.
+5. An SVG flag is served as stored at every width (D-242): it has no pixels to save.
+
+**Rejected.** A flag package in the web app (a dependency, and a second source of truth for which flag a country has); emoji flags (Windows draws them as letters, and England and Scotland have none); asking `/countries` once (a new request for what the fixture lists already carry); matching the provider's country name to ours (names differ: "USA", "Türkiye"); a flag for a continental competition (no country is not a country).
