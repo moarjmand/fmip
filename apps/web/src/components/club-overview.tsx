@@ -1,6 +1,7 @@
 import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import type { SquadPlayer, TeamPage, TeamPageFixture } from '@fmip/contracts';
+import { stillToPlay } from '@fmip/contracts';
 import { Coverage, MoreLink, When, zoneWords } from '@/components/competition-page';
 import { EntityImage } from '@/components/entity-image';
 import { Score, ScorePair } from '@/components/score';
@@ -447,7 +448,9 @@ export function ComingUp({
 }) {
   const teamId = page.team.id;
   const nextId = page.next_match?.id;
-  const later = page.fixtures.filter((f) => f.id !== nextId);
+  // Only matches still to play (T-1560): a cancelled or postponed one is
+  // listed with its status on the Fixtures tab, not "coming up".
+  const later = page.fixtures.filter((f) => f.id !== nextId && stillToPlay(f.status));
   const shown = later.slice(0, COMING_UP);
   return (
     <Card
@@ -488,7 +491,7 @@ export function ComingUp({
             ))}
           </ul>
           <p className="px-4 pt-2 text-xs text-muted">{zoneWords(locale, timeZone)}</p>
-          {later.length > shown.length && (
+          {page.fixtures.length > shown.length + (nextId === undefined ? 0 : 1) && (
             <div className="px-4">
               <MoreLink href={withTerritory(teamTabHref(locale, teamId, 'fixtures'), territory)}>
                 <Translated locale={locale} message="teamPage.allFixtures" />
