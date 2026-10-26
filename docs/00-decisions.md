@@ -12317,6 +12317,8 @@ replaces D-089's self-hosting arrangement for no gain here).
 7. Saving a pick revalidates the matches page as well as the match page, so the row turns to Picked.
 8. The first-load budget rises once to 180 kB (D-264): the pick form is now in the scores page's first load (177.0 kB).
 
+**How T-1545 amended it (2026-10-26).** Point 2's row keeps its four columns from 640 px. Below that the model's cell goes under the teams, in the teams' column, and Pick spans both lines: beside the teams the cell and Pick left a name 21 to 51 px at 390 px, and production broke «پیکان» in two and cut "Crystal Palace" to "Cry st…". The three whole percentages total 100 (blueprint 6.2), the largest share absorbing the gap (`wholePercentages`, T-1555). Point 3's preview says the match's status under its score once it has started, and while it is live when the score was last updated: the preview is the page's snapshot and the list's stream does not reach it. A guest after kick-off is told picks are locked.
+
 **Consequences.** The Predictions page, its redirect to this page and a new home for the founder's analysis and the leaderboard link are T-1519, split off to keep this PR within its size. The old card's `<details>` is gone; unit and E2E specs that opened it read the preview instead.
 
 ## D-269 — The Predictions page goes: its address redirects to the matches page, the founder's analysis moves there, Predictions leads to the picks still to make

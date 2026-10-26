@@ -42,7 +42,13 @@ export function ShareLink({
 
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <button type="button" onClick={onShare} className="underline" data-testid="share">
+      {/* A 44px target on a phone (T-1553), the line's own height from 768px. */}
+      <button
+        type="button"
+        onClick={onShare}
+        className="inline-flex min-h-touch items-center underline md:min-h-0"
+        data-testid="share"
+      >
         {label}
       </button>
       {said !== null && (

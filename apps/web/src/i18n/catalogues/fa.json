@@ -7724,6 +7724,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "scores.liveEmpty": {
+    "source": "No match on this day is in play.",
+    "text": "در این روز هیچ مسابقه‌ای در جریان نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "scores.row.pick": {
     "source": "Pick",
     "text": "انتخاب",
@@ -9845,6 +9851,30 @@
   "forecast.factor.attackVsDefence": {
     "source": "Attack against defence",
     "text": "خط حمله در برابر خط دفاع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.factorNote.teamStrength": {
+    "source": "net strength (attack minus defence) from recent results",
+    "text": "قدرت خالص (حمله منهای دفاع) بر پایه‌ی نتایج اخیر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.factorNote.teamStrengthElo": {
+    "source": "net strength (attack minus defence) from recent results and the Elo prior",
+    "text": "قدرت خالص (حمله منهای دفاع) بر پایه‌ی نتایج اخیر و پیش‌فرض Elo",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.factorNote.homeAdvantage": {
+    "source": "league-wide home advantage learned from the training window",
+    "text": "برتری میزبانی در کل لیگ، آموخته از بازه‌ی داده‌های آموزشی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.factorNote.attackVsDefence": {
+    "source": "how the sides' attacks match up against the opposing defences",
+    "text": "اینکه خط حمله‌ی هر تیم در برابر خط دفاع حریف چگونه است",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
