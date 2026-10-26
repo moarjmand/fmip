@@ -535,7 +535,8 @@ function computedStamp(locale: string, iso: string, timeZone: string): ReactNode
  * model only, in its own lane (rule 6); a story about the match never gets a
  * forecast written into its words. Every gap is a sentence (rule 3): no
  * forecast before kick-off, the service not answering, no result yet, a
- * result not yet scored.
+ * result not yet scored. Its heading is in the interface face (T-1621,
+ * D-291): beside a story's serif words, the serif is the founder's (D-263).
  */
 export function ModelExpected({
   summary,
@@ -564,7 +565,7 @@ export function ModelExpected({
   return (
     <ModelVoice locale={l}>
       <section className="flex flex-col gap-3" data-testid="story-model-expected">
-        <h2 className="font-serif text-2xl font-semibold">
+        <h2 className="text-xl font-extrabold font-stretch-semi-expanded">
           <Translated locale={l} message="story.expected.title" />
         </h2>
         <p className="text-sm text-muted">

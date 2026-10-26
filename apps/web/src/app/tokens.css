@@ -36,15 +36,10 @@
  *     one.
  * The two dark blocks carry the same declarations; the spec refuses a drift.
  *
- * Editorial mode (D-198): an element marked `data-mode="editorial"` -- the
- * editorial pages not yet rebuilt; the header follows the theme (D-267) --
- * stays on the Day values
- * whatever the theme, until the redesign removes the mark page by page
- * (D-263). The last blocks of this file give it the light values (and light
- * with more contrast, when that applies); custom properties set on an
- * element win over the ones it would inherit from <html>, so no specificity
- * contest is involved. Data pages carry no mark, or `data-mode="data"`, and
- * follow the theme.
+ * Editorial mode (D-198), the Day values on a marked element whatever the
+ * theme, is gone: the redesign removed the mark page by page (D-263), the
+ * news story last (T-1621, D-291). Every page follows the theme; a data page
+ * may carry `data-mode="data"` to stand on the stage.
  *
  * Contrast is WCAG 2 (AA: 4.5:1 for text, 3:1 for large text, UI component
  * boundaries and focus indicators). Each figure below is measured against
@@ -66,9 +61,7 @@
  *   2. light and more, specificity 0-2-0, which beats 1 and nothing else;
  *   3. the two ways to dark, 0-2-0 and later, so they beat 2;
  *   4. dark and more, 0-3-0, four ways (chosen or device dark, times chosen
- *      or device contrast), which beat 3;
- *   5. editorial mode, set on the marked element itself: light, then light
- *      and more (0-3-0, beating the plain mark).
+ *      or device contrast), which beat 3.
  * Blocks of one kind carry the same declarations; the spec refuses a drift,
  * and recomputes the figures written against the first of each kind.
  */
@@ -532,126 +525,5 @@
     --token-logo-tile: #ffffff;
     --token-logo-edge: #3a424a;
     --token-crest-halo: #a3acb5;
-  }
-}
-
-/*
- * Editorial mode (D-198): the editorial pages stay on the Day values
- * whatever the theme, until each is rebuilt (D-263); the header no longer
- * carries the mark (D-267). The Day values,
- * set on the marked element...
- */
-[data-mode='editorial'] {
-  color-scheme: light;
-  --token-canvas: #f2f3f1;
-  --token-surface: #ffffff;
-  --token-surface-raised: #f7f8f7;
-  --token-stage: #f2f3f1;
-  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
-  --token-selected: #fdf6ec;
-  --token-text: #121518;
-  --token-text-muted: #4c5660;
-  --token-caption: #626c76;
-  --token-border: #dce0e2;
-  --token-border-strong: #7d8791;
-  --token-accent: #8a5300;
-  --token-accent-strong: #5f3900;
-  --token-on-accent: #ffffff;
-  --token-focus: #0e7a75;
-  --token-danger: #c23a33;
-  --token-warning: #8a5300;
-  --token-success: #121518;
-  --token-live: #8a5300;
-  --token-model: #0e7a75;
-  --token-founder: #121518;
-  --token-community: #4c5660;
-  --token-brand: #eba53c;
-  --token-on-brand: #1a1206;
-  --token-prob-draw: #a8b0b7;
-  --token-prob-away: #7ccfc8;
-  --token-rating-low: #56616b;
-  --token-on-rating-low: #ffffff;
-  --token-rating-good: #2bb3ad;
-  --token-on-rating-good: #0f1215;
-  --token-logo-tile: #ffffff;
-  --token-logo-edge: #ffffff;
-  --token-crest-halo: #ffffff;
-}
-
-/* ...and Day with more contrast, chosen... */
-:root[data-contrast='more'] [data-mode='editorial'] {
-  color-scheme: light;
-  --token-canvas: #f2f3f1;
-  --token-surface: #ffffff;
-  --token-surface-raised: #f7f8f7;
-  --token-stage: #f2f3f1;
-  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
-  --token-selected: #fdf6ec;
-  --token-text: #050608;
-  --token-text-muted: #2b313a;
-  --token-caption: #4b525a;
-  --token-border: #808e96;
-  --token-border-strong: #677079;
-  --token-accent: #764700;
-  --token-accent-strong: #3d2400;
-  --token-on-accent: #ffffff;
-  --token-focus: #0e7a75;
-  --token-danger: #942c27;
-  --token-warning: #764700;
-  --token-success: #050608;
-  --token-live: #764700;
-  --token-model: #0b5c58;
-  --token-founder: #050608;
-  --token-community: #2b313a;
-  --token-brand: #eba53c;
-  --token-on-brand: #1a1206;
-  --token-prob-draw: #a8b0b7;
-  --token-prob-away: #7ccfc8;
-  --token-rating-low: #4b555e;
-  --token-on-rating-low: #ffffff;
-  --token-rating-good: #2bb3ad;
-  --token-on-rating-good: #0f1215;
-  --token-logo-tile: #ffffff;
-  --token-logo-edge: #ffffff;
-  --token-crest-halo: #ffffff;
-}
-
-/* ...or asked for by the device. */
-@media (prefers-contrast: more) {
-  :root:not([data-contrast='standard']) [data-mode='editorial'] {
-    color-scheme: light;
-    --token-canvas: #f2f3f1;
-    --token-surface: #ffffff;
-    --token-surface-raised: #f7f8f7;
-    --token-stage: #f2f3f1;
-    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
-    --token-selected: #fdf6ec;
-    --token-text: #050608;
-    --token-text-muted: #2b313a;
-    --token-caption: #4b525a;
-    --token-border: #808e96;
-    --token-border-strong: #677079;
-    --token-accent: #764700;
-    --token-accent-strong: #3d2400;
-    --token-on-accent: #ffffff;
-    --token-focus: #0e7a75;
-    --token-danger: #942c27;
-    --token-warning: #764700;
-    --token-success: #050608;
-    --token-live: #764700;
-    --token-model: #0b5c58;
-    --token-founder: #050608;
-    --token-community: #2b313a;
-    --token-brand: #eba53c;
-    --token-on-brand: #1a1206;
-    --token-prob-draw: #a8b0b7;
-    --token-prob-away: #7ccfc8;
-    --token-rating-low: #4b555e;
-    --token-on-rating-low: #ffffff;
-    --token-rating-good: #2bb3ad;
-    --token-on-rating-good: #0f1215;
-    --token-logo-tile: #ffffff;
-    --token-logo-edge: #ffffff;
-    --token-crest-halo: #ffffff;
   }
 }

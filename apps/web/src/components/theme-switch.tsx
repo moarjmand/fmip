@@ -35,8 +35,8 @@ const ICONS: Record<ThemePreference, React.ReactNode> = {
 
 /**
  * Auto (the device's own), Day or Night (T-602, D-089; named for the Hybrid
- * design, D-198). The header and the rebuilt pages follow it (D-263, D-267);
- * editorial pages not yet rebuilt stay on paper. Three submit buttons in one
+ * design, D-198). The header and every page follow it (D-263, D-267; the
+ * last editorial page left paper in T-1621, D-291). Three submit buttons in one
  * form, the pressed one marked with `aria-pressed`: it works before any script
  * has loaded, a screen reader hears which is on, and the choice is one press.
  * `compact` sits in the site header on every page -- in the phone's Menu its
