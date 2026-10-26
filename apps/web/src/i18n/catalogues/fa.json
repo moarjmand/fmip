@@ -15883,5 +15883,71 @@
     "text": "پنالتی",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.clipCount": {
+    "source": {
+      "one": "{count} highlight",
+      "other": "{count} highlights"
+    },
+    "forms": {
+      "one": "{count} هایلایت",
+      "other": "{count} هایلایت"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.competitionCount": {
+    "source": {
+      "one": "{count} competition",
+      "other": "{count} competitions"
+    },
+    "forms": {
+      "one": "{count} رقابت",
+      "other": "{count} رقابت"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.moreCompetitions": {
+    "source": {
+      "one": "{count} more competition",
+      "other": "{count} more competitions"
+    },
+    "forms": {
+      "one": "{count} رقابت دیگر",
+      "other": "{count} رقابت دیگر"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.featured": {
+    "source": "Latest highlights",
+    "text": "تازه‌ترین هایلایت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.watch": {
+    "source": "Watch",
+    "text": "تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.matchup": {
+    "source": "{home} v {away}",
+    "text": "{home} مقابل {away}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.by": {
+    "source": "By {publisher}",
+    "text": "از {publisher}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "highlights.territory": {
+    "source": "Where are you watching?",
+    "text": "کجا تماشا می‌کنید؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   }
 }

@@ -11,6 +11,7 @@ import type {
   ViewingTerritory,
 } from '@fmip/contracts';
 import { HIGHLIGHTS_PAGE_SIZE, TERRITORY_CODE } from '@fmip/contracts';
+import { EMPTY_MEDIA_INDEX, MediaService, type MediaIndex } from '../media/media.service';
 import { ProfileService } from '../profile/profile.service';
 import { offeredEverywhere, offeredIn } from './internal/highlight-feed';
 import {
@@ -46,6 +47,7 @@ export class ViewingService {
   constructor(
     private readonly store: PostgresViewingReadStore,
     private readonly profiles: ProfileService,
+    private readonly media: MediaService,
   ) {}
 
   /**
@@ -118,7 +120,8 @@ export class ViewingService {
    * The Highlights page (T-1434, D-226, D-260): every feed clip offered to
    * this reader, or every clip with none chosen, newest match first, one page of it with the competitions the
    * filter offers. Which clips is `highlightsPage`'s choice; the details are
-   * read for the page's clips only.
+   * read for the page's clips only, and the crests and logos (T-1614, D-285)
+   * for those clips and the filter's competitions, from the media boundary.
    */
   async list(
     territory: ViewingTerritory,
@@ -128,7 +131,22 @@ export class ViewingService {
     const chosen = highlightsPage(await this.store.feedIndex(), territory, competition, page);
     const rows = await this.store.feedItems(chosen.ids);
     const restricted = new Set(chosen.restricted);
-    const items = rows.map((row) => listItem(row, restricted.has(row.id)));
+    // A crest is never a reason for the list to fail: without the index every
+    // image is `not_supplied` and the page draws its lettered marks (rule 3).
+    const media = await this.media
+      .index({
+        team: rows.flatMap((row) => [row.home_id, row.away_id]),
+        competition: [
+          ...rows.map((row) => row.competition_id),
+          ...chosen.competitions.map((c) => c.id),
+        ],
+      })
+      .catch(() => EMPTY_MEDIA_INDEX);
+    const dressed = withHighlightMedia(
+      rows.map((row) => listItem(row, restricted.has(row.id))),
+      chosen.competitions,
+      media,
+    );
     const newest = rows.reduce<Date | null>(
       (at, row) => (at === null || row.fetched_at > at ? row.fetched_at : at),
       null,
@@ -138,11 +156,11 @@ export class ViewingService {
       territory,
       offered: territory.state === 'chosen' ? 'territory' : 'all',
       competition,
-      competitions: chosen.competitions,
+      competitions: dressed.competitions,
       page,
       page_size: HIGHLIGHTS_PAGE_SIZE,
       total: chosen.total,
-      items,
+      items: dressed.items,
       last_updated_at: newest === null ? null : newest.toISOString(),
     };
   }
@@ -322,6 +340,31 @@ export function highlightsPage(
         : shown.filter((row) => !offeredEverywhere(rule(row))).map((row) => row.id),
     total: filtered.length,
     competitions,
+  };
+}
+
+/**
+ * The Highlights page's images (T-1614, D-285), pure: each clip's two crests
+ * and its competition's logo, and each filter competition's logo, as the media
+ * boundary answers them -- our own address or `not_supplied`, never a
+ * provider's (D-176, rule 2). The clips themselves are unchanged.
+ */
+export function withHighlightMedia(
+  items: readonly HighlightListItem[],
+  competitions: readonly HighlightCompetition[],
+  media: MediaIndex,
+): { items: HighlightListItem[]; competitions: HighlightCompetition[] } {
+  return {
+    items: items.map((item) => ({
+      ...item,
+      fixture: {
+        ...item.fixture,
+        competition: { ...item.fixture.competition, logo: media.logo(item.fixture.competition.id) },
+        home: { ...item.fixture.home, crest: media.crest(item.fixture.home.id) },
+        away: { ...item.fixture.away, crest: media.crest(item.fixture.away.id) },
+      },
+    })),
+    competitions: competitions.map((c) => ({ ...c, logo: media.logo(c.id) })),
   };
 }
 

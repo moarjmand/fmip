@@ -2836,5 +2836,22 @@
   "highlights.older": "Older",
   "highlights.pageOf": "Page {page} of {pages}",
   "highlights.updated": "Links last read {time} ({zone})",
-  "highlights.penalties": "Pens"
+  "highlights.penalties": "Pens",
+  "highlights.clipCount": {
+    "one": "{count} highlight",
+    "other": "{count} highlights"
+  },
+  "highlights.competitionCount": {
+    "one": "{count} competition",
+    "other": "{count} competitions"
+  },
+  "highlights.moreCompetitions": {
+    "one": "{count} more competition",
+    "other": "{count} more competitions"
+  },
+  "highlights.featured": "Latest highlights",
+  "highlights.watch": "Watch",
+  "highlights.matchup": "{home} v {away}",
+  "highlights.by": "By {publisher}",
+  "highlights.territory": "Where are you watching?"
 }

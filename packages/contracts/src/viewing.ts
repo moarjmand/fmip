@@ -1,4 +1,5 @@
 import type { CoverageState, Covered } from './coverage';
+import type { EntityMedia } from './media';
 import type { FixtureStatus } from './scores';
 import type { ViewingTerritory } from './territory';
 
@@ -182,11 +183,16 @@ export interface ViewingBatchResponse {
 /** How many clips one page of `GET /highlights` holds. */
 export const HIGHLIGHTS_PAGE_SIZE = 20;
 
-/** A side of a listed clip's match: the team by id, named in the reader's language. */
+/**
+ * A side of a listed clip's match: the team by id, named in the reader's
+ * language, with its crest from our own origin (T-1614, D-285; D-176), absent
+ * from an answer written before it was carried.
+ */
 export interface HighlightListTeam {
   id: string;
   name: string;
   short_name: string | null;
+  crest?: EntityMedia;
 }
 
 /**
@@ -204,7 +210,7 @@ export interface HighlightListItem {
     id: string;
     kickoff_at: string;
     status: FixtureStatus;
-    competition: { id: string; name: string; short_name: string | null };
+    competition: { id: string; name: string; short_name: string | null; logo?: EntityMedia };
     home: HighlightListTeam;
     away: HighlightListTeam;
     score: { home: number; away: number } | null;
@@ -220,12 +226,16 @@ export interface HighlightListItem {
   last_updated_at: string;
 }
 
-/** A competition the filter offers: one with at least one clip offered to this reader. */
+/**
+ * A competition the filter offers: one with at least one clip offered to this
+ * reader, with its logo from our own origin (T-1614, D-285).
+ */
 export interface HighlightCompetition {
   id: string;
   name: string;
   short_name: string | null;
   count: number;
+  logo?: EntityMedia;
 }
 
 /**
