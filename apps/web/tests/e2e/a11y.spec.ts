@@ -25,6 +25,8 @@ const PAGES = [
   '/en/login',
   '/en/register',
   '/en/rules',
+  // The About page's diagram and section map (T-1615, D-286).
+  '/en/about',
   '/en/match/00000000-0000-4000-8000-000000000901',
   '/en/competition/00000000-0000-4000-8000-000000000201',
   '/en/team/00000000-0000-4000-8000-000000000601',
@@ -35,6 +37,7 @@ const PAGES = [
   '/en/welcome?step=teams',
   '/x-rtl/scores',
   '/x-rtl/rules',
+  '/x-rtl/about',
   '/x-rtl/scores?unpicked=1',
   '/x-rtl/welcome?step=territory',
 ];

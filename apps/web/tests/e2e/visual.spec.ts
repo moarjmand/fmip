@@ -34,6 +34,8 @@ const PAGES = [
   { name: 'competition', path: '/en/competition/00000000-0000-4000-8000-000000000201' },
   { name: 'team', path: '/en/team/00000000-0000-4000-8000-000000000601' },
   { name: 'player', path: '/en/player/00000000-0000-4000-8000-000000000701' },
+  // The About page's diagram, drawn still as reduced motion draws it (T-1615).
+  { name: 'about', path: '/en/about' },
 ] as const;
 
 const VIEWS = [
