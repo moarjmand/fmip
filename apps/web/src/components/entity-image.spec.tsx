@@ -2,7 +2,7 @@ import type { EntityMedia, ScoreCard as ScoreCardData } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { scoresWords } from '@/lib/words-server';
-import { EntityImage, initials } from './entity-image';
+import { EntityImage, imageClasses, initials } from './entity-image';
 import { ScoreCard } from './score-card';
 
 /**
@@ -45,8 +45,67 @@ describe('EntityImage', () => {
     expect(out).toContain('loading="lazy"');
     expect(out).toContain('decoding="async"');
     expect(out).toContain('object-contain');
-    expect(out).toContain('bg-surface-raised');
+    expect(out).toContain('crest-halo');
     expect(out).toContain('data-coverage="available"');
+  });
+
+  describe('readable on either ground (T-1609, D-280)', () => {
+    const SIZES = [20, 22, 40, 48, 96] as const;
+    const classes = (kind: 'crest' | 'logo' | 'photo', size: (typeof SIZES)[number]) =>
+      imageClasses(kind, size).split(' ');
+
+    it.each(SIZES)('puts a logo on the white tile with the Night hairline at %ipx', (size) => {
+      const got = classes('logo', size);
+      expect(got).toEqual(expect.arrayContaining(['bg-logo-tile', 'ring-1', 'ring-logo-edge']));
+      expect(got).toContain('object-contain');
+      // Padded inside the box and rounded, never round, never a crest's halo.
+      expect(got.some((c) => /^p-/.test(c))).toBe(true);
+      expect(got.some((c) => /^rounded-(?:sm|md|lg)$/.test(c))).toBe(true);
+      expect(got).not.toContain('crest-halo');
+      expect(got).not.toContain('bg-surface-raised');
+    });
+
+    it('pads the tile in step with the box, so a 20px logo keeps 16px of drawing', () => {
+      expect(classes('logo', 20)).toContain('p-0.5');
+      expect(classes('logo', 22)).toContain('p-0.5');
+      expect(classes('logo', 40)).toContain('p-1');
+      expect(classes('logo', 48)).toContain('p-1');
+      expect(classes('logo', 96)).toContain('p-2');
+    });
+
+    it.each(SIZES)('gives a crest the halo and no ground of its own at %ipx', (size) => {
+      const got = classes('crest', size);
+      expect(got).toContain('crest-halo');
+      expect(got).toContain('object-contain');
+      // A background would turn the halo into a square round the box.
+      expect(got.filter((c) => c.startsWith('bg-'))).toEqual([]);
+      expect(got).not.toContain('ring-logo-edge');
+    });
+
+    it('leaves a photo round and cropped on the raised surface', () => {
+      const got = classes('photo', 40);
+      expect(got).toEqual(
+        expect.arrayContaining(['rounded-full', 'object-cover', 'bg-surface-raised']),
+      );
+      expect(got).not.toContain('crest-halo');
+      expect(got).not.toContain('bg-logo-tile');
+    });
+
+    it('draws a stored logo on its tile, and the missing one as the plain mark', () => {
+      const logo: EntityMedia = { coverage: 'available', url: '/api/media/logo/c-1/0123456789ab' };
+      const drawn = html(<EntityImage media={logo} kind="logo" name="Premier League" size={20} />);
+      expect(drawn).toMatch(/^<img /);
+      expect(drawn).toContain('bg-logo-tile');
+      expect(drawn).toContain('ring-logo-edge');
+      // Rule 3: the lettered mark stays as it was, no tile that could pass for a logo.
+      const missing = html(
+        <EntityImage media={NONE} kind="logo" name="Premier League" size={20} />,
+      );
+      expect(missing).not.toContain('bg-logo-tile');
+      expect(missing).not.toContain('crest-halo');
+      expect(missing).toContain('bg-surface-raised');
+      expect(missing).toContain('data-letters="PL"');
+    });
   });
 
   it('loads a header image at once, and names it when it stands alone', () => {

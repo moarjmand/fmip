@@ -74,6 +74,43 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competitions
     );
   });
 
+  it('gives each country its flag from our own origin, and a competition of no country none (T-1611)', async () => {
+    const SPAIN = '00000000-0000-4000-8000-000000000102';
+    const sha = 'f1a9'.repeat(16);
+    await pool.query(`DELETE FROM entity_media WHERE entity_type = 'country' AND entity_id = $1`, [
+      SPAIN,
+    ]);
+    try {
+      await pool.query(
+        `INSERT INTO entity_media
+           (entity_type, entity_id, kind, source_provider, source_url, state, storage_key,
+            content_type, byte_size, sha256, source_fetched_at, last_checked_at)
+         VALUES ('country', $1, 'flag', 'api_football', 'https://media.api-sports.io/flags/es.svg',
+                 'available', $2, 'image/svg+xml', 1200, $3, now(), now())`,
+        [SPAIN, `${sha.slice(0, 2)}/${sha}.svg`, sha],
+      );
+      const response = await app.inject({ method: 'GET', url: '/competitions/directory' });
+      const all = (response.json() as CompetitionDirectoryResponse).competitions;
+      expect(all.find((c) => c.id === LA_LIGA)?.country).toEqual({
+        id: SPAIN,
+        name: 'Spain',
+        code: 'ESP',
+        flag: { coverage: 'available', url: `/api/media/flag/${SPAIN}/${sha.slice(0, 12)}.svg` },
+      });
+      // A country with no stored flag says so; one of no country has no flag at all.
+      expect(all.find((c) => c.id === PREMIER_LEAGUE)?.country?.flag?.coverage).toMatch(
+        /^(available|not_supplied)$/,
+      );
+      expect(all.find((c) => c.id === UCL)?.country).toBeNull();
+      expect(response.body).not.toContain('api-sports.io');
+    } finally {
+      await pool.query(
+        `DELETE FROM entity_media WHERE entity_type = 'country' AND entity_id = $1`,
+        [SPAIN],
+      );
+    }
+  });
+
   it("reads the language's own order, every unplaced competition after it", async () => {
     // `zq-GB` reads the `zq` order, as `en-GB` reads `en` (D-207).
     const all = await directory(`?locale=${LANGUAGE}-GB`);
