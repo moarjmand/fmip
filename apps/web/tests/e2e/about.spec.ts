@@ -31,6 +31,9 @@ async function centreX(page: Page, testId: string): Promise<number> {
 }
 
 test.describe('About page', () => {
+  // Measured still: mid-reveal, a step is up to 12px below its place.
+  test.use({ reducedMotion: 'reduce' });
+
   test('says how it works in an ordered list, the words being the diagram', async ({ page }) => {
     await page.goto('/en/about');
     const figure = page.getByTestId('how-it-works');
