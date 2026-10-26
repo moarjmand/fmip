@@ -12491,3 +12491,23 @@ replaces D-089's self-hosting arrangement for no gain here).
 4. The match page asks for the match once per request (`cache`), and starts it with every read that needs only the id and the cookie; the evaluation follows the match, since it is asked only after full time. An unknown match still 404s, and the reads started for it are dropped.
 
 **Consequences.** Locally the swap's CLS is 0.0001 on /en (from 0.13) and 0.006 on the match page (from 0.051), and 0.01 or less with no Arial on the device; `journeys/font-swap.spec.ts` holds the web fonts back on a phone and fails main's match page (0.057). The match page's HTML is 366 kB (62.8 kB gzip), from 436 kB (75.2 kB), and every other page loses the same 83 kB; with every API call slowed to 150 ms the page answers one round trip sooner (0.56 s from 0.70 s). A failed layout's page fetches its stylesheet when it is drawn, so if that request fails too the page is unstyled. The PageSpeed re-run on production after the deploy is the coordinator's. Not done: a phone without Arial or its clones (Android) still falls back to its system face unmatched; faces built on Roboto would need Roboto's metrics measured on such a device.
+
+## D-287 — Player photos inside the line-up discs; the number circle stays for a missing photo
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1616 · **Follows:** D-176, D-212, D-242, D-272
+
+**Context.** The maintainer asked for a more pictorial site. The match centre's pitch (D-212, D-272) drew each starter as a circle with his shirt number, although the API already sent each line-up player's photo from our own origin (D-176) and production holds one for most players: on 2026-10-26, Central Córdoba v Vélez Sarsfield (`69f414d7-32be-4597-a667-25dc2d4b06a1`) had 20 of 22 starters and 12 of 21 substitutes with a photo. The pitch also had two layout faults on production: five names across a 360px phone ran into each other, and at 768px nine columns were wider than the pitch, so the home goalkeeper was cut off.
+
+**Decision.**
+1. A starter with a photo is a 40px disc: the photo (the 96px WebP, D-242), round, `object-cover` from the top, inside a 2px ring of the side's tone (the home side in the text colour, the away side in the muted one, as the circles were) with a 1px gap of the pitch's ground so the ring reads against a white photo background in both themes. The shirt number is a badge on the disc's bottom end edge in the same tone. The captain mark stays after the name, the rating chip under it.
+2. The best rated keeps his highlight as a ring and a badge in saffron, not a fill, so his photo stays visible.
+3. Without a photo (`not_supplied`, an absent field, an address not under `/api/media/`) the player is the shirt-number circle exactly as before, in a slot of the disc's size so a row's names stay on one line; without a number either, the lettered mark. Never a silhouette (rule 3). In lite mode (D-205) nothing is fetched and the number circle stands in.
+4. The bench and a side drawn as a list get the same disc at 32px (a new `EntityImage` size); the number is in the disc, not written again before the name.
+5. Each name is cut to its player's share of the row or column, and from 768px the columns may be narrower than their longest name; the horizontal pitch is 496px tall, room for a column of five with a photo, a name and a chip.
+
+**Rejected.**
+- A silhouette or a generic avatar for a missing photo: it would pass for a photo (rule 3).
+- A 36px photo size: a new `EntityImage` size for a 4px saving; the ring inside the 40px box keeps the face at 34px and the slot at the old row height plus 8px.
+- Moving the rating chip onto the disc (as some score sites do): the chip is the Design System's (D-263), read in its place by the existing specs and by readers since T-1497.
+
+**Consequences.** No API change: `FixturesService` already filled `photo` for every line-up player through `MediaService.index`. A phone's pitch is about 8px taller per line. The seed holds no line-up, so the end-to-end and visual specs do not see the discs; the unit spec renders them.

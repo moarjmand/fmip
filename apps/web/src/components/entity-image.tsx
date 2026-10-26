@@ -28,11 +28,13 @@ import { cx } from '@/components/ui/cx';
 export type EntityImageKind = 'crest' | 'logo' | 'photo';
 
 /** The sizes the pages use, in CSS pixels. */
-export type EntityImageSize = 20 | 22 | 40 | 48 | 96;
+export type EntityImageSize = 20 | 22 | 32 | 40 | 48 | 96;
 
 const BOX: Record<EntityImageSize, string> = {
   20: 'size-5',
   22: 'size-[22px]',
+  // The line-ups' bench and list rows (T-1616).
+  32: 'size-8',
   40: 'size-10',
   48: 'size-12',
   96: 'size-24',
@@ -41,6 +43,7 @@ const BOX: Record<EntityImageSize, string> = {
 const LETTERS: Record<EntityImageSize, string> = {
   20: 'text-[9px]',
   22: 'text-[9px]',
+  32: 'text-xs',
   40: 'text-sm',
   48: 'text-base',
   96: 'text-3xl',
