@@ -134,6 +134,12 @@
   --token-rating-good: #2bb3ad;
   /* Text on the good rating chip: 7.30 on rating-good. */
   --token-on-rating-good: #0f1215;
+  /* A competition logo's tile (T-1609, D-280): white in both themes, the paper the logos are made for: 1.11 / 1.00 / 1.06. */
+  --token-logo-tile: #ffffff;
+  /* The tile's hairline: on Day the tile itself, so a logo looks as it always did. */
+  --token-logo-edge: #ffffff;
+  /* The halo round a crest's own outline: on Day the surface itself, so nothing shows: 1.11 / 1.00 / 1.06. */
+  --token-crest-halo: #ffffff;
 }
 
 /* More contrast on Day (T-621): every text role 7:1 or better. Chosen... */
@@ -193,6 +199,9 @@
   --token-rating-good: #2bb3ad;
   /* Text on the good rating chip: 7.30 on rating-good. */
   --token-on-rating-good: #0f1215;
+  --token-logo-tile: #ffffff;
+  --token-logo-edge: #ffffff;
+  --token-crest-halo: #ffffff;
 }
 
 /* ...or not chosen, and the device asks for it: the same values. */
@@ -229,6 +238,9 @@
     --token-on-rating-low: #ffffff;
     --token-rating-good: #2bb3ad;
     --token-on-rating-good: #0f1215;
+    --token-logo-tile: #ffffff;
+    --token-logo-edge: #ffffff;
+    --token-crest-halo: #ffffff;
   }
 }
 
@@ -294,6 +306,12 @@
     --token-rating-good: #2bb3ad;
     /* Text on the good rating chip: 7.30 on rating-good. */
     --token-on-rating-good: #0f1215;
+    /* A competition logo's tile: white on Night too, so a dark logo reads and every logo sits on the same ground: 18.79 / 17.31 / 15.64. */
+    --token-logo-tile: #ffffff;
+    /* The tile's hairline, a step above the line, seating the white tile in the ink: 1.84 / 1.70 / 1.53. */
+    --token-logo-edge: #3a424a;
+    /* The halo round a crest's own outline, so a navy or black crest keeps its edge: 8.16 / 7.52 / 6.80. */
+    --token-crest-halo: #a3acb5;
   }
 }
 
@@ -330,6 +348,9 @@
   --token-on-rating-low: #ffffff;
   --token-rating-good: #2bb3ad;
   --token-on-rating-good: #0f1215;
+  --token-logo-tile: #ffffff;
+  --token-logo-edge: #3a424a;
+  --token-crest-halo: #a3acb5;
 }
 
 /* More contrast on Night (T-621): Night chosen, more chosen. */
@@ -389,6 +410,9 @@
   --token-rating-good: #2bb3ad;
   /* Text on the good rating chip: 8.15 on rating-good. */
   --token-on-rating-good: #000000;
+  --token-logo-tile: #ffffff;
+  --token-logo-edge: #3a424a;
+  --token-crest-halo: #a3acb5;
 }
 
 /* The device's Night, more chosen. */
@@ -425,6 +449,9 @@
     --token-on-rating-low: #ffffff;
     --token-rating-good: #2bb3ad;
     --token-on-rating-good: #000000;
+    --token-logo-tile: #ffffff;
+    --token-logo-edge: #3a424a;
+    --token-crest-halo: #a3acb5;
   }
 }
 
@@ -462,6 +489,9 @@
     --token-on-rating-low: #ffffff;
     --token-rating-good: #2bb3ad;
     --token-on-rating-good: #000000;
+    --token-logo-tile: #ffffff;
+    --token-logo-edge: #3a424a;
+    --token-crest-halo: #a3acb5;
   }
 }
 
@@ -499,6 +529,9 @@
     --token-on-rating-low: #ffffff;
     --token-rating-good: #2bb3ad;
     --token-on-rating-good: #000000;
+    --token-logo-tile: #ffffff;
+    --token-logo-edge: #3a424a;
+    --token-crest-halo: #a3acb5;
   }
 }
 
@@ -540,6 +573,9 @@
   --token-on-rating-low: #ffffff;
   --token-rating-good: #2bb3ad;
   --token-on-rating-good: #0f1215;
+  --token-logo-tile: #ffffff;
+  --token-logo-edge: #ffffff;
+  --token-crest-halo: #ffffff;
 }
 
 /* ...and Day with more contrast, chosen... */
@@ -575,6 +611,9 @@
   --token-on-rating-low: #ffffff;
   --token-rating-good: #2bb3ad;
   --token-on-rating-good: #0f1215;
+  --token-logo-tile: #ffffff;
+  --token-logo-edge: #ffffff;
+  --token-crest-halo: #ffffff;
 }
 
 /* ...or asked for by the device. */
@@ -611,5 +650,8 @@
     --token-on-rating-low: #ffffff;
     --token-rating-good: #2bb3ad;
     --token-on-rating-good: #0f1215;
+    --token-logo-tile: #ffffff;
+    --token-logo-edge: #ffffff;
+    --token-crest-halo: #ffffff;
   }
 }

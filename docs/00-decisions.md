@@ -12492,6 +12492,26 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** Locally the swap's CLS is 0.0001 on /en (from 0.13) and 0.006 on the match page (from 0.051), and 0.01 or less with no Arial on the device; `journeys/font-swap.spec.ts` holds the web fonts back on a phone and fails main's match page (0.057). The match page's HTML is 366 kB (62.8 kB gzip), from 436 kB (75.2 kB), and every other page loses the same 83 kB; with every API call slowed to 150 ms the page answers one round trip sooner (0.56 s from 0.70 s). A failed layout's page fetches its stylesheet when it is drawn, so if that request fails too the page is unstyled. The PageSpeed re-run on production after the deploy is the coordinator's. Not done: a phone without Arial or its clones (Android) still falls back to its system face unmatched; faces built on Roboto would need Roboto's metrics measured on such a device.
 
+## D-280 — Logos on a white tile, crests with a halo on Night
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1609 · **Follows:** D-176, D-263
+
+**Context.** On Night the competitions bar drew the Premier League, Champions League, Ligue 1 and Europa League logos dark on the dark pill, where they could not be seen; La Liga's sat on a dark square (`bg-surface-raised` behind a transparent logo), Serie A's and the Bundesliga's on white squares of their own. Measured on production over the 41 logos we hold: 12 are mostly dark (Premier League, Champions League, Ligue 1, Eredivisie, Danish Superliga, Süper Lig and others, 80-100 % of their drawn pixels under 25 % lightness), 5 come with an opaque white square, and every one reads on white, the paper they are made for; several mostly light ones (Championship, Coppa Italia, DFB-Pokal) keep a coloured outline that reads on white too. Crests differ: they are shapes made to stand alone, drawn by the dozen in score rows and tables, and only some are dark at the edge (Tottenham, PSG, Inter, Atalanta, Lens, Brest, Le Mans: 60-100 % of the outline under 20 % lightness).
+
+**Decision.**
+1. Every competition logo `EntityImage` draws sits on a white tile in both themes (`--token-logo-tile`, #ffffff: 18.79 / 17.31 / 15.64 against Night's canvas, surface and raised surface), padded and rounded by size (2px inside and 4px corners at 20 and 22, 4 and 6 at 40 and 48, 8 and 8 at 96), with a hairline on Night (`--token-logo-edge` #3a424a, a step above the line; on Day it is the surface, so the Day look is as before). A white square in a logo merges into the tile, so the 41 look alike.
+2. A crest has no ground of its own (the old raised square is gone) and, on Night only, a one-pixel soft light halo that follows its outline (`crest-halo`: `drop-shadow(0 0 1px var(--token-crest-halo))`, #a3acb5 on Night, the surface on Day). A navy or black crest keeps its edge; a light or bright one looks as drawn. Editorial mode takes the Day values, as for every token.
+3. The fix is in `EntityImage` (`imageClasses`), so the bar, the competition header, the directory, the score and table rows and the match pages all follow; the competition header's frame is now the logo's own tile (48px, 72px from sm) rather than a box round a 40px image.
+4. The lettered mark is unchanged (rule 3).
+
+**Rejected.**
+- A tile behind every crest too: dozens of plates on a scores page, and a square round a shape that has its own.
+- A per-image lightness flag from the media store, to light only the dark ones: a contract and ingestion change for what one CSS filter does on the client.
+- An off-white tile on Night to soften it: the logos with their own white square then show it as a second box.
+- Inverting or recolouring logos: a mark is never recoloured.
+
+**Consequences.** Three tokens per block (32); `tokens.spec.ts` checks the tile is white everywhere, the edge and the halo are the surface on Day, and on Night the tile stands 7:1 and the halo 4.5:1 off every ground. The halo is a CSS filter on each crest, also on Day, where it draws nothing visible.
+
 ## D-282 — Country flags are entity media, noted from the fixture lists
 
 **Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1611 · **Follows:** D-176, D-242
