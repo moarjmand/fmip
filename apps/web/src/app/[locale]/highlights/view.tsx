@@ -195,14 +195,14 @@ function PageHeader({ locale, data }: { locale: string; data: HighlightsResponse
         )}
       </div>
       {logos.length >= 3 && (
-        <div aria-hidden="true" className="flex shrink-0 ps-3" data-testid="highlights-logos">
+        <div
+          aria-hidden="true"
+          className="flex shrink-0 flex-wrap gap-2"
+          data-testid="highlights-logos"
+        >
           {logos.map((c) => (
-            <span
-              key={c.id}
-              className="-ms-3 grid size-14 place-items-center rounded-full border-2 border-canvas bg-surface shadow-sm"
-            >
-              <EntityImage media={c.logo} kind="logo" name={c.name} size={40} aboveFold />
-            </span>
+            // Each logo on its own tile (D-280).
+            <EntityImage key={c.id} media={c.logo} kind="logo" name={c.name} size={40} aboveFold />
           ))}
         </div>
       )}
@@ -239,9 +239,7 @@ function Filter({
             on={data.competition === null}
             testId="highlights-filter-all"
           >
-            <span className="grid size-8 shrink-0 place-items-center rounded-full border border-default bg-canvas">
-              <AllMark />
-            </span>
+            <AllMark />
             <Translated locale={locale} message="highlights.allCompetitions" />
           </Chip>
         </li>
@@ -288,9 +286,7 @@ function CompetitionChip({
       testId="highlights-filter-competition"
       competition={c.id}
     >
-      <span className="grid size-8 shrink-0 place-items-center rounded-full border border-default bg-canvas">
-        <EntityImage media={c.logo} kind="logo" name={c.name} size={22} />
-      </span>
+      <EntityImage media={c.logo} kind="logo" name={c.name} size={22} />
       <bdi>{c.name}</bdi>
       <span className="rounded-pill bg-surface-raised px-1.5 text-xs font-semibold text-muted tabular-nums">
         {formatNumber(locale, c.count)}
@@ -318,7 +314,7 @@ function Chip({
       href={href}
       aria-current={on ? 'page' : undefined}
       className={cx(
-        'inline-flex min-h-touch items-center gap-2 rounded-pill ps-1.5 pe-3 text-sm whitespace-nowrap',
+        'inline-flex min-h-touch items-center gap-2 rounded-pill ps-2.5 pe-3 text-sm whitespace-nowrap',
         on
           ? // The row scrolls on a phone: the browser opens it at the chosen chip.
             'border-2 border-accent bg-brand/14 font-extrabold [scroll-initial-target:nearest]'
@@ -498,7 +494,12 @@ function Globe() {
 /** "All competitions": four tiles, the filter's every-competition mark. Decorative. */
 function AllMark() {
   return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" className="size-4 fill-muted">
+    <svg
+      viewBox="0 0 16 16"
+      aria-hidden="true"
+      focusable="false"
+      className="size-[22px] shrink-0 fill-muted"
+    >
       <rect x="1" y="1" width="6" height="6" rx="1.5" />
       <rect x="9" y="1" width="6" height="6" rx="1.5" />
       <rect x="1" y="9" width="6" height="6" rx="1.5" />

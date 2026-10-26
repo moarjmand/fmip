@@ -71,15 +71,14 @@ export function HighlightPoster({
           className="relative z-10 inline-flex min-h-touch min-w-0 items-center gap-2 font-semibold hover:underline md:min-h-6"
           data-testid="highlight-competition"
         >
-          <span className="grid size-7 shrink-0 place-items-center rounded-full border border-default bg-canvas">
-            <EntityImage
-              media={fixture.competition.logo}
-              kind="logo"
-              name={fixture.competition.name}
-              size={20}
-              aboveFold={featured}
-            />
-          </span>
+          {/* The logo stands on its own tile (D-280). */}
+          <EntityImage
+            media={fixture.competition.logo}
+            kind="logo"
+            name={fixture.competition.name}
+            size={22}
+            aboveFold={featured}
+          />
           <bdi className="truncate">{fixture.competition.name}</bdi>
         </Link>
         <time dateTime={fixture.kickoff_at} className="shrink-0 font-semibold text-muted">
