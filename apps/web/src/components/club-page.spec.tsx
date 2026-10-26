@@ -17,7 +17,8 @@ vi.mock('@/lib/auth-actions', () => ({
   unfollowAction: async () => undefined,
 }));
 
-const { ClubBand, NoNextMatch, SquadPanel, TeamMatchRow } = await import('./club-page');
+const { ClubBand, FixturesPanel, NoNextMatch, SquadPanel, TeamMatchRow } =
+  await import('./club-page');
 const { AroundThem, ComingUp, RecentResults, RecordPanel, SquadCard, TopScorerCard } =
   await import('./club-overview');
 const { EntityFollow } = await import('./competition-page');
@@ -219,6 +220,19 @@ describe('the club band', () => {
     expect(html).toContain('data-testid="manager-none"');
   });
 
+  it('isolates the ground, its capacity and the followers, so a Latin name keeps its place on /fa (T-1561)', () => {
+    const latin = page({
+      team: {
+        ...page().team,
+        venue: { id: 'v', name: 'Anfield', city: 'Liverpool', capacity: 61276 },
+      },
+    });
+    const fa = band(latin, 'fa');
+    expect(fa).toMatch(/<bdi data-testid="team-ground">Anfield، Liverpool<\/bdi>/);
+    expect(fa).toContain('<bdi>۶۱٬۲۷۶</bdi>');
+    expect(fa).toMatch(/<bdi data-testid="followers">[^<]*۱۲/);
+  });
+
   it('with no ground recorded, says where this season’s home matches were played (T-1394)', () => {
     // A match names Anfield while the club page said "not recorded": the
     // fixtures' ground, labelled as theirs, with how many it covers.
@@ -340,6 +354,20 @@ describe('the next match', () => {
     expect(fa).toContain('۹');
     expect(card('Mystery Bracket Z', 'en')).not.toContain('Mystery Bracket');
     expect(card('Regular Season - 9', 'en')).toContain('No model forecast for this match yet.');
+  });
+
+  it('is a heading of its own, as every other card is (T-1563)', () => {
+    const html = renderToStaticMarkup(
+      <NextMatchCard
+        fixture={fixture({ status: 'scheduled', score: null })}
+        forecast={{ state: 'none' }}
+        viewing={null}
+        locale="en"
+        timeZone="UTC"
+      />,
+    );
+    expect(html).toMatch(/<article aria-labelledby="next-match-heading"/);
+    expect(html).toMatch(/<h2 id="next-match-heading"[^>]*>Next match<\/h2>/);
   });
 
   it('says there is none rather than leaving the top of the page blank', () => {
@@ -482,6 +510,36 @@ describe('recent results and coming up', () => {
     );
     expect(none).toContain('data-testid="coming-up-empty"');
   });
+
+  it('leaves out a cancelled or postponed match, which the Fixtures tab lists without where to watch it (T-1560)', () => {
+    const next = fixture({ id: 'n0', status: 'scheduled', score: null });
+    const called = fixture({ id: 'gone', status: 'cancelled', score: null });
+    const moved = fixture({ id: 'moved', status: 'postponed', score: null });
+    const later = fixture({ id: 'n1', status: 'scheduled', score: null });
+    const p = page({ next_match: next, fixtures: [called, next, moved, later] });
+    const html = renderToStaticMarkup(
+      <ComingUp page={p} locale="en" timeZone="UTC" territory={undefined} freshness={null} />,
+    );
+    expect(html.match(/data-testid="match-line"/g)).toHaveLength(1);
+    expect(html).toContain('/match/n1"');
+    expect(html).not.toContain('/match/gone"');
+    expect(html).not.toContain('/match/moved"');
+    // The rest are a click away on the Fixtures tab.
+    expect(html).toContain(`href="/en/team/${TEAM}?tab=fixtures"`);
+    const tab = renderToStaticMarkup(
+      <FixturesPanel
+        page={p}
+        locale="en"
+        timeZone="UTC"
+        viewing={new Map()}
+        signedIn={false}
+        territory={undefined}
+        freshness={null}
+      />,
+    );
+    expect(tab.match(/data-testid="match-line"/g)).toHaveLength(4);
+    expect(tab.match(/data-testid="viewing-line"/g)).toHaveLength(2);
+  });
 });
 
 describe('the top scorer (T-1528, D-275)', () => {
@@ -589,6 +647,14 @@ describe("the band's head coach (T-1439, D-230)", () => {
       expect(html).toContain('href="/en/coach/p-pep"');
       expect(html).not.toContain('data-testid="head-coach"');
     }
+  });
+
+  it("dates the line-up's coach by its day, in the reader's calendar (T-1562)", () => {
+    const en = band(page({ manager: lineupCoach }));
+    expect(en).toContain('<time dateTime="2026-10-18T14:00:00.000Z">18 October 2026</time>');
+    const fa = band(page({ manager: lineupCoach }), 'fa');
+    expect(fa).toContain('<time dateTime="2026-10-18T14:00:00.000Z">۲۶ مهر ۱۴۰۵</time>');
+    expect(fa).toContain('<bdi>Pep Guardiola</bdi>');
   });
 });
 

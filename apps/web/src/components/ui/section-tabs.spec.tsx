@@ -36,6 +36,11 @@ describe('SectionTabs', () => {
     expect(html).not.toContain('flex-wrap');
   });
 
+  it('opens the row scrolled to the open tab, and only to that one (T-1564)', () => {
+    expect(html.match(/scroll-initial-target/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-current="page"[^>]*\[scroll-initial-target:nearest\]/);
+  });
+
   it('writes no colour of its own and no physical side', () => {
     expect(html).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(|\b(?:ml|mr|pl|pr|left|right)-/i);
   });

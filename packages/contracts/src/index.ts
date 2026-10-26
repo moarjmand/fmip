@@ -66,6 +66,8 @@ export type {
   PowerIndex,
   PowerIndexComponent,
   PowerIndexComponentValue,
+  PowerIndexNote,
+  PowerIndexNoteCode,
   PowerIndexPair,
   PowerIndexResponse,
 } from './power-index';
@@ -225,6 +227,7 @@ export type {
   PlayerPage,
   PlayerSeasonMinutes,
   PlayerSeasonRecord,
+  PlayerPosition,
   PlayerSpell,
   SeasonFixture,
   SeasonSummary,
@@ -361,7 +364,12 @@ export {
   CANDIDATE_FAILURE_LOOKBACK_DAYS,
   PROMOTION_MINIMUM,
 } from './forecast';
-export { STALE_LIVE_AFTER_MS, STOPPED_CLOCK_MINUTES, liveFreshnessFrom } from './scores';
+export {
+  STALE_LIVE_AFTER_MS,
+  STOPPED_CLOCK_MINUTES,
+  liveFreshnessFrom,
+  stillToPlay,
+} from './scores';
 export { AVAILABILITY_STALE_AFTER_MS } from './match-centre';
 export type {
   FixtureStatus,
@@ -389,6 +397,7 @@ export type {
   MatchHeader,
   MatchIncident,
   MatchIncidentDetail,
+  AbsenceReasonCode,
   MatchIncidentKind,
   MatchLineupPlayer,
   MatchLineups,

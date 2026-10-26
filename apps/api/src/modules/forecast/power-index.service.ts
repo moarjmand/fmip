@@ -22,6 +22,7 @@ import {
   type SquadContext,
 } from './internal/power-index-squad';
 import { PowerIndexStore, type IndexSubject } from './internal/power-index-store';
+import { explainNote } from './internal/power-index-note';
 
 // The module's public surface for the Power Index. Other modules import here.
 export { POWER_INDEX_FORMULA_VERSION } from './internal/power-index';
@@ -118,7 +119,7 @@ export class PowerIndexService {
     if (home === undefined || away === undefined) return null;
 
     const toIndex = (entry: (typeof rows)[number]): PowerIndex => {
-      const components = entry.row.components as PowerIndexComponentValue[];
+      const components = explained(entry.row.components as PowerIndexComponentValue[]);
       return {
         team: { id: entry.row.team_id, name: entry.row.team_name },
         value: Number(entry.row.value),
@@ -173,7 +174,7 @@ export class PowerIndexService {
       completeness: combined.completeness,
       formula_version: combined.formulaVersion,
       computed_at: computedAt.toISOString(),
-      components: combined.components,
+      components: explained(combined.components),
       leading: combined.leading,
     };
   }
@@ -196,4 +197,9 @@ function hashInputs(
     components: components.map((c) => [c.key, c.value, c.state]),
   });
   return createHash('sha256').update(payload).digest('hex');
+}
+
+/** Each component with its note in our words, read from the note (T-1602). */
+function explained(components: PowerIndexComponentValue[]): PowerIndexComponentValue[] {
+  return components.map((c) => ({ ...c, explanation: explainNote(c.note) }));
 }

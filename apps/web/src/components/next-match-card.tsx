@@ -2,7 +2,7 @@ import type { MatchViewing, TeamFixture } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { formatDate } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
-import { interpolate, message, t } from '@/i18n/messages';
+import { interpolate, message } from '@/i18n/messages';
 import { stageNames } from '@/lib/competition';
 import type { CardForecast } from '@/lib/score-card-products';
 import { formatKickoff } from '@/lib/scores';
@@ -58,14 +58,18 @@ export function NextMatchCard({
   const started = fixture.status !== 'scheduled';
   return (
     <article
-      aria-label={t(l, 'nextMatch.title')}
+      aria-labelledby="next-match-heading"
       className="flex min-w-0 flex-col overflow-hidden rounded-card border border-default bg-surface"
       data-testid="next-match"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-default px-4 py-3 sm:px-5">
-        <span className="text-xs font-extrabold text-accent uppercase ltr:tracking-widest">
+        {/* A heading, as every other card on the page has (T-1563). */}
+        <h2
+          id="next-match-heading"
+          className="text-xs font-extrabold text-accent uppercase ltr:tracking-widest"
+        >
           <Translated locale={l} message="nextMatch.title" />
-        </span>
+        </h2>
         <span className="text-sm text-muted">
           <bdi>{competition}</bdi>
           {round.map((label) => (

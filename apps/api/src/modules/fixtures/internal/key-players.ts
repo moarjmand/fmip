@@ -45,8 +45,15 @@ export function availabilityOf(
 ): KeyPlayerAvailability | null {
   if (askedAt === null) return null;
   const absence = absences.find((a) => a.id === playerId);
-  if (absence === undefined) return { status: 'not_listed', kind: null, reason: null };
-  return { status: absence.status, kind: absence.kind, reason: absence.reason };
+  if (absence === undefined) {
+    return { status: 'not_listed', kind: null, reason: null, reason_code: null };
+  }
+  return {
+    status: absence.status,
+    kind: absence.kind,
+    reason: absence.reason,
+    reason_code: absence.reason_code ?? null,
+  };
 }
 
 /**

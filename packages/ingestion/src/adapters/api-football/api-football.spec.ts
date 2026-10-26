@@ -1022,3 +1022,55 @@ describe('what the provider covers for a season (T-1364)', () => {
     expect(result).toMatchObject({ ok: false, requests: 0, error: { kind: 'unsupported' } });
   });
 });
+
+describe('the provider writes 0 for an id it does not know (T-1600)', () => {
+  const recorded = (): {
+    lineups: { coach: { id: unknown }; startXI: { player: { id: unknown } }[] }[];
+    players: unknown;
+    teams: { home: { id: number }; away: { id: number } };
+  } => {
+    const raw = loadScenarios(FIXTURES_DIR).find((s) => s.name === 'lineup-burnley-man-city')
+      ?.requests[0]?.body;
+    const body = (typeof raw === 'string' ? JSON.parse(raw) : structuredClone(raw)) as {
+      response: unknown[];
+    };
+    return body.response[0] as ReturnType<typeof recorded>;
+  };
+
+  it('names no coach and no player for id 0, never one person for every unknown one', () => {
+    const item = recorded();
+    item.lineups[0]!.coach.id = 0;
+    const named = item.lineups[0]!.startXI.length;
+    item.lineups[0]!.startXI[0]!.player.id = 0;
+    const lineup = mapLineup(
+      item.lineups,
+      item.players,
+      '1035037',
+      String(item.teams.home.id),
+      String(item.teams.away.id),
+    );
+    expect(lineup?.home.coach ?? null).toBeNull();
+    const starters = lineup?.home.players.filter((p) => p.role === 'starter') ?? [];
+    expect(starters).toHaveLength(named - 1);
+    expect(starters.map((p) => p.externalId)).not.toContain('0');
+  });
+
+  it('keeps a venue with id 0 as a name without an id', () => {
+    const fixture = mapFixture(
+      {
+        fixture: {
+          id: 1,
+          date: '2026-09-10T19:00:00+00:00',
+          status: { short: 'NS' },
+          venue: { id: 0, name: 'Somewhere', city: 'Town' },
+        },
+        league: { id: 39, name: 'Premier League', season: 2026 },
+        teams: { home: { id: 44, name: 'Burnley' }, away: { id: 50, name: 'City' } },
+        goals: {},
+        score: {},
+      },
+      '2026-09-10T19:05:00Z',
+    );
+    expect(fixture?.venue).toEqual({ externalId: null, name: 'Somewhere', city: 'Town' });
+  });
+});

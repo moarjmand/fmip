@@ -413,6 +413,39 @@ one with `aria-current`) draws the model's three percentages below 4.5:1
 on its highlight (Lighthouse's colour-contrast audit, on production's data).
 CI's axe runs see the page without an API and so without rows. T-1535.
 
+### T-1536: the phone's loading figures
+
+Measured locally on 2026-10-26 against the seed's played match and `/en`
+(the API on Postgres and Redis in Docker, `next start`), on a 412 x 823 phone
+with slow 4G (150 ms, 1.6 Mbps) and a 4x slower CPU, the layout shifts read
+by a `PerformanceObserver`. The machine was shared with other work, so its
+own Lighthouse scores (61 to 87 on the same build) are not comparable with
+PageSpeed's and are not recorded; what is recorded does not depend on its load.
+
+| | main | T-1536 |
+| --- | --- | --- |
+| CLS when the fonts arrive, `/en` (with the seed's day on the strip) | 0.13 | 0.0001 |
+| CLS when the fonts arrive, the match page | 0.051-0.057 | 0.006 |
+| the same with no Arial or its clones on the device, `/en` / match | -- | 0.0008 / 0.01 |
+| the match page's HTML (raw / gzip) | 436 / 75.2 kB | 366 / 62.8 kB |
+| `/en`'s HTML (raw / gzip, no matches on the day) | 322 / 56.9 kB | 247 / 43.9 kB |
+| the match page's answer with every API call at 150 ms (fastest of 10) | 0.70 s | 0.56 s |
+
+The causes and what was done are D-279: fallback faces for each weight and
+width Archivo is drawn at, the home's heading link on its own line on a
+phone, `global-error`'s copy of the stylesheet out of every page's HTML, and
+the match page's reads started together and the match asked once.
+`journeys/font-swap.spec.ts` holds every web font back for 1.2 s on a phone
+and requires the swap to shift `/en` and the match page by under 0.05; main
+fails it on the match page (0.057).
+
+The match page's LCP on PageSpeed waits on its answer: production answers an
+edge miss in about 1.1 s for both `/en` and the match page (0.4 s for
+`/health`, 0.2 s for an edge hit, read from the built-in browser), and `/en`
+is usually an edge hit when PageSpeed asks for it while a match page is not.
+The PageSpeed re-run against production after the deploy is the
+coordinator's.
+
 ## Match alerts (T-834)
 
 The second live path: a goal becomes a push (T-830, D-098). The live job
