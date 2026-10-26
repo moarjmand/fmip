@@ -733,6 +733,149 @@ describe('where the club stands', () => {
   });
 });
 
+describe('crests, logos and photos on the club page (T-1617)', () => {
+  const crest = (id: string) => ({
+    coverage: 'available' as const,
+    url: `/api/media/crest/${id}/0123456789ab.png`,
+  });
+  const logo = { coverage: 'available' as const, url: '/api/media/logo/pgpl/0123456789ab.png' };
+  const NONE = { coverage: 'not_supplied' as const, url: null };
+  const pictured = (over: Partial<TeamPageFixture> = {}) =>
+    fixture({
+      home: { id: TEAM, name: 'Tractor', short_name: null, crest: crest('tractor') },
+      away: { id: 'esteghlal', name: 'Esteghlal', short_name: null, crest: crest('esteghlal') },
+      competition: {
+        id: 'pgpl',
+        name: 'Persian Gulf Pro League',
+        short_name: 'Pro League',
+        logo,
+      },
+      ...over,
+    });
+  const srcs = (html: string) => [...html.matchAll(/<img [^>]*src="([^"]*)"/g)].map((m) => m[1]);
+
+  it("draws both crests on the next match, each beside its side's name", () => {
+    const html = renderToStaticMarkup(
+      <NextMatchCard
+        fixture={pictured({ status: 'scheduled', score: null })}
+        forecast={{ state: 'none' }}
+        viewing={null}
+        locale="en"
+        timeZone="UTC"
+      />,
+    );
+    expect(srcs(html)).toEqual([
+      '/api/media/crest/tractor/0123456789ab-96.webp',
+      '/api/media/crest/esteghlal/0123456789ab-96.webp',
+    ]);
+    expect(html).toMatch(/tractor.*Tractor.*Esteghlal/s);
+    expect(html).not.toMatch(PHYSICAL);
+  });
+
+  it('puts both crests on a match row and the logo beside its competition', () => {
+    const html = renderToStaticMarkup(
+      <ul>
+        <TeamMatchRow fixture={pictured()} teamId={TEAM} locale="en" timeZone="UTC" />
+      </ul>,
+    );
+    expect(srcs(html)).toEqual([
+      '/api/media/crest/tractor/0123456789ab-48.webp',
+      '/api/media/crest/esteghlal/0123456789ab-48.webp',
+      '/api/media/logo/pgpl/0123456789ab-48.webp',
+    ]);
+    // A competition with no logo sent: no tile, no mark in the small print.
+    const plain = renderToStaticMarkup(
+      <ul>
+        <TeamMatchRow fixture={fixture()} teamId={TEAM} locale="en" timeZone="UTC" />
+      </ul>,
+    );
+    expect(plain).not.toContain('data-kind="logo"');
+  });
+
+  it("shows the opponent's crest in recent results and coming up, never the club's own", () => {
+    const recent = renderToStaticMarkup(
+      <RecentResults page={page({ results: [pictured()] })} locale="en" timeZone="UTC" />,
+    );
+    expect(srcs(recent)).toEqual([
+      '/api/media/crest/esteghlal/0123456789ab-48.webp',
+      '/api/media/logo/pgpl/0123456789ab-48.webp',
+    ]);
+    const later = pictured({
+      id: '00000000-0000-4000-8000-00000000f002',
+      status: 'scheduled',
+      score: null,
+      home: { id: 'esteghlal', name: 'Esteghlal', short_name: null, crest: NONE },
+      away: { id: TEAM, name: 'Tractor', short_name: null, crest: crest('tractor') },
+    });
+    const coming = renderToStaticMarkup(
+      <ComingUp
+        page={page({ fixtures: [later] })}
+        locale="en"
+        timeZone="UTC"
+        territory={undefined}
+        freshness={null}
+      />,
+    );
+    // The opponent has no crest held: its lettered mark, not the club's crest.
+    expect(srcs(coming)).toEqual([]);
+    expect(coming).toContain('data-letters="E"');
+  });
+
+  it('draws the squad with photos and the table around the club with crests and the logo', () => {
+    const squad = renderToStaticMarkup(
+      <SquadCard
+        page={page({
+          squad: {
+            coverage: 'available',
+            last_updated_at: null,
+            data: [
+              player({
+                person: {
+                  id: 'p1',
+                  name: 'Ali Daei',
+                  photo: { coverage: 'available', url: '/api/media/photo/p1/0123456789ab.png' },
+                },
+              }),
+            ],
+          },
+        })}
+        locale="en"
+      />,
+    );
+    expect(srcs(squad)).toEqual(['/api/media/photo/p1/0123456789ab-48.webp']);
+    const base = page();
+    const entry = base.competitions[0]!;
+    const around = renderToStaticMarkup(
+      <AroundThem
+        page={page({
+          competitions: [
+            {
+              ...entry,
+              competition: { ...entry.competition, logo },
+              context: {
+                ...entry.context,
+                data: {
+                  ...entry.context.data!,
+                  rows: entry.context.data!.rows.map((r) => ({
+                    ...r,
+                    team: { ...r.team, crest: crest('tractor') },
+                  })),
+                },
+              },
+            },
+          ],
+        })}
+        locale="en"
+      />,
+    );
+    expect(srcs(around)).toEqual([
+      '/api/media/logo/pgpl/0123456789ab-48.webp',
+      '/api/media/crest/tractor/0123456789ab-48.webp',
+    ]);
+    expect(around).not.toMatch(PHYSICAL);
+  });
+});
+
 describe('logical properties only (rule 7)', () => {
   it('uses no physical left or right in the page or its components', () => {
     expect(PAGE).not.toMatch(PHYSICAL);

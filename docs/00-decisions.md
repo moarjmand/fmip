@@ -12542,3 +12542,77 @@ replaces D-089's self-hosting arrangement for no gain here).
 6. On a phone the tiles scroll sideways in one row, the chosen one brought into view, their focus ring drawn inside; from 640px they are a grid. Every image is drawn by the server and handed to the client half, so neither `EntityImage` nor `@fmip/contracts` rides on the page's first load (T-808).
 
 **Rejected.** Radio buttons in the search form (a choice would need a submit button without a script, and pressing Enter in the filter would send the form's first button); the country's id in the address (not readable); hiding the chosen tile when the filter finds nothing in it; a flag package or emoji flags (D-282).
+
+## D-284 — The news front page: a lead, cards and a list in the section's own order; a story without a licensed photo gets a designed panel of what we own
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1613 · **Follows:** D-061, D-176, D-177, D-178, D-207
+
+**Context.** The maintainer asked for a more professional, attractive news page and for images in the home page's news. The news page was one column of text cards; the home page's six stories were headlines. On production on 2026-10-26, 2 of the 40 newest stories on `/en` and 2 of 40 on `/fa` had a licensed photo (D-177 allows only Mehr, Tasnim and Tehran Times, and D-207 shows `/en` English sources only), and many stories are filed under no entity at all. A page of photos is therefore not possible without inventing pictures, which rule 3 forbids.
+
+**Decision.**
+1. **A front page, in the section's order.** A section's first page is the lead story (its picture beside its words on a desktop, the headline in the editorial face), a row of four cards (picture above the headline), then the compact list (a 96 or 128 px picture on the inline start). An older page is the list alone. The page never re-ranks a section: latest stays newest first and trending most discussed first, so the lead is the first story whether or not it has a photo.
+2. **A licensed photo is drawn as before** (D-177): from `/media/news/`, its width and height said, its credit and licence beside it -- under the photo, or in a list row's words. Only the lead is loaded at once; everything else is lazy.
+3. **A story without one gets a designed panel, never a stand-in photo.** The panel is plainly a graphic: the Stadiomind pitch lines on the saffron edge, carrying the crests, logos and player photos we hold (D-176) of what the story is filed under, clubs first, at most three (two in a list row); when we hold none, the source's name set in type. A missing crest is left out of the panel rather than drawn as a lettered mark. The panel is decorative (`aria-hidden`), absent in lite mode, and links to the original out of the tab order, as the photo does.
+4. **The entity images come from the API.** `NewsEntity.media` (contracts) is the team's crest, the competition's logo or the person's photo from `MediaService`, `not_supplied` when none is stored and absent for a fixture; the news read store asks the media index once per read.
+5. **Every card says its source and its time.** The time is "3 hr ago" under a day and the date after, the full time on hover; a story whose publisher gave no time says so. Each story's tags are its clubs, competition, people and match, in that order, each a link to its page by id, a club with its crest and a competition with its logo, in a 44 px target on a phone.
+6. **The other sections as distinct blocks.** The unfiltered latest front page carries the heads of trending (five) and debate (three) beside its list, numbered, each linking to the original; an empty one says the API's reason for being empty (rule 3) and links to the section. Filtered pages, other sections and older pages do not.
+7. **The filters** are the same GET form in a panel: a disclosure with its own summary, the fields in a grid of two to four columns, open when a filter is set.
+8. **The home page's news** follows the same rules with the same components (part 3 of T-1613).
+
+**Rejected.** *Promoting the newest story with a photo to the lead*: it would reorder the latest section and pass a three-hour-old story off as the top one. *Stock or generic football pictures for stories without a photo*: they would pass for the story's photograph (rule 3). *Lettered marks on the panel*: a row of letters is a stand-in that reads as missing rather than designed. *A client-side carousel*: no new client JavaScript is needed for a front page.
+
+## D-285 — Highlights as match posters drawn from our own crests and logos, never a video frame
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round: "more professional, attractive and creative, with more images and logos") · **Task:** T-1614 · **Follows:** D-069, D-176, D-184, D-226, D-260, rules 2-3
+
+**Context.** The Highlights page (T-1434, D-226) was a list of text rows: competition and date, the teams and the score, a button out. The maintainer asked for a more professional, attractive and creative site with more images and logos. The clips are the licensed feed's links (D-184): link only, and the feed's thumbnail and embed are read and dropped, because the source's rights are `link` (D-069). `GET /highlights` carried no image at all.
+
+**Decision.**
+1. **Each clip is a match poster**, drawn from our own media: the competition's logo, both crests large on round plates, the score in the display face, the date and a play badge (the brand's saffron disc, inline SVG), on the stage ground with a faint saffron light from the top and the pitch's lines in hairlines. The poster is never a frame of the video and nothing on it could pass for one: no thumbnail is shown, whatever the provider offers, until a source's rights say `thumbnail` (D-184). A crest or logo we do not hold is the neutral lettered mark (rule 3).
+2. **The way out names the destination.** The button says "Watch" and the host it opens on (`LinkOut`, `youtube.com`); the publisher is named beside it ("By LaLiga") when the feed names one. The whole poster opens the clip (the link out's area is stretched over the card); the competition (to the page filtered by it) and the match page are their own links above it. A restricted clip (D-260) carries "May not play in your country" on the poster.
+3. **Layout.** On the first page the newest clip is featured as a large poster; the rest are a grid (one, two, three columns) under a heading per day in the reader's zone ("Today", "Yesterday", else the date). Later pages are the grid alone, so a clip is never shown twice. *Rejected:* featuring "the biggest" match: no measure of size is stored that would not be a judgement, and the newest is what a reader of this page comes for.
+4. **The filter is logo chips**: logo, name and count, links whose choice is in the address, so they work without script; the chosen one stands on the selected ground (D-277) and is `aria-current`. On a phone the first chips scroll sideways in one row; past the eleven competitions with the most clips the rest wait behind a disclosure (`details`), and the chosen one is always among the shown. The territory chooser (`TerritoryChooser`, shared with the match page and unchanged) sits in its own panel with a globe and the "every clip is listed" sentence (D-260).
+5. **The API carries the images**: `HighlightListTeam.crest`, the clip's `competition.logo` and `HighlightCompetition.logo`, optional `EntityMedia`, asked of the media boundary (`MediaService.index`) for the page's clips and the filter's competitions in one read. The viewing module now imports the media module; an index that fails leaves every image `not_supplied` rather than failing the list.
+
+**Rejected.** *Hotlinking the provider's thumbnail*: D-176 and D-184, and it would be a frame of someone else's video on our page. *A generated "video frame" (a still with a play button over a stadium photo)*: it would look like a thumbnail of the clip and is not one. *A select for the competitions*: a reader cannot see the logos or the counts, and the chips already work without script.
+
+**Consequences.** Every clip shows two crests and a logo where we hold them; the page asks the media table once per view. The header shows up to six competition logos only when at least three are held. Nothing is played or embedded, as before.
+
+## D-286 — The About page explains the site with a drawn flow and a map of its sections, in markup and CSS
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1615 · **Follows:** D-263, D-269
+
+**Context.** The maintainer asked for a more professional, attractive and creative site. The About page (T-523) was four paragraphs and a bulleted list: it said what the product is but showed nothing of how a match moves through it, and it pointed to no section but the scores and the leaderboard. Its readers are mostly first visits, the people the rules of the product (one match record, three predictions kept apart, versions never edited, ratings recomputable, missing data said) matter to most and are least visible to.
+
+**Decision.**
+1. The page opens on "How Stadiomind works": the path of one match in six steps -- licensed match data, the one match record and the surfaces it feeds, the three prediction products, kick-off, full time, and what each product builds. The model's forecast, the founder's analysis and the community's picks run in lanes of their own in the products' own colours (`--token-model`, `-founder`, `-community`), pass both gates separately and end at separate records: the model's public track record, the founder's calls checked against the result, each member's Performance Rating. No line joins two lanes (rule 6). The model's lane is drawn as a stack of versions; the record's card says missing data is labelled, not invented (rule 3); the records' note says a rating is recomputable (rule 8).
+2. The diagram is an ordered list of real text, drawn by CSS: the words are its text equivalent and the reading order is the flow. Only the wires (inline SVG) and the gate marks are pictures, `aria-hidden`. A figcaption says how to read it.
+3. Below 1024px the steps stack, with dotted wires between them; after the split the wire has three strands, one per lane. From 1024px the steps stand in five columns and the lanes, gates and records share rows through `subgrid`, so each lane draws its own wires with lengths known from two fixed custom properties: no script measures anything. Wires are drawn from the line's start, and `dir="rtl"` turns them round, so the flow and the dots run right to left on /fa.
+4. Motion is gentle and optional: the steps rise in turn (about 1.5 s in all) and dots flow along the wires. It runs only under `prefers-reduced-motion: no-preference` and without the member's `data-motion="reduce"`; otherwise the diagram is complete and still, which is also what the visual baseline photographs.
+5. "Find your way" follows it: the main sections as tiles in two groups, the football (Matches, Match centre, Competitions, News, Highlights, Watch) and the forecasts (The model, The founder's analysis, Predictions, Leaderboard). Each tile is a link with one line on what is there; a forecast tile wears its product's colour. The match centre has no page of its own to open on, so its tile leads to the matches and says "open any match".
+6. The page's own CSS is `app/[locale]/about/about.css`, imported by the page, so no other route loads it; icons the shared set lacks are the page's own (`about-icons.tsx`), drawn the same way. No new dependency, no client JavaScript.
+
+**Rejected.**
+- One SVG drawing of the whole diagram: its text would not wrap or translate, a Persian label longer than the English would overflow, and it would need a second text version for assistive technology.
+- A diagram library or a client-side animation: a dependency and a script for a page that needs neither.
+- Scroll-triggered animation: it needs a script, or `animation-timeline: view()`, which not every browser has; the diagram is near the top, so a reveal on load is seen.
+- Linking the match centre tile to one live match: it would need another API call on every view of the page, and the tile would change meaning with the day.
+
+## D-288 — Crests, logos and photos on the remaining pages, and where a phone leaves them out
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1617 · **Follows:** D-176, D-280
+
+**Context.** The maintainer asked for images and logos across the whole site. The competition, club and player pages named clubs in every list -- fixtures, results, recent results, matches coming up, the table around the club, the player's career and record -- as text only, and the club page's next match drew no crest, although the media store holds a crest for nearly every club and a logo for every competition we cover. At 360px a club's match row gives both names and the score 170px, and a competition page's match line 136px; two 20px crests and their gaps take 56px of that.
+
+**Decision.**
+1. Every list that names a club draws its crest through `EntityImage`, and every line that names a competition beside a match draws its logo, from the API's own answer: the catalog pages' answers carry them (T-1617a), read with each page's other media in one query. A club with no crest held gets the lettered mark (rule 3); a competition logo the API did not send is left out rather than marked, since it sits in the small print.
+2. A row that names one club (a recent result's opponent, a match coming up, a table row, a squad line with its photo, a career spell, a record row) draws it at every width.
+3. A row that names both sides of a match in one line (the competition page's match line, the club page's match row, the player's match line) draws the two crests from 640px only; on a phone the names keep the room, as they wrap or truncate already.
+4. The club page's next match draws both crests at 40px: at each name's outer edge from 640px, above the name on a phone.
+5. The watch page draws both crests at the ends of each match link: its score cards carry them already.
+6. Search (T-1617c): each team, competition and person result carries its crest, logo or photo, read for the page of results in one query, drawn at 22px before the name.
+7. Nothing is drawn that the answers do not carry: the model page's competitions, the match centre's scorers and the leaderboard would need media added to other modules' answers, left for later; no provider address is ever drawn (D-176).
+
+**Rejected.** Crests on a phone's two-sided rows: the names would truncate to two or three letters. A stacked two-line row on a phone (home over away), as some score apps draw it: a redesign of rows T-1555 settled as running text, for another task. Crests beside every event of the match centre's timeline: the side is already its column, and the header carries both crests.
+
+**Consequences.** The competition, club and player pages ask for their media once each, as before, with more ids; the player page now asks after its reads, one more round trip. The images are crests and logos on Night with D-280's halo and tile.

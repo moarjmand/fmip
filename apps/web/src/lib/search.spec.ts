@@ -1,6 +1,8 @@
 import { SEARCH_TYPES, type SearchEntityType, type SearchResult } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
+import { imageClasses } from '@/components/entity-image';
 import {
+  RESULT_IMAGE_KIND,
   SECTION_EMPTY_KEY,
   SECTION_TITLE_KEY,
   apiQuery,
@@ -15,6 +17,15 @@ import {
   readSearchTerm,
   resultHref,
 } from './search';
+
+describe("a result's image (T-1617)", () => {
+  it('draws a team as a crest, a competition as a logo on its tile and a person as a round photo', () => {
+    expect(RESULT_IMAGE_KIND).toEqual({ team: 'crest', competition: 'logo', person: 'photo' });
+    expect(imageClasses(RESULT_IMAGE_KIND.competition, 22)).toContain('bg-logo-tile');
+    expect(imageClasses(RESULT_IMAGE_KIND.team, 22)).toContain('crest-halo');
+    expect(imageClasses(RESULT_IMAGE_KIND.person, 22)).toContain('rounded-full');
+  });
+});
 
 describe('search helpers', () => {
   it('reads the term from the URL, collapsing whitespace', () => {

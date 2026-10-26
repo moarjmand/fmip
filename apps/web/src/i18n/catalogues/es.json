@@ -617,6 +617,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.news.all": {
+    "source": "All news",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.welcome.label": {
     "source": "New to Stadiomind",
     "text": "",
@@ -903,6 +908,291 @@
   },
   "about.account": {
     "source": "Predicting needs an account with a verified email address.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.title": {
+    "source": "How Stadiomind works",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.intro": {
+    "source": "From licensed data to your rating, one match at a time. The three forecasts travel in lanes of their own and never meet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.caption": {
+    "source": "The steps in order. Each coloured lane is one kind of prediction, kept apart from the moment it is made to the record it builds.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.source.name": {
+    "source": "Licensed match data",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.source.body": {
+    "source": "Fixtures, scores, line-ups and statistics, from a licensed football data service.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.name": {
+    "source": "One record for every match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.body": {
+    "source": "Each match, club, player and competition has one identity of our own, and every page hangs off it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.live": {
+    "source": "Live scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.centre": {
+    "source": "Match centre",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.competitions": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.clubs": {
+    "source": "Clubs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.players": {
+    "source": "Players",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.note": {
+    "source": "Missing data is labelled, never invented, and every live number shows when it last changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.lanes.title": {
+    "source": "Three forecasts, side by side",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.model.name": {
+    "source": "The model’s forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.model.body": {
+    "source": "Home win, draw and away win probabilities, versioned and time-stamped. A version is never edited; a new one is added.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.founder.name": {
+    "source": "The founder’s analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.founder.body": {
+    "source": "One person’s call on selected matches, written and signed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.community.name": {
+    "source": "The community’s picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.community.body": {
+    "source": "Members’ own predictions, with how confident they are and, if they like, the exact score.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.apart": {
+    "source": "Never blended into one number.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.kickoff.name": {
+    "source": "Kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.kickoff.body": {
+    "source": "Picks lock. Only what was published before kick-off is judged.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.settle.name": {
+    "source": "Full time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.settle.body": {
+    "source": "The result settles every pick and scores every forecast, each on its own record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcomes.title": {
+    "source": "What each one builds",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.model.name": {
+    "source": "The model’s public track record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.model.body": {
+    "source": "Every forecast published before kick-off, scored in the open.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.founder.name": {
+    "source": "The founder’s calls, checked",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.founder.body": {
+    "source": "Right or wrong, shown beside the result on the match’s page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.community.name": {
+    "source": "Each member’s Performance Rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.community.body": {
+    "source": "Earned most by being right when it was hard to be.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcomes.note": {
+    "source": "A rating can always be recomputed from the stored picks and results alone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.title": {
+    "source": "Find your way",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.intro": {
+    "source": "The main sections, and what you will find in each.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.football": {
+    "source": "Follow the football",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.forecasts": {
+    "source": "Forecasts and predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.matches.name": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.matches.body": {
+    "source": "Every match of the day in your time zone, live as it happens.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.centre.name": {
+    "source": "Match centre",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.centre.body": {
+    "source": "Open any match for its timeline, line-ups, statistics and forecasts.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.competitions.name": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.competitions.body": {
+    "source": "Every league and cup we follow, with tables, fixtures, clubs and players.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.news.name": {
+    "source": "News",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.news.body": {
+    "source": "The latest football stories, each with its source named.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.highlights.name": {
+    "source": "Highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.highlights.body": {
+    "source": "Official highlights of finished matches, opening on the publisher’s own site.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.watch.name": {
+    "source": "Watch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.watch.body": {
+    "source": "Which official service shows each match in your country.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.model.name": {
+    "source": "The model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.model.body": {
+    "source": "How the statistical model’s forecasts have scored against the results.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.analysis.name": {
+    "source": "The founder’s analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.analysis.body": {
+    "source": "Signed calls on selected matches, beside the day’s fixtures.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.predictions.name": {
+    "source": "Predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.predictions.body": {
+    "source": "Pick the matches still open before kick-off, with how confident you are.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.leaderboard.name": {
+    "source": "Leaderboard",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.leaderboard.body": {
+    "source": "Members ranked by Performance Rating, with the formula version in force.",
     "text": "",
     "status": "untranslated"
   },
@@ -2980,6 +3270,26 @@
   },
   "newsPage.filtersOn": {
     "source": "Filters (on)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.top": {
+    "source": "Top stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.more": {
+    "source": "More stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.rail.trending": {
+    "source": "All trending stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.rail.debate": {
+    "source": "All debates",
     "text": "",
     "status": "untranslated"
   },
@@ -13071,6 +13381,55 @@
   },
   "highlights.penalties": {
     "source": "Pens",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.clipCount": {
+    "source": {
+      "one": "{count} highlight",
+      "other": "{count} highlights"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "highlights.competitionCount": {
+    "source": {
+      "one": "{count} competition",
+      "other": "{count} competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "highlights.moreCompetitions": {
+    "source": {
+      "one": "{count} more competition",
+      "other": "{count} more competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "highlights.featured": {
+    "source": "Latest highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.watch": {
+    "source": "Watch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.matchup": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.by": {
+    "source": "By {publisher}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.territory": {
+    "source": "Where are you watching?",
     "text": "",
     "status": "untranslated"
   }

@@ -6,7 +6,7 @@ import type {
   StoryType,
   StoryVersion,
 } from '@fmip/contracts';
-import { isNewsSection, isStoryType } from '@fmip/contracts';
+import { MEDIA_PATH_PREFIX, isNewsSection, isStoryType } from '@fmip/contracts';
 import type { MessageKey } from '@/i18n/messages';
 
 type Params = Record<string, string | string[] | undefined>;
@@ -213,3 +213,73 @@ export const LABEL_ORIGIN_KEY: Record<StoryLabelOrigin, MessageKey> = {
   publisher: 'story.type.origin.publisher',
   editor: 'story.type.origin.editor',
 };
+
+/**
+ * The news front page (T-1613, D-284): the lead story, a row of cards, then
+ * the compact list -- in the section's own order. The page never re-ranks a
+ * section: latest is newest first and trending most discussed first, so the
+ * lead is the first story whether or not it has a photo. Only a first page
+ * is a front page; an older page is the list alone.
+ */
+export const FRONT_CARDS = 4;
+
+export function frontPage<T>(
+  stories: readonly T[],
+  front: boolean,
+): { lead: T | null; cards: T[]; rest: T[] } {
+  const [lead, ...others] = stories;
+  if (!front || lead === undefined) return { lead: null, cards: [], rest: [...stories] };
+  return { lead, cards: others.slice(0, FRONT_CARDS), rest: others.slice(FRONT_CARDS) };
+}
+
+const TAG_ORDER: Record<NewsEntity['entity_type'], number> = {
+  team: 0,
+  competition: 1,
+  person: 2,
+  fixture: 3,
+};
+
+/** A story's tags in reading order: its clubs, its competition, its people, then the match. */
+export function orderedEntities(entities: readonly NewsEntity[]): NewsEntity[] {
+  return entities
+    .map((entity, index) => ({ entity, index }))
+    .sort(
+      (a, b) =>
+        TAG_ORDER[a.entity.entity_type] - TAG_ORDER[b.entity.entity_type] || a.index - b.index,
+    )
+    .map(({ entity }) => entity);
+}
+
+/** True when the API named a stored image of ours for the entity (D-176). */
+export function entityPictured(entity: NewsEntity): boolean {
+  const media = entity.media;
+  return (
+    media !== undefined &&
+    media.coverage === 'available' &&
+    typeof media.url === 'string' &&
+    media.url.startsWith(`${MEDIA_PATH_PREFIX}/`)
+  );
+}
+
+/**
+ * The marks on the designed panel of a story without a licensed photo
+ * (T-1613, D-284): the crests, logos and photos we hold of what it is filed
+ * under, clubs first, at most `max`. Empty when we hold none -- the panel is
+ * then the source's name, never a lettered stand-in row (rule 3).
+ */
+export function panelMarks(entities: readonly NewsEntity[], max: number): NewsEntity[] {
+  return orderedEntities(entities).filter(entityPictured).slice(0, max);
+}
+
+/** Under this, a card says how long ago ("3 hr ago"); from it, the date. */
+export const RECENT_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How long ago a story was published, when that is under a day; `null` when
+ * the date says it better. A publisher's clock a little ahead reads as now.
+ */
+export function recentAge(publishedAt: string, now: Date): number | null {
+  const age = now.getTime() - new Date(publishedAt).getTime();
+  if (Number.isNaN(age) || age >= RECENT_MS) return null;
+  return Math.max(0, age);
+}

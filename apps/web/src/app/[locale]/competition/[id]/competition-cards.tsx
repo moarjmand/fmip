@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { CompetitionPage, CoverageState, Covered, SeasonFixture } from '@fmip/contracts';
 import { ACCURACY_MINIMUM_MATCHES } from '@fmip/contracts';
 import { Coverage, LiveFreshness, ZoneLegend, zoneWords } from '@/components/competition-page';
+import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
 import type { FreshnessWords } from '@/components/freshness-stamp';
 import { ModelVersions } from '@/components/model-version';
@@ -387,6 +388,16 @@ export function MatchLine({
           className="min-w-0 font-semibold break-words font-stretch-semi-condensed"
           data-testid="fixture-teams"
         >
+          {/* Each side's crest before its name (T-1617), in the running text. */}
+          <span className="hidden sm:contents">
+            <EntityImage
+              media={fixture.home.crest}
+              kind="crest"
+              name={home}
+              size={20}
+              className="me-1.5 inline-block align-middle"
+            />
+          </span>
           <bdi className={cx(winner === 'away' && 'text-muted')}>{home}</bdi>
           {fixture.score === null ? (
             <span className="mx-2 font-medium text-caption">
@@ -402,6 +413,15 @@ export function MatchLine({
               testId="fixture-score"
             />
           )}
+          <span className="hidden sm:contents">
+            <EntityImage
+              media={fixture.away.crest}
+              kind="crest"
+              name={away}
+              size={20}
+              className="me-1.5 inline-block align-middle"
+            />
+          </span>
           <bdi className={cx(winner === 'home' && 'text-muted')}>{away}</bdi>
         </span>
         {forecast !== undefined && <ModelFigures locale={locale} forecast={forecast} />}

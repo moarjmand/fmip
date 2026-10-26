@@ -176,12 +176,30 @@ export default async function WatchPage({
                   const href = withTerritory(`/${locale}/match/${card.id}`, guestTerritory);
                   return (
                     <li key={card.id} className="flex flex-col gap-1" data-testid="watch-card">
-                      <p className="flex flex-wrap items-baseline gap-x-3">
-                        <Link href={href} className={inlineTargetClasses('font-medium underline')}>
-                          {say(locale, 'competitionPage.versus', {
-                            home: card.home.name,
-                            away: card.away.name,
-                          })}
+                      <p className="flex flex-wrap items-center gap-x-3">
+                        <Link
+                          href={href}
+                          className={inlineTargetClasses('gap-2 font-medium underline')}
+                        >
+                          {/* Both crests at the line's ends (T-1617, D-288). */}
+                          <EntityImage
+                            media={card.home.crest}
+                            kind="crest"
+                            name={card.home.name}
+                            size={20}
+                          />
+                          <span>
+                            {say(locale, 'competitionPage.versus', {
+                              home: card.home.name,
+                              away: card.away.name,
+                            })}
+                          </span>
+                          <EntityImage
+                            media={card.away.crest}
+                            kind="crest"
+                            name={card.away.name}
+                            size={20}
+                          />
                         </Link>
                         <time dateTime={card.kickoff_at} className="text-sm text-muted">
                           {formatDateTime(locale, card.kickoff_at, q.timezone)}
