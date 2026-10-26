@@ -263,6 +263,11 @@ export class CatalogService {
    * has none; a language with no rows there, or no locale, reads
    * `competition.display_order`. Unplaced ones follow, by country and name
    * (`directoryOrder`). Names are localised by the interceptor (T-1312).
+   *
+   * T-1623 (D-292): each carries its next kick-off, the earliest scheduled
+   * fixture after now in any of its seasons, for the matchday rail's "Sat".
+   * One grouped scan of the matches ahead (`fixture_kickoff_at_idx`), not a
+   * query per competition.
    */
   async directory(locale: string | null): Promise<CompetitionDirectoryEntry[]> {
     const { rows } = await this.pool.query<DirectoryRow>(
@@ -273,9 +278,17 @@ export class CatalogService {
               CASE WHEN EXISTS (SELECT 1 FROM competition_display_order lo WHERE lo.locale = $1)
                    THEN (SELECT lo.position FROM competition_display_order lo
                           WHERE lo.competition_id = c.id AND lo.locale = $1)
-                   ELSE c.display_order END AS stated_order
+                   ELSE c.display_order END AS stated_order,
+              nx.next_kickoff_at
          FROM competition c
          LEFT JOIN country co ON co.id = c.country_id
+         LEFT JOIN (
+           SELECT se.competition_id, min(f.kickoff_at) AS next_kickoff_at
+             FROM fixture f
+             JOIN season se ON se.id = f.season_id
+            WHERE f.status = 'scheduled' AND f.kickoff_at > now()
+            GROUP BY se.competition_id
+         ) nx ON nx.competition_id = c.id
         WHERE c.is_active`,
       [orderSubtag(locale)],
     );
@@ -302,6 +315,7 @@ export class CatalogService {
         order: r.stated_order,
         logo: media.logo(r.id),
         season: r.season_label,
+        next_kickoff_at: r.next_kickoff_at === null ? null : r.next_kickoff_at.toISOString(),
       })),
     );
   }
@@ -1110,6 +1124,7 @@ interface DirectoryRow {
   country_code: string | null;
   season_label: string | null;
   stated_order: number | null;
+  next_kickoff_at: Date | null;
 }
 
 /**
