@@ -150,16 +150,25 @@ export interface RefResolver {
 export interface MediaSink {
   note(
     provider: Provider,
-    entityType: 'team' | 'competition' | 'person',
+    entityType: 'team' | 'competition' | 'person' | 'country',
     entityId: string,
     sourceUrl: string,
   ): Promise<void>;
 }
 
-/** A ref without its image address (T-1320); anything else as it came. */
+/**
+ * A ref without its image addresses (T-1320; a competition's country flag,
+ * T-1611); anything else as it came.
+ */
 function withoutImage(payload: unknown): unknown {
-  if (typeof payload !== 'object' || payload === null || !('imageUrl' in payload)) return payload;
-  const { imageUrl: _image, ...rest } = payload as Record<string, unknown>;
+  if (
+    typeof payload !== 'object' ||
+    payload === null ||
+    !('imageUrl' in payload || 'countryFlagUrl' in payload)
+  ) {
+    return payload;
+  }
+  const { imageUrl: _image, countryFlagUrl: _flag, ...rest } = payload as Record<string, unknown>;
   return rest;
 }
 
@@ -180,6 +189,12 @@ const IGNORED = Symbol('ignored');
 const IMAGED = new Set<EntityType>(['team', 'competition', 'person']);
 
 export class IngestStore implements SquadStore {
+  /**
+   * The country our catalogue gives each competition, `null` for one of no
+   * country, read once per process (T-1611): a competition does not move.
+   */
+  private readonly countryOfCompetition = new Map<string, string | null>();
+
   constructor(
     private readonly pool: Pool,
     private readonly resolver: RefResolver,
@@ -204,6 +219,42 @@ export class IngestStore implements SquadStore {
         : undefined;
     if (typeof url !== 'string') return;
     await this.media.note(provider, entityType as 'team' | 'competition' | 'person', entityId, url);
+  }
+
+  /**
+   * Hands the flag of a competition's country to the media store (T-1611,
+   * D-282), when the fixture list's competition ref carried one. The flag is
+   * the country's, so it is noted against the country our catalogue gives the
+   * competition -- never one guessed from the provider's country name (rule
+   * 1); a competition of no country notes nothing. Like an image, never a
+   * reason for the match write to fail.
+   */
+  private async noteCountryFlag(
+    provider: Provider,
+    competitionId: string,
+    payload: unknown,
+  ): Promise<void> {
+    if (this.media === null) return;
+    const url =
+      typeof payload === 'object' && payload !== null
+        ? (payload as { countryFlagUrl?: unknown }).countryFlagUrl
+        : undefined;
+    if (typeof url !== 'string') return;
+    let countryId = this.countryOfCompetition.get(competitionId);
+    if (countryId === undefined) {
+      try {
+        const { rows } = await this.pool.query<{ country_id: string | null }>(
+          `SELECT country_id FROM competition WHERE id = $1`,
+          [competitionId],
+        );
+        countryId = rows[0]?.country_id ?? null;
+      } catch {
+        return;
+      }
+      this.countryOfCompetition.set(competitionId, countryId);
+    }
+    if (countryId === null) return;
+    await this.media.note(provider, 'country', countryId, url);
   }
 
   /**
@@ -474,9 +525,11 @@ export class IngestStore implements SquadStore {
     if (homeId === null) unresolved.push(`team:${fixture.home.externalId}`);
     if (awayId === null) unresolved.push(`team:${fixture.away.externalId}`);
     if (homeId === null || awayId === null) return { changed: 0, unresolved };
-    // The fixture list names the competition it was asked for; its logo is that competition's.
+    // The fixture list names the competition it was asked for; its logo is
+    // that competition's, and its flag that of the competition's country.
     if (fixture.competition.externalId === target.competitionExternalId) {
       await this.noteImage(provider, 'competition', target.competitionId, fixture.competition);
+      await this.noteCountryFlag(provider, target.competitionId, fixture.competition);
     }
 
     const venueId = await this.resolveId(

@@ -174,6 +174,115 @@ describe('the ingest store and ids set aside (T-1338)', () => {
   });
 });
 
+describe("a competition's country flag (T-1611, D-282)", () => {
+  const ENGLAND = 'e0000000-0000-4000-8000-000000000001';
+  const FLAG = 'https://media.api-sports.io/flags/gb-eng.svg';
+  const LOGO = 'https://media.api-sports.io/football/leagues/10.png';
+
+  /**
+   * A pool that names `country` as the competition's country and has no
+   * other season, so the write stops at the season before any transaction.
+   */
+  function countryPool(country: string | null): { pool: Pool; countryReads: () => number } {
+    let reads = 0;
+    const query = (sql: string) => {
+      if (sql.includes('SELECT country_id FROM competition')) {
+        reads += 1;
+        return Promise.resolve({ rows: [{ country_id: country }], rowCount: 1 });
+      }
+      return Promise.resolve({ rows: [], rowCount: 0 });
+    };
+    return {
+      pool: { query, connect: () => Promise.reject(new Error('no transaction expected')) } as never,
+      countryReads: () => reads,
+    };
+  }
+
+  function sink() {
+    const noted: { entityType: string; entityId: string; url: string }[] = [];
+    return {
+      noted,
+      media: {
+        note: (_provider: string, entityType: string, entityId: string, url: string) => {
+          noted.push({ entityType, entityId, url });
+          return Promise.resolve();
+        },
+      },
+    };
+  }
+
+  /** A fixture of the target's competition, in a season the store does not hold. */
+  function withCompetition(competition: Record<string, unknown>): NormalisedFixture {
+    return {
+      ...fixtureBetween('1', '2'),
+      competition,
+      season: { label: '2025', startYear: 2025 },
+    } as unknown as NormalisedFixture;
+  }
+
+  it("notes the flag against the competition's country, reading the country once", async () => {
+    const { pool, countryReads } = countryPool(ENGLAND);
+    const { noted, media } = sink();
+    const store = new IngestStore(pool, resolverOf({ 'team:1': 't1', 'team:2': 't2' }), media);
+    const fixture = withCompetition({
+      externalId: '10',
+      name: 'Premier League',
+      imageUrl: LOGO,
+      countryFlagUrl: FLAG,
+    });
+
+    await store.saveFixture('api_football', TARGET, fixture, 'fixtures');
+    await store.saveFixture('api_football', TARGET, fixture, 'fixtures');
+
+    expect(noted.filter((n) => n.entityType === 'country')).toEqual([
+      { entityType: 'country', entityId: ENGLAND, url: FLAG },
+      { entityType: 'country', entityId: ENGLAND, url: FLAG },
+    ]);
+    expect(noted.filter((n) => n.entityType === 'competition')).toHaveLength(2);
+    // A competition does not move country: asked once per process.
+    expect(countryReads()).toBe(1);
+  });
+
+  it('notes nothing for a competition of no country, a ref without a flag, or another competition', async () => {
+    const none = countryPool(null);
+    const first = sink();
+    await new IngestStore(
+      none.pool,
+      resolverOf({ 'team:1': 't1', 'team:2': 't2' }),
+      first.media,
+    ).saveFixture(
+      'api_football',
+      TARGET,
+      withCompetition({ externalId: '10', name: 'Friendlies', countryFlagUrl: FLAG }),
+      'fixtures',
+    );
+    expect(first.noted.filter((n) => n.entityType === 'country')).toEqual([]);
+
+    const england = countryPool(ENGLAND);
+    const second = sink();
+    const store = new IngestStore(
+      england.pool,
+      resolverOf({ 'team:1': 't1', 'team:2': 't2' }),
+      second.media,
+    );
+    await store.saveFixture(
+      'api_football',
+      TARGET,
+      withCompetition({ externalId: '10', name: 'Premier League', imageUrl: LOGO }),
+      'fixtures',
+    );
+    // A list that names another competition than the one asked for.
+    await store.saveFixture(
+      'api_football',
+      TARGET,
+      withCompetition({ externalId: '11', name: 'Championship', countryFlagUrl: FLAG }),
+      'fixtures',
+    );
+    expect(second.noted.filter((n) => n.entityType === 'country')).toEqual([]);
+    expect(england.countryReads()).toBe(0);
+  });
+});
+
 describe('the incident list is the whole truth for its fixture (T-1382)', () => {
   function paramsPool(): { pool: Pool; calls: { sql: string; params: unknown[] }[] } {
     const calls: { sql: string; params: unknown[] }[] = [];
