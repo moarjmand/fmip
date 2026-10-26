@@ -246,7 +246,9 @@ describe('plurals (T-301)', () => {
     // the matches left out, the earlier versions, the consensus list's two
     // counts, a leaderboard entry and a provisional one).
     // T-1540: one added (a league's matches in the model's month).
-    expect(pluralKeys).toHaveLength(91);
+    // T-1614: three added (the Highlights page's clips, its competitions and
+    // the filter's competitions past the first chips).
+    expect(pluralKeys).toHaveLength(94);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

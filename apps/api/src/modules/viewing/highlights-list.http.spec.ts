@@ -123,9 +123,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the Highligh
         WHERE id = $1`,
       [clips[3]],
     );
+    // The home side's crest is stored (T-1614); the away side's is not.
+    const sha = 'c'.repeat(64);
+    await pool.query(
+      `INSERT INTO entity_media (entity_type, entity_id, kind, source_provider, source_url, state,
+                                 storage_key, content_type, byte_size, sha256, source_fetched_at)
+       VALUES ('team', $1, 'crest', 'api_football', 'https://example.com/crest.png', 'available',
+               $2, 'image/png', 100, $3, now())`,
+      [teams[0], `cc/${sha}.png`, sha],
+    );
   });
 
   afterAll(async () => {
+    await pool.query(`DELETE FROM entity_media WHERE entity_id = ANY($1::uuid[])`, [teams]);
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [season]);
     await pool.query(`DELETE FROM competition WHERE id = $1`, [competition]);
@@ -146,9 +156,27 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the Highligh
       fixture: {
         id: fixtures[0],
         status: 'finished',
-        competition: { id: competition, name: `Clip League ${RUN}` },
-        home: { id: teams[0], name: `Clip Home ${RUN}` },
-        away: { id: teams[1], name: `Clip Away ${RUN}` },
+        competition: {
+          id: competition,
+          name: `Clip League ${RUN}`,
+          logo: { coverage: 'not_supplied', url: null },
+        },
+        // The crests from our own origin (T-1614, D-176): stored, or said not to be.
+        home: {
+          id: teams[0],
+          name: `Clip Home ${RUN}`,
+          crest: {
+            coverage: 'available',
+            url: expect.stringMatching(
+              new RegExp(`^/api/media/crest/${teams[0]}/[0-9a-f]+[.]png$`),
+            ),
+          },
+        },
+        away: {
+          id: teams[1],
+          name: `Clip Away ${RUN}`,
+          crest: { coverage: 'not_supplied', url: null },
+        },
         score: { home: 2, away: 1 },
         penalties: null,
       },
@@ -189,6 +217,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the Highligh
       name: `Clip League ${RUN}`,
       short_name: null,
       count: 3,
+      // No logo stored for this file's competition: said, not left out (T-1614).
+      logo: { coverage: 'not_supplied', url: null },
     });
   });
 
