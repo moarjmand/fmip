@@ -50,6 +50,13 @@ import {
   wholeOnlyIfRecorded,
 } from './internal/leaders';
 import { readCoachPage, readTeamHeadCoach } from './internal/coach-read';
+import {
+  contextTeamIds,
+  fixtureTeamIds,
+  withContextCrests,
+  withCrests,
+  withFixtureMedia,
+} from './internal/fixture-media';
 import { readProviderSeasons } from './internal/player-provider-seasons';
 import { readTeamSeasonStats } from './internal/team-season-stats';
 import { readPlayerTransfers, readTeamTransfers } from './internal/transfers';
@@ -164,22 +171,33 @@ export class CatalogService {
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
     const found = await this.players_.person(id, locale);
     if (found === null) return { kind: 'unknown_player' };
-    const [spells, record, recent, availability, media, positions] = await Promise.all([
+    const [read, record, recent, availability, positions] = await Promise.all([
       this.players_.spells(id),
       this.players_.record(id),
       this.players_.recent(id, RECENT_MATCHES),
       this.players_.availability(id),
-      this.media.index({
-        person: [id],
-        country: found.nationality === null ? [] : [found.nationality.id],
-      }),
       this.players_.positionSources(id),
     ]);
+    // The photo (T-1320) and the flag (T-1611), and the crests of the clubs
+    // and matches the page lists and their competitions' logos (T-1617), in
+    // one query.
+    const fixtures = recent.matches.map((m) => m.fixture);
+    const media = await this.media.index({
+      person: [id],
+      country: found.nationality === null ? [] : [found.nationality.id],
+      team: [
+        ...read.map((s) => s.team.id),
+        ...record.rows.map((r) => r.team.id),
+        ...fixtureTeamIds(fixtures),
+      ],
+      competition: fixtures.map((f) => f.competition.id),
+    });
     const person = {
       ...found,
       nationality: withFlag(found.nationality, media),
       photo: media.photo(id),
     };
+    const spells = read.map((s) => ({ ...s, team: { ...s.team, crest: media.crest(s.team.id) } }));
     const currentSpell = spells.find((s) => s.end_date === null) ?? null;
     return {
       kind: 'ok',
@@ -193,10 +211,18 @@ export class CatalogService {
         // At most `limited` while some match's stored events fall short of
         // it (T-1579): the goals and cards are then "at least" (rule 3).
         record: wholeOnlyIfEventsStored(
-          derived(record.rows, 1, recent.lastUpdatedAt),
+          derived(
+            record.rows.map((r) => ({ ...r, team: { ...r.team, crest: media.crest(r.team.id) } })),
+            1,
+            recent.lastUpdatedAt,
+          ),
           record.eventsShort,
         ),
-        recent_matches: derived(recent.matches, 1, recent.lastUpdatedAt),
+        recent_matches: derived(
+          recent.matches.map((m) => ({ ...m, fixture: withFixtureMedia(m.fixture, media) })),
+          1,
+          recent.lastUpdatedAt,
+        ),
         availability: availabilityOf(availability),
         last_updated_at: recent.lastUpdatedAt,
       },
@@ -546,6 +572,8 @@ export class CatalogService {
         ...(table.data ?? []).map((r) => r.team.id),
         ...(groupTables?.data ?? []).flatMap((g) => g.teams.map((t) => t.id)),
         ...boardRows.flatMap((l) => (l.team === null ? [] : [l.team.id])),
+        // Both sides of every listed match (T-1617).
+        ...fixtureTeamIds(fixtures),
       ],
       person: boardRows.map((l) => l.person.id),
       country: competition.country === null ? [] : [competition.country.id],
@@ -620,8 +648,8 @@ export class CatalogService {
           },
           selected.label,
         ),
-        results,
-        fixtures: upcoming,
+        results: results.map((f) => withCrests(f, media)),
+        fixtures: upcoming.map((f) => withCrests(f, media)),
         leaders: {
           ...leaders,
           data: leaders.data === null ? null : leaders.data.map(withLeaderMedia),
@@ -704,9 +732,13 @@ export class CatalogService {
     // The head coach by the provider's coaches endpoint (T-1439, D-230), told
     // apart from the coach the latest line-up names.
     const headCoach = await readTeamHeadCoach(this.pool, id, locale, lineup?.coach?.id ?? null);
-    // The crest (T-1320) and the squad's and coach's photos (T-1321) from our own origin, in one query.
+    const contexts = seasons.map((_, i) => tableContext(tables[i]!, id));
+    // The crest (T-1320) and the squad's and coach's photos (T-1321) from our
+    // own origin, in one query; and the crests of every listed match and the
+    // rows around the club, and the competitions' logos (T-1617).
     const media = await this.media.index({
-      team: [id],
+      team: [id, ...fixtureTeamIds(fixtures), ...contexts.flatMap(contextTeamIds)],
+      competition: seasons.map((s) => s.competition.id),
       country: found.country === null ? [] : [found.country.id],
       person: [
         ...squad.players.map((p) => p.person.id),
@@ -715,12 +747,13 @@ export class CatalogService {
       ],
     });
     const team = { ...found, country: withFlag(found.country, media), crest: media.crest(id) };
-    const results = fixtures.filter((f) => f.status === 'finished').reverse();
+    const listed = fixtures.map((f) => withFixtureMedia(f, media));
+    const results = listed.filter((f) => f.status === 'finished').reverse();
     // A cancelled, abandoned or awarded match already past is neither ahead
     // nor a result (T-1578): left in, it stood as the club's next match, with
     // a kick-off in the past, ahead of the real one.
     const now = Date.now();
-    const upcoming = fixtures.filter(
+    const upcoming = listed.filter(
       (f) =>
         f.status !== 'finished' && !(VOID_STATUSES.has(f.status) && Date.parse(f.kickoff_at) < now),
     );
@@ -732,9 +765,9 @@ export class CatalogService {
       page: {
         team,
         competitions: seasons.map((s, i) => ({
-          competition: s.competition,
+          competition: { ...s.competition, logo: media.logo(s.competition.id) },
           season: s.season,
-          context: tableContext(tables[i]!, id),
+          context: withContextCrests(contexts[i]!, media),
         })),
         next_match: next,
         previous_match: results[0] ?? null,
