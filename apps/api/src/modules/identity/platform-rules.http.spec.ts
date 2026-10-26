@@ -78,7 +78,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('platform rul
    * waits for those already writing and holds off new ones, and the rows
    * moved below are all there are when the version is deleted.
    */
-  async function unpublish(): Promise<void> {
+  async function unpublish(beforeCommit?: () => Promise<void>): Promise<void> {
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -98,6 +98,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('platform rul
         [NEXT, FIRST],
       );
       await client.query(`DELETE FROM platform_rules_version WHERE version = $1`, [NEXT]);
+      await beforeCommit?.();
       await client.query('COMMIT');
     } catch (error: unknown) {
       await client.query('ROLLBACK');
@@ -244,5 +245,32 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('platform rul
     const bad = await request('POST', '/auth/rules/accept', member, { version: 'anything' });
     expect(bad.statusCode).toBe(400);
     expect(bad.json().fields).toHaveProperty('version');
+  });
+
+  it('a registration while the newest version is being taken away records the one under it (T-1604)', async () => {
+    // CI, 2026-10-26: a registration read 1.1.0 as in force in its insert's
+    // snapshot, this spec deleted 1.1.0 and committed, and the insert's
+    // foreign key check failed (a 500). Here the delete is held open until
+    // the registration is waiting on it.
+    let registered: Promise<Awaited<ReturnType<typeof request>>> | undefined;
+    await unpublish(async () => {
+      registered = Promise.resolve(request('POST', '/auth/register', undefined, registration('c')));
+      for (let i = 0; i < 100; i += 1) {
+        const { rows } = await pool.query<{ n: number }>(
+          `SELECT count(*)::int AS n FROM pg_stat_activity
+            WHERE wait_event_type = 'Lock' AND query LIKE '%platform_rules_version%FOR KEY SHARE%'`,
+        );
+        if ((rows[0]?.n ?? 0) > 0) return;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      throw new Error('the registration never waited on the version being deleted');
+    });
+    const response = await registered!;
+    expect(response.statusCode, response.body).toBe(201);
+    expect(response.json().rules).toMatchObject({
+      current: FIRST,
+      accepted: FIRST,
+      pending: false,
+    });
   });
 });
