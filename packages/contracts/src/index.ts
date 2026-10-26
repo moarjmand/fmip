@@ -203,6 +203,7 @@ export type {
   CompetitionSummary,
   CompetitionsResponse,
   CountriesResponse,
+  CountryRef,
   CountrySummary,
   FollowSuggestionsResponse,
   FormResult,

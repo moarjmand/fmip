@@ -11,13 +11,14 @@ import type { Pool } from 'pg';
 import type { MediaKind } from '@fmip/contracts';
 import type { MediaContentType } from './image-check';
 
-export type MediaEntityType = 'team' | 'competition' | 'person' | 'venue';
+export type MediaEntityType = 'team' | 'competition' | 'person' | 'venue' | 'country';
 
 export const KIND_OF: Record<MediaEntityType, MediaKind> = {
   team: 'crest',
   competition: 'logo',
   person: 'photo',
   venue: 'venue',
+  country: 'flag',
 };
 
 export const ENTITY_OF: Record<MediaKind, MediaEntityType> = {
@@ -25,6 +26,7 @@ export const ENTITY_OF: Record<MediaKind, MediaEntityType> = {
   logo: 'competition',
   photo: 'person',
   venue: 'venue',
+  flag: 'country',
 };
 
 export type MediaState = 'pending' | 'available' | 'not_supplied' | 'failed';
@@ -91,8 +93,8 @@ export class MediaStore {
 
   /**
    * What the fetch job should ask for now, at most `limit`: never fetched
-   * first (competitions, then teams, then people -- the few that every page
-   * shows before the many), then those due a monthly re-check, then failures
+   * first (competitions and country flags, then teams, then people -- the
+   * few that every page shows before the many), then those due a monthly re-check, then failures
    * whose back-off has passed (2^attempts hours, at most the refresh period).
    */
   async due(now: Date, limit: number): Promise<DueMedia[]> {
@@ -116,7 +118,8 @@ export class MediaStore {
                AND last_checked_at < $1::timestamptz
                  - make_interval(hours => LEAST($3 * 24, power(2, LEAST(attempts, 10))::int)))
         ORDER BY (last_checked_at IS NULL) DESC,
-                 CASE entity_type WHEN 'competition' THEN 0 WHEN 'team' THEN 1
+                 CASE entity_type WHEN 'competition' THEN 0 WHEN 'country' THEN 0
+                                  WHEN 'team' THEN 1
                                   WHEN 'person' THEN 2 ELSE 3 END,
                  last_checked_at NULLS FIRST, created_at
         LIMIT $2`,
@@ -214,7 +217,10 @@ export class MediaStore {
     const competition = [...(ids.competition ?? [])];
     const person = [...(ids.person ?? [])];
     const venue = [...(ids.venue ?? [])];
-    if (team.length + competition.length + person.length + venue.length === 0) return [];
+    const country = [...(ids.country ?? [])];
+    if (team.length + competition.length + person.length + venue.length + country.length === 0) {
+      return [];
+    }
     const { rows } = await this.pool.query<{
       entity_type: MediaEntityType;
       entity_id: string;
@@ -226,8 +232,9 @@ export class MediaStore {
           AND ((entity_type = 'team' AND entity_id = ANY($1::uuid[]))
             OR (entity_type = 'competition' AND entity_id = ANY($2::uuid[]))
             OR (entity_type = 'person' AND entity_id = ANY($3::uuid[]))
-            OR (entity_type = 'venue' AND entity_id = ANY($4::uuid[])))`,
-      [team, competition, person, venue],
+            OR (entity_type = 'venue' AND entity_id = ANY($4::uuid[]))
+            OR (entity_type = 'country' AND entity_id = ANY($5::uuid[])))`,
+      [team, competition, person, venue, country],
     );
     return rows.map((r) => ({
       entityType: r.entity_type,

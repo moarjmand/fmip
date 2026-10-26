@@ -20,6 +20,20 @@ export interface CountrySummary {
   name: string;
 }
 
+/**
+ * A country as a page names it beside something else: a competition's
+ * country, a team's, a player's nationality. `flag` is the country's flag
+ * from our own origin (T-1611, D-282), when the answer asked for it; a
+ * continental or international competition has no country, so no flag.
+ */
+export interface CountryRef {
+  id: string;
+  name: string;
+  /** FIFA trigram, e.g. `ENG`. */
+  code: string;
+  flag?: EntityMedia;
+}
+
 /** `GET /countries`, sorted by name. */
 export interface CountriesResponse {
   countries: CountrySummary[];
@@ -63,7 +77,7 @@ export interface CompetitionDirectoryEntry {
   short_name: string | null;
   scope: 'domestic' | 'continental' | 'international';
   kind: 'league' | 'cup' | 'super_cup' | 'qualifying' | 'friendly';
-  country: { id: string; name: string; code: string } | null;
+  country: CountryRef | null;
   /**
    * The competition's stated place in the reader's language's order (D-207),
    * else the default order (T-504, D-154); `null` when none is stated, and
@@ -409,7 +423,7 @@ export interface CompetitionPage {
     gender: 'men' | 'women';
     age_group: string;
     tier: number | null;
-    country: { id: string; name: string; code: string } | null;
+    country: CountryRef | null;
     /** The competition's logo from our own origin (T-1320). */
     logo?: EntityMedia;
   };
@@ -632,7 +646,7 @@ export interface TeamPage {
     gender: 'men' | 'women';
     age_group: string;
     founded_year: number | null;
-    country: { id: string; name: string; code: string } | null;
+    country: CountryRef | null;
     venue: { id: string; name: string; city: string | null; capacity: number | null } | null;
     /** The team's crest from our own origin (T-1320). */
     crest?: EntityMedia;
@@ -812,7 +826,7 @@ export interface PlayerPage {
     localised_name: string | null;
     /** ISO 8601 date, when recorded. */
     date_of_birth: string | null;
-    nationality: { id: string; name: string; code: string } | null;
+    nationality: CountryRef | null;
     height_cm: number | null;
     preferred_foot: 'left' | 'right' | 'both' | null;
     /** The player's photo from our own origin (T-1320). */
