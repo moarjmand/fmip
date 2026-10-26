@@ -190,7 +190,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       {
         season: { id: SEASON, label: '2025/26' },
         competition: { id: COMPETITION, name: `Test League ${RUN}`, short_name: 'TL' },
-        team: { id: TEAMS.alpha, name: `Test Alpha ${RUN}` },
+        // The club's crest from our own origin, or said not supplied (T-1617).
+        team: {
+          id: TEAMS.alpha,
+          name: `Test Alpha ${RUN}`,
+          crest: { coverage: 'not_supplied', url: null },
+        },
         starts: 1,
         sub_appearances: 1,
         goals: 1,
