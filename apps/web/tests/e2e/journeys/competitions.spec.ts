@@ -127,7 +127,9 @@ test.describe('All competitions page', () => {
         .locator('[data-region="eng"]'),
     ).toHaveAttribute('aria-current', 'true');
     await expect(page.getByTestId('competitions-group')).toHaveCount(1);
-    const premier = page.locator(`[data-competition="${PREMIER_LEAGUE}"]`);
+    const premier = page
+      .getByTestId('competitions-groups')
+      .locator(`[data-competition="${PREMIER_LEAGUE}"]`);
     await expect(premier).toContainText('League');
     await expect(premier.getByTestId('competitions-item-season')).toHaveText(/^\d{4}(\/\d{2})?$/);
     // A country we do not follow opens the whole list, not an empty one.
@@ -151,7 +153,9 @@ test.describe('All competitions page', () => {
       await page.locator('[data-region="esp"]').click();
       await expect(page).toHaveURL(/\/en\/competitions\?country=esp$/);
       await expect(page.getByTestId('competitions-group')).toHaveCount(1);
-      await expect(page.locator(`[data-competition="${LA_LIGA}"]`)).toBeVisible();
+      await expect(
+        page.getByTestId('competitions-groups').locator(`[data-competition="${LA_LIGA}"]`),
+      ).toBeVisible();
     });
   });
 

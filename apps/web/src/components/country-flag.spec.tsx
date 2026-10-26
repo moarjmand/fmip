@@ -61,7 +61,7 @@ describe('RegionMark', () => {
   it('draws a globe, a map and the All mark, hidden from assistive technology', () => {
     for (const region of ['international', 'continental', 'all'] as const) {
       const out = renderToStaticMarkup(<RegionMark region={region} />);
-      expect(out).toContain(`data-region="${region}"`);
+      expect(out).toContain(`data-mark="${region}"`);
       expect(out).toContain('aria-hidden="true"');
       expect(out).toContain('<svg');
     }

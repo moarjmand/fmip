@@ -92,7 +92,7 @@ export function RegionMark({
         BOX[size].className,
       )}
       data-testid="region-mark"
-      data-region={region}
+      data-mark={region}
     >
       <svg
         viewBox="0 0 24 24"

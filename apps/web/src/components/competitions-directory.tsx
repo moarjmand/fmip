@@ -219,9 +219,9 @@ export function CompetitionsDirectory({
         </ul>
       </nav>
 
-      {/* Said once the reader chooses: which group the list now shows. */}
+      {/* Which group the list shows: said when the reader chooses, and present for a chosen address. */}
       <p className="sr-only" role="status" data-testid="competitions-chosen">
-        {announced ? (
+        {announced || chosenGroup !== null ? (
           chosenGroup === null ? (
             <>
               <MessageText message={words.all} />, <MessageText message={words.allCount} />
