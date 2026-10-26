@@ -519,6 +519,28 @@ describe('image addresses are carried inside ingestion (T-1320)', () => {
     for (const s of stats) expect(s.player.imageUrl).toMatch(MEDIA);
   });
 
+  it('leaves out a rating of 0, the provider writing it for a player it did not rate (T-1618)', () => {
+    const block = (rating: unknown) => [
+      {
+        team: { id: 44 },
+        players: [
+          {
+            player: { id: 7, name: 'A. Player' },
+            statistics: [{ games: { minutes: 64, rating, position: 'M' }, passes: { total: 30 } }],
+          },
+        ],
+      },
+    ];
+    const metrics = (rating: unknown) =>
+      mapPlayerStatistics(block(rating), '44', '50').map((s) => [s.metric, s.value]);
+    expect(metrics('0')).toEqual([
+      ['minutes', 64],
+      ['passes', 30],
+    ]);
+    expect(metrics(0)).not.toContainEqual(['rating', 0]);
+    expect(metrics('6.8')).toContainEqual(['rating', 6.8]);
+  });
+
   it('carries nothing when the answer has no image, and only an https address', () => {
     const fixture = mapFixture(
       {

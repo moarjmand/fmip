@@ -12660,6 +12660,40 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** The competition, club and player pages ask for their media once each, as before, with more ids; the player page now asks after its reads, one more round trip. The images are crests and logos on Night with D-280's halo and tile.
 
+## D-289 — A player rating of 0 is "not rated": it is not stored, and one stored before is not read
+
+**Status:** Accepted · 2026-10-26 (agent, from a live check the maintainer asked for) · **Task:** T-1618 · **Follows:** D-176, T-101, T-112, T-534
+
+**Context.** The maintainer asked why Sevilla's line-up quality in the Power Index read 0 (the lowest in La Liga) for its match on 2026-10-26.
+- **Sevilla's 0.** The index was computed on 2026-10-19 with the early forecast version. The provider rewrote every La Liga team's latest player ratings on 2026-10-20, so the numbers that index read are gone, and our tables keep only the newest value. Today's ratings place Sevilla's last XI third lowest of twenty (about 0.11): a weak XI, not a broken one.
+- **Line-up time.** The index is computed again with the forecast's line-up version, about an hour before kick-off, on the day's ratings.
+- **What the check found.** The feed stores 13,584 ratings of exactly 0. Most belong to players with no minutes, which every reader already leaves out by its minutes filter. But 377 sit beside 20 or more minutes: 311 in July's Champions League qualifiers, the rest in MLS, Serbia and a few other leagues. They come from a provider that writes 0 for a player it did not rate.
+- **Where a 0 did harm.** The match centre showed them as "0.0", and the Power Index and the model's line-up input averaged them into a player's season rating.
+
+**Decision.**
+1. The API-Football adapter drops a rating of 0 or less, as it already drops one above 10: no row, so "not supplied" (rule 3).
+2. The two readers of stored ratings leave out a value of 0 or less:
+   - the match centre's player statistics (`match-centre-store.ts`);
+   - the Power Index's season ratings (`power-index-store.ts`);
+   - the model's XI rating query (`fmip_model/model/lineups.py`) does the same.
+   The rows stored before stay; they are not deleted.
+
+**Rejected.** Deleting the stored zeros in a migration: the readers' filter does the same without a data change, and a later detail fetch rewrites a match's ratings anyway. Recomputing old Power Index rows: they are the record of what was shown at that time (rule 5's spirit), and the next forecast version computes a new one.
+
+## D-290 — A publisher feed's item about another sport is left out when it is filed to none of ours
+
+**Status:** Accepted · 2026-10-26 (agent, from the maintainer's report of a rugby story on the English news page) · **Task:** T-1619 · **Amends:** D-215
+
+**Context.** "Ireland prop Furlong cited over alleged groin grab" reached /en/news from Yahoo Sports' soccer RSS feed. It is about rugby union: Leinster, Munster and the United Rugby Championship. D-215 judged only items a search brought (GNews), trusting a publisher's own football feed. Its markers also knew rugby league but not rugby union.
+
+**Decision.**
+1. Rugby union joins `otherCodeOf` as `rugby_union`, in its own words only: rugby union, United Rugby Championship (URC in capitals), Six Nations, Premiership Rugby, Super Rugby, Top 14, the Rugby Championship, the Rugby World Cup, fly-half, scrum-half, tighthead, loosehead, lineout. "Rugby" alone is not a marker: it is also a town (Rugby Town) and the ball kicked into Brentford's ground.
+2. The news lists leave out an item whose own words name another sport when it came by search (as before), or when it came from a publisher's own feed and is filed to no club, competition or player of ours.
+   - A feed item filed to one of ours stays, whatever it mentions; D-215's example of a club owner who once played in the NFL still applies.
+   - The entities are read for the rows of the section before the filter, not only for the cards shown.
+
+**Rejected.** A list of rugby clubs (Leinster, Munster also name provinces and their GAA teams). Dropping such items at ingestion: the lists already decide what to show for items stored before, with the same function, as D-211 does.
+
 ## D-291 — The model page follows the theme: a band, tiles, the design system's table and a card per competition
 
 **Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1620 · **Amends:** D-201 (the model page's editorial mode) · **Follows:** D-187, D-263, D-274, D-280

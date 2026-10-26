@@ -47,6 +47,13 @@ describe('otherCodeOf', () => {
     ],
     ['All-Ireland winner O’Connor announces Mayo retirement', null, 'gaelic_games'],
     ['England name Rugby League World Cup squad', null, 'rugby_league'],
+    // T-1619 (D-290): rugby union, from Yahoo Sports' soccer feed on 2026-10-26.
+    [
+      'Ireland prop Furlong cited over alleged groin grab',
+      "Ireland prop Tadhg Furlong is cited over an alleged groin grab in Leinster's United Rugby Championship win over Munster on Saturday.",
+      'rugby_union',
+    ],
+    ['Wales fly-half ruled out of the Six Nations opener', null, 'rugby_union'],
     // T-1411 (D-217): the stored items that named no other code before.
     [
       'Iowa Hawkeyes football is now 5-1 and can dream a little',
@@ -112,6 +119,12 @@ describe('otherCodeOf', () => {
     ['Fantasy Premier League: the best captain picks for Gameweek 8', null],
     // An acronym in capitals only: "sec" and "td" in words do not count.
     ['Haaland scores 8 secs into the second half', null],
+    // A rugby ball is not rugby: stored from three feeds on 2026-10-19.
+    [
+      'Brentford contact police after rugby ball kicked into stadium from high-rise flat during Liverpool match',
+      null,
+    ],
+    ['Rugby Town hold Coventry Sphinx in the FA Vase', null],
     // T-1411: a college's name is a marker only directly before "football",
     // and the places that are also national teams or clubs' cities are not
     // colleges here (the first stood on production, the others are written

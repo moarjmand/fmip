@@ -456,7 +456,9 @@ export class PostgresMatchCentreStore {
          FROM fixture_player_stat s
          JOIN fixture_participant fp ON fp.id = s.participant_id
          JOIN person pe ON pe.id = s.person_id
-        WHERE s.participant_id IN ($1, $2)`,
+        WHERE s.participant_id IN ($1, $2)
+          -- A 0 stored before T-1618 is the provider's "not rated" (D-289).
+          AND NOT (s.metric = 'rating' AND s.value <= 0)`,
       [homeParticipantId, awayParticipantId],
     );
     const players = new Map<string, MatchPlayerStats>();
