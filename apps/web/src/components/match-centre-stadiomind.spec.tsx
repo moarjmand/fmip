@@ -14,6 +14,7 @@ import {
   ForecastReality,
   cardVersion,
   leadTime,
+  receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { MatchCentreView, ratingsOf } from './match-centre-view';
 import { MatchLineupsView } from './match-lineups';
@@ -217,6 +218,19 @@ describe('what was forecast, what happened (the Summary card)', () => {
     expect(html).toContain('۲۷ دقیقه پیش از شروع بازی');
     expect(html).toContain('۱٬۱۲۰');
     expect(html).not.toContain('data-translation="untranslated"');
+    // The receipt's time and lead joined by the Persian comma, not a Latin one (T-1554).
+    expect(html.replace(/<[^>]+>/g, '')).toContain('، ۲۷ دقیقه پیش از شروع بازی');
+  });
+
+  it('names no model on the receipt of a version no model answered (T-1554)', () => {
+    const none = {
+      ...version(2, '2026-10-18T11:35:00.000Z', null),
+      model_version: 'none@0.0.0',
+      inputs: null,
+    };
+    const text = receipt('en', none, KICKOFF, 'Europe/London', false);
+    expect(text).not.toContain('none@');
+    expect(text).toMatch(/^v2 computed 18 Oct, 12:35 UK time, 5 days before kick-off · /);
   });
 
   it('is the model’s card alone: no founder, no community', () => {

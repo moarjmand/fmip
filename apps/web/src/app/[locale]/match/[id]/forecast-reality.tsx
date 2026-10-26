@@ -79,6 +79,9 @@ export function leadTime(locale: Locale, computedAt: string, kickoffAt: string):
   return interpolate(t(locale, key), { n: formatNumber(locale, n) });
 }
 
+/** The API's `model_version` for a version no model answered (`forecast-triggers.ts`). */
+const NO_MODEL_VERSION = 'none@0.0.0';
+
 /**
  * The receipt (Design System `Receipt`): every fact the stored version
  * carries about itself, joined with " · ", times in the page's zone.
@@ -91,11 +94,13 @@ export function receipt(
   live: boolean,
 ): string {
   const parts = [
-    version.model_version,
+    // A version no model answered is stored under the API's placeholder,
+    // which names no model: the receipt leaves it out (T-1554).
+    ...(version.model_version === NO_MODEL_VERSION ? [] : [version.model_version]),
     `${interpolate(t(locale, 'matchCentre.receipt.version'), {
       version: formatNumber(locale, version.version_number),
       time: `${formatVersionStamp(locale, version.computed_at, timeZone)} ${zoneWords(locale, timeZone)}`,
-    })}, ${leadTime(locale, version.computed_at, kickoffAt)}`,
+    })}${t(locale, 'shared.listSeparator')}${leadTime(locale, version.computed_at, kickoffAt)}`,
     kindLabel(version.kind, locale),
   ];
   const inputs = version.inputs;
