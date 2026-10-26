@@ -178,6 +178,12 @@ export function ForecastReality({
   const version =
     forecasts === null ? null : cardVersion(forecasts, evaluations, status, fixture.kickoff_at);
   const p = version?.probabilities ?? null;
+  // A match whose every version is a placeholder no model answered (a
+  // competition the model was not trained on, say) has no forecast: the
+  // sentence above says why, once, and no version list or receipt follows it
+  // to repeat the reason or show the placeholder (T-1524).
+  const forecastsAny =
+    forecasts !== null && forecasts.versions.some((v) => v.probabilities !== null);
   return (
     <article
       className="flex min-w-0 flex-col gap-5 rounded-card border border-default bg-surface p-4 md:px-6 md:py-5"
@@ -244,7 +250,7 @@ export function ForecastReality({
           </div>
         </>
       )}
-      {forecasts !== null && forecasts.versions.length > 0 && (
+      {forecasts !== null && forecastsAny && (
         <Versions
           versions={forecasts.versions}
           current={version?.id ?? null}
@@ -252,7 +258,7 @@ export function ForecastReality({
           locale={locale}
         />
       )}
-      {version !== null && (
+      {version !== null && p !== null && (
         <p
           className="border-t border-dashed border-default pt-2.5 font-mono text-xs leading-relaxed text-model [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
           data-testid="receipt"

@@ -191,6 +191,30 @@ describe('what was forecast, what happened (the Summary card)', () => {
     expect(card('finished', { forecasts: null })).not.toContain('data-testid="receipt"');
   });
 
+  it('with no version answered, says why once: no version list, no receipt, no placeholder (T-1524)', () => {
+    const none = {
+      ...version(1, '2026-10-17T11:32:00.000Z', null),
+      model_version: 'none@0.0.0',
+      inputs: null,
+      unavailable_reason: 'competition_not_mapped' as const,
+    };
+    const unanswered = { ...forecasts, latest: none, versions: [none] };
+    const html = card('finished', { forecasts: unanswered });
+    expect(html).toContain('data-testid="forecast-reality-unavailable"');
+    // The reason once, in the card's sentence.
+    expect(
+      html.replaceAll('&#x27;', "'").split(EN['forecast.reason.competitionNotMapped']).length - 1,
+    ).toBe(1);
+    expect(html).not.toContain('data-testid="forecast-versions-list"');
+    expect(html).not.toContain('data-testid="receipt"');
+    expect(html).not.toContain('none@');
+    // One answered version among unanswered ones: the list stays, every version in it.
+    const mixed = { ...forecasts, versions: [none, version(2, '2026-10-18T11:35:00.000Z')] };
+    expect(card('finished', { forecasts: mixed })).toContain(
+      'data-testid="forecast-versions-list"',
+    );
+  });
+
   it('picks the scored version, else the last before kick-off, else the latest before it starts', () => {
     const scored: FixtureEvaluationsResponse = {
       fixture_id: 'f1',
