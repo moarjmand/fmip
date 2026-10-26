@@ -3,7 +3,6 @@ import type {
   CoverageState,
   FounderAnalysisSummary,
   ModelUpsetResponse,
-  NewsStoryCard,
   TeamPage,
   TeamPageFixture,
 } from '@fmip/contracts';
@@ -14,7 +13,6 @@ import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { LinkedSentence } from '@/components/linked-sentence';
 import { RuleHeading, zoneName } from '@/components/home-front';
 import { MessageText } from '@/components/message-text';
-import { NewsCardImage, NewsImageCredit, drawableNewsImage } from '@/components/news-image';
 import { CommunityVoice, FounderVoice } from '@/components/voices';
 import { Score } from '@/components/score';
 import { COVERAGE_KEY } from '@/components/score-card';
@@ -32,7 +30,6 @@ import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { type MessageKey, interpolate, message, t } from '@/i18n/messages';
 import { kindLabel } from '@/lib/forecast';
 import { type AccuracyFigure, type HomeBroadcasts, HOME_TABLE_ROWS } from '@/lib/home';
-import { STORY_TYPE_KEY, VERSION_STATUS_KEY, storyHref, versionStatus } from '@/lib/news';
 import { formatKickoff } from '@/lib/scores';
 import { fromTeamSide } from '@/lib/team';
 import { formatFixed, formatPercent, formatSigned } from '@/lib/words';
@@ -833,82 +830,6 @@ export function ColumnAndPicks({
         </ButtonLink>
       </CommunityVoice>
     </div>
-  );
-}
-
-/**
- * The news (blueprint 3, D-061, D-177): licensed sources, each credited by
- * name, the photo with its credit and licence where the licence covers it,
- * whose words a version is, and a line when the feeds are behind (rule 4).
- */
-export function NewsGrid({
-  stories,
-  stale,
-  locale,
-  timeZone,
-}: {
-  stories: NewsStoryCard[];
-  stale: boolean;
-  locale: string;
-  timeZone: string;
-}) {
-  const l = asLocale(locale);
-  return (
-    <section aria-labelledby="home-news-title" data-testid="home-news">
-      <RuleHeading
-        id="home-news-title"
-        size="lg"
-        title={<Translated locale={l} message="home.news.title" />}
-        aside={<Translated locale={l} message="home.news.credited" />}
-      />
-      {stale && (
-        <p className="mb-3 text-sm text-warning" data-testid="home-news-stale">
-          <Translated locale={l} message="news.stale" />
-        </p>
-      )}
-      <ul className="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
-        {stories.map((story) => (
-          <li
-            key={story.story_id}
-            className="flex min-w-0 flex-col gap-1.5"
-            data-testid="home-story"
-          >
-            <NewsCardImage image={story.image} />
-            {drawableNewsImage(story.image) && <NewsImageCredit image={story.image} locale={l} />}
-            {story.type.data !== null && (
-              <span className="text-xs font-bold tracking-widest text-accent uppercase">
-                <Translated locale={l} message={STORY_TYPE_KEY[story.type.data.type]} />
-              </span>
-            )}
-            <h3 className="font-serif text-2xl font-semibold" lang={story.language}>
-              <Link href={storyHref(locale, story.story_id)} className="hover:underline">
-                {story.headline}
-              </Link>
-            </h3>
-            <p className="text-sm text-muted">
-              <bdi>{story.source.name}</bdi>
-              {story.published_at !== null && (
-                <>
-                  {' · '}
-                  <time dateTime={story.published_at}>
-                    {formatDate(l, story.published_at, timeZone, {
-                      day: 'numeric',
-                      month: 'short',
-                    })}
-                  </time>
-                </>
-              )}
-              {story.origin !== 'publisher' && (
-                <>
-                  {' · '}
-                  <Translated locale={l} message={VERSION_STATUS_KEY[versionStatus(story)]} />
-                </>
-              )}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
 

@@ -68,12 +68,15 @@ export function NewsVisual({
   locale,
   size,
   eager = false,
+  href = card.url,
 }: {
   card: NewsStoryCard;
   locale: string;
   size: NewsVisualSize;
   /** The lead on the news page, above the fold: loaded at once rather than lazily. */
   eager?: boolean;
+  /** Where the picture leads, as the headline beside it does: the original unless said. */
+  href?: string;
 }) {
   const image = card.image;
   if (drawableNewsImage(image)) {
@@ -81,7 +84,7 @@ export function NewsVisual({
     return (
       <Pictured>
         <div className={cx('flex flex-col gap-1', size === 'thumb' && 'shrink-0')}>
-          <a href={card.url} rel="noopener" tabIndex={-1} aria-hidden="true" className="block">
+          <a href={href} rel="noopener" tabIndex={-1} aria-hidden="true" className="block">
             {/* A plain image on purpose: no optimiser route, no client JS (news-image.tsx). */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -104,7 +107,7 @@ export function NewsVisual({
   }
   return (
     <a
-      href={card.url}
+      href={href}
       rel="noopener"
       tabIndex={-1}
       aria-hidden="true"
