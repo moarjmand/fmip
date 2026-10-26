@@ -216,7 +216,7 @@
  * that follows the crest's own outline, not a plate behind it, so a navy or
  * black crest (Tottenham, PSG, Inter) keeps its shape on Night and every
  * other crest looks as drawn. On Day the token is the surface itself, so
- * nothing shows; editorial mode takes the Day value with the rest.
+ * nothing shows.
  */
 @utility crest-halo {
   filter: drop-shadow(0 0 1px var(--token-crest-halo));
@@ -440,24 +440,12 @@ body {
   }
 
   /*
-   * The two modes (D-198). `data-mode="editorial"` -- an editorial page's
-   * wrapper not yet rebuilt (home, stories, predictions, model accuracy, the
-   * founder's analysis; the header follows the theme, D-267) -- gets the
-   * paper values in tokens.css whatever
-   * the theme, and paints its own ground with them: the colours a child
-   * inherits were resolved on <body>, in the theme's values, so the mark
-   * says them again. `data-mode="data"` (live match, full time, competition,
-   * player, club) follows the theme and stands on the stage: Day's sunk
-   * ground on light, the Night canvas on dark. A class still overrides
-   * either ground. Modes do not nest: a data block inside an editorial page
-   * stays on paper.
+   * A data page (D-198): `data-mode="data"` (the match centre, competition,
+   * player, club, the model page) stands on the stage, which is the canvas
+   * in both themes since D-263; a class still overrides it. Editorial mode,
+   * paper whatever the theme, is gone: the last page left it in T-1621
+   * (D-291), and every page follows the theme.
    */
-  [data-mode='editorial'] {
-    background-color: var(--token-canvas);
-    color: var(--token-text);
-    accent-color: var(--token-accent);
-  }
-
   [data-mode='data'] {
     background-color: var(--token-stage);
     color: var(--token-text);

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { BRAND_COLOURS } from '@/lib/brand-colours';
@@ -19,6 +19,15 @@ import { BRAND_COLOURS } from '@/lib/brand-colours';
 const HERE = __dirname;
 const TOKENS = readFileSync(join(HERE, 'tokens.css'), 'utf8');
 const GLOBALS = readFileSync(join(HERE, 'globals.css'), 'utf8');
+
+/** Every source file under `dir` but the specs, which may name a mark to refuse it. */
+function sources(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return sources(path);
+    return /\.tsx?$/.test(entry.name) && !/\.spec\.tsx?$/.test(entry.name) ? [path] : [];
+  });
+}
 
 type Declaration = { value: string; comment: string | undefined };
 
@@ -47,14 +56,6 @@ const DARK_MORE_COPIES = [
   block(":root:not([data-theme='light'])[data-contrast='more']"),
   block(":root[data-theme='dark']:not([data-contrast='standard'])"),
   block(":root:not([data-theme='light']):not([data-contrast='standard'])"),
-];
-
-// Editorial mode (D-198): the editorial pages not yet rebuilt, on Day whatever
-// the theme -- the light values, plain and with more contrast.
-const EDITORIAL = block("\n[data-mode='editorial']");
-const EDITORIAL_MORE = [
-  block(":root[data-contrast='more'] [data-mode='editorial']"),
-  block(":root:not([data-contrast='standard']) [data-mode='editorial']"),
 ];
 
 function luminance(hex: string): number {
@@ -304,18 +305,16 @@ describe('the tokens themselves', () => {
     }
   });
 
-  it('keep editorial mode on Day: the light values, whatever the theme (D-198, D-263)', () => {
-    expect(value(EDITORIAL, '--token-canvas')).toBe('#f2f3f1');
-    const pairs = [[EDITORIAL, LIGHT], ...EDITORIAL_MORE.map((copy) => [copy, LIGHT_MORE])];
-    for (const [copy, of] of pairs) {
-      if (copy === undefined || of === undefined) throw new Error('missing block');
-      expect([...copy.keys()].sort()).toEqual([...of.keys()].sort());
-      for (const [name, declared] of of) expect(value(copy, name), name).toBe(declared.value);
-    }
-    // And the marked element paints its own ground and text with them.
-    const editorial = /\[data-mode='editorial'\] \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';
-    expect(editorial).toContain('background-color: var(--token-canvas);');
-    expect(editorial).toContain('color: var(--token-text);');
+  it('have no editorial paper left: every page follows the theme (D-198 retired, T-1621)', () => {
+    // The Day values on a marked element whatever the theme went with the
+    // last page that carried the mark, the news story (D-291).
+    expect(TOKENS).not.toContain("[data-mode='editorial']");
+    expect(GLOBALS).not.toContain("[data-mode='editorial']");
+    const marked = sources(join(__dirname, '..')).filter((file) =>
+      /data-mode=["']editorial/.test(readFileSync(file, 'utf8')),
+    );
+    expect(marked).toEqual([]);
+    // A data page stands on the stage.
     const data = /\[data-mode='data'\] \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';
     expect(data).toContain('background-color: var(--token-stage);');
   });
@@ -363,13 +362,12 @@ describe('the tokens themselves', () => {
 
   it('put every logo on white and give a crest an edge on Night alone (T-1609, D-280)', () => {
     // The logos are made for paper: the same white tile in every theme...
-    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE, EDITORIAL]) {
+    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE]) {
       expect(value(theme, '--token-logo-tile')).toBe('#ffffff');
     }
     for (const [day, ground] of [
       [LIGHT, '--token-surface'],
       [LIGHT_MORE, '--token-surface'],
-      [EDITORIAL, '--token-surface'],
     ] as const) {
       // ...on Day the hairline and the halo are the surface itself, so nothing shows...
       expect(value(day, '--token-logo-edge')).toBe(value(day, ground));
