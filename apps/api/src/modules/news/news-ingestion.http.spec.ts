@@ -359,10 +359,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news ingesti
     expect(byId.get(`report-a-${RUN}`)!.members).toBe('2');
     expect(byId.get(`sacking-${RUN}`)!.story_id).not.toBe(byId.get(`report-a-${RUN}`)!.story_id);
     expect(byId.get(`sacking-${RUN}`)!.promoted).toBe(`sacking-${RUN}`);
-    // The story the joined report was born with is gone, not left empty.
+    // The story the joined report was born with is gone, not left empty. Only
+    // this test's stories are counted: a spec running beside it may hold an
+    // empty story for a moment while it cleans up (T-1605).
     const empty = await pool.query(
       `SELECT count(*)::int AS n FROM story s
-        WHERE NOT EXISTS (SELECT 1 FROM article a WHERE a.story_id = s.id)`,
+        WHERE s.promoted_article_id IN (SELECT id FROM article WHERE source_id IN ($1, $2))
+          AND NOT EXISTS (SELECT 1 FROM article a WHERE a.story_id = s.id)`,
+      [a, b],
     );
     expect(empty.rows[0].n).toBe(0);
   });
