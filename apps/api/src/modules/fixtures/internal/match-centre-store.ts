@@ -23,7 +23,7 @@ import type {
   VenueSurface,
 } from '@fmip/contracts';
 import { NO_MEDIA } from '@fmip/contracts';
-import { incidentDetail } from '@fmip/ingestion';
+import { absenceReason, incidentDetail } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -429,6 +429,8 @@ export class PostgresMatchCentreStore {
         status: r.status,
         kind: r.kind,
         reason: r.reason,
+        // The provider's words in ours, read at read time (T-1601): no backfill.
+        reason_code: absenceReason(r.reason),
         reported_at: r.reported_at.toISOString(),
       })),
       askedAt: ask.rows[0]?.fetched_at.toISOString() ?? null,
