@@ -444,6 +444,40 @@ describe('image addresses are carried inside ingestion (T-1320)', () => {
     expect(fixture?.away.imageUrl).toMatch(/\/teams\/\d+\.png$/);
   });
 
+  it("gives a fixture's competition its country's flag, and none to one of no country (T-1611)", () => {
+    const fixture = mapFixture(
+      bodyOf('list-fixtures-opening-weekend').response[0],
+      '2026-09-10T00:00:00Z',
+    );
+    expect(fixture?.competition.countryFlagUrl).toBe(
+      'https://media.api-sports.io/flags/gb-eng.svg',
+    );
+    // A continental or international league: the provider's country is
+    // "World" and its flag null.
+    const continental = mapFixture(
+      {
+        fixture: { id: 2, date: '2026-09-16T19:00:00+00:00', status: { short: 'NS' } },
+        league: {
+          id: 2,
+          name: 'UEFA Champions League',
+          country: 'World',
+          season: 2026,
+          logo: 'https://media.api-sports.io/football/leagues/2.png',
+          flag: null,
+        },
+        teams: { home: { id: 44, name: 'Burnley' }, away: { id: 50, name: 'City' } },
+        goals: {},
+        score: {},
+      },
+      '2026-09-10T00:00:00Z',
+    );
+    expect(continental?.competition).toEqual({
+      externalId: '2',
+      name: 'UEFA Champions League',
+      imageUrl: 'https://media.api-sports.io/football/leagues/2.png',
+    });
+  });
+
   it('gives every standings row its crest, and the table its logo', () => {
     const [table] = mapStandings(bodyOf('standings-final-table').response, '2026-09-10T00:00:00Z');
     expect(table?.competition.imageUrl).toBe('https://media.api-sports.io/football/leagues/39.png');
@@ -489,7 +523,13 @@ describe('image addresses are carried inside ingestion (T-1320)', () => {
     const fixture = mapFixture(
       {
         fixture: { id: 1, date: '2026-09-10T19:00:00+00:00', status: { short: 'NS' } },
-        league: { id: 39, name: 'Premier League', season: 2026, logo: 'http://x/39.png' },
+        league: {
+          id: 39,
+          name: 'Premier League',
+          season: 2026,
+          logo: 'http://x/39.png',
+          flag: 'http://x/gb-eng.svg',
+        },
         teams: { home: { id: 44, name: 'Burnley', logo: '' }, away: { id: 50, name: 'City' } },
         goals: {},
         score: {},

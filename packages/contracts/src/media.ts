@@ -16,9 +16,10 @@
 
 /**
  * Which image of which entity: crest (team), logo (competition), photo
- * (person), venue (a picture of the ground, T-1438).
+ * (person), venue (a picture of the ground, T-1438), flag (country, T-1611,
+ * D-282).
  */
-export const MEDIA_KINDS = ['crest', 'logo', 'photo', 'venue'] as const;
+export const MEDIA_KINDS = ['crest', 'logo', 'photo', 'venue', 'flag'] as const;
 export type MediaKind = (typeof MEDIA_KINDS)[number];
 
 /**
