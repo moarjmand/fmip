@@ -142,10 +142,12 @@
  *
  * `nav-entry`: a row of the header's nav and of More, 44px tall; the current
  * one (or More, `data-on`, when the page is one of its own) ink on the
- * raised surface, as the Design System's header draws it.
+ * raised surface, as the Design System's header draws it. Its padding is
+ * tighter from 1024px to 1279px, where the six sections, More and the
+ * tools share one row (D-281).
  */
 @utility nav-entry {
-  @apply flex min-h-touch items-center gap-1 rounded-control px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg lg:px-2.5;
+  @apply flex min-h-touch items-center gap-1 rounded-control px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg lg:px-1.5 xl:px-2.5;
 
   &[aria-current='page'],
   &[data-on] {
@@ -156,6 +158,44 @@
 /* More's list: in the Menu a plain list, from 1024px a panel below the bar. */
 @utility more-panel {
   @apply flex flex-col lg:absolute lg:start-0 lg:top-full lg:z-40 lg:mt-1 lg:w-52 lg:rounded-control lg:border lg:border-default lg:bg-surface lg:p-1;
+}
+
+/*
+ * The header's language picker (T-1610, D-281, `components/language-picker.tsx`).
+ * `lang-toggle`: the globe and the page's language in short, a 44px target;
+ * in the phone's Menu a row like the rest, in the bar a compact control
+ * (from 1024px to 1279px without its caret, so the row holds).
+ * `lang-panel`: its list, in the Menu a plain list under it, from 1024px a
+ * panel below the bar at the control's inline end. `lang-entry`: a language
+ * in its own name, 44px tall, the page's own ink and bold.
+ */
+@utility lang-toggle {
+  @apply flex min-h-touch min-w-touch items-center gap-2 rounded-control px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg lg:gap-1 lg:px-2;
+}
+
+@utility lang-panel {
+  @apply flex flex-col ps-6 lg:absolute lg:end-0 lg:top-full lg:z-40 lg:mt-1 lg:w-44 lg:rounded-control lg:border lg:border-default lg:bg-surface lg:p-1;
+}
+
+@utility lang-entry {
+  @apply flex min-h-touch items-center rounded-control px-3 text-sm text-muted hover:bg-surface-raised hover:text-fg;
+
+  &[aria-current='page'] {
+    @apply font-bold text-fg;
+  }
+}
+
+/*
+ * `footer-link`: a link of the site footer (T-1610, D-281,
+ * `components/site-footer.tsx`), a 44px target on a phone and a 32px one
+ * from 768px; the page's own language ink and bold in the footer's picker.
+ */
+@utility footer-link {
+  @apply inline-flex min-h-touch items-center text-sm text-muted hover:text-fg hover:underline md:min-h-8;
+
+  &[aria-current='page'] {
+    @apply font-bold text-fg;
+  }
 }
 
 /*

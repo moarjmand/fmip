@@ -16,7 +16,8 @@ import {
 } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { Notice } from '@/components/ui';
+import { ButtonLink, Card, Notice } from '@/components/ui';
+import { PICKS_PATH } from '@/lib/shell-nav';
 import { Translated } from '@/components/translated';
 import { MemberName } from '@/components/member-name';
 import { UNFINISHED_LOCALES } from '@/i18n/locales';
@@ -93,6 +94,26 @@ export default async function LeaderboardPage({
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         <Translated locale={l} message="nav.leaderboard" />
       </h1>
+
+      {/* The way to make picks (T-1610, D-281): the header's Predictions
+        leads here, and picks are made on the matches page, in its "Not
+        picked yet" view. The page's one primary button. */}
+      <Card
+        className="flex-row flex-wrap items-center justify-between"
+        data-testid="leaderboard-picks"
+      >
+        <p className="max-w-md text-sm text-muted">
+          <Translated locale={l} message="leaderboardPage.picksLead" />
+        </p>
+        <ButtonLink
+          href={`/${locale}${PICKS_PATH}`}
+          variant="primary"
+          size="md"
+          data-testid="leaderboard-picks-cta"
+        >
+          <Translated locale={l} message="leaderboardPage.picksCta" />
+        </ButtonLink>
+      </Card>
 
       <nav aria-label={boardNav.text} lang={boardNav.lang} className="flex flex-col gap-2 text-sm">
         <div className="flex flex-wrap items-center gap-2" data-testid="scope-switcher">

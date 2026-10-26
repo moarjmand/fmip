@@ -39,16 +39,15 @@ const shellReader = cache(async () => {
 /** The header nav's words (`HEADER_NAV`, `MORE_NAV`), resolved here: the catalogues stay on the server. */
 const NAV_LABELS: Record<string, MessageKey> = {
   matches: 'shell.nav.matches',
-  predictions: 'nav.predictions',
   competitions: 'shell.nav.competitions',
+  predictions: 'nav.predictions',
   model: 'shell.nav.model',
   news: 'shell.nav.news',
-  more: 'shell.nav.more',
-  analysis: 'shell.nav.analysis',
-  watch: 'nav.watch',
   highlights: 'nav.highlights',
-  about: 'about.meta.title',
-  rules: 'rules.title',
+  more: 'shell.nav.more',
+  // Named as the founder's (D-281, rule 6): "Analysis" alone could be the model's.
+  analysis: 'analysis.founder.title',
+  watch: 'nav.watch',
 };
 
 /** The bottom tab bar's words (`tabBarLinks`). */
@@ -90,15 +89,18 @@ function Icon({ children }: { children: React.ReactNode }) {
  * ground from 768px, where the competition pills continue it below.
  *
  * From 1024px one row, always (T-1534: a row that wrapped when Archivo
- * arrived moved the whole page): the wordmark, the nav (Matches, Predictions,
- * Competitions, The model, News, then More with the founder's analysis,
- * Watch and Highlights), then at the end the search field, the other
- * language, the theme (Auto, Day, Night) and Sign in or the member's menu.
- * The search field is what gives way: it shrinks first, and below 1280px it
- * is a search link and the mark stands without its name. On a phone or a tablet it is the
- * wordmark, search and the Menu (`<details>`, no script), which holds the nav,
- * the language, the theme and the account; on a phone the five main
- * sections are also in the bottom tab bar.
+ * arrived moved the whole page): the wordmark, the nav (Matches,
+ * Competitions, Predictions, The model, News, Highlights, then More with
+ * the founder's analysis and Watch; D-281), then at the end the search
+ * field, the language picker (a globe and the page's language, D-281), the
+ * theme (Auto, Day, Night) and Sign in or the member's menu. The search
+ * field is what gives way: it shrinks first, and below 1280px it is a search
+ * link, the mark stands without its name and the row's gaps and the nav's
+ * padding are tighter. On a phone or a tablet it is the wordmark, search
+ * and the Menu (`<details>`, no script), which holds the nav, the language,
+ * the theme and the account; on a phone the five main sections are also in
+ * the bottom tab bar. What Stadiomind is and its rules are in the site
+ * footer (`site-footer.tsx`).
  *
  * One copy of every link: from 1024px `.site-menu` in globals.css makes the
  * disclosure `display: contents` (where `::details-content` can be styled),
@@ -162,7 +164,7 @@ export async function SiteHeader({
         <nav
           aria-label={primary.text}
           lang={primary.lang}
-          className="page-frame flex min-h-15 items-center gap-x-2 lg:h-16 lg:gap-x-4"
+          className="page-frame flex min-h-15 items-center gap-x-2 lg:h-16 lg:gap-x-2.5 xl:gap-x-4"
         >
           <Link
             href={href('')}
@@ -243,11 +245,10 @@ export async function SiteHeader({
                   />
                 </label>
               </form>
-              {/* Nothing until a second language is finished (T-306) and not held back (T-1163). */}
+              {/* The globe (D-281): nothing until a second language is finished (T-306) and not held back (T-1163). */}
               <LanguagePicker
                 languages={offeredLanguages(offeredGiven(holds))}
                 label={attribute(lang, 'shell.language')}
-                others
               />
               {/* Auto, Day or Night, on every page (T-602, D-198, D-263). */}
               <div className="py-2 lg:py-0">
@@ -286,7 +287,7 @@ export async function SiteHeader({
                 </div>
               ) : (
                 <details className="account-menu relative" data-testid="account-menu">
-                  <summary className="flex min-h-touch cursor-pointer list-none items-center gap-1 rounded-control px-3 text-sm font-semibold lg:max-w-44 lg:border lg:border-default lg:bg-surface [&::-webkit-details-marker]:hidden">
+                  <summary className="flex min-h-touch cursor-pointer list-none items-center gap-1 rounded-control px-3 text-sm font-semibold lg:max-w-32 lg:border xl:max-w-44 lg:border-default lg:bg-surface [&::-webkit-details-marker]:hidden">
                     {/* A long name is cut short in the bar rather than pushing the row wider (T-1534). */}
                     <span className="truncate">@{me.username}</span>
                     <span aria-hidden="true">▾</span>
