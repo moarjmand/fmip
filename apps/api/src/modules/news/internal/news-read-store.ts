@@ -125,11 +125,13 @@ export class PostgresNewsReadStore {
   /**
    * `media` names each linked team, competition and person's image (T-1613,
    * D-284). Optional so a spec can build the store from a pool alone; such a
-   * store's entities carry no `media`, which the contract allows.
+   * store's entities carry no `media`, which the contract allows. Named by
+   * `@Inject`, since a union type's metadata is `Object` and would resolve
+   * to nothing.
    */
   constructor(
     @Inject(PG_POOL) private readonly pool: Pool,
-    @Optional() private readonly media: MediaService | null = null,
+    @Optional() @Inject(MediaService) private readonly media: MediaService | null = null,
   ) {}
 
   /** When the feeds were last read: the freshness a page carries (rule 4). */
