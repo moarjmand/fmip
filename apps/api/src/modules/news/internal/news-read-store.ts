@@ -619,7 +619,8 @@ export class PostgresNewsReadStore {
    * own headline says it is not an article (`nonArticleKind`, the job's rule,
    * for what was stored before the job applied it), an item a search brought
    * whose own words name another code of football (`otherCodeOf`, T-1400,
-   * D-215; a publisher's own feed is not judged by it), and a story whose report
+   * D-215), or a publisher's feed item that does and is filed to none of ours
+   * (T-1619, D-290), and a story whose report
    * an earlier story already carries (`copies`). `paged` sections say where
    * the next page begins: after the last card shown, or, when every row past
    * it was left out, after the last row read.
@@ -642,18 +643,21 @@ export class PostgresNewsReadStore {
     paged: boolean,
   ): Promise<StoryPage_> {
     const copies = await this.copies(rows, q.locale);
+    // Read before the filter: an item from a publisher's own feed that names
+    // another sport is left out only when it is filed to none of ours (T-1619, D-290).
+    const entities = await this.entities(
+      rows.map((r) => r.story_id),
+      q.locale,
+    );
+    const filed = (r: CardRow): boolean => (entities.get(r.story_id) ?? []).length > 0;
     const listed = rows.filter(
       (r) =>
         nonArticleKind(r.headline) === null &&
-        !(r.searched && otherCodeOf(r.headline, r.summary) !== null) &&
+        !((r.searched || !filed(r)) && otherCodeOf(r.headline, r.summary) !== null) &&
         !copies.has(r.story_id),
     );
     const shown = listed.slice(0, limit);
     const read = rows.length === fetchSize(limit);
-    const entities = await this.entities(
-      shown.map((r) => r.story_id),
-      q.locale,
-    );
     const cards = shown.map((r) => this.card(r, entities.get(r.story_id) ?? [], q.windowHours));
     const more = paged && (listed.length > limit || read);
     const last = listed.length > limit ? shown[shown.length - 1] : rows[rows.length - 1];
