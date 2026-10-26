@@ -15,7 +15,6 @@ import {
   GuestWelcome,
   MonthFigures,
   MyTeams,
-  NewsGrid,
   TableExcerpt,
   UpsetCard,
 } from '@/components/home-rail';
@@ -26,6 +25,7 @@ import {
 } from '@/components/home-member';
 import { JsonLd } from '@/components/json-ld';
 import { LinkedSentence } from '@/components/linked-sentence';
+import { HomeNews } from '@/components/news-home';
 import { Translated } from '@/components/translated';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { message, t } from '@/i18n/messages';
@@ -442,11 +442,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </div>
 
         {stories.length > 0 && (
-          <NewsGrid
+          <HomeNews
             stories={stories}
             stale={news.ok && feedsStale(news.data.stories.last_updated_at, now)}
             locale={lang}
             timeZone={timeZone}
+            now={now.toISOString()}
           />
         )}
       </div>

@@ -10,6 +10,7 @@ import { territoryName } from '@/lib/territory';
 import { optionsState } from '@/lib/viewing';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { forecastBarWords } from '@/lib/words-server';
+import { EntityImage } from '@/components/entity-image';
 import { ForecastBar } from '@/components/forecast-bar';
 import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
@@ -90,9 +91,13 @@ export function NextMatchCard({
         className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-5 sm:gap-5 sm:px-5 sm:py-6"
         data-testid="next-match-link"
       >
-        <b className="min-w-0 text-end text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
-          <bdi>{fixture.home.name}</bdi>
-        </b>
+        {/* Each side's crest at the outer edge, above the name on a phone (T-1617). */}
+        <span className="flex min-w-0 flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+          <EntityImage media={fixture.home.crest} kind="crest" name={fixture.home.name} size={40} />
+          <b className="min-w-0 text-end text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
+            <bdi>{fixture.home.name}</bdi>
+          </b>
+        </span>
         <b
           className="text-2xl leading-none font-black font-stretch-condensed tabular-nums sm:text-3xl"
           dir="ltr"
@@ -101,9 +106,12 @@ export function NextMatchCard({
             {formatKickoff(l, fixture.kickoff_at, timeZone)}
           </time>
         </b>
-        <b className="min-w-0 text-start text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
-          <bdi>{fixture.away.name}</bdi>
-        </b>
+        <span className="flex min-w-0 flex-col items-start gap-2 sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-3">
+          <EntityImage media={fixture.away.crest} kind="crest" name={fixture.away.name} size={40} />
+          <b className="min-w-0 text-start text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
+            <bdi>{fixture.away.name}</bdi>
+          </b>
+        </span>
       </Link>
 
       <div className="flex flex-col gap-3 px-4 pb-4 sm:px-5">

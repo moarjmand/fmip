@@ -12601,3 +12601,22 @@ replaces D-089's self-hosting arrangement for no gain here).
 - Moving the rating chip onto the disc (as some score sites do): the chip is the Design System's (D-263), read in its place by the existing specs and by readers since T-1497.
 
 **Consequences.** No API change: `FixturesService` already filled `photo` for every line-up player through `MediaService.index`. A phone's pitch is about 8px taller per line. The seed holds no line-up, so the end-to-end and visual specs do not see the discs; the unit spec renders them.
+
+## D-288 — Crests, logos and photos on the remaining pages, and where a phone leaves them out
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1617 · **Follows:** D-176, D-280
+
+**Context.** The maintainer asked for images and logos across the whole site. The competition, club and player pages named clubs in every list -- fixtures, results, recent results, matches coming up, the table around the club, the player's career and record -- as text only, and the club page's next match drew no crest, although the media store holds a crest for nearly every club and a logo for every competition we cover. At 360px a club's match row gives both names and the score 170px, and a competition page's match line 136px; two 20px crests and their gaps take 56px of that.
+
+**Decision.**
+1. Every list that names a club draws its crest through `EntityImage`, and every line that names a competition beside a match draws its logo, from the API's own answer: the catalog pages' answers carry them (T-1617a), read with each page's other media in one query. A club with no crest held gets the lettered mark (rule 3); a competition logo the API did not send is left out rather than marked, since it sits in the small print.
+2. A row that names one club (a recent result's opponent, a match coming up, a table row, a squad line with its photo, a career spell, a record row) draws it at every width.
+3. A row that names both sides of a match in one line (the competition page's match line, the club page's match row, the player's match line) draws the two crests from 640px only; on a phone the names keep the room, as they wrap or truncate already.
+4. The club page's next match draws both crests at 40px: at each name's outer edge from 640px, above the name on a phone.
+5. The watch page draws both crests at the ends of each match link: its score cards carry them already.
+6. Search (T-1617c): each team, competition and person result carries its crest, logo or photo, read for the page of results in one query, drawn at 22px before the name.
+7. Nothing is drawn that the answers do not carry: the model page's competitions, the match centre's scorers and the leaderboard would need media added to other modules' answers, left for later; no provider address is ever drawn (D-176).
+
+**Rejected.** Crests on a phone's two-sided rows: the names would truncate to two or three letters. A stacked two-line row on a phone (home over away), as some score apps draw it: a redesign of rows T-1555 settled as running text, for another task. Crests beside every event of the match centre's timeline: the side is already its column, and the header carries both crests.
+
+**Consequences.** The competition, club and player pages ask for their media once each, as before, with more ids; the player page now asks after its reads, one more round trip. The images are crests and logos on Night with D-280's halo and tile.

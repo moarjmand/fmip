@@ -70,7 +70,7 @@ export function NewsStory({
         {lead ? (
           <StoryTypeTag locale={locale} type={card.type} />
         ) : (
-          <Kicker card={card} locale={locale} />
+          <StoryKicker card={card} locale={locale} />
         )}
         {/* The heading's block takes the headline's direction, so an English one on /fa sits flush left like its summary. */}
         <H
@@ -186,7 +186,7 @@ export function NewsStory({
 }
 
 /** A card's type above its headline, in saffron capitals; nothing when it has none (D-123). */
-function Kicker({ card, locale }: { card: NewsStoryCard; locale: string }) {
+export function StoryKicker({ card, locale }: { card: NewsStoryCard; locale: string }) {
   if (card.type.data === null || card.type.coverage === 'not_supplied') return null;
   return (
     <p
@@ -247,7 +247,7 @@ function Meta({
 }
 
 /** "3 hr ago" within a day, else the date; the full time on hover; never the fetch time. */
-function StoryTime({
+export function StoryTime({
   card,
   locale,
   timeZone,

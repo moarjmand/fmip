@@ -617,6 +617,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.news.all": {
+    "source": "All news",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.welcome.label": {
     "source": "New to Stadiomind",
     "text": "",
