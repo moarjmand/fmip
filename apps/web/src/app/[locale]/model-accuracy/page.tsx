@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { ModelAccuracy } from '@/components/model-accuracy';
-import { Translated } from '@/components/translated';
+import { ModelAccuracy, ModelAccuracyBand } from '@/components/model-accuracy';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { t } from '@/i18n/messages';
 import { fetchModelAccuracy } from '@/lib/api';
@@ -30,7 +29,8 @@ export async function generateMetadata({
  * `GET /model/accuracy`. Linked from the forecast panel. Any other `period`
  * is the month view, the page's address without one.
  * Every figure comes with its sample and coverage state; with nothing scored
- * the page says so rather than showing a number (rule 3).
+ * the page says so rather than showing a number (rule 3). The band names the
+ * model, its versions and the last scoring day; the figures follow.
  */
 export default async function ModelAccuracyPage({
   params,
@@ -42,29 +42,15 @@ export default async function ModelAccuracyPage({
   const [{ locale }, query] = await Promise.all([params, searchParams]);
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const result = await fetchModelAccuracy(query.period === 'week' ? 'week' : 'month');
+  const report = result.ok ? result.data : null;
 
   return (
-    // Editorial mode (T-1383, D-201): paper whatever the theme, the serif
-    // display, the introduction at the article measure, the tables beside.
-    <main data-mode="editorial" className="bg-canvas text-fg">
-      <div className="page-frame flex flex-col gap-8 py-8 md:py-10">
-        <header className="flex max-w-measure flex-col gap-3">
-          <p className="text-xs font-bold tracking-widest text-model uppercase">
-            <Translated locale={lang} message="lanes.model.title" />
-          </p>
-          <h1
-            className="font-serif text-display-2 font-semibold md:text-display-4"
-            data-testid="title"
-          >
-            <Translated locale={lang} message="modelAccuracy.meta.title" />
-          </h1>
-          <p className="font-article text-article text-muted">
-            <Translated locale={lang} message="modelAccuracy.intro" />
-          </p>
-        </header>
-        <div className="max-w-4xl">
-          <ModelAccuracy locale={lang} report={result.ok ? result.data : null} />
-        </div>
+    // The Stadiomind page (T-1620, D-291): it follows the theme like the
+    // other data pages (D-274, D-276), no longer on editorial paper.
+    <main data-mode="data" className="pb-16" data-testid="model-accuracy-page">
+      <ModelAccuracyBand locale={lang} report={report} />
+      <div className="page-frame pt-6 sm:pt-8">
+        <ModelAccuracy locale={lang} report={report} />
       </div>
     </main>
   );

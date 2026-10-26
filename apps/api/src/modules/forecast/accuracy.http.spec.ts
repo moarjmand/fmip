@@ -318,6 +318,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     // The share and the count are over the same two matches: 1 of 2.
     expect(march?.accuracy).toBe(0.5);
     expect(march?.rps).toBeCloseTo((rps(P_SUNDAY, 'home') + rps(P_MONDAY, 'draw')) / 2, 6);
+    // Each competition carries its logo from the media boundary; none is
+    // stored for this one, and it says so rather than leaving it out (T-1620).
+    expect(league?.competition?.logo).toEqual({ coverage: 'not_supplied', url: null });
+    expect(body.overall.competition).toBeNull();
   });
 
   it('serves the public page by ISO week when asked, and refuses an unknown period (T-1413)', async () => {

@@ -361,6 +361,8 @@ install inside would overwrite them):
 
 **The About page** (T-1615, D-286) joined the baseline on 2026-10-26: four more pictures (`about-*`), the diagram drawn complete and still, as reduced motion draws it. Its steps fade in when motion is welcome, so the axe pass (`a11y.spec.ts`) lets every finite animation finish before it measures contrast.
 
+**The model page** (T-1620, D-291) joined on 2026-10-26: four more pictures (`model-*`), its band on the surface and the sentence that the figures cannot be shown, on the theme's grounds rather than editorial paper.
+
 ## PageSpeed after the redesign (T-1502)
 
 PageSpeed Insights (Lighthouse 13.5.0; mobile is a Moto G Power on slow

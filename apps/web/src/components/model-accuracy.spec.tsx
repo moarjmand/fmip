@@ -7,7 +7,7 @@ import type {
 } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { ModelAccuracy } from './model-accuracy';
+import { ModelAccuracy, ModelAccuracyBand } from './model-accuracy';
 
 /**
  * The public page's figures (T-1369), rendered: never a figure without a
@@ -66,8 +66,15 @@ const report = (overrides: Partial<PublicModelAccuracyResponse>): PublicModelAcc
   ...overrides,
 });
 
+// The page as it composes them: the band, then the figures (T-1620).
 const html = (r: PublicModelAccuracyResponse | null, locale = 'en') =>
-  renderToStaticMarkup(<ModelAccuracy locale={locale} report={r} />);
+  renderToStaticMarkup(
+    <>
+      <ModelAccuracyBand locale={locale} report={r} />
+      <ModelAccuracy locale={locale} report={r} />
+    </>,
+  );
+const text = (out: string) => out.replace(/<[^>]+>/g, '');
 
 describe('ModelAccuracy (T-1369)', () => {
   it('shows the figures below the minimum as limited, with the count', () => {
@@ -96,7 +103,10 @@ describe('ModelAccuracy (T-1369)', () => {
       ...out.matchAll(/<div[^>]*role="region" aria-labelledby="([^"]+)" tabindex="0"[^>]*>/g),
     ];
     expect(regions).toHaveLength(2);
-    for (const [, id] of regions) expect(out).toContain(`<caption id="${id}"`);
+    // Named by the caption written above the box, so a phone reads it whole
+    // (T-1620); the table keeps its own caption for a screen reader's table list.
+    for (const [, id] of regions) expect(out).toMatch(new RegExp(`<p id="${id}"[^>]*>By month`));
+    expect(out.match(/<caption class="sr-only">/g)).toHaveLength(2);
   });
 
   it('says there is no accuracy at all when nothing has been scored', () => {
@@ -166,8 +176,122 @@ describe('ModelAccuracy (T-1369)', () => {
     expect(out.replace(/<[^>]+>/g, '')).toContain('dixon-coles-elo@0.1.0');
   });
 
-  it('says so when the API cannot be reached', () => {
-    expect(html(null)).toContain('data-testid="accuracy-unreachable"');
+  it('says so when the API cannot be reached, guessing no version, date or switch', () => {
+    const out = html(null);
+    expect(out).toContain('data-testid="accuracy-unreachable"');
+    expect(out).toContain('data-testid="title"');
+    expect(out).not.toContain('data-testid="accuracy-meta"');
+    expect(out).not.toContain('data-testid="accuracy-period"');
+  });
+
+  describe('the Stadiomind page (T-1620, D-291)', () => {
+    it('names the model alone in its band, with its versions and the last scoring day', () => {
+      const out = html(report({}));
+      const band = /<header[^>]*data-testid="accuracy-band"[\s\S]*?<\/header>/.exec(out)?.[0] ?? '';
+      expect(text(band)).toContain('Statistical model');
+      expect(text(band)).toContain('How accurate is our model?');
+      // Rule 6: the model only, the other two products named as not counted.
+      expect(text(band)).toContain('The statistical model’s published forecasts only');
+      expect(text(band)).toContain('Model versions: dixon-coles-elo@0.1.0.');
+      expect(text(band)).toContain('Last scored on 12 October 2026.');
+      expect(band).toContain('data-testid="accuracy-period"');
+      expect(band).not.toMatch(PHYSICAL);
+      // No serif and no paper: the interface face on the theme's grounds.
+      expect(out).not.toMatch(/font-serif|font-article|data-mode/);
+    });
+
+    it('draws the switch as a segmented control of two links, 44px each', () => {
+      const out = html(report({}));
+      const links = [...out.matchAll(/<a[^>]*data-testid="accuracy-period-(month|week)"[^>]*>/g)];
+      expect(links.map((m) => m[1])).toEqual(['month', 'week']);
+      for (const [tag] of links) expect(tag).toContain('min-h-touch');
+      expect(links[0]![0]).toContain('aria-current="page"');
+      expect(links[1]![0]).not.toContain('aria-current');
+    });
+
+    it('shows the totals as five tiles, each with what a guess scores and what it means', () => {
+      const out = html(report({}));
+      const tiles = [...out.matchAll(/data-testid="accuracy-kpi" data-metric="([^"]+)"/g)];
+      expect(tiles.map((m) => m[1])).toEqual(['matches', 'correct', 'rps', 'brier', 'log-loss']);
+      const read = text(out);
+      for (const guess of ['33%', '0.249', '0.667', '1.099']) {
+        expect(read).toContain(`If guessing: ${guess}`);
+      }
+      const kpis = /<dl[^>]*data-testid="accuracy-kpis"[\s\S]*?<\/dl>/.exec(out)?.[0] ?? '';
+      expect(text(kpis).match(/Lower is better/g)).toHaveLength(3);
+      expect(read).toContain('0 is perfect');
+      // The small sample is said beside the tiles, not hidden (rule 3).
+      expect(out).toContain('data-testid="accuracy-limited"');
+    });
+
+    it('draws no tile and no table when nothing has been scored', () => {
+      const out = html(
+        report({
+          overall: series({ total: NONE, points: [], model_versions: [] }),
+          competitions: [],
+          last_updated_at: null,
+        }),
+      );
+      expect(out).not.toContain('data-testid="accuracy-kpis"');
+      expect(out).not.toContain('data-testid="accuracy-meta"');
+      expect(out).toContain('data-coverage-badge="not_supplied"');
+    });
+
+    it('gives each competition a card with its logo, its link, its coverage and its months', () => {
+      const out = html(
+        report({
+          competitions: [
+            series({
+              competition: {
+                id: 'c1',
+                name: 'Premier League',
+                logo: { coverage: 'available', url: '/api/media/logo/c1.ab12cd34.png' },
+              },
+            }),
+            series({
+              competition: {
+                id: 'c2',
+                name: 'Serie A',
+                logo: { coverage: 'not_supplied', url: null },
+              },
+              model_versions: [],
+              total: NONE,
+              points: [],
+            }),
+          ],
+        }),
+      );
+      const cards = out.split('data-testid="accuracy-competition"').slice(1);
+      expect(cards).toHaveLength(2);
+      expect(cards[0]).toMatch(/<img[^>]*src="\/api\/media\/logo\/c1\.ab12cd34/);
+      expect(cards[0]).toContain('href="/en/competition/c1"');
+      expect(cards[0]).toContain('data-coverage-badge="limited"');
+      // The early-record note under 30 matches, and the months under a disclosure.
+      expect(text(cards[0]!)).toContain('an early record, not a verdict');
+      expect(cards[0]).toMatch(/<details[^>]*>[\s\S]*<summary[^>]*>[\s\S]*Month by month/);
+      // No logo held: the lettered mark, never a stand-in (rule 3); no figure, no table.
+      expect(cards[1]).toContain('data-letters="SA"');
+      expect(cards[1]).not.toContain('<img');
+      expect(cards[1]).toContain('data-coverage-badge="not_supplied"');
+      expect(cards[1]).not.toContain('<details');
+    });
+
+    it('keeps the competitions in the order the API sends them', () => {
+      const out = html(report({}));
+      expect(out.indexOf('Premier League')).toBeLessThan(out.indexOf('Serie A'));
+    });
+
+    it('says the band, the tiles and the weekly disclosure in Persian on /fa', () => {
+      const read = text(html(report({ period: 'week' }), 'fa'));
+      expect(read).toContain('هفته به هفته');
+      expect(read).toContain('کمتر بهتر است');
+      expect(read).toContain('با حدس تصادفی: ۳۳٪');
+      // The last scoring day in the reader's calendar, as every date on /fa.
+      expect(read).toContain('آخرین ارزیابی: ۲۰ مهر ۱۴۰۵.');
+      expect(html(report({ period: 'week' }), 'fa')).not.toContain(
+        'data-translation="untranslated"',
+      );
+    });
   });
 
   it('renders the model alone: no other product in its file (rule 6)', () => {

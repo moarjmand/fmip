@@ -15,7 +15,8 @@ const PAGES = [
   '/en',
   '/en/scores',
   '/en/leaderboard',
-  // The editorial pages of T-1383 (D-201), in their no-API states; the old
+  // The pages T-1383 (D-201) set in editorial mode, in their no-API states
+  // (the model page follows the theme since T-1620, D-291); the old
   // Predictions page is the matches page now (T-1519), checked as a member
   // reaches it from Predictions.
   '/en/scores?unpicked=1',

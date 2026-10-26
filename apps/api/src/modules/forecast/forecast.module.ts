@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
+import { MediaModule } from '../media/media.module';
 import { CandidatesController } from './candidates.controller';
 import { EvaluationController } from './evaluation.controller';
 import { EvaluationService } from './evaluation.service';
@@ -46,7 +47,8 @@ export function modelClientFromEnv(env: NodeJS.ProcessEnv = process.env): ModelC
  * service, the immutable forecast versions, and their post-match evaluation.
  */
 @Module({
-  imports: [IdentityModule],
+  // Media (T-1620, D-291): the public accuracy page's competition logos.
+  imports: [IdentityModule, MediaModule],
   controllers: [
     ForecastController,
     EvaluationController,
