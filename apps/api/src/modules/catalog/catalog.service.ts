@@ -268,6 +268,8 @@ export class CatalogService {
     const { rows } = await this.pool.query<DirectoryRow>(
       `SELECT c.id, c.name, c.short_name, c.scope, c.kind,
               co.id AS country_id, co.name AS country_name, co.code AS country_code,
+              (SELECT season_display_label(se.label, se.start_date) FROM season se
+                WHERE se.competition_id = c.id AND se.is_current) AS season_label,
               CASE WHEN EXISTS (SELECT 1 FROM competition_display_order lo WHERE lo.locale = $1)
                    THEN (SELECT lo.position FROM competition_display_order lo
                           WHERE lo.competition_id = c.id AND lo.locale = $1)
@@ -299,6 +301,7 @@ export class CatalogService {
               },
         order: r.stated_order,
         logo: media.logo(r.id),
+        season: r.season_label,
       })),
     );
   }
@@ -1105,6 +1108,7 @@ interface DirectoryRow {
   country_id: string | null;
   country_name: string | null;
   country_code: string | null;
+  season_label: string | null;
   stated_order: number | null;
 }
 

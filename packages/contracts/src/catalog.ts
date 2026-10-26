@@ -86,6 +86,12 @@ export interface CompetitionDirectoryEntry {
   order: number | null;
   /** The competition's logo from our own origin (T-1320). */
   logo: EntityMedia;
+  /**
+   * The current season's label as the competition page shows it ("2025/26",
+   * or the year alone for a season played inside one, D-256); `null` when the
+   * competition has no current season (T-1612).
+   */
+  season: string | null;
 }
 
 /**

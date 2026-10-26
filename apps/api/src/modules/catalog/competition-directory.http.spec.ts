@@ -70,8 +70,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competitions
     // The logo is a coverage state, never a provider address (rule 2).
     expect(premier?.logo.coverage).toMatch(/^(available|not_supplied)$/);
     expect(Object.keys(premier ?? {}).sort()).toEqual(
-      ['country', 'id', 'kind', 'logo', 'name', 'order', 'scope', 'short_name'].sort(),
+      ['country', 'id', 'kind', 'logo', 'name', 'order', 'scope', 'season', 'short_name'].sort(),
     );
+    // The current season as the competition page names it (T-1612); the seed's
+    // Premier League has one, and a label is never invented for none.
+    expect(premier?.season).toMatch(/^\d{4}(\/\d{2})?$/);
+    for (const c of all) expect(c.season === null || typeof c.season === 'string').toBe(true);
   });
 
   it('gives each country its flag from our own origin, and a competition of no country none (T-1611)', async () => {
