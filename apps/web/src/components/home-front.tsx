@@ -64,8 +64,11 @@ export function RuleHeading({
   size?: 'md' | 'lg';
 }) {
   const H = level === 2 ? 'h2' : 'h3';
+  // On a phone the aside takes its own line whatever the title's width: a
+  // title that only just fits would push it down when the heading face
+  // arrives, and the page below with it (T-1536).
   return (
-    <div className="mb-3.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <div className="mb-3.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 max-sm:flex-col max-sm:items-start">
       <H
         id={id}
         className={cx(
