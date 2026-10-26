@@ -180,14 +180,21 @@ export default async function StoryPage({
           <article className="flex max-w-measure min-w-0 flex-col gap-5" lang={story.language}>
             <header className="flex flex-col gap-3">
               <StoryTypeTag locale={locale} type={story.type} sayNone />
+              {/* The publisher's words in their own direction (T-1622): an English
+                  story on /fa ends its sentences on the right side. */}
               <h1
+                dir="auto"
                 className="font-serif text-display-1 font-semibold break-words sm:text-display-2 md:text-display-3"
                 data-testid="title"
               >
                 {story.headline}
               </h1>
               {story.summary !== null && (
-                <p className="font-article text-xl text-muted" data-testid="story-summary">
+                <p
+                  dir="auto"
+                  className="font-article text-xl text-muted"
+                  data-testid="story-summary"
+                >
                   {story.summary}
                 </p>
               )}
@@ -217,6 +224,7 @@ export default async function StoryPage({
 
             {page.body.data !== null ? (
               <div
+                dir="auto"
                 className="font-article text-article whitespace-pre-line"
                 data-testid="story-body"
               >
