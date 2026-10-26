@@ -121,10 +121,18 @@ describe('the story page (T-1621, D-291)', () => {
 
   it('keeps the reading faces: the headline in the editorial face, the words in the article face', async () => {
     const out = await render('full_text');
-    expect(out).toMatch(/<h1 class="font-serif[^"]*"[^>]*data-testid="title">Arsenal win/);
     expect(out).toMatch(
-      /class="font-article text-article[^"]*" data-testid="story-body">The words\./,
+      /<h1 dir="auto" class="font-serif[^"]*"[^>]*data-testid="title">Arsenal win/,
     );
+    expect(out).toMatch(
+      /dir="auto" class="font-article text-article[^"]*" data-testid="story-body">The words\./,
+    );
+  });
+
+  it('sets the publisher’s words in their own direction, so an English story ends right on /fa (T-1622)', async () => {
+    const out = await render('summary');
+    expect(out).toMatch(/<h1 dir="auto"[^>]*data-testid="title"/);
+    expect(out).toMatch(/<p dir="auto"[^>]*data-testid="story-summary"/);
   });
 
   it('shows the words only when the source grants the full text (D-061)', async () => {
