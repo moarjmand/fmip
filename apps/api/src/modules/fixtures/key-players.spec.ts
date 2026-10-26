@@ -1,4 +1,5 @@
-import type { MatchAbsence } from '@fmip/contracts';
+import type { AbsenceReasonCode, MatchAbsence } from '@fmip/contracts';
+import { ABSENCE_REASONS, type AbsenceReason } from '@fmip/ingestion';
 import { describe, expect, it } from 'vitest';
 import {
   availabilityOf,
@@ -62,6 +63,7 @@ describe('availabilityOf', () => {
       status: 'doubtful',
       kind: 'injury',
       reason: 'Hamstring',
+      reason_code: 'hamstring',
       reported_at: '2086-01-01T00:00:00.000Z',
     },
     {
@@ -86,6 +88,7 @@ describe('availabilityOf', () => {
       status: 'doubtful',
       kind: 'injury',
       reason: 'Hamstring',
+      reason_code: 'hamstring',
     });
     expect(availabilityOf('b', absences, asked)?.status).toBe('out');
   });
@@ -95,7 +98,18 @@ describe('availabilityOf', () => {
       status: 'not_listed',
       kind: null,
       reason: null,
+      reason_code: null,
     });
+  });
+});
+
+describe('the reason codes (T-1601)', () => {
+  it('are the same list in the contract and in ingestion', () => {
+    // Both ways at compile time: a code added on one side only fails here.
+    const fromIngestion: readonly AbsenceReasonCode[] = ABSENCE_REASONS;
+    const fromContract: readonly AbsenceReason[] = [] as AbsenceReasonCode[];
+    expect(fromIngestion.length).toBeGreaterThan(0);
+    expect(fromContract).toEqual([]);
   });
 });
 
