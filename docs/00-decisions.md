@@ -12492,6 +12492,21 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** Locally the swap's CLS is 0.0001 on /en (from 0.13) and 0.006 on the match page (from 0.051), and 0.01 or less with no Arial on the device; `journeys/font-swap.spec.ts` holds the web fonts back on a phone and fails main's match page (0.057). The match page's HTML is 366 kB (62.8 kB gzip), from 436 kB (75.2 kB), and every other page loses the same 83 kB; with every API call slowed to 150 ms the page answers one round trip sooner (0.56 s from 0.70 s). A failed layout's page fetches its stylesheet when it is drawn, so if that request fails too the page is unstyled. The PageSpeed re-run on production after the deploy is the coordinator's. Not done: a phone without Arial or its clones (Android) still falls back to its system face unmatched; faces built on Roboto would need Roboto's metrics measured on such a device.
 
+## D-282 — Country flags are entity media, noted from the fixture lists
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1611 · **Follows:** D-176, D-242
+
+**Context.** The All competitions page groups competitions by country with plain text, and the maintainer asked for it to look more professional and creative. API-Football names each league's country flag in every fixture list, standings and league answer (`league.flag`, `country.flag`), on the same host as the crests (`media.api-sports.io/flags/<code>.svg`). `EntityImage` drew no flag because no decision covered a flag package, and D-176 forbids hotlinking a provider image. Every flag of the 25 countries the directory listed on 2026-10-26 (and a few others) was read that day: each is an SVG of 640 by 480 with `image/svg+xml`, the largest (Serbia, with its arms) 494 kB, under the 512 kB cap, and none carries a script, a handler, a foreign object or a reference outside itself (Portugal's reuses its own shapes by `<use xlink:href="#a">`).
+
+**Decision.**
+1. A flag is an `entity_media` row like a crest: entity type `country`, kind `flag` (`MEDIA_KINDS`), the kind check widened by migration `1765894000000`, served at `/api/media/flag/<country uuid>/<version>.svg`, the provider's address only in `source_url`.
+2. It is noted from the fixture lists the jobs already read, with no new request: the adapter carries `league.flag` as `CompetitionRef.countryFlagUrl` beside the logo; the ingest store notes it against the country our catalogue gives the competition (read once per process), when the list names the competition it was asked for. The provider's country name is never matched to a country (rule 1). A competition of no country (continental, international) notes nothing, and the provider sends no flag for one anyway.
+3. No backfill: rows appear as the fixture lists are read and the media job copies them on its usual five-minute tick, flags first with the competitions.
+4. Contracts: `CountryRef` (`id`, `name`, `code`, optional `flag`) for the directory's country, the competition page's (and table's) country, the team page's country and the player's nationality. `NO_MEDIA` when none is stored; the field is absent only where the answer did not ask.
+5. An SVG flag is served as stored at every width (D-242): it has no pixels to save.
+
+**Rejected.** A flag package in the web app (a dependency, and a second source of truth for which flag a country has); emoji flags (Windows draws them as letters, and England and Scotland have none); asking `/countries` once (a new request for what the fixture lists already carry); matching the provider's country name to ours (names differ: "USA", "Türkiye"); a flag for a continental competition (no country is not a country).
+
 ## D-284 — The news front page: a lead, cards and a list in the section's own order; a story without a licensed photo gets a designed panel of what we own
 
 **Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1613 · **Follows:** D-061, D-176, D-177, D-178, D-207

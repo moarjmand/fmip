@@ -207,6 +207,17 @@ export interface EntityRef {
   imageUrl?: string;
 }
 
+/**
+ * A competition as a fixture list names it (T-1611, D-282): its ref, and the
+ * provider's address for the flag of the competition's country when the
+ * answer carried one -- absent for a competition of no country (continental,
+ * international). Inside ingestion only, like `imageUrl` (rule 2): the
+ * writers note it against the country our catalogue gives the competition.
+ */
+export interface CompetitionRef extends EntityRef {
+  countryFlagUrl?: string;
+}
+
 /** Like `EntityRef`, for entities a provider often names without identifying. */
 export interface LooseEntityRef {
   externalId: string | null;
@@ -220,7 +231,7 @@ export interface Score {
 
 export interface NormalisedFixture {
   externalId: string;
-  competition: EntityRef;
+  competition: CompetitionRef;
   season: { label: string; startYear: number };
   stage: { name: string; kind: StageKind } | null;
   round: string | null;

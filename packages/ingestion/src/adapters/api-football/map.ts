@@ -71,6 +71,17 @@ export const imageUrl = (value: unknown): string | null => {
   const s = str(value);
   return s !== null && /^https:\/\/\S+$/.test(s) ? s : null;
 };
+/**
+ * A competition's ref with its country's flag (T-1611, D-282): `league.flag`,
+ * which the provider sets for a league of one country and leaves `null` for a
+ * continental or international one. Absent when not carried.
+ */
+function withCountryFlag<T extends { externalId: string; name: string }>(
+  ref: T,
+  flag: string | null,
+): T & { countryFlagUrl?: string } {
+  return flag === null ? ref : { ...ref, countryFlagUrl: flag };
+}
 /** `ref` with its image, when the provider carried one; absent otherwise. */
 function withImage<T extends { externalId: string; name: string }>(
   ref: T,
@@ -230,7 +241,10 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
 
   return {
     externalId,
-    competition: withImage({ externalId: leagueId, name: leagueName }, imageUrl(league.logo)),
+    competition: withCountryFlag(
+      withImage({ externalId: leagueId, name: leagueName }, imageUrl(league.logo)),
+      imageUrl(league.flag),
+    ),
     season: { label: seasonLabel(startYear), startYear },
     stage:
       round !== null && stageKind !== null
