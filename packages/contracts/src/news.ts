@@ -1,4 +1,5 @@
 import type { Covered } from './coverage';
+import type { EntityMedia } from './media';
 
 /**
  * The news sections (blueprint 3.1, T-143). Four ways into the same stories,
@@ -82,6 +83,14 @@ export interface NewsEntity {
   name: string | null;
   /** The name in the reader's language (`?locale=`), or `null` when nobody has written one (T-303). */
   localised_name: string | null;
+  /**
+   * The entity's own image from our media store (T-1613, D-284, D-176): a
+   * team's crest, a competition's logo, a person's photo, `not_supplied` when
+   * none is stored. Absent for a fixture, which has no image, and from a
+   * server before T-1613. The news pages draw their tags and the designed
+   * panel of a story without a photo from it -- never a stand-in photo.
+   */
+  media?: EntityMedia;
 }
 
 /**

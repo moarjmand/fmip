@@ -28,6 +28,7 @@ const REGULAR_SEASON = '00000000-0000-4000-8000-000000000401';
 const HOME = randomUUID();
 const AWAY = randomUUID();
 const MATCH = randomUUID();
+const CREST_SHA = 'ab'.repeat(32);
 
 function cookieValue(setCookie: string | string[] | undefined): string {
   const header = Array.isArray(setCookie) ? setCookie[0] : setCookie;
@@ -170,6 +171,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
       { type: 'fixture', id: MATCH },
     ]);
     otherStory = await story(`Le mercato ${RUN}`, 'fr', '2026-09-18T08:00:00Z', []);
+    // T-1613 (D-284): the home side's crest is stored; the away side's is not.
+    await pool.query(
+      `INSERT INTO entity_media (entity_type, entity_id, kind, source_provider, source_url, state,
+                                 storage_key, content_type, byte_size, sha256, source_fetched_at)
+       VALUES ('team', $1, 'crest', 'api_football', 'https://media.test/crest.png', 'available',
+               $2, 'image/png', 100, $3, now())`,
+      [HOME, `${CREST_SHA.slice(0, 2)}/${CREST_SHA}.png`, CREST_SHA],
+    );
   });
 
   afterAll(async () => {
@@ -185,6 +194,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
     await pool.query(`DELETE FROM news_source WHERE id IN ($1, $2)`, [source, other]);
     await pool.query(`DELETE FROM story WHERE id IN ($1, $2)`, [matchStory, otherStory]);
     await pool.query(`DELETE FROM fixture WHERE id = $1`, [MATCH]);
+    await pool.query(`DELETE FROM entity_media WHERE entity_id = $1`, [HOME]);
     await pool.query(`DELETE FROM team WHERE id IN ($1, $2)`, [HOME, AWAY]);
     await pool.query(`DELETE FROM user_account WHERE username LIKE $1`, [`nw_${RUN}%`]);
     await pool.end();
@@ -220,6 +230,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news section
       ]),
     );
     expect(Object.keys(match)).not.toContain('body');
+    // T-1613 (D-284): each team carries its crest from our own store, or says
+    // there is none; the fixture carries no image at all.
+    const byId = (id: string) => match.entities.find((e) => e.entity_id === id);
+    expect(byId(HOME)?.media).toEqual({
+      coverage: 'available',
+      url: `/api/media/crest/${HOME}/${CREST_SHA.slice(0, 12)}.png`,
+    });
+    expect(byId(AWAY)?.media).toEqual({ coverage: 'not_supplied', url: null });
+    expect(byId(MATCH)).not.toHaveProperty('media');
 
     const older = await section(
       `section=latest&before=${encodeURIComponent('2026-09-18T00:00:00Z')}`,
