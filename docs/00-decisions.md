@@ -12527,6 +12527,43 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Rejected.** A flag package in the web app (a dependency, and a second source of truth for which flag a country has); emoji flags (Windows draws them as letters, and England and Scotland have none); asking `/countries` once (a new request for what the fixture lists already carry); matching the provider's country name to ours (names differ: "USA", "Türkiye"); a flag for a continental competition (no country is not a country).
 
+## D-285 — Highlights as match posters drawn from our own crests and logos, never a video frame
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round: "more professional, attractive and creative, with more images and logos") · **Task:** T-1614 · **Follows:** D-069, D-176, D-184, D-226, D-260, rules 2-3
+
+**Context.** The Highlights page (T-1434, D-226) was a list of text rows: competition and date, the teams and the score, a button out. The maintainer asked for a more professional, attractive and creative site with more images and logos. The clips are the licensed feed's links (D-184): link only, and the feed's thumbnail and embed are read and dropped, because the source's rights are `link` (D-069). `GET /highlights` carried no image at all.
+
+**Decision.**
+1. **Each clip is a match poster**, drawn from our own media: the competition's logo, both crests large on round plates, the score in the display face, the date and a play badge (the brand's saffron disc, inline SVG), on the stage ground with a faint saffron light from the top and the pitch's lines in hairlines. The poster is never a frame of the video and nothing on it could pass for one: no thumbnail is shown, whatever the provider offers, until a source's rights say `thumbnail` (D-184). A crest or logo we do not hold is the neutral lettered mark (rule 3).
+2. **The way out names the destination.** The button says "Watch" and the host it opens on (`LinkOut`, `youtube.com`); the publisher is named beside it ("By LaLiga") when the feed names one. The whole poster opens the clip (the link out's area is stretched over the card); the competition (to the page filtered by it) and the match page are their own links above it. A restricted clip (D-260) carries "May not play in your country" on the poster.
+3. **Layout.** On the first page the newest clip is featured as a large poster; the rest are a grid (one, two, three columns) under a heading per day in the reader's zone ("Today", "Yesterday", else the date). Later pages are the grid alone, so a clip is never shown twice. *Rejected:* featuring "the biggest" match: no measure of size is stored that would not be a judgement, and the newest is what a reader of this page comes for.
+4. **The filter is logo chips**: logo, name and count, links whose choice is in the address, so they work without script; the chosen one stands on the selected ground (D-277) and is `aria-current`. On a phone the first chips scroll sideways in one row; past the eleven competitions with the most clips the rest wait behind a disclosure (`details`), and the chosen one is always among the shown. The territory chooser (`TerritoryChooser`, shared with the match page and unchanged) sits in its own panel with a globe and the "every clip is listed" sentence (D-260).
+5. **The API carries the images**: `HighlightListTeam.crest`, the clip's `competition.logo` and `HighlightCompetition.logo`, optional `EntityMedia`, asked of the media boundary (`MediaService.index`) for the page's clips and the filter's competitions in one read. The viewing module now imports the media module; an index that fails leaves every image `not_supplied` rather than failing the list.
+
+**Rejected.** *Hotlinking the provider's thumbnail*: D-176 and D-184, and it would be a frame of someone else's video on our page. *A generated "video frame" (a still with a play button over a stadium photo)*: it would look like a thumbnail of the clip and is not one. *A select for the competitions*: a reader cannot see the logos or the counts, and the chips already work without script.
+
+**Consequences.** Every clip shows two crests and a logo where we hold them; the page asks the media table once per view. The header shows up to six competition logos only when at least three are held. Nothing is played or embedded, as before.
+
+## D-286 — The About page explains the site with a drawn flow and a map of its sections, in markup and CSS
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1615 · **Follows:** D-263, D-269
+
+**Context.** The maintainer asked for a more professional, attractive and creative site. The About page (T-523) was four paragraphs and a bulleted list: it said what the product is but showed nothing of how a match moves through it, and it pointed to no section but the scores and the leaderboard. Its readers are mostly first visits, the people the rules of the product (one match record, three predictions kept apart, versions never edited, ratings recomputable, missing data said) matter to most and are least visible to.
+
+**Decision.**
+1. The page opens on "How Stadiomind works": the path of one match in six steps -- licensed match data, the one match record and the surfaces it feeds, the three prediction products, kick-off, full time, and what each product builds. The model's forecast, the founder's analysis and the community's picks run in lanes of their own in the products' own colours (`--token-model`, `-founder`, `-community`), pass both gates separately and end at separate records: the model's public track record, the founder's calls checked against the result, each member's Performance Rating. No line joins two lanes (rule 6). The model's lane is drawn as a stack of versions; the record's card says missing data is labelled, not invented (rule 3); the records' note says a rating is recomputable (rule 8).
+2. The diagram is an ordered list of real text, drawn by CSS: the words are its text equivalent and the reading order is the flow. Only the wires (inline SVG) and the gate marks are pictures, `aria-hidden`. A figcaption says how to read it.
+3. Below 1024px the steps stack, with dotted wires between them; after the split the wire has three strands, one per lane. From 1024px the steps stand in five columns and the lanes, gates and records share rows through `subgrid`, so each lane draws its own wires with lengths known from two fixed custom properties: no script measures anything. Wires are drawn from the line's start, and `dir="rtl"` turns them round, so the flow and the dots run right to left on /fa.
+4. Motion is gentle and optional: the steps rise in turn (about 1.5 s in all) and dots flow along the wires. It runs only under `prefers-reduced-motion: no-preference` and without the member's `data-motion="reduce"`; otherwise the diagram is complete and still, which is also what the visual baseline photographs.
+5. "Find your way" follows it: the main sections as tiles in two groups, the football (Matches, Match centre, Competitions, News, Highlights, Watch) and the forecasts (The model, The founder's analysis, Predictions, Leaderboard). Each tile is a link with one line on what is there; a forecast tile wears its product's colour. The match centre has no page of its own to open on, so its tile leads to the matches and says "open any match".
+6. The page's own CSS is `app/[locale]/about/about.css`, imported by the page, so no other route loads it; icons the shared set lacks are the page's own (`about-icons.tsx`), drawn the same way. No new dependency, no client JavaScript.
+
+**Rejected.**
+- One SVG drawing of the whole diagram: its text would not wrap or translate, a Persian label longer than the English would overflow, and it would need a second text version for assistive technology.
+- A diagram library or a client-side animation: a dependency and a script for a page that needs neither.
+- Scroll-triggered animation: it needs a script, or `animation-timeline: view()`, which not every browser has; the diagram is near the top, so a reveal on load is seen.
+- Linking the match centre tile to one live match: it would need another API call on every view of the page, and the tile would change meaning with the day.
+
 ## D-288 — Crests, logos and photos on the remaining pages, and where a phone leaves them out
 
 **Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1617 · **Follows:** D-176, D-280
