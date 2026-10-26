@@ -317,8 +317,12 @@ export interface SeasonFixture {
   status: string;
   round: string | null;
   stage: { id: string; name: string } | null;
-  home: { id: string; name: string; short_name: string | null };
-  away: { id: string; name: string; short_name: string | null };
+  /**
+   * `crest`: from our own origin (T-1617), on the competition, team and
+   * player pages' lists; absent where a builder does not attach media.
+   */
+  home: { id: string; name: string; short_name: string | null; crest?: EntityMedia };
+  away: { id: string; name: string; short_name: string | null; crest?: EntityMedia };
   /** Full time when known, else the current score, else null. */
   score: { home: number; away: number } | null;
   /**
@@ -485,7 +489,8 @@ export type CompetitionTable = Pick<CompetitionPage, 'competition' | 'table'> & 
 
 /** A fixture as the team page lists it: the competition and season named, since the list spans them. */
 export interface TeamFixture extends SeasonFixture {
-  competition: { id: string; name: string; short_name: string | null };
+  /** `logo`: from our own origin (T-1617); absent where a builder does not attach media. */
+  competition: { id: string; name: string; short_name: string | null; logo?: EntityMedia };
   season: { id: string; label: string };
 }
 
@@ -511,7 +516,8 @@ export interface TableContext {
 }
 
 export interface TeamCompetition {
-  competition: { id: string; name: string; short_name: string | null };
+  /** `logo`: from our own origin (T-1617). */
+  competition: { id: string; name: string; short_name: string | null; logo?: EntityMedia };
   season: { id: string; label: string; is_current: boolean };
   context: Covered<TableContext>;
 }
@@ -728,6 +734,8 @@ export interface PlayerSpell {
     short_name: string | null;
     /** The club's colour (T-1418, D-218), for the player page's band; absent or null when none is known. */
     colour?: string | null;
+    /** The club's crest from our own origin (T-1617); absent where a builder does not attach media. */
+    crest?: EntityMedia;
   };
   /** ISO 8601 dates; `end_date` null while the spell is open. */
   start_date: string;
@@ -741,7 +749,8 @@ export interface PlayerSpell {
 export interface PlayerSeasonRecord {
   season: { id: string; label: string };
   competition: { id: string; name: string; short_name: string | null };
-  team: { id: string; name: string };
+  /** `crest`: from our own origin (T-1617). */
+  team: { id: string; name: string; crest?: EntityMedia };
   starts: number;
   /** Named on the bench and brought on. */
   sub_appearances: number;
