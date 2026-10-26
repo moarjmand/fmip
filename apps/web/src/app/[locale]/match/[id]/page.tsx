@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cache } from 'react';
 import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
@@ -70,6 +71,13 @@ export const dynamic = 'force-dynamic';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * The match, asked once per request: the metadata and the page share the
+ * answer (T-1536). Each API call carries its own request id, so `fetch` would
+ * not merge the two by itself.
+ */
+const matchCentre = cache((id: string) => fetchMatchCentre(id));
+
 export async function generateMetadata({
   params,
 }: {
@@ -79,7 +87,7 @@ export async function generateMetadata({
   const resolved = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const title = `${t(resolved, 'matchCentre.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title, robots: { index: false, follow: false } };
-  const result = await fetchMatchCentre(id);
+  const result = await matchCentre(id);
   if (!result.ok) return pageMetadata({ locale, path: `/match/${id}`, title });
   const f = result.data.fixture;
   const teams = { home: f.home.name, away: f.away.name };
@@ -119,9 +127,41 @@ export default async function MatchPage({
   const keyPlayers = fetchKeyPlayers(id);
 
   const cookie = await sessionCookieHeader();
+  const territory = readTerritoryQuery(query);
+  // The match and every read that needs only the match and the reader's
+  // cookie (T-1536): asked together, so the page waits for the slowest answer
+  // instead of the member, then the match, then the rest. An unknown match
+  // 404s below, and these answers are then dropped.
+  const centre = matchCentre(id);
+  const reads = Promise.all([
+    fetchForecasts(id),
+    centre.then((r) =>
+      r.ok && r.data.fixture.status === 'finished' ? fetchEvaluations(id) : null,
+    ),
+    fetchOwnPrediction(id, cookie),
+    fetchPowerIndex(id),
+    fetchFounderAnalysis(id),
+    fetchConsensus(id),
+    // No cookie: the discussion is the same document for everybody, and a
+    // session here would make a public read viewer-specific for nothing
+    // (T-251). The permission beside it is the only viewer-specific half.
+    fetchMatchPanel(id),
+    fetchPanelPermission(id, cookie),
+    // No cookie: a published analysis is meant to be read (T-263).
+    fetchCommunityAnalyses(id),
+    // Where to watch (T-314): the member's stored territory, or the one a
+    // guest chose on this page.
+    fetchMatchViewing(id, territory, cookie),
+    // Related news (T-145): the news page's cards, for this match and its sides.
+    fetchFixtureNews(id, locale),
+    // The match summary (E41): a stored row, never a model call on this request.
+    fetchMatchSummary(id),
+  ]);
+  // The competition context (T-840), awaited where its section is placed.
+  const context = fetchCompetitionContext(id);
+
   const me = await fetchMe(cookie);
   const tzParam = typeof query.tz === 'string' ? query.tz : undefined;
-  const territory = readTerritoryQuery(query);
   // The reader's zone (D-207): a `tz` on the link, else the member's or a
   // guest's choice, else the locale's default (UK time on /en).
   const timeZone =
@@ -147,52 +187,30 @@ export default async function MatchPage({
           fetchFollowing(cookie),
         ]);
 
-  const result = await fetchMatchCentre(id);
+  const result = await centre;
   if (!result.ok && result.status === 404) notFound();
-  // The competition context (T-840): asked now, beside the panels below, and
-  // awaited where its section is placed.
-  const competitionContext = result.ok ? fetchCompetitionContext(id) : Promise.resolve(null);
+  const competitionContext = result.ok ? context : Promise.resolve(null);
   // The forecast (T-065), the Power Index (T-114) and, once the match is over,
-  // its evaluation (T-066).
+  // its evaluation (T-066); a guest also needs the territories to choose from.
   const [
-    forecasts,
-    evaluations,
-    prediction,
-    power,
-    founder,
-    consensus,
-    panel,
-    panelPermission,
-    communityAnalyses,
-    viewing,
+    [
+      forecasts,
+      evaluations,
+      prediction,
+      power,
+      founder,
+      consensus,
+      panel,
+      panelPermission,
+      communityAnalyses,
+      viewing,
+      news,
+      summary,
+    ],
     territories,
-    news,
-    summary,
   ] = result.ok
-    ? await Promise.all([
-        fetchForecasts(id),
-        result.data.fixture.status === 'finished' ? fetchEvaluations(id) : Promise.resolve(null),
-        fetchOwnPrediction(id, cookie),
-        fetchPowerIndex(id),
-        fetchFounderAnalysis(id),
-        fetchConsensus(id),
-        // No cookie: the discussion is the same document for everybody, and a
-        // session here would make a public read viewer-specific for nothing
-        // (T-251). The permission beside it is the only viewer-specific half.
-        fetchMatchPanel(id),
-        fetchPanelPermission(id, cookie),
-        // No cookie: a published analysis is meant to be read (T-263).
-        fetchCommunityAnalyses(id),
-        // Where to watch (T-314): the member's stored territory, or the one a
-        // guest chose on this page; a guest also needs the list to choose from.
-        fetchMatchViewing(id, territory, cookie),
-        me === null ? fetchTerritories() : Promise.resolve(null),
-        // Related news (T-145): the news page's cards, for this match and its sides.
-        fetchFixtureNews(id, locale),
-        // The match summary (E41): a stored row, never a model call on this request.
-        fetchMatchSummary(id),
-      ])
-    : [null, null, null, null, null, null, null, null, null, null, null, null, null];
+    ? await Promise.all([reads, me === null ? fetchTerritories() : Promise.resolve(null)])
+    : [[null, null, null, null, null, null, null, null, null, null, null, null], null];
 
   // The final score, once there is one: what the three products are set against.
   const fixture = result.ok ? result.data.fixture : null;
