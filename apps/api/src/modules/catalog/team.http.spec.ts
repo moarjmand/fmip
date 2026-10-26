@@ -478,4 +478,35 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
       lineup_fixture: null,
     });
   });
+
+  it('never makes a void or postponed match the next one (T-1578)', async () => {
+    const voided: string[] = [];
+    for (const [kickoff, status] of [
+      ['2025-09-20T15:00:00Z', 'cancelled'],
+      ['2025-09-21T15:00:00Z', 'postponed'],
+    ] as const) {
+      const id = randomUUID();
+      voided.push(id);
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, stage_id, kickoff_at, status)
+         VALUES ($1, $2, $3, $4::timestamptz, $5)`,
+        [id, SEASON, STAGE, kickoff, status],
+      );
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+        [id, TEAMS.alpha, TEAMS.gamma],
+      );
+    }
+    try {
+      const page = (
+        await app.inject({ method: 'GET', url: `/teams/${TEAMS.alpha}` })
+      ).json() as TeamPage;
+      // The scheduled match stays next; the cancelled one, already past, is
+      // neither ahead nor a result; the postponed one is listed, not next.
+      expect(page.next_match).toMatchObject({ status: 'scheduled', home: { id: TEAMS.beta } });
+      expect(page.fixtures.map((f) => f.status).sort()).toEqual(['postponed', 'scheduled']);
+    } finally {
+      await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [voided]);
+    }
+  });
 });

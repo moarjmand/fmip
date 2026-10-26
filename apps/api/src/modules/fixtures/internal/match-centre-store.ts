@@ -195,7 +195,7 @@ export class PostgresMatchCentreStore {
                                   BETWEEN sp.window_from AND sp.window_to
                              THEN sp.window_polled_at END))
                  FROM season_fixture_poll sp WHERE sp.season_id = f.season_id) AS last_checked_at,
-              ${liveAnsweredAtSql('f.id', 'f.status')} AS live_answered_at,
+              ${liveAnsweredAtSql('f.id', 'f.status', 'f.kickoff_at')} AS live_answered_at,
               (f.status = 'finished' AND NOT EXISTS (
                  SELECT 1 FROM fixture_detail_fetch d WHERE d.fixture_id = f.id)) AS detail_owed
          FROM fixture f

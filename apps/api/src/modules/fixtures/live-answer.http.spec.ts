@@ -20,7 +20,8 @@ const PERSEPOLIS = '00000000-0000-4000-8000-000000000604';
 const HALF_TIME = randomUUID();
 const IN_PLAY = randomUUID();
 const FINISHED = randomUUID();
-const FIXTURES = [HALF_TIME, IN_PLAY, FINISHED];
+const FROZEN = randomUUID();
+const FIXTURES = [HALF_TIME, IN_PLAY, FINISHED, FROZEN];
 const RUN = randomUUID();
 // The provider no other suite polls live: its newest live run is this spec's.
 const PROVIDER = 'highlightly';
@@ -37,8 +38,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         `INSERT INTO fixture (id, season_id, round, kickoff_at, status, minute, updated_at) VALUES
            ($1, $4, 'Live answer', now() - interval '55 minutes', 'live', 45, now() - interval '10 minutes'),
            ($2, $4, 'Live answer', now() - interval '75 minutes', 'live', 63, now() - interval '10 minutes'),
-           ($3, $4, 'Live answer', now() - interval '3 hours', 'finished', NULL, now() - interval '1 hour')`,
-        [HALF_TIME, IN_PLAY, FINISHED, PL_2024],
+           ($3, $4, 'Live answer', now() - interval '3 hours', 'finished', NULL, now() - interval '1 hour'),
+           ($5, $4, 'Live answer', now() - interval '5 hours', 'live', 90, now() - interval '3 hours')`,
+        [HALF_TIME, IN_PLAY, FINISHED, PL_2024, FROZEN],
       );
       for (const id of FIXTURES) {
         await pool.query(
@@ -107,6 +109,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(card(HALF_TIME)?.live_answered_at).not.toBeNull();
       expect(card(IN_PLAY)?.freshness).toBe('stale');
       expect(card(FINISHED)?.live_answered_at).toBeNull();
+    });
+
+    it('does not count a run past the live window as an answer about a match left live (T-1577)', async () => {
+      // Kicked off five hours ago and left at 90' by the feed: the live job
+      // stopped asking about it at 210 minutes, so today's runs say nothing.
+      const frozen = (await new PostgresMatchCentreStore(pool).header(FROZEN))?.header;
+      expect(frozen?.live_answered_at).toBeNull();
+      expect(frozen?.freshness).toBe('stale');
     });
 
     it('ages half-time again once the provider stops answering', async () => {
