@@ -212,6 +212,17 @@
 }
 
 /*
+ * A crest's halo (T-1609, D-280, `EntityImage`): a one-pixel soft light edge
+ * that follows the crest's own outline, not a plate behind it, so a navy or
+ * black crest (Tottenham, PSG, Inter) keeps its shape on Night and every
+ * other crest looks as drawn. On Day the token is the surface itself, so
+ * nothing shows; editorial mode takes the Day value with the rest.
+ */
+@utility crest-halo {
+  filter: drop-shadow(0 0 1px var(--token-crest-halo));
+}
+
+/*
  * The competition pills under the header (T-1513, D-267,
  * `components/competitions-bar-links.tsx`). `pill-entry`: the link is the
  * 44px target, the pill its inner box, a hairline round a logo and a name;
@@ -344,6 +355,8 @@
  *     home is bg-model)
  *   bg-rating-low  text-on-rating-low  bg-rating-good  text-on-rating-good
  *     (the match rating chip's bands)
+ *   bg-logo-tile  ring-logo-edge  (a competition logo's white tile and its
+ *     Night hairline, `EntityImage`; T-1609, D-280)
  *   border-default  border-strong  (and border-accent, border-danger, ...)
  *   outline-focus  ring-focus  divide-default
  *
@@ -380,6 +393,8 @@
   --color-on-rating-low: var(--token-on-rating-low);
   --color-rating-good: var(--token-rating-good);
   --color-on-rating-good: var(--token-on-rating-good);
+  --color-logo-tile: var(--token-logo-tile);
+  --color-logo-edge: var(--token-logo-edge);
   --border-color-default: var(--token-border);
   --border-color-strong: var(--token-border-strong);
 }

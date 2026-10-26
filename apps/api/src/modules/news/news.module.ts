@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { IdentityModule } from '../identity/identity.module';
+import { MediaModule } from '../media/media.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfileModule } from '../profile/profile.module';
 import { PostgresBreakingAdminStore } from './internal/breaking-admin-store';
@@ -40,13 +41,15 @@ import { NewsSourcesAdminController } from './news-sources-admin.controller';
  * is not on the critical path (rule 9): a match, its score and its forecast
  * never depend on anything here, and this module imports none of them. It
  * imports identity (who is asking) and profile (whom they follow) for the
- * following section, through their public services. The transport is a
+ * following section, and media (the images of the entities a story is filed
+ * under), through their public services. The transport is a
  * provider so a spec can script every response.
  */
 @Module({
   // Notifications for the breaking alert (T-1005) and the transfer and
-  // availability alerts (T-1032); it imports nothing back.
-  imports: [IdentityModule, ProfileModule, FailureCountsModule, NotificationsModule],
+  // availability alerts (T-1032); it imports nothing back. Media names the
+  // crest, logo or photo of each entity a story is filed under (T-1613, D-284).
+  imports: [IdentityModule, ProfileModule, FailureCountsModule, NotificationsModule, MediaModule],
   controllers: [
     NewsController,
     DebateAdminController,

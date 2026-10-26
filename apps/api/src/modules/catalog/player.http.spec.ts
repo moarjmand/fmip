@@ -152,7 +152,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       known_as: 'Player',
       localised_name: null,
       date_of_birth: '2000-02-29',
-      nationality: { id: ENGLAND, name: 'England', code: 'ENG' },
+      // No flag stored for the country either (T-1611): said so the same way.
+      nationality: {
+        id: ENGLAND,
+        name: 'England',
+        code: 'ENG',
+        flag: { coverage: 'not_supplied', url: null },
+      },
       height_cm: 181,
       preferred_foot: 'left',
       // No photo stored: said so, never left out (T-1320).

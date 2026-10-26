@@ -118,4 +118,30 @@ describe('what a downloaded image may be (T-1320)', () => {
     expect(allowedSource('https://media.api-sports.io.evil.test/x.png')).toBe(false);
     expect(allowedSource('not a url')).toBe(false);
   });
+
+  it("keeps the provider's flags, which are plain SVG drawings (T-1611, D-282)", () => {
+    // England's flag as media.api-sports.io/flags/gb-eng.svg serves it, with
+    // `image/svg+xml` (read 2026-10-26). Every flag of a country we follow was
+    // checked the same day: each is an SVG of 640 by 480, under the cap, and
+    // passes. One with an emblem (Portugal's) reuses its own shapes by
+    // `<use xlink:href="#a">`, which stays inside the file.
+    const england = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" height="480" width="640" version="1" viewBox="0 0 640 480">\n' +
+        '  <path fill="#fff" d="M0 0h640v480H0z"/>\n' +
+        '  <path fill="#ce1124" d="M281.6 0h76.8v480h-76.8z"/>\n' +
+        '  <path fill="#ce1124" d="M0 201.6h640v76.8H0z"/>\n' +
+        '</svg>\n',
+    );
+    expect(assessImage(200, 'image/svg+xml', england, new Set())).toMatchObject({
+      kind: 'image',
+      contentType: 'image/svg+xml',
+    });
+    const emblem = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ' +
+        'height="480" width="640" viewBox="0 0 640 480"><defs><clipPath id="c"><path d="M0 0h640v480H0z"/></clipPath>' +
+        '<path id="a" d="M0 0h10v10H0z"/></defs><g clip-path="url(#c)">' +
+        '<use height="100%" width="100%" xlink:href="#a" x="10.609"/></g></svg>',
+    );
+    expect(assessImage(200, 'image/svg+xml', emblem, new Set())).toMatchObject({ kind: 'image' });
+  });
 });

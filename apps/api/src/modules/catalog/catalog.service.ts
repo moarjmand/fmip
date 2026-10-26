@@ -5,6 +5,7 @@ import type {
   CompetitionPage,
   CompetitionTable,
   CompetitionSummary,
+  CountryRef,
   CountrySummary,
   Covered,
   FollowSuggestionsResponse,
@@ -35,7 +36,7 @@ import leagueZoneList from '@fmip/contracts/zones/league-zones.json';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
-import { MediaService } from '../media/media.service';
+import { MediaService, type MediaIndex } from '../media/media.service';
 import { LEADERS_LIMIT, StandingsService } from '../standings/standings.service';
 import { buildBracket, tieOf } from './internal/bracket';
 import { contextTable, phaseOf } from './internal/competition-context';
@@ -168,10 +169,17 @@ export class CatalogService {
       this.players_.record(id),
       this.players_.recent(id, RECENT_MATCHES),
       this.players_.availability(id),
-      this.media.index({ person: [id] }),
+      this.media.index({
+        person: [id],
+        country: found.nationality === null ? [] : [found.nationality.id],
+      }),
       this.players_.positionSources(id),
     ]);
-    const person = { ...found, photo: media.photo(id) };
+    const person = {
+      ...found,
+      nationality: withFlag(found.nationality, media),
+      photo: media.photo(id),
+    };
     const currentSpell = spells.find((s) => s.end_date === null) ?? null;
     return {
       kind: 'ok',
@@ -243,7 +251,10 @@ export class CatalogService {
         WHERE c.is_active`,
       [orderSubtag(locale)],
     );
-    const media = await this.media.index({ competition: rows.map((r) => r.id) });
+    const media = await this.media.index({
+      competition: rows.map((r) => r.id),
+      country: rows.flatMap((r) => (r.country_id === null ? [] : [r.country_id])),
+    });
     return directoryOrder(
       rows.map((r) => ({
         id: r.id,
@@ -254,7 +265,12 @@ export class CatalogService {
         country:
           r.country_id === null
             ? null
-            : { id: r.country_id, name: r.country_name ?? '', code: r.country_code ?? '' },
+            : {
+                id: r.country_id,
+                name: r.country_name ?? '',
+                code: r.country_code ?? '',
+                flag: media.flag(r.country_id),
+              },
         order: r.stated_order,
         logo: media.logo(r.id),
       })),
@@ -345,11 +361,16 @@ export class CatalogService {
     const media = await this.media.index({
       competition: [competition.id],
       team: (table.data ?? []).map((r) => r.team.id),
+      country: competition.country === null ? [] : [competition.country.id],
     });
     return {
       kind: 'ok',
       table: {
-        competition: { ...competition, logo: media.logo(competition.id) },
+        competition: {
+          ...competition,
+          country: withFlag(competition.country, media),
+          logo: media.logo(competition.id),
+        },
         season: selected,
         table: {
           ...table,
@@ -524,6 +545,7 @@ export class CatalogService {
         ...boardRows.flatMap((l) => (l.team === null ? [] : [l.team.id])),
       ],
       person: boardRows.map((l) => l.person.id),
+      country: competition.country === null ? [] : [competition.country.id],
     });
     const withLeaderMedia = <
       L extends {
@@ -544,7 +566,11 @@ export class CatalogService {
     return {
       kind: 'ok',
       page: {
-        competition: { ...competition, logo: media.logo(competition.id) },
+        competition: {
+          ...competition,
+          country: withFlag(competition.country, media),
+          logo: media.logo(competition.id),
+        },
         seasons,
         season: { ...selected, stages },
         table: {
@@ -678,13 +704,14 @@ export class CatalogService {
     // The crest (T-1320) and the squad's and coach's photos (T-1321) from our own origin, in one query.
     const media = await this.media.index({
       team: [id],
+      country: found.country === null ? [] : [found.country.id],
       person: [
         ...squad.players.map((p) => p.person.id),
         ...(headCoach.data === null ? [] : [headCoach.data.person.id]),
         ...seasonScorers.flatMap((module) => (module.data ?? []).map((r) => r.person.id)),
       ],
     });
-    const team = { ...found, crest: media.crest(id) };
+    const team = { ...found, country: withFlag(found.country, media), crest: media.crest(id) };
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
     // A cancelled, abandoned or awarded match already past is neither ahead
     // nor a result (T-1578): left in, it stood as the club's next match, with
@@ -1026,6 +1053,14 @@ export function managerOf(
         : { coverage: 'available', last_updated_at: lineup.updatedAt, data: lineup.coach },
     lineup_fixture: lineup.fixture,
   };
+}
+
+/**
+ * A country with its flag from our own origin (T-1611, D-282), as the media
+ * index found it; no country stays none.
+ */
+function withFlag(country: CountryRef | null, media: MediaIndex): CountryRef | null {
+  return country === null ? null : { ...country, flag: media.flag(country.id) };
 }
 
 interface DirectoryRow {

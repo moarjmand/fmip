@@ -319,6 +319,43 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the entity m
     // The match centre's first read is slow on a cold pool.
   }, 30_000);
 
+  it("fetches a country's flag as the SVG it is and serves it as stored (T-1611)", async () => {
+    const country = randomUUID();
+    const flag = Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"><!-- ${country} -->` +
+        '<path fill="#fff" d="M0 0h640v480H0z"/><path fill="#ce1124" d="M0 201.6h640v76.8H0z"/></svg>',
+    );
+    try {
+      answer('https://media.api-sports.io/flags/gb-eng.svg', flag, 200, 'image/svg+xml');
+      await media.note(
+        'api_football',
+        'country',
+        country,
+        'https://media.api-sports.io/flags/gb-eng.svg',
+      );
+      await fetcher.runDue(new Date());
+      expect(await state(country)).toMatchObject({ state: 'available', sha256: sha256Of(flag) });
+      const version = versionOf(sha256Of(flag));
+      const url = `/api/media/flag/${country}/${version}.svg`;
+      expect((await media.index({ country: [country] })).flag(country)).toEqual({
+        coverage: 'available',
+        url,
+      });
+      // An SVG has no smaller widths: every ask gets the drawing as stored.
+      for (const segment of [`${version}.svg`, `${version}-48.webp`]) {
+        const served = await app.inject({
+          method: 'GET',
+          url: `/media/flag/${country}/${segment}`,
+        });
+        expect(served.statusCode).toBe(200);
+        expect(served.headers['content-type']).toBe('image/svg+xml');
+        expect(served.rawPayload.equals(flag)).toBe(true);
+      }
+    } finally {
+      await pool.query(`DELETE FROM entity_media WHERE entity_id = $1`, [country]);
+    }
+  });
+
   it('rewrites a held image only when the provider gives it a new address (T-1374)', async () => {
     const team = randomUUID();
     const store = new MediaStore(pool);
