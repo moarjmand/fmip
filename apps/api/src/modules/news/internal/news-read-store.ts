@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { TRENDING_WEIGHTS } from '@fmip/contracts';
 import { nonArticleKind, otherCodeOf } from '@fmip/ingestion';
 import type {
@@ -17,6 +17,7 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { MediaService } from '../../media/media.service';
 import { SAME_HEADLINE } from '../news-clustering.service';
 import { shownImageJoin } from './news-image-store';
 
@@ -121,7 +122,15 @@ interface EntityRow {
  */
 @Injectable()
 export class PostgresNewsReadStore {
-  constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+  /**
+   * `media` names each linked team, competition and person's image (T-1613,
+   * D-284). Optional so a spec can build the store from a pool alone; such a
+   * store's entities carry no `media`, which the contract allows.
+   */
+  constructor(
+    @Inject(PG_POOL) private readonly pool: Pool,
+    @Optional() private readonly media: MediaService | null = null,
+  ) {}
 
   /** When the feeds were last read: the freshness a page carries (rule 4). */
   async lastFetchedAt(): Promise<string | null> {
@@ -779,13 +788,33 @@ export class PostgresNewsReadStore {
         ORDER BY m.story_id, e.entity_type, e.entity_id`,
       [storyIds, locale],
     );
+    // One media query for every linked entity on the page (T-1613, D-284).
+    const idsOf = (type: NewsEntity['entity_type']) =>
+      rows.filter((r) => r.entity_type === type).map((r) => r.entity_id);
+    const index =
+      this.media === null
+        ? null
+        : await this.media.index({
+            team: idsOf('team'),
+            competition: idsOf('competition'),
+            person: idsOf('person'),
+          });
     for (const r of rows) {
       const list = out.get(r.story_id) ?? [];
+      const media =
+        index === null || r.entity_type === 'fixture'
+          ? undefined
+          : r.entity_type === 'team'
+            ? index.crest(r.entity_id)
+            : r.entity_type === 'competition'
+              ? index.logo(r.entity_id)
+              : index.photo(r.entity_id);
       list.push({
         entity_type: r.entity_type,
         entity_id: r.entity_id,
         name: r.name,
         localised_name: r.localised_name,
+        ...(media === undefined ? {} : { media }),
       });
       out.set(r.story_id, list);
     }
