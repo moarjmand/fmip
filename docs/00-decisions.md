@@ -12527,6 +12527,24 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Rejected.** A flag package in the web app (a dependency, and a second source of truth for which flag a country has); emoji flags (Windows draws them as letters, and England and Scotland have none); asking `/countries` once (a new request for what the fixture lists already carry); matching the provider's country name to ours (names differ: "USA", "Türkiye"); a flag for a continental competition (no country is not a country).
 
+## D-284 — The news front page: a lead, cards and a list in the section's own order; a story without a licensed photo gets a designed panel of what we own
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1613 · **Follows:** D-061, D-176, D-177, D-178, D-207
+
+**Context.** The maintainer asked for a more professional, attractive news page and for images in the home page's news. The news page was one column of text cards; the home page's six stories were headlines. On production on 2026-10-26, 2 of the 40 newest stories on `/en` and 2 of 40 on `/fa` had a licensed photo (D-177 allows only Mehr, Tasnim and Tehran Times, and D-207 shows `/en` English sources only), and many stories are filed under no entity at all. A page of photos is therefore not possible without inventing pictures, which rule 3 forbids.
+
+**Decision.**
+1. **A front page, in the section's order.** A section's first page is the lead story (its picture beside its words on a desktop, the headline in the editorial face), a row of four cards (picture above the headline), then the compact list (a 96 or 128 px picture on the inline start). An older page is the list alone. The page never re-ranks a section: latest stays newest first and trending most discussed first, so the lead is the first story whether or not it has a photo.
+2. **A licensed photo is drawn as before** (D-177): from `/media/news/`, its width and height said, its credit and licence beside it -- under the photo, or in a list row's words. Only the lead is loaded at once; everything else is lazy.
+3. **A story without one gets a designed panel, never a stand-in photo.** The panel is plainly a graphic: the Stadiomind pitch lines on the saffron edge, carrying the crests, logos and player photos we hold (D-176) of what the story is filed under, clubs first, at most three (two in a list row); when we hold none, the source's name set in type. A missing crest is left out of the panel rather than drawn as a lettered mark. The panel is decorative (`aria-hidden`), absent in lite mode, and links to the original out of the tab order, as the photo does.
+4. **The entity images come from the API.** `NewsEntity.media` (contracts) is the team's crest, the competition's logo or the person's photo from `MediaService`, `not_supplied` when none is stored and absent for a fixture; the news read store asks the media index once per read.
+5. **Every card says its source and its time.** The time is "3 hr ago" under a day and the date after, the full time on hover; a story whose publisher gave no time says so. Each story's tags are its clubs, competition, people and match, in that order, each a link to its page by id, a club with its crest and a competition with its logo, in a 44 px target on a phone.
+6. **The other sections as distinct blocks.** The unfiltered latest front page carries the heads of trending (five) and debate (three) beside its list, numbered, each linking to the original; an empty one says the API's reason for being empty (rule 3) and links to the section. Filtered pages, other sections and older pages do not.
+7. **The filters** are the same GET form in a panel: a disclosure with its own summary, the fields in a grid of two to four columns, open when a filter is set.
+8. **The home page's news** follows the same rules with the same components (part 3 of T-1613).
+
+**Rejected.** *Promoting the newest story with a photo to the lead*: it would reorder the latest section and pass a three-hour-old story off as the top one. *Stock or generic football pictures for stories without a photo*: they would pass for the story's photograph (rule 3). *Lettered marks on the panel*: a row of letters is a stand-in that reads as missing rather than designed. *A client-side carousel*: no new client JavaScript is needed for a front page.
+
 ## D-285 — Highlights as match posters drawn from our own crests and logos, never a video frame
 
 **Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round: "more professional, attractive and creative, with more images and logos") · **Task:** T-1614 · **Follows:** D-069, D-176, D-184, D-226, D-260, rules 2-3

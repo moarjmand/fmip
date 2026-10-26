@@ -3944,6 +3944,30 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "newsPage.top": {
+    "source": "Top stories",
+    "text": "خبرهای برتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "newsPage.more": {
+    "source": "More stories",
+    "text": "خبرهای بیشتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "newsPage.rail.trending": {
+    "source": "All trending stories",
+    "text": "همهٔ خبرهای داغ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "newsPage.rail.debate": {
+    "source": "All debates",
+    "text": "همهٔ بحث‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "storyPage.title": {
     "source": "Story",
     "text": "خبر",
