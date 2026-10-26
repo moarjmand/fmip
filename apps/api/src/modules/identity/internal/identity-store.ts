@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { AuthUser } from '@fmip/contracts';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
-import { CURRENT_RULES_VERSION_SQL } from './platform-rules-store';
+import { LOCKED_CURRENT_RULES_VERSION_SQL } from './platform-rules-store';
 
 /** A `user_account` row as the queries below return it. */
 export interface UserRow {
@@ -75,11 +75,15 @@ export class PostgresIdentityStore {
     try {
       await client.query('BEGIN');
 
+      // Read and locked before the insert, not as its subquery: a version
+      // read in the insert's own snapshot could be deleted before its foreign
+      // key check (T-1604).
+      const rules = await client.query<{ version: string }>(LOCKED_CURRENT_RULES_VERSION_SQL);
       const { rows } = await client.query<UserRow>(
         `INSERT INTO user_account AS u
            (username, display_name, email, country_id, preferred_language, timezone,
             accepted_rules_at, accepted_rules_version)
-         VALUES ($1, $2, $3, $4, $5, $6, now(), ${CURRENT_RULES_VERSION_SQL})
+         VALUES ($1, $2, $3, $4, $5, $6, now(), $7)
          RETURNING ${USER_COLUMNS}`,
         [
           input.username,
@@ -88,6 +92,7 @@ export class PostgresIdentityStore {
           input.countryId,
           input.preferredLanguage,
           input.timezone,
+          rules.rows[0]?.version ?? null,
         ],
       );
       const user = rows[0];

@@ -8,8 +8,18 @@ import { PG_POOL } from '../../../database/database.module';
  * numbers (`1.10.0` after `1.9.0`), never by timestamp, so a clock cannot
  * reorder two publications (T-931, D-113).
  */
-export const CURRENT_RULES_VERSION_SQL = `(SELECT v.version FROM platform_rules_version v
-  ORDER BY string_to_array(split_part(v.version, '@', 2), '.')::int[] DESC LIMIT 1)`;
+const CURRENT_RULES_VERSION_QUERY = `SELECT v.version FROM platform_rules_version v
+  ORDER BY string_to_array(split_part(v.version, '@', 2), '.')::int[] DESC LIMIT 1`;
+export const CURRENT_RULES_VERSION_SQL = `(${CURRENT_RULES_VERSION_QUERY})`;
+
+/**
+ * The version in force, key-share locked for the rest of the transaction
+ * (T-1604). A registration reads it this way before it writes, so the
+ * version it records cannot be deleted between the read and the foreign key
+ * check: a delete already holding the row is waited for, and the row under
+ * it is read instead.
+ */
+export const LOCKED_CURRENT_RULES_VERSION_SQL = `${CURRENT_RULES_VERSION_QUERY} FOR KEY SHARE`;
 
 interface RulesRow {
   version: string;
