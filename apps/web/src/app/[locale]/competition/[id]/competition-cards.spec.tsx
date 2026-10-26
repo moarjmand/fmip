@@ -304,6 +304,31 @@ const available: CardForecast = {
 };
 
 describe('a match row', () => {
+  it("puts each side's crest before its name, and the mark where none is held (T-1617)", () => {
+    const html = renderToStaticMarkup(
+      <ul>
+        <MatchLine
+          fixture={fixture({
+            status: 'finished',
+            score: { home: 2, away: 1 },
+            home: {
+              ...fixture().home,
+              crest: { coverage: 'available', url: '/api/media/crest/h/0123456789ab.png' },
+            },
+            away: { ...fixture().away, crest: { coverage: 'not_supplied', url: null } },
+          })}
+          locale="en"
+          timeZone="UTC"
+        />
+      </ul>,
+    );
+    // Home crest, home name, score, away mark, away name: in that order.
+    expect(html).toMatch(
+      /<img[^>]*src="\/api\/media\/crest\/h\/0123456789ab-48\.webp".*Liverpool.*2–1.*data-letters="B".*Brighton/,
+    );
+    expect(html).not.toMatch(PHYSICAL);
+  });
+
   it('keeps the score between the sides, home first, in the page’s direction', () => {
     const done = fixture({ status: 'finished', score: { home: 2, away: 1 } });
     const en = renderToStaticMarkup(
