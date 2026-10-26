@@ -21,7 +21,8 @@ import { Translated } from '@/components/translated';
 import { MemberName } from '@/components/member-name';
 import { UNFINISHED_LOCALES } from '@/i18n/locales';
 import { Stamp } from '@/components/stamp';
-import { attribute, interpolate, message, t } from '@/i18n/messages';
+import { ModelVersion } from '@/components/model-version';
+import { attribute, message, t } from '@/i18n/messages';
 import { asLocale, plainNumber, richMessage } from '@/lib/prediction-text';
 
 /** The languages a board can be drawn by (T-844): the ones the site is offered in. */
@@ -394,16 +395,16 @@ export default async function LeaderboardPage({
           </nav>
 
           <p className="text-xs text-muted">
-            {richMessage(
-              {
-                ...message(l, 'leaderboardPage.footer'),
-                text: interpolate(t(l, 'leaderboardPage.footer'), {
-                  formula: result.data.entries[0]?.formula_version ?? 'performance-rating',
-                  rules: result.data.rules_version,
-                }),
-              },
-              { time: <Stamp iso={result.data.generated_at} locale={locale} /> },
-            )}
+            {/* Each version an element, its `@` set apart: no address in the HTML (T-1606). */}
+            {richMessage(message(l, 'leaderboardPage.footer'), {
+              formula: (
+                <ModelVersion
+                  version={result.data.entries[0]?.formula_version ?? 'performance-rating'}
+                />
+              ),
+              rules: <ModelVersion version={result.data.rules_version} />,
+              time: <Stamp iso={result.data.generated_at} locale={locale} />,
+            })}
           </p>
         </>
       )}

@@ -164,7 +164,8 @@ function Broadcasters({
       ) : state === 'ask' ? (
         <Link
           href={`/${locale}/match/${fixtureId}#watch`}
-          className={inlineTargetClasses('underline')}
+          // A control of its own, not a word in a sentence: 44px on a phone (T-1608).
+          className={inlineTargetClasses('underline max-md:min-h-touch')}
         >
           <Translated locale={locale} message="scores.card.chooseTerritory" />
         </Link>

@@ -49,6 +49,20 @@ describe('which inputs moved', () => {
     ]);
   });
 
+  it('writes dates as dates and numbers grouped, in the reader’s digits (T-1607)', () => {
+    const moved = inputs({ fit_date: '2026-10-20', matches_used: 15788 });
+    expect(inputChanges(inputs({ matches_used: 15652 }), moved)).toEqual([
+      { key: 'fit_date', label: 'history up to', before: '1 Jan 2026', after: '20 Oct 2026' },
+      { key: 'matches_used', label: 'matches in the fit', before: '15,652', after: '15,788' },
+    ]);
+    const fa = inputChanges(inputs({ matches_used: 15652 }), moved, 'fa');
+    expect(fa.map((c) => [c.before, c.after])).toEqual([
+      ['۱۱ دی ۱۴۰۴', '۲۸ مهر ۱۴۰۵'],
+      ['۱۵٬۶۵۲', '۱۵٬۷۸۸'],
+    ]);
+    expect(JSON.stringify(fa)).not.toMatch(/[0-9]/);
+  });
+
   it('finds nothing when the model was working from the same thing', () => {
     expect(inputChanges(inputs(), inputs())).toEqual([]);
   });

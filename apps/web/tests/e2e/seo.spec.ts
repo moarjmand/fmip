@@ -94,6 +94,8 @@ test.describe('no text reads as an e-mail address', () => {
     '/en/match/00000000-0000-4000-8000-000000000901',
     '/en/competition/00000000-0000-4000-8000-000000000201?tab=model',
     '/en/model-accuracy',
+    // T-1606: the leaderboard's formula and board rules versions.
+    '/en/leaderboard',
   ]) {
     test(path, async ({ request }) => {
       const response = await request.get(path);

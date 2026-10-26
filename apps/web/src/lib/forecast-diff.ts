@@ -1,6 +1,6 @@
 import type { ForecastVersion, ModelInputs } from '@fmip/contracts';
-import { formatFixed } from './words';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { formatDate, formatNumber } from '@/i18n/format';
 import { interpolate, plural, t, type MessageKey } from '@/i18n/messages';
 import { kindLabel } from './forecast';
 
@@ -52,7 +52,16 @@ function shown(
   if (key === 'elo_used')
     return t(locale, value === true ? 'forecast.input.used' : 'forecast.input.notUsed');
   if (value === null) return t(locale, 'forecast.input.none');
-  if (typeof value === 'number') return formatFixed(locale, value, 0);
+  // In the reader's digits and grouping, a date as a date: "۱۵٬۶۵۲", "۲۶ مهر
+  // ۱۴۰۵", not "15652" and "2026-10-18" (T-1607).
+  if (typeof value === 'number') return formatNumber(locale, value);
+  if ((key === 'fit_date' || key === 'history_from') && typeof value === 'string') {
+    return formatDate(locale, `${value.slice(0, 10)}T12:00:00Z`, 'UTC', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
   if (key === 'data_completeness' && (value === 'available' || value === 'limited')) {
     return t(locale, COMPLETENESS_KEY[value]);
   }
