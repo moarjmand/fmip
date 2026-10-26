@@ -59,6 +59,31 @@ export function factorLabel(factor: ModelLeadingFactorKind, locale = 'en'): stri
   return t(asLocale(locale), FACTOR_KEY[factor]);
 }
 
+/**
+ * What a leading factor measures, in the reader's words (T-1552). The model
+ * service writes the same English sentence for each factor kind, so the
+ * panel says it from the catalogue by the kind instead of showing the
+ * service's English on every page; team strength names the Elo prior only
+ * when the version's stored inputs say it was used.
+ */
+export function factorNote(
+  factor: ModelLeadingFactorKind,
+  version: Pick<ForecastVersion, 'inputs'>,
+  locale = 'en',
+): string {
+  const key =
+    factor === 'team_strength' && version.inputs?.elo_used === true
+      ? 'forecast.factorNote.teamStrengthElo'
+      : FACTOR_NOTE_KEY[factor];
+  return t(asLocale(locale), key);
+}
+
+const FACTOR_NOTE_KEY = {
+  team_strength: 'forecast.factorNote.teamStrength',
+  home_advantage: 'forecast.factorNote.homeAdvantage',
+  attack_vs_defence: 'forecast.factorNote.attackVsDefence',
+} as const satisfies Record<ModelLeadingFactorKind, MessageKey>;
+
 /** Why a version has no probabilities, in the reader's words. */
 export function unavailableLabel(reason: ForecastUnavailableReason, locale = 'en'): string {
   return t(asLocale(locale), FORECAST_REASON_KEY[reason]);

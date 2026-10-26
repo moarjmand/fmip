@@ -1,7 +1,8 @@
 'use client';
 
 import Link from '@/components/ui/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { type OfferedLanguage, pickerEntriesFor } from '@/lib/language-switch';
 
 /**
@@ -21,12 +22,27 @@ import { type OfferedLanguage, pickerEntriesFor } from '@/lib/language-switch';
  * header, a server component (T-1040): deciding needs every catalogue's
  * completeness, and the catalogues stay on the server. Only the links, which
  * need the pathname, are made here.
+ *
+ * The links keep the page's query (T-1572): `/en/leaderboard?period=month`
+ * offers `/fa/leaderboard?period=month`, not the page's first state. The
+ * query is read under a Suspense boundary (Next 16 requires one for
+ * `useSearchParams` on a prerendered route); until it is read, the links
+ * are drawn without it.
  */
-export function LanguagePicker({
-  languages,
-  label,
-  others = false,
-}: {
+export function LanguagePicker(props: PickerProps) {
+  return (
+    <Suspense fallback={<Picker {...props} search="" />}>
+      <PickerWithQuery {...props} />
+    </Suspense>
+  );
+}
+
+function PickerWithQuery(props: PickerProps) {
+  const search = useSearchParams().toString();
+  return <Picker {...props} search={search} />;
+}
+
+type PickerProps = {
   languages: readonly OfferedLanguage[];
   /** The navigation's name, resolved by the header (`attribute`), with its marking. */
   label: { text: string; lang?: string };
@@ -36,9 +52,11 @@ export function LanguagePicker({
    * The page's own language is the page itself.
    */
   others?: boolean;
-}) {
+};
+
+function Picker({ languages, label, others = false, search }: PickerProps & { search: string }) {
   const pathname = usePathname();
-  const entries = pickerEntriesFor(pathname, languages);
+  const entries = pickerEntriesFor(pathname, languages, search);
   if (entries.length === 0) return null;
   const shown = others ? entries.filter((entry) => !entry.current) : entries;
 

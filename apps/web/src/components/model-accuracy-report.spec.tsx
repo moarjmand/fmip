@@ -78,6 +78,20 @@ describe('ModelAccuracyReport (T-1369)', () => {
     expect(out).not.toMatch(PHYSICAL);
   });
 
+  it('names each version, the sparkline too, with no "name@x.y.z" run in its text (T-1580)', () => {
+    const out = html(report({}));
+    // The data-* hooks keep the plain version for tests; what a reader or a
+    // screen reader is given never carries it as one run.
+    const read = out.replace(/ data-(?:model-)?version="[^"]*"/g, '');
+    expect(read).not.toMatch(/\S+@\d+\.\d+\.\d+/);
+    const id = /<svg[^>]*role="img"[^>]*aria-labelledby="([^"]+)"/.exec(out)?.[1];
+    expect(id).toBeDefined();
+    const name = new RegExp(`id="${id}"[^>]*>([^]*?)</span><svg`).exec(out)?.[1] ?? '';
+    expect(name.replace(/<[^>]+>/g, '')).toBe(
+      'RPS by week for dixon-coles-elo@0.1.0, against the uniform forecast',
+    );
+  });
+
   it('draws a sparkline only with two periods or more', () => {
     const out = html(report({}));
     // The published overall and its competition have two weeks; the shadow has none.

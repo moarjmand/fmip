@@ -332,7 +332,7 @@ export function TerritoryChooser({
           </option>
         ))}
       </Select>
-      <Button type="submit">
+      <Button type="submit" className="max-md:min-h-touch">
         <Translated locale={locale} message="viewing.askSubmit" />
       </Button>
     </form>

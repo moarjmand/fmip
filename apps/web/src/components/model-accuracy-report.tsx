@@ -1,3 +1,4 @@
+import { type ReactNode, useId } from 'react';
 import Link from '@/components/ui/link';
 import type {
   AccuracyMetrics,
@@ -46,16 +47,24 @@ export function sparkline(
   return { rps: line((p) => p.rps ?? 0), uniform: line((p) => p.uniform_rps ?? 0), max };
 }
 
-function Sparkline({ points, label }: { points: readonly AccuracyPoint[]; label: string }) {
+/**
+ * The chart's name is an element the image points to, not an `aria-label`:
+ * an attribute cannot set a model version's `@` apart (T-1580).
+ */
+function Sparkline({ points, label }: { points: readonly AccuracyPoint[]; label: ReactNode }) {
+  const labelId = useId();
   const lines = sparkline(points);
   if (lines === null) return null;
   return (
     <figure className="flex flex-col gap-1" data-testid="accuracy-sparkline">
+      <span id={labelId} className="sr-only">
+        {label}
+      </span>
       <svg
         viewBox={`0 0 ${SPARK.width} ${SPARK.height}`}
         className="h-12 w-60"
         role="img"
-        aria-label={label}
+        aria-labelledby={labelId}
       >
         <path
           d={lines.uniform}
@@ -126,7 +135,12 @@ function SeriesTable({
     <div className="flex flex-col gap-2">
       <Sparkline
         points={series.points}
-        label={`RPS by ${period} for ${series.model_version}, against the uniform forecast`}
+        label={
+          <>
+            RPS by {period} for <ModelVersion version={series.model_version} />, against the uniform
+            forecast
+          </>
+        }
       />
       <div className="overflow-x-auto">
         <table className="w-full text-start text-sm" data-testid="accuracy-table">

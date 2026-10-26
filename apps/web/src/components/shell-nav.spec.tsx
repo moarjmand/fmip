@@ -39,6 +39,8 @@ const NAV = {
   analysis: 'shell.nav.analysis',
   watch: 'nav.watch',
   highlights: 'nav.highlights',
+  about: 'about.meta.title',
+  rules: 'rules.title',
 } as const;
 
 const TABS = {
@@ -72,6 +74,8 @@ describe('the header nav', () => {
     'analysis',
     'watch',
     'highlights',
+    'about',
+    'rules',
   ];
   const nav = (locale: 'en' | 'fa' = 'en') =>
     renderToStaticMarkup(<PrimaryNav locale={locale} labels={words(locale, NAV)} />);
@@ -88,6 +92,8 @@ describe('the header nav', () => {
       '/en/scores#analysis',
       '/en/watch',
       '/en/highlights',
+      '/en/about',
+      '/en/rules',
     ]);
     for (const word of ['Matches', 'Competitions', 'The model', 'More', 'Analysis']) {
       expect(html).toContain(`>${word}<`);
@@ -99,7 +105,14 @@ describe('the header nav', () => {
       nav(),
     )?.[0];
     expect(more).toBeDefined();
-    expect(ids(more ?? '', 'nav')).toEqual(['more', 'analysis', 'watch', 'highlights']);
+    expect(ids(more ?? '', 'nav')).toEqual([
+      'more',
+      'analysis',
+      'watch',
+      'highlights',
+      'about',
+      'rules',
+    ]);
     expect(more).toMatch(/<summary[^>]*>/);
   });
 
