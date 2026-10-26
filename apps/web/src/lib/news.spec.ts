@@ -1,14 +1,20 @@
-import { NEWS_SECTIONS } from '@fmip/contracts';
+import { NEWS_SECTIONS, type NewsEntity } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import { EN } from '@/i18n/messages';
 import {
+  FRONT_CARDS,
   NEWS_STALE_AFTER_MS,
   REASON_KEY,
+  RECENT_MS,
   SECTION_KEY,
   apiQuery,
   entityHref,
   feedsStale,
+  frontPage,
   isFiltered,
+  orderedEntities,
+  panelMarks,
+  recentAge,
   pageHref,
   readNewsQuery,
   VERSION_STATUS_KEY,
@@ -179,5 +185,94 @@ describe('the catalogue', () => {
   it('has a sentence for every section and every reason the API can give', () => {
     for (const section of NEWS_SECTIONS) expect(EN[SECTION_KEY[section]]).toBeDefined();
     for (const key of Object.values(REASON_KEY)) expect(EN[key]).toBeDefined();
+  });
+});
+
+describe('the front page (T-1613, D-284)', () => {
+  const ten = Array.from({ length: 10 }, (_, i) => i);
+
+  it("is the lead, a row of cards, then the list, in the section's own order", () => {
+    const page = frontPage(ten, true);
+    expect(page.lead).toBe(0);
+    expect(page.cards).toEqual([1, 2, 3, 4]);
+    expect(page.cards).toHaveLength(FRONT_CARDS);
+    expect(page.rest).toEqual([5, 6, 7, 8, 9]);
+  });
+
+  it('takes what there is when a section is short', () => {
+    expect(frontPage([7], true)).toEqual({ lead: 7, cards: [], rest: [] });
+    expect(frontPage([7, 8], true)).toEqual({ lead: 7, cards: [8], rest: [] });
+    expect(frontPage([], true)).toEqual({ lead: null, cards: [], rest: [] });
+  });
+
+  it('is the list alone on an older page', () => {
+    expect(frontPage(ten, false)).toEqual({ lead: null, cards: [], rest: ten });
+  });
+});
+
+describe("a story's tags and panel marks (T-1613, D-284)", () => {
+  const crest = (id: string): NewsEntity['media'] => ({
+    coverage: 'available',
+    url: `/api/media/crest/${id}/abc.png`,
+  });
+  const none: NewsEntity['media'] = { coverage: 'not_supplied', url: null };
+  const entity = (
+    type: NewsEntity['entity_type'],
+    id: string,
+    media?: NewsEntity['media'],
+  ): NewsEntity => ({
+    entity_type: type,
+    entity_id: id,
+    name: type === 'fixture' ? null : id,
+    localised_name: null,
+    ...(media === undefined ? {} : { media }),
+  });
+
+  it('orders clubs, competition, people, then the match, keeping the API order within each', () => {
+    const list = [
+      entity('fixture', 'f'),
+      entity('person', 'p'),
+      entity('team', 't1'),
+      entity('competition', 'c'),
+      entity('team', 't2'),
+    ];
+    expect(orderedEntities(list).map((e) => e.entity_id)).toEqual(['t1', 't2', 'c', 'p', 'f']);
+  });
+
+  it("marks only what we hold an image of, clubs first, at most the panel's number", () => {
+    const list = [
+      entity('competition', 'c', { coverage: 'available', url: '/api/media/logo/c/abc.png' }),
+      entity('team', 't1', crest('t1')),
+      entity('team', 't2', none),
+      entity('team', 't3', crest('t3')),
+      entity('fixture', 'f'),
+      entity('person', 'p'),
+    ];
+    expect(panelMarks(list, 3).map((e) => e.entity_id)).toEqual(['t1', 't3', 'c']);
+    expect(panelMarks(list, 2).map((e) => e.entity_id)).toEqual(['t1', 't3']);
+  });
+
+  it('marks nothing it cannot draw from our own origin', () => {
+    const list = [
+      entity('team', 'a', none),
+      entity('team', 'b'),
+      entity('team', 'c', { coverage: 'available', url: 'https://media.example.org/x.png' }),
+    ];
+    expect(panelMarks(list, 3)).toEqual([]);
+  });
+});
+
+describe('recentAge (T-1613)', () => {
+  const now = new Date('2026-10-26T12:00:00Z');
+
+  it('says how long ago under a day, and leaves the rest to the date', () => {
+    expect(recentAge('2026-10-26T09:00:00Z', now)).toBe(3 * 60 * 60 * 1000);
+    expect(recentAge(new Date(now.getTime() - RECENT_MS).toISOString(), now)).toBeNull();
+    expect(recentAge('2026-10-20T09:00:00Z', now)).toBeNull();
+  });
+
+  it('reads a publisher a little ahead of the clock as now, and an unreadable time as none', () => {
+    expect(recentAge('2026-10-26T12:05:00Z', now)).toBe(0);
+    expect(recentAge('not a time', now)).toBeNull();
   });
 });

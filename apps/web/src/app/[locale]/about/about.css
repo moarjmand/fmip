@@ -1,0 +1,380 @@
+/*
+ * "How Stadiomind works", the About page's diagram (T-1615, D-286;
+ * `how-it-works.tsx`). Loaded by the About page only.
+ *
+ * Narrow (under 1024px): the six steps stack, a dotted wire between each
+ * pair. After the three products the wire has three strands, one per lane,
+ * so the lanes travel down together and never become one.
+ *
+ * Wide (1024px and up): five columns -- the match record (with the data
+ * above it), the three lanes, the kick-off gate, the full-time gate and the
+ * three records -- over five rows: the heads, one row per lane, the notes.
+ * The lanes, the gates and the records share the parent's rows (subgrid),
+ * so a lane, its two gate marks and its record sit on one line, and each
+ * lane draws its own wires: in from the match record across one gap, out to
+ * its record across three gaps and both gates. Those lengths are the
+ * fixed `--how-gap` and `--how-gate`, so the wires meet the cards without a
+ * measurement.
+ *
+ * Direction: the wires are drawn from the line's start to its end, and an
+ * `rtl` page turns each wire round (`scale: -1 1`), so the dots flow the
+ * way the page reads. Columns and the lane edge are logical (rule 7).
+ *
+ * Motion only where the reader has not asked for less, neither the device
+ * nor the member (`data-motion="reduce"`): the steps rise in turn and the
+ * dots flow. Otherwise nothing here moves and the diagram is complete.
+ */
+
+.how {
+  background-color: var(--token-surface-raised);
+  background-image: radial-gradient(circle, var(--token-border) 1px, transparent 1.5px);
+  background-size: 1.25rem 1.25rem;
+}
+
+.how-flow {
+  --how-next: 2.5rem;
+
+  display: grid;
+  gap: var(--how-next);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.how-step {
+  position: relative;
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.how-label {
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+/* The lanes, and the records they build: one per row, side by side from 768px. */
+.how-trio {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (width >= 48rem) {
+  .how-trio {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.how-tone--model {
+  --how-tone: var(--token-model);
+}
+
+.how-tone--founder {
+  --how-tone: var(--token-founder);
+}
+
+.how-tone--community {
+  --how-tone: var(--token-community);
+}
+
+.how-record .how-card {
+  border-block-start: 4px solid var(--token-accent);
+}
+
+.how-lane,
+.how-outcome {
+  position: relative;
+  border-inline-start: 4px solid var(--how-tone);
+}
+
+/* The model's lane is a stack: each version kept, a new one laid on top. */
+.how-lane.how-tone--model {
+  box-shadow:
+    0.3125rem 0.3125rem 0 -1px var(--token-surface),
+    0.3125rem 0.3125rem 0 0 var(--token-border-strong),
+    0.625rem 0.625rem 0 -1px var(--token-surface),
+    0.625rem 0.625rem 0 0 var(--token-border);
+}
+
+[dir='rtl'] .how-lane.how-tone--model {
+  box-shadow:
+    -0.3125rem 0.3125rem 0 -1px var(--token-surface),
+    -0.3125rem 0.3125rem 0 0 var(--token-border-strong),
+    -0.625rem 0.625rem 0 -1px var(--token-surface),
+    -0.625rem 0.625rem 0 0 var(--token-border);
+}
+
+.how-outcome {
+  background-color: var(--token-surface-raised);
+}
+
+/* A gate, narrow: a dashed band across the path. */
+.how-gate {
+  padding: 0.875rem 1rem;
+  border: 2px dashed var(--token-border-strong);
+  border-radius: 1rem;
+  background-color: var(--token-surface);
+}
+
+/* The wires. */
+.how-wire {
+  position: absolute;
+  pointer-events: none;
+}
+
+.how-wire svg {
+  display: block;
+  overflow: visible;
+  block-size: 100%;
+  inline-size: 100%;
+}
+
+[dir='rtl'] .how-wire svg {
+  scale: -1 1;
+}
+
+.how-strand {
+  fill: none;
+  stroke: var(--how-tone, var(--token-accent));
+  stroke-dasharray: 0 9;
+  stroke-linecap: round;
+  stroke-width: 3;
+}
+
+.how-next {
+  inset-block-start: 100%;
+  inset-inline: 0;
+  margin-inline: auto;
+  block-size: var(--how-next);
+  inline-size: 1.5rem;
+}
+
+.how-in,
+.how-out,
+.how-node {
+  display: none;
+}
+
+@media (width >= 64rem) {
+  .how-flow {
+    --how-gap: 1.75rem;
+    --how-gate: 6rem;
+    --how-next: 1.25rem;
+
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1.45fr) var(--how-gate) var(--how-gate)
+      minmax(0, 1.15fr);
+    grid-template-rows: auto repeat(3, minmax(5.5rem, 1fr)) auto;
+    gap: var(--how-next) var(--how-gap);
+  }
+
+  .how-source {
+    grid-area: 1 / 1;
+    align-self: end;
+  }
+
+  .how-record {
+    grid-area: 2 / 1 / 5 / 2;
+  }
+
+  .how-lanes,
+  .how-gate,
+  .how-outcomes {
+    display: grid;
+    grid-row: 1 / 6;
+    grid-template-rows: subgrid;
+    gap: var(--how-next) 0;
+  }
+
+  .how-lanes {
+    grid-column: 2;
+  }
+
+  .how-kickoff {
+    grid-column: 3;
+  }
+
+  .how-settle {
+    grid-column: 4;
+  }
+
+  .how-outcomes {
+    grid-column: 5;
+  }
+
+  .how-trio {
+    grid-row: 2 / 5;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: subgrid;
+    gap: var(--how-next) 0;
+  }
+
+  .how-label {
+    align-self: end;
+  }
+
+  .how-note {
+    align-self: start;
+  }
+
+  /* A gate, wide: its mark on every lane, a dashed line down through them. */
+  .how-gate {
+    justify-items: center;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: center;
+  }
+
+  .how-gate .how-label {
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .how-node {
+    position: relative;
+    display: grid;
+    justify-self: stretch;
+    place-items: center;
+  }
+
+  .how-node::before {
+    position: absolute;
+    inset-block: calc(var(--how-next) / -2);
+    inset-inline: 0;
+    margin-inline: auto;
+    border-inline-start: 2px dashed var(--token-border-strong);
+    content: '';
+    inline-size: 0;
+  }
+
+  .how-node > span {
+    position: relative;
+    display: grid;
+    box-sizing: border-box;
+    border: 2px solid var(--how-tone);
+    border-radius: 999px;
+    background-color: var(--token-surface);
+    block-size: 1.75rem;
+    color: var(--how-tone);
+    inline-size: 1.75rem;
+    place-items: center;
+  }
+
+  .how-next {
+    display: none;
+  }
+
+  .how-source .how-next {
+    display: block;
+  }
+
+  .how-in,
+  .how-out {
+    display: block;
+    block-size: 1rem;
+    inset-block-start: 50%;
+    translate: 0 -50%;
+  }
+
+  .how-in {
+    inline-size: var(--how-gap);
+    inset-inline-end: 100%;
+  }
+
+  .how-out {
+    inline-size: calc(3 * var(--how-gap) + 2 * var(--how-gate));
+    inset-inline-start: 100%;
+  }
+}
+
+/* From 1280px the columns have room to breathe. */
+@media (width >= 80rem) {
+  .how-flow {
+    --how-gap: 2rem;
+    --how-gate: 6.5rem;
+  }
+}
+
+/* The order things arrive in: each step, then the lanes inside it. */
+.how-flow > li:nth-child(2) {
+  --how-i: 1;
+}
+
+.how-flow > li:nth-child(3) {
+  --how-i: 2;
+}
+
+.how-flow > li:nth-child(4) {
+  --how-i: 3;
+}
+
+.how-flow > li:nth-child(5) {
+  --how-i: 4;
+}
+
+.how-flow > li:nth-child(6) {
+  --how-i: 5;
+}
+
+.how-trio > li:nth-child(2),
+.how-node:nth-child(3) {
+  --how-j: 1;
+}
+
+.how-trio > li:nth-child(3),
+.how-node:nth-child(4) {
+  --how-j: 2;
+}
+
+@keyframes how-rise {
+  from {
+    opacity: 0;
+    translate: 0 0.75rem;
+  }
+}
+
+@keyframes how-pop {
+  from {
+    opacity: 0;
+    scale: 0.4;
+  }
+}
+
+@keyframes how-dots {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-motion='reduce']) .how-step {
+    animation: how-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--how-i, 0) * 150ms);
+  }
+
+  :root:not([data-motion='reduce']) .how-trio > li {
+    animation: how-rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--how-i, 0) * 150ms + 120ms + var(--how-j, 0) * 110ms);
+  }
+
+  :root:not([data-motion='reduce']) .how-node > span {
+    animation: how-pop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+    animation-delay: calc(var(--how-i, 0) * 150ms + 200ms + var(--how-j, 0) * 110ms);
+  }
+
+  :root:not([data-motion='reduce']) .how-strand {
+    animation: how-dots 1.6s linear infinite;
+  }
+}
+
+/* "Find your way": a forecast's tile carries its lane's edge. */
+.how-edge {
+  border-inline-start: 4px solid var(--how-tone);
+}

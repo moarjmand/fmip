@@ -1086,6 +1086,348 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "about.how.title": {
+    "source": "How Stadiomind works",
+    "text": "Stadiomind چگونه کار می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.intro": {
+    "source": "From licensed data to your rating, one match at a time. The three forecasts travel in lanes of their own and never meet.",
+    "text": "از داده‌های دارای مجوز تا امتیاز عملکرد شما، بازی به بازی. سه پیش‌بینی هر کدام در مسیر خودشان پیش می‌روند و هرگز به هم نمی‌رسند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.caption": {
+    "source": "The steps in order. Each coloured lane is one kind of prediction, kept apart from the moment it is made to the record it builds.",
+    "text": "مراحل به ترتیب. هر مسیر رنگی یک نوع پیش‌بینی است که از لحظه‌ی ثبت تا سابقه‌ای که می‌سازد جدا نگه داشته می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.source.name": {
+    "source": "Licensed match data",
+    "text": "داده‌های بازی با مجوز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.source.body": {
+    "source": "Fixtures, scores, line-ups and statistics, from a licensed football data service.",
+    "text": "برنامه‌ی بازی‌ها، نتیجه‌ها، ترکیب‌ها و آمار، از یک سرویس داده‌ی فوتبال دارای مجوز.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.record.name": {
+    "source": "One record for every match",
+    "text": "یک پرونده برای هر بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.record.body": {
+    "source": "Each match, club, player and competition has one identity of our own, and every page hangs off it.",
+    "text": "هر بازی، باشگاه، بازیکن و رقابت یک شناسه‌ی واحد از خود ما دارد و همه‌ی صفحه‌ها به همان وصل‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.record.live": {
+    "source": "Live scores",
+    "text": "نتایج زنده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.record.centre": {
+    "source": "Match centre",
+    "text": "مرکز مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.record.competitions": {
+    "source": "Competitions",
+    "text": "رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.record.clubs": {
+    "source": "Clubs",
+    "text": "باشگاه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.record.players": {
+    "source": "Players",
+    "text": "بازیکنان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.record.note": {
+    "source": "Missing data is labelled, never invented, and every live number shows when it last changed.",
+    "text": "داده‌ای که موجود نیست با برچسب مشخص می‌شود و هرگز از خود ساخته نمی‌شود، و هر عدد زنده نشان می‌دهد آخرین بار کی تغییر کرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.lanes.title": {
+    "source": "Three forecasts, side by side",
+    "text": "سه پیش‌بینی، کنار هم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.model.name": {
+    "source": "The model’s forecast",
+    "text": "پیش‌بینی مدل آماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.model.body": {
+    "source": "Home win, draw and away win probabilities, versioned and time-stamped. A version is never edited; a new one is added.",
+    "text": "احتمال برد میزبان، مساوی و برد میهمان، با شماره‌ی نسخه و زمان ثبت. هیچ نسخه‌ای ویرایش نمی‌شود؛ نسخه‌ی تازه کنار قبلی‌ها اضافه می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.founder.name": {
+    "source": "The founder’s analysis",
+    "text": "تحلیل بنیان‌گذار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.founder.body": {
+    "source": "One person’s call on selected matches, written and signed.",
+    "text": "نظر یک نفر درباره‌ی بازی‌های منتخب، نوشته و امضاشده.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.community.name": {
+    "source": "The community’s picks",
+    "text": "پیش‌بینی‌های کاربران",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.community.body": {
+    "source": "Members’ own predictions, with how confident they are and, if they like, the exact score.",
+    "text": "پیش‌بینی‌های خود اعضا، با میزان اطمینانشان و اگر خواستند نتیجه‌ی دقیق.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.apart": {
+    "source": "Never blended into one number.",
+    "text": "هرگز در یک عدد ترکیب نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.kickoff.name": {
+    "source": "Kick-off",
+    "text": "شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.kickoff.body": {
+    "source": "Picks lock. Only what was published before kick-off is judged.",
+    "text": "پیش‌بینی‌ها قفل می‌شوند. فقط آنچه پیش از شروع بازی منتشر شده سنجیده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.settle.name": {
+    "source": "Full time",
+    "text": "پایان بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.settle.body": {
+    "source": "The result settles every pick and scores every forecast, each on its own record.",
+    "text": "نتیجه‌ی بازی همه‌ی پیش‌بینی‌ها را تسویه می‌کند و هر کدام را در سابقه‌ی خودش می‌سنجد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.outcomes.title": {
+    "source": "What each one builds",
+    "text": "آنچه هر کدام می‌سازد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.outcome.model.name": {
+    "source": "The model’s public track record",
+    "text": "کارنامه‌ی عمومی مدل آماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.outcome.model.body": {
+    "source": "Every forecast published before kick-off, scored in the open.",
+    "text": "هر پیش‌بینی‌ای که پیش از شروع بازی منتشر شده، در برابر چشم همه سنجیده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.outcome.founder.name": {
+    "source": "The founder’s calls, checked",
+    "text": "نظرهای بنیان‌گذار، سنجیده‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.outcome.founder.body": {
+    "source": "Right or wrong, shown beside the result on the match’s page.",
+    "text": "درست یا نادرست، کنار نتیجه در صفحه‌ی همان بازی.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.outcome.community.name": {
+    "source": "Each member’s Performance Rating",
+    "text": "امتیاز عملکرد هر عضو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.outcome.community.body": {
+    "source": "Earned most by being right when it was hard to be.",
+    "text": "بیش از همه با درست گفتن در جایی به دست می‌آید که درست گفتن دشوار بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.how.outcomes.note": {
+    "source": "A rating can always be recomputed from the stored picks and results alone.",
+    "text": "امتیاز عملکرد همیشه فقط از روی پیش‌بینی‌ها و نتایج ذخیره‌شده دوباره قابل محاسبه است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.title": {
+    "source": "Find your way",
+    "text": "راهنمای بخش‌های سایت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.intro": {
+    "source": "The main sections, and what you will find in each.",
+    "text": "بخش‌های اصلی و آنچه در هر کدام پیدا می‌کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.football": {
+    "source": "Follow the football",
+    "text": "دنبال کردن فوتبال",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.forecasts": {
+    "source": "Forecasts and predictions",
+    "text": "پیش‌بینی‌ها و تحلیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.matches.name": {
+    "source": "Matches",
+    "text": "بازی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.matches.body": {
+    "source": "Every match of the day in your time zone, live as it happens.",
+    "text": "همه‌ی بازی‌های روز به وقت شما، زنده و لحظه‌به‌لحظه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.centre.name": {
+    "source": "Match centre",
+    "text": "مرکز مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.centre.body": {
+    "source": "Open any match for its timeline, line-ups, statistics and forecasts.",
+    "text": "هر بازی را باز کنید تا رویدادها، ترکیب‌ها، آمار و پیش‌بینی‌هایش را ببینید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.competitions.name": {
+    "source": "Competitions",
+    "text": "رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.competitions.body": {
+    "source": "Every league and cup we follow, with tables, fixtures, clubs and players.",
+    "text": "همه‌ی لیگ‌ها و جام‌هایی که دنبال می‌کنیم، با جدول رده‌بندی، برنامه‌ی دیدارها، باشگاه‌ها و بازیکنان.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.news.name": {
+    "source": "News",
+    "text": "اخبار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.news.body": {
+    "source": "The latest football stories, each with its source named.",
+    "text": "تازه‌ترین خبرهای فوتبال، هر کدام با نام منبعش.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.highlights.name": {
+    "source": "Highlights",
+    "text": "هایلایت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.highlights.body": {
+    "source": "Official highlights of finished matches, opening on the publisher’s own site.",
+    "text": "خلاصه‌ی رسمی بازی‌های تمام‌شده، که در سایت خود ناشر باز می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.watch.name": {
+    "source": "Watch",
+    "text": "تماشا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.watch.body": {
+    "source": "Which official service shows each match in your country.",
+    "text": "اینکه هر بازی در کشور شما از کدام سرویس رسمی پخش می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.model.name": {
+    "source": "The model",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.model.body": {
+    "source": "How the statistical model’s forecasts have scored against the results.",
+    "text": "پیش‌بینی‌های مدل آماری در برابر نتیجه‌های واقعی چقدر درست بوده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.analysis.name": {
+    "source": "The founder’s analysis",
+    "text": "تحلیل بنیان‌گذار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.analysis.body": {
+    "source": "Signed calls on selected matches, beside the day’s fixtures.",
+    "text": "نظرهای امضاشده درباره‌ی بازی‌های منتخب، کنار بازی‌های روز.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.predictions.name": {
+    "source": "Predictions",
+    "text": "پیش‌بینی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.predictions.body": {
+    "source": "Pick the matches still open before kick-off, with how confident you are.",
+    "text": "بازی‌هایی را که هنوز باز هستند پیش از شروع پیش‌بینی کنید، با میزان اطمینانتان.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.leaderboard.name": {
+    "source": "Leaderboard",
+    "text": "جدول برترین‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
+  "about.map.leaderboard.body": {
+    "source": "Members ranked by Performance Rating, with the formula version in force.",
+    "text": "اعضا به ترتیب امتیاز عملکرد، همراه با نسخه‌ی فرمول جاری.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1615."
+  },
   "welcome.meta.title": {
     "source": "Welcome",
     "text": "خوش آمدید",
@@ -3611,6 +3953,30 @@
   "newsPage.filtersOn": {
     "source": "Filters (on)",
     "text": "فیلترها (فعال)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "newsPage.top": {
+    "source": "Top stories",
+    "text": "خبرهای برتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "newsPage.more": {
+    "source": "More stories",
+    "text": "خبرهای بیشتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "newsPage.rail.trending": {
+    "source": "All trending stories",
+    "text": "همهٔ خبرهای داغ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "newsPage.rail.debate": {
+    "source": "All debates",
+    "text": "همهٔ بحث‌ها",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

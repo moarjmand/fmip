@@ -5,7 +5,9 @@ import {
   type SearchResponse,
   type SearchType,
 } from '@fmip/contracts';
+import { MediaService } from '../media/media.service';
 import { PostgresCommunitySearchStore } from './internal/community-search-store';
+import { imageRequest, withImages } from './internal/result-images';
 import { type SearchQuery } from './internal/search-query';
 import { PostgresSearchStore } from './internal/search-store';
 
@@ -39,6 +41,7 @@ export class SearchService {
   constructor(
     private readonly store: PostgresSearchStore,
     private readonly community: PostgresCommunitySearchStore,
+    private readonly media: MediaService,
   ) {}
 
   /** `locale` is the reader's: stories they are not shown are not found (D-178). */
@@ -52,7 +55,14 @@ export class SearchService {
     const [results, stories, groups, members] = await Promise.all([
       entityTypes.length === 0
         ? Promise.resolve([])
-        : this.store.search(query.q, entityTypes, query.limit),
+        : this.store
+            .search(query.q, entityTypes, query.limit)
+            // Each entity's crest, logo or photo, in one read (T-1617).
+            .then(async (found) =>
+              found.length === 0
+                ? found
+                : withImages(found, await this.media.index(imageRequest(found))),
+            ),
       wants('story') ? this.community.stories(query.q, query.limit, locale) : null,
       wants('group') ? this.community.groups(query.q, query.limit) : null,
       wants('member') ? this.community.members(query.q, viewerId, query.limit) : null,
