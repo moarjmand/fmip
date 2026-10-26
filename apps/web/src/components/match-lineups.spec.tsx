@@ -96,7 +96,7 @@ describe('player photos on the pitch (T-1616)', () => {
     expect(pitch).toMatch(/<img src="[^"]*" width="40" height="40" alt="" loading="lazy"/);
     // Round, cropped from the top, in the home side's ring.
     expect(pitch).toMatch(
-      /class="[^"]*size-10 rounded-full object-cover border-2 p-px object-top border-fg"/,
+      /class="[^"]*size-10 rounded-full bg-surface-raised object-cover border-2 p-px object-top border-fg"/,
     );
     // The shirt number as a badge in the side's tone, not the old circle.
     expect(pitch).toContain(

@@ -291,7 +291,7 @@ describe('more contrast, as a whole (T-621)', () => {
 describe('the tokens themselves', () => {
   it('declare the same names in light and in both ways to dark', () => {
     const names = [...LIGHT.keys()].sort();
-    expect(names.length).toBe(29);
+    expect(names.length).toBe(32);
     expect([...DARK.keys()].sort()).toEqual(names);
     expect([...DARK_CHOSEN.keys()].sort()).toEqual(names);
   });
@@ -359,6 +359,39 @@ describe('the tokens themselves', () => {
     }
     expect(value(LIGHT, '--token-on-brand')).toBe('#1a1206');
     expect(value(DARK, '--token-on-brand')).toBe('#1a1206');
+  });
+
+  it('put every logo on white and give a crest an edge on Night alone (T-1609, D-280)', () => {
+    // The logos are made for paper: the same white tile in every theme...
+    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE, EDITORIAL]) {
+      expect(value(theme, '--token-logo-tile')).toBe('#ffffff');
+    }
+    for (const [day, ground] of [
+      [LIGHT, '--token-surface'],
+      [LIGHT_MORE, '--token-surface'],
+      [EDITORIAL, '--token-surface'],
+    ] as const) {
+      // ...on Day the hairline and the halo are the surface itself, so nothing shows...
+      expect(value(day, '--token-logo-edge')).toBe(value(day, ground));
+      expect(value(day, '--token-crest-halo')).toBe(value(day, ground));
+    }
+    for (const night of [DARK, DARK_MORE]) {
+      // ...and on Night the tile stands out from every ground, its hairline is
+      // seen on the cards, and the halo is light enough to edge a navy crest.
+      for (const background of BACKGROUNDS) {
+        expect(
+          contrast(value(night, '--token-logo-tile'), value(night, background)),
+          background,
+        ).toBeGreaterThanOrEqual(7);
+        expect(
+          contrast(value(night, '--token-crest-halo'), value(night, background)),
+          background,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(
+        contrast(value(night, '--token-logo-edge'), value(night, '--token-surface')),
+      ).toBeGreaterThan(1.2);
+    }
   });
 
   it('draw the forecast bar in three lightnesses, home the model colour itself (T-1493)', () => {

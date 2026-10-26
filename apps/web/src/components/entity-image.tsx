@@ -23,6 +23,12 @@ import { cx } from '@/components/ui/cx';
  *
  * Beside a name, as almost everywhere, the image is decorative (`alt=""`, the
  * mark hidden from assistive technology); alone, it carries the name.
+ *
+ * Readable on either ground (T-1609, D-280): a competition logo is drawn on
+ * a white tile in both themes, rounded and padded by size, with a hairline
+ * on Night, since the logos are made for paper and many are dark; a crest
+ * has no ground of its own, only a one-pixel light halo round its outline
+ * on Night (`crest-halo`), so a navy or black crest keeps its edge.
  */
 
 export type EntityImageKind = 'crest' | 'logo' | 'photo';
@@ -48,6 +54,28 @@ const LETTERS: Record<EntityImageSize, string> = {
   48: 'text-base',
   96: 'text-3xl',
 };
+
+/** A logo tile's inner padding and corner, by size (T-1609). */
+const TILE: Record<EntityImageSize, string> = {
+  20: 'rounded-sm p-0.5',
+  22: 'rounded-sm p-0.5',
+  32: 'rounded-md p-1',
+  40: 'rounded-md p-1',
+  48: 'rounded-md p-1',
+  96: 'rounded-lg p-2',
+};
+
+/**
+ * The classes of a drawn image, by kind (T-1609, D-280): a photo round and
+ * cropped on the raised surface; a logo whole on its white tile with the
+ * Night hairline; a crest whole on nothing, with the Night halo -- no
+ * background, so the halo follows the crest and not a square.
+ */
+export function imageClasses(kind: EntityImageKind, size: EntityImageSize): string {
+  if (kind === 'photo') return 'rounded-full bg-surface-raised object-cover';
+  if (kind === 'logo') return cx('bg-logo-tile object-contain ring-1 ring-logo-edge', TILE[size]);
+  return 'crest-halo rounded-sm object-contain p-px';
+}
 
 /** True when `media` is an image we can draw from our own origin. */
 export function drawable(media: EntityMedia | undefined): media is {
@@ -105,8 +133,6 @@ export function EntityImage({
   aboveFold?: boolean;
   className?: string;
 }) {
-  const round = kind === 'photo';
-  const shape = round ? 'rounded-full' : 'rounded-sm';
   if (drawable(media)) {
     const image = (
       // A plain image on purpose: no optimiser route, no client JS (see above).
@@ -119,13 +145,7 @@ export function EntityImage({
         alt={decorative ? '' : name}
         loading={aboveFold ? 'eager' : 'lazy'}
         decoding={aboveFold ? 'auto' : 'async'}
-        className={cx(
-          'shrink-0 bg-surface-raised',
-          BOX[size],
-          shape,
-          round ? 'object-cover' : 'object-contain p-px',
-          className,
-        )}
+        className={cx('shrink-0', BOX[size], imageClasses(kind, size), className)}
         data-testid="entity-image"
         data-kind={kind}
         data-coverage="available"
