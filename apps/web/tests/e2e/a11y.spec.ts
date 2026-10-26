@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 /**
  * The accessibility pass (T-081, D-041): WCAG 2.2 AA as axe-core checks it,
@@ -42,10 +42,33 @@ const PAGES = [
   '/x-rtl/welcome?step=territory',
 ];
 
+/**
+ * The page as a reader keeps seeing it: a page may arrive with a fade (the
+ * About diagram's steps rise in turn, T-1615), and axe measures contrast as
+ * drawn, so mid-fade text would read as faint. Every finite animation is
+ * let finish first; an endless one (the diagram's flowing dots) changes no
+ * text and is left running. Five seconds at most, so a stuck one fails the
+ * check rather than the run.
+ */
+async function settled(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+          .map((animation) => animation.finished.catch(() => undefined)),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 5000)),
+    ]),
+  );
+}
+
 test.describe('accessibility', () => {
   for (const path of PAGES) {
     test(`${path} has no WCAG 2.2 AA violations`, async ({ page }) => {
       await page.goto(path);
+      await settled(page);
       const builder = new AxeBuilder({ page }).withTags(TAGS);
       // `x-rtl` is a BCP 47 private-use tag for a QA surface, not a language
       // (D-003); axe's lang check knows only registered languages.
@@ -70,6 +93,7 @@ test.describe('accessibility', () => {
     '/en/competition/00000000-0000-4000-8000-000000000201',
     '/en/team/00000000-0000-4000-8000-000000000601',
     '/en/player/00000000-0000-4000-8000-000000000701',
+    '/en/about',
   ];
   for (const theme of ['dark', 'light'] as const) {
     for (const width of [1280, 390]) {
@@ -86,6 +110,7 @@ test.describe('accessibility', () => {
           test(`${path} has no WCAG 2.2 AA violations`, async ({ page }) => {
             await page.goto(path);
             await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+            await settled(page);
             const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
             expect(
               results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`),

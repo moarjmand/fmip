@@ -359,6 +359,8 @@ the Playwright image of the pinned version, from the root of a clean clone
 install inside would overwrite them):
 `docker run --rm -v "$PWD":/w -w /w/apps/web -e NODE_OPTIONS=--require=/w/apps/web/tests/e2e/fixed-clock.cjs mcr.microsoft.com/playwright:v1.63.0-noble sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm exec playwright test visual.spec.ts --update-snapshots=changed"`.
 
+**The About page** (T-1615, D-286) joined the baseline on 2026-10-26: four more pictures (`about-*`), the diagram drawn complete and still, as reduced motion draws it. Its steps fade in when motion is welcome, so the axe pass (`a11y.spec.ts`) lets every finite animation finish before it measures contrast.
+
 ## PageSpeed after the redesign (T-1502)
 
 PageSpeed Insights (Lighthouse 13.5.0; mobile is a Moto G Power on slow
