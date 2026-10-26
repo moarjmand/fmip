@@ -92,6 +92,14 @@ export interface CompetitionDirectoryEntry {
    * competition has no current season (T-1612).
    */
   season: string | null;
+  /**
+   * When its next match kicks off: the earliest scheduled fixture after the
+   * moment of the answer, of any season, ISO 8601 (T-1623, D-292). The
+   * matchday rail says "Sat" for a competition with nothing today from it.
+   * `null` when no match ahead is known -- never a guessed date (rule 3).
+   * Optional so an older answer still reads; the API always sends it.
+   */
+  next_kickoff_at?: string | null;
 }
 
 /**

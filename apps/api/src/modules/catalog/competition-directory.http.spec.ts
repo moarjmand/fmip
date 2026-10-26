@@ -70,7 +70,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competitions
     // The logo is a coverage state, never a provider address (rule 2).
     expect(premier?.logo.coverage).toMatch(/^(available|not_supplied)$/);
     expect(Object.keys(premier ?? {}).sort()).toEqual(
-      ['country', 'id', 'kind', 'logo', 'name', 'order', 'scope', 'season', 'short_name'].sort(),
+      [
+        'country',
+        'id',
+        'kind',
+        'logo',
+        'name',
+        'next_kickoff_at',
+        'order',
+        'scope',
+        'season',
+        'short_name',
+      ].sort(),
     );
     // The current season as the competition page names it (T-1612); the seed's
     // Premier League has one, and a label is never invented for none.
@@ -112,6 +123,70 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competitions
         `DELETE FROM entity_media WHERE entity_type = 'country' AND entity_id = $1`,
         [SPAIN],
       );
+    }
+  });
+
+  it('names each competition its next kick-off: the earliest scheduled match ahead, else null (T-1623)', async () => {
+    // Two competitions of this spec's own, so no other spec's matches count.
+    const id = {
+      ahead: '00000000-0000-4000-8000-0000016230a1',
+      none: '00000000-0000-4000-8000-0000016230a2',
+      current: '00000000-0000-4000-8000-0000016230b1',
+      next: '00000000-0000-4000-8000-0000016230b2',
+      over: '00000000-0000-4000-8000-0000016230b3',
+    };
+    const fixtures = [1, 2, 3, 4, 5].map((n) => `00000000-0000-4000-8000-0000016230c${n}`);
+    const cleanUp = async () => {
+      await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+      await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [
+        [id.current, id.next, id.over],
+      ]);
+      await pool.query(`DELETE FROM competition WHERE id = ANY($1::uuid[])`, [[id.ahead, id.none]]);
+    };
+    await cleanUp();
+    try {
+      await pool.query(
+        `INSERT INTO competition (id, name, kind, scope, gender) VALUES
+           ($1, 'T-1623 Ahead', 'league', 'international', 'men'),
+           ($2, 'T-1623 Nothing', 'cup', 'international', 'men')`,
+        [id.ahead, id.none],
+      );
+      await pool.query(
+        `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current) VALUES
+           ($1, $4, '2026/27', '2026-08-01', '2027-05-31', true),
+           ($2, $4, '2027/28', '2027-08-01', '2028-05-31', false),
+           ($3, $5, '2026', '2026-01-01', '2026-12-31', true)`,
+        [id.current, id.next, id.over, id.ahead, id.none],
+      );
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES
+           -- A match whose kick-off has passed is not ahead, whatever its status says.
+           ($1, $6, now() - interval '2 hours', 'scheduled'),
+           -- A postponed match has no kick-off to count on.
+           ($2, $6, now() + interval '1 day', 'postponed'),
+           -- The earliest scheduled match ahead, in a season not the current one.
+           ($3, $7, now() + interval '3 days', 'scheduled'),
+           ($4, $6, now() + interval '9 days', 'scheduled'),
+           -- The other competition played its last match.
+           ($5, $8, now() - interval '5 days', 'finished')`,
+        [...fixtures, id.current, id.next, id.over],
+      );
+      const { rows } = await pool.query<{ at: Date }>(
+        `SELECT kickoff_at AS at FROM fixture WHERE id = $1`,
+        [fixtures[2]],
+      );
+
+      const all = await directory();
+      expect(all.find((c) => c.id === id.ahead)?.next_kickoff_at).toBe(rows[0]?.at.toISOString());
+      expect(all.find((c) => c.id === id.none)?.next_kickoff_at).toBeNull();
+      // Every answer is an instant or null, never a guess.
+      for (const c of all) {
+        expect(
+          c.next_kickoff_at === null || !Number.isNaN(Date.parse(c.next_kickoff_at ?? '')),
+        ).toBe(true);
+      }
+    } finally {
+      await cleanUp();
     }
   });
 
