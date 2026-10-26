@@ -2,9 +2,7 @@ import type { CoverageState, Covered } from '@fmip/contracts';
 import type { Message } from '@/i18n/messages';
 import type { MatchWords } from '@/lib/words-server';
 import { MessageText } from '@/components/message-text';
-import { formatFixed } from '@/lib/words';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
-import { cx } from '@/components/ui/cx';
 import { Icon } from '@/components/ui/icons';
 
 /**
@@ -182,47 +180,5 @@ export function Module<T>({
         children(module.data)
       )}
     </section>
-  );
-}
-
-/**
- * A player's match rating (Design System `RatingChip`), one decimal, in
- * bands that differ in lightness as well as hue: under 6 grey, 6 to 6.9
- * neutral, 7 to 7.9 turquoise, 8 and up saffron. From the feed only: a
- * player without a rating gets no chip, never a zero.
- */
-export function RatingChip({
-  value,
-  locale,
-  size = 'small',
-  className,
-}: {
-  value: number;
-  locale: string;
-  size?: 'small' | 'large';
-  className?: string;
-}) {
-  const band =
-    value >= 8
-      ? 'bg-accent text-on-accent'
-      : value >= 7
-        ? 'bg-model text-canvas'
-        : value >= 6
-          ? 'border border-default bg-surface-raised text-fg'
-          : 'bg-muted text-canvas';
-  return (
-    <span
-      className={cx(
-        'inline-block rounded-xs font-extrabold tabular-nums',
-        size === 'large'
-          ? 'ms-auto rounded-control px-2.5 py-1.5 text-2xl leading-none font-stretch-condensed'
-          : 'px-1.5 text-xs leading-5',
-        band,
-        className,
-      )}
-      data-rating={value}
-    >
-      {formatFixed(locale, value, 1)}
-    </span>
   );
 }
