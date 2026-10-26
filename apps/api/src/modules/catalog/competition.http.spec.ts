@@ -348,6 +348,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     ]);
     expect(page.fixtures).toHaveLength(1);
     expect(page.fixtures[0]).toMatchObject({ status: 'scheduled', score: null, round: 'Matchday' });
+    // Both crests on every listed match, said not supplied where none is held (T-1617).
+    for (const f of [...page.fixtures, ...page.results]) {
+      expect(f.home.crest).toEqual({ coverage: 'not_supplied', url: null });
+      expect(f.away.crest).toEqual({ coverage: 'not_supplied', url: null });
+    }
 
     // Four goals scored (3-1), three named by incidents: possibly short (T-1441).
     expect(page.leaders.coverage).toBe('limited');
