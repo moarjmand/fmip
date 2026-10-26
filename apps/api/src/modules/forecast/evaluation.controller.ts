@@ -22,6 +22,7 @@ import type {
 import { ACCURACY_PERIODS, ROLE_REFUSALS } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
+import { EMPTY_MEDIA_INDEX, MediaService } from '../media/media.service';
 import { EvaluationService } from './evaluation.service';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,6 +39,7 @@ export class EvaluationController {
   constructor(
     private readonly evaluations: EvaluationService,
     private readonly identity: IdentityService,
+    private readonly media: MediaService,
   ) {}
 
   @Get('fixtures/:fixtureId/evaluations')
@@ -110,7 +112,35 @@ export class EvaluationController {
       };
       throw new BadRequestException(error);
     }
-    return this.evaluations.publicAccuracy(chosen as AccuracyPeriod);
+    const report = await this.evaluations.publicAccuracy(chosen as AccuracyPeriod);
+    return this.withLogos(report);
+  }
+
+  /**
+   * Each competition's logo from the media boundary (T-1620, D-291), read in
+   * one query: our own address, or `not_supplied` (rule 3), as the
+   * highlights list does when the store cannot answer. Here rather than
+   * in the service, so the weekly channel post, which draws no image, asks
+   * nothing of the media store.
+   */
+  private async withLogos(
+    report: PublicModelAccuracyResponse,
+  ): Promise<PublicModelAccuracyResponse> {
+    const ids = report.competitions.flatMap((s) =>
+      s.competition === null ? [] : [s.competition.id],
+    );
+    if (ids.length === 0) return report;
+    // An image is never a reason for the figures to fail: without the index
+    // every logo is `not_supplied` and the page draws its lettered mark.
+    const media = await this.media.index({ competition: ids }).catch(() => EMPTY_MEDIA_INDEX);
+    return {
+      ...report,
+      competitions: report.competitions.map((s) =>
+        s.competition === null
+          ? s
+          : { ...s, competition: { ...s.competition, logo: media.logo(s.competition.id) } },
+      ),
+    };
   }
 
   @Get('competitions/:competitionId/model-performance')

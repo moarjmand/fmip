@@ -36,6 +36,8 @@ const PAGES = [
   { name: 'player', path: '/en/player/00000000-0000-4000-8000-000000000701' },
   // The About page's diagram, drawn still as reduced motion draws it (T-1615).
   { name: 'about', path: '/en/about' },
+  // The model page on the theme's grounds, its band and the unreachable state (T-1620).
+  { name: 'model', path: '/en/model-accuracy' },
 ] as const;
 
 const VIEWS = [

@@ -10190,6 +10190,60 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "modelAccuracy.kpi.guess": {
+    "source": "If guessing: {value}",
+    "text": "با حدس تصادفی: {value}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.kpi.lower": {
+    "source": "Lower is better",
+    "text": "کمتر بهتر است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.kpi.matchesMeaning": {
+    "source": "Each match counted once, by its last forecast before kick-off.",
+    "text": "هر بازی یک بار شمرده می‌شود، با آخرین پیش‌بینی پیش از شروعش.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.kpi.correctMeaning": {
+    "source": "How often the outcome it rated most likely happened.",
+    "text": "چند بار نتیجه‌ای که مدل محتمل‌ترین می‌دانست رخ داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.kpi.rpsMeaning": {
+    "source": "How far the probabilities were from the result; 0 is perfect.",
+    "text": "فاصله‌ی احتمال‌ها از نتیجه؛ صفر یعنی بی‌نقص.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.kpi.brierMeaning": {
+    "source": "The squared distance between the probabilities and the result.",
+    "text": "مجذور فاصله‌ی احتمال‌ها از نتیجه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.kpi.logLossMeaning": {
+    "source": "How surprised the model was by the results.",
+    "text": "میزان غافلگیری مدل از نتیجه‌ها.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.competition.months": {
+    "source": "Month by month",
+    "text": "ماه به ماه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.competition.weeks": {
+    "source": "Week by week",
+    "text": "هفته به هفته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "forecast.aDraw": {
     "source": "a draw",
     "text": "تساوی",

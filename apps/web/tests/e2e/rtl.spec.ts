@@ -129,10 +129,10 @@ test.describe('layout mirrors under rtl', () => {
   });
 
   // T-1369: the model accuracy page mirrors, its figures' table included.
-  // T-1383 (D-201) set it in editorial mode, whose heading has no accent bar:
-  // the canary is now the heading's 680px measure, which sits at the inline
-  // start -- the right edge in `x-rtl`, the left in `en`. A `ml-auto` or a
-  // `left-0` where `ms-`/`start-0` belongs puts it on the wrong side.
+  // The canary is the heading, which sits at the inline start of its band
+  // (T-1620, D-291: on the theme's grounds, no longer editorial paper) --
+  // the right edge in `x-rtl`, the left in `en`. A `ml-auto` or a `left-0`
+  // where `ms-`/`start-0` belongs puts it on the wrong side.
   for (const [locale, dir] of [
     ['x-rtl', 'rtl'],
     ['en', 'ltr'],
@@ -143,6 +143,7 @@ test.describe('layout mirrors under rtl', () => {
       await page.goto(`/${locale}/model-accuracy`);
 
       await expect(page.locator('html')).toHaveAttribute('dir', dir);
+      await expect(page.getByTestId('model-accuracy-page')).toHaveAttribute('data-mode', 'data');
       const width = page.viewportSize()?.width ?? 1280;
       const box = await page.getByTestId('title').boundingBox();
       expect(box).not.toBeNull();

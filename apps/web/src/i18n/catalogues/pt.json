@@ -8419,6 +8419,51 @@
     "text": "",
     "status": "untranslated"
   },
+  "modelAccuracy.kpi.guess": {
+    "source": "If guessing: {value}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.lower": {
+    "source": "Lower is better",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.matchesMeaning": {
+    "source": "Each match counted once, by its last forecast before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.correctMeaning": {
+    "source": "How often the outcome it rated most likely happened.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.rpsMeaning": {
+    "source": "How far the probabilities were from the result; 0 is perfect.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.brierMeaning": {
+    "source": "The squared distance between the probabilities and the result.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.logLossMeaning": {
+    "source": "How surprised the model was by the results.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.competition.months": {
+    "source": "Month by month",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.competition.weeks": {
+    "source": "Week by week",
+    "text": "",
+    "status": "untranslated"
+  },
   "forecast.aDraw": {
     "source": "a draw",
     "text": "",

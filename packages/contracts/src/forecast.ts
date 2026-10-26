@@ -9,6 +9,7 @@
  */
 
 import type { CoverageState } from './coverage';
+import type { EntityMedia } from './media';
 
 export interface ModelForecastRequest {
   /** Catalog fixture UUID; echoed back, never interpreted by the model. */
@@ -501,8 +502,12 @@ export interface AdminModelAccuracyResponse {
 
 /** The published forecasts over one competition, or all of them. */
 export interface PublicAccuracySeries {
-  /** Null: every competition together. */
-  competition: { id: string; name: string } | null;
+  /**
+   * Null: every competition together. `logo` is the competition's logo from
+   * the media boundary (T-1620, D-291), `not_supplied` when none is stored;
+   * absent where a caller attached none (the weekly channel post).
+   */
+  competition: { id: string; name: string; logo?: EntityMedia } | null;
   /** The published model versions the figures are from, by name. */
   model_versions: string[];
   total: AccuracyMetrics;
