@@ -58,7 +58,7 @@ describe('CandidateRecordsReport (T-1103)', () => {
     expect(out).not.toMatch(/\b(better|worse|passed|failed|promote it)\b/i);
     expect(out).toContain('0.9877');
     expect(out).toContain('1.0012');
-    expect(out).toContain('dixon-coles-elo@0.1.0');
+    expect(out.replace(/<[^>]+>/g, '')).toContain('dixon-coles-elo@0.1.0');
     expect(out).not.toMatch(PHYSICAL);
   });
 
@@ -88,6 +88,14 @@ describe('CandidateRecordsReport (T-1103)', () => {
     expect(out).toContain('data-testid="candidate-no-pairs"');
     expect(out).toContain('0 of 300');
     expect(out).toContain('whether it still runs in shadow is not known');
+  });
+
+  it('writes no version as one "name@x.y.z" run in its text (T-1580)', () => {
+    const out = html(report({}));
+    // The data-* hook keeps the plain version for tests; the text never does.
+    const read = out.replace(/ data-model-version="[^"]*"/g, '');
+    expect(read).not.toMatch(/\S+@\d+\.\d+\.\d+/);
+    expect(read.replace(/<[^>]+>/g, '')).toContain('dixon-coles-elo@0.1.0');
   });
 
   it('says so when there is no candidate at all', () => {

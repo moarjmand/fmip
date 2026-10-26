@@ -42,6 +42,12 @@ export interface MatchHeader {
   kickoff_at: string;
   status: FixtureStatus;
   minute: number | null;
+  /**
+   * The live match is at the half-time interval, as the feed last said
+   * (T-1551); `false` for every match that is not live. Optional so an
+   * older API's payload still reads as "not said".
+   */
+  at_half_time?: boolean;
   competition: {
     id: string;
     name: string;

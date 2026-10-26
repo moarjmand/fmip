@@ -526,8 +526,20 @@
   },
   "home.month.limited": {
     "source": "Limited: a league with fewer than {minimum} matches is too few to call.",
-    "text": "محدود: لیگی با کمتر از {minimum} بازی برای داوری کم است.",
+    "text": "ناقص: لیگی با کمتر از {minimum} بازی برای داوری کم است.",
     "status": "translated"
+  },
+  "home.month.leagueMatches": {
+    "source": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "forms": {
+      "one": "{count} بازی",
+      "other": "{count} بازی"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "home.month.link": {
     "source": "Calibration report",
@@ -7712,6 +7724,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "scores.liveEmpty": {
+    "source": "No match on this day is in play.",
+    "text": "در این روز هیچ مسابقه‌ای در جریان نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "scores.row.pick": {
     "source": "Pick",
     "text": "انتخاب",
@@ -9833,6 +9851,30 @@
   "forecast.factor.attackVsDefence": {
     "source": "Attack against defence",
     "text": "خط حمله در برابر خط دفاع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.factorNote.teamStrength": {
+    "source": "net strength (attack minus defence) from recent results",
+    "text": "قدرت خالص (حمله منهای دفاع) بر پایه‌ی نتایج اخیر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.factorNote.teamStrengthElo": {
+    "source": "net strength (attack minus defence) from recent results and the Elo prior",
+    "text": "قدرت خالص (حمله منهای دفاع) بر پایه‌ی نتایج اخیر و پیش‌فرض Elo",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.factorNote.homeAdvantage": {
+    "source": "league-wide home advantage learned from the training window",
+    "text": "برتری میزبانی در کل لیگ، آموخته از بازه‌ی داده‌های آموزشی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.factorNote.attackVsDefence": {
+    "source": "how the sides' attacks match up against the opposing defences",
+    "text": "اینکه خط حمله‌ی هر تیم در برابر خط دفاع حریف چگونه است",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -12326,6 +12368,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.tab.modelShort": {
+    "source": "Model",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.tab.news": {
     "source": "News",
     "text": "اخبار",
@@ -12470,6 +12518,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.model.notSuppliedSeason": {
+    "source": "No forecast the model made before kick-off in this season has been scored, so there is nothing to judge it by here.",
+    "text": "هیچ پیش‌بینی‌ای که مدل آماری پیش از شروع بازی‌های این فصل داده، ارزیابی نشده است؛ پس اینجا چیزی برای سنجیدن آن نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.model.more": {
     "source": "The model month by month",
     "text": "مدل، ماه به ماه",
@@ -12545,6 +12599,12 @@
   "competitionPage.noTable": {
     "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
     "text": "این رقابت در دورهای حذفی برگزار می‌شود و جدول رده‌بندی ندارد. دورهای آن در بخش بازی‌ها آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.noTableFriendly": {
+    "source": "Friendlies are single matches, not a league or a cup, so there is no table. The matches are under Matches.",
+    "text": "بازی‌های دوستانه دیدارهای جداگانه‌اند، نه لیگ یا جام، پس جدولی ندارند. بازی‌ها زیر «بازی‌ها» آمده‌اند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -15459,7 +15519,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.axis": {
-    "source": "Timeline of the match: {goals} goals and {cards} cards by minute, the home side's above the line and the away side's below",
+    "source": "Timeline of the match by minute (goals: {goals}, cards: {cards}), the home side's above the line and the away side's below",
     "text": "خط زمانی بازی: {goals} گل و {cards} کارت بر پایه‌ی دقیقه، رویدادهای میزبان بالای خط و میهمان زیر آن",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -15473,6 +15533,30 @@
   "matchCentre.notInYetWhy": {
     "source": "Not received for this match yet. It appears here as soon as it arrives; nothing is estimated in the meantime.",
     "text": "هنوز برای این بازی دریافت نشده است. به محض رسیدن اینجا نشان داده می‌شود؛ تا آن زمان هیچ چیزی تخمین زده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.fromKickoff": {
+    "source": "From kick-off",
+    "text": "از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.fromKickoffWhy": {
+    "source": "Recorded once the match kicks off; nothing is shown before then.",
+    "text": "از لحظه‌ی شروع بازی ثبت می‌شود؛ پیش از آن چیزی نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.notPlayed": {
+    "source": "Not played",
+    "text": "برگزار نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.notPlayedWhy": {
+    "source": "The match was not played, so there is nothing to record.",
+    "text": "این بازی برگزار نشد، پس چیزی برای ثبت نیست.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -15615,8 +15699,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "competitions.lead": {
-    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
-    "text": "همهٔ لیگ‌ها و جام‌هایی که دنبال می‌کنیم، به تفکیک کشور و منطقه. یکی را انتخاب کنید تا صفحه‌اش باز شود: جدول، برنامه، نتایج و برترین‌ها.",
+    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, matches, players and the model in that league.",
+    "text": "همهٔ لیگ‌ها و جام‌هایی که دنبال می‌کنیم، به تفکیک کشور و منطقه. یکی را انتخاب کنید تا صفحه‌اش باز شود: جدول، بازی‌ها، بازیکنان و مدل آماری در آن لیگ.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

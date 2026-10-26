@@ -21,7 +21,7 @@ export class ConsensusListController {
   constructor(private readonly consensus: ConsensusService) {}
 
   @Get()
-  async list(@Query('fixtures') fixtures?: string): Promise<ConsensusListResponse> {
+  async list(@Query('fixtures') fixtures?: string | string[]): Promise<ConsensusListResponse> {
     return { fixtures: await this.consensus.forFixtures(parseFixtures(fixtures)) };
   }
 }
@@ -33,9 +33,12 @@ export class ConsensusListController {
  * a question nobody asked — a caller with one typo would get a shorter list and
  * no indication which match is missing from it.
  */
-export function parseFixtures(raw: string | undefined): string[] {
-  const ids = (raw ?? '')
-    .split(',')
+export function parseFixtures(raw: string | string[] | undefined): string[] {
+  // A repeated key arrives as an array (T-1575): read it as one list, never a
+  // TypeError and a 500.
+  const ids = [raw ?? '']
+    .flat()
+    .flatMap((value) => value.split(','))
     .map((part) => part.trim())
     .filter((part) => part !== '');
 
@@ -56,6 +59,8 @@ export function parseFixtures(raw: string | undefined): string[] {
     };
     throw new BadRequestException(error);
   }
-  // Duplicates collapse: asking twice about one match is one question.
-  return [...new Set(ids)];
+  // Duplicates collapse: asking twice about one match is one question. Lower
+  // case, as the database answers, or an upper-case id matches and is then
+  // dropped from the answer (T-1575).
+  return [...new Set(ids.map((id) => id.toLowerCase()))];
 }

@@ -532,6 +532,7 @@ export default async function ScoresPage({
                 community={previewLines.community[previewCard.id]}
                 viewing={previewLines.viewing[previewCard.id]}
                 closeHref={chosen === null ? undefined : pageHref(locale, q)}
+                now={now}
                 words={words}
                 forecastWords={forecastBarWords(locale)}
               />
@@ -570,6 +571,7 @@ export default async function ScoresPage({
                 clearFiltersHref={clearFiltersHref}
                 forecasts={forecasts}
                 unpicked={q.unpicked === true}
+                live={q.live}
                 picked={[...own.keys()]}
                 selected={previewCard?.id ?? null}
                 pickBase={pageHref(locale, q)}

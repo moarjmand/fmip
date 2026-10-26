@@ -329,6 +329,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     it('refuses a malformed or oversized pre-kick-off question', async () => {
       const bad = await app.inject({ method: 'GET', url: '/forecasts/pre-kickoff?fixtures=nope' });
       expect(bad.statusCode).toBe(400);
+      // A repeated key is one list, never a TypeError and a 500 (T-1575).
+      const repeated = await app.inject({
+        method: 'GET',
+        url: `/forecasts/pre-kickoff?fixtures=${FIXTURE}&fixtures=${NO_FORECAST}`,
+      });
+      expect(repeated.statusCode).toBe(200);
+      expect(
+        (repeated.json() as ForecastSummaryListResponse).fixtures.map((entry) => entry.fixture_id),
+      ).toEqual([FIXTURE, NO_FORECAST]);
       const many = Array.from(
         { length: 51 },
         (_, i) => `00000000-0000-4000-8000-${i.toString().padStart(12, '0')}`,

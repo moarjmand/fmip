@@ -1,7 +1,7 @@
 import Link from '@/components/ui/link';
 import type { CandidateRecord, CandidateRecordsResponse } from '@fmip/contracts';
 import { Card, Notice } from '@/components/ui';
-import { ModelVersion } from '@/components/model-version';
+import { ModelVersion, ModelVersions } from '@/components/model-version';
 
 /**
  * The candidates in shadow and their records, for the console (T-1103,
@@ -125,7 +125,9 @@ function CandidateSection({
                     <td className="py-2 pe-4 text-end tabular-nums">
                       {score(row.published.brier)}
                     </td>
-                    <td className="py-2">{row.published_versions.join(', ')}</td>
+                    <td className="py-2">
+                      <ModelVersions versions={row.published_versions} />
+                    </td>
                   </tr>
                 ))}
               </tbody>

@@ -459,17 +459,24 @@ export class PostgresEvaluationStore {
    * The competitions the model has published a pre-kick-off forecast for
    * (T-1369): the public page lists each, so one with nothing evaluated yet
    * says `not_supplied` instead of being missing.
+   *
+   * One pass over the forecasts, then the competitions it found (T-1576): as
+   * an `EXISTS` per competition, Postgres scanned every forecast once per
+   * competition, 51 ms on production's 39 competitions against 7 ms here, on
+   * a read the home page makes for every guest.
    */
   async publishedCompetitions(): Promise<{ id: string; name: string }[]> {
     const { rows } = await this.pool.query<{ id: string; name: string }>(
-      `SELECT co.id::text AS id, co.name
+      `WITH published AS MATERIALIZED (
+         SELECT DISTINCT se.competition_id
+           FROM forecast f
+           JOIN fixture fx ON fx.id = f.fixture_id
+           JOIN season se ON se.id = fx.season_id
+          WHERE f.role = 'published' AND f.status = 'available'
+            AND f.computed_at < fx.kickoff_at)
+       SELECT co.id::text AS id, co.name
          FROM competition co
-        WHERE EXISTS (
-          SELECT 1 FROM forecast f
-            JOIN fixture fx ON fx.id = f.fixture_id
-            JOIN season se ON se.id = fx.season_id
-           WHERE se.competition_id = co.id AND f.role = 'published'
-             AND f.status = 'available' AND f.computed_at < fx.kickoff_at)
+         JOIN published p ON p.competition_id = co.id
         ORDER BY co.name, co.id`,
     );
     return rows;

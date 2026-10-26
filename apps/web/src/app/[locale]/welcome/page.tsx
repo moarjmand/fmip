@@ -119,11 +119,17 @@ export default async function WelcomePage({
           {STEPS.map((s) => (
             <li key={s}>
               {s === step ? (
-                <span aria-current="step" className="font-semibold underline">
+                <span
+                  aria-current="step"
+                  className="inline-flex min-h-touch items-center font-semibold underline"
+                >
                   <Translated locale={locale} message={STEP_KEY[s]} />
                 </span>
               ) : (
-                <Link href={stepHref(locale, s, next)} className="text-muted">
+                <Link
+                  href={stepHref(locale, s, next)}
+                  className="inline-flex min-h-touch items-center text-muted"
+                >
                   <Translated locale={locale} message={STEP_KEY[s]} />
                 </Link>
               )}
@@ -164,7 +170,7 @@ export default async function WelcomePage({
         {following !== undefined ? (
           <Link
             href={stepHref(locale, following, next)}
-            className="underline"
+            className="inline-flex min-h-touch items-center underline"
             data-testid="first-run-skip"
           >
             <Translated locale={locale} message="firstRun.skip" />

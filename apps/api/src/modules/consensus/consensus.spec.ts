@@ -108,6 +108,11 @@ describe('the fixtures parameter of the list endpoint', () => {
     expect(() => parseFixtures(many)).toThrow();
   });
 
+  it('reads a repeated parameter as one list, and lower-cases ids (T-1575)', () => {
+    expect(parseFixtures([A, `${B},${A}`])).toEqual([A, B]);
+    expect(parseFixtures(A.toUpperCase())).toEqual([A]);
+  });
+
   it('treats an absent parameter as asking about nothing', () => {
     expect(parseFixtures(undefined)).toEqual([]);
     expect(parseFixtures('')).toEqual([]);

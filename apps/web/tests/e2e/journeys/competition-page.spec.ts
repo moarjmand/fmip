@@ -18,9 +18,9 @@ const PREMIER_LEAGUE = '00000000-0000-4000-8000-000000000201';
 const SEASON_2024 = '00000000-0000-4000-8000-000000000301';
 
 const LOCALES = [
-  { locale: 'en', dir: 'ltr', model: 'Model in this league' },
-  { locale: 'fa', dir: 'rtl', model: 'مدل در این لیگ' },
-  { locale: 'x-rtl', dir: 'rtl', model: null },
+  { locale: 'en', dir: 'ltr', model: 'Model in this league', modelShort: 'Model' },
+  { locale: 'fa', dir: 'rtl', model: 'مدل در این لیگ', modelShort: 'مدل' },
+  { locale: 'x-rtl', dir: 'rtl', model: null, modelShort: null },
 ] as const;
 
 async function box(page: Page, testId: string) {
@@ -40,7 +40,7 @@ for (const width of [390, 1440]) {
   test.describe(`the competition page at ${width}px`, () => {
     test.use({ viewport: { width, height: 900 } });
 
-    for (const { locale, dir, model } of LOCALES) {
+    for (const { locale, dir, model, modelShort } of LOCALES) {
       test(`${locale}: the header, the tabs and every module with its state`, async ({ page }) => {
         await page.goto(`/${locale}/competition/${PREMIER_LEAGUE}`);
         await expect(page.locator('html')).toHaveAttribute('dir', dir);
@@ -54,8 +54,10 @@ for (const width of [390, 1440]) {
           'aria-current',
           'page',
         );
-        if (model !== null)
-          await expect(page.getByTestId('competition-tab-model')).toHaveText(model);
+        // The phone board's short "Model"; the full name from sm up (T-1558).
+        const modelName = width === 390 ? modelShort : model;
+        if (modelName !== null)
+          await expect(page.getByTestId('competition-tab-model')).toHaveAccessibleName(modelName);
         const first = await box(page, 'competition-tab-overview');
         const second = await box(page, 'competition-tab-table');
         if (dir === 'rtl') expect(first.x).toBeGreaterThan(second.x);
@@ -118,10 +120,38 @@ for (const width of [390, 1440]) {
       await expect(results.getByTestId('fixture').first()).toBeVisible();
       await expect(results.getByTestId('fixture-score').first()).toHaveText('2–2');
       await expect(results).toContainText(/Liverpool.*Man United/);
+      // The model card reads only that season's months, never this one's (T-1556).
+      const league = page.getByTestId('league-model');
+      await expect(league).toBeVisible();
+      await expect(league.getByRole('heading')).not.toContainText(/2026/);
       await noSidewaysScroll(page);
     });
   });
 }
+
+test.describe('on a 390 px phone', () => {
+  test.use({ viewport: { width: 390, height: 900 } });
+
+  test('the tab row opens at the current tab, the last one included (T-1558)', async ({ page }) => {
+    for (const locale of ['en', 'fa']) {
+      await page.goto(`/${locale}/competition/${PREMIER_LEAGUE}?tab=news`);
+      const tab = await box(page, 'competition-tab-news');
+      expect(tab.x).toBeGreaterThanOrEqual(0);
+      expect(tab.x + tab.width).toBeLessThanOrEqual(390);
+    }
+  });
+
+  test('the scorers’ filter is a row of 44 px targets (T-1558)', async ({ page }) => {
+    await page.goto(`/en/competition/${PREMIER_LEAGUE}?tab=players`);
+    const links = page.getByTestId('leaders-filter').getByRole('link');
+    expect(await links.count()).toBeGreaterThan(0);
+    for (const link of await links.all()) {
+      const b = await link.boundingBox();
+      expect(b?.height ?? 0).toBeGreaterThanOrEqual(44);
+    }
+    await noSidewaysScroll(page);
+  });
+});
 
 test.describe('the section tabs', () => {
   test('open the Model and Matches tabs, and an old Hybrid address lands on Matches', async ({

@@ -3,17 +3,20 @@ import type { ReactNode } from 'react';
 import type { CompetitionPage, CoverageState, Covered, SeasonFixture } from '@fmip/contracts';
 import { ACCURACY_MINIMUM_MATCHES } from '@fmip/contracts';
 import { Coverage, LiveFreshness, ZoneLegend, zoneWords } from '@/components/competition-page';
+import { FilledMessage } from '@/components/filled-message';
 import type { FreshnessWords } from '@/components/freshness-stamp';
+import { ModelVersions } from '@/components/model-version';
 import { Score } from '@/components/score';
 import { Stamp } from '@/components/stamp';
 import { StandingsTable } from '@/components/standings-table';
 import { Translated } from '@/components/translated';
 import { cx } from '@/components/ui/cx';
 import { formatDate, formatGregorianMonth, formatNumber } from '@/i18n/format';
-import type { MessageKey } from '@/i18n/messages';
-import { STATUS_KEY, say } from '@/lib/competition';
+import { type MessageKey, message } from '@/i18n/messages';
+import { STATUS_KEY, pageLocale, say } from '@/lib/competition';
 import type { LeagueModel, MatchDay, RoundGroup } from '@/lib/competition-overview';
 import type { CardForecast } from '@/lib/score-card-products';
+import { wholePercentages } from '@/lib/triple';
 import { formatFixed, formatPercent } from '@/lib/words';
 
 /**
@@ -229,20 +232,20 @@ export function TableCard({
 // Matches
 // ---------------------------------------------------------------------------
 
-const rounded = (locale: string, value: number): string => formatNumber(locale, Math.round(value));
-
 /**
  * The model's three percentages for one match, the canvas's "48 · 25 · 27"
- * in the model's turquoise, read out whole for a screen reader. A match
+ * in the model's turquoise, whole and totalling 100 (blueprint 6.2, T-1555),
+ * read out whole for a screen reader. A match
  * the model has no forecast for says so in words; so does an answer that
  * did not come (rule 3). `undefined`: the page did not ask, and the cell is
  * left out rather than drawn empty.
  */
 export function ModelFigures({ locale, forecast }: { locale: string; forecast: CardForecast }) {
   if (forecast.state === 'available') {
-    const home = rounded(locale, forecast.home);
-    const draw = rounded(locale, forecast.draw);
-    const away = rounded(locale, forecast.away);
+    const whole = wholePercentages(forecast);
+    const home = formatNumber(locale, whole.home);
+    const draw = formatNumber(locale, whole.draw);
+    const away = formatNumber(locale, whole.away);
     return (
       <span
         className="font-mono text-xs whitespace-nowrap text-model tabular-nums [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
@@ -378,10 +381,15 @@ export function MatchLine({
         data-testid="fixture-link"
       >
         <MatchState fixture={fixture} locale={locale} timeZone={timeZone} withDay={withDay} />
-        <span className="flex min-w-0 items-center gap-2 font-semibold font-stretch-semi-condensed">
-          <bdi className={cx('min-w-0 truncate', winner === 'away' && 'text-muted')}>{home}</bdi>
+        {/* Running text, not a flex row: a long name wraps to a second line
+            rather than being cut to "Bren…" in a narrow column (T-1555). */}
+        <span
+          className="min-w-0 font-semibold break-words font-stretch-semi-condensed"
+          data-testid="fixture-teams"
+        >
+          <bdi className={cx(winner === 'away' && 'text-muted')}>{home}</bdi>
           {fixture.score === null ? (
-            <span className="shrink-0 font-medium text-caption">
+            <span className="mx-2 font-medium text-caption">
               {say(locale, 'competitionPage.v')}
             </span>
           ) : (
@@ -390,11 +398,11 @@ export function MatchLine({
               away={fixture.score.away}
               locale={locale}
               separator="–"
-              className="shrink-0 font-extrabold font-stretch-condensed tabular-nums"
+              className="mx-2 font-extrabold whitespace-nowrap font-stretch-condensed tabular-nums"
               testId="fixture-score"
             />
           )}
-          <bdi className={cx('min-w-0 truncate', winner === 'home' && 'text-muted')}>{away}</bdi>
+          <bdi className={cx(winner === 'home' && 'text-muted')}>{away}</bdi>
         </span>
         {forecast !== undefined && <ModelFigures locale={locale} forecast={forecast} />}
       </Link>
@@ -470,12 +478,18 @@ export function DayCard({
       footer={
         day === null ? undefined : (
           <p data-testid="match-day-receipt">
-            {versions.length > 0
-              ? say(locale, 'competitionPage.day.receipt', {
-                  versions: versions.join(', '),
+            {versions.length > 0 ? (
+              // Each version an element, never "name@x.y.z" as one run (T-1580).
+              <FilledMessage
+                message={message(pageLocale(locale), 'competitionPage.day.receipt')}
+                params={{
+                  versions: <ModelVersions versions={versions} />,
                   zone: zoneWords(locale, timeZone),
-                })
-              : zoneWords(locale, timeZone)}
+                }}
+              />
+            ) : (
+              zoneWords(locale, timeZone)
+            )}
           </p>
         )
       }
@@ -641,11 +655,14 @@ export function ModelCard({
   model,
   locale,
   timeZone,
+  pastSeason = false,
   more,
 }: {
   model: LeagueModel;
   locale: string;
   timeZone: string;
+  /** An older season: nothing scored in it is said of that season (T-1556). */
+  pastSeason?: boolean;
   /** The link under the card: to the Model tab on the Overview, to the full record on the tab. */
   more: { href: string; label: MessageKey };
 }) {
@@ -679,7 +696,14 @@ export function ModelCard({
       )}
       {model.state === 'not_supplied' && (
         <p className="text-sm text-muted" data-testid="league-model-empty">
-          <Translated locale={locale} message="competitionPage.model.notSupplied" />
+          <Translated
+            locale={locale}
+            message={
+              pastSeason
+                ? 'competitionPage.model.notSuppliedSeason'
+                : 'competitionPage.model.notSupplied'
+            }
+          />
         </p>
       )}
       {model.state === 'scored' && (
@@ -757,7 +781,10 @@ export function ModelMonths({ model, locale }: { model: LeagueModel; locale: str
             <Translated locale={locale} message="modelAccuracy.table.caption" />
           </p>
           <p data-testid="league-model-versions">
-            {say(locale, 'modelAccuracy.versions', { versions: model.modelVersions.join(', ') })}
+            <FilledMessage
+              message={message(pageLocale(locale), 'modelAccuracy.versions')}
+              params={{ versions: <ModelVersions versions={model.modelVersions} /> }}
+            />
           </p>
           <p>
             <Translated locale={locale} message="competitionPage.model.only" />
@@ -765,7 +792,14 @@ export function ModelMonths({ model, locale }: { model: LeagueModel; locale: str
         </>
       }
     >
-      <div className="overflow-x-auto">
+      {/* Wider than a phone: its own scrolling box, reachable from the keyboard (T-1558). */}
+      <div
+        className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-focus"
+        role="region"
+        aria-labelledby="league-model-months-heading"
+        tabIndex={0}
+        data-testid="league-model-months-scroll"
+      >
         <table className="w-full min-w-120 border-collapse text-sm tabular-nums">
           <caption className="sr-only">
             <Translated locale={locale} message="competitionPage.model.months" />

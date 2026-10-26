@@ -2,9 +2,7 @@ import type { CoverageState, Covered } from '@fmip/contracts';
 import type { Message } from '@/i18n/messages';
 import type { MatchWords } from '@/lib/words-server';
 import { MessageText } from '@/components/message-text';
-import { formatFixed } from '@/lib/words';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
-import { cx } from '@/components/ui/cx';
 import { Icon } from '@/components/ui/icons';
 
 /**
@@ -109,6 +107,7 @@ export function Module<T>({
   words,
   empty,
   notInYet = false,
+  before = null,
   children,
 }: {
   title: Message;
@@ -123,26 +122,46 @@ export function Module<T>({
    * which would read as a verdict on a feed that may still send it.
    */
   notInYet?: boolean;
+  /**
+   * The match has not been played (T-1550): `'kickoff'` before kick-off, for
+   * a module the season covers, says it starts then; `'unplayed'` for a
+   * postponed or cancelled match says there was no play to record. Either
+   * replaces "Not supplied for this match", which would read as a verdict
+   * on the feed when the match simply has not happened.
+   */
+  before?: 'kickoff' | 'unplayed' | null;
   children: (data: T) => React.ReactNode;
 }) {
   const m = words.m;
+  const pending = module.data === null ? before : null;
   const why: Key =
-    module.coverage === 'delayed'
-      ? 'matchCentre.moduleDelayed'
-      : (empty ?? 'matchCentre.moduleNotSupplied');
+    pending === 'unplayed'
+      ? 'matchCentre.notPlayedWhy'
+      : pending === 'kickoff'
+        ? (empty ?? 'matchCentre.fromKickoffWhy')
+        : module.coverage === 'delayed'
+          ? 'matchCentre.moduleDelayed'
+          : (empty ?? 'matchCentre.moduleNotSupplied');
   const waiting = notInYet && module.data === null;
+  const pill =
+    'inline-flex min-h-6 items-center gap-1 rounded-pill border border-dashed border-caption px-2 text-xs font-semibold text-muted';
   return (
     <section className={CARD} data-testid={testId} data-coverage={module.coverage}>
       <h2 className={MODULE_HEADING}>
         <span className={TITLE}>
           <MessageText message={title} />
         </span>
-        {waiting ? (
-          <span
-            dir="auto"
-            className="inline-flex min-h-6 items-center gap-1 rounded-pill border border-dashed border-caption px-2 text-xs font-semibold text-muted"
-            data-testid="not-in-yet"
-          >
+        {pending !== null ? (
+          <span dir="auto" className={pill} data-testid="not-yet" data-not-yet={pending}>
+            {pending === 'kickoff' && <Icon name="clock" size={12} />}
+            <MessageText
+              message={
+                m[pending === 'kickoff' ? 'matchCentre.fromKickoff' : 'matchCentre.notPlayed']
+              }
+            />
+          </span>
+        ) : waiting ? (
+          <span dir="auto" className={pill} data-testid="not-in-yet">
             <Icon name="clock" size={12} />
             <MessageText message={m['matchCentre.notInYet']} />
           </span>
@@ -161,47 +180,5 @@ export function Module<T>({
         children(module.data)
       )}
     </section>
-  );
-}
-
-/**
- * A player's match rating (Design System `RatingChip`), one decimal, in
- * bands that differ in lightness as well as hue: under 6 grey, 6 to 6.9
- * neutral, 7 to 7.9 turquoise, 8 and up saffron. From the feed only: a
- * player without a rating gets no chip, never a zero.
- */
-export function RatingChip({
-  value,
-  locale,
-  size = 'small',
-  className,
-}: {
-  value: number;
-  locale: string;
-  size?: 'small' | 'large';
-  className?: string;
-}) {
-  const band =
-    value >= 8
-      ? 'bg-accent text-on-accent'
-      : value >= 7
-        ? 'bg-model text-canvas'
-        : value >= 6
-          ? 'border border-default bg-surface-raised text-fg'
-          : 'bg-muted text-canvas';
-  return (
-    <span
-      className={cx(
-        'inline-block rounded-xs font-extrabold tabular-nums',
-        size === 'large'
-          ? 'ms-auto rounded-control px-2.5 py-1.5 text-2xl leading-none font-stretch-condensed'
-          : 'px-1.5 text-xs leading-5',
-        band,
-        className,
-      )}
-      data-rating={value}
-    >
-      {formatFixed(locale, value, 1)}
-    </span>
   );
 }
