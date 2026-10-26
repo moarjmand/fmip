@@ -54,7 +54,8 @@ const SIZES: Record<ButtonSize, string> = {
 const GHOST_SIZES: Record<ButtonSize, string> = {
   xs: 'text-xs',
   sm: 'text-sm',
-  md: '',
+  // `md` is the touch size (T-1573): the text's own look, in a 44px box.
+  md: 'inline-flex min-h-touch items-center',
 };
 
 export interface ButtonStyle {

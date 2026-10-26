@@ -61,7 +61,7 @@ export function AppearanceSwitch<K extends AppearanceKey>({
             value={value}
             aria-pressed={value === current}
             data-testid={`appearance-${preference}-${value}`}
-            className={`rounded border border-strong px-3 py-1.5 ${
+            className={`inline-flex min-h-touch items-center rounded border border-strong px-3 ${
               value === current ? 'bg-accent font-semibold text-on-accent' : 'bg-canvas text-fg'
             }`}
           >

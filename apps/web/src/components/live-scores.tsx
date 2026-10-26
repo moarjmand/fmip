@@ -77,6 +77,7 @@ export function LiveScores({
   clearFiltersHref,
   forecasts,
   unpicked = false,
+  live = false,
   picked = [],
   selected = null,
   pickBase,
@@ -98,6 +99,8 @@ export function LiveScores({
   forecasts: Record<string, CardForecast>;
   /** "Not picked yet" (T-1496): only matches still open that the member has not picked. */
   unpicked?: boolean;
+  /** The Live view (`?live=1`): an empty answer means nothing is in play (T-1545). */
+  live?: boolean;
   /** The member's picked matches on this day. */
   picked?: readonly string[];
   /** The match whose preview is open. */
@@ -223,8 +226,9 @@ export function LiveScores({
       </div>
 
       {scores.total === 0 ? (
-        <p className="text-muted" data-testid="scores-empty">
-          <MessageText message={words.m['scores.empty']} />
+        // The Live view says nothing is in play, not that the day has no match (T-1545).
+        <p className="text-muted" data-testid="scores-empty" data-view={live ? 'live' : 'all'}>
+          <MessageText message={words.m[live ? 'scores.liveEmpty' : 'scores.empty']} />
         </p>
       ) : shown.total === 0 && unpicked ? (
         <p data-testid="scores-unpicked-empty">

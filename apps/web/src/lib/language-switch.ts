@@ -41,17 +41,22 @@ export function switchLocale(pathname: string, to: Locale): string {
  * What the picker shows for a reader on `pathname`, given the offered
  * languages, or `[]` when there is no choice to offer. `[]` rather than the
  * one entry, so a caller cannot render a one-item menu by forgetting to check.
+ * `search` is the page's query (`?period=month`, or `''`): the same page in
+ * another language keeps the reader's filters and day (T-1572).
  */
 export function pickerEntriesFor(
   pathname: string,
   languages: readonly OfferedLanguage[],
+  search = '',
 ): PickerEntry[] {
   if (languages.length < 2) return [];
   const current = localeFromPathname(pathname);
+  const query =
+    search === '' || search === '?' ? '' : search.startsWith('?') ? search : `?${search}`;
   return languages.map(({ locale, autonym }) => ({
     locale,
     autonym,
-    href: switchLocale(pathname, locale),
+    href: `${switchLocale(pathname, locale)}${query}`,
     current: locale === current,
   }));
 }

@@ -167,7 +167,9 @@ describe('what was forecast, what happened (the Summary card)', () => {
 
   it('carries the receipt: model, version, time, lead, kind and what it was fitted on', () => {
     const html = card('finished');
-    expect(html).toContain(
+    // The `@` set apart: no "name@x.y.z" run for Cloudflare to rewrite (T-1580).
+    expect(html).not.toMatch(/\S+@\d+\.\d+\.\d+/);
+    expect(html.replace(/<[^>]+>/g, '')).toContain(
       'dixon-coles-elo@0.6.0 · v3 computed 24 Oct, 12:03 UK time, 27 min before kick-off · Confirmed line-ups · fitted 23 Oct on 1,120 matches since Oct 2023 · Elo prior on · inputs complete',
     );
   });
@@ -339,6 +341,20 @@ describe('live', () => {
     expect(html).not.toContain('data-testid="feed-behind"');
   });
 
+  it('says "HT" at the half-time interval, never a minute that looks stalled (T-1551)', () => {
+    const at = Date.parse('2026-10-24T11:41:10.000Z');
+    const html = view(centre({ minute: 45, at_half_time: true }), at);
+    expect(html).toMatch(/data-testid="match-status">HT</);
+    expect(html).not.toMatch(/data-testid="match-status">45′</);
+    // The second half: the minute again.
+    expect(view(centre({ minute: 46, at_half_time: false }), at)).toMatch(
+      /data-testid="match-status">46′</,
+    );
+    // Persian.
+    const fa = view(centre({ minute: 45, at_half_time: true }), at, 'fa');
+    expect(fa).not.toMatch(/data-testid="match-status">[۴4][۵5]/);
+  });
+
   it('says when the feed has fallen behind, in the warning colour, never as current (rule 4)', () => {
     const html = view(centre(), Date.parse('2026-10-24T12:30:00.000Z'));
     expect(html).toMatch(/bg-warning\/15 text-warning" data-testid="live-badge"/);
@@ -377,7 +393,7 @@ describe('live', () => {
     };
     const axis = section(view(centre({}, { timeline })), 'timeline');
     expect(axis).toContain('role="img"');
-    expect(axis).toContain('1 goals and 1 cards');
+    expect(axis).toContain('goals: 1, cards: 1');
     expect(axis).toMatch(/data-kind="goal" data-side="home" class="[^"]*top-4\.5 bg-accent/);
     expect(axis).toMatch(/data-kind="yellow_card" data-side="away" class="[^"]*top-12\.75/);
     expect(axis).not.toMatch(/data-kind="substitution"/);
@@ -409,6 +425,69 @@ describe('live', () => {
       ),
     );
     expect(own).not.toContain('data-testid="scorers-');
+  });
+});
+
+describe('the match centre review (T-1550)', () => {
+  const kicks = [
+    incident(30, 'goal', 'home', 'Mauricio'),
+    { ...incident(91, 'penalty_goal', 'home', 'G. Gómez'), id: 'k1', sequence: 91 },
+    { ...incident(92, 'penalty_goal', 'away', 'T. Silva'), id: 'k2', sequence: 92 },
+    { ...incident(93, 'penalty_missed', 'away', 'Hércules'), id: 'k3', sequence: 93 },
+  ];
+
+  it('names the scorers of play only: a shoot-out’s kicks are not goals', () => {
+    const html = view(
+      centre(
+        {
+          status: 'finished',
+          minute: null,
+          scores: {
+            ...centre().fixture.scores,
+            current: { home: 1, away: 0 },
+            full_time: { home: 1, away: 0 },
+            penalties: { home: 1, away: 1 },
+          },
+        },
+        { timeline: { coverage: 'available', last_updated_at: null, data: kicks } },
+      ),
+    );
+    expect(html).toContain('data-testid="scorers-home">Mauricio 30′<');
+    expect(html).not.toContain('G. Gómez 91′');
+    expect(html).not.toContain('data-testid="scorers-away"');
+  });
+
+  it('before kick-off says a covered module starts then, never "not supplied" (rule 3)', () => {
+    const html = view(centre({ status: 'scheduled', minute: null }, { timeline: empty }));
+    for (const id of ['timeline', 'statistics']) {
+      const card = section(html, id);
+      expect(card).toContain('data-not-yet="kickoff"');
+      expect(card).toContain(EN['matchCentre.fromKickoff']);
+      expect(card).toContain(EN['matchCentre.fromKickoffWhy']);
+      expect(card).not.toContain(EN['matchCentre.moduleNotSupplied']);
+    }
+    // A module the season does not cover stays "not supplied".
+    const players = section(html, 'player-statistics');
+    expect(players).not.toContain('data-not-yet');
+    expect(players).toContain('data-coverage-badge="not_supplied"');
+    // The line-ups keep their own sentence, under the kick-off badge.
+    const lineups = section(html, 'lineups');
+    expect(lineups).toContain('data-not-yet="kickoff"');
+    expect(lineups).toContain(EN['matchCentre.lineupsNotYet']);
+  });
+
+  it('a postponed match says it was not played, in Persian too', () => {
+    const postponed = centre({ status: 'postponed', minute: null }, { timeline: empty });
+    const card = section(view(postponed), 'timeline');
+    expect(card).toContain('data-not-yet="unplayed"');
+    expect(card).toContain(EN['matchCentre.notPlayedWhy']);
+    expect(section(view(postponed, undefined, 'fa'), 'statistics')).toContain('برگزار نشد');
+  });
+
+  it('once played, a missing module is its coverage state again', () => {
+    const done = section(view(centre({ status: 'finished', minute: null })), 'statistics');
+    expect(done).not.toContain('data-not-yet');
+    expect(done).toContain('data-coverage-badge="not_supplied"');
   });
 });
 

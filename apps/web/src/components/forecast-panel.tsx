@@ -13,6 +13,7 @@ import { interpolate, message, t } from '@/i18n/messages';
 import {
   describeChange,
   factorLabel,
+  factorNote,
   framing,
   kindLabel,
   percentages,
@@ -319,7 +320,7 @@ function Latest({
                         : t(locale, 'forecast.neitherSide'),
                 })}
                 {' · '}
-                {factor.note}
+                {factorNote(factor.factor, version, locale)}
               </li>
             ))}
             {prior !== null && (

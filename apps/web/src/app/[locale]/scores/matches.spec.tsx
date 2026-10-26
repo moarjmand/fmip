@@ -8,6 +8,7 @@ import type {
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { CardDetails, ScoreCard, rowPick } from '@/components/score-card';
+import { LiveScores } from '@/components/live-scores';
 import { RowForecast } from '@/components/score-card-forecast';
 import type { CardForecast } from '@/lib/score-card-products';
 import {
@@ -17,7 +18,7 @@ import {
   scoresView,
   viewFlags,
 } from '@/lib/scores';
-import { isOpenForPick, onlyUnpicked } from '@/lib/scores-filters';
+import { isOpenForPick, NO_FILTERS, onlyUnpicked } from '@/lib/scores-filters';
 import { forecastBarWords, scoresWords } from '@/lib/words-server';
 import { MatchPreview } from './match-preview';
 import { MatchesAnalysis } from './matches-analysis';
@@ -116,6 +117,16 @@ describe("the row's model cell", () => {
     expect(cell(AVAILABLE, 'fa')).toMatch(/<span>۵۹<\/span><span>۲۰<\/span><span>۲۱<\/span>/);
   });
 
+  it('gives three whole numbers totalling 100, as blueprint 6.2 asks (T-1545)', () => {
+    // Toulouse v Troyes on 25 Oct 2026 read 67 · 20 · 14 with each rounded alone;
+    // the largest share absorbs the gap (`wholePercentages`, T-1555).
+    const html = cell({ ...AVAILABLE, home: 66.6, draw: 19.6, away: 13.8 });
+    expect(html).toMatch(/<span>66<\/span><span>20<\/span><span>14<\/span>/);
+    // The bar and its name keep the stored shares.
+    expect(html).toContain('flex-grow:66.6');
+    expect(html).toContain('Barcelona 66.6%');
+  });
+
   it('says "Not supplied" for a match with no forecast, never an empty bar (rule 3)', () => {
     for (const forecast of [
       { state: 'none' },
@@ -181,6 +192,19 @@ describe("the row's Pick", () => {
     const html = row('fa');
     expect(html).toContain('>انتخاب<');
     expect(html).toContain('href="/fa/scores?pick=');
+  });
+});
+
+describe('the row on a phone (T-1545)', () => {
+  it('puts the model under the teams below 640 px, so a name keeps its width', () => {
+    const html = row('en');
+    expect(html).toContain('grid-cols-[2.75rem_minmax(0,1fr)_auto]');
+    expect(html).toMatch(/max-sm:col-start-2 max-sm:row-start-2[^"]*" data-testid="row-forecast"/);
+    expect(html).toMatch(
+      /max-sm:col-start-3 max-sm:row-span-2 max-sm:row-start-1[^"]*" data-testid="row-pick"/,
+    );
+    // From 640 px the four columns of the Design System's row stand as they were.
+    expect(html).toContain('sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem]');
   });
 });
 
@@ -371,10 +395,12 @@ describe('the preview', () => {
     current: Prediction | null,
     forecast: CardForecast = AVAILABLE,
     locale: 'en' | 'fa' = 'en',
+    over: Partial<ScoreCardData> = {},
   ): string =>
     renderToStaticMarkup(
       <MatchPreview
-        card={card({ kickoff_at: new Date(Date.now() + 86_400_000).toISOString() })}
+        card={card({ kickoff_at: new Date(Date.now() + 86_400_000).toISOString(), ...over })}
+        now={Date.now()}
         locale={locale}
         timeZone="UTC"
         zone="UTC"
@@ -417,5 +443,72 @@ describe('the preview', () => {
 
   it('is in Persian on /fa', () => {
     expect(preview(member, null, AVAILABLE, 'fa')).toContain('انتخاب شما');
+  });
+
+  // T-1545: a live 1–1 read as a final one, and a guest after kick-off saw an empty "Your pick".
+  const started = {
+    kickoff_at: new Date(Date.now() - 74 * 60_000).toISOString(),
+    last_updated_at: new Date(Date.now() - 30_000).toISOString(),
+    scores: { ...card().scores, current: { home: 1, away: 1 } },
+  };
+  it('says under the score that the match is live, at which minute, and when it was updated', () => {
+    const html = preview(null, null, AVAILABLE, 'en', { ...started, status: 'live', minute: 74 });
+    expect(html).toMatch(/data-testid="preview-status" data-status="live">74′</);
+    expect(html).toContain('data-testid="preview-updated"');
+    expect(html).toMatch(/class="[^"]*text-live[^"]*" data-testid="preview-score"/);
+  });
+
+  it('says full time on a finished match and postponed on one with no score', () => {
+    const done = preview(null, null, AVAILABLE, 'en', {
+      ...started,
+      status: 'finished',
+      scores: { ...started.scores, full_time: { home: 2, away: 1 } },
+    });
+    expect(done).toMatch(/data-status="finished">FT</);
+    expect(done).not.toContain('preview-updated');
+    const off = preview(null, null, AVAILABLE, 'en', { status: 'postponed' });
+    expect(off).not.toContain('preview-score');
+    expect(off).toMatch(/data-status="postponed">Postponed</);
+    expect(preview(member, null)).not.toContain('preview-status');
+  });
+
+  it('tells a guest after kick-off that picks are locked, without the note on making one', () => {
+    const html = preview(null, null, AVAILABLE, 'en', { ...started, status: 'live', minute: 74 });
+    expect(html).toContain('data-testid="preview-locked"');
+    expect(html).toContain('Locked at kick-off');
+    expect(html).not.toContain('records a community pick only');
+    expect(preview(null, null)).toContain('records a community pick only');
+    expect(preview(null, null)).not.toContain('preview-locked');
+  });
+
+  it('draws the MODEL tag as an outline, which holds 4.5:1 in Day (T-1545)', () => {
+    const html = preview(member, null);
+    expect(html).toContain('rounded-sm border border-model');
+    expect(html).not.toContain('bg-model/15');
+  });
+});
+
+describe('the Live view with nothing in play (T-1545)', () => {
+  const empty = { ...({} as ScoresResponse), pinned: [], groups: [], total: 0 } as ScoresResponse;
+  const list = (live: boolean, locale: 'en' | 'fa' = 'en'): string =>
+    renderToStaticMarkup(
+      <LiveScores
+        initial={{ ...empty, generated_at: '2026-10-25T21:37:00Z' } as ScoresResponse}
+        streamQuery="date=2026-10-25"
+        timeZone="UTC"
+        locale={locale}
+        filters={NO_FILTERS}
+        clearFiltersHref="/en/scores"
+        forecasts={{}}
+        live={live}
+        words={scoresWords(locale)}
+      />,
+    );
+
+  it('says nothing is in play, not that the day has no match', () => {
+    expect(list(true)).toContain('No match on this day is in play.');
+    expect(list(true)).not.toContain('No fixtures on this day.');
+    expect(list(false)).toContain('No fixtures on this day.');
+    expect(list(true, 'fa')).toContain('در این روز هیچ مسابقه‌ای در جریان نیست.');
   });
 });

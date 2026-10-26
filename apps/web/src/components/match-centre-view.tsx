@@ -1,4 +1,5 @@
 import type {
+  CoverageModule,
   ExpectedGoalsMetric,
   MatchAbsenceGap,
   MatchCentre,
@@ -247,6 +248,7 @@ export function MatchCentreView({
             words={words}
             empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
             notInYet={f.status === 'live'}
+            before={unplayed(centre, 'lineups')}
           >
             {(lineups) => (
               <MatchLineupsView
@@ -376,7 +378,13 @@ function Hero({
   const headline =
     f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : f.scores.current;
   const behind = now !== undefined && isBehind(f, now);
-  const status = statusLabel(f, locale, timeZone, now, m);
+  // At the half-time interval the feed's minute stays at 45: the band says
+  // "HT" rather than a clock that looks stalled (T-1551). A feed that has
+  // fallen behind keeps its own words (rule 4).
+  const status =
+    f.status === 'live' && f.at_half_time === true && !behind
+      ? m['status.halfTime'].text
+      : statusLabel(f, locale, timeZone, now, m);
   // Every freshness time on the page says its day when it is not today (T-1371).
   const at = (iso: string) => <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time>;
   // The fixture lists re-ask hourly; a check after the last change is the
@@ -399,6 +407,9 @@ function Hero({
   );
   const live = f.status === 'live' && !behind;
   const scorers = scorersOf(centre, locale);
+  // Each side's name is a 44px target on a phone (T-1553), centred in its
+  // column there; from 768px the line's own height, aligned by its row.
+  const teamLink = 'flex min-h-touch min-w-0 items-center justify-center md:block md:min-h-0';
   return (
     <header
       className="flex flex-col gap-4 bg-surface pt-3 [box-shadow:0_0_0_100vmax_var(--token-surface),0_1px_0_100vmax_var(--token-border)] [clip-path:inset(0_-100vmax_-1px)] md:gap-5 md:pt-4"
@@ -467,7 +478,7 @@ function Hero({
         <div data-testid="home-team" className="min-w-0">
           <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-end md:gap-5 md:text-end">
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
-              <Link href={`/${locale}/team/${f.home.id}`} className="min-w-0">
+              <Link href={`/${locale}/team/${f.home.id}`} className={teamLink}>
                 <bdi className={name}>{f.home.name}</bdi>
               </Link>
               {scorers.home !== '' && (
@@ -530,7 +541,7 @@ function Hero({
           <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-start md:gap-5 md:text-start">
             <Crest team={f.away} />
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
-              <Link href={`/${locale}/team/${f.away.id}`} className="min-w-0">
+              <Link href={`/${locale}/team/${f.away.id}`} className={teamLink}>
                 <bdi className={name}>{f.away.name}</bdi>
               </Link>
               {scorers.away !== '' && (
@@ -686,6 +697,19 @@ function Hero({
 }
 
 /**
+ * Where a module with nothing in it stands when there has been no play
+ * (T-1550): before kick-off it starts then, if the season covers it at all
+ * (a module the season does not cover keeps "Not supplied", rule 3); a
+ * postponed or cancelled match was not played. `null` once there is play.
+ */
+function unplayed(centre: MatchCentre, module: CoverageModule): 'kickoff' | 'unplayed' | null {
+  const status = centre.fixture.status;
+  if (status === 'postponed' || status === 'cancelled') return 'unplayed';
+  if (status !== 'scheduled') return null;
+  return centre.coverage[module] === 'not_supplied' ? null : 'kickoff';
+}
+
+/**
  * Each side's scorers for the band, "Jackson 6′, 60′", in the order they
  * scored. None at all when the timeline holds an own goal: which side it
  * counts for is not certain from the feed, and a scorer under the wrong
@@ -693,8 +717,12 @@ function Hero({
  */
 function scorersOf(centre: MatchCentre, locale: string): Record<'home' | 'away', string> {
   const none = { home: '', away: '' };
-  const incidents = centre.timeline.data;
-  if (incidents === null || incidents.some((i) => i.kind === 'own_goal')) return none;
+  const recorded = centre.timeline.data;
+  if (recorded === null || recorded.some((i) => i.kind === 'own_goal')) return none;
+  // A shoot-out's kicks are not goals of the match (T-1550): the band names
+  // the scorers of play only, as the timeline splits them (T-1477).
+  const kicksFrom = shootoutStart(recorded, centre.fixture.scores.penalties);
+  const incidents = kicksFrom === null ? recorded : recorded.slice(0, kicksFrom);
   const by: Record<'home' | 'away', Map<string, string[]>> = { home: new Map(), away: new Map() };
   for (const i of incidents) {
     if ((i.kind !== 'goal' && i.kind !== 'penalty_goal') || i.side === null || i.player === null)
@@ -763,6 +791,7 @@ function Timeline({
       testId="timeline"
       words={words}
       notInYet={f.status === 'live'}
+      before={unplayed(centre, 'incidents')}
     >
       {(incidents) => {
         // A shoot-out is its own block, its kicks in order and numbered, never
@@ -1060,6 +1089,7 @@ function Statistics({
       testId="statistics"
       words={words}
       notInYet={f.status === 'live'}
+      before={unplayed(centre, 'statistics')}
     >
       {(rows) => (
         <>
@@ -1159,6 +1189,7 @@ function PlayerStatistics({
       module={centre.player_statistics}
       testId="player-statistics"
       words={words}
+      before={unplayed(centre, 'advanced_statistics')}
     >
       {(players) => (
         <div className="flex flex-col gap-3 text-sm">
@@ -1260,6 +1291,7 @@ function PlayerExpectedGoals({
       module={expected}
       testId="player-expected-goals"
       words={words}
+      before={unplayed(centre, 'advanced_statistics')}
       empty={expected.last_updated_at === null ? null : 'matchCentre.expectedGoals.none'}
     >
       {(players) => (

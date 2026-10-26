@@ -459,6 +459,14 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.month.leagueMatches": {
+    "source": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "home.month.link": {
     "source": "Calibration report",
     "text": "",
@@ -6390,6 +6398,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "scores.liveEmpty": {
+    "source": "No match on this day is in play.",
+    "text": "",
+    "status": "untranslated"
+  },
   "scores.row.pick": {
     "source": "Pick",
     "text": "",
@@ -8123,6 +8136,26 @@
   },
   "forecast.factor.attackVsDefence": {
     "source": "Attack against defence",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.teamStrength": {
+    "source": "net strength (attack minus defence) from recent results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.teamStrengthElo": {
+    "source": "net strength (attack minus defence) from recent results and the Elo prior",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.homeAdvantage": {
+    "source": "league-wide home advantage learned from the training window",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.attackVsDefence": {
+    "source": "how the sides' attacks match up against the opposing defences",
     "text": "",
     "status": "untranslated"
   },
@@ -10163,6 +10196,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.tab.modelShort": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.tab.news": {
     "source": "News",
     "text": "",
@@ -10283,6 +10321,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.model.notSuppliedSeason": {
+    "source": "No forecast the model made before kick-off in this season has been scored, so there is nothing to judge it by here.",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.model.more": {
     "source": "The model month by month",
     "text": "",
@@ -10343,6 +10386,11 @@
   },
   "competitionPage.noTable": {
     "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.noTableFriendly": {
+    "source": "Friendlies are single matches, not a league or a cup, so there is no table. The matches are under Matches.",
     "text": "",
     "status": "untranslated"
   },
@@ -12734,7 +12782,7 @@
     "status": "untranslated"
   },
   "matchCentre.axis": {
-    "source": "Timeline of the match: {goals} goals and {cards} cards by minute, the home side's above the line and the away side's below",
+    "source": "Timeline of the match by minute (goals: {goals}, cards: {cards}), the home side's above the line and the away side's below",
     "text": "",
     "status": "untranslated"
   },
@@ -12745,6 +12793,26 @@
   },
   "matchCentre.notInYetWhy": {
     "source": "Not received for this match yet. It appears here as soon as it arrives; nothing is estimated in the meantime.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.fromKickoff": {
+    "source": "From kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.fromKickoffWhy": {
+    "source": "Recorded once the match kicks off; nothing is shown before then.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notPlayed": {
+    "source": "Not played",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notPlayedWhy": {
+    "source": "The match was not played, so there is nothing to record.",
     "text": "",
     "status": "untranslated"
   },
@@ -12864,7 +12932,7 @@
     "status": "untranslated"
   },
   "competitions.lead": {
-    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
+    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, matches, players and the model in that league.",
     "text": "",
     "status": "untranslated"
   },

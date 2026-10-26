@@ -36,6 +36,7 @@ import type {
   NormalisedFixture,
   NormalisedIncident,
   NormalisedLineup,
+  NormalisedLiveFixture,
   NormalisedPeriod,
   NormalisedSideLineup,
   NormalisedAbsence,
@@ -447,7 +448,7 @@ export class IngestStore implements SquadStore {
   async saveFixture(
     provider: Provider,
     target: PollTarget,
-    fixture: NormalisedFixture,
+    fixture: NormalisedFixture & Pick<NormalisedLiveFixture, 'halfTimeBreak'>,
     job: string,
   ): Promise<WriteResult> {
     const unresolved: string[] = [];
@@ -498,6 +499,10 @@ export class IngestStore implements SquadStore {
     }
     const stageId = await this.stageId(seasonId, fixture.stage?.name ?? null, fixture.round);
     const minute = fixture.status === 'live' ? fixture.minute : null;
+    // The half-time interval (T-1551): what the live list says while the
+    // match is live; a list that does not say keeps the stored answer
+    // (`null`), and a match that is not live is at no interval.
+    const atHalfTime = fixture.status === 'live' ? (fixture.halfTimeBreak ?? null) : false;
 
     const client = await this.pool.connect();
     try {
@@ -510,8 +515,8 @@ export class IngestStore implements SquadStore {
         const { rows } = await client.query<{ id: string }>(
           `INSERT INTO fixture
              (season_id, stage_id, round, kickoff_at, status, minute, venue_id,
-              is_neutral_venue, referee_name)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8)
+              is_neutral_venue, referee_name, at_half_time)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, false, $8, COALESCE($9::boolean, false))
            RETURNING id`,
           [
             seasonId,
@@ -522,6 +527,7 @@ export class IngestStore implements SquadStore {
             minute,
             venueId,
             refereeName,
+            atHalfTime,
           ],
         );
         fixtureId = rows[0]?.id ?? null;
@@ -531,11 +537,14 @@ export class IngestStore implements SquadStore {
         const { rowCount } = await client.query(
           `UPDATE fixture
               SET stage_id = $2, round = $3, kickoff_at = $4, status = $5, minute = $6,
-                  venue_id = $7, referee_name = COALESCE($8, referee_name)
+                  venue_id = $7, referee_name = COALESCE($8, referee_name),
+                  at_half_time = COALESCE($9::boolean, at_half_time)
             WHERE id = $1
-              AND (stage_id, round, kickoff_at, status, minute, venue_id, referee_name)
+              AND (stage_id, round, kickoff_at, status, minute, venue_id, referee_name,
+                   at_half_time)
                   IS DISTINCT FROM ($2, $3, $4::timestamptz, $5, $6::smallint, $7,
-                                    COALESCE($8, referee_name))`,
+                                    COALESCE($8, referee_name),
+                                    COALESCE($9::boolean, at_half_time))`,
           [
             fixtureId,
             stageId,
@@ -545,6 +554,7 @@ export class IngestStore implements SquadStore {
             minute,
             venueId,
             refereeName,
+            atHalfTime,
           ],
         );
         changed += rowCount ?? 0;

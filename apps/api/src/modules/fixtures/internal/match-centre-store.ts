@@ -52,6 +52,7 @@ interface RawHeader {
   kickoff_at: Date;
   status: FixtureStatus;
   minute: number | null;
+  at_half_time: boolean;
   round: string | null;
   group_name: string | null;
   leg: number | null;
@@ -152,7 +153,7 @@ export class PostgresMatchCentreStore {
 
   async header(fixtureId: string): Promise<HeaderRow | null> {
     const { rows } = await this.pool.query<RawHeader>(
-      `SELECT f.id, f.kickoff_at, f.status, f.minute, f.round, f.group_name, f.leg,
+      `SELECT f.id, f.kickoff_at, f.status, f.minute, f.at_half_time, f.round, f.group_name, f.leg,
               f.is_neutral_venue, f.attendance, f.updated_at,
               se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
               c.id AS competition_id, c.name AS competition_name,
@@ -225,6 +226,7 @@ export class PostgresMatchCentreStore {
         kickoff_at: r.kickoff_at.toISOString(),
         status: r.status,
         minute: r.status === 'live' ? r.minute : null,
+        at_half_time: r.status === 'live' && r.at_half_time,
         competition: {
           id: r.competition_id,
           name: r.competition_name,
