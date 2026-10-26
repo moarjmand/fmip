@@ -110,6 +110,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
         secondary: 'England',
       });
       expect(results[0]!.alias).not.toBeNull();
+      // Its crest from our own origin, or said not supplied (T-1617).
+      expect(results[0]!.image).toEqual({ coverage: 'not_supplied', url: null });
     }
   });
 

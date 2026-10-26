@@ -3268,6 +3268,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "newsPage.top": {
+    "source": "Top stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.more": {
+    "source": "More stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.rail.trending": {
+    "source": "All trending stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.rail.debate": {
+    "source": "All debates",
+    "text": "",
+    "status": "untranslated"
+  },
   "storyPage.title": {
     "source": "Story",
     "text": "",
