@@ -87,13 +87,23 @@ function Card({
   );
 }
 
+/** The other side of the club's match. */
+function opponentOf(fixture: TeamPageFixture, teamId: string): TeamPageFixture['home'] {
+  return fromTeamSide(fixture, teamId).home ? fixture.away : fixture.home;
+}
+
 /** "v Fulham" at home, "at Barcelona" away: the club's side of a match in a word. */
 function opponentText(locale: string, fixture: TeamPageFixture, teamId: string): string {
-  const side = fromTeamSide(fixture, teamId);
-  const other = side.home ? fixture.away : fixture.home;
-  return say(locale, side.home ? 'teamPage.versus' : 'teamPage.at', {
+  const other = opponentOf(fixture, teamId);
+  return say(locale, fromTeamSide(fixture, teamId).home ? 'teamPage.versus' : 'teamPage.at', {
     opponent: other.short_name ?? other.name,
   });
+}
+
+/** The opponent's crest before "v Fulham" (T-1617). */
+function OpponentCrest({ fixture, teamId }: { fixture: TeamPageFixture; teamId: string }) {
+  const other = opponentOf(fixture, teamId);
+  return <EntityImage media={other.crest} kind="crest" name={other.name} size={20} />;
 }
 
 const RESULT_WORD: Record<'W' | 'D' | 'L', MessageKey> = {
@@ -237,14 +247,17 @@ export function RecentResults({
                       <ResultTile locale={locale} result={side.result} />
                     )}
                     <span className="flex min-w-0 flex-col">
-                      <span className="min-w-0 truncate font-semibold">
-                        <bdi>{opponentText(locale, fixture, teamId)}</bdi>
-                        {side.home && (
-                          <span className="font-normal text-caption">
-                            {' '}
-                            <Translated locale={locale} message="teamPage.atHome" />
-                          </span>
-                        )}
+                      <span className="flex min-w-0 items-center gap-2 font-semibold">
+                        <OpponentCrest fixture={fixture} teamId={teamId} />
+                        <span className="min-w-0 truncate">
+                          <bdi>{opponentText(locale, fixture, teamId)}</bdi>
+                          {side.home && (
+                            <span className="font-normal text-caption">
+                              {' '}
+                              <Translated locale={locale} message="teamPage.atHome" />
+                            </span>
+                          )}
+                        </span>
                       </span>
                       <span className="text-xs text-caption md:hidden">
                         <bdi>{competition}</bdi> · {day}
@@ -270,7 +283,17 @@ export function RecentResults({
                         testId="match-score"
                       />
                     )}
-                    <bdi className="hidden truncate text-caption md:block">{competition}</bdi>
+                    <span className="hidden min-w-0 items-center gap-2 text-caption md:flex">
+                      {fixture.competition.logo !== undefined && (
+                        <EntityImage
+                          media={fixture.competition.logo}
+                          kind="logo"
+                          name={fixture.competition.name}
+                          size={20}
+                        />
+                      )}
+                      <bdi className="min-w-0 truncate">{competition}</bdi>
+                    </span>
                   </Link>
                 </li>
               );
@@ -478,12 +501,15 @@ export function ComingUp({
                   data-testid="match-link"
                 >
                   <When fixture={fixture} locale={locale} timeZone={timeZone} />
-                  <span className="min-w-0">
-                    <b className="font-bold">
-                      <bdi>{opponentText(locale, fixture, teamId)}</bdi>
-                    </b>{' '}
-                    <span className="text-caption">
-                      · <bdi>{fixture.competition.short_name ?? fixture.competition.name}</bdi>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <OpponentCrest fixture={fixture} teamId={teamId} />
+                    <span className="min-w-0">
+                      <b className="font-bold">
+                        <bdi>{opponentText(locale, fixture, teamId)}</bdi>
+                      </b>{' '}
+                      <span className="text-caption">
+                        · <bdi>{fixture.competition.short_name ?? fixture.competition.name}</bdi>
+                      </span>
                     </span>
                   </span>
                 </Link>
@@ -625,9 +651,18 @@ export function SquadCard({ page, locale }: { page: TeamPage; locale: string }) 
                   href={`/${locale}/player/${player.person.id}`}
                   className="flex min-h-touch items-center justify-between gap-3 px-4 py-1.5 text-sm hover:bg-surface-raised focus-visible:bg-surface-raised"
                 >
-                  <b className="min-w-0 truncate font-semibold">
-                    <bdi>{player.person.name}</bdi>
-                  </b>
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    {/* The photo we hold, or the lettered circle (T-1617). */}
+                    <EntityImage
+                      media={player.person.photo}
+                      kind="photo"
+                      name={player.person.name}
+                      size={22}
+                    />
+                    <b className="min-w-0 truncate font-semibold">
+                      <bdi>{player.person.name}</bdi>
+                    </b>
+                  </span>
                   <span className="shrink-0 text-xs text-caption">
                     {squadRole(locale, player)}
                     {player.on_loan && (
@@ -675,7 +710,19 @@ export function AroundThem({ page, locale }: { page: TeamPage; locale: string })
             data-testid="competition"
           >
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-default px-4 py-3">
-              <h2 id={`table-${entry.season.id}-heading`} className="text-sm font-extrabold">
+              {/* The competition's logo before the heading (T-1617), where the API sent one. */}
+              {entry.competition.logo !== undefined && (
+                <EntityImage
+                  media={entry.competition.logo}
+                  kind="logo"
+                  name={entry.competition.name}
+                  size={20}
+                />
+              )}
+              <h2
+                id={`table-${entry.season.id}-heading`}
+                className="me-auto min-w-0 text-sm font-extrabold"
+              >
                 <Translated locale={locale} message="teamPage.aroundThem" />
                 <span className="font-semibold text-caption">
                   {' · '}
@@ -724,16 +771,25 @@ export function AroundThem({ page, locale }: { page: TeamPage; locale: string })
                           {formatNumber(locale, row.position)}
                         </td>
                         <td className="py-2 pe-2">
-                          {own ? (
-                            <bdi>{row.team.name}</bdi>
-                          ) : (
-                            <Link
-                              href={`/${locale}/team/${row.team.id}`}
-                              className={inlineTargetClasses('hover:underline')}
-                            >
+                          <span className="flex min-w-0 items-center gap-2">
+                            {/* Each row's crest (T-1617). */}
+                            <EntityImage
+                              media={row.team.crest}
+                              kind="crest"
+                              name={row.team.name}
+                              size={20}
+                            />
+                            {own ? (
                               <bdi>{row.team.name}</bdi>
-                            </Link>
-                          )}
+                            ) : (
+                              <Link
+                                href={`/${locale}/team/${row.team.id}`}
+                                className={inlineTargetClasses('hover:underline')}
+                              >
+                                <bdi>{row.team.name}</bdi>
+                              </Link>
+                            )}
+                          </span>
                         </td>
                         <td className="py-2 pe-4 text-end font-black font-stretch-condensed">
                           {formatNumber(locale, row.points)}

@@ -310,6 +310,10 @@ export function TeamMatchRow({
             className="flex min-h-7 min-w-0 items-center gap-2 text-sm font-semibold hover:underline focus-visible:underline"
             data-testid="match-link"
           >
+            {/* Each side's crest before its name (T-1617). */}
+            <span className="hidden sm:contents">
+              <EntityImage media={fixture.home.crest} kind="crest" name={home} size={20} />
+            </span>
             <bdi className={cx('min-w-0 truncate', side.home && 'font-extrabold')}>{home}</bdi>
             {fixture.score === null ? (
               <span className="shrink-0 font-medium text-caption">
@@ -325,13 +329,25 @@ export function TeamMatchRow({
                 testId="match-score"
               />
             )}
+            <span className="hidden sm:contents">
+              <EntityImage media={fixture.away.crest} kind="crest" name={away} size={20} />
+            </span>
             <bdi className={cx('min-w-0 truncate', !side.home && 'font-extrabold')}>{away}</bdi>
           </Link>
           <span className="text-xs text-muted">
             <Link
               href={`/${locale}/competition/${fixture.competition.id}?season=${fixture.season.id}`}
-              className={inlineTargetClasses('hover:underline')}
+              className={inlineTargetClasses('gap-1.5 hover:underline')}
             >
+              {/* The competition's logo, only where the API sent one (T-1617). */}
+              {fixture.competition.logo !== undefined && (
+                <EntityImage
+                  media={fixture.competition.logo}
+                  kind="logo"
+                  name={fixture.competition.name}
+                  size={20}
+                />
+              )}
               {fixture.competition.short_name ?? fixture.competition.name}
             </Link>
             {note !== null && (
