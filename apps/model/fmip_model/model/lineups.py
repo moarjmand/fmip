@@ -43,7 +43,7 @@ WITH rated AS (
      AND m.metric = 'minutes' AND m.value >= %(minutes)s
     JOIN fixture_participant fp ON fp.id = r.participant_id
     JOIN fixture f ON f.id = fp.fixture_id
-   WHERE r.metric = 'rating'
+   WHERE r.metric = 'rating' AND r.value > 0  -- 0 is the provider's "not rated" (D-289)
 ),
 starters AS (
   SELECT f.id AS fixture_id, c.football_data_division AS division, f.season_id, f.kickoff_at,

@@ -100,7 +100,7 @@ export class PowerIndexStore {
             AND m.metric = 'minutes' AND m.value >= $3
            JOIN fixture_participant fp ON fp.id = r.participant_id
            JOIN fixture f ON f.id = fp.fixture_id
-          WHERE r.metric = 'rating' AND f.season_id = $1 AND f.kickoff_at < $2
+          WHERE r.metric = 'rating' AND r.value > 0 AND f.season_id = $1 AND f.kickoff_at < $2
           GROUP BY r.person_id`,
         [subject.seasonId, subject.kickoffAt, RATED_MINUTES],
       ),

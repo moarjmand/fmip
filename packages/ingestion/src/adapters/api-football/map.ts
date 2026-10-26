@@ -708,7 +708,9 @@ export function mapPlayerStatistics(
         if (!keeper && (metric === 'saves' || metric === 'goals_conceded')) continue;
         const value = statValue(field === null ? stats[group] : rec(stats[group])[field]);
         if (value === null) continue;
-        if (metric === 'rating' && value > 10) continue;
+        // A rating is 1 to 10; the provider writes 0 for a player it did not
+        // rate (T-1618, D-289), which read as a rating would be the worst one.
+        if (metric === 'rating' && (value > 10 || value <= 0)) continue;
         const key = `${player.externalId}:${metric}`;
         if (seen.has(key)) continue;
         seen.add(key);
