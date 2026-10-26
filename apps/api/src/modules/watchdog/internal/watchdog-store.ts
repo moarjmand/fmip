@@ -264,7 +264,8 @@ export class WatchdogStore {
       // newest of the fixture, its score and its incidents. Its live answer is
       // the pages' too (D-209, `liveAnsweredAtSql` in the fixtures module):
       // the newest completed `live` run, of a provider the match is mapped
-      // to, that read at least one match. Written out here because the
+      // to, that read at least one match while its window still held this
+      // kick-off (210 minutes, T-1577). Written out here because the
       // watchdog reads the tables, not another module's internals.
       `SELECT f.id, f.status, f.minute,
               GREATEST(
@@ -278,6 +279,7 @@ export class WatchdogStore {
                    SELECT r.finished_at FROM ingest_run r
                     WHERE r.provider = pm.provider AND r.job = 'live'
                       AND r.status IN ('succeeded', 'partial') AND r.items_seen > 0
+                      AND r.started_at <= f.kickoff_at + interval '210 minutes'
                     ORDER BY r.started_at DESC LIMIT 1) run
                 WHERE pm.entity_type = 'fixture' AND pm.internal_id = f.id) AS live_answered_at
          FROM fixture f

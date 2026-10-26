@@ -175,12 +175,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         status: 'out',
         kind: 'injury',
         reason: 'Hamstring',
+        reason_code: 'hamstring',
       });
       const absent = await availability(P.absent);
       expect(absent.listing.data).toEqual({
         status: 'not_listed',
         kind: null,
         reason: null,
+        reason_code: null,
         reported_at: null,
       });
     });

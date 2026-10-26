@@ -9,7 +9,7 @@ import type { TeamHeadCoach } from './coaches';
 import type { CoverageState, Covered } from './coverage';
 import type { LeagueZones } from './league-zones';
 import type { EntityMedia } from './media';
-import type { ExpectedGoalsMetric, ExpectedGoalsSource } from './match-centre';
+import type { AbsenceReasonCode, ExpectedGoalsMetric, ExpectedGoalsSource } from './match-centre';
 
 export interface CountrySummary {
   id: string;
@@ -791,6 +791,12 @@ export interface PlayerMatch {
   } | null;
 }
 
+/** A player's position and its source (T-1603). */
+export interface PlayerPosition {
+  value: SquadPosition;
+  basis: 'spell' | 'squad' | 'lineup';
+}
+
 /** `GET /players/:id`. */
 export interface PlayerPage {
   person: {
@@ -813,6 +819,15 @@ export interface PlayerPage {
     photo?: EntityMedia;
   };
   current_spell: PlayerSpell | null;
+  /**
+   * Where the player plays (T-1603), and what says so: the open spell's
+   * position, else the newest squad listing's (both `available`), else the
+   * position the player held most often in their last ten line-ups
+   * (`limited`: what they played, not what they are registered as).
+   * `not_supplied` when none of the three names one; never guessed. Always
+   * sent, optional for older readers.
+   */
+  position?: Covered<PlayerPosition>;
   /** Newest first. */
   spells: PlayerSpell[];
   /** Newest season first. Derived from line-ups: `not_supplied` when the player is in none. */
@@ -844,8 +859,10 @@ export type PlayerAvailabilityReason = 'no_team' | 'no_next_match' | 'not_asked'
 export interface PlayerAvailabilityListing {
   status: 'out' | 'doubtful' | 'not_listed';
   kind: 'injury' | 'suspension' | 'illness' | 'other' | null;
-  /** The feed's own words for the reason, when it gave any. */
+  /** The feed's own words for the reason, when it gave any; English whatever the reader's language. */
   reason: string | null;
+  /** The reason in our words (T-1601); always sent, optional for older readers. */
+  reason_code?: AbsenceReasonCode | null;
   /** When the feed first said this, or last changed it; `null` when not listed. */
   reported_at: string | null;
 }

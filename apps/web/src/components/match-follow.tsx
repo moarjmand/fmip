@@ -42,7 +42,10 @@ export function MatchFollow({
   if (!signedIn) {
     return (
       <p className="text-sm text-muted" data-testid="match-follow-guest">
-        <Link href={`/${locale}/login`} className="underline">
+        <Link
+          href={`/${locale}/login`}
+          className="inline-flex min-h-touch items-center underline md:min-h-0"
+        >
           <Translated locale={locale} message="match.follow.signIn" />
         </Link>
       </p>

@@ -30,7 +30,6 @@ import {
   LEADERS_MINUTES_PRESETS,
   SUGGESTED_TEAMS_PER_COMPETITION,
   leagueZonesFor,
-  stillToPlay,
 } from '@fmip/contracts';
 import leagueZoneList from '@fmip/contracts/zones/league-zones.json';
 import { Pool } from 'pg';
@@ -54,7 +53,12 @@ import { readProviderSeasons } from './internal/player-provider-seasons';
 import { readTeamSeasonStats } from './internal/team-season-stats';
 import { readPlayerTransfers, readTeamTransfers } from './internal/transfers';
 import { providerBoards, readProviderLeaders } from './internal/provider-leaders';
-import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
+import {
+  NO_LINEUPS,
+  PostgresPlayerStore,
+  availabilityOf,
+  positionOf,
+} from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
 
@@ -159,21 +163,31 @@ export class CatalogService {
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
     const found = await this.players_.person(id, locale);
     if (found === null) return { kind: 'unknown_player' };
-    const [spells, record, recent, availability, media] = await Promise.all([
+    const [spells, record, recent, availability, media, positions] = await Promise.all([
       this.players_.spells(id),
       this.players_.record(id),
       this.players_.recent(id, RECENT_MATCHES),
       this.players_.availability(id),
       this.media.index({ person: [id] }),
+      this.players_.positionSources(id),
     ]);
     const person = { ...found, photo: media.photo(id) };
+    const currentSpell = spells.find((s) => s.end_date === null) ?? null;
     return {
       kind: 'ok',
       page: {
         person,
-        current_spell: spells.find((s) => s.end_date === null) ?? null,
+        current_spell: currentSpell,
+        // A player with no open spell still has a position our squad
+        // listings or line-ups name (T-1603).
+        position: positionOf(currentSpell, positions),
         spells,
-        record: derived(record, 1, recent.lastUpdatedAt),
+        // At most `limited` while some match's stored events fall short of
+        // it (T-1579): the goals and cards are then "at least" (rule 3).
+        record: wholeOnlyIfEventsStored(
+          derived(record.rows, 1, recent.lastUpdatedAt),
+          record.eventsShort,
+        ),
         recent_matches: derived(recent.matches, 1, recent.lastUpdatedAt),
         availability: availabilityOf(availability),
         last_updated_at: recent.lastUpdatedAt,
@@ -672,7 +686,17 @@ export class CatalogService {
     });
     const team = { ...found, crest: media.crest(id) };
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
-    const upcoming = fixtures.filter((f) => f.status !== 'finished');
+    // A cancelled, abandoned or awarded match already past is neither ahead
+    // nor a result (T-1578): left in, it stood as the club's next match, with
+    // a kick-off in the past, ahead of the real one.
+    const now = Date.now();
+    const upcoming = fixtures.filter(
+      (f) =>
+        f.status !== 'finished' && !(VOID_STATUSES.has(f.status) && Date.parse(f.kickoff_at) < now),
+    );
+    // The next match is one that will be played or is being played: a
+    // postponed one has no date to be next on.
+    const next = upcoming.find((f) => PLAYABLE_STATUSES.has(f.status)) ?? null;
     return {
       kind: 'ok',
       page: {
@@ -682,9 +706,7 @@ export class CatalogService {
           season: s.season,
           context: tableContext(tables[i]!, id),
         })),
-        // A cancelled, abandoned or postponed match is no one's next match
-        // (T-1560); it stays in `fixtures` with its status.
-        next_match: upcoming.find((f) => stillToPlay(f.status)) ?? null,
+        next_match: next,
         previous_match: results[0] ?? null,
         fixtures: upcoming,
         results,
@@ -831,6 +853,18 @@ export interface SuggestionRow {
   stage_kinds: (string | null)[] | null;
   followers: number | null;
 }
+
+/** A record counted from incidents is `limited` while any of its matches' events fall short (T-1579). */
+function wholeOnlyIfEventsStored<T>(module: Covered<T[]>, eventsShort: number): Covered<T[]> {
+  return module.coverage === 'available' && eventsShort > 0
+    ? { ...module, coverage: 'limited' }
+    : module;
+}
+
+/** Matches that will not be played to a result (T-1578). */
+const VOID_STATUSES: ReadonlySet<string> = new Set(['cancelled', 'abandoned', 'awarded']);
+/** Matches that will be, or are being, played (T-1578). */
+const PLAYABLE_STATUSES: ReadonlySet<string> = new Set(['scheduled', 'live', 'suspended']);
 
 /** Stage kinds of a competition's main phase; qualifying rounds and play-offs are not. */
 const MAIN_PHASE_KINDS: ReadonlySet<string> = new Set(['league', 'group', 'knockout']);

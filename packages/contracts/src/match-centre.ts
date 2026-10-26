@@ -42,6 +42,12 @@ export interface MatchHeader {
   kickoff_at: string;
   status: FixtureStatus;
   minute: number | null;
+  /**
+   * The live match is at the half-time interval, as the feed last said
+   * (T-1551); `false` for every match that is not live. Optional so an
+   * older API's payload still reads as "not said".
+   */
+  at_half_time?: boolean;
   competition: {
     id: string;
     name: string;
@@ -251,13 +257,77 @@ export type MatchExpectedGoals = Covered<MatchPlayerExpected[]> & {
  * A player the provider says will miss (`out`) or may miss (`doubtful`) this
  * match (T-103), with its words for why and when it said so.
  */
+/**
+ * Why a player will miss a match, in our words (T-1601): the body part an
+ * injury is in, a suspension's cause, or a reason that is not fitness. A page
+ * draws it in the reader's language; `null` when the feed gave no reason or
+ * one we cannot name, and the page then says the broad `kind`.
+ */
+export type AbsenceReasonCode =
+  | 'injury'
+  | 'knee'
+  | 'muscle'
+  | 'thigh'
+  | 'hamstring'
+  | 'groin'
+  | 'calf'
+  | 'ankle'
+  | 'achilles'
+  | 'foot'
+  | 'heel'
+  | 'toe'
+  | 'leg'
+  | 'hip'
+  | 'pelvis'
+  | 'back'
+  | 'abdomen'
+  | 'chest'
+  | 'ribs'
+  | 'shoulder'
+  | 'collarbone'
+  | 'arm'
+  | 'wrist'
+  | 'hand'
+  | 'head'
+  | 'eye'
+  | 'tendon'
+  | 'lower_body'
+  | 'upper_body'
+  | 'knock'
+  | 'fracture'
+  | 'surgery'
+  | 'concussion'
+  | 'hernia'
+  | 'illness'
+  | 'heart'
+  | 'health'
+  | 'red_card'
+  | 'yellow_cards'
+  | 'suspended'
+  | 'doping'
+  | 'inactive'
+  | 'off_roster'
+  | 'lacking_fitness'
+  | 'coach_decision'
+  | 'rest'
+  | 'personal'
+  | 'overload'
+  | 'loan_agreement'
+  | 'international_duty';
+
 export interface MatchAbsence {
   id: string;
   name: string;
   side: 'home' | 'away';
   status: 'out' | 'doubtful';
   kind: 'injury' | 'suspension' | 'illness' | 'other' | null;
+  /**
+   * The feed's own words, in English whatever the reader's language: for an
+   * English page at most. A page draws `reason_code` (T-1601).
+   */
   reason: string | null;
+  /** The reason in our words (T-1601); always sent, optional for older readers. */
+  reason_code?: AbsenceReasonCode | null;
   reported_at: string;
 }
 
