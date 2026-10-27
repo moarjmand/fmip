@@ -12204,7 +12204,7 @@ replaces D-089's self-hosting arrangement for no gain here).
 2. **Identity by mapped channel (rule 1).** A channel id is mapped to our team or competition in `provider_mapping` (provider `youtube`) by the operator. In phase A a club channel's video is placed on that team's one finished fixture in the window by time alone. League channels, which would need team names read from titles, are left to a later decision.
 3. **Budget by quota units,** within `YOUTUBE_DAILY_UNITS` under Google's free 10,000, counted in Redis so that a deploy does not reset it.
 4. **The source's kind.** The `highlight_feed` trigger accepts only a `licensed_feed` source. Official channels are publishers' own pages, not a licensed feed. Either add a kind (`official_channel`, rights `link`) to the trigger or record why a publisher's own page is treated as one. This is to be settled when phase A is built.
-5. **The terms come first.** YouTube API Services Terms (data retention and refresh, attribution) are read and recorded here before any row is written.
+5. **The terms, checked on 2026-10-28 (design section 6).** A stored video is refreshed or deleted within 30 days. Every YouTube highlight shows the YouTube logo linked to the video. Our terms of use link YouTube's Terms of Service, and the privacy policy links Google's. How a guest agrees to the privacy policy is the maintainer's reading before phase A ships.
 
 **Consequences.** Nothing runs until `YOUTUBE_API_KEY` is set; empty means off, with no queue, no request and no row. The maintainer creates the key (design section 7); the agent creates no account. The Persian Gulf Pro League may stay empty: its official video is not mainly on YouTube.
 

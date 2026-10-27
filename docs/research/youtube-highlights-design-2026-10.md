@@ -93,18 +93,45 @@ Highlightly left empty, and an editor's withdrawal stays withdrawn.
 | Env | `.env.example`, `docs/03-project-map.md` | `YOUTUBE_API_KEY` (empty = off, the honest absence) and `YOUTUBE_DAILY_UNITS`. |
 | Watchdog | `watchdog/internal/conditions.ts` | `youtube_budget`, like `highlightly_budget`. |
 
-## 6. Terms to check before building (the maintainer's or the agent's, not assumed)
+## 6. Terms (checked on 2026-10-28)
 
-- YouTube API Services Terms and Developer Policies: storing API data. The
-  policies limit how long some API data may be kept without being refreshed
-  (about 30 days). Either re-read each stored video's status and region rule
-  within that limit, or delete the row. This is to be confirmed on the live
-  policy page.
-- Showing a YouTube link with the channel name and our own text, without
-  YouTube's branding requirements on a link-only list. This is to be confirmed.
-- Account location: the key belongs to the project's own Google account. Under
-  the project's jurisdiction (abroad, see the maintainer's note) Google's
-  sanctions terms are those of that country.
+Read on 2026-10-28 from the Internet Archive's copies of Google's pages,
+because developers.google.com answers 403 from the development machine: the
+Developer Policies last updated on 2026-10-15 (copy of 2026-10-27) and the
+Branding Guidelines (copy of 2026-10-21). What they mean for phase A:
+
+- **Storing (Developer Policies III.E.4).** Videos from channels we do not own
+  are Non-Authorized Data. They may be kept "no longer than 30 calendar days",
+  then deleted or refreshed. Phase A keeps a video's id, title, channel id and
+  publish time, and never its view, like or subscriber counts. A daily pass
+  re-reads every stored video older than 25 days (`videos.list`, one unit for
+  up to 50 ids). It deletes the row of a video that is gone, no longer public,
+  or no longer playable in the region rule of section 3.
+- **Our terms and privacy pages (III.A).** An API client must display a link
+  to YouTube's Terms of Service, and must say in its own terms of use that
+  users agree to be bound by them. Its privacy policy must reference and link
+  to the Google Privacy Policy. The policies also ask that users agree to the
+  privacy policy before they use the client's features. How a guest agrees is
+  a legal reading for the maintainer. The text of `/terms` and `/privacy`
+  changes with phase A, not before.
+- **Branding (III.F and the Branding Guidelines).** Any page that shows
+  YouTube content, a list of links included, must show YouTube's brand
+  features next to it. That means the YouTube logo from YouTube's brand site:
+  - at its minimum size and unaltered;
+  - clickable through to the video;
+  - never the most prominent element on the page.
+
+  A link with the channel name and our own text is therefore not enough on
+  its own: every YouTube highlight carries the logo. "YouTube" never appears
+  in our product's name, and nothing suggests YouTube wrote or endorses our
+  words.
+- **Quota (III.D).** Phase A stays within the default quota. A larger quota
+  needs YouTube's API Compliance Audit, and a project idle for 90 days can
+  lose its quota.
+- **Audits (III.H).** YouTube may survey, monitor or audit the use.
+- **Account location.** The key belongs to the project's own Google account.
+  Under the project's jurisdiction (abroad, see the maintainer's note),
+  Google's sanctions terms are those of that country.
 
 ## 7. What the maintainer creates (the agent creates no account)
 
@@ -134,3 +161,9 @@ Highlightly left empty, and an editor's withdrawal stays withdrawn.
 - The unit count survives a restart (Redis).
 - The health endpoint and the watchdog condition report the YouTube feed.
 - With an empty key: no queue, no request, no row.
+- Section 6's terms:
+  - every YouTube highlight shows the YouTube logo, linked to the video;
+  - the 30-day pass refreshes or deletes stored rows, with a spec on recorded
+    responses;
+  - `/terms` links YouTube's Terms of Service, and `/privacy` links the Google
+    Privacy Policy.
