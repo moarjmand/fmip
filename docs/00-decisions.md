@@ -12193,6 +12193,21 @@ replaces D-089's self-hosting arrangement for no gain here).
 
 **Consequences.** A guest sees every clip; a restricted one is said to be so rather than hidden, which is what D-226 rejected listing without (a clip blocked where the reader is, offered as if it played). The match page is unchanged: there a reader with no territory still sees no feed highlight.
 
+## D-261 — Official YouTube channels as a second highlights source (proposed)
+
+**Status:** Proposed · 2026-10-25 (the maintainer chose option 2 after the highlights-count diagnosis; the design waits for their API key and the terms check) · **Task:** T-1489 · **Follows:** D-184, D-226, D-260, D-014, rules 1-3
+
+**Context.** Highlightly's verified clips cover some leagues fully and others thinly. Over 12 to 22 Oct the Premier League had a clip for 7 of 11 finished matches, the FA Cup for 2 of 43 and the Persian Gulf Pro League for 0 of 13. For the rest, Highlightly holds only unverified mirror clips (refused) or nothing. Leagues and clubs publish their own highlights on official YouTube channels, which is mostly where Highlightly's verified links point anyway.
+
+**Decision (proposed).**
+1. **A second source, link only.** Videos from official channels, linked on the publisher's own page and never embedded (D-184). A video fills only a match that has no clip yet; it never replaces or overrides one, and an editor's withdrawal stands.
+2. **Identity by mapped channel (rule 1).** A channel id is mapped to our team or competition in `provider_mapping` (provider `youtube`) by the operator. In phase A a club channel's video is placed on that team's one finished fixture in the window by time alone. League channels, which would need team names read from titles, are left to a later decision.
+3. **Budget by quota units,** within `YOUTUBE_DAILY_UNITS` under Google's free 10,000, counted in Redis so that a deploy does not reset it.
+4. **The source's kind.** The `highlight_feed` trigger accepts only a `licensed_feed` source. Official channels are publishers' own pages, not a licensed feed. Either add a kind (`official_channel`, rights `link`) to the trigger or record why a publisher's own page is treated as one. This is to be settled when phase A is built.
+5. **The terms, checked on 2026-10-28 (design section 6).** A stored video is refreshed or deleted within 30 days. Every YouTube highlight shows the YouTube logo linked to the video. Our terms of use link YouTube's Terms of Service, and the privacy policy links Google's. How a guest agrees to the privacy policy is the maintainer's reading before phase A ships.
+
+**Consequences.** Nothing runs until `YOUTUBE_API_KEY` is set; empty means off, with no queue, no request and no row. The maintainer creates the key (design section 7); the agent creates no account. The Persian Gulf Pro League may stay empty: its official video is not mainly on YouTube.
+
 ## D-262 — The product is named Stadiomind
 
 **Status:** Accepted · 2026-10-25 (the maintainer: "the name now, the domain later") · **Task:** T-1490, T-1492, T-1503, T-1504
