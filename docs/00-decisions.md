@@ -12207,6 +12207,7 @@ replaces D-089's self-hosting arrangement for no gain here).
 5. **The terms come first.** YouTube API Services Terms (data retention and refresh, attribution) are read and recorded here before any row is written.
 
 **Consequences.** Nothing runs until `YOUTUBE_API_KEY` is set; empty means off, with no queue, no request and no row. The maintainer creates the key (design section 7); the agent creates no account. The Persian Gulf Pro League may stay empty: its official video is not mainly on YouTube.
+
 ## D-262 — The product is named Stadiomind
 
 **Status:** Accepted · 2026-10-25 (the maintainer: "the name now, the domain later") · **Task:** T-1490, T-1492, T-1503, T-1504
