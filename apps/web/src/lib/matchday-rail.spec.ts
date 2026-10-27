@@ -6,7 +6,14 @@ import {
   type ScoresResponse,
 } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { daysBetween, openLeague, railLeagues, railStatus, railStatusText } from './matchday-rail';
+import {
+  daysBetween,
+  drawerFixtures,
+  openLeague,
+  railLeagues,
+  railStatus,
+  railStatusText,
+} from './matchday-rail';
 
 /**
  * The matchday rail's rules (T-1624, D-292): which leagues, in which order,
@@ -236,6 +243,23 @@ describe('the drawer', () => {
       openLeague(railLeagues([entry('epl')], answer([group('epl', [])]), NOW, ZONE)),
     ).toBeNull();
     expect(openLeague(railLeagues([entry('epl')], null, NOW, ZONE))).toBeNull();
+  });
+
+  it('lists the live matches first, then those to come, then the finished', () => {
+    const cards = [
+      { id: 'early-ft', status: 'finished', kickoff_at: '2026-10-26T13:30:00Z' },
+      { id: 'late', status: 'scheduled', kickoff_at: '2026-10-26T21:00:00Z' },
+      { id: 'live-b', status: 'live', kickoff_at: '2026-10-26T19:00:00Z' },
+      { id: 'soon', status: 'scheduled', kickoff_at: '2026-10-26T20:00:00Z' },
+      { id: 'live-a', status: 'live', kickoff_at: '2026-10-26T18:45:00Z' },
+    ];
+    expect(drawerFixtures(cards).map((c) => c.id)).toEqual([
+      'live-a',
+      'live-b',
+      'soon',
+      'late',
+      'early-ft',
+    ]);
   });
 });
 

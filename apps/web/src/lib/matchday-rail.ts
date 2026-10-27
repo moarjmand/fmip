@@ -143,6 +143,22 @@ export function railLeagues(
 }
 
 /**
+ * The drawer's matches in the order a reader looks for them: the ones being
+ * played first, then those still to start, then the rest; kick-off order
+ * inside each. A league marked "2 live" opens on its two live matches, not
+ * on the ones that finished this afternoon.
+ */
+export function drawerFixtures<T extends { status: string; kickoff_at: string }>(
+  fixtures: readonly T[],
+): T[] {
+  const rank = (card: T): number =>
+    card.status === 'live' ? 0 : card.status === 'scheduled' ? 1 : 2;
+  return [...fixtures].sort(
+    (a, b) => rank(a) - rank(b) || Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
+  );
+}
+
+/**
  * The league the drawer opens on: the first in the rail's order with a
  * match today, or none -- and then there is no drawer at all, never an
  * empty box that looks like a quiet day (rule 3).

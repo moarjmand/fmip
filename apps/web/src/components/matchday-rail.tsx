@@ -21,6 +21,7 @@ import {
 import {
   type RailLeague,
   type RailStatus,
+  drawerFixtures,
   openLeague,
   railLeagues,
   railStatusText,
@@ -165,7 +166,7 @@ export function railView({
           key={league.id}
           locale={locale}
           competition={league.id}
-          chips={group.fixtures.map((card) => ({
+          chips={drawerFixtures(group.fixtures).map((card) => ({
             card,
             state: chipState(card, lang, timeZone, now, words),
           }))}
