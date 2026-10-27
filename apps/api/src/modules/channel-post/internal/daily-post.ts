@@ -163,7 +163,7 @@ export function matchUrl(origin: string, fixtureId: string): string {
 
 function header(day: string, versions: string[], part: number, total: number): string {
   const title =
-    `FMIP · The statistical model's forecast · ${dayLabel(day)}` +
+    `Stadiomind · The statistical model's forecast · ${dayLabel(day)}` +
     (total > 1 ? ` (${part}/${total})` : '');
   const source =
     versions.length === 0

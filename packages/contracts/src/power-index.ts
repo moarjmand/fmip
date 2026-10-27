@@ -64,8 +64,44 @@ export interface PowerIndexComponentValue {
   value: number | null;
   /** `available` or `limited` when supplied; `not_supplied` when absent. */
   state: CoverageState;
-  /** Why it is absent, or what it was computed from. */
+  /** Why it is absent, or what it was computed from, in English. A page draws `explanation`. */
   note: string | null;
+  /**
+   * The note in our words (T-1602): a code and the numbers in it, for a page
+   * to say in the reader's language. Null when there is no note or one this
+   * list does not name; always sent, optional for older readers.
+   */
+  explanation?: PowerIndexNote | null;
+}
+
+/** What a component's note says (T-1602), each with the values it names. */
+export type PowerIndexNoteCode =
+  | 'rest_days' // values: days, matches, `window`
+  | 'context_not_modelled'
+  | 'form_window' // values: matches
+  | 'venue_record' // values: side ('home' | 'away'), matches
+  | 'no_venue_matches' // values: side
+  | 'no_recent_matches'
+  | 'thin_history' // values: matches
+  | 'few_ranked_teams' // values: teams
+  | 'no_recorded_matches'
+  | 'no_previous_fixture'
+  | 'announced_xi'
+  | 'expected_xi'
+  | 'expected_xi_less_out' // values: out
+  | 'few_rated_starters' // values: min
+  | 'no_lineup'
+  | 'few_measurable_lineups'
+  | 'coach_and_xi'
+  | 'coach_only'
+  | 'xi_only'
+  | 'few_lineups'
+  | 'no_ratings_feed'
+  | 'no_stability_feed';
+
+export interface PowerIndexNote {
+  code: PowerIndexNoteCode;
+  values: Record<string, number | string>;
 }
 
 export interface PowerIndex {

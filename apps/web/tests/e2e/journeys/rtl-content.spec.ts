@@ -168,24 +168,29 @@ test.describe('the scores page under right-to-left', () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
-  test('puts every row’s home goals beside its home team (T-1375)', async ({ page }) => {
+  test('puts every row’s home goals beside its home team (T-1375, T-1496)', async ({ page }) => {
     // The seed's played day, as the other journeys open it.
     await page.goto('/ar/scores?date=2025-01-05&tz=UTC');
-    const played = page
+    const card = page
       .getByTestId('score-card')
-      .filter({ has: page.getByTestId('score').filter({ hasText: /[0-9\u0660-\u0669]/ }) });
-    await expect(played.first()).toBeVisible();
-    const card = played.first();
+      .filter({ has: page.getByTestId('home-score') })
+      .first();
+    await expect(card).toBeVisible();
+    // The teams are stacked, home first; each line mirrors on its own: the
+    // name at the inline start (the right), its goals at the inline end (the left),
+    // on the same line as the name, so a score can never sit beside the other team.
+    for (const side of ['home', 'away'] as const) {
+      const team = await card.getByTestId(`${side}-team`).locator('bdi').boundingBox();
+      const goals = await card.getByTestId(`${side}-score`).boundingBox();
+      expect(team).not.toBeNull();
+      expect(goals).not.toBeNull();
+      if (team !== null && goals !== null) {
+        expect(goals.x + goals.width).toBeLessThanOrEqual(team.x + 1);
+        expect(Math.abs(goals.y + goals.height / 2 - (team.y + team.height / 2))).toBeLessThan(8);
+      }
+    }
     const home = await card.getByTestId('home-team').boundingBox();
     const away = await card.getByTestId('away-team').boundingBox();
-    expect(home).not.toBeNull();
-    expect(away).not.toBeNull();
-    // The row mirrors: home on the right...
-    if (home !== null && away !== null) expect(home.x).toBeGreaterThan(away.x);
-    // ...and its goals with it, the first digit to the right of the last.
-    await card.evaluate((element) => element.setAttribute('data-testid', 'card-under-test'));
-    const order = await digitOrder(page, 'card-under-test');
-    expect(order).not.toBeNull();
-    if (order !== null) expect(order.firstX).toBeGreaterThan(order.lastX);
+    if (home !== null && away !== null) expect(home.y).toBeLessThan(away.y);
   });
 });

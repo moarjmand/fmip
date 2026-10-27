@@ -58,7 +58,9 @@ const int = (value: unknown): number | null =>
 /** API-Football ids are numbers; the contract wants them as strings. */
 const id = (value: unknown): string | null => {
   const n = int(value);
-  return n === null ? null : String(n);
+  // Positive only (T-1600): the provider writes 0 for "not known", and as an
+  // id it made one person, coach or venue of every unknown one (rule 1).
+  return n === null || n <= 0 ? null : String(n);
 };
 /**
  * An image address (`logo`, `photo`) as the provider gave it, when it is an
@@ -69,6 +71,17 @@ export const imageUrl = (value: unknown): string | null => {
   const s = str(value);
   return s !== null && /^https:\/\/\S+$/.test(s) ? s : null;
 };
+/**
+ * A competition's ref with its country's flag (T-1611, D-282): `league.flag`,
+ * which the provider sets for a league of one country and leaves `null` for a
+ * continental or international one. Absent when not carried.
+ */
+function withCountryFlag<T extends { externalId: string; name: string }>(
+  ref: T,
+  flag: string | null,
+): T & { countryFlagUrl?: string } {
+  return flag === null ? ref : { ...ref, countryFlagUrl: flag };
+}
 /** `ref` with its image, when the provider carried one; absent otherwise. */
 function withImage<T extends { externalId: string; name: string }>(
   ref: T,
@@ -228,7 +241,10 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
 
   return {
     externalId,
-    competition: withImage({ externalId: leagueId, name: leagueName }, imageUrl(league.logo)),
+    competition: withCountryFlag(
+      withImage({ externalId: leagueId, name: leagueName }, imageUrl(league.logo)),
+      imageUrl(league.flag),
+    ),
     season: { label: seasonLabel(startYear), startYear },
     stage:
       round !== null && stageKind !== null
@@ -692,7 +708,9 @@ export function mapPlayerStatistics(
         if (!keeper && (metric === 'saves' || metric === 'goals_conceded')) continue;
         const value = statValue(field === null ? stats[group] : rec(stats[group])[field]);
         if (value === null) continue;
-        if (metric === 'rating' && value > 10) continue;
+        // A rating is 1 to 10; the provider writes 0 for a player it did not
+        // rate (T-1618, D-289), which read as a rating would be the worst one.
+        if (metric === 'rating' && (value > 10 || value <= 0)) continue;
         const key = `${player.externalId}:${metric}`;
         if (seen.has(key)) continue;
         seen.add(key);

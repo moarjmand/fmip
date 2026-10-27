@@ -48,7 +48,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/groups',
-    title: `${t(resolved, 'groupsPage.group')} · FMIP`,
+    title: `${t(resolved, 'groupsPage.group')} · Stadiomind`,
   });
 }
 

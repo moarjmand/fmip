@@ -33,6 +33,8 @@ export async function submitPredictionAction(
     return failureState(result, locale);
   }
   revalidatePath(`/${locale}/match/${fixtureId}`);
+  // The matches page's row turns to "Picked" and its view to what is left (T-1496).
+  revalidatePath(`/${locale}/scores`);
   const v = result.data.prediction.latest;
   return {
     ok: true,

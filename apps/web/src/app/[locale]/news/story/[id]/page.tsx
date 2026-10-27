@@ -54,7 +54,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const storyTitle = `${t(resolved, 'storyPage.title')} · FMIP`;
+  const storyTitle = `${t(resolved, 'storyPage.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title: storyTitle, robots: { index: false, follow: false } };
   const result = await fetchStory(id, readStoryQuery(query).language, locale);
   if (!result.ok) return pageMetadata({ locale, path: `/news/story/${id}`, title: storyTitle });
@@ -62,7 +62,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/news/story/${id}`,
-    title: `${story.headline} · FMIP`,
+    title: `${story.headline} · Stadiomind`,
     // The publisher's own summary, or their headline again: nothing is written for them.
     description:
       story.summary ??
@@ -88,13 +88,22 @@ export async function generateMetadata({
  * prediction products as three links, each with its own name, to their own
  * sections of the match centre: linked, never copied or combined (rule 6).
  *
- * T-1383 (D-201) sets it in the Hybrid design's editorial mode: paper
- * whatever the theme, the headline in the serif display, the words at the
- * 680px measure, the rest beside them. A match report carries "What the
- * model expected": the model's pre-match forecast, with its version and
- * time, beside the result, in the model's lane only. The publisher's credit,
- * the photo credit and the link out naming the publisher stay.
+ * T-1383 (D-201) set it in the Hybrid design's editorial mode: the headline
+ * in the serif display, the words at the 680px measure, the rest beside
+ * them. A match report carries "What the model expected": the model's
+ * pre-match forecast, with its version and time, beside the result, in the
+ * model's lane only. The publisher's credit, the photo credit and the link
+ * out naming the publisher stay.
+ *
+ * T-1621 (D-291) takes it off editorial paper: it follows the theme like
+ * every other page. The reading stays a reading: the headline in the
+ * editorial face, as the news front page sets its lead (D-284), and the
+ * publisher's words in the article face at the 680px measure (Newsreader on
+ * a Latin page, Vazirmatn on /fa). Everything beside the words is a card on
+ * the surface, and every control in it a 44px target on a phone.
  */
+const CARD = 'flex flex-col gap-2.5 rounded-tile border border-default bg-surface p-4 text-sm';
+const CARD_HEADING = 'text-sm font-extrabold';
 export default async function StoryPage({
   params,
   searchParams,
@@ -117,7 +126,7 @@ export default async function StoryPage({
 
   if (!result.ok) {
     return (
-      <main data-mode="editorial" className="bg-canvas text-fg">
+      <main>
         <div className="page-frame py-8">
           <Notice tone="danger" data-testid="story-unreachable">
             <Translated locale={locale} message="news.unreachable" />
@@ -138,26 +147,54 @@ export default async function StoryPage({
       : null;
 
   return (
-    <main data-mode="editorial" className="bg-canvas text-fg" data-testid="story-page">
-      <div className="page-frame flex flex-col gap-6 py-8 md:py-10">
+    <main className="pb-16" data-testid="story-page">
+      <div className="page-frame flex flex-col gap-4 pt-3 md:gap-6 md:pt-6">
         <p className="text-sm">
-          <Link href={`/${locale}/news`} className="underline" data-testid="back-to-news">
+          <Link
+            href={`/${locale}/news`}
+            className="-ms-1 inline-flex min-h-touch items-center gap-1 px-1 font-bold text-accent hover:underline focus-visible:underline"
+            data-testid="back-to-news"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+              className="shrink-0 rtl:-scale-x-100"
+            >
+              <path
+                d="m14.5 6-6 6 6 6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             <Translated locale={locale} message="news.title" />
           </Link>
         </p>
 
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,42.5rem)_minmax(0,1fr)] lg:gap-16">
-          <article className="flex max-w-measure flex-col gap-5" lang={story.language}>
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,42.5rem)_minmax(0,1fr)] lg:gap-14">
+          <article className="flex max-w-measure min-w-0 flex-col gap-5" lang={story.language}>
             <header className="flex flex-col gap-3">
               <StoryTypeTag locale={locale} type={story.type} sayNone />
+              {/* The publisher's words in their own direction (T-1622): an English
+                  story on /fa ends its sentences on the right side. */}
               <h1
-                className="font-serif text-display-2 font-semibold md:text-display-3"
+                dir="auto"
+                className="font-serif text-display-1 font-semibold break-words sm:text-display-2 md:text-display-3"
                 data-testid="title"
               >
                 {story.headline}
               </h1>
               {story.summary !== null && (
-                <p className="font-article text-xl text-muted" data-testid="story-summary">
+                <p
+                  dir="auto"
+                  className="font-article text-xl text-muted"
+                  data-testid="story-summary"
+                >
                   {story.summary}
                 </p>
               )}
@@ -187,6 +224,7 @@ export default async function StoryPage({
 
             {page.body.data !== null ? (
               <div
+                dir="auto"
                 className="font-article text-article whitespace-pre-line"
                 data-testid="story-body"
               >
@@ -276,9 +314,9 @@ export default async function StoryPage({
             </p>
           </article>
 
-          <aside className="flex flex-col gap-8">
-            <section aria-labelledby="languages" className="flex flex-col gap-2 text-sm">
-              <h2 id="languages" className="font-semibold">
+          <aside className="flex min-w-0 flex-col gap-4">
+            <section aria-labelledby="languages" className={CARD}>
+              <h2 id="languages" className={CARD_HEADING}>
                 <Translated locale={locale} message="story.languages" />
               </h2>
               <ul className="flex flex-wrap gap-2" data-testid="story-languages">
@@ -287,7 +325,7 @@ export default async function StoryPage({
                     <Link
                       href={storyHref(locale, id, v.language)}
                       aria-current={v.language === story.language ? 'true' : undefined}
-                      className={`rounded px-2 py-1 ${v.language === story.language ? 'bg-surface-raised font-semibold' : 'underline'}`}
+                      className={`inline-flex min-h-touch items-center rounded-pill border px-3.5 ${v.language === story.language ? 'border-accent bg-brand/14 font-extrabold' : 'border-default hover:border-strong'}`}
                       hrefLang={v.language}
                       data-language={v.language}
                       data-origin={v.origin}
@@ -307,8 +345,8 @@ export default async function StoryPage({
               </p>
             </section>
 
-            <section aria-labelledby="corrections" className="flex flex-col gap-2 text-sm">
-              <h2 id="corrections" className="font-semibold">
+            <section aria-labelledby="corrections" className={CARD}>
+              <h2 id="corrections" className={CARD_HEADING}>
                 <Translated locale={locale} message="story.corrections" />
               </h2>
               {page.corrections.length === 0 ? (
@@ -326,8 +364,8 @@ export default async function StoryPage({
               )}
             </section>
 
-            <section aria-labelledby="about" className="flex flex-col gap-2 text-sm">
-              <h2 id="about" className="font-semibold">
+            <section aria-labelledby="about" className={CARD}>
+              <h2 id="about" className={CARD_HEADING}>
                 <Translated locale={locale} message="story.about" />
               </h2>
               {named.length === 0 && match === null ? (
@@ -345,25 +383,34 @@ export default async function StoryPage({
               )}
               {match !== null && (
                 <p data-testid="story-match">
-                  <Link href={entityHref(locale, match)} className="underline">
+                  <Link
+                    href={entityHref(locale, match)}
+                    className="inline-flex min-h-touch items-center font-bold text-accent hover:underline focus-visible:underline"
+                  >
                     <Translated locale={locale} message="story.matchCentre" />
                   </Link>
                 </p>
               )}
             </section>
 
-            {match !== null && <StoryPredictionLinks locale={locale} fixtureId={match.entity_id} />}
+            {match !== null && (
+              <div className={CARD}>
+                <StoryPredictionLinks locale={locale} fixtureId={match.entity_id} />
+              </div>
+            )}
 
-            <StoryFollowControls
-              locale={locale}
-              storyId={story.story_id}
-              entities={followableEntities(named)}
-              signedIn={me !== null}
-              following={following}
-            />
+            <div className={CARD}>
+              <StoryFollowControls
+                locale={locale}
+                storyId={story.story_id}
+                entities={followableEntities(named)}
+                signedIn={me !== null}
+                following={following}
+              />
+            </div>
 
-            <section aria-labelledby="reports" className="flex flex-col gap-2 text-sm">
-              <h2 id="reports" className="font-semibold">
+            <section aria-labelledby="reports" className={CARD}>
+              <h2 id="reports" className={CARD_HEADING}>
                 <Translated locale={locale} message="story.otherReports" />
               </h2>
               {page.reports.length === 0 ? (
@@ -381,50 +428,55 @@ export default async function StoryPage({
               )}
             </section>
 
-            {me !== null && savedList !== null && savedList.ok ? (
-              <div data-testid="story-save">
-                <SaveArticle
-                  locale={locale}
-                  storyId={story.story_id}
-                  headline={story.headline}
-                  language={story.language}
-                  saved={savedList.data.saved.some((s) => s.story_id === story.story_id)}
+            <div className={CARD}>
+              {me !== null && savedList !== null && savedList.ok ? (
+                <div data-testid="story-save">
+                  <SaveArticle
+                    locale={locale}
+                    storyId={story.story_id}
+                    headline={story.headline}
+                    language={story.language}
+                    saved={savedList.data.saved.some((s) => s.story_id === story.story_id)}
+                  />
+                </div>
+              ) : me === null ? (
+                <p className="text-sm text-muted" data-testid="story-save-sign-in">
+                  <Link
+                    href={`/${locale}/login`}
+                    className="inline-flex min-h-touch items-center underline"
+                  >
+                    <Translated locale={locale} message="saved.signIn" />
+                  </Link>
+                </p>
+              ) : null}
+
+              <p className="text-sm" data-testid="story-share">
+                <ShareLink
+                  url={canonicalUrl(locale, `/news/story/${id}`)}
+                  title={story.headline}
+                  label={<Translated locale={locale} message="story.share" />}
+                  messages={{
+                    copied: message(isLocale(locale) ? locale : DEFAULT_LOCALE, 'share.copied'),
+                    manual: message(isLocale(locale) ? locale : DEFAULT_LOCALE, 'share.manual'),
+                  }}
                 />
-              </div>
-            ) : me === null ? (
-              <p className="text-sm text-muted" data-testid="story-save-sign-in">
-                <Link href={`/${locale}/login`} className="underline">
-                  <Translated locale={locale} message="saved.signIn" />
-                </Link>
               </p>
-            ) : null}
 
-            <p className="text-sm" data-testid="story-share">
-              <ShareLink
-                url={canonicalUrl(locale, `/news/story/${id}`)}
-                title={story.headline}
-                label={<Translated locale={locale} message="story.share" />}
-                messages={{
-                  copied: message(isLocale(locale) ? locale : DEFAULT_LOCALE, 'share.copied'),
-                  manual: message(isLocale(locale) ? locale : DEFAULT_LOCALE, 'share.manual'),
-                }}
-              />
-            </p>
-
-            <p
-              className="text-sm text-muted"
-              data-testid="story-freshness"
-              data-stale={feedsStale(page.last_updated_at) ? 'true' : 'false'}
-            >
-              {page.last_updated_at === null ? (
-                <Translated locale={locale} message="news.neverRead" />
-              ) : (
-                <>
-                  <Translated locale={locale} message="news.updated" />{' '}
-                  <time dateTime={page.last_updated_at}>{when(page.last_updated_at)}</time>
-                </>
-              )}
-            </p>
+              <p
+                className="text-sm text-muted"
+                data-testid="story-freshness"
+                data-stale={feedsStale(page.last_updated_at) ? 'true' : 'false'}
+              >
+                {page.last_updated_at === null ? (
+                  <Translated locale={locale} message="news.neverRead" />
+                ) : (
+                  <>
+                    <Translated locale={locale} message="news.updated" />{' '}
+                    <time dateTime={page.last_updated_at}>{when(page.last_updated_at)}</time>
+                  </>
+                )}
+              </p>
+            </div>
           </aside>
         </div>
       </div>
@@ -467,7 +519,10 @@ async function modelExpected(
 
 function EntityChip({ entity, locale }: { entity: NewsEntity; locale: string }) {
   return (
-    <Link href={entityHref(locale, entity)} className="rounded bg-surface-raised px-2 py-0.5">
+    <Link
+      href={entityHref(locale, entity)}
+      className="inline-flex min-h-touch items-center rounded-pill border border-default bg-surface-raised px-3.5 font-semibold hover:border-strong"
+    >
       {entity.localised_name ?? entity.name}
     </Link>
   );

@@ -20,7 +20,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  return { title: `${t(lang, 'auth.register.title')} · FMIP` };
+  return { title: `${t(lang, 'auth.register.title')} · Stadiomind` };
 }
 export const dynamic = 'force-dynamic';
 

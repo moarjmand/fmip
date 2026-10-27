@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { createElement } from 'react';
+import { Fragment, createElement, isValidElement, type ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { BrandMark } from './brand-mark';
@@ -28,12 +28,46 @@ function shapes(svg: string): string[] {
 
 describe('BrandMark', () => {
   const html = renderToStaticMarkup(createElement(BrandMark, { size: 20 }));
+  const tile = renderToStaticMarkup(createElement(BrandMark, { size: 20, ground: 'tile' }));
 
-  it('draws exactly the shapes of public/icons/mark.svg', () => {
-    expect(shapes(SOURCE).length).toBeGreaterThan(1);
-    expect(shapes(html)).toEqual(shapes(SOURCE));
-    expect(html).toContain('viewBox="0 0 64 64"');
+  it('draws exactly the shapes of public/icons/mark.svg on its tile', () => {
+    expect(shapes(SOURCE).length).toBe(4);
+    expect(shapes(tile)).toEqual(shapes(SOURCE));
+    expect(tile).toContain('viewBox="0 0 64 64"');
     expect(SOURCE).toContain('viewBox="0 0 64 64"');
+  });
+
+  it('is the Design System logo off the tile: three bars, home longest, in the Day or Night set', () => {
+    expect(html).toContain('viewBox="0 0 24 24"');
+    expect(shapes(html)).toEqual([
+      'rect fill=#0e7a75 height=4 rx=2 width=18 x=3 y=4',
+      'rect fill=#626c76 height=4 rx=2 width=11 x=3 y=10',
+      'rect fill=#b87818 height=4 rx=2 width=7 x=3 y=16',
+    ]);
+    const night = renderToStaticMarkup(createElement(BrandMark, { size: 20, ground: 'night' }));
+    expect(shapes(night).map((shape) => /fill=(\S+)/.exec(shape)![1])).toEqual([
+      '#2bb3ad',
+      '#56616b',
+      '#eba53c',
+    ]);
+  });
+
+  it('draws the tile’s bars at twice the logo’s scale, centred', () => {
+    const geometry = (shape: string) => shape.replace(/ fill=\S+/, '');
+    expect(shapes(SOURCE).slice(1).map(geometry)).toEqual([
+      'rect height=8 rx=4 width=36 x=14 y=16',
+      'rect height=8 rx=4 width=22 x=14 y=28',
+      'rect height=8 rx=4 width=14 x=14 y=40',
+    ]);
+  });
+
+  it('draws its shapes as siblings, never in a fragment, which next/og cannot draw', () => {
+    for (const ground of ['day', 'night', 'tile'] as const) {
+      const svg = BrandMark({ size: 20, ground }) as ReactElement<{ children: unknown }>;
+      const children = [svg.props.children].flat(2).filter(isValidElement);
+      expect(children.length).toBeGreaterThanOrEqual(3);
+      expect(children.some((child) => child.type === Fragment)).toBe(false);
+    }
   });
 
   it('is decorative: the name beside it is the label', () => {
@@ -41,23 +75,25 @@ describe('BrandMark', () => {
     expect(html).toContain('width="20"');
   });
 
-  it('is in the primary green of the theme colour', () => {
-    expect(SOURCE).toContain('fill="#0b6b3a"');
+  it('has left the D-089 green behind', () => {
+    expect(SOURCE).not.toContain('#0b6b3a');
+    expect(SOURCE).toContain('fill="#0f1215"');
   });
 });
 
 describe('the share cards', () => {
   it('carry the mark beside the name, on the plain card and in every card footer', () => {
+    const day = shapes(renderToStaticMarkup(createElement(BrandMark, { size: 20 })));
     const plain = renderToStaticMarkup(createElement(PlainCard));
-    expect(shapes(plain)).toEqual(shapes(SOURCE));
+    expect(shapes(plain)).toEqual(day);
     const table = renderToStaticMarkup(
       createElement(TableCardImage, {
         text: { title: 'Premier League', season: '2026/27', rows: [], absence: 'No table yet' },
         host: 'example.org',
       }),
     );
-    expect(shapes(table)).toEqual(shapes(SOURCE));
-    expect(table).toContain('FMIP · example.org');
+    expect(shapes(table)).toEqual(day);
+    expect(table).toContain('Stadiomind · example.org');
   });
 });
 
@@ -82,6 +118,7 @@ describe('make-icons.mjs', () => {
     expect(Object.keys(manifest.icons).sort()).toEqual([
       'apple-touch-icon.png',
       'icon-192.png',
+      'icon-32.png',
       'icon-512.png',
       'icon-maskable-512.png',
     ]);

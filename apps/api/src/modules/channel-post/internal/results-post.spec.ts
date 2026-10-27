@@ -166,7 +166,7 @@ describe('composeResultsPost', () => {
     });
     const text = post?.messages[0] ?? '';
     const lines = text.split('\n');
-    expect(lines[0]).toBe("FMIP · The statistical model's results · Sunday 18 October 2026");
+    expect(lines[0]).toBe("Stadiomind · The statistical model's results · Sunday 18 October 2026");
     expect(lines[1]).toBe(
       "The day's finished matches against the statistical model's last forecast before kick-off (dixon-coles@1.0.0). Full-time scores; the day is the UTC day.",
     );
@@ -255,7 +255,7 @@ describe('composeResultsPost', () => {
     messages.forEach((text, i) => {
       expect(text.length).toBeLessThanOrEqual(2000);
       expect(text.split('\n')[0]).toBe(
-        `FMIP · The statistical model's results · Sunday 18 October 2026 (${i + 1}/${messages.length})`,
+        `Stadiomind · The statistical model's results · Sunday 18 October 2026 (${i + 1}/${messages.length})`,
       );
       expect(text).toContain("The model's most likely outcome happened in 72 of 72 matches.");
     });

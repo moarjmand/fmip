@@ -1,22 +1,21 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useParams, usePathname } from 'next/navigation';
-import { ErrorPageBody, errorPageLocale, useErrorPageMessages } from '@/components/error-page';
+import { errorPageLocale, useErrorPageMessages } from '@/components/error-page';
 import { directionOf } from '@/i18n/locales';
-import '@fontsource-variable/vazirmatn';
-// The interface face of a Latin-script page (D-198); the error page draws no
-// editorial or mono text, so it needs no other family.
-import '@fontsource-variable/mona-sans/wdth.css';
-import './globals.css';
+
+// The body and its stylesheet, fetched when this boundary is drawn (T-1536).
+const GlobalErrorBody = dynamic(() => import('./global-error-body').then((m) => m.GlobalErrorBody));
 
 /**
  * The last boundary (T-809): an error in the locale layout itself. It
  * replaces that layout, so it writes its own document -- and with it the
  * `lang` and `dir` the layout would have written, from the route's locale or
  * the path, never a document without them. Its own styles too, since the
- * layout's imports are gone with it. No theme cookie here: the tokens follow
- * the device, which is the honest default when the layout that reads the
- * cookie is the thing that failed.
+ * layout's imports are gone with it (`global-error-body.tsx`). No theme
+ * cookie here: the tokens follow the device, which is the honest default when
+ * the layout that reads the cookie is the thing that failed.
  */
 export default function GlobalError({
   retry,
@@ -31,8 +30,8 @@ export default function GlobalError({
   return (
     <html lang={locale} dir={directionOf(locale)}>
       <body>
-        <title>FMIP</title>
-        <ErrorPageBody locale={locale} kind="failed" messages={messages} onRetry={retry} />
+        <title>Stadiomind</title>
+        <GlobalErrorBody locale={locale} kind="failed" messages={messages} onRetry={retry} />
       </body>
     </html>
   );

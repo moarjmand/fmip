@@ -1,11 +1,7 @@
-import {
-  type CommunityConsensusResponse,
-  type ConsensusListEntry,
-  MIN_CONSENSUS_SAMPLE,
-} from '@fmip/contracts';
+import { type CommunityConsensusResponse, MIN_CONSENSUS_SAMPLE } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
-import { interpolate, message, plural, t } from '@/i18n/messages';
+import { interpolate, message, t } from '@/i18n/messages';
 import { formatKickoff } from '@/lib/scores';
 import { formatPercent, formatSigned } from '@/lib/words';
 import { FilledMessage } from '@/components/filled-message';
@@ -206,7 +202,10 @@ export function CommunityPicksBrief({
       <div className="flex flex-col gap-2" data-testid="community-brief" data-spread="shown">
         <CommunitySplit consensus={consensus} home={home} away={away} locale={l} />
         {!revealed && (
-          <Link href={href} className="text-sm font-bold text-community underline">
+          <Link
+            href={href}
+            className="inline-flex min-h-touch items-center text-sm font-bold text-community underline md:min-h-0"
+          >
             <Translated locale={l} message="pick.make" />
           </Link>
         )}
@@ -221,7 +220,10 @@ export function CommunityPicksBrief({
       <p className="text-sm text-muted">
         <Translated locale={l} message="lanes.community.hidden" />
       </p>
-      <Link href={href} className="text-sm font-bold text-community underline">
+      <Link
+        href={href}
+        className="inline-flex min-h-touch items-center text-sm font-bold text-community underline md:min-h-0"
+      >
         <Translated locale={l} message="pick.make" />
       </Link>
     </div>
@@ -501,103 +503,6 @@ export function CommunityForecastPanel({
             }}
           />
         </p>
-      )}
-    </section>
-  );
-}
-
-/**
- * The community consensus across several matches, for the Predictions page
- * (T-137, blueprint 2.1).
- *
- * It lives in this file rather than in a shared "product list" component, and
- * that is the point: one file per product means there is no component in the
- * codebase that renders "a prediction" and no place for a `source` prop to
- * appear (rule 6).
- *
- * Only matches that actually have a consensus are listed. A match where four
- * people have predicted is not a small consensus, it is none (D-052), and
- * padding the list with rows saying so would drown the ones that mean
- * something — while suggesting the site has more community activity than it
- * does.
- *
- * The spread of a match is shown only once the reader has picked it or
- * kick-off has locked every pick (T-1383, as D-206 on the match centre):
- * before that the row says how many members have picked and nothing about
- * what, so the spread cannot anchor the reader's own pick.
- */
-export function CommunityConsensusList({
-  entries,
-  fixtures,
-  revealed,
-  locale,
-}: {
-  entries: ConsensusListEntry[];
-  /** Names for the fixtures, by id, so a row can say who is playing. */
-  fixtures: Map<string, { home: string; away: string }>;
-  /** The matches whose spread may be shown: picked by the reader, or kicked off. */
-  revealed: ReadonlySet<string>;
-  locale: string;
-}) {
-  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const withConsensus = entries.filter((entry) => entry.consensus.data !== null);
-
-  return (
-    <section className="flex flex-col gap-2" data-testid="predictions-consensus">
-      <h2 className="font-serif text-2xl font-semibold">
-        <Translated locale={locale} message="matchCentre.community.listTitle" />
-      </h2>
-      <p className="text-sm text-muted">
-        <Translated locale={locale} message="matchCentre.community.intro" />
-      </p>
-      {withConsensus.length === 0 ? (
-        <p className="text-sm text-muted">
-          <Translated
-            locale={locale}
-            message="matchCentre.community.listNone"
-            count={MIN_CONSENSUS_SAMPLE}
-          />
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {withConsensus.map((entry) => {
-            const data = entry.consensus.data;
-            if (data === null) return null;
-            const teams = fixtures.get(entry.fixture_id);
-            const percentages = sharesToPercentages(data.crowd.shares);
-            return (
-              <li key={entry.fixture_id} className="flex flex-col gap-1">
-                <Link href={`/${locale}/match/${entry.fixture_id}`} className="text-sm underline">
-                  {teams === undefined
-                    ? t(l, 'matchCentre.title')
-                    : interpolate(t(l, 'matchCentre.fixtureTitle'), teams)}
-                </Link>
-                {revealed.has(entry.fixture_id) ? (
-                  <p className="text-sm" data-testid="consensus-list-spread">
-                    {interpolate(t(l, 'matchCentre.community.listLine'), {
-                      home: teams?.home ?? t(l, 'matchCentre.home'),
-                      homePct: formatPercent(l, percentages.home),
-                      drawPct: formatPercent(l, percentages.draw),
-                      away: teams?.away ?? t(l, 'matchCentre.away'),
-                      awayPct: formatPercent(l, percentages.away),
-                    })}{' '}
-                    <span className="text-muted">
-                      · {plural(l, 'matchCentre.community.predictions', data.sample).text}
-                    </span>
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted" data-testid="consensus-list-hidden">
-                    <Translated
-                      locale={l}
-                      message="matchCentre.community.listHidden"
-                      count={data.sample}
-                    />
-                  </p>
-                )}
-              </li>
-            );
-          })}
-        </ul>
       )}
     </section>
   );

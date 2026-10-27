@@ -22,12 +22,18 @@
  *
  * The GNews job does not write such an item, and the news lists do not show
  * one stored before from a search source: the same function on both sides,
- * as `nonArticleKind` is (D-211). A publisher's own football feed is not
- * judged by it: a feed the publisher files as football is football, and a
- * piece on an owner who once played in the NFL is still about his club.
+ * as `nonArticleKind` is (D-211). A publisher's own football feed is judged
+ * by it only for an item filed to no club, competition or player of ours
+ * (T-1619, D-290): a piece on an owner who once played in the NFL is still
+ * about his club, but a feed that slips in a rugby story names none of ours.
  */
 export type OtherCode =
-  'american_football' | 'gaelic_games' | 'australian_rules' | 'rugby_league' | 'other_sport';
+  | 'american_football'
+  | 'gaelic_games'
+  | 'australian_rules'
+  | 'rugby_league'
+  | 'rugby_union'
+  | 'other_sport';
 
 export interface OtherCodeRule {
   code: OtherCode;
@@ -240,6 +246,34 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
   {
     code: 'rugby_league',
     pattern: words('rugby league|super league grand final'),
+    caseSensitive: false,
+  },
+  // T-1619 (D-290): rugby union, which a publisher's football feed carried
+  // ("Ireland prop Furlong cited ... in Leinster's United Rugby Championship
+  // win"). Its competitions and positions only: "rugby" alone is also a town
+  // and a ball kicked into a football ground.
+  { code: 'rugby_union', pattern: words('URC'), caseSensitive: true },
+  {
+    code: 'rugby_union',
+    pattern: words(
+      [
+        'rugby union',
+        'united rugby championship',
+        'six nations',
+        'premiership rugby',
+        'super rugby',
+        'top 14',
+        'rugby championship',
+        'rugby world cup',
+        'fly-halfs?',
+        'fly-halves',
+        'scrum-halfs?',
+        'scrum-halves',
+        'tighthead',
+        'loosehead',
+        'lineouts?',
+      ].join('|'),
+    ),
     caseSensitive: false,
   },
   // The competition names the query uses are also cricket's, handball's and

@@ -1,12 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  Covered,
   PlayerAvailability,
   PlayerMatch,
   PlayerPage,
+  PlayerPosition,
   PlayerSeasonMinutes,
   PlayerSeasonRecord,
   PlayerSpell,
+  SquadPosition,
 } from '@fmip/contracts';
+import { absenceReason } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { mainPhaseSql, mainPhaseStartSql } from '../../../database/main-phase';
@@ -104,6 +108,8 @@ export function availabilityOf(row: AvailabilityRow | null): PlayerAvailability 
         status: row.status ?? 'not_listed',
         kind: row.status === null ? null : row.kind,
         reason: row.status === null ? null : row.reason,
+        // The provider's words in ours, read at read time (T-1601): no backfill.
+        reason_code: row.status === null ? null : absenceReason(row.reason),
         reported_at: row.status === null ? null : (row.reported_at?.toISOString() ?? null),
       },
     },
@@ -212,6 +218,45 @@ export class PostgresPlayerStore {
     return rows[0] ?? null;
   }
 
+  /**
+   * What our other records say the player's position is (T-1603), for a
+   * player with no open spell naming one: the newest squad listing that names
+   * one, and the position most often held in the last ten line-ups that name
+   * one (ties to the most recent).
+   */
+  async positionSources(personId: string): Promise<PositionSources> {
+    const [squad, lineup] = await Promise.all([
+      this.pool.query<{ position: SquadPosition; listed_at: Date }>(
+        `SELECT position, listed_at FROM team_squad_member
+          WHERE person_id = $1 AND position IS NOT NULL
+          ORDER BY listed_at DESC LIMIT 1`,
+        [personId],
+      ),
+      this.pool.query<{ position: SquadPosition; newest: Date }>(
+        `WITH recent AS (
+           SELECT l.position, f.kickoff_at
+             FROM lineup l
+             JOIN fixture_participant p ON p.id = l.participant_id
+             JOIN fixture f ON f.id = p.fixture_id
+            WHERE l.person_id = $1 AND l.position IS NOT NULL
+            ORDER BY f.kickoff_at DESC
+            LIMIT 10)
+         SELECT position, (SELECT max(kickoff_at) FROM recent) AS newest
+           FROM recent
+          GROUP BY position
+          ORDER BY count(*) DESC, max(kickoff_at) DESC
+          LIMIT 1`,
+        [personId],
+      ),
+    ]);
+    const s = squad.rows[0];
+    const l = lineup.rows[0];
+    return {
+      squad: s === undefined ? null : { position: s.position, at: s.listed_at.toISOString() },
+      lineup: l === undefined ? null : { position: l.position, at: l.newest.toISOString() },
+    };
+  }
+
   /** Newest first; an open spell (no end) before any closed one starting the same day. */
   async spells(personId: string): Promise<PlayerSpell[]> {
     const { rows } = await this.pool.query<{
@@ -256,8 +301,13 @@ export class PostgresPlayerStore {
    * over the matches the player played (a start, on from the bench, or
    * minutes above zero on record), how many carry the feed's `minutes` and
    * their sum; `seasonMinutes` turns that into a coverage state.
+   *
+   * `eventsShort` (T-1579): the finished matches among them whose stored
+   * events cannot be the whole match -- none at all, or fewer goals than the
+   * score. Their goals, assists and cards are counted from what is stored,
+   * so the page must not read the totals as complete.
    */
-  async record(personId: string): Promise<PlayerSeasonRecord[]> {
+  async record(personId: string): Promise<{ rows: PlayerSeasonRecord[]; eventsShort: number }> {
     const { rows } = await this.pool.query<{
       season_id: string;
       season_label: string;
@@ -275,13 +325,21 @@ export class PostgresPlayerStore {
       matches_played: string;
       matches_with_minutes: string;
       supplied_minutes: string;
+      events_short: string;
     }>(
       `WITH lined AS (
          SELECT f.id AS fixture_id, f.season_id, p.id AS participant_id, p.team_id, l.role,
                 EXISTS (SELECT 1 FROM incident s
                          WHERE s.fixture_id = f.id AND s.kind = 'substitution'
                            AND s.related_person_id = l.person_id) AS came_on,
-                m.value AS minutes
+                m.value AS minutes,
+                (f.status = 'finished' AND (
+                   NOT EXISTS (SELECT 1 FROM incident e WHERE e.fixture_id = f.id)
+                   OR (SELECT count(*) FROM incident g
+                        WHERE g.fixture_id = f.id
+                          AND g.kind IN ('goal', 'penalty_goal', 'own_goal'))
+                      < (SELECT sc.home + sc.away FROM fixture_score sc
+                          WHERE sc.fixture_id = f.id AND sc.kind = 'full_time'))) AS events_short
            FROM lineup l
            JOIN fixture_participant p ON p.id = l.participant_id
            JOIN fixture f ON f.id = p.fixture_id
@@ -310,7 +368,8 @@ export class PostgresPlayerStore {
                     AND i.person_id = $1 AND i.kind IN ('red_card', 'second_yellow_card')) AS red_cards,
                 count(*) FILTER (WHERE n.played) AS matches_played,
                 count(*) FILTER (WHERE n.played AND n.minutes IS NOT NULL) AS matches_with_minutes,
-                COALESCE(sum(n.minutes) FILTER (WHERE n.played), 0) AS supplied_minutes
+                COALESCE(sum(n.minutes) FILTER (WHERE n.played), 0) AS supplied_minutes,
+                count(*) FILTER (WHERE n.events_short) AS events_short
            FROM named n
           GROUP BY n.season_id, n.team_id
        )
@@ -319,7 +378,7 @@ export class PostgresPlayerStore {
               t.id AS team_id, t.name AS team_name,
               k.starts::text, k.sub_appearances::text, k.goals::text, k.assists::text,
               k.yellow_cards::text, k.red_cards::text, k.matches_played::text,
-              k.matches_with_minutes::text, k.supplied_minutes::text
+              k.matches_with_minutes::text, k.supplied_minutes::text, k.events_short::text
          FROM counted k
          JOIN season se ON se.id = k.season_id
          JOIN competition c ON c.id = se.competition_id
@@ -327,7 +386,8 @@ export class PostgresPlayerStore {
         ORDER BY se.start_date DESC, c.name, t.name`,
       [personId],
     );
-    return rows.map((r) => ({
+    const eventsShort = rows.reduce((sum, r) => sum + Number(r.events_short), 0);
+    const records = rows.map((r) => ({
       season: { id: r.season_id, label: r.season_label },
       competition: {
         id: r.competition_id,
@@ -347,6 +407,7 @@ export class PostgresPlayerStore {
         Number(r.supplied_minutes),
       ),
     }));
+    return { rows: records, eventsShort };
   }
 
   /**
@@ -545,4 +606,44 @@ export class PostgresPlayerStore {
       })),
     };
   }
+}
+
+/** The squad listing's and the line-ups' word on a player's position (T-1603). */
+export interface PositionSources {
+  squad: { position: SquadPosition; at: string } | null;
+  lineup: { position: SquadPosition; at: string } | null;
+}
+
+/**
+ * A player's position, and what says so (T-1603): the open spell, else the
+ * newest squad listing (both a registration: `available`), else the line-ups
+ * (`limited`: what the player played, not what they are registered as).
+ * `not_supplied` when none names one; never guessed (rule 3).
+ */
+export function positionOf(
+  spell: PlayerSpell | null,
+  sources: PositionSources,
+): Covered<PlayerPosition> {
+  if (spell !== null && spell.position !== null) {
+    return {
+      coverage: 'available',
+      last_updated_at: null,
+      data: { value: spell.position, basis: 'spell' },
+    };
+  }
+  if (sources.squad !== null) {
+    return {
+      coverage: 'available',
+      last_updated_at: sources.squad.at,
+      data: { value: sources.squad.position, basis: 'squad' },
+    };
+  }
+  if (sources.lineup !== null) {
+    return {
+      coverage: 'limited',
+      last_updated_at: sources.lineup.at,
+      data: { value: sources.lineup.position, basis: 'lineup' },
+    };
+  }
+  return { coverage: 'not_supplied', last_updated_at: null, data: null };
 }

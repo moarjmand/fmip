@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { MatchCentreView, SECTIONS, TABS } from './match-centre-view';
 import { Coverage, HeadToHead, MatchForm } from './match-record';
-import { ScoreCard } from './score-card';
+import { CardDetails, ScoreCard } from './score-card';
 import { EN } from '@/i18n/messages';
 import { matchWords, scoresWords } from '@/lib/words-server';
 
@@ -12,8 +12,8 @@ const MATCH_EN = matchWords('en');
 
 /**
  * Scores and the match centre, phone first (T-605). Rendered, not read from
- * the source: what is asserted is the markup a phone gets -- one line per
- * match with the rest behind a disclosure that keeps every label, and a
+ * the source: what is asserted is the markup a phone gets -- one row per
+ * match with the rest in its preview's details (T-1496), and a
  * match page whose sections are plain anchors, the three prediction products
  * three of them.
  */
@@ -61,33 +61,31 @@ describe('a match on the scores list', () => {
     expect(html).toContain('data-testid="match-link"');
     expect(html).toContain('href="/en/match/00000000-0000-4000-8000-000000000901"');
     expect(html).toMatch(/data-testid="score-status"[^>]*>67′</);
-    expect(html).toMatch(/text-live[^"]*" data-testid="score-status"/);
+    expect(html).toMatch(/text-live" data-testid="score-status"/);
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm" title="Liverpool">Liverpool<\/bdi>/,
+      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm font-semibold" title="Liverpool">Liverpool<\/bdi>/,
     );
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm" title="Manchester United">/,
+      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm font-semibold" title="Manchester United">/,
     );
     expect(html).toContain('min-h-11');
     expect(html).toContain('aria-label="one red card"');
-    // Tighter gaps on a phone, so a name's longest word fits its column (T-1484).
-    expect(html).toContain('class="flex min-w-0 items-center gap-2 max-sm:gap-1"');
+    // T-1496: the teams stacked, each with its own goals at the line's end.
+    expect(html).toMatch(/data-testid="home-score"[^>]*>2</);
+    expect(html).toMatch(/data-testid="away-score"[^>]*>1</);
   });
 
-  it('keeps every label, behind a disclosure named for the match', () => {
-    expect(html).toContain('<details');
-    expect(html).toContain('Details: Liverpool v Manchester United');
-    for (const id of [
-      'score-card',
-      'home-team',
-      'away-team',
-      'score',
-      'incidents',
-      'card-labels',
-    ]) {
+  it('keeps every label in the preview’s details, none on the row (T-1496)', () => {
+    expect(html).not.toContain('<details');
+    for (const id of ['score-card', 'home-team', 'away-team', 'home-score', 'row-forecast']) {
       expect(html).toContain(`data-testid="${id}"`);
     }
-    const details = html.slice(html.indexOf('<details'));
+    const details = renderToStaticMarkup(
+      <CardDetails words={SCORES_EN} card={card()} timeZone="UTC" locale="en" revealed />,
+    );
+    for (const id of ['incidents', 'card-labels']) {
+      expect(details).toContain(`data-testid="${id}"`);
+    }
     // T-940: three lines, each saying why when it has no figure.
     expect(details).toContain('data-testid="card-forecast" data-state="not_loaded"');
     expect(details).toContain('data-testid="card-community" data-state="not_loaded"');
@@ -99,25 +97,24 @@ describe('a match on the scores list', () => {
 
   it('carries the model line, the community totals and the viewing line, each named (T-940)', () => {
     const full = renderToStaticMarkup(
-      <ul>
-        <ScoreCard
-          words={SCORES_EN}
-          card={card({ status: 'scheduled', minute: null })}
-          timeZone="UTC"
-          locale="en"
-          forecast={{
-            state: 'available',
-            home: 46.4,
-            draw: 26.2,
-            away: 27.4,
-            version: 3,
-            model_version: 'dixon-coles-elo@0.3.0',
-            computed_at: '2025-01-05T15:30:00.000Z',
-          }}
-          community={{ state: 'below_floor' }}
-          viewing={{ state: 'ask' }}
-        />
-      </ul>,
+      <CardDetails
+        words={SCORES_EN}
+        card={card({ status: 'scheduled', minute: null })}
+        timeZone="UTC"
+        locale="en"
+        revealed
+        forecast={{
+          state: 'available',
+          home: 46.4,
+          draw: 26.2,
+          away: 27.4,
+          version: 3,
+          model_version: 'dixon-coles-elo@0.3.0',
+          computed_at: '2025-01-05T15:30:00.000Z',
+        }}
+        community={{ state: 'below_floor' }}
+        viewing={{ state: 'ask' }}
+      />,
     );
     expect(full).toMatch(/data-testid="card-forecast" data-state="available"/);
     expect(full).toContain('46.4%');
@@ -126,17 +123,16 @@ describe('a match on the scores list', () => {
     expect(full).toContain('href="/en/watch"');
 
     const none = renderToStaticMarkup(
-      <ul>
-        <ScoreCard
-          words={SCORES_EN}
-          card={card()}
-          timeZone="UTC"
-          locale="en"
-          forecast={{ state: 'none' }}
-          community={{ state: 'available', sample: 7, home: 4, draw: 1, away: 2 }}
-          viewing={{ state: 'nothing_listed', territory: 'Iran' }}
-        />
-      </ul>,
+      <CardDetails
+        words={SCORES_EN}
+        card={card()}
+        timeZone="UTC"
+        locale="en"
+        revealed
+        forecast={{ state: 'none' }}
+        community={{ state: 'available', sample: 7, home: 4, draw: 1, away: 2 }}
+        viewing={{ state: 'nothing_listed', territory: 'Iran' }}
+      />,
     );
     expect(none).toContain('the model had no forecast for this match before kick-off.');
     expect(none).toContain('of 7 members, not the model');
@@ -153,7 +149,7 @@ describe('a match on the scores list', () => {
         showCompetition
       />,
     );
-    const meta = row.slice(row.indexOf('data-testid="row-meta"'), row.indexOf('<details'));
+    const meta = row.slice(row.indexOf('data-testid="row-meta"'), row.indexOf('</a>'));
     expect(meta).toContain('Premier League');
     expect(meta).toContain('Leg 2');
     expect(meta).toContain('Agg');
@@ -169,9 +165,8 @@ describe('a match on the scores list', () => {
         now={Date.parse('2025-01-05T18:00:00Z')}
       />,
     );
-    const behind = row.indexOf('data-testid="behind"');
-    expect(behind).toBeGreaterThan(-1);
-    expect(behind).toBeLessThan(row.indexOf('<details'));
+    expect(row).toContain('data-testid="behind"');
+    expect(row).toContain('role="status"');
     expect(row).toMatch(/data-testid="score-status"[^>]*>Behind</);
   });
 });
@@ -301,18 +296,25 @@ describe('the match centre', () => {
     expect(header).toContain('data-testid="match-header"');
     expect(header).toMatch(/data-testid="match-status">67′</);
     expect(header).toMatch(/<bdi class="[^"]*">Liverpool<\/bdi>/);
-    // The live minute in red, with the word and the pulsing dot (T-1384).
-    expect(header).toMatch(/bg-live\/15 text-live"><span aria-hidden="true" class="live-dot/);
-    // The score large and condensed, home first in the page's direction (D-193).
-    expect(header).toMatch(/<span dir="ltr" class="[^"]*font-black[^"]*" data-testid="score">2</);
+    // The live badge in saffron, with the word and the pulsing dot (T-1497,
+    // the Design System's LiveBadge since T-1523).
+    expect(header).toMatch(
+      /data-testid="live-badge" data-live="true"><span data-live-badge="" class="[^"]*bg-brand\/14[^"]*"><span aria-hidden="true" class="live-dot/,
+    );
+    // The score large and narrow, home first in the page's direction (D-193).
+    expect(header).toMatch(
+      /<span dir="ltr" class="[^"]*font-stretch-condensed[^"]*" data-testid="score">2</,
+    );
     // 16:30 UTC is 20:00 in Tehran.
     expect(header).toMatch(/Kick-off <time dateTime="2025-01-05T16:30:00.000Z">[^<]*20:00/);
     expect(header).toContain('Last data update');
   });
 
-  it('has a phone tab bar of plain anchors, each to a section that exists (T-1384)', () => {
+  it('has a tab bar of plain anchors, each to a section that exists (T-1384, T-1497)', () => {
     const nav = html.slice(html.indexOf('<nav'), html.indexOf('</nav>'));
-    expect(nav).toContain('md:hidden');
+    // At every width, at the foot of the score band: jump links from 768px.
+    expect(nav).toContain('data-testid="section-nav"');
+    expect(html.indexOf('data-testid="section-nav"')).toBeLessThan(html.indexOf('</header>'));
     for (const [tab, label] of TABS) {
       expect(nav).toContain(`href="#${tab}"`);
       expect(nav).toContain(`data-tab-link="${tab}"`);
@@ -330,12 +332,16 @@ describe('the match centre', () => {
     }
   });
 
-  it('lays the sections out in three columns from 768px and as tabs below it', () => {
+  it('lays the sections out in a main and a side column from 768px and as tabs below it', () => {
     expect(html).toContain('data-match-tabs=""');
-    for (const column of ['events', 'teams', 'forecasts']) {
-      expect(html).toContain(`data-column="${column}"`);
+    for (const column of ['main', 'side']) {
+      expect(html).toMatch(new RegExp(`max-md:contents[^"]*" data-column="${column}"`));
     }
-    expect(html).toMatch(/max-md:contents[^"]*" data-column="events"/);
+    // The Design System's flex: the main column 999 1 640px, the side 1 1 340px.
+    expect(html).toMatch(/md:grow-999 md:basis-160" data-column="main"/);
+    expect(html).toMatch(/md:grow md:basis-85" data-column="side"/);
+    // The side column's sections belong to the Summary tab on a phone.
+    expect(html).toMatch(/data-column="side"><div class="[^"]*" data-tab="summary">/);
   });
 
   it('keeps the model, the founder and the community in three sections, in that order', () => {
@@ -353,14 +359,13 @@ describe('the match centre', () => {
     expect(at('predictions')).toBeLessThan(at('forecast'));
   });
 
-  it('draws the statistics as a grid of tiles with their bars, in the brand green only', () => {
+  it('draws each statistic as a split bar, home in ink and away in grey (Design System StatBar)', () => {
     const stats = html.slice(html.indexOf('data-testid="statistics"'));
     expect(stats).toContain('data-testid="stat-grid"');
-    expect(stats).toContain('@md:grid-cols-2');
     expect(stats).toMatch(/data-metric="shots"/);
-    // 10 of 14 shots: the home bar 71.4% of its half, the away 28.6%.
-    expect(stats).toMatch(/bg-accent" style="inline-size:71\.42\d*%"/);
-    expect(stats).toMatch(/bg-muted" style="inline-size:28\.57\d*%"/);
+    // 10 of 14 shots: the two shares of one bar, home from the inline start.
+    expect(stats).toMatch(/bg-fg" style="inline-size:71\.42\d*%" data-side="home"/);
+    expect(stats).toMatch(/bg-caption" style="inline-size:28\.57\d*%" data-side="away"/);
     // Never a club colour: the brand green and the neutral token only.
     expect(stats.slice(0, stats.indexOf('</section>'))).not.toMatch(/bg-(model|founder|community)/);
   });
@@ -392,19 +397,24 @@ describe('the match centre', () => {
 });
 
 describe('the scores card and the match centre in Persian (T-1303)', () => {
-  const card_ = renderToStaticMarkup(
-    <ul>
-      <ScoreCard words={scoresWords('fa')} card={card()} timeZone="UTC" locale="fa" />
-    </ul>,
-  );
+  const card_ =
+    renderToStaticMarkup(
+      <ul>
+        <ScoreCard words={scoresWords('fa')} card={card()} timeZone="UTC" locale="fa" />
+      </ul>,
+    ) +
+    renderToStaticMarkup(
+      <CardDetails words={scoresWords('fa')} card={card()} timeZone="UTC" locale="fa" revealed />,
+    );
   const view = renderToStaticMarkup(
     <FullView words={matchWords('fa')} centre={centre} timeZone="Asia/Tehran" locale="fa" />,
   );
 
   it('says the card in Persian, with the minute and the score in Persian digits, isolated', () => {
     expect(card_).toMatch(/data-testid="score-status"[^>]*>۶۷′</);
-    // Isolated right to left (T-1375): the home goals on the home side.
-    expect(card_).toMatch(/<span dir="rtl"[^>]*data-testid="score">۲ – ۱</);
+    // Each side's goals on its own line, beside its own team (T-1375, T-1496).
+    expect(card_).toMatch(/data-testid="home-score"[^>]*>۲</);
+    expect(card_).toMatch(/data-testid="away-score"[^>]*>۱</);
     expect(card_).toContain('aria-label="یک کارت قرمز"');
     expect(card_).toContain('شروع بازی');
     expect(card_).toContain('نتایج: موجود');

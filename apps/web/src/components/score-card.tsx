@@ -3,7 +3,8 @@ import Link from '@/components/ui/link';
 import { formatNumber } from '@/i18n/format';
 import { isBehind } from '@/lib/live';
 import { shootoutStart } from '@/lib/match';
-import { formatKickoff, formatStamp, scoreLabel, statusLabel } from '@/lib/scores';
+import { formatKickoff, formatStamp, scoreLine, statusLabel } from '@/lib/scores';
+import { isOpenForPick } from '@/lib/scores-filters';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
 import { stageAndRoundLabels } from '@/lib/stage-label';
 import { fill, filled, formatMinute, pickPlural } from '@/lib/words';
@@ -11,9 +12,10 @@ import type { ScoresWords } from '@/lib/words-server';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
-import { ScorePair, pairIsolate } from '@/components/score';
+import { pairIsolate } from '@/components/score';
 import { CardCommunityTotals } from '@/components/score-card-community';
-import { CardForecastSummary } from '@/components/score-card-forecast';
+import { CardForecastSummary, RowForecast } from '@/components/score-card-forecast';
+import { Icon } from '@/components/ui/icons';
 
 const INCIDENT_KEY = {
   goal: 'matchCentre.incident.goal',
@@ -34,19 +36,24 @@ export const COVERAGE_KEY = {
 } as const satisfies Record<CoverageState, string>;
 
 /**
- * One match on the scores list (blueprint 4.1), phone first (T-605).
+ * One match on the matches page (blueprint 4.1), in the Stadiomind design
+ * (T-1496, the Design System's `MatchRow`): the status or clock, both teams
+ * stacked, home first, each with its crest and, once the match has started,
+ * its own goals at the line's end, so a score always sits beside its own
+ * team in either direction; then the model's three percentages (or "Not
+ * supplied", never an empty bar, rule 3) and the Pick action. Below 640 px
+ * the model's cell drops under the teams (T-1545): beside them it left a
+ * name 21 to 51 px, so "Paykan" broke in two and "Crystal Palace" read
+ * "Cry st…".
  *
- * The row is one line and one link: status or clock, home, score, away, the
- * names cut short with an ellipsis rather than wrapping, each in a `<bdi>` so
- * a name in another script cannot reorder the line. It is at least 44px tall,
- * a thumb's target. Everything else the card carries -- the stage and round,
- * kick-off and venue, goals and cards, the model's forecast summary, the
- * community's totals and where to watch (T-940), each with its reason when it
- * has no figure (rule 3) -- is one press away behind the row's own
- * disclosure, so a Saturday with every league playing is a list a phone can
- * scroll. Two things never hide: a leg or an aggregate (it changes what the
- * score means) and a feed that is behind (rule 4), which is said on the row.
- * The block's "Updated" line is the list's (`LiveScores`), per competition.
+ * The status and the teams are one link to the match centre, at least 44px
+ * tall. Pick is its own link: it opens the page's preview of this match with
+ * the pick form (`?pick=`), the side column on a desktop and above the list on
+ * a phone. Two things the row never hides: a leg or an aggregate (it changes
+ * what the score means) and a feed that is behind (rule 4). Everything else
+ * the old card folded behind a disclosure -- kick-off and venue, goals and
+ * cards, the model's version, the community's line, where to watch, the
+ * coverage and the update time -- is the preview's (`CardDetails`).
  *
  * Every word is the reader's (T-1303): this renders inside a client
  * component, so the page resolves the words on the server and hands them down.
@@ -54,10 +61,35 @@ export const COVERAGE_KEY = {
 /**
  * A team's name wraps onto a second line before it is cut: at 360 px one line
  * left "Nassaji Maz…" and "Aluminium …" on a real match day (T-1202). On a
- * phone it is a step smaller, so a word fits its column before it breaks: at
- * 375 px "Nottingham Forest" read "Nottingh / am…" (T-1479).
+ * phone it is a step smaller, so a word fits its column before it breaks.
  */
 const NAME = 'line-clamp-2 break-words leading-tight max-sm:text-sm';
+
+/** Where the row's Pick stands for this reader (T-1496, D-206's lock at kick-off). */
+export type RowPick = 'open' | 'picked' | 'locked' | 'locked-picked';
+
+export function rowPick(
+  card: Pick<ScoreCardData, 'status' | 'kickoff_at'>,
+  picked: boolean,
+  now: number = Date.now(),
+): RowPick {
+  if (isOpenForPick(card, now)) return picked ? 'picked' : 'open';
+  return picked ? 'locked-picked' : 'locked';
+}
+
+const PICK_WORD = {
+  open: 'scores.row.pick',
+  picked: 'scores.row.picked',
+  locked: 'scores.row.view',
+  'locked-picked': 'scores.row.picked',
+} as const satisfies Record<RowPick, string>;
+
+const PICK_LABEL = {
+  open: 'scores.row.pickLabel',
+  picked: 'scores.row.pickedLabel',
+  locked: 'scores.row.viewLabel',
+  'locked-picked': 'scores.row.pickedLabel',
+} as const satisfies Record<RowPick, string>;
 
 export function ScoreCard({
   card,
@@ -66,8 +98,9 @@ export function ScoreCard({
   now,
   showCompetition = false,
   forecast,
-  community,
-  viewing,
+  picked = false,
+  selected = false,
+  pickHref,
   words,
 }: {
   card: ScoreCardData;
@@ -78,13 +111,17 @@ export function ScoreCard({
   /** In the favourites block, where no competition heading says it. */
   showCompetition?: boolean;
   /**
-   * T-940 (D-114): the model's line, the community's line and the viewing
-   * indicator, each from its own batch and its own component. Absent (a match
-   * the stream added after the page loaded) is said, never drawn empty.
+   * The model's latest pre-kick-off version (T-940, D-114), from its own
+   * batch. Absent (a match the stream added after the page loaded) is said,
+   * never drawn empty.
    */
   forecast?: CardForecast;
-  community?: CardCommunity;
-  viewing?: CardViewing;
+  /** The reader has a standing pick on this match (T-1496). */
+  picked?: boolean;
+  /** This match's preview is the one open. */
+  selected?: boolean;
+  /** Where Pick leads: this page with this match's preview open. Absent: no Pick. */
+  pickHref?: string;
   /** The reader's words, resolved on the server (T-1303). */
   words: ScoresWords;
 }) {
@@ -126,186 +163,260 @@ export function ScoreCard({
             `${n(card.scores.penalties.home)}–${n(card.scores.penalties.away)}`,
           ),
         });
-  const kicksFrom = shootoutStart(card.incidents, card.scores.penalties);
-  const stageBits = [
-    ...stageAndRoundLabels(card.stage?.name, card.round, (key) => m[key].text, locale),
-    leg,
-    aggregate,
-  ].filter((bit): bit is string => typeof bit === 'string' && bit !== '');
   // What stays on the row under the teams: what changes the score's meaning.
   const rowBits = [showCompetition ? card.competition.name : null, leg, aggregate, shootout].filter(
     (bit): bit is string => bit !== null,
   );
   const live = card.status === 'live';
-  // A freshness time on another day says which (T-1371).
-  const at = (iso: string) => <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time>;
+  const line = scoreLine(card);
+  // At full time the winner is bold and the loser muted; a draw keeps both in ink.
+  const weight = (side: 'home' | 'away'): string => {
+    if (card.status !== 'finished' || line === null || line.home === line.away) {
+      return 'font-semibold';
+    }
+    const won = side === 'home' ? line.home > line.away : line.away > line.home;
+    return won ? 'font-bold' : 'font-medium text-muted';
+  };
+  const team = (side: 'home' | 'away') => {
+    const t = card[side];
+    return (
+      <span className="flex min-w-0 items-center gap-2" data-testid={`${side}-team`}>
+        <EntityImage media={t.crest} kind="crest" name={t.name} size={20} />
+        <bdi className={`${NAME} ${weight(side)}`} title={t.name}>
+          {t.name}
+        </bdi>
+        {sentOff(card.red_cards[side])}
+        {line !== null && (
+          <span
+            className={`ms-auto shrink-0 ps-2 font-bold tabular-nums ${live ? 'text-live' : ''}`}
+            data-testid={`${side}-score`}
+          >
+            {n(line[side])}
+          </span>
+        )}
+      </span>
+    );
+  };
+  const pick = rowPick(card, picked, now);
+  const mine = pick === 'picked' || pick === 'locked-picked';
 
   return (
     <li
-      className="relative flex flex-col"
+      className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-2.5 px-4 data-selected:bg-selected sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] sm:gap-x-3.5"
       data-testid="score-card"
       data-fixture-id={card.id}
       data-status={card.status}
+      data-selected={selected ? '' : undefined}
+      aria-current={selected ? 'true' : undefined}
     >
       <Link
         href={`/${locale}/match/${card.id}`}
-        className="flex min-h-11 min-w-0 flex-col justify-center gap-0.5 py-2 ps-2 pe-11 hover:bg-surface-raised lite:gap-0 lite:py-1"
+        className="col-span-2 grid min-h-11 grid-cols-subgrid items-center py-2.5 hover:[&_bdi]:underline max-sm:row-start-1 max-sm:pb-1.5"
         data-testid="match-link"
       >
-        {/* Tighter on a phone (T-1484): at 375px each name had 75px and "Nottingham"
-            needed 75.3, so it still broke inside the word after T-1479. */}
-        <span className="flex min-w-0 items-center gap-2 max-sm:gap-1">
-          <span
-            className={`w-12 shrink-0 text-xs leading-tight hyphens-auto [overflow-wrap:anywhere] ${live ? 'font-semibold text-live' : 'text-muted'}`}
-            data-testid="score-status"
-          >
-            {statusLabel(card, locale, timeZone, now, m)}
-          </span>
-          <span
-            className="flex min-w-0 flex-1 items-center justify-end gap-1 text-end"
-            data-testid="home-team"
-          >
-            <bdi className={NAME} title={card.home.name}>
-              {card.home.name}
-            </bdi>
-            {sentOff(card.red_cards.home)}
-            {/* The crest on the inner side, beside the score, in either direction (T-1321). */}
-            <EntityImage media={card.home.crest} kind="crest" name={card.home.name} size={22} />
-          </span>
-          {/* Home goals on the home side, in either direction (T-1375). */}
-          <ScorePair
-            locale={locale}
-            className={`shrink-0 px-1 text-center font-semibold whitespace-nowrap tabular-nums ${live ? 'text-live' : ''}`}
-            testId="score"
-          >
-            {scoreLabel(card, locale)}
-          </ScorePair>
-          <span className="flex min-w-0 flex-1 items-center gap-1" data-testid="away-team">
-            <EntityImage media={card.away.crest} kind="crest" name={card.away.name} size={22} />
-            {sentOff(card.red_cards.away)}
-            <bdi className={NAME} title={card.away.name}>
-              {card.away.name}
-            </bdi>
-          </span>
+        <span
+          className={`text-sm leading-tight font-bold tabular-nums hyphens-auto [overflow-wrap:anywhere] ${live ? 'text-live' : ''}`}
+          data-testid="score-status"
+        >
+          {statusLabel(card, locale, timeZone, now, m)}
         </span>
-        {rowBits.length > 0 && (
-          <span className="truncate ps-14 text-xs text-muted" data-testid="row-meta">
-            {rowBits.join(' · ')}
-          </span>
-        )}
+        <span className="flex min-w-0 flex-col gap-1 sm:font-stretch-semi-condensed">
+          {team('home')}
+          {team('away')}
+          {rowBits.length > 0 && (
+            <span className="truncate text-xs text-muted" data-testid="row-meta">
+              {rowBits.join(' · ')}
+            </span>
+          )}
+        </span>
       </Link>
+
+      <RowForecast
+        forecast={forecast}
+        home={card.home.name}
+        away={card.away.name}
+        locale={locale}
+        words={words}
+        className="max-sm:col-start-2 max-sm:row-start-2 max-sm:pb-2.5"
+      />
+
+      {pickHref === undefined ? (
+        <span className="max-sm:col-start-3 max-sm:row-span-2 max-sm:row-start-1" />
+      ) : (
+        <Link
+          href={pickHref}
+          scroll={false}
+          aria-label={
+            filled(m[PICK_LABEL[pick]], { home: card.home.name, away: card.away.name }).text
+          }
+          className={`inline-flex min-h-11 items-center justify-center gap-1 justify-self-end rounded-control px-2.5 text-sm font-bold whitespace-nowrap max-sm:col-start-3 max-sm:row-span-2 max-sm:row-start-1 ${
+            selected
+              ? 'bg-brand text-on-brand'
+              : mine
+                ? 'text-live'
+                : 'border border-default hover:bg-surface-raised'
+          }`}
+          data-testid="row-pick"
+          data-pick={pick}
+        >
+          {mine && <Icon name={pick === 'picked' ? 'check' : 'lock'} size={14} />}
+          <MessageText message={m[PICK_WORD[pick]]} />
+        </Link>
+      )}
 
       {behind && (
         <p
           role="status"
-          className="px-3 pb-2 text-xs font-medium text-warning"
+          className="col-span-full pb-2 text-xs font-medium text-warning"
           data-testid="behind"
         >
           <FilledMessage
             message={m['scores.card.behind']}
-            params={{ time: at(card.last_updated_at) }}
+            params={{
+              time: (
+                <time dateTime={card.last_updated_at}>
+                  {formatStamp(locale, card.last_updated_at, timeZone, now)}
+                </time>
+              ),
+            }}
           />
         </p>
       )}
+    </li>
+  );
+}
 
-      <details className="group" data-testid="card-details">
-        <summary className="absolute end-0 top-0 flex size-11 cursor-pointer list-none items-center justify-center text-muted hover:bg-surface-raised [&::-webkit-details-marker]:hidden">
-          <span aria-hidden="true" className="transition-transform group-open:rotate-180">
-            ▾
+/**
+ * What the old card kept behind its disclosure (T-605), now the preview's
+ * (T-1496): competition, stage, kick-off and venue, goals and cards, the
+ * model's line with its version and time, the community's line -- only once
+ * the reader has picked or kick-off has locked every pick (D-206) -- where to
+ * watch, and the coverage and update time. Two prediction products, two
+ * lines, two components (rule 6). Safe on the server and in a client bundle.
+ */
+export function CardDetails({
+  card,
+  timeZone,
+  locale,
+  now,
+  forecast,
+  community,
+  viewing,
+  revealed,
+  model = true,
+  words,
+}: {
+  card: ScoreCardData;
+  timeZone: string;
+  locale: string;
+  now?: number;
+  forecast?: CardForecast;
+  community?: CardCommunity;
+  viewing?: CardViewing;
+  /** The reader has picked, or kick-off has locked every pick: the community may be shown. */
+  revealed: boolean;
+  /** The model's line; off where the model's own bar and receipt stand beside it. */
+  model?: boolean;
+  words: ScoresWords;
+}) {
+  const { m } = words;
+  const n = (value: number): string => formatNumber(locale, value);
+  const kicksFrom = shootoutStart(card.incidents, card.scores.penalties);
+  const leg = card.leg === null ? null : fill(m['scores.card.leg'].text, { leg: n(card.leg) });
+  const stageBits = [
+    ...stageAndRoundLabels(card.stage?.name, card.round, (key) => m[key].text, locale),
+    leg,
+  ].filter((bit): bit is string => typeof bit === 'string' && bit !== '');
+  // A freshness time on another day says which (T-1371).
+  const at = (iso: string) => <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time>;
+  return (
+    <div className="flex flex-col gap-1.5 text-xs" data-testid="card-details">
+      <p className="flex flex-wrap gap-x-3 text-muted">
+        <span>{card.competition.name}</span>
+        {stageBits.map((bit) => (
+          <span key={bit}>{bit}</span>
+        ))}
+        <span>
+          <FilledMessage
+            message={m['scores.card.kickoff']}
+            params={{
+              time: (
+                <time dateTime={card.kickoff_at}>
+                  {formatKickoff(locale, card.kickoff_at, timeZone)}
+                </time>
+              ),
+            }}
+          />
+        </span>
+        {card.venue !== null && (
+          <span>
+            {card.venue.city === null ? card.venue.name : `${card.venue.name}, ${card.venue.city}`}
           </span>
+        )}
+      </p>
+
+      {card.incidents.length > 0 && (
+        <ul className="flex flex-wrap gap-x-3" data-testid="incidents">
+          {card.incidents.map((incident, index) => (
+            <li key={index}>
+              {/* A shoot-out kick is numbered, never given a minute of play (T-1477). */}
+              {kicksFrom !== null && index >= kicksFrom ? (
+                fill(m['scores.card.kick'].text, { n: n(index - kicksFrom + 1) })
+              ) : (
+                <span dir="ltr">{formatMinute(locale, incident.minute, incident.added_time)}</span>
+              )}{' '}
+              <MessageText message={m[INCIDENT_KEY[incident.kind]]} />
+              {incident.player !== null ? ` · ${incident.player}` : ''}
+              {incident.side !== null
+                ? ` (${incident.side === 'home' ? card.home.name : card.away.name})`
+                : ''}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Two prediction products, two lines, two components (rule 6). */}
+      {model && (
+        <CardForecastSummary
+          forecast={forecast}
+          home={card.home.name}
+          away={card.away.name}
+          started={card.status !== 'scheduled'}
+          locale={locale}
+          timeZone={timeZone}
+          words={words}
+        />
+      )}
+      {revealed ? (
+        <CardCommunityTotals
+          community={community}
+          home={card.home.name}
+          away={card.away.name}
+          words={words}
+        />
+      ) : (
+        <p className="text-muted" data-testid="card-community" data-state="sealed">
+          <MessageText message={m['scores.row.communitySealed']} />
+        </p>
+      )}
+      <CardViewingLine viewing={viewing} locale={locale} words={words} />
+
+      <p className="flex flex-wrap gap-x-3 text-muted" data-testid="card-labels">
+        <span>
           <MessageText
-            className="sr-only"
-            message={filled(m['scores.card.details'], {
-              home: card.home.name,
-              away: card.away.name,
+            message={filled(m['scores.card.coverage'], {
+              state: m[COVERAGE_KEY[card.coverage]].text,
             })}
           />
-        </summary>
-        <div className="flex flex-col gap-1 px-3 pb-3 text-xs">
-          <p className="flex flex-wrap gap-x-3 text-muted">
-            <span>{card.competition.name}</span>
-            {stageBits.map((bit) => (
-              <span key={bit}>{bit}</span>
-            ))}
-            <span>
-              <FilledMessage
-                message={m['scores.card.kickoff']}
-                params={{
-                  time: (
-                    <time dateTime={card.kickoff_at}>
-                      {formatKickoff(locale, card.kickoff_at, timeZone)}
-                    </time>
-                  ),
-                }}
-              />
-            </span>
-            {card.venue !== null && (
-              <span>
-                {card.venue.city === null
-                  ? card.venue.name
-                  : `${card.venue.name}, ${card.venue.city}`}
-              </span>
-            )}
-          </p>
-
-          {card.incidents.length > 0 && (
-            <ul className="flex flex-wrap gap-x-3" data-testid="incidents">
-              {card.incidents.map((incident, index) => (
-                <li key={index}>
-                  {/* A shoot-out kick is numbered, never given a minute of play (T-1477). */}
-                  {kicksFrom !== null && index >= kicksFrom ? (
-                    fill(m['scores.card.kick'].text, { n: n(index - kicksFrom + 1) })
-                  ) : (
-                    <span dir="ltr">
-                      {formatMinute(locale, incident.minute, incident.added_time)}
-                    </span>
-                  )}{' '}
-                  <MessageText message={m[INCIDENT_KEY[incident.kind]]} />
-                  {incident.player !== null ? ` · ${incident.player}` : ''}
-                  {incident.side !== null
-                    ? ` (${incident.side === 'home' ? card.home.name : card.away.name})`
-                    : ''}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/* Two prediction products, two lines, two components (rule 6). */}
-          <CardForecastSummary
-            forecast={forecast}
-            home={card.home.name}
-            away={card.away.name}
-            started={card.status !== 'scheduled'}
-            locale={locale}
-            timeZone={timeZone}
-            words={words}
+        </span>
+        <span>
+          <FilledMessage
+            message={m['scores.updated']}
+            params={{ time: at(card.last_updated_at) }}
           />
-          <CardCommunityTotals
-            community={community}
-            home={card.home.name}
-            away={card.away.name}
-            words={words}
-          />
-          <CardViewingLine viewing={viewing} locale={locale} words={words} />
-
-          <p className="flex flex-wrap gap-x-3 text-muted" data-testid="card-labels">
-            <span>
-              <MessageText
-                message={filled(m['scores.card.coverage'], {
-                  state: m[COVERAGE_KEY[card.coverage]].text,
-                })}
-              />
-            </span>
-            <span>
-              <FilledMessage
-                message={m['scores.updated']}
-                params={{ time: at(card.last_updated_at) }}
-              />
-            </span>
-          </p>
-        </div>
-      </details>
-    </li>
+        </span>
+      </p>
+    </div>
   );
 }
 

@@ -62,6 +62,68 @@ export const INCIDENT_DETAILS = [
 ] as const;
 export type IncidentDetail = (typeof INCIDENT_DETAILS)[number];
 
+/**
+ * Why a player will miss a match, in our words (T-1601): the body part an
+ * injury is in, a suspension's cause, or a reason that is not fitness. The
+ * provider's own text ("Leg Injury", "Rest") is English whatever the reader's
+ * language; a page draws these codes in the reader's. A reason this list cannot
+ * name is none, and the page says the broad kind instead. Mapped by
+ * `absenceReason` (`adapters/_absence-reason.ts`).
+ */
+export const ABSENCE_REASONS = [
+  'injury',
+  'knee',
+  'muscle',
+  'thigh',
+  'hamstring',
+  'groin',
+  'calf',
+  'ankle',
+  'achilles',
+  'foot',
+  'heel',
+  'toe',
+  'leg',
+  'hip',
+  'pelvis',
+  'back',
+  'abdomen',
+  'chest',
+  'ribs',
+  'shoulder',
+  'collarbone',
+  'arm',
+  'wrist',
+  'hand',
+  'head',
+  'eye',
+  'tendon',
+  'lower_body',
+  'upper_body',
+  'knock',
+  'fracture',
+  'surgery',
+  'concussion',
+  'hernia',
+  'illness',
+  'heart',
+  'health',
+  'red_card',
+  'yellow_cards',
+  'suspended',
+  'doping',
+  'inactive',
+  'off_roster',
+  'lacking_fitness',
+  'coach_decision',
+  'rest',
+  'personal',
+  'overload',
+  'loan_agreement',
+  'international_duty',
+] as const;
+export type AbsenceReason = (typeof ABSENCE_REASONS)[number];
+
 export const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward'] as const;
 export type Position = (typeof POSITIONS)[number];
 
@@ -145,6 +207,17 @@ export interface EntityRef {
   imageUrl?: string;
 }
 
+/**
+ * A competition as a fixture list names it (T-1611, D-282): its ref, and the
+ * provider's address for the flag of the competition's country when the
+ * answer carried one -- absent for a competition of no country (continental,
+ * international). Inside ingestion only, like `imageUrl` (rule 2): the
+ * writers note it against the country our catalogue gives the competition.
+ */
+export interface CompetitionRef extends EntityRef {
+  countryFlagUrl?: string;
+}
+
 /** Like `EntityRef`, for entities a provider often names without identifying. */
 export interface LooseEntityRef {
   externalId: string | null;
@@ -158,7 +231,7 @@ export interface Score {
 
 export interface NormalisedFixture {
   externalId: string;
-  competition: EntityRef;
+  competition: CompetitionRef;
   season: { label: string; startYear: number };
   stage: { name: string; kind: StageKind } | null;
   round: string | null;

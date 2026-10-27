@@ -211,7 +211,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           minutes: 180,
           goals: 1,
           assists: 0,
-          availability: { status: 'not_listed', kind: null, reason: null },
+          availability: { status: 'not_listed', kind: null, reason: null, reason_code: null },
         },
         {
           id: PEOPLE.h3,
@@ -221,7 +221,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           minutes: 150,
           goals: 0,
           assists: 1,
-          availability: { status: 'not_listed', kind: null, reason: null },
+          availability: { status: 'not_listed', kind: null, reason: null, reason_code: null },
         },
         {
           id: PEOPLE.h2,
@@ -231,7 +231,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           minutes: 135,
           goals: 0,
           assists: 0,
-          availability: { status: 'doubtful', kind: 'injury', reason: 'Hamstring' },
+          availability: {
+            status: 'doubtful',
+            kind: 'injury',
+            reason: 'Hamstring',
+            reason_code: 'hamstring',
+          },
         },
       ]);
       // No rating reaches the page, whatever the feed stored.

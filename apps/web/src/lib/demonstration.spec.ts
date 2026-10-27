@@ -80,7 +80,7 @@ describe('the title template reaches the pages pageMetadata never sees', () => {
     const LAYOUT = readFileSync(join(__dirname, '..', 'app', '[locale]', 'layout.tsx'), 'utf8');
     expect(LAYOUT).toContain('template: demonstrationTitleTemplate(locale)');
     // A template without a default is ignored, silently.
-    expect(LAYOUT).toContain("default: demonstrationTitle('FMIP', locale)");
+    expect(LAYOUT).toContain("default: demonstrationTitle('Stadiomind', locale)");
   });
 
   it('covers a page that sets its own metadata object', () => {
@@ -149,17 +149,17 @@ describe('the locale root, which the template cannot reach', () => {
   // open first. It was found on the public deployment, because that is the
   // only place a runtime-only variable is real.
   it('prefixes the title itself when the data is demonstration data', () => {
-    expect(rootTitle('FMIP', 'en', true)).toBe('Demonstration data — FMIP');
-    expect(rootTitle('FMIP', 'fa', true)).toBe('داده‌های نمایشی — FMIP');
+    expect(rootTitle('Stadiomind', 'en', true)).toBe('Demonstration data — Stadiomind');
+    expect(rootTitle('Stadiomind', 'fa', true)).toBe('داده‌های نمایشی — Stadiomind');
   });
 
   it('leaves a normal deployment alone', () => {
-    expect(rootTitle('FMIP', 'en', false)).toBe('FMIP');
+    expect(rootTitle('Stadiomind', 'en', false)).toBe('Stadiomind');
   });
 
   it('is used by the one page it applies to', () => {
     const ROOT = readFileSync(join(__dirname, '..', 'app', '[locale]', 'page.tsx'), 'utf8');
-    expect(ROOT).toContain("rootTitle('FMIP', locale)");
+    expect(ROOT).toContain("rootTitle('Stadiomind', locale)");
   });
 
   it('applies to exactly one page, because a segment holds one page', () => {

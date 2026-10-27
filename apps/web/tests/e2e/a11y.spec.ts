@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 
 /**
  * The accessibility pass (T-081, D-041): WCAG 2.2 AA as axe-core checks it,
@@ -15,14 +15,19 @@ const PAGES = [
   '/en',
   '/en/scores',
   '/en/leaderboard',
-  // The editorial pages of T-1383 (D-201), in their no-API states.
-  '/en/predictions',
+  // The pages T-1383 (D-201) set in editorial mode, in their no-API states
+  // (the model page follows the theme since T-1620, D-291); the old
+  // Predictions page is the matches page now (T-1519), checked as a member
+  // reaches it from Predictions.
+  '/en/scores?unpicked=1',
   '/en/model-accuracy',
   '/en/search',
   '/en/search?q=real',
   '/en/login',
   '/en/register',
   '/en/rules',
+  // The About page's diagram and section map (T-1615, D-286).
+  '/en/about',
   '/en/match/00000000-0000-4000-8000-000000000901',
   '/en/competition/00000000-0000-4000-8000-000000000201',
   '/en/team/00000000-0000-4000-8000-000000000601',
@@ -33,14 +38,38 @@ const PAGES = [
   '/en/welcome?step=teams',
   '/x-rtl/scores',
   '/x-rtl/rules',
-  '/x-rtl/predictions',
+  '/x-rtl/about',
+  '/x-rtl/scores?unpicked=1',
   '/x-rtl/welcome?step=territory',
 ];
+
+/**
+ * The page as a reader keeps seeing it: a page may arrive with a fade (the
+ * About diagram's steps rise in turn, T-1615), and axe measures contrast as
+ * drawn, so mid-fade text would read as faint. Every finite animation is
+ * let finish first; an endless one (the diagram's flowing dots) changes no
+ * text and is left running. Five seconds at most, so a stuck one fails the
+ * check rather than the run.
+ */
+async function settled(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    Promise.race([
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+          .map((animation) => animation.finished.catch(() => undefined)),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 5000)),
+    ]),
+  );
+}
 
 test.describe('accessibility', () => {
   for (const path of PAGES) {
     test(`${path} has no WCAG 2.2 AA violations`, async ({ page }) => {
       await page.goto(path);
+      await settled(page);
       const builder = new AxeBuilder({ page }).withTags(TAGS);
       // `x-rtl` is a BCP 47 private-use tag for a QA surface, not a language
       // (D-003); axe's lang check knows only registered languages.
@@ -50,6 +79,47 @@ test.describe('accessibility', () => {
         [],
       );
     });
+  }
+
+  /**
+   * The rebuilt Stadiomind pages (T-1502) in each view the visual baseline
+   * keeps: Night and Day, at a desktop width and at 390 px, with the web
+   * fonts (lite mode off). The list above sees them once, in the device's
+   * light scheme and at Playwright's default size.
+   */
+  const REBUILT = [
+    '/en',
+    '/en/scores',
+    '/en/match/00000000-0000-4000-8000-000000000901',
+    '/en/competition/00000000-0000-4000-8000-000000000201',
+    '/en/team/00000000-0000-4000-8000-000000000601',
+    '/en/player/00000000-0000-4000-8000-000000000701',
+    '/en/about',
+  ];
+  for (const theme of ['dark', 'light'] as const) {
+    for (const width of [1280, 390]) {
+      test.describe(`the rebuilt pages, ${theme === 'dark' ? 'Night' : 'Day'} at ${width}px`, () => {
+        test.use({ viewport: { width, height: 844 }, colorScheme: theme });
+        test.beforeEach(async ({ context, baseURL }) => {
+          await context.addCookies([
+            { name: 'fmip_theme', value: theme, url: baseURL ?? '' },
+            { name: 'fmip_lite', value: 'off', url: baseURL ?? '' },
+          ]);
+        });
+
+        for (const path of REBUILT) {
+          test(`${path} has no WCAG 2.2 AA violations`, async ({ page }) => {
+            await page.goto(path);
+            await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+            await settled(page);
+            const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+            expect(
+              results.violations.map((v) => `${v.id}: ${v.help} (${v.nodes.length} nodes)`),
+            ).toEqual([]);
+          });
+        }
+      });
+    }
   }
 
   /**

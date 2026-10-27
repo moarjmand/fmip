@@ -2,7 +2,7 @@ import type { MatchViewing, TeamFixture } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { formatDate } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
-import { interpolate, message, t } from '@/i18n/messages';
+import { interpolate, message } from '@/i18n/messages';
 import { stageNames } from '@/lib/competition';
 import type { CardForecast } from '@/lib/score-card-products';
 import { formatKickoff } from '@/lib/scores';
@@ -10,14 +10,15 @@ import { territoryName } from '@/lib/territory';
 import { optionsState } from '@/lib/viewing';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { forecastBarWords } from '@/lib/words-server';
+import { EntityImage } from '@/components/entity-image';
 import { ForecastBar } from '@/components/forecast-bar';
 import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
 import { Icon, LinkOut, inlineTargetClasses } from '@/components/ui';
 
 /**
- * "Next match" (T-1388, D-206): the top of a club page and the "My teams"
- * rail. The opponent, the date and kick-off in the reader's zone (named:
+ * "Next match" (T-1388, D-206; the Club board's card since T-1499): the top
+ * of a club page. The opponent, the date and kick-off in the reader's zone (named:
  * "Tehran time"), the statistical model's bar with its version and time --
  * or, with no forecast yet, a sentence saying so instead of empty lanes
  * (rule 3) -- and who broadcasts it in the reader's territory, each
@@ -58,15 +59,19 @@ export function NextMatchCard({
   const started = fixture.status !== 'scheduled';
   return (
     <article
-      aria-label={t(l, 'nextMatch.title')}
-      className="flex flex-col gap-3 rounded-tile border border-default border-t-3 border-t-fg bg-surface p-4"
+      aria-labelledby="next-match-heading"
+      className="flex min-w-0 flex-col overflow-hidden rounded-card border border-default bg-surface"
       data-testid="next-match"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-xs font-extrabold tracking-widest uppercase">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-default px-4 py-3 sm:px-5">
+        {/* A heading, as every other card on the page has (T-1563). */}
+        <h2
+          id="next-match-heading"
+          className="text-xs font-extrabold text-accent uppercase ltr:tracking-widest"
+        >
           <Translated locale={l} message="nextMatch.title" />
-        </span>
-        <span className="text-sm text-caption">
+        </h2>
+        <span className="text-sm text-muted">
           <bdi>{competition}</bdi>
           {round.map((label) => (
             <span key={label}>
@@ -74,48 +79,56 @@ export function NextMatchCard({
               <bdi>{label}</bdi>
             </span>
           ))}
+          <span data-testid="next-match-when">
+            {' · '}
+            {when} · {zone}
+          </span>
         </span>
       </div>
 
       <Link
         href={`/${locale}/match/${fixture.id}`}
-        className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5"
+        className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-5 sm:gap-5 sm:px-5 sm:py-6"
         data-testid="next-match-link"
       >
-        <b className="min-w-0 text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere]">
-          <bdi>{fixture.home.name}</bdi>
-        </b>
-        <span className="text-center">
-          <b
-            className="block text-2xl leading-none font-black font-stretch-condensed tabular-nums"
-            dir="ltr"
-          >
-            <time dateTime={fixture.kickoff_at}>
-              {formatKickoff(l, fixture.kickoff_at, timeZone)}
-            </time>
+        {/* Each side's crest at the outer edge, above the name on a phone (T-1617). */}
+        <span className="flex min-w-0 flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+          <EntityImage media={fixture.home.crest} kind="crest" name={fixture.home.name} size={40} />
+          <b className="min-w-0 text-end text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
+            <bdi>{fixture.home.name}</bdi>
           </b>
-          <span className="text-xs text-caption" data-testid="next-match-when">
-            {when} · {zone}
-          </span>
         </span>
-        <b className="min-w-0 text-end text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere]">
-          <bdi>{fixture.away.name}</bdi>
+        <b
+          className="text-2xl leading-none font-black font-stretch-condensed tabular-nums sm:text-3xl"
+          dir="ltr"
+        >
+          <time dateTime={fixture.kickoff_at}>
+            {formatKickoff(l, fixture.kickoff_at, timeZone)}
+          </time>
         </b>
+        <span className="flex min-w-0 flex-col items-start gap-2 sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-3">
+          <EntityImage media={fixture.away.crest} kind="crest" name={fixture.away.name} size={40} />
+          <b className="min-w-0 text-start text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
+            <bdi>{fixture.away.name}</bdi>
+          </b>
+        </span>
       </Link>
 
-      <ForecastBar
-        forecast={forecast}
-        home={fixture.home.name}
-        away={fixture.away.name}
-        started={started}
-        locale={l}
-        timeZone={timeZone}
-        zone={zone}
-        words={forecastBarWords(l)}
-        size="compact"
-      />
+      <div className="flex flex-col gap-3 px-4 pb-4 sm:px-5">
+        <ForecastBar
+          forecast={forecast}
+          home={fixture.home.name}
+          away={fixture.away.name}
+          started={started}
+          locale={l}
+          timeZone={timeZone}
+          zone={zone}
+          words={forecastBarWords(l)}
+          compact
+        />
 
-      <Broadcasters viewing={viewing} fixtureId={fixture.id} locale={l} />
+        <Broadcasters viewing={viewing} fixtureId={fixture.id} locale={l} />
+      </div>
     </article>
   );
 }
@@ -159,7 +172,8 @@ function Broadcasters({
       ) : state === 'ask' ? (
         <Link
           href={`/${locale}/match/${fixtureId}#watch`}
-          className={inlineTargetClasses('underline')}
+          // A control of its own, not a word in a sentence: 44px on a phone (T-1608).
+          className={inlineTargetClasses('underline max-md:min-h-touch')}
         >
           <Translated locale={locale} message="scores.card.chooseTerritory" />
         </Link>

@@ -229,3 +229,29 @@ export async function loadScoreCardProducts(
   );
   return out;
 }
+
+/**
+ * The model's line alone for every row (T-1496): the matches page shows the
+ * community's and the viewing line only in the preview of one match, so the
+ * list asks the forecast batch and nothing else, one request per
+ * `CARD_BATCH` matches, a failed batch marking its own rows `unreachable`.
+ */
+export async function loadCardForecasts(
+  ids: readonly string[],
+  forecasts: ProductFetchers['forecasts'],
+): Promise<Record<string, CardForecast>> {
+  const out: Record<string, CardForecast> = {};
+  await Promise.all(
+    batches(ids).map((group) =>
+      forecasts(group).then((answer) => {
+        const found = new Map(
+          answer.ok ? answer.data.fixtures.map((e) => [e.fixture_id, e.pre_kickoff]) : [],
+        );
+        for (const id of group) {
+          out[id] = !answer.ok ? { state: 'unreachable' } : cardForecast(found.get(id) ?? null);
+        }
+      }),
+    ),
+  );
+  return out;
+}

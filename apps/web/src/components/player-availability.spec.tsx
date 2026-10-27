@@ -34,7 +34,7 @@ describe('PlayerAvailabilitySection (T-1007)', () => {
     );
     const unasked = render({ team, fixture, listing: none, reason: 'not_asked' });
     expect(unasked).toContain('has not been checked yet');
-    expect(unasked).toContain('Home FC – Away FC');
+    expect(unasked).toContain('<bdi>Home FC</bdi> – <bdi>Away FC</bdi>');
     expect(unasked).not.toContain('Feed asked');
   });
 

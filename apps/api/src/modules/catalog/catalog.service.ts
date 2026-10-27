@@ -5,6 +5,7 @@ import type {
   CompetitionPage,
   CompetitionTable,
   CompetitionSummary,
+  CountryRef,
   CountrySummary,
   Covered,
   FollowSuggestionsResponse,
@@ -35,7 +36,7 @@ import leagueZoneList from '@fmip/contracts/zones/league-zones.json';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
-import { MediaService } from '../media/media.service';
+import { MediaService, type MediaIndex } from '../media/media.service';
 import { LEADERS_LIMIT, StandingsService } from '../standings/standings.service';
 import { buildBracket, tieOf } from './internal/bracket';
 import { contextTable, phaseOf } from './internal/competition-context';
@@ -45,14 +46,27 @@ import {
   leadersModule,
   leadersWithMinutes,
   rankByFigure,
+  teamTopScorers,
   wholeOnlyIfRecorded,
 } from './internal/leaders';
 import { readCoachPage, readTeamHeadCoach } from './internal/coach-read';
+import {
+  contextTeamIds,
+  fixtureTeamIds,
+  withContextCrests,
+  withCrests,
+  withFixtureMedia,
+} from './internal/fixture-media';
 import { readProviderSeasons } from './internal/player-provider-seasons';
 import { readTeamSeasonStats } from './internal/team-season-stats';
 import { readPlayerTransfers, readTeamTransfers } from './internal/transfers';
 import { providerBoards, readProviderLeaders } from './internal/provider-leaders';
-import { NO_LINEUPS, PostgresPlayerStore, availabilityOf } from './internal/player-store';
+import {
+  NO_LINEUPS,
+  PostgresPlayerStore,
+  availabilityOf,
+  positionOf,
+} from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
 import { PostgresTeamStore } from './internal/team-store';
 
@@ -157,22 +171,58 @@ export class CatalogService {
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
     const found = await this.players_.person(id, locale);
     if (found === null) return { kind: 'unknown_player' };
-    const [spells, record, recent, availability, media] = await Promise.all([
+    const [read, record, recent, availability, positions] = await Promise.all([
       this.players_.spells(id),
       this.players_.record(id),
       this.players_.recent(id, RECENT_MATCHES),
       this.players_.availability(id),
-      this.media.index({ person: [id] }),
+      this.players_.positionSources(id),
     ]);
-    const person = { ...found, photo: media.photo(id) };
+    // The photo (T-1320) and the flag (T-1611), and the crests of the clubs
+    // and matches the page lists and their competitions' logos (T-1617), in
+    // one query.
+    const fixtures = recent.matches.map((m) => m.fixture);
+    const media = await this.media.index({
+      person: [id],
+      country: found.nationality === null ? [] : [found.nationality.id],
+      team: [
+        ...read.map((s) => s.team.id),
+        ...record.rows.map((r) => r.team.id),
+        ...fixtureTeamIds(fixtures),
+      ],
+      competition: fixtures.map((f) => f.competition.id),
+    });
+    const person = {
+      ...found,
+      nationality: withFlag(found.nationality, media),
+      photo: media.photo(id),
+    };
+    const spells = read.map((s) => ({ ...s, team: { ...s.team, crest: media.crest(s.team.id) } }));
+    const currentSpell = spells.find((s) => s.end_date === null) ?? null;
     return {
       kind: 'ok',
       page: {
         person,
-        current_spell: spells.find((s) => s.end_date === null) ?? null,
+        current_spell: currentSpell,
+        // A player with no open spell still has a position our squad
+        // listings or line-ups name (T-1603).
+        position: positionOf(currentSpell, positions),
         spells,
-        record: derived(record, 1, recent.lastUpdatedAt),
-        recent_matches: derived(recent.matches, 1, recent.lastUpdatedAt),
+        // At most `limited` while some match's stored events fall short of
+        // it (T-1579): the goals and cards are then "at least" (rule 3).
+        record: wholeOnlyIfEventsStored(
+          derived(
+            record.rows.map((r) => ({ ...r, team: { ...r.team, crest: media.crest(r.team.id) } })),
+            1,
+            recent.lastUpdatedAt,
+          ),
+          record.eventsShort,
+        ),
+        recent_matches: derived(
+          recent.matches.map((m) => ({ ...m, fixture: withFixtureMedia(m.fixture, media) })),
+          1,
+          recent.lastUpdatedAt,
+        ),
         availability: availabilityOf(availability),
         last_updated_at: recent.lastUpdatedAt,
       },
@@ -213,21 +263,39 @@ export class CatalogService {
    * has none; a language with no rows there, or no locale, reads
    * `competition.display_order`. Unplaced ones follow, by country and name
    * (`directoryOrder`). Names are localised by the interceptor (T-1312).
+   *
+   * T-1623 (D-292): each carries its next kick-off, the earliest scheduled
+   * fixture after now in any of its seasons, for the matchday rail's "Sat".
+   * One grouped scan of the matches ahead (`fixture_kickoff_at_idx`), not a
+   * query per competition.
    */
   async directory(locale: string | null): Promise<CompetitionDirectoryEntry[]> {
     const { rows } = await this.pool.query<DirectoryRow>(
       `SELECT c.id, c.name, c.short_name, c.scope, c.kind,
               co.id AS country_id, co.name AS country_name, co.code AS country_code,
+              (SELECT season_display_label(se.label, se.start_date) FROM season se
+                WHERE se.competition_id = c.id AND se.is_current) AS season_label,
               CASE WHEN EXISTS (SELECT 1 FROM competition_display_order lo WHERE lo.locale = $1)
                    THEN (SELECT lo.position FROM competition_display_order lo
                           WHERE lo.competition_id = c.id AND lo.locale = $1)
-                   ELSE c.display_order END AS stated_order
+                   ELSE c.display_order END AS stated_order,
+              nx.next_kickoff_at
          FROM competition c
          LEFT JOIN country co ON co.id = c.country_id
+         LEFT JOIN (
+           SELECT se.competition_id, min(f.kickoff_at) AS next_kickoff_at
+             FROM fixture f
+             JOIN season se ON se.id = f.season_id
+            WHERE f.status = 'scheduled' AND f.kickoff_at > now()
+            GROUP BY se.competition_id
+         ) nx ON nx.competition_id = c.id
         WHERE c.is_active`,
       [orderSubtag(locale)],
     );
-    const media = await this.media.index({ competition: rows.map((r) => r.id) });
+    const media = await this.media.index({
+      competition: rows.map((r) => r.id),
+      country: rows.flatMap((r) => (r.country_id === null ? [] : [r.country_id])),
+    });
     return directoryOrder(
       rows.map((r) => ({
         id: r.id,
@@ -238,9 +306,16 @@ export class CatalogService {
         country:
           r.country_id === null
             ? null
-            : { id: r.country_id, name: r.country_name ?? '', code: r.country_code ?? '' },
+            : {
+                id: r.country_id,
+                name: r.country_name ?? '',
+                code: r.country_code ?? '',
+                flag: media.flag(r.country_id),
+              },
         order: r.stated_order,
         logo: media.logo(r.id),
+        season: r.season_label,
+        next_kickoff_at: r.next_kickoff_at === null ? null : r.next_kickoff_at.toISOString(),
       })),
     );
   }
@@ -329,11 +404,16 @@ export class CatalogService {
     const media = await this.media.index({
       competition: [competition.id],
       team: (table.data ?? []).map((r) => r.team.id),
+      country: competition.country === null ? [] : [competition.country.id],
     });
     return {
       kind: 'ok',
       table: {
-        competition: { ...competition, logo: media.logo(competition.id) },
+        competition: {
+          ...competition,
+          country: withFlag(competition.country, media),
+          logo: media.logo(competition.id),
+        },
         season: selected,
         table: {
           ...table,
@@ -506,8 +586,11 @@ export class CatalogService {
         ...(table.data ?? []).map((r) => r.team.id),
         ...(groupTables?.data ?? []).flatMap((g) => g.teams.map((t) => t.id)),
         ...boardRows.flatMap((l) => (l.team === null ? [] : [l.team.id])),
+        // Both sides of every listed match (T-1617).
+        ...fixtureTeamIds(fixtures),
       ],
       person: boardRows.map((l) => l.person.id),
+      country: competition.country === null ? [] : [competition.country.id],
     });
     const withLeaderMedia = <
       L extends {
@@ -528,7 +611,11 @@ export class CatalogService {
     return {
       kind: 'ok',
       page: {
-        competition: { ...competition, logo: media.logo(competition.id) },
+        competition: {
+          ...competition,
+          country: withFlag(competition.country, media),
+          logo: media.logo(competition.id),
+        },
         seasons,
         season: { ...selected, stages },
         table: {
@@ -575,8 +662,8 @@ export class CatalogService {
           },
           selected.label,
         ),
-        results,
-        fixtures: upcoming,
+        results: results.map((f) => withCrests(f, media)),
+        fixtures: upcoming.map((f) => withCrests(f, media)),
         leaders: {
           ...leaders,
           data: leaders.data === null ? null : leaders.data.map(withLeaderMedia),
@@ -615,22 +702,41 @@ export class CatalogService {
     if (found === null) return { kind: 'unknown_team' };
     const seasons = await this.teams_.seasons(id);
     const seasonIds = seasons.map((s) => s.season.id);
-    const [{ fixtures, lastUpdatedAt }, squad, followers, tables, splitFixtures, lineup, ground] =
-      await Promise.all([
-        this.teams_.fixtures(id, seasonIds),
-        this.teams_.squad(id),
-        this.teams_.followers(id),
-        Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
-        this.teams_.splitFixtures(id, seasonIds),
-        this.teams_.latestLineup(id),
-        // No ground recorded: where this season's home matches were played (D-209).
-        found.venue === null
-          ? this.teams_.fixtureGround(
-              id,
-              seasons.filter((s) => s.season.is_current).map((s) => s.season.id),
-            )
-          : Promise.resolve(null),
-      ]);
+    const [
+      { fixtures, lastUpdatedAt },
+      squad,
+      followers,
+      tables,
+      splitFixtures,
+      lineup,
+      ground,
+      seasonScorers,
+    ] = await Promise.all([
+      this.teams_.fixtures(id, seasonIds),
+      this.teams_.squad(id),
+      this.teams_.followers(id),
+      Promise.all(seasons.map((s) => this.standings.table(s.season.id))),
+      this.teams_.splitFixtures(id, seasonIds),
+      this.teams_.latestLineup(id),
+      // No ground recorded: where this season's home matches were played (D-209).
+      found.venue === null
+        ? this.teams_.fixtureGround(
+            id,
+            seasons.filter((s) => s.season.is_current).map((s) => s.season.id),
+          )
+        : Promise.resolve(null),
+      // The top scorer per competition (T-1528, D-275), counted as the
+      // competition page counts its scorers: whole only if recorded.
+      Promise.all(
+        seasons.map(async (s) => {
+          const [scorers, tally] = await Promise.all([
+            this.standings.leaders(s.season.id, null),
+            this.standings.incidentTally(s.season.id),
+          ]);
+          return teamTopScorers(wholeOnlyIfRecorded(scorers, tally), id);
+        }),
+      ),
+    ]);
     // Minutes for this team over the seasons the page covers (T-824).
     const squadMinutes = await this.players_.minutesByPerson(
       seasonIds,
@@ -640,27 +746,44 @@ export class CatalogService {
     // The head coach by the provider's coaches endpoint (T-1439, D-230), told
     // apart from the coach the latest line-up names.
     const headCoach = await readTeamHeadCoach(this.pool, id, locale, lineup?.coach?.id ?? null);
-    // The crest (T-1320) and the squad's and coach's photos (T-1321) from our own origin, in one query.
+    const contexts = seasons.map((_, i) => tableContext(tables[i]!, id));
+    // The crest (T-1320) and the squad's and coach's photos (T-1321) from our
+    // own origin, in one query; and the crests of every listed match and the
+    // rows around the club, and the competitions' logos (T-1617).
     const media = await this.media.index({
-      team: [id],
+      team: [id, ...fixtureTeamIds(fixtures), ...contexts.flatMap(contextTeamIds)],
+      competition: seasons.map((s) => s.competition.id),
+      country: found.country === null ? [] : [found.country.id],
       person: [
         ...squad.players.map((p) => p.person.id),
         ...(headCoach.data === null ? [] : [headCoach.data.person.id]),
+        ...seasonScorers.flatMap((module) => (module.data ?? []).map((r) => r.person.id)),
       ],
     });
-    const team = { ...found, crest: media.crest(id) };
-    const results = fixtures.filter((f) => f.status === 'finished').reverse();
-    const upcoming = fixtures.filter((f) => f.status !== 'finished');
+    const team = { ...found, country: withFlag(found.country, media), crest: media.crest(id) };
+    const listed = fixtures.map((f) => withFixtureMedia(f, media));
+    const results = listed.filter((f) => f.status === 'finished').reverse();
+    // A cancelled, abandoned or awarded match already past is neither ahead
+    // nor a result (T-1578): left in, it stood as the club's next match, with
+    // a kick-off in the past, ahead of the real one.
+    const now = Date.now();
+    const upcoming = listed.filter(
+      (f) =>
+        f.status !== 'finished' && !(VOID_STATUSES.has(f.status) && Date.parse(f.kickoff_at) < now),
+    );
+    // The next match is one that will be played or is being played: a
+    // postponed one has no date to be next on.
+    const next = upcoming.find((f) => PLAYABLE_STATUSES.has(f.status)) ?? null;
     return {
       kind: 'ok',
       page: {
         team,
         competitions: seasons.map((s, i) => ({
-          competition: s.competition,
+          competition: { ...s.competition, logo: media.logo(s.competition.id) },
           season: s.season,
-          context: tableContext(tables[i]!, id),
+          context: withContextCrests(contexts[i]!, media),
         })),
-        next_match: upcoming[0] ?? null,
+        next_match: next,
         previous_match: results[0] ?? null,
         fixtures: upcoming,
         results,
@@ -675,6 +798,23 @@ export class CatalogService {
           squad.lastUpdatedAt,
         ),
         splits: buildSplits(seasons, splitFixtures),
+        top_scorers: seasons.map((s, i) => {
+          const module = seasonScorers[i]!;
+          return {
+            competition: s.competition,
+            season: s.season,
+            scorers: {
+              ...module,
+              data:
+                module.data === null
+                  ? null
+                  : module.data.map((r) => ({
+                      person: { ...r.person, photo: media.photo(r.person.id) },
+                      goals: r.goals,
+                    })),
+            },
+          };
+        }),
         manager: managerOf(lineup),
         head_coach:
           headCoach.data === null
@@ -790,6 +930,18 @@ export interface SuggestionRow {
   stage_kinds: (string | null)[] | null;
   followers: number | null;
 }
+
+/** A record counted from incidents is `limited` while any of its matches' events fall short (T-1579). */
+function wholeOnlyIfEventsStored<T>(module: Covered<T[]>, eventsShort: number): Covered<T[]> {
+  return module.coverage === 'available' && eventsShort > 0
+    ? { ...module, coverage: 'limited' }
+    : module;
+}
+
+/** Matches that will not be played to a result (T-1578). */
+const VOID_STATUSES: ReadonlySet<string> = new Set(['cancelled', 'abandoned', 'awarded']);
+/** Matches that will be, or are being, played (T-1578). */
+const PLAYABLE_STATUSES: ReadonlySet<string> = new Set(['scheduled', 'live', 'suspended']);
 
 /** Stage kinds of a competition's main phase; qualifying rounds and play-offs are not. */
 const MAIN_PHASE_KINDS: ReadonlySet<string> = new Set(['league', 'group', 'knockout']);
@@ -953,6 +1105,14 @@ export function managerOf(
   };
 }
 
+/**
+ * A country with its flag from our own origin (T-1611, D-282), as the media
+ * index found it; no country stays none.
+ */
+function withFlag(country: CountryRef | null, media: MediaIndex): CountryRef | null {
+  return country === null ? null : { ...country, flag: media.flag(country.id) };
+}
+
 interface DirectoryRow {
   id: string;
   name: string;
@@ -962,7 +1122,9 @@ interface DirectoryRow {
   country_id: string | null;
   country_name: string | null;
   country_code: string | null;
+  season_label: string | null;
   stated_order: number | null;
+  next_kickoff_at: Date | null;
 }
 
 /**

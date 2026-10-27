@@ -460,9 +460,17 @@ export class PostgresStandingsStore {
                  FROM fixture f
                  JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
                 WHERE f.season_id = $1 AND f.status = 'finished' AND ${MAIN_PHASE})::text AS scored,
-              (SELECT count(*) FROM incident i JOIN fixture f ON f.id = i.fixture_id
-                WHERE f.season_id = $1 AND f.status = 'finished' AND ${MAIN_PHASE}
-                  AND i.kind IN ('goal', 'penalty_goal', 'own_goal'))::text AS recorded`,
+              -- Each match's recorded goals up to its score (T-1579): summed
+              -- over the season, one match's extra events (extra time, a
+              -- duplicate) hid another's missing ones, and the boards said
+              -- available with a club's goals absent.
+              (SELECT COALESCE(sum(LEAST(sc.home + sc.away, (
+                        SELECT count(*) FROM incident i
+                         WHERE i.fixture_id = f.id
+                           AND i.kind IN ('goal', 'penalty_goal', 'own_goal')))), 0)
+                 FROM fixture f
+                 JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
+                WHERE f.season_id = $1 AND f.status = 'finished' AND ${MAIN_PHASE})::text AS recorded`,
       [seasonId],
     );
     const r = rows[0]!;

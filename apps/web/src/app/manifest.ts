@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
-import { BRAND_COLOURS } from '@/lib/brand-colours';
+import { MARK_COLOURS } from '@/lib/brand-colours';
 
 /**
  * The web app manifest (T-082, D-042): what a phone needs to install the
@@ -10,8 +10,8 @@ import { BRAND_COLOURS } from '@/lib/brand-colours';
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'FMIP — Football Match Intelligence Platform',
-    short_name: 'FMIP',
+    name: 'Stadiomind',
+    short_name: 'Stadiomind',
     description:
       'Football match intelligence: live scores, match centre, forecasts and predictions.',
     id: `/${DEFAULT_LOCALE}`,
@@ -19,8 +19,10 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: BRAND_COLOURS.accent,
-    theme_color: BRAND_COLOURS.accent,
+    // The ink of the icons' tile (T-1492): the splash screen around the icon
+    // and the installed app's bar, which have one colour whatever the theme.
+    background_color: MARK_COLOURS.tile,
+    theme_color: MARK_COLOURS.tile,
     lang: DEFAULT_LOCALE,
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },

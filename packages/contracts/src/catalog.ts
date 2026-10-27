@@ -9,7 +9,7 @@ import type { TeamHeadCoach } from './coaches';
 import type { CoverageState, Covered } from './coverage';
 import type { LeagueZones } from './league-zones';
 import type { EntityMedia } from './media';
-import type { ExpectedGoalsMetric, ExpectedGoalsSource } from './match-centre';
+import type { AbsenceReasonCode, ExpectedGoalsMetric, ExpectedGoalsSource } from './match-centre';
 
 export interface CountrySummary {
   id: string;
@@ -18,6 +18,20 @@ export interface CountrySummary {
   /** ISO 3166-1 alpha-2 where one exists. */
   iso2: string | null;
   name: string;
+}
+
+/**
+ * A country as a page names it beside something else: a competition's
+ * country, a team's, a player's nationality. `flag` is the country's flag
+ * from our own origin (T-1611, D-282), when the answer asked for it; a
+ * continental or international competition has no country, so no flag.
+ */
+export interface CountryRef {
+  id: string;
+  name: string;
+  /** FIFA trigram, e.g. `ENG`. */
+  code: string;
+  flag?: EntityMedia;
 }
 
 /** `GET /countries`, sorted by name. */
@@ -63,7 +77,7 @@ export interface CompetitionDirectoryEntry {
   short_name: string | null;
   scope: 'domestic' | 'continental' | 'international';
   kind: 'league' | 'cup' | 'super_cup' | 'qualifying' | 'friendly';
-  country: { id: string; name: string; code: string } | null;
+  country: CountryRef | null;
   /**
    * The competition's stated place in the reader's language's order (D-207),
    * else the default order (T-504, D-154); `null` when none is stated, and
@@ -72,6 +86,20 @@ export interface CompetitionDirectoryEntry {
   order: number | null;
   /** The competition's logo from our own origin (T-1320). */
   logo: EntityMedia;
+  /**
+   * The current season's label as the competition page shows it ("2025/26",
+   * or the year alone for a season played inside one, D-256); `null` when the
+   * competition has no current season (T-1612).
+   */
+  season: string | null;
+  /**
+   * When its next match kicks off: the earliest scheduled fixture after the
+   * moment of the answer, of any season, ISO 8601 (T-1623, D-292). The
+   * matchday rail says "Sat" for a competition with nothing today from it.
+   * `null` when no match ahead is known -- never a guessed date (rule 3).
+   * Optional so an older answer still reads; the API always sends it.
+   */
+  next_kickoff_at?: string | null;
 }
 
 /**
@@ -303,8 +331,12 @@ export interface SeasonFixture {
   status: string;
   round: string | null;
   stage: { id: string; name: string } | null;
-  home: { id: string; name: string; short_name: string | null };
-  away: { id: string; name: string; short_name: string | null };
+  /**
+   * `crest`: from our own origin (T-1617), on the competition, team and
+   * player pages' lists; absent where a builder does not attach media.
+   */
+  home: { id: string; name: string; short_name: string | null; crest?: EntityMedia };
+  away: { id: string; name: string; short_name: string | null; crest?: EntityMedia };
   /** Full time when known, else the current score, else null. */
   score: { home: number; away: number } | null;
   /**
@@ -409,7 +441,7 @@ export interface CompetitionPage {
     gender: 'men' | 'women';
     age_group: string;
     tier: number | null;
-    country: { id: string; name: string; code: string } | null;
+    country: CountryRef | null;
     /** The competition's logo from our own origin (T-1320). */
     logo?: EntityMedia;
   };
@@ -471,7 +503,8 @@ export type CompetitionTable = Pick<CompetitionPage, 'competition' | 'table'> & 
 
 /** A fixture as the team page lists it: the competition and season named, since the list spans them. */
 export interface TeamFixture extends SeasonFixture {
-  competition: { id: string; name: string; short_name: string | null };
+  /** `logo`: from our own origin (T-1617); absent where a builder does not attach media. */
+  competition: { id: string; name: string; short_name: string | null; logo?: EntityMedia };
   season: { id: string; label: string };
 }
 
@@ -497,7 +530,8 @@ export interface TableContext {
 }
 
 export interface TeamCompetition {
-  competition: { id: string; name: string; short_name: string | null };
+  /** `logo`: from our own origin (T-1617). */
+  competition: { id: string; name: string; short_name: string | null; logo?: EntityMedia };
   season: { id: string; label: string; is_current: boolean };
   context: Covered<TableContext>;
 }
@@ -592,6 +626,28 @@ export interface TeamCompetitionSplits {
   last_updated_at: string | null;
 }
 
+/** A club's scorer in one competition's season (T-1528): goals for this club only. */
+export interface TeamScorer {
+  /** `photo`: from our own origin (T-1321). */
+  person: { id: string; name: string; photo?: EntityMedia };
+  goals: number;
+}
+
+/**
+ * The club's top scorer in one competition's season (T-1528, D-275), counted
+ * as the competition page counts its scorers: our recorded goal incidents of
+ * the main competition (D-209, D-232), goals for this club only. `scorers` is
+ * every player level on the most goals, by name; empty when the club has no
+ * recorded goal. Its coverage is the season's scorers' coverage: `limited`
+ * while the season's recorded goals fall short of its scores, `not_supplied`
+ * when no incidents are held for the season.
+ */
+export interface TeamTopScorers {
+  competition: { id: string; name: string; short_name: string | null };
+  season: { id: string; label: string; is_current: boolean };
+  scorers: Covered<TeamScorer[]>;
+}
+
 /** `GET /teams/:id`. */
 export interface TeamPage {
   team: {
@@ -610,7 +666,7 @@ export interface TeamPage {
     gender: 'men' | 'women';
     age_group: string;
     founded_year: number | null;
-    country: { id: string; name: string; code: string } | null;
+    country: CountryRef | null;
     venue: { id: string; name: string; city: string | null; capacity: number | null } | null;
     /** The team's crest from our own origin (T-1320). */
     crest?: EntityMedia;
@@ -623,7 +679,7 @@ export interface TeamPage {
   };
   /** Competitions with a current season, or one the team still has matches in. */
   competitions: TeamCompetition[];
-  /** The soonest match not yet finished, and the most recent finished one. */
+  /** The soonest match still to play (`stillToPlay`, T-1560), and the most recent finished one. */
   next_match: TeamPageFixture | null;
   previous_match: TeamPageFixture | null;
   /** Not finished, soonest first; finished, newest first. Across the seasons above. */
@@ -636,6 +692,12 @@ export interface TeamPage {
    * `competitions` entry and in the same order.
    */
   splits: TeamCompetitionSplits[];
+  /**
+   * The top scorer per competition (T-1528), one entry per `competitions`
+   * entry and in the same order. Optional: an API older than T-1528 does not
+   * send it, which reads as `not_supplied`.
+   */
+  top_scorers?: TeamTopScorers[];
   /** The coach named on the team's most recent line-up (T-944, D-119). */
   manager: TeamManager;
   /**
@@ -686,6 +748,8 @@ export interface PlayerSpell {
     short_name: string | null;
     /** The club's colour (T-1418, D-218), for the player page's band; absent or null when none is known. */
     colour?: string | null;
+    /** The club's crest from our own origin (T-1617); absent where a builder does not attach media. */
+    crest?: EntityMedia;
   };
   /** ISO 8601 dates; `end_date` null while the spell is open. */
   start_date: string;
@@ -699,7 +763,8 @@ export interface PlayerSpell {
 export interface PlayerSeasonRecord {
   season: { id: string; label: string };
   competition: { id: string; name: string; short_name: string | null };
-  team: { id: string; name: string };
+  /** `crest`: from our own origin (T-1617). */
+  team: { id: string; name: string; crest?: EntityMedia };
   starts: number;
   /** Named on the bench and brought on. */
   sub_appearances: number;
@@ -763,6 +828,12 @@ export interface PlayerMatch {
   } | null;
 }
 
+/** A player's position and its source (T-1603). */
+export interface PlayerPosition {
+  value: SquadPosition;
+  basis: 'spell' | 'squad' | 'lineup';
+}
+
 /** `GET /players/:id`. */
 export interface PlayerPage {
   person: {
@@ -778,13 +849,22 @@ export interface PlayerPage {
     localised_name: string | null;
     /** ISO 8601 date, when recorded. */
     date_of_birth: string | null;
-    nationality: { id: string; name: string; code: string } | null;
+    nationality: CountryRef | null;
     height_cm: number | null;
     preferred_foot: 'left' | 'right' | 'both' | null;
     /** The player's photo from our own origin (T-1320). */
     photo?: EntityMedia;
   };
   current_spell: PlayerSpell | null;
+  /**
+   * Where the player plays (T-1603), and what says so: the open spell's
+   * position, else the newest squad listing's (both `available`), else the
+   * position the player held most often in their last ten line-ups
+   * (`limited`: what they played, not what they are registered as).
+   * `not_supplied` when none of the three names one; never guessed. Always
+   * sent, optional for older readers.
+   */
+  position?: Covered<PlayerPosition>;
   /** Newest first. */
   spells: PlayerSpell[];
   /** Newest season first. Derived from line-ups: `not_supplied` when the player is in none. */
@@ -816,8 +896,10 @@ export type PlayerAvailabilityReason = 'no_team' | 'no_next_match' | 'not_asked'
 export interface PlayerAvailabilityListing {
   status: 'out' | 'doubtful' | 'not_listed';
   kind: 'injury' | 'suspension' | 'illness' | 'other' | null;
-  /** The feed's own words for the reason, when it gave any. */
+  /** The feed's own words for the reason, when it gave any; English whatever the reader's language. */
   reason: string | null;
+  /** The reason in our words (T-1601); always sent, optional for older readers. */
+  reason_code?: AbsenceReasonCode | null;
   /** When the feed first said this, or last changed it; `null` when not listed. */
   reported_at: string | null;
 }

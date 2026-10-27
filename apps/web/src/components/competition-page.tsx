@@ -15,10 +15,8 @@ import type {
 } from '@fmip/contracts';
 import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { EntityImage } from '@/components/entity-image';
-import { ForecastBar, type ForecastBarWords } from '@/components/forecast-bar';
 import { FreshnessStamp, type FreshnessWords } from '@/components/freshness-stamp';
 import { MinutesFigure } from '@/components/minutes-figure';
-import { Score } from '@/components/score';
 import { FollowIntentMark } from '@/components/push-offer-mark';
 import { PushOfferFor } from '@/components/push-offer-for';
 import { Stamp } from '@/components/stamp';
@@ -30,37 +28,32 @@ import type { MessageKey } from '@/i18n/messages';
 import { followAction, unfollowAction } from '@/lib/auth-actions';
 import {
   COVERAGE_KEY,
-  KIND_KEY,
   STATUS_KEY,
   ZONE_KEY,
   ZONE_MARK,
+  pageLocale,
   say,
-  seasonHref,
   zoneBand,
   zonesAbsentLine,
 } from '@/lib/competition';
 import {
-  type CompetitionTab,
   type LeagueNumbers,
-  type Matchweek,
-  type RoundGroup,
-  clubCount,
-  hasTable,
   mainResults,
   perMatch,
-  seasonDigits,
   sharePercent,
-  tabHref,
 } from '@/lib/competition-overview';
-import type { CardForecast } from '@/lib/score-card-products';
 import { zoneWords } from '@/lib/reader-time-zone';
 
 /**
- * The competition page in the Hybrid design, data mode (T-1385, D-203): the
- * band, the tab bar and the modules each tab is made of. Every module states
- * its coverage with a `CoverageBadge` (rule 3), a live one its freshness
- * (rule 4); no module is drawn that would look populated without data. The
- * page (`app/[locale]/competition/[id]/page.tsx`) fetches and composes.
+ * The competition page's shared modules, first drawn for the Hybrid design
+ * (T-1385, D-203): the panels the club, player and coach pages also use, the
+ * follow form, the players' boards, the season in figures and the coverage.
+ * The header, the table card, the match rows and the model's card are the
+ * page's own since the Stadiomind redesign (T-1498, beside the page). Every
+ * module states its coverage with a `CoverageBadge` (rule 3), a live one its
+ * freshness (rule 4); no module is drawn that would look populated without
+ * data. The page (`app/[locale]/competition/[id]/page.tsx`) fetches and
+ * composes.
  */
 
 // ---------------------------------------------------------------------------
@@ -207,229 +200,6 @@ export function MoreLink({ href, children }: { href: string; children: ReactNode
     </Link>
   );
 }
-
-// ---------------------------------------------------------------------------
-// The band and the tabs
-// ---------------------------------------------------------------------------
-
-const TAB_KEY: Record<CompetitionTab, MessageKey> = {
-  overview: 'competitionPage.tab.overview',
-  table: 'competitionPage.tab.table',
-  fixtures: 'competitionPage.tab.fixtures',
-  results: 'competitionPage.tab.results',
-  players: 'competitionPage.tab.players',
-  stats: 'competitionPage.tab.stats',
-};
-
-/**
- * The competition's band (T-1385, D-203): brand colours only -- the green
- * rule along its top, the green follow button and the green bar under the
- * current tab, on the theme's own surface, so it follows Day and Night. No
- * club colour here (that is a club or player page's band, T-1386). The
- * country, kind and season; the name; what the season has played and what
- * is next; follow; the seasons; the tabs.
- */
-export function CompetitionBand({
-  page,
-  locale,
-  timeZone,
-  tab,
-  tabs,
-  minMinutes,
-  matchweek,
-  follow,
-}: {
-  page: CompetitionPage;
-  locale: string;
-  timeZone: string;
-  tab: CompetitionTab;
-  tabs: CompetitionTab[];
-  minMinutes: number | null;
-  matchweek: Matchweek | null;
-  follow: ReactNode;
-}) {
-  const c = page.competition;
-  const kind = KIND_KEY[c.kind];
-  const name = c.localised_name ?? c.name;
-  const eyebrow = [
-    ...(c.country !== null ? [c.country.name] : []),
-    kind === undefined ? c.kind : say(locale, kind),
-    ...(c.tier !== null
-      ? [say(locale, 'competitionPage.tier', { tier: formatNumber(locale, c.tier) })]
-      : []),
-    ...(c.gender === 'women' ? [say(locale, 'competitionPage.women')] : []),
-    say(locale, 'competitionPage.seasonLabel', {
-      season: seasonDigits(locale, page.season.label),
-    }),
-  ];
-  return (
-    <div className="border-b border-default bg-surface" data-testid="competition-header">
-      <div aria-hidden="true" className="h-1 bg-accent" />
-      <div className="page-frame">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-4 pt-6 pb-4 md:pt-7">
-          <span className="grid size-18 shrink-0 place-items-center rounded-tile border border-default bg-canvas md:size-26">
-            <EntityImage media={c.logo} kind="logo" name={name} size={48} aboveFold />
-          </span>
-          <div className="min-w-0 flex-[1_1_20rem]">
-            <p
-              className="text-xs font-bold text-muted uppercase ltr:tracking-wider"
-              data-testid="competition-eyebrow"
-            >
-              {eyebrow.join(' · ')}
-            </p>
-            <h1
-              className="mt-1.5 font-sans text-display-2 font-black font-stretch-condensed break-words uppercase md:text-display-3 lg:text-display-4 [:root:is(:lang(fa),:lang(ar))_&]:text-display-1 md:[:root:is(:lang(fa),:lang(ar))_&]:text-display-2"
-              data-testid="title"
-            >
-              {name}
-            </h1>
-            {c.localised_name !== null && (
-              <p className="text-sm text-muted" data-testid="canonical-name">
-                {c.name}
-              </p>
-            )}
-            <SeasonFacts page={page} locale={locale} timeZone={timeZone} matchweek={matchweek} />
-          </div>
-          <div className="flex flex-col items-start gap-2">{follow}</div>
-        </div>
-        {page.seasons.length > 1 && (
-          <nav
-            aria-label={say(locale, 'competitionPage.season')}
-            className="flex flex-wrap items-center gap-1 pb-3 text-sm"
-            data-testid="seasons"
-          >
-            <span className="me-1 text-xs font-bold text-muted">
-              <Translated locale={locale} message="competitionPage.season" />
-            </span>
-            {page.seasons.map((season) => {
-              const current = season.id === page.season.id;
-              return (
-                <Link
-                  key={season.id}
-                  href={seasonHref(locale, c.id, season, tab)}
-                  aria-current={current ? 'true' : undefined}
-                  className={cx(
-                    'inline-flex min-h-8 items-center rounded-pill px-3 tabular-nums',
-                    current
-                      ? 'bg-fg font-bold text-canvas'
-                      : 'border border-default text-muted hover:text-fg',
-                  )}
-                >
-                  {season.is_current
-                    ? say(locale, 'competitionPage.seasonCurrent', {
-                        season: seasonDigits(locale, season.label),
-                      })
-                    : seasonDigits(locale, season.label)}
-                </Link>
-              );
-            })}
-          </nav>
-        )}
-        <nav
-          aria-label={say(locale, 'competitionPage.sections')}
-          className="-mb-px flex gap-1 overflow-x-auto"
-          data-testid="competition-tabs"
-        >
-          {tabs.map((t) => {
-            const current = t === tab;
-            return (
-              <Link
-                key={t}
-                href={tabHref(locale, c.id, page.season, t, t === 'players' ? minMinutes : null)}
-                aria-current={current ? 'page' : undefined}
-                data-testid={`competition-tab-${t}`}
-                className={cx(
-                  'inline-flex min-h-12 shrink-0 items-center px-3.5 text-sm whitespace-nowrap',
-                  current
-                    ? 'font-bold text-fg shadow-[inset_0_-3px_0_var(--token-accent)]'
-                    : 'font-medium text-caption hover:text-fg',
-                )}
-              >
-                {t === 'table' && !hasTable(page)
-                  ? say(locale, 'competitionPage.tab.knockout')
-                  : say(locale, TAB_KEY[t])}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-    </div>
-  );
-}
-
-/** "18 clubs · 59 matches played · next: Matchweek 8, Thu 2 Oct": only what the season holds. */
-function SeasonFacts({
-  page,
-  locale,
-  timeZone,
-  matchweek,
-}: {
-  page: CompetitionPage;
-  locale: string;
-  timeZone: string;
-  matchweek: Matchweek | null;
-}) {
-  const clubs = clubCount(page);
-  // The main competition's matches; a cup's qualifying rounds are named apart (D-209).
-  const played = mainResults(page.results).length;
-  const qualifying = page.results.length - played;
-  const first = matchweek?.state === 'next' ? matchweek.fixtures.find(notOver) : undefined;
-  const facts: ReactNode[] = [];
-  if (clubs !== null) {
-    facts.push(
-      <Translated
-        key="clubs"
-        locale={locale}
-        message="competitionPage.facts.clubs"
-        count={clubs}
-      />,
-    );
-  }
-  facts.push(
-    <Translated
-      key="played"
-      locale={locale}
-      message="competitionPage.facts.played"
-      count={played}
-    />,
-  );
-  if (qualifying > 0) {
-    facts.push(
-      <Translated
-        key="qualifying"
-        locale={locale}
-        message="competitionPage.facts.qualifying"
-        count={qualifying}
-      />,
-    );
-  }
-  if (first !== undefined) {
-    const day = formatDate(locale, first.kickoff_at, timeZone, {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    });
-    facts.push(
-      <span key="next">
-        {matchweek?.label != null
-          ? say(locale, 'competitionPage.facts.nextRound', { round: matchweek.label, day })
-          : say(locale, 'competitionPage.facts.next', { day })}
-      </span>,
-    );
-  }
-  return (
-    <p className="mt-1.5 text-sm font-medium text-muted" data-testid="season-facts">
-      {facts.map((fact, i) => (
-        <span key={i}>
-          {i > 0 && ' · '}
-          {fact}
-        </span>
-      ))}
-    </p>
-  );
-}
-
-const notOver = (f: SeasonFixture): boolean => f.status === 'scheduled' || f.status === 'live';
 
 // ---------------------------------------------------------------------------
 // Following the competition
@@ -601,74 +371,6 @@ export function When({
   );
 }
 
-/**
- * One match as a row (T-1385): when, the two sides with the score between
- * them -- home first from the inline start, so on `/fa` the home side and
- * its goals are on the right (D-193) -- and, where the page has it, the
- * model's three-way under it. The row opens the match centre.
- */
-export function FixtureRow({
-  fixture,
-  locale,
-  timeZone,
-  forecast,
-  forecastWords,
-}: {
-  fixture: SeasonFixture;
-  locale: string;
-  timeZone: string;
-  /** The model's pre-kick-off forecast; undefined where the page did not ask. */
-  forecast?: CardForecast;
-  forecastWords?: ForecastBarWords;
-}) {
-  const home = fixture.home.short_name ?? fixture.home.name;
-  const away = fixture.away.short_name ?? fixture.away.name;
-  return (
-    <li className="border-b border-default last:border-b-0" data-testid="fixture">
-      <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-2.5 py-2.5">
-        <When fixture={fixture} locale={locale} timeZone={timeZone} />
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Link
-            href={`/${locale}/match/${fixture.id}`}
-            className="flex min-h-7 min-w-0 items-center gap-2 text-sm font-semibold hover:underline focus-visible:underline"
-            data-testid="fixture-link"
-          >
-            <bdi className="min-w-0 truncate">{home}</bdi>
-            {fixture.score === null ? (
-              <span className="shrink-0 font-medium text-caption">
-                {say(locale, 'competitionPage.v')}
-              </span>
-            ) : (
-              <Score
-                home={fixture.score.home}
-                away={fixture.score.away}
-                locale={locale}
-                separator=" – "
-                className="shrink-0 font-sans text-base font-black font-stretch-condensed tabular-nums"
-                testId="fixture-score"
-              />
-            )}
-            <bdi className="min-w-0 truncate">{away}</bdi>
-          </Link>
-          {forecast !== undefined && forecastWords !== undefined && (
-            <ForecastBar
-              forecast={forecast}
-              home={home}
-              away={away}
-              started={fixture.status !== 'scheduled'}
-              locale={locale}
-              timeZone={timeZone}
-              zone={zoneWords(locale, timeZone)}
-              words={forecastWords}
-              size="row"
-            />
-          )}
-        </div>
-      </div>
-    </li>
-  );
-}
-
 /** The freshness of a list with a match in progress (rule 4); nothing when none is live. */
 export function LiveFreshness({
   fixtures,
@@ -695,163 +397,9 @@ export function LiveFreshness({
   );
 }
 
-/**
- * The Overview's round (T-1385): its matches with scores or kick-off times,
- * and the model's three-way for each where it has one. Each bar names the
- * model and when it computed (blueprint 6.2); the note says what the figures
- * are and which zone the times are in.
- */
-export function MatchweekPanel({
-  matchweek,
-  page,
-  locale,
-  timeZone,
-  forecasts,
-  forecastWords,
-  freshness,
-}: {
-  matchweek: Matchweek | null;
-  page: CompetitionPage;
-  locale: string;
-  timeZone: string;
-  forecasts: Record<string, CardForecast>;
-  forecastWords: ForecastBarWords;
-  freshness: ReactNode;
-}) {
-  const title =
-    matchweek === null
-      ? say(locale, 'competitionPage.matchweek.none')
-      : (matchweek.label ??
-        say(
-          locale,
-          matchweek.state === 'next'
-            ? 'competitionPage.matchweek.next'
-            : 'competitionPage.matchweek.latest',
-        ));
-  return (
-    <Panel testId="matchweek" title={title} aside={freshness}>
-      {matchweek === null ? (
-        <p className="text-sm text-muted" data-testid="matchweek-empty">
-          <Translated locale={locale} message="competitionPage.noFixtures" />
-        </p>
-      ) : (
-        <>
-          {matchweek.state === 'latest' && (
-            <p className="text-sm text-muted" data-testid="matchweek-latest">
-              <Translated locale={locale} message="competitionPage.matchweek.seasonOver" />
-            </p>
-          )}
-          <ul className="flex flex-col">
-            {matchweek.fixtures.map((f) => (
-              <FixtureRow
-                key={f.id}
-                fixture={f}
-                locale={locale}
-                timeZone={timeZone}
-                forecast={forecasts[f.id] ?? { state: 'none' }}
-                forecastWords={forecastWords}
-              />
-            ))}
-          </ul>
-          <p className="text-xs text-muted">
-            {say(locale, 'competitionPage.matchweek.note', {
-              zone: zoneWords(locale, timeZone),
-            })}
-          </p>
-          {matchweek.more > 0 && (
-            <MoreLink href={tabHref(locale, page.competition.id, page.season, 'fixtures')}>
-              <Translated
-                locale={locale}
-                message="competitionPage.matchweek.more"
-                count={matchweek.more}
-              />
-            </MoreLink>
-          )}
-        </>
-      )}
-    </Panel>
-  );
-}
-
-/** Fixtures or results by round (T-1385), each round headed in our words or not at all. */
-export function RoundsPanel({
-  testId,
-  title,
-  groups,
-  empty,
-  locale,
-  timeZone,
-  freshness,
-}: {
-  testId: string;
-  title: ReactNode;
-  groups: RoundGroup[];
-  empty: ReactNode;
-  locale: string;
-  timeZone: string;
-  freshness?: ReactNode;
-}) {
-  return (
-    <Panel testId={testId} title={title} aside={freshness}>
-      {groups.length === 0 ? (
-        <p className="text-sm text-muted" data-testid={`${testId}-empty`}>
-          {empty}
-        </p>
-      ) : (
-        <>
-          <div className="flex flex-col gap-5">
-            {groups.map((group) => (
-              <div key={group.key} className="flex flex-col" data-testid="round">
-                {group.label !== null && (
-                  <h3 className="border-b border-strong pb-1.5 text-xs font-extrabold text-muted uppercase ltr:tracking-wider">
-                    {group.label}
-                  </h3>
-                )}
-                <ul className="flex flex-col">
-                  {group.fixtures.map((f) => (
-                    <FixtureRow key={f.id} fixture={f} locale={locale} timeZone={timeZone} />
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-muted">{zoneWords(locale, timeZone)}</p>
-        </>
-      )}
-    </Panel>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // The table's notes
 // ---------------------------------------------------------------------------
-
-/**
- * The season projection's slot (T-1385, D-203): a planned model feature, not
- * built. The sentence says so; the table's dashed columns stay empty. Never
- * a figure, never an estimate (rule 3).
- */
-export function ProjectionNote({ locale }: { locale: string }) {
-  return (
-    <p className="text-sm text-muted" data-testid="projection-note">
-      <b className="font-bold text-warning">
-        <Translated locale={locale} message="competitionPage.projection.head" />.
-      </b>{' '}
-      <Translated locale={locale} message="competitionPage.projection.note" />
-    </p>
-  );
-}
-
-/** A cup with no table (T-1385): said once, so its Overview opens on its rounds instead. */
-export function NoTableNote({ locale }: { locale: string }) {
-  return (
-    <Panel testId="no-table" title={say(locale, 'competitionPage.tab.table')}>
-      <p className="text-sm text-muted">
-        <Translated locale={locale} message="competitionPage.noTable" />
-      </p>
-    </Panel>
-  );
-}
 
 /** What the marks mean, where they come from, and what is not listed (rule 3). */
 export function ZoneLegend({ locale, zones }: { locale: string; zones: LeagueZones }) {
@@ -898,8 +446,35 @@ export function ZoneLegend({ locale, zones }: { locale: string; zones: LeagueZon
           </>
         )}
       </p>
-      {zones.note !== null && <p>{zones.note}</p>}
+      <ZoneNote locale={locale} zones={zones} />
     </div>
+  );
+}
+
+/**
+ * The league's own note (T-1167) in the page's language: Persian on `/fa`
+ * (T-1557), else the English it was written in, marked as English so a
+ * screen reader reads it as such rather than in the page's voice.
+ */
+function ZoneNote({
+  locale,
+  zones,
+}: {
+  locale: string;
+  zones: Extract<LeagueZones, { state: 'listed' }>;
+}) {
+  if (zones.note === null) return null;
+  const lang = pageLocale(locale);
+  const persian = lang === 'fa' ? (zones.note_fa ?? null) : null;
+  if (persian !== null) return <p data-testid="table-zones-note">{persian}</p>;
+  return (
+    <p
+      data-testid="table-zones-note"
+      lang={lang === 'en' ? undefined : 'en'}
+      dir={lang === 'en' ? undefined : 'ltr'}
+    >
+      {zones.note}
+    </p>
   );
 }
 

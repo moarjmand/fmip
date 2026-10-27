@@ -132,18 +132,18 @@ describe('the line-ups on a pitch', () => {
     const home = html.slice(html.indexOf('data-testid="pitch-home"'));
     // Away: goalkeeper's row first (a row of one), then four, four, two.
     expect(
-      [...away.matchAll(/<ol class="flex justify-around py-1.5">(.*?)<\/ol>/g)].map(
+      [...away.matchAll(/<ol class="flex justify-around py-1.5[^"]*">(.*?)<\/ol>/g)].map(
         (m) => (m[1] ?? '').split('<li').length - 1,
       ),
     ).toEqual([1, 4, 4, 2]);
     // Home: forwards first, goalkeeper last.
     expect(
-      [...home.matchAll(/<ol class="flex justify-around py-1.5">(.*?)<\/ol>/g)].map(
+      [...home.matchAll(/<ol class="flex justify-around py-1.5[^"]*">(.*?)<\/ol>/g)].map(
         (m) => (m[1] ?? '').split('<li').length - 1,
       ),
     ).toEqual([3, 3, 4, 1]);
     expect(html).toContain(
-      'aria-label="Line-ups on the pitch: Esteghlal in the top half, Tractor in the bottom half"',
+      'aria-label="Line-ups on the pitch: Tractor and Esteghlal, each goalkeeper at his own goal"',
     );
     expect(html).toContain(EN['matchCentre.lineups.pitchNote']);
     // Every name still goes to the player page.
@@ -176,7 +176,7 @@ describe('the line-ups on a pitch', () => {
   it('says it in Persian, the formation kept left to right inside the sentence', () => {
     const html = render('4-3-3', '4-2-3-1', 'fa');
     expect(html).toContain('داده‌ها نمی‌گویند هر هافبک در کدام خطِ آرایش ⁦4-2-3-1⁩ بازی کرد');
-    expect(html).toContain('میزبان در پایین.');
+    expect(html).toContain('ترکیب‌ها در زمین: Tractor و Esteghlal');
     expect(html).not.toContain('data-translation="untranslated"');
   });
 
@@ -310,7 +310,7 @@ describe("the pitch from the line-up's places", () => {
     return [
       ...html
         .slice(start, end)
-        .matchAll(/<ol dir="ltr" class="flex justify-around py-1.5">(.*?)<\/ol>/g),
+        .matchAll(/<ol dir="ltr" class="flex justify-around py-1.5[^"]*">(.*?)<\/ol>/g),
     ].map((m) => [...(m[1] ?? '').matchAll(/title="(r\dc\d)"/g)].map((n) => n[1]));
   };
   const render = (locale: string, home = fourTwoThreeOne(), away = threeFourTwoOne()) =>
@@ -375,7 +375,7 @@ describe("the pitch from the line-up's places", () => {
     expect(html).toMatch(/data-testid="pitch-away" data-placed-by="roles"/);
     expect(html).toMatch(/data-testid="pitch-home" data-placed-by="grid"/);
     expect(html).toContain(
-      'Home side at the bottom. ⁨Tractor⁩: each player where the line-up places him. ⁨Esteghlal⁩: placed by the formation',
+      '⁨Tractor⁩: each player where the line-up places him. ⁨Esteghlal⁩: placed by the formation',
     );
   });
 
@@ -533,12 +533,18 @@ describe('the score band', () => {
     expect(html).not.toContain('live-dot');
   });
 
-  it('live shows the minute in red with the live word, and the stream line under it', () => {
+  it('live shows the saffron badge with the minute above the score, and the stream line under it', () => {
     const html = band(centre({}), 'en', { live: <p data-testid="live-state">STAMP</p> });
     expect(html).toMatch(
-      /text-live"><span aria-hidden="true" class="live-dot[^"]*"><\/span><span>Live <\/span><span data-testid="match-status">78′</,
+      /data-testid="live-badge" data-live="true"><span data-live-badge="" class="[^"]*text-live[^"]*"><span aria-hidden="true" class="live-dot[^"]*"><\/span><span>Live[^<]*<\/span><span data-testid="match-status">78′</,
     );
-    expect(html.indexOf('data-testid="match-status"')).toBeLessThan(html.indexOf('STAMP'));
+    expect(html.indexOf('data-testid="live-badge"')).toBeLessThan(
+      html.indexOf('data-testid="score"'),
+    );
+    expect(html).toMatch(/class="[^"]*text-live[^"]*" data-testid="score"/);
+    // The minute along the match, then kick-off and the stream's stamp.
+    expect(html).toMatch(/data-testid="live-progress"[^]*inline-size:86\.66/);
+    expect(html.indexOf('data-testid="score"')).toBeLessThan(html.indexOf('STAMP'));
   });
 
   it('at full time shows the full-time score and FT, and the highlight before the facts', () => {
@@ -563,7 +569,7 @@ describe('the score band', () => {
   it('on /fa sets the score in Vazirmatn with Persian digits, home goals on the home side', () => {
     const html = band(centre({}), 'fa');
     expect(html).toMatch(
-      /<span dir="rtl" class="[^"]*text-display-4[^"]*" data-testid="score">۲<span[^>]*>–<\/span>۱<\/span>/,
+      /<span dir="rtl" class="[^"]*text-display-3[^"]*" data-testid="score">۲<span[^>]*>–<\/span>۱<\/span>/,
     );
     expect(html).not.toMatch(/data-testid="score"[^>]*font-stretch-condensed/);
     // The home team first in the DOM, so the grid puts it on the right.
@@ -608,16 +614,21 @@ describe('the phone tabs need no script (T-1384)', () => {
   const css = readFileSync(join(__dirname, '..', 'app', 'globals.css'), 'utf8');
 
   it('shows the tab holding the target, else the Summary, below 768px only', () => {
-    const block = css.slice(css.indexOf("The match centre's tabs on a phone"));
-    expect(block).toContain('@media (width < 48rem)');
-    expect(block).toContain(
-      "[data-match-tabs]:not(:has(:target)) [data-tab]:not([data-tab='summary'])",
-    );
-    expect(block).toContain(
-      '[data-match-tabs]:has(:target) [data-tab]:not(:target, :has(:target))',
+    const start = css.indexOf("The match centre's tabs (T-1384");
+    const block = css.slice(start, css.indexOf('Fallback faces matched', start));
+    const phone = block.slice(block.indexOf('@media (width < 48rem)'), block.indexOf('\n}\n'));
+    expect(phone).toMatch(
+      /\[data-match-tabs\]:not\(:has\(\[data-tab\]:target, \[data-tab\] :target\)\)\s+\[data-tab\]:not\(\[data-tab='summary'\]\)/,
     );
     for (const tab of ['summary', 'lineups', 'stats', 'predictions', 'watch', 'discussion']) {
-      expect(block).toContain(`[data-tab-link='${tab}']`);
+      // A section shows by the tab it names, so a tab may hold sections in both columns.
+      expect(phone).toMatch(
+        new RegExp(
+          `\\[data-match-tabs\\]:has\\(\\[data-tab='${tab}'\\]:target, \\[data-tab='${tab}'\\] :target\\)\\s+\\[data-tab\\]:not\\(\\[data-tab='${tab}'\\]\\)`,
+        ),
+      );
+      // The tab on show is marked at every width.
+      expect(block.slice(block.indexOf('\n}\n'))).toContain(`[data-tab-link='${tab}']`);
     }
   });
 });
@@ -793,7 +804,7 @@ describe('the model against the result', () => {
 
   it('shows the scored pre-match version, what it gave the result and its RPS', () => {
     const html = model(forecasts, evaluations);
-    expect(html).toContain('data-lane="model"');
+    expect(html).toContain('data-voice="model"');
     expect(html).toContain('Result: a draw. The model gave it 34.0%.');
     expect(html).toMatch(/data-testid="model-verdict-rps"[^]*0\.126/);
     expect(html).toContain('ranked probability score for this match · 0 is perfect');
@@ -863,7 +874,7 @@ describe('the founder against the result', () => {
 
   it('settles the published pick on the result, signed', () => {
     const right = founder(analysis('draw', { home: 1, away: 1 }));
-    expect(right).toContain('data-lane="founder"');
+    expect(right).toContain('data-voice="founder"');
     expect(right).toContain('data-state="right"');
     expect(right).toContain('The result matched the pick. The score was exact too.');
     expect(right).toContain('data-testid="founder-signature"');

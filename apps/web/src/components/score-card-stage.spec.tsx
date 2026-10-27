@@ -1,7 +1,7 @@
 import type { ScoreCard as ScoreCardData } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { ScoreCard } from './score-card';
+import { CardDetails, ScoreCard } from './score-card';
 import { t } from '@/i18n/messages';
 import { scoresWords } from '@/lib/words-server';
 
@@ -38,6 +38,7 @@ const card: ScoreCardData = {
   pinned: false,
 };
 
+/** The row and its preview's details (T-1496), where the stage and the kicks now are. */
 const render = (locale: 'en' | 'fa', over: Partial<ScoreCardData> = {}): string =>
   renderToStaticMarkup(
     <ul>
@@ -48,6 +49,15 @@ const render = (locale: 'en' | 'fa', over: Partial<ScoreCardData> = {}): string 
         locale={locale}
       />
     </ul>,
+  ) +
+  renderToStaticMarkup(
+    <CardDetails
+      words={scoresWords(locale)}
+      card={{ ...card, ...over }}
+      timeZone="UTC"
+      locale={locale}
+      revealed
+    />,
   );
 
 describe('a score card names the stage and round in the reader’s words', () => {

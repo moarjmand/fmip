@@ -1,4 +1,4 @@
-import type { ScoreCard, ScoresResponse } from '@fmip/contracts';
+import type { ScoreCard } from '@fmip/contracts';
 import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -8,12 +8,11 @@ import {
   chipState,
   sharedAnswer,
   stripBehindAt,
-  stripGroup,
   stripIsBehind,
 } from './live-strip';
 import { scoresWords } from './words-server';
 
-/** The live strip's rules (T-1381, D-199). */
+/** The live strip's rules (T-1381, D-199), now the matchday rail drawer's (T-1624, D-292). */
 
 const NOW = Date.parse('2026-10-11T15:00:00.000Z');
 
@@ -51,44 +50,6 @@ function stripCard(over: Partial<ScoreCard> = {}): ScoreCard {
 
 const words = scoresWords('en').m;
 const faWords = scoresWords('fa').m;
-
-describe('the competition the strip shows', () => {
-  const group = (id: string, fixtures: ScoreCard[]) => ({
-    country: null,
-    competition: { id, name: id, short_name: null },
-    fixtures,
-  });
-  const answer = (groups: ReturnType<typeof group>[]): ScoresResponse => ({
-    filters: {
-      from: '2026-10-11',
-      to: '2026-10-11',
-      timezone: 'UTC',
-      live: false,
-      favourites: false,
-      country_id: null,
-      competition_id: null,
-      stage_id: null,
-      gender: null,
-      age: null,
-    },
-    generated_at: '2026-10-11T15:00:00.000Z',
-    total: 1,
-    pinned: [],
-    groups,
-  });
-
-  it('is the first in the answer’s order that has a match today', () => {
-    const shown = stripGroup(
-      answer([group('pro-league', []), group('ucl', [stripCard()]), group('epl', [stripCard()])]),
-    );
-    expect(shown?.competition.id).toBe('ucl');
-  });
-
-  it('is none on a day with no match, so no empty strip is drawn', () => {
-    expect(stripGroup(answer([]))).toBeNull();
-    expect(stripGroup(answer([group('pro-league', [])]))).toBeNull();
-  });
-});
 
 describe('a chip’s state', () => {
   it('before kick-off: the time, no score', () => {

@@ -12,7 +12,8 @@ const PAGE = readFileSync(
 );
 const ADMIN = readFileSync(join(HERE, '..', 'app', '[locale]', 'admin', 'page.tsx'), 'utf8');
 const HOME = readFileSync(join(HERE, '..', 'app', '[locale]', 'page.tsx'), 'utf8');
-// Since T-1382 (D-200) the homepage hands the notes to its front column, which draws them.
+// Since T-1382 (D-200) the homepage hands the notes to its front column, which draws them;
+// since T-1495 (D-270) the big match carries its own.
 const FRONT = readFileSync(join(HERE, 'home-front.tsx'), 'utf8');
 
 describe('the homepage features page', () => {
@@ -42,8 +43,7 @@ describe('the homepage features page', () => {
   it('is linked from the administration area, and read by the homepage at render', () => {
     expect(ADMIN).toContain('/admin/homepage`');
     expect(HOME).toContain('fetchFeaturedMatches()');
-    expect(HOME).toContain('notes={notes}');
-    expect(HOME).toContain('note={notes.get(lead.id) ?? null}');
+    expect(HOME).toContain('note={notes.get(hero.card.id) ?? null}');
     expect(FRONT).toContain('data-testid="home-featured-note"');
   });
 

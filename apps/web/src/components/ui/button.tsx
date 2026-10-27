@@ -8,8 +8,9 @@ import { cx } from './cx';
  * safe: no state of its own; the caller's `useActionState` says when it is
  * pending.
  *
- *   primary    the one thing the form is for, on the green
- *   secondary  every other action, an outlined control (the common case)
+ *   primary    the one thing the view is for, on the bright saffron
+ *   secondary  every other action, an outlined control (the common case;
+ *              the Design System's "quiet")
  *   danger     an action that removes or refuses, outlined in the danger token
  *   ghost      an action that reads like a link: no edge, underlined
  *
@@ -18,44 +19,52 @@ import { cx } from './cx';
  * form's own submit and every action a reader presses on a phone, which is a
  * 44px touch target (the Hybrid design, T-1388, D-206).
  *
- * The Hybrid look (D-206): the control radius (`rounded-control`, 10px), the
- * primary filled in the one brand green with a pressed state in the deeper
- * green, the secondary an outline in the control edge. A link that leaves
- * the site is not a button variant: it is `LinkOut` (`link-out.tsx`), which
- * must name who hosts the destination.
+ * The Stadiomind look (T-1493, D-263; the Design System's `Button`): the
+ * control radius (`rounded-control`, 8px); the primary filled in the bright
+ * saffron (`bg-brand`) with ink on it, in both themes, at most once per
+ * view; the secondary an outline in the control edge (`border-strong`, not
+ * the decorative hairline the Design System draws, which is never the only
+ * sign of a control). A chosen toggle (`selected`, the pick buttons) takes the
+ * saffron edge and a saffron tint, and says so in `aria-pressed`; its edge is
+ * the accent, which keeps 3:1 on the Day ground where the bright fill does
+ * not. A link that leaves the site is not a button variant: it is `LinkOut`
+ * (`link-out.tsx`), which must name who hosts the destination.
  */
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 export type ButtonSize = 'xs' | 'sm' | 'md';
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary:
-    'border border-accent bg-accent font-semibold text-on-accent hover:border-accent-strong hover:bg-accent-strong',
-  secondary: 'border border-strong font-medium',
+  primary: 'border border-brand bg-brand font-extrabold text-on-brand hover:brightness-95',
+  secondary: 'border border-strong font-bold',
   danger: 'font-medium border border-danger text-danger',
   ghost: 'underline',
 };
 
-/** The secondary edge when the control is the chosen one (a toggle that is on). */
-const SELECTED = 'border border-accent font-medium';
+/** The chosen one of a set of choices (a toggle that is on): the saffron edge and tint. */
+const SELECTED = 'border-2 border-accent bg-brand/14 font-extrabold';
 
 const SIZES: Record<ButtonSize, string> = {
   xs: 'px-2 py-0.5 text-xs',
   sm: 'px-3 py-1 text-sm',
-  md: 'inline-flex min-h-touch items-center justify-center gap-2 px-4 py-2',
+  md: 'inline-flex min-h-touch items-center justify-center gap-2 px-4 py-2 text-sm',
 };
 
 /** A ghost button keeps the text's own size and no padding: it sits in a sentence. */
 const GHOST_SIZES: Record<ButtonSize, string> = {
   xs: 'text-xs',
   sm: 'text-sm',
-  md: '',
+  // `md` is the touch size (T-1573): the text's own look, in a 44px box.
+  md: 'inline-flex min-h-touch items-center',
 };
 
 export interface ButtonStyle {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  /** A toggle that is on: the secondary edge turns to the accent. */
+  /**
+   * A choice that is on: the saffron edge and tint. On a `Button` it is also
+   * `aria-pressed` (a caller's own `aria-pressed` wins).
+   */
   selected?: boolean;
   className?: string;
 }
@@ -101,6 +110,7 @@ export function Button({
       type={type}
       disabled={disabled === true || pending}
       aria-busy={pending ? true : undefined}
+      aria-pressed={selected}
       className={buttonClasses({ variant, size, selected, className })}
       {...rest}
     >

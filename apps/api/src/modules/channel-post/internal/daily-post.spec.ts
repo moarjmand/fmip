@@ -214,7 +214,7 @@ describe('composeDailyPost', () => {
     expect(post).not.toBeNull();
     expect(post?.messages).toEqual([
       [
-        "FMIP · The statistical model's forecast · Sunday 27 September 2026",
+        "Stadiomind · The statistical model's forecast · Sunday 27 September 2026",
         'Home win, draw and away win probabilities from the statistical model (dixon-coles@1.0.0). Kick-off times in UTC.',
         '',
         'England · Premier League',
@@ -287,7 +287,7 @@ describe('composeDailyPost', () => {
     expect(messages.length).toBeGreaterThan(1);
     messages.forEach((text, i) => {
       expect(text.length).toBeLessThanOrEqual(MAX_MESSAGE_LENGTH);
-      expect(text.startsWith("FMIP · The statistical model's forecast · ")).toBe(true);
+      expect(text.startsWith("Stadiomind · The statistical model's forecast · ")).toBe(true);
       expect(text.split('\n')[0]).toMatch(new RegExp(`\\(${i + 1}/${messages.length}\\)$`));
     });
     // Each competition whole, in one message, and the order kept across them.

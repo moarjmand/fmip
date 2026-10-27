@@ -638,7 +638,7 @@ an account with a transactional e-mail service (Brevo, Mailjet, Postmark,
 Amazon SES, or any relay), verify your domain there as it asks (a few DNS
 records in Cloudflare), copy its SMTP host, port, user and password into the
 server's `.env` as `SMTP_URL=smtps://USER:PASSWORD@HOST:465` (or
-`smtp://HOST:587`), set `DELIVERY_EMAIL_FROM="FMIP <no-reply@your-domain>"`
+`smtp://HOST:587`), set `DELIVERY_EMAIL_FROM="Stadiomind <no-reply@your-domain>"`
 and `DELIVERY_EMAIL_PROVIDER=smtp`, roll the API (`bash deploy/rollout.sh api`;
 a plain `restart` keeps the old `.env`): `/health/delivery`
 says `smtp`, and from that moment every notification and the verification

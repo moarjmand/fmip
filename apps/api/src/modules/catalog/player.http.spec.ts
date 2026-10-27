@@ -152,7 +152,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       known_as: 'Player',
       localised_name: null,
       date_of_birth: '2000-02-29',
-      nationality: { id: ENGLAND, name: 'England', code: 'ENG' },
+      // No flag stored for the country either (T-1611): said so the same way.
+      nationality: {
+        id: ENGLAND,
+        name: 'England',
+        code: 'ENG',
+        flag: { coverage: 'not_supplied', url: null },
+      },
       height_cm: 181,
       preferred_foot: 'left',
       // No photo stored: said so, never left out (T-1320).
@@ -175,11 +181,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       await app.inject({ method: 'GET', url: `/players/${PLAYER}` })
     ).json() as PlayerPage;
     expect(page.record.coverage).toBe('available');
+    // The open spell names the position (T-1603).
+    expect(page.position).toMatchObject({
+      coverage: 'available',
+      data: { value: 'midfielder', basis: 'spell' },
+    });
     expect(page.record.data).toEqual([
       {
         season: { id: SEASON, label: '2025/26' },
         competition: { id: COMPETITION, name: `Test League ${RUN}`, short_name: 'TL' },
-        team: { id: TEAMS.alpha, name: `Test Alpha ${RUN}` },
+        // The club's crest from our own origin, or said not supplied (T-1617).
+        team: {
+          id: TEAMS.alpha,
+          name: `Test Alpha ${RUN}`,
+          crest: { coverage: 'not_supplied', url: null },
+        },
         starts: 1,
         sub_appearances: 1,
         goals: 1,
@@ -303,6 +319,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
     await minutes(sub.alpha, 25);
     const unused = await fixture('2025-11-15T15:00:00Z', [0, 0]);
     await lineup(unused.alpha, 'bench');
+    // No spell and no squad listing: the line-ups say defender, as played (T-1603).
+    expect(
+      ((await app.inject({ method: 'GET', url: `/players/${TIMED}` })).json() as PlayerPage)
+        .position,
+    ).toMatchObject({ coverage: 'limited', data: { value: 'defender', basis: 'lineup' } });
     expect(await record()).toEqual({
       coverage: 'available',
       total: 115,
@@ -310,6 +331,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       matches_with_minutes: 2,
       supplied_minutes: 115,
     });
+    // A finished match with no event stored at all (the start): its goals
+    // and cards are "at least", so the record is not whole (T-1579).
+    expect(
+      ((await app.inject({ method: 'GET', url: `/players/${TIMED}` })).json() as PlayerPage).record
+        .coverage,
+    ).toBe('limited');
 
     // Another start the feed sent no minutes for: the 115 is no longer the season.
     const silent = await fixture('2025-11-22T15:00:00Z', [0, 0]);

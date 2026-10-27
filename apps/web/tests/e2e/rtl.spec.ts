@@ -129,10 +129,10 @@ test.describe('layout mirrors under rtl', () => {
   });
 
   // T-1369: the model accuracy page mirrors, its figures' table included.
-  // T-1383 (D-201) set it in editorial mode, whose heading has no accent bar:
-  // the canary is now the heading's 680px measure, which sits at the inline
-  // start -- the right edge in `x-rtl`, the left in `en`. A `ml-auto` or a
-  // `left-0` where `ms-`/`start-0` belongs puts it on the wrong side.
+  // The canary is the heading, which sits at the inline start of its band
+  // (T-1620, D-291: on the theme's grounds, no longer editorial paper) --
+  // the right edge in `x-rtl`, the left in `en`. A `ml-auto` or a `left-0`
+  // where `ms-`/`start-0` belongs puts it on the wrong side.
   for (const [locale, dir] of [
     ['x-rtl', 'rtl'],
     ['en', 'ltr'],
@@ -143,6 +143,7 @@ test.describe('layout mirrors under rtl', () => {
       await page.goto(`/${locale}/model-accuracy`);
 
       await expect(page.locator('html')).toHaveAttribute('dir', dir);
+      await expect(page.getByTestId('model-accuracy-page')).toHaveAttribute('data-mode', 'data');
       const width = page.viewportSize()?.width ?? 1280;
       const box = await page.getByTestId('title').boundingBox();
       expect(box).not.toBeNull();
@@ -152,16 +153,20 @@ test.describe('layout mirrors under rtl', () => {
     });
   }
 
-  // T-1383: the Predictions page and its model rows mirror too.
-  test('/x-rtl/predictions is right-to-left, its measure on the right', async ({ page }) => {
+  // T-1383, T-1519: the old Predictions address lands on the matches page,
+  // which mirrors whole -- its title on the right, the founder's analysis
+  // section in the list's column.
+  test('/x-rtl/predictions lands on the matches page, right to left', async ({ page }) => {
     await page.goto('/x-rtl/predictions');
+    await expect(page).toHaveURL(/\/x-rtl\/scores$/);
 
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.locator('main')).toHaveAttribute('data-mode', 'editorial');
     const width = page.viewportSize()?.width ?? 1280;
     const box = await page.getByTestId('title').boundingBox();
     expect(box).not.toBeNull();
     if (box !== null) expect(box.x + box.width).toBeGreaterThan(width * 0.75);
+    const analysis = (await page.getByTestId('matches-analysis').boundingBox())!;
+    expect(analysis.x + analysis.width).toBeGreaterThan(width * 0.5);
   });
 
   // T-1387: lite mode's banner -- the words at the inline start, the switch at

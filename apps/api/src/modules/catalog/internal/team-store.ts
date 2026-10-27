@@ -131,7 +131,9 @@ export class PostgresTeamStore {
          JOIN fixture_participant p ON p.fixture_id = f.id AND p.team_id = $1
          JOIN season se ON se.id = f.season_id
          JOIN competition c ON c.id = se.competition_id
-        WHERE se.is_current OR f.status IN ('scheduled', 'live', 'postponed', 'suspended')
+        -- Not 'postponed' (T-1578): a postponed match the provider never
+        -- closed held a finished season's table on the page for good.
+        WHERE se.is_current OR f.status IN ('scheduled', 'live', 'suspended')
         ORDER BY c.name, season_label DESC`,
       [teamId],
     );

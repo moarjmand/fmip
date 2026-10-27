@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { TRENDING_WEIGHTS } from '@fmip/contracts';
 import { nonArticleKind, otherCodeOf } from '@fmip/ingestion';
 import type {
@@ -17,6 +17,7 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { MediaService } from '../../media/media.service';
 import { SAME_HEADLINE } from '../news-clustering.service';
 import { shownImageJoin } from './news-image-store';
 
@@ -121,7 +122,17 @@ interface EntityRow {
  */
 @Injectable()
 export class PostgresNewsReadStore {
-  constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+  /**
+   * `media` names each linked team, competition and person's image (T-1613,
+   * D-284). Optional so a spec can build the store from a pool alone; such a
+   * store's entities carry no `media`, which the contract allows. Named by
+   * `@Inject`, since a union type's metadata is `Object` and would resolve
+   * to nothing.
+   */
+  constructor(
+    @Inject(PG_POOL) private readonly pool: Pool,
+    @Optional() @Inject(MediaService) private readonly media: MediaService | null = null,
+  ) {}
 
   /** When the feeds were last read: the freshness a page carries (rule 4). */
   async lastFetchedAt(): Promise<string | null> {
@@ -608,7 +619,8 @@ export class PostgresNewsReadStore {
    * own headline says it is not an article (`nonArticleKind`, the job's rule,
    * for what was stored before the job applied it), an item a search brought
    * whose own words name another code of football (`otherCodeOf`, T-1400,
-   * D-215; a publisher's own feed is not judged by it), and a story whose report
+   * D-215), or a publisher's feed item that does and is filed to none of ours
+   * (T-1619, D-290), and a story whose report
    * an earlier story already carries (`copies`). `paged` sections say where
    * the next page begins: after the last card shown, or, when every row past
    * it was left out, after the last row read.
@@ -631,18 +643,21 @@ export class PostgresNewsReadStore {
     paged: boolean,
   ): Promise<StoryPage_> {
     const copies = await this.copies(rows, q.locale);
+    // Read before the filter: an item from a publisher's own feed that names
+    // another sport is left out only when it is filed to none of ours (T-1619, D-290).
+    const entities = await this.entities(
+      rows.map((r) => r.story_id),
+      q.locale,
+    );
+    const filed = (r: CardRow): boolean => (entities.get(r.story_id) ?? []).length > 0;
     const listed = rows.filter(
       (r) =>
         nonArticleKind(r.headline) === null &&
-        !(r.searched && otherCodeOf(r.headline, r.summary) !== null) &&
+        !((r.searched || !filed(r)) && otherCodeOf(r.headline, r.summary) !== null) &&
         !copies.has(r.story_id),
     );
     const shown = listed.slice(0, limit);
     const read = rows.length === fetchSize(limit);
-    const entities = await this.entities(
-      shown.map((r) => r.story_id),
-      q.locale,
-    );
     const cards = shown.map((r) => this.card(r, entities.get(r.story_id) ?? [], q.windowHours));
     const more = paged && (listed.length > limit || read);
     const last = listed.length > limit ? shown[shown.length - 1] : rows[rows.length - 1];
@@ -779,13 +794,33 @@ export class PostgresNewsReadStore {
         ORDER BY m.story_id, e.entity_type, e.entity_id`,
       [storyIds, locale],
     );
+    // One media query for every linked entity on the page (T-1613, D-284).
+    const idsOf = (type: NewsEntity['entity_type']) =>
+      rows.filter((r) => r.entity_type === type).map((r) => r.entity_id);
+    const index =
+      this.media === null
+        ? null
+        : await this.media.index({
+            team: idsOf('team'),
+            competition: idsOf('competition'),
+            person: idsOf('person'),
+          });
     for (const r of rows) {
       const list = out.get(r.story_id) ?? [];
+      const media =
+        index === null || r.entity_type === 'fixture'
+          ? undefined
+          : r.entity_type === 'team'
+            ? index.crest(r.entity_id)
+            : r.entity_type === 'competition'
+              ? index.logo(r.entity_id)
+              : index.photo(r.entity_id);
       list.push({
         entity_type: r.entity_type,
         entity_id: r.entity_id,
         name: r.name,
         localised_name: r.localised_name,
+        ...(media === undefined ? {} : { media }),
       });
       out.set(r.story_id, list);
     }

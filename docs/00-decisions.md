@@ -12207,3 +12207,551 @@ replaces D-089's self-hosting arrangement for no gain here).
 5. **The terms come first.** YouTube API Services Terms (data retention and refresh, attribution) are read and recorded here before any row is written.
 
 **Consequences.** Nothing runs until `YOUTUBE_API_KEY` is set; empty means off, with no queue, no request and no row. The maintainer creates the key (design section 7); the agent creates no account. The Persian Gulf Pro League may stay empty: its official video is not mainly on YouTube.
+## D-262 — The product is named Stadiomind
+
+**Status:** Accepted · 2026-10-25 (the maintainer: "the name now, the domain later") · **Task:** T-1490, T-1492, T-1503, T-1504
+
+**Context.** The maintainer wanted a complete redesign (2026-10-16) and a real brand name first: serious, analytical, English only, with a free .com. Four naming rounds (2026-10-18 to 20) scored about 270 names; the maintainer chose Stadiomind for the redesign on 2026-10-24. The site still calls itself by the working name and lives at traveltohormuz.ir.
+
+**Decision.**
+1. The product's public name is Stadiomind, on every surface the reader sees: page titles and metadata, the web manifest, share cards, e-mails, the header and footer, the about page.
+2. The mark is three rounded bars, home, draw and away (the maintainer's pick of six, 2026-10-25), with the name set in Archivo at 125% width. Sources: the Stadiomind Design System (https://claude.ai/artifact/XXXSf9yhanxxCLcMtuYyrC, Logos).
+3. The domain stays traveltohormuz.ir until the maintainer buys stadiomind.com; moving domains is its own task then.
+4. On /fa the name is written in Latin letters until the maintainer chooses a Persian form.
+5. The repository, packages, database and internal identifiers keep the name FMIP; only reader-facing text changes.
+
+**Consequences.** Share cards and e-mails change their sender name and look at once with T-1492. Search engines see a new title on the same domain; nothing is redirected yet.
+
+**How T-1492 applied it (2026-10-25).** The name and the mark were split into three tasks at the maintainer's word: the mark (T-1492), the name on the site (T-1503) and the name in the API (T-1504). The mark is drawn as the Design System's logos give it, never recoloured: the bars alone in the Day set on paper (the header, which D-198 keeps on paper in both themes, and the share cards) and in the Night set on ink. The favicon and the app icons put the Night bars on a tile of the Night canvas, #0f1215, at twice the logo's scale, so an icon reads on a light or a dark home screen alike; a 32 px PNG joins them for browsers that do not draw the SVG favicon. The manifest's splash and bar take that ink; the page's `theme-color` follows the device, the Day ground on a light one and the ink on a dark one. The D-089 green left the code.
+
+**How T-1503 applied it (2026-10-25).** Every page title, the root metadata, Open Graph's site name, the structured data, the manifest (name and short name), the iOS home-screen title, the share cards, the push notification's fallback title in the service worker and the header say Stadiomind. The header's wordmark is set as the Design System sets it: Archivo 850 at 125% width, in capitals by CSS so a screen reader says the name and not its letters; it fits a 320 px phone. All nine catalogues changed in the English source each translation records as well as in its text, so no translation turned stale by the rename, and the Persian text keeps the name in Latin letters (point 4). Comments, packages and identifiers keep FMIP (point 5).
+
+**How T-1504 applied it (2026-10-25).** The API's reader-facing text says Stadiomind: the verification and password-reset e-mail subjects, the push title of match alerts and notifications, and the first line of the daily, results and weekly channel posts. The sender's display name is not in the code: it is `DELIVERY_EMAIL_FROM` in the server's `.env`, whose examples (the API's boot error, `deploy/check-setup.sh`, `docs/14-maintainer.md`) now show `Stadiomind <no-reply@your-domain>`. The news crawler's user agent (`fmip-news`) is an identifier publishers' robots rules name, and stays (point 5).
+
+## D-263 — The Stadiomind visual system replaces the Hybrid palette and display faces
+
+**Status:** Accepted · 2026-10-25 (the maintainer's answers on the redesign canvas, 2026-10-24 and 25) · **Task:** T-1491 · **Supersedes:** D-198 in its palette, display faces and brand colour; keeps its theme switch and the three-voice rule · **Follows:** D-089, D-207
+
+**Context.** The canvas "Stadiomind Redesign" (https://claude.ai/artifact/X5qzAJELjXfdsYcHcMUvAn, 16 boards, real production data of 2026-10-24) was built from a brief the maintainer answered on 2026-10-24: English first, phone and desktop equally, Sofascore and Opta Analyst as references, the current look generic and the layout weak, new colours welcome, every page from scratch. Competitor colours were measured on their live sites: blue is taken three times (Sofascore #374DF5, 365Scores, OneFootball), green by FotMob, red-pink by Flashscore, aubergine and pink by Opta Analyst. None of them shows a forecast's version, time or coverage. The maintainer accepted every recommendation of the interactive round.
+
+**Decision.**
+1. Colour, option A: an ink ground (#0F1215 Night, #F2F3F1 Day), saffron #EBA53C for the brand and the moment (primary action, selected tab and date, live minute, the reader's own picks, the top rating) and turquoise #2BB3AD for the model and nothing else. The full token list, with Day text shades that pass 4.5:1, is the Design System's `tokens.json`; `tokens.css` and `brand-colours.ts` take those values.
+2. The theme follows the device, with the existing Auto / Day / Night switch (D-198's mechanism stays).
+3. Type: Archivo (variable, width axis) replaces Mona Sans for the interface, headings and scores; Geist Mono stays for receipts and stamps; Newsreader stays for the founder's analysis in English and Markazi Text for it in Persian; Vazirmatn stays for Persian interface text. All self-hosted (D-089), so `fonts.spec.ts` keeps refusing a font host.
+4. Layout choices: the home opens on the day's big match with the model's forecast (a big live match takes its place); the "forecast against reality" card stays on the home; the match centre's Summary opens with what was forecast and what happened, every version listed; the desktop line-up is one horizontal pitch with both sides; matches and predictions are one page, each row with the model's three percentages and a Pick action; the phone has five tabs (Matches, Predict, Leagues, News, You); a club's colour appears only in its page's top band.
+5. The Design System's 13 components are the reference for the web components; the web app keeps its own React code and Tailwind classes, built to match them.
+
+**Consequences.** Every colour token changes value, so `tokens.spec.ts`, `raw-colours.spec.ts` and the share-card renderers move together in T-1491. The editorial/data mode split of D-198 is no longer needed and is removed page by page as each page is rebuilt.
+
+**How T-1491 applied it (2026-10-25).** The web app's 20 colour roles take the Design System's values: `canvas` and `stage` are the ground in both themes, `accent` is saffron (on Day the Design System's `saffron-text`, #8a5300, which reads as text and carries white text as a fill; on Night the saffron itself with ink text), `live` and `warning` are saffron as text, `model` and the Day `focus` are turquoise, `danger` is the red-card red (lifted to #e45f59 on Night so it reads on the insets). The palette has no green, so `success` is ink. The founder's lane is ink and the community's ink-muted: the three products stay apart by their labels and, for the founder, the serif, and no other role uses the model's colour (the spec checks it). The more-contrast sets were derived from these, every text role at 7:1. The old mark, the app icons, the manifest and `theme-color` keep the D-089 green (`MARK_COLOURS` in `brand-colours.ts`) until T-1492 draws the Stadiomind mark, so a committed icon never disagrees with the inline mark. The three product lanes moved from an 8% tint of their colour onto a surface card, keeping the colour on the top edge: the model's turquoise has little room on the Day ground (4.62:1), and on its own tint the lane's name fell to 4.18:1. Archivo's fallback face was measured from the woff2 with fontTools and corrected by the ratio Mona Sans's Chromium figures bore to the same method; on a production build /en and /en/scores showed no layout shift.
+
+## D-264 — The redesign ships foundation first, then page by page, within a 5 KB allowance
+
+**Status:** Accepted · 2026-10-25 (the maintainer) · **Task:** T-1490 · **Amends:** the page budgets of T-808 (docs/08-load-test.md)
+
+**Context.** The match centre sits at 184.8 of 186 KB of first-load JavaScript and the scores page at 174 of 175 KB, so a redesign that adds client code would fail CI. A switch behind a flag would keep two looks alive for weeks.
+
+**Decision.**
+1. Foundation first: one PR changes the tokens, fonts and logo for the whole site (T-1491, T-1492); the shared components and navigation follow (T-1493, T-1494); then each page is rebuilt in its own PR (T-1495 to T-1500). Between them the site mixes new colours with old layouts for a few days; no flag.
+2. Each budgeted page (home, scores, match centre, competition) may grow its first-load JavaScript by at most 5 KB gzip over today's budget, once, and only for new behaviour the canvas shows. Server response budgets do not change. `perf-budgets.json` and docs/08 record each raise with its reason.
+3. New components are server components unless they need state (the pick buttons, the date strip, tabs on phones); fonts load with `font-display: swap` and size-adjusted fallbacks so CLS stays under 0.05.
+
+**Consequences.** The new budgets are home 163, scores 180, match centre 191, competition 163 KB at most, raised in the PR that needs them. PageSpeed is measured after the foundation and after the last page (T-1502).
+
+## D-265 — The model's biggest miss of a day: which day, which competitions, which matches
+
+**Status:** Accepted · 2026-10-25 (agent, from the code and D-031, D-114, D-209; revisable by the maintainer) · **Task:** T-1507 (the API of T-1495's "forecast against reality" card) · **Follows:** D-263, D-264, rules 3, 5, 6
+
+**Context.** The new home page (D-263, item 4) keeps a "forecast against reality" card: the day's finished match whose result the statistical model rated least likely, among competitions with full coverage. The row left three things open: which day, what full coverage is, and what a void match counts as.
+
+**Decision.** `GET /model/upset?date=YYYY-MM-DD&tz=Area/City`, public, read-only (rule 5).
+
+1. **The day** is the calendar day in the zone asked, both optional and read as `GET /scores` reads them: `tz` defaults to UTC and `date` to today in that zone. The home page passes the reader's zone, so the card's day is the day its scores list calls today; another day is the same call with `date`.
+2. **Full coverage** is two facts already stored, not a new list: the season's `scores` coverage profile is `available` (computed from our rows, T-027, as the scores list shows it), and the model's forecast was made on complete data (`data_completeness = 'available'`, what `coverageOf` calls `available`). A season that is `limited`, `delayed` or unprofiled, and a forecast on limited data, do not take part.
+3. **The forecast** is the match's last published version computed before kick-off, as the scores card and the evaluation pick it (D-114, D-209). If that version is unavailable or on limited data the match does not take part; an earlier version is not used in its place, because it was not the model's last word. A version computed after kick-off never counts. Shadow candidates never count.
+4. **The result** is the full-time score, the one the evaluation scores against (D-031). Only a `finished` match with a full-time score takes part: postponed, cancelled, abandoned and awarded matches (the ones a prediction settles void) were not played to the result the forecast was about, and are neither candidates nor counted.
+5. **The least likely** is the lowest probability the version gave the outcome that happened; ties go to the earlier kick-off, then the fixture id.
+6. **The answer** names the match by canonical ids with its names, the score, the outcome, the probability given it and all three, and the version (number, kind, model version, when computed), with the day's count of finished matches and matches still to play in fully covered competitions, so a card can say "so far". With no match it is `coverage: 'not_supplied'` with `reason` `no_finished_match` or `no_covered_forecast` and `upset: null` (rule 3).
+
+**Alternatives considered.** The request's date in UTC only: "today" on the home page is the reader's day, and the scores list already reads it that way. The competitions the model fits directly (a football-data division): a cup match on the cross-league scale is still the published model's answer, and the forecast's own completeness already says whether the model had what it wanted. The accuracy page's 30-match minimum: it qualifies a competition's track record, not one match's forecast.
+
+**Consequences.** New module `apps/api/src/modules/model-upset`, contract `ModelUpsetResponse`, web fetcher `fetchModelUpset`. No migration. T-1495 draws the card.
+
+## D-266 — The visual baseline is Linux renders of the no-API pages, with both clocks fixed
+
+**Status:** Accepted · 2026-10-25 (T-1502, under the maintainer's standing approval for the redesign) · **Task:** T-1502 · **Follows:** D-264
+
+**Context.** T-1502 keeps a picture of every rebuilt page in Night, Day and at 390 px and compares it in CI. A screenshot test is only useful if two runs of an unchanged page agree, and the pages write the server's "today" into what they draw (the scores day strip and date picker, the home page's date line). CI runs Ubuntu; the maintainer's machine is Windows, whose text anti-aliasing differs.
+
+**Decision.**
+1. Six pages (home, scores, the seed's match `…0901`, a competition, a club, a player) in four views: Night and Day, each at 1280 px and at 390 px; 24 full-page pictures, in the `chromium` project against the production build without an API, so each page is its unreachable state.
+2. Both clocks are fixed at 2026-10-24 18:00 UTC: the browser's with `page.clock.setFixedTime`, the web server's with a `--require` preload (`tests/e2e/fixed-clock.cjs`) that shifts `Date` to that instant and lets it run on. Fixing the server's clock keeps the day strip and the dates in the picture; masking them would have left the scores page's most designed control out of its own baseline.
+3. Reduced motion, animations stopped, every font loaded, lite mode off, `en-GB` in `Europe/London`, the service worker blocked. A tolerance of 0.2% of the pixels, room for anti-aliasing only.
+4. Only Linux renders are committed and compared; on another platform the spec skips. The pictures come from CI's runner (its `visual-baseline` artifact) or the Playwright image of the pinned version.
+5. Until T-1494..T-1500 have landed the spec only writes (`VISUAL=update`) and CI uploads the result; the final T-1502 pull request commits the pictures and turns on the comparison.
+
+**Consequences.** A pull request that changes one of the six pages on purpose also commits its new pictures, taken from that branch's CI run: a failed comparison renders the new ones on the runner and uploads them. axe runs on the same pages in the same four views (`a11y.spec.ts`).
+
+**How T-1502 finished it (2026-10-25).** Once T-1493..T-1500 had landed, the 24 pictures were rendered by CI's runner from main (`0e7993bd`) with the comparison switched on, and committed. The spec now runs wherever the server's clock is fixed on Linux, which is only CI's "Visual baseline" step; the main Playwright step skips it, because the other specs must see the real date. When the comparison fails, the next step renders the new pictures with `--update-snapshots=changed` and uploads them as `visual-baseline`. The page budgets after the redesign: scores (180) and the match centre (191) took D-264's one raise; home (150.3 kB measured) and competition (151.1) did not need theirs and stay at 158, so D-264's 163 stays the ceiling they may be raised to once. PageSpeed after the redesign met the task's bar (97 on mobile on /en and /en/scores); the desktop header's wrap on a cold load (CLS 0.80, desktop 75-76), the match centre's phone LCP and a contrast fault on the scores page's selected row became T-1534..T-1536 (docs/08, "PageSpeed after the redesign").
+
+## D-267 — The navigation follows the theme, keeps a More, and gives phones five tabs
+
+**Status:** Accepted · 2026-10-25 (decided by the agent from the Design System and the canvas, with the maintainer's standing approval) · **Task:** T-1494 · **Supersedes:** D-198's editorial mode for the header, the live strip and the competitions bar; D-199's header nav and tab bar · **Follows:** D-263, D-264
+
+**Context.** Since D-198 the header has stood on paper in both themes ("editorial mode"), with a double rule under it, and its nav read Today, Scores, Predictions, Analysis, News, Watch, Highlights; the phone's tab bar read Today, Results, Predictions, News, Me. The Stadiomind Design System is Night-first: its header, pills and `TabBar` are drawn on the theme's own grounds, the header reads Matches, Predictions, Competitions, The model, News with search, the theme and Sign in at the end, and the phone has five tabs, Matches, Predict, Leagues, News, You, with search in its header. A paper header over a Night page would be the one Day surface left on it.
+
+**Decision.**
+1. The header, the live strip under it, the competitions bar and the tab bar follow the theme: the header is the raised surface on a phone and the page's own ground from 768px, with a hairline under it, and the mark is drawn in the colours of the ground it stands on (both sets in the page, the theme showing one; the bars are never recoloured, D-262). Editorial mode stays only on the pages not yet rebuilt.
+2. The desktop nav is Matches (`/scores`), Predictions, Competitions (`/competitions`), The model (`/model-accuracy`), News. The wordmark leads home, which has no entry of its own. The current entry is ink on the raised surface, as the Design System draws it.
+3. The founder's analysis, Watch and Highlights, which the Design System's header has no place for, stay one click away under **More**, a disclosure at the end of the nav, rather than being dropped. In the phone's and tablet's Menu, More is no box: its links are listed with the rest.
+4. Search is a field in the bar from 1024px ("Teams, players, competitions", a GET form to the search page, so it works without script) and a 44px button in the header below it.
+5. The theme switch keeps Auto, Day and Night (D-263 point 2); in the desktop bar they are 40px icons with their words kept for a screen reader, in the Menu 44px buttons with their words. Sign in is the header's one saffron button.
+6. The phone's tabs are Matches (`/scores`, current on the homepage too, as the canvas's phone home shows), Predict (`/predictions`, the leaderboard, the model and the analysis), Leagues (`/competitions` and every competition, club, player and coach page), News (and Highlights), You (Settings for a member, Sign in for a guest). The current tab is saffron and bold; each is at least 56px tall.
+7. A phone keeps the Menu beside search: the canvas's phone header shows the wordmark and search alone, but the language, the theme, The model and More's pages need a way in that the five tabs do not give.
+
+**Rejected.** *Keeping the header on paper*: one Day band over every Night page, which the Design System does not draw. *Dropping Watch, Highlights and the analysis from the header*: their pages would be reachable only from other pages. *A sixth tab*: the Design System fixes five.
+
+**Consequences.** `tokens.css` keeps the editorial block for the pages not yet rebuilt; nothing in the shell carries the mark any more. The old catalogue keys for Today and the old tabs left all nine catalogues; the new ones are in Persian for /fa. The competition pills' own look (rounded pills, "All competitions" at the end, phones without them) is T-1513.
+
+**How T-1513 applied it (2026-10-25).** The competitions bar is the Design System's row of pills: each main competition is a rounded pill with a hairline and its logo, the one being read edged in saffron on the raised surface, and "All competitions" comes last in saffron text with an arrow that turns under RTL. Each link is the 44px target, with the pill drawn inside it, and the focus ring sits inside the link so the row's sideways scroll cannot cut it. From 768px only: on a phone the Leagues tab leads to every competition, and the row would push the page down by a line. The looks are CSS utilities keyed on `aria-current`, as the nav's are, so the shell's client chunk does not grow.
+
+**How D-281 amended it (2026-10-26).** Point 2: the nav is Matches, Competitions, Predictions (the prediction league), The model, News, Highlights. Point 3: More holds the founder's analysis and Watch; What Stadiomind is and the rules are in a new site footer. Point 6: Predict leads to the picks to make and is current there.
+
+## D-268 — Matches and predictions are one page: rows with the model's percentages and a Pick, a preview with the pick form
+
+**Status:** Accepted · 2026-10-25 (from the canvas's Scores and ScoresPhone boards, D-263 point 4) · **Task:** T-1496 · **Follows:** D-114, D-206, D-263, D-264
+
+**Context.** The canvas "Stadiomind Redesign" puts the day's matches and the reader's picks on one page: a date strip, four views, the day's competitions as cards whose rows carry the model's three percentages and a Pick, and on a desktop a side column with one match and the pick form. The old scores card folded everything but the score behind a disclosure, and it showed the community's totals to anyone (T-940), while the Predictions page hid the split until the reader had picked (D-206). On one page the two rules cannot both stand.
+
+**Decision.**
+1. `/scores` is the page (its h1 and title "Matches"). Four views, one at a time, each an address: All, Live (`?live=1`), Not picked yet (`?unpicked=1`, matches not started and before kick-off that the member has not picked, applied to every live snapshot) and My teams (`?favourites=1`, the old favourites filter renamed). The last two are a member's; a guest is not offered them.
+2. A row is the Design System's match row: status or clock, both teams stacked, home first, each with its crest and, once started, its own goals at the line's end; then the model's latest pre-kick-off version as a thin bar with three whole percentages in the model's colour; then Pick. No forecast (none, or a version with no probabilities) is the `not_supplied` coverage badge, "Not supplied", never an empty bar; a batch that did not answer says "Not loaded". A leg, an aggregate, a shoot-out and a feed that is behind stay on the row.
+3. Pick opens the preview of that match (`?pick=<id>#pick`). Before kick-off it reads Pick, or Picked with a tick once the reader has a standing pick; after kick-off View, or Picked with a lock. The preview stands beside the list from 1024 px (sticky, its own scroll), showing the first match still open when none was chosen; on a phone it appears above the list only once a Pick asked for it, and the page scrolls to it. It holds the match, "Your pick" (the match centre's own form and server action, opened on the outcomes because Pick was the first press), the model's bar with its version and computation time beside it, never mixed in, a link to the match page, and what the old card's disclosure held (kick-off and venue, goals and cards, where to watch, coverage and update time).
+4. The community stays sealed until the reader has picked or kick-off has locked every pick (D-206), on this page everywhere: the pick form shows the split only once picked, and the details line that used to give every reader the community's totals says instead that they are shown after a pick or at kick-off.
+5. The member's picks come from one page of their own history (D-201's way); the previewed match is read directly. A match beyond that page reads Pick until it is opened, and its preview says the truth.
+6. From 1280 px a rail lists the day's competitions with their counts, links to the existing `?competition=` filter. The date picker, the day steps and the country, competition and stage filters stay as they were (T-633, T-1482).
+7. Saving a pick revalidates the matches page as well as the match page, so the row turns to Picked.
+8. The first-load budget rises once to 180 kB (D-264): the pick form is now in the scores page's first load (177.0 kB).
+
+**How T-1545 amended it (2026-10-26).** Point 2's row keeps its four columns from 640 px. Below that the model's cell goes under the teams, in the teams' column, and Pick spans both lines: beside the teams the cell and Pick left a name 21 to 51 px at 390 px, and production broke «پیکان» in two and cut "Crystal Palace" to "Cry st…". The three whole percentages total 100 (blueprint 6.2), the largest share absorbing the gap (`wholePercentages`, T-1555). Point 3's preview says the match's status under its score once it has started, and while it is live when the score was last updated: the preview is the page's snapshot and the list's stream does not reach it. A guest after kick-off is told picks are locked.
+
+**Consequences.** The Predictions page, its redirect to this page and a new home for the founder's analysis and the leaderboard link are T-1519, split off to keep this PR within its size. The old card's `<details>` is gone; unit and E2E specs that opened it read the preview instead.
+
+## D-269 — The Predictions page goes: its address redirects to the matches page, the founder's analysis moves there, Predictions leads to the picks still to make
+
+**Status:** Accepted · 2026-10-25 (decided within the coordinating session's grant, from D-268, D-267 and the blueprint) · **Task:** T-1519 · **Follows:** D-199, D-201, D-206, D-267, D-268
+
+**Context.** D-268 made the matches page the place picks are made, and left the old Predictions page (T-137, D-201: the model's list by day, the founder's analysis, the community's consensus list, the model's recent months and a top-ten leaderboard) and its address to this task. The header's Predictions, the phone's Predict and More's Analysis (`/predictions#analysis`) all still led there.
+
+**Decision.**
+1. `/{locale}/predictions` is a permanent redirect (308) to `/{locale}/scores`, keeping `date`, `tz` and `competition` and dropping anything else; the browser carries a `#analysis` fragment across it.
+2. The founder's analysis gets a home on the matches page, under the list, at `#analysis`: the five newest analyses (`GET /founder-analyses?limit=5`) in the founder's voice, the empty and unanswered feeds said in it (rule 3), then links to the prediction league (`/leaderboard`) and the model's record (`/model-accuracy`). It stands in its own voice, apart from the rows' model percentages and the preview's pick and split (rule 6).
+3. The old page's other sections are not rebuilt: the model's list by day is the matches page's rows and preview, the community's consensus list is the split the preview shows once picked (D-206), the model's recent months are `/model-accuracy`, the top ten is `/leaderboard`. Their components (`ForecastList`, `CommunityConsensusList`, `ModelAccuracyRecent`), the day buckets in `predictions-days.ts`, `fetchForecastList` and the 45 catalogue keys only they used go.
+4. Navigation: the header's Predictions and the phone's Predict lead to `/scores?unpicked=1`, the matches still to pick (a guest has none and sees every match, each Pick asking them to sign in); More's Analysis leads to `/scores#analysis`. The current entry is still decided by path alone: Matches is current on the matches page in every view, Predictions on the leaderboard, and Predict on the leaderboard, the model's record and the analysis pages. The navigation e2e therefore checks that Predictions and Predict land on the picks view with Matches current.
+5. The home's community call to action ("make your pick") leads to `/scores?unpicked=1` too.
+
+**Consequences.** One fewer page and one fewer place the three products meet; `three-products.spec.ts` now guards the matches page, its preview and its analysis section. Journey 2.1, the a11y, RTL and product-name specs read the matches page. Reading the query in the shell's navigation (so Predictions could be current on `?unpicked=1`) was rejected: the layout's client nav would need `useSearchParams` and a Suspense boundary on every page for one highlight.
+
+**How D-281 amended it (2026-10-26).** Point 4: the header's Predictions leads to the prediction league, which leads to the picks; the navigation reads the query after all, so the picks view is Predictions' and Predict's, not Matches'. More's analysis is named the founder's.
+
+## D-270 — The home page opens on the big match, and keeps the blueprint's other sections below the canvas
+
+**Status:** Accepted · 2026-10-25 (decided within the coordinating session's grant, from the canvas, D-263 and the blueprint) · **Task:** T-1495, T-1516 · **Follows:** D-153, D-154, D-200, D-263
+
+**Context.** The canvas boards Home and HomePhone show six blocks: the matches in play, the big match with the model's forecast and the other two voices, today by competition, the "forecast against reality" card, a table excerpt and the model's month in figures. Blueprint 2.3 also asks for news, breaking alerts, friends' predictions, group discussions, panels, broadcasts and the member's teams, which the boards leave out. D-263 point 4 says a big live match takes the hero's slot, without saying what makes a match big.
+
+**Decision.**
+1. A match is big when it is a followed team's, one an editor features (D-153), or one of the first six competitions in the scores answer's order (D-154: the Pro League, the Champions League, the big leagues). The hero ranks by that tier, then a match in play before a scheduled one, then the day, the competitions' order and the kick-off. A live match outside those six never takes the slot; a live match never takes it from a bigger scheduled one (an editor's feature tomorrow beats a big league's match in play today). With nothing in play the slot is the next big match today or tomorrow, else on the first day with one; its label says which ("Live now", "Today's big one", "Tomorrow's big one", "The next big one").
+2. The hero's figures (expected goals, the three likeliest scores, the factors that moved it most, the receipt with version, kind and sample) come from the match's last version computed before kick-off, the one its bar shows; when that version cannot be read the bar falls back to the pre-kick-off summary and the figures are left out.
+3. The three voices stay in their three lanes inside the hero (rule 6), with the note that they are three products.
+4. The page keeps one `<h1>`, "Today", above the blocks with the day and time in the reader's zone; it carries the inline-start accent the RTL check measures. The today block is headed "Matches by competition" (or "Matches · <day>" when today has none).
+5. Today by competition shows six competitions of four matches each, a member's teams first in a card of their own; a card names its round when every match shares one, else its count. The editor's note shows on the hero only.
+6. The live strip lists every match in play (at most eight chips), with when the live answer was last heard from; a stale answer says "behind" beside the minute (rule 4). It is not drawn when nothing is in play.
+7. Below the canvas blocks the page keeps the blueprint's sections as they were: breaking strip, first run, friends' predictions, group discussions, panels, the founder's column, broadcasts, the member's teams, the guest welcome and the news. The lead story (the newest breaking story above the match) is retired: every marked story stays in the breaking strip. The phone's day strip stays the matches page's (T-1496); the home links to it.
+8. The page follows the theme (D-263 point 2); `data-mode="editorial"` leaves it.
+
+**How T-1516 applied it (2026-10-25).** The side column takes the canvas's three blocks. "Forecast against reality" reads `GET /model/upset` (D-265) for the reader's day and zone, in the same round as the scores: the score, the three probabilities as a bar with the outcome that happened in saffron (`bg-accent`, the one place the model's bar takes the moment's colour), the share the model gave it, how many matches it was chosen from, its version, kind and computation time, and the way to the match. No such match is `not_supplied` with its reason in words, no answer is "could not be loaded"; the card is never an empty frame. HomePhone puts it straight after the hero, so the page draws it twice and shows one: after the hero below 1024 px, atop the side column above. The canvas's possession and xG sentence is not in the API and is left out rather than written by hand. The table excerpt is the first competition's top six with its season, coverage and last update. The model's month asks `GET /model/accuracy` by month (it asked by week since T-1414): the newest month with a match scored, how often the favourite won on how many matches, how much better (or worse) its RPS was than a uniform guess with both figures, the same share per competition (at most six, the most accurate first; a competition with nothing scored that month is left out), and a "limited" line naming the minimum when any figure is under it.
+
+**How the home review applied it (T-1540, 2026-10-26).** "The most accurate first" put a league with 17 matches above the Champions League's 36, and five of the six were under the minimum with nothing on their row to say so. The leagues on at least the minimum now come first, the most accurate first among them, then the limited ones; every row says how many matches it is on, and a limited row is dimmed and named for a screen reader. The "limited" line under the list stays.
+
+**Consequences.** The key-matches table with the model's percentages per row leaves the home; the percentages stay on the matches page. The side column's canvas blocks (the upset card on `GET /model/upset`, D-265; the table excerpt; the month in figures) are T-1516, after T-1507 merges, so the home's first PR stays within the file count.
+
+## D-271 — The Stadiomind player page: the club only in the photo's ring, facts with their coverage, the career by season in its own box
+
+**Status:** Accepted · 2026-10-25 (agent, under the maintainer's standing approval) · **Task:** T-1500 · **Amends:** D-204 (the Hybrid player page)
+
+**Context.** The canvas's Player and PlayerPhone boards (https://claude.ai/artifact/X5qzAJELjXfdsYcHcMUvAn) show a header with the photo in a ring of the club's colour, four facts (age, height, foot and a last rating), tiles per competition, a career table, the last six matches and the next match; the phone adds section tabs. Our data holds no per-player match rating on `GET /players/:id`, no club/national-team flag on a record row, and no home or away in the availability's next fixture.
+
+**Decision.**
+1. The club's colour appears only as the 3px ring round the photo (D-263); a club with no colour on record gets the theme's strong line. The band is the plain surface, no longer filled.
+2. The facts are age (with the birth date under it), height and foot, each the figure we hold or the "not supplied" badge. The canvas's "Last rating" is left out: the player endpoint carries no rating, and adding one is an API change of its own, not a page's.
+3. The season's tiles: one per competition (and team, where the season has more than one, so a national side is named), goals large, then appearances, minutes ("at least" where only some came, "minutes not supplied" where none) and goals per 90 only over whole minutes of at least 90; with more than one row a first "All competitions" tile. No "club goals" tile: a record row does not say whether its team is a club.
+4. The career table groups rows by season (a row-group header cell), with starts, substitute appearances, goals, assists and minutes; the Stats tab adds the cards. It keeps a 40rem minimum width and scrolls inside its own focusable region named by its caption, so a phone never scrolls the page sideways.
+5. The last six matches show both sides with the score between them in the page's direction (D-193), never "v Opponent" with a score whose order the reader must guess; goals and assists in the saffron text colour, a dash when none.
+6. The next match is the availability card (T-1007) headed "Next match": the team and opponent as the feed gives them (no home or away is claimed), the kick-off, then the availability with its coverage.
+7. The tabs stay Overview, Matches, Career, Stats (the phone board's "Season" and "News" are the Overview, which keeps the news); the desktop board shows none, but each tab is a URL that fetches only what it shows (D-203).
+
+**Consequences.** The player page drops `EntityBand` (T-1499's) for its own header in `components/player-page.tsx`. Four catalogue keys of the Hybrid tiles left the catalogues; the minutes note no longer says availability is not held, since the page shows it.
+
+## D-274 — The Stadiomind competition page: the canvas's six tabs, the full table on the Overview, the model's league record beside it
+
+**Status:** Accepted · 2026-10-25 (decided by the agent from the canvas, the Design System and D-262 to D-264, under the maintainer's standing approval) · **Task:** T-1498 · **Amends:** D-203 (the Hybrid competition page)
+
+**Context.** The canvas boards Competition and CompetitionPhone draw a different page from the Hybrid one: six tabs (Overview, Table, Matches, Players, Model in this league, News), the whole table with the form on the Overview, and beside it the day's matches with the model's three percentages, the latest results and "In this league" with its coverage badge. The Hybrid page had a summary table, the round with full forecast bars, the top scorers, the season in figures, news and the founder's feed on the Overview, a Stats tab, and an empty "season projection" slot in the table.
+
+**Decision.**
+1. Tabs: `overview`, `table`, `matches` (fixtures and results by round), `players`, `model`, `news`. The Hybrid addresses keep working: `?tab=fixtures` and `?tab=results` open Matches, `?tab=stats` the Overview.
+2. The Overview is the canvas's: the full table (every column, the goals as one "20:9" pair, the form as letters, most recent first), and at its inline end the day's matches, the latest results and the model card; the season's coverage module closes the page. The top scorers live on Players, the season in figures on Table, the news and the founder's feed on News (in their own boxes, never beside the model: rule 6).
+3. "The day's matches" is the day, in the reader's zone, of the first match being played or still to come (a match left "scheduled" more than six hours after kick-off does not set it), with every match that day. Each row shows the model's last pre-kick-off forecast as three whole percentages, or "No forecast" / "Forecast not loaded" in words; the receipt (model version, "latest before kick-off", the zone) is said once under the card and in full on the match page. "The latest results" is the last day with a finished match before that day.
+4. "The model in this league" reads `GET /model/accuracy` (the published model only): the newest month with a scored match in this competition — how often the favourite won, its RPS beside a uniform guess's, the matches — with that month's coverage badge (limited below `ACCURACY_MINIMUM_MATCHES`). No scored match: `not_supplied` and no figure; no answer: a sentence and no badge. The Model tab adds every month and the league's total.
+5. Zones stay as T-1167 drew them: a start-edge mark only where the feed lists the places (`zones.state === 'listed'`), otherwise the sentence under the table and no colour at all.
+6. The season projection slot (D-203) is dropped: the canvas has none, and an empty labelled column on every row taught nothing.
+7. The header, the cards and the rows are server components beside the page (`app/[locale]/competition/[id]/`), the season menu a `details` element: the page adds no client JavaScript, so its budget stays 158 KB.
+
+**Consequences.** `CompetitionBand`, `FixtureRow`, `MatchweekPanel`, `RoundsPanel`, `ProjectionNote` and `NoTableNote` leave `competition-page.tsx`, which keeps the modules the club, player and coach pages share; 23 catalogue keys that only they used are retired. T-1508's shared match row can replace `MatchLine` later without changing the page's states.
+
+## D-275 — The club page's top scorer is counted from our recorded goals, per competition
+
+**Status:** Accepted · 2026-10-25 · **Task:** T-1528 (split from T-1499)
+
+**Context.** The Club board shows a top scorer ("TOP SCORER · PL"). `GET /teams/:id` had none, and the competition page's scorers list stops at its top rows, so a club's best scorer may not be in it.
+
+**Decision.** `TeamPage.top_scorers` holds one entry per `competitions` entry: the season's scorers as the competition page counts them (our goal incidents of the main competition, D-209, D-232; `limited` while the season's recorded goals fall short of its scores) cut to goals for this club, and every player level on the most, by name. A club with no recorded goal is an empty list under the season's state; a season with no incidents is `not_supplied`. The provider's season totals, the competition page's fallback when we hold no incidents (D-232), are not read here: such a season answers `not_supplied`. Starts are not shown, since they are not counted for this figure.
+
+**Consequences.** Two more queries per competition on the team page (the season's scorers, its incident tally). The field is optional, so a web page in front of an older API reads it as `not_supplied`.
+
+## D-272 — The Stadiomind match centre: the model's card first, two columns, one pitch that turns
+
+**Status:** Accepted · 2026-10-25 (decided from the canvas's Match, MatchPhone and LivePhone boards, the Design System and D-263 under the maintainer's standing approval) · **Task:** T-1497, T-1522 · **Follows:** D-202, D-263, D-264
+
+**Context.** The canvas shows the match centre as a score band on the surface with the section tabs at its foot, then a main column (the Summary's "What was forecast, what happened" card, the three voices, the timeline with an axis, the stats, a horizontal pitch with ratings) and a side column (top rated, ratings, missing players, the last meetings, the data footer); on a phone the same sections under tabs, the pitch stacked; live, a saffron badge, the minute along a bar, the freshness stamp and "Not in yet" for what the feed has not sent. The page was at 185.5 of 186 KB of first-load JavaScript, with 191 KB the ceiling (D-264).
+
+**Decision.**
+1. The Summary opens with the model's card, drawn on the server and the model's alone (rule 6): after full time the bar with the outcome's segment in saffron and labelled "happened", the model's expected goals against the match's own xG and the goals, the five likeliest scorelines and whether the result was among them; live, the version from before kick-off marked as fixed; before kick-off, the latest. Under it every stored version by number, each as it was computed (rule 5), and the receipt of the version the card is about. The version after kick-off is the one the evaluation scored, else the last before kick-off, as `ModelVerdict` chooses. The three voices follow, from their three files.
+2. The canvas's explanatory paragraph is not written per match: a fixed sentence gives the share the model gave what happened and points to the model's record, since a sentence about a match's play would need an author (rule 3).
+3. The scorers under each name are left out when the timeline holds an own goal: the feed does not say which side an own goal counts for, and the alerts make the same choice.
+4. One pitch markup turns with the width: stacked on a phone (away above, home below) and horizontal from 768px (home from the inline start), mirrored on a right-to-left page with each line's order following the mirror. Shirt numbers replace photos on the pitch, as the canvas draws them; the rating chip uses the Design System's four bands, the best rated in saffron. The page carries one pitch, not two, which keeps the bundle within its ceiling.
+5. The section tabs are drawn at every width, inside the band: on a phone they choose what shows (no script, as D-202), from 768px they jump to the open sections. A section shows by the tab it names, so the Summary can hold the side column's sections too.
+6. "Not in yet" replaces the coverage badge on a live match's module that has nothing yet, with a sentence that nothing is estimated meanwhile; after full time the same gap shows its coverage state.
+7. Until T-1493's stacked PRs land, the outcome bar, the receipt and the rating chip are the page's own (in `forecast-reality.tsx` and `match-centre-cards.tsx`); they move to the shared components when those merge.
+
+**Consequences.** The live view grows by the axis, the scorers, the best rated and the chip, measured against the 191 KB ceiling in `perf-budgets.json`. `globals.css`'s tab rules name each tab. The pitch's note no longer says "home side at the bottom", which is true only on a phone.
+
+## D-276 — The club page follows the Club board, keeps its five tabs, and reads results from the club's side
+
+**Status:** Accepted · 2026-10-25 · **Task:** T-1499 (with T-1528, T-1529)
+
+**Context.** The Club and ClubPhone boards (D-263) redraw the club page: a band filled with the club's colour with the standing at its end, follow beside the tabs, the next match, recent results, the home and away record, then coming up, the top scorer, the squad and the table around the club. The boards' tabs (Overview, Matches, Squad, Season stats, Transfers, News) differ from the page's.
+
+**Decision.**
+1. The band: with `team.colour` the identity block is filled (D-218, `bandColours`: white or the ink at 4.5:1, darkened when neither reaches it); without one it is the theme's surface, with no rule. The club's competition, place and points from its table sit at the band's end; follow moves to the end of the tab row, so no control is painted in the club's colour.
+2. The page keeps its five tabs and URLs (Overview, Fixtures, Results, Squad, Stats; transfers on the Squad tab, the news on the Overview): the boards' set would move working links for no new data.
+3. The Overview has the boards' two columns. "Recent results" lists six across competitions, each read from the club's side as the board writes it: "v Fulham home" or "at Newcastle", and the score with the club's goals first, beside its result letter. The Fixtures and Results tabs keep both teams with the home side first (D-193).
+4. "… so far" is the first competition with counted matches: a row per split on desktop, three tiles and a sentence comparing points per match home and away on phones. The founder's analysis keeps its own card and is never summarised (rule 6).
+5. The side column's squad lists the first twelve with the squad's coverage, or the sentence when none is on record; the board's "Remind me when it is out" is not built, since no such reminder exists.
+
+**Consequences.** `MatchesPanel`, `SeasonPanels` and `TablePanels` are gone; `EntityBand` gains `aside`, and the player and coach pages get the follow button beside their tabs too.
+
+## D-273 — The desktop header is one row at every width; the search field gives way first
+
+**Status:** Accepted · 2026-10-26 (decided by the agent from PageSpeed's findings, with the maintainer's standing approval) · **Task:** T-1534 · **Amends:** D-267 point 4; T-1479's second row at 1024px
+
+**Context.** On PageSpeed's cold desktop load (1350px) the header was drawn on one row in the fallback face, then Sign in dropped to a second row once Archivo arrived; the header grew by 28px and the whole page moved (CLS about 0.80, desktop scores 75-76 on `/en`, `/en/scores` and a match page; `docs/08-load-test.md`, "PageSpeed after the redesign"). The row could wrap because it was a wrapping flex row and the search field would not shrink below its input's own width; production also draws the «فارسی» link, which CI's build without an API does not, so no check saw the wrap. From 1024px to 1279px the nav already took a second row of its own by design (T-1479).
+
+**Decision.**
+1. From 1024px the header is one 64px row that never wraps, so a face arriving late cannot change its height.
+2. The search field is what gives way: from 1280px it takes the room the rest leave, up to 16rem, and shrinks to its icon before anything else would move. The wordmark, the nav, the language link, the theme, Settings and Sign in keep their size.
+3. From 1024px to 1279px the field folds into the 44px search link (the one the phone has), after the nav, and the mark stands without its name, which stays for a screen reader. There is then room for the nav, search, the language link, the theme, Settings and Sign in on one row in either language.
+4. A member's name in the bar is cut short (11rem) rather than pushing the row wider.
+
+**Rejected.** *A second row at 1024px (T-1479)*: stable, but the acceptance asks for one row, and a header that changes shape between 1279 and 1280px is two designs to keep. *Tuning the fallback face's metrics alone*: whatever difference is left would still decide whether a full row wraps. *Dropping the language link or Settings from the bar*: both have no other way in on a desktop.
+
+**Consequences.** `tests/e2e/header-row.spec.ts` checks one 64px row at 1024, 1280 and 1350px on `/en` and `/fa`, with the language link put in as `LanguagePicker` draws it and the web fonts refused and loaded; `tests/e2e/journeys/header-row.spec.ts` checks the real link with the API behind the app. The PageSpeed re-run after the deploy is the coordinator's.
+
+## D-277 — The chosen row stands on a solid selected ground, not a saffron wash
+
+**Status:** Accepted · 2026-10-26 (under the maintainer's standing approval) · **Task:** T-1535 · **Follows:** D-263, D-268
+
+**Context.** The scores page marks the row its preview shows (`aria-current`) with `bg-accent/10`, a 10% saffron wash. On Day that wash takes the model's turquoise percentages to 4.48:1 on the surface and 4.05:1 on the page ground, under AA; Lighthouse's colour-contrast audit found it on production. CI's axe never saw it: without an API the page has no rows, and the journeys' seed stores no forecast.
+
+**Decision.**
+1. A new token, `--token-selected` (`bg-selected`), is the chosen row's ground: a solid saffron tint, `#fdf6ec` on Day (also with more contrast and in editorial mode), `#242321` at Night and `#181612` at Night with more contrast. `tokens.spec.ts` checks every text role on it as on the other grounds: 4.5:1, or 7:1 with more contrast. The model's percentages are at 4.82:1 on Day and 7.35:1 at Night.
+2. The fix is in the token, not in the row's text: the percentages keep the model's colour (rule 6), and so do the status, the names and the badge.
+3. The journeys check the chosen row with axe in Day and Night, and that its ground is the token itself. With no forecast in the seed, the percentages' own ratios rest on `tokens.spec.ts`. Seeding a stored forecast would change what the other journeys assert about that match ("Not supplied").
+
+**Consequences.** Other saffron washes (`bg-accent/10` on the club page's own table row, the coach page's chip, the lite banner) are unchanged; they can move to the token when they are rebuilt.
+## D-278 — The competition page's model record is the season's: only the months the season shares
+
+**Status:** Accepted · 2026-10-26 (decided by the agent in the competition review, under the maintainer's standing approval) · **Task:** T-1556 · **Amends:** D-274 (item 4)
+
+**Context.** D-274 put "the model in this league" beside the table: the newest month with a scored match, and every month on the Model tab. The months were the competition's, not the season's, so the 2025/26 Premier League page on production showed "In this league · October 2026" -- a record from a season that page is not about. `GET /model/accuracy` answers by month and competition; it has no season.
+
+**Decision.**
+1. On a season's page the card and the Model tab read only the months that share a day with the season (`start_date` to `end_date`). A month that straddles two seasons counts on both pages: the record is kept by month and is not split.
+2. The "All months" row is then those months summed: matches and forecasts added, every figure the average over the matches (each month weighted by its matches, which is exact because a match is scored in one month only), the coverage read from the matches as the API reads it. When every month is the season's, the API's own total stands.
+3. An older season with no scored month says "No forecast the model made before kick-off in this season has been scored" with a `not_supplied` badge, and no figure (rule 3).
+
+**Consequences.** No API change. A season the model was not yet published for (everything before October 2026 on production) shows the empty state rather than a later season's numbers.
+
+## D-279 — Fallback faces by weight and width, the last boundary's styles on demand, the match page's reads at once
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1536 · **Follows:** D-246, D-264, T-1463
+
+**Context.** PageSpeed's phone run of 2026-10-25 (docs/08) scored a match page 89 (LCP 3.2 s, CLS 0.021) and found the home page shifting by 0.068 when its fonts arrived, over D-264's 0.05. Three causes, measured locally on a 412 px phone with slow 4G and a 4x slower CPU:
+1. `Archivo Fallback` was one regular face of Arial (and one condensed). Every bold weight was drawn as a synthetic bold of the regular, 4 to 14 % narrower than Archivo's, and the semi-expanded and expanded widths, which the headings and the wordmark use, fell back to the upright face: an extrabold semi-expanded heading was 28 % narrower. On the home page "Matches by competition" grew from 225 to 296 px, its link wrapped under it and the page below moved by 31 px (CLS 0.13 here); the match page's names re-wrapped and its band grew by 20 px (0.051 to 0.057).
+2. Every page's HTML carried its 83 kB stylesheet three times: in its `<style>` (D-246), once in the RSC payload for the layout, and once more for `global-error.tsx`, which imported the same `globals.css`. Gzip cannot share copies 83 kB apart, so the third cost the match page 12 kB of its 75 kB.
+3. The match page asked for the member, then the match, then thirteen reads that needed only the match's id, one after the other; and it asked for the match twice, once for the metadata, since each call carries its own request id and `fetch` does not merge them.
+
+**Decision.**
+1. `Archivo Fallback` has a face per weight band and width the interface draws: upright 100-549 (the regular, unchanged), 550-649, 650-749, 750-849, 850-1000; condensed 100-549 (unchanged), 550-749, 750-849, 850-1000; semi-condensed (87.5 %) 100-549, 550-649, 650-1000; semi-expanded (112.5 %) 100-749, 750-1000; expanded (125 %) at any weight. From 550 up the face is Arial Bold or its clones. Each is scaled to Archivo's advance at its band, measured in Chromium against the shipped upright face's 97.23 % (over the site's text, and for the widths only headings, names and the wordmark use, over those), and keeps Archivo's ascent and descent. Still `local()` only: nothing is downloaded.
+2. A heading row with a link beside it (`RuleHeading`) puts the link on its own line on a phone, so a title that only just fits cannot push it down when the face arrives. A heading's own width ratio still ranges 113.5 to 120.9 % of its fallback's, which no single scale removes.
+3. `global-error.tsx` imports no stylesheet. Its body and styles (`global-error-body.tsx`: the two faces and `globals.css`) are loaded with `next/dynamic` when the boundary is drawn.
+4. The match page asks for the match once per request (`cache`), and starts it with every read that needs only the id and the cookie; the evaluation follows the match, since it is asked only after full time. An unknown match still 404s, and the reads started for it are dropped.
+
+**Consequences.** Locally the swap's CLS is 0.0001 on /en (from 0.13) and 0.006 on the match page (from 0.051), and 0.01 or less with no Arial on the device; `journeys/font-swap.spec.ts` holds the web fonts back on a phone and fails main's match page (0.057). The match page's HTML is 366 kB (62.8 kB gzip), from 436 kB (75.2 kB), and every other page loses the same 83 kB; with every API call slowed to 150 ms the page answers one round trip sooner (0.56 s from 0.70 s). A failed layout's page fetches its stylesheet when it is drawn, so if that request fails too the page is unstyled. The PageSpeed re-run on production after the deploy is the coordinator's. Not done: a phone without Arial or its clones (Android) still falls back to its system face unmatched; faces built on Roboto would need Roboto's metrics measured on such a device.
+
+## D-280 — Logos on a white tile, crests with a halo on Night
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1609 · **Follows:** D-176, D-263
+
+**Context.** On Night the competitions bar drew the Premier League, Champions League, Ligue 1 and Europa League logos dark on the dark pill, where they could not be seen; La Liga's sat on a dark square (`bg-surface-raised` behind a transparent logo), Serie A's and the Bundesliga's on white squares of their own. Measured on production over the 41 logos we hold: 12 are mostly dark (Premier League, Champions League, Ligue 1, Eredivisie, Danish Superliga, Süper Lig and others, 80-100 % of their drawn pixels under 25 % lightness), 5 come with an opaque white square, and every one reads on white, the paper they are made for; several mostly light ones (Championship, Coppa Italia, DFB-Pokal) keep a coloured outline that reads on white too. Crests differ: they are shapes made to stand alone, drawn by the dozen in score rows and tables, and only some are dark at the edge (Tottenham, PSG, Inter, Atalanta, Lens, Brest, Le Mans: 60-100 % of the outline under 20 % lightness).
+
+**Decision.**
+1. Every competition logo `EntityImage` draws sits on a white tile in both themes (`--token-logo-tile`, #ffffff: 18.79 / 17.31 / 15.64 against Night's canvas, surface and raised surface), padded and rounded by size (2px inside and 4px corners at 20 and 22, 4 and 6 at 40 and 48, 8 and 8 at 96), with a hairline on Night (`--token-logo-edge` #3a424a, a step above the line; on Day it is the surface, so the Day look is as before). A white square in a logo merges into the tile, so the 41 look alike.
+2. A crest has no ground of its own (the old raised square is gone) and, on Night only, a one-pixel soft light halo that follows its outline (`crest-halo`: `drop-shadow(0 0 1px var(--token-crest-halo))`, #a3acb5 on Night, the surface on Day). A navy or black crest keeps its edge; a light or bright one looks as drawn. Editorial mode takes the Day values, as for every token.
+3. The fix is in `EntityImage` (`imageClasses`), so the bar, the competition header, the directory, the score and table rows and the match pages all follow; the competition header's frame is now the logo's own tile (48px, 72px from sm) rather than a box round a 40px image.
+4. The lettered mark is unchanged (rule 3).
+
+**Rejected.**
+- A tile behind every crest too: dozens of plates on a scores page, and a square round a shape that has its own.
+- A per-image lightness flag from the media store, to light only the dark ones: a contract and ingestion change for what one CSS filter does on the client.
+- An off-white tile on Night to soften it: the logos with their own white square then show it as a second box.
+- Inverting or recolouring logos: a mark is never recoloured.
+
+**Consequences.** Three tokens per block (32); `tokens.spec.ts` checks the tile is white everywhere, the edge and the halo are the surface on Day, and on Night the tile stands 7:1 and the halo 4.5:1 off every ground. The halo is a CSS filter on each crest, also on Day, where it draws nothing visible.
+
+## D-281 — One way to each section: Predictions is the prediction league, Highlights joins the header, a language picker and a site footer
+
+**Status:** Accepted · 2026-10-26 (from the coordinator's analysis of the maintainer's question "which menu entries are redundant?", under the redesign's standing approval) · **Task:** T-1610 · **Amends:** D-267 points 2, 3 and 6; D-269 point 4 · **Follows:** T-306, T-1163, T-1534, T-1572
+
+**Context.** The maintainer asked which of the menu's entries were redundant. The header read Matches (`/scores`), Predictions (`/scores?unpicked=1`, current on `/leaderboard`), Competitions, The model, News, and More held Analysis (`/scores#analysis`), Watch, Highlights, What Stadiomind is (`/about`) and Platform rules (`/rules`). Three entries led to the matches page, and after choosing Predictions the entry marked current was Matches: the same entry twice and a state that contradicts the click. The phone's Predict tab did the same (it led to the picks, and Matches lit up). About and the rules are site information, not sections, and since T-1572 More was the only way to them. Highlights is a full page of clips. The header's language control was a bare link reading «فارسی» (the other language only), with no sign it was a language control. And the site had no footer.
+
+**Decision.**
+1. The header is Matches, Competitions, Predictions, The model, News, Highlights: football first, then the members' predictions and the model, then what to read and watch. Each leads to a page of its own and is current there. **Predictions leads to the prediction league** (`/leaderboard`), whose page now opens with a prominent "Make your picks" (the page's one primary button) to `/scores?unpicked=1`.
+2. **More** keeps two: the founder's analysis, named "Founder's analysis" rather than "Analysis" so it cannot be read as the model's (rule 6), and Watch. The analysis still leads to `/scores#analysis`: its latest pieces are a section of the matches page and it has no page of its own (D-269). About and the rules leave More for the footer.
+3. **The current entry reads the query too.** A section may name a view (`/scores?unpicked=1`), which wins over the page itself: the picks to make belong to Predictions in the header and to Predict on the phone, the rest of the matches page to Matches. D-269 rejected this because the client nav would need `useSearchParams` under a Suspense boundary on every page; the header's language picker has read the query on every page since T-1572, and without it the phone's Predict lit Matches. The nav reads it with no boundary of its own: every page under the locale layout is rendered per request, where Next hands the query to the server render, and a boundary there let the server stream the nav after the page's shell (CI's no-script check found the fallback on the page and a hidden second copy). A page ever prerendered statically would need one, and the build would say so.
+4. **The phone's five tabs stay** (D-267: Matches, Predict, Leagues, News, You). Predict keeps leading to the picks, now current there; it is also current on the league, the model's record and the analysis. Every target still exists and is reached in one tap.
+5. **A language picker**: a globe and the page's language in short ("EN", «فا»), a `<details>` disclosure like More, so it opens with no script, listing every offered language in its own name, the page's own marked current (`aria-current`), each link the same page with its query. What is offered is unchanged: finished catalogues not held back (T-306, T-1163), nothing below two. Its name for a screen reader is the word and the language ("Language English"), not the letters. Escape, a click elsewhere or a choice closes it (and the phone's Menu around it). In the phone's and tablet's Menu it is a 44px row with the word visible; in the bar from 1024px a compact control, without its caret below 1280px.
+6. **A site footer** at the end of every page, in the locale layout before the tab bar's spacer, so the bar never covers it: the mark and the name leading home, a line on what the site is, and three columns -- Football (Matches, Competitions, Highlights, Watch, News), Predictions (Leaderboard, The model, Founder's analysis, each under its own name) and Stadiomind (What Stadiomind is, Platform rules, and the languages as a row of links) -- then © and the year in the page's digits. Links are 44px on a phone. It follows the theme. **No data attribution line**: no page carries one today, and what a licence requires to be said is the maintainer's to word (CLAUDE.md 7).
+7. **The 1024px row still holds** (T-1534). Six sections, More and the picker are wider than the five and the bare link: from 1024px to 1279px the nav entries' padding is 6px (10px from 1280px), the row's gaps 10px (16px) and a member's name 128px (176px). Measured on production's fonts at 1024px with a scrollbar, English keeps about 50px to spare; Persian about 200px.
+
+**Rejected.** *Predictions to the picks, as before, with Matches current*: the duplicate the maintainer asked about. *Predict to the league on the phone*: one tap more to pick on the device where picking is the action, and the league is in the Menu and the footer. *Highlights under More below 1280px*: two copies of a link, one hidden, and the page's own section moving between places by width. *The other language as a bare link*: no sign it is a language control, and no place to name a third language. *The picker as a flat list in the phone's Menu*: two more rows above the theme, while the same control behaves the same everywhere. *Splitting the footer into its own pull request*: About and the rules would have been reachable from nowhere between the two.
+
+**Consequences.** `HEADER_NAV`, `MORE_NAV`, `tabBarLinks` and the new `FOOTER_NAV` in `lib/shell-nav.ts`; `currentLink(pathname, links, search)`. The catalogue key `shell.nav.analysis` is gone (the nav uses `analysis.founder.title`, the section's own heading); five new keys, in Persian for /fa. The visual baseline's every picture changes (the header and the footer). The navigation, header-row, mobile, highlights and Persian journeys specs read the new entries.
+
+## D-282 — Country flags are entity media, noted from the fixture lists
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1611 · **Follows:** D-176, D-242
+
+**Context.** The All competitions page groups competitions by country with plain text, and the maintainer asked for it to look more professional and creative. API-Football names each league's country flag in every fixture list, standings and league answer (`league.flag`, `country.flag`), on the same host as the crests (`media.api-sports.io/flags/<code>.svg`). `EntityImage` drew no flag because no decision covered a flag package, and D-176 forbids hotlinking a provider image. Every flag of the 25 countries the directory listed on 2026-10-26 (and a few others) was read that day: each is an SVG of 640 by 480 with `image/svg+xml`, the largest (Serbia, with its arms) 494 kB, under the 512 kB cap, and none carries a script, a handler, a foreign object or a reference outside itself (Portugal's reuses its own shapes by `<use xlink:href="#a">`).
+
+**Decision.**
+1. A flag is an `entity_media` row like a crest: entity type `country`, kind `flag` (`MEDIA_KINDS`), the kind check widened by migration `1765894000000`, served at `/api/media/flag/<country uuid>/<version>.svg`, the provider's address only in `source_url`.
+2. It is noted from the fixture lists the jobs already read, with no new request: the adapter carries `league.flag` as `CompetitionRef.countryFlagUrl` beside the logo; the ingest store notes it against the country our catalogue gives the competition (read once per process), when the list names the competition it was asked for. The provider's country name is never matched to a country (rule 1). A competition of no country (continental, international) notes nothing, and the provider sends no flag for one anyway.
+3. No backfill: rows appear as the fixture lists are read and the media job copies them on its usual five-minute tick, flags first with the competitions.
+4. Contracts: `CountryRef` (`id`, `name`, `code`, optional `flag`) for the directory's country, the competition page's (and table's) country, the team page's country and the player's nationality. `NO_MEDIA` when none is stored; the field is absent only where the answer did not ask.
+5. An SVG flag is served as stored at every width (D-242): it has no pixels to save.
+
+**Rejected.** A flag package in the web app (a dependency, and a second source of truth for which flag a country has); emoji flags (Windows draws them as letters, and England and Scotland have none); asking `/countries` once (a new request for what the fixture lists already carry); matching the provider's country name to ours (names differ: "USA", "Türkiye"); a flag for a continental competition (no country is not a country).
+
+## D-283 — The All competitions page: a chooser of country tiles, kept in the address
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1612 · **Follows:** D-225, D-282
+
+**Context.** The All competitions page opened on a row of plain grey text chips (International, Continental, England, Spain ... United States), each an anchor to its group further down. The maintainer asked for them to be shown "more professionally, attractively and creatively, and selectable". The list below was a column of small logos and names.
+
+**Decision.**
+1. The chips become tiles: the country's flag (D-282; a dashed box with the country's code until one is stored, never a stand-in flag), or a globe for International and a folded map for Continental; the name; how many competitions we follow there; and up to four of their logos. An "All" tile comes first.
+2. Choosing a tile narrows the list to that group. A tile is a link to `?country=<slug>`, the slug being the region or the country's FIFA code in lower case (`?country=eng`): readable, shareable, and answered by the server without a script. With one, a plain click chooses in place and the address follows (a modified click still opens the link). An unknown slug opens the whole list.
+3. The chosen tile is marked `aria-current="true"`, edged in saffron and given a check, so the choice is never said by colour alone; a polite status says which group the list now shows. Links rather than `aria-pressed` buttons: a link is what works without a script and opens in a new tab.
+4. The filter (`?q=`) combines with the choice: the list shows the chosen group's competitions the filter matches; the chooser keeps every group with a match and the chosen one, so the reader can always see the choice and change it. The search form carries the choice with it.
+5. Each competition is a card: its logo at 48px through `EntityImage`, its name, its kind and its current season. `CompetitionDirectoryEntry` gains `season`, the current season's display label (D-256), `null` when there is none.
+6. On a phone the tiles scroll sideways in one row, the chosen one brought into view, their focus ring drawn inside; from 640px they are a grid. Every image is drawn by the server and handed to the client half, so neither `EntityImage` nor `@fmip/contracts` rides on the page's first load (T-808).
+
+**Rejected.** Radio buttons in the search form (a choice would need a submit button without a script, and pressing Enter in the filter would send the form's first button); the country's id in the address (not readable); hiding the chosen tile when the filter finds nothing in it; a flag package or emoji flags (D-282).
+
+## D-284 — The news front page: a lead, cards and a list in the section's own order; a story without a licensed photo gets a designed panel of what we own
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1613 · **Follows:** D-061, D-176, D-177, D-178, D-207
+
+**Context.** The maintainer asked for a more professional, attractive news page and for images in the home page's news. The news page was one column of text cards; the home page's six stories were headlines. On production on 2026-10-26, 2 of the 40 newest stories on `/en` and 2 of 40 on `/fa` had a licensed photo (D-177 allows only Mehr, Tasnim and Tehran Times, and D-207 shows `/en` English sources only), and many stories are filed under no entity at all. A page of photos is therefore not possible without inventing pictures, which rule 3 forbids.
+
+**Decision.**
+1. **A front page, in the section's order.** A section's first page is the lead story (its picture beside its words on a desktop, the headline in the editorial face), a row of four cards (picture above the headline), then the compact list (a 96 or 128 px picture on the inline start). An older page is the list alone. The page never re-ranks a section: latest stays newest first and trending most discussed first, so the lead is the first story whether or not it has a photo.
+2. **A licensed photo is drawn as before** (D-177): from `/media/news/`, its width and height said, its credit and licence beside it -- under the photo, or in a list row's words. Only the lead is loaded at once; everything else is lazy.
+3. **A story without one gets a designed panel, never a stand-in photo.** The panel is plainly a graphic: the Stadiomind pitch lines on the saffron edge, carrying the crests, logos and player photos we hold (D-176) of what the story is filed under, clubs first, at most three (two in a list row); when we hold none, the source's name set in type. A missing crest is left out of the panel rather than drawn as a lettered mark. The panel is decorative (`aria-hidden`), absent in lite mode, and links to the original out of the tab order, as the photo does.
+4. **The entity images come from the API.** `NewsEntity.media` (contracts) is the team's crest, the competition's logo or the person's photo from `MediaService`, `not_supplied` when none is stored and absent for a fixture; the news read store asks the media index once per read.
+5. **Every card says its source and its time.** The time is "3 hr ago" under a day and the date after, the full time on hover; a story whose publisher gave no time says so. Each story's tags are its clubs, competition, people and match, in that order, each a link to its page by id, a club with its crest and a competition with its logo, in a 44 px target on a phone.
+6. **The other sections as distinct blocks.** The unfiltered latest front page carries the heads of trending (five) and debate (three) beside its list, numbered, each linking to the original; an empty one says the API's reason for being empty (rule 3) and links to the section. Filtered pages, other sections and older pages do not.
+7. **The filters** are the same GET form in a panel: a disclosure with its own summary, the fields in a grid of two to four columns, open when a filter is set.
+8. **The home page's news** follows the same rules with the same components (part 3 of T-1613).
+
+**Rejected.** *Promoting the newest story with a photo to the lead*: it would reorder the latest section and pass a three-hour-old story off as the top one. *Stock or generic football pictures for stories without a photo*: they would pass for the story's photograph (rule 3). *Lettered marks on the panel*: a row of letters is a stand-in that reads as missing rather than designed. *A client-side carousel*: no new client JavaScript is needed for a front page.
+
+## D-285 — Highlights as match posters drawn from our own crests and logos, never a video frame
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round: "more professional, attractive and creative, with more images and logos") · **Task:** T-1614 · **Follows:** D-069, D-176, D-184, D-226, D-260, rules 2-3
+
+**Context.** The Highlights page (T-1434, D-226) was a list of text rows: competition and date, the teams and the score, a button out. The maintainer asked for a more professional, attractive and creative site with more images and logos. The clips are the licensed feed's links (D-184): link only, and the feed's thumbnail and embed are read and dropped, because the source's rights are `link` (D-069). `GET /highlights` carried no image at all.
+
+**Decision.**
+1. **Each clip is a match poster**, drawn from our own media: the competition's logo, both crests large on round plates, the score in the display face, the date and a play badge (the brand's saffron disc, inline SVG), on the stage ground with a faint saffron light from the top and the pitch's lines in hairlines. The poster is never a frame of the video and nothing on it could pass for one: no thumbnail is shown, whatever the provider offers, until a source's rights say `thumbnail` (D-184). A crest or logo we do not hold is the neutral lettered mark (rule 3).
+2. **The way out names the destination.** The button says "Watch" and the host it opens on (`LinkOut`, `youtube.com`); the publisher is named beside it ("By LaLiga") when the feed names one. The whole poster opens the clip (the link out's area is stretched over the card); the competition (to the page filtered by it) and the match page are their own links above it. A restricted clip (D-260) carries "May not play in your country" on the poster.
+3. **Layout.** On the first page the newest clip is featured as a large poster; the rest are a grid (one, two, three columns) under a heading per day in the reader's zone ("Today", "Yesterday", else the date). Later pages are the grid alone, so a clip is never shown twice. *Rejected:* featuring "the biggest" match: no measure of size is stored that would not be a judgement, and the newest is what a reader of this page comes for.
+4. **The filter is logo chips**: logo, name and count, links whose choice is in the address, so they work without script; the chosen one stands on the selected ground (D-277) and is `aria-current`. On a phone the first chips scroll sideways in one row; past the eleven competitions with the most clips the rest wait behind a disclosure (`details`), and the chosen one is always among the shown. The territory chooser (`TerritoryChooser`, shared with the match page and unchanged) sits in its own panel with a globe and the "every clip is listed" sentence (D-260).
+5. **The API carries the images**: `HighlightListTeam.crest`, the clip's `competition.logo` and `HighlightCompetition.logo`, optional `EntityMedia`, asked of the media boundary (`MediaService.index`) for the page's clips and the filter's competitions in one read. The viewing module now imports the media module; an index that fails leaves every image `not_supplied` rather than failing the list.
+
+**Rejected.** *Hotlinking the provider's thumbnail*: D-176 and D-184, and it would be a frame of someone else's video on our page. *A generated "video frame" (a still with a play button over a stadium photo)*: it would look like a thumbnail of the clip and is not one. *A select for the competitions*: a reader cannot see the logos or the counts, and the chips already work without script.
+
+**Consequences.** Every clip shows two crests and a logo where we hold them; the page asks the media table once per view. The header shows up to six competition logos only when at least three are held. Nothing is played or embedded, as before.
+
+## D-286 — The About page explains the site with a drawn flow and a map of its sections, in markup and CSS
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1615 · **Follows:** D-263, D-269
+
+**Context.** The maintainer asked for a more professional, attractive and creative site. The About page (T-523) was four paragraphs and a bulleted list: it said what the product is but showed nothing of how a match moves through it, and it pointed to no section but the scores and the leaderboard. Its readers are mostly first visits, the people the rules of the product (one match record, three predictions kept apart, versions never edited, ratings recomputable, missing data said) matter to most and are least visible to.
+
+**Decision.**
+1. The page opens on "How Stadiomind works": the path of one match in six steps -- licensed match data, the one match record and the surfaces it feeds, the three prediction products, kick-off, full time, and what each product builds. The model's forecast, the founder's analysis and the community's picks run in lanes of their own in the products' own colours (`--token-model`, `-founder`, `-community`), pass both gates separately and end at separate records: the model's public track record, the founder's calls checked against the result, each member's Performance Rating. No line joins two lanes (rule 6). The model's lane is drawn as a stack of versions; the record's card says missing data is labelled, not invented (rule 3); the records' note says a rating is recomputable (rule 8).
+2. The diagram is an ordered list of real text, drawn by CSS: the words are its text equivalent and the reading order is the flow. Only the wires (inline SVG) and the gate marks are pictures, `aria-hidden`. A figcaption says how to read it.
+3. Below 1024px the steps stack, with dotted wires between them; after the split the wire has three strands, one per lane. From 1024px the steps stand in five columns and the lanes, gates and records share rows through `subgrid`, so each lane draws its own wires with lengths known from two fixed custom properties: no script measures anything. Wires are drawn from the line's start, and `dir="rtl"` turns them round, so the flow and the dots run right to left on /fa.
+4. Motion is gentle and optional: the steps rise in turn (about 1.5 s in all) and dots flow along the wires. It runs only under `prefers-reduced-motion: no-preference` and without the member's `data-motion="reduce"`; otherwise the diagram is complete and still, which is also what the visual baseline photographs.
+5. "Find your way" follows it: the main sections as tiles in two groups, the football (Matches, Match centre, Competitions, News, Highlights, Watch) and the forecasts (The model, The founder's analysis, Predictions, Leaderboard). Each tile is a link with one line on what is there; a forecast tile wears its product's colour. The match centre has no page of its own to open on, so its tile leads to the matches and says "open any match".
+6. The page's own CSS is `app/[locale]/about/about.css`, imported by the page, so no other route loads it; icons the shared set lacks are the page's own (`about-icons.tsx`), drawn the same way. No new dependency, no client JavaScript.
+
+**Rejected.**
+- One SVG drawing of the whole diagram: its text would not wrap or translate, a Persian label longer than the English would overflow, and it would need a second text version for assistive technology.
+- A diagram library or a client-side animation: a dependency and a script for a page that needs neither.
+- Scroll-triggered animation: it needs a script, or `animation-timeline: view()`, which not every browser has; the diagram is near the top, so a reveal on load is seen.
+- Linking the match centre tile to one live match: it would need another API call on every view of the page, and the tile would change meaning with the day.
+
+## D-287 — Player photos inside the line-up discs; the number circle stays for a missing photo
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1616 · **Follows:** D-176, D-212, D-242, D-272
+
+**Context.** The maintainer asked for a more pictorial site. The match centre's pitch (D-212, D-272) drew each starter as a circle with his shirt number, although the API already sent each line-up player's photo from our own origin (D-176) and production holds one for most players: on 2026-10-26, Central Córdoba v Vélez Sarsfield (`69f414d7-32be-4597-a667-25dc2d4b06a1`) had 20 of 22 starters and 12 of 21 substitutes with a photo. The pitch also had two layout faults on production: five names across a 360px phone ran into each other, and at 768px nine columns were wider than the pitch, so the home goalkeeper was cut off.
+
+**Decision.**
+1. A starter with a photo is a 40px disc: the photo (the 96px WebP, D-242), round, `object-cover` from the top, inside a 2px ring of the side's tone (the home side in the text colour, the away side in the muted one, as the circles were) with a 1px gap of the pitch's ground so the ring reads against a white photo background in both themes. The shirt number is a badge on the disc's bottom end edge in the same tone. The captain mark stays after the name, the rating chip under it.
+2. The best rated keeps his highlight as a ring and a badge in saffron, not a fill, so his photo stays visible.
+3. Without a photo (`not_supplied`, an absent field, an address not under `/api/media/`) the player is the shirt-number circle exactly as before, in a slot of the disc's size so a row's names stay on one line; without a number either, the lettered mark. Never a silhouette (rule 3). In lite mode (D-205) nothing is fetched and the number circle stands in.
+4. The bench and a side drawn as a list get the same disc at 32px (a new `EntityImage` size); the number is in the disc, not written again before the name.
+5. Each name is cut to its player's share of the row or column, and from 768px the columns may be narrower than their longest name; the horizontal pitch is 496px tall, room for a column of five with a photo, a name and a chip.
+
+**Rejected.**
+- A silhouette or a generic avatar for a missing photo: it would pass for a photo (rule 3).
+- A 36px photo size: a new `EntityImage` size for a 4px saving; the ring inside the 40px box keeps the face at 34px and the slot at the old row height plus 8px.
+- Moving the rating chip onto the disc (as some score sites do): the chip is the Design System's (D-263), read in its place by the existing specs and by readers since T-1497.
+
+**Consequences.** No API change: `FixturesService` already filled `photo` for every line-up player through `MediaService.index`. A phone's pitch is about 8px taller per line. The seed holds no line-up, so the end-to-end and visual specs do not see the discs; the unit spec renders them.
+
+## D-288 — Crests, logos and photos on the remaining pages, and where a phone leaves them out
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the redesign) · **Task:** T-1617 · **Follows:** D-176, D-280
+
+**Context.** The maintainer asked for images and logos across the whole site. The competition, club and player pages named clubs in every list -- fixtures, results, recent results, matches coming up, the table around the club, the player's career and record -- as text only, and the club page's next match drew no crest, although the media store holds a crest for nearly every club and a logo for every competition we cover. At 360px a club's match row gives both names and the score 170px, and a competition page's match line 136px; two 20px crests and their gaps take 56px of that.
+
+**Decision.**
+1. Every list that names a club draws its crest through `EntityImage`, and every line that names a competition beside a match draws its logo, from the API's own answer: the catalog pages' answers carry them (T-1617a), read with each page's other media in one query. A club with no crest held gets the lettered mark (rule 3); a competition logo the API did not send is left out rather than marked, since it sits in the small print.
+2. A row that names one club (a recent result's opponent, a match coming up, a table row, a squad line with its photo, a career spell, a record row) draws it at every width.
+3. A row that names both sides of a match in one line (the competition page's match line, the club page's match row, the player's match line) draws the two crests from 640px only; on a phone the names keep the room, as they wrap or truncate already.
+4. The club page's next match draws both crests at 40px: at each name's outer edge from 640px, above the name on a phone.
+5. The watch page draws both crests at the ends of each match link: its score cards carry them already.
+6. Search (T-1617c): each team, competition and person result carries its crest, logo or photo, read for the page of results in one query, drawn at 22px before the name.
+7. Nothing is drawn that the answers do not carry: the model page's competitions, the match centre's scorers and the leaderboard would need media added to other modules' answers, left for later; no provider address is ever drawn (D-176).
+
+**Rejected.** Crests on a phone's two-sided rows: the names would truncate to two or three letters. A stacked two-line row on a phone (home over away), as some score apps draw it: a redesign of rows T-1555 settled as running text, for another task. Crests beside every event of the match centre's timeline: the side is already its column, and the header carries both crests.
+
+**Consequences.** The competition, club and player pages ask for their media once each, as before, with more ids; the player page now asks after its reads, one more round trip. The images are crests and logos on Night with D-280's halo and tile.
+
+## D-289 — A player rating of 0 is "not rated": it is not stored, and one stored before is not read
+
+**Status:** Accepted · 2026-10-26 (agent, from a live check the maintainer asked for) · **Task:** T-1618 · **Follows:** D-176, T-101, T-112, T-534
+
+**Context.** The maintainer asked why Sevilla's line-up quality in the Power Index read 0 (the lowest in La Liga) for its match on 2026-10-26.
+- **Sevilla's 0.** The index was computed on 2026-10-19 with the early forecast version. The provider rewrote every La Liga team's latest player ratings on 2026-10-20, so the numbers that index read are gone, and our tables keep only the newest value. Today's ratings place Sevilla's last XI third lowest of twenty (about 0.11): a weak XI, not a broken one.
+- **Line-up time.** The index is computed again with the forecast's line-up version, about an hour before kick-off, on the day's ratings.
+- **What the check found.** The feed stores 13,584 ratings of exactly 0. Most belong to players with no minutes, which every reader already leaves out by its minutes filter. But 377 sit beside 20 or more minutes: 311 in July's Champions League qualifiers, the rest in MLS, Serbia and a few other leagues. They come from a provider that writes 0 for a player it did not rate.
+- **Where a 0 did harm.** The match centre showed them as "0.0", and the Power Index and the model's line-up input averaged them into a player's season rating.
+
+**Decision.**
+1. The API-Football adapter drops a rating of 0 or less, as it already drops one above 10: no row, so "not supplied" (rule 3).
+2. The two readers of stored ratings leave out a value of 0 or less:
+   - the match centre's player statistics (`match-centre-store.ts`);
+   - the Power Index's season ratings (`power-index-store.ts`);
+   - the model's XI rating query (`fmip_model/model/lineups.py`) does the same.
+   The rows stored before stay; they are not deleted.
+
+**Rejected.** Deleting the stored zeros in a migration: the readers' filter does the same without a data change, and a later detail fetch rewrites a match's ratings anyway. Recomputing old Power Index rows: they are the record of what was shown at that time (rule 5's spirit), and the next forecast version computes a new one.
+
+## D-290 — A publisher feed's item about another sport is left out when it is filed to none of ours
+
+**Status:** Accepted · 2026-10-26 (agent, from the maintainer's report of a rugby story on the English news page) · **Task:** T-1619 · **Amends:** D-215
+
+**Context.** "Ireland prop Furlong cited over alleged groin grab" reached /en/news from Yahoo Sports' soccer RSS feed. It is about rugby union: Leinster, Munster and the United Rugby Championship. D-215 judged only items a search brought (GNews), trusting a publisher's own football feed. Its markers also knew rugby league but not rugby union.
+
+**Decision.**
+1. Rugby union joins `otherCodeOf` as `rugby_union`, in its own words only: rugby union, United Rugby Championship (URC in capitals), Six Nations, Premiership Rugby, Super Rugby, Top 14, the Rugby Championship, the Rugby World Cup, fly-half, scrum-half, tighthead, loosehead, lineout. "Rugby" alone is not a marker: it is also a town (Rugby Town) and the ball kicked into Brentford's ground.
+2. The news lists leave out an item whose own words name another sport when it came by search (as before), or when it came from a publisher's own feed and is filed to no club, competition or player of ours.
+   - A feed item filed to one of ours stays, whatever it mentions; D-215's example of a club owner who once played in the NFL still applies.
+   - The entities are read for the rows of the section before the filter, not only for the cards shown.
+
+**Rejected.** A list of rugby clubs (Leinster, Munster also name provinces and their GAA teams). Dropping such items at ingestion: the lists already decide what to show for items stored before, with the same function, as D-211 does.
+
+## D-291 — The model page follows the theme: a band, tiles, the design system's table and a card per competition
+
+**Status:** Accepted · 2026-10-26 (agent, under the maintainer's standing approval for the visual round) · **Task:** T-1620 · **Amends:** D-201 (the model page's editorial mode) · **Follows:** D-187, D-263, D-274, D-280
+
+**Context.** The maintainer asked, with a screenshot of `/en/model-accuracy` in the Night theme, why the page was that colour. It was still in D-198's editorial mode (`data-mode="editorial"`): a bright paper page with Newsreader headings and plain tables under the dark header, while every page rebuilt since T-1495 follows the theme. D-263 had already said the editorial/data split would go page by page, and that the serif marks the founder's voice; a page about the statistical model set in it blurred the three products' look (rule 6). D-288 left the model page's competition logos for later because the public answer carried none.
+
+**Decision.**
+1. **The theme.** The page is a data page (`data-mode="data"`): the stage in both themes, its band and cards on the surface. Archivo throughout; no serif and no editorial measure.
+2. **The band.** The model's lane in turquoise with its icon, the question as the title, and one line that this is the statistical model's published forecasts only, the founder's analysis and the community's picks not counted (the competition page's sentence, so the two pages say it the same way). Below a hairline, the published versions the figures are from (mono, each version kept on one line and set apart, T-1580) and the last scoring day. Without an answer from the API only the title and the line: no version, date or switch is guessed.
+3. **The switch.** Month and week stay two links with their own addresses and `aria-current` (no script), drawn as a segmented control: a framed track on the control edge, the chosen one in the chosen-toggle look (saffron edge and tint), each 44px.
+4. **The tiles.** Every competition's totals as five tiles -- matches, correct, RPS, Brier, log loss -- each with the figure large, what a forecast of one third each scores on the same matches beside it (the API's `reference` and `uniform_rps`, nothing computed on the page), "Lower is better" on the three error scores, and one plain line of what it means. The turquoise only as the tiles' top edge, as on the product lanes. The sentence of how many matches stand behind them, limited below the minimum, stays above them (rule 3); with none scored there is no tile.
+5. **The table.** The design system's table: small caption-coloured headings, hairline rows, tabular figures, the total on the raised surface under a stronger rule, each row's coverage as its badge. Its caption is written above the scrolling box, which it names, so a phone reads it whole; the box keeps the scroll cue and its keyboard reach.
+6. **The competitions.** A card each, in the API's order (by name): the logo on its white tile (D-280; the lettered mark when none is held, rule 3), the name linking to the competition's page, the coverage badge, five figures with the RPS guess, the sentence that it is an early record below 30 matches, and the months or weeks under a `details` disclosure that opens without script. Two columns from 1024px. The public answer's competitions now carry `logo` from the media boundary, read in one query in the controller, so the weekly channel post asks nothing of it.
+7. **What the figures mean** closes the page in a card: the long introduction (forecasts after kick-off never counted; the other two products separate) and the six explanations, unchanged.
+
+**Rejected.** *Keeping the paper and only darkening it*: the page would still be the one data page in the editorial voice. *A chart of RPS over time*: the admin report has one, but the public page has never drawn one and a line over a few limited months would read as a trend it is not. *Every competition's months open*: nineteen tables would bury the comparison the cards make; they stay one click away in the same page. *A "higher is better" on the share correct*: not asked, and the guess beside it says as much.
+
+**Consequences.** `modelAccuracy.kpi.*` and `modelAccuracy.competition.months`/`weeks` join the catalogue (Persian written); `modelAccuracy.intro` moves from the header to the closing card. The news story page is the last page in editorial mode (T-1621).
+
+**The news story (T-1621).** The story page leaves paper too and follows the theme. It stays a reading page: the headline in the editorial face and the publisher's words in the article face (Newsreader on a Latin page, Vazirmatn on /fa) at the 680px measure, because the news front page already sets its lead that way inside the theme (D-284), and a long run of a publisher's prose reads better in a book face than in the condensed interface cut. The serif here is the publisher's words, not a prediction product, so D-263's "the serif is the founder's" holds where it matters: the model's "What the model expected" box titles itself in the interface face. Everything beside the words (languages, corrections, what it is about, the prediction links, follow, other reports, save and share) is a surface card, and the back link, the language pills, the entity chips and the match link are 44px targets. What the page shows of the publisher's work is unchanged: the body only when the source grants the full text, otherwise the sentence and the link out naming the publisher (D-061), and a photo only from the CC BY sources with its credit (D-177). With no page left in editorial mode, its three token blocks and its paper rule are removed, and `tokens.spec.ts` refuses `data-mode="editorial"` anywhere in `src`.
+
+## D-292 — The matchday rail: one bar under the header, the leagues by what they are doing today, a drawer of today's matches
+
+**Status:** Accepted · 2026-10-26 (the maintainer chose mockup A, "the matchday rail", of three for the competitions bar; the details decided by the agent) · **Tasks:** T-1623, T-1624 · **Amends:** D-199 (the live strip as a bar of its own), D-267 and T-1513 (the competitions bar's pills) · **Follows:** D-045, D-193, D-207, D-264
+
+**Context.** Under the header sat two bars. The competitions bar (T-1433, T-1513) was twelve pills that all looked the same, with no sign of which league was playing, a grey native scrollbar under it (`scrollbar-width: thin`) and names cut at the edge. Under it the live strip (D-199) showed "Today · LaLiga" and the score chips of one competition. Two bars said little: the one competition with matches was in neither the pills' order nor their looks, and the other leagues playing today could not be reached from the strip. The maintainer looked at three mockups and chose the matchday rail.
+
+**Decision.**
+1. **One rail.** The competitions bar and the live strip merge into one rail under the header (`MatchdayRail`, in `SiteHeader` right after `</header>`, before the lite banner). The live strip is no longer a bar of its own; its chips are the rail's drawer.
+2. **A chip per league:** its logo (`EntityImage`), its short name (`barName`) and one status:
+   - live now: the pulsing red dot (still under reduced motion) and "2 live";
+   - matches later today: the next kick-off in the reader's zone ("20:00");
+   - nothing today: the next match day, the weekday ("Sat") within six days, else a short date ("7 Nov", with the year when it is not this one), from the directory's `next_kickoff_at`;
+   - nothing known: no status.
+   Live and today come from the same answer the strip read (`GET /scores` for today in the reader's zone, without the session, shared for 15 s); a league whose matches today are all over carries its next match day.
+3. **The order.** Leagues with a match being played first (in the product's order among them), then those playing later today by their next kick-off, then the rest in the product's order (D-207). The rail names the first twelve of the product's order and every league playing today, however far down. A member's first chip is "My teams" (a star) to `/scores?favourites=1`; "All competitions" stays last.
+4. **The drawer.** The chosen league's matches today as the strip's score chips (`ScoreChip`, `chipState`, its "May be behind" note: rules 3 and 4 as before), then "Open <league>" to its page. It opens on the first league in the rail's order with a match today, which the server draws, so it is there without a script. With no match today anywhere, or no answer for today, there is no drawer and no empty box.
+5. **Selecting.** A chip of a league playing today is a toggle button (`aria-pressed`, `aria-controls` the drawer): pressing it shows its matches, pressing the open one again closes the drawer. Buttons rather than tabs, because the row mixes them with links; a tab list may hold only tabs. A chip of a league with nothing today is a link to its page, `aria-current` on that page. Every league's drawer is drawn by the server and handed to the client half as a prop; only the open one is in the HTML.
+6. **No scrollbar.** The native bar is hidden. The edge with more beyond it fades (a mask along the inline axis, mirrored under RTL), and from 768px a small round chevron on that edge scrolls by most of a width (smoothly unless motion is reduced). The chevrons are a pointer's shortcut only: out of the tab order and hidden from assistive technology, since Tab reaches every chip and scrolls it into view (`scroll-padding-inline` keeps it clear of the fade). The drawer's row of chips scrolls the same way (`ScrollRow`).
+7. **Phones.** Below 768px the rail is compact: only the leagues playing today, then the drawer; no My teams and no All competitions (the tab bar has Leagues). On a day without a match nothing is drawn. Every chip is a 44px target.
+8. **The API (T-1623).** `CompetitionDirectoryEntry.next_kickoff_at`: the earliest scheduled fixture after now in any season, `null` when none is known; one grouped scan, no cache of its own.
+9. **Persian and the themes.** The new words ("{count} live", "My teams", "Open {competition}") are in all nine catalogues, written in Persian for /fa; the times and dates go through the locale's formatters, so /fa reads them in Persian digits (and the Persian calendar's short date). The rail is the surface on a phone and the canvas from 768px, as the header; the drawer the surface, as the strip was.
+10. **Small client JS (D-264).** The looks are CSS utilities in `globals.css` (`rail-chip`, `rail-all`, `rail-status`, `scroll-row`, `scroll-chevron`) keyed on `aria-current`, `aria-pressed` and data attributes; the logos, statuses and drawers arrive drawn by the server, so the contracts package stays off the client.
+
+**Rejected.** *Tabs* (`role="tablist"`): a tab list cannot hold the links to the leagues without a match, My teams and All competitions, and splitting the rail in two would bring back two bars. *Drawing every league's drawer in the HTML and hiding the others*: on a full Saturday that is a hundred chips in every page's HTML as well as in its payload; the open one is enough for a reader without a script. *Fetching a league's drawer on demand*: a second request and a client renderer for score chips, for what one answer already holds. *A thin scrollbar kept for mice*: the complaint was the scrollbar; the chevrons do its job on a desktop. *The rail hidden on phones as the pills were*: phones would lose the strip's today.
+
+**Consequences.** `competitions-bar.tsx` and `competitions-bar-links.tsx` are gone (their spec's directory half is `competitions-directory.spec.tsx`); `LiveStrip` and `stripGroup` are gone, `live-strip.tsx` keeps `ScoreChip` and the drawer (`RailDrawer`). The test ids `competitions-bar`, `competitions-bar-item`, `competitions-bar-all`, `live-strip` and `strip-chip` stay where a reader would look for them.

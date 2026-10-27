@@ -209,6 +209,34 @@ jobs:
       - name: Run Playwright
         run: pnpm --filter @fmip/web e2e
 
+      # T-1502: the visual baseline of the rebuilt pages, compared with the
+      # Linux pictures committed in apps/web/tests/e2e/visual.spec.ts-snapshots
+      # (D-266). Its own step because the web server's clock is fixed for it,
+      # which the other specs must not see.
+      - name: Visual baseline
+        id: visual
+        if: ${{ !cancelled() }}
+        env:
+          # The web server's clock, fixed: the pages write "today".
+          NODE_OPTIONS: --require=${{ github.workspace }}/apps/web/tests/e2e/fixed-clock.cjs
+        run: pnpm --filter @fmip/web exec playwright test visual.spec.ts
+
+      # A page changed on purpose: the new pictures, rendered on this runner,
+      # for the pull request to commit (docs/08-load-test.md, "Visual baseline").
+      - name: Visual baseline, the new pictures
+        if: ${{ !cancelled() && steps.visual.outcome == 'failure' }}
+        env:
+          NODE_OPTIONS: --require=${{ github.workspace }}/apps/web/tests/e2e/fixed-clock.cjs
+        run: pnpm --filter @fmip/web exec playwright test visual.spec.ts --update-snapshots=changed
+
+      - name: Upload the new pictures
+        if: ${{ !cancelled() && steps.visual.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-baseline
+          path: apps/web/tests/e2e/visual.spec.ts-snapshots/
+          retention-days: 14
+
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v4

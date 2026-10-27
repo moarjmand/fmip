@@ -12,10 +12,24 @@
  * which these values do not.
  */
 export const BRAND_COLOURS = {
-  canvas: '#fafaf7',
-  text: '#15181d',
-  'text-muted': '#3e4651',
-  border: '#dadde2',
-  accent: '#0b6b3a',
+  canvas: '#f2f3f1',
+  text: '#121518',
+  'text-muted': '#4c5660',
+  border: '#dce0e2',
+  accent: '#8a5300',
   'on-accent': '#ffffff',
+} as const;
+
+/**
+ * The Stadiomind mark's colours (T-1492, D-262), from the Design System's
+ * logos and never recoloured: three bars, home, draw and away, in a Day set
+ * for the paper ground and a Night set for the ink one. `tile` is that ink
+ * ground -- the Night canvas -- under the favicon and the app icons
+ * (`public/icons/mark.svg`), and the browser's tint and the manifest's
+ * splash on a dark device.
+ */
+export const MARK_COLOURS = {
+  tile: '#0f1215',
+  day: { home: '#0e7a75', draw: '#626c76', away: '#b87818' },
+  night: { home: '#2bb3ad', draw: '#56616b', away: '#eba53c' },
 } as const;

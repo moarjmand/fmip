@@ -234,7 +234,7 @@ describe('one push for a burst', () => {
     const one = composeBatch([due('1', F, 'Goal A.'), due('2', F, 'Full-time.')]);
     expect(one?.push).toEqual({
       userId: 'member',
-      title: 'FMIP',
+      title: 'Stadiomind',
       body: 'Goal A.\nFull-time.',
       url: `/en/match/${F}`,
     });

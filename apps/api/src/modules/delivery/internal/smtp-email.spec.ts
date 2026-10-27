@@ -19,9 +19,9 @@ describe('smtpSettingsFromEnv', () => {
     expect(
       smtpSettingsFromEnv({
         SMTP_URL: ' smtp://mail.example:587 ',
-        DELIVERY_EMAIL_FROM: 'FMIP <no-reply@example.test>',
+        DELIVERY_EMAIL_FROM: 'Stadiomind <no-reply@example.test>',
       }),
-    ).toEqual({ url: 'smtp://mail.example:587', from: 'FMIP <no-reply@example.test>' });
+    ).toEqual({ url: 'smtp://mail.example:587', from: 'Stadiomind <no-reply@example.test>' });
   });
 });
 
@@ -33,12 +33,12 @@ describe('SmtpEmailChannel', () => {
         sent.push(message);
       },
     };
-    const channel = new SmtpEmailChannel(transport, 'FMIP <no-reply@example.test>');
+    const channel = new SmtpEmailChannel(transport, 'Stadiomind <no-reply@example.test>');
     expect(channel.provider).toBe('smtp');
     await channel.send({ to: 'ada@example.test', subject: 'Hello', text: 'A line.' });
     expect(sent).toEqual([
       {
-        from: 'FMIP <no-reply@example.test>',
+        from: 'Stadiomind <no-reply@example.test>',
         to: 'ada@example.test',
         subject: 'Hello',
         text: 'A line.',
@@ -49,7 +49,7 @@ describe('SmtpEmailChannel', () => {
   it('is built from settings without connecting', () => {
     const channel = SmtpEmailChannel.fromSettings({
       url: 'smtps://u:p@mail.example:465',
-      from: 'FMIP <no-reply@example.test>',
+      from: 'Stadiomind <no-reply@example.test>',
     });
     expect(channel.provider).toBe('smtp');
   });

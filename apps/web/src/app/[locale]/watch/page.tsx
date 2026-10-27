@@ -32,7 +32,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: '/watch',
-    title: `${say(locale, 'viewing.pageTitle')} · FMIP`,
+    title: `${say(locale, 'viewing.pageTitle')} · Stadiomind`,
     description: say(locale, 'watch.metaDescription'),
   });
 }
@@ -99,7 +99,10 @@ export default async function WatchPage({
   });
   const guestTerritory = me === null ? territory : undefined;
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
+    // A 44px target on a phone, the old compact chip from 768px (T-1574).
+    `inline-flex min-h-touch items-center rounded px-2 md:min-h-0 md:py-1 ${
+      active ? 'bg-surface-raised font-semibold' : 'underline'
+    }`;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -173,12 +176,30 @@ export default async function WatchPage({
                   const href = withTerritory(`/${locale}/match/${card.id}`, guestTerritory);
                   return (
                     <li key={card.id} className="flex flex-col gap-1" data-testid="watch-card">
-                      <p className="flex flex-wrap items-baseline gap-x-3">
-                        <Link href={href} className={inlineTargetClasses('font-medium underline')}>
-                          {say(locale, 'competitionPage.versus', {
-                            home: card.home.name,
-                            away: card.away.name,
-                          })}
+                      <p className="flex flex-wrap items-center gap-x-3">
+                        <Link
+                          href={href}
+                          className={inlineTargetClasses('gap-2 font-medium underline')}
+                        >
+                          {/* Both crests at the line's ends (T-1617, D-288). */}
+                          <EntityImage
+                            media={card.home.crest}
+                            kind="crest"
+                            name={card.home.name}
+                            size={20}
+                          />
+                          <span>
+                            {say(locale, 'competitionPage.versus', {
+                              home: card.home.name,
+                              away: card.away.name,
+                            })}
+                          </span>
+                          <EntityImage
+                            media={card.away.crest}
+                            kind="crest"
+                            name={card.away.name}
+                            size={20}
+                          />
                         </Link>
                         <time dateTime={card.kickoff_at} className="text-sm text-muted">
                           {formatDateTime(locale, card.kickoff_at, q.timezone)}

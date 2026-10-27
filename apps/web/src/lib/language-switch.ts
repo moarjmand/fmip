@@ -26,6 +26,18 @@ export interface PickerEntry extends OfferedLanguage {
 }
 
 /**
+ * The short name the header's picker shows beside its globe (T-1610, D-281):
+ * the language's code in capitals ("EN"), or, for a language whose own
+ * script is not the Latin one, the short form its readers use («فا»). The
+ * full name is the autonym, said to a screen reader and listed in the menu.
+ */
+const SHORT_NAMES: Partial<Record<Locale, string>> = { fa: 'فا' };
+
+export function shortName(locale: Locale): string {
+  return SHORT_NAMES[locale] ?? locale.toUpperCase();
+}
+
+/**
  * The same pathname under another locale. The locale is the first segment when
  * there is one (`/es/scores` → `/fr/scores`); a pathname without one -- which
  * the proxy never serves, but a link may still be built from -- is prefixed.
@@ -41,17 +53,22 @@ export function switchLocale(pathname: string, to: Locale): string {
  * What the picker shows for a reader on `pathname`, given the offered
  * languages, or `[]` when there is no choice to offer. `[]` rather than the
  * one entry, so a caller cannot render a one-item menu by forgetting to check.
+ * `search` is the page's query (`?period=month`, or `''`): the same page in
+ * another language keeps the reader's filters and day (T-1572).
  */
 export function pickerEntriesFor(
   pathname: string,
   languages: readonly OfferedLanguage[],
+  search = '',
 ): PickerEntry[] {
   if (languages.length < 2) return [];
   const current = localeFromPathname(pathname);
+  const query =
+    search === '' || search === '?' ? '' : search.startsWith('?') ? search : `?${search}`;
   return languages.map(({ locale, autonym }) => ({
     locale,
     autonym,
-    href: switchLocale(pathname, locale),
+    href: `${switchLocale(pathname, locale)}${query}`,
     current: locale === current,
   }));
 }

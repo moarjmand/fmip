@@ -1,18 +1,32 @@
 import type { MatchLineupPlayer, MatchLineups, MatchTeam } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { formatNumber } from '@/i18n/format';
-import { EntityImage } from '@/components/entity-image';
+import { EntityImage, drawable } from '@/components/entity-image';
+import { Pictured } from '@/components/lite-mode';
+import { RatingChip } from '@/components/ui/rating-chip';
 import { MessageText } from '@/components/message-text';
 import { ltrIsolate, nameIsolate } from '@/components/score';
 import { type PitchLines, pitchShape } from '@/lib/formation';
 import { listName } from '@/lib/person-name';
-import { fill, filled } from '@/lib/words';
+import { fill, filled, formatFixed } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 
 /**
- * The line-ups on a pitch (T-1384, D-202): the away side in the top half, its
- * goalkeeper at the top, the home side in the bottom half, its goalkeeper at
- * the bottom, each line a row, then each side's bench and coach.
+ * The line-ups on a pitch (T-1384, D-202; T-1497): on a phone the away side
+ * in the top half, its goalkeeper at the top, the home side in the bottom
+ * half, its goalkeeper at the bottom, each line a row; from 768px one
+ * horizontal pitch, the home side from the inline start and the away side
+ * from the end, each line a column (D-263 point 4). The same markup turns
+ * with the width, so the page carries one pitch, not two. Each player is his
+ * photo, his name and his rating where the feed gave one; then each side's
+ * bench and coach, each player with a smaller photo.
+ *
+ * The photo (T-1616, D-287) is our own copy at a sized variant, round, in a
+ * ring of the side's tone (the home side's text colour, the away side's muted
+ * one), the shirt number a badge on its edge; the best rated of the match has
+ * the ring and the badge in saffron. A player without a photo is his shirt
+ * number in a circle of the side's tone, as before -- never a silhouette
+ * (rule 3) -- and so is every player in lite mode, where nothing is fetched.
  *
  * A side whose starters all carry the place the line-up gives them is drawn
  * from those places, whatever the formation (T-1397, D-212): each row one line
@@ -41,12 +55,15 @@ export function MatchLineupsView({
   home,
   away,
   lineups,
+  ratings = new Map(),
   locale,
   words,
 }: {
   home: MatchTeam;
   away: MatchTeam;
   lineups: MatchLineups;
+  /** The feed's ratings by player id (`ratingsOf`); a player without one has no chip. */
+  ratings?: ReadonlyMap<string, number>;
   locale: string;
   words: MatchWords;
 }) {
@@ -64,6 +81,11 @@ export function MatchLineupsView({
       </p>
     );
   }
+  const top = Math.max(...ratings.values());
+  const chip = (p: MatchLineupPlayer) => ({
+    rating: ratings.get(p.id),
+    best: ratings.get(p.id) === top,
+  });
   const placed = (['away', 'home'] as const).filter((side) => teams[side].shape.state === 'pitch');
   const listed = (['home', 'away'] as const).filter((side) => teams[side].shape.state !== 'pitch');
   const placedBy = (by: 'grid' | 'roles') =>
@@ -94,7 +116,7 @@ export function MatchLineupsView({
               home: home.name,
               away: away.name,
             })}
-            className="relative overflow-hidden rounded-tile border-2 border-strong/50 bg-surface-raised py-1"
+            className="relative flex flex-col overflow-hidden rounded-tile border-2 border-strong/50 bg-surface-raised py-1 md:h-124 md:flex-row-reverse md:py-0"
             data-testid="lineup-pitch"
             data-sides={placed.join(' ')}
           >
@@ -107,7 +129,9 @@ export function MatchLineupsView({
               // Top half: goalkeeper first; bottom half: goalkeeper last.
               const rows = side === 'away' ? shape.lines : [...shape.lines].reverse();
               const heading = (
-                <p className="relative flex items-baseline gap-2 px-3 py-1.5">
+                <p
+                  className={`relative flex items-baseline gap-2 px-3 py-1.5 md:absolute md:top-1 ${side === 'away' ? 'md:end-0' : 'md:start-0'}`}
+                >
                   <bdi className="font-extrabold text-fg">{team.name}</bdi>
                   {shape.formation !== null && (
                     <span dir="ltr" className="font-mono text-xs text-caption">
@@ -119,7 +143,7 @@ export function MatchLineupsView({
               return (
                 <div
                   key={side}
-                  className="relative"
+                  className="relative flex flex-col md:min-w-0 md:flex-1 md:flex-row-reverse md:pt-8"
                   data-side={side}
                   data-testid={`pitch-${side}`}
                   data-placed-by={shape.by}
@@ -132,15 +156,32 @@ export function MatchLineupsView({
                       // home side (attacking up) and its right for the away
                       // side. The row is a picture of the ground, so it keeps
                       // its left and right on a right-to-left page (`dir`).
-                      <ol key={index} dir="ltr" className="flex justify-around py-1.5">
+                      // Down the horizontal pitch a line runs from the side's
+                      // left as it attacks, which flips with the mirrored pitch
+                      // on a right-to-left page.
+                      <ol key={index} dir="ltr" className={`${LINE} rtl:md:flex-col-reverse`}>
                         {(side === 'home' ? row : [...row].reverse()).map((p) => (
-                          <PitchPlayer key={p.id} player={p} locale={locale} words={words} />
+                          <PitchPlayer
+                            key={p.id}
+                            player={p}
+                            side={side}
+                            {...chip(p)}
+                            locale={locale}
+                            words={words}
+                          />
                         ))}
                       </ol>
                     ) : (
-                      <ol key={index} className="flex justify-around py-1.5">
+                      <ol key={index} className={LINE}>
                         {row.map((p) => (
-                          <PitchPlayer key={p.id} player={p} locale={locale} words={words} />
+                          <PitchPlayer
+                            key={p.id}
+                            player={p}
+                            side={side}
+                            {...chip(p)}
+                            locale={locale}
+                            words={words}
+                          />
                         ))}
                       </ol>
                     ),
@@ -189,7 +230,7 @@ export function MatchLineupsView({
                 .filter((p) => p.role === 'starter')
                 .map((p) => (
                   <li key={p.id} className={LINEUP_ROW}>
-                    <ListPlayer player={p} locale={locale} words={words} />
+                    <ListPlayer player={p} side={side} locale={locale} words={words} />
                   </li>
                 ))}
             </ul>
@@ -210,7 +251,7 @@ export function MatchLineupsView({
                 <ul>
                   {bench.map((p) => (
                     <li key={p.id} className={LINEUP_ROW}>
-                      <ListPlayer player={p} locale={locale} words={words} />
+                      <ListPlayer player={p} side={side} locale={locale} words={words} />
                     </li>
                   ))}
                 </ul>
@@ -234,27 +275,123 @@ export function MatchLineupsView({
   );
 }
 
-/** A line-up row: the photo, then the shirt number and the name on one line (T-1321). */
+/**
+ * One line of a side: a row across a phone's pitch, a column down the
+ * horizontal one. From 768px the columns share the pitch equally and may be
+ * narrower than their longest name (`min-w-0`), which is cut instead: nine
+ * columns at 768px no longer push the home goalkeeper off the pitch (T-1616).
+ */
+const LINE = 'flex justify-around py-1.5 md:min-w-0 md:flex-1 md:flex-col md:px-0.5 md:py-2';
+
+/** A line-up row: the player's disc, then the name on one line (T-1321, T-1616). */
 const LINEUP_ROW = 'flex items-center gap-2 py-0.5';
+
+/**
+ * The side's tone (T-1616, D-287): the fill of the number circle and of the
+ * shirt-number badge, and the ring around a photo. The home side in the text
+ * colour, the away side in the muted one, the best rated in saffron.
+ */
+const TONE = {
+  home: { fill: 'bg-fg text-canvas', ring: 'border-fg' },
+  away: { fill: 'bg-muted text-canvas', ring: 'border-muted' },
+  best: { fill: 'bg-accent text-on-accent', ring: 'border-accent' },
+} as const;
+
+/** The disc's two sizes: on the pitch, and in the bench and list rows. */
+const DISC = {
+  40: { slot: 'size-10', badge: 'h-4.5 min-w-4.5 text-[10px]' },
+  32: { slot: 'size-8', badge: 'h-4 min-w-4 text-[9px]' },
+} as const;
+
+/**
+ * A player's disc (T-1616, D-287): his photo, round and cropped from the top
+ * (the photos are head and shoulders), in a ring of the side's tone with a
+ * gap of the ground between, and his shirt number as a badge on its edge.
+ * Without a photo -- `not_supplied`, no field, or lite mode -- his shirt
+ * number in a circle of the side's tone, exactly the circle the pitch drew
+ * before; never a silhouette (rule 3). Without either, the lettered mark.
+ * The slot is the same size either way, so a row of photos and numbers keeps
+ * its names on one line and nothing moves when a photo arrives.
+ */
+function PlayerDisc({
+  player: p,
+  side,
+  best,
+  size,
+  locale,
+}: {
+  player: MatchLineupPlayer;
+  side: Side;
+  /** The best rated of the match: the ring and the badge in saffron. */
+  best: boolean;
+  size: keyof typeof DISC;
+  locale: string;
+}) {
+  const tone = TONE[best ? 'best' : side];
+  const number = p.shirt_number === null ? null : formatNumber(locale, p.shirt_number);
+  const photo = drawable(p.photo);
+  const circle =
+    number === null ? null : (
+      <span
+        data-testid="lineup-number"
+        className={`grid size-8 place-items-center rounded-full text-sm font-extrabold tabular-nums ${tone.fill}`}
+      >
+        {number}
+      </span>
+    );
+  const pictured = (
+    <>
+      <EntityImage
+        media={p.photo}
+        kind="photo"
+        name={p.name}
+        size={size}
+        className={photo ? `border-2 p-px object-top ${tone.ring}` : undefined}
+      />
+      {photo && number !== null && (
+        <span
+          data-testid="lineup-shirt"
+          className={`absolute -end-1 bottom-0 grid place-items-center rounded-full px-0.5 leading-none font-extrabold tabular-nums ring-2 ring-surface-raised ${DISC[size].badge} ${tone.fill}`}
+        >
+          {number}
+        </span>
+      )}
+    </>
+  );
+  return (
+    <span
+      className={`relative grid shrink-0 place-items-center ${DISC[size].slot}`}
+      data-testid="lineup-disc"
+      data-photo={photo ? 'available' : 'none'}
+      data-best={best ? 'true' : undefined}
+    >
+      {circle === null ? (
+        pictured
+      ) : photo ? (
+        // Lite mode fetches nothing: the number circle stands in (T-1387).
+        <Pictured fallback={circle}>{pictured}</Pictured>
+      ) : (
+        circle
+      )}
+    </span>
+  );
+}
 
 function ListPlayer({
   player: p,
+  side,
   locale,
   words,
 }: {
   player: MatchLineupPlayer;
+  side: Side;
   locale: string;
   words: MatchWords;
 }) {
   return (
     <>
-      <EntityImage media={p.photo} kind="photo" name={p.name} size={22} />
+      <PlayerDisc player={p} side={side} best={false} size={32} locale={locale} />
       <span className="min-w-0">
-        {p.shirt_number !== null ? (
-          <span className="font-mono text-xs text-caption">
-            {formatNumber(locale, p.shirt_number)}{' '}
-          </span>
-        ) : null}
         {/* Every line-up name links to the player page (blueprint 5.3, T-037). */}
         <Link href={`/${locale}/player/${p.id}`} className="underline">
           {listName(locale, p.name)}
@@ -267,60 +404,71 @@ function ListPlayer({
 
 function PitchPlayer({
   player: p,
+  side,
+  rating,
+  best,
   locale,
   words,
 }: {
   player: MatchLineupPlayer;
+  side: Side;
+  rating: number | undefined;
+  best: boolean;
   locale: string;
   words: MatchWords;
 }) {
+  // The name is cut to the player's own share of the row, so five across a
+  // 360px phone never run into each other (T-1616).
   return (
-    <li className="flex w-18 min-w-0 flex-col items-center gap-0.5 text-center">
+    <li className="flex w-18 min-w-0 flex-col items-center gap-0.5 px-0.5 text-center md:w-auto">
       <Link
         href={`/${locale}/player/${p.id}`}
-        className="flex min-w-0 flex-col items-center gap-0.5"
+        className="flex w-full min-w-0 flex-col items-center gap-0.5"
         title={p.name}
       >
-        <EntityImage
-          media={p.photo}
-          kind="photo"
-          name={p.name}
+        <PlayerDisc
+          player={p}
+          side={side}
+          best={best && rating !== undefined}
           size={40}
-          className="ring-2 ring-muted"
+          locale={locale}
         />
-        <span dir="auto" className="block max-w-18 truncate text-xs font-semibold text-fg">
+        <span dir="auto" className="block max-w-full truncate text-xs font-semibold text-fg">
           {listName(locale, p.name)}
           {p.is_captain ? ` ${words.m['matchCentre.captain'].text}` : ''}
         </span>
       </Link>
-      {p.shirt_number !== null && (
-        <span className="font-mono text-xs text-caption">
-          {formatNumber(locale, p.shirt_number)}
-        </span>
-      )}
+      {rating !== undefined && <RatingChip value={rating} text={formatFixed(locale, rating, 1)} />}
     </li>
   );
 }
 
-/** The pitch's lines, drawn in the border token on the raised ground. */
+/**
+ * The pitch's lines, drawn in the border token on the raised ground: across
+ * a phone's pitch, down the horizontal one. Decoration only.
+ */
 function PitchMarkings({ full, placed }: { full: boolean; placed: readonly Side[] }) {
   const line = 'pointer-events-none absolute border-strong/50';
   return (
     <span aria-hidden="true">
       {full && (
         <>
-          <span className={`${line} inset-x-0 top-1/2 border-t-2`} />
           <span
-            className={`${line} inset-x-0 top-1/2 mx-auto size-20 -translate-y-1/2 rounded-full border-2`}
+            className={`${line} inset-x-0 top-1/2 border-t-2 md:inset-x-auto md:inset-y-0 md:start-1/2 md:border-s-2 md:border-t-0`}
+          />
+          <span
+            className={`${line} inset-x-0 top-1/2 mx-auto size-20 -translate-y-1/2 rounded-full border-2 md:size-29`}
           />
         </>
       )}
       {placed.includes('away') && (
-        <span className={`${line} inset-x-0 top-0 mx-auto h-[12%] w-[56%] border-2 border-t-0`} />
+        <span
+          className={`${line} inset-x-0 top-0 mx-auto h-[12%] w-[56%] border-2 border-t-0 md:inset-x-auto md:end-0 md:top-1/4 md:mx-0 md:h-1/2 md:w-[14%] md:border-e-0 md:border-t-2`}
+        />
       )}
       {placed.includes('home') && (
         <span
-          className={`${line} inset-x-0 bottom-0 mx-auto h-[12%] w-[56%] border-2 border-b-0`}
+          className={`${line} inset-x-0 bottom-0 mx-auto h-[12%] w-[56%] border-2 border-b-0 md:inset-x-auto md:start-0 md:top-1/4 md:bottom-auto md:mx-0 md:h-1/2 md:w-[14%] md:border-s-0 md:border-b-2`}
         />
       )}
     </span>

@@ -113,6 +113,7 @@ export const SCORES_KEYS = [
   ...INCIDENT_KEYS,
   ...STAGE_KEYS,
   'scores.empty',
+  'scores.liveEmpty',
   'scores.filteredEmpty',
   'scores.filter.clear',
   'scores.favourites',
@@ -146,6 +147,17 @@ export const SCORES_KEYS = [
   'scores.card.model.noneBefore',
   'scores.card.model.notYet',
   'scores.card.community.label',
+  // The match row and its preview (T-1496).
+  'forecastBar.label',
+  'scores.unpickedEmpty',
+  'scores.row.pick',
+  'scores.row.picked',
+  'scores.row.view',
+  'scores.row.pickLabel',
+  'scores.row.pickedLabel',
+  'scores.row.viewLabel',
+  'scores.row.modelNotLoaded',
+  'scores.row.communitySealed',
   'forecast.reason.teamNotMapped',
   'forecast.reason.noHistory',
   'forecast.reason.divisionNotLoaded',
@@ -304,6 +316,19 @@ export const MATCH_KEYS = [
   'matchCentre.lineups.noRoles',
   'matchCentre.lineups.linesUnknown',
   'matchCentre.lineups.mismatch',
+  // The Stadiomind match centre (T-1497): the axis, the live "Not in yet"
+  // state and the best rated.
+  'matchCentre.axis',
+  'matchCentre.notInYet',
+  'matchCentre.notInYetWhy',
+  'matchCentre.fromKickoff',
+  'matchCentre.fromKickoffWhy',
+  'matchCentre.notPlayed',
+  'matchCentre.notPlayedWhy',
+  'matchCentre.topRated',
+  'matchCentre.bestSix',
+  'matchCentre.minutesPlayed',
+  'matchCentre.ratingsNote',
 ] as const;
 
 export type MatchWords = ClientWords<(typeof MATCH_KEYS)[number]>;

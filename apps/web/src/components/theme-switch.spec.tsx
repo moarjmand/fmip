@@ -115,13 +115,29 @@ describe('the switch', () => {
 });
 
 describe('the header at every width (T-1479)', () => {
-  it('gives the phone Menu thumb-sized theme buttons and keeps the desktop row small', () => {
+  it('gives the phone Menu thumb-sized theme buttons and the desktop bar one 40px icon (D-267)', () => {
     const SWITCH = readFileSync(join(HERE, 'theme-switch.tsx'), 'utf8');
-    expect(SWITCH).toContain("'min-h-touch px-3 lg:min-h-0 lg:px-1.5 lg:py-0.5'");
+    expect(SWITCH).toContain('`min-h-touch px-3 lg:size-10');
+    // The words stay for a screen reader where the icon stands in for them.
+    const html = renderToStaticMarkup(<ThemeSwitch locale="en" current="dark" variant="compact" />);
+    expect(html).toMatch(/<span class="lg:sr-only">Night<\/span>/);
+    expect(html.match(/<svg[^>]*class="hidden lg:block"/g)).toHaveLength(3);
+    // Night is on, so the desktop bar draws Auto alone, the next press.
+    const buttons = [...html.matchAll(/<button[^>]*>/g)].map((m) => m[0]);
+    expect(buttons.filter((b) => /lg:flex/.test(b))).toHaveLength(1);
+    expect(buttons.find((b) => /lg:flex/.test(b))).toContain('value="system"');
   });
 
-  it('puts the seven links on a row of their own below 1280px, never one link under the rest', () => {
-    expect(HEADER).toContain('lg:max-xl:order-last lg:max-xl:basis-full');
-    expect(HEADER).toContain('lg:max-xl:ms-auto');
+  it('keeps the bar one row from 1024px, the search giving way first (T-1534)', () => {
+    // A fixed height and no wrap: a face arriving late cannot add a row. The
+    // gaps are tighter below 1280px, where six sections share it (D-281).
+    expect(HEADER).toContain('lg:h-16 lg:gap-x-2.5 xl:gap-x-4"');
+    expect(HEADER).not.toContain('lg:flex-wrap');
+    expect(HEADER).not.toContain('lg:max-xl:order-last');
+    // The field shrinks to its icon rather than pushing the tools on; below
+    // 1280px it is the search link, and the mark stands without its name.
+    expect(HEADER).toContain('xl:ms-auto xl:flex xl:max-w-64 xl:min-w-11 xl:grow xl:basis-64');
+    expect(HEADER).toContain('`${tool} lg:ms-auto lg:shrink-0 xl:hidden`');
+    expect(HEADER).toContain('lg:text-lg lg:max-xl:sr-only');
   });
 });

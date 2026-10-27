@@ -7,8 +7,9 @@ import { describe, expect, it } from 'vitest';
 /**
  * T-601: the site's fonts are served from this site. No request leaves it for
  * a font -- not at build time and not in a reader's browser. Vazirmatn since
- * D-089; Mona Sans, Newsreader, Geist Mono and Markazi Text since the Hybrid
- * design (T-1380, D-198), each checked the same way.
+ * D-089; Newsreader, Geist Mono and Markazi Text since the Hybrid design
+ * (T-1380, D-198) and Archivo since the Stadiomind one (T-1491, D-263), each
+ * checked the same way.
  */
 
 const WEB = fileURLToPath(new URL('../../', import.meta.url));
@@ -23,7 +24,7 @@ const GLOBALS = readFileSync(join(WEB, 'src/app/globals.css'), 'utf8');
  */
 const FACES: [stylesheet: string, family: string, subsets: string[]][] = [
   ['@fontsource-variable/vazirmatn', 'Vazirmatn Variable', ['arabic', 'latin-wght']],
-  ['@fontsource-variable/mona-sans/wdth.css', 'Mona Sans Variable', ['latin-wdth']],
+  ['@fontsource-variable/archivo/wdth.css', 'Archivo Variable', ['latin-wdth']],
   ['@fontsource-variable/newsreader', 'Newsreader Variable', ['latin-wght-normal']],
   ['@fontsource-variable/newsreader/wght-italic.css', 'Newsreader Variable', ['latin-wght-italic']],
   ['@fontsource-variable/geist-mono', 'Geist Mono Variable', ['latin-wght']],
@@ -83,7 +84,7 @@ describe('the site fonts', () => {
       /--font-sans:\s*'Vazirmatn Variable',\s*'Vazirmatn Fallback',\s*system-ui/,
     );
     expect(GLOBALS).toMatch(
-      /--font-latin:\s*'Mona Sans Variable',\s*'Mona Sans Fallback',\s*system-ui/,
+      /--font-latin:\s*'Archivo Variable',\s*'Archivo Fallback',\s*system-ui/,
     );
     expect(GLOBALS).toMatch(/--font-serif:\s*'Newsreader Variable',\s*'Newsreader Fallback',/);
     expect(GLOBALS).toMatch(
@@ -103,7 +104,7 @@ describe('the site fonts', () => {
 
   it('have their fallbacks as local faces scaled to their metrics, which download nothing (T-1463)', () => {
     for (const family of [
-      'Mona Sans Fallback',
+      'Archivo Fallback',
       'Newsreader Fallback',
       'Geist Mono Fallback',
       'Vazirmatn Fallback',
@@ -125,7 +126,53 @@ describe('the site fonts', () => {
     }
   });
 
-  it('follow the page’s script: Mona Sans for a Latin page, Markazi Text for Persian display', () => {
+  it('give Archivo a fallback for every weight and width the interface draws, Arial Bold from 550 up (T-1536)', () => {
+    const faces = [
+      ...GLOBALS.matchAll(/@font-face \{([^}]*font-family: 'Archivo Fallback';[^}]*)\}/g),
+    ].map(([, body = '']) => {
+      const range = (name: string, single: number) => {
+        const value = new RegExp(`${name}: ([\\d.]+)%? ?([\\d.]+)?%?;`).exec(body);
+        return value === null ? [single, single] : [Number(value[1]), Number(value[2] ?? value[1])];
+      };
+      const number = (name: string) => Number(new RegExp(`${name}: ([\\d.]+)%;`).exec(body)?.[1]);
+      return {
+        stretch: range('font-stretch', 100),
+        weight: range('font-weight', 400),
+        bold: body.includes("local('Arial Bold')"),
+        size: number('size-adjust'),
+        ascent: number('ascent-override'),
+        descent: number('descent-override'),
+      };
+    });
+    const used = [
+      [75, [400, 700, 800, 900]],
+      [87.5, [400, 600, 700]],
+      [100, [400, 500, 600, 700, 800, 900]],
+      [112.5, [700, 800]],
+      [125, [850]],
+    ] as const;
+    for (const [stretch, weights] of used) {
+      for (const weight of weights) {
+        const matching = faces.filter(
+          (face) =>
+            face.stretch[0]! <= stretch &&
+            stretch <= face.stretch[1]! &&
+            face.weight[0]! <= weight &&
+            weight <= face.weight[1]!,
+        );
+        expect(matching.length, `${stretch}% at ${weight}`).toBe(1);
+        // A synthetic bold of the regular is narrower than Archivo's bold.
+        expect(matching[0]!.bold, `${stretch}% at ${weight}`).toBe(weight >= 550);
+      }
+    }
+    // Archivo's ascent and descent, whatever each face is scaled by.
+    for (const face of faces) {
+      expect((face.ascent * face.size) / 100).toBeCloseTo(87.8, 0);
+      expect((face.descent * face.size) / 100).toBeCloseTo(21, 0);
+    }
+  });
+
+  it('follow the page’s script: Archivo for a Latin page, Markazi Text for Persian display', () => {
     const latin = /:root:not\(:lang\(fa\), :lang\(ar\)\) \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';
     expect(latin).toContain('--font-sans: var(--font-latin);');
     const arabic = /:root:is\(:lang\(fa\), :lang\(ar\)\) \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';

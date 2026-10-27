@@ -6,6 +6,7 @@ import { ERROR_PAGE_KEYS } from '@/components/error-page';
 import { ServiceWorker } from '@/components/service-worker';
 import { Translated } from '@/components/translated';
 import { SiteHeader, SiteTabBar } from '@/components/site-header';
+import { SiteFooter } from '@/components/site-footer';
 import { DEFAULT_LOCALE, LOCALES, directionOf, isLocale } from '@/i18n/locales';
 import { resolveMessages, t } from '@/i18n/messages';
 import {
@@ -13,7 +14,7 @@ import {
   demonstrationTitleTemplate,
   isDemonstrationData,
 } from '@/lib/demonstration';
-import { BRAND_COLOURS } from '@/lib/brand-colours';
+import { BRAND_COLOURS, MARK_COLOURS } from '@/lib/brand-colours';
 import { pageMetadata, siteUrl } from '@/lib/seo';
 import { readAppearance, readLite, readTheme } from '@/lib/theme-cookie';
 import { LITE_BANNER_KEYS } from '@/lib/lite';
@@ -25,13 +26,13 @@ import { LiteProvider } from '@/components/lite-mode';
 // the scripts it shows and no request leaves the site for a font. Imported
 // before globals.css, which names the family.
 import '@fontsource-variable/vazirmatn';
-// The Hybrid families (T-1380, D-198), the same way: Mona Sans with its width
+// The Hybrid families (T-1380, D-198; Archivo since D-263), the same way: Archivo with its width
 // axis (the interface on a Latin-script page, condensed 900 for data
 // numerals), Newsreader upright and italic (English editorial; the italic is
 // the founder's voice), Geist Mono (versions, timestamps) and Markazi Text
 // (Persian editorial display). A face downloads only where a page uses it and
 // only for the scripts on that page, by `unicode-range`.
-import '@fontsource-variable/mona-sans/wdth.css';
+import '@fontsource-variable/archivo/wdth.css';
 import '@fontsource-variable/newsreader';
 import '@fontsource-variable/newsreader/wght-italic.css';
 import '@fontsource-variable/geist-mono';
@@ -61,7 +62,7 @@ export async function generateMetadata({
     ...pageMetadata({
       locale,
       path: '',
-      title: 'FMIP',
+      title: 'Stadiomind',
       description: t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shell.meta.description'),
     }),
     // On a deployment whose football is fixture data, every page title says so
@@ -73,7 +74,7 @@ export async function generateMetadata({
       ? {
           title: {
             template: demonstrationTitleTemplate(locale),
-            default: demonstrationTitle('FMIP', locale),
+            default: demonstrationTitle('Stadiomind', locale),
           },
         }
       : {}),
@@ -84,16 +85,22 @@ export async function generateMetadata({
     icons: {
       icon: [
         { url: '/icons/mark.svg', type: 'image/svg+xml' },
+        { url: '/icons/icon-32.png', sizes: '32x32', type: 'image/png' },
         { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
       ],
       apple: '/icons/apple-touch-icon.png',
     },
-    appleWebApp: { capable: true, title: 'FMIP', statusBarStyle: 'default' },
+    appleWebApp: { capable: true, title: 'Stadiomind', statusBarStyle: 'default' },
   };
 }
 
 export const viewport: Viewport = {
-  themeColor: BRAND_COLOURS.accent,
+  // The browser's tint follows the device's scheme (T-1492): the Day ground
+  // on a light device, the Night one -- the icons' ink -- on a dark one.
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: BRAND_COLOURS.canvas },
+    { media: '(prefers-color-scheme: dark)', color: MARK_COLOURS.tile },
+  ],
   width: 'device-width',
   initialScale: 1,
 };
@@ -167,6 +174,10 @@ export default async function LocaleLayout({
           </div>
           {/* What a lite page leaves out, at its foot (T-1387). */}
           <LiteFootnote words={liteWords} />
+          {/* The site footer (T-1610, D-281): every section, what Stadiomind
+            is, its rules and the languages; before the tab bar's spacer, so
+            it is never under the bar. */}
+          <SiteFooter locale={locale} />
           {/* The phone's five main sections (T-1381, D-199); not drawn from 768px. */}
           <SiteTabBar locale={locale} />
           <ServiceWorker />

@@ -11,9 +11,9 @@
  *
  *   font-sans     the interface and body text. Vazirmatn on an Arabic-script
  *                 page (fa, ar); on every other page the base layer below
- *                 points it at `--font-latin`, Mona Sans. Data numerals,
+ *                 points it at `--font-latin`, Archivo (D-263). Data numerals,
  *                 scores and data-mode display are this family at 900, with
- *                 `font-stretch-condensed` (Mona Sans has a width axis;
+ *                 `font-stretch-condensed` (Archivo has a width axis;
  *                 Vazirmatn has none, so in Persian weight does the work).
  *   font-serif    editorial display, standfirsts and headings: Newsreader,
  *                 and Markazi Text on an Arabic-script page.
@@ -52,7 +52,7 @@
     'Noto Sans', 'Noto Sans Arabic', Tahoma, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Noto Color Emoji';
   --font-latin:
-    'Mona Sans Variable', 'Mona Sans Fallback', system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Archivo Variable', 'Archivo Fallback', system-ui, -apple-system, 'Segoe UI', Roboto,
     'Noto Sans', 'Noto Sans Arabic', Tahoma, Arial, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Noto Color Emoji';
   --font-serif:
@@ -105,15 +105,15 @@
  * Shape and measure (D-198). Spacing is Tailwind's own 4-point scale (`p-1`
  * is 4px; the design's steps 4 to 64 are `1 2 3 4 6 8 12 16`). Radii by what
  * they round: an editorial block has none (`rounded-editorial`, rules rather
- * than boxes), a control or chip 10 (`rounded-control`), a data tile 16
- * (`rounded-tile`), a data card 20 (`rounded-card`), a pill fully round
- * (`rounded-pill`). `max-w-page` is the 1280px container, `max-w-measure` an
+ * than boxes), a control or chip 8 (`rounded-control`, the Design System's
+ * `radius-md`, T-1493), a data tile 16 (`rounded-tile`), a data card 20
+ * (`rounded-card`), a pill fully round (`rounded-pill`). `max-w-page` is the 1280px container, `max-w-measure` an
  * article's 680px; `page-frame` (below) is the container with its gutters.
  * `min-h-touch` / `min-w-touch` / `size-touch` are the 44px touch target.
  */
 @theme {
   --radius-editorial: 0;
-  --radius-control: 0.625rem;
+  --radius-control: 0.5rem;
   --radius-tile: 1rem;
   --radius-card: 1.25rem;
   --radius-pill: 999px;
@@ -132,6 +132,223 @@
   @media (width >= 48rem) {
     padding-inline: 2rem;
   }
+}
+
+/*
+ * The shell's navigations (T-1494, D-267, `components/shell-nav.tsx`). Their
+ * looks live here rather than in the client components' class strings, which
+ * every page would download as JavaScript (perf budgets, D-264); the current
+ * entry is styled by its `aria-current`, so the components only mark it.
+ *
+ * `nav-entry`: a row of the header's nav and of More, 44px tall; the current
+ * one (or More, `data-on`, when the page is one of its own) ink on the
+ * raised surface, as the Design System's header draws it. Its padding is
+ * tighter from 1024px to 1279px, where the six sections, More and the
+ * tools share one row (D-281).
+ */
+@utility nav-entry {
+  @apply flex min-h-touch items-center gap-1 rounded-control px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg lg:px-1.5 xl:px-2.5;
+
+  &[aria-current='page'],
+  &[data-on] {
+    @apply bg-surface-raised font-bold text-fg;
+  }
+}
+
+/* More's list: in the Menu a plain list, from 1024px a panel below the bar. */
+@utility more-panel {
+  @apply flex flex-col lg:absolute lg:start-0 lg:top-full lg:z-40 lg:mt-1 lg:w-52 lg:rounded-control lg:border lg:border-default lg:bg-surface lg:p-1;
+}
+
+/*
+ * The header's language picker (T-1610, D-281, `components/language-picker.tsx`).
+ * `lang-toggle`: the globe and the page's language in short, a 44px target;
+ * in the phone's Menu a row like the rest, in the bar a compact control
+ * (from 1024px to 1279px without its caret, so the row holds).
+ * `lang-panel`: its list, in the Menu a plain list under it, from 1024px a
+ * panel below the bar at the control's inline end. `lang-entry`: a language
+ * in its own name, 44px tall, the page's own ink and bold.
+ */
+@utility lang-toggle {
+  @apply flex min-h-touch min-w-touch items-center gap-2 rounded-control px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg lg:gap-1 lg:px-2;
+}
+
+@utility lang-panel {
+  @apply flex flex-col ps-6 lg:absolute lg:end-0 lg:top-full lg:z-40 lg:mt-1 lg:w-44 lg:rounded-control lg:border lg:border-default lg:bg-surface lg:p-1;
+}
+
+@utility lang-entry {
+  @apply flex min-h-touch items-center rounded-control px-3 text-sm text-muted hover:bg-surface-raised hover:text-fg;
+
+  &[aria-current='page'] {
+    @apply font-bold text-fg;
+  }
+}
+
+/*
+ * `footer-link`: a link of the site footer (T-1610, D-281,
+ * `components/site-footer.tsx`), a 44px target on a phone and a 32px one
+ * from 768px; the page's own language ink and bold in the footer's picker.
+ */
+@utility footer-link {
+  @apply inline-flex min-h-touch items-center text-sm text-muted hover:text-fg hover:underline md:min-h-8;
+
+  &[aria-current='page'] {
+    @apply font-bold text-fg;
+  }
+}
+
+/*
+ * `tab-entry`: a tab of the phone's bar, the Design System's `TabBar` -- a
+ * 22px icon over its label, at least 56px tall (the 44px target and room for
+ * the label); the current one saffron and bold.
+ */
+@utility tab-entry {
+  @apply flex min-h-14 flex-col items-center justify-center gap-1 pt-2 pb-2.5 text-xs font-semibold text-muted;
+
+  &[aria-current='page'] {
+    @apply font-extrabold text-accent;
+  }
+}
+
+/*
+ * A crest's halo (T-1609, D-280, `EntityImage`): a one-pixel soft light edge
+ * that follows the crest's own outline, not a plate behind it, so a navy or
+ * black crest (Tottenham, PSG, Inter) keeps its shape on Night and every
+ * other crest looks as drawn. On Day the token is the surface itself, so
+ * nothing shows.
+ */
+@utility crest-halo {
+  filter: drop-shadow(0 0 1px var(--token-crest-halo));
+}
+
+/*
+ * The matchday rail under the header (T-1624, D-292, amending T-1513's pills;
+ * `components/matchday-rail-view.tsx`). `rail-chip`: a league (or My teams),
+ * the 44px target, its pill the inner box -- a hairline round a logo, a short
+ * name and a status; the league being read (`aria-current`) or whose matches
+ * the drawer shows (`aria-pressed`) edged in saffron on the raised surface.
+ * `rail-all`: "All competitions" at the end, saffron text and an arrow, no
+ * edge. `rail-status`: a chip's status after the name, in the caption ink;
+ * live in red with the pulsing dot (`.live-dot`).
+ */
+@utility rail-chip {
+  @apply flex min-h-touch shrink-0 cursor-pointer items-center whitespace-nowrap;
+
+  & > span {
+    @apply flex items-center gap-2 rounded-pill border border-default px-3 py-1.5 text-[0.8125rem] font-semibold text-fg;
+  }
+
+  &:hover > span {
+    @apply border-strong;
+  }
+
+  &[aria-current='page'] > span,
+  &[aria-pressed='true'] > span {
+    @apply border-accent bg-surface-raised font-bold;
+  }
+}
+
+@utility rail-all {
+  @apply flex min-h-touch items-center gap-1 px-3 text-[0.8125rem] font-bold whitespace-nowrap text-accent hover:underline;
+
+  &[aria-current='page'] {
+    @apply underline underline-offset-4;
+  }
+}
+
+@utility rail-status {
+  @apply inline-flex items-center gap-1.5 text-xs font-semibold text-caption;
+
+  &[data-kind='live'] {
+    @apply font-bold text-live;
+  }
+}
+
+/*
+ * A row that scrolls sideways without a scrollbar (T-1624, D-292,
+ * `components/scroll-row.tsx`): the native bar hidden, the edge with more
+ * beyond it faded (`data-more-start`, `data-more-end`, set by the island),
+ * and from 768px a round chevron on that edge that scrolls by a page. The
+ * fade runs along the inline axis, so it is drawn the other way round under
+ * right to left. A focused item scrolls into view clear of the fade. The
+ * mask reads only its stops' alpha: `black` there is opaque, not a colour.
+ */
+@utility scroll-row {
+  @apply relative flex min-w-0 items-center;
+
+  & > ul {
+    @apply min-w-0 flex-1 overflow-x-auto;
+
+    scroll-padding-inline: 2.5rem;
+    scrollbar-width: none;
+    --fade-start: 0px;
+    --fade-end: 0px;
+  }
+
+  & > ul::-webkit-scrollbar {
+    display: none;
+  }
+
+  &[data-more-start] > ul {
+    --fade-start: 2.5rem;
+  }
+
+  &[data-more-end] > ul {
+    --fade-end: 2.5rem;
+  }
+
+  &:is([data-more-start], [data-more-end]) > ul {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black var(--fade-start),
+      black calc(100% - var(--fade-end)),
+      transparent
+    );
+  }
+
+  [dir='rtl'] &:is([data-more-start], [data-more-end]) > ul {
+    mask-image: linear-gradient(
+      to left,
+      transparent,
+      black var(--fade-start),
+      black calc(100% - var(--fade-end)),
+      transparent
+    );
+  }
+}
+
+/* The chevrons: none on a phone (a thumb swipes), none at an edge with nothing beyond it. */
+.scroll-chevron {
+  display: none;
+}
+
+@media (width >= 48rem) {
+  .scroll-row[data-more-start] > .scroll-chevron[data-edge='start'],
+  .scroll-row[data-more-end] > .scroll-chevron[data-edge='end'] {
+    @apply absolute inset-y-0 z-10 my-auto flex size-8 cursor-pointer items-center justify-center rounded-full border border-default bg-surface text-fg hover:border-strong;
+  }
+
+  .scroll-chevron[data-edge='start'] {
+    @apply start-0;
+  }
+
+  .scroll-chevron[data-edge='end'] {
+    @apply end-0;
+  }
+}
+
+.scroll-chevron svg {
+  fill: none;
+  stroke: currentcolor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+[dir='rtl'] .scroll-chevron svg {
+  transform: scaleX(-1);
 }
 
 /*
@@ -156,7 +373,7 @@
 
 /*
  * The font roles follow the page's script (D-198): Latin-script pages draw
- * the interface in Mona Sans; Arabic-script pages keep Vazirmatn for it and
+ * the interface in Archivo; Arabic-script pages keep Vazirmatn for it and
  * for an article's body, take Markazi Text for editorial display, and open
  * up the display line heights, which Arabic's ascenders and descenders need
  * (Persian article body: 17px on a line twice that). On <html> only, where
@@ -229,6 +446,14 @@
  *   text-model  text-founder  text-community  (bg-, border-: the three
  *     prediction products' lanes, and nothing else -- CLAUDE.md rule 6)
  *   bg-accent  bg-accent-strong  bg-danger  ...
+ *   bg-brand  text-on-brand  (the Design System's bright saffron fill: the
+ *     primary button, the top rating chip; T-1493)
+ *   bg-prob-draw  bg-prob-away  (the forecast bar's draw and away segments;
+ *     home is bg-model)
+ *   bg-rating-low  text-on-rating-low  bg-rating-good  text-on-rating-good
+ *     (the match rating chip's bands)
+ *   bg-logo-tile  ring-logo-edge  (a competition logo's white tile and its
+ *     Night hairline, `EntityImage`; T-1609, D-280)
  *   border-default  border-strong  (and border-accent, border-danger, ...)
  *   outline-focus  ring-focus  divide-default
  *
@@ -242,6 +467,7 @@
   --color-surface: var(--token-surface);
   --color-surface-raised: var(--token-surface-raised);
   --color-stage: var(--token-stage);
+  --color-selected: var(--token-selected);
   --color-fg: var(--token-text);
   --color-muted: var(--token-text-muted);
   --color-caption: var(--token-caption);
@@ -256,6 +482,16 @@
   --color-model: var(--token-model);
   --color-founder: var(--token-founder);
   --color-community: var(--token-community);
+  --color-brand: var(--token-brand);
+  --color-on-brand: var(--token-on-brand);
+  --color-prob-draw: var(--token-prob-draw);
+  --color-prob-away: var(--token-prob-away);
+  --color-rating-low: var(--token-rating-low);
+  --color-on-rating-low: var(--token-on-rating-low);
+  --color-rating-good: var(--token-rating-good);
+  --color-on-rating-good: var(--token-on-rating-good);
+  --color-logo-tile: var(--token-logo-tile);
+  --color-logo-edge: var(--token-logo-edge);
   --border-color-default: var(--token-border);
   --border-color-strong: var(--token-border-strong);
 }
@@ -301,23 +537,12 @@ body {
   }
 
   /*
-   * The two modes (D-198). `data-mode="editorial"` -- the header, and an
-   * editorial page's wrapper (home, stories, predictions, model accuracy,
-   * the founder's analysis) -- gets the paper values in tokens.css whatever
-   * the theme, and paints its own ground with them: the colours a child
-   * inherits were resolved on <body>, in the theme's values, so the mark
-   * says them again. `data-mode="data"` (live match, full time, competition,
-   * player, club) follows the theme and stands on the stage: Day's sunk
-   * ground on light, the Night canvas on dark. A class still overrides
-   * either ground. Modes do not nest: a data block inside an editorial page
-   * stays on paper.
+   * A data page (D-198): `data-mode="data"` (the match centre, competition,
+   * player, club, the model page) stands on the stage, which is the canvas
+   * in both themes since D-263; a class still overrides it. Editorial mode,
+   * paper whatever the theme, is gone: the last page left it in T-1621
+   * (D-291), and every page follows the theme.
    */
-  [data-mode='editorial'] {
-    background-color: var(--token-canvas);
-    color: var(--token-text);
-    accent-color: var(--token-accent);
-  }
-
   [data-mode='data'] {
     background-color: var(--token-stage);
     color: var(--token-text);
@@ -335,6 +560,21 @@ body {
 :focus-visible {
   outline: 2px solid var(--token-focus);
   outline-offset: 2px;
+}
+
+/*
+ * Two places where the ring moves (T-1494, D-267). The rule above is outside
+ * any layer, so it beats a utility class; these are too. A tab of the phone's
+ * tab bar draws it inside itself, where the edge of the screen cannot cut it.
+ * The header's search field rings its whole box (`focus-within` on the label),
+ * so the bare input inside draws none of its own.
+ */
+.focus-inset:focus-visible {
+  outline-offset: -2px;
+}
+
+.site-search input:focus-visible {
+  outline: none;
 }
 
 /*
@@ -360,6 +600,59 @@ body {
     }
 
     .site-menu > summary {
+      display: none;
+    }
+  }
+}
+
+/*
+ * The header's mark (T-1494, D-267). The header follows the theme, and the
+ * mark is never recoloured (D-262): it is drawn in the Day and the Night
+ * colours, and the theme shows one, by the same three ways tokens.css turns
+ * Night on (the device's dark, unless Day was chosen; or Night chosen).
+ */
+.brand-mark-night {
+  display: none;
+}
+
+:root[data-theme='dark'] .brand-mark-day {
+  display: none;
+}
+
+:root[data-theme='dark'] .brand-mark-night {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .brand-mark-day {
+    display: none;
+  }
+
+  :root:not([data-theme='light']) .brand-mark-night {
+    display: block;
+  }
+}
+
+/*
+ * The header's More (T-1494, D-267, `components/shell-nav.tsx`), the other
+ * way round: from 1024px a disclosure that drops below the bar, and inside
+ * the Menu of a phone or a tablet no box at all, so its links are listed
+ * with the rest of the nav rather than behind a second disclosure. A browser
+ * that cannot style the content slot keeps a working More in the Menu.
+ */
+@media (width < 64rem) {
+  @supports selector(::details-content) {
+    .more-menu,
+    .more-menu::details-content,
+    .more-menu-panel {
+      display: contents;
+    }
+
+    .more-menu::details-content {
+      content-visibility: visible;
+    }
+
+    .more-menu > summary {
       display: none;
     }
   }
@@ -464,37 +757,55 @@ body {
 }
 
 /*
- * The match centre's tabs on a phone (T-1384, D-202). Below 768px one tab's
+ * The match centre's tabs (T-1384, D-202; T-1497). Below 768px one tab's
  * sections show at a time: the tab that holds the page's `:target` -- the
  * section a tab's link, a deep link (`#lineups`, `#forecast`) or a post's
- * anchor opened -- or the Summary when nothing in the tabs is targeted. The
- * tabs are plain anchors, so this needs no script and a page with none
- * behaves the same. From 768px every section is open, in columns, and the
- * tabs are not drawn. The tab bar marks the tab on show the same way.
+ * anchor opened -- or the Summary when nothing in a tab is targeted. A tab's
+ * sections may sit in both columns (the Summary's side column: the best
+ * rated, the absences, the past meetings), so a section shows by the tab it
+ * names, not by holding the target itself. The tabs are plain anchors, so
+ * this needs no script and a page with none behaves the same. From 768px
+ * every section is open, in a main and a side column, and the tabs jump to
+ * them. The tab bar marks the tab on show the same way at every width.
  */
 @media (width < 48rem) {
-  [data-match-tabs]:not(:has(:target)) [data-tab]:not([data-tab='summary']),
-  [data-match-tabs]:has(:target) [data-tab]:not(:target, :has(:target)) {
+  [data-match-tabs]:not(:has([data-tab]:target, [data-tab] :target))
+    [data-tab]:not([data-tab='summary']),
+  [data-match-tabs]:has([data-tab='summary']:target, [data-tab='summary'] :target)
+    [data-tab]:not([data-tab='summary']),
+  [data-match-tabs]:has([data-tab='lineups']:target, [data-tab='lineups'] :target)
+    [data-tab]:not([data-tab='lineups']),
+  [data-match-tabs]:has([data-tab='stats']:target, [data-tab='stats'] :target)
+    [data-tab]:not([data-tab='stats']),
+  [data-match-tabs]:has([data-tab='predictions']:target, [data-tab='predictions'] :target)
+    [data-tab]:not([data-tab='predictions']),
+  [data-match-tabs]:has([data-tab='watch']:target, [data-tab='watch'] :target)
+    [data-tab]:not([data-tab='watch']),
+  [data-match-tabs]:has([data-tab='discussion']:target, [data-tab='discussion'] :target)
+    [data-tab]:not([data-tab='discussion']) {
     display: none;
   }
+}
 
-  [data-match-root]:not(:has([data-match-tabs] :target)) [data-tab-link='summary'],
-  [data-match-root]:has([data-tab='summary']:target, [data-tab='summary'] :target)
-    [data-tab-link='summary'],
-  [data-match-root]:has([data-tab='lineups']:target, [data-tab='lineups'] :target)
-    [data-tab-link='lineups'],
-  [data-match-root]:has([data-tab='stats']:target, [data-tab='stats'] :target)
-    [data-tab-link='stats'],
-  [data-match-root]:has([data-tab='predictions']:target, [data-tab='predictions'] :target)
-    [data-tab-link='predictions'],
-  [data-match-root]:has([data-tab='watch']:target, [data-tab='watch'] :target)
-    [data-tab-link='watch'],
-  [data-match-root]:has([data-tab='discussion']:target, [data-tab='discussion'] :target)
-    [data-tab-link='discussion'] {
-    box-shadow: inset 0 -3px 0 var(--token-accent);
-    color: var(--token-text);
-    font-weight: 700;
-  }
+[data-match-root]:not(
+    :has([data-match-tabs] [data-tab]:target, [data-match-tabs] [data-tab] :target)
+  )
+  [data-tab-link='summary'],
+[data-match-root]:has([data-tab='summary']:target, [data-tab='summary'] :target)
+  [data-tab-link='summary'],
+[data-match-root]:has([data-tab='lineups']:target, [data-tab='lineups'] :target)
+  [data-tab-link='lineups'],
+[data-match-root]:has([data-tab='stats']:target, [data-tab='stats'] :target)
+  [data-tab-link='stats'],
+[data-match-root]:has([data-tab='predictions']:target, [data-tab='predictions'] :target)
+  [data-tab-link='predictions'],
+[data-match-root]:has([data-tab='watch']:target, [data-tab='watch'] :target)
+  [data-tab-link='watch'],
+[data-match-root]:has([data-tab='discussion']:target, [data-tab='discussion'] :target)
+  [data-tab-link='discussion'] {
+  box-shadow: inset 0 -3px 0 var(--token-accent);
+  color: var(--token-text);
+  font-weight: 800;
 }
 
 /*
@@ -513,28 +824,227 @@ body {
  * out of it. Each is named second in its role's stack, after its web font.
  */
 @font-face {
-  font-family: 'Mona Sans Fallback';
+  font-family: 'Archivo Fallback';
   src: local('Arial'), local('Liberation Sans'), local('Arimo');
-  size-adjust: 103.35%;
-  ascent-override: 105.47%;
-  descent-override: 30.96%;
+  font-weight: 100 549;
+  size-adjust: 97.23%;
+  ascent-override: 90.3%;
+  descent-override: 21.6%;
   line-gap-override: 0%;
   unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
 }
 
 /*
- * The same family for condensed text (`font-stretch-condensed`, Mona Sans's
+ * The same family for condensed text (`font-stretch-condensed`, Archivo's
  * width axis at 75 %): a browser picks the face whose stretch matches, and
- * Arial, which has no condensed form, is scaled to condensed Mona Sans's
- * advance instead (67.9 % at weight 400, 71.0 % at 700), its line box kept.
+ * Arial, which has no condensed form, is scaled to condensed Archivo's
+ * advance instead (77.9 % at weight 400, 77.5 % at 700, before the same
+ * Chromium correction as the upright face), its line box kept. Archivo's
+ * metrics were taken from the woff2 with fontTools and corrected by the
+ * ratio Mona Sans's Chromium measurement bore to the same method (T-1491).
  */
 @font-face {
-  font-family: 'Mona Sans Fallback';
+  font-family: 'Archivo Fallback';
   src: local('Arial'), local('Liberation Sans'), local('Arimo');
-  font-stretch: 50% 87.5%;
-  size-adjust: 69.47%;
-  ascent-override: 156.9%;
-  descent-override: 46.06%;
+  font-stretch: 50% 81.25%;
+  font-weight: 100 549;
+  size-adjust: 76.36%;
+  ascent-override: 114.98%;
+  descent-override: 27.5%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+/*
+ * Archivo at every other weight and width the interface draws (T-1536). Arial
+ * has a regular and a bold and no other width, so a face above stood in for
+ * every weight with a synthetic bold and for every width it did not name: an
+ * extrabold, semi-expanded heading in the fallback was 28 % narrower than in
+ * Archivo, and on a phone its line re-wrapped when Archivo arrived (CLS 0.068
+ * on /en, PageSpeed, 2026-10-25). From 550 up the stand-in is Arial Bold (or
+ * its clones), scaled to Archivo's advance at that band's weight and width:
+ * 600, 700, 800 and 900 upright; 700, 800 and 900 condensed; 400, 600 and 700
+ * semi-condensed (87.5 %); 700 and 800 semi-expanded (112.5 %); 850 expanded
+ * (125 %, the wordmark). Measured in Chromium against the upright face's
+ * 97.23 %, which the same method gave as 98.48 % and is corrected to: over the
+ * text of /en, /en/scores, /en/about and a match page, and for the semi-
+ * expanded, semi-condensed and expanded faces over the headings, team names
+ * and wordmark those widths draw (a heading's own ratio still ranges 113.5 to
+ * 120.9 %). Each face keeps Archivo's ascent and descent (87.8 % and 21 % of
+ * the size) after its own scaling.
+ */
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-weight: 550 649;
+  size-adjust: 93.85%;
+  ascent-override: 93.55%;
+  descent-override: 22.38%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-weight: 650 749;
+  size-adjust: 96.98%;
+  ascent-override: 90.53%;
+  descent-override: 21.66%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-weight: 750 849;
+  size-adjust: 101.66%;
+  ascent-override: 86.37%;
+  descent-override: 20.66%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-weight: 850 1000;
+  size-adjust: 108.22%;
+  ascent-override: 81.13%;
+  descent-override: 19.41%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-stretch: 50% 81.25%;
+  font-weight: 550 749;
+  size-adjust: 76.61%;
+  ascent-override: 114.61%;
+  descent-override: 27.41%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-stretch: 50% 81.25%;
+  font-weight: 750 849;
+  size-adjust: 79.62%;
+  ascent-override: 110.27%;
+  descent-override: 26.38%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-stretch: 50% 81.25%;
+  font-weight: 850 1000;
+  size-adjust: 83.79%;
+  ascent-override: 104.78%;
+  descent-override: 25.06%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src: local('Arial'), local('Liberation Sans'), local('Arimo');
+  font-stretch: 81.25% 93.75%;
+  font-weight: 100 549;
+  size-adjust: 86.96%;
+  ascent-override: 100.96%;
+  descent-override: 24.15%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-stretch: 81.25% 93.75%;
+  font-weight: 550 649;
+  size-adjust: 85.2%;
+  ascent-override: 103.05%;
+  descent-override: 24.65%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-stretch: 81.25% 93.75%;
+  font-weight: 650 1000;
+  size-adjust: 88.13%;
+  ascent-override: 99.62%;
+  descent-override: 23.83%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-stretch: 106.25% 118.75%;
+  font-weight: 100 749;
+  size-adjust: 111.52%;
+  ascent-override: 78.73%;
+  descent-override: 18.83%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-stretch: 106.25% 118.75%;
+  font-weight: 750 1000;
+  size-adjust: 115.69%;
+  ascent-override: 75.89%;
+  descent-override: 18.15%;
+  line-gap-override: 0%;
+  unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
+}
+
+@font-face {
+  font-family: 'Archivo Fallback';
+  src:
+    local('Arial Bold'), local('Arial-BoldMT'), local('Liberation Sans Bold'),
+    local('LiberationSans-Bold'), local('Arimo Bold'), local('Arimo-Bold');
+  font-stretch: 118.75% 200%;
+  font-weight: 100 1000;
+  size-adjust: 131.66%;
+  ascent-override: 66.69%;
+  descent-override: 15.95%;
   line-gap-override: 0%;
   unicode-range: U+0000-024F, U+1E00-1EFF, U+2000-206F, U+20A0-20CF, U+2100-214F;
 }

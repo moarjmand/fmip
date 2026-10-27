@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { BRAND_COLOURS } from '@/lib/brand-colours';
@@ -7,7 +7,7 @@ import { BRAND_COLOURS } from '@/lib/brand-colours';
  * The colour tokens (T-602, D-089) keep their promises.
  *
  * Every pair a page actually draws -- text of each role on each background,
- * text on the green, a field's edge and the focus ring on each background --
+ * text on saffron, a field's edge and the focus ring on each background --
  * meets WCAG 2 AA in both themes: 4.5:1 for text, 3:1 for a control's edge
  * and the focus indicator. The figures are computed here from the values in
  * tokens.css, not copied, and the figures written in its comments must match
@@ -19,6 +19,15 @@ import { BRAND_COLOURS } from '@/lib/brand-colours';
 const HERE = __dirname;
 const TOKENS = readFileSync(join(HERE, 'tokens.css'), 'utf8');
 const GLOBALS = readFileSync(join(HERE, 'globals.css'), 'utf8');
+
+/** Every source file under `dir` but the specs, which may name a mark to refuse it. */
+function sources(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return sources(path);
+    return /\.tsx?$/.test(entry.name) && !/\.spec\.tsx?$/.test(entry.name) ? [path] : [];
+  });
+}
 
 type Declaration = { value: string; comment: string | undefined };
 
@@ -49,14 +58,6 @@ const DARK_MORE_COPIES = [
   block(":root:not([data-theme='light']):not([data-contrast='standard'])"),
 ];
 
-// Editorial mode (D-198): the header and editorial pages, on paper whatever
-// the theme -- the light values, plain and with more contrast.
-const EDITORIAL = block("\n[data-mode='editorial']");
-const EDITORIAL_MORE = [
-  block(":root[data-contrast='more'] [data-mode='editorial']"),
-  block(":root:not([data-contrast='standard']) [data-mode='editorial']"),
-];
-
 function luminance(hex: string): number {
   const linear = [1, 3, 5]
     .map((at) => parseInt(hex.slice(at, at + 2), 16) / 255)
@@ -74,8 +75,9 @@ export function contrast(a: string, b: string): number {
 // The figures in the comments are written against these three, in order...
 const FIGURES_AGAINST = ['--token-canvas', '--token-surface', '--token-surface-raised'];
 // ...and every pair is also checked on the stage, a data page's ground (D-198),
-// which repeats one of them (see 'the stage' below).
-const BACKGROUNDS = [...FIGURES_AGAINST, '--token-stage'];
+// which repeats one of them (see 'the stage' below), and on the chosen row's
+// ground, a saffron tint every text role must still read on (T-1535).
+const BACKGROUNDS = [...FIGURES_AGAINST, '--token-stage', '--token-selected'];
 const TEXT = [
   '--token-text',
   '--token-text-muted',
@@ -91,6 +93,14 @@ const TEXT = [
 ];
 const NON_TEXT = ['--token-border-strong', '--token-focus'];
 const ON_ACCENT_BACKGROUNDS = ['--token-accent', '--token-accent-strong'];
+// Text on a fill of its own (T-1493): the Design System's bright saffron
+// button and the rating chips. The figure in each comment is against its fill.
+const ON_FILL: Record<string, string[]> = {
+  '--token-on-accent': ON_ACCENT_BACKGROUNDS,
+  '--token-on-brand': ['--token-brand'],
+  '--token-on-rating-low': ['--token-rating-low'],
+  '--token-on-rating-good': ['--token-rating-good'],
+};
 
 function value(theme: Map<string, Declaration>, name: string): string {
   const found = theme.get(name);
@@ -122,10 +132,19 @@ describe.each([
     }
   });
 
-  it('text on the green is AA, plain and pressed', () => {
+  it('text on saffron is AA, plain and pressed', () => {
     for (const background of ON_ACCENT_BACKGROUNDS) {
       expect(
         contrast(value(theme, '--token-on-accent'), value(theme, background)),
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(Object.entries(ON_FILL))('%s is AA text on its fill', (token, fills) => {
+    for (const fill of fills) {
+      expect(
+        contrast(value(theme, token), value(theme, fill)),
+        `${token} on ${fill}`,
       ).toBeGreaterThanOrEqual(4.5);
     }
   });
@@ -134,7 +153,7 @@ describe.each([
     let checked = 0;
     for (const [token, { comment }] of theme) {
       const written = [...(comment ?? '').matchAll(/\b\d+\.\d{2}\b/g)].map((m) => Number(m[0]));
-      const against = token === '--token-on-accent' ? ON_ACCENT_BACKGROUNDS : FIGURES_AGAINST;
+      const against = ON_FILL[token] ?? FIGURES_AGAINST;
       written.forEach((figure, index) => {
         const background = against[index] ?? '(none)';
         expect(figure, `${token} against ${background}`).toBe(
@@ -160,10 +179,19 @@ describe.each([
     }
   });
 
-  it('text on the green is AAA, plain and pressed', () => {
+  it('text on saffron is AAA, plain and pressed', () => {
     for (const background of ON_ACCENT_BACKGROUNDS) {
       expect(
         contrast(value(theme, '--token-on-accent'), value(theme, background)),
+      ).toBeGreaterThanOrEqual(7);
+    }
+  });
+
+  it.each(Object.entries(ON_FILL))('%s is AAA text on its fill', (token, fills) => {
+    for (const fill of fills) {
+      expect(
+        contrast(value(theme, token), value(theme, fill)),
+        `${token} on ${fill}`,
       ).toBeGreaterThanOrEqual(7);
     }
   });
@@ -264,34 +292,29 @@ describe('more contrast, as a whole (T-621)', () => {
 describe('the tokens themselves', () => {
   it('declare the same names in light and in both ways to dark', () => {
     const names = [...LIGHT.keys()].sort();
-    expect(names.length).toBe(20);
+    expect(names.length).toBe(32);
     expect([...DARK.keys()].sort()).toEqual(names);
     expect([...DARK_CHOSEN.keys()].sort()).toEqual(names);
   });
 
-  it('put a data page on the stage: Day is the sunk ground, Night the canvas (D-198)', () => {
-    expect(value(LIGHT, '--token-stage')).toBe('#f1f2ee');
-    expect(value(DARK, '--token-canvas')).toBe('#06080c');
-    for (const light of [LIGHT, LIGHT_MORE]) {
-      expect(value(light, '--token-stage')).toBe(value(light, '--token-surface-raised'));
-    }
-    for (const dark of [DARK, DARK_MORE]) {
-      expect(value(dark, '--token-stage')).toBe(value(dark, '--token-canvas'));
+  it('put a data page on the stage: the page ground in both themes (D-263)', () => {
+    expect(value(LIGHT, '--token-canvas')).toBe('#f2f3f1');
+    expect(value(DARK, '--token-canvas')).toBe('#0f1215');
+    for (const theme of [LIGHT, LIGHT_MORE, DARK, DARK_MORE]) {
+      expect(value(theme, '--token-stage')).toBe(value(theme, '--token-canvas'));
     }
   });
 
-  it('keep editorial mode on paper: the light values, whatever the theme (D-198)', () => {
-    expect(value(LIGHT, '--token-canvas')).toBe('#fafaf7');
-    const pairs = [[EDITORIAL, LIGHT], ...EDITORIAL_MORE.map((copy) => [copy, LIGHT_MORE])];
-    for (const [copy, of] of pairs) {
-      if (copy === undefined || of === undefined) throw new Error('missing block');
-      expect([...copy.keys()].sort()).toEqual([...of.keys()].sort());
-      for (const [name, declared] of of) expect(value(copy, name), name).toBe(declared.value);
-    }
-    // And the marked element paints its own ground and text with them.
-    const editorial = /\[data-mode='editorial'\] \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';
-    expect(editorial).toContain('background-color: var(--token-canvas);');
-    expect(editorial).toContain('color: var(--token-text);');
+  it('have no editorial paper left: every page follows the theme (D-198 retired, T-1621)', () => {
+    // The Day values on a marked element whatever the theme went with the
+    // last page that carried the mark, the news story (D-291).
+    expect(TOKENS).not.toContain("[data-mode='editorial']");
+    expect(GLOBALS).not.toContain("[data-mode='editorial']");
+    const marked = sources(join(__dirname, '..')).filter((file) =>
+      /data-mode=["']editorial/.test(readFileSync(file, 'utf8')),
+    );
+    expect(marked).toEqual([]);
+    // A data page stands on the stage.
     const data = /\[data-mode='data'\] \{([^}]*)\}/.exec(GLOBALS)?.[1] ?? '';
     expect(data).toContain('background-color: var(--token-stage);');
   });
@@ -310,11 +333,78 @@ describe('the tokens themselves', () => {
     }
   });
 
-  it('keep one green: D-089 #0b6b3a on light, lifted to #1ed38a on Night (D-198)', () => {
-    expect(value(LIGHT, '--token-accent')).toBe('#0b6b3a');
-    expect(value(DARK, '--token-accent')).toBe('#1ed38a');
-    // The mark is drawn in the light green in both themes.
-    expect(BRAND_COLOURS.accent).toBe('#0b6b3a');
+  it('keep saffron for the brand and turquoise for the model alone (D-263)', () => {
+    // Saffron itself on Night, the Design System's `saffron-text` on Day.
+    expect(value(DARK, '--token-accent')).toBe('#eba53c');
+    expect(value(LIGHT, '--token-accent')).toBe('#8a5300');
+    expect(value(DARK, '--token-model')).toBe('#3cc4be');
+    expect(value(LIGHT, '--token-model')).toBe('#0e7a75');
+    // No other role borrows the model's colour, in any theme (rule 6).
+    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE]) {
+      const model = value(theme, '--token-model');
+      for (const token of TEXT.filter((name) => name !== '--token-model')) {
+        expect(value(theme, token), token).not.toBe(model);
+      }
+    }
+    // D-198's green has left every block.
+    expect(TOKENS).not.toMatch(/#0b6b3a|#1ed38a/);
+  });
+
+  it('give buttons the bright saffron fill with ink text, in both themes (T-1493)', () => {
+    // The Design System's `saffron` and `on-saffron`: the same fill on Day
+    // and Night, unlike the accent, which Day darkens to read as text.
+    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE]) {
+      expect(value(theme, '--token-brand')).toBe('#eba53c');
+    }
+    expect(value(LIGHT, '--token-on-brand')).toBe('#1a1206');
+    expect(value(DARK, '--token-on-brand')).toBe('#1a1206');
+  });
+
+  it('put every logo on white and give a crest an edge on Night alone (T-1609, D-280)', () => {
+    // The logos are made for paper: the same white tile in every theme...
+    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE]) {
+      expect(value(theme, '--token-logo-tile')).toBe('#ffffff');
+    }
+    for (const [day, ground] of [
+      [LIGHT, '--token-surface'],
+      [LIGHT_MORE, '--token-surface'],
+    ] as const) {
+      // ...on Day the hairline and the halo are the surface itself, so nothing shows...
+      expect(value(day, '--token-logo-edge')).toBe(value(day, ground));
+      expect(value(day, '--token-crest-halo')).toBe(value(day, ground));
+    }
+    for (const night of [DARK, DARK_MORE]) {
+      // ...and on Night the tile stands out from every ground, its hairline is
+      // seen on the cards, and the halo is light enough to edge a navy crest.
+      for (const background of BACKGROUNDS) {
+        expect(
+          contrast(value(night, '--token-logo-tile'), value(night, background)),
+          background,
+        ).toBeGreaterThanOrEqual(7);
+        expect(
+          contrast(value(night, '--token-crest-halo'), value(night, background)),
+          background,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(
+        contrast(value(night, '--token-logo-edge'), value(night, '--token-surface')),
+      ).toBeGreaterThan(1.2);
+    }
+  });
+
+  it('draw the forecast bar in three lightnesses, home the model colour itself (T-1493)', () => {
+    // Home, draw and away differ in lightness, so the bar reads without hue;
+    // the three percentages are always written beside it.
+    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE]) {
+      const [home, draw, away] = [
+        value(theme, '--token-model'),
+        value(theme, '--token-prob-draw'),
+        value(theme, '--token-prob-away'),
+      ];
+      expect(contrast(home, draw), 'home and draw').toBeGreaterThanOrEqual(1.2);
+      expect(contrast(draw, away), 'draw and away').toBeGreaterThanOrEqual(1.2);
+      expect(contrast(home, away), 'home and away').toBeGreaterThanOrEqual(1.2);
+    }
   });
 
   it('are what every Tailwind colour class in globals.css reads', () => {

@@ -9,6 +9,7 @@ import { expect, test } from '@playwright/test';
 test.describe('Highlights page, no API', () => {
   test('the nav leads here, and an unreachable API is named', async ({ page }) => {
     await page.goto('/en/scores');
+    // A section of the header's own (D-281), no longer under More.
     const nav = page.getByTestId('primary-nav');
     await nav.getByRole('link', { name: 'Highlights' }).click();
     await expect(page).toHaveURL(/\/en\/highlights$/);

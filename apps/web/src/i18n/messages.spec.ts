@@ -224,7 +224,7 @@ describe('plurals (T-301)', () => {
         .pluralCategories,
     ].sort();
 
-  it('has ninety-eight plural keys, one of them ordinal, and knows which they are', () => {
+  it('has ninety plural keys, one of them ordinal, and knows which they are', () => {
     // T-1383: four added (a day's matches, the matches left out, the earlier
     // forecast versions, the members who have picked), one retired (the
     // model list's missing count, now each row's own sentence). T-1386: one
@@ -234,8 +234,23 @@ describe('plurals (T-301)', () => {
     // T-1431: one added (the competitions and teams the provider named that
     // our catalogue does not hold). T-1441: one added (a player's
     // appearances), two retired (the cards board's red and yellow counts,
-    // now the board's own figure).
-    expect(pluralKeys).toHaveLength(98);
+    // now the board's own figure). T-1495: three added (a day's matches, those
+    // a competition's card leaves out, a card's count), three retired (the
+    // key matches' table). T-1498: three retired with the Hybrid band and
+    // round (the matches played, the qualifying matches beside them, the
+    // matches more in the round).
+    // T-1516: two added (the upset card's day, the month's matches), one
+    // retired (the accuracy card's sample).
+    // T-1499: one added (the top scorer's goals).
+    // T-1519: seven retired with the old Predictions page (a day's matches,
+    // the matches left out, the earlier versions, the consensus list's two
+    // counts, a leaderboard entry and a provisional one).
+    // T-1540: one added (a league's matches in the model's month).
+    // T-1612: one added (the competitions a country or region holds).
+    // T-1614: three added (the Highlights page's clips, its competitions and
+    // the filter's competitions past the first chips).
+    // T-1624: one added (the matchday rail's live count).
+    expect(pluralKeys).toHaveLength(96);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

@@ -28,14 +28,40 @@ test.describe('Highlights page', () => {
       'href',
       `/en/match/${FINISHED_MATCH}`,
     );
+    // The way out names the destination's host; the publisher is named beside it (T-1614).
     const out = item.getByTestId('highlight-link');
     await expect(out).toHaveAttribute('href', 'https://example.com/highlights/e2e-0901');
     await expect(out).toHaveAttribute('rel', /noopener/);
-    await expect(out).toContainText('Example Publisher');
+    await expect(out).toHaveAttribute('data-link-out', 'example.com');
+    await expect(item.getByTestId('highlight-publisher')).toContainText('Example Publisher');
     // Offered everywhere: nothing to warn about.
     await expect(item.getByTestId('highlight-restricted')).toHaveCount(0);
-    // Link only (D-184): nothing is played here.
+    // Link only (D-184): nothing is played here, and the poster is drawn from
+    // our own crests and logos (or their lettered marks), never a video frame.
     await expect(page.locator('main iframe, main video')).toHaveCount(0);
+    await expect(item.getByTestId('highlight-play')).toBeVisible();
+    await expect(item.locator('[data-testid="entity-image"][data-kind="crest"]')).toHaveCount(2);
+    await expect(item.locator('img:not([src^="/api/media/"])')).toHaveCount(0);
+  });
+
+  test('features the newest clip as a poster, and the poster opens the clip', async ({ page }) => {
+    await page.goto('/en/highlights');
+    const featured = page.locator('[data-testid="highlight-item"][data-look="featured"]');
+    await expect(featured).toHaveCount(1);
+    // The whole poster is the clip's link; the competition and the match page are their own.
+    const teams = featured.getByTestId('highlight-teams');
+    await teams.scrollIntoViewIfNeeded();
+    const box = await teams.boundingBox();
+    expect(box).not.toBeNull();
+    const hit = await page.evaluate(
+      ({ x, y }) => document.elementFromPoint(x, y)?.closest('a')?.getAttribute('data-testid'),
+      { x: box!.x + box!.width / 2, y: box!.y + box!.height / 2 },
+    );
+    expect(hit).toBe('highlight-link');
+    await expect(featured.getByTestId('highlight-competition')).toHaveAttribute(
+      'href',
+      new RegExp(`/en/highlights\\?competition=${PREMIER_LEAGUE}`),
+    );
   });
 
   test('filters by competition and keeps a guest territory on every link', async ({ page }) => {
@@ -72,7 +98,9 @@ test.describe('Highlights page', () => {
     await expect(page.getByTestId('highlight-item')).toHaveCount(0);
   });
 
-  test('is reached from the header nav by keyboard', async ({ page }) => {
+  test('is reached from the header nav by keyboard, a section of its own (D-281)', async ({
+    page,
+  }) => {
     await page.goto('/en');
     await page.getByTestId('nav-highlights').focus();
     await page.keyboard.press('Enter');

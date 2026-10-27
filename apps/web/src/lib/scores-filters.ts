@@ -97,6 +97,35 @@ export function applyFilters(res: ScoresResponse, s: ScoresFilterSelection): Sco
   return { ...res, pinned, groups, total };
 }
 
+/** A match the reader can still pick: not started, and kick-off not yet reached (D-206). */
+export function isOpenForPick(
+  card: Pick<ScoreCard, 'status' | 'kickoff_at'>,
+  now: number,
+): boolean {
+  return card.status === 'scheduled' && Date.parse(card.kickoff_at) > now;
+}
+
+/**
+ * "Not picked yet" (T-1496): only the matches still open for a pick that the
+ * member has not picked, pinned and grouped as before, `total` recounted.
+ * Applied to every snapshot, so a match that kicks off leaves the view.
+ */
+export function onlyUnpicked(
+  res: ScoresResponse,
+  picked: ReadonlySet<string>,
+  now: number,
+): ScoresResponse {
+  const keep = (card: ScoreCard): boolean => isOpenForPick(card, now) && !picked.has(card.id);
+  const pinned = res.pinned.filter(keep);
+  const groups: ScoresGroup[] = [];
+  for (const group of res.groups) {
+    const fixtures = group.fixtures.filter(keep);
+    if (fixtures.length > 0) groups.push({ ...group, fixtures });
+  }
+  const total = pinned.length + groups.reduce((n, g) => n + g.fixtures.length, 0);
+  return { ...res, pinned, groups, total };
+}
+
 export interface FilterOption {
   value: string;
   label: string;

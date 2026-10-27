@@ -234,6 +234,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news dedupe 
       summary: string | null,
       publishedAt: string,
       via: string | null = null,
+      linked = true,
     ): Promise<string> {
       const src = await pool.query<{ id: string }>(
         `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language, via_source_id)
@@ -259,10 +260,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news dedupe 
         story.rows[0]!.id,
         article.rows[0]!.id,
       ]);
-      await pool.query(
-        `INSERT INTO article_entity (article_id, entity_type, entity_id) VALUES ($1, 'team', $2)`,
-        [article.rows[0]!.id, TEAM],
-      );
+      if (linked) {
+        await pool.query(
+          `INSERT INTO article_entity (article_id, entity_type, entity_id) VALUES ($1, 'team', $2)`,
+          [article.rows[0]!.id, TEAM],
+        );
+      }
       return story.rows[0]!.id;
     }
 
@@ -339,6 +342,29 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news dedupe 
       const listed = page.cards.map((c) => c.story_id);
       expect(listed).not.toContain(nfl);
       expect(listed).toContain(feed);
+    });
+
+    it('does not list a feed item about another sport that is filed to none of ours (T-1619)', async () => {
+      // As Yahoo Sports' soccer feed carried it on 2026-10-26: rugby union, no club of ours.
+      const now = new Date().toISOString();
+      const rugby = await stored(
+        `yahoo-rugby-${RUN}.test`,
+        `Ireland prop Furlong cited over alleged groin grab ${RUN}`,
+        "Ireland prop Tadhg Furlong is cited over an alleged groin grab in Leinster's United Rugby Championship win over Munster on Saturday.",
+        now,
+        null,
+        false,
+      );
+      // The same words filed to a club of ours stay: the club makes it football news.
+      const filed = await stored(
+        `yahoo-rugby-filed-${RUN}.test`,
+        `${TEAM_NAME} stadium to host a Six Nations match ${RUN}`,
+        null,
+        now,
+      );
+      const listed = (await reader.latest(NO_FILTERS, 'en', null, 50)).cards.map((c) => c.story_id);
+      expect(listed).not.toContain(rugby);
+      expect(listed).toContain(filed);
     });
   });
 });

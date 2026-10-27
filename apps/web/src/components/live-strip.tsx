@@ -1,122 +1,42 @@
-import type { ScoreCard, ScoresGroup } from '@fmip/contracts';
+import type { ScoreCard } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { EntityImage } from '@/components/entity-image';
 import { LiveStripAge } from '@/components/live-strip-age';
 import { MessageText } from '@/components/message-text';
 import { LtrNumeric, ScorePair } from '@/components/score';
+import { ScrollRow } from '@/components/scroll-row';
 import { formatNumber } from '@/i18n/format';
-import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { type Message, interpolate, message } from '@/i18n/messages';
-import { fetchScores } from '@/lib/api';
-import {
-  type ChipState,
-  type KeptAnswer,
-  chipState,
-  sharedAnswer,
-  stripBehindAt,
-  stripGroup,
-  stripIsBehind,
-} from '@/lib/live-strip';
-import { type StatusKey, dateIn } from '@/lib/scores';
+import type { Message } from '@/i18n/messages';
+import type { ChipState } from '@/lib/live-strip';
 
 /**
- * The live strip (T-1381, D-199): under the header on every page, today's
- * matches of the first competition that has one, as a row of score chips
- * that scrolls sideways. Each chip opens its match.
+ * The matchday rail's drawer (T-1624, D-292; the live strip of T-1381,
+ * D-199, which it replaces as a bar of its own): one league's matches today
+ * as a row of score chips that scrolls sideways, each opening its match,
+ * then a link to the league's page. `components/matchday-rail.tsx` builds
+ * one per league that plays today; the rail shows the chosen one.
  *
- * One request, without the session (the strip is the same for every reader
- * in a zone), shared between pages for a few seconds (`sharedAnswer`). When
- * the API cannot answer, or nothing is played today, there is no strip at
- * all: never an empty box that looks like a quiet day (rule 3). When the
- * answer may be behind, the strip says so (rule 4, `LiveStripAge`).
- *
- * The strip is on white in both themes and both modes, as the header is on
- * paper: `data-mode="editorial"` keeps the light values, `bg-surface` paints
- * the white.
+ * When the answer may be behind, the drawer says so (rule 4,
+ * `LiveStripAge`). On the surface of the theme, as the header is (D-267).
  */
-
-const KEPT = new Map<string, KeptAnswer<Awaited<ReturnType<typeof fetchScores>>>>();
-
-const STATUS_KEYS: readonly StatusKey[] = [
-  'status.live',
-  'status.behind',
-  'status.fullTime',
-  'status.afterExtraTime',
-  'status.penalties',
-  'status.postponed',
-  'status.suspended',
-  'status.cancelled',
-  'status.abandoned',
-  'status.awarded',
-];
-
-type StripProps = Parameters<typeof LiveStripView>[0];
-
-/**
- * The strip's data, or `null` for no strip: the API could not answer, or
- * nothing is played today. A plain function, not a component: it reads the
- * clock, once per request.
- */
-async function loadStrip(locale: string, timeZone: string): Promise<StripProps | null> {
-  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const today = dateIn(timeZone, new Date());
-  const answer = await sharedAnswer(KEPT, `${today}|${timeZone}|${lang}`, Date.now(), () =>
-    fetchScores(
-      new URLSearchParams({ from: today, to: today, tz: timeZone }).toString(),
-      undefined,
-    ),
-  ).catch(() => null);
-  if (answer === null || !answer.ok) return null;
-  const group = stripGroup(answer.data);
-  if (group === null) return null;
-
-  const now = Date.now();
-  const words = Object.fromEntries(STATUS_KEYS.map((key) => [key, message(lang, key)])) as Record<
-    StatusKey,
-    Message
-  >;
-  const label = message(lang, 'shell.strip.label');
-  return {
-    locale: lang,
-    group,
-    chips: group.fixtures.map((card) => ({
-      card,
-      state: chipState(card, lang, timeZone, now, words),
-    })),
-    label: {
-      ...label,
-      text: interpolate(label.text, {
-        competition: group.competition.short_name ?? group.competition.name,
-      }),
-    },
-    versus: message(lang, 'shell.strip.versus'),
-    note: message(lang, 'shell.strip.behind'),
-    behindAt: stripBehindAt(group.fixtures, answer.data.generated_at),
-    behind: stripIsBehind(group.fixtures, answer.data.generated_at, now),
-  };
-}
-
-export async function LiveStrip({ locale, timeZone }: { locale: string; timeZone: string }) {
-  const props = await loadStrip(locale, timeZone);
-  return props === null ? null : <LiveStripView {...props} />;
-}
-
-/** The strip drawn from its parts: what `live-strip.spec.tsx` renders. */
-export function LiveStripView({
+export function RailDrawer({
   locale,
-  group,
+  competition,
   chips,
   label,
+  open,
   versus,
   note,
   behindAt,
   behind,
 }: {
   locale: string;
-  group: ScoresGroup;
+  competition: string;
   chips: readonly { card: ScoreCard; state: ChipState }[];
   /** "Today · Pro League", resolved, with its marking. */
   label: Message;
+  /** "Open Pro League": the last link, to the league's page. */
+  open: Message;
   /** What stands between two names before a score exists: "v", "–" in Persian. */
   versus: Message;
   note: Message;
@@ -127,9 +47,8 @@ export function LiveStripView({
   return (
     <nav
       aria-labelledby={labelId}
-      data-mode="editorial"
       data-testid="live-strip"
-      data-competition={group.competition.id}
+      data-competition={competition}
       className="border-b border-default bg-surface"
     >
       <div className="page-frame flex items-center gap-3 py-2">
@@ -141,13 +60,25 @@ export function LiveStripView({
         >
           <MessageText message={label} />
         </span>
-        <ul className="flex min-w-0 flex-1 gap-2 overflow-x-auto" data-testid="live-strip-chips">
+        <ScrollRow className="flex-1" listClassName="flex gap-2" testId="live-strip-chips">
           {chips.map(({ card, state }) => (
             <li key={card.id} className="shrink-0">
               <ScoreChip locale={locale} card={card} state={state} versus={versus} />
             </li>
           ))}
-        </ul>
+          <li className="shrink-0">
+            <Link
+              href={`/${locale}/competition/${competition}`}
+              className="flex h-11 items-center gap-1 px-2 text-sm font-bold whitespace-nowrap text-accent hover:underline"
+              data-testid="rail-open"
+            >
+              <MessageText message={open} />
+              <span aria-hidden="true" className="inline-block rtl:-scale-x-100">
+                →
+              </span>
+            </Link>
+          </li>
+        </ScrollRow>
         <LiveStripAge behindAt={behindAt} initiallyBehind={behind} note={note} />
       </div>
     </nav>

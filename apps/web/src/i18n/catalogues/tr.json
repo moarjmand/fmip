@@ -119,16 +119,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "shell.nav.today": {
-    "source": "Today",
-    "text": "",
-    "status": "untranslated"
-  },
-  "shell.nav.analysis": {
-    "source": "Analysis",
-    "text": "",
-    "status": "untranslated"
-  },
   "shell.nav.news": {
     "source": "News",
     "text": "",
@@ -139,23 +129,68 @@
     "text": "",
     "status": "untranslated"
   },
-  "shell.tab.results": {
-    "source": "Scores",
-    "text": "",
-    "status": "untranslated"
-  },
-  "shell.tab.predictions": {
-    "source": "Predictions",
-    "text": "",
-    "status": "untranslated"
-  },
   "shell.tab.news": {
     "source": "News",
     "text": "",
     "status": "untranslated"
   },
-  "shell.tab.me": {
-    "source": "Me",
+  "shell.nav.matches": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.nav.competitions": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.nav.model": {
+    "source": "The model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.nav.more": {
+    "source": "More",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.tab.matches": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.tab.predict": {
+    "source": "Predict",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.tab.leagues": {
+    "source": "Leagues",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.tab.you": {
+    "source": "You",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.search.placeholder": {
+    "source": "Teams, players, competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.footer.nav": {
+    "source": "Site links",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.footer.football": {
+    "source": "Football",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.footer.tagline": {
+    "source": "Live football, a statistical model, the founder’s analysis and members’ predictions: side by side, never blended.",
     "text": "",
     "status": "untranslated"
   },
@@ -171,6 +206,24 @@
   },
   "shell.strip.behind": {
     "source": "May be behind",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.rail.live": {
+    "source": {
+      "one": "{count} live",
+      "other": "{count} live"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "shell.rail.myTeams": {
+    "source": "My teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.rail.open": {
+    "source": "Open {competition}",
     "text": "",
     "status": "untranslated"
   },
@@ -190,7 +243,7 @@
     "status": "untranslated"
   },
   "home.firstVisit.link": {
-    "source": "What FMIP is, and how a rating is earned",
+    "source": "What Stadiomind is, and how a rating is earned",
     "text": "",
     "status": "untranslated"
   },
@@ -249,6 +302,204 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.live.title": {
+    "source": "Live now",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.live.updated": {
+    "source": "updated {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.live.all": {
+    "source": "All live matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.today": {
+    "source": "Today’s big one",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.tomorrow": {
+    "source": "Tomorrow’s big one",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.later": {
+    "source": "The next big one",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.model": {
+    "source": "What the numbers expect",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.xg": {
+    "source": "Expected goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.scorelines": {
+    "source": "Likeliest scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.factors": {
+    "source": "What moved it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.favours": {
+    "source": "towards {team}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.receipt": {
+    "source": "Version {version} · {kind} · fitted on {matches} matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.hero.nextVersion": {
+    "source": "A new version follows when line-ups are confirmed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.today.title": {
+    "source": "Matches by competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.today.titleOn": {
+    "source": "Matches · {day}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.today.all": {
+    "source": {
+      "one": "{count} match",
+      "other": "All {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.today.more": {
+    "source": {
+      "one": "{count} more match",
+      "other": "{count} more matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.today.count": {
+    "source": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.modelTag": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.title": {
+    "source": "Forecast against reality",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.gave": {
+    "source": "The model gave {team} {pct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.gaveDraw": {
+    "source": "The model gave the draw {pct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.among": {
+    "source": {
+      "one": "The only match of {count} finished today in a fully covered competition.",
+      "other": "The least likely result of {count} matches finished today in fully covered competitions."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.upset.version": {
+    "source": "version {version}, {kind}, computed {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.link": {
+    "source": "What the model missed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.noFinished": {
+    "source": "No match in a fully covered competition has finished today yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.noForecast": {
+    "source": "None of today’s finished matches had a forecast made on complete data.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.upset.unreachable": {
+    "source": "The model’s biggest miss today could not be loaded.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.table.caption": {
+    "source": "{competition}: the top six",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.title": {
+    "source": "How it is doing · {month}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.favourite": {
+    "source": {
+      "one": "favourite won, {count} match",
+      "other": "favourite won, {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.month.better": {
+    "source": "better than a blind three-way guess (RPS {rps} against {uniform})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.worse": {
+    "source": "worse than a blind three-way guess (RPS {rps} against {uniform})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.limited": {
+    "source": "Limited: a league with fewer than {minimum} matches is too few to call.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.month.leagueMatches": {
+    "source": {
+      "one": "{count} match",
+      "other": "{count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "home.month.link": {
+    "source": "Calibration report",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.lead.coverage": {
     "source": "Scores coverage:",
     "text": "",
@@ -259,93 +510,9 @@
     "text": "",
     "status": "untranslated"
   },
-  "home.lead.how": {
-    "source": "How the model works",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.three.title": {
-    "source": "Three forecasts, kept apart",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.title": {
-    "source": "Today’s key matches",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.titleOn": {
-    "source": "Key matches · {day}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.model": {
-    "source": "Model",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.intro": {
-    "source": "Every competition, grouped in the site’s order of competitions.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.introMember": {
-    "source": "The teams you follow come first.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.kickoff": {
-    "source": "KO",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.match": {
-    "source": "Match",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.home": {
-    "source": "Home",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.away": {
-    "source": "Away",
-    "text": "",
-    "status": "untranslated"
-  },
   "home.key.yours": {
     "source": "Your teams",
     "text": "",
-    "status": "untranslated"
-  },
-  "home.key.noForecast": {
-    "source": "No model forecast",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.key.more": {
-    "source": {
-      "one": "{count} more match on the scores page",
-      "other": "{count} more matches on the scores page"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "home.key.blankNote": {
-    "source": {
-      "one": "{count} match has no model forecast yet, so its cells are blank.",
-      "other": "{count} matches have no model forecast yet, so their cells are blank."
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "home.key.all": {
-    "source": {
-      "one": "All {count} competition on the scores page",
-      "other": "All {count} competitions on the scores page"
-    },
-    "forms": {},
     "status": "untranslated"
   },
   "home.key.empty": {
@@ -355,16 +522,6 @@
   },
   "home.key.unreachable": {
     "source": "The day’s matches could not be loaded.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.table.title": {
-    "source": "{competition} · top five",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.table.goalDifference": {
-    "source": "Goal difference",
     "text": "",
     "status": "untranslated"
   },
@@ -383,34 +540,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "home.accuracy.title": {
-    "source": "Model accuracy · {month}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.accuracy.titleWeek": {
-    "source": "Model accuracy · week of {date}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.accuracy.rps": {
-    "source": "ranked probability score · lower is better",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.accuracy.sample": {
-    "source": {
-      "one": "Sample: {count} match",
-      "other": "Sample: {count} matches"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "home.accuracy.baseline": {
-    "source": "· a uniform guess scores {rps}",
-    "text": "",
-    "status": "untranslated"
-  },
   "home.accuracy.versions": {
     "source": "Model versions in this sample:",
     "text": "",
@@ -418,11 +547,6 @@
   },
   "home.accuracy.updated": {
     "source": "updated {date}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.accuracy.link": {
-    "source": "How accurate is our model?",
     "text": "",
     "status": "untranslated"
   },
@@ -521,23 +645,18 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.news.all": {
+    "source": "All news",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.welcome.label": {
-    "source": "New to FMIP",
+    "source": "New to Stadiomind",
     "text": "",
     "status": "untranslated"
   },
   "home.table.team": {
     "source": "Team",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.table.played": {
-    "source": "Played",
-    "text": "",
-    "status": "untranslated"
-  },
-  "home.table.points": {
-    "source": "Points",
     "text": "",
     "status": "untranslated"
   },
@@ -713,7 +832,7 @@
     "status": "untranslated"
   },
   "about.meta.title": {
-    "source": "What FMIP is",
+    "source": "What Stadiomind is",
     "text": "",
     "status": "untranslated"
   },
@@ -820,13 +939,298 @@
     "text": "",
     "status": "untranslated"
   },
+  "about.how.title": {
+    "source": "How Stadiomind works",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.intro": {
+    "source": "From licensed data to your rating, one match at a time. The three forecasts travel in lanes of their own and never meet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.caption": {
+    "source": "The steps in order. Each coloured lane is one kind of prediction, kept apart from the moment it is made to the record it builds.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.source.name": {
+    "source": "Licensed match data",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.source.body": {
+    "source": "Fixtures, scores, line-ups and statistics, from a licensed football data service.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.name": {
+    "source": "One record for every match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.body": {
+    "source": "Each match, club, player and competition has one identity of our own, and every page hangs off it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.live": {
+    "source": "Live scores",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.centre": {
+    "source": "Match centre",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.competitions": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.clubs": {
+    "source": "Clubs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.players": {
+    "source": "Players",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.record.note": {
+    "source": "Missing data is labelled, never invented, and every live number shows when it last changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.lanes.title": {
+    "source": "Three forecasts, side by side",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.model.name": {
+    "source": "The model’s forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.model.body": {
+    "source": "Home win, draw and away win probabilities, versioned and time-stamped. A version is never edited; a new one is added.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.founder.name": {
+    "source": "The founder’s analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.founder.body": {
+    "source": "One person’s call on selected matches, written and signed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.community.name": {
+    "source": "The community’s picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.community.body": {
+    "source": "Members’ own predictions, with how confident they are and, if they like, the exact score.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.apart": {
+    "source": "Never blended into one number.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.kickoff.name": {
+    "source": "Kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.kickoff.body": {
+    "source": "Picks lock. Only what was published before kick-off is judged.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.settle.name": {
+    "source": "Full time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.settle.body": {
+    "source": "The result settles every pick and scores every forecast, each on its own record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcomes.title": {
+    "source": "What each one builds",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.model.name": {
+    "source": "The model’s public track record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.model.body": {
+    "source": "Every forecast published before kick-off, scored in the open.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.founder.name": {
+    "source": "The founder’s calls, checked",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.founder.body": {
+    "source": "Right or wrong, shown beside the result on the match’s page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.community.name": {
+    "source": "Each member’s Performance Rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcome.community.body": {
+    "source": "Earned most by being right when it was hard to be.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.how.outcomes.note": {
+    "source": "A rating can always be recomputed from the stored picks and results alone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.title": {
+    "source": "Find your way",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.intro": {
+    "source": "The main sections, and what you will find in each.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.football": {
+    "source": "Follow the football",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.forecasts": {
+    "source": "Forecasts and predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.matches.name": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.matches.body": {
+    "source": "Every match of the day in your time zone, live as it happens.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.centre.name": {
+    "source": "Match centre",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.centre.body": {
+    "source": "Open any match for its timeline, line-ups, statistics and forecasts.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.competitions.name": {
+    "source": "Competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.competitions.body": {
+    "source": "Every league and cup we follow, with tables, fixtures, clubs and players.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.news.name": {
+    "source": "News",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.news.body": {
+    "source": "The latest football stories, each with its source named.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.highlights.name": {
+    "source": "Highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.highlights.body": {
+    "source": "Official highlights of finished matches, opening on the publisher’s own site.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.watch.name": {
+    "source": "Watch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.watch.body": {
+    "source": "Which official service shows each match in your country.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.model.name": {
+    "source": "The model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.model.body": {
+    "source": "How the statistical model’s forecasts have scored against the results.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.analysis.name": {
+    "source": "The founder’s analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.analysis.body": {
+    "source": "Signed calls on selected matches, beside the day’s fixtures.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.predictions.name": {
+    "source": "Predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.predictions.body": {
+    "source": "Pick the matches still open before kick-off, with how confident you are.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.leaderboard.name": {
+    "source": "Leaderboard",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.map.leaderboard.body": {
+    "source": "Members ranked by Performance Rating, with the formula version in force.",
+    "text": "",
+    "status": "untranslated"
+  },
   "welcome.meta.title": {
     "source": "Welcome",
     "text": "",
     "status": "untranslated"
   },
   "rulesPage.meta.description": {
-    "source": "The rules every member accepts: what FMIP is for, what is not allowed, and how leaving works.",
+    "source": "The rules every member accepts: what Stadiomind is for, what is not allowed, and how leaving works.",
     "text": "",
     "status": "untranslated"
   },
@@ -836,7 +1240,7 @@
     "status": "untranslated"
   },
   "offline.body": {
-    "source": "FMIP needs a connection for live scores, matches and predictions. Nothing cached is shown as current: when you are back online, the pages will load fresh.",
+    "source": "Stadiomind needs a connection for live scores, matches and predictions. Nothing cached is shown as current: when you are back online, the pages will load fresh.",
     "text": "",
     "status": "untranslated"
   },
@@ -1256,7 +1660,7 @@
     "status": "untranslated"
   },
   "auth.verify.back": {
-    "source": "Back to FMIP",
+    "source": "Back to Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -1481,7 +1885,7 @@
     "status": "untranslated"
   },
   "profile.inviteTitle": {
-    "source": "Join me on FMIP",
+    "source": "Join me on Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -1886,7 +2290,7 @@
     "note": "The language's own name: a fact, not a translation of the English."
   },
   "languageHold.notice": {
-    "source": "this language is held back for now, so FMIP is shown in English. Your choice is kept, and applies again when the language returns.",
+    "source": "this language is held back for now, so Stadiomind is shown in English. Your choice is kept, and applies again when the language returns.",
     "text": "",
     "status": "untranslated"
   },
@@ -2897,6 +3301,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "newsPage.top": {
+    "source": "Top stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.more": {
+    "source": "More stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.rail.trending": {
+    "source": "All trending stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "newsPage.rail.debate": {
+    "source": "All debates",
+    "text": "",
+    "status": "untranslated"
+  },
   "storyPage.title": {
     "source": "Story",
     "text": "",
@@ -3562,7 +3986,7 @@
     "status": "untranslated"
   },
   "story.sources.forecast": {
-    "source": "Forecast: FMIP’s statistical model, stored version {version}",
+    "source": "Forecast: Stadiomind’s statistical model, stored version {version}",
     "text": "",
     "status": "untranslated"
   },
@@ -3899,7 +4323,7 @@
     "status": "untranslated"
   },
   "firstRun.title": {
-    "source": "Make FMIP yours",
+    "source": "Make Stadiomind yours",
     "text": "",
     "status": "untranslated"
   },
@@ -3939,12 +4363,12 @@
     "status": "untranslated"
   },
   "firstRun.language.question": {
-    "source": "Which language should FMIP use?",
+    "source": "Which language should Stadiomind use?",
     "text": "",
     "status": "untranslated"
   },
   "firstRun.language.onlyOne": {
-    "source": "FMIP speaks English for now. Other languages are offered here once their translation is finished, and not before.",
+    "source": "Stadiomind speaks English for now. Other languages are offered here once their translation is finished, and not before.",
     "text": "",
     "status": "untranslated"
   },
@@ -4034,7 +4458,7 @@
     "status": "untranslated"
   },
   "firstRun.offer.text": {
-    "source": "Make FMIP yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
+    "source": "Make Stadiomind yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
     "text": "",
     "status": "untranslated"
   },
@@ -6273,7 +6697,127 @@
     "status": "untranslated"
   },
   "scores.filter.favourites": {
-    "source": "Favourites only",
+    "source": "My teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.title": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.unpicked": {
+    "source": "Not picked yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.label": {
+    "source": "Show",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.modelLegend": {
+    "source": "Model chances: home · draw · away",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.competitionsNav": {
+    "source": "Competitions on this day",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.unpickedEmpty": {
+    "source": "Nothing left to pick on this day: every match still open has your pick, or none is open.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.liveEmpty": {
+    "source": "No match on this day is in play.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.pick": {
+    "source": "Pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.picked": {
+    "source": "Picked",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.view": {
+    "source": "View",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.pickLabel": {
+    "source": "Pick: {home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.pickedLabel": {
+    "source": "Your pick is in: {home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.viewLabel": {
+    "source": "Preview: {home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.modelNotLoaded": {
+    "source": "Not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.row.communitySealed": {
+    "source": "Community predictions: shown once you pick, or at kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.label": {
+    "source": "Match preview",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.versus": {
+    "source": "v",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.yourPick": {
+    "source": "Your pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.model": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.modelNote": {
+    "source": "shown beside your pick, never mixed in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.full": {
+    "source": "Full match page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.close": {
+    "source": "Close the preview",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.preview.none": {
+    "source": "Choose Pick on a match to see it here with the pick form.",
     "text": "",
     "status": "untranslated"
   },
@@ -7557,32 +8101,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.community.listTitle": {
-    "source": "Community consensus",
-    "text": "",
-    "status": "untranslated"
-  },
-  "matchCentre.community.listNone": {
-    "source": {
-      "one": "No match here has {count} prediction yet, so there is no consensus to show.",
-      "other": "No match here has {count} predictions yet, so there is no consensus to show."
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "matchCentre.community.listLine": {
-    "source": "{home} {homePct}, draw {drawPct}, {away} {awayPct}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "matchCentre.community.listHidden": {
-    "source": {
-      "one": "{count} member has picked. Make your pick to see how members split.",
-      "other": "{count} members have picked. Make your pick to see how they split."
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
   "matchCentre.home": {
     "source": "Home",
     "text": "",
@@ -7919,13 +8437,48 @@
     "text": "",
     "status": "untranslated"
   },
-  "modelAccuracy.recent.intro": {
-    "source": "Every forecast made before kick-off is scored once the match is over, with the ranked probability score (RPS): 0 is perfect, lower is better. “RPS if guessing” is what one third for each outcome would have scored. Every month is published, good or bad.",
+  "modelAccuracy.kpi.guess": {
+    "source": "If guessing: {value}",
     "text": "",
     "status": "untranslated"
   },
-  "modelAccuracy.recent.full": {
-    "source": "Full accuracy report",
+  "modelAccuracy.kpi.lower": {
+    "source": "Lower is better",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.matchesMeaning": {
+    "source": "Each match counted once, by its last forecast before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.correctMeaning": {
+    "source": "How often the outcome it rated most likely happened.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.rpsMeaning": {
+    "source": "How far the probabilities were from the result; 0 is perfect.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.brierMeaning": {
+    "source": "The squared distance between the probabilities and the result.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.kpi.logLossMeaning": {
+    "source": "How surprised the model was by the results.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.competition.months": {
+    "source": "Month by month",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.competition.weeks": {
+    "source": "Week by week",
     "text": "",
     "status": "untranslated"
   },
@@ -7966,6 +8519,26 @@
   },
   "forecast.factor.attackVsDefence": {
     "source": "Attack against defence",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.teamStrength": {
+    "source": "net strength (attack minus defence) from recent results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.teamStrengthElo": {
+    "source": "net strength (attack minus defence) from recent results and the Elo prior",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.homeAdvantage": {
+    "source": "league-wide home advantage learned from the training window",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.factorNote.attackVsDefence": {
+    "source": "how the sides' attacks match up against the opposing defences",
     "text": "",
     "status": "untranslated"
   },
@@ -8109,94 +8682,6 @@
   },
   "forecast.listSeparator": {
     "source": ", ",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.title": {
-    "source": "Model forecasts",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.intro": {
-    "source": "The statistical model. Not the founder’s view, and not the community’s.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.more": {
-    "source": "Expected goals, likeliest scorelines and versions",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.xg": {
-    "source": "Expected goals",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.xgNone": {
-    "source": "This version has no expected goals.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.xgNote": {
-    "source": "The model’s expected goals before kick-off, not live xG.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.scorelines": {
-    "source": "Likeliest scorelines",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.scorelinesNone": {
-    "source": "This version has no scorelines.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.history": {
-    "source": "Forecast version history",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.version": {
-    "source": "Version",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.computed": {
-    "source": "Computed",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.status": {
-    "source": "Status",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.current": {
-    "source": "Current",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.superseded": {
-    "source": "Superseded · kept",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.historyNote": {
-    "source": "Each version stores its inputs, model version and computation time; a new forecast is a new row, never an edit.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.list.historyElsewhere": {
-    "source": {
-      "one": "{count} earlier version is kept on the match page.",
-      "other": "{count} earlier versions are kept on the match page."
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "forecast.list.matchPage": {
-    "source": "Full forecast on the match page",
     "text": "",
     "status": "untranslated"
   },
@@ -8589,7 +9074,7 @@
     "status": "untranslated"
   },
   "leaderboard.language.note": {
-    "source": "A member's language is the one they chose for FMIP in Settings. It is not public, so this board shows only members whose prediction history you may see.",
+    "source": "A member's language is the one they chose for Stadiomind in Settings. It is not public, so this board shows only members whose prediction history you may see.",
     "text": "",
     "status": "untranslated"
   },
@@ -8786,94 +9271,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.page.title": {
-    "source": "Predictions · FMIP",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.description": {
-    "source": "Model forecasts, the founder’s analysis, community consensus and the prediction leaderboard — each one separate, each one attributed.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.intro": {
-    "source": "Three separate answers to the same question, and the leaderboard of who gets them right. The site never averages them or presents one as another.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.allScores": {
-    "source": "All scores",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.kicker": {
-    "source": "Three products, side by side",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.jump": {
-    "source": "The three products on this page",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.zone": {
-    "source": "Times: {zoneName}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.emptyDays": {
-    "source": "No matches in these {count} days.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.omitted": {
-    "source": {
-      "one": "{count} more match in these days is not listed here. Choose a competition to see it.",
-      "other": "{count} more matches in these days are not listed here. Choose a competition to see them."
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
   "predictions.page.pickNote": {
     "source": "“Make your pick” records a community pick only; it never changes the model’s numbers. The community split stays hidden until you pick.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.filter.label": {
-    "source": "Filter by competition",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.filter.title": {
-    "source": "Competition",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.filter.all": {
-    "source": "All competitions",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.day.today": {
-    "source": "Today",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.day.tomorrow": {
-    "source": "Tomorrow",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.day.matches": {
-    "source": {
-      "one": "{count} match",
-      "other": "{count} matches"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "predictions.page.unreachable": {
-    "source": "The scores service is unreachable right now, so the matches to predict on cannot be listed.",
     "text": "",
     "status": "untranslated"
   },
@@ -8887,49 +9286,13 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.page.leaderboardTitle": {
-    "source": "Prediction leaderboard",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.leaderboardNote": {
-    "source": "Ranked by Performance Rating, which is earned from settled predictions — never bought with activity.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.leaderboardUnreachable": {
-    "source": "The leaderboard is unreachable right now.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.leaderboardEmpty": {
-    "source": "Nobody has enough settled predictions for a rating yet.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.entry": {
-    "source": {
-      "one": "· {rating} from {count} settled",
-      "other": "· {rating} from {count} settled"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "predictions.page.entryProvisional": {
-    "source": {
-      "one": "· {rating} from {count} settled, provisional",
-      "other": "· {rating} from {count} settled, provisional"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
   "predictions.page.fullLeaderboard": {
     "source": "The full leaderboard",
     "text": "",
     "status": "untranslated"
   },
   "leaderboardPage.title": {
-    "source": "Leaderboard · FMIP",
+    "source": "Leaderboard · Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -8940,6 +9303,16 @@
   },
   "leaderboardPage.board": {
     "source": "Board",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.picksLead": {
+    "source": "A place on this board is earned by predicting. Make your picks on the matches still to be played.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.picksCta": {
+    "source": "Make your picks",
     "text": "",
     "status": "untranslated"
   },
@@ -9147,12 +9520,12 @@
     "status": "untranslated"
   },
   "leaderboardPage.among.friendsLanguage": {
-    "source": "among you and your friends who use FMIP in {language}",
+    "source": "among you and your friends who use Stadiomind in {language}",
     "text": "",
     "status": "untranslated"
   },
   "leaderboardPage.among.membersLanguage": {
-    "source": "among members who use FMIP in {language}",
+    "source": "among members who use Stadiomind in {language}",
     "text": "",
     "status": "untranslated"
   },
@@ -9204,8 +9577,8 @@
   },
   "leaderboardPage.empty.friendsLanguage": {
     "source": {
-      "one": "Neither you nor any of your friends who uses FMIP in {language} has {count} settled prediction{where}{when} yet.",
-      "other": "Neither you nor any of your friends who uses FMIP in {language} has {count} settled predictions{where}{when} yet."
+      "one": "Neither you nor any of your friends who uses Stadiomind in {language} has {count} settled prediction{where}{when} yet.",
+      "other": "Neither you nor any of your friends who uses Stadiomind in {language} has {count} settled predictions{where}{when} yet."
     },
     "forms": {},
     "status": "untranslated"
@@ -9220,8 +9593,8 @@
   },
   "leaderboardPage.empty.membersLanguage": {
     "source": {
-      "one": "No member who uses FMIP in {language} has {count} settled prediction{where}{when} yet.",
-      "other": "No member who uses FMIP in {language} has {count} settled predictions{where}{when} yet."
+      "one": "No member who uses Stadiomind in {language} has {count} settled prediction{where}{when} yet.",
+      "other": "No member who uses Stadiomind in {language} has {count} settled predictions{where}{when} yet."
     },
     "forms": {},
     "status": "untranslated"
@@ -9416,7 +9789,7 @@
     "status": "untranslated"
   },
   "analysis.desk.title": {
-    "source": "Founder's analysis · FMIP",
+    "source": "Founder's analysis · Stadiomind",
     "text": "",
     "status": "untranslated"
   },
@@ -9916,26 +10289,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.col.goalsFor": {
-    "source": "GF",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.col.goalsForTitle": {
-    "source": "Goals for",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.col.goalsAgainst": {
-    "source": "GA",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.col.goalsAgainstTitle": {
-    "source": "Goals against",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.col.goalDifference": {
     "source": "GD",
     "text": "",
@@ -10186,11 +10539,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.seasonLabel": {
-    "source": "Season {season}",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.sections": {
     "source": "Sections",
     "text": "",
@@ -10231,38 +10579,172 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.tab.matches": {
+    "source": "Matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tab.model": {
+    "source": "Model in this league",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tab.modelShort": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tab.news": {
+    "source": "News",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.back": {
+    "source": "Back to all competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.seasonMenu": {
+    "source": "Season {season}: choose another season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tableCaption": {
+    "source": "{name} table",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.formLatestFirst": {
+    "source": "Form: the last five results, most recent first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goals": {
+    "source": "Goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.col.goalsTitle": {
+    "source": "Goals scored and conceded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.title": {
+    "source": "Next matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.modelHead": {
+    "source": "model %",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.none": {
+    "source": "Nothing is left to play this season.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.noForecast": {
+    "source": "No forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.forecastUnreachable": {
+    "source": "Forecast not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.forecastLabel": {
+    "source": "The model: home win {home}%, draw {draw}%, away win {away}%",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.receipt": {
+    "source": "The model’s percentages, home · draw · away: its latest forecast before kick-off ({versions}); every version and when it was computed are on the match page. {zone}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.day.results": {
+    "source": "Results · {day}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.matches.modelFirst": {
+    "source": "The model’s percentages are shown for the next {number} matches; later ones are on each match page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.tag": {
+    "source": "MODEL",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.heading": {
+    "source": "The model in this league",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.title": {
+    "source": "In this league · {month}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.favouriteWon": {
+    "source": "favourite won",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.rpsBlind": {
+    "source": "RPS ({rps} guessing)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.matches": {
+    "source": "matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.limited": {
+    "source": "Limited: fewer than {minimum} matches is too few to judge the model in one league.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.notSupplied": {
+    "source": "No forecast the model made here before kick-off has been scored yet, so there is nothing to judge it by.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.notSuppliedSeason": {
+    "source": "No forecast the model made before kick-off in this season has been scored, so there is nothing to judge it by here.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.more": {
+    "source": "The model month by month",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.record": {
+    "source": "The model’s full record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.months": {
+    "source": "Month by month",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.model.only": {
+    "source": "The statistical model’s published forecasts only: the founder’s analysis and the community’s picks are not counted.",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.facts.clubs": {
     "source": {
       "one": "{count} club",
       "other": "{count} clubs"
     },
     "forms": {},
-    "status": "untranslated"
-  },
-  "competitionPage.facts.played": {
-    "source": {
-      "one": "{count} match played",
-      "other": "{count} matches played"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "competitionPage.facts.qualifying": {
-    "source": {
-      "one": "{count} in qualifying",
-      "other": "{count} in qualifying"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "competitionPage.facts.nextRound": {
-    "source": "next: {round}, {day}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.facts.next": {
-    "source": "next match: {day}",
-    "text": "",
     "status": "untranslated"
   },
   "competitionPage.follow.start": {
@@ -10290,86 +10772,18 @@
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.matchweek.none": {
-    "source": "Matches",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.next": {
-    "source": "Next matches",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.latest": {
-    "source": "Latest matches",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.seasonOver": {
-    "source": "Nothing is left to play this season; these are its last matches.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.note": {
-    "source": "Model probabilities: home · draw · away. {zone}.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.matchweek.more": {
-    "source": {
-      "one": "{count} more match in this round",
-      "other": "{count} more matches in this round"
-    },
-    "forms": {},
-    "status": "untranslated"
-  },
-  "competitionPage.tableSummary": {
-    "source": "Table · summary",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.fullTable": {
     "source": "Full table",
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.formOrder": {
-    "source": "Form: the last five results, oldest to newest.",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.noTable": {
-    "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Fixtures and Results.",
+    "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.projection.head": {
-    "source": "Season projection · coming later",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.projection.title": {
-    "source": "Title",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.projection.topFour": {
-    "source": "Top 4",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.projection.relegation": {
-    "source": "Relegation",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.projection.note": {
-    "source": "The model’s title, top-four and relegation chances will fill the dashed columns once the season simulation ships. Until then they stay empty, never estimated.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.allPlayers": {
-    "source": "All scorers and boards",
+  "competitionPage.noTableFriendly": {
+    "source": "Friendlies are single matches, not a league or a cup, so there is no table. The matches are under Matches.",
     "text": "",
     "status": "untranslated"
   },
@@ -10498,11 +10912,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "teamPage.competitions": {
-    "source": "Competitions",
-    "text": "",
-    "status": "untranslated"
-  },
   "teamPage.noCompetition": {
     "source": "No current competition on record.",
     "text": "",
@@ -10521,6 +10930,109 @@
   "teamPage.splits": {
     "source": "Home and away",
     "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.recentResults": {
+    "source": "Recent results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.comingUp": {
+    "source": "Coming up",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.soFar": {
+    "source": "{competition} so far",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.record.caption": {
+    "source": "Home and away record of {name} in {competition}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.record.betterAway": {
+    "source": "Better away ({away} pts from {awayPlayed}) than at home ({home} pts from {homePlayed}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.record.betterHome": {
+    "source": "Better at home ({home} pts from {homePlayed}) than away ({away} pts from {awayPlayed}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.record.level": {
+    "source": "As good away ({away} pts from {awayPlayed}) as at home ({home} pts from {homePlayed}).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer": {
+    "source": "Top scorer · {competition}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer.title": {
+    "source": "Top scorer",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer.none": {
+    "source": "No goal for the club is recorded in {competition} yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer.notSupplied": {
+    "source": "This season’s goals are not on record yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.aroundThem": {
+    "source": "Around them",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.places": {
+    "source": "{competition} places {from} to {to}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.standing.points": {
+    "source": "{points} pts from {played}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.versus": {
+    "source": "v {opponent}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.at": {
+    "source": "at {opponent}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.atHome": {
+    "source": "home",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.form": {
+    "source": "Form, newest first: {results}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.topScorer.goals": {
+    "source": {
+      "one": "{count} goal",
+      "other": "{count} goals"
+    },
+    "forms": {},
     "status": "untranslated"
   },
   "teamPage.splitsFootnote": {
@@ -10752,11 +11264,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "teamPage.tile.position": {
-    "source": "Position, of {total}",
-    "text": "",
-    "status": "untranslated"
-  },
   "teamPage.tile.record": {
     "source": "Won · drawn · lost",
     "text": "",
@@ -10764,11 +11271,6 @@
   },
   "teamPage.tile.goals": {
     "source": "Goals for · against",
-    "text": "",
-    "status": "untranslated"
-  },
-  "teamPage.matches": {
-    "source": "Fixtures and results",
     "text": "",
     "status": "untranslated"
   },
@@ -11206,7 +11708,7 @@
     "status": "untranslated"
   },
   "playerPage.minutesNote": {
-    "source": "Minutes are recorded per match: “at least” marks a season where some matches have none, “not supplied” one where none do. Advanced statistics and availability are not held for this player and are not shown.",
+    "source": "Minutes are recorded per match: “at least” marks a season where some matches have none, “not supplied” one where none do. Advanced statistics are not held for this player and are not shown.",
     "text": "",
     "status": "untranslated"
   },
@@ -11309,33 +11811,68 @@
     "text": "",
     "status": "untranslated"
   },
-  "playerPage.tile.apps": {
-    "source": "Appearances",
-    "text": "",
-    "status": "untranslated"
-  },
-  "playerPage.tile.cards": {
-    "source": "Yellow / red cards",
-    "text": "",
-    "status": "untranslated"
-  },
   "playerPage.tile.minutes": {
-    "source": "Minutes played",
-    "text": "",
-    "status": "untranslated"
-  },
-  "playerPage.alsoThisSeason": {
-    "source": "Also this season: {list}. Every competition is in the record below.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "playerPage.fullRecord": {
-    "source": "Full record with minutes",
+    "source": "{minutes} min",
     "text": "",
     "status": "untranslated"
   },
   "playerPage.allMatches": {
     "source": "All matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.born": {
+    "source": "born {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.seasonHeading": {
+    "source": "Season {season}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.minutesAtLeast": {
+    "source": "at least {minutes} min",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.minutesMissing": {
+    "source": "minutes not supplied",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.tile.per90": {
+    "source": "{value} per 90",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.club": {
+    "source": "Club",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.col.sub": {
+    "source": "Sub",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.careerBySeason": {
+    "source": "Career by season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.careerCaption": {
+    "source": "{name}: career by season and competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.careerNote": {
+    "source": "Built from the line-ups and incidents we hold, newest season first.",
     "text": "",
     "status": "untranslated"
   },
@@ -12257,7 +12794,7 @@
     "status": "untranslated"
   },
   "shared.og.memberAlt": {
-    "source": "A member of FMIP, their rating and latest settled predictions",
+    "source": "A member of Stadiomind, their rating and latest settled predictions",
     "text": "",
     "status": "untranslated"
   },
@@ -12306,13 +12843,33 @@
     "text": "",
     "status": "untranslated"
   },
+  "forecastBar.happened": {
+    "source": "happened",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.version": {
+    "source": "v{version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.noForecast": {
+    "source": "No forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecastBar.notLoaded": {
+    "source": "Not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
   "lanes.model.title": {
     "source": "Statistical model",
     "text": "",
     "status": "untranslated"
   },
   "lanes.model.origin": {
-    "source": "Computed by FMIP’s statistical model from match data. Not a person’s opinion.",
+    "source": "Computed by Stadiomind’s statistical model from match data. Not a person’s opinion.",
     "text": "",
     "status": "untranslated"
   },
@@ -12443,22 +13000,22 @@
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchLabel": {
-    "source": "Line-ups on the pitch: {away} in the top half, {home} in the bottom half",
+    "source": "Line-ups on the pitch: {home} and {away}, each goalkeeper at his own goal",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNote": {
-    "source": "Home side at the bottom. Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
+    "source": "Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNoteGrid": {
-    "source": "Home side at the bottom. Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",
+    "source": "Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.lineups.pitchNoteMixed": {
-    "source": "Home side at the bottom. {grid}: each player where the line-up places him. {roles}: placed by the formation and the role each was given, in shirt-number order along each line, because its line-up does not say who played on which side.",
+    "source": "{grid}: each player where the line-up places him. {roles}: placed by the formation and the role each was given, in shirt-number order along each line, because its line-up does not say who played on which side.",
     "text": "",
     "status": "untranslated"
   },
@@ -12479,6 +13036,196 @@
   },
   "matchCentre.lineups.mismatch": {
     "source": "The roles supplied do not fit the {formation}, so this line-up is a list.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.modelTag": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.title": {
+    "source": "What was forecast, what happened",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.before": {
+    "source": "Before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.happened": {
+    "source": "{outcome} · happened",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.note": {
+    "source": "The model gave what happened {probability} before kick-off. A forecast is a share, not a promise: what matters is whether calls like this come true at the rate they claim.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.calibration": {
+    "source": "The model's record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.goals": {
+    "source": "Goals: expected and scored",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.modelXg": {
+    "source": "Model, before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.matchXg": {
+    "source": "Chances created (match xG)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.goalsScored": {
+    "source": "Goals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.likeliest": {
+    "source": "Likeliest scores before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.among": {
+    "source": "{score} was among them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.notAmong": {
+    "source": "{score} was not among them.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.versions": {
+    "source": "Every version, never edited",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.version": {
+    "source": "v{version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.version": {
+    "source": "v{version} computed {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.minutes": {
+    "source": "{n} min before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.hours": {
+    "source": "{n} h before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.days": {
+    "source": "{n} days before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.after": {
+    "source": "after kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.fitted": {
+    "source": "fitted {date} on {matches} matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.since": {
+    "source": "since {month}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.eloOn": {
+    "source": "Elo prior on",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.eloOff": {
+    "source": "no Elo prior",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.complete": {
+    "source": "inputs complete",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.limited": {
+    "source": "inputs limited",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.receipt.fixed": {
+    "source": "fixed at kick-off, not changed during play",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.axis": {
+    "source": "Timeline of the match by minute (goals: {goals}, cards: {cards}), the home side's above the line and the away side's below",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notInYet": {
+    "source": "Not in yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notInYetWhy": {
+    "source": "Not received for this match yet. It appears here as soon as it arrives; nothing is estimated in the meantime.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.fromKickoff": {
+    "source": "From kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.fromKickoffWhy": {
+    "source": "Recorded once the match kicks off; nothing is shown before then.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notPlayed": {
+    "source": "Not played",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.notPlayedWhy": {
+    "source": "The match was not played, so there is nothing to record.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.topRated": {
+    "source": "Top rated",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.bestSix": {
+    "source": "Ratings, best six",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.minutesPlayed": {
+    "source": "{minutes} min",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.ratingsNote": {
+    "source": "Ratings and xG as the licensed match data supplies them",
     "text": "",
     "status": "untranslated"
   },
@@ -12573,12 +13320,12 @@
     "status": "untranslated"
   },
   "competitions.metaDescription": {
-    "source": "Every league and cup FMIP follows, grouped by country and region, each with its own page.",
+    "source": "Every league and cup Stadiomind follows, grouped by country and region, each with its own page.",
     "text": "",
     "status": "untranslated"
   },
   "competitions.lead": {
-    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, fixtures, results and leaders.",
+    "source": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, matches, players and the model in that league.",
     "text": "",
     "status": "untranslated"
   },
@@ -12617,6 +13364,19 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitions.region.all": {
+    "source": "All",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitions.count": {
+    "source": {
+      "one": "{count} competition",
+      "other": "{count} competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "nav.highlights": {
     "source": "Highlights",
     "text": "",
@@ -12628,7 +13388,7 @@
     "status": "untranslated"
   },
   "highlights.metaDescription": {
-    "source": "Official highlight links for the matches FMIP follows, newest first, filtered by competition. Each opens on the publisher's own site.",
+    "source": "Official highlight links for the matches Stadiomind follows, newest first, filtered by competition. Each opens on the publisher's own site.",
     "text": "",
     "status": "untranslated"
   },
@@ -12704,6 +13464,55 @@
   },
   "highlights.penalties": {
     "source": "Pens",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.clipCount": {
+    "source": {
+      "one": "{count} highlight",
+      "other": "{count} highlights"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "highlights.competitionCount": {
+    "source": {
+      "one": "{count} competition",
+      "other": "{count} competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "highlights.moreCompetitions": {
+    "source": {
+      "one": "{count} more competition",
+      "other": "{count} more competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "highlights.featured": {
+    "source": "Latest highlights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.watch": {
+    "source": "Watch",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.matchup": {
+    "source": "{home} v {away}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.by": {
+    "source": "By {publisher}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.territory": {
+    "source": "Where are you watching?",
     "text": "",
     "status": "untranslated"
   }

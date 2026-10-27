@@ -1,20 +1,30 @@
 /*
- * The colour tokens (T-602, D-089; the Hybrid palette, T-1380, D-198). Every
- * colour the web app paints comes from one of these, through the Tailwind
- * classes `globals.css` maps them to (`bg-surface`, `text-muted`,
+ * The colour tokens (T-602, D-089; the Stadiomind palette, T-1491, D-263).
+ * Every colour the web app paints comes from one of these, through the
+ * Tailwind classes `globals.css` maps them to (`bg-surface`, `text-muted`,
  * `border-default` and the rest); no component names a colour of its own.
  * This file is the only place a colour value is written, apart from
  * `src/lib/brand-colours.ts`, which mirrors the light values for the image
  * renderers that cannot read a CSS variable (the share cards, the manifest)
  * -- `src/app/tokens.spec.ts` holds the two together.
  *
- * One brand colour, the FMIP green, and two grounds (D-198):
- *   - light is paper and Day: the paper ground of the editorial pages and
- *     the header, white surfaces, and the sunk Day ground of a data page;
- *   - dark is Night, the match stage, where the same green lifts so it
- *     still reads (the mark itself stays the D-089 green).
- * The model, founder and community colours belong to the three prediction
- * products and to nothing else (CLAUDE.md rule 6).
+ * The values are the Stadiomind Design System's (D-263): an ink ground,
+ * saffron for the brand and the moment (the primary action, the selected
+ * tab, the live minute, a stale stamp) and turquoise for the model and
+ * nothing else. Two themes:
+ *   - light is Day: the pale ground, white cards, saffron darkened to the
+ *     Design System's `saffron-text` so it reads as text and carries white
+ *     text as a fill;
+ *   - dark is Night: the ink ground, the saffron itself, turquoise lifted.
+ * The model's colour belongs to the statistical model alone; the founder's
+ * analysis and the community picks are told apart by type and label, in ink
+ * and ink-muted, never by a colour of the model's (CLAUDE.md rule 6).
+ *
+ * Fills with text of their own (T-1493): `brand` is the Design System's
+ * bright saffron, the same in both themes, for the primary button and the
+ * top rating, with ink (`on-brand`) on it; the accent stays the saffron that
+ * reads as text. The forecast bar's draw and away segments and the rating
+ * chip's low and good bands complete the set; home is the model colour.
  *
  * Three ways to reach dark, one set of values:
  *   - `:root` alone is light;
@@ -26,38 +36,32 @@
  *     one.
  * The two dark blocks carry the same declarations; the spec refuses a drift.
  *
- * Editorial mode (D-198): an element marked `data-mode="editorial"` -- the
- * header, and the editorial pages as they move to the Hybrid layouts -- is
- * always on paper, whatever the theme. The last blocks of this file give it
- * the light values (and light with more contrast, when that applies); custom
- * properties set on an element win over the ones it would inherit from
- * <html>, so no specificity contest is involved. Data pages carry no mark, or
- * `data-mode="data"`, and follow the theme.
+ * Editorial mode (D-198), the Day values on a marked element whatever the
+ * theme, is gone: the redesign removed the mark page by page (D-263), the
+ * news story last (T-1621, D-291). Every page follows the theme; a data page
+ * may carry `data-mode="data"` to stand on the stage.
  *
  * Contrast is WCAG 2 (AA: 4.5:1 for text, 3:1 for large text, UI component
  * boundaries and focus indicators). Each figure below is measured against
  * canvas / surface / surface-raised, in that order, and the spec recomputes
  * every one of them from the values here, so a figure that goes stale fails.
- * The stage, a data page's ground, is the sunk Day ground on light and the
- * Night canvas on dark, so it repeats one of the three and adds no figure of
- * its own; the spec checks every role on it too. Muted text and captions
- * keep AA on every background (D-041).
+ * The stage, a data page's ground, is the canvas in both themes, so it adds
+ * no figure of its own; the spec checks every role on it too. Muted text and
+ * captions keep AA on every background (D-041).
  *
  * More contrast (T-621, blueprint 2.2) is a second set of values for each
  * theme, in which every text role is WCAG AAA (7:1) on the page and both
  * surfaces: muted text comes close to body text, the hairline becomes a
- * visible edge, the green goes darker on light and lighter on dark, and the
- * dark backgrounds go to black. It applies when `data-contrast="more"` is
- * chosen, or when nothing was chosen (`system`) and the device asks for it
- * (`prefers-contrast: more`); `standard` keeps the values above whatever the
- * device says. The order of the blocks is what makes this work:
+ * visible edge, saffron goes darker on Day, and the Night grounds go to
+ * black. It applies when `data-contrast="more"` is chosen, or when nothing
+ * was chosen (`system`) and the device asks for it (`prefers-contrast:
+ * more`); `standard` keeps the values above whatever the device says. The
+ * order of the blocks is what makes this work:
  *   1. light, `:root`;
  *   2. light and more, specificity 0-2-0, which beats 1 and nothing else;
  *   3. the two ways to dark, 0-2-0 and later, so they beat 2;
  *   4. dark and more, 0-3-0, four ways (chosen or device dark, times chosen
- *      or device contrast), which beat 3;
- *   5. editorial mode, set on the marked element itself: light, then light
- *      and more (0-3-0, beating the plain mark).
+ *      or device contrast), which beat 3.
  * Blocks of one kind carry the same declarations; the spec refuses a drift,
  * and recomputes the figures written against the first of each kind.
  */
@@ -65,119 +69,171 @@
 :root {
   color-scheme: light;
 
-  /* The page: paper. */
-  --token-canvas: #fafaf7;
-  /* Cards, the live strip, chips: white, a step off the paper. */
+  /* The page: the Day ground. */
+  --token-canvas: #f2f3f1;
+  /* Cards, match lists, the header: white, a step off the ground. */
   --token-surface: #ffffff;
-  /* Sunk: highlighted rows, hover, the skip link, and the Day ground. */
-  --token-surface-raised: #f1f2ee;
-  /* A data page's ground (Day): the sunk value. */
-  --token-stage: #f1f2ee;
-
-  /* Body text, ink: 17.01 / 17.79 / 15.82. */
-  --token-text: #15181d;
-  /* Secondary text, ink-2: 9.13 / 9.55 / 8.49. */
-  --token-text-muted: #3e4651;
-  /* Captions, the quietest text: 5.07 / 5.31 / 4.72. */
-  --token-caption: #646c78;
-
-  /* Hairlines, the rule; decorative, so no minimum (1.30:1 on paper). */
-  --token-border: #dadde2;
-  /* The edge of a field or control, which must be seen: 3.97 / 4.15 / 3.69. */
-  --token-border-strong: #767d88;
-
-  /* The green (D-089 `green-700`): 6.32 / 6.61 / 5.88. */
-  --token-accent: #0b6b3a;
-  /* Pressed or hover on the green (`green-900`): 11.98 / 12.53 / 11.14. */
-  --token-accent-strong: #063c21;
-  /* Text on the green: 6.61 on accent, 12.53 on accent-strong. */
+  /* Insets inside a card: stat boxes, score chips, hover, the skip link. */
+  --token-surface-raised: #f7f8f7;
+  /* A data page's ground: the page ground, in both themes (D-263). */
+  --token-stage: #f2f3f1;
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #fdf6ec;
+  /* Body text, ink: 16.46 / 18.32 / 17.21. */
+  --token-text: #121518;
+  /* Secondary text, ink-muted: 6.72 / 7.48 / 7.03. */
+  --token-text-muted: #4c5660;
+  /* Captions, the quietest text, ink-subtle: 4.81 / 5.35 / 5.02. */
+  --token-caption: #626c76;
+  /* Hairlines, the line; decorative, so no minimum (1.19:1 on the ground). */
+  --token-border: #dce0e2;
+  /* The edge of a field or control, which must be seen: 3.28 / 3.65 / 3.43. */
+  --token-border-strong: #7d8791;
+  /* Saffron as text and as the Day fill (the Design System's `saffron-text`): 5.69 / 6.33 / 5.94. */
+  --token-accent: #8a5300;
+  /* Pressed or hover on saffron: 9.11 / 10.14 / 9.52. */
+  --token-accent-strong: #5f3900;
+  /* Text on saffron: 6.33 on accent, 10.14 on accent-strong. */
   --token-on-accent: #ffffff;
-
-  /* The keyboard focus ring: 17.01 / 17.79 / 15.82. */
-  --token-focus: #15181d;
-
-  /* An error, a refusal: 6.19 / 6.47 / 5.75. */
-  --token-danger: #b91c1c;
-  /* Delayed, limited, stale: 5.67 / 5.93 / 5.27. */
-  --token-warning: #8a5a00;
-  /* Done, saved: the green, 6.32 / 6.61 / 5.88. */
-  --token-success: #0b6b3a;
-  /* A match in play, the live minute: 5.52 / 5.77 / 5.13. */
-  --token-live: #c42335;
-
-  /* The statistical model's lane, and nothing else: 5.76 / 6.02 / 5.36. */
-  --token-model: #1d5fc4;
-  /* The founder's analysis lane, and nothing else: 5.50 / 5.75 / 5.11. */
-  --token-founder: #a84a12;
-  /* The community picks lane, and nothing else: 6.14 / 6.42 / 5.71. */
-  --token-community: #6a4bb3;
+  /* The keyboard focus ring (the Design System's Day `focus`): 4.65 / 5.17 / 4.86. */
+  --token-focus: #0e7a75;
+  /* An error, a refusal, a red card: 4.78 / 5.32 / 5.00. */
+  --token-danger: #c23a33;
+  /* Delayed, limited, stale, in saffron as the freshness stamp writes it: 5.69 / 6.33 / 5.94. */
+  --token-warning: #8a5300;
+  /* Done, saved: ink, since the palette has no green (D-263): 16.46 / 18.32 / 17.21. */
+  --token-success: #121518;
+  /* A match in play, the live minute, in saffron: 5.69 / 6.33 / 5.94. */
+  --token-live: #8a5300;
+  /* The statistical model's lane, turquoise, and nothing else: 4.65 / 5.17 / 4.86. */
+  --token-model: #0e7a75;
+  /* The founder's analysis lane: ink, told apart by its serif and its label: 16.46 / 18.32 / 17.21. */
+  --token-founder: #121518;
+  /* The community picks lane: ink-muted, told apart by its label: 6.72 / 7.48 / 7.03. */
+  --token-community: #4c5660;
+  /* The brand fill (the Design System's `saffron`): the primary button, the top rating; carries on-brand text. */
+  --token-brand: #eba53c;
+  /* Text on the brand fill, ink: 8.81 on brand. */
+  --token-on-brand: #1a1206;
+  /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
+  --token-prob-draw: #a8b0b7;
+  /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
+  --token-prob-away: #7ccfc8;
+  /* A match rating under six, a grey chip. */
+  --token-rating-low: #56616b;
+  /* Text on the low rating chip: 6.33 on rating-low. */
+  --token-on-rating-low: #ffffff;
+  /* A match rating from seven to under eight, the Design System's turquoise chip. */
+  --token-rating-good: #2bb3ad;
+  /* Text on the good rating chip: 7.30 on rating-good. */
+  --token-on-rating-good: #0f1215;
+  /* A competition logo's tile (T-1609, D-280): white in both themes, the paper the logos are made for: 1.11 / 1.00 / 1.06. */
+  --token-logo-tile: #ffffff;
+  /* The tile's hairline: on Day the tile itself, so a logo looks as it always did. */
+  --token-logo-edge: #ffffff;
+  /* The halo round a crest's own outline: on Day the surface itself, so nothing shows: 1.11 / 1.00 / 1.06. */
+  --token-crest-halo: #ffffff;
 }
 
-/* More contrast on light (T-621): every text role 7:1 or better. Chosen... */
+/* More contrast on Day (T-621): every text role 7:1 or better. Chosen... */
 :root[data-contrast='more'] {
   color-scheme: light;
-  --token-canvas: #fafaf7;
+  --token-canvas: #f2f3f1;
   --token-surface: #ffffff;
-  --token-surface-raised: #f1f2ee;
-  --token-stage: #f1f2ee;
-  /* Body text: 19.38 / 20.27 / 18.03. */
+  --token-surface-raised: #f7f8f7;
+  --token-stage: #f2f3f1;
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #fdf6ec;
+  /* Body text: 18.21 / 20.27 / 19.04. */
   --token-text: #050608;
-  /* Secondary text, close to body text: 12.53 / 13.10 / 11.65. */
+  /* Secondary text, close to body text: 11.77 / 13.10 / 12.30. */
   --token-text-muted: #2b313a;
-  /* Captions, now ink-2: 9.13 / 9.55 / 8.49. */
-  --token-caption: #3e4651;
-  /* The hairline, now an edge you can see: 3.56 / 3.72 / 3.31. */
-  --token-border: #7f858e;
-  /* A field's edge: 7.08 / 7.40 / 6.58. */
-  --token-border-strong: #4f5661;
-  /* The green: 8.81 / 9.22 / 8.20. */
-  --token-accent: #05532b;
-  /* Pressed or hover on the green: 14.91 / 15.59 / 13.87. */
-  --token-accent-strong: #032a16;
-  /* Text on the green: 9.22 on accent, 15.59 on accent-strong. */
+  /* Captions: 7.11 / 7.91 / 7.43. */
+  --token-caption: #4b525a;
+  /* The hairline, now an edge you can see: 3.03 / 3.37 / 3.17. */
+  --token-border: #808e96;
+  /* A field's edge: 4.52 / 5.04 / 4.73. */
+  --token-border-strong: #677079;
+  /* Saffron: 7.06 / 7.86 / 7.38. */
+  --token-accent: #764700;
+  /* Pressed or hover on saffron: 13.00 / 14.48 / 13.60. */
+  --token-accent-strong: #3d2400;
+  /* Text on saffron: 7.86 on accent, 14.48 on accent-strong. */
   --token-on-accent: #ffffff;
-  /* The focus ring: 19.38 / 20.27 / 18.03. */
-  --token-focus: #050608;
-  /* An error: 7.95 / 8.31 / 7.39. */
-  --token-danger: #991b1b;
-  /* Delayed, limited, stale: 8.03 / 8.40 / 7.47. */
-  --token-warning: #6b4600;
-  /* Done, saved: 8.81 / 9.22 / 8.20. */
-  --token-success: #05532b;
-  /* A match in play: 7.99 / 8.35 / 7.43. */
-  --token-live: #981a29;
-  /* The model's lane: 8.11 / 8.48 / 7.54. */
-  --token-model: #174a99;
-  /* The founder's lane: 8.00 / 8.37 / 7.44. */
-  --token-founder: #80390d;
-  /* The community lane: 7.89 / 8.26 / 7.34. */
-  --token-community: #573f94;
+  /* The focus ring: 4.65 / 5.17 / 4.86. */
+  --token-focus: #0e7a75;
+  /* An error: 7.12 / 7.93 / 7.45. */
+  --token-danger: #942c27;
+  /* Delayed, limited, stale: 7.06 / 7.86 / 7.38. */
+  --token-warning: #764700;
+  /* Done, saved: 18.21 / 20.27 / 19.04. */
+  --token-success: #050608;
+  /* A match in play: 7.06 / 7.86 / 7.38. */
+  --token-live: #764700;
+  /* The model's lane: 7.02 / 7.82 / 7.34. */
+  --token-model: #0b5c58;
+  /* The founder's lane: 18.21 / 20.27 / 19.04. */
+  --token-founder: #050608;
+  /* The community lane: 11.77 / 13.10 / 12.30. */
+  --token-community: #2b313a;
+  /* The brand fill (the Design System's `saffron`): the primary button, the top rating; carries on-brand text. */
+  --token-brand: #eba53c;
+  /* Text on the brand fill, ink: 8.81 on brand. */
+  --token-on-brand: #1a1206;
+  /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
+  --token-prob-draw: #a8b0b7;
+  /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
+  --token-prob-away: #7ccfc8;
+  /* A match rating under six, a grey chip. */
+  --token-rating-low: #4b555e;
+  /* Text on the low rating chip: 7.61 on rating-low. */
+  --token-on-rating-low: #ffffff;
+  /* A match rating from seven to under eight, the Design System's turquoise chip. */
+  --token-rating-good: #2bb3ad;
+  /* Text on the good rating chip: 7.30 on rating-good. */
+  --token-on-rating-good: #0f1215;
+  --token-logo-tile: #ffffff;
+  --token-logo-edge: #ffffff;
+  --token-crest-halo: #ffffff;
 }
 
 /* ...or not chosen, and the device asks for it: the same values. */
 @media (prefers-contrast: more) {
   :root:not([data-contrast='standard']) {
     color-scheme: light;
-    --token-canvas: #fafaf7;
+    --token-canvas: #f2f3f1;
     --token-surface: #ffffff;
-    --token-surface-raised: #f1f2ee;
-    --token-stage: #f1f2ee;
+    --token-surface-raised: #f7f8f7;
+    --token-stage: #f2f3f1;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #fdf6ec;
     --token-text: #050608;
     --token-text-muted: #2b313a;
-    --token-caption: #3e4651;
-    --token-border: #7f858e;
-    --token-border-strong: #4f5661;
-    --token-accent: #05532b;
-    --token-accent-strong: #032a16;
+    --token-caption: #4b525a;
+    --token-border: #808e96;
+    --token-border-strong: #677079;
+    --token-accent: #764700;
+    --token-accent-strong: #3d2400;
     --token-on-accent: #ffffff;
-    --token-focus: #050608;
-    --token-danger: #991b1b;
-    --token-warning: #6b4600;
-    --token-success: #05532b;
-    --token-live: #981a29;
-    --token-model: #174a99;
-    --token-founder: #80390d;
-    --token-community: #573f94;
+    --token-focus: #0e7a75;
+    --token-danger: #942c27;
+    --token-warning: #764700;
+    --token-success: #050608;
+    --token-live: #764700;
+    --token-model: #0b5c58;
+    --token-founder: #050608;
+    --token-community: #2b313a;
+    --token-brand: #eba53c;
+    --token-on-brand: #1a1206;
+    --token-prob-draw: #a8b0b7;
+    --token-prob-away: #7ccfc8;
+    --token-rating-low: #4b555e;
+    --token-on-rating-low: #ffffff;
+    --token-rating-good: #2bb3ad;
+    --token-on-rating-good: #0f1215;
+    --token-logo-tile: #ffffff;
+    --token-logo-edge: #ffffff;
+    --token-crest-halo: #ffffff;
   }
 }
 
@@ -185,272 +241,289 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    /* The Night canvas, the match stage. */
-    --token-canvas: #06080c;
-    /* Cards on the stage. */
-    --token-surface: #0f141c;
-    /* Raised: rows, tiles. */
-    --token-surface-raised: #151c27;
-    /* A data page's ground (Night): the canvas. */
-    --token-stage: #06080c;
-    /* 18.50 / 17.05 / 15.79. */
-    --token-text: #f4f6f8;
-    /* 9.24 / 8.52 / 7.89. */
-    --token-text-muted: #a7b1bf;
-    /* 6.62 / 6.10 / 5.65. */
-    --token-caption: #8b95a5;
-    /* The line, a tenth of white over a card; decorative (1.43:1 on the canvas). */
-    --token-border: #272c33;
-    /* 4.24 / 3.91 / 3.62. */
-    --token-border-strong: #6b7482;
-    /* The green lifted for Night: 10.25 / 9.44 / 8.75. */
-    --token-accent: #1ed38a;
-    /* 12.58 / 11.59 / 10.74. */
-    --token-accent-strong: #6de2b3;
-    /* 10.25 on accent, 12.58 on accent-strong. */
-    --token-on-accent: #06080c;
-    /* 18.50 / 17.05 / 15.79. */
-    --token-focus: #f4f6f8;
-    /* 7.25 / 6.68 / 6.19. */
-    --token-danger: #f87171;
-    /* 12.31 / 11.34 / 10.51. */
-    --token-warning: #f5c451;
-    /* 10.25 / 9.44 / 8.75. */
-    --token-success: #1ed38a;
-    /* 6.18 / 5.69 / 5.28. */
-    --token-live: #ff4d5e;
-    /* 8.26 / 7.61 / 7.05. */
-    --token-model: #6aa8ff;
-    /* 9.62 / 8.86 / 8.21. */
-    --token-founder: #ff9b57;
-    /* 8.79 / 8.10 / 7.51. */
-    --token-community: #b79cff;
+    /* The Night ground, the match stage. */
+    --token-canvas: #0f1215;
+    /* Cards on the ground. */
+    --token-surface: #171b1f;
+    /* Insets inside a card. */
+    --token-surface-raised: #1f2429;
+    /* A data page's ground: the page ground. */
+    --token-stage: #0f1215;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #242321;
+    /* 16.44 / 15.14 / 13.68. */
+    --token-text: #eef0f1;
+    /* 8.16 / 7.52 / 6.80. */
+    --token-text-muted: #a3acb5;
+    /* 5.49 / 5.06 / 4.57. */
+    --token-caption: #828c96;
+    /* The line; decorative (1.41:1 on the ground). */
+    --token-border: #2a3037;
+    /* 4.05 / 3.73 / 3.37. */
+    --token-border-strong: #6b7680;
+    /* Saffron, the brand: 8.93 / 8.23 / 7.43. */
+    --token-accent: #eba53c;
+    /* 11.74 / 10.82 / 9.77. */
+    --token-accent-strong: #f4c57c;
+    /* 8.81 on accent, 11.58 on accent-strong. */
+    --token-on-accent: #1a1206;
+    /* The focus ring, saffron: 8.93 / 8.23 / 7.43. */
+    --token-focus: #eba53c;
+    /* An error, a red card, lifted to read on the insets: 5.44 / 5.01 / 4.53. */
+    --token-danger: #e45f59;
+    /* 8.93 / 8.23 / 7.43. */
+    --token-warning: #eba53c;
+    /* 16.44 / 15.14 / 13.68. */
+    --token-success: #eef0f1;
+    /* 8.93 / 8.23 / 7.43. */
+    --token-live: #eba53c;
+    /* Turquoise, lifted for Night: 8.80 / 8.11 / 7.32. */
+    --token-model: #3cc4be;
+    /* 16.44 / 15.14 / 13.68. */
+    --token-founder: #eef0f1;
+    /* 8.16 / 7.52 / 6.80. */
+    --token-community: #a3acb5;
+    /* The brand fill (the Design System's `saffron`): the primary button, the top rating; carries on-brand text. */
+    --token-brand: #eba53c;
+    /* Text on the brand fill, ink: 8.81 on brand. */
+    --token-on-brand: #1a1206;
+    /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
+    --token-prob-draw: #56616b;
+    /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
+    --token-prob-away: #9edcd7;
+    /* A match rating under six, a grey chip. */
+    --token-rating-low: #56616b;
+    /* Text on the low rating chip: 6.33 on rating-low. */
+    --token-on-rating-low: #ffffff;
+    /* A match rating from seven to under eight, the Design System's turquoise chip. */
+    --token-rating-good: #2bb3ad;
+    /* Text on the good rating chip: 7.30 on rating-good. */
+    --token-on-rating-good: #0f1215;
+    /* A competition logo's tile: white on Night too, so a dark logo reads and every logo sits on the same ground: 18.79 / 17.31 / 15.64. */
+    --token-logo-tile: #ffffff;
+    /* The tile's hairline, a step above the line, seating the white tile in the ink: 1.84 / 1.70 / 1.53. */
+    --token-logo-edge: #3a424a;
+    /* The halo round a crest's own outline, so a navy or black crest keeps its edge: 8.16 / 7.52 / 6.80. */
+    --token-crest-halo: #a3acb5;
   }
 }
 
 /* ...or Night chosen. */
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --token-canvas: #06080c;
-  --token-surface: #0f141c;
-  --token-surface-raised: #151c27;
-  --token-stage: #06080c;
-  --token-text: #f4f6f8;
-  --token-text-muted: #a7b1bf;
-  --token-caption: #8b95a5;
-  --token-border: #272c33;
-  --token-border-strong: #6b7482;
-  --token-accent: #1ed38a;
-  --token-accent-strong: #6de2b3;
-  --token-on-accent: #06080c;
-  --token-focus: #f4f6f8;
-  --token-danger: #f87171;
-  --token-warning: #f5c451;
-  --token-success: #1ed38a;
-  --token-live: #ff4d5e;
-  --token-model: #6aa8ff;
-  --token-founder: #ff9b57;
-  --token-community: #b79cff;
+  --token-canvas: #0f1215;
+  --token-surface: #171b1f;
+  --token-surface-raised: #1f2429;
+  --token-stage: #0f1215;
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #242321;
+  --token-text: #eef0f1;
+  --token-text-muted: #a3acb5;
+  --token-caption: #828c96;
+  --token-border: #2a3037;
+  --token-border-strong: #6b7680;
+  --token-accent: #eba53c;
+  --token-accent-strong: #f4c57c;
+  --token-on-accent: #1a1206;
+  --token-focus: #eba53c;
+  --token-danger: #e45f59;
+  --token-warning: #eba53c;
+  --token-success: #eef0f1;
+  --token-live: #eba53c;
+  --token-model: #3cc4be;
+  --token-founder: #eef0f1;
+  --token-community: #a3acb5;
+  --token-brand: #eba53c;
+  --token-on-brand: #1a1206;
+  --token-prob-draw: #56616b;
+  --token-prob-away: #9edcd7;
+  --token-rating-low: #56616b;
+  --token-on-rating-low: #ffffff;
+  --token-rating-good: #2bb3ad;
+  --token-on-rating-good: #0f1215;
+  --token-logo-tile: #ffffff;
+  --token-logo-edge: #3a424a;
+  --token-crest-halo: #a3acb5;
 }
 
-/* More contrast on dark (T-621): dark chosen, more chosen. */
+/* More contrast on Night (T-621): Night chosen, more chosen. */
 :root[data-theme='dark'][data-contrast='more'] {
   color-scheme: dark;
   --token-canvas: #000000;
-  --token-surface: #0a0d12;
-  --token-surface-raised: #10151d;
+  --token-surface: #0b0d0f;
+  --token-surface-raised: #13171a;
   --token-stage: #000000;
-  /* Body text: 20.27 / 18.78 / 17.67. */
+  /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+  --token-selected: #181612;
+  /* Body text: 20.27 / 18.79 / 17.40. */
   --token-text: #fafbfc;
-  /* Secondary text, close to body text: 13.64 / 12.64 / 11.89. */
-  --token-text-muted: #cad1da;
-  /* Captions: 9.81 / 9.09 / 8.55. */
-  --token-caption: #a9b2bf;
-  /* The hairline, now an edge you can see: 3.62 / 3.36 / 3.16. */
-  --token-border: #5f6670;
-  /* A field's edge: 8.06 / 7.47 / 7.03. */
-  --token-border-strong: #9aa1ab;
-  /* The green: 13.18 / 12.21 / 11.49. */
-  --token-accent: #6de2b3;
-  /* Pressed or hover on the green: 15.84 / 14.68 / 13.81. */
-  --token-accent-strong: #a9eed1;
-  /* Text on the green: 13.18 on accent, 15.84 on accent-strong. */
+  /* Secondary text, close to body text: 13.62 / 12.63 / 11.69. */
+  --token-text-muted: #cad1d8;
+  /* Captions: 8.22 / 7.62 / 7.06. */
+  --token-caption: #9ba3ab;
+  /* The hairline, now an edge you can see: 3.53 / 3.27 / 3.03. */
+  --token-border: #586574;
+  /* A field's edge: 5.34 / 4.95 / 4.58. */
+  --token-border-strong: #76828c;
+  /* Saffron: 9.98 / 9.25 / 8.57. */
+  --token-accent: #eba53c;
+  /* Pressed or hover on saffron: 15.88 / 14.72 / 13.63. */
+  --token-accent-strong: #f9dcae;
+  /* Text on saffron: 9.98 on accent, 15.88 on accent-strong. */
   --token-on-accent: #000000;
-  /* The focus ring: 20.27 / 18.78 / 17.67. */
-  --token-focus: #fafbfc;
-  /* An error: 11.06 / 10.25 / 9.65. */
-  --token-danger: #fca5a5;
-  /* Delayed, limited, stale: 14.49 / 13.43 / 12.63. */
-  --token-warning: #f8d27a;
-  /* Done, saved: 13.18 / 12.21 / 11.49. */
-  --token-success: #6de2b3;
-  /* A match in play: 9.32 / 8.64 / 8.13. */
-  --token-live: #ff8a95;
-  /* The model's lane: 11.75 / 10.89 / 10.25. */
-  --token-model: #9cc4ff;
-  /* The founder's lane: 12.56 / 11.64 / 10.95. */
-  --token-founder: #ffb98a;
-  /* The community lane: 11.98 / 11.10 / 10.44. */
-  --token-community: #cdb9ff;
+  /* The focus ring: 9.98 / 9.25 / 8.57. */
+  --token-focus: #eba53c;
+  /* An error: 8.17 / 7.57 / 7.01. */
+  --token-danger: #ea8580;
+  /* Delayed, limited, stale: 9.98 / 9.25 / 8.57. */
+  --token-warning: #eba53c;
+  /* Done, saved: 20.27 / 18.79 / 17.40. */
+  --token-success: #fafbfc;
+  /* A match in play: 9.98 / 9.25 / 8.57. */
+  --token-live: #eba53c;
+  /* The model's lane: 9.83 / 9.11 / 8.44. */
+  --token-model: #3cc4be;
+  /* The founder's lane: 20.27 / 18.79 / 17.40. */
+  --token-founder: #fafbfc;
+  /* The community lane: 13.62 / 12.63 / 11.69. */
+  --token-community: #cad1d8;
+  /* The brand fill (the Design System's `saffron`): the primary button, the top rating; carries on-brand text. */
+  --token-brand: #eba53c;
+  /* Text on the brand fill, ink: 9.98 on brand. */
+  --token-on-brand: #000000;
+  /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
+  --token-prob-draw: #56616b;
+  /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
+  --token-prob-away: #9edcd7;
+  /* A match rating under six, a grey chip. */
+  --token-rating-low: #4b555e;
+  /* Text on the low rating chip: 7.61 on rating-low. */
+  --token-on-rating-low: #ffffff;
+  /* A match rating from seven to under eight, the Design System's turquoise chip. */
+  --token-rating-good: #2bb3ad;
+  /* Text on the good rating chip: 8.15 on rating-good. */
+  --token-on-rating-good: #000000;
+  --token-logo-tile: #ffffff;
+  --token-logo-edge: #3a424a;
+  --token-crest-halo: #a3acb5;
 }
 
-/* The device's dark, more chosen. */
+/* The device's Night, more chosen. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light'])[data-contrast='more'] {
     color-scheme: dark;
     --token-canvas: #000000;
-    --token-surface: #0a0d12;
-    --token-surface-raised: #10151d;
+    --token-surface: #0b0d0f;
+    --token-surface-raised: #13171a;
     --token-stage: #000000;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #181612;
     --token-text: #fafbfc;
-    --token-text-muted: #cad1da;
-    --token-caption: #a9b2bf;
-    --token-border: #5f6670;
-    --token-border-strong: #9aa1ab;
-    --token-accent: #6de2b3;
-    --token-accent-strong: #a9eed1;
+    --token-text-muted: #cad1d8;
+    --token-caption: #9ba3ab;
+    --token-border: #586574;
+    --token-border-strong: #76828c;
+    --token-accent: #eba53c;
+    --token-accent-strong: #f9dcae;
     --token-on-accent: #000000;
-    --token-focus: #fafbfc;
-    --token-danger: #fca5a5;
-    --token-warning: #f8d27a;
-    --token-success: #6de2b3;
-    --token-live: #ff8a95;
-    --token-model: #9cc4ff;
-    --token-founder: #ffb98a;
-    --token-community: #cdb9ff;
+    --token-focus: #eba53c;
+    --token-danger: #ea8580;
+    --token-warning: #eba53c;
+    --token-success: #fafbfc;
+    --token-live: #eba53c;
+    --token-model: #3cc4be;
+    --token-founder: #fafbfc;
+    --token-community: #cad1d8;
+    --token-brand: #eba53c;
+    --token-on-brand: #000000;
+    --token-prob-draw: #56616b;
+    --token-prob-away: #9edcd7;
+    --token-rating-low: #4b555e;
+    --token-on-rating-low: #ffffff;
+    --token-rating-good: #2bb3ad;
+    --token-on-rating-good: #000000;
+    --token-logo-tile: #ffffff;
+    --token-logo-edge: #3a424a;
+    --token-crest-halo: #a3acb5;
   }
 }
 
-/* Dark chosen, contrast not chosen and the device asks for more. */
+/* Night chosen, contrast not chosen and the device asks for more. */
 @media (prefers-contrast: more) {
   :root[data-theme='dark']:not([data-contrast='standard']) {
     color-scheme: dark;
     --token-canvas: #000000;
-    --token-surface: #0a0d12;
-    --token-surface-raised: #10151d;
+    --token-surface: #0b0d0f;
+    --token-surface-raised: #13171a;
     --token-stage: #000000;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #181612;
     --token-text: #fafbfc;
-    --token-text-muted: #cad1da;
-    --token-caption: #a9b2bf;
-    --token-border: #5f6670;
-    --token-border-strong: #9aa1ab;
-    --token-accent: #6de2b3;
-    --token-accent-strong: #a9eed1;
+    --token-text-muted: #cad1d8;
+    --token-caption: #9ba3ab;
+    --token-border: #586574;
+    --token-border-strong: #76828c;
+    --token-accent: #eba53c;
+    --token-accent-strong: #f9dcae;
     --token-on-accent: #000000;
-    --token-focus: #fafbfc;
-    --token-danger: #fca5a5;
-    --token-warning: #f8d27a;
-    --token-success: #6de2b3;
-    --token-live: #ff8a95;
-    --token-model: #9cc4ff;
-    --token-founder: #ffb98a;
-    --token-community: #cdb9ff;
+    --token-focus: #eba53c;
+    --token-danger: #ea8580;
+    --token-warning: #eba53c;
+    --token-success: #fafbfc;
+    --token-live: #eba53c;
+    --token-model: #3cc4be;
+    --token-founder: #fafbfc;
+    --token-community: #cad1d8;
+    --token-brand: #eba53c;
+    --token-on-brand: #000000;
+    --token-prob-draw: #56616b;
+    --token-prob-away: #9edcd7;
+    --token-rating-low: #4b555e;
+    --token-on-rating-low: #ffffff;
+    --token-rating-good: #2bb3ad;
+    --token-on-rating-good: #000000;
+    --token-logo-tile: #ffffff;
+    --token-logo-edge: #3a424a;
+    --token-crest-halo: #a3acb5;
   }
 }
 
-/* The device's dark, and the device asks for more. */
+/* The device's Night, and the device asks for more. */
 @media (prefers-color-scheme: dark) and (prefers-contrast: more) {
   :root:not([data-theme='light']):not([data-contrast='standard']) {
     color-scheme: dark;
     --token-canvas: #000000;
-    --token-surface: #0a0d12;
-    --token-surface-raised: #10151d;
+    --token-surface: #0b0d0f;
+    --token-surface-raised: #13171a;
     --token-stage: #000000;
+    /* The chosen row in a list (the scores page's `aria-current` row): a solid saffron tint, every text role at AA on it (AAA with more contrast). */
+    --token-selected: #181612;
     --token-text: #fafbfc;
-    --token-text-muted: #cad1da;
-    --token-caption: #a9b2bf;
-    --token-border: #5f6670;
-    --token-border-strong: #9aa1ab;
-    --token-accent: #6de2b3;
-    --token-accent-strong: #a9eed1;
+    --token-text-muted: #cad1d8;
+    --token-caption: #9ba3ab;
+    --token-border: #586574;
+    --token-border-strong: #76828c;
+    --token-accent: #eba53c;
+    --token-accent-strong: #f9dcae;
     --token-on-accent: #000000;
-    --token-focus: #fafbfc;
-    --token-danger: #fca5a5;
-    --token-warning: #f8d27a;
-    --token-success: #6de2b3;
-    --token-live: #ff8a95;
-    --token-model: #9cc4ff;
-    --token-founder: #ffb98a;
-    --token-community: #cdb9ff;
-  }
-}
-
-/*
- * Editorial mode (D-198): the header and the editorial pages stay on paper
- * whatever the theme. The light values, set on the marked element...
- */
-[data-mode='editorial'] {
-  color-scheme: light;
-  --token-canvas: #fafaf7;
-  --token-surface: #ffffff;
-  --token-surface-raised: #f1f2ee;
-  --token-stage: #f1f2ee;
-  --token-text: #15181d;
-  --token-text-muted: #3e4651;
-  --token-caption: #646c78;
-  --token-border: #dadde2;
-  --token-border-strong: #767d88;
-  --token-accent: #0b6b3a;
-  --token-accent-strong: #063c21;
-  --token-on-accent: #ffffff;
-  --token-focus: #15181d;
-  --token-danger: #b91c1c;
-  --token-warning: #8a5a00;
-  --token-success: #0b6b3a;
-  --token-live: #c42335;
-  --token-model: #1d5fc4;
-  --token-founder: #a84a12;
-  --token-community: #6a4bb3;
-}
-
-/* ...and light with more contrast, chosen... */
-:root[data-contrast='more'] [data-mode='editorial'] {
-  color-scheme: light;
-  --token-canvas: #fafaf7;
-  --token-surface: #ffffff;
-  --token-surface-raised: #f1f2ee;
-  --token-stage: #f1f2ee;
-  --token-text: #050608;
-  --token-text-muted: #2b313a;
-  --token-caption: #3e4651;
-  --token-border: #7f858e;
-  --token-border-strong: #4f5661;
-  --token-accent: #05532b;
-  --token-accent-strong: #032a16;
-  --token-on-accent: #ffffff;
-  --token-focus: #050608;
-  --token-danger: #991b1b;
-  --token-warning: #6b4600;
-  --token-success: #05532b;
-  --token-live: #981a29;
-  --token-model: #174a99;
-  --token-founder: #80390d;
-  --token-community: #573f94;
-}
-
-/* ...or asked for by the device. */
-@media (prefers-contrast: more) {
-  :root:not([data-contrast='standard']) [data-mode='editorial'] {
-    color-scheme: light;
-    --token-canvas: #fafaf7;
-    --token-surface: #ffffff;
-    --token-surface-raised: #f1f2ee;
-    --token-stage: #f1f2ee;
-    --token-text: #050608;
-    --token-text-muted: #2b313a;
-    --token-caption: #3e4651;
-    --token-border: #7f858e;
-    --token-border-strong: #4f5661;
-    --token-accent: #05532b;
-    --token-accent-strong: #032a16;
-    --token-on-accent: #ffffff;
-    --token-focus: #050608;
-    --token-danger: #991b1b;
-    --token-warning: #6b4600;
-    --token-success: #05532b;
-    --token-live: #981a29;
-    --token-model: #174a99;
-    --token-founder: #80390d;
-    --token-community: #573f94;
+    --token-focus: #eba53c;
+    --token-danger: #ea8580;
+    --token-warning: #eba53c;
+    --token-success: #fafbfc;
+    --token-live: #eba53c;
+    --token-model: #3cc4be;
+    --token-founder: #fafbfc;
+    --token-community: #cad1d8;
+    --token-brand: #eba53c;
+    --token-on-brand: #000000;
+    --token-prob-draw: #56616b;
+    --token-prob-away: #9edcd7;
+    --token-rating-low: #4b555e;
+    --token-on-rating-low: #ffffff;
+    --token-rating-good: #2bb3ad;
+    --token-on-rating-good: #000000;
+    --token-logo-tile: #ffffff;
+    --token-logo-edge: #3a424a;
+    --token-crest-halo: #a3acb5;
   }
 }

@@ -261,6 +261,7 @@ describe('competitions directory order (T-1433)', () => {
     country: country === null ? null : { id: `c-${country}`, name: country, code: 'XXX' },
     order,
     logo: NO_MEDIA,
+    season: null,
   });
 
   it('puts stated places first, then the unplaced by country and name', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STALE_LIVE_AFTER_MS, liveFreshnessFrom } from './scores';
+import { STALE_LIVE_AFTER_MS, liveFreshnessFrom, stillToPlay } from './scores';
 
 /**
  * Where a live match's freshness is measured from (T-1394, D-209): the last
@@ -83,5 +83,16 @@ describe('liveFreshnessFrom', () => {
         live_answered_at: ANSWERED,
       }),
     ).toBe(at(CHANGED));
+  });
+});
+
+describe('stillToPlay', () => {
+  it('keeps a match to be played or being played, and nothing that will not be (T-1560)', () => {
+    expect(stillToPlay('scheduled')).toBe(true);
+    expect(stillToPlay('live')).toBe(true);
+    expect(stillToPlay('suspended')).toBe(true);
+    for (const status of ['finished', 'postponed', 'cancelled', 'abandoned', 'awarded'] as const) {
+      expect(stillToPlay(status), status).toBe(false);
+    }
   });
 });

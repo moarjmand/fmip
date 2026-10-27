@@ -11,6 +11,7 @@
  * result.
  */
 import type { GroupVisibility } from './groups';
+import type { EntityMedia } from './media';
 
 /** The catalog's kinds. `/ask` reads its intents against these alone. */
 export const SEARCH_ENTITY_TYPES = ['team', 'competition', 'person'] as const;
@@ -39,6 +40,12 @@ export interface SearchResult {
   alias: string | null;
   /** 0–1: how well the query matched. */
   score: number;
+  /**
+   * The team's crest, the competition's logo or the person's photo, from our
+   * own origin (T-1617, D-176); `not_supplied` when none is held. Absent from
+   * an answer older than T-1617.
+   */
+  image?: EntityMedia;
 }
 
 /**

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
+import { cache } from 'react';
 import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
 import { ForecastPanel, ModelVerdict } from '@/components/forecast-panel';
+import { ForecastReality } from './forecast-reality';
 import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CompetitionContextPanel } from '@/components/competition-context';
 import {
@@ -11,7 +13,7 @@ import {
   CommunitySplit,
   CommunityVerdict,
 } from '@/components/community-consensus';
-import { CommunityLane, ThreeProductsNote } from '@/components/product-lanes';
+import { CommunityVoice, ThreeProductsNote } from '@/components/voices';
 import { isLocked } from '@/lib/prediction-form';
 import { FounderAnalysisPanel, FounderVerdict } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
@@ -69,6 +71,13 @@ export const dynamic = 'force-dynamic';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * The match, asked once per request: the metadata and the page share the
+ * answer (T-1536). Each API call carries its own request id, so `fetch` would
+ * not merge the two by itself.
+ */
+const matchCentre = cache((id: string) => fetchMatchCentre(id));
+
 export async function generateMetadata({
   params,
 }: {
@@ -76,16 +85,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, id } = await params;
   const resolved = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const title = `${t(resolved, 'matchCentre.title')} · FMIP`;
+  const title = `${t(resolved, 'matchCentre.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title, robots: { index: false, follow: false } };
-  const result = await fetchMatchCentre(id);
+  const result = await matchCentre(id);
   if (!result.ok) return pageMetadata({ locale, path: `/match/${id}`, title });
   const f = result.data.fixture;
   const teams = { home: f.home.name, away: f.away.name };
   return pageMetadata({
     locale,
     path: `/match/${f.id}`,
-    title: `${interpolate(t(resolved, 'matchCentre.fixtureTitle'), teams)} · FMIP`,
+    title: `${interpolate(t(resolved, 'matchCentre.fixtureTitle'), teams)} · Stadiomind`,
     description: interpolate(t(resolved, 'matchCentre.metaDescription'), {
       ...teams,
       competition: f.competition.name,
@@ -118,9 +127,41 @@ export default async function MatchPage({
   const keyPlayers = fetchKeyPlayers(id);
 
   const cookie = await sessionCookieHeader();
+  const territory = readTerritoryQuery(query);
+  // The match and every read that needs only the match and the reader's
+  // cookie (T-1536): asked together, so the page waits for the slowest answer
+  // instead of the member, then the match, then the rest. An unknown match
+  // 404s below, and these answers are then dropped.
+  const centre = matchCentre(id);
+  const reads = Promise.all([
+    fetchForecasts(id),
+    centre.then((r) =>
+      r.ok && r.data.fixture.status === 'finished' ? fetchEvaluations(id) : null,
+    ),
+    fetchOwnPrediction(id, cookie),
+    fetchPowerIndex(id),
+    fetchFounderAnalysis(id),
+    fetchConsensus(id),
+    // No cookie: the discussion is the same document for everybody, and a
+    // session here would make a public read viewer-specific for nothing
+    // (T-251). The permission beside it is the only viewer-specific half.
+    fetchMatchPanel(id),
+    fetchPanelPermission(id, cookie),
+    // No cookie: a published analysis is meant to be read (T-263).
+    fetchCommunityAnalyses(id),
+    // Where to watch (T-314): the member's stored territory, or the one a
+    // guest chose on this page.
+    fetchMatchViewing(id, territory, cookie),
+    // Related news (T-145): the news page's cards, for this match and its sides.
+    fetchFixtureNews(id, locale),
+    // The match summary (E41): a stored row, never a model call on this request.
+    fetchMatchSummary(id),
+  ]);
+  // The competition context (T-840), awaited where its section is placed.
+  const context = fetchCompetitionContext(id);
+
   const me = await fetchMe(cookie);
   const tzParam = typeof query.tz === 'string' ? query.tz : undefined;
-  const territory = readTerritoryQuery(query);
   // The reader's zone (D-207): a `tz` on the link, else the member's or a
   // guest's choice, else the locale's default (UK time on /en).
   const timeZone =
@@ -146,52 +187,30 @@ export default async function MatchPage({
           fetchFollowing(cookie),
         ]);
 
-  const result = await fetchMatchCentre(id);
+  const result = await centre;
   if (!result.ok && result.status === 404) notFound();
-  // The competition context (T-840): asked now, beside the panels below, and
-  // awaited where its section is placed.
-  const competitionContext = result.ok ? fetchCompetitionContext(id) : Promise.resolve(null);
+  const competitionContext = result.ok ? context : Promise.resolve(null);
   // The forecast (T-065), the Power Index (T-114) and, once the match is over,
-  // its evaluation (T-066).
+  // its evaluation (T-066); a guest also needs the territories to choose from.
   const [
-    forecasts,
-    evaluations,
-    prediction,
-    power,
-    founder,
-    consensus,
-    panel,
-    panelPermission,
-    communityAnalyses,
-    viewing,
+    [
+      forecasts,
+      evaluations,
+      prediction,
+      power,
+      founder,
+      consensus,
+      panel,
+      panelPermission,
+      communityAnalyses,
+      viewing,
+      news,
+      summary,
+    ],
     territories,
-    news,
-    summary,
   ] = result.ok
-    ? await Promise.all([
-        fetchForecasts(id),
-        result.data.fixture.status === 'finished' ? fetchEvaluations(id) : Promise.resolve(null),
-        fetchOwnPrediction(id, cookie),
-        fetchPowerIndex(id),
-        fetchFounderAnalysis(id),
-        fetchConsensus(id),
-        // No cookie: the discussion is the same document for everybody, and a
-        // session here would make a public read viewer-specific for nothing
-        // (T-251). The permission beside it is the only viewer-specific half.
-        fetchMatchPanel(id),
-        fetchPanelPermission(id, cookie),
-        // No cookie: a published analysis is meant to be read (T-263).
-        fetchCommunityAnalyses(id),
-        // Where to watch (T-314): the member's stored territory, or the one a
-        // guest chose on this page; a guest also needs the list to choose from.
-        fetchMatchViewing(id, territory, cookie),
-        me === null ? fetchTerritories() : Promise.resolve(null),
-        // Related news (T-145): the news page's cards, for this match and its sides.
-        fetchFixtureNews(id, locale),
-        // The match summary (E41): a stored row, never a model call on this request.
-        fetchMatchSummary(id),
-      ])
-    : [null, null, null, null, null, null, null, null, null, null, null, null, null];
+    ? await Promise.all([reads, me === null ? fetchTerritories() : Promise.resolve(null)])
+    : [[null, null, null, null, null, null, null, null, null, null, null, null], null];
 
   // The final score, once there is one: what the three products are set against.
   const fixture = result.ok ? result.data.fixture : null;
@@ -200,6 +219,15 @@ export default async function MatchPage({
       ? (fixture.scores.full_time ?? fixture.scores.current)
       : null;
   const viewingData = viewing !== null && viewing.ok ? viewing.data : null;
+  // The match's own expected goals, for the Summary's "expected and scored".
+  const xgRow =
+    result.ok && result.data.statistics.data !== null
+      ? result.data.statistics.data.find((row) => row.metric === 'expected_goals')
+      : undefined;
+  const matchXg =
+    xgRow !== undefined && xgRow.home !== null && xgRow.away !== null
+      ? { home: xgRow.home, away: xgRow.away }
+      : null;
   const words = matchWords(locale);
   const now = new Date().getTime();
 
@@ -272,6 +300,20 @@ export default async function MatchPage({
                   final !== null ? <HighlightsLink locale={locale} viewing={viewingData} /> : null,
               }}
               slots={{
+                // The Summary opens with what the model forecast and, after
+                // full time, what happened (T-1497): the model's card alone,
+                // drawn on the server; the three voices follow it.
+                outcome: (
+                  <ForecastReality
+                    forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
+                    evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
+                    fixture={result.data.fixture}
+                    final={final}
+                    matchXg={matchXg}
+                    timeZone={timeZone}
+                    locale={locale}
+                  />
+                ),
                 // What does not move in play, drawn here so its code stays out
                 // of the page's client bundle (T-1384).
                 form: (
@@ -339,7 +381,7 @@ export default async function MatchPage({
                         timeZone={timeZone}
                         locale={locale}
                       />
-                      <CommunityLane locale={locale}>
+                      <CommunityVoice locale={locale}>
                         <CommunityVerdict
                           consensus={consensus !== null && consensus.ok ? consensus.data : null}
                           result={final}
@@ -347,7 +389,7 @@ export default async function MatchPage({
                           away={result.data.fixture.away.name}
                           locale={locale}
                         />
-                      </CommunityLane>
+                      </CommunityVoice>
                     </VerdictCard>
                   ) : null,
                 context: (
@@ -394,7 +436,7 @@ export default async function MatchPage({
                     {/* The community picks lane (T-1388): the reader's own pick and
                     the members' spread, which opens only once they have picked or
                     kick-off has locked every pick, so it cannot anchor a pick. */}
-                    <CommunityLane locale={locale}>
+                    <CommunityVoice locale={locale}>
                       <PredictionSection
                         locale={locale}
                         fixture={result.data.fixture}
@@ -426,7 +468,7 @@ export default async function MatchPage({
                             : null
                         }
                       />
-                    </CommunityLane>
+                    </CommunityVoice>
                     {/* Where the three meet on one page, said once (T-1388). */}
                     <ThreeProductsNote locale={locale} />
                     {/* Below the founder's analysis and visibly not it: a fourth

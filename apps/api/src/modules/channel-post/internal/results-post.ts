@@ -119,7 +119,7 @@ function header(
   total: number,
 ): string {
   const title =
-    `FMIP · The statistical model's results · ${dayLabel(day)}` +
+    `Stadiomind · The statistical model's results · ${dayLabel(day)}` +
     (total > 1 ? ` (${part}/${total})` : '');
   const named =
     versions.length === 0

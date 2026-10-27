@@ -1,12 +1,23 @@
-import type { CompetitionPage, SeasonFixture, TableRow } from '@fmip/contracts';
+import type {
+  AccuracyPoint,
+  CompetitionPage,
+  PublicModelAccuracyResponse,
+  SeasonFixture,
+  TableRow,
+} from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   MATCHWEEK_LIMIT,
   availableTabs,
   currentMatchweek,
   hasTable,
+  lastResultDay,
+  leagueModel,
   leagueNumbers,
   mainResults,
+  monthInSeason,
+  monthsTotal,
+  nextMatchDay,
   perMatch,
   readTabParam,
   roundGroups,
@@ -69,7 +80,7 @@ const shape = (over: Partial<Shape>): Shape => ({
   ...over,
 });
 
-describe('the tabs (T-1385)', () => {
+describe('the tabs (T-1385, T-1498)', () => {
   it('opens on the Overview for nothing or anything it does not know', () => {
     expect(readTabParam({})).toBe('overview');
     expect(readTabParam({ tab: 'table' })).toBe('table');
@@ -77,11 +88,18 @@ describe('the tabs (T-1385)', () => {
     expect(readTabParam({ tab: 'standings' })).toBe('overview');
   });
 
+  it('opens a retired Hybrid tab’s address on the tab that holds it now (T-1498)', () => {
+    expect(readTabParam({ tab: 'fixtures' })).toBe('matches');
+    expect(readTabParam({ tab: 'results' })).toBe('matches');
+    expect(readTabParam({ tab: 'stats' })).toBe('overview');
+    expect(readTabParam({ tab: 'model' })).toBe('model');
+  });
+
   it('keeps the season and the floor in a tab’s address; the Overview needs no tab', () => {
     const current = { id: SEASON, is_current: true };
     const old = { id: SEASON, is_current: false };
     expect(tabHref('en', 'c1', current, 'overview')).toBe('/en/competition/c1');
-    expect(tabHref('fa', 'c1', current, 'results')).toBe('/fa/competition/c1?tab=results');
+    expect(tabHref('fa', 'c1', current, 'matches')).toBe('/fa/competition/c1?tab=matches');
     expect(tabHref('en', 'c1', old, 'players', 900)).toBe(
       `/en/competition/c1?season=${SEASON}&min_minutes=900&tab=players`,
     );
@@ -96,10 +114,10 @@ describe('the tabs (T-1385)', () => {
     expect(hasTable(shape({ competition: { kind: 'cup' }, group_tables: covered([]) }))).toBe(true);
     expect(availableTabs(shape({ competition: { kind: 'cup' } }))).toEqual([
       'overview',
-      'fixtures',
-      'results',
+      'matches',
       'players',
-      'stats',
+      'model',
+      'news',
     ]);
     // A continental cup's knockout rounds still have a tab of their own.
     expect(
@@ -273,5 +291,217 @@ describe('the season in figures (T-1385)', () => {
     expect(sharePercent('fa', 1, 4)).toMatch(/۲۵/);
     expect(seasonDigits('fa', '2026/27')).toBe('۲۰۲۶/۲۷');
     expect(seasonDigits('en', '2026/27')).toBe('2026/27');
+  });
+});
+
+describe('the day of matches (T-1498)', () => {
+  const now = Date.parse('2026-10-25T09:00:00.000Z');
+  const season = (fixtures: SeasonFixture[], results: SeasonFixture[] = []) => ({
+    fixtures,
+    results,
+  });
+
+  it('takes the day of the next match in the reader’s zone, finished matches that day included', () => {
+    const early = fx({ id: 'e', kickoff_at: '2026-10-25T13:00:00.000Z' });
+    const late = fx({ id: 'l', kickoff_at: '2026-10-25T16:30:00.000Z' });
+    const done = fx({
+      id: 'd',
+      kickoff_at: '2026-10-25T08:00:00.000Z',
+      status: 'finished',
+      score: { home: 1, away: 0 },
+    });
+    const tomorrow = fx({ id: 't', kickoff_at: '2026-10-26T19:00:00.000Z' });
+    const day = nextMatchDay(season([late, early, tomorrow], [done]), 'Europe/London', now);
+    expect(day?.day).toBe('2026-10-25');
+    expect(day?.fixtures.map((f) => f.id)).toEqual(['d', 'e', 'l']);
+  });
+
+  it('reads the day in the reader’s zone: 23:30 in London is the next day in Tehran', () => {
+    const f = fx({ kickoff_at: '2026-10-25T22:30:00.000Z' });
+    expect(nextMatchDay(season([f]), 'Europe/London', now)?.day).toBe('2026-10-25');
+    expect(nextMatchDay(season([f]), 'Asia/Tehran', now)?.day).toBe('2026-10-26');
+  });
+
+  it('lets a live match set the day, and never an old match the feed left scheduled', () => {
+    const stale = fx({ id: 's', kickoff_at: '2026-10-20T13:00:00.000Z' });
+    const next = fx({ id: 'n', kickoff_at: '2026-10-28T13:00:00.000Z' });
+    expect(nextMatchDay(season([stale, next]), 'UTC', now)?.day).toBe('2026-10-28');
+    const live = fx({ id: 'v', kickoff_at: '2026-10-25T08:30:00.000Z', status: 'live' });
+    expect(nextMatchDay(season([live, next]), 'UTC', now)?.day).toBe('2026-10-25');
+  });
+
+  it('has no day when nothing is left to play', () => {
+    const done = fx({ status: 'finished', score: { home: 0, away: 0 } });
+    expect(nextMatchDay(season([], [done]), 'UTC', now)).toBeNull();
+    expect(nextMatchDay(season([fx({ status: 'postponed' })]), 'UTC', now)).toBeNull();
+  });
+
+  it('gives the latest day of results before the match day, finished matches only', () => {
+    const sat = (id: string, h: number) =>
+      fx({
+        id,
+        kickoff_at: `2026-10-24T1${h}:00:00.000Z`,
+        status: 'finished',
+        score: { home: h, away: 0 },
+      });
+    const sun = fx({
+      id: 'sun',
+      kickoff_at: '2026-10-25T08:00:00.000Z',
+      status: 'finished',
+      score: { home: 2, away: 2 },
+    });
+    const off = fx({ id: 'off', kickoff_at: '2026-10-24T18:00:00.000Z', status: 'postponed' });
+    const page = season([off], [sun, sat('b', 6), sat('a', 4)]);
+    expect(lastResultDay(page, 'UTC', '2026-10-25')?.fixtures.map((f) => f.id)).toEqual(['a', 'b']);
+    expect(lastResultDay(page, 'UTC', null)?.day).toBe('2026-10-25');
+    expect(lastResultDay(season([]), 'UTC', null)).toBeNull();
+  });
+});
+
+describe('the model in this league (T-1498)', () => {
+  const metrics = (matches: number, over: Partial<AccuracyPoint> = {}): AccuracyPoint => ({
+    period: '2026-10',
+    period_start: '2026-10-01',
+    forecasts: matches * 2,
+    matches,
+    coverage: matches === 0 ? 'not_supplied' : matches < 30 ? 'limited' : 'available',
+    log_loss: matches === 0 ? null : 1,
+    brier: matches === 0 ? null : 0.6,
+    rps: matches === 0 ? null : 0.225,
+    accuracy: matches === 0 ? null : 0.52,
+    uniform_rps: matches === 0 ? null : 0.244,
+    ...over,
+  });
+  const answer = (
+    competitions: PublicModelAccuracyResponse['competitions'],
+  ): PublicModelAccuracyResponse => ({
+    period: 'month',
+    minimum_matches: 30,
+    reference: { uniform_log_loss: 1.0986, uniform_brier: 0.6667, uniform_accuracy: 1 / 3 },
+    overall: { competition: null, model_versions: ['m@1'], total: metrics(40), points: [] },
+    competitions,
+    last_updated_at: '2026-10-25T06:00:00.000Z',
+  });
+
+  it('is unreachable when the answer did not come', () => {
+    expect(leagueModel(null, 'c1')).toEqual({ state: 'unreachable' });
+  });
+
+  it('is not supplied for a league the model has not forecast, or has scored nothing in', () => {
+    expect(leagueModel(answer([]), 'c1').state).toBe('not_supplied');
+    const empty = answer([
+      {
+        competition: { id: 'c1', name: 'Premier League' },
+        model_versions: [],
+        total: metrics(0),
+        points: [],
+      },
+    ]);
+    expect(leagueModel(empty, 'c1').state).toBe('not_supplied');
+  });
+
+  it('takes the newest scored month, keeps every month newest first, and the league’s total', () => {
+    const series = {
+      competition: { id: 'c1', name: 'Premier League' },
+      model_versions: ['dixon-coles-elo@0.6.0'],
+      total: metrics(55),
+      points: [
+        metrics(30, { period: '2026-09', period_start: '2026-09-01' }),
+        metrics(25, { period: '2026-10', period_start: '2026-10-01' }),
+      ],
+    };
+    const model = leagueModel(answer([series]), 'c1');
+    expect(model.state).toBe('scored');
+    if (model.state !== 'scored') return;
+    expect(model.latest.period).toBe('2026-10');
+    expect(model.latest.coverage).toBe('limited');
+    expect(model.months.map((m) => m.period)).toEqual(['2026-10', '2026-09']);
+    expect(model.total.matches).toBe(55);
+    expect(model.modelVersions).toEqual(['dixon-coles-elo@0.6.0']);
+    // The answer is never mutated: its points stay oldest first.
+    expect(series.points[0]!.period).toBe('2026-09');
+  });
+
+  describe('on one season’s page (T-1556, D-278)', () => {
+    const series = {
+      competition: { id: 'c1', name: 'Premier League' },
+      model_versions: ['dixon-coles-elo@0.6.0'],
+      total: metrics(70),
+      points: [
+        metrics(10, {
+          period: '2026-05',
+          period_start: '2026-05-01',
+          accuracy: 0.4,
+          rps: 0.25,
+          uniform_rps: 0.24,
+        }),
+        metrics(30, {
+          period: '2026-09',
+          period_start: '2026-09-01',
+          accuracy: 0.5,
+          rps: 0.2,
+          uniform_rps: 0.24,
+        }),
+        metrics(30, {
+          period: '2026-10',
+          period_start: '2026-10-01',
+          accuracy: 0.6,
+          rps: 0.22,
+          uniform_rps: 0.25,
+        }),
+      ],
+    };
+    const current = { start_date: '2026-08-15', end_date: '2027-05-23' };
+    const past = { start_date: '2025-08-16', end_date: '2026-05-24' };
+
+    it('counts only the season’s months, and sums them into the season’s total', () => {
+      const model = leagueModel(answer([series]), 'c1', current);
+      expect(model.state).toBe('scored');
+      if (model.state !== 'scored') return;
+      expect(model.months.map((m) => m.period)).toEqual(['2026-10', '2026-09']);
+      expect(model.total.matches).toBe(60);
+      expect(model.total.coverage).toBe('available');
+      expect(model.total.accuracy).toBeCloseTo(0.55, 10);
+      expect(model.total.rps).toBeCloseTo(0.21, 10);
+      expect(model.total.uniform_rps).toBeCloseTo(0.245, 10);
+    });
+
+    it('never shows an older season this month’s record', () => {
+      const model = leagueModel(answer([series]), 'c1', past);
+      expect(model.state).toBe('scored');
+      if (model.state !== 'scored') return;
+      expect(model.latest.period).toBe('2026-05');
+      expect(model.total.matches).toBe(10);
+      expect(model.total.coverage).toBe('limited');
+      const before = { start_date: '2024-08-16', end_date: '2025-05-25' };
+      expect(leagueModel(answer([series]), 'c1', before).state).toBe('not_supplied');
+    });
+
+    it('keeps the API’s own total when every month is the season’s', () => {
+      const whole = { start_date: '2026-01-01', end_date: '2027-05-31' };
+      const model = leagueModel(answer([series]), 'c1', whole);
+      if (model.state !== 'scored') throw new Error('not scored');
+      expect(model.total).toBe(series.total);
+    });
+
+    it('reads a month as the season’s when the two share a day, at both ends', () => {
+      expect(monthInSeason('2026-08-01', current)).toBe(true);
+      expect(monthInSeason('2027-05-01', current)).toBe(true);
+      expect(monthInSeason('2026-07-01', current)).toBe(false);
+      expect(monthInSeason('2027-06-01', current)).toBe(false);
+    });
+
+    it('sums nothing into nothing: no figure without a match', () => {
+      expect(monthsTotal([])).toEqual({
+        forecasts: 0,
+        matches: 0,
+        coverage: 'not_supplied',
+        log_loss: null,
+        brier: null,
+        rps: null,
+        accuracy: null,
+        uniform_rps: null,
+      });
+    });
   });
 });

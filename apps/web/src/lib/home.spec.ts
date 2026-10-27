@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type {
+  ForecastVersion,
   MatchViewing,
-  NewsStoryCard,
   PanelLatest,
   PublicModelAccuracyResponse,
   ScoreCard,
@@ -9,14 +9,17 @@ import type {
 } from '@fmip/contracts';
 import {
   accuracyFigure,
-  competitionsOn,
   featuredNotes,
+  heroMatch,
+  heroVersion,
   homeBroadcasts,
   homePanels,
   keyDay,
   keyMatchGroups,
-  leadMatch,
-  leadStory,
+  liveCards,
+  liveCheckedAt,
+  matchesOn,
+  sharedRound,
   shortDay,
   tableCompetition,
   tableRowOf,
@@ -99,7 +102,7 @@ describe("the member's homepage (T-942)", () => {
   });
 });
 
-describe('the Hybrid front page (T-1382, D-200)', () => {
+describe('the front page (T-1382, D-200; T-1495, D-270)', () => {
   // Groups in the answer's order, which without the session is D-154's:
   // the Pro League first, then the Champions League, then the Premier League.
   const pgpl = (id: string, status: ScoreCard['status'], kickoff: string) =>
@@ -117,7 +120,12 @@ describe('the Hybrid front page (T-1382, D-200)', () => {
     expect(keyDay(scores([], []), '2026-10-08', 'UTC')).toBeNull();
   });
 
-  it('leads with the biggest open match: the competitions’ order, then the earliest', () => {
+  const hero = (...args: Parameters<typeof heroMatch>) => {
+    const found = heroMatch(...args);
+    return found === null ? null : [found.card.id, found.slot];
+  };
+
+  it('opens on the next big match when nothing is live: the competitions’ order, then the earliest', () => {
     const data = scores(
       [],
       [
@@ -128,7 +136,7 @@ describe('the Hybrid front page (T-1382, D-200)', () => {
         [ucl('cup', 'scheduled', '2026-10-08T11:00:00Z')],
       ],
     );
-    expect(leadMatch(data, '2026-10-08', 'UTC')?.id).toBe('early');
+    expect(hero(data, '2026-10-08', 'UTC')).toEqual(['early', 'today']);
   });
 
   it('puts a member’s own team first, then an editor’s feature, and never a finished match', () => {
@@ -143,27 +151,107 @@ describe('the Hybrid front page (T-1382, D-200)', () => {
         [epl('mine', 'scheduled', '2026-10-08T20:00:00Z')],
       ],
     );
-    expect(leadMatch(data, '2026-10-08', 'UTC', new Set(), new Set(['cup']))?.id).toBe('cup');
-    expect(leadMatch(data, '2026-10-08', 'UTC', new Set(['mineh']), new Set(['cup']))?.id).toBe(
-      'mine',
-    );
+    expect(hero(data, '2026-10-08', 'UTC', new Set(), new Set(['cup']))?.[0]).toBe('cup');
+    expect(hero(data, '2026-10-08', 'UTC', new Set(['mineh']), new Set(['cup']))?.[0]).toBe('mine');
     // A followed team's finished match does not lead.
-    expect(leadMatch(data, '2026-10-08', 'UTC', new Set(['doneh']))?.id).toBe('pro');
+    expect(hero(data, '2026-10-08', 'UTC', new Set(['doneh']))?.[0]).toBe('pro');
   });
 
-  it('leads with the next day’s match once today’s are played, and with none when nothing is open', () => {
+  it('gives the slot to a big match in play, and falls back to the next big one when none is', () => {
+    const day = (status: ScoreCard['status']) =>
+      scores(
+        [],
+        [
+          [
+            pgpl('now', status, '2026-10-08T12:00:00Z'),
+            pgpl('next', 'scheduled', '2026-10-08T17:00:00Z'),
+          ],
+        ],
+      );
+    expect(hero(day('live'), '2026-10-08', 'UTC')).toEqual(['now', 'live']);
+    // Over: the next big match takes the slot again.
+    expect(hero(day('finished'), '2026-10-08', 'UTC')).toEqual(['next', 'today']);
+  });
+
+  it('never gives the slot to a live match smaller than the next big one', () => {
+    const data = scores(
+      [],
+      [
+        [pgpl('clasico', 'scheduled', '2026-10-09T19:00:00Z')],
+        [ucl('cup', 'live', '2026-10-08T17:00:00Z')],
+        [epl('minor', 'live', '2026-10-08T17:30:00Z')],
+      ],
+    );
+    // An editor's feature beats a big competition's live match; it is tomorrow.
+    expect(hero(data, '2026-10-08', 'UTC', new Set(), new Set(['clasico']))).toEqual([
+      'clasico',
+      'tomorrow',
+    ]);
+    // A live match outside the big competitions never leads: with one big
+    // competition counted, the Pro League's match tomorrow does.
+    expect(hero(data, '2026-10-08', 'UTC', new Set(), new Set(), 1)).toEqual([
+      'clasico',
+      'tomorrow',
+    ]);
+    // Within the big competitions, the match in play wins.
+    expect(hero(data, '2026-10-08', 'UTC')).toEqual(['cup', 'live']);
+  });
+
+  it('looks past an empty today and tomorrow to the first day with a match, and says so', () => {
     const data = scores(
       [],
       [
         [
           pgpl('today', 'finished', '2026-10-08T10:00:00Z'),
-          pgpl('tomorrow', 'scheduled', '2026-10-09T13:00:00Z'),
+          pgpl('saturday', 'scheduled', '2026-10-10T13:00:00Z'),
+          pgpl('sunday', 'scheduled', '2026-10-11T13:00:00Z'),
         ],
       ],
     );
-    expect(leadMatch(data, '2026-10-08', 'UTC')?.id).toBe('tomorrow');
+    expect(hero(data, '2026-10-08', 'UTC')).toEqual(['saturday', 'later']);
     const over = scores([], [[pgpl('today', 'finished', '2026-10-08T10:00:00Z')]]);
-    expect(leadMatch(over, '2026-10-08', 'UTC')).toBeNull();
+    expect(hero(over, '2026-10-08', 'UTC')).toBeNull();
+    expect(hero(scores([], []), '2026-10-08', 'UTC')).toBeNull();
+  });
+
+  it('lists the matches in play in the competitions’ order, and when they were last heard from', () => {
+    const a = {
+      ...ucl('a', 'live', '2026-10-08T12:00:00Z'),
+      last_updated_at: '2026-10-08T12:40:00Z',
+    };
+    const b = {
+      ...pgpl('b', 'live', '2026-10-08T13:00:00Z'),
+      last_updated_at: '2026-10-08T13:10:00Z',
+      live_answered_at: '2026-10-08T13:20:00Z',
+    };
+    const data = scores([], [[b, pgpl('c', 'scheduled', '2026-10-08T18:00:00Z')], [a]]);
+    expect(liveCards(data).map((card) => card.id)).toEqual(['b', 'a']);
+    expect(liveCheckedAt(liveCards(data))).toBe('2026-10-08T13:20:00Z');
+    expect(liveCheckedAt([])).toBeNull();
+  });
+
+  it('reads the hero’s figures from its last version before kick-off, never a later one', () => {
+    const version = (version_number: number, computed_at: string) =>
+      ({ version_number, computed_at }) as ForecastVersion;
+    const kickoff = '2026-10-08T17:00:00.000Z';
+    const versions = [
+      version(1, '2026-10-06T09:00:00.000Z'),
+      version(2, '2026-10-08T15:45:00.000Z'),
+      version(3, '2026-10-08T17:30:00.000Z'),
+    ];
+    expect(heroVersion(versions, kickoff)?.version_number).toBe(2);
+    expect(heroVersion([versions[2]!], kickoff)).toBeNull();
+    expect(heroVersion(null, kickoff)).toBeNull();
+  });
+
+  it('names a competition’s round only when its whole card shares one', () => {
+    const r = (round: string | null) =>
+      ({ ...pgpl('x', 'scheduled', '2026-10-08T12:00:00Z'), round }) as ScoreCard;
+    expect(sharedRound([r('Regular Season - 8'), r('Regular Season - 8')])).toBe(
+      'Regular Season - 8',
+    );
+    expect(sharedRound([r('Regular Season - 8'), r('Regular Season - 9')])).toBeNull();
+    expect(sharedRound([r(null)])).toBeNull();
   });
 
   it('groups the key day by competition in order, the member’s teams first and each match once', () => {
@@ -188,7 +276,7 @@ describe('the Hybrid front page (T-1382, D-200)', () => {
       ['yours', null, ['u1']],
       ['competition', 'pgpl', ['p1', 'p2']],
     ]);
-    expect(competitionsOn(data, '2026-10-08', 'UTC')).toBe(2);
+    expect(matchesOn(data, '2026-10-08', 'UTC')).toBe(3);
   });
 
   it('cuts a long day and counts what it left for the scores page', () => {
@@ -212,24 +300,8 @@ describe('the Hybrid front page (T-1382, D-200)', () => {
     expect(tableRowOf(null, 't')).toBeNull();
   });
 
-  it('leads with the newest story an editor marked breaking, the rest left to the strip', () => {
-    const story = (id: string, marked: string | null) =>
-      ({
-        story_id: id,
-        breaking: marked === null ? null : { note: 'n', marked_at: marked, ends_at: marked },
-      }) as unknown as NewsStoryCard;
-    const { lead, rest } = leadStory([
-      story('old', '2026-10-08T08:00:00Z'),
-      story('new', '2026-10-08T09:00:00Z'),
-      story('plain', null),
-    ]);
-    expect(lead?.story_id).toBe('new');
-    expect(rest.map((s) => s.story_id)).toEqual(['old']);
-    expect(leadStory(null)).toEqual({ lead: null, rest: [] });
-  });
-
   it('shows the newest month with a scored match, and nothing when none is scored', () => {
-    const point = (period: string, matches: number, rps: number | null) => ({
+    const point = (period: string, matches: number, rps: number | null, accuracy = 0.5) => ({
       period,
       period_start: `${period}-01`,
       forecasts: matches,
@@ -238,13 +310,25 @@ describe('the Hybrid front page (T-1382, D-200)', () => {
       log_loss: null,
       brier: null,
       rps,
-      accuracy: null,
+      accuracy: rps === null ? null : accuracy,
       uniform_rps: rps === null ? null : 0.23,
+    });
+    const league = (id: string, points: ReturnType<typeof point>[]) => ({
+      competition: { id, name: id.toUpperCase() },
+      model_versions: [],
+      points,
     });
     const answer = (points: ReturnType<typeof point>[]) =>
       ({
         period: 'month',
+        minimum_matches: 30,
         overall: { competition: null, model_versions: ['dixon-coles-elo@0.6.0'], points },
+        competitions: [
+          league('bl', [point('2026-10', 8, 0.24, 0.44)]),
+          league('ucl', [point('2026-10', 4, 0.18, 0.667)]),
+          // Nothing scored this month: left out, not shown as nought.
+          league('pgpl', [point('2026-09', 20, 0.2, 0.6)]),
+        ],
         last_updated_at: '2026-10-08T03:00:00Z',
       }) as unknown as PublicModelAccuracyResponse;
     const figure = accuracyFigure(
@@ -255,7 +339,44 @@ describe('the Hybrid front page (T-1382, D-200)', () => {
     expect(figure?.periodStart).toBe('2026-10-01');
     expect(figure?.metrics.coverage).toBe('limited');
     expect(figure?.modelVersions).toEqual(['dixon-coles-elo@0.6.0']);
+    // T-1516: each league's same month, the favourite winning most often first.
+    expect(figure?.competitions.map((c) => c.id)).toEqual(['ucl', 'bl']);
+    expect(figure?.minimumMatches).toBe(30);
     expect(accuracyFigure(answer([point('2026-10', 0, null)]))).toBeNull();
+  });
+
+  it('lists the leagues on a full sample before the limited ones (T-1540)', () => {
+    const point = (matches: number, accuracy: number) => ({
+      period: '2026-10',
+      period_start: '2026-10-01',
+      forecasts: matches,
+      matches,
+      coverage: matches < 30 ? 'limited' : 'available',
+      log_loss: null,
+      brier: null,
+      rps: 0.2,
+      accuracy,
+      uniform_rps: 0.24,
+    });
+    // Production, October 2026: Süper Lig's 24 matches topped the list over
+    // the Champions League's 36.
+    const figure = accuracyFigure({
+      period: 'month',
+      minimum_matches: 30,
+      overall: { competition: null, model_versions: [], points: [point(459, 0.551)] },
+      competitions: [
+        ['tsl', 24, 0.708],
+        ['ucl', 36, 0.667],
+        ['pt', 17, 0.647],
+        ['pl', 30, 0.5],
+      ].map(([id, matches, accuracy]) => ({
+        competition: { id, name: id },
+        model_versions: [],
+        points: [point(matches as number, accuracy as number)],
+      })),
+      last_updated_at: null,
+    } as unknown as PublicModelAccuracyResponse);
+    expect(figure?.competitions.map((c) => c.id)).toEqual(['ucl', 'pl', 'tsl', 'pt']);
   });
 
   it('lists today’s broadcasts only where a source lists one, and says why when none', () => {

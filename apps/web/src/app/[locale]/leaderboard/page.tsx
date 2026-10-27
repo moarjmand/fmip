@@ -16,12 +16,14 @@ import {
 } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { Notice } from '@/components/ui';
+import { ButtonLink, Card, Notice } from '@/components/ui';
+import { PICKS_PATH } from '@/lib/shell-nav';
 import { Translated } from '@/components/translated';
 import { MemberName } from '@/components/member-name';
 import { UNFINISHED_LOCALES } from '@/i18n/locales';
 import { Stamp } from '@/components/stamp';
-import { attribute, interpolate, message, t } from '@/i18n/messages';
+import { ModelVersion } from '@/components/model-version';
+import { attribute, message, t } from '@/i18n/messages';
 import { asLocale, plainNumber, richMessage } from '@/lib/prediction-text';
 
 /** The languages a board can be drawn by (T-844): the ones the site is offered in. */
@@ -70,7 +72,10 @@ export default async function LeaderboardPage({
   const cookie = await sessionCookieHeader();
   const result = await fetchLeaderboard(apiQuery(q), cookie);
   const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
+    // A 44px target on a phone, the old compact chip from 768px (T-1574).
+    `inline-flex min-h-touch items-center rounded px-2 md:min-h-0 md:py-1 ${
+      active ? 'bg-surface-raised font-semibold' : 'underline'
+    }`;
 
   const scopes = [
     { scope: 'everyone', label: 'leaderboardPage.everyone' },
@@ -89,6 +94,26 @@ export default async function LeaderboardPage({
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         <Translated locale={l} message="nav.leaderboard" />
       </h1>
+
+      {/* The way to make picks (T-1610, D-281): the header's Predictions
+        leads here, and picks are made on the matches page, in its "Not
+        picked yet" view. The page's one primary button. */}
+      <Card
+        className="flex-row flex-wrap items-center justify-between"
+        data-testid="leaderboard-picks"
+      >
+        <p className="max-w-md text-sm text-muted">
+          <Translated locale={l} message="leaderboardPage.picksLead" />
+        </p>
+        <ButtonLink
+          href={`/${locale}${PICKS_PATH}`}
+          variant="primary"
+          size="md"
+          data-testid="leaderboard-picks-cta"
+        >
+          <Translated locale={l} message="leaderboardPage.picksCta" />
+        </ButtonLink>
+      </Card>
 
       <nav aria-label={boardNav.text} lang={boardNav.lang} className="flex flex-col gap-2 text-sm">
         <div className="flex flex-wrap items-center gap-2" data-testid="scope-switcher">
@@ -391,16 +416,16 @@ export default async function LeaderboardPage({
           </nav>
 
           <p className="text-xs text-muted">
-            {richMessage(
-              {
-                ...message(l, 'leaderboardPage.footer'),
-                text: interpolate(t(l, 'leaderboardPage.footer'), {
-                  formula: result.data.entries[0]?.formula_version ?? 'performance-rating',
-                  rules: result.data.rules_version,
-                }),
-              },
-              { time: <Stamp iso={result.data.generated_at} locale={locale} /> },
-            )}
+            {/* Each version an element, its `@` set apart: no address in the HTML (T-1606). */}
+            {richMessage(message(l, 'leaderboardPage.footer'), {
+              formula: (
+                <ModelVersion
+                  version={result.data.entries[0]?.formula_version ?? 'performance-rating'}
+                />
+              ),
+              rules: <ModelVersion version={result.data.rules_version} />,
+              time: <Stamp iso={result.data.generated_at} locale={locale} />,
+            })}
           </p>
         </>
       )}

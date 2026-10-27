@@ -13,10 +13,10 @@ test.describe('SEO surface without JavaScript', () => {
   test('a page carries its content, canonical URL and language alternates', async ({ page }) => {
     await page.goto('/en/scores');
 
-    await expect(page.getByTestId('title')).toHaveText('Scores');
-    await expect(page.getByTestId('nav-scores')).toBeVisible();
+    await expect(page.getByTestId('title')).toHaveText('Matches');
+    await expect(page.getByTestId('nav-matches')).toBeVisible();
     await expect(page.getByTestId('nav-predictions')).toBeVisible();
-    await expect(page.getByTestId('nav-search')).toBeVisible();
+    await expect(page.getByTestId('nav-search-form')).toBeVisible();
     // The honest state is rendered server-side, not filled in by a script.
     await expect(page.getByRole('alert')).toBeVisible();
 
@@ -88,7 +88,15 @@ test.describe('SEO surface without JavaScript', () => {
  */
 test.describe('no text reads as an e-mail address', () => {
   const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/;
-  for (const path of ['/en', '/en/match/00000000-0000-4000-8000-000000000901']) {
+  // T-1580: the competition page's receipt and the model page's versions too.
+  for (const path of [
+    '/en',
+    '/en/match/00000000-0000-4000-8000-000000000901',
+    '/en/competition/00000000-0000-4000-8000-000000000201?tab=model',
+    '/en/model-accuracy',
+    // T-1606: the leaderboard's formula and board rules versions.
+    '/en/leaderboard',
+  ]) {
     test(path, async ({ request }) => {
       const response = await request.get(path);
       expect(response.status()).toBe(200);

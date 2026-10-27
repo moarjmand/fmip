@@ -1,4 +1,5 @@
 import Link from '@/components/ui/link';
+import type { ReactNode } from 'react';
 import type {
   CompetitionPage,
   FormResult,
@@ -10,66 +11,72 @@ import { zoneOfPlace } from '@fmip/contracts';
 import { EntityImage } from '@/components/entity-image';
 import { LtrNumeric } from '@/components/score';
 import { Translated } from '@/components/translated';
+import { cx } from '@/components/ui/cx';
 import { formatNumber } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
-import { FORM_KEY, listText, say, stageName, ZONE_KEY, ZONE_MARK } from '@/lib/competition';
+import {
+  FORM_KEY,
+  formLine,
+  listText,
+  say,
+  stageName,
+  ZONE_KEY,
+  ZONE_MARK,
+} from '@/lib/competition';
 
 /**
  * The table's figure columns (T-1203). On a phone the table keeps position,
  * team, played, goal difference and points, the columns a reader ranks by;
- * won, drawn, lost and the goals, and the form, appear from the tablet width
- * up. At 375 px all eleven columns squeezed the form into a stack of letters
- * and wrapped every club's name onto two lines. The abbreviations are the
- * catalogue's (T-1304): Persian uses short words that fit a phone column, the
- * whole word in the title.
+ * won, drawn, lost and the goals appear from the tablet width up, the form
+ * from the desktop width. The abbreviations are the catalogue's (T-1304):
+ * Persian uses short words that fit a phone column, the whole word in the
+ * title. The goals are one column, scored and conceded as "20:9" (T-1498,
+ * the Stadiomind canvas).
  */
 const TABLE_COLUMNS: {
   label: MessageKey;
   title: MessageKey;
   phone: boolean;
-  value: (row: TableRow) => number;
+  value: (locale: string, row: TableRow) => ReactNode;
 }[] = [
   {
     label: 'competitionPage.col.played',
     title: 'competitionPage.col.playedTitle',
     phone: true,
-    value: (r) => r.played,
+    value: (l, r) => formatNumber(l, r.played),
   },
   {
     label: 'competitionPage.col.won',
     title: 'competitionPage.col.wonTitle',
     phone: false,
-    value: (r) => r.won,
+    value: (l, r) => formatNumber(l, r.won),
   },
   {
     label: 'competitionPage.col.drawn',
     title: 'competitionPage.col.drawnTitle',
     phone: false,
-    value: (r) => r.drawn,
+    value: (l, r) => formatNumber(l, r.drawn),
   },
   {
     label: 'competitionPage.col.lost',
     title: 'competitionPage.col.lostTitle',
     phone: false,
-    value: (r) => r.lost,
+    value: (l, r) => formatNumber(l, r.lost),
   },
   {
-    label: 'competitionPage.col.goalsFor',
-    title: 'competitionPage.col.goalsForTitle',
+    label: 'competitionPage.col.goals',
+    title: 'competitionPage.col.goalsTitle',
     phone: false,
-    value: (r) => r.goals_for,
-  },
-  {
-    label: 'competitionPage.col.goalsAgainst',
-    title: 'competitionPage.col.goalsAgainstTitle',
-    phone: false,
-    value: (r) => r.goals_against,
+    // Scored first: the pair keeps its order on a right-to-left page.
+    value: (l, r) => (
+      <LtrNumeric>{`${formatNumber(l, r.goals_for)}:${formatNumber(l, r.goals_against)}`}</LtrNumeric>
+    ),
   },
   {
     label: 'competitionPage.col.goalDifference',
     title: 'competitionPage.col.goalDifferenceTitle',
     phone: true,
-    value: (r) => r.goal_difference,
+    value: (l, r) => <LtrNumeric>{signedGap(l, r.goal_difference)}</LtrNumeric>,
   },
 ];
 
@@ -83,14 +90,24 @@ const SUMMARY_LABELS: readonly MessageKey[] = [
   'competitionPage.col.goalDifference',
 ];
 
-/** A header cell's look (T-1385): small, bold, muted. */
-const TH = 'px-1.5 py-2 text-xs font-bold text-muted';
+/** A header cell's look: small, semibold, in the caption colour (the canvas's). */
+const TH = 'px-1.5 py-2.5 text-xs font-semibold text-caption';
 
 /**
- * The form letters as tiles, oldest to newest in the reading direction
- * (T-1385). Each result has its own letter as well as its own look -- a win
- * filled in the green, a draw on the raised ground, a loss outlined in the
- * danger colour -- so none rests on hue.
+ * A table that runs to its card's edges keeps the card's inner margin in
+ * its first and last cells (T-1498). The last cell is the points until the
+ * form appears at the desktop width (or the tablet width in a summary).
+ */
+const EDGE = {
+  start: 'ps-4 sm:ps-4.5',
+  pointsEnd: 'max-sm:pe-4 sm:max-md:pe-4.5',
+  pointsEndSummary: 'max-sm:pe-4',
+  formEnd: 'pe-4 sm:pe-4.5',
+};
+
+/**
+ * A club's form in a match row of its own page (T-1386): each result its
+ * own letter as well as its own look, so none rests on hue.
  */
 export const FORM_LOOK: Record<FormResult, string> = {
   W: 'bg-accent text-on-accent',
@@ -98,30 +115,30 @@ export const FORM_LOOK: Record<FormResult, string> = {
   L: 'border border-danger text-danger',
 };
 
-export function FormTiles({ locale, form }: { locale: string; form: FormResult[] }) {
-  // The contract lists the last five most recent first; a run reads oldest first.
-  const run = [...form].reverse();
+/**
+ * The form as the canvas writes it (T-1498): the letters in Geist Mono, the
+ * most recent first, as the contract lists them and the note under the
+ * table says. Letters, not colours (D-263); the run is read out once, in
+ * words. Each letter is a flex item of its own: Persian letters set in one
+ * run join into a word ("شبببب"), which no reader can parse (T-1557).
+ */
+export function FormLetters({ locale, form }: { locale: string; form: FormResult[] }) {
   return (
-    <span className="inline-flex gap-0.75" data-testid="form">
-      {run.map((result, i) => (
-        <span
-          key={i}
-          data-result={result}
-          className={`inline-grid size-6 place-items-center rounded-md text-xs font-extrabold ${FORM_LOOK[result]}`}
-        >
-          {say(locale, FORM_KEY[result])}
-        </span>
-      ))}
+    <span
+      className="font-mono text-xs [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
+      data-testid="form"
+    >
+      <span aria-hidden="true" className="inline-flex gap-[0.2em]">
+        {form.map((result, i) => (
+          <span key={i} data-result={result}>
+            {say(locale, FORM_KEY[result])}
+          </span>
+        ))}
+      </span>
+      <span className="sr-only">{formLine(locale, form)}</span>
     </span>
   );
 }
-
-/** The projection slot's three columns (T-1385): planned, not built. */
-const PROJECTION: readonly MessageKey[] = [
-  'competitionPage.projection.title',
-  'competitionPage.projection.topFour',
-  'competitionPage.projection.relegation',
-];
 
 /** A goal difference with its sign: "+7", "−2", "0", in the locale's digits. */
 export function signedGap(locale: string, value: number): string {
@@ -132,15 +149,13 @@ export function signedGap(locale: string, value: number): string {
 /**
  * One table's grid (T-035, T-1203), the competition page's league table and
  * each of its group tables alike (T-1336). `zones` marks a league's places
- * (T-1167); a group has none, and keeps the blank edge so numbers line up.
+ * (T-1167) only where the feed lists them; a group has none, and keeps the
+ * blank edge so the numbers line up.
  *
- * The Hybrid look (T-1385, D-203): tabular figures, the points in the
- * condensed display weight, the form as tiles. `summary` keeps the columns a
- * reader ranks by (played, goal difference, points, form) for the Overview.
- * `projection` adds the model's season projection as a slot that is
- * labelled "coming later" and left empty -- never a figure, never a zero
- * (rule 3) -- from the tablet width up; the sentence under the table says it
- * on a phone.
+ * The Stadiomind look (T-1498): tabular figures, hairlines between rows, the
+ * points in the heavy weight, the form in letters. `summary` keeps the
+ * columns a reader ranks by; `flush` is a table that runs to its card's
+ * edges.
  */
 export function StandingsTable({
   rows,
@@ -148,41 +163,30 @@ export function StandingsTable({
   zones,
   caption,
   summary = false,
-  projection = false,
+  flush = false,
 }: {
   rows: TableRow[];
   locale: string;
   zones: LeagueZones | null;
-  /** A group's name for a screen reader; the league table has its heading. */
+  /** The table's name for a screen reader. */
   caption?: string;
   summary?: boolean;
-  projection?: boolean;
+  flush?: boolean;
 }) {
   const columns = summary
     ? TABLE_COLUMNS.filter((c) => SUMMARY_LABELS.includes(c.label))
     : TABLE_COLUMNS;
   const formCell = summary ? 'hidden sm:table-cell' : 'hidden md:table-cell';
-  // #, team, the figures, points and form: what the projection's header row spans first.
-  const before = 2 + columns.length + 2;
+  const start = flush ? EDGE.start : '';
+  const pointsEnd = flush ? (summary ? EDGE.pointsEndSummary : EDGE.pointsEnd) : '';
+  const formEnd = flush ? EDGE.formEnd : '';
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm tabular-nums">
         {caption !== undefined && <caption className="sr-only">{caption}</caption>}
         <thead>
-          {projection && (
-            <tr className="hidden md:table-row" data-testid="projection-head">
-              <td colSpan={before} />
-              <th
-                colSpan={PROJECTION.length}
-                scope="colgroup"
-                className="border-s border-t border-dashed border-strong bg-surface-raised px-1.5 pt-2 pb-1 text-center text-xs font-extrabold text-warning uppercase"
-              >
-                {say(locale, 'competitionPage.projection.head')}
-              </th>
-            </tr>
-          )}
-          <tr className="border-b border-strong">
-            <th scope="col" className={`${TH} text-start`}>
+          <tr>
+            <th scope="col" className={cx(TH, start, 'text-start')}>
               #
             </th>
             <th scope="col" className={`${TH} text-start`}>
@@ -195,65 +199,41 @@ export function StandingsTable({
                 </abbr>
               </th>
             ))}
-            <th scope="col" className={`${TH} text-center`}>
+            <th scope="col" className={cx(TH, pointsEnd, 'text-center')}>
               <abbr title={say(locale, 'competitionPage.col.pointsTitle')} className="no-underline">
                 {say(locale, 'competitionPage.col.points')}
               </abbr>
             </th>
-            <th scope="col" className={`${formCell} ${TH} text-start`}>
+            <th scope="col" className={cx(formCell, TH, formEnd, 'text-start')}>
               <Translated locale={locale} message="competitionPage.col.form" />
             </th>
-            {projection &&
-              PROJECTION.map((key, i) => (
-                <th
-                  key={key}
-                  scope="col"
-                  className={`hidden bg-surface-raised md:table-cell ${TH} text-center ${i === 0 ? 'border-s border-dashed border-strong' : ''}`}
-                >
-                  {say(locale, key)}
-                </th>
-              ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.team.id} className="border-b border-default" data-testid="table-row">
-              <PlaceCell locale={locale} position={row.position} zones={zones} />
-              <td className="px-1.5 py-2">
+            <tr key={row.team.id} className="border-t border-default" data-testid="table-row">
+              <PlaceCell locale={locale} position={row.position} zones={zones} start={start} />
+              <td className="px-1.5 py-0">
+                {/* The row's height is the link's: a 44px target on a phone (T-1558). */}
                 <Link
                   href={`/${locale}/team/${row.team.id}`}
-                  className="inline-flex min-h-7 items-center gap-2.5 font-semibold hover:underline focus-visible:underline"
+                  className="inline-flex min-h-touch items-center gap-2 font-bold hover:underline focus-visible:underline"
                 >
                   <EntityImage media={row.team.crest} kind="crest" name={row.team.name} size={20} />
                   {row.team.name}
                 </Link>
               </td>
               {columns.map((c) => (
-                <td
-                  key={c.label}
-                  className={cellClass(c.phone, 'px-1.5 py-2 text-center text-muted')}
-                >
-                  {c.label === 'competitionPage.col.goalDifference' ? (
-                    <LtrNumeric>{signedGap(locale, c.value(row))}</LtrNumeric>
-                  ) : (
-                    formatNumber(locale, c.value(row))
-                  )}
+                <td key={c.label} className={cellClass(c.phone, 'px-1.5 py-1 text-center')}>
+                  {c.value(locale, row)}
                 </td>
               ))}
-              <td className="px-1.5 py-2 text-center font-sans text-xl leading-none font-black font-stretch-condensed">
+              <td className={cx('px-1.5 py-1 text-center font-extrabold', pointsEnd)}>
                 {formatNumber(locale, row.points)}
               </td>
-              <td className={`${formCell} px-1.5 py-2 whitespace-nowrap`}>
-                <FormTiles locale={locale} form={row.form} />
+              <td className={cx(formCell, 'px-1.5 py-1 whitespace-nowrap', formEnd)}>
+                <FormLetters locale={locale} form={row.form} />
               </td>
-              {projection &&
-                PROJECTION.map((key, i) => (
-                  <td
-                    key={key}
-                    data-projection="empty"
-                    className={`hidden bg-surface-raised md:table-cell ${i === 0 ? 'border-s border-dashed border-strong' : ''}`}
-                  />
-                ))}
             </tr>
           ))}
         </tbody>
@@ -271,15 +251,22 @@ function PlaceCell({
   locale,
   position,
   zones,
+  start,
 }: {
   locale: string;
   position: number;
   zones: LeagueZones | null;
+  /** The card's inner margin, when the table runs to its edges. */
+  start: string;
 }) {
   const zone = zones?.state === 'listed' ? zoneOfPlace(zones.zones, position) : null;
   return (
     <td
-      className={`border-s-4 px-1.5 py-2 text-muted ${zone === null ? 'border-s-transparent' : ZONE_MARK[zone.kind]}`}
+      className={cx(
+        'border-s-4 px-1.5 py-1 text-caption',
+        start,
+        zone === null ? 'border-s-transparent' : ZONE_MARK[zone.kind],
+      )}
       data-zone={zone?.kind}
     >
       {formatNumber(locale, position)}

@@ -44,7 +44,7 @@ describe('deliveryFromEnv: smtp (D-073)', () => {
     const delivery = deliveryFromEnv({
       DELIVERY_EMAIL_PROVIDER: 'SMTP',
       SMTP_URL: 'smtps://u:p@mail.example:465',
-      DELIVERY_EMAIL_FROM: 'FMIP <no-reply@example.test>',
+      DELIVERY_EMAIL_FROM: 'Stadiomind <no-reply@example.test>',
     });
     expect(describeDelivery(delivery)).toMatchObject({
       email: { state: 'configured', provider: 'smtp' },

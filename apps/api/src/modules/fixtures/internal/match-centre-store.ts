@@ -23,7 +23,7 @@ import type {
   VenueSurface,
 } from '@fmip/contracts';
 import { NO_MEDIA } from '@fmip/contracts';
-import { incidentDetail } from '@fmip/ingestion';
+import { absenceReason, incidentDetail } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -52,6 +52,7 @@ interface RawHeader {
   kickoff_at: Date;
   status: FixtureStatus;
   minute: number | null;
+  at_half_time: boolean;
   round: string | null;
   group_name: string | null;
   leg: number | null;
@@ -152,7 +153,7 @@ export class PostgresMatchCentreStore {
 
   async header(fixtureId: string): Promise<HeaderRow | null> {
     const { rows } = await this.pool.query<RawHeader>(
-      `SELECT f.id, f.kickoff_at, f.status, f.minute, f.round, f.group_name, f.leg,
+      `SELECT f.id, f.kickoff_at, f.status, f.minute, f.at_half_time, f.round, f.group_name, f.leg,
               f.is_neutral_venue, f.attendance, f.updated_at,
               se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
               c.id AS competition_id, c.name AS competition_name,
@@ -194,7 +195,7 @@ export class PostgresMatchCentreStore {
                                   BETWEEN sp.window_from AND sp.window_to
                              THEN sp.window_polled_at END))
                  FROM season_fixture_poll sp WHERE sp.season_id = f.season_id) AS last_checked_at,
-              ${liveAnsweredAtSql('f.id', 'f.status')} AS live_answered_at,
+              ${liveAnsweredAtSql('f.id', 'f.status', 'f.kickoff_at')} AS live_answered_at,
               (f.status = 'finished' AND NOT EXISTS (
                  SELECT 1 FROM fixture_detail_fetch d WHERE d.fixture_id = f.id)) AS detail_owed
          FROM fixture f
@@ -225,6 +226,7 @@ export class PostgresMatchCentreStore {
         kickoff_at: r.kickoff_at.toISOString(),
         status: r.status,
         minute: r.status === 'live' ? r.minute : null,
+        at_half_time: r.status === 'live' && r.at_half_time,
         competition: {
           id: r.competition_id,
           name: r.competition_name,
@@ -427,6 +429,8 @@ export class PostgresMatchCentreStore {
         status: r.status,
         kind: r.kind,
         reason: r.reason,
+        // The provider's words in ours, read at read time (T-1601): no backfill.
+        reason_code: absenceReason(r.reason),
         reported_at: r.reported_at.toISOString(),
       })),
       askedAt: ask.rows[0]?.fetched_at.toISOString() ?? null,
@@ -452,7 +456,9 @@ export class PostgresMatchCentreStore {
          FROM fixture_player_stat s
          JOIN fixture_participant fp ON fp.id = s.participant_id
          JOIN person pe ON pe.id = s.person_id
-        WHERE s.participant_id IN ($1, $2)`,
+        WHERE s.participant_id IN ($1, $2)
+          -- A 0 stored before T-1618 is the provider's "not rated" (D-289).
+          AND NOT (s.metric = 'rating' AND s.value <= 0)`,
       [homeParticipantId, awayParticipantId],
     );
     const players = new Map<string, MatchPlayerStats>();

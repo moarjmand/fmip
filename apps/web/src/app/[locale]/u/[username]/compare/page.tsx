@@ -26,7 +26,7 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/u/${encodeURIComponent(name)}/compare`,
-    title: `${interpolate(t(lang, 'profile.compare.metaTitle'), { username: name })} · FMIP`,
+    title: `${interpolate(t(lang, 'profile.compare.metaTitle'), { username: name })} · Stadiomind`,
   });
 }
 

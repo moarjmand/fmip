@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { PlayerPage as PlayerPageData } from '@fmip/contracts';
 import { notFound } from 'next/navigation';
 import {
   fetchEntityNews,
@@ -8,13 +9,14 @@ import {
   fetchPlayerProviderSeasons,
   fetchPlayerTransfers,
 } from '@/lib/api';
-import { EntityFollow, MoreLink } from '@/components/competition-page';
+import { EntityFollow, MoreLink, zoneWords } from '@/components/competition-page';
 import { JsonLd } from '@/components/json-ld';
 import { PlayerAvailabilitySection } from '@/components/player-availability';
 import { ProviderCareerPanel, ProviderSeasonsPanel } from '@/components/player-provider-seasons';
 import { PlayerTransfersPanel } from '@/components/transfers';
 import {
-  PlayerBand,
+  LastMatchesPanel,
+  PlayerHeader,
   PlayerMatchesPanel,
   RecordPanel,
   SeasonFilter,
@@ -34,6 +36,7 @@ import {
   playerTabHref,
   readPlayerTab,
   readSeasonFilter,
+  seasonLabelOf,
   seasonsOf,
 } from '@/lib/player';
 import { pageMetadata, playerJsonLd } from '@/lib/seo';
@@ -50,7 +53,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; id: string }>;
 }): Promise<Metadata> {
   const { locale, id } = await params;
-  const fallback = `${say(locale, 'playerPage.title')} · FMIP`;
+  const fallback = `${say(locale, 'playerPage.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title: fallback, robots: { index: false, follow: false } };
   const result = await fetchPlayer(id, locale);
   if (!result.ok) return pageMetadata({ locale, path: `/player/${id}`, title: fallback });
@@ -59,22 +62,24 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/player/${result.data.person.id}`,
-    title: `${name} · FMIP`,
+    title: `${name} · Stadiomind`,
     description: say(locale, 'playerPage.metaDescription', { name: canonical }),
   });
 }
 
 /**
- * The player page (blueprint 5.3, T-037), in the Hybrid design's data mode
- * (T-1386, D-204): on the stage, following Day and Night, under a band in the
- * brand's colours (our data holds no club colour) with the photo, the
- * identity line, follow and compare, and in tabs. The Overview has the
- * newest season in tiles, the record by season, the latest matches, the
- * availability for his team's next match (T-1007) and the news; Matches,
- * Career and Stats hold the whole match log, the clubs and the full record
- * with minutes, the season selector (`?season=`) on Matches and Stats.
- * Statistics we do not hold are named as such, never shown as zero; every
- * module carries its coverage. Its words come from the catalogue (T-1304).
+ * The player page (blueprint 5.3, T-037) in the Stadiomind Design System
+ * (T-1500, D-271): the header with the photo in the club's ring, the name,
+ * the club line and the facts (age, height, foot, each with its coverage),
+ * follow and compare, then the tabs. The Overview is the canvas's Player
+ * board: a main column with the newest season in tiles and the career by
+ * season, and a side column (under it on a phone) with the last six
+ * matches, the next match with his availability (T-1007), the news and the
+ * data's freshness. Matches, Career and Stats hold the whole match log, the
+ * clubs and the full record with cards, the season selector (`?season=`) on
+ * Matches and Stats. Statistics we do not hold are named as such, never
+ * shown as zero; every module carries its coverage. Its words come from the
+ * catalogue (T-1304).
  */
 export default async function PlayerPage({
   params,
@@ -122,12 +127,14 @@ export default async function PlayerPage({
   const seasons = seasonsOf(record);
   // The season filter belongs to Matches and Stats; elsewhere every season shows.
   const seasonId = tab === 'matches' || tab === 'stats' ? readSeasonFilter(query) : null;
-  const matches = filterMatches(page.recent_matches.data ?? [], seasonId);
+  // A season is its label across competitions (T-1565): the id picks the label.
+  const seasonLabel = seasonLabelOf(record, page.recent_matches.data ?? [], seasonId);
+  const matches = filterMatches(page.recent_matches.data ?? [], seasonLabel);
 
   return (
     <main data-mode="data" className="pb-16" data-testid="player-page" data-tab={tab}>
       <JsonLd data={playerJsonLd(locale, page)} />
-      <PlayerBand
+      <PlayerHeader
         page={page}
         locale={locale}
         tab={tab}
@@ -146,24 +153,22 @@ export default async function PlayerPage({
       />
       <div className="page-frame flex flex-col gap-5 pt-6">
         {overview && (
-          <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-            <div className="flex min-w-0 flex-col gap-5">
+          <div className="flex flex-wrap items-start gap-5 md:gap-6">
+            <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-5 md:gap-6">
               <SeasonTilesPanel page={page} locale={locale} />
-              <RecordPanel
-                page={page}
-                rows={record}
-                locale={locale}
-                full={false}
-                testId="career-record"
-                footer={
-                  record.length > 0 ? (
-                    <MoreLink href={playerTabHref(locale, p.id, 'stats')}>
-                      <Translated locale={locale} message="playerPage.fullRecord" />
-                    </MoreLink>
-                  ) : undefined
-                }
-              />
-              <PlayerMatchesPanel
+              {/* With no record the tiles already say so; a second empty table would repeat it (T-1569). */}
+              {record.length > 0 && (
+                <RecordPanel
+                  page={page}
+                  rows={record}
+                  locale={locale}
+                  full={false}
+                  testId="career-record"
+                />
+              )}
+            </div>
+            <aside className="flex min-w-0 flex-[1_1_21rem] flex-col gap-5">
+              <LastMatchesPanel
                 page={page}
                 matches={matches.slice(0, OVERVIEW_PLAYER_MATCHES)}
                 locale={locale}
@@ -176,23 +181,26 @@ export default async function PlayerPage({
                   ) : undefined
                 }
               />
-            </div>
-            <div className="flex min-w-0 flex-col gap-5">
               <PlayerAvailabilitySection
                 locale={locale}
                 timeZone={timeZone}
                 availability={page.availability}
                 now={new Date()}
               />
-              {/* The news module's own heading, set in the panels' style. */}
-              <div className="rounded-card border border-default bg-surface p-4 sm:p-5 [&_h2]:text-sm [&_h2]:font-extrabold [&_h2]:uppercase ltr:[&_h2]:tracking-wider">
+              {/* The news module's own heading, set in the cards' style. */}
+              <div className="rounded-card border border-default bg-surface p-4 [&_h2]:text-sm [&_h2]:font-extrabold">
                 <EntityNews
                   locale={locale}
                   timeZone={timeZone}
                   news={news?.ok === true ? news.data : null}
                 />
               </div>
-            </div>
+              <Updated page={page} locale={locale} timeZone={timeZone} />
+              {/* The dates, the kick-off and the checks above are in this zone (T-1566). */}
+              <p className="text-xs text-muted" data-testid="player-zone">
+                {zoneWords(locale, timeZone)}
+              </p>
+            </aside>
           </div>
         )}
         {tab === 'matches' && (
@@ -202,7 +210,7 @@ export default async function PlayerPage({
               locale={locale}
               tab="matches"
               seasons={seasons}
-              seasonId={seasonId}
+              current={seasonLabel}
             />
             <PlayerMatchesPanel page={page} matches={matches} locale={locale} timeZone={timeZone} />
           </>
@@ -234,11 +242,11 @@ export default async function PlayerPage({
               locale={locale}
               tab="stats"
               seasons={seasons}
-              seasonId={seasonId}
+              current={seasonLabel}
             />
             <RecordPanel
               page={page}
-              rows={filterRecord(record, seasonId)}
+              rows={filterRecord(record, seasonLabel)}
               locale={locale}
               full
               testId="record"
@@ -248,17 +256,37 @@ export default async function PlayerPage({
             )}
           </>
         )}
-        <p className="text-xs text-muted" data-testid="player-updated">
-          {page.last_updated_at === null ? (
-            <Translated locale={locale} message="playerPage.noData" />
-          ) : (
-            <>
-              <Translated locale={locale} message="competitionPage.lastUpdate" />{' '}
-              <Stamp iso={page.last_updated_at} locale={locale} timeZone={timeZone} />
-            </>
-          )}
-        </p>
+        {!overview && <Updated page={page} locale={locale} timeZone={timeZone} />}
       </div>
     </main>
+  );
+}
+
+/**
+ * When the player's data last changed (rule 4), in the Design System's
+ * machine face: "● Last data update 24 Oct 2026, 14:24", or the sentence
+ * that says nothing is stored yet.
+ */
+function Updated({
+  page,
+  locale,
+  timeZone,
+}: {
+  page: PlayerPageData;
+  locale: string;
+  timeZone: string;
+}) {
+  return (
+    <p className="font-mono text-xs text-caption" data-testid="player-updated">
+      {page.last_updated_at === null ? (
+        <Translated locale={locale} message="playerPage.noData" />
+      ) : (
+        <>
+          <span aria-hidden="true">● </span>
+          <Translated locale={locale} message="competitionPage.lastUpdate" />{' '}
+          <Stamp iso={page.last_updated_at} locale={locale} timeZone={timeZone} />
+        </>
+      )}
+    </p>
   );
 }

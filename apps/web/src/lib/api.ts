@@ -54,7 +54,6 @@ import type {
   FixtureNewsResponse,
   FollowingFeed,
   FollowingResponse,
-  ForecastListResponse,
   ForecastSummaryListResponse,
   ForecastVersionsResponse,
   FounderAnalysesResponse,
@@ -95,6 +94,7 @@ import type {
   AccuracyPeriod,
   AdminModelAccuracyResponse,
   PublicModelAccuracyResponse,
+  ModelUpsetResponse,
   NewsSectionResponse,
   NotificationSettings,
   PushState,
@@ -962,9 +962,15 @@ export function fetchLeaderboard(
   );
 }
 
-/** `GET /fixtures/:id`: the match centre payload (T-033). Public. */
-export function fetchMatchCentre(fixtureId: string): Promise<ApiResult<MatchCentre>> {
-  return apiRequest<MatchCentre>(`/fixtures/${encodeURIComponent(fixtureId)}`);
+/**
+ * `GET /fixtures/:id`: the match centre payload (T-033). Public. Names come in
+ * the reader's language unless `locale` chooses one (the share card, T-1506).
+ */
+export function fetchMatchCentre(
+  fixtureId: string,
+  locale?: string,
+): Promise<ApiResult<MatchCentre>> {
+  return apiRequest<MatchCentre>(withLocale(`/fixtures/${encodeURIComponent(fixtureId)}`, locale));
 }
 
 /** `GET /fixtures/:id/forecasts` (T-064): every version, oldest first, with coverage. Public. */
@@ -1113,18 +1119,6 @@ export function fetchFounderFeed(
 }
 
 /**
- * `GET /forecasts?fixtures=` and `GET /consensus?fixtures=` (T-136): each
- * product for a set of fixtures, one request each.
- *
- * Two calls rather than one combined endpoint, because they are two of the
- * three prediction products and nothing should make it easy to hand one where
- * the other was promised (rule 6).
- */
-export function fetchForecastList(fixtureIds: string[]): Promise<ApiResult<ForecastListResponse>> {
-  return apiRequest<ForecastListResponse>(`/forecasts?fixtures=${fixtureIds.join(',')}`);
-}
-
-/**
  * The member's homepage (blueprint 2.3, T-942, D-115): one request per
  * section for the whole page, never one per item. Friends' calls and group
  * discussions need a session; the panels are public like the panel itself.
@@ -1160,6 +1154,12 @@ export function fetchForecastSummaries(
   );
 }
 
+/**
+ * `GET /consensus?fixtures=` (T-136): the community's product for a set of
+ * fixtures. The model's comes from its own batch, never a combined endpoint:
+ * nothing should make it easy to hand one product where another was promised
+ * (rule 6).
+ */
 export function fetchConsensusList(
   fixtureIds: string[],
 ): Promise<ApiResult<ConsensusListResponse>> {
@@ -1409,6 +1409,23 @@ export function fetchModelAccuracy(
   period: AccuracyPeriod = 'month',
 ): Promise<ApiResult<PublicModelAccuracyResponse>> {
   return apiRequest<PublicModelAccuracyResponse>(`/model/accuracy?period=${period}`);
+}
+
+/**
+ * `GET /model/upset` (T-1507, D-265): the day's finished match whose result the
+ * published model's last pre-kick-off forecast rated least likely, or an explicit
+ * `not_supplied` with why. `date` (YYYY-MM-DD) and `tz` (IANA) default to today
+ * in UTC; pass the reader's zone so the day is the one their scores list shows.
+ * Names come in the reader's language like every read (T-1312). Public.
+ */
+export function fetchModelUpset(
+  options: { date?: string; tz?: string } = {},
+): Promise<ApiResult<ModelUpsetResponse>> {
+  const query = new URLSearchParams();
+  if (options.date !== undefined) query.set('date', options.date);
+  if (options.tz !== undefined) query.set('tz', options.tz);
+  const search = query.toString();
+  return apiRequest<ModelUpsetResponse>(`/model/upset${search === '' ? '' : `?${search}`}`);
 }
 
 /** `GET /fixtures/:id/key-players` (T-841): each side's most-used players by the stated rule. Public. */

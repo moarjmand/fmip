@@ -179,10 +179,10 @@ made per row, a timeout -- does.
 
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
-| home `/en` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 38 / 50 / 200 |
-| scores `/en/scores` | 174.9 / 175 (raised 2026-10-22, T-1462) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 185.4 / 186 (raised 2026-10-23, T-1477) | 77 / 76 / 300 |
-| competition `/en/competition/…0201` | 149.8 / 158 (lowered 2026-09-29, T-1040) | 29 / 39 / 150 |
+| home `/en` | 150.3 / 158 (2026-10-25, T-1502, after T-1495) | 38 / 50 / 200 |
+| scores `/en/scores` | 172.2 / 180 (raised 2026-10-25, T-1496, D-264) | 21 / 31 / 150 |
+| match centre `/en/match/…0901` | 182.6 / 191 (2026-10-25, T-1502; raised by T-1497, D-264) | 77 / 76 / 300 |
+| competition `/en/competition/…0201` | 151.1 / 158 (2026-10-25, T-1502, after T-1498) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
 The scores budget was raised from 230 to 236 (T-1004), then home and
@@ -259,6 +259,46 @@ goes to 186. Finding the kicks on the server would have meant a new field in
 the scores and match contracts for a rule the client already has the data
 for. No library was added.
 
+**The raise of 2026-10-25 (T-1494, D-264, D-267).** The Stadiomind navigation
+is on every page: the header's More (the founder's analysis, Watch and
+Highlights, a disclosure that closes when a link is chosen) and the five new
+tabs, with their icons and which one is current, are in the shell's client
+chunk, which every route loads. The looks were moved into CSS utilities
+(`nav-entry`, `more-panel`, `tab-entry` in `globals.css`) so the components
+carry no class strings for them; what is left is 0.26 kB gzip. Scores 174.9
+to 175.2 against 175, so its budget goes to 176, the first kilobyte of the
+5 kB D-264 allows it: the scores page's own rebuild (T-1496) may take it to
+180 and no further. Home, the match centre and the competition page stay
+within theirs. No library was added.
+
+**The raise of 2026-10-25 (T-1497, D-264, D-272).** The Stadiomind match
+centre: the live view gains the timeline's axis, each side's scorers in the
+score band, the best rated with the rating chip and the live badge's minute
+bar, all of which move during a match. The Summary's forecast card, its
+versions and receipt are drawn on the server and cost the client nothing.
+185.7 (after T-1494's navigation) to 187.6; T-1522's pitch, its stacked
+follow-up, adds about 0.3. The budget goes to 191, D-264's one-off ceiling
+for this page, leaving about 3 kB for the shared components (T-1493). No library was added.
+
+**The raise of 2026-10-25 (T-1496, D-264, D-268).** Matches and predictions
+are one page: each row has a Pick that opens the match's preview, and the
+preview holds the pick form (`PredictionForm`, the match centre's own), so
+the form and its server action's client reference are in the scores page's
+first load: 174.9 to 177.0 kB gzip. The budget goes to 180, the once-only
+5 kB D-264 allows a rebuilt page. With T-1493's change merged (the error page
+no longer pulls in the `ui` barrel) the page measures 172.2. The row's percentages, its Pick and the
+"Not picked yet" view add little: they are a link, a thin bar and a filter
+over the snapshot the list already holds. No library was added.
+
+**After the redesign (T-1502, 2026-10-25).** Measured on main once every
+rebuilt page had landed (T-1493..T-1500 and their follow-ups, `0e7993bd`):
+home 150.3, scores 172.2, match centre 182.6, competition 151.1 kB gzip.
+D-264 allowed each page one raise of at most 5 kB, to home 163, scores 180,
+match centre 191 and competition 163. Scores and the match centre took
+theirs (180, 191). Home and competition did not need theirs, so their
+budgets stay at 158; D-264's 163 remains the most they may be raised to,
+once, for new behaviour the canvas shows.
+
 **Running them locally.** After `pnpm exec turbo run build --filter=@fmip/web`:
 `pnpm --filter @fmip/web perf:bundle`. For the response budgets, start the
 API against the migrated, seeded database (as for the journeys), then
@@ -273,6 +313,142 @@ the measured / budget table above. Lowering one after a page gets lighter is
 the same edit and needs no reason. A new route is budgeted by adding an
 entry: `appRoute` as `.next/server/app` lays it out, `path` a real address of
 it in the seed.
+
+## Visual baseline (T-1502)
+
+`apps/web/tests/e2e/visual.spec.ts` keeps a picture of every page the
+Stadiomind redesign rebuilt (home, scores, the match centre on the seed's
+`…0901`, a competition, a club, a player) in Night and Day, at 1280 px and at
+390 px: 24 full-page shots in `tests/e2e/visual.spec.ts-snapshots/`. They are
+taken against the production build without an API, as the rest of the
+`chromium` project runs, so each page is in its unreachable state with the
+whole shell, the type and the colours.
+
+What makes a shot repeatable: both clocks are fixed at 2026-10-24 18:00 UTC
+-- the browser's by `page.clock.setFixedTime`, the web server's by
+`tests/e2e/fixed-clock.cjs`, loaded with
+`NODE_OPTIONS=--require=<its absolute path>` (the server writes
+"today" into the scores day strip, the date picker and the home page's date
+line; the clock is shifted, not stopped, so timers still run) -- and the spec
+refuses to run without it. Motion is reduced (the device and
+`fmip_motion=reduce`) and Playwright stops animations and hides the caret;
+`document.fonts` has loaded every face before the shot; lite mode is off
+(`fmip_lite=off`, so the web fonts are drawn and not the system stack); the
+browser's language (`en-GB`) and time zone (`Europe/London`) are set and the
+service worker is blocked.
+
+**Linux only.** The committed pictures are rendered by CI's Ubuntu runner;
+Windows and macOS anti-alias text differently, so the spec skips itself on any
+platform but Linux and a picture made on one must never be committed.
+
+**In CI** the E2E job compares the pictures in its own step, "Visual
+baseline", the only place the server's clock is fixed: the main "Run
+Playwright" step skips the spec, because its other specs must see the real
+date. The pictures were committed on 2026-10-25, rendered by the runner from
+`0e7993bd` plus the T-1502 changes, once every rebuilt page had landed.
+
+**Remaking a picture after an intended change.** When a page differs from
+its picture, the step fails, and the next step renders the new pictures on
+the same runner (`--update-snapshots=changed`) and uploads the whole folder
+as the artifact `visual-baseline`. Download it from the failed run
+(`gh run download <run> -n visual-baseline -D apps/web/tests/e2e/visual.spec.ts-snapshots`),
+look at what moved, and commit the pictures in the pull request that changed
+the page, saying which pages moved and why. To render them without CI, use
+the Playwright image of the pinned version, from the root of a clean clone
+(never a checkout whose `node_modules` were installed on Windows: the
+install inside would overwrite them):
+`docker run --rm -v "$PWD":/w -w /w/apps/web -e NODE_OPTIONS=--require=/w/apps/web/tests/e2e/fixed-clock.cjs mcr.microsoft.com/playwright:v1.63.0-noble sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm exec playwright test visual.spec.ts --update-snapshots=changed"`.
+
+**The About page** (T-1615, D-286) joined the baseline on 2026-10-26: four more pictures (`about-*`), the diagram drawn complete and still, as reduced motion draws it. Its steps fade in when motion is welcome, so the axe pass (`a11y.spec.ts`) lets every finite animation finish before it measures contrast.
+
+**The model page** (T-1620, D-291) joined on 2026-10-26: four more pictures (`model-*`), its band on the surface and the sentence that the figures cannot be shown, on the theme's grounds rather than editorial paper.
+
+## PageSpeed after the redesign (T-1502)
+
+PageSpeed Insights (Lighthouse 13.5.0; mobile is a Moto G Power on slow
+4G, desktop a 1350 x 940 window) against production, https://traveltohormuz.ir,
+on 2026-10-25 between 18:22 and 20:04 UK time, a Sunday with matches in
+play. The match page is Liverpool v Brighton
+(`/en/match/2cddf547-22ca-48de-90b4-d4cb2ce00289`, full time). Production
+served the rebuilt home and Matches pages.
+
+| Page | Form | Performance | FCP | LCP | TBT | CLS | Speed Index |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `/en` | mobile | **97** | 1.8 s | 1.8 s | 19 ms | 0.068 | 1.8 s |
+| `/en` | desktop | 75 | 0.5 s | 0.6 s | 6 ms | 0.811 | 1.1 s |
+| `/en/scores` | mobile | **97** | 2.1 s | 2.3 s | 9 ms | 0.001 | 2.1 s |
+| `/en/scores` | desktop | 76 | 0.5 s | 0.6 s | 5 ms | 0.802 | 0.5 s |
+| match | mobile | 89 | 2.9 s | 3.2 s | 45 ms | 0.021 | 2.9 s |
+| match | desktop | 75 | 0.6 s | 0.7 s | 9 ms | 0.824 | 0.8 s |
+
+**The bar is met.** T-1502 asks for 90 or better on mobile for `/en` and
+`/en/scores`; both score 97. The same day, before T-1494..T-1500 reached
+production (about 13:50 UK time), `/en` scored 99 on mobile (LCP 1.7 s,
+CLS 0.003) and `/en/scores` had an LCP of 1.8 s on mobile and 0.7 s on
+desktop with a CLS of 0.01; those runs' desktop scores were not read
+reliably and are not recorded.
+
+**The biggest causes, largest first.**
+1. **The desktop header wraps when Archivo arrives (CLS about 0.80 on every
+   page, desktop only).** Lighthouse's filmstrip shows the header on one row
+   in the fallback face, then the Sign-in button drops to a second row once
+   Archivo has loaded, so the header grows and `#content` moves down
+   (0.802 of the shift on every page; the culprit named is
+   `archivo-latin-wdth-normal.woff2`). Production's header also carries the
+   «فارسی» link, which the no-API build in CI does not draw, so the visual
+   baseline at 1280 px never sees the wrap. In a warm browser at 1290 and
+   1350 px the row still fits; with a cold cache it does not. T-1534.
+   Fixed in T-1534 (D-273): the row no longer wraps at any width, the search
+   field shrinks first and folds into a link below 1280 px, and
+   `tests/e2e/header-row.spec.ts` checks one 64 px row at 1024, 1280 and
+   1350 px with the language link, in the fallback face and in Archivo.
+2. **The match centre's LCP on a phone (3.2 s, 89).** The largest paint is
+   the forecast-against-reality note, with 580 ms of element render delay
+   after a 2.9 s first paint. T-1536.
+3. **Font-swap shifts on a phone.** The home page's live strip shifts by
+   0.068 when Archivo and Newsreader arrive, over D-264's 0.05; the match
+   centre's outcome bar by 0.021. T-1536.
+4. **Smaller, on every page:** about 55 kB of unused JavaScript and 24 kB of
+   legacy JavaScript (polyfills for features every supported browser has),
+   and a 4-5 kB cache-lifetime saving. Not worth a task each yet.
+
+**Not performance, found on the way.** The scores page's selected row (the
+one with `aria-current`) draws the model's three percentages below 4.5:1
+on its highlight (Lighthouse's colour-contrast audit, on production's data).
+CI's axe runs see the page without an API and so without rows. T-1535.
+
+### T-1536: the phone's loading figures
+
+Measured locally on 2026-10-26 against the seed's played match and `/en`
+(the API on Postgres and Redis in Docker, `next start`), on a 412 x 823 phone
+with slow 4G (150 ms, 1.6 Mbps) and a 4x slower CPU, the layout shifts read
+by a `PerformanceObserver`. The machine was shared with other work, so its
+own Lighthouse scores (61 to 87 on the same build) are not comparable with
+PageSpeed's and are not recorded; what is recorded does not depend on its load.
+
+| | main | T-1536 |
+| --- | --- | --- |
+| CLS when the fonts arrive, `/en` (with the seed's day on the strip) | 0.13 | 0.0001 |
+| CLS when the fonts arrive, the match page | 0.051-0.057 | 0.006 |
+| the same with no Arial or its clones on the device, `/en` / match | -- | 0.0008 / 0.01 |
+| the match page's HTML (raw / gzip) | 436 / 75.2 kB | 366 / 62.8 kB |
+| `/en`'s HTML (raw / gzip, no matches on the day) | 322 / 56.9 kB | 247 / 43.9 kB |
+| the match page's answer with every API call at 150 ms (fastest of 10) | 0.70 s | 0.56 s |
+
+The causes and what was done are D-279: fallback faces for each weight and
+width Archivo is drawn at, the home's heading link on its own line on a
+phone, `global-error`'s copy of the stylesheet out of every page's HTML, and
+the match page's reads started together and the match asked once.
+`journeys/font-swap.spec.ts` holds every web font back for 1.2 s on a phone
+and requires the swap to shift `/en` and the match page by under 0.05; main
+fails it on the match page (0.057).
+
+The match page's LCP on PageSpeed waits on its answer: production answers an
+edge miss in about 1.1 s for both `/en` and the match page (0.4 s for
+`/health`, 0.2 s for an edge hit, read from the built-in browser), and `/en`
+is usually an edge hit when PageSpeed asks for it while a match page is not.
+The PageSpeed re-run against production after the deploy is the
+coordinator's.
 
 ## Match alerts (T-834)
 
