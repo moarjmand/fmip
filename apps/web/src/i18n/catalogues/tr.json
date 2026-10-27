@@ -209,6 +209,24 @@
     "text": "",
     "status": "untranslated"
   },
+  "shell.rail.live": {
+    "source": {
+      "one": "{count} live",
+      "other": "{count} live"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "shell.rail.myTeams": {
+    "source": "My teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.rail.open": {
+    "source": "Open {competition}",
+    "text": "",
+    "status": "untranslated"
+  },
   "shell.demonstration": {
     "source": "Demonstration data. Every match, score, team and member on this site is development fixture data. None of it is real football, and nothing here has happened.",
     "text": "",

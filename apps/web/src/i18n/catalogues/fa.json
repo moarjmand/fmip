@@ -251,6 +251,30 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "shell.rail.live": {
+    "source": {
+      "one": "{count} live",
+      "other": "{count} live"
+    },
+    "forms": {
+      "one": "{count} زنده",
+      "other": "{count} زنده"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.rail.myTeams": {
+    "source": "My teams",
+    "text": "تیم‌های من",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.rail.open": {
+    "source": "Open {competition}",
+    "text": "صفحه‌ی {competition}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "shell.demonstration": {
     "source": "Demonstration data. Every match, score, team and member on this site is development fixture data. None of it is real football, and nothing here has happened.",
     "text": "داده‌های نمایشی. همه‌ی بازی‌ها، نتیجه‌ها، تیم‌ها و اعضای این سایت داده‌های آزمایشیِ توسعه هستند. هیچ‌کدام فوتبال واقعی نیست و هیچ‌یک از این رویدادها رخ نداده است.",

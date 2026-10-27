@@ -1,29 +1,15 @@
-import {
-  type ScoreCard,
-  type ScoreLine,
-  type ScoresGroup,
-  type ScoresResponse,
-  STALE_LIVE_AFTER_MS,
-} from '@fmip/contracts';
+import { type ScoreCard, type ScoreLine, STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import type { Message } from '@/i18n/messages';
 import { isBehind } from '@/lib/live';
 import { type StatusKey, statusLabel } from '@/lib/scores';
 
 /**
  * The live strip's rules (T-1381, D-199), pure so they are unit-tested
- * (`live-strip.spec.ts`); `components/live-strip.tsx` fetches and draws.
- *
- * The strip is today's matches of one competition: the first in the scores
- * answer's own order that has a match today. A guest's answer (the strip
- * asks without the session) is ordered by `display_order` (D-154), so it
- * opens on the Persian Gulf Pro League, then the continental cups and the
- * big leagues, as the operator placed them.
+ * (`live-strip.spec.ts`). Since T-1624 (D-292) the strip is the matchday
+ * rail's drawer (`components/matchday-rail.tsx`), which chooses the league
+ * (`lib/matchday-rail.ts`); a chip's state, the freshness rule and the
+ * shared request are still these.
  */
-
-/** The competition the strip shows: the first group with a match, or none. */
-export function stripGroup(scores: ScoresResponse): ScoresGroup | null {
-  return scores.groups.find((group) => group.fixtures.length > 0) ?? null;
-}
 
 /**
  * A chip's state. `before` a kick-off (its time), `live` (the minute, red),

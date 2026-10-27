@@ -2,11 +2,10 @@ import { cookies } from 'next/headers';
 import Link from '@/components/ui/link';
 import { cache } from 'react';
 import { BrandMark } from '@/components/brand-mark';
-import { CompetitionsBar } from '@/components/competitions-bar';
 import { HeldLanguageNotice } from '@/components/held-language-notice';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
-import { LiveStrip } from '@/components/live-strip';
+import { MatchdayRail } from '@/components/matchday-rail';
 import { RulesPrompt } from '@/components/rules-prompt';
 import { BottomTabBar, PrimaryNav } from '@/components/shell-nav';
 import { ThemeSwitch } from '@/components/theme-switch';
@@ -22,12 +21,12 @@ import type { ThemePreference } from '@/lib/theme';
 import { readerTimeZone } from '@/lib/reader-time-zone';
 
 /**
- * The site shell (T-1381, D-199): the header, the live strip under it and
- * the phone's bottom tab bar, the same on every page of both modes.
+ * The site shell (T-1381, D-199): the header, the matchday rail under it
+ * (T-1624, D-292) and the phone's bottom tab bar, the same on every page.
  *
  * Who is reading is asked once per request (`shellReader`, React's `cache`):
- * the header, the strip (for the reader's zone) and the tab bar ("Me") all
- * need it. When the API is unreachable the visitor is shown as signed out,
+ * the header, the rail (the reader's zone, and My teams for a member) and
+ * the tab bar ("Me") all need it. When the API is unreachable the visitor is shown as signed out,
  * which is the honest state: nothing could be verified.
  */
 const shellReader = cache(async () => {
@@ -86,7 +85,7 @@ function Icon({ children }: { children: React.ReactNode }) {
 /**
  * The one header (D-199, Stadiomind D-263, D-267). It follows the theme, as
  * the Design System's header does: the raised surface on a phone, the page's
- * ground from 768px, where the competition pills continue it below.
+ * ground from 768px, where the matchday rail continues it below.
  *
  * From 1024px one row, always (T-1534: a row that wrapped when Archivo
  * arrived moved the whole page): the wordmark, the nav (Matches,
@@ -111,9 +110,8 @@ function Icon({ children }: { children: React.ReactNode }) {
  * Every label goes through `Translated` or a resolved `Message` (T-151): on
  * an unfinished locale the English stands in, marked `lang="en"`.
  *
- * `banner` is drawn under the header and the competition pills (T-1433),
- * above the live strip: lite mode's indicator (T-1387), which renders
- * nothing when lite mode is off.
+ * `banner` is drawn under the header and the matchday rail (T-1624): lite
+ * mode's indicator (T-1387), which renders nothing when lite mode is off.
  */
 export async function SiteHeader({
   locale,
@@ -149,7 +147,7 @@ export async function SiteHeader({
   // The search icon leads to the search page; its name says what it searches.
   const search = attribute(lang, 'nav.searchLabel');
   const placeholder = message(lang, 'shell.search.placeholder');
-  // The strip's "today" is the reader's: the member's zone, else the one a
+  // The rail's "today" is the reader's: the member's zone, else the one a
   // guest chose, else the locale's default, as every page counts it (D-207).
   const timeZone = readerTimeZone(locale, me, guest);
   // A thumb-sized row in the phone's Menu.
@@ -332,11 +330,11 @@ export async function SiteHeader({
           <HeldLanguageNotice locale={locale} held={stored} value={notice} />
         )}
       </header>
-      {/* The competition pills, right under the header from 768px (T-1433, D-267). */}
-      <CompetitionsBar locale={locale} />
+      {/* The matchday rail, right under the header (T-1624, D-292): the leagues
+        by what they are doing today and a drawer of today's matches; on a
+        phone only the leagues playing today, nothing on a day without one. */}
+      <MatchdayRail locale={locale} timeZone={timeZone} signedIn={me !== null} />
       {banner}
-      {/* Today's matches, on every page; nothing at all when there are none or the API cannot say. */}
-      <LiveStrip locale={locale} timeZone={timeZone} />
     </>
   );
 }
