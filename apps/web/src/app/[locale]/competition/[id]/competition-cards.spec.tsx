@@ -11,16 +11,17 @@ import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { message } from '@/i18n/messages';
-import type { CompetitionTab, LeagueModel } from '@/lib/competition-overview';
+import { type CompetitionTab, type LeagueModel, seasonRounds } from '@/lib/competition-overview';
 import type { CardForecast } from '@/lib/score-card-products';
 import {
-  DayCard,
   MatchLine,
+  MatchweekCard,
   ModelCard,
   ModelFigures,
   ModelMonths,
   ResultsCard,
   TableCard,
+  roundTitle,
 } from './competition-cards';
 import { CompetitionHeader } from './competition-header';
 
@@ -130,6 +131,7 @@ function page(over: Partial<CompetitionPage> = {}): CompetitionPage {
 
 /** A model version written as one run, which Cloudflare's Email Obfuscation rewrites (T-1580). */
 const ADDRESS = /\S+@\d+\.\d+\.\d+/;
+const SOURCE = readFileSync(join(__dirname, 'competition-cards.tsx'), 'utf8');
 /** The words a reader sees and a screen reader reads: the markup taken away. */
 const text = (html: string) => html.replace(/<[^>]+>/g, '');
 
@@ -417,29 +419,75 @@ describe('a match row', () => {
   });
 });
 
-describe('the day’s matches', () => {
+describe('a round’s matches (T-1636)', () => {
   const words = {
     'freshness.checked': message('en', 'freshness.checked'),
     'freshness.behind': message('en', 'freshness.behind'),
   };
   const now = Date.parse('2026-10-25T14:30:00.000Z');
-  const day = (fixtures: SeasonFixture[]) => ({ day: '2026-10-25', fixtures });
-
-  it('names the day, gives each match the model’s figures or why not, and says the version', () => {
-    const second = fixture({ id: 'f2', home: { id: 'u', name: 'Man United', short_name: null } });
-    const html = renderToStaticMarkup(
-      <DayCard
-        day={day([fixture(), second])}
-        forecasts={{ [fixture().id]: available }}
-        page={page()}
-        locale="en"
-        timeZone="Europe/London"
-        now={now}
+  const ROUND_9 = [
+    fixture({
+      id: 'f1',
+      kickoff_at: '2026-10-24T14:00:00.000Z',
+      status: 'finished',
+      score: { home: 3, away: 1 },
+    }),
+    fixture(),
+    fixture({
+      id: 'f3',
+      kickoff_at: '2026-10-26T20:00:00.000Z',
+      home: { id: 'u', name: 'Man United', short_name: null },
+    }),
+  ];
+  const ROUND_10 = [
+    fixture({ id: 'g1', round: 'Regular Season - 10', kickoff_at: '2026-10-31T15:00:00.000Z' }),
+  ];
+  const ROUND_8 = [
+    fixture({
+      id: 'e1',
+      round: 'Regular Season - 8',
+      kickoff_at: '2026-10-18T14:00:00.000Z',
+      status: 'finished',
+      score: { home: 0, away: 0 },
+    }),
+  ];
+  const season = page({
+    results: [ROUND_9[0]!, ...ROUND_8].reverse(),
+    fixtures: [ROUND_9[1]!, ROUND_9[2]!, ...ROUND_10],
+  });
+  const href = (n: number) => `/en/competition/${ID}?round=${n}#match-day`;
+  const card = (
+    locale: string,
+    shown: number | null,
+    over: { forecasts?: Record<string, CardForecast>; at?: number; zone?: string } = {},
+  ) => {
+    const zone = over.zone ?? 'Europe/London';
+    const rounds = seasonRounds(locale, season, zone);
+    return renderToStaticMarkup(
+      <MatchweekCard
+        rounds={rounds}
+        round={shown === null ? null : rounds[shown - 1]!}
+        href={href}
+        forecasts={over.forecasts ?? {}}
+        page={season}
+        locale={locale}
+        timeZone={zone}
+        now={over.at ?? now}
         freshnessWords={words}
       />,
     );
-    expect(html).toContain('Sunday 25 October');
-    expect(html.match(/data-testid="fixture"/g)).toHaveLength(2);
+  };
+
+  it('names the round, lists every match under its day, with the model’s figures or why not', () => {
+    const html = card('en', 2, { forecasts: { [fixture().id]: available } });
+    expect(html).toContain('data-testid="round-title">Matchweek 9<');
+    expect(html.match(/data-testid="round-day"/g)).toHaveLength(3);
+    expect(text(html)).toContain('Saturday 24 October');
+    expect(text(html)).toContain('Monday 26 October');
+    expect(html.match(/data-testid="fixture"/g)).toHaveLength(3);
+    // A result with its score, a match to come at its kick-off in the reader's zone.
+    expect(html).toContain('data-testid="fixture-score"');
+    expect(text(html)).toContain('20:00');
     expect(html).toContain('data-forecast="available"');
     expect(html).toContain('data-forecast="none"');
     // The version as the reader sees it, never one run an obfuscator reads as an address (T-1580).
@@ -450,12 +498,67 @@ describe('the day’s matches', () => {
     expect(html).not.toContain('data-freshness');
   });
 
+  /** Every opening tag carrying `data-testid="<id>"`. */
+  const tags = (html: string, id: string) =>
+    [...html.matchAll(new RegExp(`<(?:a|span) [^>]*data-testid="${id}"[^>]*>`, 'g'))].map(
+      (m) => m[0],
+    );
+
+  it('steps to the round before and after, and lists every round with the shown one current', () => {
+    const html = card('en', 2);
+    const [prev] = tags(html, 'round-prev');
+    expect(prev).toMatch(/^<a /);
+    expect(prev).toContain(`href="/en/competition/${ID}?round=1#match-day"`);
+    expect(prev).toContain('rel="prev"');
+    expect(prev).toContain('aria-label="Previous: Matchweek 8"');
+    const [next] = tags(html, 'round-next');
+    expect(next).toContain(`href="/en/competition/${ID}?round=3#match-day"`);
+    expect(next).toContain('rel="next"');
+    expect(next).toContain('aria-label="Next: Matchweek 10"');
+    expect(html).toContain('<nav aria-label="Rounds"');
+    expect(html).toContain('All rounds');
+    expect(html).toContain('data-testid="round-position">2 of 3<');
+    const options = tags(html, 'round-option');
+    expect(options).toHaveLength(3);
+    expect(options.filter((tag) => tag.includes('aria-current="true"'))).toEqual([
+      expect.stringContaining('?round=2#match-day'),
+    ]);
+  });
+
+  it('has nothing to step to before the first round or after the last', () => {
+    const first = card('en', 1);
+    expect(tags(first, 'round-prev')[0]).toMatch(/^<span [^>]*aria-hidden="true"/);
+    expect(tags(first, 'round-next')[0]).toMatch(/^<a /);
+    const last = card('en', 3);
+    expect(tags(last, 'round-next')[0]).toMatch(/^<span [^>]*aria-hidden="true"/);
+  });
+
+  it('is in Persian on /fa: the round, its days and its numbers in Persian digits', () => {
+    const html = card('fa', 2, { zone: 'Asia/Tehran' });
+    expect(html).toContain('data-testid="round-title">هفته‌ی ۹<');
+    expect(html).toContain('aria-label="قبلی: هفته‌ی ۸"');
+    expect(html).toContain('aria-label="بعدی: هفته‌ی ۱۰"');
+    expect(html).toContain('همه‌ی دورها');
+    expect(html).toContain('data-testid="round-position">۲ از ۳<');
+    expect(text(html)).not.toMatch(/[0-9]/);
+    expect(html).not.toContain('data-translation="untranslated"');
+  });
+
+  it('keeps the page’s scroll on a step, and uses logical properties only (rule 7)', () => {
+    const html = card('en', 2);
+    expect(html).not.toMatch(PHYSICAL);
+    expect(SOURCE).toMatch(/scroll=\{false\}/);
+  });
+
   it('stamps its freshness while a match is live, and says when it may be behind', () => {
     const live = fixture({ status: 'live', score: { home: 0, away: 0 } });
+    const rounds = seasonRounds('en', { results: [], fixtures: [live] }, 'UTC');
     const render = (at: number) =>
       renderToStaticMarkup(
-        <DayCard
-          day={day([live])}
+        <MatchweekCard
+          rounds={rounds}
+          round={rounds[0]!}
+          href={href}
           forecasts={{}}
           page={page()}
           locale="en"
@@ -472,10 +575,27 @@ describe('the day’s matches', () => {
     );
   });
 
-  it('says nothing is left to play rather than showing an old day', () => {
+  it('says nothing is left to play rather than drawing an empty round', () => {
+    const html = card('en', null);
+    expect(html).toContain('data-testid="match-day-empty"');
+    expect(html).not.toContain('data-testid="fixture"');
+    expect(html).not.toContain('round-picker');
+  });
+
+  it('names a round it cannot name by its dates, never by the feed’s words (D-193)', () => {
+    const odd = fixture({ round: 'Apertura Fase Final', kickoff_at: '2026-10-25T14:00:00.000Z' });
+    const later = fixture({
+      id: 'o2',
+      round: 'Apertura Fase Final',
+      kickoff_at: '2026-10-27T19:00:00.000Z',
+    });
+    const rounds = seasonRounds('en', { results: [], fixtures: [odd, later] }, 'UTC');
+    expect(roundTitle('en', rounds[0]!, 'UTC')).toBe('25 Oct – 27 Oct');
     const html = renderToStaticMarkup(
-      <DayCard
-        day={null}
+      <MatchweekCard
+        rounds={rounds}
+        round={rounds[0]!}
+        href={href}
         forecasts={{}}
         page={page()}
         locale="en"
@@ -484,8 +604,7 @@ describe('the day’s matches', () => {
         freshnessWords={words}
       />,
     );
-    expect(html).toContain('data-testid="match-day-empty"');
-    expect(html).not.toContain('data-testid="fixture"');
+    expect(html).not.toContain('Apertura');
   });
 
   it('lists the latest results, or says there are none', () => {

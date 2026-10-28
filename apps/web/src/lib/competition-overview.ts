@@ -372,6 +372,124 @@ export function lastResultDay(
 }
 
 // ---------------------------------------------------------------------------
+// The season round by round (T-1636, D-298)
+// ---------------------------------------------------------------------------
+
+export interface SeasonRound {
+  /**
+   * Its place in the season's order of rounds, from 1: the page's `round`
+   * parameter, so a round can be linked ("?round=9").
+   */
+  number: number;
+  /** The stage and round in the reader's words; null when we cannot name it (D-193). */
+  label: string | null;
+  /** Its first and last kick-off: the dates that stand in for a label we do not have. */
+  first: string;
+  last: string;
+  /** Every match of it, played, playing or to come, by kick-off. */
+  fixtures: SeasonFixture[];
+}
+
+/**
+ * The season's rounds, in the order they are played (T-1636): every match
+ * stored for the season, results and fixtures alike, grouped by the round
+ * the provider gives it within its stage (T-1391), each round once, ordered
+ * by its first kick-off. A cup's two legs share their round; a group stage's
+ * matchday is one round across its groups; a qualifying round is its own. A
+ * match stored without a round is grouped by its day in the reader's zone
+ * instead, so nothing is left out and nothing is guessed. A match moved to
+ * another date stays in its round.
+ */
+export function seasonRounds(
+  locale: string,
+  page: Pick<CompetitionPage, 'results' | 'fixtures'>,
+  timeZone: string,
+): SeasonRound[] {
+  const groups = new Map<string, SeasonFixture[]>();
+  for (const f of [...page.results, ...page.fixtures].sort(byKickoff)) {
+    const key =
+      f.round === null
+        ? `day|${dayKey(f.kickoff_at, timeZone)}`
+        : `round|${f.stage?.id ?? ''}|${f.round}`;
+    const group = groups.get(key);
+    if (group === undefined) groups.set(key, [f]);
+    else group.push(f);
+  }
+  // A Map keeps the order its keys arrived in: each round's first kick-off.
+  return [...groups.values()].map((fixtures, index) => {
+    const anchor = fixtures[0]!;
+    const labels =
+      anchor.round === null ? [] : stageNames(locale, anchor.stage?.name, anchor.round);
+    return {
+      number: index + 1,
+      label: labels.length === 0 ? null : labels.join(' · '),
+      first: anchor.kickoff_at,
+      last: fixtures[fixtures.length - 1]!.kickoff_at,
+      fixtures,
+    };
+  });
+}
+
+/**
+ * The round the page opens on (T-1636), as the season's figures name it: the
+ * one a match is being played in; else the one whose match comes next (a
+ * match marked to come hours after its kick-off is late news, not the plan,
+ * as for the next match day); else the last round with a result. A round of
+ * postponed matches alone never sets it. Null for a season with no match.
+ */
+export function defaultRound(rounds: readonly SeasonRound[], now: number): SeasonRound | null {
+  const live = rounds.find((r) => r.fixtures.some((f) => f.status === 'live'));
+  if (live !== undefined) return live;
+  let next: { round: SeasonRound; at: number } | null = null;
+  let played: { round: SeasonRound; at: number } | null = null;
+  for (const round of rounds) {
+    for (const f of round.fixtures) {
+      const at = Date.parse(f.kickoff_at);
+      if (f.status === 'scheduled' && at > now - STALE_SCHEDULED_MS) {
+        if (next === null || at < next.at) next = { round, at };
+      }
+      if (f.status === 'finished' && (played === null || at > played.at)) played = { round, at };
+    }
+  }
+  return next?.round ?? played?.round ?? rounds[0] ?? null;
+}
+
+/** `?round=`: a round's number in this season; anything else (or nothing) is the page's own. */
+export function readRoundParam(params: SearchParams, count: number): number | null {
+  const raw = (Array.isArray(params.round) ? params.round[0] : params.round) ?? '';
+  if (!/^[1-9][0-9]{0,3}$/.test(raw)) return null;
+  const n = Number(raw);
+  return n <= count ? n : null;
+}
+
+/**
+ * A round's address on the Overview, keeping the season, and opening at the
+ * card (`#match-day`) when the page is loaded from it; inside the page the
+ * picker's links keep the scroll where it is.
+ */
+export function roundHref(
+  locale: string,
+  competitionId: string,
+  season: Pick<SeasonSummary, 'id' | 'is_current'>,
+  round: number,
+): string {
+  const base = tabHref(locale, competitionId, season, 'overview');
+  return `${base}${base.includes('?') ? '&' : '?'}round=${round}#match-day`;
+}
+
+/** A round's matches by day in the reader's zone, each day once, in kick-off order. */
+export function roundDays(round: SeasonRound, timeZone: string): MatchDay[] {
+  const days: MatchDay[] = [];
+  for (const f of round.fixtures) {
+    const day = dayKey(f.kickoff_at, timeZone);
+    const last = days[days.length - 1];
+    if (last !== undefined && last.day === day) last.fixtures.push(f);
+    else days.push({ day, fixtures: [f] });
+  }
+  return days;
+}
+
+// ---------------------------------------------------------------------------
 // The model in this league (T-1498)
 // ---------------------------------------------------------------------------
 

@@ -129,6 +129,53 @@ for (const width of [390, 1440]) {
   });
 }
 
+test.describe('the round picker (T-1636)', () => {
+  for (const { locale, round, all } of [
+    { locale: 'en', round: 'Round 20', all: 'All rounds' },
+    { locale: 'fa', round: 'دور ۲۰', all: 'همه‌ی دورها' },
+  ]) {
+    test(`${locale}: opens on the season's round, lists every round, and is reached by keyboard`, async ({
+      page,
+    }) => {
+      // The closed 2024/25 season holds one round: Liverpool 2-2 Manchester United.
+      await page.goto(`/${locale}/competition/${PREMIER_LEAGUE}?season=${SEASON_2024}`);
+      const card = page.getByTestId('match-day');
+      await expect(card.getByTestId('round-title')).toHaveText(round);
+      await expect(card.getByTestId('fixture-score').first()).toBeVisible();
+      const picker = card.getByRole('navigation');
+      await expect(picker).toBeVisible();
+      // One round: nothing before it or after it to step to.
+      await expect(picker.getByTestId('round-prev')).toHaveAttribute('aria-hidden', 'true');
+      await expect(picker.getByTestId('round-next')).toHaveAttribute('aria-hidden', 'true');
+
+      // The disclosure by keyboard: focus, Enter, then the rounds by Tab.
+      const summary = picker.locator('summary');
+      await summary.focus();
+      await expect(summary).toContainText(all);
+      await page.keyboard.press('Enter');
+      const option = picker.getByTestId('round-option');
+      await expect(option).toHaveCount(1);
+      await expect(option).toBeVisible();
+      await expect(option).toHaveAttribute('aria-current', 'true');
+      await page.keyboard.press('Tab');
+      await expect(option).toBeFocused();
+      await page.keyboard.press('Enter');
+      await expect(page).toHaveURL(new RegExp(`season=${SEASON_2024}&round=1#match-day$`));
+      await expect(card.getByTestId('round-title')).toHaveText(round);
+      await noSidewaysScroll(page);
+    });
+  }
+
+  test('a round named in the address opens, and one the season does not have is ignored', async ({
+    page,
+  }) => {
+    await page.goto(`/en/competition/${PREMIER_LEAGUE}?season=${SEASON_2024}&round=1`);
+    await expect(page.getByTestId('round-title')).toHaveText('Round 20');
+    await page.goto(`/en/competition/${PREMIER_LEAGUE}?season=${SEASON_2024}&round=99`);
+    await expect(page.getByTestId('round-title')).toHaveText('Round 20');
+  });
+});
+
 test.describe('on a 390 px phone', () => {
   test.use({ viewport: { width: 390, height: 900 } });
 

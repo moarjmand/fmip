@@ -12938,6 +12938,36 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.rounds.nav": {
+    "source": "Rounds",
+    "text": "دورها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.rounds.all": {
+    "source": "All rounds",
+    "text": "همه‌ی دورها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.rounds.position": {
+    "source": "{position} of {total}",
+    "text": "{position} از {total}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.rounds.previous": {
+    "source": "Previous: {round}",
+    "text": "قبلی: {round}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.rounds.next": {
+    "source": "Next: {round}",
+    "text": "بعدی: {round}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.matches.modelFirst": {
     "source": "The model’s percentages are shown for the next {number} matches; later ones are on each match page.",
     "text": "درصدهای مدل برای {number} بازی بعدی آمده است؛ بازی‌های بعدتر را در صفحه‌ی هر بازی ببینید.",

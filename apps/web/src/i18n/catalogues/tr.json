@@ -10669,6 +10669,31 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.rounds.nav": {
+    "source": "Rounds",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.rounds.all": {
+    "source": "All rounds",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.rounds.position": {
+    "source": "{position} of {total}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.rounds.previous": {
+    "source": "Previous: {round}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.rounds.next": {
+    "source": "Next: {round}",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.matches.modelFirst": {
     "source": "The model’s percentages are shown for the next {number} matches; later ones are on each match page.",
     "text": "",
