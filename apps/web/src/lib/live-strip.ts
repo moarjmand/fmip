@@ -26,6 +26,12 @@ export interface ChipState {
   status: string;
   /** The pair to draw, home first; `null` draws the names with "v" between them. */
   score: ScoreLine | null;
+  /**
+   * A live chip's words for when the drawer's answer has aged (T-1635, rule
+   * 4): "Behind" in place of a minute the drawer can no longer vouch for.
+   * Only on `live`; the drawer swaps it in without asking the server again.
+   */
+  behindStatus?: string;
 }
 
 export function chipState(
@@ -40,11 +46,14 @@ export function chipState(
     case 'scheduled':
       return { kind: 'before', status, score: null };
     case 'live':
-      return {
-        kind: isBehind(card, now) ? 'behind' : 'live',
-        status,
-        score: card.scores.current,
-      };
+      return isBehind(card, now)
+        ? { kind: 'behind', status, score: card.scores.current }
+        : {
+            kind: 'live',
+            status,
+            score: card.scores.current,
+            behindStatus: words['status.behind'].text,
+          };
     case 'finished':
       return { kind: 'final', status, score: card.scores.full_time ?? card.scores.current };
     case 'awarded':
@@ -66,7 +75,9 @@ export function chipState(
  * match yet to start can change from its kick-off. Past either by
  * `STALE_LIVE_AFTER_MS` (D-045), the strip says it may be behind. The strip
  * lives in the locale layout, which a client-side navigation does not render
- * again, so the page keeps it long after the answer was given.
+ * again; since T-1635 the rail asks again while a match is being played
+ * (`railAskIn`), and each answer moves this time on, so it is reached only
+ * when the asking stops getting answers.
  */
 export function stripBehindAt(cards: readonly ScoreCard[], generatedAt: string): number | null {
   const answered = Date.parse(generatedAt);
@@ -107,6 +118,14 @@ export function stripIsBehind(
  */
 export const STRIP_ANSWER_MS = 15_000;
 export const STRIP_FAILURE_MS = 5_000;
+/**
+ * The life of a kept answer when the rail is told a match has just moved
+ * (T-1635): a page whose own stream saw a goal asks for an answer this
+ * fresh, so the rail does not keep the score from before it. The readers of
+ * that match ask within a moment of each other; the first asks the API, the
+ * rest share its answer.
+ */
+export const FRESH_ANSWER_MS = 2_000;
 const KEPT_ANSWERS = 32;
 
 export interface KeptAnswer<T> {
@@ -120,10 +139,12 @@ export function sharedAnswer<T extends { ok: boolean }>(
   key: string,
   now: number,
   ask: () => Promise<T>,
+  /** At most this old, when it is less than an answer's life (`FRESH_ANSWER_MS`). */
+  maxAge: number = STRIP_ANSWER_MS,
 ): Promise<T> {
   const held = kept.get(key);
   if (held !== undefined) {
-    const life = held.ok === false ? STRIP_FAILURE_MS : STRIP_ANSWER_MS;
+    const life = held.ok === false ? STRIP_FAILURE_MS : Math.min(STRIP_ANSWER_MS, maxAge);
     if (now - held.at < life) return held.answer;
     kept.delete(key);
   }

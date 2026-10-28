@@ -3,13 +3,21 @@ import { join } from 'node:path';
 import {
   type CompetitionDirectoryEntry,
   NO_MEDIA,
+  STALE_LIVE_AFTER_MS,
   type ScoreCard,
   type ScoresResponse,
 } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { RAIL_RETRY_MS } from '@/lib/matchday-rail';
+import { refreshRail } from '@/lib/rail-actions';
 import { railView } from './matchday-rail';
-import { MatchdayRailView, isCompetitionPath } from './matchday-rail-view';
+import {
+  MatchdayRailView,
+  drawerAfter,
+  isCompetitionPath,
+  keptDrawers,
+} from './matchday-rail-view';
 
 /**
  * The matchday rail drawn (T-1624, D-292): one bar under the header in place
@@ -333,5 +341,115 @@ describe('the rail', () => {
   it('uses logical properties only (rule 7)', () => {
     expect(SOURCES).not.toMatch(/\b(?:ml|mr|pl|pr|left|right)-[\w[]/);
     expect(SOURCES).not.toMatch(/text-(?:left|right)\b/);
+  });
+});
+
+describe('kept current (T-1635, D-297)', () => {
+  const view = (answer: ScoresResponse | null, signedIn = false) =>
+    railView({
+      locale: 'en',
+      timeZone: 'Europe/London',
+      signedIn,
+      directory: DIRECTORY,
+      scores: answer,
+      now: NOW,
+    });
+
+  it('is asked for again every half-minute while a match is played, in the reader’s zone', () => {
+    const rail = view(MATCHDAY, true);
+    expect(rail.askIn).toBe(0);
+    expect(rail.timeZone).toBe('Europe/London');
+    expect(rail.signedIn).toBe(true);
+    // Answered at 17:59:55: from two minutes on, the statuses may be behind.
+    expect(rail.behindAt).toBe(Date.parse(MATCHDAY.generated_at) + STALE_LIVE_AFTER_MS);
+    expect(rail.behind).toBe(false);
+  });
+
+  it('asks nothing before the next kick-off, or the next day, on a day with nothing being played', () => {
+    // LaLiga kicks off at 19:00 UTC, an hour after the rail was drawn.
+    const later = scores([{ id: 'laliga', name: 'LaLiga', fixtures: [card('m1', {})] }]);
+    expect(view(later).askIn).toBe(60 * 60_000);
+    const quiet = view(scores([]));
+    expect(quiet.askIn).toBeGreaterThan(60 * 60_000);
+    expect(quiet.behindAt).toBeNull();
+    expect(view(null).askIn).toBe(RAIL_RETRY_MS);
+  });
+
+  it('marks its live statuses when a live match’s data had already stopped (rule 4)', () => {
+    const stuck = scores([
+      {
+        id: 'epl',
+        name: 'Premier League',
+        fixtures: [
+          card('m2', {
+            status: 'live',
+            minute: 61,
+            scores: { ...card('x', {}).scores, current: { home: 1, away: 0 } },
+            last_updated_at: '2026-10-24T17:40:00.000Z',
+          }),
+        ],
+      },
+    ]);
+    expect(view(stuck).behind).toBe(true);
+    expect(draw('en', stuck)).toContain('data-testid="matchday-rail" data-behind="true"');
+    expect(draw('en', MATCHDAY)).not.toContain('data-testid="matchday-rail" data-behind');
+  });
+
+  const item = (id: string, today: boolean) => ({ id, label: id, icon: null, status: null, today });
+
+  it('keeps the drawer the reader chose, and the server’s while its league plays', () => {
+    const next = {
+      items: [item('a', true), item('b', true), item('c', false)],
+      initial: 'b',
+    };
+    expect(drawerAfter({ id: 'a', chosen: true }, next)).toEqual({ id: 'a', chosen: true });
+    expect(drawerAfter({ id: 'a', chosen: false }, next)).toEqual({ id: 'a', chosen: false });
+    expect(drawerAfter({ id: null, chosen: true }, next)).toEqual({ id: null, chosen: true });
+    // Nothing was open (a quiet morning), and now a league plays: its drawer opens.
+    expect(drawerAfter({ id: null, chosen: false }, next)).toEqual({ id: 'b', chosen: false });
+    // The league's matches are no longer today's: the default takes its place.
+    expect(drawerAfter({ id: 'c', chosen: true }, next)).toEqual({ id: 'b', chosen: false });
+    expect(drawerAfter({ id: 'gone', chosen: true }, next)).toEqual({ id: 'b', chosen: false });
+  });
+
+  it('draws only the open drawer when asked again, and keeps the others it has', () => {
+    const asked = railView({
+      locale: 'en',
+      timeZone: 'Europe/London',
+      signedIn: false,
+      directory: DIRECTORY,
+      scores: MATCHDAY,
+      now: NOW,
+      drawer: 'laliga',
+    });
+    expect(Object.keys(asked.drawers)).toEqual(['laliga']);
+    expect(Object.keys(view(MATCHDAY).drawers).sort()).toEqual(['epl', 'laliga']);
+    expect(
+      Object.keys(
+        railView({ ...asked, directory: DIRECTORY, scores: MATCHDAY, now: NOW, drawer: null })
+          .drawers,
+      ),
+    ).toEqual([]);
+    // A newer laliga over the kept one; epl kept; a league no longer playing today dropped.
+    const kept = keptDrawers(
+      { epl: 'old epl', laliga: 'old laliga', pgpl: 'old pgpl' },
+      { items: asked.items, drawers: { laliga: 'new laliga' } },
+    );
+    expect(kept).toEqual({ epl: 'old epl', laliga: 'new laliga' });
+  });
+
+  it('asks the server to draw it again rather than drawing scores itself', () => {
+    const client = readFileSync(join(__dirname, 'matchday-rail-view.tsx'), 'utf8');
+    expect(client).toContain("import { refreshRail } from '@/lib/rail-actions';");
+    expect(client).toContain('LIVE_MOVED');
+    const action = readFileSync(join(__dirname, '../lib/rail-actions.ts'), 'utf8');
+    expect(action).toMatch(/^'use server';/);
+    expect(action).toContain('loadRail(');
+  });
+
+  it('answers nothing for a language, a zone or a drawer it does not know', async () => {
+    expect(await refreshRail('xx', 'Europe/London', false, false, null)).toBeNull();
+    expect(await refreshRail('en', 'Mars/Olympus', false, false, null)).toBeNull();
+    expect(await refreshRail('en', 'Europe/London', false, false, '"><script>')).toBeNull();
   });
 });
