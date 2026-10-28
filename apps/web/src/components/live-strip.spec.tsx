@@ -151,6 +151,23 @@ describe('a live chip', () => {
     expect(markup).toContain('78′');
     expect(parts(markup)).toEqual(['status', 'home', 'score', 'away']);
   });
+
+  it('holds "Behind" for when the answer ages, hidden until the row is marked (T-1635, rule 4)', () => {
+    // The minute hides and the word shows by CSS once `LiveStripAge` marks the row.
+    expect(markup).toContain('group-data-[behind=true]/fresh:hidden" data-testid="strip-status"');
+    expect(markup).toContain(
+      'class="hidden text-xs font-bold text-warning group-data-[behind=true]/fresh:inline" data-testid="strip-status-behind">Behind<',
+    );
+    // The row and the note are marked together.
+    expect(render('en')).toContain('class="group/fresh contents" data-behind="false"');
+    expect(render('en', true)).toContain('class="group/fresh contents" data-behind="true"');
+    // Persian has its own word.
+    expect(chip(render('fa'), 'live')).not.toContain('>Behind<');
+  });
+
+  it('has no "Behind" to swap in once full time is in', () => {
+    expect(chip(render('en'), 'final')).not.toContain('strip-status-behind');
+  });
 });
 
 describe('a chip at full time', () => {

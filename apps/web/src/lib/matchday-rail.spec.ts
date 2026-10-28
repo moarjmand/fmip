@@ -7,9 +7,14 @@ import {
 } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  LATE_START_MS,
+  RAIL_RETRY_MS,
   daysBetween,
   drawerFixtures,
+  nextDayStart,
   openLeague,
+  railAskIn,
+  railFixtures,
   railLeagues,
   railStatus,
   railStatusText,
@@ -321,5 +326,67 @@ describe('a status in words', () => {
     expect(daysBetween('2026-10-24', '2026-10-25')).toBe(1);
     expect(daysBetween('2026-10-24', '2026-10-24')).toBe(0);
     expect(daysBetween('2026-12-31', '2027-01-07')).toBe(7);
+  });
+});
+
+describe('when the rail asks again (T-1635, D-297)', () => {
+  const HOUR = 60 * 60_000;
+
+  it('keeps asking while a match today is being played or suspended', () => {
+    expect(railAskIn(answer([group('epl', [card('f1'), live('l1')])]), NOW, ZONE)).toBe(0);
+    const suspended = card('s1', { status: 'suspended', minute: 70 });
+    expect(railAskIn(answer([group('epl', [suspended])]), NOW, ZONE)).toBe(0);
+  });
+
+  it('keeps asking for a match past its kick-off the feed has not started yet', () => {
+    const late = at('m1', new Date(NOW - 10 * 60_000).toISOString());
+    expect(railAskIn(answer([group('epl', [late])]), NOW, ZONE)).toBe(0);
+    // Marked to come hours after its kick-off: not news to wait for.
+    const stuck = at('m2', new Date(NOW - LATE_START_MS - 1).toISOString());
+    expect(railAskIn(answer([group('epl', [stuck])]), NOW, ZONE)).toBe(
+      nextDayStart(ZONE, NOW) - NOW,
+    );
+  });
+
+  it('waits for the next kick-off today when nothing is being played', () => {
+    const answered = answer([
+      group('epl', [card('f1'), at('m1', '2026-10-24T19:45:00.000Z')]),
+      group('laliga', [at('m2', '2026-10-24T19:00:00.000Z')]),
+    ]);
+    expect(railAskIn(answered, NOW, ZONE)).toBe(HOUR);
+  });
+
+  it('asks nothing until the day moves on when every match today is over (an idle page)', () => {
+    // 18:00 UTC is 19:00 in London on 24 October: the next day starts at 23:00 UTC.
+    const over = answer([group('epl', [card('f1'), card('f2', { status: 'postponed' })])]);
+    const wait = railAskIn(over, NOW, ZONE);
+    expect(wait).toBeGreaterThanOrEqual(5 * HOUR);
+    expect(wait).toBeLessThanOrEqual(5 * HOUR + 60_000);
+    expect(railAskIn(answer([]), NOW, ZONE)).toBe(wait);
+  });
+
+  it('asks again a few minutes later when today could not be read', () => {
+    expect(railAskIn(null, NOW, ZONE)).toBe(RAIL_RETRY_MS);
+  });
+
+  it('finds the next day in the reader’s zone, across a change of the clocks', () => {
+    const london = nextDayStart(ZONE, NOW);
+    expect(london - Date.parse('2026-10-24T23:00:00.000Z')).toBeGreaterThanOrEqual(0);
+    expect(london - Date.parse('2026-10-24T23:00:00.000Z')).toBeLessThanOrEqual(60_000);
+    // Tehran is 3:30 ahead: 21:30 there, the next day at 20:30 UTC.
+    const tehran = nextDayStart('Asia/Tehran', NOW);
+    expect(tehran - Date.parse('2026-10-24T20:30:00.000Z')).toBeLessThanOrEqual(60_000);
+    expect(tehran).toBeGreaterThanOrEqual(Date.parse('2026-10-24T20:30:00.000Z'));
+    // London's clocks go back on 25 October 2026: that day is 25 hours long.
+    const sunday = Date.parse('2026-10-25T00:30:00.000Z');
+    const monday = nextDayStart(ZONE, sunday);
+    expect(monday - Date.parse('2026-10-26T00:00:00.000Z')).toBeLessThanOrEqual(60_000);
+    expect(monday).toBeGreaterThanOrEqual(Date.parse('2026-10-26T00:00:00.000Z'));
+  });
+
+  it('judges its own freshness on every match of today, whichever league', () => {
+    const answered = answer([group('epl', [live('l1')]), group('laliga', [card('f1')])]);
+    expect(railFixtures(answered).map((c) => c.id)).toEqual(['l1', 'f1']);
+    expect(railFixtures(null)).toEqual([]);
   });
 });

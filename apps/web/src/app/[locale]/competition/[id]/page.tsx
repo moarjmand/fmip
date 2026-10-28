@@ -46,13 +46,17 @@ import {
   type LeagueModel,
   availableTabs,
   currentMatchweek,
+  defaultRound,
   hasTable,
   lastResultDay,
   leagueModel,
   leagueNumbers,
-  nextMatchDay,
+  readRoundParam,
   readTabParam,
+  resultsBefore,
   roundGroups,
+  roundHref,
+  seasonRounds,
   tabHref,
 } from '@/lib/competition-overview';
 import { type CardForecast, cardForecast } from '@/lib/score-card-products';
@@ -62,8 +66,8 @@ import { pageTimeZone } from '@/lib/reader-time-zone-server';
 import {
   Card,
   CoveredCard,
-  DayCard,
   Empty,
+  MatchweekCard,
   ModelCard,
   ModelMonths,
   ResultsCard,
@@ -187,12 +191,18 @@ export default async function CompetitionPage({
   const { timeZone } = await pageTimeZone(locale, me);
   const tabs = availableTabs(page);
   const tab: CompetitionTab = tabs.includes(requested) ? requested : 'overview';
-  // The moment this answer is rendered: what the next match day and a live list's age count from (rule 4).
+  // The moment this answer is rendered: what the round shown and a live list's age count from (rule 4).
   const now = new Date().getTime();
-  const day = tab === 'overview' ? nextMatchDay(page, timeZone, now) : null;
+  // The Overview's round (T-1636, D-298): the one being played or played
+  // next, or the one `?round=` names; the latest results are the day before
+  // the round the page opens on while it has a match to play (`resultsBefore`).
+  const rounds = tab === 'overview' ? seasonRounds(locale, page, timeZone) : [];
+  const opening = defaultRound(rounds, now);
+  const asked = readRoundParam(query, rounds.length);
+  const round = asked === null ? opening : (rounds[asked - 1] ?? opening);
   const forecasts =
-    tab === 'overview' && day !== null
-      ? await forecastsFor(day.fixtures.slice(0, MAX_FORECAST_FIXTURES).map((f) => f.id))
+    tab === 'overview' && round !== null
+      ? await forecastsFor(round.fixtures.slice(0, MAX_FORECAST_FIXTURES).map((f) => f.id))
       : tab === 'matches'
         ? await forecastsFor(upcoming(page))
         : {};
@@ -238,9 +248,15 @@ export default async function CompetitionPage({
                 <TableModules page={page} locale={locale} timeZone={timeZone} />
               </div>
               <div className="flex min-w-0 flex-[1_1_21rem] flex-col gap-5">
-                <DayCard {...ctx} day={day} forecasts={forecasts} />
+                <MatchweekCard
+                  {...ctx}
+                  rounds={rounds}
+                  round={round}
+                  href={(n) => roundHref(locale, page.competition.id, page.season, n)}
+                  forecasts={forecasts}
+                />
                 <ResultsCard
-                  day={lastResultDay(page, timeZone, day?.day ?? null)}
+                  day={lastResultDay(page, timeZone, resultsBefore(opening, page, timeZone, now))}
                   locale={locale}
                   timeZone={timeZone}
                 />
@@ -256,7 +272,7 @@ export default async function CompetitionPage({
                 />
               </div>
             </div>
-            <CoveragePanel page={page} locale={locale} timeZone={timeZone} />
+            <CoveragePanel page={page} locale={locale} timeZone={timeZone} now={now} />
           </>
         )}
         {tab === 'table' && <TableTab {...ctx} />}

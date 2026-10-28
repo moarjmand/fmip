@@ -6,7 +6,9 @@ import { fetchPlayer, fetchSearch } from '@/lib/api';
 import { Translated } from '@/components/translated';
 import { attribute } from '@/i18n/messages';
 import { coverageText, pageLocale, say } from '@/lib/competition';
-import { POSITION_KEY } from '@/lib/player';
+import { POSITION_KEY, ageOn, clubBasisText, clubClaim, positionValue } from '@/lib/player';
+import { EntityImage } from '@/components/entity-image';
+import { formatNumber } from '@/i18n/format';
 import {
   cellText,
   compareHref,
@@ -22,7 +24,7 @@ import {
 } from '@/lib/player-compare';
 import { MIN_QUERY_LENGTH, readSearchTerm } from '@/lib/search';
 import { pageMetadata } from '@/lib/seo';
-import { Button, Notice, controlClasses } from '@/components/ui';
+import { Button, Notice, controlClasses, inlineTargetClasses } from '@/components/ui';
 import { Stamp } from '@/components/stamp';
 
 export const dynamic = 'force-dynamic';
@@ -63,8 +65,72 @@ export async function generateMetadata({
 }
 
 function positionOf(locale: string, page: PlayerPage): string {
-  const position = page.current_spell?.position ?? null;
+  const position = positionValue(page);
   return say(locale, position === null ? 'teamPage.group.unknown' : POSITION_KEY[position]);
+}
+
+/**
+ * One player's identity beside the other's (T-1630): position, the club with
+ * its crest and what says so (T-1629), the national team when a line-up names
+ * one, and the age. Each one we do not hold is said to be missing, never
+ * left blank or guessed (rule 3).
+ */
+function Identity({ page, locale }: { page: PlayerPage; locale: string }) {
+  const club = clubClaim(page);
+  const national = page.national_team ?? null;
+  const age = ageOn(page.person.date_of_birth, new Date());
+  const teamLink = inlineTargetClasses('gap-1.5 align-middle font-medium hover:underline');
+  return (
+    <div className="flex min-w-0 flex-col gap-1" data-testid="compare-player">
+      <dt className="font-semibold break-words">
+        <Link href={`/${locale}/player/${page.person.id}`} className="underline">
+          {displayName(page.person)}
+        </Link>
+      </dt>
+      <dd className="text-muted" data-testid="compare-position">
+        {positionOf(locale, page)}
+      </dd>
+      <dd className="min-w-0 break-words" data-testid="compare-club">
+        {club === null ? (
+          <span className="text-muted">
+            <Translated locale={locale} message="compare.noTeam" />
+          </span>
+        ) : (
+          <>
+            <Link href={`/${locale}/team/${club.team.id}`} className={teamLink}>
+              <EntityImage media={club.team.crest} kind="crest" name={club.team.name} size={20} />
+              <bdi>{club.team.name}</bdi>
+            </Link>
+            <span className="block text-xs text-muted" data-basis={club.basis}>
+              {club.on_loan ? `${say(locale, 'teamPage.onLoan')} · ` : ''}
+              {clubBasisText(locale, club)}
+            </span>
+          </>
+        )}
+      </dd>
+      {national !== null && (
+        <dd className="min-w-0 break-words" data-testid="compare-national">
+          <span className="block text-xs text-muted">
+            <Translated locale={locale} message="playerPage.nationalTeam" />
+          </span>
+          <Link href={`/${locale}/team/${national.team.id}`} className={teamLink}>
+            <EntityImage
+              media={national.team.crest}
+              kind="crest"
+              name={national.team.name}
+              size={20}
+            />
+            <bdi>{national.team.name}</bdi>
+          </Link>
+        </dd>
+      )}
+      <dd className="text-muted" data-testid="compare-age">
+        {age === null
+          ? say(locale, 'compare.ageNotSupplied')
+          : say(locale, 'compare.age', { age: formatNumber(locale, age) })}
+      </dd>
+    </div>
+  );
 }
 
 /**
@@ -211,21 +277,7 @@ export default async function ComparePlayersPage({
 
       <dl className="grid grid-cols-2 gap-3 text-sm" data-testid="compare-players">
         {[pageA, pageB].map((page) => (
-          <div key={page.person.id} className="flex min-w-0 flex-col gap-0.5">
-            <dt className="font-semibold break-words">
-              <Link href={`/${locale}/player/${page.person.id}`} className="underline">
-                {displayName(page.person)}
-              </Link>
-            </dt>
-            <dd className="text-muted">{positionOf(locale, page)}</dd>
-            <dd className="text-muted">
-              {page.current_spell === null ? (
-                <Translated locale={locale} message="compare.noTeam" />
-              ) : (
-                page.current_spell.team.name
-              )}
-            </dd>
-          </div>
+          <Identity key={page.person.id} page={page} locale={locale} />
         ))}
       </dl>
 

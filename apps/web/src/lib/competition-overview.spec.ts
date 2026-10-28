@@ -10,6 +10,7 @@ import {
   MATCHWEEK_LIMIT,
   availableTabs,
   currentMatchweek,
+  defaultRound,
   hasTable,
   lastResultDay,
   leagueModel,
@@ -19,9 +20,14 @@ import {
   monthsTotal,
   nextMatchDay,
   perMatch,
+  readRoundParam,
   readTabParam,
+  resultsBefore,
+  roundDays,
   roundGroups,
+  roundHref,
   seasonDigits,
+  seasonRounds,
   sharePercent,
   tabHref,
 } from './competition-overview';
@@ -503,5 +509,152 @@ describe('the model in this league (T-1498)', () => {
         uniform_rps: null,
       });
     });
+  });
+});
+
+describe('the season round by round (T-1636, D-298)', () => {
+  const now = Date.parse('2026-10-25T09:00:00.000Z');
+  const played = (over: Partial<SeasonFixture>) =>
+    fx({ status: 'finished', score: { home: 1, away: 1 }, ...over });
+  const mw = (round: number, kickoff: string, over: Partial<SeasonFixture> = {}) =>
+    fx({ round: `Regular Season - ${round}`, kickoff_at: kickoff, ...over });
+
+  it('groups every stored match by its round, results and fixtures alike, in the order played', () => {
+    const r8 = played({ round: 'Regular Season - 8', kickoff_at: '2026-10-18T14:00:00.000Z' });
+    const r9a = played({ round: 'Regular Season - 9', kickoff_at: '2026-10-24T14:00:00.000Z' });
+    const r9b = mw(9, '2026-10-26T20:00:00.000Z');
+    const r10 = mw(10, '2026-10-31T15:00:00.000Z');
+    // Matchweek 9's match moved to after Matchweek 10 stays in Matchweek 9.
+    const r9late = mw(9, '2026-11-04T19:30:00.000Z');
+    const rounds = seasonRounds(
+      'en',
+      { results: [r9a, r8], fixtures: [r9b, r10, r9late] },
+      'Europe/London',
+    );
+    expect(rounds.map((r) => [r.number, r.label, r.fixtures.map((f) => f.id)])).toEqual([
+      [1, 'Matchweek 8', [r8.id]],
+      [2, 'Matchweek 9', [r9a.id, r9b.id, r9late.id]],
+      [3, 'Matchweek 10', [r10.id]],
+    ]);
+    expect(rounds[1]!.first).toBe(r9a.kickoff_at);
+    expect(rounds[1]!.last).toBe(r9late.kickoff_at);
+    expect(seasonRounds('fa', { results: [r8], fixtures: [] }, 'Asia/Tehran')[0]!.label).toBe(
+      'هفته‌ی ۸',
+    );
+  });
+
+  it('keeps a cup’s two legs in one round, and each stage’s rounds apart', () => {
+    const stage = (id: string, name: string) => ({ id, name });
+    const groups = stage('g', 'Group Stage');
+    const knockout = stage('k', 'Knockout');
+    const g1 = fx({
+      stage: groups,
+      round: 'Group Stage - 1',
+      kickoff_at: '2026-09-16T19:00:00.000Z',
+    });
+    const g1b = fx({
+      stage: groups,
+      round: 'Group Stage - 1',
+      kickoff_at: '2026-09-17T19:00:00.000Z',
+    });
+    const leg1 = fx({
+      stage: knockout,
+      round: 'Round of 16',
+      kickoff_at: '2027-02-17T20:00:00.000Z',
+    });
+    const leg2 = fx({
+      stage: knockout,
+      round: 'Round of 16',
+      kickoff_at: '2027-03-10T20:00:00.000Z',
+    });
+    // The same words in another stage are another round.
+    const other = fx({
+      stage: stage('q', 'Qualifying'),
+      round: 'Round of 16',
+      kickoff_at: '2026-07-01T18:00:00.000Z',
+    });
+    const rounds = seasonRounds(
+      'en',
+      { results: [], fixtures: [leg2, g1b, leg1, other, g1] },
+      'UTC',
+    );
+    expect(rounds.map((r) => r.fixtures.map((f) => f.id))).toEqual([
+      [other.id],
+      [g1.id, g1b.id],
+      [leg1.id, leg2.id],
+    ]);
+    expect(rounds[2]!.label).toBe('Round of 16');
+    expect(roundDays(rounds[2]!, 'UTC').map((d) => d.day)).toEqual(['2027-02-17', '2027-03-10']);
+  });
+
+  it('groups matches stored without a round by their day in the reader’s zone, unnamed', () => {
+    const late = fx({ round: null, stage: null, kickoff_at: '2026-10-25T22:30:00.000Z' });
+    const next = fx({ round: null, stage: null, kickoff_at: '2026-10-26T12:00:00.000Z' });
+    const london = seasonRounds('en', { results: [], fixtures: [late, next] }, 'Europe/London');
+    expect(london.map((r) => [r.label, r.fixtures.length])).toEqual([
+      [null, 1],
+      [null, 1],
+    ]);
+    // 22:30 in London is 02:00 the next day in Tehran: the same day as the other.
+    const tehran = seasonRounds('en', { results: [], fixtures: [late, next] }, 'Asia/Tehran');
+    expect(tehran.map((r) => r.fixtures.length)).toEqual([2]);
+  });
+
+  it('opens on the round being played, else the next, else the last played', () => {
+    const r8 = played({ round: 'Regular Season - 8', kickoff_at: '2026-10-18T14:00:00.000Z' });
+    const r9 = played({ round: 'Regular Season - 9', kickoff_at: '2026-10-24T14:00:00.000Z' });
+    const r9next = mw(9, '2026-10-26T20:00:00.000Z');
+    const r10 = mw(10, '2026-10-31T15:00:00.000Z');
+    const at = (fixtures: SeasonFixture[], results: SeasonFixture[]) =>
+      defaultRound(seasonRounds('en', { results, fixtures }, 'UTC'), now)?.label;
+    expect(at([r9next, r10], [r9, r8])).toBe('Matchweek 9');
+    expect(at([r10], [r9, r8])).toBe('Matchweek 10');
+    const live = mw(10, '2026-10-25T08:30:00.000Z', { status: 'live' });
+    expect(at([r9next, live], [r9, r8])).toBe('Matchweek 10');
+    // An old match the feed left "scheduled" does not pull the page back to its round.
+    const stale = mw(7, '2026-10-11T14:00:00.000Z');
+    expect(at([stale, r10], [r9, r8])).toBe('Matchweek 10');
+    // Nothing left to play: the last round with a result.
+    expect(at([], [r9, r8])).toBe('Matchweek 9');
+    expect(at([mw(11, '2026-11-07T15:00:00.000Z', { status: 'postponed' })], [r8])).toBe(
+      'Matchweek 8',
+    );
+    expect(defaultRound([], now)).toBeNull();
+  });
+
+  it('counts the latest results back from the round opened on, or shows the last ones', () => {
+    const r8 = played({ round: 'Regular Season - 8', kickoff_at: '2026-10-18T14:00:00.000Z' });
+    const r9 = played({ round: 'Regular Season - 9', kickoff_at: '2026-10-24T14:00:00.000Z' });
+    const r9next = mw(9, '2026-10-26T20:00:00.000Z');
+    const open = { results: [r9, r8], fixtures: [r9next] };
+    const opening = defaultRound(seasonRounds('en', open, 'UTC'), now);
+    // Matchweek 9 still has a match to play: the results card is the day before it.
+    expect(resultsBefore(opening, open, 'UTC', now)).toBe('2026-10-24');
+    expect(lastResultDay(open, 'UTC', resultsBefore(opening, open, 'UTC', now))?.day).toBe(
+      '2026-10-18',
+    );
+    // Nothing left to play: the last results, never "no results" (rule 3).
+    const closed = { results: [r9, r8], fixtures: [] };
+    const last = defaultRound(seasonRounds('en', closed, 'UTC'), now);
+    expect(resultsBefore(last, closed, 'UTC', now)).toBeNull();
+    expect(lastResultDay(closed, 'UTC', resultsBefore(last, closed, 'UTC', now))?.day).toBe(
+      '2026-10-24',
+    );
+    expect(resultsBefore(null, { results: [], fixtures: [] }, 'UTC', now)).toBeNull();
+  });
+
+  it('reads `?round=` as a round of this season, and links one keeping the season', () => {
+    expect(readRoundParam({ round: '9' }, 38)).toBe(9);
+    expect(readRoundParam({ round: ['3', '4'] }, 38)).toBe(3);
+    for (const raw of ['0', '39', '-1', '9a', '', '09', '1e1']) {
+      expect(readRoundParam({ round: raw }, 38)).toBeNull();
+    }
+    expect(readRoundParam({}, 38)).toBeNull();
+    expect(roundHref('en', 'c', { id: 's', is_current: true }, 9)).toBe(
+      '/en/competition/c?round=9#match-day',
+    );
+    expect(roundHref('fa', 'c', { id: 's1', is_current: false }, 2)).toBe(
+      '/fa/competition/c?season=s1&round=2#match-day',
+    );
   });
 });

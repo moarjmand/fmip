@@ -8889,10 +8889,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.lineupsNotYet": {
-    "source": "Not announced yet: the official line-up is usually announced about 20–40 minutes before kick-off.",
-    "text": "هنوز اعلام نشده است: ترکیب رسمی معمولاً حدود بیست تا چهل دقیقه پیش از شروع بازی اعلام می‌شود.",
+    "source": "Not announced yet: clubs usually name the official line-up about an hour before kick-off, and it is shown here as soon as it reaches us.",
+    "text": "هنوز اعلام نشده است: باشگاه‌ها معمولاً ترکیب رسمی را حدود یک ساعت پیش از شروع بازی اعلام می‌کنند و همین که به دست ما برسد، اینجا نشان داده می‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1627."
   },
   "matchCentre.assist": {
     "source": "(assist {player})",
@@ -9235,6 +9235,318 @@
     "text": "مشکوک",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.absencesAsked": {
+    "source": "As reported when last checked, {time}.",
+    "text": "طبق آخرین بررسی، {time}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.beforeKickoff": {
+    "source": "Before kick-off",
+    "text": "پیش از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1627)."
+  },
+  "matchCentre.absenceReason.injury": {
+    "source": "Injury",
+    "text": "مصدومیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.knee": {
+    "source": "Knee injury",
+    "text": "مصدومیت زانو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.muscle": {
+    "source": "Muscle injury",
+    "text": "مصدومیت عضلانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.thigh": {
+    "source": "Thigh injury",
+    "text": "مصدومیت ران",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.hamstring": {
+    "source": "Hamstring injury",
+    "text": "مصدومیت همسترینگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.groin": {
+    "source": "Groin injury",
+    "text": "مصدومیت کشاله‌ی ران",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.calf": {
+    "source": "Calf injury",
+    "text": "مصدومیت عضله‌ی ساق",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.ankle": {
+    "source": "Ankle injury",
+    "text": "مصدومیت مچ پا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.achilles": {
+    "source": "Achilles injury",
+    "text": "مصدومیت تاندون آشیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.foot": {
+    "source": "Foot injury",
+    "text": "مصدومیت کف پا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.heel": {
+    "source": "Heel injury",
+    "text": "مصدومیت پاشنه‌ی پا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.toe": {
+    "source": "Toe injury",
+    "text": "مصدومیت انگشت پا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.leg": {
+    "source": "Leg injury",
+    "text": "مصدومیت پا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.hip": {
+    "source": "Hip injury",
+    "text": "مصدومیت مفصل ران",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.pelvis": {
+    "source": "Pelvis injury",
+    "text": "مصدومیت لگن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.back": {
+    "source": "Back injury",
+    "text": "مصدومیت کمر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.abdomen": {
+    "source": "Abdominal injury",
+    "text": "مصدومیت ناحیه‌ی شکم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.chest": {
+    "source": "Chest injury",
+    "text": "مصدومیت قفسه‌ی سینه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.ribs": {
+    "source": "Rib injury",
+    "text": "مصدومیت دنده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.shoulder": {
+    "source": "Shoulder injury",
+    "text": "مصدومیت شانه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.collarbone": {
+    "source": "Collarbone injury",
+    "text": "مصدومیت ترقوه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.arm": {
+    "source": "Arm injury",
+    "text": "مصدومیت بازو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.wrist": {
+    "source": "Wrist injury",
+    "text": "مصدومیت مچ دست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.hand": {
+    "source": "Hand injury",
+    "text": "مصدومیت دست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.head": {
+    "source": "Head injury",
+    "text": "مصدومیت سر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.eye": {
+    "source": "Eye injury",
+    "text": "مصدومیت چشم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.tendon": {
+    "source": "Tendon injury",
+    "text": "مصدومیت تاندون",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.lower_body": {
+    "source": "Lower-body injury",
+    "text": "مصدومیت پایین‌تنه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.upper_body": {
+    "source": "Upper-body injury",
+    "text": "مصدومیت بالاتنه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.knock": {
+    "source": "Knock",
+    "text": "ضرب‌دیدگی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.fracture": {
+    "source": "Fracture",
+    "text": "شکستگی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.surgery": {
+    "source": "Surgery",
+    "text": "جراحی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.concussion": {
+    "source": "Concussion",
+    "text": "ضربه‌ی مغزی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.hernia": {
+    "source": "Hernia",
+    "text": "فتق",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.illness": {
+    "source": "Illness",
+    "text": "بیماری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.heart": {
+    "source": "Heart condition",
+    "text": "مشکل قلبی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.health": {
+    "source": "Health reasons",
+    "text": "مشکل پزشکی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.red_card": {
+    "source": "Suspended: red card",
+    "text": "محروم: کارت قرمز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.yellow_cards": {
+    "source": "Suspended: yellow cards",
+    "text": "محروم: تجمع کارت زرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.suspended": {
+    "source": "Suspended",
+    "text": "محروم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.doping": {
+    "source": "Doping ban",
+    "text": "محرومیت دوپینگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.inactive": {
+    "source": "Inactive",
+    "text": "غیرفعال",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.off_roster": {
+    "source": "Not in the squad",
+    "text": "خارج از فهرست تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.lacking_fitness": {
+    "source": "Lacking match fitness",
+    "text": "آمادگی بدنی ناکافی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.coach_decision": {
+    "source": "Coach's decision",
+    "text": "تصمیم سرمربی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.rest": {
+    "source": "Rested",
+    "text": "استراحت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.personal": {
+    "source": "Personal reasons",
+    "text": "دلایل شخصی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.overload": {
+    "source": "Fatigue",
+    "text": "خستگی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.loan_agreement": {
+    "source": "Loan agreement",
+    "text": "بند قرارداد قرضی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
+  },
+  "matchCentre.absenceReason.international_duty": {
+    "source": "International duty",
+    "text": "اردوی تیم ملی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (T-1626)."
   },
   "matchCentre.coach": {
     "source": "Coach: {name}",
@@ -12938,6 +13250,36 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.rounds.nav": {
+    "source": "Rounds",
+    "text": "دورها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.rounds.all": {
+    "source": "All rounds",
+    "text": "همه‌ی دورها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.rounds.position": {
+    "source": "{position} of {total}",
+    "text": "{position} از {total}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.rounds.previous": {
+    "source": "Previous: {round}",
+    "text": "قبلی: {round}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.rounds.next": {
+    "source": "Next: {round}",
+    "text": "بعدی: {round}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.matches.modelFirst": {
     "source": "The model’s percentages are shown for the next {number} matches; later ones are on each match page.",
     "text": "درصدهای مدل برای {number} بازی بعدی آمده است؛ بازی‌های بعدتر را در صفحه‌ی هر بازی ببینید.",
@@ -14102,6 +14444,30 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "playerPage.club.lineup": {
+    "source": "from the latest club line-up that names this player, {date}",
+    "text": "بر پایه‌ی آخرین ترکیب باشگاهی که نام این بازیکن در آن آمده، {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.club.squad": {
+    "source": "in the club’s squad list, read {date}",
+    "text": "در فهرست بازیکنان باشگاه، خوانده‌شده در {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.club.transfer": {
+    "source": "joined {date}",
+    "text": "پیوسته در {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.nationalTeam": {
+    "source": "National team",
+    "text": "تیم ملی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "playerPage.compareWith": {
     "source": "Compare with…",
     "text": "مقایسه با…",
@@ -14840,6 +15206,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "compare.age": {
+    "source": "Age {age}",
+    "text": "سن {age}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.ageNotSupplied": {
+    "source": "Age not supplied",
+    "text": "سن ارائه نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "compare.swap": {
     "source": "Swap sides",
     "text": "جابه‌جایی دو طرف",
@@ -15551,6 +15929,18 @@
   "freshness.behind": {
     "source": "may be behind",
     "text": "شاید عقب باشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "freshness.matchesChecked": {
+    "source": "Matches last checked {time}; unchanged since {changed}",
+    "text": "آخرین بررسی بازی‌ها {time}؛ بدون تغییر از {changed}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "freshness.matchesChanged": {
+    "source": "Matches last changed {time}",
+    "text": "آخرین تغییر بازی‌ها {time}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

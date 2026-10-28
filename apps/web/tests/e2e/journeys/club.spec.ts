@@ -55,6 +55,18 @@ for (const width of [390, 1440]) {
           await expect(page.getByTestId('band-standing')).toContainText(PERSIAN_DIGIT);
         }
 
+        // The footer says its time is the matches' (T-1633, D-296), never a
+        // bare "Last data update"; in Persian words and digits on /fa.
+        const updated = page.getByTestId('team-updated');
+        await expect(updated.locator('time').first()).toBeAttached();
+        if (locale === 'en') {
+          await expect(updated).toContainText(/^Matches last (checked|changed) /);
+        }
+        if (locale === 'fa') {
+          await expect(updated).toContainText('بازی‌ها');
+          await expect(updated).toContainText(PERSIAN_DIGIT);
+        }
+
         // The phone's record is tiles, the desktop's a table.
         if ((await page.getByTestId('record-empty').count()) === 0) {
           const tiles = page.getByTestId('record-tiles');

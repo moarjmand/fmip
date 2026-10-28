@@ -100,6 +100,13 @@ export const TITLE = 'text-base font-extrabold text-fg font-stretch-semi-expande
  * `dir="auto"` (T-605): a fallback English sentence in a right-to-left
  * paragraph had its full stop resolved by the paragraph.
  */
+/** The badge of a module that waits for the match (T-1550, T-1627). */
+const PENDING_KEY = {
+  kickoff: 'matchCentre.fromKickoff',
+  lineup: 'matchCentre.beforeKickoff',
+  unplayed: 'matchCentre.notPlayed',
+} as const satisfies Record<'kickoff' | 'lineup' | 'unplayed', Key>;
+
 export function Module<T>({
   title,
   module,
@@ -127,9 +134,10 @@ export function Module<T>({
    * a module the season covers, says it starts then; `'unplayed'` for a
    * postponed or cancelled match says there was no play to record. Either
    * replaces "Not supplied for this match", which would read as a verdict
-   * on the feed when the match simply has not happened.
+   * on the feed when the match simply has not happened. `'lineup'` is the
+   * line-ups' own (T-1627): they come before kick-off, not from it.
    */
-  before?: 'kickoff' | 'unplayed' | null;
+  before?: 'kickoff' | 'lineup' | 'unplayed' | null;
   children: (data: T) => React.ReactNode;
 }) {
   const m = words.m;
@@ -137,7 +145,7 @@ export function Module<T>({
   const why: Key =
     pending === 'unplayed'
       ? 'matchCentre.notPlayedWhy'
-      : pending === 'kickoff'
+      : pending === 'kickoff' || pending === 'lineup'
         ? (empty ?? 'matchCentre.fromKickoffWhy')
         : module.coverage === 'delayed'
           ? 'matchCentre.moduleDelayed'
@@ -153,12 +161,8 @@ export function Module<T>({
         </span>
         {pending !== null ? (
           <span dir="auto" className={pill} data-testid="not-yet" data-not-yet={pending}>
-            {pending === 'kickoff' && <Icon name="clock" size={12} />}
-            <MessageText
-              message={
-                m[pending === 'kickoff' ? 'matchCentre.fromKickoff' : 'matchCentre.notPlayed']
-              }
-            />
+            {pending !== 'unplayed' && <Icon name="clock" size={12} />}
+            <MessageText message={m[PENDING_KEY[pending]]} />
           </span>
         ) : waiting ? (
           <span dir="auto" className={pill} data-testid="not-in-yet">

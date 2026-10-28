@@ -17,7 +17,10 @@ import type { ChipState } from '@/lib/live-strip';
  * one per league that plays today; the rail shows the chosen one.
  *
  * When the answer may be behind, the drawer says so (rule 4,
- * `LiveStripAge`). On the surface of the theme, as the header is (D-267).
+ * `LiveStripAge`), and its live chips read "Behind" in place of the minute
+ * (T-1635). The rail asks for a new drawer while a match is being played
+ * (D-297), so that happens only when the answers stop coming. On the surface
+ * of the theme, as the header is (D-267).
  */
 export function RailDrawer({
   locale,
@@ -60,26 +63,27 @@ export function RailDrawer({
         >
           <MessageText message={label} />
         </span>
-        <ScrollRow className="flex-1" listClassName="flex gap-2" testId="live-strip-chips">
-          {chips.map(({ card, state }) => (
-            <li key={card.id} className="shrink-0">
-              <ScoreChip locale={locale} card={card} state={state} versus={versus} />
+        <LiveStripAge behindAt={behindAt} initiallyBehind={behind} note={note}>
+          <ScrollRow className="flex-1" listClassName="flex gap-2" testId="live-strip-chips">
+            {chips.map(({ card, state }) => (
+              <li key={card.id} className="shrink-0">
+                <ScoreChip locale={locale} card={card} state={state} versus={versus} />
+              </li>
+            ))}
+            <li className="shrink-0">
+              <Link
+                href={`/${locale}/competition/${competition}`}
+                className="flex h-11 items-center gap-1 px-2 text-sm font-bold whitespace-nowrap text-accent hover:underline"
+                data-testid="rail-open"
+              >
+                <MessageText message={open} />
+                <span aria-hidden="true" className="inline-block rtl:-scale-x-100">
+                  →
+                </span>
+              </Link>
             </li>
-          ))}
-          <li className="shrink-0">
-            <Link
-              href={`/${locale}/competition/${competition}`}
-              className="flex h-11 items-center gap-1 px-2 text-sm font-bold whitespace-nowrap text-accent hover:underline"
-              data-testid="rail-open"
-            >
-              <MessageText message={open} />
-              <span aria-hidden="true" className="inline-block rtl:-scale-x-100">
-                →
-              </span>
-            </Link>
-          </li>
-        </ScrollRow>
-        <LiveStripAge behindAt={behindAt} initiallyBehind={behind} note={note} />
+          </ScrollRow>
+        </LiveStripAge>
       </div>
     </nav>
   );
@@ -159,14 +163,27 @@ function ChipStatus({
         </time>
       );
     case 'live':
+      // Once the drawer's answer has aged (`LiveStripAge` marks the row
+      // `data-behind`), "Behind" stands in place of a minute it can no longer
+      // vouch for (T-1635, rule 4); a newer answer brings the minute back.
       return (
-        <span
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-live"
-          data-testid="strip-status"
-        >
-          <span aria-hidden="true" className="live-dot size-[7px] rounded-full bg-live" />
-          <LtrNumeric>{state.status}</LtrNumeric>
-        </span>
+        <>
+          <span
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-live group-data-[behind=true]/fresh:hidden"
+            data-testid="strip-status"
+          >
+            <span aria-hidden="true" className="live-dot size-[7px] rounded-full bg-live" />
+            <LtrNumeric>{state.status}</LtrNumeric>
+          </span>
+          {state.behindStatus !== undefined && (
+            <span
+              className="hidden text-xs font-bold text-warning group-data-[behind=true]/fresh:inline"
+              data-testid="strip-status-behind"
+            >
+              {state.behindStatus}
+            </span>
+          )}
+        </>
       );
     case 'behind':
       return (

@@ -15,7 +15,14 @@ import { cx } from '@/components/ui/cx';
 import { formatDate, formatGregorianMonth, formatNumber } from '@/i18n/format';
 import { type MessageKey, message } from '@/i18n/messages';
 import { STATUS_KEY, pageLocale, say } from '@/lib/competition';
-import type { LeagueModel, MatchDay, RoundGroup } from '@/lib/competition-overview';
+import {
+  type LeagueModel,
+  type MatchDay,
+  type RoundGroup,
+  type SeasonRound,
+  dayKey,
+  roundDays,
+} from '@/lib/competition-overview';
 import type { CardForecast } from '@/lib/score-card-products';
 import { wholePercentages } from '@/lib/triple';
 import { formatFixed, formatPercent } from '@/lib/words';
@@ -23,8 +30,9 @@ import { formatFixed, formatPercent } from '@/lib/words';
 /**
  * The competition page's modules in the Stadiomind design (T-1498, D-274):
  * a surface card with its name in the wide cut and a hairline under it, and
- * what goes in it -- the table, a day of matches with the model's three
- * percentages, a day of results, the model in this league. Every module
+ * what goes in it -- the table, a round of matches with the model's three
+ * percentages and a picker for the season's other rounds (T-1636), a day of
+ * results, the model in this league. Every module
  * says its coverage (rule 3); a list with a match in play says how fresh it
  * is (rule 4). Server components only: nothing here reaches the browser's
  * bundle. Beside the page because only this page uses them.
@@ -440,14 +448,207 @@ function dayName(locale: string, day: string, timeZone: string): string {
   });
 }
 
+/** A round's name, or its dates when we cannot name it: "31 Oct – 2 Nov", one day in full. */
+export function roundTitle(locale: string, round: SeasonRound, timeZone: string): string {
+  if (round.label !== null) return round.label;
+  const first = dayKey(round.first, timeZone);
+  const last = dayKey(round.last, timeZone);
+  if (first === last) return dayName(locale, first, timeZone);
+  const short = (day: string) =>
+    formatDate(locale, `${day}T12:00:00Z`, timeZone, { day: 'numeric', month: 'short' });
+  return `${short(first)} – ${short(last)}`;
+}
+
+/** The round's dates for the picker's list: "31 Oct – 2 Nov", "31 Oct". */
+function roundDates(locale: string, round: SeasonRound, timeZone: string): string {
+  const short = (iso: string) =>
+    formatDate(locale, iso, timeZone, { day: 'numeric', month: 'short' });
+  const first = short(round.first);
+  const last = short(round.last);
+  return first === last ? first : `${first} – ${last}`;
+}
+
+/** The ‹ and › of the picker: the round's name as the link's name, an arrow drawn. */
+function StepLink({
+  href,
+  label,
+  rel,
+  testId,
+}: {
+  href: string | null;
+  label: string;
+  rel: 'prev' | 'next';
+  testId: string;
+}) {
+  // ‹ before, › after, in the reading direction: mirrored on a right-to-left page.
+  const arrow = (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.25"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="rtl:-scale-x-100"
+    >
+      <path d={rel === 'prev' ? 'm15 6-6 6 6 6' : 'm9 6 6 6-6 6'} />
+    </svg>
+  );
+  const box =
+    'flex size-touch shrink-0 items-center justify-center rounded-control border border-default';
+  if (href === null) {
+    // The season's first or last round: nothing to step to, and nothing to focus.
+    return (
+      <span
+        className={cx(box, 'border-dashed text-caption')}
+        data-testid={testId}
+        aria-hidden="true"
+      >
+        {arrow}
+      </span>
+    );
+  }
+  return (
+    <Link
+      href={href}
+      scroll={false}
+      rel={rel}
+      aria-label={label}
+      title={label}
+      className={cx(box, 'text-fg hover:border-strong hover:bg-surface-raised')}
+      data-testid={testId}
+    >
+      {arrow}
+    </Link>
+  );
+}
+
 /**
- * The day's matches with the model's percentages (T-1498): the next day the
- * competition plays, every match that day with its state and the model's
- * last pre-kick-off forecast. With a match in play the card says how fresh
- * its list is; with nothing left to play this season it says so.
+ * The round picker (T-1636, D-298): the previous round, every round of the
+ * season under a disclosure, the next round. Links, so a round has an
+ * address, Back steps back, and it works without a script; the page keeps
+ * its scroll on a step. The disclosure is `<details>`: Enter or Space opens
+ * it, Tab walks its rounds, the shown one is `aria-current`. It opens in the
+ * card's flow, as tall as its list allows, so the card's edge never cuts it.
  */
-export function DayCard({
-  day,
+export function RoundPicker({
+  rounds,
+  shown,
+  href,
+  locale,
+  timeZone,
+}: {
+  rounds: readonly SeasonRound[];
+  shown: SeasonRound;
+  /** A round's address (`roundHref`). */
+  href: (round: number) => string;
+  locale: string;
+  timeZone: string;
+}) {
+  const before = rounds[shown.number - 2] ?? null;
+  const after = rounds[shown.number] ?? null;
+  const name = (round: SeasonRound) => roundTitle(locale, round, timeZone);
+  return (
+    <nav
+      aria-label={say(locale, 'competitionPage.rounds.nav')}
+      className="flex items-start gap-2 border-b border-default px-4 py-2 sm:px-4.5"
+      data-testid="round-picker"
+    >
+      <StepLink
+        href={before === null ? null : href(before.number)}
+        label={say(locale, 'competitionPage.rounds.previous', {
+          round: before === null ? '' : name(before),
+        })}
+        rel="prev"
+        testId="round-prev"
+      />
+      {/* Closed again on every step: a new round is a new disclosure. */}
+      <details key={shown.number} className="group/rounds min-w-0 flex-1" data-testid="round-menu">
+        <summary className="flex min-h-touch cursor-pointer list-none items-center justify-center gap-1.5 rounded-control px-2 text-sm font-semibold hover:bg-surface-raised [&::-webkit-details-marker]:hidden">
+          <span>{say(locale, 'competitionPage.rounds.all')}</span>
+          <span
+            className="text-xs font-normal text-muted tabular-nums"
+            data-testid="round-position"
+          >
+            {say(locale, 'competitionPage.rounds.position', {
+              position: formatNumber(locale, shown.number),
+              total: formatNumber(locale, rounds.length),
+            })}
+          </span>
+          <svg
+            viewBox="0 0 24 24"
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.25"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="text-muted transition-transform group-open/rounds:rotate-180"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </summary>
+        <ol
+          className="mt-2 flex max-h-72 flex-col overflow-y-auto rounded-control border border-default"
+          data-testid="round-list"
+        >
+          {rounds.map((round) => {
+            const current = round.number === shown.number;
+            return (
+              <li key={round.number} className="border-b border-default last:border-b-0">
+                <Link
+                  href={href(round.number)}
+                  scroll={false}
+                  aria-current={current ? 'true' : undefined}
+                  className={cx(
+                    // The dates go under the name when the column is narrow (a phone).
+                    'flex min-h-touch flex-wrap items-center justify-between gap-x-3 px-3 py-1 text-sm hover:bg-surface-raised',
+                    current && 'border-s-2 border-accent bg-surface-raised font-bold',
+                  )}
+                  data-testid="round-option"
+                >
+                  <span>{name(round)}</span>
+                  {round.label !== null && (
+                    <span className="text-xs font-normal whitespace-nowrap text-muted">
+                      {roundDates(locale, round, timeZone)}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </details>
+      <StepLink
+        href={after === null ? null : href(after.number)}
+        label={say(locale, 'competitionPage.rounds.next', {
+          round: after === null ? '' : name(after),
+        })}
+        rel="next"
+        testId="round-next"
+      />
+    </nav>
+  );
+}
+
+/**
+ * The matches of a round with the model's percentages (T-1498; a round
+ * rather than a day since T-1636, D-298): the round the page opens on is the
+ * one being played or played next (`defaultRound`), and the picker steps to
+ * any other. Every match of the round under its day, with its state -- the
+ * kick-off in the reader's zone, the minute, the result -- and the model's
+ * last pre-kick-off forecast. With a match in play the card says how fresh
+ * its list is; with no match stored for the season it says so.
+ */
+export function MatchweekCard({
+  rounds,
+  round,
+  href,
   forecasts,
   page,
   locale,
@@ -455,7 +656,10 @@ export function DayCard({
   now,
   freshnessWords,
 }: {
-  day: MatchDay | null;
+  rounds: readonly SeasonRound[];
+  /** The round shown, one of `rounds`; null when the season has none. */
+  round: SeasonRound | null;
+  href: (round: number) => string;
   forecasts: Record<string, CardForecast>;
   page: CompetitionPage;
   locale: string;
@@ -472,18 +676,18 @@ export function DayCard({
     <Card
       testId="match-day"
       title={
-        day === null ? (
+        round === null ? (
           <Translated locale={locale} message="competitionPage.day.title" />
         ) : (
-          dayName(locale, day.day, timeZone)
+          <span data-testid="round-title">{roundTitle(locale, round, timeZone)}</span>
         )
       }
-      flush={day !== null}
+      flush={round !== null}
       aside={
-        day === null ? undefined : (
+        round === null ? undefined : (
           <>
             <LiveFreshness
-              fixtures={day.fixtures}
+              fixtures={round.fixtures}
               checkedAt={page.last_updated_at}
               now={now}
               locale={locale}
@@ -496,7 +700,7 @@ export function DayCard({
         )
       }
       footer={
-        day === null ? undefined : (
+        round === null ? undefined : (
           <p data-testid="match-day-receipt">
             {versions.length > 0 ? (
               // Each version an element, never "name@x.y.z" as one run (T-1580).
@@ -514,22 +718,38 @@ export function DayCard({
         )
       }
     >
-      {day === null ? (
+      {round === null ? (
         <Empty testId="match-day" locale={locale}>
           <Translated locale={locale} message="competitionPage.day.none" />
         </Empty>
       ) : (
-        <ul className="flex flex-col">
-          {day.fixtures.map((f) => (
-            <MatchLine
-              key={f.id}
-              fixture={f}
-              locale={locale}
-              timeZone={timeZone}
-              forecast={forecasts[f.id] ?? { state: 'none' }}
-            />
+        <>
+          <RoundPicker
+            rounds={rounds}
+            shown={round}
+            href={href}
+            locale={locale}
+            timeZone={timeZone}
+          />
+          {roundDays(round, timeZone).map((day) => (
+            <div key={day.day} className="flex flex-col" data-testid="round-day">
+              <h3 className="border-b border-default bg-surface-raised px-4 py-2 text-xs font-bold text-muted sm:px-4.5">
+                {dayName(locale, day.day, timeZone)}
+              </h3>
+              <ul className="flex flex-col">
+                {day.fixtures.map((f) => (
+                  <MatchLine
+                    key={f.id}
+                    fixture={f}
+                    locale={locale}
+                    timeZone={timeZone}
+                    forecast={forecasts[f.id] ?? { state: 'none' }}
+                  />
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </>
       )}
     </Card>
   );

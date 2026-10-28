@@ -10,6 +10,7 @@ import { FreshnessStamp } from '@/components/freshness-stamp';
 import { useLite } from '@/components/lite-mode';
 import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState, staleAfterMs } from '@/lib/live';
 import { openLiveSource } from '@/lib/live-source';
+import { signalLiveMoved } from '@/lib/live-signal';
 import type { CardForecast } from '@/lib/score-card-products';
 import { blockUpdatedLabel, formatKickoff } from '@/lib/scores';
 import {
@@ -145,7 +146,11 @@ export function LiveScores({
               applyFilters(next, selection),
               words,
             );
-            if (said.length > 0) setAnnouncement(said.join(' '));
+            if (said.length > 0) {
+              setAnnouncement(said.join(' '));
+              // The matchday rail over the page asks for its scores now (T-1635).
+              signalLiveMoved();
+            }
             return next;
           });
           stamp(true);
