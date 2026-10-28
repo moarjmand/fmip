@@ -511,9 +511,12 @@ describe('the match centre review (T-1550)', () => {
     const players = section(html, 'player-statistics');
     expect(players).not.toContain('data-not-yet');
     expect(players).toContain('data-coverage-badge="not_supplied"');
-    // The line-ups keep their own sentence, under the kick-off badge.
+    // The line-ups keep their own sentence, under their own badge: they come
+    // before kick-off, not from it (T-1627).
     const lineups = section(html, 'lineups');
-    expect(lineups).toContain('data-not-yet="kickoff"');
+    expect(lineups).toContain('data-not-yet="lineup"');
+    expect(lineups).toContain(EN['matchCentre.beforeKickoff']);
+    expect(lineups).not.toContain(EN['matchCentre.fromKickoff']);
     expect(lineups).toContain(EN['matchCentre.lineupsNotYet']);
   });
 

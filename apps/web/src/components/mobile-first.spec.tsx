@@ -449,7 +449,7 @@ describe('why the line-ups and the absences are empty (T-1364)', () => {
   it('says when the official line-up is usually announced, before kick-off only', () => {
     const before = section(page({ lineups: empty }, 'scheduled'), 'lineups');
     expect(before).toContain(EN['matchCentre.lineupsNotYet']);
-    expect(before).toContain('about 20–40 minutes before kick-off');
+    expect(before).toContain('about an hour before kick-off');
     const after = section(page({ lineups: empty }, 'finished'), 'lineups');
     expect(after).toContain('Not supplied for this match.');
     expect(after).not.toContain('kick-off');
@@ -493,7 +493,7 @@ describe('why the line-ups and the absences are empty (T-1364)', () => {
         locale="fa"
       />,
     );
-    expect(fa).toContain('ترکیب رسمی معمولاً');
+    expect(fa).toContain('ترکیب رسمی را حدود یک ساعت');
     expect(fa).toContain('غایبان این رقابت ثبت نمی‌شوند');
   });
 });
