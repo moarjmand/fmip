@@ -922,6 +922,61 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
   });
 
   /**
+   * T-1625. A match already playing whose line-ups are stored is not asked
+   * for them again: on a busy evening those asks took every place and a match
+   * about to start was never asked. The match is set back to live for the
+   * length of this test.
+   */
+  it('does not ask again for the stored line-ups of a match already playing', async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT f.id FROM fixture f
+        WHERE f.season_id = $1
+          AND (SELECT count(DISTINCT p.side) FROM fixture_participant p
+                WHERE p.fixture_id = f.id
+                  AND EXISTS (SELECT 1 FROM lineup l WHERE l.participant_id = p.id)) = 2
+        ORDER BY f.kickoff_at LIMIT 1`,
+      [SEASON],
+    );
+    const fixtureId = rows[0]?.id;
+    expect(fixtureId).toBeDefined();
+    const { rows: kick } = await pool.query<{ at: Date; external_id: string }>(
+      `SELECT f.kickoff_at AS at, pm.external_id FROM fixture f
+         JOIN provider_mapping pm
+           ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = 'api_football'
+        WHERE f.id = $1`,
+      [fixtureId],
+    );
+    const kickoff = (kick[0]?.at ?? new Date()).getTime();
+    const externalId = kick[0]?.external_id;
+    const forJob = sources.forJob;
+    const asked: string[] = [];
+    sources.forJob = (job) => {
+      const source = forJob.call(sources, job);
+      if (source === null) return null;
+      const adapter = Object.create(source.adapter) as typeof source.adapter;
+      adapter.getLineup = (id: string) => {
+        asked.push(id);
+        return source.adapter.getLineup(id);
+      };
+      return { ...source, adapter };
+    };
+    await pool.query(`UPDATE fixture SET status = 'live' WHERE id = $1`, [fixtureId]);
+    try {
+      await jobs.lineups(new Date(kickoff + 20 * 60_000));
+      expect(externalId).toBeDefined();
+      expect(asked).not.toContain(externalId);
+
+      // Before kick-off it is asked again, for a late change.
+      await pool.query(`UPDATE fixture SET status = 'scheduled' WHERE id = $1`, [fixtureId]);
+      await jobs.lineups(new Date(kickoff - 10 * 60_000));
+      expect(asked.filter((id) => id === externalId)).toHaveLength(1);
+    } finally {
+      sources.forJob = forJob;
+      await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [fixtureId]);
+    }
+  });
+
+  /**
    * T-1376. Twenty minutes before kick-off the provider answers with the
    * fixture and no line-up yet. The replay is the committed recordings plus
    * that answer, which is the recorded line-up answer with its line-ups taken
@@ -1001,6 +1056,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       expect(transport.served).toContain(
         `GET https://v3.football.api-sports.io/fixtures?id=${externalId}`,
       );
+
+      // T-1625: asked from 75 minutes before kick-off, and not before.
+      expect((await jobs.lineups(new Date('2024-01-31T18:20:00Z'))).waiting).toBe(1);
+      expect((await jobs.lineups(new Date('2024-01-31T18:10:00Z'))).waiting).toBe(0);
     } finally {
       sources.forJob = forJob;
       await pool.query(`DELETE FROM season_feed_coverage WHERE season_id = $1`, [SEASON]);
