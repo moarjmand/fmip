@@ -1451,9 +1451,21 @@ export class IngestStore implements SquadStore {
   }
 
   /**
-   * Mapped clubs with a match in any of the given seasons, never answered
-   * first, then the longest unanswered; none answered since
-   * `answeredBeforeIso` or asked since `askedBeforeIso`.
+   * Mapped clubs with a match in any of the given seasons that are owed a
+   * squad answer; none asked since `askedBeforeIso`. Owed: never answered,
+   * answered with no listing recorded, or answered before
+   * `answeredBeforeIso`.
+   *
+   * An answer with no listing (`listed` null) is one read before T-1428
+   * recorded listings, when the job kept only the photos: 825 clubs on
+   * production on 2026-10-28, the whole Premier League among them, whose
+   * pages said "no squad on record" until their monthly ask came round in
+   * November (T-1632, D-296). They are owed now, like a club never answered.
+   *
+   * Order: never answered, then owed a listing, then the oldest answer; in
+   * each, the club whose competition stands highest on the scores page
+   * (`competition.display_order`, unplaced last), so the clubs readers open
+   * most are asked first when the day's allowance cannot reach every club.
    *
    * Clubs only (T-1332): a national team's squad is players called up from
    * clubs, whose photos the clubs' squads and the national matches' own
@@ -1472,14 +1484,21 @@ export class IngestStore implements SquadStore {
          FROM provider_mapping pm
          JOIN team t ON t.id = pm.internal_id AND t.kind = 'club'
          LEFT JOIN team_squad_fetch q ON q.provider = pm.provider AND q.team_id = pm.internal_id
+         CROSS JOIN LATERAL (
+           SELECT count(*) AS matches, min(c.display_order) AS placed
+             FROM fixture_participant fp
+             JOIN fixture f ON f.id = fp.fixture_id
+             JOIN season se ON se.id = f.season_id
+             JOIN competition c ON c.id = se.competition_id
+            WHERE fp.team_id = pm.internal_id AND f.season_id = ANY($2::uuid[])
+         ) plays
         WHERE pm.provider = $1 AND pm.entity_type = 'team'
-          AND EXISTS (SELECT 1 FROM fixture_participant fp
-                        JOIN fixture f ON f.id = fp.fixture_id
-                       WHERE fp.team_id = pm.internal_id AND f.season_id = ANY($2::uuid[]))
-          AND (q.answered_at IS NULL OR q.answered_at < $3)
+          AND plays.matches > 0
+          AND (q.answered_at IS NULL OR q.listed IS NULL OR q.answered_at < $3)
           AND (q.asked_at IS NULL OR q.asked_at < $4)
-        GROUP BY pm.internal_id, q.answered_at
-        ORDER BY q.answered_at NULLS FIRST, pm.internal_id
+        GROUP BY pm.internal_id, q.answered_at, q.listed, plays.placed
+        ORDER BY q.answered_at IS NOT NULL, q.listed IS NOT NULL, plays.placed NULLS LAST,
+                 q.answered_at, pm.internal_id
         LIMIT $5`,
       [provider, seasonIds, answeredBeforeIso, askedBeforeIso, limit],
     );

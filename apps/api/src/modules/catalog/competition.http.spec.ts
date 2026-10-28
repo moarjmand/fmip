@@ -6,6 +6,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { CatalogModule } from './catalog.module';
+import { listsCheckedAt } from './internal/fixture-checks';
 
 // The competition page against the real schema: a temporary competition with
 // two seasons, three clubs, finished and scheduled matches and recorded
@@ -606,5 +607,52 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       [TEAMS.beta, 1],
       [TEAMS.gamma, 1],
     ]);
+  });
+
+  it('dates the table by its results and says when the whole list was last answered (T-1633, T-1634)', async () => {
+    const read = async () =>
+      (
+        await app.inject({ method: 'GET', url: `/competitions/${COMPETITION}` })
+      ).json() as CompetitionPage;
+    const before = await read();
+    // Never answered whole: no check is claimed.
+    expect(before.last_checked_at).toBeNull();
+    const tableTime = before.table.last_updated_at!;
+    expect(tableTime).not.toBeNull();
+
+    // A referee written in days later moves the matches' time, not the table's.
+    await pool.query(
+      `UPDATE fixture SET referee_name = 'Late Referee'
+        WHERE season_id = $1 AND status = 'finished'`,
+      [NEW_SEASON],
+    );
+    // Asked whole by two providers, and a window this morning: the newest whole ask counts.
+    await pool.query(
+      `INSERT INTO season_fixture_poll
+         (season_id, provider, window_from, window_to, window_polled_at, season_polled_at)
+       VALUES ($1, 'api_football', '2026-10-27', '2026-10-29', '2026-10-28T11:07:00Z', '2026-10-28T04:07:00Z'),
+              ($1, 'highlightly', NULL, NULL, NULL, '2026-10-27T04:07:00Z')`,
+      [NEW_SEASON],
+    );
+    try {
+      const after = await read();
+      expect(after.table.last_updated_at).toBe(tableTime);
+      expect(Date.parse(after.last_updated_at!)).toBeGreaterThan(Date.parse(tableTime));
+      expect(after.last_checked_at).toBe('2026-10-28T04:07:00.000Z');
+      // Over several seasons the oldest whole answer holds for every match, and
+      // a season never answered whole leaves nothing to claim.
+      expect(await listsCheckedAt(pool, [NEW_SEASON, OLD_SEASON])).toBeNull();
+      await pool.query(
+        `INSERT INTO season_fixture_poll (season_id, provider, season_polled_at)
+         VALUES ($1, 'api_football', '2026-10-20T04:07:00Z')`,
+        [OLD_SEASON],
+      );
+      expect(await listsCheckedAt(pool, [NEW_SEASON, OLD_SEASON])).toBe('2026-10-20T04:07:00.000Z');
+      expect(await listsCheckedAt(pool, [])).toBeNull();
+    } finally {
+      await pool.query(`DELETE FROM season_fixture_poll WHERE season_id = ANY($1::uuid[])`, [
+        [NEW_SEASON, OLD_SEASON],
+      ]);
+    }
   });
 });
