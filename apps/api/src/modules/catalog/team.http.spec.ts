@@ -521,4 +521,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
       await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [voided]);
     }
   });
+
+  it('says when the provider last answered its whole list of matches, beside the last change (T-1633)', async () => {
+    const read = async () =>
+      (await app.inject({ method: 'GET', url: `/teams/${TEAMS.alpha}` })).json() as TeamPage;
+    // Never answered whole: nothing is claimed, the last change stands alone.
+    const before = await read();
+    expect(before.last_checked_at).toBeNull();
+    expect(before.last_updated_at).not.toBeNull();
+    await pool.query(
+      `INSERT INTO season_fixture_poll (season_id, provider, season_polled_at)
+       VALUES ($1, 'api_football', '2026-10-28T04:07:00Z')`,
+      [SEASON],
+    );
+    try {
+      const after = await read();
+      expect(after.last_checked_at).toBe('2026-10-28T04:07:00.000Z');
+      expect(after.last_updated_at).toBe(before.last_updated_at);
+    } finally {
+      await pool.query(`DELETE FROM season_fixture_poll WHERE season_id = $1`, [SEASON]);
+    }
+  });
 });

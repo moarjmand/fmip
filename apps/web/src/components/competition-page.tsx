@@ -16,6 +16,7 @@ import type {
 import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { EntityImage } from '@/components/entity-image';
 import { FreshnessStamp, type FreshnessWords } from '@/components/freshness-stamp';
+import { MatchesFreshness } from '@/components/matches-freshness';
 import { MinutesFigure } from '@/components/minutes-figure';
 import { FollowIntentMark } from '@/components/push-offer-mark';
 import { PushOfferFor } from '@/components/push-offer-for';
@@ -790,15 +791,18 @@ export function LeagueNumbersPanel({
   );
 }
 
-/** The season's declared coverage per module, each a badge (rule 3), and the last data update. */
+/** The season's declared coverage per module, each a badge (rule 3), and when its matches were checked and changed. */
 export function CoveragePanel({
   page,
   locale,
   timeZone,
+  now,
 }: {
   page: CompetitionPage;
   locale: string;
   timeZone: string;
+  /** The moment of the render, for the footer's "today" and "yesterday" (D-189). */
+  now: number;
 }) {
   const modules = Object.entries(page.coverage);
   return (
@@ -824,14 +828,18 @@ export function CoveragePanel({
           ))}
         </ul>
       )}
-      <p className="text-xs text-muted">
+      {/* The season's matches, checked and changed (T-1633, D-296). */}
+      <p className="text-xs text-muted" data-testid="competition-updated">
         {page.last_updated_at === null ? (
           <Translated locale={locale} message="competitionPage.noData" />
         ) : (
-          <>
-            <Translated locale={locale} message="competitionPage.lastUpdate" />{' '}
-            <Stamp iso={page.last_updated_at} locale={locale} timeZone={timeZone} />
-          </>
+          <MatchesFreshness
+            changedAt={page.last_updated_at}
+            checkedAt={page.last_checked_at}
+            locale={locale}
+            timeZone={timeZone}
+            now={now}
+          />
         )}
       </p>
     </Panel>

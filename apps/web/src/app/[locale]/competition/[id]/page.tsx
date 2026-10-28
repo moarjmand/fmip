@@ -256,7 +256,7 @@ export default async function CompetitionPage({
                 />
               </div>
             </div>
-            <CoveragePanel page={page} locale={locale} timeZone={timeZone} />
+            <CoveragePanel page={page} locale={locale} timeZone={timeZone} now={now} />
           </>
         )}
         {tab === 'table' && <TableTab {...ctx} />}

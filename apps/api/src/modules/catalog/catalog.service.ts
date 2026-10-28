@@ -50,6 +50,7 @@ import {
   wholeOnlyIfRecorded,
 } from './internal/leaders';
 import { readCoachPage, readTeamHeadCoach } from './internal/coach-read';
+import { listsCheckedAt } from './internal/fixture-checks';
 import {
   contextTeamIds,
   fixtureTeamIds,
@@ -455,6 +456,7 @@ export class CatalogService {
       tally,
       bracketFixtures,
       division,
+      lastCheckedAt,
     ] = await Promise.all([
       this.competitions_.stages(selected.id),
       this.competitions_.fixtures(selected.id),
@@ -465,6 +467,8 @@ export class CatalogService {
       this.standings.incidentTally(selected.id),
       knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
       this.competitions_.division(id),
+      // When the provider last confirmed the season's whole list (T-1633, D-296).
+      listsCheckedAt(this.pool, [selected.id]),
     ]);
     // Group tables (T-1336) only for a season with a group stage: a league
     // reads nothing more and answers exactly as before (`group_tables: null`).
@@ -692,6 +696,7 @@ export class CatalogService {
             : buildBracket(bracketFixtures, seasonIsOpen(selected, new Date())),
         coverage,
         last_updated_at: lastUpdatedAt,
+        last_checked_at: lastCheckedAt,
       },
     };
   }
@@ -711,6 +716,7 @@ export class CatalogService {
       lineup,
       ground,
       seasonScorers,
+      lastCheckedAt,
     ] = await Promise.all([
       this.teams_.fixtures(id, seasonIds),
       this.teams_.squad(id),
@@ -736,6 +742,8 @@ export class CatalogService {
           return teamTopScorers(wholeOnlyIfRecorded(scorers, tally), id);
         }),
       ),
+      // When the provider last confirmed every listed match (T-1633, D-296).
+      listsCheckedAt(this.pool, seasonIds),
     ]);
     // Minutes for this team over the seasons the page covers (T-824).
     const squadMinutes = await this.players_.minutesByPerson(
@@ -832,6 +840,7 @@ export class CatalogService {
         fixture_ground: ground,
         followers,
         last_updated_at: lastUpdatedAt,
+        last_checked_at: lastCheckedAt,
       },
     };
   }

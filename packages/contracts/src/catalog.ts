@@ -483,6 +483,13 @@ export interface CompetitionPage {
   coverage: Record<string, CoverageState>;
   /** Newest change to any fixture of the season; null when none is stored. */
   last_updated_at: string | null;
+  /**
+   * When the season's whole fixture list was last answered by the provider,
+   * changed or not (T-1633, D-296; D-189's check for a whole list): the
+   * newest whole-season ask across providers. Null when none is recorded.
+   * `last_updated_at` stays the last change.
+   */
+  last_checked_at?: string | null;
 }
 
 /**
@@ -720,7 +727,15 @@ export interface TeamPage {
     home_matches: number;
   } | null;
   followers: number;
+  /** Newest change to any of the team's matches on the page; null when none is stored. */
   last_updated_at: string | null;
+  /**
+   * When every match on the page was last answered by the provider, changed
+   * or not (T-1633, D-296): per season the newest whole-season ask across
+   * providers, the oldest of those over the page's seasons. Null when a
+   * season has none. `last_updated_at` stays the last change.
+   */
+  last_checked_at?: string | null;
 }
 
 /**

@@ -12813,6 +12813,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "freshness.matchesChecked": {
+    "source": "Matches last checked {time}; unchanged since {changed}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "freshness.matchesChanged": {
+    "source": "Matches last changed {time}",
+    "text": "",
+    "status": "untranslated"
+  },
   "forecastBar.label": {
     "source": "Model forecast: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
     "text": "",
