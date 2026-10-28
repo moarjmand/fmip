@@ -12782,6 +12782,42 @@ Absences were already right where it matters: every big-league match within 72 h
 
 **Consequences.** The match page shows a big-league line-up within five minutes of the provider having it, from 75 minutes before kick-off, however many matches are playing. `matchCentre.lineupsNotYet` changed its English, so the seven untranslated catalogues refreshed their `source`; Persian is rewritten. `DETAIL_BATCH` is the post-match job's alone.
 
+## D-295 — A player's club is the newest record of a club, never a national team; the national team is named apart
+
+**Status:** Accepted · 2026-10-28 (agent, from the maintainer's live checks) · **Task:** T-1629, T-1630 · **Follows:** D-209, D-231, T-1394, T-1603
+
+**Context.** The maintainer found many player pages showing the wrong team or club, and a compare page that showed neither club nor position.
+- **Where the header's club came from.** An open spell (`player_spell`), else the team of the latest line-up that names the player (T-1394). No ingestion writes spells and production holds none, so every header was the latest line-up's team, of any kind.
+- **What that showed** (production, 2026-10-28, the 35,463 players with a line-up since July 2025):
+  - a national team as the club for 4,283 players, 2,747 of them with no club line-up at all;
+  - the former club for players who had moved since their last club line-up. The provider's squad list we read in the last week names another club for 805 of them, and a recorded move into a club we hold, dated after that line-up, for 2,401. Thirty sampled were all summer moves, for example Javier Llabrés (Mallorca to Burgos), Emil Riis Jacobsen (Bristol City to Leicester) and Iván Jaime (to Las Palmas).
+- **What was not wrong.** The 1,141 players whose latest club line-up is a cup or continental match for a club other than their latest league club: 1,118 of them now play for a club whose league we do not cover, and the cup line-up names that club. The rest of the wrong teams were the swapped line-ups of D-294.
+- **The compare page** read the club and the position from the open spell only, so both always read "No current team on record" and "Position not recorded". The player page's own header did not show T-1603's position either.
+
+**Decision.**
+1. `PlayerPage.club` (`Covered<PlayerClub>`) is an open spell. Without one, it is the newest of three records, each with its day:
+   - his latest line-up for a club (`limited`: what he played for, not a registration);
+   - the newest squad list of a club that names him (`available`, the day we read it);
+   - the provider's newest move into a club we hold, dated today or before (`available`).
+   A line-up wins a tie, then the squad list. A newer move to a club we do not hold, or to none, leaves no club to name: an older club would be a former one shown as current (rule 4). A national team is never the club.
+2. `PlayerPage.national_team` is the senior national team of his latest line-up for one, or null.
+3. The header's club line says what the club rests on: "since" for a spell, the squad list's day, "joined" for a move, or the latest club line-up's day. The national team, with its crest, takes the nationality's place when there is one. The eyebrow's position is T-1603's.
+4. The compare page shows, for each player: position, club with crest and basis, national team when known, and age. Each one we do not hold is said to be missing.
+5. Both fields are optional in the contract. The web reads an older API as before.
+
+**Rejected.**
+- *The latest line-up of any kind (as before).* It names a national team after every international window.
+- *The latest league line-up.* A player whose new club plays in a league we do not cover would show his former club, as 1,118 cup line-ups show.
+- *Naming the club of a move to a club we do not hold, by the provider's name.* The header would carry a provider's string with no page behind it. The transfers panel already lists such a move with its source.
+- *Writing spells from these records.* A spell is a registration with a start and an end, which none of these records gives. Inferring one would be inventing it (rule 3).
+
+**Consequences.** On production the header changes for 7,909 players:
+- 1,351 move from a national team to their club;
+- 2,932 move from a national team to "No current team on record", with the national team beside it;
+- 742 show a newer squad list's club, and 1,199 a newer move's club;
+- 1,685 show no club after a move to a club we do not hold or to none.
+Every compare page now names both players' clubs, national teams, positions and ages, wherever our records hold them.
+
 ## D-296 — Club squads owed since the listing began, and every "updated" time says what it is of
 
 **Status:** Accepted · 2026-10-28 (the maintainer's feedback round of 2026-10-28; the details decided by the agent) · **Tasks:** T-1632, T-1633, T-1634 · **Follows:** D-176, D-189, D-220, rule 3, rule 4

@@ -1,4 +1,5 @@
 import type {
+  PlayerClub,
   PlayerMatch,
   PlayerPage,
   PlayerSeasonMinutes,
@@ -74,6 +75,49 @@ export function lineupTeam(
   const latest = page.recent_matches.data?.[0];
   if (latest === undefined) return null;
   return { team: latest.team, day: latest.fixture.kickoff_at.slice(0, 10) };
+}
+
+/**
+ * The club a page names for the player, and what says so (T-1629, D-295):
+ * the API's `club` -- an open spell, else the newest of his latest club
+ * line-up, a squad list naming him and a recorded move, never a national
+ * team. From an API older than T-1629 (no `club`), the open spell only: its
+ * latest line-up may be a national team's, and the header says that one as a
+ * line-up (`lineupTeam`). Null when nothing names a club.
+ */
+export function clubClaim(page: Pick<PlayerPage, 'club' | 'current_spell'>): PlayerClub | null {
+  if (page.club !== undefined) return page.club.data;
+  const spell = page.current_spell;
+  if (spell === null) return null;
+  return { team: spell.team, basis: 'spell', since: spell.start_date, on_loan: spell.on_loan };
+}
+
+/**
+ * The player's position (T-1603, read by the pages since T-1629): the API's
+ * `position` -- the open spell's, the squad list's, else the one he held most
+ * in his last ten line-ups -- or, from an older API, the open spell's. Null
+ * when none names one.
+ */
+export function positionValue(
+  page: Pick<PlayerPage, 'position' | 'current_spell'>,
+): NonNullable<PlayerSpell['position']> | null {
+  if (page.position !== undefined) return page.position.data?.value ?? null;
+  return page.current_spell?.position ?? null;
+}
+
+/** What a club claim rests on, after the club's name (T-1629): "since 1 July 2025", "in the club’s squad list, read 22 October 2026"... */
+export function clubBasisText(locale: string, club: PlayerClub): string {
+  const date = dayText(locale, club.since);
+  switch (club.basis) {
+    case 'spell':
+      return say(locale, 'playerPage.since', { date });
+    case 'squad':
+      return say(locale, 'playerPage.club.squad', { date });
+    case 'transfer':
+      return say(locale, 'playerPage.club.transfer', { date });
+    case 'lineup':
+      return say(locale, 'playerPage.club.lineup', { date });
+  }
 }
 
 /** "Jul 2025 – present" or "Jul 2022 – Jun 2025". */

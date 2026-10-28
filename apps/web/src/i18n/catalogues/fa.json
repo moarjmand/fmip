@@ -14444,6 +14444,30 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "playerPage.club.lineup": {
+    "source": "from the latest club line-up that names this player, {date}",
+    "text": "بر پایه‌ی آخرین ترکیب باشگاهی که نام این بازیکن در آن آمده، {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.club.squad": {
+    "source": "in the club’s squad list, read {date}",
+    "text": "در فهرست بازیکنان باشگاه، خوانده‌شده در {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.club.transfer": {
+    "source": "joined {date}",
+    "text": "پیوسته در {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.nationalTeam": {
+    "source": "National team",
+    "text": "تیم ملی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "playerPage.compareWith": {
     "source": "Compare with…",
     "text": "مقایسه با…",
@@ -15179,6 +15203,18 @@
   "compare.noTeam": {
     "source": "No current team on record",
     "text": "تیم فعلی ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.age": {
+    "source": "Age {age}",
+    "text": "سن {age}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "compare.ageNotSupplied": {
+    "source": "Age not supplied",
+    "text": "سن ارائه نشده",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

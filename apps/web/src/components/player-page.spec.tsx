@@ -5,9 +5,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
   ageOn,
+  clubBasisText,
+  clubClaim,
   goalsPer90,
   latestSeason,
   lineupTeam,
+  positionValue,
   playerTabHref,
   readPlayerTab,
   seasonGroups,
@@ -245,6 +248,91 @@ describe('the player header', () => {
     const fa = header(p, 'fa');
     expect(fa).toContain('بر پایه‌ی آخرین ترکیبی که نام این بازیکن در آن آمده');
     expect(fa).not.toContain('2026-10-11');
+  });
+
+  it('names the club the API gives with what says so, and the national team for the nationality (T-1629)', () => {
+    // Javier Llabrés: last line-up for Mallorca in May, in Burgos's squad list since.
+    const p = page({
+      current_spell: null,
+      position: {
+        coverage: 'limited',
+        last_updated_at: null,
+        data: { value: 'forward', basis: 'lineup' },
+      },
+      club: {
+        coverage: 'available',
+        last_updated_at: '2026-10-22T03:41:00.000Z',
+        data: {
+          team: { id: 'burgos', name: 'Burgos', short_name: null, colour: '#7a1f2b' },
+          basis: 'squad',
+          since: '2026-10-22',
+          on_loan: false,
+        },
+      },
+      national_team: {
+        team: { id: 'spain', name: 'Spain', short_name: null },
+        last_lineup: '2026-10-05',
+      },
+    });
+    expect(clubClaim(p)).toEqual(p.club?.data);
+    const html = header(p);
+    expect(html).toMatch(
+      /data-testid="current-club" data-basis="squad".*href="\/en\/team\/burgos".*Burgos/,
+    );
+    expect(html).toContain('in the club’s squad list, read 22 October 2026');
+    expect(html).toMatch(/data-testid="national-team".*href="\/en\/team\/spain".*Spain/);
+    expect(html).not.toContain('>Iran<');
+    // The position by T-1603's rule, with no spell to name it.
+    expect(html).toContain('data-testid="band-eyebrow"');
+    expect(html).toMatch(/data-testid="band-eyebrow"[^>]*>Forward</);
+    expect(html).toMatch(/style="border-color:#7a1f2b"/);
+    expect(html).not.toContain('current-team-lineup');
+    expect(header(p, 'fa')).toContain('در فهرست بازیکنان باشگاه، خوانده‌شده در');
+  });
+
+  it('never names a national team as the club: no club, then the national team (T-1629)', () => {
+    // His latest line-up was for his country; the API names no club.
+    const p = page({
+      current_spell: null,
+      club: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      national_team: {
+        team: { id: 'iran', name: 'Iran', short_name: null },
+        last_lineup: '2026-10-14',
+      },
+      recent_matches: {
+        coverage: 'available',
+        last_updated_at: null,
+        data: [match({ team: { id: 'iran', name: 'Iran' } })],
+      },
+    });
+    expect(clubClaim(p)).toBeNull();
+    const html = header(p);
+    expect(html).toContain('No current team on record');
+    expect(html).not.toContain('current-team-lineup');
+    expect(html).toMatch(/data-testid="national-team".*href="\/en\/team\/iran".*Iran/);
+  });
+
+  it('says what each club claim rests on', () => {
+    const club = (basis: 'spell' | 'squad' | 'transfer' | 'lineup') => ({
+      team: { id: 't', name: 'T', short_name: null },
+      basis,
+      since: '2026-08-31',
+      on_loan: false,
+    });
+    expect(clubBasisText('en', club('spell'))).toBe('since 31 August 2026');
+    expect(clubBasisText('en', club('transfer'))).toBe('joined 31 August 2026');
+    expect(clubBasisText('en', club('lineup'))).toBe(
+      'from the latest club line-up that names this player, 31 August 2026',
+    );
+    expect(clubBasisText('fa', club('transfer'))).toMatch(/^پیوسته در /);
+    // An API older than T-1629: the open spell, or nothing.
+    expect(clubClaim(page())).toMatchObject({ basis: 'spell', team: { id: 'tractor' } });
+    expect(positionValue(page())).toBe('goalkeeper');
+    expect(
+      positionValue(
+        page({ position: { coverage: 'not_supplied', last_updated_at: null, data: null } }),
+      ),
+    ).toBeNull();
   });
 
   it('keeps "no current team" when neither a spell nor a line-up names a team', () => {
