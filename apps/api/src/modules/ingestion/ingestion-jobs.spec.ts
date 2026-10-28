@@ -924,30 +924,34 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
   /**
    * T-1625. A match already playing whose line-ups are stored is not asked
    * for them again: on a busy evening those asks took every place and a match
-   * about to start was never asked. The match is set back to live for the
-   * length of this test.
+   * about to start was never asked. Its own match, with both sides' line-ups
+   * stored, since the recorded one resolves only one side's players.
    */
   it('does not ask again for the stored line-ups of a match already playing', async () => {
-    const { rows } = await pool.query<{ id: string }>(
-      `SELECT f.id FROM fixture f
-        WHERE f.season_id = $1
-          AND (SELECT count(DISTINCT p.side) FROM fixture_participant p
-                WHERE p.fixture_id = f.id
-                  AND EXISTS (SELECT 1 FROM lineup l WHERE l.participant_id = p.id)) = 2
-        ORDER BY f.kickoff_at LIMIT 1`,
-      [SEASON],
+    const fixtureId = randomUUID();
+    const externalId = '9016250';
+    const kickoff = new Date('2024-02-03T15:00:00Z').getTime();
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, stage_id, round, kickoff_at, status)
+       VALUES ($1, $2, $3, 'Regular Season - 23', $4, 'live')`,
+      [fixtureId, SEASON, STAGE, new Date(kickoff).toISOString()],
     );
-    const fixtureId = rows[0]?.id;
-    expect(fixtureId).toBeDefined();
-    const { rows: kick } = await pool.query<{ at: Date; external_id: string }>(
-      `SELECT f.kickoff_at AS at, pm.external_id FROM fixture f
-         JOIN provider_mapping pm
-           ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = 'api_football'
-        WHERE f.id = $1`,
-      [fixtureId],
+    const { rows: sides } = await pool.query<{ id: string; side: string }>(
+      `INSERT INTO fixture_participant (fixture_id, team_id, side)
+       VALUES ($1, $2, 'home'), ($1, $3, 'away') RETURNING id, side`,
+      [fixtureId, CITY, BURNLEY],
     );
-    const kickoff = (kick[0]?.at ?? new Date()).getTime();
-    const externalId = kick[0]?.external_id;
+    for (const side of sides) {
+      await pool.query(
+        `INSERT INTO lineup (participant_id, person_id, role) VALUES ($1, $2, 'starter')`,
+        [side.id, side.side === 'home' ? HAALAND : OBAFEMI],
+      );
+    }
+    await pool.query(
+      `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+       VALUES ('api_football', 'fixture', $1, $2)`,
+      [externalId, fixtureId],
+    );
     const forJob = sources.forJob;
     const asked: string[] = [];
     sources.forJob = (job) => {
@@ -960,10 +964,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       };
       return { ...source, adapter };
     };
-    await pool.query(`UPDATE fixture SET status = 'live' WHERE id = $1`, [fixtureId]);
     try {
       await jobs.lineups(new Date(kickoff + 20 * 60_000));
-      expect(externalId).toBeDefined();
       expect(asked).not.toContain(externalId);
 
       // Before kick-off it is asked again, for a late change.
@@ -972,7 +974,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       expect(asked.filter((id) => id === externalId)).toHaveLength(1);
     } finally {
       sources.forJob = forJob;
-      await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [fixtureId]);
+      await pool.query(
+        `DELETE FROM provider_mapping WHERE provider = 'api_football' AND internal_id = $1`,
+        [fixtureId],
+      );
+      await pool.query(`DELETE FROM fixture WHERE id = $1`, [fixtureId]);
     }
   });
 
