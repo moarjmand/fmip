@@ -46,6 +46,7 @@ import type {
   Side,
 } from '@fmip/ingestion';
 import { PERIOD_KINDS } from '@fmip/ingestion';
+import type { LineupCandidate } from './lineup-asks';
 import type { EntityType } from './resolver';
 
 /**
@@ -327,6 +328,50 @@ export class IngestStore implements SquadStore {
       externalId: r.external_id,
       fixtureId: r.fixture_id,
       status: r.status,
+    }));
+  }
+
+  /**
+   * The polled competitions' scheduled and live matches kicking off in
+   * `(fromIso, toIso]` that this provider has an id for, and whether both
+   * sides' line-ups are stored (T-1625): what `lineupAsks` chooses from.
+   */
+  async lineupCandidates(
+    provider: Provider,
+    competitionIds: string[],
+    fromIso: string,
+    toIso: string,
+  ): Promise<LineupCandidate[]> {
+    if (competitionIds.length === 0) return [];
+    const { rows } = await this.pool.query<{
+      external_id: string;
+      fixture_id: string;
+      kickoff_at: Date;
+      status: string;
+      announced: boolean;
+    }>(
+      `SELECT pm.external_id, f.id AS fixture_id, f.kickoff_at, f.status,
+              (SELECT count(DISTINCT fp.side)
+                 FROM fixture_participant fp
+                WHERE fp.fixture_id = f.id
+                  AND EXISTS (SELECT 1 FROM lineup l WHERE l.participant_id = fp.id)) = 2
+                AS announced
+         FROM fixture f
+         JOIN season s ON s.id = f.season_id
+         JOIN provider_mapping pm
+           ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = $1
+        WHERE s.competition_id = ANY($2::uuid[])
+          AND f.status IN ('scheduled', 'live')
+          AND f.kickoff_at > $3 AND f.kickoff_at <= $4
+        ORDER BY f.kickoff_at`,
+      [provider, competitionIds, fromIso, toIso],
+    );
+    return rows.map((r) => ({
+      externalId: r.external_id,
+      fixtureId: r.fixture_id,
+      kickoffAt: r.kickoff_at.toISOString(),
+      status: r.status,
+      announced: r.announced,
     }));
   }
 

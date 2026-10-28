@@ -1,6 +1,8 @@
 import type {
+  AbsenceReasonCode,
   CoverageModule,
   ExpectedGoalsMetric,
+  MatchAbsence,
   MatchAbsenceGap,
   MatchCentre,
   MatchIncident,
@@ -138,6 +140,97 @@ const ABSENCE_GAP_KEY = {
   not_asked: 'matchCentre.moduleNotSupplied',
 } as const satisfies Record<MatchAbsenceGap, Key>;
 
+/** An absence's reason in our words (T-1601, T-1626), never the feed's English. */
+const ABSENCE_REASON_KEY = {
+  injury: 'matchCentre.absenceReason.injury',
+  knee: 'matchCentre.absenceReason.knee',
+  muscle: 'matchCentre.absenceReason.muscle',
+  thigh: 'matchCentre.absenceReason.thigh',
+  hamstring: 'matchCentre.absenceReason.hamstring',
+  groin: 'matchCentre.absenceReason.groin',
+  calf: 'matchCentre.absenceReason.calf',
+  ankle: 'matchCentre.absenceReason.ankle',
+  achilles: 'matchCentre.absenceReason.achilles',
+  foot: 'matchCentre.absenceReason.foot',
+  heel: 'matchCentre.absenceReason.heel',
+  toe: 'matchCentre.absenceReason.toe',
+  leg: 'matchCentre.absenceReason.leg',
+  hip: 'matchCentre.absenceReason.hip',
+  pelvis: 'matchCentre.absenceReason.pelvis',
+  back: 'matchCentre.absenceReason.back',
+  abdomen: 'matchCentre.absenceReason.abdomen',
+  chest: 'matchCentre.absenceReason.chest',
+  ribs: 'matchCentre.absenceReason.ribs',
+  shoulder: 'matchCentre.absenceReason.shoulder',
+  collarbone: 'matchCentre.absenceReason.collarbone',
+  arm: 'matchCentre.absenceReason.arm',
+  wrist: 'matchCentre.absenceReason.wrist',
+  hand: 'matchCentre.absenceReason.hand',
+  head: 'matchCentre.absenceReason.head',
+  eye: 'matchCentre.absenceReason.eye',
+  tendon: 'matchCentre.absenceReason.tendon',
+  lower_body: 'matchCentre.absenceReason.lower_body',
+  upper_body: 'matchCentre.absenceReason.upper_body',
+  knock: 'matchCentre.absenceReason.knock',
+  fracture: 'matchCentre.absenceReason.fracture',
+  surgery: 'matchCentre.absenceReason.surgery',
+  concussion: 'matchCentre.absenceReason.concussion',
+  hernia: 'matchCentre.absenceReason.hernia',
+  illness: 'matchCentre.absenceReason.illness',
+  heart: 'matchCentre.absenceReason.heart',
+  health: 'matchCentre.absenceReason.health',
+  red_card: 'matchCentre.absenceReason.red_card',
+  yellow_cards: 'matchCentre.absenceReason.yellow_cards',
+  suspended: 'matchCentre.absenceReason.suspended',
+  doping: 'matchCentre.absenceReason.doping',
+  inactive: 'matchCentre.absenceReason.inactive',
+  off_roster: 'matchCentre.absenceReason.off_roster',
+  lacking_fitness: 'matchCentre.absenceReason.lacking_fitness',
+  coach_decision: 'matchCentre.absenceReason.coach_decision',
+  rest: 'matchCentre.absenceReason.rest',
+  personal: 'matchCentre.absenceReason.personal',
+  overload: 'matchCentre.absenceReason.overload',
+  loan_agreement: 'matchCentre.absenceReason.loan_agreement',
+  international_duty: 'matchCentre.absenceReason.international_duty',
+} as const satisfies Record<AbsenceReasonCode, Key>;
+
+/** An absence's broad kind, when its reason is not one we can name. */
+const ABSENCE_KIND_KEY = {
+  injury: 'player.availability.kind.injury',
+  suspension: 'player.availability.kind.suspension',
+  illness: 'player.availability.kind.illness',
+  other: 'player.availability.kind.other',
+} as const satisfies Record<NonNullable<MatchAbsence['kind']>, Key>;
+
+/** The order a side's absences are read in: who is out, then who may be. */
+const ABSENCE_KIND_ORDER = ['suspension', 'injury', 'illness', 'other'] as const;
+
+/**
+ * One side's absences in reading order (T-1626): out before doubtful, then
+ * suspended, injured, ill and the rest, then by name. Pure.
+ */
+export function absenceOrder(absences: MatchAbsence[]): MatchAbsence[] {
+  const kind = (a: MatchAbsence) =>
+    a.kind === null ? ABSENCE_KIND_ORDER.length : ABSENCE_KIND_ORDER.indexOf(a.kind);
+  return [...absences].sort(
+    (a, b) =>
+      Number(a.status === 'doubtful') - Number(b.status === 'doubtful') ||
+      kind(a) - kind(b) ||
+      a.name.localeCompare(b.name),
+  );
+}
+
+/**
+ * The reason a reader sees (T-1626): ours from `reason_code`, else the broad
+ * kind, else -- on an English page only -- the feed's own words; never the
+ * feed's English on a page in another language (T-1601).
+ */
+export function absenceReasonKey(a: MatchAbsence): Key | null {
+  if (a.reason_code !== undefined && a.reason_code !== null)
+    return ABSENCE_REASON_KEY[a.reason_code];
+  return a.kind === null ? null : ABSENCE_KIND_KEY[a.kind];
+}
+
 /** Locales whose numerals and names are set in Vazirmatn: no condensed width, a smaller score (D-198). */
 const ARABIC_SCRIPT = new Set(['fa', 'ar']);
 
@@ -251,7 +344,8 @@ export function MatchCentreView({
             words={words}
             empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
             notInYet={f.status === 'live'}
-            before={unplayed(centre, 'lineups')}
+            // They come about an hour before kick-off, not from it (T-1627).
+            before={((b) => (b === 'kickoff' ? 'lineup' : b))(unplayed(centre, 'lineups'))}
           >
             {(lineups) => (
               <MatchLineupsView
@@ -1410,10 +1504,10 @@ function Availability({
               <div key={side} className="flex flex-col gap-1">
                 <h3 className="font-bold">{team}</h3>
                 <ul className="flex flex-col gap-1">
-                  {absences
-                    .filter((a) => a.side === side)
-                    .map((a) => (
-                      <li key={a.id}>
+                  {absenceOrder(absences.filter((a) => a.side === side)).map((a) => {
+                    const reason = absenceReasonKey(a);
+                    return (
+                      <li key={a.id} data-status={a.status} data-kind={a.kind ?? undefined}>
                         <Link href={`/${locale}/player/${a.id}`}>{listName(locale, a.name)}</Link>{' '}
                         <span className="text-muted">
                           <MessageText
@@ -1421,13 +1515,35 @@ function Availability({
                               m[a.status === 'out' ? 'matchCentre.out' : 'matchCentre.doubtful']
                             }
                           />
-                          {a.reason === null ? '' : ` · ${a.reason}`}
+                          {reason !== null ? (
+                            <>
+                              {' · '}
+                              <MessageText message={m[reason]} />
+                            </>
+                          ) : locale === 'en' && a.reason !== null ? (
+                            ` · ${a.reason}`
+                          ) : null}
                         </span>
                       </li>
-                    ))}
+                    );
+                  })}
                 </ul>
               </div>
             ))}
+            {askedStamp !== null && (
+              // When the feed was asked, under the list too (rule 4).
+              <p className="text-xs text-muted" data-testid="absences-asked">
+                <MessageText
+                  message={filled(m['matchCentre.absencesAsked'], { time: askedStamp.text })}
+                />
+                {askedStamp.stale && (
+                  <>
+                    {' '}
+                    <MessageText message={m['player.availability.stale']} />
+                  </>
+                )}
+              </p>
+            )}
           </div>
         )
       }

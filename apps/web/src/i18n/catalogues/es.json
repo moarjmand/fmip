@@ -7359,7 +7359,7 @@
     "status": "untranslated"
   },
   "matchCentre.lineupsNotYet": {
-    "source": "Not announced yet: the official line-up is usually announced about 20–40 minutes before kick-off.",
+    "source": "Not announced yet: clubs usually name the official line-up about an hour before kick-off, and it is shown here as soon as it reaches us.",
     "text": "",
     "status": "untranslated"
   },
@@ -7645,6 +7645,266 @@
   },
   "matchCentre.doubtful": {
     "source": "Doubtful",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absencesAsked": {
+    "source": "As reported when last checked, {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.beforeKickoff": {
+    "source": "Before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.injury": {
+    "source": "Injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.knee": {
+    "source": "Knee injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.muscle": {
+    "source": "Muscle injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.thigh": {
+    "source": "Thigh injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.hamstring": {
+    "source": "Hamstring injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.groin": {
+    "source": "Groin injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.calf": {
+    "source": "Calf injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.ankle": {
+    "source": "Ankle injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.achilles": {
+    "source": "Achilles injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.foot": {
+    "source": "Foot injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.heel": {
+    "source": "Heel injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.toe": {
+    "source": "Toe injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.leg": {
+    "source": "Leg injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.hip": {
+    "source": "Hip injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.pelvis": {
+    "source": "Pelvis injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.back": {
+    "source": "Back injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.abdomen": {
+    "source": "Abdominal injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.chest": {
+    "source": "Chest injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.ribs": {
+    "source": "Rib injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.shoulder": {
+    "source": "Shoulder injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.collarbone": {
+    "source": "Collarbone injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.arm": {
+    "source": "Arm injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.wrist": {
+    "source": "Wrist injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.hand": {
+    "source": "Hand injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.head": {
+    "source": "Head injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.eye": {
+    "source": "Eye injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.tendon": {
+    "source": "Tendon injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.lower_body": {
+    "source": "Lower-body injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.upper_body": {
+    "source": "Upper-body injury",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.knock": {
+    "source": "Knock",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.fracture": {
+    "source": "Fracture",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.surgery": {
+    "source": "Surgery",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.concussion": {
+    "source": "Concussion",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.hernia": {
+    "source": "Hernia",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.illness": {
+    "source": "Illness",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.heart": {
+    "source": "Heart condition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.health": {
+    "source": "Health reasons",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.red_card": {
+    "source": "Suspended: red card",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.yellow_cards": {
+    "source": "Suspended: yellow cards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.suspended": {
+    "source": "Suspended",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.doping": {
+    "source": "Doping ban",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.inactive": {
+    "source": "Inactive",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.off_roster": {
+    "source": "Not in the squad",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.lacking_fitness": {
+    "source": "Lacking match fitness",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.coach_decision": {
+    "source": "Coach's decision",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.rest": {
+    "source": "Rested",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.personal": {
+    "source": "Personal reasons",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.overload": {
+    "source": "Fatigue",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.loan_agreement": {
+    "source": "Loan agreement",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absenceReason.international_duty": {
+    "source": "International duty",
     "text": "",
     "status": "untranslated"
   },
