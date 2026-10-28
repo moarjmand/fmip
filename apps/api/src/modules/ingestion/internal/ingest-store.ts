@@ -1063,7 +1063,11 @@ export class IngestStore implements SquadStore {
     );
   }
 
-  /** Both sides of a lineup: the formation and coach on the participant, then the players. */
+  /**
+   * Both sides of a lineup: the formation and coach on the participant, then
+   * the players -- and then each side's players put back on their own side if
+   * the answer filed them under the other team (T-1628, `alignSides`).
+   */
   async saveLineup(
     provider: Provider,
     fixtureId: string,
@@ -1071,7 +1075,28 @@ export class IngestStore implements SquadStore {
   ): Promise<WriteResult> {
     const home = await this.saveSideLineup(provider, fixtureId, 'home', lineup.home);
     const away = await this.saveSideLineup(provider, fixtureId, 'away', lineup.away);
-    return merge(home, away);
+    const aligned = await this.alignSides(fixtureId);
+    return merge(home, away, { changed: aligned, unresolved: [] });
+  }
+
+  /**
+   * Line-ups, per-player statistics and substitutions the provider filed under
+   * the other side of the match (T-1628, D-294), moved to their own side by
+   * `align_lineup_sides`. It decides from our records -- each player's other
+   * line-ups, a national team's nationality -- and never from the answer alone,
+   * whose two parts can each be the wrong one. The rows moved count as changed.
+   */
+  async alignSides(fixtureId: string): Promise<number> {
+    const { rows } = await this.pool.query<{
+      lineup_rows: number | null;
+      stat_rows: number | null;
+      substitutions: number | null;
+    }>(`SELECT lineup_rows, stat_rows, substitutions FROM align_lineup_sides(ARRAY[$1::uuid])`, [
+      fixtureId,
+    ]);
+    const moved = rows[0];
+    if (moved === undefined) return 0;
+    return (moved.lineup_rows ?? 0) + (moved.stat_rows ?? 0) + (moved.substitutions ?? 0);
   }
 
   private async saveSideLineup(
@@ -1251,6 +1276,8 @@ export class IngestStore implements SquadStore {
       );
       changed += rowCount ?? 0;
     }
+    // Rows the answer filed under the other side follow the line-ups (T-1628).
+    if (statistics.length > 0) changed += await this.alignSides(fixtureId);
     return { changed, unresolved: [...unresolved] };
   }
 
