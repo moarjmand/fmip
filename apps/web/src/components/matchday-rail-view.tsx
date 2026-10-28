@@ -98,6 +98,8 @@ export const DRAWER_ID = 'rail-drawer';
 const MOVED_GAP_MS = 5_000;
 /** `setTimeout` takes at most 2^31 - 1 ms; the rail never waits that long. */
 const LONGEST_WAIT_MS = 2_147_000_000;
+/** An ask with no answer after this long is taken as failed and tried again a poll later. */
+const ASK_TIMEOUT_MS = 20_000;
 
 /**
  * Asks for the rail again while it can change, and hands each answer to
@@ -141,10 +143,22 @@ function useRailRefresh(
       busy = true;
       waiting = false;
       lastAsk.current = Date.now();
+      // An answer that never comes (a connection left hanging) must not stop
+      // the asking: past `ASK_TIMEOUT_MS` it counts as failed.
+      let settled = false;
+      const settle = (): boolean => {
+        if (settled) return false;
+        settled = true;
+        busy = false;
+        clearTimeout(guard);
+        return !stopped;
+      };
+      const guard = setTimeout(() => {
+        if (settle()) later(poll);
+      }, ASK_TIMEOUT_MS);
       refreshRail(locale, timeZone, signedIn, fresh, wanted).then(
         (next) => {
-          busy = false;
-          if (stopped) return;
+          if (!settle()) return;
           if (next === null) {
             later(poll);
             return;
@@ -153,8 +167,7 @@ function useRailRefresh(
           replace(next);
         },
         (error: unknown) => {
-          busy = false;
-          if (stopped) return;
+          if (!settle()) return;
           // A page from an earlier build: its Server Function is gone and no
           // answer will come; the next navigation loads the new build. The
           // statuses are marked behind in the meantime (rule 4).
