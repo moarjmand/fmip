@@ -19,12 +19,15 @@ import {
   PLAYER_TABS,
   ageOn,
   appearances,
+  clubBasisText,
+  clubClaim,
   dayText,
   goalsPer90,
   latestSeason,
   lineupTeam,
   minutesText,
   playerTabHref,
+  positionValue,
   roleLabel,
   seasonGroups,
   seasonTotals,
@@ -88,13 +91,16 @@ export function PlayerHeader({
   const p = page.person;
   const spell = page.current_spell;
   const name = playerName(p);
+  // The position by T-1603's rule (spell, squad list, else his line-ups):
+  // production holds no open spell, so the spell alone named none.
+  const position = positionValue(page);
   const eyebrow = [
-    ...(spell?.position != null ? [say(locale, POSITION_KEY[spell.position])] : []),
+    ...(position !== null ? [say(locale, POSITION_KEY[position])] : []),
     ...(spell?.shirt_number != null
       ? [say(locale, 'playerPage.shirt', { number: formatNumber(locale, spell.shirt_number) })]
       : []),
   ];
-  const colour = spell?.team.colour ?? null;
+  const colour = clubClaim(page)?.team.colour ?? null;
   const ring: CSSProperties | undefined = colour === null ? undefined : { borderColor: colour };
   return (
     <div className="border-b border-default bg-surface" data-testid="player-header">
@@ -158,11 +164,19 @@ export function PlayerHeader({
   );
 }
 
-/** The club line: the current club first (or the latest line-up's), then the nationality. */
+/**
+ * The club line (T-1629, D-295): the club and what says so -- an open spell,
+ * the latest club line-up, a squad list or a recorded move, never a national
+ * team -- then the national team of his latest line-up for one, else the
+ * nationality. From an API older than T-1629, the latest line-up's team, said
+ * to be a line-up (T-1394).
+ */
 function ClubLine({ page, locale }: { page: PlayerPage; locale: string }) {
   const p = page.person;
-  const spell = page.current_spell;
-  const lineup = lineupTeam(page);
+  const club = clubClaim(page);
+  const lineup = page.club === undefined && club === null ? lineupTeam(page) : null;
+  const national = page.national_team ?? null;
+  const teamLink = inlineTargetClasses('gap-1.5 align-middle font-bold text-fg hover:underline');
   return (
     <dl
       className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-muted md:justify-start"
@@ -173,52 +187,59 @@ function ClubLine({ page, locale }: { page: PlayerPage; locale: string }) {
           <Translated locale={locale} message="playerPage.currentTeam" />
         </dt>
         <dd>
-          {spell === null ? (
-            lineup !== null ? (
-              // No open spell, but a line-up names him (T-1394, D-209): the
-              // team of that line-up, said to be a line-up, not a contract.
-              <span data-testid="current-team-lineup">
-                <Link
-                  href={`/${locale}/team/${lineup.team.id}`}
-                  className={inlineTargetClasses('font-bold text-fg hover:underline')}
-                >
-                  {lineup.team.name}
-                </Link>
-                {` · ${say(locale, 'playerPage.lastLineup', { date: dayText(locale, lineup.day) })}`}
-              </span>
-            ) : (
-              <Translated locale={locale} message="playerPage.noCurrentTeam" />
-            )
-          ) : (
-            <>
-              <Link
-                href={`/${locale}/team/${spell.team.id}`}
-                className={inlineTargetClasses(
-                  'gap-1.5 align-middle font-bold text-fg hover:underline',
-                )}
-              >
+          {club !== null ? (
+            <span data-testid="current-club" data-basis={club.basis}>
+              <Link href={`/${locale}/team/${club.team.id}`} className={teamLink}>
                 {/* The club's crest beside its name (T-1617). */}
-                <EntityImage
-                  media={spell.team.crest}
-                  kind="crest"
-                  name={spell.team.name}
-                  size={20}
-                />
-                {spell.team.name}
+                <EntityImage media={club.team.crest} kind="crest" name={club.team.name} size={20} />
+                {club.team.name}
               </Link>
-              {spell.on_loan ? ` · ${say(locale, 'teamPage.onLoan')}` : ''}
-              {` · ${say(locale, 'playerPage.since', { date: dayText(locale, spell.start_date) })}`}
-            </>
+              {club.on_loan ? ` · ${say(locale, 'teamPage.onLoan')}` : ''}
+              {` · ${clubBasisText(locale, club)}`}
+            </span>
+          ) : lineup !== null ? (
+            // No open spell, but a line-up names him (T-1394, D-209): the
+            // team of that line-up, said to be a line-up, not a contract.
+            <span data-testid="current-team-lineup">
+              <Link
+                href={`/${locale}/team/${lineup.team.id}`}
+                className={inlineTargetClasses('font-bold text-fg hover:underline')}
+              >
+                {lineup.team.name}
+              </Link>
+              {` · ${say(locale, 'playerPage.lastLineup', { date: dayText(locale, lineup.day) })}`}
+            </span>
+          ) : (
+            <Translated locale={locale} message="playerPage.noCurrentTeam" />
           )}
         </dd>
       </div>
-      {p.nationality !== null && (
-        <div>
+      {national !== null ? (
+        <div data-testid="national-team">
           <dt className="sr-only">
-            <Translated locale={locale} message="playerPage.nationality" />
+            <Translated locale={locale} message="playerPage.nationalTeam" />
           </dt>
-          <dd>{p.nationality.name}</dd>
+          <dd>
+            <Link href={`/${locale}/team/${national.team.id}`} className={teamLink}>
+              <EntityImage
+                media={national.team.crest}
+                kind="crest"
+                name={national.team.name}
+                size={20}
+              />
+              {national.team.name}
+            </Link>
+          </dd>
         </div>
+      ) : (
+        p.nationality !== null && (
+          <div>
+            <dt className="sr-only">
+              <Translated locale={locale} message="playerPage.nationality" />
+            </dt>
+            <dd>{p.nationality.name}</dd>
+          </div>
+        )
       )}
     </dl>
   );

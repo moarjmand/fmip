@@ -22,6 +22,10 @@ const PLAYER = randomUUID();
 const PROVIDER = randomUUID();
 const BYSTANDER = randomUUID();
 const TIMED = randomUUID();
+const MOVER = randomUUID();
+const CAPPED = randomUUID();
+const ENGLAND_TEAM = '00000000-0000-4000-8000-000000000606';
+const IRAN_TEAM = '00000000-0000-4000-8000-000000000607';
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page', () => {
   let app: NestFastifyApplication;
@@ -132,7 +136,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
       [PLAYER, PROVIDER],
     ]);
     await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
-      [PLAYER, PROVIDER, BYSTANDER, TIMED],
+      [PLAYER, PROVIDER, BYSTANDER, TIMED, MOVER, CAPPED],
     ]);
     await pool.query(`DELETE FROM stage WHERE id = $1`, [STAGE]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [SEASON]);
@@ -239,6 +243,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
     ).json() as PlayerPage;
     expect(page.current_spell).toBeNull();
     expect(page.spells).toEqual([]);
+    expect(page.club).toEqual({ coverage: 'not_supplied', last_updated_at: null, data: null });
+    expect(page.national_team).toBeNull();
     expect(page.record).toEqual({ coverage: 'not_supplied', last_updated_at: null, data: null });
     expect(page.recent_matches.coverage).toBe('not_supplied');
     expect(page.last_updated_at).toBeNull();
@@ -374,5 +380,80 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
     });
     expect(older.length).toBeGreaterThan(0);
     expect(older.every((m) => m.expected_goals === null)).toBe(true);
+  });
+
+  it('names the club by the newest record of one, and the national team apart (T-1629)', async () => {
+    await pool.query(
+      `INSERT INTO person (id, full_name) VALUES ($1, 'Test Mover ${RUN}'), ($2, 'Test Capped ${RUN}')`,
+      [MOVER, CAPPED],
+    );
+    // The mover's last line-up was for alpha; beta's squad list, read since, names him.
+    const club = await fixture('2025-10-15T19:00:00Z', [0, 0]);
+    await pool.query(
+      `INSERT INTO lineup (participant_id, person_id, role) VALUES ($1, $2, 'starter')`,
+      [club.alpha, MOVER],
+    );
+    await pool.query(
+      `INSERT INTO team_squad_member (team_id, person_id, provider, listed_at)
+       VALUES ($1, $2, 'api_football', timestamptz '2025-11-02T03:00:00Z')`,
+      [TEAMS.beta, MOVER],
+    );
+    // Both were then named for England: a national team, never their club.
+    const id = randomUUID();
+    fixtures.push(id);
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, kickoff_at, status)
+       VALUES ($1, $2, timestamptz '2025-11-14T19:45:00Z', 'finished')`,
+      [id, SEASON],
+    );
+    await pool.query(
+      `WITH side AS (
+         INSERT INTO fixture_participant (fixture_id, team_id, side)
+         VALUES ($1, $2, 'home'), ($1, $3, 'away') RETURNING id, side)
+       INSERT INTO lineup (participant_id, person_id, role)
+       SELECT side.id, p.id, 'starter' FROM side, unnest($4::uuid[]) AS p(id) WHERE side.side = 'home'`,
+      [id, ENGLAND_TEAM, IRAN_TEAM, [MOVER, CAPPED]],
+    );
+    const page = async (person: string) =>
+      (await app.inject({ method: 'GET', url: `/players/${person}` })).json() as PlayerPage;
+
+    const mover = await page(MOVER);
+    expect(mover.club).toEqual({
+      coverage: 'available',
+      last_updated_at: '2025-11-02T03:00:00.000Z',
+      data: {
+        team: {
+          id: TEAMS.beta,
+          name: `Test Beta ${RUN}`,
+          short_name: 'BET',
+          colour: null,
+          crest: { coverage: 'not_supplied', url: null },
+        },
+        basis: 'squad',
+        since: '2025-11-02',
+        on_loan: false,
+      },
+    });
+    expect(mover.national_team).toEqual({
+      team: {
+        id: ENGLAND_TEAM,
+        name: 'England',
+        short_name: null,
+        crest: { coverage: 'not_supplied', url: null },
+      },
+      last_lineup: '2025-11-14',
+    });
+
+    // Only a national team's line-up: no club to name, and the national team.
+    const capped = await page(CAPPED);
+    expect(capped.club).toEqual({ coverage: 'not_supplied', last_updated_at: null, data: null });
+    expect(capped.national_team?.team.id).toBe(ENGLAND_TEAM);
+
+    // An open spell is the club.
+    expect((await page(PLAYER)).club?.data).toMatchObject({
+      team: { id: TEAMS.alpha },
+      basis: 'spell',
+      since: '2025-07-01',
+    });
   });
 });

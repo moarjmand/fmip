@@ -11617,6 +11617,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "playerPage.club.lineup": {
+    "source": "from the latest club line-up that names this player, {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.club.squad": {
+    "source": "in the club’s squad list, read {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.club.transfer": {
+    "source": "joined {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.nationalTeam": {
+    "source": "National team",
+    "text": "",
+    "status": "untranslated"
+  },
   "playerPage.compareWith": {
     "source": "Compare with…",
     "text": "",
@@ -12221,6 +12241,16 @@
   },
   "compare.noTeam": {
     "source": "No current team on record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.age": {
+    "source": "Age {age}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.ageNotSupplied": {
+    "source": "Age not supplied",
     "text": "",
     "status": "untranslated"
   },
