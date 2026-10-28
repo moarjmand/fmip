@@ -154,8 +154,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the squads s
     const placed = randomUUID();
     await pool.query(
       `INSERT INTO competition (id, name, kind, scope, gender, display_order)
-       VALUES ($1, $2, 'league', 'domestic', 'men', 30000)`,
-      [competition, `Squad Order League ${RUN}`],
+       VALUES ($1, $2, 'cup', 'international', 'men', 30000)`,
+      [competition, `Squad Order Cup ${RUN}`],
     );
     await pool.query(
       `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
