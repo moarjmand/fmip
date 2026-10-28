@@ -36,6 +36,37 @@ test.describe('competitions bar', () => {
     );
   });
 
+  test('is drawn again by the server when the page says a match moved (T-1635)', async ({
+    page,
+  }) => {
+    await page.goto('/en');
+    const bar = page.getByRole('navigation', { name: 'Competitions' });
+    const premier = bar.locator(`[data-competition="${PREMIER_LEAGUE}"]`);
+    // A client-side navigation keeps the layout, and the rail with it.
+    await premier.click();
+    await expect(page).toHaveURL(new RegExp(`/en/competition/${PREMIER_LEAGUE}`));
+    await expect(page.getByTestId('title')).toHaveText(/Premier League/i);
+
+    // What the match centre and the scores page say when their stream sees a
+    // goal: the rail asks its Server Function at once (the seed plays nothing
+    // today, so it would otherwise wait for the next day). The answer is a
+    // React Server Components payload; its body is the rail checked below.
+    const asked = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.request().headers()['next-action'] !== undefined,
+    );
+    await page.evaluate(() => window.dispatchEvent(new Event('fmip:live-moved')));
+    const answer = await asked;
+    expect(answer.status()).toBe(200);
+    expect(answer.headers()['content-type']).toContain('text/x-component');
+
+    // The rail drawn again is the same rail, still marking the page being read.
+    await expect(premier.getByTestId('rail-status')).toHaveAttribute('data-kind', 'day');
+    await expect(premier).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('matchday-rail')).not.toHaveAttribute('data-behind', 'true');
+  });
+
   test('is reached by keyboard, All competitions last (T-1513)', async ({ page }) => {
     await page.goto('/en/scores');
     const all = page.getByTestId('competitions-bar-all');

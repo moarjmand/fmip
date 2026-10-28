@@ -16,7 +16,10 @@ import { describe, expect, it } from 'vitest';
  * What counts: `import … from` and `export … from`, followed through `@/` and
  * relative paths. Not counted: `import type` (erased), and dynamic `import()`,
  * which the bundler splits into a chunk that is not first-load -- that is how
- * `global-error.tsx`, which has no layout to hand it words, loads them.
+ * `global-error.tsx`, which has no layout to hand it words, loads them. Nor
+ * what a `'use server'` module imports: a client module that imports one gets
+ * a reference to call on the server, never the module's code (T-1635, the
+ * matchday rail's `refreshRail`, which draws the rail with its words).
  */
 
 const SRC = join(__dirname, '..');
@@ -61,6 +64,8 @@ function staticImports(file: string): string[] {
   return found;
 }
 
+const SERVER_FUNCTIONS = /^\s*['"]use server['"]/;
+
 /** The import chain from `entry` to the first forbidden file, or `undefined`. */
 function chainToCatalogues(entry: string): string[] | undefined {
   const previous = new Map<string, string | null>([[entry, null]]);
@@ -74,6 +79,8 @@ function chainToCatalogues(entry: string): string[] | undefined {
       }
       return chain;
     }
+    // A Server Function's module stays on the server; the client calls it.
+    if (file !== entry && SERVER_FUNCTIONS.test(readFileSync(file, 'utf8'))) continue;
     for (const next of staticImports(file)) {
       if (!previous.has(next)) {
         previous.set(next, file);
@@ -101,6 +108,13 @@ describe('the catalogues stay on the server', () => {
       'components/translated.tsx',
       'i18n/messages.ts',
     ]);
+  });
+
+  it('stops at a Server Function, whose code a client module never carries (T-1635)', () => {
+    // `refreshRail` draws the rail with its words, on the server.
+    const action = join(SRC, 'lib', 'rail-actions.ts');
+    expect(chainToCatalogues(action)).toBeDefined();
+    expect(chainToCatalogues(join(SRC, 'components', 'matchday-rail-view.tsx'))).toBeUndefined();
   });
 
   it('no client module reaches messages.ts or a catalogue by static import', () => {

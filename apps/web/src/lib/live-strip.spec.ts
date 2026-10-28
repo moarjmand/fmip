@@ -2,6 +2,7 @@ import type { ScoreCard } from '@fmip/contracts';
 import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  FRESH_ANSWER_MS,
   type KeptAnswer,
   STRIP_ANSWER_MS,
   STRIP_FAILURE_MS,
@@ -64,14 +65,19 @@ describe('a chip’s state', () => {
     expect(chipState(stripCard(), 'fa', 'Asia/Tehran', NOW, faWords).status).toBe('۱۷:۰۰');
   });
 
-  it('live: the minute and the score', () => {
+  it('live: the minute and the score, and the word for when the answer ages (T-1635)', () => {
     const live = stripCard({ status: 'live', minute: 78, scores: score(1, 1) });
     expect(chipState(live, 'en', 'UTC', NOW, words)).toEqual({
       kind: 'live',
       status: '78′',
       score: { home: 1, away: 1 },
+      behindStatus: 'Behind',
     });
     expect(chipState(live, 'fa', 'UTC', NOW, faWords).status).toBe('۷۸′');
+    expect(chipState(live, 'fa', 'UTC', NOW, faWords).behindStatus).toBe(
+      faWords['status.behind'].text,
+    );
+    expect(faWords['status.behind'].text).not.toBe('Behind');
   });
 
   it('live but the data stopped: "Behind" in place of the minute (D-045)', () => {
@@ -101,6 +107,7 @@ describe('a chip’s state', () => {
       kind: 'live',
       status: '45′',
       score: { home: 1, away: 0 },
+      behindStatus: 'Behind',
     });
     expect(stripIsBehind([halfTime], new Date(NOW).toISOString(), NOW)).toBe(false);
     // The provider fell silent: behind again, as rule 4 asks.
@@ -193,6 +200,24 @@ describe('the shared answer', () => {
     expect((await sharedAnswer(kept, 'k', STRIP_ANSWER_MS - 1, ask)).n).toBe(1);
     expect((await sharedAnswer(kept, 'k', STRIP_ANSWER_MS, ask)).n).toBe(2);
     expect(ask).toHaveBeenCalledTimes(2);
+  });
+
+  it('is asked again sooner when the page saw a match move, and shared from then on (T-1635)', async () => {
+    const kept = new Map<string, KeptAnswer<Answer>>();
+    let n = 0;
+    const ask = vi.fn(async () => ({ ok: true, n: ++n }));
+    await sharedAnswer(kept, 'k', 0, ask);
+    // Within the fresh life the kept answer still stands.
+    expect((await sharedAnswer(kept, 'k', FRESH_ANSWER_MS - 1, ask, FRESH_ANSWER_MS)).n).toBe(1);
+    // Older than that: asked again, and the new answer is the one shared.
+    expect((await sharedAnswer(kept, 'k', FRESH_ANSWER_MS, ask, FRESH_ANSWER_MS)).n).toBe(2);
+    expect((await sharedAnswer(kept, 'k', FRESH_ANSWER_MS + 1, ask)).n).toBe(2);
+    expect((await sharedAnswer(kept, 'k', FRESH_ANSWER_MS + 1, ask, FRESH_ANSWER_MS)).n).toBe(2);
+    // A longer max age never keeps an answer past its usual life.
+    expect((await sharedAnswer(kept, 'k', FRESH_ANSWER_MS + STRIP_ANSWER_MS, ask, 60_000)).n).toBe(
+      3,
+    );
+    expect(ask).toHaveBeenCalledTimes(3);
   });
 
   it('keeps one key per day, zone and language apart', async () => {

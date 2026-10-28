@@ -263,6 +263,19 @@
   &[data-kind='live'] {
     @apply font-bold text-live;
   }
+
+  /*
+   * The rail's answer has aged past what it can vouch for (T-1635, rule 4,
+   * `data-behind` on the rail): a live count is amber and its dot still,
+   * until an answer comes in again; the drawer says "May be behind".
+   */
+  [data-behind='true'] &[data-kind='live'] {
+    @apply text-warning;
+
+    & > .live-dot {
+      @apply bg-warning;
+    }
+  }
 }
 
 /*
@@ -730,6 +743,11 @@ body {
     border-radius: inherit;
     content: '';
     animation: live-pulse 1.8s infinite;
+  }
+
+  /* A rail that may be behind does not pulse as if it were live (T-1635). */
+  :root:not([data-motion='reduce']) [data-behind='true'] .live-dot::after {
+    animation: none;
   }
 }
 

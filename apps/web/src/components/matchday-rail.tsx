@@ -12,7 +12,9 @@ import { type Message, attribute, interpolate, message, plural } from '@/i18n/me
 import { type ApiResult, fetchCompetitionDirectory, fetchScores } from '@/lib/api';
 import { barName } from '@/lib/competitions-directory';
 import {
+  FRESH_ANSWER_MS,
   type KeptAnswer,
+  STRIP_ANSWER_MS,
   chipState,
   sharedAnswer,
   stripBehindAt,
@@ -23,6 +25,8 @@ import {
   type RailStatus,
   drawerFixtures,
   openLeague,
+  railAskIn,
+  railFixtures,
   railLeagues,
   railStatusText,
 } from '@/lib/matchday-rail';
@@ -44,6 +48,14 @@ import { type StatusKey, dateIn } from '@/lib/scores';
  * directory cannot be read the rail is the leagues playing today and "All
  * competitions"; when today's scores cannot be read, or nothing is played,
  * there is no drawer and no status that needs them.
+ *
+ * The layout is not rendered again on a client-side navigation, so the rail
+ * drawn here would keep its scores for as long as the reader moves around
+ * the site (T-1635, D-297). The client half asks for it again through
+ * `refreshRail` (`lib/rail-actions.ts`), which draws it here once more:
+ * every 30 s while a match today is being played, at the next kick-off or
+ * the next day when none is, and at once when the page's own stream saw a
+ * match move (`lib/live-signal.ts`).
  */
 
 const DIRECTORY = new Map<string, KeptAnswer<ApiResult<CompetitionDirectoryResponse>>>();
@@ -73,12 +85,18 @@ async function loadToday(
   lang: Locale,
   timeZone: string,
   today: string,
+  maxAge: number,
 ): Promise<ScoresResponse | null> {
-  const answer = await sharedAnswer(TODAY, `${today}|${timeZone}|${lang}`, Date.now(), () =>
-    fetchScores(
-      new URLSearchParams({ from: today, to: today, tz: timeZone }).toString(),
-      undefined,
-    ),
+  const answer = await sharedAnswer(
+    TODAY,
+    `${today}|${timeZone}|${lang}`,
+    Date.now(),
+    () =>
+      fetchScores(
+        new URLSearchParams({ from: today, to: today, tz: timeZone }).toString(),
+        undefined,
+      ),
+    maxAge,
   ).catch(() => null);
   return answer !== null && answer.ok ? answer.data : null;
 }
@@ -129,6 +147,10 @@ function Star() {
  * The rail drawn from its answers, a plain function so the spec can hand it
  * answers and a clock (`matchday-rail.spec.tsx`). `locale` builds the
  * addresses (the pseudo-locale keeps its own); the words are `lang`'s.
+ *
+ * `drawer` (T-1635): when the rail is asked for again, only the drawer the
+ * reader has open is drawn (`null`: none), not every league's; the page
+ * load draws them all (D-292), so a toggle needs no request.
  */
 export function railView({
   locale,
@@ -137,6 +159,7 @@ export function railView({
   directory,
   scores,
   now,
+  drawer: only,
 }: {
   locale: string;
   timeZone: string;
@@ -144,6 +167,7 @@ export function railView({
   directory: readonly CompetitionDirectoryEntry[];
   scores: ScoresResponse | null;
   now: number;
+  drawer?: string | null;
 }): Parameters<typeof MatchdayRailView>[0] {
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const leagues = railLeagues(directory, scores, now, timeZone);
@@ -159,6 +183,7 @@ export function railView({
   const drawer = (league: RailLeague) => {
     const group = league.today;
     if (group === null || scores === null) return [];
+    if (only !== undefined && league.id !== only) return [];
     return [
       [
         league.id,
@@ -201,21 +226,39 @@ export function railView({
     myTeams: signedIn ? { label: message(lang, 'shell.rail.myTeams'), icon: <Star /> } : null,
     all: message(lang, 'competitions.bar.all'),
     navLabel: attribute(lang, 'competitions.bar.label'),
+    // What the client half asks again with, and when (T-1635): the leagues'
+    // statuses may be behind from `behindAt` on, as the drawer's chips may.
+    timeZone,
+    signedIn,
+    askIn: railAskIn(scores, now, timeZone),
+    behindAt: scores === null ? null : stripBehindAt(railFixtures(scores), scores.generated_at),
+    behind: scores !== null && stripIsBehind(railFixtures(scores), scores.generated_at, now),
   };
 }
 
 /**
  * The rail's answers and the moment they are judged at. A plain function,
- * not a component: it reads the clock, once per request.
+ * not a component: it reads the clock, once per request. When asked again
+ * (T-1635): `fresh`, the page's own stream saw a match move, so today's
+ * answer may be at most `FRESH_ANSWER_MS` old rather than the usual shared
+ * few seconds; `drawer`, the one drawer to draw (`railView`).
  */
-async function loadRail(rail: { locale: string; timeZone: string; signedIn: boolean }) {
+export async function loadRail(
+  rail: { locale: string; timeZone: string; signedIn: boolean },
+  { fresh = false, drawer }: { fresh?: boolean; drawer?: string | null } = {},
+) {
   const lang = isLocale(rail.locale) ? rail.locale : DEFAULT_LOCALE;
   const now = Date.now();
   const [directory, scores] = await Promise.all([
     loadDirectory(lang),
-    loadToday(lang, rail.timeZone, dateIn(rail.timeZone, new Date(now))),
+    loadToday(
+      lang,
+      rail.timeZone,
+      dateIn(rail.timeZone, new Date(now)),
+      fresh ? FRESH_ANSWER_MS : STRIP_ANSWER_MS,
+    ),
   ]);
-  return railView({ ...rail, directory, scores, now });
+  return railView({ ...rail, directory, scores, now, drawer });
 }
 
 export async function MatchdayRail(props: { locale: string; timeZone: string; signedIn: boolean }) {

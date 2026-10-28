@@ -17,6 +17,7 @@ import {
   staleAfterMs,
 } from '@/lib/live';
 import { openLiveSource } from '@/lib/live-source';
+import { signalLiveMoved } from '@/lib/live-signal';
 import type { MatchWords } from '@/lib/words-server';
 
 /**
@@ -83,7 +84,11 @@ export function LiveMatch({
           const next = JSON.parse((event as MessageEvent<string>).data) as MatchCentre;
           setCentre((previous) => {
             const said = matchAnnouncements(previous, next, words);
-            if (said.length > 0) setAnnouncement(said.join(' '));
+            if (said.length > 0) {
+              setAnnouncement(said.join(' '));
+              // The matchday rail over the page asks for its scores now (T-1635).
+              signalLiveMoved();
+            }
             return next;
           });
           stamp(true);

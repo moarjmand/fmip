@@ -167,6 +167,73 @@ export function openLeague(leagues: readonly RailLeague[]): string | null {
   return leagues.find((league) => league.today !== null)?.id ?? null;
 }
 
+// ---------------------------------------------------------------------------
+// Keeping the rail current (T-1635, D-297)
+// ---------------------------------------------------------------------------
+
+/** When today's answer could not be read: ask again this much later, not sooner. */
+export const RAIL_RETRY_MS = 5 * 60_000;
+
+/**
+ * A match still marked to come this long after its kick-off may start at any
+ * moment (the feed is late with it), so the rail keeps asking; one marked so
+ * for longer is not news the rail waits for.
+ */
+export const LATE_START_MS = 3 * 60 * 60_000;
+
+const HOUR_MS = 60 * 60_000;
+
+/**
+ * The first moment of the day after `now` in `timeZone`, to the minute: when
+ * "today" in the rail moves on, its matches and its "Sat" with it. A day is
+ * 23 to 25 hours long, so the next one starts within 26 of any moment.
+ */
+export function nextDayStart(timeZone: string, now: number): number {
+  const today = dateIn(timeZone, new Date(now));
+  let lo = now;
+  let hi = now + 26 * HOUR_MS;
+  while (hi - lo > 60_000) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (dateIn(timeZone, new Date(mid)) === today) lo = mid;
+    else hi = mid;
+  }
+  return hi;
+}
+
+/**
+ * How long after this answer the rail is to ask again, in milliseconds; `0`
+ * means "keep asking every `RAIL_POLL_MS`" (`lib/live-signal.ts`). The rail
+ * lives in the locale layout, which a client-side navigation never renders
+ * again, so without asking it would keep the score it had when the page was
+ * first loaded (T-1635, D-297). While a match today is being
+ * played, suspended, or due to have started (`LATE_START_MS`), anything can
+ * change: 0. Otherwise nothing on the rail changes before the next kick-off
+ * today, or before the day itself moves on, whichever comes first: an idle
+ * page asks nothing until then (the live strip of T-1381 asked nothing
+ * after the page was drawn). An answer that could not be read is asked for
+ * again after `RAIL_RETRY_MS`.
+ */
+export function railAskIn(scores: ScoresResponse | null, now: number, timeZone: string): number {
+  if (scores === null) return RAIL_RETRY_MS;
+  let at = nextDayStart(timeZone, now);
+  for (const group of scores.groups) {
+    for (const card of group.fixtures) {
+      if (card.status === 'live' || card.status === 'suspended') return 0;
+      if (card.status !== 'scheduled') continue;
+      const kickoff = Date.parse(card.kickoff_at);
+      if (Number.isNaN(kickoff)) continue;
+      if (kickoff > now) at = Math.min(at, kickoff);
+      else if (now - kickoff < LATE_START_MS) return 0;
+    }
+  }
+  return Math.max(0, at - now);
+}
+
+/** Every match in today's answer, whichever league: what the rail's own freshness is judged on. */
+export function railFixtures(scores: ScoresResponse | null): ScoresGroup['fixtures'] {
+  return scores === null ? [] : scores.groups.flatMap((group) => group.fixtures);
+}
+
 /**
  * A status in the reader's words, or `null` for none: "2 live" (`live`
  * gives the count's words), "20:00" in the reader's zone and digits, "Sat"
