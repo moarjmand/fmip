@@ -9,8 +9,9 @@
  * sends, and a Serie A or Champions League match kicking off a few minutes
  * later was never asked: its line-up arrived with the post-match detail, about
  * two hours after kick-off (35 of 92 big-league matches, 2026-10-18 to 27).
- * The matches that were asked in time had their line-up on the first ask, at
- * 25 to 30 minutes before kick-off, so the provider held it before we asked.
+ * Of the 57 stored before kick-off, 53 were stored by the first run that
+ * asked, 25 to 30 minutes before kick-off: the provider held them before we
+ * asked.
  *
  * Now a match is asked from `LINEUP_ASK_FROM_MINUTES` before kick-off, every
  * run (five minutes), and by need:
