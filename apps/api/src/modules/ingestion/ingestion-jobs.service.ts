@@ -19,6 +19,7 @@ import { EntityResolverService } from './ingestion.service';
 import { AskPacer } from './internal/ask-pacer';
 import { DEFAULT_TIER_SHARES, parseTierShares, withBudgetTier } from './internal/budget-tier';
 import { groupMembers, groupPlayed } from './internal/groups';
+import { lineupAsks, lineupWindow } from './internal/lineup-asks';
 import {
   IngestStore,
   type PollTarget,
@@ -56,7 +57,7 @@ export const FIXTURE_WINDOW_FORWARD_DAYS = 7;
 /** How close to kick-off a match has to be before the live job asks about it. */
 export const LIVE_WINDOW_BEFORE_MINUTES = 30;
 export const LIVE_WINDOW_AFTER_MINUTES = 210;
-/** How many fixtures one lineups or post-match run will spend requests on. */
+/** How many fixtures one post-match run will spend requests on (line-ups: `LINEUP_BATCH`). */
 export const DETAIL_BATCH = 10;
 /**
  * How many finished fixtures that never had their detail one post-match run
@@ -221,11 +222,11 @@ function describe(error: { kind: string; message: string }): string {
  * What one line-up ask came back with (T-1376).
  *
  * A provider that answered and has no line-up yet has answered: the official
- * line-up is announced 20 to 40 minutes before kick-off, and a minor friendly
- * may never have one. That fixture is `waiting` -- asked again on the next run
- * for as long as the detail window holds it (from LIVE_WINDOW_BEFORE_MINUTES
- * before kick-off to LIVE_WINDOW_AFTER_MINUTES after it, or full time), which
- * already ends, so no cap of its own -- and the match page keeps saying
+ * line-up is announced about an hour before kick-off (API-Football's guide
+ * says 20 to 40 minutes), and a minor friendly or cup tie may never have one.
+ * That fixture is `waiting` -- asked again on the next run for as long as
+ * `lineupAsks` holds it (from 75 minutes before kick-off to an hour after it,
+ * T-1625), which already ends, so no cap of its own -- and the match page keeps saying
  * `not_supplied`, because nothing is written. Anything else that is not a
  * line-up (a status code, a quota, a plan that cannot ask, a body that does not
  * parse) is `refused`, and the run is partial as before.
@@ -986,13 +987,21 @@ export class IngestionJobsService {
   /**
    * Announced line-ups for matches about to start, or just started -- and, for
    * the next three days' matches, who the provider says will miss them (T-103).
+   * Which line-ups, in which order, is `lineupAsks` (T-1625, D-293): from 75
+   * minutes before kick-off, the ones not stored yet first.
    */
   lineups(now: Date = new Date()): Promise<JobReport> {
     return this.track('lineups', async (source, targets) => {
-      const candidates = await this.detailCandidates(source.provider, targets, now, [
-        'scheduled',
-        'live',
-      ]);
+      const { from, to } = lineupWindow(now);
+      const candidates = lineupAsks(
+        await this.store.lineupCandidates(
+          source.provider,
+          [...new Set(targets.map((t) => t.competitionId))],
+          from,
+          to,
+        ),
+        now,
+      );
       let seen = 0;
       let written = 0;
       const refused: string[] = [];

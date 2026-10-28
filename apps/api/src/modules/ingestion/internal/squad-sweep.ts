@@ -61,7 +61,12 @@ export interface SquadMember {
 export interface SquadStore {
   /** Clubs asked about since `sinceIso`: the day's squad requests so far. */
   squadsAskedSince(provider: Provider, sinceIso: string): Promise<number>;
-  /** Mapped clubs playing in the given seasons that are owed a squad answer. */
+  /**
+   * Mapped clubs playing in the given seasons that are owed a squad answer:
+   * never answered, answered with no listing recorded (T-1632), or answered
+   * before `answeredBeforeIso`; the clubs of the highest-placed competitions
+   * first within each.
+   */
   squadsDue(
     provider: Provider,
     seasonIds: string[],

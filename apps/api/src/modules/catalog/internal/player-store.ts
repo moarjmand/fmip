@@ -2,12 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import type {
   Covered,
   PlayerAvailability,
+  PlayerClub,
   PlayerMatch,
+  PlayerNationalTeam,
   PlayerPage,
   PlayerPosition,
   PlayerSeasonMinutes,
   PlayerSeasonRecord,
   PlayerSpell,
+  PlayerTeamRef,
   SquadPosition,
 } from '@fmip/contracts';
 import { absenceReason } from '@fmip/ingestion';
@@ -255,6 +258,97 @@ export class PostgresPlayerStore {
       squad: s === undefined ? null : { position: s.position, at: s.listed_at.toISOString() },
       lineup: l === undefined ? null : { position: l.position, at: l.newest.toISOString() },
     };
+  }
+
+  /**
+   * What our records say about the player's club besides an open spell
+   * (T-1629, D-295), for `clubOf`: the newest squad list of a club that names
+   * him, the provider's newest recorded move (dated today or before; `team`
+   * null when it went to a club we do not hold), and his latest line-up for a
+   * club. National teams are not clubs and are read by `nationalTeam`.
+   */
+  async clubSources(personId: string): Promise<ClubSources> {
+    const { rows } = await this.pool.query<{
+      basis: 'squad' | 'move' | 'lineup';
+      team_id: string | null;
+      team_name: string | null;
+      team_short_name: string | null;
+      team_colour: string | null;
+      day: string;
+      at: Date;
+      loan: boolean;
+    }>(
+      `(SELECT 'squad' AS basis, t.id AS team_id, t.name AS team_name,
+               t.short_name AS team_short_name, t.colour AS team_colour,
+               (sm.listed_at AT TIME ZONE 'UTC')::date::text AS day, sm.listed_at AS at,
+               false AS loan
+          FROM team_squad_member sm
+          JOIN team t ON t.id = sm.team_id
+         WHERE sm.person_id = $1 AND t.kind = 'club'
+         ORDER BY sm.listed_at DESC, t.id
+         LIMIT 1)
+       UNION ALL
+       (SELECT 'move', t.id, t.name, t.short_name, t.colour,
+               tl.transfer_date::text, tl.fetched_at, tl.kind = 'loan'
+          FROM transfer_listing tl
+          LEFT JOIN team t ON t.id = tl.to_team_id AND t.kind = 'club'
+         WHERE tl.person_id = $1 AND tl.transfer_date <= CURRENT_DATE
+         ORDER BY tl.transfer_date DESC, tl.id DESC
+         LIMIT 1)
+       UNION ALL
+       (SELECT 'lineup', t.id, t.name, t.short_name, t.colour,
+               (f.kickoff_at AT TIME ZONE 'UTC')::date::text, f.kickoff_at, false
+          FROM lineup l
+          JOIN fixture_participant fp ON fp.id = l.participant_id
+          JOIN fixture f ON f.id = fp.fixture_id
+          JOIN team t ON t.id = fp.team_id
+         WHERE l.person_id = $1 AND t.kind = 'club'
+         ORDER BY f.kickoff_at DESC, f.id
+         LIMIT 1)`,
+      [personId],
+    );
+    const source = (basis: 'squad' | 'move' | 'lineup'): ClubSource | null => {
+      const r = rows.find((row) => row.basis === basis);
+      if (r === undefined) return null;
+      return {
+        team:
+          r.team_id === null || r.team_name === null
+            ? null
+            : {
+                id: r.team_id,
+                name: r.team_name,
+                short_name: r.team_short_name,
+                colour: r.team_colour,
+              },
+        day: r.day,
+        at: r.at.toISOString(),
+        loan: r.loan,
+      };
+    };
+    return { squad: source('squad'), move: source('move'), lineup: source('lineup') };
+  }
+
+  /** The senior national team of the player's latest line-up for one (T-1629); null when none. */
+  async nationalTeam(personId: string): Promise<PlayerNationalTeam | null> {
+    const { rows } = await this.pool.query<{
+      id: string;
+      name: string;
+      short_name: string | null;
+      day: string;
+    }>(
+      `SELECT t.id, t.name, t.short_name, (f.kickoff_at AT TIME ZONE 'UTC')::date::text AS day
+         FROM lineup l
+         JOIN fixture_participant fp ON fp.id = l.participant_id
+         JOIN fixture f ON f.id = fp.fixture_id
+         JOIN team t ON t.id = fp.team_id
+        WHERE l.person_id = $1 AND t.kind = 'national' AND t.age_group = 'senior'
+        ORDER BY f.kickoff_at DESC, f.id
+        LIMIT 1`,
+      [personId],
+    );
+    const r = rows[0];
+    if (r === undefined) return null;
+    return { team: { id: r.id, name: r.name, short_name: r.short_name }, last_lineup: r.day };
   }
 
   /** Newest first; an open spell (no end) before any closed one starting the same day. */
@@ -606,6 +700,74 @@ export class PostgresPlayerStore {
       })),
     };
   }
+}
+
+/** One record of where the player is (T-1629): a club we hold (or null), its day and time. */
+export interface ClubSource {
+  team: PlayerTeamRef | null;
+  /** `YYYY-MM-DD`. */
+  day: string;
+  /** When the record was made: the squad list read, the move fetched, the match's kick-off. */
+  at: string;
+  /** A move that is a loan. */
+  loan: boolean;
+}
+
+/** What `clubSources` reads; `move` is the newest move, wherever it went. */
+export interface ClubSources {
+  squad: ClubSource | null;
+  move: ClubSource | null;
+  lineup: ClubSource | null;
+}
+
+const NO_CLUB: Covered<PlayerClub> = {
+  coverage: 'not_supplied',
+  last_updated_at: null,
+  data: null,
+};
+
+/**
+ * The player's club, and what says so (T-1629, D-295). An open spell first.
+ * Otherwise the newest of his latest club line-up, the newest squad list that
+ * names him, and the provider's newest move into a club we hold; on the same
+ * day a line-up wins, then the squad list. A newer move to a club we do not
+ * hold, or to none, leaves no club to name: an older club would be a former
+ * one shown as current (rule 4). A line-up is `limited` (what he played for,
+ * not a registration); the others are `available`. Never a national team.
+ */
+export function clubOf(spell: PlayerSpell | null, sources: ClubSources): Covered<PlayerClub> {
+  if (spell !== null) {
+    return {
+      coverage: 'available',
+      last_updated_at: null,
+      data: { team: spell.team, basis: 'spell', since: spell.start_date, on_loan: spell.on_loan },
+    };
+  }
+  const { move } = sources;
+  const candidates: { basis: PlayerClub['basis']; source: ClubSource; team: PlayerTeamRef }[] = [];
+  for (const [basis, source] of [
+    ['lineup', sources.lineup],
+    ['squad', sources.squad],
+    ['transfer', move],
+  ] as const) {
+    if (source !== null && source.team !== null)
+      candidates.push({ basis, source, team: source.team });
+  }
+  let best: (typeof candidates)[number] | null = null;
+  for (const c of candidates) if (best === null || c.source.day > best.source.day) best = c;
+  if (move !== null && move.team === null && (best === null || move.day > best.source.day)) {
+    return NO_CLUB;
+  }
+  if (best === null) return NO_CLUB;
+  // A loan is the move's word: the move itself, or the latest move into this
+  // club when the line-up or the squad list came after it.
+  const onLoan =
+    move !== null && move.loan && move.team?.id === best.team.id && move.day <= best.source.day;
+  return {
+    coverage: best.basis === 'lineup' ? 'limited' : 'available',
+    last_updated_at: best.source.at,
+    data: { team: best.team, basis: best.basis, since: best.source.day, on_loan: onLoan },
+  };
 }
 
 /** The squad listing's and the line-ups' word on a player's position (T-1603). */

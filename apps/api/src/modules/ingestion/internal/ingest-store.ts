@@ -46,6 +46,7 @@ import type {
   Side,
 } from '@fmip/ingestion';
 import { PERIOD_KINDS } from '@fmip/ingestion';
+import type { LineupCandidate } from './lineup-asks';
 import type { EntityType } from './resolver';
 
 /**
@@ -327,6 +328,50 @@ export class IngestStore implements SquadStore {
       externalId: r.external_id,
       fixtureId: r.fixture_id,
       status: r.status,
+    }));
+  }
+
+  /**
+   * The polled competitions' scheduled and live matches kicking off in
+   * `(fromIso, toIso]` that this provider has an id for, and whether both
+   * sides' line-ups are stored (T-1625): what `lineupAsks` chooses from.
+   */
+  async lineupCandidates(
+    provider: Provider,
+    competitionIds: string[],
+    fromIso: string,
+    toIso: string,
+  ): Promise<LineupCandidate[]> {
+    if (competitionIds.length === 0) return [];
+    const { rows } = await this.pool.query<{
+      external_id: string;
+      fixture_id: string;
+      kickoff_at: Date;
+      status: string;
+      announced: boolean;
+    }>(
+      `SELECT pm.external_id, f.id AS fixture_id, f.kickoff_at, f.status,
+              (SELECT count(DISTINCT fp.side)
+                 FROM fixture_participant fp
+                WHERE fp.fixture_id = f.id
+                  AND EXISTS (SELECT 1 FROM lineup l WHERE l.participant_id = fp.id)) = 2
+                AS announced
+         FROM fixture f
+         JOIN season s ON s.id = f.season_id
+         JOIN provider_mapping pm
+           ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = $1
+        WHERE s.competition_id = ANY($2::uuid[])
+          AND f.status IN ('scheduled', 'live')
+          AND f.kickoff_at > $3 AND f.kickoff_at <= $4
+        ORDER BY f.kickoff_at`,
+      [provider, competitionIds, fromIso, toIso],
+    );
+    return rows.map((r) => ({
+      externalId: r.external_id,
+      fixtureId: r.fixture_id,
+      kickoffAt: r.kickoff_at.toISOString(),
+      status: r.status,
+      announced: r.announced,
     }));
   }
 
@@ -1018,7 +1063,11 @@ export class IngestStore implements SquadStore {
     );
   }
 
-  /** Both sides of a lineup: the formation and coach on the participant, then the players. */
+  /**
+   * Both sides of a lineup: the formation and coach on the participant, then
+   * the players -- and then each side's players put back on their own side if
+   * the answer filed them under the other team (T-1628, `alignSides`).
+   */
   async saveLineup(
     provider: Provider,
     fixtureId: string,
@@ -1026,7 +1075,28 @@ export class IngestStore implements SquadStore {
   ): Promise<WriteResult> {
     const home = await this.saveSideLineup(provider, fixtureId, 'home', lineup.home);
     const away = await this.saveSideLineup(provider, fixtureId, 'away', lineup.away);
-    return merge(home, away);
+    const aligned = await this.alignSides(fixtureId);
+    return merge(home, away, { changed: aligned, unresolved: [] });
+  }
+
+  /**
+   * Line-ups, per-player statistics and substitutions the provider filed under
+   * the other side of the match (T-1628, D-294), moved to their own side by
+   * `align_lineup_sides`. It decides from our records -- each player's other
+   * line-ups, a national team's nationality -- and never from the answer alone,
+   * whose two parts can each be the wrong one. The rows moved count as changed.
+   */
+  async alignSides(fixtureId: string): Promise<number> {
+    const { rows } = await this.pool.query<{
+      lineup_rows: number | null;
+      stat_rows: number | null;
+      substitutions: number | null;
+    }>(`SELECT lineup_rows, stat_rows, substitutions FROM align_lineup_sides(ARRAY[$1::uuid])`, [
+      fixtureId,
+    ]);
+    const moved = rows[0];
+    if (moved === undefined) return 0;
+    return (moved.lineup_rows ?? 0) + (moved.stat_rows ?? 0) + (moved.substitutions ?? 0);
   }
 
   private async saveSideLineup(
@@ -1206,6 +1276,8 @@ export class IngestStore implements SquadStore {
       );
       changed += rowCount ?? 0;
     }
+    // Rows the answer filed under the other side follow the line-ups (T-1628).
+    if (statistics.length > 0) changed += await this.alignSides(fixtureId);
     return { changed, unresolved: [...unresolved] };
   }
 
@@ -1379,9 +1451,21 @@ export class IngestStore implements SquadStore {
   }
 
   /**
-   * Mapped clubs with a match in any of the given seasons, never answered
-   * first, then the longest unanswered; none answered since
-   * `answeredBeforeIso` or asked since `askedBeforeIso`.
+   * Mapped clubs with a match in any of the given seasons that are owed a
+   * squad answer; none asked since `askedBeforeIso`. Owed: never answered,
+   * answered with no listing recorded, or answered before
+   * `answeredBeforeIso`.
+   *
+   * An answer with no listing (`listed` null) is one read before T-1428
+   * recorded listings, when the job kept only the photos: 825 clubs on
+   * production on 2026-10-28, the whole Premier League among them, whose
+   * pages said "no squad on record" until their monthly ask came round in
+   * November (T-1632, D-296). They are owed now, like a club never answered.
+   *
+   * Order: never answered, then owed a listing, then the oldest answer; in
+   * each, the club whose competition stands highest on the scores page
+   * (`competition.display_order`, unplaced last), so the clubs readers open
+   * most are asked first when the day's allowance cannot reach every club.
    *
    * Clubs only (T-1332): a national team's squad is players called up from
    * clubs, whose photos the clubs' squads and the national matches' own
@@ -1400,14 +1484,21 @@ export class IngestStore implements SquadStore {
          FROM provider_mapping pm
          JOIN team t ON t.id = pm.internal_id AND t.kind = 'club'
          LEFT JOIN team_squad_fetch q ON q.provider = pm.provider AND q.team_id = pm.internal_id
+         CROSS JOIN LATERAL (
+           SELECT count(*) AS matches, min(c.display_order) AS placed
+             FROM fixture_participant fp
+             JOIN fixture f ON f.id = fp.fixture_id
+             JOIN season se ON se.id = f.season_id
+             JOIN competition c ON c.id = se.competition_id
+            WHERE fp.team_id = pm.internal_id AND f.season_id = ANY($2::uuid[])
+         ) plays
         WHERE pm.provider = $1 AND pm.entity_type = 'team'
-          AND EXISTS (SELECT 1 FROM fixture_participant fp
-                        JOIN fixture f ON f.id = fp.fixture_id
-                       WHERE fp.team_id = pm.internal_id AND f.season_id = ANY($2::uuid[]))
-          AND (q.answered_at IS NULL OR q.answered_at < $3)
+          AND plays.matches > 0
+          AND (q.answered_at IS NULL OR q.listed IS NULL OR q.answered_at < $3)
           AND (q.asked_at IS NULL OR q.asked_at < $4)
-        GROUP BY pm.internal_id, q.answered_at
-        ORDER BY q.answered_at NULLS FIRST, pm.internal_id
+        GROUP BY pm.internal_id, q.answered_at, q.listed, plays.placed
+        ORDER BY q.answered_at IS NOT NULL, q.listed IS NOT NULL, plays.placed NULLS LAST,
+                 q.answered_at, pm.internal_id
         LIMIT $5`,
       [provider, seasonIds, answeredBeforeIso, askedBeforeIso, limit],
     );

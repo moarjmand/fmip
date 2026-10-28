@@ -483,6 +483,13 @@ export interface CompetitionPage {
   coverage: Record<string, CoverageState>;
   /** Newest change to any fixture of the season; null when none is stored. */
   last_updated_at: string | null;
+  /**
+   * When the season's whole fixture list was last answered by the provider,
+   * changed or not (T-1633, D-296; D-189's check for a whole list): the
+   * newest whole-season ask across providers. Null when none is recorded.
+   * `last_updated_at` stays the last change.
+   */
+  last_checked_at?: string | null;
 }
 
 /**
@@ -720,7 +727,15 @@ export interface TeamPage {
     home_matches: number;
   } | null;
   followers: number;
+  /** Newest change to any of the team's matches on the page; null when none is stored. */
   last_updated_at: string | null;
+  /**
+   * When every match on the page was last answered by the provider, changed
+   * or not (T-1633, D-296): per season the newest whole-season ask across
+   * providers, the oldest of those over the page's seasons. Null when a
+   * season has none. `last_updated_at` stays the last change.
+   */
+  last_checked_at?: string | null;
 }
 
 /**
@@ -834,6 +849,48 @@ export interface PlayerPosition {
   basis: 'spell' | 'squad' | 'lineup';
 }
 
+/** A team as the player page's header and the compare page name it (T-1629). */
+export interface PlayerTeamRef {
+  id: string;
+  name: string;
+  short_name: string | null;
+  /** The club's colour (T-1418), when one is known. */
+  colour?: string | null;
+  /** The crest from our own origin (T-1617). */
+  crest?: EntityMedia;
+}
+
+/**
+ * The club our records last place the player at (T-1629, D-295), and what
+ * says so. Only a club: a national team is `PlayerPage.national_team`.
+ *
+ * - `spell`: an open spell (`since` its start).
+ * - `squad`: the provider's current squad list of the club (`since` the day we
+ *   read it).
+ * - `transfer`: a move into the club the provider recorded (`since` its day),
+ *   newer than his last line-up for another club.
+ * - `lineup`: his latest line-up for a club (`since` that match's day): what he
+ *   played for, not a registration.
+ *
+ * Without an open spell, the newest of the other three wins; a line-up wins a
+ * tie, being a match he was named for.
+ */
+export interface PlayerClub {
+  team: PlayerTeamRef;
+  basis: 'spell' | 'squad' | 'transfer' | 'lineup';
+  /** `YYYY-MM-DD`. */
+  since: string;
+  /** On loan there, as the spell or the provider's latest move into the club says. */
+  on_loan: boolean;
+}
+
+/** The senior national team the player was last named for in a line-up (T-1629). */
+export interface PlayerNationalTeam {
+  team: PlayerTeamRef;
+  /** That line-up's match day, `YYYY-MM-DD`. */
+  last_lineup: string;
+}
+
 /** `GET /players/:id`. */
 export interface PlayerPage {
   person: {
@@ -865,6 +922,15 @@ export interface PlayerPage {
    * sent, optional for older readers.
    */
   position?: Covered<PlayerPosition>;
+  /**
+   * The player's club and what says so (T-1629, D-295): `available` from a
+   * spell, a squad list or a recorded move, `limited` from a line-up,
+   * `not_supplied` when nothing names a club. Always sent, optional for older
+   * readers, who read `current_spell` and the latest line-up instead.
+   */
+  club?: Covered<PlayerClub>;
+  /** His senior national team by his latest line-up for one; null when none names him (T-1629). */
+  national_team?: PlayerNationalTeam | null;
   /** Newest first. */
   spells: PlayerSpell[];
   /** Newest season first. Derived from line-ups: `not_supplied` when the player is in none. */

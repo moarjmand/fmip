@@ -156,6 +156,13 @@ export class PostgresStandingsStore {
    * and `a`) with their full-time score, kicked off before `before` when one
    * is given. An awarded match with its awarded score counts as played, as
    * the provider's tables count it (T-1399, D-214).
+   *
+   * `lastUpdatedAt` is the newest full-time score change: what the table is
+   * made of (T-1634, D-296). The fixture row's own time moves when a referee,
+   * a ground or a round is written days later, and on 2026-10-28 it made the
+   * Premier League table say "Updated 27 Oct" when its last result had come
+   * in on the 25th. The result and its status are written in one transaction,
+   * so the score's time is the moment the match entered the table.
    */
   private async results(
     where: string,
@@ -176,7 +183,7 @@ export class PostgresStandingsStore {
       home_goals: number;
       away_goals: number;
     }>(
-      `SELECT f.id, f.kickoff_at, GREATEST(f.updated_at, sc.updated_at) AS updated_at,
+      `SELECT f.id, f.kickoff_at, sc.updated_at,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
               a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
               sc.home AS home_goals, sc.away AS away_goals

@@ -50,6 +50,7 @@ import {
   wholeOnlyIfRecorded,
 } from './internal/leaders';
 import { readCoachPage, readTeamHeadCoach } from './internal/coach-read';
+import { listsCheckedAt } from './internal/fixture-checks';
 import {
   contextTeamIds,
   fixtureTeamIds,
@@ -65,6 +66,7 @@ import {
   NO_LINEUPS,
   PostgresPlayerStore,
   availabilityOf,
+  clubOf,
   positionOf,
 } from './internal/player-store';
 import { buildSplits } from './internal/team-splits';
@@ -171,12 +173,14 @@ export class CatalogService {
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
     const found = await this.players_.person(id, locale);
     if (found === null) return { kind: 'unknown_player' };
-    const [read, record, recent, availability, positions] = await Promise.all([
+    const [read, record, recent, availability, positions, clubs, national] = await Promise.all([
       this.players_.spells(id),
       this.players_.record(id),
       this.players_.recent(id, RECENT_MATCHES),
       this.players_.availability(id),
       this.players_.positionSources(id),
+      this.players_.clubSources(id),
+      this.players_.nationalTeam(id),
     ]);
     // The photo (T-1320) and the flag (T-1611), and the crests of the clubs
     // and matches the page lists and their competitions' logos (T-1617), in
@@ -189,6 +193,8 @@ export class CatalogService {
         ...read.map((s) => s.team.id),
         ...record.rows.map((r) => r.team.id),
         ...fixtureTeamIds(fixtures),
+        ...[clubs.squad, clubs.move, clubs.lineup].flatMap((c) => (c?.team ? [c.team.id] : [])),
+        ...(national === null ? [] : [national.team.id]),
       ],
       competition: fixtures.map((f) => f.competition.id),
     });
@@ -199,6 +205,8 @@ export class CatalogService {
     };
     const spells = read.map((s) => ({ ...s, team: { ...s.team, crest: media.crest(s.team.id) } }));
     const currentSpell = spells.find((s) => s.end_date === null) ?? null;
+    // The club (T-1629): never a national team, and the newest record of one.
+    const club = clubOf(currentSpell, clubs);
     return {
       kind: 'ok',
       page: {
@@ -207,6 +215,20 @@ export class CatalogService {
         // A player with no open spell still has a position our squad
         // listings or line-ups name (T-1603).
         position: positionOf(currentSpell, positions),
+        club:
+          club.data === null
+            ? club
+            : {
+                ...club,
+                data: {
+                  ...club.data,
+                  team: { ...club.data.team, crest: media.crest(club.data.team.id) },
+                },
+              },
+        national_team:
+          national === null
+            ? null
+            : { ...national, team: { ...national.team, crest: media.crest(national.team.id) } },
         spells,
         // At most `limited` while some match's stored events fall short of
         // it (T-1579): the goals and cards are then "at least" (rule 3).
@@ -455,6 +477,7 @@ export class CatalogService {
       tally,
       bracketFixtures,
       division,
+      lastCheckedAt,
     ] = await Promise.all([
       this.competitions_.stages(selected.id),
       this.competitions_.fixtures(selected.id),
@@ -465,6 +488,8 @@ export class CatalogService {
       this.standings.incidentTally(selected.id),
       knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
       this.competitions_.division(id),
+      // When the provider last confirmed the season's whole list (T-1633, D-296).
+      listsCheckedAt(this.pool, [selected.id]),
     ]);
     // Group tables (T-1336) only for a season with a group stage: a league
     // reads nothing more and answers exactly as before (`group_tables: null`).
@@ -692,6 +717,7 @@ export class CatalogService {
             : buildBracket(bracketFixtures, seasonIsOpen(selected, new Date())),
         coverage,
         last_updated_at: lastUpdatedAt,
+        last_checked_at: lastCheckedAt,
       },
     };
   }
@@ -711,6 +737,7 @@ export class CatalogService {
       lineup,
       ground,
       seasonScorers,
+      lastCheckedAt,
     ] = await Promise.all([
       this.teams_.fixtures(id, seasonIds),
       this.teams_.squad(id),
@@ -736,6 +763,8 @@ export class CatalogService {
           return teamTopScorers(wholeOnlyIfRecorded(scorers, tally), id);
         }),
       ),
+      // When the provider last confirmed every listed match (T-1633, D-296).
+      listsCheckedAt(this.pool, seasonIds),
     ]);
     // Minutes for this team over the seasons the page covers (T-824).
     const squadMinutes = await this.players_.minutesByPerson(
@@ -832,6 +861,7 @@ export class CatalogService {
         fixture_ground: ground,
         followers,
         last_updated_at: lastUpdatedAt,
+        last_checked_at: lastCheckedAt,
       },
     };
   }
