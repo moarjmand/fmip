@@ -120,11 +120,89 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the squads s
     const since = new Date(Date.now() - 60_000).toISOString();
     const before = await store.squadsAskedSince('api_football', since);
     await store.markSquadAsked('api_football', teams[0]!, true);
+    await store.replaceSquadListing('api_football', teams[0]!, 25, []);
     await store.markSquadAsked('api_football', teams[1]!, false);
     expect(await store.squadsAskedSince('api_football', since)).toBe(before + 2);
     expect(await due(new Date(Date.now() - 86_400_000).toISOString())).toEqual([]);
     // A day on, the unanswered club is due again; the answered one is not.
     expect(await due(new Date(Date.now() + 60_000).toISOString())).toEqual([teams[1]]);
+  });
+
+  it('owes a club answered before listings were recorded its listing now (T-1632)', async () => {
+    // Answered this month, but by the job that kept only photos: no `listed`.
+    await pool.query(
+      `UPDATE team_squad_fetch SET answered_at = now() - interval '3 days',
+                                   asked_at = now() - interval '3 days', listed = NULL
+        WHERE provider = 'api_football' AND team_id = $1`,
+      [teams[0]],
+    );
+    await pool.query(
+      `UPDATE team_squad_fetch SET answered_at = NULL, asked_at = now() - interval '3 days'
+        WHERE provider = 'api_football' AND team_id = $1`,
+      [teams[1]],
+    );
+    // Never answered first, then the club owed its listing.
+    expect(await due()).toEqual([teams[1], teams[0]]);
+    // Once its listing is recorded it waits for the month like any other.
+    await store.replaceSquadListing('api_football', teams[0]!, 25, []);
+    expect(await due()).toEqual([teams[1]]);
+  });
+
+  it('asks first for the club whose competition stands higher on the scores page (T-1632)', async () => {
+    const competition = randomUUID();
+    const season = randomUUID();
+    const placed = randomUUID();
+    await pool.query(
+      `INSERT INTO competition (id, name, kind, scope, gender, display_order)
+       VALUES ($1, $2, 'cup', 'international', 'men', 30000)`,
+      [competition, `Squad Order Cup ${RUN}`],
+    );
+    await pool.query(
+      `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+       VALUES ($1, $2, '2099', '2099-01-01', '2099-12-31', false)`,
+      [season, competition],
+    );
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, kickoff_at, status)
+       VALUES ($1, $2, '2099-06-01T15:00:00Z', 'scheduled')`,
+      [placed, season],
+    );
+    await pool.query(
+      `INSERT INTO fixture_participant (fixture_id, team_id, side)
+       VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+      [placed, teams[2], national],
+    );
+    try {
+      // Both owed their listing, the unplaced club's answer the older one.
+      await pool.query(
+        `INSERT INTO team_squad_fetch (provider, team_id, asked_at, answered_at)
+         VALUES ('api_football', $1, now() - interval '3 days', now() - interval '3 days')
+         ON CONFLICT (provider, team_id) DO UPDATE
+           SET asked_at = EXCLUDED.asked_at, answered_at = EXCLUDED.answered_at, listed = NULL`,
+        [teams[2]],
+      );
+      await pool.query(
+        `UPDATE team_squad_fetch SET answered_at = now() - interval '9 days',
+                                     asked_at = now() - interval '9 days', listed = NULL
+          WHERE provider = 'api_football' AND team_id = $1`,
+        [teams[0]],
+      );
+      const order = ours(
+        await store.squadsDue(
+          'api_football',
+          [PL_2025, season],
+          new Date(Date.now() - 30 * 86_400_000).toISOString(),
+          new Date().toISOString(),
+          10_000,
+        ),
+      );
+      expect(order.filter((id) => id !== teams[1])).toEqual([teams[2], teams[0]]);
+    } finally {
+      await pool.query(`DELETE FROM fixture_participant WHERE fixture_id = $1`, [placed]);
+      await pool.query(`DELETE FROM fixture WHERE id = $1`, [placed]);
+      await pool.query(`DELETE FROM season WHERE id = $1`, [season]);
+      await pool.query(`DELETE FROM competition WHERE id = $1`, [competition]);
+    }
   });
 
   it('reads only persons already mapped, and creates none', async () => {

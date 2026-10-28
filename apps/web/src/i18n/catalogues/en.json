@@ -2785,6 +2785,8 @@
   "shared.action.refused": "You may not do this. {reason}",
   "freshness.checked": "Last checked {ago}",
   "freshness.behind": "may be behind",
+  "freshness.matchesChecked": "Matches last checked {time}; unchanged since {changed}",
+  "freshness.matchesChanged": "Matches last changed {time}",
   "forecastBar.label": "Model forecast: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
   "forecastBar.computed": "computed {time}",
   "forecastBar.none": "No model forecast for this match yet.",

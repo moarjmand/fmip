@@ -238,12 +238,39 @@ describe('freshness where a module is live (rule 4)', () => {
 
 describe('coverage, never the old uppercase words', () => {
   it('badges every module the season declares', () => {
-    const html = renderToStaticMarkup(<CoveragePanel page={page()} locale="en" timeZone="UTC" />);
+    const html = renderToStaticMarkup(
+      <CoveragePanel
+        page={page()}
+        locale="en"
+        timeZone="UTC"
+        now={Date.parse('2026-10-03T09:00:00.000Z')}
+      />,
+    );
     expect(html).toContain('data-coverage-badge="available"');
     expect(html).toContain('data-coverage-badge="limited"');
     expect(html).toContain('data-coverage-badge="delayed"');
     expect(COMPONENT).not.toContain('coverageText');
     expect(PAGE).not.toContain('coverageText');
+  });
+
+  it('says what its time is of: the matches, checked and changed (T-1633, D-296)', () => {
+    const footer = (over: Partial<CompetitionPage>) =>
+      renderToStaticMarkup(
+        <CoveragePanel
+          page={page(over)}
+          locale="en"
+          timeZone="UTC"
+          now={Date.parse('2026-10-03T09:00:00.000Z')}
+        />,
+      )
+        .match(/data-testid="competition-updated">(.*?)<\/p>/)![1]!
+        .replace(/<[^>]+>/g, '');
+    expect(footer({ last_checked_at: '2026-10-03T04:07:00.000Z' })).toBe(
+      'Matches last checked 04:07 UTC; unchanged since 2 days ago (1 Oct 2026, 12:00) UTC',
+    );
+    expect(footer({ last_checked_at: null })).toBe(
+      'Matches last changed 2 days ago (1 Oct 2026, 12:00) UTC',
+    );
   });
 
   it('says the season has no figures rather than four noughts', () => {

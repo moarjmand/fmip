@@ -21,9 +21,9 @@ import { EntityFollow, LiveFreshness } from '@/components/competition-page';
 import type { FreshnessWords } from '@/components/freshness-stamp';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
+import { MatchesFreshness } from '@/components/matches-freshness';
 import { NextMatchCard } from '@/components/next-match-card';
 import { EntityNews } from '@/components/related-news';
-import { Stamp } from '@/components/stamp';
 import { TeamSeasonStatsPanel } from '@/components/team-season-stats';
 import { TeamTransfersPanel } from '@/components/transfers';
 import { Translated } from '@/components/translated';
@@ -283,14 +283,18 @@ export default async function TeamPage({
             )}
           </>
         )}
+        {/* What the time is of: the club's matches, checked and changed (T-1633, D-296). */}
         <p className="text-xs text-muted" data-testid="team-updated">
           {page.last_updated_at === null ? (
             <Translated locale={locale} message="competitionPage.noData" />
           ) : (
-            <>
-              <Translated locale={locale} message="competitionPage.lastUpdate" />{' '}
-              <Stamp iso={page.last_updated_at} locale={locale} timeZone={timeZone} />
-            </>
+            <MatchesFreshness
+              changedAt={page.last_updated_at}
+              checkedAt={page.last_checked_at}
+              locale={locale}
+              timeZone={timeZone}
+              now={now}
+            />
           )}
         </p>
       </div>

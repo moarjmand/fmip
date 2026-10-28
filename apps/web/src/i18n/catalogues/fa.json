@@ -15584,6 +15584,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "freshness.matchesChecked": {
+    "source": "Matches last checked {time}; unchanged since {changed}",
+    "text": "آخرین بررسی بازی‌ها {time}؛ بدون تغییر از {changed}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "freshness.matchesChanged": {
+    "source": "Matches last changed {time}",
+    "text": "آخرین تغییر بازی‌ها {time}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "forecastBar.label": {
     "source": "Model forecast: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
     "text": "پیش‌بینی مدل آماری: {home} {homePct}، مساوی {drawPct}، {away} {awayPct}",
