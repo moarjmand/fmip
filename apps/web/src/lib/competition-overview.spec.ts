@@ -22,6 +22,7 @@ import {
   perMatch,
   readRoundParam,
   readTabParam,
+  resultsBefore,
   roundDays,
   roundGroups,
   roundHref,
@@ -619,6 +620,27 @@ describe('the season round by round (T-1636, D-298)', () => {
       'Matchweek 8',
     );
     expect(defaultRound([], now)).toBeNull();
+  });
+
+  it('counts the latest results back from the round opened on, or shows the last ones', () => {
+    const r8 = played({ round: 'Regular Season - 8', kickoff_at: '2026-10-18T14:00:00.000Z' });
+    const r9 = played({ round: 'Regular Season - 9', kickoff_at: '2026-10-24T14:00:00.000Z' });
+    const r9next = mw(9, '2026-10-26T20:00:00.000Z');
+    const open = { results: [r9, r8], fixtures: [r9next] };
+    const opening = defaultRound(seasonRounds('en', open, 'UTC'), now);
+    // Matchweek 9 still has a match to play: the results card is the day before it.
+    expect(resultsBefore(opening, open, 'UTC', now)).toBe('2026-10-24');
+    expect(lastResultDay(open, 'UTC', resultsBefore(opening, open, 'UTC', now))?.day).toBe(
+      '2026-10-18',
+    );
+    // Nothing left to play: the last results, never "no results" (rule 3).
+    const closed = { results: [r9, r8], fixtures: [] };
+    const last = defaultRound(seasonRounds('en', closed, 'UTC'), now);
+    expect(resultsBefore(last, closed, 'UTC', now)).toBeNull();
+    expect(lastResultDay(closed, 'UTC', resultsBefore(last, closed, 'UTC', now))?.day).toBe(
+      '2026-10-24',
+    );
+    expect(resultsBefore(null, { results: [], fixtures: [] }, 'UTC', now)).toBeNull();
   });
 
   it('reads `?round=` as a round of this season, and links one keeping the season', () => {

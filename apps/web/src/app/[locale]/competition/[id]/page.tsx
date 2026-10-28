@@ -46,7 +46,6 @@ import {
   type LeagueModel,
   availableTabs,
   currentMatchweek,
-  dayKey,
   defaultRound,
   hasTable,
   lastResultDay,
@@ -54,6 +53,7 @@ import {
   leagueNumbers,
   readRoundParam,
   readTabParam,
+  resultsBefore,
   roundGroups,
   roundHref,
   seasonRounds,
@@ -195,7 +195,7 @@ export default async function CompetitionPage({
   const now = new Date().getTime();
   // The Overview's round (T-1636, D-298): the one being played or played
   // next, or the one `?round=` names; the latest results are the day before
-  // the round the page opens on.
+  // the round the page opens on while it has a match to play (`resultsBefore`).
   const rounds = tab === 'overview' ? seasonRounds(locale, page, timeZone) : [];
   const opening = defaultRound(rounds, now);
   const asked = readRoundParam(query, rounds.length);
@@ -256,11 +256,7 @@ export default async function CompetitionPage({
                   forecasts={forecasts}
                 />
                 <ResultsCard
-                  day={lastResultDay(
-                    page,
-                    timeZone,
-                    opening === null ? null : dayKey(opening.first, timeZone),
-                  )}
+                  day={lastResultDay(page, timeZone, resultsBefore(opening, page, timeZone, now))}
                   locale={locale}
                   timeZone={timeZone}
                 />

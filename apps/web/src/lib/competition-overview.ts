@@ -454,6 +454,26 @@ export function defaultRound(rounds: readonly SeasonRound[], now: number): Seaso
   return next?.round ?? played?.round ?? rounds[0] ?? null;
 }
 
+/**
+ * The day the latest results card counts back from (T-1636): the first day
+ * of the round the page opens on, while that round still has a match to
+ * play, so the card shows the day before it rather than what the round
+ * already lists. A season with nothing left to play counts from the next
+ * match day as before (none), so its card shows its last results and never
+ * says there are none when there are (rule 3).
+ */
+export function resultsBefore(
+  opening: SeasonRound | null,
+  page: Pick<CompetitionPage, 'results' | 'fixtures'>,
+  timeZone: string,
+  now: number,
+): string | null {
+  if (opening !== null && opening.fixtures.some((f) => f.status !== 'finished')) {
+    return dayKey(opening.first, timeZone);
+  }
+  return nextMatchDay(page, timeZone, now)?.day ?? null;
+}
+
 /** `?round=`: a round's number in this season; anything else (or nothing) is the page's own. */
 export function readRoundParam(params: SearchParams, count: number): number | null {
   const raw = (Array.isArray(params.round) ? params.round[0] : params.round) ?? '';
