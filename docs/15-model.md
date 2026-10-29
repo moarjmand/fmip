@@ -77,8 +77,8 @@ had no such forecast.
 /competitions/:id/model-performance` and the model notes page; for the
 candidates in shadow, the admin page *Model candidates* (`/admin/model-candidates`,
 T-1103), which shows each candidate's pre-kick-off record as "N of 300".
-Accuracy over time and the ranked probability score (RPS) are being added by
-T-1369.
+Accuracy over time and the ranked probability score (RPS) are there too
+(T-1369).
 
 ### The metrics, and how to read them
 
@@ -91,7 +91,7 @@ All of them are computed the same way in the backtest and on the live record
 | **Brier score** | The average squared gap between the three probabilities and what happened (1 for the outcome, 0 for the others). Gentler on confident mistakes. | lower | 0.667 |
 | **Accuracy** | Share of matches where the outcome given the highest probability happened. Easy to read, but blind to *how* confident the forecast was; never judge a model by it alone. | higher | 33% |
 | **Calibration error** | When the model says 40%, does it happen about 40% of the time? The average gap, over ten probability bands for each outcome. | lower | — |
-| **RPS** (added by T-1369) | Like Brier, but it knows a home win is closer to a draw than to an away win. | lower | — |
+| **RPS** (T-1369) | Like Brier, but it knows a home win is closer to a draw than to an away win. | lower | — |
 
 **What a good number looks like.** In the big European leagues the bookmakers'
 closing odds (with their margin removed) reach a log loss of about 0.96–1.00;
@@ -166,7 +166,8 @@ that the maintainer decided and D-191 records.
   `DEFAULT_RIDGE = 0.01`, `DEFAULT_ELO_WEIGHT = 0.5`, `ELO_SCALE = 1.0`). A
   file names only what differs from them.
 - **A candidate** is a JSON file in `apps/model/fmip_model/model/candidates/`,
-  named `<name>-<version>.json` (D-140). Today there is none.
+  named `<name>-<version>.json` (D-140). Today: `dixon-coles-elo@0.7.0`
+  (0.6.0's constants plus eleven divisions, D-233).
 - **Retired versions** (`retired/`, today 0.5.0) once forecast and no longer
   do; their files stay so a stored forecast can be traced to its constants.
 - **Shadow.** Once a candidate file is merged and deployed, the model service
@@ -312,6 +313,29 @@ failed), neutral grounds (D-145, insufficient), head-to-head (D-148,
 failed), home advantage per team (D-149, failed). D-150 records that none
 passed. Tuning a league the earlier tuning had not covered did help: IR1's
 constants (D-190, candidate 0.6.0).
+
+### The lab store (T-1646, D-303)
+
+Experiments that need more history than the published version fits on read
+`fmip_lab`, a second database on the production Postgres with a copy of the
+`training` schema. Our own Elo is computed over every row of
+`training.match`, so history loaded into the production store would move the
+published version's prior; history loaded into the lab moves nothing on the
+site.
+
+```bash
+# Build or rebuild it (copies training, drops its one foreign key into public)
+sh scripts/model-lab-setup.sh
+# Load history into the lab alone: the model container with the URL's database swapped
+docker compose run --rm --no-deps -T model sh -c   'DATABASE_URL="${DATABASE_URL%/fmip}/fmip_lab" python -m fmip_model.training.load football-data --seasons 2021 2122 2223 --divisions E0 E1 SP1 D1 I1 F1 N1 P1 T1 B1 SC0'
+# Judge an input on it, niced, reports in the operator's home (run inside tmux)
+docker compose run --rm --no-deps -T -v $HOME/fmip-lab/reports:/lab-reports model sh -c   'DATABASE_URL="${DATABASE_URL%/fmip}/fmip_lab" nice -n 19 python -m fmip_model.backtest.inputs --input rest --divisions E0 --from 2024-08-01 --to 2025-06-30 --history-from 2020-07-01 --out /lab-reports --note "lab"'
+```
+
+`scripts/model-lab-setup.sh` drops and recreates `fmip_lab`, pipes `pg_dump -n training` of
+`fmip` through a filter that removes the `ALTER TABLE ... REFERENCES public.`
+statement, and restores it in one transaction. The server has two cores:
+run one experiment at a time.
 
 ## 5. Where things are
 
