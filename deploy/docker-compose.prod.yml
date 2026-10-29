@@ -218,10 +218,24 @@ services:
       INGESTION_KIT_COLOURS_BATCH: ${INGESTION_KIT_COLOURS_BATCH:-}
       # Each team's coaches and their careers (T-1439, D-230): 60 teams a run unless set.
       INGESTION_COACHES_BATCH: ${INGESTION_COACHES_BATCH:-}
+      # Squad requests a UTC day (T-1324, T-1632): 60 unless set, at most 500.
+      # These five and NEWS_PERSON_LINKS were documented in .env.example but
+      # never named here, so a value in .env did not reach the API (T-1638).
+      INGESTION_SQUADS_PER_DAY: ${INGESTION_SQUADS_PER_DAY:-}
+      # The club-and-ground pass of the squads job (T-1438, D-229): 100 asks unless set.
+      INGESTION_CLUB_FACTS_BATCH: ${INGESTION_CLUB_FACTS_BATCH:-}
+      # Players' season totals and careers (T-1431, D-223): 100 asks a run unless set.
+      INGESTION_PLAYER_SEASONS_BATCH: ${INGESTION_PLAYER_SEASONS_BATCH:-}
+      # Teams' season statistics (T-1437, D-228): 100 a run unless set.
+      INGESTION_TEAM_SEASONS_BATCH: ${INGESTION_TEAM_SEASONS_BATCH:-}
+      # Clubs' and players' transfers (T-1440, D-231): 60 asks a run unless set.
+      INGESTION_TRANSFERS_BATCH: ${INGESTION_TRANSFERS_BATCH:-}
       # English stories from GNews' free plan (T-1367, D-185): off while the key is empty.
       GNEWS_API_KEY: ${GNEWS_API_KEY:-}
       GNEWS_DAILY_BUDGET: ${GNEWS_DAILY_BUDGET:-}
       GNEWS_INTERVAL_MINUTES: ${GNEWS_INTERVAL_MINUTES:-}
+      # Persons linked to news stories (T-1006, D-126): off unless `on`.
+      NEWS_PERSON_LINKS: ${NEWS_PERSON_LINKS:-off}
       # Delivery (T-330): absent until a provider is chosen, and /health/delivery says so.
       DELIVERY_EMAIL_PROVIDER: ${DELIVERY_EMAIL_PROVIDER:-off}
       DELIVERY_PUSH_PROVIDER: ${DELIVERY_PUSH_PROVIDER:-off}
