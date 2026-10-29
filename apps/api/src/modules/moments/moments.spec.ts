@@ -87,6 +87,7 @@ interface Setup {
   featured?: string[];
   followed?: string[];
   timeZone?: string;
+  bigOneLive?: boolean;
 }
 
 function run(setup: Setup): PickedMoments {
@@ -129,6 +130,7 @@ function run(setup: Setup): PickedMoments {
       ]),
     ),
     followedTeams: new Set(setup.followed ?? []),
+    bigOneLive: setup.bigOneLive ?? false,
   });
 }
 
@@ -252,10 +254,25 @@ describe('big_one', () => {
     expect(kindOf(result, 'smaller')).not.toBe('big_one');
   });
 
-  it('is none while the hero is in play', () => {
+  it('is none while the hero is in play, for a client that does not ask', () => {
     const result = run({
       cards: [live('playing', 30, [0, 0]), card({ id: 'later', kickoff: at(3 * HOUR) })],
     });
+    expect(idsOf(result, 'big_one')).toEqual([]);
+  });
+
+  it('stays while the hero is in play when asked, before any later match (T-1644)', () => {
+    const result = run({
+      cards: [live('playing', 30, [0, 0]), card({ id: 'later', kickoff: at(3 * HOUR) })],
+      bigOneLive: true,
+    });
+    expect(idsOf(result, 'big_one')).toEqual(['playing']);
+    expect(momentOf(result, 'playing')).toMatchObject({ kind: 'big_one', side: null });
+  });
+
+  it('gives way to a kind the hero earns on the pitch (T-1644)', () => {
+    const result = run({ cards: [live('playing', 80, [1, 1])], bigOneLive: true });
+    expect(kindOf(result, 'playing')).toBe('level_late');
     expect(idsOf(result, 'big_one')).toEqual([]);
   });
 
@@ -505,15 +522,20 @@ describe('the answer', () => {
 
 describe('reading the request and the stored forecast', () => {
   it('reads the zone as /scores does, UTC by default, `tz` as well', () => {
-    expect(parseMomentsQuery({})).toEqual({ ok: true, timeZone: 'UTC' });
+    expect(parseMomentsQuery({})).toEqual({ ok: true, timeZone: 'UTC', bigOneLive: false });
     expect(parseMomentsQuery({ timezone: 'Asia/Tehran' })).toEqual({
       ok: true,
       timeZone: 'Asia/Tehran',
+      bigOneLive: false,
     });
     expect(parseMomentsQuery({ tz: 'Europe/London' })).toEqual({
       ok: true,
       timeZone: 'Europe/London',
+      bigOneLive: false,
     });
+    // T-1644: only `big_one=live` keeps the big one while it is played.
+    expect(parseMomentsQuery({ big_one: 'live' })).toMatchObject({ ok: true, bigOneLive: true });
+    expect(parseMomentsQuery({ big_one: 'yes' })).toMatchObject({ ok: true, bigOneLive: false });
     expect(parseMomentsQuery({ timezone: 'Nowhere/Town' })).toMatchObject({
       ok: false,
       fields: { timezone: expect.any(String) },
