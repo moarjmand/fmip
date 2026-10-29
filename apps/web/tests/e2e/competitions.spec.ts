@@ -1,79 +1,40 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * The competitions bar -- the matchday rail since T-1624 (D-292) -- and the
- * All competitions page without an API behind them (T-1433). What must hold
- * regardless of data: the rail is on every page under the header and always
- * offers "All competitions"; with no list to read it names nothing else and
- * opens no drawer, and the page says the list could not be read rather than
- * showing an empty one (rule 3).
+ * The All competitions page without an API behind it (T-1433). The page says
+ * the list could not be read rather than showing an empty one (rule 3). The
+ * competitions bar that led to it (the matchday rail, T-1624) gave way to
+ * the moments rail (T-1642, D-300), which draws nothing without an answer
+ * (`moments-rail.spec.ts`); the header's Competitions and the phone's
+ * Leagues tab lead here.
  */
-test.describe('competitions bar and page, no API', () => {
-  test('the bar sits under the header and leads to All competitions', async ({ page }) => {
-    await page.goto('/en/scores');
-
-    const bar = page.getByRole('navigation', { name: 'Competitions' });
-    await expect(bar).toBeVisible();
-    // Under the header, above the page.
-    const header = await page.locator('header').first().boundingBox();
-    const box = await bar.boundingBox();
-    expect(box!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 1);
-    // Nothing guessed: "All competitions" alone, and no drawer of today's matches.
-    await expect(bar.getByRole('link')).toHaveCount(1);
-    await expect(page.getByTestId('rail-drawer')).toHaveCount(0);
-    await expect(page.getByTestId('live-strip')).toHaveCount(0);
-    // The row scrolls sideways with no native scrollbar (T-1624).
-    expect(await bar.locator('ul').evaluate((list) => getComputedStyle(list).scrollbarWidth)).toBe(
-      'none',
-    );
-
-    await bar.getByRole('link', { name: 'All competitions' }).click();
-    await expect(page).toHaveURL(/\/en\/competitions$/);
-    await expect(page.getByTestId('title')).toHaveText('All competitions');
-    await expect(bar.getByRole('link', { name: 'All competitions' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    await expect(page.getByTestId('competitions-unreachable')).toBeVisible();
-    await expect(page.getByTestId('competitions-item')).toHaveCount(0);
-  });
-
-  test('is not drawn on a phone on a day without a match: the Leagues tab leads to every competition', async ({
+test.describe('the All competitions page, no API', () => {
+  test('says the list could not be read, and draws no rail with nothing to show', async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/en/scores');
-    await expect(page.getByTestId('competitions-bar')).toBeHidden();
-    await page.getByTestId('tab-leagues').click();
-    await expect(page).toHaveURL(/\/en\/competitions$/);
+    await page.goto('/en/competitions');
+    await expect(page.getByTestId('title')).toHaveText('All competitions');
+    await expect(page.getByTestId('competitions-unreachable')).toBeVisible();
+    await expect(page.getByTestId('competitions-item')).toHaveCount(0);
+    await expect(page.getByTestId('moments-rail')).toHaveCount(0);
   });
 
-  test('gives All competitions a 44px target and a ring inside it', async ({ page }) => {
+  test('is reached from the Leagues tab on a phone', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/en/scores');
-    const all = page.getByTestId('competitions-bar-all');
-    expect((await all.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    await all.focus();
-    await page.keyboard.press('Shift+Tab');
-    await page.keyboard.press('Tab');
-    await expect(all).toBeFocused();
-    expect(await all.evaluate((element) => getComputedStyle(element).outlineOffset)).toBe('-2px');
+    await page.getByTestId('tab-leagues').click();
+    await expect(page).toHaveURL(/\/en\/competitions$/);
   });
 
   test('is in Persian on /fa, and mirrors under the rtl pseudo-locale', async ({ page }) => {
     await page.goto('/fa/competitions');
     await expect(page.getByTestId('title')).toHaveText('همه رقابت‌ها');
-    await expect(page.getByRole('navigation', { name: 'رقابت‌ها' })).toBeVisible();
 
     await page.goto('/x-rtl/competitions');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     const title = page.getByTestId('title');
     await expect(title).toHaveCSS('border-right-width', '4px');
     await expect(title).toHaveCSS('border-left-width', '0px');
-    // The bar starts at the inline start: with nothing else in it, "All
-    // competitions" is on the right (T-1513 puts it last, after the pills).
-    const bar = await page.getByTestId('competitions-bar').boundingBox();
-    const all = await page.getByTestId('competitions-bar-all').boundingBox();
-    expect(all!.x + all!.width).toBeGreaterThan(bar!.x + bar!.width / 2);
   });
 });
 

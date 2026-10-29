@@ -38,15 +38,56 @@
   "shell.footer.nav": "Site links",
   "shell.footer.football": "Football",
   "shell.footer.tagline": "Live football, a statistical model, the founder’s analysis and members’ predictions: side by side, never blended.",
-  "shell.strip.label": "Today · {competition}",
-  "shell.strip.versus": "v",
-  "shell.strip.behind": "May be behind",
-  "shell.rail.live": {
+  "shell.moments.label": "Moments that matter",
+  "shell.moments.live": {
     "one": "{count} live",
     "other": "{count} live"
   },
-  "shell.rail.myTeams": "My teams",
-  "shell.rail.open": "Open {competition}",
+  "shell.moments.picked": {
+    "one": "Picked from {count} match by what is happening and what the model expected",
+    "other": "Picked from {count} matches by what is happening and what the model expected"
+  },
+  "shell.moments.more": {
+    "one": "{count} more",
+    "other": "{count} more"
+  },
+  "shell.moments.moreLabel": {
+    "one": "{count} more match on the scores page",
+    "other": "{count} more matches on the scores page"
+  },
+  "shell.moments.behind": "May be behind",
+  "shell.moments.kind.againstForecast": "Against the model",
+  "shell.moments.kind.levelLate": {
+    "one": "Level, {count} min to go",
+    "other": "Level, {count} min to go"
+  },
+  "shell.moments.kind.levelAdded": "Level in added time",
+  "shell.moments.kind.favouriteHeld": "Favourite held",
+  "shell.moments.kind.bigOneTonight": "Big one tonight",
+  "shell.moments.kind.bigOneToday": "Big one today",
+  "shell.moments.kind.startingSoon": {
+    "one": "Starts in {count} min",
+    "other": "Starts in {count} min"
+  },
+  "shell.moments.kind.kickoffDue": "Kick-off due",
+  "shell.moments.kind.closestCall": "Closest call",
+  "shell.moments.kind.upset": "Upset",
+  "shell.moments.kind.followed": "Your team",
+  "shell.moments.kind.comingUp": "Coming up",
+  "shell.moments.kind.comingUpOn": "Coming up {day}",
+  "shell.moments.say.againstForecast": "{team} lead; before kick-off the model gave them {pct}.",
+  "shell.moments.say.levelLate": "{team} were the model’s pick at {pct}; the draw had {draw}.",
+  "shell.moments.say.levelLateDraw": "The draw was the model’s pick at {pct}.",
+  "shell.moments.say.favouriteLevel": "{team} are level; the model gave them {pct}.",
+  "shell.moments.say.favouriteBehind": "{team} are behind; the model gave them {pct}.",
+  "shell.moments.say.upset": "{team} won; the model gave them {pct}.",
+  "shell.moments.say.closestCall": "{home} · {draw} · {away}: the most even match still to start.",
+  "shell.moments.say.three": "{home} {homePct}, the draw {drawPct}, {away} {awayPct}.",
+  "shell.moments.card.before": "Before kick-off the model gave {home} {homePct}, the draw {drawPct}, {away} {awayPct}.",
+  "shell.moments.card.lastBefore": "last version before kick-off",
+  "shell.moments.card.open": "Match centre",
+  "shell.moments.card.follow": "Follow {team}",
+  "shell.moments.card.updated": "Updated {time} · {ago}",
   "shell.demonstration": "Demonstration data. Every match, score, team and member on this site is development fixture data. None of it is real football, and nothing here has happened.",
   "shell.accountDeleted.title": "Account deleted",
   "home.firstVisit": "New here? {link}.",
@@ -2948,8 +2989,6 @@
   "matchCentre.community.verdict.draw": "{share} picked a draw",
   "matchCentre.community.verdict.win": "{share} picked {team} to win",
   "matchCentre.noEventsYet": "No events recorded yet.",
-  "competitions.bar.label": "Competitions",
-  "competitions.bar.all": "All competitions",
   "competitions.title": "All competitions",
   "competitions.metaDescription": "Every league and cup Stadiomind follows, grouped by country and region, each with its own page.",
   "competitions.lead": "Every league and cup we follow, grouped by country and region. Choose one to open its page: table, matches, players and the model in that league.",
@@ -2966,7 +3005,7 @@
     "other": "{count} competitions"
   },
   "competitionsMenu.title": "Every competition",
-  "competitionsMenu.counts": "{live} live now · {today} playing today · {all} in all",
+  "competitionsMenu.counts": "{live} with a match live · {today} playing today · {all} in all",
   "competitionsMenu.countsNoToday": "{all} in all · today’s matches could not be read",
   "competitionsMenu.filter": "Filter competitions",
   "competitionsMenu.show.label": "Show",

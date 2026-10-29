@@ -2,85 +2,18 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 /**
- * The competitions bar and the All competitions page with the seed behind
- * them (T-1433): the bar names the competitions in the product's order and
- * opens each page; the page groups every competition (international, then
- * continental, then each country), filters by name or country as the reader
- * types, and opens a competition's page. Keyboard and axe included.
+ * The All competitions page with the seed behind it (T-1433): it groups
+ * every competition (international, then continental, then each country),
+ * filters by name or country as the reader types, and opens a competition's
+ * page. Keyboard and axe included. The competitions bar that once led here
+ * (the matchday rail, T-1624) gave way to the moments rail (T-1642, D-300,
+ * `moments-rail.spec.ts`).
  */
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const PREMIER_LEAGUE = '00000000-0000-4000-8000-000000000201';
 const LA_LIGA = '00000000-0000-4000-8000-000000000202';
 const WORLD_CUP = '00000000-0000-4000-8000-000000000206';
-
-test.describe('competitions bar', () => {
-  test('names the competitions and opens one, marking it current', async ({ page }) => {
-    await page.goto('/en');
-    const bar = page.getByRole('navigation', { name: 'Competitions' });
-    await expect(bar.getByTestId('competitions-bar-item').first()).toBeVisible();
-    await expect(bar.locator(`[data-competition="${PREMIER_LEAGUE}"]`)).toHaveCount(1);
-    // The seed plays nothing today, so each chip is a link and the Premier
-    // League's says its next match day, the seeded match ahead (T-1623, T-1624).
-    await expect(page.getByTestId('rail-drawer')).toHaveCount(0);
-    await expect(
-      bar.locator(`[data-competition="${PREMIER_LEAGUE}"] [data-testid="rail-status"]`),
-    ).toHaveAttribute('data-kind', 'day');
-
-    await bar.locator(`[data-competition="${PREMIER_LEAGUE}"]`).click();
-    await expect(page).toHaveURL(new RegExp(`/en/competition/${PREMIER_LEAGUE}`));
-    await expect(page.getByTestId('title')).toHaveText(/Premier League/i);
-    await expect(bar.locator(`[data-competition="${PREMIER_LEAGUE}"]`)).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-  });
-
-  test('is drawn again by the server when the page says a match moved (T-1635)', async ({
-    page,
-  }) => {
-    await page.goto('/en');
-    const bar = page.getByRole('navigation', { name: 'Competitions' });
-    const premier = bar.locator(`[data-competition="${PREMIER_LEAGUE}"]`);
-    // A client-side navigation keeps the layout, and the rail with it.
-    await premier.click();
-    await expect(page).toHaveURL(new RegExp(`/en/competition/${PREMIER_LEAGUE}`));
-    await expect(page.getByTestId('title')).toHaveText(/Premier League/i);
-
-    // What the match centre and the scores page say when their stream sees a
-    // goal: the rail asks its Server Function at once (the seed plays nothing
-    // today, so it would otherwise wait for the next day). The answer is a
-    // React Server Components payload; its body is the rail checked below.
-    const asked = page.waitForResponse(
-      (response) =>
-        response.request().method() === 'POST' &&
-        response.request().headers()['next-action'] !== undefined,
-    );
-    await page.evaluate(() => window.dispatchEvent(new Event('fmip:live-moved')));
-    const answer = await asked;
-    expect(answer.status()).toBe(200);
-    expect(answer.headers()['content-type']).toContain('text/x-component');
-
-    // The rail drawn again is the same rail, still marking the page being read.
-    await expect(premier.getByTestId('rail-status')).toHaveAttribute('data-kind', 'day');
-    await expect(premier).toHaveAttribute('aria-current', 'page');
-    await expect(page.getByTestId('matchday-rail')).not.toHaveAttribute('data-behind', 'true');
-  });
-
-  test('is reached by keyboard, All competitions last (T-1513)', async ({ page }) => {
-    await page.goto('/en/scores');
-    const all = page.getByTestId('competitions-bar-all');
-    const last = page.getByTestId('competitions-bar-item').last();
-    await last.focus();
-    await page.keyboard.press('Tab');
-    await expect(all).toBeFocused();
-    await page.keyboard.press('Shift+Tab');
-    await expect(last).toBeFocused();
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Enter');
-    await expect(page).toHaveURL(/\/en\/competitions$/);
-  });
-});
 
 test.describe('All competitions page', () => {
   test('groups every competition and filters as the reader types', async ({ page }) => {

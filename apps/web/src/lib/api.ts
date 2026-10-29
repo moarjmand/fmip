@@ -39,6 +39,7 @@ import type {
   CompetitionPage,
   CompetitionTable,
   CompetitionDirectoryResponse,
+  MomentsResponse,
   HighlightsResponse,
   CompetitionsResponse,
   ConsensusListResponse,
@@ -798,6 +799,18 @@ export function fetchScores(
   cookie: string | undefined,
 ): Promise<ApiResult<ScoresResponse>> {
   return apiRequest<ScoresResponse>(`/scores?${query}`, cookie === undefined ? {} : { cookie });
+}
+
+/**
+ * `GET /moments?timezone=&locale=` (T-1641, D-299): today's moments that
+ * matter, for the rail under the header (T-1642). Public; a session only
+ * marks the member's followed matches, so a guest's answer is shared.
+ */
+export function fetchMoments(
+  query: string,
+  cookie: string | undefined,
+): Promise<ApiResult<MomentsResponse>> {
+  return apiRequest<MomentsResponse>(`/moments?${query}`, cookie === undefined ? {} : { cookie });
 }
 
 /**

@@ -15,8 +15,9 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
  * - every figure in Persian digits: no ASCII digit in the page's visible text
  *   except where it is not ours to change -- a left-to-right run (`dir=ltr`),
  *   the model's version string, and text an outside publisher wrote;
- * - the phone's five tabs and the desktop's competition pills mirrored: the
- *   first one at the inline start, which on this page is the right;
+ * - the phone's five tabs and the desktop header's sections mirrored: the
+ *   first one at the inline start, which on this page is the right (the
+ *   competition pills were the matchday rail's until T-1642, D-300);
  * - no sideways scroll of the page itself.
  *
  * Where each score sits beside its own team is checked geometrically in
@@ -65,18 +66,15 @@ async function asciiDigits(page: Page, outside: string): Promise<string[]> {
 
 /** The inline-start edge of each visible link or button in a bar, in order. */
 async function itemEdges(page: Page, testId: string): Promise<number[]> {
-  return (
-    page
-      .getByTestId(testId)
-      // The rail's chevrons are a pointer's shortcut over the row, not items of it (T-1624).
-      .locator('a, button:not(.scroll-chevron)')
-      .evaluateAll((items) =>
-        items
-          .map((item) => item.getBoundingClientRect())
-          .filter((box) => box.width > 0)
-          .map((box) => Math.round(box.right)),
-      )
-  );
+  return page
+    .getByTestId(testId)
+    .locator('a, button')
+    .evaluateAll((items) =>
+      items
+        .map((item) => item.getBoundingClientRect())
+        .filter((box) => box.width > 0)
+        .map((box) => Math.round(box.right)),
+    );
 }
 
 for (const width of [390, 1440]) {
@@ -114,8 +112,8 @@ for (const width of [390, 1440]) {
           ),
         ).toBeLessThanOrEqual(0);
 
-        // The first tab or pill at the right, each next one further left.
-        const bar = width < 768 ? 'tab-bar' : 'competitions-bar';
+        // The first tab or section at the right, each next one further left.
+        const bar = width < 768 ? 'tab-bar' : 'primary-nav';
         const edges = await itemEdges(page, bar);
         expect(edges.length).toBeGreaterThan(1);
         expect(edges).toEqual([...edges].sort((a, b) => b - a));

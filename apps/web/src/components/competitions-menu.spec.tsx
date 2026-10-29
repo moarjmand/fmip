@@ -179,7 +179,7 @@ describe('menuView', () => {
 
   it('counts the live, today’s and every competition, for the line and the toggles', () => {
     const v = view()!;
-    expect(v.counts.text).toBe('1 live now · 3 playing today · 6 in all');
+    expect(v.counts.text).toBe('1 with a match live · 3 playing today · 6 in all');
     expect(v.show).toEqual({
       all: { text: 'All 6', status: 'source' },
       today: { text: 'Today 3', status: 'source' },
@@ -264,7 +264,7 @@ describe('menuView', () => {
 
   it('is in Persian on /fa, with Persian digits and the reader’s zone', () => {
     const v = view('fa', SCORES, 'Asia/Tehran')!;
-    expect(v.counts.text).toBe('۱ زنده · ۳ با بازی امروز · ۶ در مجموع');
+    expect(v.counts.text).toBe('۱ با بازی زنده · ۳ با بازی امروز · ۶ در مجموع');
     expect(v.show?.live.text).toBe('زنده ۱');
     expect(v.columns[0]![0]!.label.text).toBe('پنج لیگ بزرگ');
     expect(v.note.text).toContain('به وقت تهران');

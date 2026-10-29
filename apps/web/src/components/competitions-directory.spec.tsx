@@ -10,7 +10,7 @@ import { CompetitionsDirectory } from './competitions-directory';
  * The All competitions page's list (T-1433, T-1612), drawn: the groups, the
  * chooser's tiles, the filter, the words in Persian, and only logical CSS.
  * The competitions bar it once shared this spec with is the matchday rail
- * now (T-1624, `matchday-rail.spec.tsx`).
+ * now (T-1624), and the moments rail since T-1642 (`moments-rail.spec.tsx`).
  */
 
 const SOURCE = readFileSync(join(__dirname, 'competitions-directory.tsx'), 'utf8');

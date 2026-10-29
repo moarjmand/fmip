@@ -233,25 +233,13 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.strip.label": {
-    "source": "Today · {competition}",
-    "text": "امروز · {competition}",
+  "shell.moments.label": {
+    "source": "Moments that matter",
+    "text": "لحظه‌های مهم",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.strip.versus": {
-    "source": "v",
-    "text": "–",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "shell.strip.behind": {
-    "source": "May be behind",
-    "text": "ممکن است به‌روز نباشد",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "shell.rail.live": {
+  "shell.moments.live": {
     "source": {
       "one": "{count} live",
       "other": "{count} live"
@@ -263,15 +251,213 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.rail.myTeams": {
-    "source": "My teams",
-    "text": "تیم‌های من",
+  "shell.moments.picked": {
+    "source": {
+      "one": "Picked from {count} match by what is happening and what the model expected",
+      "other": "Picked from {count} matches by what is happening and what the model expected"
+    },
+    "forms": {
+      "one": "برگزیده از {count} بازی، بر پایه‌ی آنچه در جریان است و آنچه مدل انتظار داشت",
+      "other": "برگزیده از {count} بازی، بر پایه‌ی آنچه در جریان است و آنچه مدل انتظار داشت"
+    },
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "shell.rail.open": {
-    "source": "Open {competition}",
-    "text": "صفحه‌ی {competition}",
+  "shell.moments.more": {
+    "source": {
+      "one": "{count} more",
+      "other": "{count} more"
+    },
+    "forms": {
+      "one": "{count} بازی دیگر",
+      "other": "{count} بازی دیگر"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.moreLabel": {
+    "source": {
+      "one": "{count} more match on the scores page",
+      "other": "{count} more matches on the scores page"
+    },
+    "forms": {
+      "one": "{count} بازی دیگر در صفحه‌ی نتایج",
+      "other": "{count} بازی دیگر در صفحه‌ی نتایج"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.behind": {
+    "source": "May be behind",
+    "text": "ممکن است به‌روز نباشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.againstForecast": {
+    "source": "Against the model",
+    "text": "خلاف پیش‌بینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.levelLate": {
+    "source": {
+      "one": "Level, {count} min to go",
+      "other": "Level, {count} min to go"
+    },
+    "forms": {
+      "one": "مساوی، {count} دقیقه مانده",
+      "other": "مساوی، {count} دقیقه مانده"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.levelAdded": {
+    "source": "Level in added time",
+    "text": "مساوی در وقت‌های تلف‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.favouriteHeld": {
+    "source": "Favourite held",
+    "text": "شانس اول در تنگنا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.bigOneTonight": {
+    "source": "Big one tonight",
+    "text": "بازی بزرگ امشب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.bigOneToday": {
+    "source": "Big one today",
+    "text": "بازی بزرگ امروز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.startingSoon": {
+    "source": {
+      "one": "Starts in {count} min",
+      "other": "Starts in {count} min"
+    },
+    "forms": {
+      "one": "{count} دقیقه تا شروع",
+      "other": "{count} دقیقه تا شروع"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.kickoffDue": {
+    "source": "Kick-off due",
+    "text": "در آستانه‌ی شروع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.closestCall": {
+    "source": "Closest call",
+    "text": "نزدیک‌ترین رقابت پیش رو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.upset": {
+    "source": "Upset",
+    "text": "شگفتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.followed": {
+    "source": "Your team",
+    "text": "تیم شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.comingUp": {
+    "source": "Coming up",
+    "text": "به‌زودی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.kind.comingUpOn": {
+    "source": "Coming up {day}",
+    "text": "به‌زودی، {day}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.say.againstForecast": {
+    "source": "{team} lead; before kick-off the model gave them {pct}.",
+    "text": "{team} جلو است؛ مدل پیش از شروع بازی به آن {pct} شانس داده بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.say.levelLate": {
+    "source": "{team} were the model’s pick at {pct}; the draw had {draw}.",
+    "text": "انتخاب مدل {team} بود با {pct}؛ سهم مساوی {draw} بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.say.levelLateDraw": {
+    "source": "The draw was the model’s pick at {pct}.",
+    "text": "انتخاب مدل مساوی بود با {pct}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.say.favouriteLevel": {
+    "source": "{team} are level; the model gave them {pct}.",
+    "text": "{team} مساوی است؛ مدل به آن {pct} شانس داده بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.say.favouriteBehind": {
+    "source": "{team} are behind; the model gave them {pct}.",
+    "text": "{team} عقب است؛ مدل به آن {pct} شانس داده بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.say.upset": {
+    "source": "{team} won; the model gave them {pct}.",
+    "text": "{team} برد؛ مدل به آن {pct} شانس داده بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.say.closestCall": {
+    "source": "{home} · {draw} · {away}: the most even match still to start.",
+    "text": "{home} · {draw} · {away}: متوازن‌ترین بازی از میان بازی‌هایی که هنوز شروع نشده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.say.three": {
+    "source": "{home} {homePct}, the draw {drawPct}, {away} {awayPct}.",
+    "text": "{home} {homePct}، مساوی {drawPct}، {away} {awayPct}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.card.before": {
+    "source": "Before kick-off the model gave {home} {homePct}, the draw {drawPct}, {away} {awayPct}.",
+    "text": "مدل پیش از شروع بازی به {home} {homePct}، به مساوی {drawPct} و به {away} {awayPct} شانس داده بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.card.lastBefore": {
+    "source": "last version before kick-off",
+    "text": "آخرین نسخه پیش از شروع بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.card.open": {
+    "source": "Match centre",
+    "text": "مرکز مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.card.follow": {
+    "source": "Follow {team}",
+    "text": "دنبال کردن {team}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.moments.card.updated": {
+    "source": "Updated {time} · {ago}",
+    "text": "به‌روزرسانی {time} · {ago}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -16538,18 +16724,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "competitions.bar.label": {
-    "source": "Competitions",
-    "text": "رقابت‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitions.bar.all": {
-    "source": "All competitions",
-    "text": "همه رقابت‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "competitions.title": {
     "source": "All competitions",
     "text": "همه رقابت‌ها",
@@ -16635,8 +16809,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "competitionsMenu.counts": {
-    "source": "{live} live now · {today} playing today · {all} in all",
-    "text": "{live} زنده · {today} با بازی امروز · {all} در مجموع",
+    "source": "{live} with a match live · {today} playing today · {all} in all",
+    "text": "{live} با بازی زنده · {today} با بازی امروز · {all} در مجموع",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

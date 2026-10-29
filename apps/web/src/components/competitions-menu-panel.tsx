@@ -300,7 +300,8 @@ export function CompetitionsMenuBody({
   return (
     <div className="flex flex-col gap-5" data-testid="competitions-menu-body" data-layout={layout}>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        {head}
+        {/* Its own child: an element from the server among these siblings reads as an unkeyed list. */}
+        <>{head}</>
         <label className="menu-search">
           <svg
             viewBox="0 0 24 24"

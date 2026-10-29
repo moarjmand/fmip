@@ -166,7 +166,7 @@ export function menuView({
   if (directory === null || directory.length === 0) return null;
   const lang = langOf(locale);
   const groups = todayGroups(scores);
-  const live = (count: number) => plural(lang, 'shell.rail.live', count).text;
+  const live = (count: number) => plural(lang, 'shell.moments.live', count).text;
   const finished = message(lang, 'status.fullTime').text;
   const n = (count: number) => formatNumber(lang, count);
 

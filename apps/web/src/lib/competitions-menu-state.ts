@@ -140,7 +140,7 @@ export interface MenuGroupView {
 export interface CompetitionsMenuView {
   /** The desktop's columns, each a list of groups; a phone reads them in this order, one under another. */
   columns: MenuGroupView[][];
-  /** "2 live now · 6 playing today · 39 in all", or the count alone when today could not be read. */
+  /** "2 with a match live · 6 playing today · 39 in all", or the count alone when today could not be read. */
   counts: Message;
   /** The toggles' words with their counts; `null` when today's matches could not be read (All alone). */
   show: Record<MenuShow, Message> | null;

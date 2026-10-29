@@ -1,71 +1,14 @@
-import { type ScoreCard, type ScoreLine, STALE_LIVE_AFTER_MS } from '@fmip/contracts';
-import type { Message } from '@/i18n/messages';
+import { type ScoreCard, STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { isBehind } from '@/lib/live';
-import { type StatusKey, statusLabel } from '@/lib/scores';
 
 /**
  * The live strip's rules (T-1381, D-199), pure so they are unit-tested
- * (`live-strip.spec.ts`). Since T-1624 (D-292) the strip is the matchday
- * rail's drawer (`components/matchday-rail.tsx`), which chooses the league
- * (`lib/matchday-rail.ts`); a chip's state, the freshness rule and the
- * shared request are still these.
+ * (`live-strip.spec.ts`). The strip became the matchday rail's drawer
+ * (T-1624, D-292), and both gave way to the moments rail (T-1642, D-300,
+ * `components/moments-rail.tsx`), which keeps the two rules that were never
+ * the strip's alone: when a bar of matches stops being able to vouch for
+ * itself (rule 4), and the one request shared between pages.
  */
-
-/**
- * A chip's state. `before` a kick-off (its time), `live` (the minute, red),
- * `behind` (live, but the data stopped: the "Behind" word in place of a
- * minute that is no longer the current one, D-045), `final` (FT, AET, Pens or
- * Awarded, with the score) and `off` (postponed, suspended, cancelled,
- * abandoned: the word, and the score only where one was played).
- */
-export type ChipKind = 'before' | 'live' | 'behind' | 'final' | 'off';
-
-export interface ChipState {
-  kind: ChipKind;
-  /** The status cell's words: "17:00", "78′", "FT", "Postponed"… in the reader's digits. */
-  status: string;
-  /** The pair to draw, home first; `null` draws the names with "v" between them. */
-  score: ScoreLine | null;
-  /**
-   * A live chip's words for when the drawer's answer has aged (T-1635, rule
-   * 4): "Behind" in place of a minute the drawer can no longer vouch for.
-   * Only on `live`; the drawer swaps it in without asking the server again.
-   */
-  behindStatus?: string;
-}
-
-export function chipState(
-  card: ScoreCard,
-  locale: string,
-  timeZone: string,
-  now: number,
-  words: Record<StatusKey, Message>,
-): ChipState {
-  const status = statusLabel(card, locale, timeZone, now, words);
-  switch (card.status) {
-    case 'scheduled':
-      return { kind: 'before', status, score: null };
-    case 'live':
-      return isBehind(card, now)
-        ? { kind: 'behind', status, score: card.scores.current }
-        : {
-            kind: 'live',
-            status,
-            score: card.scores.current,
-            behindStatus: words['status.behind'].text,
-          };
-    case 'finished':
-      return { kind: 'final', status, score: card.scores.full_time ?? card.scores.current };
-    case 'awarded':
-      return { kind: 'final', status, score: card.scores.current };
-    case 'postponed':
-    case 'cancelled':
-      return { kind: 'off', status, score: null };
-    case 'suspended':
-    case 'abandoned':
-      return { kind: 'off', status, score: card.scores.current };
-  }
-}
 
 /**
  * When the strip stops being able to vouch for itself (rule 4): the time
@@ -76,8 +19,8 @@ export function chipState(
  * `STALE_LIVE_AFTER_MS` (D-045), the strip says it may be behind. The strip
  * lives in the locale layout, which a client-side navigation does not render
  * again; since T-1635 the rail asks again while a match is being played
- * (`railAskIn`), and each answer moves this time on, so it is reached only
- * when the asking stops getting answers.
+ * (`momentsAskIn` since T-1642), and each answer moves this time on, so it is
+ * reached only when the asking stops getting answers.
  */
 export function stripBehindAt(cards: readonly ScoreCard[], generatedAt: string): number | null {
   const answered = Date.parse(generatedAt);

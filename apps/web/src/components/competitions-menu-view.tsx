@@ -29,15 +29,21 @@ const Panel = lazy(() => import('@/components/competitions-menu-panel'));
  * the phone's Menu), it is the link to the competitions page it always was;
  * from 1024px with a script it is the button that opens the panel
  * (`aria-expanded`, `aria-controls`), current on the same pages the link is.
- * A hover or a focus starts loading the panel and its list.
+ * A hover or a focus starts loading the panel and its list. The moments
+ * rail's Leagues (T-1642, D-300) is the same entry in its own looks
+ * (`className`, `testId`).
  */
 export function CompetitionsMenuTrigger({
   href,
   current,
+  className = 'nav-entry',
+  testId = 'nav-competitions',
   children,
 }: {
   href: string;
   current: boolean;
+  className?: string;
+  testId?: string;
   children: ReactNode;
 }) {
   const wide = useWideScreen();
@@ -47,8 +53,8 @@ export function CompetitionsMenuTrigger({
       <Link
         href={href}
         aria-current={current ? 'page' : undefined}
-        data-testid="nav-competitions"
-        className="nav-entry"
+        data-testid={testId}
+        className={className}
       >
         {children}
       </Link>
@@ -60,8 +66,8 @@ export function CompetitionsMenuTrigger({
       aria-expanded={open}
       aria-controls={COMPETITIONS_MENU_ID}
       aria-current={current ? 'page' : undefined}
-      data-testid="nav-competitions"
-      className="nav-entry cursor-pointer"
+      data-testid={testId}
+      className={`${className} cursor-pointer`}
       onPointerEnter={warmCompetitionsMenu}
       onFocus={warmCompetitionsMenu}
       onClick={(event) => {

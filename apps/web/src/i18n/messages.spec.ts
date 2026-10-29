@@ -250,7 +250,10 @@ describe('plurals (T-301)', () => {
     // T-1614: three added (the Highlights page's clips, its competitions and
     // the filter's competitions past the first chips).
     // T-1624: one added (the matchday rail's live count).
-    expect(pluralKeys).toHaveLength(96);
+    // T-1642: six added (the moments rail's live count, what it was picked
+    // from, the cards left out and their label, the minutes to go and the
+    // minutes to kick-off), one retired (the matchday rail's live count).
+    expect(pluralKeys).toHaveLength(101);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

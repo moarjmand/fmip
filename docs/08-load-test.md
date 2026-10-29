@@ -363,6 +363,8 @@ install inside would overwrite them):
 
 **The model page** (T-1620, D-291) joined on 2026-10-26: four more pictures (`model-*`), its band on the surface and the sentence that the figures cannot be shown, on the theme's grounds rather than editorial paper.
 
+**The moments rail** (T-1642, D-300) remade the sixteen desktop pictures on 2026-10-29, rendered by CI run 40916652642: without an API the rail under the header draws nothing (no empty bar), where the matchday rail drew its bar with "All competitions". The 390 px pictures did not move: on a phone the matchday rail drew nothing on a day without a match either.
+
 ## PageSpeed after the redesign (T-1502)
 
 PageSpeed Insights (Lighthouse 13.5.0; mobile is a Moto G Power on slow

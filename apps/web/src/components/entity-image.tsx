@@ -34,11 +34,15 @@ import { cx } from '@/components/ui/cx';
 export type EntityImageKind = 'crest' | 'logo' | 'photo';
 
 /** The sizes the pages use, in CSS pixels. */
-export type EntityImageSize = 20 | 22 | 32 | 40 | 48 | 96;
+export type EntityImageSize = 14 | 18 | 20 | 22 | 28 | 32 | 40 | 48 | 96;
 
 const BOX: Record<EntityImageSize, string> = {
+  // The moments rail's competition logo and crests, and its hover card's crests (T-1642).
+  14: 'size-3.5',
+  18: 'size-[18px]',
   20: 'size-5',
   22: 'size-[22px]',
+  28: 'size-7',
   // The line-ups' bench and list rows (T-1616).
   32: 'size-8',
   40: 'size-10',
@@ -47,8 +51,11 @@ const BOX: Record<EntityImageSize, string> = {
 };
 
 const LETTERS: Record<EntityImageSize, string> = {
+  14: 'text-[7px]',
+  18: 'text-[8px]',
   20: 'text-[9px]',
   22: 'text-[9px]',
+  28: 'text-[11px]',
   32: 'text-xs',
   40: 'text-sm',
   48: 'text-base',
@@ -57,8 +64,11 @@ const LETTERS: Record<EntityImageSize, string> = {
 
 /** A logo tile's inner padding and corner, by size (T-1609). */
 const TILE: Record<EntityImageSize, string> = {
+  14: 'rounded-xs p-px',
+  18: 'rounded-sm p-px',
   20: 'rounded-sm p-0.5',
   22: 'rounded-sm p-0.5',
+  28: 'rounded-sm p-0.5',
   32: 'rounded-md p-1',
   40: 'rounded-md p-1',
   48: 'rounded-md p-1',

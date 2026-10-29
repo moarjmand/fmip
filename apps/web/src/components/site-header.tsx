@@ -6,7 +6,7 @@ import { CompetitionsMenu } from '@/components/competitions-menu';
 import { HeldLanguageNotice } from '@/components/held-language-notice';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
-import { MatchdayRail } from '@/components/matchday-rail';
+import { MomentsRail } from '@/components/moments-rail';
 import { RulesPrompt } from '@/components/rules-prompt';
 import { BottomTabBar, PrimaryNav } from '@/components/shell-nav';
 import { ThemeSwitch } from '@/components/theme-switch';
@@ -334,10 +334,10 @@ export async function SiteHeader({
           <HeldLanguageNotice locale={locale} held={stored} value={notice} />
         )}
       </header>
-      {/* The matchday rail, right under the header (T-1624, D-292): the leagues
-        by what they are doing today and a drawer of today's matches; on a
-        phone only the leagues playing today, nothing on a day without one. */}
-      <MatchdayRail locale={locale} timeZone={timeZone} signedIn={me !== null} />
+      {/* The moments rail, right under the header (T-1642, D-300, in place of
+        D-292's matchday rail): today's matches worth a look now, as
+        `GET /moments` picks them; nothing at all when there are none. */}
+      <MomentsRail locale={locale} timeZone={timeZone} signedIn={me !== null} />
       {banner}
     </>
   );
