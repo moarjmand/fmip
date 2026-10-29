@@ -13040,3 +13040,42 @@ Every compare page now names both players' clubs, national teams, positions and 
 
 **Consequences.** A competition added from now on feeds the training store unless set off. Forecasts for the cups' matches are still made by the published version (as `XL`), from the clubs' histories it holds.
 
+
+## D-308 — The draw recalibrated by the gap between the sides: a second kind of input, fitted out of sample, judged by D-139 and by the draw's reliability
+
+**Status:** Accepted for its run · 2026-10-30 (the formulation, written before any run; the verdict is pending the lab run and goes in a follow-up entry) · **Task:** T-1657 · **Follows:** D-029, D-139, D-303
+
+**Context.** The live record of the published `dixon-coles-elo@0.6.0` (500 finished matches from 2026-10-10, D-303) shows the draw over-forecast where the sides are 10–25 points apart (`|p_home − p_away|`: 27% said, 19% seen) and 25–45 apart (25%, 20%), and calibrated where they are even (under 10: 28%, 28%) and for big favourites (over 45: 18%, 18%). Every probability is read off the Dixon–Coles scoreline table (D-029); there is no calibration step. D-139's harness judges terms that shift expected goals (`Term.shift`), and a draw recalibration acts on the three probabilities, so the harness could not judge it.
+
+**Decision.**
+1. **A second, small kind of input.** A module's `build` may return a `CalibrationInput` (`fmip_model/inputs/__init__.py`) instead of a term:
+   - `calibrate(division, history, fit_date) -> Calibration | None` is called once per refit. `history` holds `PastForecast` rows: the candidate's forecasts of the division's matches on or before the fit date, each made the day before its match by the same walk-forward (refitted at most weekly), with the result. They are out of sample. They are the window's matches already played, plus those of a second walk-forward of the candidate over `--calibration-from` to the day before the window. That walk-forward has the same constants, prior and cadence. `--calibration-from` defaults to a year after `--history-from`, so no past forecast comes from a fit on less than a season.
+   - `Calibration.apply(p)` maps each forecast's (home, draw, away) to three probabilities summing to 1.
+   - `None` means not read: the candidate's forecast stands and the refit's matches are outside the sample, as for a term.
+   - The window's own walk-forward, the matches, the groups and D-139's bar are those of every input. A term input's run and report are unchanged: a test holds the `null` input's numbers to those the harness gave before (commit 4925703a), and the real fit's report was compared byte for byte.
+2. **The input `draw_calibration`.** With `g = |p_home − p_away|` of the forecast:
+   - `w = p_draw · exp(a + b·g + c·g²)`, and the forecast becomes `(p_home, w, p_away) / (p_home + w + p_away)`.
+   - Equivalently, `logit(p_draw') = logit(p_draw) + a + b·g + c·g²`, and home and away keep their ratio.
+   - The likelihood of the three outcomes in `(a, b, c)` is then a logistic regression of "drawn", with `logit(p_draw)` as the offset and `(1, g, g²)` as the features. It is concave, and is maximised by Newton's method.
+   - Fitted at each refit on `history`, every past forecast counted alike. There is no time decay: the bias is a property of the model's form, and a half-life of about a hundred days would leave a few hundred matches.
+   - A ridge `RIDGE · (a² + b² + c²)` against the summed log-likelihood pulls toward no change.
+   - At least `MIN_HISTORY` past forecasts, else not read.
+3. **The constants, fixed before any run.** `RIDGE = 0.1` and `MIN_HISTORY = 300`.
+   - The ridge was chosen on synthetic forecasts only, from 0, 0.01, 0.1, 0.3 and 1. The criterion was the error of the fitted draw at 1,000–1,500 past forecasts (a division's history), in a world shaped like the live record and in a calibrated one. 0.1 was within 0.002 of the best in both. 1 lost most of the live record's correction (which needs `|b|` and `|c|` of 3 to 6); 0.01 followed noise in the calibrated world.
+   - None of them is tuned on 2024/25 (development) or 2025/26 and later (holdout).
+4. **Its report** (`reports/<candidate>/inputs_draw_calibration_<window>.{md,json}`) adds to D-139's metrics:
+   - **The draw's reliability.** Per group, on the applied matches, in bands of the candidate's gap: under 0.10, 0.10–0.25, 0.25–0.45, and 0.45 and over (the live record's bands, `DRAW_BANDS`). For each band, the draw said by the published version, the candidate and the candidate with the input, against the draw seen with its 95% Wilson interval, and the bands' mean `|said − seen|` weighted by matches.
+   - **Per division:** where its history began, its forecasts before the window, the refits calibrated, and the last fitted `(a, b, c)`.
+5. **The verdict is D-139's** (`judge`, unchanged). The draw's reliability is the second evidence T-1657 names. It is reported beside the verdict and is not a second gate. The follow-up entry says, band by band, whether the draw said moved toward the draw seen.
+6. **The run** reads the lab store (D-303): the eleven main football-data divisions, window 2024-08-01..2025-06-30, history from 2020-07-01, calibration history from 2021-07-01. It is run once, niced, in tmux. The command is in T-1657's pull request.
+
+**Rejected.**
+- *A draw parameter inside the score model* (a draw inflation, a bivariate Poisson). It changes the model family that D-029 chose. A recalibration leaves the scoreline table, the expected goals and every other input as they are.
+- *Fitting on the fit's own matches* (in-window fitted probabilities). They are in sample: the fit has already bent toward their results, so they would understate the correction.
+- *A factor per band.* The bands come from the same 500 matches that showed the bias, and four free steps would turn a line drawn on that record into the model. A smooth curve in `g` does not depend on where the bands were cut.
+- *One calibration pooled across divisions.* Every input is fitted per division on the history its refit sees. A pooled fit would let the large leagues set the small ones' draw.
+
+**Consequences.**
+- A parabola in `g` cannot be flat at both ends and dip in between. On synthetic forecasts shaped exactly like the live record's bands, it trades some of the mid-gap correction against a lower draw in the even band. The reliability table shows how much on real matches.
+- The input is carried by no version, and the service does not apply it. If it passes, T-1660 decides how a candidate fits and serves it: the calibration needs the candidate's own past forecasts.
+- The run walks the candidate over three more seasons per division than a term input does. That is roughly twice an ordinary input's run on the two-core server.
