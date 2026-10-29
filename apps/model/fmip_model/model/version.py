@@ -42,11 +42,34 @@ from .dixon_coles import DEFAULT_ELO_WEIGHT, DEFAULT_RIDGE, DEFAULT_XI, ELO_SCAL
 
 @dataclass(frozen=True)
 class CrossLeague:
-    """The constants of the fit that puts clubs of different leagues on one scale (T-533)."""
+    """The constants of the fit that puts clubs of different leagues on one scale (T-533).
+
+    The two options T-1654 adds (D-309) are off at their defaults, so a file
+    that names neither fits exactly as before.
+    """
 
     xi: float
     team_ridge: float
     group_ridge: float
+    #: How hard a club's net strength is pulled toward our own pooled Elo
+    #: (D-309); 0: no Elo prior across leagues, as before T-1654.
+    elo_weight: float = 0.0
+    #: The ridge pulling each competition group's home advantage toward the
+    #: shared one (D-309); ``None``: one home advantage for every match.
+    home_by_competition: float | None = None
+
+    def as_dict(self) -> dict[str, float]:
+        """The constants a file names: the options only when they are on."""
+        body: dict[str, float] = {
+            "xi": self.xi,
+            "team_ridge": self.team_ridge,
+            "group_ridge": self.group_ridge,
+        }
+        if self.elo_weight:
+            body["elo_weight"] = self.elo_weight
+        if self.home_by_competition is not None:
+            body["home_by_competition"] = self.home_by_competition
+        return body
 
 
 #: Where a version's Elo prior comes from (T-922, D-111): Club Elo's snapshot
@@ -122,7 +145,7 @@ class ModelVersion:
     def as_dict(self) -> dict[str, object]:
         body = asdict(self)
         body["per_division"] = {d: list(c) for d, c in self.per_division.items()}
-        body["cross_league"] = None if self.cross_league is None else asdict(self.cross_league)
+        body["cross_league"] = None if self.cross_league is None else self.cross_league.as_dict()
         body["divisions"] = None if self.divisions is None else sorted(self.divisions)
         return {"id": self.id, **body}
 
@@ -211,15 +234,7 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
     raw_beta = body.get("lineup_beta")
     lineup_beta = None if raw_beta is None else float(raw_beta)
     cross = body.get("cross_league")
-    cross_league = (
-        None
-        if cross is None
-        else CrossLeague(
-            xi=float(cross["xi"]),
-            team_ridge=float(cross["team_ridge"]),
-            group_ridge=float(cross["group_ridge"]),
-        )
-    )
+    cross_league = None if cross is None else _cross_league(cross)
     raw_prior = str(body.get("elo_prior", BASELINE.elo_prior))
     if raw_prior not in ELO_PRIORS:
         raise ValueError(f"elo_prior must be one of {ELO_PRIORS}, not {raw_prior!r}")
@@ -255,6 +270,23 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         elo_prior=elo_prior,
         divisions=divisions,
     )
+
+
+def _cross_league(cross: Mapping[str, object]) -> CrossLeague:
+    """A file's ``cross_league`` block; the T-1654 options off unless named (D-309)."""
+    raw_home = cross.get("home_by_competition")
+    constants = CrossLeague(
+        xi=float(str(cross["xi"])),
+        team_ridge=float(str(cross["team_ridge"])),
+        group_ridge=float(str(cross["group_ridge"])),
+        elo_weight=float(str(cross.get("elo_weight", 0.0))),
+        home_by_competition=None if raw_home is None else float(str(raw_home)),
+    )
+    if constants.elo_weight < 0:
+        raise ValueError("cross_league.elo_weight must not be negative")
+    if constants.home_by_competition is not None and constants.home_by_competition <= 0:
+        raise ValueError("cross_league.home_by_competition is a ridge: positive, or left out")
+    return constants
 
 
 #: The version the site shows (D-191): ``published/``'s one file.

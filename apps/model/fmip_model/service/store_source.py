@@ -9,7 +9,7 @@ from datetime import UTC, date, datetime, timedelta
 
 import psycopg
 
-from ..model.cross_league import CROSS_LEAGUE
+from ..model.cross_league import CROSS_LEAGUE, FixtureKey
 from ..model.data import elo_on, every_match_before, matches_before
 from ..model.dixon_coles import MatchObservation
 from ..model.own_elo import for_division
@@ -21,6 +21,7 @@ from ..training.load import (
     load_records,
 )
 from ..training.own_elo import compute_day, ratings_on, store_run
+from ..training.records import across_leagues_groups, continental_tallies
 from ..training.sources import CLUB_ELO, EXTRA_DIVISIONS, FOOTBALL_DATA, OUR_RECORDS
 from ..training.store import TrainingStore
 from .contract import EloSourceState
@@ -87,6 +88,8 @@ class PostgresTrainingSource(TrainingSource):
         self._own_elo_lock = threading.Lock()
         self._own_elo_days: set[date] = set()
         self._own_elo_tried: dict[date, datetime] = {}
+        # The continental competitions' placed clubs (D-309), read once a day.
+        self._tallies: tuple[date, dict[str, dict[str, int]]] | None = None
 
     def aliases(self, division: str) -> Mapping[str, str]:
         self.refresh(division)
@@ -118,6 +121,24 @@ class PostgresTrainingSource(TrainingSource):
         with psycopg.connect(self.database_url) as conn:
             ratings = ratings_on(conn, day) or {}
         return for_division(ratings, division, aliases)
+
+    def own_elo_by_club(self, day: date) -> Mapping[str, float]:
+        """Our own Elo as of ``day`` by club key (T-1654): the keys ``every_match`` gives."""
+        self.ensure_own_elo(day)
+        with psycopg.connect(self.database_url) as conn:
+            return ratings_on(conn, day) or {}
+
+    def across_leagues_groups(self, since: date, until: date) -> Mapping[FixtureKey, str]:
+        """Each fixture across leagues' competition group, read from the catalogue (D-309).
+
+        Which continental competitions are UEFA's is read once a day; the
+        fixtures every time, so a tie drawn today is found today.
+        """
+        with psycopg.connect(self.database_url) as conn:
+            day = self.today()
+            if self._tallies is None or self._tallies[0] != day:
+                self._tallies = (day, continental_tallies(conn))
+            return across_leagues_groups(conn, since, until, self._tallies[1])
 
     def ensure_own_elo(self, day: date) -> None:
         """Compute and store the day's own Elo once (T-921); a failure is logged, not raised."""

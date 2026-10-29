@@ -13115,3 +13115,48 @@ and records the table here (groups, matches read, log loss of the published vers
 
 **Consequences.** No migration; nothing published or promoted; no candidate carries the input until a verdict here says "passed" (T-1660). Serving it would need the next match from the fixture list with its competition's kind from the catalogue, a separate change made only if it passes. `tests/test_input_rest_next.py`.
 
+## D-309 — The cross-league fit's candidate options: an Elo prior, a home advantage per competition, and its half-life swept, judged on 2024/25's matches across leagues
+
+**Status:** Proposed · 2026-10-30 · the options are built and off; the verdict waits for the lab run · **Tasks:** T-1654, T-1653 (the cross-league half-life) · **Follows:** D-085, D-111, D-139, D-191, D-233, D-303, D-304
+
+**Context.** Every cup and continental match is forecast by the fit across leagues (`XL`, D-085): a club's strength is its league's level plus its own deviation, clubs of a league the version does not hold share the group `other`, with `xi` 0.0005 (half-life about 3.8 years), team ridge 4, group ridge 0.001, one home advantage for every match and no Elo prior, so every such forecast says "limited". Its record is calibrated where it is confident (65–75%: 70% said, 71% seen, 24 matches; D-303), and its 2025/26 log loss was 0.9727 on 929 matches (D-191). The examples behind T-1654: Getafe 70% against Lugano (lost 2–5); Sporting 92% against LASK (lost 2–3; LASK's league, AT1, is forecast by no version, D-233, so LASK is in `other`, judged by its cup matches alone and a group level the 0.001 ridge barely holds); Como 36 / 26 / 38 against Manchester United (won 4–1: a rising club seen late through a long half-life). On a synthetic world where a club of `other` lost its four cup matches 2–0, the fit as it is gives it 0.5% to win the next one.
+
+**Decision.** Three options, each off unless a version's `cross_league` block names it, so `dixon-coles-elo@0.6.0` (published) and `0.7.0` (candidate) fit exactly as before; `tests/test_cross_league_options.py` proves it on a synthetic world, to the probabilities the code wrote before T-1654. Their formulations and grids are fixed here, before any run.
+
+1. **An Elo prior across leagues** (`cross_league.elo_weight`, 0 = off). Our own Elo of the fit date (`own-elo@1.0.0`, D-111), read by club as the fit names clubs (catalogue id, else `<division>:<name>`). For the clubs of the fit that have a rating, the penalty is `elo_weight * Σ ((net_i − m) − (E_i − Ē) / 400)²`: net strength (attack minus defence) centred on the rated clubs' mean `m`, against Elo centred on theirs, at 400 points per unit (`ELO_SCALE`). Unlike the per-division fit (`dixon_coles.py`), net strength is centred, so the prior moves the spread and never the goal level the defences carry. Our own Elo is one pool over every stored match, cups included, so it compares clubs of different leagues as far as the cups connect them. A fit the prior reached says `elo_used: true`, so a cup forecast is "available" when both sides have 15 matches in the window. Grid: **0.1, 0.5, 2**.
+2. **A home advantage per competition group** (`cross_league.home_by_competition`, the ridge; absent = one shared). A match's home advantage is `h + δ_c`: `δ = 0` for the domestic league matches (so `h` is theirs, the shared one), and for a match across leagues `c` is its competition's group, read from the catalogue by the fixture's UTC day and clubs, the key an `XL` training row has:
+   - `uefa`: a continental competition (not a super cup or a friendly) more than half of whose placed clubs play a domestic league of a UEFA member, placed as the site's menu places them, over every season held (D-301; the members are `confederation.ts`'s, copied and compared by a test); never by its name (rule 1) or a provider's id (rule 2);
+   - `continental`: any other such competition;
+   - `domestic_cup`: a domestic cup;
+   - `other`: the rest (super cups, friendlies, national teams' competitions, domestic play-offs).
+
+   Each `δ_c` carries `ridge * δ_c²`. A match across leagues whose fixture the catalogue does not give, or whose key two fixtures of different groups share, takes `h`. Grid: **3, 30, 300**.
+3. **The half-life** (`cross_league.xi`, already a constant; T-1653): swept with the two ridges held. Grid: **0.00025, 0.001, 0.002, 0.004** (about 7.6, 1.9 and 0.95 years and 173 days) beside 0.0005.
+
+Each value is one variant, the other constants unchanged; no combination is run here (T-1660 combines the options that pass).
+
+**How it is judged.** `python -m fmip_model.backtest.cross_league variants --from 2024-07-01 --to 2025-06-30` (T-1654): the base version is the newest candidate (D-139 judges against the candidate; `--version` names another), its divisions only and its `history_days` (1100), as the service fits. Every variant walks the window with the cup backtest's fit dates (the day before, refitted at most weekly, 60 matches of history first) and is scored on the matches every variant forecast, against `current`, the base's fit unchanged:
+- log loss, Brier, and calibration error (the ten-bin expected calibration error, mean over home, draw and away), as the inputs harness reports them;
+- D-139's paired bootstrap (2,000 resamples of the matches, seed 1101) of the log-loss difference and of the calibration error's rise;
+- the tail: the forecasts whose likeliest outcome was given more than 85%, the mean said against the share seen;
+- the matches with a club of `other` apart, and each competition group apart.
+
+A variant **passes** on D-139's bar with the competition groups as its divisions: at least 300 matches; the log-loss interval wholly below zero; calibration not demonstrably worse (the rise's interval not wholly above zero); worse in at most a third of the groups with 50 matches or more. Within an option the passing value with the lowest log loss is chosen, its grid neighbours reported beside it. Because it is chosen on the window it is judged on, a pass here is a screen: the holdout (2025/26 and 2026/27 to date) stays untouched until T-1660's one final run, and the command refuses a window that reaches it (from 2025-07-01) without `--holdout`.
+
+**Data.** The training rows and our own Elo come from the lab store (`DATABASE_URL` pointed at `fmip_lab`, D-303); the competitions from the catalogue (`CATALOG_DATABASE_URL`, read-only, the production `public` schema), because the lab copies `training` alone. Runs are niced, one at a time.
+
+**Limits, stated.**
+- The lab's own Elo is computed from its longer store (the main divisions from 2020/21); a candidate carrying the prior would read production's, whose main divisions start in 2023/24. T-1660's holdout run reads what the candidate would.
+- The lab's `XL` includes whatever T-1649 copied into it; its domestic cups are scored as `domestic_cup` like the rest.
+- A final at a neutral ground still takes its group's home advantage (D-145 is not applied here).
+- With the home option on, the service reads the request's competition by its fixture's day and clubs; a fixture it cannot find takes the shared home advantage, and the factor's note still reads "league-wide home advantage".
+
+**Verdict.** Pending the lab run; recorded in a follow-up entry with each variant's numbers.
+
+**Rejected.**
+- *A home advantage per competition, each cup its own:* most of `other`'s and `continental`'s competitions have a few dozen matches; four groups with a ridge say what the data can.
+- *Storing the competition on `training.match`:* a schema change with a backfill, for a candidate option; the catalogue already says it.
+- *The per-division fit's uncentred prior:* in the joint fit it would pull the mean net strength, and so the goal level, toward zero.
+- *Tuning the two ridges again with the half-life:* one change at a time on the development window; T-1660 combines.
+
+**Consequences.** `fmip_model/model/version.py` (`CrossLeague.elo_weight`, `.home_by_competition`), `model/cross_league.py` (`fit_across`, `fit_joint_full`, `JointFit`, `HOME_GROUPS`, `home_group`, `is_uefa`), `training/records.py` (`across_leagues_groups`), the service's `TrainingSource.own_elo_by_club` and `.across_leagues_groups`, `backtest/cross_league.py` (`variants`), `tests/test_cross_league_options.py`. No version carries an option until its verdict, and then only through T-1660's candidate (D-082, D-139).

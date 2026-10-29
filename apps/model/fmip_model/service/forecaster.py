@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 
-from ..model.cross_league import CROSS_LEAGUE, fit_joint, groups_for
+from ..model.cross_league import CROSS_LEAGUE, FixtureKey, fit_across
 from ..model.dixon_coles import FittedModel, MatchObservation, fit
 from ..model.lineups import adjusted
 from ..model.poisson import outcome_from_matrix, score_matrix
@@ -50,6 +50,15 @@ class TrainingSource:
         """Our own Elo as of ``day`` (T-921), by the division's training names; empty if none."""
         return {}
 
+    def own_elo_by_club(self, day: date) -> Mapping[str, float]:
+        """Our own Elo as of ``day`` by club key, as ``every_match`` names clubs (T-1654)."""
+        return {}
+
+    def across_leagues_groups(self, since: date, until: date) -> Mapping[FixtureKey, str]:
+        """Each match across leagues from ``since`` to ``until`` (UTC days), by its day and
+        clubs, to its competition's home group (T-1654, D-309); empty if unknown."""
+        return {}
+
     def elo_source(self) -> EloSourceState | None:
         """Club Elo's recorded state (T-920); ``None`` for a source that keeps no loads."""
         return None
@@ -67,6 +76,9 @@ class CachedFit:
     elo_used: bool
     history_from: date
     matches_per_team: Mapping[str, int]
+    #: The fit across leagues' home advantage per competition group, as a
+    #: deviation from the shared one (D-309); empty unless the version has it.
+    home_by_group: Mapping[str, float] = field(default_factory=dict)
 
 
 class Forecaster:
@@ -159,6 +171,14 @@ class Forecaster:
                     reason="no_history",
                     detail=f"team {team} has no match in any loaded division before {fit_date}",
                 )
+        if cached.home_by_group:
+            # The fixture's own competition group (D-309); unknown: the shared one.
+            day = request.kickoff_at.astimezone(UTC).date()
+            group = self.source.across_leagues_groups(day, day).get((day, home, away))
+            if group is not None and group in cached.home_by_group:
+                model = cached.model
+                shifted = model.home_advantage + cached.home_by_group[group]
+                cached = replace(cached, model=replace(model, home_advantage=shifted))
         return self._answer(request, now, cached, home, away)
 
     def _answer(
@@ -240,21 +260,26 @@ class Forecaster:
         if len(tagged) < MIN_HISTORY:
             return None
         matches = [m for _, m in tagged]
-        model = fit_joint(
-            matches,
-            groups_for(tagged),
+        # The options of D-309 read the store only when the version has them on.
+        joint = fit_across(
+            tagged,
             fit_date,
-            xi=constants.xi,
-            team_ridge=constants.team_ridge,
-            group_ridge=constants.group_ridge,
+            constants,
+            elo=self.source.own_elo_by_club(fit_date) if constants.elo_weight > 0 else None,
+            labels=(
+                self.source.across_leagues_groups(history_from, fit_date)
+                if constants.home_by_competition is not None
+                else None
+            ),
         )
         cached = CachedFit(
             CROSS_LEAGUE,
             fit_date,
-            model,
-            elo_used=False,
+            joint.model,
+            elo_used=joint.rated_clubs > 0,
             history_from=history_from,
             matches_per_team=matches_per_team(matches),
+            home_by_group=joint.home_by_group,
         )
         self._fits = {k: v for k, v in self._fits.items() if k[0] != CROSS_LEAGUE}
         self._fits[key] = cached
