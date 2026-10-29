@@ -4,6 +4,8 @@
     python -m fmip_model.training.load clubelo --days 2024-08-01 2025-08-01
     python -m fmip_model.training.load records --divisions IR1
     python -m fmip_model.training.load football-data-extra --divisions AT1 US1 --since 2020/21
+    python -m fmip_model.training.load records-stats [--into fmip_lab]
+    python -m fmip_model.training.load records-lineups [--into fmip_lab]
 
 Each (source, scope) is one ``source_load`` row: opened first, then the file
 is fetched, hashed, parsed and upserted inside one transaction, then the load
@@ -23,8 +25,18 @@ import sys
 from collections.abc import Callable, Sequence
 
 import httpx
+from psycopg.conninfo import make_conninfo
 
 from .clubelo import parse_elo
+from .fixture_detail import (
+    LINEUPS,
+    STATS,
+    Conn,
+    Detail,
+    connect_reader,
+    read_rows,
+    replace_rows,
+)
 from .football_data import MatchRow, parse_extra_matches, parse_matches
 from .records import RecordedMatch, as_text, by_season, recorded_matches, team_ids
 from .sources import (
@@ -189,6 +201,37 @@ def load_records(store: TrainingStore, divisions: Sequence[str]) -> list[LoadRes
     return results
 
 
+def load_records_detail(store: TrainingStore, reader: Conn, detail: Detail) -> LoadResult:
+    """Our records' team statistics or line-ups (T-1647, T-1648, D-305): every row replaced.
+
+    One load, scope the table's name. The rows are read from ``reader``
+    (``public``, read-only, a connection of its own) and written to the store's
+    ``training`` schema, which may be another database on the same server (the
+    lab store, D-303). A load that finds no row is refused and recorded as
+    failed, and the rows already held stay.
+    """
+    load_id = store.open_load(OUR_RECORDS, detail.scope, detail.url)
+    rows = read_rows(reader, detail)
+    try:
+        count, digest = replace_rows(store.conn, detail, load_id, rows)
+        if count == 0:
+            raise ValueError(f"no {detail.what} in our records: the rows held are kept")
+        store.conn.commit()
+        store.close_load(load_id, content_sha256=digest, row_count=count)
+        return LoadResult(load_id, OUR_RECORDS.id, detail.scope, "succeeded", count, digest)
+    except Exception as error:  # noqa: BLE001 - every failure must be recorded, then re-raised
+        store.fail_load(load_id, f"{type(error).__name__}: {error}")
+        raise
+    finally:
+        rows.close()  # the server-side cursor, if the copy stopped before its end
+        reader.rollback()
+
+
+def target_database(database_url: str, into: str | None) -> str:
+    """The database a load writes: ``DATABASE_URL``'s own, or ``into`` on the same server."""
+    return database_url if into is None else make_conninfo(database_url, dbname=into)
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="fmip_model.training.load", description=__doc__)
     sub = parser.add_subparsers(dest="source", required=True)
@@ -209,6 +252,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     fx.add_argument("--divisions", nargs="+", required=True, help="e.g. AT1 CH1 US1")
     fx.add_argument("--since", required=True, help="the first season kept, e.g. 2020/21")
 
+    for name, what in (
+        ("records-stats", "our finished matches' team statistics, every competition (T-1647)"),
+        ("records-lineups", "our finished matches' line-ups and minutes (T-1648)"),
+    ):
+        rd = sub.add_parser(name, help=what)
+        rd.add_argument(
+            "--into",
+            help="write into this database on the same server (the lab store, fmip_lab), "
+            "reading our records from DATABASE_URL's",
+        )
+
     args = parser.parse_args(argv)
 
     database_url = os.environ.get("DATABASE_URL")
@@ -216,9 +270,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("DATABASE_URL is not set", file=sys.stderr)
         return 2
 
-    store = TrainingStore.connect(database_url)
+    store = TrainingStore.connect(target_database(database_url, getattr(args, "into", None)))
+    reader: Conn | None = None
     try:
-        if args.source == "football-data":
+        if args.source in ("records-stats", "records-lineups"):
+            reader = connect_reader(database_url)
+            detail = STATS if args.source == "records-stats" else LINEUPS
+            results = [load_records_detail(store, reader, detail)]
+        elif args.source == "football-data":
             results = load_football_data(store, args.seasons, args.divisions)
         elif args.source == "football-data-extra":
             results = load_football_data_extra(store, args.divisions, since=args.since)
@@ -231,6 +290,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     finally:
         store.close()
+        if reader is not None:
+            reader.close()
 
     for result in results:
         digest = result.content_sha256[:12]
