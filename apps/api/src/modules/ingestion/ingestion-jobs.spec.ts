@@ -24,6 +24,10 @@ import { INGESTION_SOURCES, type IngestionSources } from './internal/sources';
 // nothing", and that is what the second run of every job asserts: itemsWritten
 // must be zero, because every upsert carries a WHERE ... IS DISTINCT FROM.
 const DATABASE_URL = process.env.DATABASE_URL;
+// The first post-match run writes a whole match and its alerts: 2.3-2.6 s on
+// CI, so a busy runner passed the default 5 s, and the runs after it found
+// the job still at work (T-1639). The other database suites allow 30 s too.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 60_000 });
 
 // The recordings are the 2023/24 Premier League opening weekend. Burnley v
 // Manchester City (fixture 1035037) is the one with a lineup and a detail.
