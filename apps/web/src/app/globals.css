@@ -390,7 +390,7 @@
   }
 
   .moment-panel-eyebrow {
-    @apply min-w-0 truncate text-[11px] font-extrabold tracking-[0.08em] text-muted uppercase;
+    @apply line-clamp-2 min-w-0 text-[11px] leading-4 font-extrabold tracking-[0.08em] text-muted uppercase;
   }
 
   .moments-more-slot,
