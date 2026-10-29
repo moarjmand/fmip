@@ -51,6 +51,7 @@ import {
   mapStandings,
   mapAvailability,
   mapPlayerStatistics,
+  mapSeasonAvailability,
   mapSeasonCoverage,
   mapSquad,
   mapStatistics,
@@ -369,6 +370,33 @@ class ApiFootballAdapter implements ProviderAdapter {
     return {
       ok: true,
       data: mapAvailability(result.data.response, fixtureExternalId),
+      requests: 1,
+      fetchedAt: result.receivedAt,
+    };
+  }
+
+  /**
+   * `/injuries?league=&season=`: every absence the provider listed for every
+   * match of one competition's season, one request and not paged (T-1650,
+   * D-306). Read for the training store's history only, never shown.
+   */
+  async getSeasonAbsences(query: StandingsQuery): Promise<AdapterResult<NormalisedAbsence[]>> {
+    const season = seasonYear(query.seasonLabel);
+    if (season === null) {
+      return {
+        ok: false,
+        error: { kind: 'unsupported', message: `cannot read a season from "${query.seasonLabel}"` },
+        requests: 0,
+      };
+    }
+    const result = await this.call('/injuries', {
+      league: query.competitionExternalId,
+      season: String(season),
+    });
+    if (!result.ok) return { ok: false, error: result.error, requests: 1 };
+    return {
+      ok: true,
+      data: mapSeasonAvailability(result.data.response),
       requests: 1,
       fetchedAt: result.receivedAt,
     };
