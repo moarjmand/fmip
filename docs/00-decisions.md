@@ -12994,3 +12994,32 @@ Every compare page now names both players' clubs, national teams, positions and 
 **Rejected.** *Every live match of the big competitions on the rail*: the rail is for the matches worth a look, and at a busy hour it would be a score ticker again (D-300 retired one). *A separate "Live now" card*: the homepage's hero already answers which live match matters most.
 
 **Consequences.** One card more on a busy evening, never more than one. The rule's text in D-299 and the eyebrow list in D-300 name it. Specs: `moments.spec.ts` (the hero stays while in play; a kind earned on the pitch wins), `lib/moments-rail.spec.ts` (the eyebrow in English and Persian).
+
+## D-303 — Model factors: a programme judged on a lab store, decided by shadow, reported in five answers
+
+**Status:** Accepted · 2026-10-29 (the maintainer, answering four questions after the agent's study of a teammate's request) · **Task:** T-1646 (the plan, `04-tasks-phase-14.md`) · **Follows:** D-082, D-139, D-141 to D-150, D-171 · **Amends:** D-166 (its scope, for training only)
+
+**Context.** A teammate asked for eight factors to be studied, tested and added to the forecast, each weighed against past results, the current model kept as the benchmark, and a report on what each does. The agent's study (2026-10-29, read-only):
+- *The model.* `dixon-coles-elo@0.6.0` reads goals only: per-division Dixon–Coles with time decay, a pull toward our own Elo, one home advantage per division; one cross-league fit (`XL`) for every cup and continental match, with one home advantage, no Elo prior and a half-life of about 3.8 years (`xi` 0.0005). The Power Index feeds no forecast. `xi_strength` is stored with every request and applied by no version.
+- *The live record* (published, pre-kick-off, 500 finished matches from 2026-10-10): Brier 0.573, log loss 0.967, accuracy 55.8%. Confident picks are calibrated (65–75%: 70% said; 71% continental, 66% domestic seen). Draws are over-forecast where the sides are 10–25 points apart (27% said, 19% seen) and calibrated where they are even (28% / 28%).
+- *Line-ups.* On 290 finished matches with both, the version made on the confirmed XI is no better than the early one (Brier 0.5871 against 0.5863; mean shift 1.5 points). `xi_strength` misses rotation (Stuttgart's six changes before Gladbach raised it, 6.93 to 7.15) and is not adjusted for the league (Lugano's XI rated above Getafe's).
+- *Home advantage by team.* Across 26 domestic leagues, a side's home advantage beyond its league's has a season-to-season correlation of 0.02 (2,116 pairs): it does not persist.
+- *Data.* Team xG in `fixture_stat` for 54–68% of finished matches from 2023 (about 22,000), shots for about 85%. The training store's eleven main football-data divisions begin in 2023/24, the others in 2020/21.
+- *The Phase 11 verdicts* were reached on that short store, and rest on league matches alone (D-141).
+
+**Decision.**
+1. **The shadow route** (the teammate's first): every new factor is judged offline by D-139's bar, the ones that pass go into one candidate, and that candidate forecasts in shadow beside the published version. The site's model changes only on the maintainer's approval of the report. Changing the published model first and comparing afterwards (the second route) is rejected.
+2. **A lab store.** Runs read `fmip_lab`, a database on the production Postgres holding a copy of the `training` schema, without the one foreign key into `public`. Longer history is loaded there alone. *Why not the production store:* our own Elo is computed over every row of `training.match` (`training/own_elo.py`), so loading older seasons there would move the published version's prior, and its percentages, before anything is approved.
+3. **Development and holdout.** Formulations are written before a run and not tuned on it. The development window is 2024/25. 2025/26 and 2026/27 to date are held out until the combined candidate's one final run.
+4. **Data the maintainer approved.**
+   - Past seasons' absences are fetched for training only (D-166 keeps the feed's injury endpoints unread for alerts; this reads them into a training-only table, never shown).
+   - The domestic cups we do not carry are added to the catalogue, so rest and congestion see midweek matches.
+5. **The report** answers the teammate's five questions per factor: the effect on the percentages, the metrics with intervals, the verdict, how the weight was set (fitted by the walk-forward's likelihood, never by hand), and matches better and worse, with the teammate's twelve examples forecast again.
+
+**Rejected.**
+- *Bookmakers' odds as an input:* the strongest known predictor, but unlicensed for the model (D-014, D-162), and the statistical model is meant to stand apart from the market. They stay a benchmark.
+- *Tactical matchups:* no data we hold measures them.
+- *A team-specific home advantage without heavy shrinkage:* the persistence above is nil. A per-competition home advantage and travel are tested instead (T-1654).
+
+**Consequences.** `docs/04-tasks-phase-14.md`, tasks T-1646 to T-1661. T-1646 is done: `fmip_lab` exists, with the eleven divisions from 2020/21 (E0 2,350 matches), and the production store is unchanged (E0 from 2023/24). Runs are niced on the two-core server, one at a time, in tmux. Each verdict is recorded in a follow-up entry.
+

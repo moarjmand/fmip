@@ -285,6 +285,16 @@ translation of members' words, licensed full text and video (D-061, D-069),
 and a tracing vendor (D-044). From then on the work is operation, and a new
 phase starts only from a new decision or what running the product finds.
 
+## Phase 14 — Model factors
+
+- The teammate's eight factors (coach, home advantage by team, form and its
+  quality, head-to-head, absences, congestion and rotation, stakes, trend
+  over seasons), league strength and the draw, each judged on a lab store
+  by D-139's bar, the passing ones in one candidate in shadow, and a report
+  in five answers before the maintainer decides (D-303).
+
+**Planned in `04-tasks-phase-14.md`** (2026-10-29). Tasks T-1646 to T-1661.
+
 ---
 
 ## Sequencing rule
