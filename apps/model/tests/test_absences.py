@@ -16,6 +16,7 @@ import pytest
 
 from fmip_model.training import absences as absence_history
 from fmip_model.training.absences import RecordedAbsence, as_text
+from fmip_model.training.fixture_detail import Conn, connect_reader
 from fmip_model.training.load import load_absences, main
 from fmip_model.training.store import TrainingStore
 
@@ -55,6 +56,7 @@ needs_db = pytest.mark.skipif(not DATABASE_URL, reason="DATABASE_URL not set")
 
 class World(NamedTuple):
     store: TrainingStore
+    reader: Conn
     ids: dict[str, str]
 
 
@@ -109,7 +111,9 @@ def world() -> Iterator[World]:
             ),
         )
     s.conn.commit()
-    yield World(s, ids)
+    reader = connect_reader(DATABASE_URL)
+    yield World(s, reader, ids)
+    reader.close()
     s.conn.rollback()
     with s.conn.cursor() as cur:
         cur.execute("DELETE FROM training.absence WHERE fixture_id = %s", (ids["fixture"],))
@@ -131,10 +135,10 @@ def world() -> Iterator[World]:
 def test_the_history_is_copied_under_our_ids_and_the_published_store_is_untouched(
     world: World,
 ) -> None:
-    store, ids = world
+    store, _reader, ids = world
     matches_before = store.count("match")
-    first = load_absences(store)
-    second = load_absences(store)
+    first = load_absences(store, world.reader)
+    second = load_absences(store, world.reader)
     assert [r.status for r in first + second] == ["succeeded", "succeeded"]
     assert first[0].content_sha256 == second[0].content_sha256
     assert (first[0].source, first[0].scope) == ("our_absences", "absences")
@@ -176,15 +180,15 @@ def test_the_history_is_copied_under_our_ids_and_the_published_store_is_untouche
 
 @needs_db
 def test_a_row_the_history_lost_leaves_the_copy(world: World) -> None:
-    store, ids = world
-    load_absences(store)
+    store, _reader, ids = world
+    load_absences(store, world.reader)
     with store.conn.cursor() as cur:
         cur.execute(
             "DELETE FROM absence_history WHERE fixture_id = %s AND provider_person_id = 'z8-2'",
             (ids["fixture"],),
         )
     store.conn.commit()
-    load_absences(store)
+    load_absences(store, world.reader)
     held = one(
         store,
         "SELECT provider_person_id FROM training.absence WHERE fixture_id = %s",
@@ -197,10 +201,10 @@ def test_a_row_the_history_lost_leaves_the_copy(world: World) -> None:
 def test_an_empty_history_is_refused_and_the_refusal_recorded(
     world: World, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    store, _ids = world
+    store, _reader, _ids = world
     monkeypatch.setattr(absence_history, "recorded_absences", lambda _conn: [])
     with pytest.raises(ValueError, match="absence_history holds no row"):
-        load_absences(store)
+        load_absences(store, world.reader)
     failed = one(
         store,
         "SELECT status FROM training.source_load WHERE source = 'our_absences'"

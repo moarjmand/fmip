@@ -473,7 +473,7 @@ prints a line per competition and season and the totals. `--season 2023/24`
 or `--competition 39` (the provider's id) narrows it. Running it again
 rewrites the same rows, so run it after adding seasons or competitions, then
 the loader. Nothing appears on the site, and the published forecasts do not
-read it.
+read it. The lab store's copy is in `docs/15-model.md` (section 4).
 
 ## 3. The production deploy (T-074)
 
