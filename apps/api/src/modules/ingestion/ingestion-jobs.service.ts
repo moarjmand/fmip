@@ -696,6 +696,10 @@ export class IngestionJobsService {
         perDay: this.squadsPerDay,
         budget: this.sources.dailyBudget ?? null,
         requestsToday: await this.runs.requestsToday(source.provider, now),
+        // Spaced where a provider's plan is held to a budget (T-1637); not in a test.
+        ...(this.sources.dailyBudget === undefined
+          ? { pacer: { pace: () => Promise.resolve() } }
+          : {}),
       });
       const shares = parseTierShares(process.env);
       const facts = await sweepClubFacts({
