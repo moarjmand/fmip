@@ -65,6 +65,7 @@
   "shell.moments.kind.favouriteHeld": "Favourite held",
   "shell.moments.kind.bigOneTonight": "Big one tonight",
   "shell.moments.kind.bigOneToday": "Big one today",
+  "shell.moments.kind.bigOneLive": "Big one, live",
   "shell.moments.kind.startingSoon": {
     "one": "Starts in {count} min",
     "other": "Starts in {count} min"

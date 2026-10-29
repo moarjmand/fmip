@@ -116,9 +116,11 @@ export function momentEyebrow(
       return say('shell.moments.kind.favouriteHeld');
     case 'big_one':
       return say(
-        hourIn(timeZone, card.kickoff_at) >= EVENING_HOUR
-          ? 'shell.moments.kind.bigOneTonight'
-          : 'shell.moments.kind.bigOneToday',
+        card.status === 'live'
+          ? 'shell.moments.kind.bigOneLive'
+          : hourIn(timeZone, card.kickoff_at) >= EVENING_HOUR
+            ? 'shell.moments.kind.bigOneTonight'
+            : 'shell.moments.kind.bigOneToday',
       );
     case 'starting_soon': {
       const minutes = Math.ceil((Date.parse(card.kickoff_at) - now) / 60_000);

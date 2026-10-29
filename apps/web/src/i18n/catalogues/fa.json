@@ -335,6 +335,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "shell.moments.kind.bigOneLive": {
+    "source": "Big one, live",
+    "text": "بازی بزرگ، زنده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "shell.moments.kind.startingSoon": {
     "source": {
       "one": "Starts in {count} min",

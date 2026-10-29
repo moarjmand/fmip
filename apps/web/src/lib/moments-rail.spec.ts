@@ -116,6 +116,12 @@ describe('the eyebrow, per kind', () => {
     expect(en(moment({ kind: 'followed', followed: true }))).toBe('Your team');
   });
 
+  it('says the big one is live while it is played (T-1644)', () => {
+    const playing = moment({ kind: 'big_one', fixture: live(32, 1, 0) });
+    expect(en(playing)).toBe('Big one, live');
+    expect(momentEyebrow(playing, 'fa', 'Asia/Tehran', NOW).text).toBe('بازی بزرگ، زنده');
+  });
+
   it('counts the minutes left in a level match, and says added time at none', () => {
     expect(en(moment({ kind: 'level_late', fixture: live(78, 1, 1), minutes_left: 12 }))).toBe(
       'Level, 12 min to go',
