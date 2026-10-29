@@ -16628,6 +16628,138 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionsMenu.title": {
+    "source": "Every competition",
+    "text": "همه رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.counts": {
+    "source": "{live} live now · {today} playing today · {all} in all",
+    "text": "{live} زنده · {today} با بازی امروز · {all} در مجموع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.countsNoToday": {
+    "source": "{all} in all · today’s matches could not be read",
+    "text": "{all} در مجموع · بازی‌های امروز خوانده نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.filter": {
+    "source": "Filter competitions",
+    "text": "جست‌وجو در رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.show.label": {
+    "source": "Show",
+    "text": "نمایش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.show.all": {
+    "source": "All {count}",
+    "text": "همه {count}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.show.today": {
+    "source": "Today {count}",
+    "text": "امروز {count}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.show.live": {
+    "source": "Live {count}",
+    "text": "زنده {count}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.bigFive": {
+    "source": "Big five",
+    "text": "پنج لیگ بزرگ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.europeanCups": {
+    "source": "European cups",
+    "text": "جام‌های اروپایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.europe": {
+    "source": "More of Europe",
+    "text": "دیگر لیگ‌های اروپا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.cups": {
+    "source": "Domestic cups",
+    "text": "جام‌های داخلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.national": {
+    "source": "National teams",
+    "text": "تیم‌های ملی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.asia": {
+    "source": "Asia & Middle East",
+    "text": "آسیا و خاورمیانه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.americas": {
+    "source": "Americas",
+    "text": "قاره آمریکا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.africa": {
+    "source": "Africa",
+    "text": "آفریقا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.oceania": {
+    "source": "Oceania",
+    "text": "اقیانوسیه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.region.other": {
+    "source": "Other competitions",
+    "text": "دیگر رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.open": {
+    "source": "Open the competitions page",
+    "text": "رفتن به صفحه رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.note": {
+    "source": "Kick-off times in {zone} · days are the next match day",
+    "text": "ساعت شروع بازی‌ها {zone} · روز نوشته‌شده، روز بازی بعدی است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.loading": {
+    "source": "Loading every competition…",
+    "text": "در حال بارگیری همه رقابت‌ها…",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionsMenu.noMatch": {
+    "source": "No competition matches this filter.",
+    "text": "هیچ رقابتی با این جست‌وجو جور نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "nav.highlights": {
     "source": "Highlights",
     "text": "هایلایت‌ها",
