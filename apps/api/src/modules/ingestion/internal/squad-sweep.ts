@@ -20,9 +20,16 @@
  * day (default 60; 0 turns it off), and none while the day's requests are at
  * or past `SQUAD_HEADROOM_PERCENT` of the deployment's daily budget (T-501),
  * so photos never compete with match data for the plan.
+ *
+ * The asks are spaced by the `AskPacer` like every other bulk job's (T-1637):
+ * sixty asks sent back to back were over in under a minute, but the
+ * operator's cap goes to 500, and a burst of hundreds at the rate the
+ * provider has refused before (T-1422) would be refused in part, with the
+ * live and standings asks of the same minute.
  */
 
 import type { NormalisedSquadPlayer, Position, Provider, ProviderAdapter } from '@fmip/ingestion';
+import { AskPacer } from './ask-pacer';
 
 /** The default daily cap on squad requests. */
 export const SQUADS_PER_DAY = 60;
@@ -144,8 +151,11 @@ export async function sweepSquads(input: {
   /** The deployment's daily request budget, or `null` for none of its own. */
   budget: number | null;
   requestsToday: number;
+  /** Spaces the asks; injected so a test does not sleep. */
+  pacer?: { pace(): Promise<void> };
 }): Promise<SquadSweep> {
   const { provider, adapter, store, media, now } = input;
+  const pacer = input.pacer ?? new AskPacer();
   const sweep: SquadSweep = {
     asked: 0,
     answered: 0,
@@ -185,6 +195,7 @@ export async function sweepSquads(input: {
   if (due.length === 0) return { ...sweep, idle: 'every club’s squad is current' };
 
   for (const team of due) {
+    await pacer.pace();
     const result = await adapter.getSquad(team.externalId);
     sweep.asked += result.requests;
     await store.markSquadAsked(provider, team.teamId, result.ok);

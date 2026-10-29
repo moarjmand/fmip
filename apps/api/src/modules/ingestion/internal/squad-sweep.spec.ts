@@ -105,7 +105,14 @@ function world(teams: SquadTeam[], options: { askedToday?: number; refuseAll?: b
       noted.push({ provider, entityId, url });
     },
   };
-  return { adapter, store, media, requests, noted, marked, dueLimits, listings };
+  // Each pace records how many asks had gone out by then; it never sleeps.
+  const paced: number[] = [];
+  const pacer = {
+    pace: async () => {
+      paced.push(requests.length);
+    },
+  };
+  return { adapter, store, media, pacer, requests, noted, marked, dueLimits, listings, paced };
 }
 
 const TEAMS: SquadTeam[] = [
@@ -175,6 +182,14 @@ describe('the squads sweep (T-1324)', () => {
         members: [{ personId: 'person-201', shirtNumber: 1, position: 'midfielder' }],
       },
     ]);
+  });
+
+  it('spaces its asks with the pacer, once before each (T-1637)', async () => {
+    const w = world(TEAMS);
+    await sweepSquads({ ...base, ...w, perDay: 60, budget: 7000, requestsToday: 0 });
+    // Before the first ask nothing had gone out, before the second one ask had.
+    expect(w.paced).toEqual([0, 1]);
+    expect(w.requests).toHaveLength(2);
   });
 
   it('asks no more than what is left of the day’s cap', async () => {
