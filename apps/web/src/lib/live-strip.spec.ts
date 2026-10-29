@@ -6,14 +6,12 @@ import {
   type KeptAnswer,
   STRIP_ANSWER_MS,
   STRIP_FAILURE_MS,
-  chipState,
   sharedAnswer,
   stripBehindAt,
   stripIsBehind,
 } from './live-strip';
-import { scoresWords } from './words-server';
 
-/** The live strip's rules (T-1381, D-199), now the matchday rail drawer's (T-1624, D-292). */
+/** The live strip's rules (T-1381, D-199) the moments rail keeps (T-1642, D-300). */
 
 const NOW = Date.parse('2026-10-11T15:00:00.000Z');
 
@@ -48,108 +46,6 @@ function stripCard(over: Partial<ScoreCard> = {}): ScoreCard {
     ...over,
   };
 }
-
-const words = scoresWords('en').m;
-const faWords = scoresWords('fa').m;
-
-describe('a chip’s state', () => {
-  it('before kick-off: the time, no score', () => {
-    expect(chipState(stripCard(), 'en', 'UTC', NOW, words)).toEqual({
-      kind: 'before',
-      status: '13:30',
-      score: null,
-    });
-  });
-
-  it('before kick-off in Persian: the time in Persian digits', () => {
-    expect(chipState(stripCard(), 'fa', 'Asia/Tehran', NOW, faWords).status).toBe('۱۷:۰۰');
-  });
-
-  it('live: the minute and the score, and the word for when the answer ages (T-1635)', () => {
-    const live = stripCard({ status: 'live', minute: 78, scores: score(1, 1) });
-    expect(chipState(live, 'en', 'UTC', NOW, words)).toEqual({
-      kind: 'live',
-      status: '78′',
-      score: { home: 1, away: 1 },
-      behindStatus: 'Behind',
-    });
-    expect(chipState(live, 'fa', 'UTC', NOW, faWords).status).toBe('۷۸′');
-    expect(chipState(live, 'fa', 'UTC', NOW, faWords).behindStatus).toBe(
-      faWords['status.behind'].text,
-    );
-    expect(faWords['status.behind'].text).not.toBe('Behind');
-  });
-
-  it('live but the data stopped: "Behind" in place of the minute (D-045)', () => {
-    const stuck = stripCard({
-      status: 'live',
-      minute: 78,
-      scores: score(1, 1),
-      last_updated_at: new Date(NOW - STALE_LIVE_AFTER_MS - 1).toISOString(),
-    });
-    expect(chipState(stuck, 'en', 'UTC', NOW, words)).toMatchObject({
-      kind: 'behind',
-      status: 'Behind',
-    });
-  });
-
-  it('half-time the provider still answers about: the minute, not "Behind" (T-1394, D-209)', () => {
-    // Unchanged since the whistle ten minutes ago; the live list answered a
-    // minute ago, as it does every minute through the interval.
-    const halfTime = stripCard({
-      status: 'live',
-      minute: 45,
-      scores: score(1, 0),
-      last_updated_at: new Date(NOW - 600_000).toISOString(),
-      live_answered_at: new Date(NOW - 60_000).toISOString(),
-    });
-    expect(chipState(halfTime, 'en', 'UTC', NOW, words)).toEqual({
-      kind: 'live',
-      status: '45′',
-      score: { home: 1, away: 0 },
-      behindStatus: 'Behind',
-    });
-    expect(stripIsBehind([halfTime], new Date(NOW).toISOString(), NOW)).toBe(false);
-    // The provider fell silent: behind again, as rule 4 asks.
-    const silent = { ...halfTime, live_answered_at: new Date(NOW - 300_000).toISOString() };
-    expect(chipState(silent, 'en', 'UTC', NOW, words).kind).toBe('behind');
-  });
-
-  it('full time is final however old the row is, never "Behind" (T-1394)', () => {
-    const over = stripCard({
-      status: 'finished',
-      scores: { ...score(0, 3), full_time: { home: 0, away: 3 } },
-      last_updated_at: new Date(NOW - 3 * 3_600_000).toISOString(),
-      freshness: 'stale',
-    });
-    expect(chipState(over, 'en', 'UTC', NOW, words)).toMatchObject({ kind: 'final', status: 'FT' });
-    expect(stripIsBehind([over], new Date(NOW - 3 * 3_600_000).toISOString(), NOW)).toBe(false);
-  });
-
-  it('live with no score yet: no invented 0–0', () => {
-    expect(chipState(stripCard({ status: 'live', minute: 2 }), 'en', 'UTC', NOW, words).score).toBe(
-      null,
-    );
-  });
-
-  it('full time: FT and the full-time score; پایان in Persian', () => {
-    const done = stripCard({ status: 'finished', scores: score(6, 1) });
-    expect(chipState(done, 'en', 'UTC', NOW, words)).toEqual({
-      kind: 'final',
-      status: 'FT',
-      score: { home: 6, away: 1 },
-    });
-    expect(chipState(done, 'fa', 'UTC', NOW, faWords).status).toBe('پایان');
-  });
-
-  it('postponed: the word, no score', () => {
-    expect(chipState(stripCard({ status: 'postponed' }), 'en', 'UTC', NOW, words)).toEqual({
-      kind: 'off',
-      status: 'Postponed',
-      score: null,
-    });
-  });
-});
 
 describe('when the strip may be behind (rule 4)', () => {
   const generated = '2026-10-11T15:00:00.000Z';

@@ -194,22 +194,12 @@
     "text": "",
     "status": "untranslated"
   },
-  "shell.strip.label": {
-    "source": "Today · {competition}",
+  "shell.moments.label": {
+    "source": "Moments that matter",
     "text": "",
     "status": "untranslated"
   },
-  "shell.strip.versus": {
-    "source": "v",
-    "text": "",
-    "status": "untranslated"
-  },
-  "shell.strip.behind": {
-    "source": "May be behind",
-    "text": "",
-    "status": "untranslated"
-  },
-  "shell.rail.live": {
+  "shell.moments.live": {
     "source": {
       "one": "{count} live",
       "other": "{count} live"
@@ -217,13 +207,168 @@
     "forms": {},
     "status": "untranslated"
   },
-  "shell.rail.myTeams": {
-    "source": "My teams",
+  "shell.moments.picked": {
+    "source": {
+      "one": "Picked from {count} match by what is happening and what the model expected",
+      "other": "Picked from {count} matches by what is happening and what the model expected"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "shell.moments.more": {
+    "source": {
+      "one": "{count} more",
+      "other": "{count} more"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "shell.moments.moreLabel": {
+    "source": {
+      "one": "{count} more match on the scores page",
+      "other": "{count} more matches on the scores page"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "shell.moments.behind": {
+    "source": "May be behind",
     "text": "",
     "status": "untranslated"
   },
-  "shell.rail.open": {
-    "source": "Open {competition}",
+  "shell.moments.kind.againstForecast": {
+    "source": "Against the forecast",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.levelLate": {
+    "source": {
+      "one": "Level, {count} min to go",
+      "other": "Level, {count} min to go"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "shell.moments.kind.levelAdded": {
+    "source": "Level in added time",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.favouriteHeld": {
+    "source": "Favourite held",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.bigOneTonight": {
+    "source": "Big one tonight",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.bigOneToday": {
+    "source": "Big one today",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.startingSoon": {
+    "source": {
+      "one": "Starts in {count} min",
+      "other": "Starts in {count} min"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "shell.moments.kind.kickoffDue": {
+    "source": "Kick-off due",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.closestCall": {
+    "source": "Closest call to come",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.upset": {
+    "source": "Upset",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.followed": {
+    "source": "Your team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.comingUp": {
+    "source": "Coming up",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.kind.comingUpOn": {
+    "source": "Coming up {day}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.say.againstForecast": {
+    "source": "{team} lead; before kick-off the model gave them {pct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.say.levelLate": {
+    "source": "{team} were the model’s pick at {pct}; the draw had {draw}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.say.levelLateDraw": {
+    "source": "The draw was the model’s pick at {pct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.say.favouriteLevel": {
+    "source": "{team} are level; the model gave them {pct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.say.favouriteBehind": {
+    "source": "{team} are behind; the model gave them {pct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.say.upset": {
+    "source": "{team} won; the model gave them {pct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.say.closestCall": {
+    "source": "{home} · {draw} · {away}: the most even match still to start.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.say.three": {
+    "source": "{home} {homePct}, the draw {drawPct}, {away} {awayPct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.card.before": {
+    "source": "Before kick-off the model gave {home} {homePct}, the draw {drawPct}, {away} {awayPct}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.card.lastBefore": {
+    "source": "last version before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.card.open": {
+    "source": "Match centre",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.card.follow": {
+    "source": "Follow {team}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shell.moments.card.updated": {
+    "source": "Updated {time} · {ago}",
     "text": "",
     "status": "untranslated"
   },
@@ -13626,16 +13771,6 @@
   },
   "matchCentre.noEventsYet": {
     "source": "No events recorded yet.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitions.bar.label": {
-    "source": "Competitions",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitions.bar.all": {
-    "source": "All competitions",
     "text": "",
     "status": "untranslated"
   },

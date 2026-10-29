@@ -19,7 +19,7 @@ import { describe, expect, it } from 'vitest';
  * `global-error.tsx`, which has no layout to hand it words, loads them. Nor
  * what a `'use server'` module imports: a client module that imports one gets
  * a reference to call on the server, never the module's code (T-1635, the
- * matchday rail's `refreshRail`, which draws the rail with its words).
+ * rail's `refreshRail`, which draws the moments rail with its words, T-1642).
  */
 
 const SRC = join(__dirname, '..');
@@ -111,10 +111,10 @@ describe('the catalogues stay on the server', () => {
   });
 
   it('stops at a Server Function, whose code a client module never carries (T-1635)', () => {
-    // `refreshRail` draws the rail with its words, on the server.
+    // `refreshRail` draws the moments rail with its words, on the server (T-1642).
     const action = join(SRC, 'lib', 'rail-actions.ts');
     expect(chainToCatalogues(action)).toBeDefined();
-    expect(chainToCatalogues(join(SRC, 'components', 'matchday-rail-view.tsx'))).toBeUndefined();
+    expect(chainToCatalogues(join(SRC, 'components', 'moments-rail-view.tsx'))).toBeUndefined();
   });
 
   it('no client module reaches messages.ts or a catalogue by static import', () => {

@@ -246,7 +246,8 @@ export function ForecastStrip({
   compact = false,
   className,
 }: {
-  forecast: Available;
+  /** The three shares only: the moments rail's hover card (T-1642) has no version number to pass. */
+  forecast: Pick<Available, 'home' | 'draw' | 'away'>;
   home: string;
   away: string;
   outcome?: Outcome | null;

@@ -223,145 +223,323 @@
 }
 
 /*
- * The matchday rail under the header (T-1624, D-292, amending T-1513's pills;
- * `components/matchday-rail-view.tsx`). `rail-chip`: a league (or My teams),
- * the 44px target, its pill the inner box -- a hairline round a logo, a short
- * name and a status; the league being read (`aria-current`) or whose matches
- * the drawer shows (`aria-pressed`) edged in saffron on the raised surface.
- * `rail-all`: "All competitions" at the end, saffron text and an arrow, no
- * edge. `rail-status`: a chip's status after the name, in the caption ink;
- * live in red with the pulsing dot (`.live-dot`).
+ * The moments rail under the header (T-1642, D-300, in place of D-292's
+ * matchday rail; `components/moments-rail.tsx`, `moments-rail-view.tsx`).
+ * Its looks live here rather than in class strings repeated on every card,
+ * and none in the client half (D-264). In the components layer, so a
+ * utility on the element (`hidden`) still wins.
+ *
+ * On the surface with a hairline under it. The lead (`moments-lead`): "● N
+ * live" in saffron, its dot pulsing where motion is welcome (`.live-dot`),
+ * still and in the caption ink with nothing live, amber once the rail's
+ * answer has aged (`data-behind`, rule 4); from 768px the caption and the
+ * Leagues button under it, in a 120px column. Each card (`moment-card`) on
+ * the raised surface, edged in the hairline, the first in saffron: the
+ * eyebrow (11px, 800, tracked, saffron in play, muted otherwise) with the
+ * logo and the time at its inline end, two team lines (the goals at the
+ * inline end, saffron in play; at full time the winner bold, the loser
+ * muted) and the model line with its outlined MODEL tag (turquoise has too
+ * little contrast on its own tint on Day, D-263).
+ *
+ * Below 768px the cards scroll sideways and snap, to the frame's edges.
+ * From 768px the row holds only the cards that fit, never scrolling: the
+ * row is a container, each card at least 15rem wide and 0.75rem apart, the
+ * "N more" slot 3.5rem at the end; with k cards fitting from
+ * k x 15.75rem + 3.5rem (`fitThreshold`, which `moments-rail.spec.ts` holds
+ * these numbers to), the rest are not drawn and the one "N more" link that
+ * counts them is. The hover card (`moment-float`) floats under its card,
+ * from its inline start, or its inline end when the window has no room.
  */
-@utility rail-chip {
-  @apply flex min-h-touch shrink-0 cursor-pointer items-center whitespace-nowrap;
-
-  & > span {
-    @apply flex items-center gap-2 rounded-pill border border-default px-3 py-1.5 text-[0.8125rem] font-semibold text-fg;
+@layer components {
+  .moments-frame {
+    @apply flex flex-col gap-2 py-3 md:flex-row md:items-stretch md:gap-4;
   }
 
-  &:hover > span {
-    @apply border-strong;
+  .moments-lead {
+    @apply flex items-center gap-3 md:w-30 md:flex-none md:flex-col md:items-start md:justify-between md:gap-2;
   }
 
-  &[aria-current='page'] > span,
-  &[aria-pressed='true'] > span {
-    @apply border-accent bg-surface-raised font-bold;
-  }
-}
+  .moments-live {
+    @apply inline-flex items-center gap-2 text-sm font-extrabold whitespace-nowrap text-live tabular-nums;
 
-@utility rail-all {
-  @apply flex min-h-touch items-center gap-1 px-3 text-[0.8125rem] font-bold whitespace-nowrap text-accent hover:underline;
-
-  &[aria-current='page'] {
-    @apply underline underline-offset-4;
-  }
-}
-
-@utility rail-status {
-  @apply inline-flex items-center gap-1.5 text-xs font-semibold text-caption;
-
-  &[data-kind='live'] {
-    @apply font-bold text-live;
+    &[data-count='0'] {
+      @apply text-caption;
+    }
   }
 
-  /*
-   * The rail's answer has aged past what it can vouch for (T-1635, rule 4,
-   * `data-behind` on the rail): a live count is amber and its dot still,
-   * until an answer comes in again; the drawer says "May be behind".
-   */
-  [data-behind='true'] &[data-kind='live'] {
+  .moments-dot {
+    @apply size-2 shrink-0 rounded-full bg-brand;
+
+    [data-count='0'] > & {
+      @apply bg-caption;
+    }
+  }
+
+  [data-behind='true'] .moments-live {
     @apply text-warning;
 
-    & > .live-dot {
+    & > .moments-dot {
       @apply bg-warning;
     }
   }
-}
 
-/*
- * A row that scrolls sideways without a scrollbar (T-1624, D-292,
- * `components/scroll-row.tsx`): the native bar hidden, the edge with more
- * beyond it faded (`data-more-start`, `data-more-end`, set by the island),
- * and from 768px a round chevron on that edge that scrolls by a page. The
- * fade runs along the inline axis, so it is drawn the other way round under
- * right to left. A focused item scrolls into view clear of the fade. The
- * mask reads only its stops' alpha: `black` there is opaque, not a colour.
- */
-@utility scroll-row {
-  @apply relative flex min-w-0 items-center;
-
-  & > ul {
-    @apply min-w-0 flex-1 overflow-x-auto;
-
-    scroll-padding-inline: 2.5rem;
-    scrollbar-width: none;
-    --fade-start: 0px;
-    --fade-end: 0px;
+  .moments-picked {
+    @apply hidden text-xs leading-snug text-caption md:block;
   }
 
-  & > ul::-webkit-scrollbar {
-    display: none;
+  .moments-leagues {
+    @apply hidden min-h-9 items-center gap-1 rounded-pill border border-default px-3 text-xs font-bold text-fg hover:border-strong md:inline-flex;
   }
 
-  &[data-more-start] > ul {
-    --fade-start: 2.5rem;
+  .moments-row {
+    @apply flex min-w-0 flex-1 gap-3;
   }
 
-  &[data-more-end] > ul {
-    --fade-end: 2.5rem;
+  .moments-cards {
+    @apply flex min-w-0 flex-1 gap-3;
   }
 
-  &:is([data-more-start], [data-more-end]) > ul {
-    mask-image: linear-gradient(
-      to right,
-      transparent,
-      black var(--fade-start),
-      black calc(100% - var(--fade-end)),
-      transparent
-    );
+  .moment-slot {
+    @apply relative;
   }
 
-  [dir='rtl'] &:is([data-more-start], [data-more-end]) > ul {
-    mask-image: linear-gradient(
-      to left,
-      transparent,
-      black var(--fade-start),
-      black calc(100% - var(--fade-end)),
-      transparent
-    );
-  }
-}
+  .moment-card {
+    @apply flex h-full flex-col gap-1.5 rounded-xl border border-default bg-surface-raised p-3 text-fg hover:border-strong;
 
-/* The chevrons: none on a phone (a thumb swipes), none at an edge with nothing beyond it. */
-.scroll-chevron {
-  display: none;
-}
-
-@media (width >= 48rem) {
-  .scroll-row[data-more-start] > .scroll-chevron[data-edge='start'],
-  .scroll-row[data-more-end] > .scroll-chevron[data-edge='end'] {
-    @apply absolute inset-y-0 z-10 my-auto flex size-8 cursor-pointer items-center justify-center rounded-full border border-default bg-surface text-fg hover:border-strong;
+    &[data-first] {
+      @apply border-brand;
+    }
   }
 
-  .scroll-chevron[data-edge='start'] {
-    @apply start-0;
+  .moment-eyebrow {
+    @apply flex items-center gap-1.5 text-[11px] leading-4 font-extrabold tracking-[0.08em] text-muted uppercase;
+
+    &[data-tone='live'] {
+      @apply text-live;
+    }
   }
 
-  .scroll-chevron[data-edge='end'] {
-    @apply end-0;
+  .moment-when {
+    @apply shrink-0 tabular-nums;
   }
-}
 
-.scroll-chevron svg {
-  fill: none;
-  stroke: currentcolor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2;
-}
+  .moment-team {
+    @apply flex items-center gap-2 text-sm font-semibold;
 
-[dir='rtl'] .scroll-chevron svg {
-  transform: scaleX(-1);
+    &[data-result='won'] {
+      @apply font-extrabold;
+    }
+
+    &[data-result='lost'] {
+      @apply text-muted;
+    }
+  }
+
+  .moment-team-name {
+    @apply min-w-0 flex-1 truncate font-stretch-condensed;
+  }
+
+  .moment-goals {
+    @apply shrink-0 font-extrabold tabular-nums;
+
+    [data-state='live'] > & {
+      @apply text-live;
+    }
+
+    [data-result='lost'] > & {
+      @apply font-semibold;
+    }
+  }
+
+  .moment-team-big {
+    @apply text-base font-bold;
+
+    & > .moment-goals {
+      @apply font-sans text-3xl leading-none font-extrabold font-stretch-condensed;
+    }
+  }
+
+  .moment-model {
+    @apply mt-auto flex items-start gap-1.5 text-xs leading-4 text-muted;
+  }
+
+  .moment-tag {
+    @apply shrink-0 rounded-xs border border-model px-1 font-mono text-[10px] leading-[0.875rem] font-semibold text-model uppercase;
+
+    :root:is(:lang(fa), :lang(ar)) & {
+      @apply font-sans;
+    }
+  }
+
+  .moment-behind {
+    @apply block text-xs font-semibold text-warning;
+  }
+
+  .moment-float {
+    @apply absolute top-full z-40 w-[23rem] max-w-[calc(100vw-2rem)] pt-2;
+
+    inset-inline-start: 0;
+
+    &[data-align='end'] {
+      inset-inline: auto 0;
+    }
+  }
+
+  .moment-panel {
+    @apply flex flex-col gap-3 rounded-xl border border-default bg-surface p-4 text-fg shadow-lg;
+  }
+
+  .moment-panel-eyebrow {
+    @apply min-w-0 truncate text-[11px] font-extrabold tracking-[0.08em] text-muted uppercase;
+  }
+
+  .moments-more-slot,
+  .moments-more {
+    @apply hidden;
+  }
+
+  @media (width < 48rem) {
+    .moments-cards {
+      @apply -mx-4 overflow-x-auto px-4;
+
+      scroll-padding-inline: 1rem;
+      scroll-snap-type: inline mandatory;
+      scrollbar-width: none;
+    }
+
+    .moments-cards::-webkit-scrollbar {
+      display: none;
+    }
+
+    .moments-cards > .moment-slot {
+      @apply w-60 flex-none;
+
+      scroll-snap-align: start;
+    }
+  }
+
+  @media (width >= 48rem) {
+    .moments-row {
+      container: moments / inline-size;
+    }
+
+    .moments-cards {
+      display: grid;
+      grid-template-columns: repeat(var(--moments-fit, 1), minmax(0, 1fr));
+    }
+
+    .moments-more-slot {
+      @apply flex w-14 flex-none items-center justify-center;
+    }
+
+    .moments-more {
+      @apply min-h-touch flex-col items-center justify-center gap-0.5 px-1 text-center text-xs leading-tight font-bold text-accent hover:underline;
+    }
+
+    @container moments (width < 35rem) {
+      .moments-cards {
+        --moments-fit: 1;
+      }
+
+      .moments-cards > :nth-child(n + 2) {
+        display: none;
+      }
+
+      .moments-more[data-shown='1'] {
+        display: flex;
+      }
+    }
+
+    @container moments (35rem <= width < 50.75rem) {
+      .moments-cards {
+        --moments-fit: 2;
+      }
+
+      .moments-cards > :nth-child(n + 3) {
+        display: none;
+      }
+
+      .moments-more[data-shown='2'] {
+        display: flex;
+      }
+    }
+
+    @container moments (50.75rem <= width < 66.5rem) {
+      .moments-cards {
+        --moments-fit: 3;
+      }
+
+      .moments-cards > :nth-child(n + 4) {
+        display: none;
+      }
+
+      .moments-more[data-shown='3'] {
+        display: flex;
+      }
+    }
+
+    @container moments (66.5rem <= width < 82.25rem) {
+      .moments-cards {
+        --moments-fit: 4;
+      }
+
+      .moments-cards > :nth-child(n + 5) {
+        display: none;
+      }
+
+      .moments-more[data-shown='4'] {
+        display: flex;
+      }
+    }
+
+    @container moments (82.25rem <= width < 98rem) {
+      .moments-cards {
+        --moments-fit: 5;
+      }
+
+      .moments-cards > :nth-child(n + 6) {
+        display: none;
+      }
+
+      .moments-more[data-shown='5'] {
+        display: flex;
+      }
+    }
+
+    @container moments (98rem <= width < 113.75rem) {
+      .moments-cards {
+        --moments-fit: 6;
+      }
+
+      .moments-cards > :nth-child(n + 7) {
+        display: none;
+      }
+
+      .moments-more[data-shown='6'] {
+        display: flex;
+      }
+    }
+
+    @container moments (113.75rem <= width < 129.5rem) {
+      .moments-cards {
+        --moments-fit: 7;
+      }
+
+      .moments-cards > :nth-child(n + 8) {
+        display: none;
+      }
+
+      .moments-more[data-shown='7'] {
+        display: flex;
+      }
+    }
+
+    @container moments (width >= 129.5rem) {
+      .moments-cards {
+        --moments-fit: 8;
+      }
+    }
+  }
 }
 
 /*
@@ -710,7 +888,7 @@ body {
 }
 
 /*
- * A live chip's dot (T-1381, `components/live-strip.tsx`) pulses in the live
+ * A live dot (T-1381; the moments rail's lead, `LiveBadge`) pulses in the live
  * colour: a ring of the token itself that grows and fades. Only where motion
  * is welcome: neither the device nor the member (`data-motion="reduce"`)
  * asked for less, so the dot is still otherwise.

@@ -178,7 +178,7 @@ describe('the header nav', () => {
     expect(HEADER).toContain('<header className="relative border-b border-default bg-surface');
     expect(HEADER).toMatch(/<PrimaryNav\s/);
     expect(HEADER).toContain(
-      '<MatchdayRail locale={locale} timeZone={timeZone} signedIn={me !== null} />',
+      '<MomentsRail locale={locale} timeZone={timeZone} signedIn={me !== null} />',
     );
     expect(HEADER).toContain('data-testid="nav-search"');
     expect(HEADER).toContain('data-testid="nav-search-form"');
