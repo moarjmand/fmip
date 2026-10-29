@@ -13040,3 +13040,56 @@ Every compare page now names both players' clubs, national teams, positions and 
 
 **Consequences.** A competition added from now on feeds the training store unless set off. Forecasts for the cups' matches are still made by the published version (as `XL`), from the clubs' histories it holds.
 
+## D-310 — Coach quality: a coach's sides against a simple strength baseline across his spells, shrunk toward zero, and his time in post
+
+**Status:** Accepted · 2026-10-30 (the formulation and its constants, written before any run; the verdict is pending the lab run) · **Task:** T-1658 · **Follows:** D-139, D-147, D-173, D-303
+
+**Context.** The teammate asked for "coach performance and stability" (D-303). D-147's `new_coach` reads only a new coach's first ten matches and had too few of them (217 of 300). This input reads every named coach: what his sides did against expectation in every spell the stored line-ups show, and how long he has been in post. `new_coach` is unchanged.
+
+**Decision.** An input, `coach_quality` (`apps/model/fmip_model/inputs/coach_quality.py`), judged by D-139's bar.
+
+1. **The coach.** A side's coach is the person named on its club's latest stored line-up strictly before the match's day (UTC days), by person id (D-147). No line-up before the day, a latest line-up that names no coach (a gap), or two line-ups of the club on that day: the side is not read, never a default. A coach appointed since that line-up is read from his second match; his first is read under his predecessor. Reading the day before keeps the input on the harness's boundary (`known`) and off the line-up's timing.
+2. **The results.** Every row of the store the harness reads (`training.match`, every division, on or before `--to`), clubs keyed through `training.team_alias` as our own Elo keys them (`training.own_elo.read_matches`). A stored match's side was coached by the person its own line-up names on that UTC day. A football-data club reaches its line-ups through the alias, so football-data divisions are read where their clubs are aliased and their line-ups stored (D-147's `new_coach` reads our records only).
+3. **The expectation.** The harness hands each refit the fitted model, whose fit has absorbed the coach's own results and which holds only the division's clubs; it gives no pre-match expectation of a coach's past matches. So the expectation is a simple strength baseline, a goal rating run once over every stored result in date order: each club has a log attack `a` and a log leakiness `d`, both 0 at its first stored match; the home side's expected goals are `1.5 * exp(a_home + d_away)`, the away side's `1.2 * exp(a_away + d_home)`; after a day's results each side's `a`, and its opponent's `d`, move by `0.02 * (goals - expected)`. Every match of a day is expected from the ratings as they stood before the day. A match is **scored** only when both clubs have at least 30 earlier stored matches.
+4. **The record.** Over the coach's scored matches strictly before the day, in every club and competition the store holds: the sums of (goals scored - expected) and (goals conceded - expected), each divided by `n + 40`, `n` the scored matches. That is the mean shrunk toward zero by a pseudo-count of 40: one result of +2 reads 0.05, forty results read half their mean. A named coach with no scored match reads 0 and 0, a tenure-only reading.
+5. **Tenure** is his matches in post at the club up to that latest line-up (`training.coaches.coach_contexts`: every competition we carry, a gap counting for no one), read as `log(1 + min(t, 38)) / log(39)`. When his spell began before the club's stored line-ups (its first stored coach) and `t < 38`, tenure is unknown and the side is not read.
+6. **The term.** Home goals move by `exp(b1 * scoring(home) + b2 * conceding(away) + b3 * tenure(home) + b4 * tenure(away))`, away goals with the sides swapped: four coefficients fitted by `FeatureInput`. A match is read when both sides are; a match whose features are all zero is not. A term fitted on fewer than 100 matches (25 per coefficient, `inputs/_lab.py`) is not read: a thin fit leaves the candidate's forecast, never a guess.
+7. **Line-ups on the lab store.** `fmip_lab` holds no `public` (D-303), so the input reads line-ups from `MODEL_RECORDS_DATABASE_URL` when it is set (the production database's `public`, read only; its `training` is never read), else from `DATABASE_URL`.
+
+**The constants**, fixed here before any run and not tuned on 2024/25 or later: pseudo-count 40 (a coach's true effect is small, a standard deviation of about 0.15 to 0.2 goals a match, against a residual variance of about 1.4 a match, so `1.4 / 0.18^2`, about 40); tenure cap 38 matches; baseline 1.5 and 1.2 goals; rate 0.02 (a memory of about `1 / (0.02 * 1.35)`, 37 matches, a season); warm-up 30 matches; 25 matches per coefficient.
+
+**Rejected.**
+- *The fitted model's expected goals for the coach's past matches*: in-sample (the club's strength already holds the coach's results) and blind to his spells in other divisions.
+- *The match's own line-up* (as `new_coach`): it is announced about an hour before kick-off; the day before is what the harness and serving both know.
+- *A coach's raw results*: they repeat his clubs' strength.
+
+**Verdict: pending** the lab run (the command is in the PR of T-1658).
+
+## D-311 — Late-season stakes: in the last eight rounds, each side chasing a prize, in danger, or with nothing to play for, by the committed zones
+
+**Status:** Accepted · 2026-10-30 (the formulation and its constants, written before any run; the verdict is pending the lab run) · **Task:** T-1659 · **Follows:** D-038, D-139, D-143, D-171, D-303
+
+**Context.** D-143's locked side was too rare (94 matches); D-171's settled side failed (+0.063 log loss on 476 matches). T-1659 reads only the end of the season, by what each side can still win or lose.
+
+**Decision.** An input, `late_stakes` (`apps/model/fmip_model/inputs/late_stakes.py`), judged by D-139's bar.
+
+1. **The season and its table** as D-143 and D-171: the season's stored fixture list is a complete double round robin; the table is computed from stored results strictly before the match's day (3/1/0, D-038); no result of the season before the day is missing; the zones file (`packages/contracts/zones/league-zones.json`) has a `complete` entry for the season whose club count equals the list's. Any other season is not read (rule 3). Point deductions are not stored and not applied; an entry's note says where a season had them. Our records' lists come from `public.fixture` of `MODEL_RECORDS_DATABASE_URL` when set, else `DATABASE_URL` (as D-310).
+2. **The last eight rounds.** A match is read only when each side has at most 8 league matches left, this one included (the list's matches less those played before the day).
+3. **Finishes** as D-171: best = 1 + the sides already out of its reach; worst = 1 + the other sides that can still end level with it or above (a level finish counted against it).
+4. **The states**, per side:
+   - **up**: it can still win the title or a prize place it is not yet sure of: for place 1, and for the last place of every listed zone that is not a relegation one (Champions League, AFC Champions League Elite, promotion, promotion play-off), `best <= place < worst`;
+   - **danger**: it can still fall into a relegation place or the relegation play-off and is not yet sure to: for the first place of every relegation zone, `best < place <= worst`;
+   - **nothing**: neither: safe with nothing left to win, already sure of its prize, or already down.
+
+   A side can be up and in danger at once. Europa League and Conference League places are not listed (D-171), so a side chasing only one of them reads as nothing.
+5. **The term.** Each side's vector is `[up, danger, nothing]`, its own then its opponent's: six coefficients fitted by `FeatureInput`. Every read match has a non-zero vector, so the sample is every read match of the last eight rounds. A term fitted on fewer than 150 matches (25 per coefficient, `inputs/_lab.py`) is not read.
+
+**The constants**, fixed here before any run: 8 rounds; the three states as above; 25 matches per coefficient.
+
+**What the zones file allows.** It lists 2024/25 onwards: `complete` for 2024/25 and 2025/26 in E0, E1, SP1, I1, D1, F1, N1, P1 and T1, and IR1 2024/25. The fit reads covered seasons only, so on the development window each division's term would be fitted on 2024/25's own earlier late rounds, at most 64 (IR1) to 96 (E1) matches, under the 150: **on the file as it stands the development run is `insufficient` by construction.** The zones of 2020/21 to 2023/24, researched with sources under D-171 as T-1659's row asks, give each division about 250 to 380 earlier late-round matches; the run waits for them. The minimum fit keeps a term fitted on a few dozen in-season matches off the forecast: D-171's input was fitted on such samples, its coefficients bounded only at ±2, which may explain its +0.063 (not measured).
+
+**Rejected.**
+- *The whole season* (D-143, D-171): what a side plays for is clearest at the end, and the earlier rounds dilute it.
+- *Zones for the uncovered seasons inferred from the covered ones*: rule 3.
+
+**Verdict: pending** the lab run and, before it, the earlier seasons' zones.
