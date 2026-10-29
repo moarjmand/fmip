@@ -294,7 +294,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "shell.moments.kind.againstForecast": {
-    "source": "Against the forecast",
+    "source": "Against the model",
     "text": "خلاف پیش‌بینی",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -354,7 +354,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "shell.moments.kind.closestCall": {
-    "source": "Closest call to come",
+    "source": "Closest call",
     "text": "نزدیک‌ترین رقابت پیش رو",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -16809,8 +16809,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "competitionsMenu.counts": {
-    "source": "{live} live now · {today} playing today · {all} in all",
-    "text": "{live} زنده · {today} با بازی امروز · {all} در مجموع",
+    "source": "{live} with a match live · {today} playing today · {all} in all",
+    "text": "{live} با بازی زنده · {today} با بازی امروز · {all} در مجموع",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

@@ -237,7 +237,7 @@
     "status": "untranslated"
   },
   "shell.moments.kind.againstForecast": {
-    "source": "Against the forecast",
+    "source": "Against the model",
     "text": "",
     "status": "untranslated"
   },
@@ -283,7 +283,7 @@
     "status": "untranslated"
   },
   "shell.moments.kind.closestCall": {
-    "source": "Closest call to come",
+    "source": "Closest call",
     "text": "",
     "status": "untranslated"
   },
@@ -13843,7 +13843,7 @@
     "status": "untranslated"
   },
   "competitionsMenu.counts": {
-    "source": "{live} live now · {today} playing today · {all} in all",
+    "source": "{live} with a match live · {today} playing today · {all} in all",
     "text": "",
     "status": "untranslated"
   },

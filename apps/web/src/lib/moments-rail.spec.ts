@@ -108,10 +108,10 @@ const said = (m: Moment, lang: 'en' | 'fa' = 'en') => momentSentence(m, lang)?.t
 describe('the eyebrow, per kind', () => {
   it('names each kind in the reader’s words', () => {
     expect(en(moment({ kind: 'against_forecast', fixture: live(80, 0, 1) }))).toBe(
-      'Against the forecast',
+      'Against the model',
     );
     expect(en(moment({ kind: 'favourite_held', fixture: live(55, 0, 0) }))).toBe('Favourite held');
-    expect(en(moment({ kind: 'closest_call' }))).toBe('Closest call to come');
+    expect(en(moment({ kind: 'closest_call' }))).toBe('Closest call');
     expect(en(moment({ kind: 'upset' }))).toBe('Upset');
     expect(en(moment({ kind: 'followed', followed: true }))).toBe('Your team');
   });

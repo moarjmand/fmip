@@ -197,7 +197,7 @@ describe('the rail on a match day', () => {
       'calm',
     ]);
     for (const words of [
-      'Against the forecast',
+      'Against the model',
       'Level, 12 min to go',
       'Big one tonight',
       'Starts in 18 min',

@@ -229,7 +229,7 @@ test.describe('the moments rail with moments', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await open(page, '/en/scores');
     const first = shown(page).first();
-    await expect(first.getByTestId('moment-eyebrow')).toContainText('Against the forecast');
+    await expect(first.getByTestId('moment-eyebrow')).toContainText('Against the model');
     await expect(first.getByTestId('moment-eyebrow')).toHaveAttribute('data-tone', 'live');
     await expect(first.getByTestId('moment-when')).toHaveText('80′');
     await expect(first.getByTestId('moment-score')).toHaveText(['1', '0']);
@@ -341,7 +341,7 @@ test.describe('the moments rail with moments', () => {
 
   for (const [locale, words, live, moreText] of [
     ['fa', 'خلاف پیش‌بینی', '۳ زنده', '۲ بازی دیگر→'],
-    ['x-rtl', 'Against the forecast', '3 live', '2 more→'],
+    ['x-rtl', 'Against the model', '3 live', '2 more→'],
   ] as const) {
     test(`mirrors on /${locale}: the first card at the right, the time at its left`, async ({
       page,
