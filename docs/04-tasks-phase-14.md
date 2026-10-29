@@ -36,7 +36,7 @@ the lab store (T-1646), never the published model's store.
 | `[ ]` T-1647 | Team match statistics in the training store: shots, shots on target and expected goals per side from our records (`fixture_stat`, API-Football), keyed as `training.match` | T-1646 | Coverage per division and season reported; xG wherever `fixture_stat` holds it (54–68% of finished matches from 2023) |
 | `[ ]` T-1648 | Line-ups and minutes in the training store: each side's starters and every player's minutes per match from our records, for the regulars index (T-1655) | T-1646 | Coverage per division and season reported; a match without a stored line-up is a gap, never a default |
 | `[ ]` T-1649 | The domestic cups we do not carry, kept out of the published version's training store (`competition.model_training`, D-304) and added to the catalogue with their past seasons: EFL Cup, KNVB Cup, Taça de Portugal, Turkish Cup, Scottish Cup and League Cup, Belgian Cup, Hazfi Cup, Copa Sudamericana, AFC Champions League Two | — | Each cup's fixtures from 2020/21 stored; the rest input sees their midweek matches |
-| `[ ]` T-1650 | Past seasons' absences for training: measure how far back the feed's season injury list goes, then backfill it into a training-only table (an exception to D-166's scope, recorded in D-303) | — | Depth per competition reported; rows keyed by person and fixture; nothing shown on the site |
+| `[x]` T-1650 | Past seasons' absences for training: measure how far back the feed's season injury list goes, then backfill it into a training-only table (an exception to D-166's scope, recorded in D-303) | — | Depth per competition reported; rows keyed by person and fixture; nothing shown on the site |
 
 ## B. The Phase 11 inputs again, on the longer store
 

@@ -13040,3 +13040,32 @@ Every compare page now names both players' clubs, national teams, positions and 
 
 **Consequences.** A competition added from now on feeds the training store unless set off. Forecasts for the cups' matches are still made by the published version (as `XL`), from the clubs' histories it holds.
 
+
+## D-306 — Past seasons' absences: a training-only history, fetched by an operator's command
+
+**Status:** Accepted · 2026-10-30 (how D-303 point 4 is carried out; the maintainer approved fetching past seasons' absences for training on 2026-10-29) · **Task:** T-1650 · **Follows:** D-014, D-083, D-303, D-304 · **Amends:** D-166 (its scope, for training only)
+
+**Context.** Phase 14 measures key players' absences against past results, and the training store held none: `fixture_absence` (T-103) is the match page's team news, asked for matches of the next three days only. API-Football's `GET /injuries?league=<id>&season=<year>` answers with every match's entries for a whole season in one response, not paged: per entry the player (id, name, type "Missing Fixture" or "Questionable", reason), his club, the match (id, date) and the league and season. How far back it goes was measured read-only on 2026-10-29 (entries per season, by the season's starting year):
+
+| Competition | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 |
+|---|---|---|---|---|---|---|
+| Premier League | 598 (partial) | 2,563 | 3,056 | 3,853 | 3,168 | 3,417 |
+| Champions League | | 1,011 | (not noted) | (not noted) | (not noted) | 2,317 |
+| Persian Gulf Pro League | none | none | none | none | none | listed |
+
+La Liga's counts were of the Premier League's order. The other competitions' depth is what the command prints on its first run.
+
+**Decision.**
+1. **A table of its own, `absence_history`** (migration `1765899500000_absence-history.sql`), never `fixture_absence`, which is shown. One row per player and match: our match, its season and the player's club, found through `provider_mapping` (rule 2); our person id when mapped, and in every row the provider's person id (`provider_person_id`), the row's key with the provider, so a run after the person is mapped lands on the same row and fills his id in (rule 1: never a name). Status (`out`, `doubtful`), kind (`injury`, `suspension`, `illness`, `other`) and the provider's words for the reason are decided by the adapter's one entry mapper, the same as for team news; `fetched_at` is when the provider answered. An entry whose match or club we do not hold is not written, and counted. Nothing in a route or the web app reads the table.
+2. **Fetched by an operator's command**, `dist/cli/absence-history.js --by <admin> --reason "..." [--season <label>] [--competition <provider id>]`, never scheduled: each past season from 2021/22 (start date from 2021-01-01, so a calendar season 2021 too) of every competition mapped to the provider, the ones kept out of the training store included (D-304: the lab reads them), one request a season. A season the provider says it reports no absences for (`season_feed_coverage`, T-1364) is not asked. The run is an `ingest_run` of its own job, `absence_history`, on the bulk tier: no ask past the bulk share of `API_FOOTBALL_DAILY_BUDGET`, none after a `quota` refusal, the asks paced by `AskPacer`. The administrator is checked and the reason audited (`ingestion.absence_history`, the narrowing as the next value) before a request is spent (rule 10). It prints a line per competition and season and the totals, with the matches and players we do not hold. Running it again rewrites the same rows (idempotent upsert) and gives players mapped since their id; players are not queued for adoption, which would add them to the catalogue and the site.
+3. **Copied into `training.absence`** by `python -m fmip_model.training.load records-absences`: fixture, competition, season label, the match's UTC date, team, person id or the provider's person id, status, kind. One `source_load` of its own source, `our_absences`: not `our_records`, because the service reloads every scope of that one as a division each day. No foreign key into `public`, so `scripts/model-lab-setup.sh` copies it into the lab store as it is. No published version reads either table: nothing published changes.
+4. **The exception to D-166's scope.** D-166 keeps the feed's injury endpoints unread for alerts and pages, and that stands: this reads `/injuries?league=&season=` for the training store only, never shown and never told. The match page's team news (T-103, `/injuries?fixture=`) is unchanged.
+5. **Coverage stays explicit (rule 3).** A competition and season with no row in `training.absence` is one the provider listed no absences for (the Persian Gulf Pro League before 2025/26, a season it says it does not cover, a refusal), never one where nobody was missing; the experiments treat it as unknown.
+
+**Rejected.**
+- *Writing the history into `fixture_absence`:* the match pages would show it as team news.
+- *Asking past matches one by one (`/injuries?fixture=`):* about 380 requests a league season against one.
+- *2020/21:* the provider's list is partial (598 entries for the Premier League against 2,563 the year after); a partial season would read as one with few absences.
+- *Scheduling it:* a past season's list does not change; the operator runs it after adding seasons or competitions.
+
+**Consequences.** After the deploy, the command once on the server, then the loader; the lab store gets the table on its next rebuild (`docs/15-model.md`). The current season is not asked (D-303 approved past seasons): the holdout's 2026/27 matches (T-1660) need a decision of their own, from this command or from the team news already stored. The adapter's spec reads the recorded per-match `/injuries` entry and constructed ones; no season answer is recorded in the repository yet.

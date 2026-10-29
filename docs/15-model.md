@@ -337,6 +337,24 @@ docker compose run --rm --no-deps -T -v $HOME/fmip-lab/reports:/lab-reports mode
 statement, and restores it in one transaction. The server has two cores:
 run one experiment at a time.
 
+**Absences (T-1650, D-306).** Past seasons' absences reach the training store
+in two steps: the API's command asks the feed once per past season from
+2021/22 and writes `absence_history`; the loader copies it into
+`training.absence` (match, competition, season, date, club, player by our id
+or the provider's, out or doubtful, and the kind). No published version reads
+it, so it is loaded into the production store; the lab gets it on its next
+rebuild, which copies the whole schema (reload the lab's own history after
+that, as above).
+
+```bash
+docker compose run --rm -T api node dist/cli/absence-history.js --by you@your-domain   --reason "absences for the model factors (D-303)"
+docker compose run --rm --no-deps -T model python -m fmip_model.training.load records-absences
+sh scripts/model-lab-setup.sh
+```
+
+A competition and season with no row is one the provider listed no absences
+for: an experiment reads it as unknown, never as a full squad.
+
 ## 5. Where things are
 
 | What | Where |

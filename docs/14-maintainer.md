@@ -458,6 +458,23 @@ Every competition holding a season of that label is read, over that season's
 span only; the run's scope says `backfill 2025/26`. Leave `--current` off, or
 the past season becomes the one the site shows.
 
+**Past seasons' absences, for the model's experiments (T-1650, D-306).** Once
+the past seasons are backfilled, fetch who missed each of their matches, then
+copy it into the training store:
+
+```bash
+docker compose run --rm -T api node dist/cli/absence-history.js --by you@your-domain   --reason "absences for the model factors (D-303)"
+docker compose run --rm -T model python -m fmip_model.training.load records-absences
+```
+
+One request per past season from 2021/22 of every competition we hold (a few
+hundred at most), paced and inside the bulk share of the day's budget; it
+prints a line per competition and season and the totals. `--season 2023/24`
+or `--competition 39` (the provider's id) narrows it. Running it again
+rewrites the same rows, so run it after adding seasons or competitions, then
+the loader. Nothing appears on the site, and the published forecasts do not
+read it.
+
 ## 3. The production deploy (T-074)
 
 **Why yours.** It runs on a machine that does not exist yet, and buying it is a
