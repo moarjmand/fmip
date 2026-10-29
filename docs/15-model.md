@@ -337,6 +337,75 @@ docker compose run --rm --no-deps -T -v $HOME/fmip-lab/reports:/lab-reports mode
 statement, and restores it in one transaction. The server has two cores:
 run one experiment at a time.
 
+### Team statistics and line-ups (T-1647, T-1648, D-305)
+
+Two tables beside `training.match`, which they do not change, so the
+published version's fits and our own Elo do not move: nothing published reads
+them.
+
+- `training.fixture_stat`: one row per finished match of our records with
+  expected goals, shots or shots on target for either side; our fixture id,
+  the competition's id, kind, scope and division, the season label, the
+  kick-off's UTC date, both team ids, and the six figures.
+- `training.fixture_lineup`: one row per player named on a side's line-up;
+  fixture, team and person ids, side, `started`, `minutes`, the position
+  bucket, the date, and the same competition fields.
+
+Every competition is in them, the cups kept out of `training.match`
+(`model_training = false`, D-304) included; filter by `division`,
+`competition_kind` or `competition_scope`. A figure the feed did not supply is
+NULL, never 0. A match without statistics, or a side without a stored
+line-up, has no rows: a gap to count, not a default. `minutes` is NULL where
+our records hold none: on a side whose other players have minutes, a
+substitute who did not come on; on a side where no player has any, the
+statistics were not supplied.
+
+```bash
+# On production, from /opt/fmip: every row of each table replaced, one load each
+docker compose run --rm --no-deps -T model python -m fmip_model.training.load records-stats
+docker compose run --rm --no-deps -T model python -m fmip_model.training.load records-lineups
+# The same rows into the lab (public is read from DATABASE_URL's database)
+docker compose run --rm --no-deps -T model python -m fmip_model.training.load records-stats --into fmip_lab
+docker compose run --rm --no-deps -T model python -m fmip_model.training.load records-lineups --into fmip_lab
+# Coverage per competition and season: finished matches, and how many have
+# statistics, xG and shots for both sides, both line-ups, minutes for both sides
+docker compose run --rm --no-deps -T model python -m fmip_model.training.fixture_detail coverage --since 2020
+```
+
+A lab built before the two migrations does not have the tables. Either
+rebuild it (`scripts/model-lab-setup.sh`, then its history again, above), or
+copy the two tables' definitions from production without touching the rest:
+
+```bash
+docker compose exec -T postgres pg_dump -U fmip -d fmip --schema-only --no-owner -t training.fixture_stat -t training.fixture_lineup | docker compose exec -T postgres psql -U fmip -d fmip_lab -q -v ON_ERROR_STOP=1 --single-transaction
+```
+
+The tables are not refreshed on a schedule: reload them when an experiment
+needs newer matches.
+
+**Matching them to `training.match`.** A football-data.co.uk row names its
+clubs by the site's names, a row of our own records (IR1, `XL`) by our team
+ids. `training.team_alias` maps both to our team ids (an identity row for our
+own records), so one join serves every division. Our date is the kick-off's
+in UTC and the site's the local one, so a late kick-off in the Americas is a
+day apart: match within a day. A club the bridge does not name, or a match
+with no row, is a gap the experiment counts, never matched by likeness.
+
+```sql
+SELECT m.division, m.season, m.match_date, m.home_team, m.away_team,
+       m.home_goals, m.away_goals, s.fixture_id, s.home_xg, s.away_xg
+  FROM training.match m
+  JOIN training.team_alias ah ON ah.division = m.division AND ah.training_name = m.home_team
+  JOIN training.team_alias aa ON aa.division = m.division AND aa.training_name = m.away_team
+  LEFT JOIN training.fixture_stat s
+    ON s.home_team_id = ah.team_id AND s.away_team_id = aa.team_id
+   AND s.match_date BETWEEN m.match_date - 1 AND m.match_date + 1
+ WHERE m.division = 'E0';
+-- A side's line-up for the same match: the team and the date, as above
+--   training.fixture_lineup l ON l.team_id = ah.team_id
+--                             AND l.match_date BETWEEN m.match_date - 1 AND m.match_date + 1
+```
+
 ## 5. Where things are
 
 | What | Where |
@@ -346,4 +415,5 @@ run one experiment at a time.
 | The comparison behind the one command | `apps/model/fmip_model/backtest/compare.py`, `scripts/model-backtest.sh` |
 | Other backtests | `apps/model/fmip_model/backtest/` (`__main__`, `tune`, `elo_prior`, `inputs`, `cross_league`, `lineups`) |
 | Reports | `apps/model/reports/<version>/` |
+| Team statistics and line-ups for the lab | `apps/model/fmip_model/training/fixture_detail.py`; tables `training.fixture_stat`, `training.fixture_lineup` |
 | The rules | `docs/00-decisions.md`: D-016, D-031, D-082, D-085, D-139, D-140, D-150, D-162, D-186, D-190, D-191, D-195 |
