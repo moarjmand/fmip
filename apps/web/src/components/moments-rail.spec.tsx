@@ -158,7 +158,7 @@ describe('the rail on a match day', () => {
     expect(out).toContain(
       'Picked from 42 matches by what is happening and what the model expected',
     );
-    // TODO(T-1643) makes it open the competitions mega menu; until then, the page.
+    // The link without a script; from 1024px the competitions menu's button (T-1643).
     expect(tags(out, 'moments-leagues')[0]).toContain('href="/en/competitions"');
     expect(out).toContain('<h2 id="moments-title" class="sr-only">Moments that matter</h2>');
   });

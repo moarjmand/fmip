@@ -1,15 +1,19 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { CompetitionsDirectory, type ShownGroup } from '@/components/competitions-directory';
+import { loadCompetitionsMenu, menuFrameWords } from '@/components/competitions-menu';
+import { CompetitionsMenuBody } from '@/components/competitions-menu-panel';
 import { CountryFlag, RegionMark } from '@/components/country-flag';
 import { EntityImage } from '@/components/entity-image';
+import { MessageText } from '@/components/message-text';
+import { shellReader } from '@/components/site-header';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 import { localDigits } from '@/i18n/format';
 import { attribute, message, plural, type Message } from '@/i18n/messages';
-import { fetchCompetitionDirectory } from '@/lib/api';
 import { KIND_KEY, pageLocale, say } from '@/lib/competition';
 import { chosenGroup, directoryGroups } from '@/lib/competitions-directory';
+import { readerTimeZone } from '@/lib/reader-time-zone';
 import { pageMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
@@ -50,6 +54,12 @@ function readCountry(query: Record<string, string | string[] | undefined>): stri
  * bar leads here. An unreachable API is said out loud, never shown as an
  * empty list, and an empty catalogue says that nothing is followed yet
  * (rule 3).
+ *
+ * On a phone (below 768px) the page is the competitions menu's list instead
+ * (T-1643, D-301), where the phone's Leagues tab lands: every competition by
+ * region, one group under another, each with what it is doing today in the
+ * reader's zone, the filter and the All / Today / Live toggles on top. From
+ * 768px the tiles and cards above stay as they are (D-283).
  */
 export default async function CompetitionsPage({
   params,
@@ -58,11 +68,19 @@ export default async function CompetitionsPage({
   params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [{ locale }, query] = await Promise.all([params, searchParams]);
+  const [{ locale }, query, { session, guest }] = await Promise.all([
+    params,
+    searchParams,
+    shellReader(),
+  ]);
   const lang = pageLocale(locale);
-  const answer = await fetchCompetitionDirectory();
-  const groups: ShownGroup[] = answer.ok
-    ? directoryGroups(answer.data.competitions, lang).map((group) => ({
+  // The menu's answers (shared for a few seconds, as the header's are): the
+  // directory both lists read, and today's scores in the reader's zone.
+  const timeZone = readerTimeZone(locale, session?.user ?? null, guest);
+  const { directory, view: menu } = await loadCompetitionsMenu(locale, timeZone);
+  const frame = menuFrameWords(locale);
+  const groups: ShownGroup[] = directory
+    ? directoryGroups(directory, lang).map((group) => ({
         ...group,
         heading:
           group.kind === 'international'
@@ -109,7 +127,7 @@ export default async function CompetitionsPage({
         </p>
       </header>
 
-      {!answer.ok ? (
+      {directory === null ? (
         <Notice tone="danger" data-testid="competitions-unreachable">
           <Translated locale={locale} message="competitions.unreachable" />
         </Notice>
@@ -118,33 +136,56 @@ export default async function CompetitionsPage({
           <Translated locale={locale} message="competitions.empty" />
         </p>
       ) : (
-        <CompetitionsDirectory
-          locale={locale}
-          groups={groups}
-          marks={marks}
-          minis={Object.fromEntries(
-            competitions.map((c) => [
-              c.id,
-              <EntityImage key={c.id} media={c.logo} kind="logo" name={c.name} size={20} />,
-            ]),
+        <>
+          {menu === null ? null : (
+            <section className="md:hidden" data-testid="competitions-phone">
+              <CompetitionsMenuBody
+                view={menu}
+                layout="stack"
+                filter={frame.filter}
+                show={frame.show}
+                headingLevel={2}
+                head={
+                  <p className="w-full text-xs text-muted" data-testid="competitions-menu-counts">
+                    <MessageText message={menu.counts} />
+                  </p>
+                }
+              />
+              <p className="mt-6 text-xs text-muted" data-testid="competitions-menu-note">
+                <MessageText message={menu.note} />
+              </p>
+            </section>
           )}
-          logos={Object.fromEntries(
-            competitions.map((c) => [
-              c.id,
-              <EntityImage key={c.id} media={c.logo} kind="logo" name={c.name} size={48} />,
-            ]),
-          )}
-          kinds={kinds}
-          initialFilter={readFilter(query)}
-          initialGroup={chosenGroup(groups, readCountry(query))}
-          words={{
-            filter: attribute(lang, 'competitions.filter'),
-            jump: attribute(lang, 'competitions.jump'),
-            noMatch: message(lang, 'competitions.noMatch'),
-            all: message(lang, 'competitions.region.all'),
-            allCount: plural(lang, 'competitions.count', competitions.length),
-          }}
-        />
+          <div className="max-md:hidden">
+            <CompetitionsDirectory
+              locale={locale}
+              groups={groups}
+              marks={marks}
+              minis={Object.fromEntries(
+                competitions.map((c) => [
+                  c.id,
+                  <EntityImage key={c.id} media={c.logo} kind="logo" name={c.name} size={20} />,
+                ]),
+              )}
+              logos={Object.fromEntries(
+                competitions.map((c) => [
+                  c.id,
+                  <EntityImage key={c.id} media={c.logo} kind="logo" name={c.name} size={48} />,
+                ]),
+              )}
+              kinds={kinds}
+              initialFilter={readFilter(query)}
+              initialGroup={chosenGroup(groups, readCountry(query))}
+              words={{
+                filter: attribute(lang, 'competitions.filter'),
+                jump: attribute(lang, 'competitions.jump'),
+                noMatch: message(lang, 'competitions.noMatch'),
+                all: message(lang, 'competitions.region.all'),
+                allCount: plural(lang, 'competitions.count', competitions.length),
+              }}
+            />
+          </div>
+        </>
       )}
     </main>
   );

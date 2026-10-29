@@ -1,4 +1,5 @@
 import { type Moment, type MomentsResponse, NO_MEDIA, type ScoreCard } from '@fmip/contracts';
+import { CompetitionsMenuTrigger } from '@/components/competitions-menu-view';
 import { EntityImage } from '@/components/entity-image';
 import { FORECAST_BAR_KEYS, ForecastBar, ForecastStrip } from '@/components/forecast-bar';
 import { MessageText } from '@/components/message-text';
@@ -436,17 +437,18 @@ export function momentsView({
         <p className="moments-picked" data-testid="moments-picked">
           <MessageText message={plural(lang, 'shell.moments.picked', answer.today_count)} />
         </p>
-        {/* TODO(T-1643): open the competitions mega menu */}
-        <Link
+        {/* From 1024px the button that opens the competitions menu (T-1643, D-301). */}
+        <CompetitionsMenuTrigger
           href={`/${locale}/competitions`}
+          current={false}
           className="moments-leagues focus-inset"
-          data-testid="moments-leagues"
+          testId="moments-leagues"
         >
           <MessageText message={message(lang, 'shell.tab.leagues')} />
           <span aria-hidden="true" className="inline-block rtl:-scale-x-100">
             →
           </span>
-        </Link>
+        </CompetitionsMenuTrigger>
       </div>
     ),
     moments: slots,

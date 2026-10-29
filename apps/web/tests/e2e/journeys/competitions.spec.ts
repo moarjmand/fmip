@@ -133,7 +133,10 @@ test.describe('All competitions page', () => {
     test(`passes axe at ${width}px, target-size included`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await page.goto('/en/competitions');
-      await expect(page.getByTestId('competitions-item').first()).toBeVisible();
+      // A phone reads the competitions menu's list (T-1643, D-301).
+      await expect(
+        page.getByTestId(width < 768 ? 'competitions-menu-item' : 'competitions-item').first(),
+      ).toBeVisible();
       const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
       expect(
         results.violations.map(

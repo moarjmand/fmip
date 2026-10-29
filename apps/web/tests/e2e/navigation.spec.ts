@@ -194,6 +194,9 @@ test.describe('on a 1440px screen', () => {
       ['nav-highlights', /\/en\/highlights$/],
     ] as const) {
       await page.getByTestId(id).click();
+      // Competitions opens the competitions menu from 1024px (T-1643, D-301);
+      // its page is the panel's last link.
+      if (id === 'nav-competitions') await page.getByTestId('competitions-menu-all').click();
       await expect(page).toHaveURL(url);
       await expect(page.getByTestId(id)).toHaveAttribute('aria-current', 'page');
       await expect(page.locator('[data-testid="primary-nav"] [aria-current="page"]')).toHaveCount(

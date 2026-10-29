@@ -764,8 +764,72 @@ body {
   outline-offset: -2px;
 }
 
-.site-search input:focus-visible {
+.site-search input:focus-visible,
+.menu-search > input:focus-visible {
   outline: none;
+}
+
+/*
+ * The competitions menu (T-1643, D-301, `components/competitions-menu*.tsx`):
+ * the header's panel from 1024px and the competitions page's list on a
+ * phone. `menu-panel`: the panel under the header, the container's width.
+ * `menu-search`: the filter, a field ringed whole (its input draws no ring
+ * of its own). `menu-row`: a competition, its logo, name and status, 36px tall
+ * with a mouse and the 44px target with a finger (a phone's list makes every
+ * row 44px). `menu-status`: its status after the name, in the caption ink,
+ * live in red with the pulsing dot (`.live-dot`), as the rail's.
+ * `menu-group-label`: a group's name and count, small capitals in the
+ * caption ink (spaced out only in a script whose letters do not join).
+ * `menu-toggle`: All, Today, Live, a pill; the one pressed is ink on the
+ * raised surface with a saffron edge.
+ */
+@utility menu-panel {
+  @apply absolute inset-x-0 top-full z-40 border-y border-default bg-surface shadow-lg outline-none;
+}
+
+@utility menu-search {
+  @apply flex h-11 min-w-0 grow items-center gap-2 rounded-control border border-strong bg-surface px-3 text-caption focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus sm:max-w-72;
+
+  & > input {
+    @apply w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption;
+  }
+}
+
+@utility menu-row {
+  @apply flex min-h-9 min-w-0 items-center gap-2 rounded-control px-2 text-[0.8125rem] font-semibold text-fg hover:bg-surface-raised pointer-coarse:min-h-touch;
+}
+
+@utility menu-status {
+  @apply inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold whitespace-nowrap text-caption tabular-nums;
+
+  &[data-kind='live'] {
+    @apply font-bold text-live;
+  }
+}
+
+@utility menu-group-label {
+  @apply flex items-baseline gap-1.5 px-2 pb-1 text-[0.6875rem] font-bold tracking-wider text-caption uppercase;
+
+  :root:is(:lang(fa), :lang(ar)) & {
+    @apply tracking-normal;
+  }
+}
+
+@utility menu-toggle {
+  @apply inline-flex min-h-touch cursor-pointer items-center rounded-pill border border-default px-3 text-[0.8125rem] font-semibold whitespace-nowrap text-muted hover:border-strong hover:text-fg lg:min-h-9 lg:pointer-coarse:min-h-touch;
+
+  &[aria-pressed='true'] {
+    @apply border-accent bg-surface-raised font-bold text-fg;
+  }
+}
+
+/*
+ * The header over the competitions menu's scrim while the panel is open
+ * (T-1643, D-301): the scrim dims the page below, never the header and the
+ * panel hanging from it. `:has` sees the panel open from the header itself.
+ */
+header:has(#competitions-menu:not([hidden])) {
+  z-index: 40;
 }
 
 /*

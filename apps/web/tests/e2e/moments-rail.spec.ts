@@ -188,10 +188,11 @@ test.describe('the moments rail with moments', () => {
   const shown = (page: Page) => page.locator('[data-testid="moment"]:visible');
   const more = (page: Page) => page.locator('[data-testid="moments-more"]:visible');
 
-  for (const [width, fit] of [
-    [1280, 4],
-    [1024, 3],
-    [800, 2],
+  // From 1024px Leagues is the competitions menu's button (T-1643); below, the link.
+  for (const [width, fit, leagues, value] of [
+    [1280, 4, 'aria-controls', 'competitions-menu'],
+    [1024, 3, 'aria-controls', 'competitions-menu'],
+    [800, 2, 'href', '/en/competitions'],
   ] as const) {
     test(`shows the ${fit} cards that fit at ${width} px, then "N more", never scrolling`, async ({
       page,
@@ -200,7 +201,7 @@ test.describe('the moments rail with moments', () => {
       await open(page, '/en/scores');
       await expect(page.getByTestId('moments-live')).toHaveText('3 live');
       await expect(page.getByTestId('moments-picked')).toContainText('Picked from 42 matches');
-      await expect(page.getByTestId('moments-leagues')).toHaveAttribute('href', '/en/competitions');
+      await expect(page.getByTestId('moments-leagues')).toHaveAttribute(leagues, value);
       await expect(shown(page)).toHaveCount(fit);
       await expect(more(page)).toHaveCount(1);
       await expect(more(page)).toHaveText(`${6 - fit} more→`);
@@ -320,6 +321,22 @@ test.describe('the moments rail with moments', () => {
     await page.keyboard.press('Shift+Tab');
     await expect(first.getByTestId('moment-card')).toBeFocused();
     await expect(first.getByTestId('moment-panel')).toBeVisible();
+  });
+
+  test('Leagues opens the competitions menu from 1024px, and Esc brings focus back', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await open(page, '/en/scores');
+    const leagues = page.getByTestId('moments-leagues');
+    await expect(leagues).toHaveJSProperty('tagName', 'BUTTON');
+    await expect(leagues).toHaveAttribute('aria-controls', 'competitions-menu');
+    await leagues.click();
+    await expect(leagues).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('competitions-menu')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('competitions-menu')).toBeHidden();
+    await expect(leagues).toBeFocused();
   });
 
   for (const [locale, words, live, moreText] of [
