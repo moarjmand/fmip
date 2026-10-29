@@ -13040,3 +13040,56 @@ Every compare page now names both players' clubs, national teams, positions and 
 
 **Consequences.** A competition added from now on feeds the training store unless set off. Forecasts for the cups' matches are still made by the published version (as `XL`), from the clubs' histories it holds.
 
+## D-307 — Rest with what comes next: a European or domestic cup match in the next four days, read from the stored schedule with its cups
+
+**Status:** Accepted, verdict pending the lab run · 2026-10-30 (the formulation and its constants written before any run, under D-303) · **Task:** T-1656 · **Follows:** D-139, D-141, D-303, D-304
+
+**Context.** D-141's `rest` failed on a store of league matches alone: a football-data schedule is mostly a week apart, so its four coefficients fitted noise. The lab store now also holds the clubs' European and domestic cup matches (`XL`, T-1649, D-304), so the schedule shows midweek matches. The teammate's hypothesis adds what comes next: a side rotates before a European match.
+
+**The input.** `fmip_model/inputs/rest_next.py` (`--input rest_next`); `rest.py` is unchanged. For each side of a match on day `d`, from the stored schedule:
+- **short rest**, as D-141: `short = clip((7 - rest) / 4, 0, 1)`, `rest` the days since its previous stored match strictly before `d`;
+- **congestion**, as D-141: `extra = max(n - 2, 0)`, `n` its stored matches in the 14 days before `d`;
+- **European next**: 1 when the store holds a European (UEFA or continental cup) match of the side on `d + 1` to `d + 4`, else 0;
+- **cup next**: 1 when it holds a domestic cup match of the side on those days, else 0.
+
+A side's vector is its own four and its opponent's, eight coefficients fitted by `FeatureInput` (time-weighted Poisson likelihood with the model's expected goals as offsets, D-139), so each kind's weight is fitted, never set by hand (D-303). Constants: D-141's 7, 4, 14 and 2; the look-ahead `LOOKAHEAD_DAYS = 4`; a season runs from 1 July. They are fixed here and not tuned on 2024/25 (the development window) or on 2025/26 and later (the holdout).
+
+**The schedule** is `rest.py`'s: every row of `training.match`, every division, clubs keyed through `training.team_alias` (`training.own_elo.read_matches`), read to the run's last day plus the look-ahead. Only days and clubs are kept; a score is never read.
+
+**European or domestic cup.** `training.match` does not name an `XL` row's competition, and the lab holds the `training` schema alone (D-303). A match's kind is read from its clubs' countries:
+- a club's country is that of its stored league matches: the division code without its last character (`E0`, `E1` → `E`; `SC0` → `SC`; `IR1` → `IR`; the catalogue's format `^[A-Z]{1,2}[0-9C]$`). League matches in two countries: no country;
+- a club with no stored league match (a lower division, or a league the store does not hold) takes the one country of the clubs it met in `XL` that have one; several such countries: it plays abroad;
+- an `XL` match between two countries, or with a club that plays abroad, is **European**; within one country, a **domestic cup**; with a club of no country, **unclassified**.
+
+Known errors, accepted and stated: a club of a league the store does not hold whose stored `XL` opponents are all of one country (a single qualifying tie) reads as that country's lower division, so that European tie reads as a domestic cup; and for `IR1`, AFC opponents from West-Asian leagues the store does not hold may all read as Iranian. The records group's verdict is read with that in mind. A competition column in `training.match` would make the kind exact; it is proposed only if the input passes.
+
+**Reading what comes next.** Fixture lists are published ahead, so the day and opponent of a side's next match are known before kick-off, and the input reads them; never the score. This is the input's one departure from the harness's boundary (nothing on or after the match's day, D-139), and it reaches four days ahead, no further.
+- **A postponed match** can make the look-ahead wrong: the store holds a match on the day it was played, so a match postponed after the forecast was made is stored later and read here as no match within four days, where the fixture list showed one (a match brought forward reads the reverse). The training store holds no scheduled dates, so this cannot be measured here; such cases are rare (weather, security) and they label a side that faced a match as one that did not, which blurs an effect rather than creating one. Guards: the look-ahead reads only `d + 1` to `d + 4`, so a match moved weeks later is never counted at its new date; the store's last four days are not read (below), so its end never reads as "nothing next"; and serving, if the input ever passes, reads the published fixture list (scheduled, neither postponed nor cancelled) for the same four days.
+- **A cup match is not read.** In an `XL` match the next match's existence can depend on the result (a tournament's semi-final and final days apart), so the input reads only league divisions.
+
+**Not read** (the candidate's forecast stands and the match is outside the sample; never a default, rule 3):
+- a match of `XL`;
+- a side not bridged to a team id in `team_alias`: its cups and European matches cannot be seen;
+- a side with no earlier stored match, as D-141;
+- a side with no country (league matches in two countries);
+- a match within four days of the store's last stored day;
+- a side whose country has no European match, or no domestic cup match, stored in the season of the day: the store does not hold that season's cups, so its zeros would be missing data, not "nothing next";
+- a side with an unclassified `XL` match in the four days after.
+
+**The run.** The lead runs it on the lab store, once this branch's model image is on the server, one run at a time inside tmux:
+
+```bash
+docker compose run --rm --no-deps -T -v $HOME/fmip-lab/reports:/lab-reports model sh -c 'DATABASE_URL="${DATABASE_URL%/fmip}/fmip_lab" nice -n 19 python -m fmip_model.backtest.inputs --input rest_next --divisions E0 E1 SP1 D1 I1 F1 N1 P1 B1 T1 SC0 IR1 --from 2024-08-01 --to 2025-06-30 --history-from 2020-07-01 --out /lab-reports --note "lab store, T-1656, with the clubs cups and European matches in XL"'
+```
+
+and records the table here (groups, matches read, log loss of the published version, the candidate and the candidate with the input, the difference with its interval, calibration), with the verdict in place of "pending". The report's description lists the stored `XL` matches by kind and, per country of the divisions run, the seasons read.
+
+**Rejected.**
+- *One weight for both kinds, set by hand* (a domestic cup as half a European match): weights are fitted (D-303). Two indicators, each fitted.
+- *Days to the next match as a number*: where it matters the next match is three or four days after a weekend match; an indicator spends one coefficient where a curve would spend several on a weaker signal.
+- *A league match within four days*: a league's midweek round falls on both sides alike.
+- *Zero for an unbridged side or a season whose cups are not stored*: rule 3.
+- *The regulars' minutes in the last fortnight* (the task row's third part): it needs T-1648's minutes and belongs with the regulars index (T-1655); it is not in this input.
+
+**Consequences.** No migration; nothing published or promoted; no candidate carries the input until a verdict here says "passed" (T-1660). Serving it would need the next match from the fixture list with its competition's kind from the catalogue, a separate change made only if it passes. `tests/test_input_rest_next.py`.
+
