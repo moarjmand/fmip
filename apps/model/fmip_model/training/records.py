@@ -34,6 +34,8 @@ SELECT s.label, (f.kickoff_at AT TIME ZONE 'UTC')::date, h.team_id::text, a.team
   JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
   JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
  WHERE f.status = 'finished'
+   -- A competition kept out of the training store (T-1649, D-304) feeds no division.
+   AND c.model_training
    AND CASE WHEN %s = 'XL'
             -- Across leagues: every competition that is not one domestic league (T-533).
             THEN c.kind <> 'league' OR c.scope <> 'domestic'

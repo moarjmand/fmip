@@ -56,6 +56,7 @@ const VERBS = [
   'add-stage',
   'map',
   'set-division',
+  'set-training',
   'set-order',
   'set-colour',
   'alias-training',
@@ -90,6 +91,7 @@ const VALUED = [
   'locale',
   'team',
   'colour',
+  'training',
 ];
 
 const USAGE = `Usage (one verb per call):
@@ -109,6 +111,8 @@ const USAGE = `Usage (one verb per call):
               [--label <season, default the current one>] [--by <address>]
   --map --type <kind> --external-id <id> --to <internal uuid> [--by <address>]
   --set-division --competition <external id> --division <E0|SP1|...> [--by <address>]
+  --set-training --competition <external id> --training on|off --reason "<why>"
+                 [--by <address>]
   --set-order --competition <external id> --order <N, 1 first; 0 to clear>
               [--locale <language, e.g. en: that language's own order>] [--by <address>]
   --set-colour --team <external id> --colour <#rrggbb, or none to return to the shirts>
@@ -172,6 +176,27 @@ export function parseArgs(argv) {
       return { error: '--division is a football-data.co.uk code: E0, SP1, D1, I1, F1.' };
     }
     return { command: 'set-division', provider, by, competition, division };
+  }
+  if (verb === 'set-training') {
+    // T-1649 (D-304): whether the records loader copies its matches into the training store.
+    const competition = text('competition');
+    const training = text('training').toLowerCase();
+    const reason = text('reason');
+    if (competition === '') return { error: '--competition is required: the provider’s id.' };
+    if (training !== 'on' && training !== 'off') {
+      return { error: '--training is on (its matches feed the model) or off.' };
+    }
+    if (reason === '') {
+      return { error: '--reason is required: it is kept in the audit log.' };
+    }
+    return {
+      command: 'set-training',
+      provider,
+      by,
+      competition,
+      training: training === 'on',
+      reason,
+    };
   }
   if (verb === 'add-stage') {
     const competition = text('competition');
@@ -1115,6 +1140,45 @@ async function setDivision(client, options) {
 }
 
 /**
+ * Whether a competition's finished matches feed the model's training store
+ * (T-1649, D-304): the records loader copies only the competitions set on, so
+ * a competition added for the site and the lab can stay out of the published
+ * version's history until a candidate that reads it is approved.
+ */
+async function setTraining(client, options) {
+  const { rows: found } = await client.query(
+    `SELECT c.id, c.name, c.model_training
+       FROM competition c
+       JOIN provider_mapping pm ON pm.internal_id = c.id AND pm.entity_type = 'competition'
+      WHERE pm.provider = $1 AND pm.external_id = $2`,
+    [options.provider, options.competition],
+  );
+  const competition = found[0];
+  if (competition === undefined) {
+    console.error(`No competition is mapped to ${options.provider} ${options.competition}.`);
+    return 1;
+  }
+  await client.query('UPDATE competition SET model_training = $2 WHERE id = $1', [
+    competition.id,
+    options.training,
+  ]);
+  const audited = await audit(
+    client,
+    options.by,
+    'catalog.competition_training_set',
+    'competition',
+    competition.id,
+    { model_training: options.training },
+    { reason: options.reason, previous: { model_training: competition.model_training } },
+  );
+  console.log(
+    `${competition.name} -> ${options.training ? 'feeds' : 'kept out of'} the model's training store.`,
+  );
+  sayIfUnaudited(audited, options.by);
+  return 0;
+}
+
+/**
  * Where a competition sits on the scores page after a member's favourites
  * (T-504). The operator's to state: nothing in the data says which league a
  * reader looks for first. Two competitions may share a place; the country and
@@ -1541,6 +1605,8 @@ async function main() {
         return await addStage(client, parsed);
       case 'set-division':
         return await setDivision(client, parsed);
+      case 'set-training':
+        return await setTraining(client, parsed);
       case 'set-order':
         return await setOrder(client, parsed);
       case 'set-colour':

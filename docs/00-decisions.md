@@ -13023,3 +13023,20 @@ Every compare page now names both players' clubs, national teams, positions and 
 
 **Consequences.** `docs/04-tasks-phase-14.md`, tasks T-1646 to T-1661. T-1646 is done: `fmip_lab` exists, with the eleven divisions from 2020/21 (E0 2,350 matches), and the production store is unchanged (E0 from 2023/24). Runs are niced on the two-core server, one at a time, in tmux. Each verdict is recorded in a follow-up entry.
 
+## D-304 — A competition can be kept out of the training store: on the site and in the lab, not in the published model
+
+**Status:** Accepted · 2026-10-30 (the maintainer: "first only the site and the lab", answering whether the cups added for the model factors should feed the published model at once) · **Task:** T-1649 · **Follows:** D-083, D-303
+
+**Context.** The records loader (`training/records.py`, T-512, T-533) copies every finished match of the competitions set to a division, and of every competition that is not one domestic league into `XL`, into `training.match` each day. Our own Elo reads every row, and the cross-league fit reads `XL`. Adding a competition to the catalogue therefore changed the published version's inputs the next morning, without a new version. D-303 adds ten domestic and continental cups so that rest and congestion see midweek matches, and keeps the published version as the benchmark until its candidate is approved.
+
+**Decision.**
+1. **`competition.model_training`** (boolean, default true; migration `1765898000000_competition-model-training.sql`): the records loader copies only the competitions set on, into any division.
+2. **Set with `catalog --set-training --competition <id> --training on|off --reason "<why>"`.** The action is audited (`catalog.competition_training_set`, with the reason and the previous value).
+3. **Use.** The cups added under T-1649 are set off before their first backfill. They are shown on the site and copied into the lab store (D-303) for the experiments. Each is set on only when the candidate that reads it is approved.
+
+**Rejected.**
+- *Adding the cups and accepting the shift:* the comparison the maintainer asked for needs a published version whose history does not move under it.
+- *A filter by date added:* a hidden rule; the flag says what it is and is audited.
+
+**Consequences.** A competition added from now on feeds the training store unless set off. Forecasts for the cups' matches are still made by the published version (as `XL`), from the clubs' histories it holds.
+
