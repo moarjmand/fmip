@@ -13702,6 +13702,116 @@
     "forms": {},
     "status": "untranslated"
   },
+  "competitionsMenu.title": {
+    "source": "Every competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.counts": {
+    "source": "{live} live now · {today} playing today · {all} in all",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.countsNoToday": {
+    "source": "{all} in all · today’s matches could not be read",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.filter": {
+    "source": "Filter competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.show.label": {
+    "source": "Show",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.show.all": {
+    "source": "All {count}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.show.today": {
+    "source": "Today {count}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.show.live": {
+    "source": "Live {count}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.bigFive": {
+    "source": "Big five",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.europeanCups": {
+    "source": "European cups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.europe": {
+    "source": "More of Europe",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.cups": {
+    "source": "Domestic cups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.national": {
+    "source": "National teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.asia": {
+    "source": "Asia & Middle East",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.americas": {
+    "source": "Americas",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.africa": {
+    "source": "Africa",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.oceania": {
+    "source": "Oceania",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.region.other": {
+    "source": "Other competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.open": {
+    "source": "Open the competitions page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.note": {
+    "source": "Kick-off times in {zone} · days are the next match day",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.loading": {
+    "source": "Loading every competition…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionsMenu.noMatch": {
+    "source": "No competition matches this filter.",
+    "text": "",
+    "status": "untranslated"
+  },
   "nav.highlights": {
     "source": "Highlights",
     "text": "",

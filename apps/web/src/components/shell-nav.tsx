@@ -2,6 +2,7 @@
 
 import Link from '@/components/ui/link';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { CompetitionsMenuTrigger } from '@/components/competitions-menu-view';
 import { MessageText } from '@/components/message-text';
 import type { Message } from '@/i18n/messages';
 import { HEADER_NAV, MORE_NAV, type ShellLink, currentLink, tabBarLinks } from '@/lib/shell-nav';
@@ -54,19 +55,32 @@ export function PrimaryNav({
   const current = currentLink(pathname, HEADER_NAV, search);
   const more = currentLink(pathname, MORE_NAV, search);
   // One renderer for both lists: each link is drawn once in the bundle.
+  // Competitions opens the competitions menu from 1024px (T-1643, D-301);
+  // without a script and in the phone's Menu it stays the link.
   const items = (links: readonly ShellLink[], on: string | null) =>
-    links.map((link) => (
-      <li key={link.id}>
-        <Link
-          href={`/${locale}${link.path}`}
-          aria-current={link.id === on ? 'page' : undefined}
-          data-testid={`nav-${link.id}`}
-          className="nav-entry"
-        >
-          <MessageText message={labels[link.id] ?? { text: link.id, status: 'source' }} />
-        </Link>
-      </li>
-    ));
+    links.map((link) => {
+      const label = (
+        <MessageText message={labels[link.id] ?? { text: link.id, status: 'source' }} />
+      );
+      return (
+        <li key={link.id}>
+          {link.id === 'competitions' ? (
+            <CompetitionsMenuTrigger href={`/${locale}${link.path}`} current={link.id === on}>
+              {label}
+            </CompetitionsMenuTrigger>
+          ) : (
+            <Link
+              href={`/${locale}${link.path}`}
+              aria-current={link.id === on ? 'page' : undefined}
+              data-testid={`nav-${link.id}`}
+              className="nav-entry"
+            >
+              {label}
+            </Link>
+          )}
+        </li>
+      );
+    });
   return (
     <ul
       className={className}

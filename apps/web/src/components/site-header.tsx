@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import Link from '@/components/ui/link';
 import { cache } from 'react';
 import { BrandMark } from '@/components/brand-mark';
+import { CompetitionsMenu } from '@/components/competitions-menu';
 import { HeldLanguageNotice } from '@/components/held-language-notice';
 import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
@@ -29,7 +30,7 @@ import { readerTimeZone } from '@/lib/reader-time-zone';
  * the tab bar ("Me") all need it. When the API is unreachable the visitor is shown as signed out,
  * which is the honest state: nothing could be verified.
  */
-const shellReader = cache(async () => {
+export const shellReader = cache(async () => {
   const session = await fetchSession(await sessionCookieHeader());
   const guest = session?.user ? null : await readGuestChoices();
   return { session, guest };
@@ -324,6 +325,9 @@ export async function SiteHeader({
             </div>
           </details>
         </nav>
+        {/* Competitions' panel from 1024px (T-1643, D-301): every competition by
+            region, opened by the nav's Competitions; its list is drawn when asked. */}
+        <CompetitionsMenu locale={locale} timeZone={timeZone} />
         {/* A newer version of the platform rules awaits this member (T-931, D-113). */}
         {session?.rules.pending === true && <RulesPrompt locale={locale} />}
         {notice !== null && stored !== null && stored !== undefined && (

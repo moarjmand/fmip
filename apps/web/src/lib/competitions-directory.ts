@@ -1,4 +1,5 @@
 import type { CompetitionDirectoryEntry, EntityMedia } from '@fmip/contracts';
+import { foldName } from '@/lib/fold-name';
 
 /**
  * The competitions directory's pure choices (T-1433): what the header's
@@ -108,26 +109,7 @@ export function directoryGroups(
   ];
 }
 
-/**
- * A name as the filter compares it: case folded, Arabic and Persian letter
- * variants made one (ي/ی, ك/ک, ة/ه, the hamza seats), diacritics, the
- * tatweel and the zero-width non-joiner removed, so «ليگ» finds «لیگ» and
- * "Ligue" finds "LIGUE" -- and "Atletico" finds "Atlético".
- */
-export function foldName(value: string): string {
-  return value
-    .normalize('NFKD')
-    .replace(/[̀-ًͯ-ٰٟـ‌‍]/g, '')
-    .replace(/[يى]/g, 'ی')
-    .replace(/ك/g, 'ک')
-    .replace(/ة/g, 'ه')
-    .replace(/[أإآٱ]/g, 'ا')
-    .replace(/ؤ/g, 'و')
-    .replace(/ئ/g, 'ی')
-    .toLocaleLowerCase('en')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+export { foldName } from '@/lib/fold-name';
 
 /**
  * Whether a competition answers the filter: its name, its short form or its
