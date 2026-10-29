@@ -10,7 +10,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * `GET /moments?timezone=&locale=` (T-1641, D-299): today's moments that
+ * `GET /moments?timezone=&locale=&big_one=` (T-1641, D-299; T-1644, D-302): today's moments that
  * matter, for the site's top bar. Public. A session, as on `GET /scores`,
  * only marks the viewer's followed matches; without one the answer depends on
  * the zone, the language and the time alone, so the web keeps a guest's
@@ -38,6 +38,11 @@ export class MomentsController {
     const viewer = await this.identity.authenticate(
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
-    return this.moments.today(parsed.timeZone, localeOf(raw.locale), viewer?.id ?? null);
+    return this.moments.today(
+      parsed.timeZone,
+      localeOf(raw.locale),
+      viewer?.id ?? null,
+      parsed.bigOneLive,
+    );
   }
 }

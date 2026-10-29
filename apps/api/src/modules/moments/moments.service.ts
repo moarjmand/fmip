@@ -41,6 +41,7 @@ export class MomentsService {
     timeZone: string,
     locale: string | null,
     viewerId: string | null,
+    bigOneLive = false,
   ): Promise<MomentsResponse> {
     const now = this.clock();
     const { from, to } = readRange(timeZone, now);
@@ -78,6 +79,7 @@ export class MomentsService {
       featured: new Set(featured),
       forecasts,
       followedTeams: new Set(follows?.followed_team_ids ?? []),
+      bigOneLive,
     });
     return { generated_at: now.toISOString(), timezone: timeZone, ...picked };
   }

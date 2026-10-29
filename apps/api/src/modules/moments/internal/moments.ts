@@ -74,7 +74,8 @@ const RANK_OF = new Map<MomentKind, number>(
 );
 
 export type ParsedMomentsQuery =
-  { ok: true; timeZone: string } | { ok: false; fields: Record<string, string> };
+  | { ok: true; timeZone: string; bigOneLive: boolean }
+  | { ok: false; fields: Record<string, string> };
 
 /** Fastify hands a repeated parameter over as an array; the first one counts. */
 function first(value: unknown): string | undefined {
@@ -85,13 +86,15 @@ function first(value: unknown): string | undefined {
 /**
  * `?timezone=` (IANA, UTC by default), read as `GET /scores` reads its zone;
  * `?tz=`, the name `/scores` and `/model/upset` use, is read too.
+ * `?big_one=live`: the client can say "Big one, live", so the big one stays
+ * while it is played (T-1644, D-302); without it, as before.
  */
 export function parseMomentsQuery(raw: Record<string, unknown>): ParsedMomentsQuery {
   const timeZone = first(raw.timezone) ?? first(raw.tz) ?? 'UTC';
   if (!isTimeZone(timeZone)) {
     return { ok: false, fields: { timezone: 'must be an IANA time zone, e.g. Europe/London' } };
   }
-  return { ok: true, timeZone };
+  return { ok: true, timeZone, bigOneLive: first(raw.big_one) === 'live' };
 }
 
 /** `day` moved by whole days, as YYYY-MM-DD. */
@@ -192,6 +195,8 @@ export interface MomentsInput {
   forecasts: ReadonlyMap<string, MomentForecast>;
   /** The teams the viewer follows; empty for a guest. */
   followedTeams: ReadonlySet<string>;
+  /** Whether the big one stays while it is played (`?big_one=live`, T-1644, D-302). */
+  bigOneLive?: boolean;
 }
 
 export interface PickedMoments {
@@ -231,7 +236,9 @@ function homeAnswer(
  * and the 13 days after it): a featured match, else one of the first
  * `BIG_COMPETITIONS` competitions in the answer's order; one in play first,
  * else the next today or tomorrow, else on the first day with a match. The
- * big one is that match only while it is still to come today.
+ * big one is that match while it is still to come today, and while it is
+ * played for a client that asks (`keepLive`, T-1644, D-302): the homepage's
+ * hero then stays on the rail to its end.
  */
 export function bigOneOf(
   cards: readonly ScoreCard[],
@@ -239,6 +246,7 @@ export function bigOneOf(
   featured: ReadonlySet<string>,
   timeZone: string,
   now: Date,
+  keepLive = false,
 ): string | null {
   const dayOf = dayIn(timeZone);
   const today = dayOf(now);
@@ -263,7 +271,11 @@ export function bigOneOf(
       a.kickoff_at.localeCompare(b.kickoff_at) ||
       a.id.localeCompare(b.id),
   );
-  return best !== undefined && best.status === 'scheduled' && day(best) === today ? best.id : null;
+  if (best === undefined) return null;
+  return (keepLive && best.status === 'live') ||
+    (best.status === 'scheduled' && day(best) === today)
+    ? best.id
+    : null;
 }
 
 /**
@@ -304,7 +316,7 @@ export function pickMoments(input: MomentsInput): PickedMoments {
     minutes_left: minutesLeft,
   });
 
-  const bigOne = bigOneOf(cards, importance, featured, timeZone, now);
+  const bigOne = bigOneOf(cards, importance, featured, timeZone, now, input.bigOneLive === true);
   // The top competitions `coming_up` draws from: the homepage's big ones.
   const { order: homeOrder } = homeAnswer(cards, days, today, importance);
   const bigCompetitions = new Set(
