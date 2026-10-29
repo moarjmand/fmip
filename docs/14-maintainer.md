@@ -268,6 +268,19 @@ of them is a club under the wrong name. Load the current season's file again
 each week, and after a promotion add the new club's line to
 `packages/db/scripts/data/training-aliases.csv`.
 
+**A competition for the site and the lab, not yet for the model (T-1649,
+D-304).** The records loader copies every finished match of the competitions
+set to a division, and of every competition that is not one domestic league
+into `XL`, each day, and our own Elo reads them all: a new competition changes
+the published version's inputs the next morning. To show one on the site and
+judge it in the lab store first, set it off before its first backfill, and on
+again only when the candidate that reads it is approved:
+
+```bash
+catalog --set-training --competition 48 --training off --reason "site and lab first (D-303)" --by you@your-domain
+catalog --set-training --competition 48 --training on  --reason "candidate approved"          --by you@your-domain
+```
+
 An adopted club gets its name and nothing invented; `--map` is for when the
 provider means a club you already hold.
 

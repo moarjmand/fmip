@@ -125,6 +125,21 @@ def world() -> Iterator[World]:
     s.close()
 
 
+@needs_db
+def test_a_competition_kept_out_of_training_feeds_no_division(world: World) -> None:
+    # T-1649 (D-304): added for the site and the lab, not yet for the published version.
+    home = world.ids["home"]
+    assert [m.home_team_id for m in recorded_matches(world.store.conn, "Z9")] == [home]
+    assert home in {m.home_team_id for m in recorded_matches(world.store.conn, "XL")}
+    with world.store.conn.cursor() as cur:
+        cur.execute(
+            "UPDATE competition SET model_training = false WHERE id = %s", (world.ids["comp"],)
+        )
+    world.store.conn.commit()
+    assert recorded_matches(world.store.conn, "Z9") == []
+    assert home not in {m.home_team_id for m in recorded_matches(world.store.conn, "XL")}
+
+
 def one(store: TrainingStore, sql: str, *args: object) -> list[tuple[object, ...]]:
     with store.conn.cursor() as cur:
         cur.execute(sql, args)

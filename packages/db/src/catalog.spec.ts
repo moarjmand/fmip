@@ -285,6 +285,22 @@ describe('catalog arguments', () => {
     expect(parseArgs(['--set-division', '--division', 'E0']).error).toContain('--competition');
   });
 
+  it('reads whether a competition feeds the training store, with a reason (T-1649)', () => {
+    const set = ['--set-training', '--competition', '48', '--training'];
+    expect(parseArgs([...set, 'OFF', '--reason', 'site and lab first'])).toMatchObject({
+      command: 'set-training',
+      competition: '48',
+      training: false,
+      reason: 'site and lab first',
+    });
+    expect(parseArgs([...set, 'on', '--reason', 'approved'])).toMatchObject({ training: true });
+    expect(parseArgs([...set, 'maybe', '--reason', 'x']).error).toContain('on (its matches');
+    expect(parseArgs([...set, 'off']).error).toContain('--reason is required');
+    expect(parseArgs(['--set-training', '--training', 'off', '--reason', 'x']).error).toContain(
+      '--competition',
+    );
+  });
+
   it('reads a stage, with the season defaulting to the current one', () => {
     const stage = ['--add-stage', '--competition', '2', '--name', 'League Stage', '--kind'];
     expect(parseArgs([...stage, 'league', '--order', '5'])).toMatchObject({
