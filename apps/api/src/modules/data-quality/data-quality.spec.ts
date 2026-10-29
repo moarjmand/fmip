@@ -136,6 +136,29 @@ describe('goals_disagree', () => {
     );
   });
 
+  it('names the match goals without the shoot-out kicks when a shoot-out disagrees (T-1640)', () => {
+    // A home goal is missing from the timeline: the finding is real, and its
+    // tally is the match's goals, not the kicks taken at 120.
+    const missing = row({
+      scores: {
+        current: { home: 2, away: 2 },
+        full_time: { home: 2, away: 2 },
+        penalties: { home: 2, away: 3 },
+      },
+      goals: [
+        g('goal', 'home'),
+        g('goal', 'away'),
+        g('goal', 'away'),
+        g('penalty_goal', 'home', 120),
+        g('penalty_goal', 'home', 120),
+        g('penalty_goal', 'away', 120),
+        g('penalty_goal', 'away', 120),
+        g('penalty_goal', 'away', 120),
+      ],
+    });
+    expect(goalsDisagree(missing)?.detail).toBe('the timeline has 1-2, the score is 2-2');
+  });
+
   it('counts a goal with no side toward the total only', () => {
     expect(
       goalsDisagree(row({ goals: [g('goal', 'home'), g('goal', null), g('goal', 'away')] })),
