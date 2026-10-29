@@ -163,7 +163,10 @@ export function goalsDisagree(row: GoalsRow): Finding | null {
         t.away <= expected.away,
   );
   if (agrees) return null;
-  const shown = readings[0]!;
+  // With a shoot-out on record, the finding says what the match's own goals
+  // add up to: "0-6 against 2-2" counted the kicks, which are not goals of
+  // the score, and sent a reviewer looking for the wrong fault (T-1640).
+  const shown = readings[shootout ? 2 : 0]!;
   const unnamed = shown.unattributed > 0 ? ` and ${shown.unattributed} with no side` : '';
   return onFixture(
     'goals_disagree',
