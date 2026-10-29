@@ -94,6 +94,31 @@ export class FixturesService {
   }
 
   /**
+   * A guest's scores answer (no session, so nothing pinned) with each
+   * competition's stated place, `null` for none (D-154; the reader's
+   * language's own order, D-207), for a boundary that ranks matches the way
+   * the scores page does (T-1641's moments, D-299). The same read as
+   * `scores()`: one query for the cards and one for their media.
+   */
+  async rankedScores(
+    filters: ScoresFilters,
+    locale: string | null = null,
+  ): Promise<{ response: ScoresResponse; statedOrder: ReadonlyMap<string, number | null> }> {
+    const rows = await this.withMedia(await this.store.list(filters, locale));
+    const { pinned, groups } = arrange(rows, null);
+    return {
+      response: {
+        filters,
+        generated_at: new Date().toISOString(),
+        total: rows.length,
+        pinned,
+        groups,
+      },
+      statedOrder: new Map(rows.map((row) => [row.card.competition.id, row.competitionOrder])),
+    };
+  }
+
+  /**
    * Everything the match centre needs from our own tables, each module
    * labelled with a coverage state (blueprint 4.3). Null for an unknown id.
    */

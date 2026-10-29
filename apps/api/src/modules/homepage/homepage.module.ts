@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { IdentityModule } from '../identity/identity.module';
 import { HomepageFeatureController } from './homepage-feature.controller';
+import { HomepageFeatureService } from './homepage.service';
 import { PostgresFeatureStore } from './internal/feature-store';
 
 /**
@@ -12,6 +13,7 @@ import { PostgresFeatureStore } from './internal/feature-store';
 @Module({
   imports: [IdentityModule],
   controllers: [HomepageFeatureController],
-  providers: [PostgresFeatureStore],
+  providers: [PostgresFeatureStore, HomepageFeatureService],
+  exports: [HomepageFeatureService],
 })
 export class HomepageModule {}

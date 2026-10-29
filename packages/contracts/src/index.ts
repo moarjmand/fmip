@@ -1044,6 +1044,9 @@ export type {
   LeagueZones,
   ZoneCompetition,
 } from './league-zones';
+// Today's moments that matter (T-1641, D-299): the top bar's matches.
+export { MOMENT_KINDS, MOMENTS_LIMIT } from './moments';
+export type { Moment, MomentForecast, MomentKind, MomentsResponse } from './moments';
 // Football's confederations (T-1643, D-301): the competitions menu's regions.
 export {
   CONFEDERATIONS,
