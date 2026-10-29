@@ -6,6 +6,7 @@ import { IdentityModule } from '../identity/identity.module';
 import { MatchAlertsModule } from '../match-alerts/match-alerts.module';
 import { MediaModule } from '../media/media.module';
 import { StandingsModule } from '../standings/standings.module';
+import { AbsenceHistoryService } from './absence-history.service';
 import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
 import { IngestionAdminController } from './ingestion-admin.controller';
@@ -55,8 +56,16 @@ import { INGESTION_SOURCES, resolveSources } from './internal/sources';
     CoverageService,
     IngestionJobsService,
     IngestionSchedulerService,
+    // Past seasons' absences for the training store, run by its command only (T-1650).
+    AbsenceHistoryService,
     { provide: INGESTION_SOURCES, useFactory: () => resolveSources(process.env) },
   ],
-  exports: [EntityResolverService, IngestRunsService, IngestionJobsService, CoverageService],
+  exports: [
+    EntityResolverService,
+    IngestRunsService,
+    IngestionJobsService,
+    CoverageService,
+    AbsenceHistoryService,
+  ],
 })
 export class IngestionModule {}
