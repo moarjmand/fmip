@@ -20,6 +20,17 @@ and our records' divisions. The report goes to
 ``reports/<candidate>/inputs_<name>_<from>..<to>.{md,json}``. Nothing is
 published or promoted here; a verdict is evidence for a decision entry.
 
+A recalibration of the three probabilities (``CalibrationInput``, T-1657,
+D-308) is judged the same way. ``with_input`` is then the candidate's own
+forecast passed through the calibration fitted at that refit, on the
+candidate's out-of-sample forecasts of the division's matches up to the fit
+date: those of the window already played, and those of a second walk-forward
+of the candidate, the same in every respect, over ``--calibration-from`` to the
+day before the window (default: a year after ``--history-from``). Its report
+adds the draw's reliability, said against seen by bands of the gap
+``|p_home - p_away|``, and each division's last fitted parameters. A term
+input's run and report are what they were before T-1657.
+
 For code: ``run_division`` (no database) and ``judge`` are the whole harness;
 ``main`` only reads the store and writes the report.
 """
@@ -28,8 +39,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
+from bisect import bisect_right
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field, replace
 from datetime import date, timedelta
@@ -40,7 +53,17 @@ import numpy as np
 import psycopg
 from numpy.typing import NDArray
 
-from ..inputs import InputContext, ModelInput, Term, available, before, load
+from ..inputs import (
+    Calibration,
+    CalibrationInput,
+    InputContext,
+    ModelInput,
+    PastForecast,
+    Term,
+    available,
+    before,
+    load,
+)
 from ..model.dixon_coles import FittedModel, MatchObservation
 from ..model.poisson import outcome_from_matrix, score_matrix
 from ..model.version import PUBLISHED, ModelVersion, load_candidate, load_candidates
@@ -48,7 +71,14 @@ from ..training.own_elo import read_matches
 from .__main__ import load_matches
 from .elo_prior import OwnEloByDay, last_cached_clubelo
 from .metrics import Forecast
-from .walk_forward import BacktestMatch, default_fitter, scorecard, walk_forward
+from .walk_forward import (
+    BacktestMatch,
+    BacktestResult,
+    ScoredForecast,
+    default_fitter,
+    scorecard,
+    walk_forward,
+)
 
 Group = Literal["football_data", "our_records"]
 GROUPS: tuple[Group, ...] = ("football_data", "our_records")
@@ -90,6 +120,21 @@ class MatchScore:
 
 
 @dataclass(frozen=True)
+class CalibrationRecord:
+    """What a recalibration (T-1657) was fitted on in one division."""
+
+    #: The first day of the walk-forward before the window; ``None``: the window's own only.
+    history_from: date | None
+    #: Out-of-sample forecasts of matches before the window.
+    before_window: int
+    #: Refits of the window that had a calibration, of all of them.
+    calibrated_refits: int
+    refits: int
+    #: The parameters of the window's last calibration ({} when there was none).
+    last: Mapping[str, float]
+
+
+@dataclass(frozen=True)
 class DivisionRun:
     division: str
     group: Group
@@ -97,6 +142,8 @@ class DivisionRun:
     refits: int
     published_prior_fits: int
     candidate_prior_fits: int
+    #: Set for a recalibration only (T-1657).
+    calibration: CalibrationRecord | None = None
 
 
 def _counting(elo_on: EloOn | None) -> tuple[EloOn | None, list[int]]:
@@ -133,17 +180,19 @@ def run_division(
     window: tuple[date, date],
     *,
     candidate: ModelVersion,
-    model_input: ModelInput,
+    model_input: ModelInput | CalibrationInput,
     published: ModelVersion = PUBLISHED,
     published_elo: EloOn | None = None,
     candidate_elo: EloOn | None = None,
     min_history: int = 60,
     refit_every_days: int = 7,
+    calibration_from: date | None = None,
 ) -> DivisionRun:
     """Score the three forecasters on the matches of ``window`` all of them forecast.
 
     The input sees, at each refit, only the matches on or before its fit date,
     and for each match only the division's matches strictly before its day.
+    ``calibration_from`` is read by a recalibration only (``_calibrated``).
     """
     ordered = sorted(matches, key=lambda m: m.date)
 
@@ -186,6 +235,22 @@ def run_division(
     )
 
     published_by = {_match_key(f.match): f.model for f in pub.forecasts}
+    if isinstance(model_input, CalibrationInput):
+        return _calibrated(
+            division,
+            group,
+            ordered,
+            window,
+            cand,
+            published_by,
+            model_input,
+            version=at(candidate),
+            candidate_elo=candidate_elo,
+            calibration_from=calibration_from,
+            min_history=min_history,
+            refit_every_days=refit_every_days,
+            prior_fits=(pub_hits[0], cand_hits[0]),
+        )
     terms: dict[date, Term] = {}
     scores: list[MatchScore] = []
     for forecast in cand.forecasts:
@@ -208,6 +273,93 @@ def run_division(
             )
         )
     return DivisionRun(division, group, scores, cand.refits, pub_hits[0], cand_hits[0])
+
+
+def _past(forecasts: Sequence[ScoredForecast]) -> list[PastForecast]:
+    return [PastForecast(f.match, f.fit_date, f.model.as_tuple()) for f in forecasts]
+
+
+def _calibrated(
+    division: str,
+    group: Group,
+    ordered: Sequence[BacktestMatch],
+    window: tuple[date, date],
+    cand: BacktestResult,
+    published_by: Mapping[tuple[date, str, str], Forecast],
+    model_input: CalibrationInput,
+    *,
+    version: ModelVersion,
+    candidate_elo: EloOn | None,
+    calibration_from: date | None,
+    min_history: int,
+    refit_every_days: int,
+    prior_fits: tuple[int, int],
+) -> DivisionRun:
+    """The candidate's forecasts through the calibration fitted at each refit (T-1657).
+
+    A refit's calibration reads the candidate's out-of-sample forecasts of the
+    division's matches on or before its fit date: the window's already played,
+    and those of a second walk-forward with the candidate's constants and
+    prior over ``calibration_from`` to the day before the window. The window's
+    own walk-forward is the one every input is judged on, untouched.
+    """
+    earlier: list[PastForecast] = []
+    history_from = (
+        calibration_from if calibration_from is not None and calibration_from < window[0] else None
+    )
+    if history_from is not None:
+        try:
+            pre = walk_forward(
+                ordered,
+                window_start=history_from,
+                window_end=window[0] - timedelta(days=1),
+                scope=f"{division} calibration history",
+                min_history=min_history,
+                refit_every_days=refit_every_days,
+                version=version,
+                elo_on=candidate_elo,
+            )
+            earlier = _past(pre.forecasts)
+        except ValueError:  # no match before the window could be forecast
+            earlier = []
+    # Oldest first: every earlier forecast is of a match before the window.
+    history = earlier + _past(cand.forecasts)
+    days = [h.match.date for h in history]
+    calibrations: dict[date, Calibration | None] = {}
+    scores: list[MatchScore] = []
+    for forecast in cand.forecasts:
+        match = forecast.match
+        if _match_key(match) not in published_by:
+            continue
+        fit_date = forecast.fit_date
+        if fit_date not in calibrations:
+            seen = history[: bisect_right(days, fit_date)]
+            calibrations[fit_date] = model_input.calibrate(division, seen, fit_date)
+        calibration = calibrations[fit_date]
+        scores.append(
+            MatchScore(
+                match=match,
+                fit_date=fit_date,
+                published=published_by[_match_key(match)],
+                candidate=forecast.model,
+                with_input=(
+                    forecast.model
+                    if calibration is None
+                    else Forecast(*calibration.apply(forecast.model.as_tuple()))
+                ),
+                applied=calibration is not None,
+            )
+        )
+    fitted = [calibrations[d] for d in sorted(calibrations) if calibrations[d] is not None]
+    last = fitted[-1] if fitted else None
+    record = CalibrationRecord(
+        history_from,
+        len(earlier),
+        len(fitted),
+        len(calibrations),
+        {} if last is None else dict(last.parameters),
+    )
+    return DivisionRun(division, group, scores, cand.refits, *prior_fits, record)
 
 
 @dataclass(frozen=True)
@@ -421,6 +573,88 @@ def judge(runs: Sequence[DivisionRun], bar: Bar = BAR) -> tuple[Verdict, list[Gr
     return overall, groups
 
 
+#: The gaps ``|p_home - p_away|`` between the draw's reliability bands: the
+#: live record's, where the over-forecast draw was seen (T-1657).
+DRAW_BANDS: tuple[float, ...] = (0.10, 0.25, 0.45)
+FORECASTERS = ("published", "candidate", "with_input")
+
+
+@dataclass(frozen=True)
+class DrawBand:
+    """The draw said against seen on the matches whose candidate's gap is in [lower, upper)."""
+
+    lower: float
+    upper: float | None
+    matches: int
+    said_published: float | None = None
+    said_candidate: float | None = None
+    said_with_input: float | None = None
+    seen: float | None = None
+    #: The seen rate's 95% Wilson interval.
+    seen_interval: tuple[float, float] | None = None
+
+
+def wilson(hits: int, n: int, z: float = 1.959964) -> tuple[float, float]:
+    """The Wilson score interval of a rate (95% by default)."""
+    rate = hits / n
+    centre = (rate + z * z / (2 * n)) / (1 + z * z / n)
+    half = z * math.sqrt(rate * (1 - rate) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return round(centre - half, 4), round(centre + half, 4)
+
+
+def _gap(f: Forecast) -> float:
+    return abs(f.home - f.away)
+
+
+def draw_reliability(
+    scores: Sequence[MatchScore], bands: Sequence[float] = DRAW_BANDS
+) -> list[DrawBand]:
+    """The draw's reliability by bands of the candidate's gap, on ``scores``."""
+    edges = [0.0, *bands]
+    out: list[DrawBand] = []
+    for i, lower in enumerate(edges):
+        upper = edges[i + 1] if i + 1 < len(edges) else None
+        mine = [
+            s for s in scores
+            if _gap(s.candidate) >= lower and (upper is None or _gap(s.candidate) < upper)
+        ]  # fmt: skip
+        if not mine:
+            out.append(DrawBand(lower, upper, 0))
+            continue
+        draws = sum(1 for s in mine if s.match.result == "D")
+        said = {
+            k: round(float(np.mean([getattr(s, k).draw for s in mine])), 4) for k in FORECASTERS
+        }
+        out.append(
+            DrawBand(
+                lower,
+                upper,
+                len(mine),
+                said["published"],
+                said["candidate"],
+                said["with_input"],
+                round(draws / len(mine), 4),
+                wilson(draws, len(mine)),
+            )
+        )
+    return out
+
+
+def draw_band_error(bands: Sequence[DrawBand]) -> dict[str, float | None]:
+    """Per forecaster, |said - seen| over the bands, weighted by their matches."""
+    filled = [b for b in bands if b.matches and b.seen is not None]
+    total = sum(b.matches for b in filled)
+    out: dict[str, float | None] = {}
+    for k in FORECASTERS:
+        gaps = [(b.matches, getattr(b, f"said_{k}"), b.seen) for b in filled]
+        out[k] = (
+            None
+            if total == 0
+            else round(sum(n * abs(said - seen) for n, said, seen in gaps) / total, 4)
+        )
+    return out
+
+
 # --- the store and the report ---------------------------------------------------
 
 
@@ -456,6 +690,43 @@ def report_body(
     runs: Sequence[DivisionRun],
     note: str,
     bar: Bar = BAR,
+) -> dict[str, object]:
+    body = _term_body(name, description, candidate, window, overall, groups, runs, note, bar)
+    calibrated = [r for r in runs if r.calibration is not None]
+    if not calibrated:
+        return body
+    # A recalibration (T-1657): the draw's reliability, and what each division fitted.
+    body["calibrations"] = {
+        r.division: _calibration_entry(r.calibration) for r in calibrated if r.calibration
+    }
+    reliability: dict[str, object] = {}
+    for group in GROUPS:
+        applied = [s for r in runs if r.group == group for s in r.scores if s.applied]
+        if applied:
+            bands = draw_reliability(applied)
+            reliability[group] = {
+                "bands": [asdict(b) for b in bands],
+                "error": draw_band_error(bands),
+            }
+    body["draw_reliability"] = {"bands": list(DRAW_BANDS), "groups": reliability}
+    return body
+
+
+def _calibration_entry(record: CalibrationRecord) -> dict[str, object]:
+    start = record.history_from
+    return {**asdict(record), "history_from": None if start is None else start.isoformat()}
+
+
+def _term_body(
+    name: str,
+    description: str,
+    candidate: ModelVersion,
+    window: tuple[date, date],
+    overall: Verdict,
+    groups: Sequence[GroupVerdict],
+    runs: Sequence[DivisionRun],
+    note: str,
+    bar: Bar,
 ) -> dict[str, object]:
     return {
         "input": name,
@@ -542,7 +813,66 @@ def render(body: Mapping[str, object]) -> str:
                 f"| {cells[0]} | {cells[1]} | {'yes' if d['judged'] else 'no'} "
                 f"| {'yes' if d['worse'] else 'no'} |"
             )
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines + _calibration_lines(body)) + "\n"
+
+
+def _percent(value: object) -> str:
+    return "" if not isinstance(value, float | int) else f"{value:.1%}"
+
+
+def _calibration_lines(body: Mapping[str, object]) -> list[str]:
+    """A recalibration's sections (T-1657); none for a term input."""
+    reliability = body.get("draw_reliability")
+    calibrations = body.get("calibrations")
+    if not isinstance(reliability, dict) or not isinstance(calibrations, dict):
+        return []
+    lines = [
+        "",
+        "## The draw by the gap between the sides",
+        "",
+        "The draw said against seen on the applied matches, in bands of the candidate's gap "
+        "|p_home - p_away| (T-1657), the seen rate with its 95% Wilson interval.",
+        "",
+        "| Group | Gap | Matches | Draw said: published | candidate | with input "
+        "| Seen [interval] |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for group, entry in reliability["groups"].items():
+        for b in entry["bands"]:
+            band = (
+                f"{b['lower']:.2f} and over"
+                if b["upper"] is None
+                else f"{b['lower']:.2f}–{b['upper']:.2f}"
+            )
+            seen = _percent(b["seen"])
+            if b["seen_interval"] is not None:
+                lo, hi = b["seen_interval"]
+                seen += f" [{lo:.1%}, {hi:.1%}]"
+            lines.append(
+                f"| {group} | {band} | {b['matches']} "
+                f"| {_percent(b['said_published'])} | {_percent(b['said_candidate'])} "
+                f"| {_percent(b['said_with_input'])} | {seen} |"
+            )
+    for group, entry in reliability["groups"].items():
+        e = entry["error"]
+        lines.append(
+            f"\n- {group}: |said - seen| over the bands, weighted by their matches: published "
+            f"{_percent(e['published'])}, candidate {_percent(e['candidate'])}, with input "
+            f"{_percent(e['with_input'])}."
+        )
+    lines += [
+        "",
+        "| Division | History from | Forecasts before the window | Refits calibrated "
+        "| Last calibration |",
+        "|---|---|---|---|---|",
+    ]
+    for division, c in calibrations.items():
+        last = ", ".join(f"{k} {v:.4g}" for k, v in c["last"].items())
+        lines.append(
+            f"| {division} | {c['history_from'] or 'the window'} | {c['before_window']} "
+            f"| {c['calibrated_refits']} of {c['refits']} | {last} |"
+        )
+    return lines
 
 
 def write(body: Mapping[str, object], candidate: ModelVersion, out: Path) -> Path:
@@ -578,6 +908,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--candidate", help="a candidate's name (T-1102); default: the newest version in shadow"
     )
+    parser.add_argument(
+        "--calibration-from",
+        type=date.fromisoformat,
+        help="a recalibration's out-of-sample history starts here (T-1657); "
+        "default: a year after --history-from",
+    )
     args = parser.parse_args(argv)
 
     database_url = os.environ.get("DATABASE_URL")
@@ -592,6 +928,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
     window = (args.window_from, args.window_to)
     history_from = args.history_from or args.window_from - timedelta(days=730)
+    calibration_from = args.calibration_from or history_from + timedelta(days=365)
     try:
         model_input = load(
             args.input, InputContext(database_url, tuple(args.divisions), args.window_to)
@@ -634,6 +971,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 model_input=model_input,
                 published_elo=prior_for(PUBLISHED, clubelo_on, own_on),
                 candidate_elo=prior_for(candidate, clubelo_on, own_on),
+                calibration_from=calibration_from,
             )
         except ValueError as error:  # no match in the window could be forecast
             print(f"{division}: {error}", file=sys.stderr)

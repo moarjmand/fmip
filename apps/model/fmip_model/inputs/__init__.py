@@ -28,6 +28,25 @@ that path: give it ``features(division, match, known) -> (home, away)`` vectors
 likelihood with the fitted model's expected goals as offsets, as the line-up
 term does (T-534, D-086). The home side's goals move by ``exp(beta . home)``,
 the away side's by ``exp(beta . away)``.
+
+**A second, small kind: a recalibration of the three probabilities** (T-1657,
+D-308). Some corrections act on what the scoreline table gives, not on goals
+(the draw's share, say). Such a module's ``build`` returns a
+``CalibrationInput`` instead:
+
+- ``CalibrationInput.calibrate(division, history, fit_date)`` is called once
+  per refit with ``PastForecast`` rows: every match of the division on or
+  before ``fit_date`` that the same walk-forward forecast out of sample (fitted
+  the day before it, refitted at most weekly), with those probabilities and
+  the result. It returns a ``Calibration``, or ``None`` when it cannot be
+  fitted (then the candidate's forecast stands and the refit's matches are
+  outside the sample).
+- ``Calibration.apply(p)`` maps a forecast's (home, draw, away) to three
+  probabilities that sum to 1; ``parameters`` names what was fitted, for the
+  report.
+
+The harness tells the two kinds apart by ``calibrate``; an input is one or the
+other.
 """
 
 from __future__ import annotations
@@ -36,10 +55,10 @@ import importlib
 import math
 import pkgutil
 from bisect import bisect_left
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
-from typing import Protocol
+from typing import Literal, Protocol, runtime_checkable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -49,6 +68,8 @@ from ..model.dixon_coles import FittedModel, MatchObservation
 
 #: The change to ``log`` expected goals, (home, away).
 LogShift = tuple[float, float]
+#: A forecast's three probabilities, (home, draw, away).
+Probabilities = tuple[float, float, float]
 
 
 class Scheduled(Protocol):
@@ -80,6 +101,41 @@ class ModelInput(Protocol):
 
 
 @dataclass(frozen=True)
+class PastForecast:
+    """A past match with the forecast the walk-forward made of it before it was played."""
+
+    match: MatchObservation
+    #: The day of the fit that made the forecast, always before the match's day.
+    fit_date: date
+    probabilities: Probabilities
+
+    @property
+    def result(self) -> Literal["H", "D", "A"]:
+        if self.match.home_goals > self.match.away_goals:
+            return "H"
+        if self.match.home_goals < self.match.away_goals:
+            return "A"
+        return "D"
+
+
+class Calibration(Protocol):
+    @property
+    def parameters(self) -> Mapping[str, float]: ...
+
+    def apply(self, p: Probabilities) -> Probabilities: ...
+
+
+@runtime_checkable
+class CalibrationInput(Protocol):
+    name: str
+    description: str
+
+    def calibrate(
+        self, division: str, history: Sequence[PastForecast], fit_date: date
+    ) -> Calibration | None: ...
+
+
+@dataclass(frozen=True)
 class InputContext:
     """What ``build`` may use to read rows the harness does not hand it."""
 
@@ -93,11 +149,11 @@ def available() -> list[str]:
     return sorted(m.name for m in pkgutil.iter_modules(__path__) if not m.name.startswith("_"))
 
 
-def load(name: str, context: InputContext) -> ModelInput:
+def load(name: str, context: InputContext) -> ModelInput | CalibrationInput:
     if name not in available():
         raise LookupError(f"no input {name!r}; there are {', '.join(available())}")
     module = importlib.import_module(f"{__name__}.{name}")
-    built: ModelInput = module.build(context)
+    built: ModelInput | CalibrationInput = module.build(context)
     return built
 
 

@@ -308,6 +308,20 @@ either. A wholly new kind of input (rest days, derbies, injuries...) is a
 small Python module and its own test, `python -m fmip_model.backtest.inputs`
 (D-139); describe the idea in an issue and we will write it together.
 
+**A recalibration of the three probabilities** (T-1657, D-308) is the
+harness's second kind of input, for a correction that acts on what the
+scoreline table gives rather than on goals. At each refit it is fitted on the
+candidate's own out-of-sample forecasts of the league's earlier matches (each
+made the day before its match by the same walk-forward, from
+`--calibration-from`, by default a year after `--history-from`), then applied
+to every forecast of that refit, and judged by the same bar. The first one,
+`--input draw_calibration`, moves the draw by how far apart the forecast puts
+the sides, `g = |p_home − p_away|`: the draw's odds are multiplied by
+`exp(a + b·g + c·g²)`, and home and away share what is left in their own
+ratio. Its report adds the draw said against seen in four bands of `g`
+(under 10 points, 10–25, 25–45, 45 and over), the bands in which the live
+record showed draws over-forecast.
+
 **Ideas already tried, and their verdicts** (so they are not repeated
 blindly): rest and congestion (D-141, failed), league stakes (D-143,
 insufficient; with zones D-171, failed), the second leg of a tie (D-144,
