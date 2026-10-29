@@ -6,6 +6,7 @@
  */
 
 import type { TeamHeadCoach } from './coaches';
+import type { Confederation } from './confederation';
 import type { CoverageState, Covered } from './coverage';
 import type { LeagueZones } from './league-zones';
 import type { EntityMedia } from './media';
@@ -100,6 +101,15 @@ export interface CompetitionDirectoryEntry {
    * Optional so an older answer still reads; the API always sends it.
    */
   next_kickoff_at?: string | null;
+  /**
+   * The confederation it belongs to (T-1643, D-301), which the header's
+   * competitions menu files it by: a domestic competition's by its country,
+   * a continental one's by the domestic leagues its clubs play in this
+   * season (`continentalConfederation`), none for an international one.
+   * `null` when the data does not say -- never a guess (rule 3). Optional so
+   * an older answer still reads; the API always sends it.
+   */
+  confederation?: Confederation | null;
 }
 
 /**

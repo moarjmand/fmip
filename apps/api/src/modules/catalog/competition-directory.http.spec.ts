@@ -12,6 +12,7 @@ const PREMIER_LEAGUE = '00000000-0000-4000-8000-000000000201';
 const LA_LIGA = '00000000-0000-4000-8000-000000000202';
 const PRO_LEAGUE = '00000000-0000-4000-8000-000000000203';
 const UCL = '00000000-0000-4000-8000-000000000205';
+const WORLD_CUP = '00000000-0000-4000-8000-000000000206';
 
 /**
  * A language subtag no product locale uses, so the order this spec states is
@@ -71,6 +72,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competitions
     expect(premier?.logo.coverage).toMatch(/^(available|not_supplied)$/);
     expect(Object.keys(premier ?? {}).sort()).toEqual(
       [
+        'confederation',
         'country',
         'id',
         'kind',
@@ -87,6 +89,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competitions
     // Premier League has one, and a label is never invented for none.
     expect(premier?.season).toMatch(/^\d{4}(\/\d{2})?$/);
     for (const c of all) expect(c.season === null || typeof c.season === 'string').toBe(true);
+  });
+
+  it('files each competition under its confederation, from what the catalogue holds (T-1643, D-301)', async () => {
+    const all = await directory();
+    const of = (id: string) => all.find((c) => c.id === id)?.confederation;
+    // A domestic competition by its country's FIFA trigram.
+    expect(of(PREMIER_LEAGUE)).toBe('uefa');
+    expect(of(LA_LIGA)).toBe('uefa');
+    expect(of(PRO_LEAGUE)).toBe('afc');
+    // National teams belong to none, whatever the continent.
+    expect(of(WORLD_CUP) ?? null).toBeNull();
+    // A continental one by the leagues its clubs play in: the seed's
+    // Champions League season holds no fixture, so none -- never read from
+    // its name. (A parallel spec may give it clubs, and they are English.)
+    expect([null, 'uefa']).toContain(of(UCL));
+    for (const c of all) {
+      expect([null, 'uefa', 'afc', 'caf', 'concacaf', 'conmebol', 'ofc']).toContain(
+        c.confederation,
+      );
+    }
   });
 
   it('gives each country its flag from our own origin, and a competition of no country none (T-1611)', async () => {

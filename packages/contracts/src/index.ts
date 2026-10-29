@@ -1044,3 +1044,11 @@ export type {
   LeagueZones,
   ZoneCompetition,
 } from './league-zones';
+// Football's confederations (T-1643, D-301): the competitions menu's regions.
+export {
+  CONFEDERATIONS,
+  CONFEDERATION_BY_COUNTRY,
+  continentalConfederation,
+  countryConfederation,
+} from './confederation';
+export type { Confederation } from './confederation';

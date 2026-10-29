@@ -5,6 +5,7 @@ import type {
   CompetitionPage,
   CompetitionTable,
   CompetitionSummary,
+  Confederation,
   CountryRef,
   CountrySummary,
   Covered,
@@ -30,6 +31,8 @@ import type {
 import {
   LEADERS_MINUTES_PRESETS,
   SUGGESTED_TEAMS_PER_COMPETITION,
+  continentalConfederation,
+  countryConfederation,
   leagueZonesFor,
 } from '@fmip/contracts';
 import leagueZoneList from '@fmip/contracts/zones/league-zones.json';
@@ -314,10 +317,13 @@ export class CatalogService {
         WHERE c.is_active`,
       [orderSubtag(locale)],
     );
-    const media = await this.media.index({
-      competition: rows.map((r) => r.id),
-      country: rows.flatMap((r) => (r.country_id === null ? [] : [r.country_id])),
-    });
+    const [media, continental] = await Promise.all([
+      this.media.index({
+        competition: rows.map((r) => r.id),
+        country: rows.flatMap((r) => (r.country_id === null ? [] : [r.country_id])),
+      }),
+      this.continentalConfederations(),
+    ]);
     return directoryOrder(
       rows.map((r) => ({
         id: r.id,
@@ -338,8 +344,78 @@ export class CatalogService {
         logo: media.logo(r.id),
         season: r.season_label,
         next_kickoff_at: r.next_kickoff_at === null ? null : r.next_kickoff_at.toISOString(),
+        confederation:
+          r.scope === 'domestic'
+            ? countryConfederation(r.country_code)
+            : r.scope === 'continental'
+              ? (continental.get(r.id) ?? null)
+              : null,
       })),
     );
+  }
+
+  /** The continental confederations, kept this long: clubs change competitions between seasons, not between page views. */
+  private static readonly CONFEDERATIONS_KEPT_MS = 10 * 60_000;
+  private continentalKept: {
+    at: number;
+    answer: Promise<Map<string, Confederation | null>>;
+  } | null = null;
+
+  /**
+   * Each active continental competition's confederation (T-1643, D-301):
+   * the catalogue stores none, and a name is never read for it (rule 1), so
+   * it is the confederation of the domestic leagues its clubs play in --
+   * every club in a fixture of its current season, placed by the country of
+   * a domestic league whose current season it also plays a fixture of
+   * (`continentalConfederation`). A competition with no club we can place
+   * (between editions, or clubs of leagues we do not follow) has none. One
+   * grouped query, kept for `CONFEDERATIONS_KEPT_MS`; a failed one is not
+   * kept, and the directory still answers, with none.
+   */
+  private continentalConfederations(): Promise<Map<string, Confederation | null>> {
+    const now = Date.now();
+    const kept = this.continentalKept;
+    if (kept !== null && now - kept.at < CatalogService.CONFEDERATIONS_KEPT_MS) return kept.answer;
+    const answer: Promise<Map<string, Confederation | null>> = this.pool
+      .query<{ competition_id: string; country_code: string; clubs: number }>(
+        `WITH clubs AS (
+           SELECT DISTINCT se.competition_id, fp.team_id
+             FROM competition c
+             JOIN season se ON se.competition_id = c.id AND se.is_current
+             JOIN fixture f ON f.season_id = se.id
+             JOIN fixture_participant fp ON fp.fixture_id = f.id
+            WHERE c.scope = 'continental' AND c.is_active
+         ), homes AS (
+           SELECT DISTINCT dp.team_id, co.code
+             FROM fixture_participant dp
+             JOIN fixture df ON df.id = dp.fixture_id
+             JOIN season ds ON ds.id = df.season_id AND ds.is_current
+             JOIN competition dc ON dc.id = ds.competition_id
+             JOIN country co ON co.id = dc.country_id
+            WHERE dc.scope = 'domestic' AND dc.kind = 'league'
+              AND dp.team_id IN (SELECT team_id FROM clubs)
+         )
+         SELECT clubs.competition_id, homes.code AS country_code, count(*)::int AS clubs
+           FROM clubs
+           JOIN homes ON homes.team_id = clubs.team_id
+          GROUP BY clubs.competition_id, homes.code`,
+      )
+      .then(({ rows }) => {
+        const counts = new Map<string, { country_code: string; clubs: number }[]>();
+        for (const row of rows) {
+          counts.set(row.competition_id, [...(counts.get(row.competition_id) ?? []), row]);
+        }
+        return new Map(
+          [...counts].map(([id, clubs]) => [id, continentalConfederation(clubs)] as const),
+        );
+      })
+      .catch(() => {
+        // Not kept: the next directory asks again. This one answers with none.
+        if (this.continentalKept?.answer === answer) this.continentalKept = null;
+        return new Map<string, Confederation | null>();
+      });
+    this.continentalKept = { at: now, answer };
+    return answer;
   }
 
   /**
