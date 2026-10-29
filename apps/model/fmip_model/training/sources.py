@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-SourceId = Literal["football_data_co_uk", "clubelo", "our_records"]
+SourceId = Literal["football_data_co_uk", "clubelo", "our_records", "our_absences"]
 
 
 @dataclass(frozen=True)
@@ -59,10 +59,25 @@ OUR_RECORDS = Source(
     ),
 )
 
+# Its own source, not ``our_records``: the service reloads every scope of that
+# one as a division each day, and no version reads absences (T-1650, D-306).
+OUR_ABSENCES = Source(
+    id="our_absences",
+    name="Our own absence history of API-Football",
+    licence_url="https://api-sports.io/terms",
+    licence_note=(
+        "Past seasons' absences as the licensed feed listed them (D-076), copied from "
+        "our own absence_history table, for the model-factor experiments only (D-303, "
+        "D-306); never shown. The feed's terms forbid reselling its data and say nothing "
+        "about models; the maintainer allowed training on it (D-083). Not redistributed."
+    ),
+)
+
 SOURCES: dict[SourceId, Source] = {
     FOOTBALL_DATA.id: FOOTBALL_DATA,
     CLUB_ELO.id: CLUB_ELO,
     OUR_RECORDS.id: OUR_RECORDS,
+    OUR_ABSENCES.id: OUR_ABSENCES,
 }
 
 

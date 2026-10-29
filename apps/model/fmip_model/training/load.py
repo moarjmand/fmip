@@ -4,6 +4,7 @@
     python -m fmip_model.training.load clubelo --days 2024-08-01 2025-08-01
     python -m fmip_model.training.load records --divisions IR1
     python -m fmip_model.training.load football-data-extra --divisions AT1 US1 --since 2020/21
+    python -m fmip_model.training.load records-absences
 
 Each (source, scope) is one ``source_load`` row: opened first, then the file
 is fetched, hashed, parsed and upserted inside one transaction, then the load
@@ -24,12 +25,14 @@ from collections.abc import Callable, Sequence
 
 import httpx
 
+from . import absences as absence_history
 from .clubelo import parse_elo
 from .football_data import MatchRow, parse_extra_matches, parse_matches
 from .records import RecordedMatch, as_text, by_season, recorded_matches, team_ids
 from .sources import (
     CLUB_ELO,
     FOOTBALL_DATA,
+    OUR_ABSENCES,
     OUR_RECORDS,
     Source,
     clubelo_snapshot_url,
@@ -189,6 +192,30 @@ def load_records(store: TrainingStore, divisions: Sequence[str]) -> list[LoadRes
     return results
 
 
+def load_absences(store: TrainingStore) -> list[LoadResult]:
+    """Our absence history into ``training.absence`` (T-1650, D-306), one load.
+
+    Read by the Phase 14 experiments only. Refused, and recorded as failed,
+    while ``absence_history`` is empty.
+    """
+    rows = absence_history.recorded_absences(store.conn)
+
+    def write(load_id: str, _text: str, rows: list[absence_history.RecordedAbsence] = rows) -> int:
+        if not rows:
+            raise ValueError(
+                "absence_history holds no row: run the API's dist/cli/absence-history.js first"
+            )
+        return absence_history.upsert_absences(store.conn, load_id, rows)
+
+    text = absence_history.as_text(rows)
+
+    def read(_url: str, text: str = text) -> str:
+        return text
+
+    scope, url = absence_history.ABSENCES_SCOPE, absence_history.ABSENCES_URL
+    return [load_one(store, OUR_ABSENCES, scope, url, read, write)]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="fmip_model.training.load", description=__doc__)
     sub = parser.add_subparsers(dest="source", required=True)
@@ -209,6 +236,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     fx.add_argument("--divisions", nargs="+", required=True, help="e.g. AT1 CH1 US1")
     fx.add_argument("--since", required=True, help="the first season kept, e.g. 2020/21")
 
+    sub.add_parser("records-absences", help="our absence history, for the experiments only (D-306)")
+
     args = parser.parse_args(argv)
 
     database_url = os.environ.get("DATABASE_URL")
@@ -224,6 +253,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             results = load_football_data_extra(store, args.divisions, since=args.since)
         elif args.source == "records":
             results = load_records(store, args.divisions)
+        elif args.source == "records-absences":
+            results = load_absences(store)
         else:
             results = load_clubelo(store, args.days)
     except Exception as error:  # noqa: BLE001
