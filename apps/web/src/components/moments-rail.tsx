@@ -93,7 +93,12 @@ async function loadAnswer(
 ): Promise<MomentsResponse | null> {
   // The pseudo-locale reads the English names, as every page's request does.
   const names = isPseudoLocale(lang) ? DEFAULT_LOCALE : lang;
-  const query = new URLSearchParams({ timezone: timeZone, locale: names }).toString();
+  // `big_one=live`: this rail can say "Big one, live", so the hero stays while played (D-302).
+  const query = new URLSearchParams({
+    timezone: timeZone,
+    locale: names,
+    big_one: 'live',
+  }).toString();
   const answer = await (
     cookie === undefined
       ? sharedAnswer(

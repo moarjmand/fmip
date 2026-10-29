@@ -269,6 +269,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "shell.moments.kind.bigOneLive": {
+    "source": "Big one, live",
+    "text": "",
+    "status": "untranslated"
+  },
   "shell.moments.kind.startingSoon": {
     "source": {
       "one": "Starts in {count} min",
