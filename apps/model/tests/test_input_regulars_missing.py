@@ -322,6 +322,7 @@ def simulate(effect: float, seed: int) -> tuple[list[BacktestMatch], list[Appear
 def test_a_planted_effect_passes_and_none_fails(effect: float, verdict: str) -> None:
     matches, rows = simulate(effect, seed=1655)
     model_input = regulars_missing_input(Lineups(rows), TeamIds({"T9": {c: c for c in CLUBS}}))
+    assert model_input.minimum == 100  # four coefficients, 25 matches each (D-313)
     candidate = replace(BASELINE, version="0.9.0", xi=0.004, ridge=0.1)
     window = (matches[500].date, matches[-1].date)
     division = run_division("T9", "football_data", matches, window, candidate=candidate,

@@ -21,7 +21,9 @@ statistics, and that line-up is skipped, never filled in.
 
 A side's vector is ``[own index, opponent's index, own flag, opponent's
 flag]``; ``FeatureInput`` fits the four coefficients by time-weighted Poisson
-likelihood with the candidate's expected goals as offsets (D-086's method).
+likelihood with the candidate's expected goals as offsets (D-086's method),
+and a term fitted on fewer than 25 matches per coefficient is not read
+(``_lab.MinimumFit``, as D-310 and D-311's inputs).
 
 **When it applies.** The index reads the match's own starting XI, so it
 belongs to the forecast made once both line-ups are confirmed (the
@@ -56,6 +58,7 @@ import psycopg
 from ..model.dixon_coles import MatchObservation
 from ..training.own_elo import Conn
 from . import FeatureInput, Features, InputContext, Scheduled
+from ._lab import MinimumFit
 
 #: The side's newest earlier line-ups the index is read over ...
 WINDOW = 10
@@ -234,9 +237,13 @@ def features_from(lineups: Lineups, keys: TeamIds) -> Features:
     return features
 
 
-def regulars_missing_input(lineups: Lineups, keys: TeamIds) -> FeatureInput:
+#: Own and opponent's index, own and opponent's flag.
+COEFFICIENTS = 4
+
+
+def regulars_missing_input(lineups: Lineups, keys: TeamIds) -> MinimumFit:
     sides = sum(len(s) for s in lineups.by_team.values())
-    return FeatureInput(
+    features = FeatureInput(
         "regulars_missing",
         f"Regulars missing (T-1655, D-313): per side, the share of its minutes over its last "
         f"{WINDOW} complete stored line-ups (every competition but friendlies, within "
@@ -247,6 +254,7 @@ def regulars_missing_input(lineups: Lineups, keys: TeamIds) -> FeatureInput:
         f"Side line-ups read: {sides}.",
         features_from(lineups, keys),
     )
+    return MinimumFit(features, COEFFICIENTS)
 
 
 LINEUPS_SQL = """
@@ -287,7 +295,7 @@ def read_team_ids(conn: Conn) -> TeamIds:
     return TeamIds(aliases)
 
 
-def build(context: InputContext) -> FeatureInput:
+def build(context: InputContext) -> MinimumFit:
     if context.database_url is None:
         raise LookupError(
             "the regulars_missing input reads the stored line-ups: DATABASE_URL is needed"
