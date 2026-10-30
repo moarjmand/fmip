@@ -88,6 +88,10 @@ def test_prizes_are_decided_at_each_prize_s_last_place_and_drops_at_each_relegat
         True,
     )
     assert cuts(promotion) == ((1, 2, 6), (22,))
+    # The AFC Champions League before the Elite (D-315) is a prize like the Elite.
+    for kind in ("afc_champions_league", "afc_champions_league_elite"):
+        asia = SeasonZones("IR1", "2022/23", 16, ((kind, 1, 3), ("relegation", 15, 16)), True)
+        assert cuts(asia) == ((1, 3), (15,))
 
 
 def test_states_on_a_close_table() -> None:

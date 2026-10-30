@@ -1550,6 +1550,33 @@
   },
   {
     "division": "IR1",
+    "season": "2020/21",
+    "teams": 16,
+    "zones": [
+      {
+        "kind": "afc_champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation",
+        "from": 15,
+        "to": 16
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2020%E2%80%9321_Persian_Gulf_Pro_League",
+      "https://en.wikipedia.org/wiki/2022_AFC_Champions_League",
+      "https://www.the-afc.com/en/about_afc/legal/news/latest_decision_by_afc_entry_control_body.html",
+      "https://insideworldfootball.com/?p=132007",
+      "https://www.arabnews.com/sport/irans-persepolis-esteghlal-expelled-from-2022-afc-champions-league-2000031"
+    ],
+    "note": "First place was due to enter the AFC Champions League group stage, and second and third its qualifying play-off. On 7 January 2022 the AFC withdrew the licences of Persepolis (first), Esteghlal (third) and Gol Gohar Sirjan, so Sepahan (second) moved up to the group stage beside Foolad, the Hazfi Cup winners, and no other Iranian club took part. The season's Wikipedia article names Persepolis and Esteghlal as unlicensed and the competition's names Esteghlal and Gol Gohar; the AFC's decision names all three.",
+    "note_fa": "تیم اول قرار بود به مرحله‌ی گروهی لیگ قهرمانان آسیا برود و تیم‌های دوم و سوم به پلی‌آف مقدماتی آن. AFC در ۷ ژانویه‌ی ۲۰۲۲ مجوز پرسپولیس (اول)، استقلال (سوم) و گل‌گهر سیرجان را لغو کرد، پس سپاهان (دوم) در کنار فولاد، قهرمان جام حذفی، به مرحله‌ی گروهی رفت و باشگاه ایرانی دیگری در این رقابت حضور نداشت. صفحه‌ی ویکی‌پدیای این فصل پرسپولیس و استقلال را بی‌مجوز می‌داند و صفحه‌ی آن رقابت استقلال و گل‌گهر را؛ تصمیم خود AFC نام هر سه را آورده است."
+  },
+  {
+    "division": "IR1",
     "season": "2021/22",
     "teams": 16,
     "zones": [
@@ -1567,6 +1594,31 @@
     ],
     "note": "The season earned no AFC Champions League place: the 2022 edition took Iran's clubs from the 2020/21 season, and the 2023/24 edition from the 2022/23 table and the 2021/22 Hazfi Cup. Tractor v Persepolis was abandoned in the 70th minute and awarded 0–3 to Persepolis.",
     "note_fa": "این فصل هیچ سهمیه‌ای در لیگ قهرمانان آسیا به دست نداد: دوره‌ی ۲۰۲۲ نمایندگان ایران را از فصل ۲۰۲۰/۲۱ برگزید و دوره‌ی ۲۰۲۳/۲۴ از جدول ۲۰۲۲/۲۳ و جام حذفی ۲۰۲۱/۲۲. بازی تراکتور و پرسپولیس در دقیقه‌ی ۷۰ نیمه‌کاره ماند و با نتیجه‌ی ۳ بر ۰ به سود پرسپولیس اعلام شد."
+  },
+  {
+    "division": "IR1",
+    "season": "2022/23",
+    "teams": 16,
+    "zones": [
+      {
+        "kind": "afc_champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation",
+        "from": 15,
+        "to": 16
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_Persian_Gulf_Pro_League",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_AFC_Champions_League",
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_Persian_Gulf_Pro_League"
+    ],
+    "note": "First and second went to the AFC Champions League group stage and third to its play-off. Esteghlal, third, had no AFC licence, so Tractor, fourth, took the play-off place. The Hazfi Cup's group-stage place went to its 2021/22 winner.",
+    "note_fa": "تیم‌های اول و دوم به مرحله‌ی گروهی لیگ قهرمانان آسیا و تیم سوم به پلی‌آف آن رفتند. استقلال، تیم سوم، مجوز AFC نداشت، پس تراکتور، تیم چهارم، سهمیه‌ی پلی‌آف را گرفت. سهمیه‌ی مرحله‌ی گروهی جام حذفی به قهرمان ۲۰۲۱/۲۲ آن رسید."
   },
   {
     "division": "IR1",

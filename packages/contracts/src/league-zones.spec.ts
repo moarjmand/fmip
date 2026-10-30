@@ -120,6 +120,34 @@ describe('leagueZoneProblems', () => {
     expect(problems).toContain('Belgium 2027/28: country is not a three-letter code');
   });
 
+  it('accepts a band for the AFC Champions League before the Elite (T-1659)', () => {
+    expect(
+      leagueZoneProblems([
+        entry({
+          division: 'IR1',
+          season: '2022/23',
+          teams: 16,
+          zones: [
+            { kind: 'afc_champions_league', from: 1, to: 3 },
+            { kind: 'relegation', from: 15, to: 16 },
+          ],
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it('lists each IR1 season under the AFC competition its places went to (T-1659)', () => {
+    // The Elite replaced the AFC Champions League from 2024/25, so a league
+    // season up to 2022/23 earned places in the old competition and 2023/24
+    // onwards in the Elite.
+    for (const e of LIST.filter((x) => x.division === 'IR1')) {
+      const afc = e.zones.filter((z) => z.kind.startsWith('afc_'));
+      const expected =
+        e.season >= '2023/24' ? 'afc_champions_league_elite' : 'afc_champions_league';
+      for (const z of afc) expect(z.kind, `IR1 ${e.season}`).toBe(expected);
+    }
+  });
+
   it('accepts a Libertadores band', () => {
     expect(
       leagueZoneProblems([

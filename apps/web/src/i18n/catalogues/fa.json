@@ -13040,6 +13040,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.zone.afcChampionsLeague": {
+    "source": "AFC Champions League",
+    "text": "لیگ قهرمانان آسیا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.zone.afcChampionsLeagueElite": {
     "source": "AFC Champions League Elite",
     "text": "لیگ نخبگان آسیا",

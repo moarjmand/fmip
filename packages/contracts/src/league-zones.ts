@@ -19,9 +19,14 @@
  * listed either, since the regulations do not fix it before the season.
  *
  * A competition or season absent from the list shows no zones (rule 3).
+ *
+ * `afc_champions_league` is the AFC's first club competition until 2023/24;
+ * `afc_champions_league_elite` is the one that replaced it from 2024/25. A
+ * season is listed under the competition its places went to (T-1659, D-315).
  */
 export const LEAGUE_ZONE_KINDS = [
   'champions_league',
+  'afc_champions_league',
   'afc_champions_league_elite',
   'copa_libertadores',
   'promotion',
