@@ -818,6 +818,10 @@ export class IngestStore implements SquadStore {
    * in. Only fixtures whose two teams are both in the tables are touched: one
    * whose teams are in different groups is set to no group, and one with a
    * team the tables do not name is left as it is -- a group is never guessed.
+   * One exception (T-1663, D-316): a team the tables do not name -- the
+   * provider has listed another club under its place -- is in the group every
+   * one of its group-stage opponents is in, when it has met at least two and
+   * all of them are named in one group.
    * A fixture of a stage that is not a group stage (a final between two teams
    * of one group, a play-off) is never given one. Returns the rows changed.
    *
@@ -836,14 +840,37 @@ export class IngestStore implements SquadStore {
       `WITH member (team_id, name) AS (
          SELECT * FROM unnest($2::uuid[], $3::text[])
        ),
+       met AS (
+         SELECT p.team_id, o.team_id AS opponent
+           FROM fixture f
+           JOIN stage st ON st.id = f.stage_id AND st.kind = 'group'
+           JOIN fixture_participant p ON p.fixture_id = f.id
+           JOIN fixture_participant o ON o.fixture_id = f.id AND o.side <> p.side
+          WHERE f.season_id = $1 AND ($4::uuid IS NULL OR f.stage_id = $4::uuid)
+       ),
+       inferred AS (
+         SELECT met.team_id, min(m.name) AS name
+           FROM met
+           LEFT JOIN member m ON m.team_id = met.opponent
+          WHERE met.team_id NOT IN (SELECT team_id FROM member)
+          GROUP BY met.team_id
+         HAVING count(DISTINCT met.opponent) >= 2
+            AND count(m.name) = count(*)
+            AND count(DISTINCT m.name) = 1
+       ),
+       known AS (
+         SELECT team_id, name FROM member
+         UNION ALL
+         SELECT team_id, name FROM inferred
+       ),
        wanted AS (
          SELECT f.id, CASE WHEN mh.name = ma.name THEN mh.name END AS name
            FROM fixture f
            JOIN stage st ON st.id = f.stage_id AND st.kind = 'group'
            JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
            JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
-           JOIN member mh ON mh.team_id = h.team_id
-           JOIN member ma ON ma.team_id = a.team_id
+           JOIN known mh ON mh.team_id = h.team_id
+           JOIN known ma ON ma.team_id = a.team_id
           WHERE f.season_id = $1 AND ($4::uuid IS NULL OR f.stage_id = $4::uuid)
        )
        UPDATE fixture f
