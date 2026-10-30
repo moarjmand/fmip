@@ -71,10 +71,14 @@ class OwnEloByDay:
         self._days: dict[date, dict[str, float]] = {}
 
     def on(self, day: date, division: str) -> dict[str, float]:
+        return for_division(self.by_club(day), division, self.aliases.get(division, {}))
+
+    def by_club(self, day: date) -> dict[str, float]:
+        """Every rating of the day by club key, as the fit across leagues names clubs (T-1654)."""
         if day not in self._days:
             run = compute(self.matches, day, RULES)
             self._days[day] = {club: r.elo for club, r in run.ratings.items()}
-        return for_division(self._days[day], division, self.aliases.get(division, {}))
+        return self._days[day]
 
 
 def last_cached_clubelo(
