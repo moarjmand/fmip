@@ -17,7 +17,9 @@ scores three forecasters on the same matches:
 The input is judged against the candidate by D-139's bar (``BAR``), on the
 matches where it can be read, separately for football-data.co.uk divisions
 and our records' divisions. The report goes to
-``reports/<candidate>/inputs_<name>_<from>..<to>.{md,json}``. Nothing is
+``reports/<candidate>/inputs_<name>_<from>..<to>.{md,json}``; ``--matches`` adds
+``..._matches.csv``, one row per scored match with the three forecasts (T-1661:
+the report's matches made better and worse). Nothing is
 published or promoted here; a verdict is evidence for a decision entry.
 
 A recalibration of the three probabilities (``CalibrationInput``, T-1657,
@@ -38,6 +40,7 @@ For code: ``run_division`` (no database) and ``judge`` are the whole harness;
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 import os
@@ -887,6 +890,48 @@ def write(body: Mapping[str, object], candidate: ModelVersion, out: Path) -> Pat
     return md
 
 
+MATCH_COLUMNS = (
+    "division", "group", "date", "home", "away", "home_goals", "away_goals", "result",
+    "fit_date", "applied",
+    "published_home", "published_draw", "published_away",
+    "candidate_home", "candidate_draw", "candidate_away",
+    "with_input_home", "with_input_draw", "with_input_away",
+)  # fmt: skip
+
+
+def match_rows(runs: Sequence[DivisionRun]) -> list[dict[str, object]]:
+    """One row per scored match: what each forecaster said and what happened (T-1661)."""
+    rows: list[dict[str, object]] = []
+    for run in runs:
+        for s in run.scores:
+            m = s.match
+            row: dict[str, object] = {
+                "division": run.division, "group": run.group, "date": m.date.isoformat(),
+                "home": m.home, "away": m.away, "home_goals": m.home_goals,
+                "away_goals": m.away_goals, "result": m.result,
+                "fit_date": s.fit_date.isoformat(), "applied": s.applied,
+            }  # fmt: skip
+            for name, f in (
+                ("published", s.published), ("candidate", s.candidate),
+                ("with_input", s.with_input),
+            ):  # fmt: skip
+                row[f"{name}_home"] = round(f.home, 6)
+                row[f"{name}_draw"] = round(f.draw, 6)
+                row[f"{name}_away"] = round(f.away, 6)
+            rows.append(row)
+    return rows
+
+
+def write_matches(rows: Sequence[Mapping[str, object]], md: Path) -> Path:
+    """Beside the report ``md``: ``<stem>_matches.csv``."""
+    path = md.with_name(f"{md.stem}_matches.csv")
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=MATCH_COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+    return path
+
+
 def prior_for(version: ModelVersion, clubelo: EloOn, own: EloOn) -> EloOn:
     if version.elo_prior == "own":
         return own
@@ -914,6 +959,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="a recalibration's out-of-sample history starts here (T-1657); "
         "default: a year after --history-from",
     )
+    parser.add_argument(
+        "--matches", action="store_true",
+        help="also write one row per scored match with the three forecasts (T-1661)",
+    )  # fmt: skip
     args = parser.parse_args(argv)
 
     database_url = os.environ.get("DATABASE_URL")
@@ -987,6 +1036,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.note,
     )  # fmt: skip
     md = write(body, candidate, args.out)
+    if args.matches:
+        write_matches(match_rows(runs), md)
     print(f"{args.input}: {overall} -> {md}")
     return 0
 
