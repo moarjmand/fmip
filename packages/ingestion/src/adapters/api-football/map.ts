@@ -754,21 +754,50 @@ export function mapAvailability(response: unknown, fixtureExternalId: string): N
   const out: NormalisedAbsence[] = [];
   const seen = new Set<string>();
   for (const item of response) {
-    const it = rec(item);
-    const player = imagedRef(it.player, 'photo');
-    const team = imagedRef(it.team, 'logo');
-    const fixtureId = id(rec(it.fixture).id);
-    if (player === null || team === null) continue;
+    const fixtureId = id(rec(rec(item).fixture).id);
     if (fixtureId !== null && fixtureId !== fixtureExternalId) continue;
-    const type = str(rec(it.player).type);
-    const status = type === null ? undefined : ABSENCE_STATUS[type];
-    if (status === undefined) continue;
-    if (seen.has(player.externalId)) continue;
-    seen.add(player.externalId);
-    const reason = str(rec(it.player).reason);
-    out.push({ fixtureExternalId, team, player, status, kind: absenceKind(reason), reason });
+    const absence = absenceEntry(item, fixtureExternalId);
+    if (absence === null || seen.has(absence.player.externalId)) continue;
+    seen.add(absence.player.externalId);
+    out.push(absence);
   }
   return out;
+}
+
+/**
+ * `/injuries?league=&season=` (T-1650, D-306): the same entries as the
+ * per-match answer, for every match of a season in one answer. Each keeps
+ * the match it names; an entry that names none cannot be placed and is
+ * dropped. A player listed twice for one match counts once.
+ */
+export function mapSeasonAvailability(response: unknown): NormalisedAbsence[] {
+  if (!Array.isArray(response)) return [];
+  const out: NormalisedAbsence[] = [];
+  const seen = new Set<string>();
+  for (const item of response) {
+    const fixtureId = id(rec(rec(item).fixture).id);
+    if (fixtureId === null) continue;
+    const absence = absenceEntry(item, fixtureId);
+    if (absence === null) continue;
+    const key = `${fixtureId}:${absence.player.externalId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(absence);
+  }
+  return out;
+}
+
+/** One `/injuries` entry for a match: status and kind decided once, for both answers. */
+function absenceEntry(item: unknown, fixtureExternalId: string): NormalisedAbsence | null {
+  const it = rec(item);
+  const player = imagedRef(it.player, 'photo');
+  const team = imagedRef(it.team, 'logo');
+  if (player === null || team === null) return null;
+  const type = str(rec(it.player).type);
+  const status = type === null ? undefined : ABSENCE_STATUS[type];
+  if (status === undefined) return null;
+  const reason = str(rec(it.player).reason);
+  return { fixtureExternalId, team, player, status, kind: absenceKind(reason), reason };
 }
 
 /** A squad listing's `position` (T-1428): API-Football's four words, and nothing else. */

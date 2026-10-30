@@ -151,6 +151,12 @@ export interface ProviderAdapter {
    */
   getSeasonCoverage?(query: StandingsQuery): Promise<AdapterResult<NormalisedSeasonCoverage>>;
   /**
+   * Every absence the provider listed for every match of one competition's
+   * season (T-1650, D-306), for the training store's history only: never
+   * shown. One request. Optional, like `getSquad`, and not a replayed call.
+   */
+  getSeasonAbsences?(query: StandingsQuery): Promise<AdapterResult<NormalisedAbsence[]>>;
+  /**
    * A person's profile (T-1398, T-1428): the name in full and the birth
    * date, nationality, height and foot it gives. One request. `null` when the
    * provider answered without an entry for that player. Optional, like
@@ -217,6 +223,7 @@ export type AdapterCall = Exclude<
   keyof Omit<ProviderAdapter, 'manifest'>,
   | 'getSquad'
   | 'getSeasonCoverage'
+  | 'getSeasonAbsences'
   | 'getPersonProfile'
   | 'getPlayerSeason'
   | 'getPlayerCareer'

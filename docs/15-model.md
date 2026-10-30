@@ -424,6 +424,35 @@ SELECT m.division, m.season, m.match_date, m.home_team, m.away_team,
 --                             AND l.match_date BETWEEN m.match_date - 1 AND m.match_date + 1
 ```
 
+**Absences (T-1650, D-306).** Past seasons' absences reach the training store
+in two steps: the API's command asks the feed once per past season from
+2021/22 and writes `absence_history`; the loader copies it into
+`training.absence` (match, competition, season, date, club, player by our id
+or the provider's, out or doubtful, and the kind), as a load of its own
+source, `our_absences`. No published version reads it.
+
+```bash
+# On production, from /opt/fmip: the feed once per past season, then the copy
+docker compose run --rm -T api node dist/cli/absence-history.js --by you@your-domain   --reason "absences for the model factors (D-303)"
+docker compose run --rm --no-deps -T model python -m fmip_model.training.load records-absences
+# The same rows into the lab
+docker compose run --rm --no-deps -T model python -m fmip_model.training.load records-absences --into fmip_lab
+```
+
+A lab built before the migration has neither the table nor the new source in
+its `source_load` check. Rebuild it (`scripts/model-lab-setup.sh`, then its
+history again), or add both without touching the rest:
+
+```bash
+docker compose exec -T postgres pg_dump -U fmip -d fmip --schema-only --no-owner -t training.absence | docker compose exec -T postgres psql -U fmip -d fmip_lab -q -v ON_ERROR_STOP=1 --single-transaction
+docker compose exec -T postgres psql -U fmip -d fmip_lab -v ON_ERROR_STOP=1 -c "ALTER TABLE training.source_load DROP CONSTRAINT source_load_source_check, ADD CONSTRAINT source_load_source_check CHECK (source IN ('football_data_co_uk', 'clubelo', 'our_records', 'our_absences'))"
+```
+
+A competition and season with no row is one the provider listed no absences
+for: an experiment reads it as unknown, never as a full squad. Matching a row
+to `training.match` is as for the line-ups above: the team and the date,
+within a day.
+
 ## 5. Where things are
 
 | What | Where |

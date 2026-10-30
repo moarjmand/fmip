@@ -6,6 +6,7 @@
     python -m fmip_model.training.load football-data-extra --divisions AT1 US1 --since 2020/21
     python -m fmip_model.training.load records-stats [--into fmip_lab]
     python -m fmip_model.training.load records-lineups [--into fmip_lab]
+    python -m fmip_model.training.load records-absences [--into fmip_lab]
 
 Each (source, scope) is one ``source_load`` row: opened first, then the file
 is fetched, hashed, parsed and upserted inside one transaction, then the load
@@ -27,6 +28,7 @@ from collections.abc import Callable, Sequence
 import httpx
 from psycopg.conninfo import make_conninfo
 
+from . import absences as absence_history
 from .clubelo import parse_elo
 from .fixture_detail import (
     LINEUPS,
@@ -42,6 +44,7 @@ from .records import RecordedMatch, as_text, by_season, recorded_matches, team_i
 from .sources import (
     CLUB_ELO,
     FOOTBALL_DATA,
+    OUR_ABSENCES,
     OUR_RECORDS,
     Source,
     clubelo_snapshot_url,
@@ -227,6 +230,36 @@ def load_records_detail(store: TrainingStore, reader: Conn, detail: Detail) -> L
         reader.rollback()
 
 
+def load_absences(store: TrainingStore, reader: Conn) -> list[LoadResult]:
+    """Our absence history into ``training.absence`` (T-1650, D-306), one load.
+
+    Read from ``reader`` (``public``, read-only) and written to the store's
+    ``training`` schema, which may be the lab store's (D-303). Its own source,
+    ``our_absences``: the service reloads every ``our_records`` scope as a
+    division. Read by the Phase 14 experiments only. Refused, and recorded as
+    failed, while ``absence_history`` is empty; the rows already held stay.
+    """
+    try:
+        rows = absence_history.recorded_absences(reader)
+    finally:
+        reader.rollback()
+
+    def write(load_id: str, _text: str, rows: list[absence_history.RecordedAbsence] = rows) -> int:
+        if not rows:
+            raise ValueError(
+                "absence_history holds no row: run the API's dist/cli/absence-history.js first"
+            )
+        return absence_history.upsert_absences(store.conn, load_id, rows)
+
+    text = absence_history.as_text(rows)
+
+    def read(_url: str, text: str = text) -> str:
+        return text
+
+    scope, url = absence_history.ABSENCES_SCOPE, absence_history.ABSENCES_URL
+    return [load_one(store, OUR_ABSENCES, scope, url, read, write)]
+
+
 def target_database(database_url: str, into: str | None) -> str:
     """The database a load writes: ``DATABASE_URL``'s own, or ``into`` on the same server."""
     return database_url if into is None else make_conninfo(database_url, dbname=into)
@@ -255,6 +288,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     for name, what in (
         ("records-stats", "our finished matches' team statistics, every competition (T-1647)"),
         ("records-lineups", "our finished matches' line-ups and minutes (T-1648)"),
+        ("records-absences", "our absence history, for the experiments only (T-1650, D-306)"),
     ):
         rd = sub.add_parser(name, help=what)
         rd.add_argument(
@@ -283,6 +317,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             results = load_football_data_extra(store, args.divisions, since=args.since)
         elif args.source == "records":
             results = load_records(store, args.divisions)
+        elif args.source == "records-absences":
+            reader = connect_reader(database_url)
+            results = load_absences(store, reader)
         else:
             results = load_clubelo(store, args.days)
     except Exception as error:  # noqa: BLE001
