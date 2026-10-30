@@ -13062,6 +13062,198 @@ Every compare page now names both players' clubs, national teams, positions and 
 
 **Consequences.** After the deploy that applies the two migrations, the tables are loaded on production, then the lab is given them by `--into fmip_lab` once it holds the tables (a rebuild after the migrations, or the two `CREATE TABLE`s copied from production's schema); `docs/15-model.md` has the commands. The coverage per competition and season is recorded in T-1652's and T-1655's entries from the first production load. A reload is needed whenever the experiments want newer matches; nothing refreshes these tables on a schedule.
 
+## D-307 — Rest with what comes next: a European or domestic cup match in the next four days, read from the stored schedule with its cups
+
+**Status:** Accepted, verdict pending the lab run · 2026-10-30 (the formulation and its constants written before any run, under D-303) · **Task:** T-1656 · **Follows:** D-139, D-141, D-303, D-304
+
+**Context.** D-141's `rest` failed on a store of league matches alone: a football-data schedule is mostly a week apart, so its four coefficients fitted noise. The lab store now also holds the clubs' European and domestic cup matches (`XL`, T-1649, D-304), so the schedule shows midweek matches. The teammate's hypothesis adds what comes next: a side rotates before a European match.
+
+**The input.** `fmip_model/inputs/rest_next.py` (`--input rest_next`); `rest.py` is unchanged. For each side of a match on day `d`, from the stored schedule:
+- **short rest**, as D-141: `short = clip((7 - rest) / 4, 0, 1)`, `rest` the days since its previous stored match strictly before `d`;
+- **congestion**, as D-141: `extra = max(n - 2, 0)`, `n` its stored matches in the 14 days before `d`;
+- **European next**: 1 when the store holds a European (UEFA or continental cup) match of the side on `d + 1` to `d + 4`, else 0;
+- **cup next**: 1 when it holds a domestic cup match of the side on those days, else 0.
+
+A side's vector is its own four and its opponent's, eight coefficients fitted by `FeatureInput` (time-weighted Poisson likelihood with the model's expected goals as offsets, D-139), so each kind's weight is fitted, never set by hand (D-303). Constants: D-141's 7, 4, 14 and 2; the look-ahead `LOOKAHEAD_DAYS = 4`; a season runs from 1 July. They are fixed here and not tuned on 2024/25 (the development window) or on 2025/26 and later (the holdout).
+
+**The schedule** is `rest.py`'s: every row of `training.match`, every division, clubs keyed through `training.team_alias` (`training.own_elo.read_matches`), read to the run's last day plus the look-ahead. Only days and clubs are kept; a score is never read.
+
+**European or domestic cup.** `training.match` does not name an `XL` row's competition, and the lab holds the `training` schema alone (D-303). A match's kind is read from its clubs' countries:
+- a club's country is that of its stored league matches: the division code without its last character (`E0`, `E1` → `E`; `SC0` → `SC`; `IR1` → `IR`; the catalogue's format `^[A-Z]{1,2}[0-9C]$`). League matches in two countries: no country;
+- a club with no stored league match (a lower division, or a league the store does not hold) takes the one country of the clubs it met in `XL` that have one; several such countries: it plays abroad;
+- an `XL` match between two countries, or with a club that plays abroad, is **European**; within one country, a **domestic cup**; with a club of no country, **unclassified**.
+
+Known errors, accepted and stated: a club of a league the store does not hold whose stored `XL` opponents are all of one country (a single qualifying tie) reads as that country's lower division, so that European tie reads as a domestic cup; and for `IR1`, AFC opponents from West-Asian leagues the store does not hold may all read as Iranian. The records group's verdict is read with that in mind. A competition column in `training.match` would make the kind exact; it is proposed only if the input passes.
+
+**Reading what comes next.** Fixture lists are published ahead, so the day and opponent of a side's next match are known before kick-off, and the input reads them; never the score. This is the input's one departure from the harness's boundary (nothing on or after the match's day, D-139), and it reaches four days ahead, no further.
+- **A postponed match** can make the look-ahead wrong: the store holds a match on the day it was played, so a match postponed after the forecast was made is stored later and read here as no match within four days, where the fixture list showed one (a match brought forward reads the reverse). The training store holds no scheduled dates, so this cannot be measured here; such cases are rare (weather, security) and they label a side that faced a match as one that did not, which blurs an effect rather than creating one. Guards: the look-ahead reads only `d + 1` to `d + 4`, so a match moved weeks later is never counted at its new date; the store's last four days are not read (below), so its end never reads as "nothing next"; and serving, if the input ever passes, reads the published fixture list (scheduled, neither postponed nor cancelled) for the same four days.
+- **A cup match is not read.** In an `XL` match the next match's existence can depend on the result (a tournament's semi-final and final days apart), so the input reads only league divisions.
+
+**Not read** (the candidate's forecast stands and the match is outside the sample; never a default, rule 3):
+- a match of `XL`;
+- a side not bridged to a team id in `team_alias`: its cups and European matches cannot be seen;
+- a side with no earlier stored match, as D-141;
+- a side with no country (league matches in two countries);
+- a match within four days of the store's last stored day;
+- a side whose country has no European match, or no domestic cup match, stored in the season of the day: the store does not hold that season's cups, so its zeros would be missing data, not "nothing next";
+- a side with an unclassified `XL` match in the four days after.
+
+**The run.** The lead runs it on the lab store, once this branch's model image is on the server, one run at a time inside tmux:
+
+```bash
+docker compose run --rm --no-deps -T -v $HOME/fmip-lab/reports:/lab-reports model sh -c 'DATABASE_URL="${DATABASE_URL%/fmip}/fmip_lab" nice -n 19 python -m fmip_model.backtest.inputs --input rest_next --divisions E0 E1 SP1 D1 I1 F1 N1 P1 B1 T1 SC0 IR1 --from 2024-08-01 --to 2025-06-30 --history-from 2020-07-01 --out /lab-reports --note "lab store, T-1656, with the clubs cups and European matches in XL"'
+```
+
+and records the table here (groups, matches read, log loss of the published version, the candidate and the candidate with the input, the difference with its interval, calibration), with the verdict in place of "pending". The report's description lists the stored `XL` matches by kind and, per country of the divisions run, the seasons read.
+
+**Rejected.**
+- *One weight for both kinds, set by hand* (a domestic cup as half a European match): weights are fitted (D-303). Two indicators, each fitted.
+- *Days to the next match as a number*: where it matters the next match is three or four days after a weekend match; an indicator spends one coefficient where a curve would spend several on a weaker signal.
+- *A league match within four days*: a league's midweek round falls on both sides alike.
+- *Zero for an unbridged side or a season whose cups are not stored*: rule 3.
+- *The regulars' minutes in the last fortnight* (the task row's third part): it needs T-1648's minutes and belongs with the regulars index (T-1655); it is not in this input.
+
+**Consequences.** No migration; nothing published or promoted; no candidate carries the input until a verdict here says "passed" (T-1660). Serving it would need the next match from the fixture list with its competition's kind from the catalogue, a separate change made only if it passes. `tests/test_input_rest_next.py`.
+
+## D-308 — The draw recalibrated by the gap between the sides: a second kind of input, fitted out of sample, judged by D-139 and by the draw's reliability
+
+**Status:** Accepted for its run · 2026-10-30 (the formulation, written before any run; the verdict is pending the lab run and goes in a follow-up entry) · **Task:** T-1657 · **Follows:** D-029, D-139, D-303
+
+**Context.** The live record of the published `dixon-coles-elo@0.6.0` (500 finished matches from 2026-10-10, D-303) shows the draw over-forecast where the sides are 10–25 points apart (`|p_home − p_away|`: 27% said, 19% seen) and 25–45 apart (25%, 20%), and calibrated where they are even (under 10: 28%, 28%) and for big favourites (over 45: 18%, 18%). Every probability is read off the Dixon–Coles scoreline table (D-029); there is no calibration step. D-139's harness judges terms that shift expected goals (`Term.shift`), and a draw recalibration acts on the three probabilities, so the harness could not judge it.
+
+**Decision.**
+1. **A second, small kind of input.** A module's `build` may return a `CalibrationInput` (`fmip_model/inputs/__init__.py`) instead of a term:
+   - `calibrate(division, history, fit_date) -> Calibration | None` is called once per refit. `history` holds `PastForecast` rows: the candidate's forecasts of the division's matches on or before the fit date, each made the day before its match by the same walk-forward (refitted at most weekly), with the result. They are out of sample. They are the window's matches already played, plus those of a second walk-forward of the candidate over `--calibration-from` to the day before the window. That walk-forward has the same constants, prior and cadence. `--calibration-from` defaults to a year after `--history-from`, so no past forecast comes from a fit on less than a season.
+   - `Calibration.apply(p)` maps each forecast's (home, draw, away) to three probabilities summing to 1.
+   - `None` means not read: the candidate's forecast stands and the refit's matches are outside the sample, as for a term.
+   - The window's own walk-forward, the matches, the groups and D-139's bar are those of every input. A term input's run and report are unchanged: a test holds the `null` input's numbers to those the harness gave before (commit 4925703a), and the real fit's report was compared byte for byte.
+2. **The input `draw_calibration`.** With `g = |p_home − p_away|` of the forecast:
+   - `w = p_draw · exp(a + b·g + c·g²)`, and the forecast becomes `(p_home, w, p_away) / (p_home + w + p_away)`.
+   - Equivalently, `logit(p_draw') = logit(p_draw) + a + b·g + c·g²`, and home and away keep their ratio.
+   - The likelihood of the three outcomes in `(a, b, c)` is then a logistic regression of "drawn", with `logit(p_draw)` as the offset and `(1, g, g²)` as the features. It is concave, and is maximised by Newton's method.
+   - Fitted at each refit on `history`, every past forecast counted alike. There is no time decay: the bias is a property of the model's form, and a half-life of about a hundred days would leave a few hundred matches.
+   - A ridge `RIDGE · (a² + b² + c²)` against the summed log-likelihood pulls toward no change.
+   - At least `MIN_HISTORY` past forecasts, else not read.
+3. **The constants, fixed before any run.** `RIDGE = 0.1` and `MIN_HISTORY = 300`.
+   - The ridge was chosen on synthetic forecasts only, from 0, 0.01, 0.1, 0.3 and 1. The criterion was the error of the fitted draw at 1,000–1,500 past forecasts (a division's history), in a world shaped like the live record and in a calibrated one. 0.1 was within 0.002 of the best in both. 1 lost most of the live record's correction (which needs `|b|` and `|c|` of 3 to 6); 0.01 followed noise in the calibrated world.
+   - None of them is tuned on 2024/25 (development) or 2025/26 and later (holdout).
+4. **Its report** (`reports/<candidate>/inputs_draw_calibration_<window>.{md,json}`) adds to D-139's metrics:
+   - **The draw's reliability.** Per group, on the applied matches, in bands of the candidate's gap: under 0.10, 0.10–0.25, 0.25–0.45, and 0.45 and over (the live record's bands, `DRAW_BANDS`). For each band, the draw said by the published version, the candidate and the candidate with the input, against the draw seen with its 95% Wilson interval, and the bands' mean `|said − seen|` weighted by matches.
+   - **Per division:** where its history began, its forecasts before the window, the refits calibrated, and the last fitted `(a, b, c)`.
+5. **The verdict is D-139's** (`judge`, unchanged). The draw's reliability is the second evidence T-1657 names. It is reported beside the verdict and is not a second gate. The follow-up entry says, band by band, whether the draw said moved toward the draw seen.
+6. **The run** reads the lab store (D-303): the eleven main football-data divisions, window 2024-08-01..2025-06-30, history from 2020-07-01, calibration history from 2021-07-01. It is run once, niced, in tmux. The command is in T-1657's pull request.
+
+**Rejected.**
+- *A draw parameter inside the score model* (a draw inflation, a bivariate Poisson). It changes the model family that D-029 chose. A recalibration leaves the scoreline table, the expected goals and every other input as they are.
+- *Fitting on the fit's own matches* (in-window fitted probabilities). They are in sample: the fit has already bent toward their results, so they would understate the correction.
+- *A factor per band.* The bands come from the same 500 matches that showed the bias, and four free steps would turn a line drawn on that record into the model. A smooth curve in `g` does not depend on where the bands were cut.
+- *One calibration pooled across divisions.* Every input is fitted per division on the history its refit sees. A pooled fit would let the large leagues set the small ones' draw.
+
+**Consequences.**
+- A parabola in `g` cannot be flat at both ends and dip in between. On synthetic forecasts shaped exactly like the live record's bands, it trades some of the mid-gap correction against a lower draw in the even band. The reliability table shows how much on real matches.
+- The input is carried by no version, and the service does not apply it. If it passes, T-1660 decides how a candidate fits and serves it: the calibration needs the candidate's own past forecasts.
+- The run walks the candidate over three more seasons per division than a term input does. That is roughly twice an ordinary input's run on the two-core server.
+
+## D-309 — The cross-league fit's candidate options: an Elo prior, a home advantage per competition, and its half-life swept, judged on 2024/25's matches across leagues
+
+**Status:** Proposed · 2026-10-30 · the options are built and off; the verdict waits for the lab run · **Tasks:** T-1654, T-1653 (the cross-league half-life) · **Follows:** D-085, D-111, D-139, D-191, D-233, D-303, D-304
+
+**Context.** Every cup and continental match is forecast by the fit across leagues (`XL`, D-085): a club's strength is its league's level plus its own deviation, clubs of a league the version does not hold share the group `other`, with `xi` 0.0005 (half-life about 3.8 years), team ridge 4, group ridge 0.001, one home advantage for every match and no Elo prior, so every such forecast says "limited". Its record is calibrated where it is confident (65–75%: 70% said, 71% seen, 24 matches; D-303), and its 2025/26 log loss was 0.9727 on 929 matches (D-191). The examples behind T-1654: Getafe 70% against Lugano (lost 2–5); Sporting 92% against LASK (lost 2–3; LASK's league, AT1, is forecast by no version, D-233, so LASK is in `other`, judged by its cup matches alone and a group level the 0.001 ridge barely holds); Como 36 / 26 / 38 against Manchester United (won 4–1: a rising club seen late through a long half-life). On a synthetic world where a club of `other` lost its four cup matches 2–0, the fit as it is gives it 0.5% to win the next one.
+
+**Decision.** Three options, each off unless a version's `cross_league` block names it, so `dixon-coles-elo@0.6.0` (published) and `0.7.0` (candidate) fit exactly as before; `tests/test_cross_league_options.py` proves it on a synthetic world, to the probabilities the code wrote before T-1654. Their formulations and grids are fixed here, before any run.
+
+1. **An Elo prior across leagues** (`cross_league.elo_weight`, 0 = off). Our own Elo of the fit date (`own-elo@1.0.0`, D-111), read by club as the fit names clubs (catalogue id, else `<division>:<name>`). For the clubs of the fit that have a rating, the penalty is `elo_weight * Σ ((net_i − m) − (E_i − Ē) / 400)²`: net strength (attack minus defence) centred on the rated clubs' mean `m`, against Elo centred on theirs, at 400 points per unit (`ELO_SCALE`). Unlike the per-division fit (`dixon_coles.py`), net strength is centred, so the prior moves the spread and never the goal level the defences carry. Our own Elo is one pool over every stored match, cups included, so it compares clubs of different leagues as far as the cups connect them. A fit the prior reached says `elo_used: true`, so a cup forecast is "available" when both sides have 15 matches in the window. Grid: **0.1, 0.5, 2**.
+2. **A home advantage per competition group** (`cross_league.home_by_competition`, the ridge; absent = one shared). A match's home advantage is `h + δ_c`: `δ = 0` for the domestic league matches (so `h` is theirs, the shared one), and for a match across leagues `c` is its competition's group, read from the catalogue by the fixture's UTC day and clubs, the key an `XL` training row has:
+   - `uefa`: a continental competition (not a super cup or a friendly) more than half of whose placed clubs play a domestic league of a UEFA member, placed as the site's menu places them, over every season held (D-301; the members are `confederation.ts`'s, copied and compared by a test); never by its name (rule 1) or a provider's id (rule 2);
+   - `continental`: any other such competition;
+   - `domestic_cup`: a domestic cup;
+   - `other`: the rest (super cups, friendlies, national teams' competitions, domestic play-offs).
+
+   Each `δ_c` carries `ridge * δ_c²`. A match across leagues whose fixture the catalogue does not give, or whose key two fixtures of different groups share, takes `h`. Grid: **3, 30, 300**.
+3. **The half-life** (`cross_league.xi`, already a constant; T-1653): swept with the two ridges held. Grid: **0.00025, 0.001, 0.002, 0.004** (about 7.6, 1.9 and 0.95 years and 173 days) beside 0.0005.
+
+Each value is one variant, the other constants unchanged; no combination is run here (T-1660 combines the options that pass).
+
+**How it is judged.** `python -m fmip_model.backtest.cross_league variants --from 2024-07-01 --to 2025-06-30` (T-1654): the base version is the newest candidate (D-139 judges against the candidate; `--version` names another), its divisions only and its `history_days` (1100), as the service fits. Every variant walks the window with the cup backtest's fit dates (the day before, refitted at most weekly, 60 matches of history first) and is scored on the matches every variant forecast, against `current`, the base's fit unchanged:
+- log loss, Brier, and calibration error (the ten-bin expected calibration error, mean over home, draw and away), as the inputs harness reports them;
+- D-139's paired bootstrap (2,000 resamples of the matches, seed 1101) of the log-loss difference and of the calibration error's rise;
+- the tail: the forecasts whose likeliest outcome was given more than 85%, the mean said against the share seen;
+- the matches with a club of `other` apart, and each competition group apart.
+
+A variant **passes** on D-139's bar with the competition groups as its divisions: at least 300 matches; the log-loss interval wholly below zero; calibration not demonstrably worse (the rise's interval not wholly above zero); worse in at most a third of the groups with 50 matches or more. Within an option the passing value with the lowest log loss is chosen, its grid neighbours reported beside it. Because it is chosen on the window it is judged on, a pass here is a screen: the holdout (2025/26 and 2026/27 to date) stays untouched until T-1660's one final run, and the command refuses a window that reaches it (from 2025-07-01) without `--holdout`.
+
+**Data.** The training rows and our own Elo come from the lab store (`DATABASE_URL` pointed at `fmip_lab`, D-303); the competitions from the catalogue (`CATALOG_DATABASE_URL`, read-only, the production `public` schema), because the lab copies `training` alone. Runs are niced, one at a time.
+
+**Limits, stated.**
+- The lab's own Elo is computed from its longer store (the main divisions from 2020/21); a candidate carrying the prior would read production's, whose main divisions start in 2023/24. T-1660's holdout run reads what the candidate would.
+- The lab's `XL` includes whatever T-1649 copied into it; its domestic cups are scored as `domestic_cup` like the rest.
+- A final at a neutral ground still takes its group's home advantage (D-145 is not applied here).
+- With the home option on, the service reads the request's competition by its fixture's day and clubs; a fixture it cannot find takes the shared home advantage, and the factor's note still reads "league-wide home advantage".
+
+**Verdict.** Pending the lab run; recorded in a follow-up entry with each variant's numbers.
+
+**Rejected.**
+- *A home advantage per competition, each cup its own:* most of `other`'s and `continental`'s competitions have a few dozen matches; four groups with a ridge say what the data can.
+- *Storing the competition on `training.match`:* a schema change with a backfill, for a candidate option; the catalogue already says it.
+- *The per-division fit's uncentred prior:* in the joint fit it would pull the mean net strength, and so the goal level, toward zero.
+- *Tuning the two ridges again with the half-life:* one change at a time on the development window; T-1660 combines.
+
+**Consequences.** `fmip_model/model/version.py` (`CrossLeague.elo_weight`, `.home_by_competition`), `model/cross_league.py` (`fit_across`, `fit_joint_full`, `JointFit`, `HOME_GROUPS`, `home_group`, `is_uefa`), `training/records.py` (`across_leagues_groups`), the service's `TrainingSource.own_elo_by_club` and `.across_leagues_groups`, `backtest/cross_league.py` (`variants`), `tests/test_cross_league_options.py`. No version carries an option until its verdict, and then only through T-1660's candidate (D-082, D-139).
+
+## D-310 — Coach quality: a coach's sides against a simple strength baseline across his spells, shrunk toward zero, and his time in post
+
+**Status:** Accepted · 2026-10-30 (the formulation and its constants, written before any run; the verdict is pending the lab run) · **Task:** T-1658 · **Follows:** D-139, D-147, D-173, D-303
+
+**Context.** The teammate asked for "coach performance and stability" (D-303). D-147's `new_coach` reads only a new coach's first ten matches and had too few of them (217 of 300). This input reads every named coach: what his sides did against expectation in every spell the stored line-ups show, and how long he has been in post. `new_coach` is unchanged.
+
+**Decision.** An input, `coach_quality` (`apps/model/fmip_model/inputs/coach_quality.py`), judged by D-139's bar.
+
+1. **The coach.** A side's coach is the person named on its club's latest stored line-up strictly before the match's day (UTC days), by person id (D-147). No line-up before the day, a latest line-up that names no coach (a gap), or two line-ups of the club on that day: the side is not read, never a default. A coach appointed since that line-up is read from his second match; his first is read under his predecessor. Reading the day before keeps the input on the harness's boundary (`known`) and off the line-up's timing.
+2. **The results.** Every row of the store the harness reads (`training.match`, every division, on or before `--to`), clubs keyed through `training.team_alias` as our own Elo keys them (`training.own_elo.read_matches`). A stored match's side was coached by the person its own line-up names on that UTC day. A football-data club reaches its line-ups through the alias, so football-data divisions are read where their clubs are aliased and their line-ups stored (D-147's `new_coach` reads our records only).
+3. **The expectation.** The harness hands each refit the fitted model, whose fit has absorbed the coach's own results and which holds only the division's clubs; it gives no pre-match expectation of a coach's past matches. So the expectation is a simple strength baseline, a goal rating run once over every stored result in date order: each club has a log attack `a` and a log leakiness `d`, both 0 at its first stored match; the home side's expected goals are `1.5 * exp(a_home + d_away)`, the away side's `1.2 * exp(a_away + d_home)`; after a day's results each side's `a`, and its opponent's `d`, move by `0.02 * (goals - expected)`. Every match of a day is expected from the ratings as they stood before the day. A match is **scored** only when both clubs have at least 30 earlier stored matches.
+4. **The record.** Over the coach's scored matches strictly before the day, in every club and competition the store holds: the sums of (goals scored - expected) and (goals conceded - expected), each divided by `n + 40`, `n` the scored matches. That is the mean shrunk toward zero by a pseudo-count of 40: one result of +2 reads 0.05, forty results read half their mean. A named coach with no scored match reads 0 and 0, a tenure-only reading.
+5. **Tenure** is his matches in post at the club up to that latest line-up (`training.coaches.coach_contexts`: every competition we carry, a gap counting for no one), read as `log(1 + min(t, 38)) / log(39)`. When his spell began before the club's stored line-ups (its first stored coach) and `t < 38`, tenure is unknown and the side is not read.
+6. **The term.** Home goals move by `exp(b1 * scoring(home) + b2 * conceding(away) + b3 * tenure(home) + b4 * tenure(away))`, away goals with the sides swapped: four coefficients fitted by `FeatureInput`. A match is read when both sides are (a named coach's tenure is never zero, so no read match has a zero vector). A term fitted on fewer than 100 matches (25 per coefficient, `inputs/_lab.py`) is not read: a thin fit leaves the candidate's forecast, never a guess.
+7. **Line-ups on the lab store.** `fmip_lab` holds no `public` (D-303), so the input reads line-ups from `MODEL_RECORDS_DATABASE_URL` when it is set (the production database's `public`, read only; its `training` is never read), else from `DATABASE_URL`.
+
+**The constants**, fixed here before any run and not tuned on 2024/25 or later: pseudo-count 40 (a coach's true effect is small, a standard deviation of about 0.15 to 0.2 goals a match, against a residual variance of about 1.4 a match, so `1.4 / 0.18^2`, about 40); tenure cap 38 matches; baseline 1.5 and 1.2 goals; rate 0.02 (a memory of about `1 / (0.02 * 1.35)`, 37 matches, a season); warm-up 30 matches; 25 matches per coefficient.
+
+**Rejected.**
+- *The fitted model's expected goals for the coach's past matches*: in-sample (the club's strength already holds the coach's results) and blind to his spells in other divisions.
+- *The match's own line-up* (as `new_coach`): it is announced about an hour before kick-off; the day before is what the harness and serving both know.
+- *A coach's raw results*: they repeat his clubs' strength.
+
+**Verdict: pending** the lab run (the command is in the PR of T-1658).
+
+## D-311 — Late-season stakes: in the last eight rounds, each side chasing a prize, in danger, or with nothing to play for, by the committed zones
+
+**Status:** Accepted · 2026-10-30 (the formulation and its constants, written before any run; the verdict is pending the lab run) · **Task:** T-1659 · **Follows:** D-038, D-139, D-143, D-171, D-303
+
+**Context.** D-143's locked side was too rare (94 matches); D-171's settled side failed (+0.063 log loss on 476 matches). T-1659 reads only the end of the season, by what each side can still win or lose.
+
+**Decision.** An input, `late_stakes` (`apps/model/fmip_model/inputs/late_stakes.py`), judged by D-139's bar.
+
+1. **The season and its table** as D-143 and D-171: the season's stored fixture list is a complete double round robin; the table is computed from stored results strictly before the match's day (3/1/0, D-038); no result of the season before the day is missing; the zones file (`packages/contracts/zones/league-zones.json`) has a `complete` entry for the season whose club count equals the list's. Any other season is not read (rule 3). Point deductions are not stored and not applied; an entry's note says where a season had them. Our records' lists come from `public.fixture` of `MODEL_RECORDS_DATABASE_URL` when set, else `DATABASE_URL` (as D-310).
+2. **The last eight rounds.** A match is read only when each side has at most 8 league matches left, this one included (the list's matches less those played before the day).
+3. **Finishes** as D-171: best = 1 + the sides already out of its reach; worst = 1 + the other sides that can still end level with it or above (a level finish counted against it).
+4. **The states**, per side:
+   - **up**: it can still win the title or a prize place it is not yet sure of: for place 1, and for the last place of every listed zone that is not a relegation one (Champions League, AFC Champions League Elite, promotion, promotion play-off), `best <= place < worst`;
+   - **danger**: it can still fall into a relegation place or the relegation play-off and is not yet sure to: for the first place of every relegation zone, `best < place <= worst`;
+   - **nothing**: neither: safe with nothing left to win, already sure of its prize, or already down.
+
+   A side can be up and in danger at once. Europa League and Conference League places are not listed (D-171), so a side chasing only one of them reads as nothing.
+5. **The term.** Each side's vector is `[up, danger, nothing]`, its own then its opponent's: six coefficients fitted by `FeatureInput`. Every read match has a non-zero vector, so the sample is every read match of the last eight rounds. A term fitted on fewer than 150 matches (25 per coefficient, `inputs/_lab.py`) is not read.
+
+**The constants**, fixed here before any run: 8 rounds; the three states as above; 25 matches per coefficient.
+
+**What the zones file allows.** It lists 2024/25 onwards: `complete` for 2024/25 and 2025/26 in E0, E1, SP1, I1, D1, F1, N1, P1 and T1, and IR1 2024/25. The fit reads covered seasons only, so on the development window each division's term would be fitted on 2024/25's own earlier late rounds, at most 64 (IR1) to 96 (E1) matches, under the 150: **on the file as it stands the development run is `insufficient` by construction.** The zones of 2020/21 to 2023/24, researched with sources under D-171 as T-1659's row asks, give each division about 250 to 380 earlier late-round matches; the run waits for them. The minimum fit keeps a term fitted on a few dozen in-season matches off the forecast: D-171's input was fitted on such samples, its coefficients bounded only at ±2, which may explain its +0.063 (not measured).
+
+**Rejected.**
+- *The whole season* (D-143, D-171): what a side plays for is clearest at the end, and the earlier rounds dilute it.
+- *Zones for the uncovered seasons inferred from the covered ones*: rule 3.
+
+**Verdict: pending** the lab run and, before it, the earlier seasons' zones.
+
 ## D-312 — Expected-goals form as a model input: what a side's recent results owe to its finishing and its luck, fixed before its run
 
 **Status:** Accepted for the formulation · 2026-10-30 (agent, within the plan the maintainer approved in D-303) · verdict pending the lab run · **Task:** T-1652 · **Follows:** D-015, D-139, D-303, D-305 · **Amends:** T-1652's first wording (a blended fit target)
