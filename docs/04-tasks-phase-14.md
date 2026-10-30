@@ -63,3 +63,9 @@ the lab store (T-1646), never the published model's store.
 |---|---|---|---|
 | `[ ]` T-1660 | One candidate (0.8.0) of the inputs that passed, judged once on the holdout, then in shadow beside the published version | T-1651–T-1659 | Holdout verdict recorded; at least 300 pre-kick-off shadow forecasts |
 | `[ ]` T-1661 | The report, in Persian for the maintainer and the teammate and in English in the docs: each factor's effect on the percentages, its metrics with intervals, its verdict, how its weight was set, ten matches better and ten worse, the teammate's twelve examples forecast again | T-1660 | The five questions answered; promotion only on the maintainer's decision |
+
+## F. Found on the way
+
+| ID | Task | Deps | Acceptance |
+|---|---|---|---|
+| `[x]` T-1662 | Ended seasons' data-quality findings reviewed in batches: the past seasons and cups loaded for this phase opened about 77,000 findings the feed will never correct (short line-ups, goals the events do not sum to), burying the current seasons' on the admin page. `cli/review-ended-seasons.ts` marks each check of each ended season through the page's audited batch (T-912) | T-1646, T-1649 | Only seasons whose end date has passed; one audit row per check and season; a dry run lists and marks nothing; current seasons' findings untouched |

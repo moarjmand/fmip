@@ -24,11 +24,14 @@ import {
 import {
   type CheckRows,
   DataQualityStore,
+  type EndedClassRow,
   type FindingRow,
   type ReviewOutcome,
   type WriteOutcome,
 } from './internal/data-quality-store';
 import { coverageProposal } from './internal/coverage-proposals';
+
+export type { EndedClassRow } from './internal/data-quality-store';
 
 export type { TableComparison } from './internal/checks';
 
@@ -61,7 +64,8 @@ export function findingsOf(rows: CheckRows, now: Date): Finding[] {
  *   with ours, which is the one check that needs the provider's answer -- so
  *   it rides on the request that job already makes, never a new one.
  * - `report()` and `review()`: the admin page (T-821); `reviewBatch()`
- *   (T-912). The report proposes past seasons' `lineups` / `incidents`
+ *   (T-912), and `endedSeasonClasses()` for the command that reviews ended
+ *   seasons' findings in batches (T-1662). The report proposes past seasons' `lineups` / `incidents`
  *   coverage as `limited` where D-109's conditions hold (T-914); an
  *   administrator applies a proposal through the audited coverage write.
  * - `requestRefetch()`: an administrator asks the feed again (T-913, D-110);
@@ -182,6 +186,14 @@ export class DataQualityService {
     now: Date = new Date(),
   ): Promise<number> {
     return this.store.reviewBatch(check, seasonId, actorId, reason, now);
+  }
+
+  /**
+   * Every check with open, unreviewed findings in a season that ended before
+   * `now`'s UTC day, for the command that reviews them in batches (T-1662).
+   */
+  endedSeasonClasses(now: Date = new Date()): Promise<EndedClassRow[]> {
+    return this.store.endedSeasonClasses(now.toISOString().slice(0, 10));
   }
 
   /**

@@ -101,6 +101,15 @@ export interface CountRow {
 
 export type ReviewOutcome = 'reviewed' | 'not_found' | 'already_reviewed';
 
+/** One check's open, unreviewed findings in a season that has ended (T-1662). */
+export interface EndedClassRow {
+  check: DataQualityCheck;
+  seasonId: string;
+  seasonLabel: string;
+  competitionName: string | null;
+  open: number;
+}
+
 /** Every statement the data-quality checks run: reads of the feed's tables, and their own table. */
 @Injectable()
 export class DataQualityStore {
@@ -157,6 +166,22 @@ export class DataQualityStore {
         WHERE d.resolved_at IS NULL
         GROUP BY d.competition_id, c.name, d.season_id, se.label, d.check_kind
         ORDER BY c.name NULLS LAST, se.label DESC NULLS LAST, d.check_kind`,
+    );
+    return rows;
+  }
+
+  /** Each check with open, unreviewed findings in a season whose end date is before `today`. */
+  async endedSeasonClasses(today: string): Promise<EndedClassRow[]> {
+    const { rows } = await this.pool.query<EndedClassRow>(
+      `SELECT d.check_kind AS "check", d.season_id AS "seasonId", se.label AS "seasonLabel",
+              c.name AS "competitionName", count(*)::int AS open
+         FROM data_quality_finding d
+         JOIN season se ON se.id = d.season_id
+         LEFT JOIN competition c ON c.id = se.competition_id
+        WHERE d.resolved_at IS NULL AND d.reviewed_at IS NULL AND se.end_date < $1::date
+        GROUP BY d.check_kind, d.season_id, se.label, c.name
+        ORDER BY c.name NULLS LAST, se.label, d.check_kind`,
+      [today],
     );
     return rows;
   }
