@@ -13284,3 +13284,39 @@ A variant **passes** on D-139's bar with the competition groups as its divisions
 - *Zones for the uncovered seasons inferred from the covered ones*: rule 3.
 
 **Verdict: pending** the lab run and, before it, the earlier seasons' zones.
+
+## D-312 — Expected-goals form as a model input: what a side's recent results owe to its finishing and its luck, fixed before its run
+
+**Status:** Accepted for the formulation · 2026-10-30 (agent, within the plan the maintainer approved in D-303) · verdict pending the lab run · **Task:** T-1652 · **Follows:** D-015, D-139, D-303, D-305 · **Amends:** T-1652's first wording (a blended fit target)
+
+**Context.** The model reads goals only (D-303). A teammate's point: a close loss against a strong side is not a bad performance, and results that run ahead of the chances regress. A goals-based fit counts a side's lucky goals as attack and its opponents' missed chances as defence. Expected goals measure the chances: `training.fixture_stat` (D-305) holds team xG for 54–68% of finished matches from 2023 and about none before 2022. T-1652 was first written as a blended target for the fit (goals mixed with xG, the blend chosen by the walk-forward). That changes the fit itself, needs xG for every fitted match (none before 2022, a third to a half missing since), and a blend chosen on the window is a tuned constant. An input, judged by D-139's bar on the matches where it can be read, tests the same idea first with nothing tuned. D-015 deferred xG from the Phase 1 model; this is the later step it left open, judged before anything published reads it.
+
+**Decision.**
+1. **The input `xg_form`** (`apps/model/fmip_model/inputs/xg_form.py`, `--input xg_form`).
+2. **A side's matches with xG.** Every `training.match` row on or before the harness's last day, in any division, its clubs keyed through `training.team_alias` (division, training name → team id; our records name a club by its team id, which is taken as it is when no alias row names it), matched to a `training.fixture_stat` row with both sides' xG: the same home and away team ids and the date within one day (ours is the kick-off's UTC date, football-data's the local one; `docs/15-model.md`). The nearest date wins; two rows equally near, or one figure row matched to two stored rows, is a gap, never a guess. A club the bridge does not name has no matches with xG. The match's day is the `training.match` row's.
+3. **The form.** From the side's last `WINDOW` = 10 matches with xG strictly before the match's day, each weighted `w = 0.5 ** (age in days / HALF_LIFE_DAYS)`, `HALF_LIFE_DAYS` = 120, and shrunk toward zero by `PSEUDO_MATCHES` = 5 matches of zero:
+   - `attack = Σ w · (xG for − goals for) / (Σ w + 5)`: above zero, the side scored fewer than its chances, so a goals-based fit underrates its attack;
+   - `defence = Σ w · (xG against − goals against) / (Σ w + 5)`: above zero, it conceded fewer than the chances against it, so a fit overrates its defence.
+   Three matches of the last few days keep 3/8 of their mean; ten, one a week, about three fifths.
+4. **The term.** The home side's features are `[home attack, away defence]`, the away side's `[away attack, home defence]`; `FeatureInput` fits the two coefficients per refit by time-weighted Poisson likelihood with the fitted model's expected goals as offsets (bound ±2), as every feature input (D-086, D-139). Both are expected above zero; the fit decides, never a hand.
+5. **No value below three (rule 3).** A side with fewer than `MIN_MATCHES` = 3 matches with xG before the day gives the match no value: the candidate's forecast stands and the match is outside the sample. Never a default.
+6. **One read, the boundary kept.** `build` reads `training.match`, `training.team_alias` and `training.fixture_stat` once through `InputContext` (a figure row up to a day after the last day, for the UTC date); for a match only rows of days strictly before its day are ever read.
+7. **Fixed before any run.** The window, half-life, pseudo-count and minimum above are written here before the first run and are not tuned on 2024/25 (development) or 2025/26 and later (holdout, D-303).
+
+**The run** (the lab store, D-303; one at a time, niced, in tmux):
+
+```bash
+docker compose run --rm --no-deps -T -v $HOME/fmip-lab/reports:/lab-reports model sh -c 'DATABASE_URL="${DATABASE_URL%/fmip}/fmip_lab" nice -n 19 python -m fmip_model.backtest.inputs --input xg_form --divisions E0 E1 SP1 D1 I1 F1 N1 P1 B1 T1 SC0 G1 CH1 DK1 US1 BR1 AR1 CZ1 HR1 RS1 SA1 AE1 --from 2024-08-01 --to 2025-06-30 --history-from 2020-07-01 --out /lab-reports --note "T-1652 xg_form, lab store"'
+```
+
+It needs `training.fixture_stat` loaded into the lab (`load records-stats --into fmip_lab`, D-305). xG starts in 2023, so a refit early in 2024/25 fits the coefficients on about one season of matches with values; the report's applied share says how many of the window's matches were read.
+
+**Rejected.**
+- *The blended fit target* (T-1652's first wording): above. It may follow if this input passes.
+- *Strength from xG alone* (a fit on xG in place of goals): it discards the part of finishing that persists, and it has nothing before 2022.
+- *Shots or shots on target where xG is missing:* a second formulation in the same run would be a choice made on the window; one at a time.
+- *Zero for a side without xG:* a default that looks like a reading (rule 3).
+
+**Verdict.** Pending the lab run; recorded here with its table and interval.
+
+**Consequences.** Carried by no candidate until its verdict; T-1660 combines the inputs that pass. Serving would read the same rows through `read_history`. Tests: `apps/model/tests/test_input_xg_form.py`.
