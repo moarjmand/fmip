@@ -18,7 +18,9 @@ jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 25 since Phase 14's model inputs added their planted-effect tests (T-1651):
+    # the Test step alone takes about 12 minutes, so 15 cancelled the Build.
+    timeout-minutes: 25
 
     # A real Postgres, so the store tests in apps/api run here instead of being
     # skipped (D-025). Same image as docker-compose.yml; throwaway credentials
