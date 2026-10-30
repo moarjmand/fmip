@@ -13062,6 +13062,8 @@ Every compare page now names both players' clubs, national teams, positions and 
 
 **Consequences.** After the deploy that applies the two migrations, the tables are loaded on production, then the lab is given them by `--into fmip_lab` once it holds the tables (a rebuild after the migrations, or the two `CREATE TABLE`s copied from production's schema); `docs/15-model.md` has the commands. The coverage per competition and season is recorded in T-1652's and T-1655's entries from the first production load. A reload is needed whenever the experiments want newer matches; nothing refreshes these tables on a schedule.
 
+**Follow-up (2026-10-29, after the first loads on production).** The model service reloads every succeeded `our_records` scope as a division each day (`PostgresTrainingSource._records_divisions`, inside `ensure_own_elo`'s one `try`). These loads' scopes, `fixture_stat` and `fixture_lineup`, are not divisions: `records_url` refuses them, and the refusal would have left the day without our own Elo, so every published fit without its prior. Found by T-1650's author before the first daily run. The two production loads were set `failed` at 23:21 UTC with that reason (their rows stay), and `_records_divisions` now keeps only scopes that are division codes (`DIVISION_CODE`), with a test.
+
 ## D-306 — Past seasons' absences: a training-only history, fetched by an operator's command
 
 **Status:** Accepted · 2026-10-30 (how D-303 point 4 is carried out; the maintainer approved fetching past seasons' absences for training on 2026-10-29) · **Task:** T-1650 · **Follows:** D-014, D-083, D-303, D-304 · **Amends:** D-166 (its scope, for training only)
@@ -13282,3 +13284,66 @@ A variant **passes** on D-139's bar with the competition groups as its divisions
 - *Zones for the uncovered seasons inferred from the covered ones*: rule 3.
 
 **Verdict: pending** the lab run and, before it, the earlier seasons' zones.
+
+## D-312 — Expected-goals form as a model input: what a side's recent results owe to its finishing and its luck, fixed before its run
+
+**Status:** Accepted for the formulation · 2026-10-30 (agent, within the plan the maintainer approved in D-303) · verdict pending the lab run · **Task:** T-1652 · **Follows:** D-015, D-139, D-303, D-305 · **Amends:** T-1652's first wording (a blended fit target)
+
+**Context.** The model reads goals only (D-303). A teammate's point: a close loss against a strong side is not a bad performance, and results that run ahead of the chances regress. A goals-based fit counts a side's lucky goals as attack and its opponents' missed chances as defence. Expected goals measure the chances: `training.fixture_stat` (D-305) holds team xG for 54–68% of finished matches from 2023 and about none before 2022. T-1652 was first written as a blended target for the fit (goals mixed with xG, the blend chosen by the walk-forward). That changes the fit itself, needs xG for every fitted match (none before 2022, a third to a half missing since), and a blend chosen on the window is a tuned constant. An input, judged by D-139's bar on the matches where it can be read, tests the same idea first with nothing tuned. D-015 deferred xG from the Phase 1 model; this is the later step it left open, judged before anything published reads it.
+
+**Decision.**
+1. **The input `xg_form`** (`apps/model/fmip_model/inputs/xg_form.py`, `--input xg_form`).
+2. **A side's matches with xG.** Every `training.match` row on or before the harness's last day, in any division, its clubs keyed through `training.team_alias` (division, training name → team id; our records name a club by its team id, which is taken as it is when no alias row names it), matched to a `training.fixture_stat` row with both sides' xG: the same home and away team ids and the date within one day (ours is the kick-off's UTC date, football-data's the local one; `docs/15-model.md`). The nearest date wins; two rows equally near, or one figure row matched to two stored rows, is a gap, never a guess. A club the bridge does not name has no matches with xG. The match's day is the `training.match` row's.
+3. **The form.** From the side's last `WINDOW` = 10 matches with xG strictly before the match's day, each weighted `w = 0.5 ** (age in days / HALF_LIFE_DAYS)`, `HALF_LIFE_DAYS` = 120, and shrunk toward zero by `PSEUDO_MATCHES` = 5 matches of zero:
+   - `attack = Σ w · (xG for − goals for) / (Σ w + 5)`: above zero, the side scored fewer than its chances, so a goals-based fit underrates its attack;
+   - `defence = Σ w · (xG against − goals against) / (Σ w + 5)`: above zero, it conceded fewer than the chances against it, so a fit overrates its defence.
+   Three matches of the last few days keep 3/8 of their mean; ten, one a week, about three fifths.
+4. **The term.** The home side's features are `[home attack, away defence]`, the away side's `[away attack, home defence]`; `FeatureInput` fits the two coefficients per refit by time-weighted Poisson likelihood with the fitted model's expected goals as offsets (bound ±2), as every feature input (D-086, D-139). Both are expected above zero; the fit decides, never a hand.
+5. **No value below three (rule 3).** A side with fewer than `MIN_MATCHES` = 3 matches with xG before the day gives the match no value: the candidate's forecast stands and the match is outside the sample. Never a default.
+6. **One read, the boundary kept.** `build` reads `training.match`, `training.team_alias` and `training.fixture_stat` once through `InputContext` (a figure row up to a day after the last day, for the UTC date); for a match only rows of days strictly before its day are ever read.
+7. **Fixed before any run.** The window, half-life, pseudo-count and minimum above are written here before the first run and are not tuned on 2024/25 (development) or 2025/26 and later (holdout, D-303).
+
+**The run** (the lab store, D-303; one at a time, niced, in tmux):
+
+```bash
+docker compose run --rm --no-deps -T -v $HOME/fmip-lab/reports:/lab-reports model sh -c 'DATABASE_URL="${DATABASE_URL%/fmip}/fmip_lab" nice -n 19 python -m fmip_model.backtest.inputs --input xg_form --divisions E0 E1 SP1 D1 I1 F1 N1 P1 B1 T1 SC0 G1 CH1 DK1 US1 BR1 AR1 CZ1 HR1 RS1 SA1 AE1 --from 2024-08-01 --to 2025-06-30 --history-from 2020-07-01 --out /lab-reports --note "T-1652 xg_form, lab store"'
+```
+
+It needs `training.fixture_stat` loaded into the lab (`load records-stats --into fmip_lab`, D-305). xG starts in 2023, so a refit early in 2024/25 fits the coefficients on about one season of matches with values; the report's applied share says how many of the window's matches were read.
+
+**Rejected.**
+- *The blended fit target* (T-1652's first wording): above. It may follow if this input passes.
+- *Strength from xG alone* (a fit on xG in place of goals): it discards the part of finishing that persists, and it has nothing before 2022.
+- *Shots or shots on target where xG is missing:* a second formulation in the same run would be a choice made on the window; one at a time.
+- *Zero for a side without xG:* a default that looks like a reading (rule 3).
+
+**Verdict.** Pending the lab run; recorded here with its table and interval.
+
+**Consequences.** Carried by no candidate until its verdict; T-1660 combines the inputs that pass. Serving would read the same rows through `read_history`. Tests: `apps/model/tests/test_input_xg_form.py`.
+
+## D-313 — The regulars index: the share of a side's recent minutes missing from its XI, read on the confirmed line-ups
+
+**Status:** Accepted · 2026-10-30 (agent, within the plan the maintainer approved in D-303; written before any run) · **Task:** T-1655 · **Verdict:** pending the lab run · **Follows:** D-081, D-086, D-121, D-139, D-303, D-305
+
+**Context.** The line-up measure the forecast was given, `xi_strength` (the XI's mean provider rating, D-081, D-086), failed its bar (D-121), and D-303 found why: it misses rotation (Stuttgart made six changes before Gladbach and its `xi_strength` rose, 6.93 to 7.15), it is not adjusted for the league (Lugano's XI rated above Getafe's), and on 290 finished matches the forecast made on the confirmed XI was no better than the early one (Brier 0.5871 against 0.5863). `training.fixture_lineup` (T-1648, D-305) now holds who started and every player's minutes in every competition, so a measure that needs no rating can be built: how much of the side that has been playing is not playing today.
+
+**Decision.**
+1. **The index, per side.** Over the side's window (item 3), the share of the side's minutes played by players who are **not in this match's starting XI**: `index = (window minutes of players not in today's XI) / (all window minutes)`. A regular rested, injured, suspended, sold or dropped to the bench counts alike. A side starting its usual XI is near 0 (the minutes its substitutes played are the floor); a side changing six of its usual starters is near one half.
+2. **The goalkeeper flag, per side:** 1 when the goalkeeper with the most minutes over the same window (the position bucket `goalkeeper` on any of his rows there) does not start, 0 when he does. Keepers level on minutes: 1 only when none of them starts.
+3. **The window.** The side's newest `WINDOW` = 10 earlier line-ups in `training.fixture_lineup`: any competition and division except friendlies (`competition_kind = 'friendly'`: a pre-season side is not a selection); strictly before the match's day (the earlier of the training row's date and the own fixture's UTC date, and never the own fixture); at most `MAX_AGE_DAYS` = 365 days before it; and complete, i.e. exactly `XI_SIZE` = 11 starters, each with minutes. A NULL on a substitute is one who did not come on (D-305) and adds nothing; a starter without minutes means partial statistics, and that line-up is skipped, never filled in.
+4. **Features and fit.** A side's vector is `[own index, opponent's index, own flag, opponent's flag]`; `FeatureInput` fits the four coefficients by time-weighted Poisson likelihood with the candidate's expected goals as offsets (D-086's method), so missing regulars can both lower a side's goals and raise its opponent's. A term fitted on fewer than 100 matches (25 per coefficient, `_lab.MinimumFit`, as D-310 and D-311) is not read: a division whose stored line-ups begin late is never forecast on four coefficients pushed to their bounds by a handful of matches. No split by position bucket (rejected below).
+5. **When it applies.** The index reads the match's own starting XI, so it belongs to the forecast made once both line-ups are confirmed, about an hour before kick-off (the `lineups_confirmed` snapshot), as D-121's term did with "both XIs measured". The early forecast never carries it. In the backtest the match's own XI is read and everything else strictly before the match's day.
+6. **Not read (rule 3):** the candidate's forecast stands and the match is outside the sample (D-139) when a club is not named by the bridge; when no stored fixture holds both sides' line-ups within one day of the training row's date, or more than one does; when a side's stored XI does not name exactly 11 starters; when a side has fewer than `MIN_EARLIER` = 5 line-ups in its window; or when a side's window names no goalkeeper with minutes.
+7. **Matching.** A training row's clubs become team ids through `training.team_alias (division, training_name)` (identity rows for our records' divisions, the bridge for football-data's), and its match is the stored fixture in which both team ids have a line-up, dated within one day of the row: ours is the kick-off's UTC date, the site's the local one (`docs/15-model.md`). Never by name or likeness.
+8. **Reading.** `build` reads `training.fixture_lineup` once (friendlies apart, `match_date` up to the harness's last day plus one, for a late kick-off's UTC date) and `training.team_alias`, through `InputContext`.
+9. **Constants, fixed here before any run:** `WINDOW` 10, `MIN_EARLIER` 5, `MAX_AGE_DAYS` 365, `XI_SIZE` 11, friendlies out. None is tuned on 2024/25 (development) or on 2025/26 onward (holdout); a changed constant is a new entry.
+10. **The run.** `python -m fmip_model.backtest.inputs --input regulars_missing` on the lab store (D-303), window 2024/25, history from 2020-07-01, the 23 divisions of the T-1655 pull request's command, judged by D-139's bar on the matches where it is read. T-1655's second check, Stuttgart v Gladbach (2026/27, in the holdout): Stuttgart's index rises against its previous match, and the shift computed with the 2024/25 coefficients lowers Stuttgart's expected goals. It is read, not scored, and decides nothing alone; `python -m fmip_model.inputs.regulars_missing --division D1 --date … --home Stuttgart --away "M'gladbach"` prints a match's indices as the input reads them.
+
+**Rejected.**
+- *`xi_strength` again, or ratings weighted by minutes:* both rest on the provider's ratings, which have no scale between leagues (D-121's failure).
+- *A split by position bucket (defence, midfield, attack):* three indices, each from about a third of the minutes, and eight coefficients instead of four; D-086 already rejected weights per position. A follow-up variant only if this one passes.
+- *Counting a named substitute as present:* a regular dropped to the bench is the rotation the index is meant to see.
+- *A window of `training.match` matches only:* cups and continental matches are where rotation happens; the window is every competition we store.
+- *A default for a side with too little history:* rule 3.
+
+**Consequences.** `apps/model/fmip_model/inputs/regulars_missing.py`, `apps/model/tests/test_input_regulars_missing.py`. Carried by no candidate until its verdict, recorded here after the lab run; the run needs `training.fixture_lineup` loaded into `fmip_lab` first (`load records-lineups --into fmip_lab`, D-305). Serving would need both confirmed XIs' person ids in the request; nothing there changes until a candidate carries the input (T-1660).

@@ -203,3 +203,25 @@ def test_the_service_computes_the_day_once_and_a_division_reads_it_by_training_n
     with psycopg.connect(DATABASE_URL) as conn:
         ratings = ratings_on(conn, DAY)
     assert ratings is not None and Decimal(str(ratings[team])) == Decimal(str(t9["Alpha"]))
+
+
+@needs_db
+def test_a_load_that_is_not_a_division_is_never_reloaded(
+    world: tuple[TrainingStore, str],
+) -> None:
+    # T-1647/T-1648 record their detail loads under our_records with a table's name as the
+    # scope (D-305); reloading one as a division failed and cost the day its own Elo.
+    from fmip_model.service.store_source import PostgresTrainingSource
+    from fmip_model.training.sources import OUR_RECORDS
+
+    store, _ = world
+    assert DATABASE_URL
+    load = store.open_load(OUR_RECORDS, "fixture_stat_test", "test")
+    store.close_load(load, content_sha256="test", row_count=1)
+    try:
+        source = PostgresTrainingSource(DATABASE_URL, clubelo_refresh=False)
+        assert "fixture_stat_test" not in source._records_divisions()
+    finally:
+        with store.conn.cursor() as cur:
+            cur.execute("DELETE FROM training.source_load WHERE scope = 'fixture_stat_test'")
+        store.conn.commit()
