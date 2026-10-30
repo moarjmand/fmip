@@ -25,6 +25,7 @@ const TEAMS = {
   c: randomUUID(),
   d: randomUUID(),
   e: randomUUID(),
+  f: randomUUID(),
 };
 type Side = keyof typeof TEAMS;
 
@@ -100,8 +101,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       );
       await pool.query(
         `INSERT INTO team (id, name, kind, gender) VALUES
-           ($1, $6, 'club', 'men'), ($2, $7, 'club', 'men'), ($3, $8, 'club', 'men'),
-           ($4, $9, 'club', 'men'), ($5, $10, 'club', 'men')`,
+           ($1, $7, 'club', 'men'), ($2, $8, 'club', 'men'), ($3, $9, 'club', 'men'),
+           ($4, $10, 'club', 'men'), ($5, $11, 'club', 'men'), ($6, $12, 'club', 'men')`,
         [...Object.values(TEAMS), ...Object.keys(TEAMS).map((k) => `Grp ${k} ${RUN}`)],
       );
 
@@ -155,6 +156,24 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         [TEAMS.b, 1, 0],
       ]);
       expect(two?.rows.map((r) => r.played)).toEqual([0, 0]);
+    });
+
+    it('places a team the tables do not name only where all of at least two opponents are (T-1663)', async () => {
+      // The provider listed another club in e's place: e has now met a and b, both of group 1.
+      await fixture('be', GROUPS, 'b', 'e', null, null);
+      // f is named nowhere either, and its two opponents are in different groups.
+      await fixture('fa', GROUPS, 'f', 'a', null, null);
+      await fixture('fc', GROUPS, 'f', 'c', null, null);
+      const members = groupMembers([
+        { group: '1', teamIds: [TEAMS.a, TEAMS.b] },
+        { group: '2', teamIds: [TEAMS.c, TEAMS.d] },
+      ]);
+      await store.assignGroups(SEASON, members);
+      expect(await groupOf('ae')).toBe('1');
+      expect(await groupOf('be')).toBe('1');
+      expect(await groupOf('fa')).toBeNull();
+      expect(await groupOf('fc')).toBeNull();
+      expect(await groupOf('final')).toBeNull();
     });
   },
 );
