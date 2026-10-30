@@ -288,6 +288,8 @@ published file rather than starting from an empty one.
 | `elo_prior` | Which Elo: `own` (ours). `clubelo` and `clubelo_then_own` are refused for any new version (D-162) | `clubelo` | `own` | `own` |
 | `history_days` | Days of results a fit reads | 400 | 1100 | 365 to 1500 |
 | `cross_league.xi`, `.team_ridge`, `.group_ridge` | The cup fit: its decay, how far a club may sit from its league, how far leagues may sit from each other | none | 0.0005 / 4 / 0.001 | 0.0005–0.005 / 0.1–10 / 0.0001–0.1 |
+| `cross_league.elo_weight` | T-1654 (D-309): how hard the cup fit pulls each club's net strength toward our own Elo, pooled across leagues; leave it out until its verdict | none (off) | none (off) | D-309's grid: 0.1, 0.5, 2 |
+| `cross_league.home_by_competition` | T-1654 (D-309): a home advantage per competition group (UEFA's competitions, other continental ones, domestic cups, the rest), with this ridge toward the shared one; leave it out until its verdict | none (one shared) | none | D-309's grid: 3, 30, 300 |
 | `lineup_beta` | Weight of the starting-XI difference; leave it out | none | none | fitted by `python -m fmip_model.backtest.lineups` |
 | `name`, `version`, `source` | The version's identity and a sentence on where its numbers came from | | | `version` must match the file name |
 
@@ -300,11 +302,25 @@ league, from the football-data.co.uk divisions a local store holds. IR1 is
 our own records, held only in production's store: its comparison is the
 same module run there, read-only (`--divisions IR1`), with no market line
 since there are no closing odds (D-190). A change to `cross_league` is judged on cup matches by `python -m
-fmip_model.backtest.cross_league`, and `lineup_beta` by `python -m
+fmip_model.backtest.cross_league` (its `variants` subcommand compares D-309's options and half-lives with the fit as it is, on the same matches), and `lineup_beta` by `python -m
 fmip_model.backtest.lineups`; the report says so when your file changes
 either. A wholly new kind of input (rest days, derbies, injuries...) is a
 small Python module and its own test, `python -m fmip_model.backtest.inputs`
 (D-139); describe the idea in an issue and we will write it together.
+
+**A recalibration of the three probabilities** (T-1657, D-308) is the
+harness's second kind of input, for a correction that acts on what the
+scoreline table gives rather than on goals. At each refit it is fitted on the
+candidate's own out-of-sample forecasts of the league's earlier matches (each
+made the day before its match by the same walk-forward, from
+`--calibration-from`, by default a year after `--history-from`), then applied
+to every forecast of that refit, and judged by the same bar. The first one,
+`--input draw_calibration`, moves the draw by how far apart the forecast puts
+the sides, `g = |p_home − p_away|`: the draw's odds are multiplied by
+`exp(a + b·g + c·g²)`, and home and away share what is left in their own
+ratio. Its report adds the draw said against seen in four bands of `g`
+(under 10 points, 10–25, 25–45, 45 and over), the bands in which the live
+record showed draws over-forecast.
 
 **Ideas already tried, and their verdicts** (so they are not repeated
 blindly): rest and congestion (D-141, failed), league stakes (D-143,
@@ -330,6 +346,8 @@ sh scripts/model-lab-setup.sh
 docker compose run --rm --no-deps -T model sh -c   'DATABASE_URL="${DATABASE_URL%/fmip}/fmip_lab" python -m fmip_model.training.load football-data --seasons 2021 2122 2223 --divisions E0 E1 SP1 D1 I1 F1 N1 P1 T1 B1 SC0'
 # Judge an input on it, niced, reports in the operator's home (run inside tmux)
 docker compose run --rm --no-deps -T -v $HOME/fmip-lab/reports:/lab-reports model sh -c   'DATABASE_URL="${DATABASE_URL%/fmip}/fmip_lab" nice -n 19 python -m fmip_model.backtest.inputs --input rest --divisions E0 --from 2024-08-01 --to 2025-06-30 --history-from 2020-07-01 --out /lab-reports --note "lab"'
+# The cup fit's variants (T-1654, D-309): training from the lab, the competitions from the catalogue
+docker compose run --rm --no-deps -T -v $HOME/fmip-lab/reports:/lab-reports model sh -c   'CATALOG_DATABASE_URL="$DATABASE_URL" DATABASE_URL="${DATABASE_URL%/fmip}/fmip_lab" nice -n 19 python -m fmip_model.backtest.cross_league variants --from 2024-07-01 --to 2025-06-30 --out /lab-reports --note "lab"'
 ```
 
 `scripts/model-lab-setup.sh` drops and recreates `fmip_lab`, pipes `pg_dump -n training` of

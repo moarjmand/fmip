@@ -16,12 +16,13 @@ from __future__ import annotations
 
 import csv
 import io
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
 from psycopg import Connection
 
+from ..model.cross_league import FixtureKey, home_group, is_uefa
 from .football_data import MatchRow
 
 RECORDED_MATCHES_SQL = """
@@ -81,6 +82,90 @@ def recorded_matches(conn: Connection[tuple[object, ...]], division: str) -> lis
         )
         for row in rows
     ]
+
+
+#: Every fixture across leagues (as ``XL`` reads them) from one UTC day to
+#: another, any status, with its competition's scope and kind (T-1654).
+ACROSS_LEAGUES_FIXTURES_SQL = """
+SELECT (f.kickoff_at AT TIME ZONE 'UTC')::date, h.team_id::text, a.team_id::text,
+       c.id::text, c.scope, c.kind
+  FROM fixture f
+  JOIN season s ON s.id = f.season_id
+  JOIN competition c ON c.id = s.competition_id
+  JOIN fixture_participant h ON h.fixture_id = f.id AND h.side = 'home'
+  JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
+ WHERE (c.kind <> 'league' OR c.scope <> 'domestic')
+   AND (f.kickoff_at AT TIME ZONE 'UTC')::date BETWEEN %s AND %s
+"""
+
+#: Per continental competition and country, its clubs that play a domestic
+#: league of that country: how the catalogue places a continental competition
+#: (D-301), here over every season held.
+CONTINENTAL_CLUB_COUNTRIES_SQL = """
+WITH clubs AS (
+  SELECT DISTINCT s.competition_id, fp.team_id
+    FROM competition c
+    JOIN season s ON s.competition_id = c.id
+    JOIN fixture f ON f.season_id = s.id
+    JOIN fixture_participant fp ON fp.fixture_id = f.id
+   WHERE c.scope = 'continental'
+), homes AS (
+  SELECT DISTINCT dp.team_id, co.code
+    FROM fixture_participant dp
+    JOIN fixture df ON df.id = dp.fixture_id
+    JOIN season ds ON ds.id = df.season_id
+    JOIN competition dc ON dc.id = ds.competition_id
+    JOIN country co ON co.id = dc.country_id
+   WHERE dc.scope = 'domestic' AND dc.kind = 'league'
+     AND dp.team_id IN (SELECT team_id FROM clubs)
+)
+SELECT clubs.competition_id::text, homes.code, count(*)::int
+  FROM clubs
+  JOIN homes ON homes.team_id = clubs.team_id
+ GROUP BY clubs.competition_id, homes.code
+"""
+
+
+def continental_tallies(conn: Connection[tuple[object, ...]]) -> dict[str, dict[str, int]]:
+    """Per continental competition id, its placed clubs by country (``is_uefa``'s input)."""
+    with conn.cursor() as cur:
+        cur.execute(CONTINENTAL_CLUB_COUNTRIES_SQL)
+        tallies: dict[str, dict[str, int]] = {}
+        for competition, code, clubs in cur.fetchall():
+            tallies.setdefault(str(competition), {})[str(code)] = int(str(clubs))
+    return tallies
+
+
+def across_leagues_groups(
+    conn: Connection[tuple[object, ...]],
+    since: date,
+    until: date,
+    tallies: Mapping[str, Mapping[str, int]] | None = None,
+) -> dict[FixtureKey, str]:
+    """Each fixture across leagues from ``since`` to ``until`` (UTC days, both included),
+    keyed as ``XL``'s training rows name it, to its competition's home group (D-309).
+
+    The key is the UTC day and the two clubs' ids, which is how the records
+    load writes an ``XL`` row. A key two fixtures of different groups share is
+    left out: the fit then gives that match the shared home advantage.
+    ``tallies`` (``continental_tallies``) may be passed when already read.
+    """
+    if tallies is None:
+        tallies = continental_tallies(conn)
+    with conn.cursor() as cur:
+        cur.execute(ACROSS_LEAGUES_FIXTURES_SQL, (since, until))
+        rows = cur.fetchall()
+    out: dict[FixtureKey, str] = {}
+    clashes: set[FixtureKey] = set()
+    for day, home, away, competition, scope, kind in rows:
+        key: FixtureKey = (day, str(home), str(away))  # type: ignore[assignment]
+        group = home_group(str(scope), str(kind), uefa=is_uefa(tallies.get(str(competition), {})))
+        if out.get(key, group) != group:
+            clashes.add(key)
+        out[key] = group
+    for key in clashes:
+        del out[key]
+    return out
 
 
 def as_text(matches: Sequence[RecordedMatch]) -> str:
