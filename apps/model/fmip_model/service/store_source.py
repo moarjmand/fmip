@@ -13,6 +13,7 @@ from ..model.cross_league import CROSS_LEAGUE
 from ..model.data import elo_on, every_match_before, matches_before
 from ..model.dixon_coles import MatchObservation
 from ..model.own_elo import for_division
+from ..model.version import DIVISION_CODE
 from ..training.load import (
     Fetch,
     fetch_text,
@@ -138,13 +139,21 @@ class PostgresTrainingSource(TrainingSource):
                 log.exception("computing our own Elo for %s failed", day)
 
     def _records_divisions(self) -> list[str]:
+        """Our records' divisions to reload: every succeeded ``our_records`` scope that is one.
+
+        A detail load recorded under ``our_records`` with a table's name as its scope
+        (``fixture_stat``, ``fixture_lineup``; T-1647, T-1648, D-305) is not a division:
+        ``records_url`` refuses it, and one refusal in ``ensure_own_elo``'s loop would
+        leave the day without our own Elo, so every fit without its prior.
+        """
         with psycopg.connect(self.database_url) as conn, conn.cursor() as cur:
             cur.execute(
                 "SELECT DISTINCT scope FROM training.source_load"
                 " WHERE source = %s AND status = 'succeeded' ORDER BY scope",
                 (OUR_RECORDS.id,),
             )
-            return [str(row[0]) for row in cur.fetchall()]
+            scopes = [str(row[0]) for row in cur.fetchall()]
+        return [scope for scope in scopes if DIVISION_CODE.fullmatch(scope)]
 
     def every_match(self, since: date, until: date) -> Sequence[tuple[str, MatchObservation]]:
         self.refresh(CROSS_LEAGUE)
