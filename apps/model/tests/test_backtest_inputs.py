@@ -1,13 +1,25 @@
 """The input harness (T-1101, D-139): a planted effect passes the bar, no effect fails it."""
 
+import csv
 from collections.abc import Sequence
 from dataclasses import replace
 from datetime import date, timedelta
+from pathlib import Path
 
 import numpy as np
 import pytest
 
-from fmip_model.backtest.inputs import BAR, DivisionRun, judge, judge_group, render, report_body
+from fmip_model.backtest.inputs import (
+    BAR,
+    MATCH_COLUMNS,
+    DivisionRun,
+    judge,
+    judge_group,
+    match_rows,
+    render,
+    report_body,
+    write_matches,
+)
 from fmip_model.backtest.inputs import run_division as run
 from fmip_model.backtest.walk_forward import BacktestMatch
 from fmip_model.inputs import FeatureInput, InputContext, Scheduled, available, load
@@ -70,6 +82,26 @@ def test_a_planted_effect_passes_the_bar(planted: DivisionRun) -> None:
     assert fd.difference is not None and fd.interval is not None and fd.interval[1] < 0
     assert overall == "passed"
     assert groups[1].verdict == "not run"
+
+
+def test_each_scored_match_is_one_row_with_the_three_forecasts(
+    planted: DivisionRun, tmp_path: Path
+) -> None:
+    # T-1661: the report's matches made better and worse are read from these rows.
+    rows = match_rows([planted])
+    assert len(rows) == len(planted.scores)
+    first, score = rows[0], planted.scores[0]
+    assert first["division"] == "T9" and first["date"] == score.match.date.isoformat()
+    assert first["result"] == score.match.result and first["applied"] == score.applied
+    assert first["with_input_home"] == round(score.with_input.home, 6)
+    path = write_matches(rows, tmp_path / "inputs_flag_x..y.md")
+    assert path.name == "inputs_flag_x..y_matches.csv"
+    with path.open(encoding="utf-8") as handle:
+        read = list(csv.DictReader(handle))
+    assert tuple(read[0]) == MATCH_COLUMNS and len(read) == len(rows)
+    for row in read:
+        total = sum(float(row[f"candidate_{o}"]) for o in ("home", "draw", "away"))
+        assert abs(total - 1) < 1e-5
 
 
 def test_no_effect_fails_the_bar() -> None:
