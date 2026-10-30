@@ -458,6 +458,21 @@ Every competition holding a season of that label is read, over that season's
 span only; the run's scope says `backfill 2025/26`. Leave `--current` off, or
 the past season becomes the one the site shows.
 
+**Ended seasons' data-quality findings (T-1662).** Past seasons loaded for
+the model (T-1646, T-1649) bring tens of thousands of findings the feed will
+never correct -- short line-ups, goals the events do not add up to -- and they
+bury the current seasons' on the admin page. Review them in batches:
+
+```bash
+docker compose run --rm -T api node dist/cli/review-ended-seasons.js --by you@your-domain   --reason "ended seasons' feed data, loaded for training; the feed does not correct it" --dry-run
+docker compose run --rm -T api node dist/cli/review-ended-seasons.js --by you@your-domain   --reason "ended seasons' feed data, loaded for training; the feed does not correct it"
+```
+
+Each check in each season whose end date has passed is one batch with its own
+audit row, as the page's batch (T-912); `--check lineup_not_eleven` narrows it.
+The findings stay open until the data agrees, a season still being played is
+never touched, and one that comes back after going away is unreviewed again.
+
 **Past seasons' absences, for the model's experiments (T-1650, D-306).** Once
 the past seasons are backfilled, fetch who missed each of their matches, then
 copy it into the training store:

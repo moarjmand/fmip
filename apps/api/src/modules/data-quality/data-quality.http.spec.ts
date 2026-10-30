@@ -479,6 +479,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     const lineups = await open('lineup_not_eleven');
     expect(lineups).toHaveLength(2);
 
+    // T-1662: the season is listed for the ended seasons' command once its end date has passed.
+    const ended = async (now: string) =>
+      (await dataQuality.endedSeasonClasses(new Date(now))).filter((c) => c.seasonId === SEASON);
+    expect(await ended('2031-06-30T12:00:00Z')).toEqual([]);
+    expect(await ended('2031-07-01T00:00:00Z')).toContainEqual({
+      check: 'lineup_not_eleven',
+      seasonId: SEASON,
+      seasonLabel: '2030/31',
+      competitionName: expect.any(String),
+      open: 2,
+    });
+
     const why = 'The feed supplied these players; asked again, unchanged.';
     const batch = { check: 'lineup_not_eleven', season_id: SEASON };
     expect((await reviewBatch(batch, member.cookie)).statusCode).toBe(403);
@@ -493,6 +505,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     const response = await reviewBatch({ ...batch, reason: why });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ reviewed: 2 });
+    expect(
+      (await ended('2031-07-01T00:00:00Z')).filter((c) => c.check === 'lineup_not_eleven'),
+    ).toEqual([]);
     // Nothing left to review in that group: refused, and no second audit row.
     expect((await reviewBatch({ ...batch, reason: why })).statusCode).toBe(404);
 
