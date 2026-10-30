@@ -13347,3 +13347,31 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 - *A default for a side with too little history:* rule 3.
 
 **Consequences.** `apps/model/fmip_model/inputs/regulars_missing.py`, `apps/model/tests/test_input_regulars_missing.py`. Carried by no candidate until its verdict, recorded here after the lab run; the run needs `training.fixture_lineup` loaded into `fmip_lab` first (`load records-lineups --into fmip_lab`, D-305). Serving would need both confirmed XIs' person ids in the request; nothing there changes until a candidate carries the input (T-1660).
+
+## D-314 — League zones back to 2020/21: the earlier seasons the late-season stakes are fitted on
+
+**Status:** Accepted · 2026-10-30 (agent, under T-1659's brief and D-171's rules; researched 2026-10-30) · **Task:** T-1659 · **Follows:** D-038, D-171, D-303, D-311
+
+**Context.** D-311's `late_stakes` reads a season only when `packages/contracts/zones/league-zones.json` has a `complete` entry for it. The file began in 2024/25, so the development run (window 2024/25) could fit each division's term on 2024/25's own earlier rounds alone: `insufficient` by construction.
+
+**Decision.** 38 entries are added, each `complete`, in the existing format and kinds (no new kind):
+- E0, E1, SP1, D1, I1, F1, N1, P1 and T1 for 2020/21, 2021/22, 2022/23 and 2023/24 (36);
+- IR1 2021/22 and 2023/24 (2).
+
+**Sources.** Each season's English Wikipedia article (the table's qualification and relegation labels and its notes on deductions, withdrawals and tie-breaks) and, for the Champions League places, the next season's UEFA Champions League article (its teams table, which gives each club's league position and entry round). IR1's AFC places come from the AFC Champions League articles of 2022 and 2023/24 and the 2024/25 Elite's; T1 2022/23's withdrawals also from Cyprus Mail (10 February 2023). Every entry carries its URLs.
+
+**What the sources say** (where T-1659's brief expected otherwise, the sources are followed):
+- **Ligue 1:** 20 clubs to 2022/23, 18 from 2023/24. Three Champions League places (third in the third qualifying round) to 2022/23, four from 2023/24 (fourth in the third qualifying round). 18th in the play-off and two down in 2020/21 and 2021/22; four down and no play-off in 2022/23; 16th in the play-off and two down in 2023/24.
+- **Süper Lig:** 21 clubs in 2020/21, **20 in 2021/22**, 19 in 2022/23 and **20 in 2023/24** (the brief had 21, 21, 19, 19). Four went down in 2020/21, 2021/22 and 2023/24. In 2022/23 Gaziantep and Hatayspor withdrew after the earthquake (12 February 2023) and were not relegated, but **two clubs were relegated** (16th and 17th; the official table puts the two withdrawn clubs 18th and 19th), so the band is 16 to 17. It follows the plan announced in February, before the last eight rounds the input reads; the note says the withdrawn clubs' unplayed matches can make this table differ from the official one. Turkey had one Champions League place in 2022/23 and two in the other seasons.
+- **Eredivisie and Primeira Liga:** 16th in the promotion/relegation play-off as `relegation_playoff`, as in 2024/25; Champions League places two (N1 to 2022/23, P1 2023/24) or three (N1 2023/24, P1 to 2022/23), the last of them in a qualifying round, except P1 2023/24's second, which UEFA's rebalancing moved to the league phase; each note says which.
+- **Bundesliga, Premier League, La Liga, Serie A:** four Champions League places every season; the Bundesliga's 16th in the play-off.
+- **Not marked, as D-171:** Europa League and Conference League places; the Champions League places of Europa League winners outside them (Villarreal 7th 2020/21, Eintracht Frankfurt 11th 2021/22, Sevilla 12th 2022/23); the 2023/24 European Performance Spots (Germany's and Italy's fifth); IR1 2023/24's Elite preliminary place, which went to the Hazfi Cup winner. Each entry's note says so.
+- **Deductions, in the notes and not applied (D-038):** E0 2023/24 Everton 8, Nottingham Forest 4; E1 2020/21 Sheffield Wednesday 6, 2021/22 Derby County 21 and Reading 6, 2022/23 Reading 6 and Wigan Athletic 3; I1 2022/23 Juventus 10; F1 2021/22 Nice 1 and Lyon 1, 2023/24 Montpellier 1; N1 2023/24 Vitesse 18; T1 2022/23 Kayserispor 3, 2023/24 Kayserispor 3 and İstanbulspor 3; IR1 2023/24 Shams Azar 3.
+- **Ties:** Serie A's 2022/23 play-off for first or 17th place (Spezia and Hellas Verona level on 31, Verona won it) and 2023/24's tie-breaker for first or the last relegation place are in the notes.
+- **IR1 2021/22** earned no AFC place: the 2022 edition took Iran's clubs from 2020/21, the 2023/24 edition from the 2022/23 table and the 2021/22 Hazfi Cup. Its entry lists relegation alone and is `complete`.
+
+**Left out (rule 3; no zones shown, the season not read):**
+- **IR1 2020/21.** Its places went to the 2022 AFC Champions League, a competition no listed kind names: `afc_champions_league_elite` is its 2024 successor, and the competition page would label the band with that name. The sources also disagree on which clubs lacked an AFC licence (the season's article: Persepolis and Esteghlal; the competition's: Esteghlal and Gol Gohar), so the mapping of places to Iran's two group-stage slots is not established.
+- **IR1 2022/23.** Champion and runner-up to the 2023/24 AFC Champions League group stage and third to its play-off (taken by fourth, Esteghlal being unlicensed) are established, but again for the competition before 2024, which no kind names. A kind for it (`afc_champions_league`, with its label in each language) would let both seasons be listed; adding a kind was outside T-1659's brief and is left to the maintainer.
+
+**Consequences.** `late_stakes` can fit each division's term on 2020/21 to 2023/24's late rounds wherever the store holds those seasons; its verdict stays pending the lab run (D-311). D-311's paragraph on what the file allows is superseded by this entry. The competition page now shows zones for these seasons where the catalogue holds them, a visible change for past seasons only. Tests unchanged: `packages/contracts/src/league-zones.spec.ts` and `apps/model/tests/test_league_stakes_zones.py` run over the whole file.
