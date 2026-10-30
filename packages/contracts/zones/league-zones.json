@@ -1,6 +1,96 @@
 [
   {
     "division": "E0",
+    "season": "2020/21",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2020%E2%80%9321_Premier_League",
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_UEFA_Champions_League"
+    ]
+  },
+  {
+    "division": "E0",
+    "season": "2021/22",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_Premier_League",
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_UEFA_Champions_League"
+    ]
+  },
+  {
+    "division": "E0",
+    "season": "2022/23",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_Premier_League",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_UEFA_Champions_League"
+    ]
+  },
+  {
+    "division": "E0",
+    "season": "2023/24",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_Premier_League",
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_UEFA_Champions_League"
+    ],
+    "note": "Everton were deducted eight points and Nottingham Forest four. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "از اورتون هشت امتیاز و از ناتینگهام فارست چهار امتیاز کسر شد. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
+  },
+  {
+    "division": "E0",
     "season": "2024/25",
     "teams": 20,
     "zones": [
@@ -62,6 +152,108 @@
     "sources": ["https://en.wikipedia.org/wiki/2026%E2%80%9327_Premier_League"],
     "note": "UEFA has not published the 2027/28 access list, so the Champions League places this season earns are not listed yet.",
     "note_fa": "یوفا فهرست سهمیه‌های ۲۰۲۷/۲۸ را هنوز منتشر نکرده است، پس سهمیه‌های لیگ قهرمانان اروپا که این فصل به دست می‌دهد هنوز فهرست نشده‌اند."
+  },
+  {
+    "division": "E1",
+    "season": "2020/21",
+    "teams": 24,
+    "zones": [
+      {
+        "kind": "promotion",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "promotion_playoff",
+        "from": 3,
+        "to": 6
+      },
+      {
+        "kind": "relegation",
+        "from": 22,
+        "to": 24
+      }
+    ],
+    "complete": true,
+    "sources": ["https://en.wikipedia.org/wiki/2020%E2%80%9321_EFL_Championship"],
+    "note": "Sheffield Wednesday were deducted six points. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "از شفیلد ونزدی شش امتیاز کسر شد. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
+  },
+  {
+    "division": "E1",
+    "season": "2021/22",
+    "teams": 24,
+    "zones": [
+      {
+        "kind": "promotion",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "promotion_playoff",
+        "from": 3,
+        "to": 6
+      },
+      {
+        "kind": "relegation",
+        "from": 22,
+        "to": 24
+      }
+    ],
+    "complete": true,
+    "sources": ["https://en.wikipedia.org/wiki/2021%E2%80%9322_EFL_Championship"],
+    "note": "Derby County (21) and Reading (6) were deducted points. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "از دربی کانتی (۲۱) و ردینگ (۶) امتیاز کسر شد. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
+  },
+  {
+    "division": "E1",
+    "season": "2022/23",
+    "teams": 24,
+    "zones": [
+      {
+        "kind": "promotion",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "promotion_playoff",
+        "from": 3,
+        "to": 6
+      },
+      {
+        "kind": "relegation",
+        "from": 22,
+        "to": 24
+      }
+    ],
+    "complete": true,
+    "sources": ["https://en.wikipedia.org/wiki/2022%E2%80%9323_EFL_Championship"],
+    "note": "Reading (6) and Wigan Athletic (3) were deducted points. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "از ردینگ (۶) و ویگان اتلتیک (۳) امتیاز کسر شد. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
+  },
+  {
+    "division": "E1",
+    "season": "2023/24",
+    "teams": 24,
+    "zones": [
+      {
+        "kind": "promotion",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "promotion_playoff",
+        "from": 3,
+        "to": 6
+      },
+      {
+        "kind": "relegation",
+        "from": 22,
+        "to": 24
+      }
+    ],
+    "complete": true,
+    "sources": ["https://en.wikipedia.org/wiki/2023%E2%80%9324_EFL_Championship"]
   },
   {
     "division": "E1",
@@ -152,6 +344,98 @@
   },
   {
     "division": "SP1",
+    "season": "2020/21",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2020%E2%80%9321_La_Liga",
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_UEFA_Champions_League"
+    ],
+    "note": "Villarreal, seventh, also took a Champions League place as Europa League winners; that place is not a table place and is not marked.",
+    "note_fa": "ویارئال، تیم هفتم، هم به‌عنوان قهرمان لیگ اروپا به لیگ قهرمانان اروپا رسید؛ این سهمیه از راه جدول نیست و علامت‌گذاری نشده است."
+  },
+  {
+    "division": "SP1",
+    "season": "2021/22",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_La_Liga",
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_UEFA_Champions_League"
+    ]
+  },
+  {
+    "division": "SP1",
+    "season": "2022/23",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_La_Liga",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_UEFA_Champions_League"
+    ],
+    "note": "Sevilla, twelfth, also took a Champions League place as Europa League winners; that place is not a table place and is not marked.",
+    "note_fa": "سویا، تیم دوازدهم، هم به‌عنوان قهرمان لیگ اروپا به لیگ قهرمانان اروپا رسید؛ این سهمیه از راه جدول نیست و علامت‌گذاری نشده است."
+  },
+  {
+    "division": "SP1",
+    "season": "2023/24",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_La_Liga",
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_UEFA_Champions_League"
+    ]
+  },
+  {
+    "division": "SP1",
     "season": "2024/25",
     "teams": 20,
     "zones": [
@@ -216,6 +500,98 @@
   },
   {
     "division": "I1",
+    "season": "2020/21",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2020%E2%80%9321_Serie_A",
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_UEFA_Champions_League"
+    ]
+  },
+  {
+    "division": "I1",
+    "season": "2021/22",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_Serie_A",
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_UEFA_Champions_League"
+    ]
+  },
+  {
+    "division": "I1",
+    "season": "2022/23",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_Serie_A",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_UEFA_Champions_League"
+    ],
+    "note": "Juventus were deducted ten points. Point deductions are not applied to this table, so its order can differ from the official one. A tie on points for first or 17th place is settled by a play-off, which this table does not show: Spezia and Hellas Verona finished level on 31 points, and Verona won it.",
+    "note_fa": "از یوونتوس ده امتیاز کسر شد. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند. اگر دو تیم برای مقام اول یا هفدهم هم‌امتیاز شوند، جایگاه در یک دیدار پلی‌آف تعیین می‌شود که این جدول آن را نشان نمی‌دهد: اسپتزیا و هلاس ورونا هر دو با ۳۱ امتیاز به پایان رسیدند و ورونا پلی‌آف را برد."
+  },
+  {
+    "division": "I1",
+    "season": "2023/24",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_Serie_A",
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_UEFA_Champions_League"
+    ],
+    "note": "Fifth place also took a Champions League place through UEFA's European Performance Spot, decided during the season; it is not marked. A tie on points for first place or for the last relegation place is settled by a separate tie-breaker, which this table does not show.",
+    "note_fa": "تیم پنجم هم از راه سهمیه‌ی عملکرد اروپایی یوفا، که در طول فصل تعیین شد، به لیگ قهرمانان اروپا رسید؛ این سهمیه علامت‌گذاری نشده است. اگر دو تیم برای مقام اول یا آخرین رده‌ی سقوط هم‌امتیاز شوند، جایگاه با سازوکاری جداگانه برای شکستن تساوی تعیین می‌شود که این جدول آن را نشان نمی‌دهد."
+  },
+  {
+    "division": "I1",
     "season": "2024/25",
     "teams": 20,
     "zones": [
@@ -277,6 +653,118 @@
     "sources": ["https://en.wikipedia.org/wiki/2026%E2%80%9327_Serie_A"],
     "note": "UEFA has not published the 2027/28 access list, so the Champions League places this season earns are not listed yet. A tie on points for first place is settled by a play-off, which this table does not show.",
     "note_fa": "یوفا فهرست سهمیه‌های ۲۰۲۷/۲۸ را هنوز منتشر نکرده است، پس سهمیه‌های لیگ قهرمانان اروپا که این فصل به دست می‌دهد هنوز فهرست نشده‌اند. اگر دو تیم برای مقام اول هم‌امتیاز شوند، قهرمان در یک دیدار پلی‌آف تعیین می‌شود که این جدول آن را نشان نمی‌دهد."
+  },
+  {
+    "division": "D1",
+    "season": "2020/21",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2020%E2%80%9321_Bundesliga",
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_UEFA_Champions_League"
+    ]
+  },
+  {
+    "division": "D1",
+    "season": "2021/22",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_Bundesliga",
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_UEFA_Champions_League"
+    ],
+    "note": "Eintracht Frankfurt, eleventh, also took a Champions League place as Europa League winners; that place is not a table place and is not marked.",
+    "note_fa": "آینتراخت فرانکفورت، تیم یازدهم، هم به‌عنوان قهرمان لیگ اروپا به لیگ قهرمانان اروپا رسید؛ این سهمیه از راه جدول نیست و علامت‌گذاری نشده است."
+  },
+  {
+    "division": "D1",
+    "season": "2022/23",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_Bundesliga",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_UEFA_Champions_League"
+    ]
+  },
+  {
+    "division": "D1",
+    "season": "2023/24",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_Bundesliga",
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_UEFA_Champions_League"
+    ],
+    "note": "Fifth place also took a Champions League place through UEFA's European Performance Spot, decided during the season; it is not marked.",
+    "note_fa": "تیم پنجم هم از راه سهمیه‌ی عملکرد اروپایی یوفا، که در طول فصل تعیین شد، به لیگ قهرمانان اروپا رسید؛ این سهمیه علامت‌گذاری نشده است."
   },
   {
     "division": "D1",
@@ -355,6 +843,117 @@
   },
   {
     "division": "F1",
+    "season": "2020/21",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 18,
+        "to": 18
+      },
+      {
+        "kind": "relegation",
+        "from": 19,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2020%E2%80%9321_Ligue_1",
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_UEFA_Champions_League"
+    ],
+    "note": "Third place entered the Champions League's third qualifying round.",
+    "note_fa": "تیم سوم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد."
+  },
+  {
+    "division": "F1",
+    "season": "2021/22",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 18,
+        "to": 18
+      },
+      {
+        "kind": "relegation",
+        "from": 19,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_Ligue_1",
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_UEFA_Champions_League"
+    ],
+    "note": "Third place entered the Champions League's third qualifying round. Nice and Lyon were each deducted one point after crowd trouble ended their matches against Marseille. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "تیم سوم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد. از نیس و لیون هر کدام یک امتیاز کسر شد، چون آشوب تماشاگران بازی‌شان با مارسی را نیمه‌کاره گذاشت. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
+  },
+  {
+    "division": "F1",
+    "season": "2022/23",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_Ligue_1",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_UEFA_Champions_League"
+    ],
+    "note": "Third place entered the Champions League's third qualifying round. Four clubs went down and no relegation play-off was held, as the league shrank to 18 clubs for 2023/24.",
+    "note_fa": "تیم سوم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد. چهار باشگاه سقوط کردند و پلی‌آف سقوط برگزار نشد، چون لیگ برای ۲۰۲۳/۲۴ به ۱۸ باشگاه کاهش یافت."
+  },
+  {
+    "division": "F1",
+    "season": "2023/24",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 4
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_Ligue_1",
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_UEFA_Champions_League"
+    ],
+    "note": "Fourth place entered the Champions League's third qualifying round. Montpellier were deducted one point after crowd trouble ended their match against Clermont. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "تیم چهارم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد. از مون‌پلیه یک امتیاز کسر شد، چون آشوب تماشاگران بازی‌اش با کلرمون را نیمه‌کاره گذاشت. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
+  },
+  {
+    "division": "F1",
     "season": "2024/25",
     "teams": 18,
     "zones": [
@@ -410,6 +1009,122 @@
     ],
     "note": "Fourth place enters the Champions League's third qualifying round.",
     "note_fa": "تیم چهارم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت می‌شود."
+  },
+  {
+    "division": "N1",
+    "season": "2020/21",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2020%E2%80%9321_Eredivisie",
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_UEFA_Champions_League"
+    ],
+    "note": "Second place entered the Champions League's second qualifying round.",
+    "note_fa": "تیم دوم از مرحله‌ی دوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد."
+  },
+  {
+    "division": "N1",
+    "season": "2021/22",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_Eredivisie",
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_UEFA_Champions_League"
+    ],
+    "note": "Second place entered the Champions League's third qualifying round.",
+    "note_fa": "تیم دوم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد."
+  },
+  {
+    "division": "N1",
+    "season": "2022/23",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_Eredivisie",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_UEFA_Champions_League"
+    ],
+    "note": "Second place entered the Champions League's third qualifying round.",
+    "note_fa": "تیم دوم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد."
+  },
+  {
+    "division": "N1",
+    "season": "2023/24",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_Eredivisie",
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_UEFA_Champions_League"
+    ],
+    "note": "Third place entered the Champions League's third qualifying round. Vitesse were deducted 18 points. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "تیم سوم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد. از فیتسه ۱۸ امتیاز کسر شد. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
   },
   {
     "division": "N1",
@@ -492,6 +1207,122 @@
   },
   {
     "division": "P1",
+    "season": "2020/21",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2020%E2%80%9321_Primeira_Liga",
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_UEFA_Champions_League"
+    ],
+    "note": "Third place entered the Champions League's third qualifying round.",
+    "note_fa": "تیم سوم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد."
+  },
+  {
+    "division": "P1",
+    "season": "2021/22",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_Primeira_Liga",
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_UEFA_Champions_League"
+    ],
+    "note": "Third place entered the Champions League's third qualifying round.",
+    "note_fa": "تیم سوم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد."
+  },
+  {
+    "division": "P1",
+    "season": "2022/23",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 3
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_Primeira_Liga",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_UEFA_Champions_League"
+    ],
+    "note": "Third place entered the Champions League's third qualifying round.",
+    "note_fa": "تیم سوم از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد."
+  },
+  {
+    "division": "P1",
+    "season": "2023/24",
+    "teams": 18,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation_playoff",
+        "from": 16,
+        "to": 16
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 18
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_Primeira_Liga",
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_UEFA_Champions_League"
+    ],
+    "note": "Second place was due to enter the Champions League's third qualifying round; UEFA's rebalancing moved it to the league phase.",
+    "note_fa": "تیم دوم قرار بود از مرحله‌ی سوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شود؛ بازتوزیع سهمیه‌های یوفا آن را به مرحله‌ی لیگی برد."
+  },
+  {
+    "division": "P1",
     "season": "2024/25",
     "teams": 18,
     "zones": [
@@ -571,6 +1402,105 @@
   },
   {
     "division": "T1",
+    "season": "2020/21",
+    "teams": 21,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation",
+        "from": 18,
+        "to": 21
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2020%E2%80%9321_S%C3%BCper_Lig",
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_UEFA_Champions_League"
+    ],
+    "note": "Second place entered the Champions League's second qualifying round.",
+    "note_fa": "تیم دوم از مرحله‌ی دوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد."
+  },
+  {
+    "division": "T1",
+    "season": "2021/22",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_S%C3%BCper_Lig",
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_UEFA_Champions_League",
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_S%C3%BCper_Lig"
+    ],
+    "note": "Second place entered the Champions League's second qualifying round.",
+    "note_fa": "تیم دوم از مرحله‌ی دوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد."
+  },
+  {
+    "division": "T1",
+    "season": "2022/23",
+    "teams": 19,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 1
+      },
+      {
+        "kind": "relegation",
+        "from": 16,
+        "to": 17
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2022%E2%80%9323_S%C3%BCper_Lig",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_UEFA_Champions_League",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_S%C3%BCper_Lig",
+      "https://cyprus-mail.com/2023/02/10/hatayspor-withdraw-from-turkish-league-after-earthquake"
+    ],
+    "note": "Only the champion took a Champions League place, in the second qualifying round. Gaziantep and Hatayspor withdrew on 12 February 2023 after the earthquake and were not relegated: the official table puts them 18th and 19th, and the two clubs relegated were 16th and 17th. Their matches after the withdrawal were not played, so this table, computed from the results played, can differ from the official one. Kayserispor were deducted three points. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "تنها قهرمان به لیگ قهرمانان اروپا رسید و از مرحله‌ی دوم مقدماتی وارد این رقابت شد. گازیانتپ و هاتای‌اسپور در ۱۲ فوریه‌ی ۲۰۲۳ پس از زلزله از لیگ کناره گرفتند و سقوط نکردند: جدول رسمی آن‌ها را هجدهم و نوزدهم قرار می‌دهد و دو باشگاهی که سقوط کردند شانزدهم و هفدهم بودند. بازی‌های آن‌ها پس از کناره‌گیری برگزار نشد، پس این جدول که از نتایج بازی‌های برگزارشده ساخته می‌شود ممکن است با جدول رسمی فرق کند. از قیصری‌اسپور سه امتیاز کسر شد. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
+  },
+  {
+    "division": "T1",
+    "season": "2023/24",
+    "teams": 20,
+    "zones": [
+      {
+        "kind": "champions_league",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation",
+        "from": 17,
+        "to": 20
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_S%C3%BCper_Lig",
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_UEFA_Champions_League"
+    ],
+    "note": "Second place entered the Champions League's second qualifying round. Kayserispor and İstanbulspor were each deducted three points. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "تیم دوم از مرحله‌ی دوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت شد. از قیصری‌اسپور و استانبول‌اسپور هر کدام سه امتیاز کسر شد. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
+  },
+  {
+    "division": "T1",
     "season": "2024/25",
     "teams": 19,
     "zones": [
@@ -617,6 +1547,50 @@
     ],
     "note": "Second place enters the Champions League's second qualifying round.",
     "note_fa": "تیم دوم از مرحله‌ی دوم مقدماتی لیگ قهرمانان اروپا وارد این رقابت می‌شود."
+  },
+  {
+    "division": "IR1",
+    "season": "2021/22",
+    "teams": 16,
+    "zones": [
+      {
+        "kind": "relegation",
+        "from": 15,
+        "to": 16
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2021%E2%80%9322_Persian_Gulf_Pro_League",
+      "https://en.wikipedia.org/wiki/2022_AFC_Champions_League",
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_AFC_Champions_League"
+    ],
+    "note": "The season earned no AFC Champions League place: the 2022 edition took Iran's clubs from the 2020/21 season, and the 2023/24 edition from the 2022/23 table and the 2021/22 Hazfi Cup. Tractor v Persepolis was abandoned in the 70th minute and awarded 0–3 to Persepolis.",
+    "note_fa": "این فصل هیچ سهمیه‌ای در لیگ قهرمانان آسیا به دست نداد: دوره‌ی ۲۰۲۲ نمایندگان ایران را از فصل ۲۰۲۰/۲۱ برگزید و دوره‌ی ۲۰۲۳/۲۴ از جدول ۲۰۲۲/۲۳ و جام حذفی ۲۰۲۱/۲۲. بازی تراکتور و پرسپولیس در دقیقه‌ی ۷۰ نیمه‌کاره ماند و با نتیجه‌ی ۳ بر ۰ به سود پرسپولیس اعلام شد."
+  },
+  {
+    "division": "IR1",
+    "season": "2023/24",
+    "teams": 16,
+    "zones": [
+      {
+        "kind": "afc_champions_league_elite",
+        "from": 1,
+        "to": 2
+      },
+      {
+        "kind": "relegation",
+        "from": 15,
+        "to": 16
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://en.wikipedia.org/wiki/2023%E2%80%9324_Persian_Gulf_Pro_League",
+      "https://en.wikipedia.org/wiki/2024%E2%80%9325_AFC_Champions_League_Elite"
+    ],
+    "note": "First and second entered the AFC Champions League Elite league stage. The Hazfi Cup winner took Iran's place in its preliminary round, which is not a table place. Shams Azar were deducted three points for fielding an ineligible player. Point deductions are not applied to this table, so its order can differ from the official one.",
+    "note_fa": "تیم‌های اول و دوم به مرحله‌ی لیگیِ لیگ نخبگان آسیا رفتند. قهرمان جام حذفی سهمیه‌ی ایران در مرحله‌ی مقدماتی آن را گرفت، که رده‌ای در جدول نیست. از شمس آذر به دلیل به‌کارگیری بازیکن غیرمجاز سه امتیاز کسر شد. کسر امتیازها در این جدول اعمال نشده است، پس ترتیب آن ممکن است با ترتیب رسمی فرق کند."
   },
   {
     "division": "IR1",
