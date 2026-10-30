@@ -48,7 +48,7 @@ the lab store (T-1646), never the published model's store.
 
 | ID | Task | Deps | Acceptance |
 |---|---|---|---|
-| `[ ]` T-1652 | Strength from goals and expected goals: the fit's target blends goals with xG, the blend chosen by the walk-forward | T-1647 | Judged by D-139 against the candidate |
+| `[x]` T-1652 | Strength from goals and expected goals, as the input `xg_form` (D-312, which sets aside the blended fit target first written here): each side's shrunk, time-weighted xG minus goals, for and against, over its last ten stored matches with xG, two coefficients fitted by `FeatureInput`; constants fixed before any run | T-1647 | Built and tested; judged by D-139 against the candidate — **verdict pending the lab run** (command in D-312) |
 | `[ ]` T-1653 | Time decay: the cross-league fit's half-life (about 3.8 years today) and the untuned divisions' | T-1646 | Judged by D-139; the chosen values with the grid around them |
 | `[ ]` T-1654 | The cross-league fit: an Elo prior (none today, so every European forecast is "limited"), home advantage per competition (one shared today), and its confidence at the extremes (Sporting 92% against LASK) | T-1646 | Judged by D-139 on the `XL` matches |
 | `[ ]` T-1655 | The regulars index in place of `xi_strength`: the share of a side's minutes over its last ten matches missing from the XI, the goalkeeper apart; it sees rotation and absence alike | T-1648 | Judged by D-139 on matches with both XIs; Stuttgart v Gladbach (six changes) moves the right way |
