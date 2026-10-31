@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import type { CoverageState, Covered, GroupTable, TableRow } from '@fmip/contracts';
+import type {
+  ConferenceTable,
+  CoverageState,
+  Covered,
+  GroupTable,
+  TableRow,
+} from '@fmip/contracts';
 import { covered } from '../fixtures/fixtures.service';
 import {
   PostgresStandingsStore,
@@ -7,7 +13,7 @@ import {
   type IncidentTally,
   type Scorer,
 } from './internal/standings-store';
-import { rankGroup, rankTable } from './internal/table';
+import { rankGroup, rankTable, type Result } from './internal/table';
 
 // The module's public surface. Other modules import from this file only.
 export { FORM_WINDOW, rankGroup, rankTable, type Result } from './internal/table';
@@ -97,6 +103,24 @@ export class StandingsService {
       this.store.declared(seasonId, 'standings'),
     ]);
     return groupStandingsModule(groups, declared);
+  }
+
+  /**
+   * The conference tables of a league split into them (T-1671, D-319): each
+   * conference the standings job read from the provider's tables, its clubs
+   * ranked over every finished league match they played -- the ones against
+   * the other conference included -- as the overall table counts them. Null
+   * for a season with no conference, whose page is the league table alone.
+   */
+  async conferenceStandings(seasonId: string): Promise<Covered<ConferenceTable[]> | null> {
+    const conferences = await this.store.seasonConferences(seasonId);
+    if (conferences.length === 0) return null;
+    const [{ results, lastUpdatedAt }, participants, declared] = await Promise.all([
+      this.store.leagueResults(seasonId),
+      this.store.leagueParticipants(seasonId),
+      this.store.declared(seasonId, 'standings'),
+    ]);
+    return conferenceStandingsModule(conferences, results, participants, declared, lastUpdatedAt);
   }
 
   /**
@@ -229,4 +253,37 @@ export function groupStandingsModule(
     teams: g.teams,
   }));
   return covered(data, data.length === 0, declared, last);
+}
+
+/**
+ * The conference tables as the competition page carries them (T-1671,
+ * D-319), pure so a unit spec holds it. Each conference keeps the league's
+ * finished results in which one of its clubs played and ranks its own clubs
+ * on them (`rankGroup`): a match against the other conference counts for the
+ * member who played it. Rows only once one of them is finished. A club that
+ * plays in the league and is in no conference makes the module `limited` at
+ * best -- a table that would read as whole and is not (rule 3).
+ */
+export function conferenceStandingsModule(
+  conferences: readonly { name: string; teams: TableRow['team'][] }[],
+  results: readonly Result[],
+  participants: readonly TableRow['team'][],
+  declared: CoverageState | null,
+  lastUpdatedAt: string | null,
+): Covered<ConferenceTable[]> {
+  const data = conferences.map((c): ConferenceTable => {
+    const ids = new Set(c.teams.map((t) => t.id));
+    const played = results.filter((r) => ids.has(r.home.id) || ids.has(r.away.id));
+    return {
+      name: c.name,
+      counted: played.length,
+      rows: played.length === 0 ? [] : rankGroup(played, c.teams),
+      teams: c.teams,
+    };
+  });
+  const placed = new Set(conferences.flatMap((c) => c.teams.map((t) => t.id)));
+  const whole = covered(data, data.length === 0, declared, lastUpdatedAt);
+  const unplaced = participants.some((p) => !placed.has(p.id));
+  const coverage = unplaced && whole.coverage === 'available' ? 'limited' : whole.coverage;
+  return { ...whole, coverage };
 }

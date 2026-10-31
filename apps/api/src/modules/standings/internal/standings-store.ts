@@ -137,6 +137,37 @@ export class PostgresStandingsStore {
     }));
   }
 
+  /**
+   * The conferences of a season split into them (T-1671, D-319): each with
+   * its clubs, by name, as the standings job wrote them from the provider's
+   * conference tables (`season_conference`). Empty for every other season.
+   */
+  async seasonConferences(
+    seasonId: string,
+  ): Promise<{ name: string; teams: TableRow['team'][] }[]> {
+    const { rows } = await this.pool.query<{
+      conference: string;
+      id: string;
+      name: string;
+      short_name: string | null;
+    }>(
+      `SELECT sc.name AS conference, t.id, t.name, t.short_name
+         FROM season_conference sc
+         JOIN team t ON t.id = sc.team_id
+        WHERE sc.season_id = $1
+        ORDER BY sc.name, t.name`,
+      [seasonId],
+    );
+    const out: { name: string; teams: TableRow['team'][] }[] = [];
+    for (const r of rows) {
+      const team = { id: r.id, name: r.name, short_name: r.short_name };
+      const last = out[out.length - 1];
+      if (last !== undefined && last.name === r.conference) last.teams.push(team);
+      else out.push({ name: r.conference, teams: [team] });
+    }
+    return out;
+  }
+
   /** Every team of one group, finished or not. */
   async groupParticipants(stageId: string, groupName: string): Promise<TableRow['team'][]> {
     const { rows } = await this.pool.query<{ id: string; name: string; short_name: string | null }>(
