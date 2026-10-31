@@ -1037,7 +1037,7 @@ export type {
 } from './rating-threshold';
 // League zones from a committed list (T-1167, D-171). The list is
 // `zones/league-zones.json`, read as `@fmip/contracts/zones/league-zones.json`.
-// T-1674 (D-323): a league's own ranking.
+// T-1674 (D-323): zones of a conference's table, and a league's own ranking.
 export {
   DEFAULT_RANKING,
   LEAGUE_ZONE_KINDS,
@@ -1045,6 +1045,7 @@ export {
   leagueRankingFor,
   leagueZonesFor,
   zoneOfPlace,
+  zonesOfTable,
 } from './league-zones';
 export type {
   LeagueZone,

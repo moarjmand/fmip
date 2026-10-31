@@ -2043,11 +2043,39 @@
     "division": "US1",
     "season": "2026/27",
     "teams": 30,
-    "zones": [],
-    "complete": false,
-    "sources": ["https://www.mlssoccer.com/news/tiebreakers-for-2025-mls-regular-season-standings"],
+    "zones": [
+      {
+        "kind": "title_playoffs",
+        "from": 1,
+        "to": 7,
+        "conference": "Eastern Conference"
+      },
+      {
+        "kind": "title_playoffs_wild_card",
+        "from": 8,
+        "to": 9,
+        "conference": "Eastern Conference"
+      },
+      {
+        "kind": "title_playoffs",
+        "from": 1,
+        "to": 7,
+        "conference": "Western Conference"
+      },
+      {
+        "kind": "title_playoffs_wild_card",
+        "from": 8,
+        "to": 9,
+        "conference": "Western Conference"
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://www.mlssoccer.com/news/audi-2026-mls-cup-playoffs-format-how-it-works",
+      "https://www.mlssoccer.com/news/tiebreakers-for-2025-mls-regular-season-standings"
+    ],
     "ranking": ["points", "wins", "goal_difference", "goals_for"],
-    "note": "The 2026/27 label stands for the calendar-year 2026 season. Clubs level on points are ranked by wins, then goal difference, then goals scored, as MLS ranked them in 2025 (no 2026 list was found). MLS then looks at disciplinary points, which count fouls and staff warnings this site does not store, so clubs still level are listed by name and their official order can differ. The play-off places of each conference are not listed yet.",
-    "note_fa": "برچسب ۲۰۲۶/۲۷ همان فصل سال تقویمی ۲۰۲۶ است. تیم‌های هم‌امتیاز به ترتیبِ تعداد برد، تفاضل گل و گل زده رده‌بندی می‌شوند، همان‌طور که MLS در ۲۰۲۵ رده‌بندی کرد (فهرستی برای ۲۰۲۶ پیدا نشد). پس از آن MLS امتیاز انضباطی را می‌سنجد که خطاها و اخطارهای کادر فنی را هم می‌شمارد و این سایت آن‌ها را ذخیره نمی‌کند؛ پس تیم‌هایی که باز هم برابرند به ترتیب نام آمده‌اند و ترتیب رسمی‌شان ممکن است فرق کند. سهمیه‌های پلی‌آف هر کنفرانس هنوز فهرست نشده است."
+    "note": "The 2026/27 label stands for the calendar-year 2026 season. The first seven of each conference go straight into the play-offs' first round; eighth and ninth play the wild-card round. Clubs level on points are ranked by wins, then goal difference, then goals scored, as MLS ranked them in 2025 (no 2026 list was found). MLS then looks at disciplinary points, which count fouls and staff warnings this site does not store, so clubs still level are listed by name and their official order can differ.",
+    "note_fa": "برچسب ۲۰۲۶/۲۷ همان فصل سال تقویمی ۲۰۲۶ است. هفت تیم اول هر کنفرانس مستقیم به دور اول پلی‌آف می‌روند؛ تیم‌های هشتم و نهم در دور وایلدکارت بازی می‌کنند. تیم‌های هم‌امتیاز به ترتیبِ تعداد برد، تفاضل گل و گل زده رده‌بندی می‌شوند، همان‌طور که MLS در ۲۰۲۵ رده‌بندی کرد (فهرستی برای ۲۰۲۶ پیدا نشد). پس از آن MLS امتیاز انضباطی را می‌سنجد که خطاها و اخطارهای کادر فنی را هم می‌شمارد و این سایت آن‌ها را ذخیره نمی‌کند؛ پس تیم‌هایی که باز هم برابرند به ترتیب نام آمده‌اند و ترتیب رسمی‌شان ممکن است فرق کند."
   }
 ]

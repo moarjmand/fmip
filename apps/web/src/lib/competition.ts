@@ -239,6 +239,8 @@ export const ZONE_KEY: Record<LeagueZoneKind, MessageKey> = {
   afc_champions_league: 'competitionPage.zone.afcChampionsLeague',
   afc_champions_league_elite: 'competitionPage.zone.afcChampionsLeagueElite',
   copa_libertadores: 'competitionPage.zone.copaLibertadores',
+  title_playoffs: 'competitionPage.zone.titlePlayoffs',
+  title_playoffs_wild_card: 'competitionPage.zone.titlePlayoffsWildCard',
   promotion: 'competitionPage.zone.promotion',
   promotion_playoff: 'competitionPage.zone.promotionPlayoff',
   relegation_playoff: 'competitionPage.zone.relegationPlayoff',
@@ -250,6 +252,9 @@ export const ZONE_MARK: Record<LeagueZoneKind, string> = {
   afc_champions_league: 'border-s-accent',
   afc_champions_league_elite: 'border-s-accent',
   copa_libertadores: 'border-s-accent',
+  // A conference's play-off places (T-1674, D-323): a prize, then the round before it.
+  title_playoffs: 'border-s-accent',
+  title_playoffs_wild_card: 'border-s-strong',
   promotion: 'border-s-accent',
   promotion_playoff: 'border-s-strong',
   relegation_playoff: 'border-s-warning',

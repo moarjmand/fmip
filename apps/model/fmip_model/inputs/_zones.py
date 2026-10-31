@@ -79,6 +79,11 @@ def parse(raw: object) -> dict[tuple[str, str], SeasonZones]:
         # hold: it has no division to be read by, so the model skips it.
         if "division" not in e:
             continue
+        # A league split into conferences (T-1674, D-323) lists places of each
+        # conference's table, not of the one table the bands are counted
+        # over, so the model does not read the season.
+        if any("conference" in z for z in e["zones"]):
+            continue
         key = (str(e["division"]), str(e["season"]))
         if key in out:
             raise ValueError(f"{key} is listed twice")

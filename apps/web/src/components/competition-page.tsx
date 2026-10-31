@@ -10,10 +10,11 @@ import type {
   FixtureStatus,
   FollowedEntity,
   Leader,
+  LeagueZone,
   LeagueZones,
   SeasonFixture,
 } from '@fmip/contracts';
-import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
+import { STALE_LIVE_AFTER_MS, zonesOfTable } from '@fmip/contracts';
 import { EntityImage } from '@/components/entity-image';
 import { FreshnessStamp, type FreshnessWords } from '@/components/freshness-stamp';
 import { MatchesFreshness } from '@/components/matches-freshness';
@@ -21,6 +22,7 @@ import { MinutesFigure } from '@/components/minutes-figure';
 import { FollowIntentMark } from '@/components/push-offer-mark';
 import { PushOfferFor } from '@/components/push-offer-for';
 import { Stamp } from '@/components/stamp';
+import { conferenceName } from '@/components/standings-table';
 import { Translated } from '@/components/translated';
 import { Button, ButtonLink, CoverageBadge, Icon } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
@@ -402,23 +404,83 @@ export function LiveFreshness({
 // The table's notes
 // ---------------------------------------------------------------------------
 
-/** What the marks mean, where they come from, and what is not listed (rule 3). */
-export function ZoneLegend({ locale, zones }: { locale: string; zones: LeagueZones }) {
+/** Whether the season's list names places on its conferences' tables (T-1674, D-323). */
+export function hasConferenceZones(zones: LeagueZones): boolean {
+  return zones.state === 'listed' && zones.zones.some((z) => z.conference !== undefined);
+}
+
+/**
+ * The legend's lines (T-1674, D-323): the league's one table lists the places
+ * named for no conference; the conference tables' legend lists each band of
+ * theirs once, named by its conference only where the conferences differ.
+ */
+function legendLines(
+  locale: string,
+  zones: readonly LeagueZone[],
+  tables: 'league' | 'conferences',
+): { key: string; zone: LeagueZone; label: string }[] {
+  if (tables === 'league')
+    return zonesOfTable(zones, null).map((z) => ({
+      key: `${z.kind}-${z.from}`,
+      zone: z,
+      label: say(locale, ZONE_KEY[z.kind]),
+    }));
+  const named = zones.filter((z) => z.conference !== undefined);
+  const conferences = new Set(named.map((z) => z.conference));
+  const band = (z: LeagueZone) => `${z.kind}-${z.from}-${z.to}`;
+  const seen = new Set<string>();
+  return named.flatMap((z) => {
+    const shared = named.filter((o) => band(o) === band(z)).length === conferences.size;
+    const key = shared ? band(z) : `${band(z)}-${z.conference ?? ''}`;
+    if (seen.has(key)) return [];
+    seen.add(key);
+    const kind = say(locale, ZONE_KEY[z.kind]);
+    return [
+      {
+        key,
+        zone: z,
+        label: shared ? kind : `${conferenceName(locale, z.conference ?? '')}, ${kind}`,
+      },
+    ];
+  });
+}
+
+/**
+ * What the marks mean, where they come from, and what is not listed (rule 3).
+ * `tables`: the league's one table (default), or its conference tables
+ * (T-1674, D-323), whose places the list names by conference. A league whose
+ * places are all its conferences' says so once, under the conference tables:
+ * the overall table then has no legend of its own.
+ */
+export function ZoneLegend({
+  locale,
+  zones,
+  tables = 'league',
+}: {
+  locale: string;
+  zones: LeagueZones;
+  tables?: 'league' | 'conferences';
+}) {
   const absent = zonesAbsentLine(locale, zones);
   if (zones.state !== 'listed') {
-    return absent === null ? null : (
+    return absent === null || tables === 'conferences' ? null : (
       <p className="text-xs text-muted" data-testid="table-zones-absent">
         {absent}
       </p>
     );
   }
+  const lines = legendLines(locale, zones.zones, tables);
+  if (lines.length === 0 && (tables === 'conferences' || hasConferenceZones(zones))) return null;
   const separator = say(locale, 'competitionPage.list.separator');
   return (
-    <div className="flex flex-col gap-1 text-xs text-muted" data-testid="table-zones">
+    <div
+      className="flex flex-col gap-1 text-xs text-muted"
+      data-testid={tables === 'league' ? 'table-zones' : 'conference-zones'}
+    >
       <ul className="flex flex-wrap gap-x-4 gap-y-1">
-        {zones.zones.map((z) => (
-          <li key={`${z.kind}-${z.from}`} className={`border-s-4 ps-2 ${ZONE_MARK[z.kind]}`}>
-            {say(locale, ZONE_KEY[z.kind])}: {zoneBand(locale, z)}
+        {lines.map(({ key, zone, label }) => (
+          <li key={key} className={`border-s-4 ps-2 ${ZONE_MARK[zone.kind]}`}>
+            {label}: {zoneBand(locale, zone)}
           </li>
         ))}
       </ul>
@@ -437,7 +499,13 @@ export function ZoneLegend({ locale, zones }: { locale: string; zones: LeagueZon
             {i === zones.sources.length - 1 ? ')' : ''}
           </span>
         ))}
-        . <Translated locale={locale} message="competitionPage.zones.cupWinners" />
+        .{/* Cup winners and continental places are a league table's matter, not a conference's. */}
+        {tables === 'league' && (
+          <>
+            {' '}
+            <Translated locale={locale} message="competitionPage.zones.cupWinners" />
+          </>
+        )}
         {zones.complete ? (
           ''
         ) : (

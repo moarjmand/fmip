@@ -24,6 +24,14 @@
  * `afc_champions_league_elite` is the one that replaced it from 2024/25. A
  * season is listed under the competition its places went to (T-1659, D-315).
  *
+ * A league split into conferences (D-319) ranks each conference on its own,
+ * and its places are a conference table's: such a zone names its conference
+ * (`conference`, the name the standings job stores in `season_conference`),
+ * and the league's one table shows only the zones that name none (T-1674,
+ * D-323). `title_playoffs` is a place in the play-offs that decide the
+ * champion (MLS's first round); `title_playoffs_wild_card` a place in the
+ * round played to reach them.
+ *
  * An entry may also say how its league ranks clubs level on points
  * (`ranking`, T-1674, D-323), where that differs from the default
  * (`DEFAULT_RANKING`).
@@ -33,6 +41,8 @@ export const LEAGUE_ZONE_KINDS = [
   'afc_champions_league',
   'afc_champions_league_elite',
   'copa_libertadores',
+  'title_playoffs',
+  'title_playoffs_wild_card',
   'promotion',
   'promotion_playoff',
   'relegation_playoff',
@@ -45,6 +55,12 @@ export interface LeagueZone {
   kind: LeagueZoneKind;
   from: number;
   to: number;
+  /**
+   * The conference whose table the places are of (T-1674, D-323), as
+   * `season_conference.name` spells it ("Eastern Conference"); absent for a
+   * place in the league's one table.
+   */
+  conference?: string;
 }
 
 /**
@@ -164,6 +180,17 @@ export function leagueRankingFor(
 ): readonly TableCriterion[] {
   const e = entryFor(entries, competition, season);
   return typeof e === 'string' ? DEFAULT_RANKING : (e.ranking ?? DEFAULT_RANKING);
+}
+
+/**
+ * The zones one table shows (T-1674, D-323): a conference's table the zones
+ * naming that conference, the league's one table (`null`) those naming none.
+ */
+export function zonesOfTable(
+  zones: readonly LeagueZone[],
+  conference: string | null,
+): LeagueZone[] {
+  return zones.filter((z) => (z.conference ?? null) === conference);
 }
 
 /**

@@ -10794,6 +10794,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.zone.titlePlayoffs": {
+    "source": "Play-offs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.titlePlayoffsWildCard": {
+    "source": "Play-off wild-card round",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.zone.promotion": {
     "source": "Promotion",
     "text": "",

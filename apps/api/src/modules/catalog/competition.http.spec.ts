@@ -506,7 +506,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
         })
       ).json() as CompetitionPage;
       expect(page.season.label).toBe('2026');
-      expect(page.zones).toMatchObject({ state: 'listed', teams: 30 });
+      expect(page.zones).toMatchObject({ state: 'listed', teams: 30, complete: true });
+      if (page.zones.state !== 'listed') throw new Error('unreachable');
+      // Each conference's play-off places, named by the conference's stored name.
+      expect(page.zones.zones).toContainEqual({
+        kind: 'title_playoffs_wild_card',
+        from: 8,
+        to: 9,
+        conference: 'Western Conference',
+      });
       // MLS ranks clubs level on points by wins first (D-323); every other season as before.
       const standings = app.get(StandingsService, { strict: false });
       expect(await standings.ranking(OLD_SEASON)).toEqual([
