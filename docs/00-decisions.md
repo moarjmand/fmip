@@ -13605,3 +13605,39 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 **Rejected.** *An agent per role (twenty-seven):* coordination and cost without a matching gain (the study above). *Several agents writing code in parallel:* contradictory changes; one writer per area. *Agents messaging each other, or Claude Code's experimental agent teams for daily work:* harder to trace and about seven times the cost; kept for research or review bursts. *Public agent collections copied as they are:* unmeasured and unaware of this project's rules; their structure was borrowed, the content written here. *A standalone service on the Agent SDK:* needs an API key the maintainer has not bought.
 
 **Consequences.** `.claude/agents/{chief-of-staff,ops-release,code-reviewer,qa-engineer}.md`; `.claude/skills/{team-charter,ops-check,fmip-review,fmip-qa,daily-brief}/`; `.claude/hooks/guard.mjs` with its cases and runner; `.claude/settings.json`; the team's working folder `E:/FMIP/ops/` outside the repository. A daily scheduled run (the watchers, then the brief at 09:00 Tehran) is set up after the merge.
+
+## D-329 — Phase 14's verdicts: no new factor passed; the tuned half-lives failed the holdout, and the published model stays
+
+**Status:** Accepted · 2026-10-31 (the agent, recording the lab runs D-303 asked for; promotion stays the maintainer's) · **Tasks:** T-1651 to T-1660 · **Follows:** D-139, D-303, D-307 to D-315
+
+**Context.** D-303 set the programme: each factor judged offline by D-139's bar on the lab store (development window 2024/25, history from 2020/21), the ones that pass combined into one candidate, that candidate judged once on the holdout (2025-07-01 to date), then shadow. The runs ended on 2026-10-31: phase B and part of C on the server, the rest on a local copy of the lab store; the holdout once, on the server, on production's store (what a candidate would read).
+
+**Decision.** The verdicts, each against `dixon-coles-elo@0.7.0` (log loss difference with its 95% paired-bootstrap interval; negative is better):
+
+| Factor | Task | Verdict | Why |
+|---|---|---|---|
+| Rest (league matches; with the ten cups) | T-1651 | failed | +0.0008; +0.0010 |
+| Team home advantage | T-1651 | failed | -0.00018 significant on football-data, worse in 6 of 17 divisions |
+| Head to head | T-1651 | failed | +0.00273 [+0.00050, +0.00487] on our records |
+| New coach | T-1651 | failed | no matches in the main leagues; +0.00257 on ours |
+| League stakes by zones | T-1651 | insufficient | 232 matches, 300 needed |
+| Second leg | T-1651 | insufficient | 289 matches, and worse (1.016 to 1.026) |
+| Null control | T-1651 | failed | as it must |
+| Expected-goals form | T-1652 | failed | -0.00317 [-0.00521, -0.00104] on football-data but worse in 6 of 15 divisions |
+| Time decay per division | T-1653 | adopted for nine | chosen on 2023/24, confirmed on 2024/25 |
+| Cross-league options (10 variants) | T-1654 | failed | none beat the fit as it is |
+| Regulars missing | T-1655 | failed | +0.00167 and +0.00487, worse in 10 of 17 |
+| Rest with what comes next | T-1656 | failed | +0.00619 [+0.00055, +0.01312] on our records |
+| The draw recalibrated | T-1657 | failed | -0.0001 [-0.0018, +0.0016] |
+| Late-season stakes | T-1659 | failed | +0.0050, worse in 6 of 9 |
+| Coach quality | T-1658 | pending | its local run (24 divisions with the cups) had not finished |
+
+- **The candidate (T-1660):** with no input passing, `dixon-coles-elo@0.8.0` was 0.7.0 with T-1653's nine `(xi, ridge)` pairs: E1 (0.0005, 3), G1 (0.004, 0.03), CH1 (0.004, 3), US1 (0.0065, 3), BR1 (0.0005, 3), HR1 (0.001, 0.03), RS1 (0.002, 0.03), SA1 (0.004, 3), AE1 (0.004, 0.03).
+- **The holdout, run once:** 3,819 matches of 2025-07-01 to 2026-10-31 in those nine divisions.
+  - Log loss 1.0070 against 0.7.0's 1.0094; Brier 0.6023 against 0.6042; calibration error 0.0174 against 0.0249.
+  - **But D-139's bar failed:** football-data -0.00130 [-0.00673, +0.00468] and worse in E1 (1.0813 against 1.0787) and CH1 (1.0359 against 1.0274), two of five; our records -0.00468 [-0.01215, +0.00262].
+  - **Verdict: failed.** 0.8.0 does not enter shadow, its file is not committed, and the published `dixon-coles-elo@0.6.0` (with 0.7.0 in shadow) stays.
+- **No second try on the holdout:** keeping only the divisions that improved there (HR1 -0.023, AE1, G1, US1, BR1, SA1) would choose on the holdout itself, which D-303 rules out. A new candidate needs a new development result and waits for a fresh holdout season.
+- **What the programme showed:** with goals, our own Elo and per-division decay, the model is already near what these inputs can add on the data we hold. The one signal worth another look is expected-goals form: it was significantly better on the main leagues, but worse in too many smaller ones. A version limited to the leagues with full xG coverage would be a new formulation, written before its run.
+
+**Consequences.** `docs/04-tasks-phase-14.md`: T-1651 to T-1657, T-1659 and T-1660 marked with their verdicts; T-1658 waits for its run; T-1661 (the report) follows. The reports stay outside the repository: `~/fmip-lab/reports/` on the server and `E:/FMIP/lab-local/reports/` locally.
