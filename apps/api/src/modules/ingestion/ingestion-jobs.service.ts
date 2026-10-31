@@ -1213,156 +1213,185 @@ export class IngestionJobsService {
    * They name each club's conference, written to `season_conference`
    * (`IngestStore.saveConferences`), and are compared with the league table.
    */
-  private standingsCheck(now: Date = new Date()): Promise<JobReport> {
-    return this.track('standings', async (source, targets) => {
-      let seen = 0;
-      let written = 0;
-      const refused: string[] = [];
-      const behind: string[] = [];
+  private standingsCheck(
+    now: Date = new Date(),
+    seasonLabel: string | null = null,
+    competitionId: string | null = null,
+  ): Promise<JobReport> {
+    const scope =
+      seasonLabel === null
+        ? null
+        : `standings ${seasonLabel}${competitionId === null ? '' : ` ${competitionId}`}`;
+    return this.track(
+      'standings',
+      async (source, all) => {
+        const targets =
+          competitionId === null ? all : all.filter((t) => t.competitionId === competitionId);
+        let seen = 0;
+        let written = 0;
+        const refused: string[] = [];
+        const behind: string[] = [];
 
-      for (const target of targets) {
-        const result: AdapterResult<NormalisedStanding[]> = await source.adapter.getStandings({
-          competitionExternalId: target.competitionExternalId,
-          seasonLabel:
-            this.sources.kind === 'replay' ? REPLAY_QUERY.seasonLabel : target.seasonLabel,
-        });
-        if (!result.ok) {
-          refused.push(`${target.seasonLabel}: ${describe(result.error)}`);
-          continue;
-        }
-        let unmapped = 0;
-
-        // One season's tables together: its findings are recorded in one
-        // write, which resolves what it no longer sees — a write per group
-        // would resolve the group before it.
-        const bySeason = new Map<string, NormalisedStanding[]>();
-        for (const table of result.data) {
-          seen += table.rows.length;
-          bySeason.set(table.seasonLabel, [...(bySeason.get(table.seasonLabel) ?? []), table]);
-        }
-
-        for (const [label, tables] of bySeason) {
-          // Compare the edition the provider's table is for, not the one the
-          // poll started from — the same rule `saveFixture` follows.
-          const seasonId = await this.store.seasonId(target, label);
-          if (seasonId === null) {
-            behind.push(`${label}: the provider has a table for a season we do not`);
+        for (const target of targets) {
+          const result: AdapterResult<NormalisedStanding[]> = await source.adapter.getStandings({
+            competitionExternalId: target.competitionExternalId,
+            seasonLabel:
+              this.sources.kind === 'replay' ? REPLAY_QUERY.seasonLabel : target.seasonLabel,
+          });
+          if (!result.ok) {
+            refused.push(`${target.seasonLabel}: ${describe(result.error)}`);
             continue;
           }
-          // Matched through `provider_mapping`, never by the provider's
-          // spelling of a club (rule 1). A team nobody has identified is
-          // counted, not silently dropped — it is the same gap seen from the
-          // other end.
-          const resolved: {
-            group: string | null;
-            /** The conference the table is (T-1667); null for any other table. */
-            conference: string | null;
-            /** Our stage the provider's table names (T-1399); null when it names none we hold. */
-            stageId: string | null;
-            rows: { name: string; played: number; teamId: string }[];
-          }[] = [];
-          let unmappedHere = 0;
-          const stageIds = new Map<string, string | null>();
-          for (const table of tables) {
-            const rows: { name: string; played: number; teamId: string }[] = [];
-            for (const row of table.rows) {
-              const teamId = await this.store.resolveTeam(
-                source.provider,
-                row.team,
-                target.competitionId,
+          let unmapped = 0;
+
+          // One season's tables together: its findings are recorded in one
+          // write, which resolves what it no longer sees — a write per group
+          // would resolve the group before it.
+          const bySeason = new Map<string, NormalisedStanding[]>();
+          for (const table of result.data) {
+            seen += table.rows.length;
+            bySeason.set(table.seasonLabel, [...(bySeason.get(table.seasonLabel) ?? []), table]);
+          }
+
+          for (const [label, tables] of bySeason) {
+            // Compare the edition the provider's table is for, not the one the
+            // poll started from — the same rule `saveFixture` follows.
+            const seasonId = await this.store.seasonId(target, label);
+            if (seasonId === null) {
+              behind.push(`${label}: the provider has a table for a season we do not`);
+              continue;
+            }
+            // Matched through `provider_mapping`, never by the provider's
+            // spelling of a club (rule 1). A team nobody has identified is
+            // counted, not silently dropped — it is the same gap seen from the
+            // other end.
+            const resolved: {
+              group: string | null;
+              /** The conference the table is (T-1667); null for any other table. */
+              conference: string | null;
+              /** Our stage the provider's table names (T-1399); null when it names none we hold. */
+              stageId: string | null;
+              rows: { name: string; played: number; teamId: string }[];
+            }[] = [];
+            let unmappedHere = 0;
+            const stageIds = new Map<string, string | null>();
+            for (const table of tables) {
+              const rows: { name: string; played: number; teamId: string }[] = [];
+              for (const row of table.rows) {
+                const teamId = await this.store.resolveTeam(
+                  source.provider,
+                  row.team,
+                  target.competitionId,
+                );
+                if (teamId === null) {
+                  unmappedHere += 1;
+                  continue;
+                }
+                rows.push({ name: row.team.name, played: row.played, teamId });
+              }
+              // A stage named and held scopes a group table to it (T-1399):
+              // Argentina's Apertura and Clausura each have a group A. A name
+              // we do not hold is read as no name -- compared as before.
+              let stageId: string | null = null;
+              if (table.group !== null && table.stage !== null) {
+                if (!stageIds.has(table.stage)) {
+                  stageIds.set(table.stage, await this.store.stageId(seasonId, table.stage));
+                }
+                stageId = stageIds.get(table.stage) ?? null;
+              }
+              resolved.push({
+                group: table.group,
+                conference: table.conference ?? null,
+                stageId,
+                rows,
+              });
+            }
+            unmapped += unmappedHere;
+
+            const grouped = resolved.filter((t) => t.group !== null);
+            // Each stage's tables assign that stage's groups; tables naming no
+            // stage assign across the season, as before.
+            for (const stageId of new Set(grouped.map((t) => t.stageId))) {
+              written += await this.store.assignGroups(
+                seasonId,
+                groupMembers(
+                  grouped
+                    .filter((t) => t.stageId === stageId)
+                    .map((t) => ({ group: t.group, teamIds: t.rows.map((r) => r.teamId) })),
+                ),
+                stageId,
               );
-              if (teamId === null) {
-                unmappedHere += 1;
-                continue;
-              }
-              rows.push({ name: row.team.name, played: row.played, teamId });
             }
-            // A stage named and held scopes a group table to it (T-1399):
-            // Argentina's Apertura and Clausura each have a group A. A name
-            // we do not hold is read as no name -- compared as before.
-            let stageId: string | null = null;
-            if (table.group !== null && table.stage !== null) {
-              if (!stageIds.has(table.stage)) {
-                stageIds.set(table.stage, await this.store.stageId(seasonId, table.stage));
-              }
-              stageId = stageIds.get(table.stage) ?? null;
+            // A season split into conferences (T-1667, D-319): each club's
+            // conference, written for the competition page's conference
+            // tables. Two conferences at least -- one alone splits nothing.
+            // A conference table counts all its clubs' league matches, so it
+            // is still compared with our league table below, as before.
+            const conferences = resolved.filter((t) => t.group === null && t.conference !== null);
+            if (new Set(conferences.map((t) => t.conference)).size >= 2) {
+              written += await this.store.saveConferences(
+                seasonId,
+                groupMembers(
+                  conferences.map((t) => ({
+                    group: t.conference,
+                    teamIds: t.rows.map((r) => r.teamId),
+                  })),
+                ).map((m) => ({ teamId: m.teamId, conference: m.group })),
+              );
             }
-            resolved.push({
-              group: table.group,
-              conference: table.conference ?? null,
-              stageId,
-              rows,
-            });
-          }
-          unmapped += unmappedHere;
+            const mine = new Map<string, number>();
+            if (resolved.some((t) => t.group === null)) {
+              const ours = await this.standings.table(seasonId);
+              for (const row of ours.data ?? []) mine.set(row.team.id, row.played);
+            }
+            const ourGroups = grouped.length > 0 ? await this.standings.groupTables(seasonId) : [];
 
-          const grouped = resolved.filter((t) => t.group !== null);
-          // Each stage's tables assign that stage's groups; tables naming no
-          // stage assign across the season, as before.
-          for (const stageId of new Set(grouped.map((t) => t.stageId))) {
-            written += await this.store.assignGroups(
-              seasonId,
-              groupMembers(
-                grouped
-                  .filter((t) => t.stageId === stageId)
-                  .map((t) => ({ group: t.group, teamIds: t.rows.map((r) => r.teamId) })),
-              ),
-              stageId,
-            );
-          }
-          // A season split into conferences (T-1667, D-319): each club's
-          // conference, written for the competition page's conference
-          // tables. Two conferences at least -- one alone splits nothing.
-          // A conference table counts all its clubs' league matches, so it
-          // is still compared with our league table below, as before.
-          const conferences = resolved.filter((t) => t.group === null && t.conference !== null);
-          if (new Set(conferences.map((t) => t.conference)).size >= 2) {
-            written += await this.store.saveConferences(
-              seasonId,
-              groupMembers(
-                conferences.map((t) => ({
-                  group: t.conference,
-                  teamIds: t.rows.map((r) => r.teamId),
-                })),
-              ).map((m) => ({ teamId: m.teamId, conference: m.group })),
-            );
-          }
-          const mine = new Map<string, number>();
-          if (resolved.some((t) => t.group === null)) {
-            const ours = await this.standings.table(seasonId);
-            for (const row of ours.data ?? []) mine.set(row.team.id, row.played);
-          }
-          const ourGroups = grouped.length > 0 ? await this.standings.groupTables(seasonId) : [];
-
-          const compared: TableComparison[] = [];
-          for (const table of resolved) {
-            // A team's row in our table of the same group: a team in no
-            // group of ours (its matches carry none yet) has no row.
-            const held = table.group === null ? mine : groupPlayed(ourGroups, table);
-            for (const row of table.rows) {
-              const ourPlayed = held.get(row.teamId);
-              compared.push({ teamId: row.teamId, providerPlayed: row.played, ourPlayed });
-              const gap = tableGap(row.name, row.played, ourPlayed);
-              if (gap !== null) behind.push(gap);
+            const compared: TableComparison[] = [];
+            for (const table of resolved) {
+              // A team's row in our table of the same group: a team in no
+              // group of ours (its matches carry none yet) has no row.
+              const held = table.group === null ? mine : groupPlayed(ourGroups, table);
+              for (const row of table.rows) {
+                const ourPlayed = held.get(row.teamId);
+                compared.push({ teamId: row.teamId, providerPlayed: row.played, ourPlayed });
+                const gap = tableGap(row.name, row.played, ourPlayed);
+                if (gap !== null) behind.push(gap);
+              }
             }
+            // The same comparison, kept as findings (T-820): a gap stays visible
+            // on the data-quality page until a later comparison no longer sees it.
+            await this.recordTable(seasonId, compared, unmappedHere, now);
           }
-          // The same comparison, kept as findings (T-820): a gap stays visible
-          // on the data-quality page until a later comparison no longer sees it.
-          await this.recordTable(seasonId, compared, unmappedHere, now);
+          if (unmapped > 0) {
+            behind.push(`${unmapped} teams in the provider's table have no mapping`);
+          }
         }
-        if (unmapped > 0) {
-          behind.push(`${unmapped} teams in the provider's table have no mapping`);
-        }
-      }
-      const partial = [...refused, ...behind].join('; ');
-      return {
-        job: 'standings' as const,
-        provider: source.provider,
-        itemsSeen: seen,
-        itemsWritten: written,
-        ...(partial === '' ? {} : { partial }),
-      };
-    });
+        const partial = [...refused, ...behind].join('; ');
+        return {
+          job: 'standings' as const,
+          provider: source.provider,
+          itemsSeen: seen,
+          itemsWritten: written,
+          ...(partial === '' ? {} : { partial }),
+        };
+      },
+      scope,
+      seasonLabel,
+    );
+  }
+
+  /**
+   * The standings job once for a past season (T-1677), from the operator's
+   * `backfill.js --standings`: the scheduled run reads current seasons only,
+   * so a past season's conferences (D-319) and group tables are written only
+   * when asked. With a competition, only its season is asked: one request.
+   */
+  standingsFor(
+    seasonLabel: string,
+    competitionId: string | null,
+    now: Date = new Date(),
+  ): Promise<JobReport> {
+    return this.standingsCheck(now, seasonLabel, competitionId);
   }
 
   /**
