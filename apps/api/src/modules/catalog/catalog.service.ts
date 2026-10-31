@@ -10,7 +10,6 @@ import type {
   CountrySummary,
   Covered,
   FollowSuggestionsResponse,
-  LeagueZoneEntry,
   BoardPlayer,
   CoachPage,
   PlayerPage,
@@ -33,9 +32,7 @@ import {
   SUGGESTED_TEAMS_PER_COMPETITION,
   continentalConfederation,
   countryConfederation,
-  leagueZonesFor,
 } from '@fmip/contracts';
-import leagueZoneList from '@fmip/contracts/zones/league-zones.json';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
 import { derived } from '../fixtures/fixtures.service';
@@ -552,7 +549,7 @@ export class CatalogService {
       recordedBoards,
       tally,
       bracketFixtures,
-      division,
+      zones,
       lastCheckedAt,
       conferenceTables,
     ] = await Promise.all([
@@ -564,7 +561,9 @@ export class CatalogService {
       this.standings.boards(selected.id),
       this.standings.incidentTally(selected.id),
       knockout ? this.competitions_.bracketFixtures(selected.id) : Promise.resolve(null),
-      this.competitions_.division(id),
+      // T-1167 (D-171): the committed list, never the feed's standings, by the
+      // season's stored label (T-1674).
+      this.standings.zones(selected.id),
       // When the provider last confirmed the season's whole list (T-1633, D-296).
       listsCheckedAt(this.pool, [selected.id]),
       // A league split into conferences (T-1671, D-319); null for any other.
@@ -767,23 +766,7 @@ export class CatalogService {
                         teams: c.teams.map((t) => ({ ...t, crest: media.crest(t.id) })),
                       })),
               },
-        // T-1167 (D-171): the committed list, never the feed's standings.
-        zones: leagueZonesFor(
-          leagueZoneList as LeagueZoneEntry[],
-          {
-            kind: competition.kind,
-            division,
-            // D-234: a league the model does not hold is keyed by its country.
-            country:
-              competition.scope === 'domestic' &&
-              competition.gender === 'men' &&
-              competition.age_group === 'senior'
-                ? (competition.country?.code ?? null)
-                : null,
-            tier: competition.tier,
-          },
-          selected.label,
-        ),
+        zones,
         results: results.map((f) => withCrests(f, media)),
         fixtures: upcoming.map((f) => withCrests(f, media)),
         leaders: {

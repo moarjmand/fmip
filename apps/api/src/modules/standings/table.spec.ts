@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_RANKING } from '@fmip/contracts';
 import { FORM_WINDOW, type Result, rankGroup, rankTable } from './internal/table';
 
 const team = (id: string, name = id.toUpperCase()) => ({ id, name, shortName: null });
@@ -97,6 +98,72 @@ describe('rankTable', () => {
     expect(a.played).toBe(7);
     expect(a.form).toHaveLength(FORM_WINDOW);
     expect(a.form).toEqual(['D', 'L', 'W', 'W', 'L']);
+  });
+
+  describe("a league's own ranking (T-1674, D-323)", () => {
+    const MLS = ['points', 'wins', 'goal_difference', 'goals_for'] as const;
+    // Level on 6 points: b drew all six (no win, 0); e won two and lost two (-4).
+    const level = [
+      ...[1, 2, 3, 4, 5, 6].map((n) => result(n, 'b', 'z', 1, 1)),
+      result(7, 'e', 'x', 1, 0),
+      result(8, 'e', 'y', 1, 0),
+      result(9, 'x', 'e', 3, 0),
+      result(10, 'y', 'e', 3, 0),
+    ];
+    const order = (rows: ReturnType<typeof rankTable>) =>
+      rows.filter((r) => r.team.id === 'b' || r.team.id === 'e').map((r) => r.team.id);
+
+    it('ranks by points, goal difference, goals scored, then name when no order is given', () => {
+      expect(order(rankTable(level))).toEqual(['b', 'e']);
+      expect(rankTable(level, [], DEFAULT_RANKING)).toEqual(rankTable(level));
+    });
+
+    it("puts wins before goal difference in MLS's order", () => {
+      const rows = rankTable(level, [], MLS);
+      expect(order(rows)).toEqual(['e', 'b']);
+      // The rows themselves are the same tallies, only their places change.
+      expect(rows.find((r) => r.team.id === 'e')).toMatchObject({
+        won: 2,
+        points: 6,
+        goal_difference: -4,
+      });
+    });
+
+    it('falls back to goal difference, goals scored and name when wins are level too', () => {
+      // c and d: one win and three draws each; d +3, c +1.
+      const results = [
+        result(1, 'c', 'z', 1, 0),
+        ...[2, 3, 4].map((n) => result(n, 'c', 'w', 0, 0)),
+        result(5, 'd', 'z', 3, 0),
+        ...[6, 7, 8].map((n) => result(n, 'd', 'w', 2, 2)),
+      ];
+      expect(
+        rankTable(results, [], MLS)
+          .slice(0, 2)
+          .map((r) => r.team.id),
+      ).toEqual(['d', 'c']);
+      expect(
+        rankTable([result(1, 'zeta', 'alpha', 1, 1)], [], MLS).map((r) => r.team.name),
+      ).toEqual(['ALPHA', 'ZETA']);
+    });
+
+    it('is the same table under either order when no two clubs are level on points', () => {
+      const results = [
+        result(1, 'a', 'b', 2, 0),
+        result(2, 'b', 'c', 1, 0),
+        result(3, 'a', 'c', 1, 1),
+      ];
+      expect(rankTable(results, [], MLS)).toEqual(rankTable(results));
+    });
+
+    it('ranks a conference by the same order (rankGroup)', () => {
+      const members = ['b', 'e'].map((id) => ({ id, name: id.toUpperCase(), short_name: null }));
+      expect(rankGroup(level, members).map((r) => r.team.id)).toEqual(['b', 'e']);
+      expect(rankGroup(level, members, MLS).map((r) => [r.position, r.team.id])).toEqual([
+        [1, 'e'],
+        [2, 'b'],
+      ]);
+    });
   });
 
   it('gives a participant without a result an empty row instead of leaving it out', () => {

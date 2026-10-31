@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import type {
   AccuracyPoint,
   CompetitionPage,
+  LeagueZone,
   LeagueZones,
   SeasonFixture,
   TableRow,
@@ -10,6 +11,7 @@ import type {
 import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { ZoneLegend } from '@/components/competition-page';
 import { message } from '@/i18n/messages';
 import { type CompetitionTab, type LeagueModel, seasonRounds } from '@/lib/competition-overview';
 import type { CardForecast } from '@/lib/score-card-products';
@@ -216,6 +218,7 @@ describe('the table', () => {
     sources: ['https://example.org/rules'],
     complete: true,
     note: null,
+    unmarked_cup_places: true,
   };
 
   it('draws no zone colour where the feed does not list the places, and says so', () => {
@@ -269,6 +272,115 @@ describe('the table', () => {
     expect(en).toContain('Overall table');
     const fa = renderToStaticMarkup(<TableCard page={page()} locale="fa" timeZone="UTC" overall />);
     expect(fa).toContain('جدول کلی');
+  });
+
+  it('says cup winners reassign the Europa and Conference League places only for a UEFA league (T-1674)', () => {
+    const line = 'Cup winners change who takes the Europa and Conference League places';
+    const european = renderToStaticMarkup(
+      <TableCard page={page({ zones: listed })} locale="en" timeZone="UTC" />,
+    );
+    expect(european).toContain(line);
+    // A Brasileirão-like entry: Libertadores places, no UEFA competition to speak of.
+    const brazil: LeagueZones = {
+      state: 'listed',
+      teams: 20,
+      zones: [
+        { kind: 'copa_libertadores', from: 1, to: 4 },
+        { kind: 'relegation', from: 17, to: 20 },
+      ],
+      sources: ['https://example.org/rules'],
+      complete: false,
+      note: null,
+      unmarked_cup_places: false,
+    };
+    const html = renderToStaticMarkup(
+      <TableCard page={page({ zones: brazil })} locale="en" timeZone="UTC" />,
+    );
+    expect(html).toContain('data-testid="table-zones"');
+    expect(html).not.toContain('Europa');
+    expect(html).toContain('Copa Libertadores');
+    const fa = (zones: LeagueZones) =>
+      renderToStaticMarkup(<TableCard page={page({ zones })} locale="fa" timeZone="UTC" />);
+    const faLine = message('fa', 'competitionPage.zones.cupWinners').text;
+    expect(fa(listed)).toContain(faLine);
+    expect(fa(brazil)).not.toContain(faLine);
+  });
+
+  describe('a league whose places are its conferences’ (T-1674, D-323)', () => {
+    const mls = (zones: LeagueZone[]): LeagueZones => ({
+      state: 'listed',
+      teams: 30,
+      zones,
+      complete: true,
+      sources: ['https://www.mlssoccer.com/news/audi-2026-mls-cup-playoffs-format-how-it-works'],
+      note: 'Clubs level on points are ranked by wins.',
+      note_fa: 'تیم‌های هم‌امتیاز به ترتیب تعداد برد رده‌بندی می‌شوند.',
+      unmarked_cup_places: false,
+    });
+    const both = mls(
+      ['Eastern Conference', 'Western Conference'].flatMap((conference) => [
+        { kind: 'title_playoffs' as const, from: 1, to: 7, conference },
+        { kind: 'title_playoffs_wild_card' as const, from: 8, to: 9, conference },
+      ]),
+    );
+
+    it('marks nothing on the overall table, which leaves the legend to the conference tables', () => {
+      const html = renderToStaticMarkup(
+        <TableCard page={page({ zones: both })} locale="en" timeZone="UTC" overall />,
+      );
+      expect(html).not.toContain('data-zone=');
+      expect(html).not.toContain('data-testid="table-zones"');
+      expect(html).not.toContain('table-zones-absent');
+      expect(html).toContain('data-testid="form-order"');
+    });
+
+    it('lists each band of the conference tables once, without the cup-winners line', () => {
+      const html = renderToStaticMarkup(
+        <ZoneLegend locale="en" zones={both} tables="conferences" />,
+      );
+      expect(html).toContain('data-testid="conference-zones"');
+      expect(html.match(/<li /g)).toHaveLength(2);
+      expect(html).toContain('Play-offs: 1');
+      expect(html).toContain('Play-off wild-card round: 8');
+      expect(html).not.toContain('Europa');
+      expect(html).toContain('Clubs level on points are ranked by wins.');
+      expect(html).toContain('border-s-accent');
+      expect(html).toContain('border-s-strong');
+    });
+
+    it('names the conference where the conferences’ bands differ', () => {
+      const html = renderToStaticMarkup(
+        <ZoneLegend
+          locale="en"
+          zones={mls([
+            { kind: 'title_playoffs', from: 1, to: 7, conference: 'Eastern Conference' },
+            { kind: 'title_playoffs', from: 1, to: 6, conference: 'Western Conference' },
+          ])}
+          tables="conferences"
+        />,
+      );
+      expect(html).toContain('Eastern Conference, Play-offs: 1');
+      expect(html).toContain('Western Conference, Play-offs: 1');
+    });
+
+    it('says it in Persian, and nothing for a league without conference places', () => {
+      const fa = renderToStaticMarkup(<ZoneLegend locale="fa" zones={both} tables="conferences" />);
+      expect(fa).toContain('پلی‌آف قهرمانی');
+      expect(fa).toContain('دور وایلدکارت پلی‌آف');
+      expect(fa).toContain('تیم‌های هم‌امتیاز');
+      expect(
+        renderToStaticMarkup(<ZoneLegend locale="en" zones={listed} tables="conferences" />),
+      ).toBe('');
+      expect(
+        renderToStaticMarkup(
+          <ZoneLegend
+            locale="en"
+            zones={{ state: 'not_listed', reason: 'season_not_listed' }}
+            tables="conferences"
+          />,
+        ),
+      ).toBe('');
+    });
   });
 
   it('writes the table in Persian digits on /fa', () => {

@@ -13100,6 +13100,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1444."
   },
+  "competitionPage.zone.titlePlayoffs": {
+    "source": "Play-offs",
+    "text": "پلی‌آف قهرمانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1674."
+  },
+  "competitionPage.zone.titlePlayoffsWildCard": {
+    "source": "Play-off wild-card round",
+    "text": "دور وایلدکارت پلی‌آف",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1674."
+  },
   "competitionPage.zone.promotion": {
     "source": "Promotion",
     "text": "صعود",

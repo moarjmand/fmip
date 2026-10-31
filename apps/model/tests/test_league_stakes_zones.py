@@ -111,10 +111,34 @@ def test_an_entry_keyed_by_country_is_not_read_by_the_model() -> None:
     raw = json.loads(REPOSITORY.read_text(encoding="utf-8"))
     by_country = [e for e in raw if "country" in e]
     assert by_country, "the committed list holds entries keyed by country (D-234)"
+    by_conference = [
+        e for e in raw if "division" in e and any("conference" in z for z in e["zones"])
+    ]
     parsed = parse(raw)
-    # Only the entries with a division reach the model, and none is lost.
-    assert len(parsed) == len(raw) - len(by_country)
+    # Only the entries with a division and one table reach the model, and none is lost.
+    assert len(parsed) == len(raw) - len(by_country) - len(by_conference)
     assert all(division and "country" not in division for division, _ in parsed)
+
+
+def test_a_league_split_into_conferences_is_not_read_by_the_model() -> None:
+    # T-1674 (D-323): MLS's places are each conference's, not the overall table's.
+    raw = json.loads(REPOSITORY.read_text(encoding="utf-8"))
+    assert any(e.get("division") == "US1" and e["season"] == "2026/27" for e in raw)
+    assert ("US1", "2026/27") not in parse(raw)
+    one_table = {
+        "division": "X1",
+        "season": "2025/26",
+        "teams": 20,
+        "zones": [{"kind": "relegation", "from": 18, "to": 20}],
+        "complete": True,
+        "sources": ["https://example.org"],
+    }
+    split = {
+        **one_table,
+        "division": "X2",
+        "zones": [{"kind": "title_playoffs", "from": 1, "to": 7, "conference": "East"}],
+    }
+    assert list(parse([one_table, split])) == [("X1", "2025/26")]
 
 
 def test_a_country_entry_past_the_table_is_still_refused() -> None:
