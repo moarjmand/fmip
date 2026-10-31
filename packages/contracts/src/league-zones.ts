@@ -23,12 +23,26 @@
  * `afc_champions_league` is the AFC's first club competition until 2023/24;
  * `afc_champions_league_elite` is the one that replaced it from 2024/25. A
  * season is listed under the competition its places went to (T-1659, D-315).
+ *
+ * A league split into conferences (D-319) ranks each conference on its own,
+ * and its places are a conference table's: such a zone names its conference
+ * (`conference`, the name the standings job stores in `season_conference`),
+ * and the league's one table shows only the zones that name none (T-1674,
+ * D-323). `title_playoffs` is a place in the play-offs that decide the
+ * champion (MLS's first round); `title_playoffs_wild_card` a place in the
+ * round played to reach them.
+ *
+ * An entry may also say how its league ranks clubs level on points
+ * (`ranking`, T-1674, D-323), where that differs from the default
+ * (`DEFAULT_RANKING`).
  */
 export const LEAGUE_ZONE_KINDS = [
   'champions_league',
   'afc_champions_league',
   'afc_champions_league_elite',
   'copa_libertadores',
+  'title_playoffs',
+  'title_playoffs_wild_card',
   'promotion',
   'promotion_playoff',
   'relegation_playoff',
@@ -41,7 +55,27 @@ export interface LeagueZone {
   kind: LeagueZoneKind;
   from: number;
   to: number;
+  /**
+   * The conference whose table the places are of (T-1674, D-323), as
+   * `season_conference.name` spells it ("Eastern Conference"); absent for a
+   * place in the league's one table.
+   */
+  conference?: string;
 }
+
+/**
+ * What a league table ranks clubs by, in order (T-1674, D-323). Clubs level
+ * on every criterion are listed by name, as in every table (D-038).
+ */
+export const TABLE_CRITERIA = ['points', 'wins', 'goal_difference', 'goals_for'] as const;
+export type TableCriterion = (typeof TABLE_CRITERIA)[number];
+
+/** Points, then goal difference, then goals scored (D-038): every league without a `ranking`. */
+export const DEFAULT_RANKING: readonly TableCriterion[] = [
+  'points',
+  'goal_difference',
+  'goals_for',
+];
 
 /** One entry of the committed list. */
 export interface LeagueZoneEntry {
@@ -70,6 +104,12 @@ export interface LeagueZoneEntry {
   note?: string;
   /** The same note in Persian, for `/fa` (T-1557): every note has one. */
   note_fa?: string;
+  /**
+   * How the league ranks clubs (T-1674, D-323), starting with points, when it
+   * differs from `DEFAULT_RANKING`; the source is among `sources`. It ranks
+   * the league's table and its conference tables for this season.
+   */
+  ranking?: TableCriterion[];
 }
 
 /** The competition page's zones for the selected season. */
@@ -83,6 +123,16 @@ export type LeagueZones =
       note: string | null;
       /** `note` in Persian (T-1557); a page in another language shows `note`. */
       note_fa?: string | null;
+      /**
+       * The league also earns Europa and Conference League places, which cup
+       * winners reassign and the list never marks (D-171), so the legend says
+       * so (T-1674). Read from the list itself: true when any listed season of
+       * the same league marks a Champions League place -- a UEFA league, the
+       * current season included before its places are published. False for a
+       * second tier (E1), for the leagues of other confederations
+       * (Brasileirão, the Gulf, IR1) and for MLS.
+       */
+      unmarked_cup_places: boolean;
     }
   | {
       state: 'not_listed';
@@ -116,25 +166,8 @@ export function leagueZonesFor(
   competition: ZoneCompetition,
   season: string,
 ): LeagueZones {
-  if (competition.kind !== 'league') return { state: 'not_listed', reason: 'not_a_league' };
-  const country = competition.country ?? null;
-  const topFlight =
-    competition.tier === undefined || competition.tier === null || competition.tier === 1;
-  // Neither key finds anything in the list for this competition (rule 3).
-  if (
-    competition.division === null &&
-    (country === null || !topFlight || !entries.some((x) => x.country === country))
-  )
-    return { state: 'not_listed', reason: 'no_division' };
-  const e =
-    entries.find(
-      (x) =>
-        competition.division !== null && x.division === competition.division && x.season === season,
-    ) ??
-    entries.find(
-      (x) => country !== null && topFlight && x.country === country && x.season === season,
-    );
-  if (e === undefined) return { state: 'not_listed', reason: 'season_not_listed' };
+  const e = entryFor(entries, competition, season);
+  if (typeof e === 'string') return { state: 'not_listed', reason: e };
   return {
     state: 'listed',
     teams: e.teams,
@@ -143,7 +176,68 @@ export function leagueZonesFor(
     sources: e.sources,
     note: e.note ?? null,
     note_fa: e.note_fa ?? null,
+    unmarked_cup_places: entries.some(
+      (x) =>
+        (e.division !== undefined ? x.division === e.division : x.country === e.country) &&
+        x.zones.some((z) => z.kind === 'champions_league'),
+    ),
   };
+}
+
+/**
+ * How a season's tables rank clubs (T-1674, D-323): its entry's `ranking`,
+ * else the default. Found by the same keys as its zones.
+ */
+export function leagueRankingFor(
+  entries: readonly LeagueZoneEntry[],
+  competition: ZoneCompetition,
+  season: string,
+): readonly TableCriterion[] {
+  const e = entryFor(entries, competition, season);
+  return typeof e === 'string' ? DEFAULT_RANKING : (e.ranking ?? DEFAULT_RANKING);
+}
+
+/**
+ * The zones one table shows (T-1674, D-323): a conference's table the zones
+ * naming that conference, the league's one table (`null`) those naming none.
+ */
+export function zonesOfTable(
+  zones: readonly LeagueZone[],
+  conference: string | null,
+): LeagueZone[] {
+  return zones.filter((z) => (z.conference ?? null) === conference);
+}
+
+/**
+ * The entry for a season, or why there is none. `season` is the stored label
+ * (`2026/27`), which a calendar-year season keeps although its pages show
+ * the year alone (T-1483, D-256).
+ */
+function entryFor(
+  entries: readonly LeagueZoneEntry[],
+  competition: ZoneCompetition,
+  season: string,
+): LeagueZoneEntry | 'not_a_league' | 'no_division' | 'season_not_listed' {
+  if (competition.kind !== 'league') return 'not_a_league';
+  const country = competition.country ?? null;
+  const topFlight =
+    competition.tier === undefined || competition.tier === null || competition.tier === 1;
+  // Neither key finds anything in the list for this competition (rule 3).
+  if (
+    competition.division === null &&
+    (country === null || !topFlight || !entries.some((x) => x.country === country))
+  )
+    return 'no_division';
+  return (
+    entries.find(
+      (x) =>
+        competition.division !== null && x.division === competition.division && x.season === season,
+    ) ??
+    entries.find(
+      (x) => country !== null && topFlight && x.country === country && x.season === season,
+    ) ??
+    'season_not_listed'
+  );
 }
 
 /** The zone a place falls in, if any. */

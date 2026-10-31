@@ -1,4 +1,4 @@
-import { LEAGUE_ZONE_KINDS, type LeagueZoneEntry } from './league-zones';
+import { LEAGUE_ZONE_KINDS, TABLE_CRITERIA, type LeagueZoneEntry } from './league-zones';
 
 /**
  * The checker for the committed list (T-1167, D-171). It lives in a file of its
@@ -16,7 +16,9 @@ const keyOf = (e: LeagueZoneEntry): string => e.division ?? `${e.country ?? '?'}
 /**
  * Every way the list can be wrong, as sentences; empty when it is sound. A
  * place past the table's size, bands that overlap, a band upside down, a
- * repeated key or a source that is not an https address all fail.
+ * repeated key or a source that is not an https address all fail. Bands of
+ * different conferences' tables may share places (T-1674, D-323); a ranking
+ * starts with points and names each criterion once.
  */
 export function leagueZoneProblems(entries: readonly LeagueZoneEntry[]): string[] {
   const problems: string[] = [];
@@ -38,17 +40,28 @@ export function leagueZoneProblems(entries: readonly LeagueZoneEntry[]): string[
     for (const s of e.sources) {
       if (!s.startsWith('https://')) problems.push(`${key}: source ${s} is not https`);
     }
-    const taken = new Set<number>();
+    if (e.ranking !== undefined) {
+      if (e.ranking[0] !== 'points') problems.push(`${key}: a ranking starts with points`);
+      if (new Set(e.ranking).size !== e.ranking.length)
+        problems.push(`${key}: a ranking names a criterion twice`);
+      for (const c of e.ranking)
+        if (!(TABLE_CRITERIA as readonly string[]).includes(c))
+          problems.push(`${key}: unknown ranking criterion ${c}`);
+    }
+    const taken = new Set<string>();
     for (const z of e.zones) {
+      if (z.conference !== undefined && z.conference.trim() === '')
+        problems.push(`${key}: ${z.kind} names an empty conference`);
       if (!(LEAGUE_ZONE_KINDS as readonly string[]).includes(z.kind))
         problems.push(`${key}: unknown kind ${z.kind}`);
       if (!Number.isInteger(z.from) || !Number.isInteger(z.to) || z.from < 1 || z.to < z.from)
         problems.push(`${key}: ${z.kind} ${z.from}-${z.to} is not a band`);
       if (z.to > e.teams)
         problems.push(`${key}: ${z.kind} reaches place ${z.to} of a ${e.teams}-club table`);
+      const table = z.conference === undefined ? '' : ` of the ${z.conference}`;
       for (let p = z.from; p <= z.to; p += 1) {
-        if (taken.has(p)) problems.push(`${key}: place ${p} is in two zones`);
-        taken.add(p);
+        if (taken.has(`${table}:${p}`)) problems.push(`${key}: place ${p}${table} is in two zones`);
+        taken.add(`${table}:${p}`);
       }
     }
   }
