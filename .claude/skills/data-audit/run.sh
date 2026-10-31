@@ -24,8 +24,13 @@ if [ ! -f "$file" ]; then
 fi
 
 remote="/tmp/data-audit-$$.sql"
-if ! scp -q "$file" "fmip-prod:$remote"; then
-  echo "AUDIT-ERROR: could not copy the file to the server" >&2
+copied=""
+for attempt in 1 2 3; do
+  if scp -q "$file" "fmip-prod:$remote"; then copied=1; break; fi
+  sleep $((attempt * 5))  # a transient "Connection closed" passes on a retry
+done
+if [ -z "$copied" ]; then
+  echo "AUDIT-ERROR: could not copy the file to the server (3 tries)" >&2
   exit 2
 fi
 result="$(ssh fmip-prod "cd /opt/fmip && docker compose exec -T postgres sh -c 'PGOPTIONS=\"-c default_transaction_read_only=on -c statement_timeout=60000\" psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -q -X -v ON_ERROR_STOP=1' < $remote 2>&1; status=\$?; rm -f $remote; exit \$status")"

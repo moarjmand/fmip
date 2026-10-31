@@ -13570,3 +13570,38 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 **Rejected.** *Hiding a level shoot-out on the page only*: the boards, the summaries and the API would still carry it. *Deleting score kinds the latest answer leaves out*: an answer missing a field would erase a true score. *Rebuilding the two 4–0 matches from their events*: an inference the source contradicts; rule 3.
 
 **Consequences.** `packages/ingestion/src/adapters/api-football/map.ts` (`REACHED_EXTRA_TIME`, `REACHED_SHOOTOUT`, `shootoutScore`), its spec; `packages/db/migrations/1765900400000_fake-periods.sql`; `packages/ingestion/src/news/other-code.ts` and its spec.
+
+## D-328 — The agent team: twenty-seven roles in twelve agents, one writer of code, gates in fresh context, one brief a day
+
+**Status:** Accepted · 2026-10-31 (the maintainer approved the twelve-agent plan and its first wave: "بله، بساز" ("yes, build it")) · **Task:** T-1682 · **Follows:** D-326, CLAUDE.md sections 4 to 7
+
+**Context.** The maintainer asked for agents that work like a startup's staff -- web development, design, testing, security, operations, data and the model, content, project and business management -- that report to a manager and keep the work moving, built professionally and on the best current practice, studied against other projects and shown in pictures before anything was built. The study (2026-10-31) read Anthropic's "Building effective agents" and its multi-agent research system (multi-agent work used about fifteen times the tokens of a chat, and most coding work, being interdependent, suits it poorly), Claude Code's subagents, skills, hooks and agent teams, MetaGPT, ChatDev and BMAD (roles handing over documents rather than chat), Cognition's account (a fresh-context reviewer of a diff finds about two bugs a PR; parallel writers on one code base contradict each other), the public collections VoltAgent and wshobson (breadth, unmeasured), the MAST taxonomy of multi-agent failures (mostly design, not model) and a Google and MIT scaling study (independent agents amplified errors far more than coordinated ones). The plan, with diagrams, was published as the artifact "تیم عامل‌های Stadiomind" ("The Stadiomind agent team").
+
+**Decision.**
+- **Twenty-seven roles in eight departments, folded into twelve agents:**
+  - chief of staff (with project management);
+  - product and strategy;
+  - architect;
+  - designer;
+  - the engineering session;
+  - code reviewer;
+  - QA engineer;
+  - security;
+  - operations and release;
+  - data auditor (with the provider and quota watch);
+  - model scientist;
+  - content and community;
+  - business adviser (legal, licensing, finance).
+
+  A role's detail lives in a skill loaded on demand, not in its own agent: twenty-odd agents spend themselves on coordination.
+- **Five kinds:** a manager coordinates; a builder writes; a gate judges a change; a watcher reads on a schedule; an adviser answers when asked. Each agent's file lists its tools, and only builders can write code.
+- **One writer of code:** the engineering session, as today, one area at a time; the designer works on the design canvas and the QA engineer writes tests only when asked, both reviewed.
+- **Gates in fresh context:** code review (Opus), tests, and later security, read the diff without the author's reasoning; two rounds at most, then the maintainer.
+- **Hub and spoke:** agents never message each other; each appends findings in one format to `E:/FMIP/ops/findings/<date>.jsonl` and writes a Persian report; the chief of staff reads them all and writes one page a day for the maintainer, decisions framed as options with a recommendation, plus the Saturday weekly (review, plan, the RAID log) and a monthly scorecard of the agents.
+- **Rules that must not depend on memory are a hook**, in `.claude/settings.json` for every session here (`hooks/guard.mjs`): editing a shipped migration, reading or copying production's `.env`, `docker compose config`, removing or killing containers, restarting, stopping or recreating Postgres, removing volumes, force-pushing or pushing to main, skipping git hooks, `DROP TABLE` and `TRUNCATE` through psql are refused. Compose commands are judged by their subcommand: the code reviewer's trial found that a first version, matching words, refused `docker compose run --rm migrate`, the documented way to migrate. A hook that cannot parse its input lets the call through; `hooks/test-guard.mjs` keeps 35 cases. Physical CSS sides were left to Stylelint, which already refuses them.
+- **The maintainer's three gates on a feature** stay: the design and decision, the deploy of a visible change (real-data screenshots), and anything that costs money, touches licensing or needs a backfill. Purchases, accounts and secrets stay theirs alone; no agent reminds them of renewals, keys or translators.
+- **Wave 1 (this decision):** `chief-of-staff`, `ops-release`, `code-reviewer`, `qa-engineer`, the shared `team-charter`, the guard hook. Each agent was built as the auditor was: a role file, a skill, a golden set of real past defects, a trial run whose notes were applied before commit. Waves 2 (designer, security, architect, model scientist, the provider watch) and 3 (product and strategy, content and community, business adviser) follow, each on its own approval.
+
+**Rejected.** *An agent per role (twenty-seven):* coordination and cost without a matching gain (the study above). *Several agents writing code in parallel:* contradictory changes; one writer per area. *Agents messaging each other, or Claude Code's experimental agent teams for daily work:* harder to trace and about seven times the cost; kept for research or review bursts. *Public agent collections copied as they are:* unmeasured and unaware of this project's rules; their structure was borrowed, the content written here. *A standalone service on the Agent SDK:* needs an API key the maintainer has not bought.
+
+**Consequences.** `.claude/agents/{chief-of-staff,ops-release,code-reviewer,qa-engineer}.md`; `.claude/skills/{team-charter,ops-check,fmip-review,fmip-qa,daily-brief}/`; `.claude/hooks/guard.mjs` with its cases and runner; `.claude/settings.json`; the team's working folder `E:/FMIP/ops/` outside the repository. A daily scheduled run (the watchers, then the brief at 09:00 Tehran) is set up after the merge.
