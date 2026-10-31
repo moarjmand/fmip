@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { ApiError, CompetitionPage } from '@fmip/contracts';
+import { DEFAULT_RANKING, type ApiError, type CompetitionPage } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
+import { StandingsService } from '../standings/standings.service';
 import { CatalogModule } from './catalog.module';
 import { listsCheckedAt } from './internal/fixture-checks';
 
@@ -481,6 +482,46 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       ]);
       expect((await get()).zones).toEqual({ state: 'not_listed', reason: 'season_not_listed' });
     } finally {
+      await pool.query(`UPDATE competition SET football_data_division = NULL WHERE id = $1`, [
+        COMPETITION,
+      ]);
+    }
+  });
+
+  it("finds a calendar-year season's entry by its stored label, and its ranking (T-1674)", async () => {
+    // A season played from February is shown as "2026" but listed as "2026/27".
+    await pool.query(
+      `UPDATE season SET label = '2026/27', start_date = DATE '2026-02-21', end_date = DATE '2026-12-12'
+        WHERE id = $1`,
+      [OLD_SEASON],
+    );
+    await pool.query(`UPDATE competition SET football_data_division = 'US1' WHERE id = $1`, [
+      COMPETITION,
+    ]);
+    try {
+      const page = (
+        await app.inject({
+          method: 'GET',
+          url: `/competitions/${COMPETITION}?season=${OLD_SEASON}`,
+        })
+      ).json() as CompetitionPage;
+      expect(page.season.label).toBe('2026');
+      expect(page.zones).toMatchObject({ state: 'listed', teams: 30 });
+      // MLS ranks clubs level on points by wins first (D-323); every other season as before.
+      const standings = app.get(StandingsService, { strict: false });
+      expect(await standings.ranking(OLD_SEASON)).toEqual([
+        'points',
+        'wins',
+        'goal_difference',
+        'goals_for',
+      ]);
+      expect(await standings.ranking(NEW_SEASON)).toEqual(DEFAULT_RANKING);
+    } finally {
+      await pool.query(
+        `UPDATE season SET label = '2024/25', start_date = DATE '2024-08-01', end_date = DATE '2025-05-31'
+          WHERE id = $1`,
+        [OLD_SEASON],
+      );
       await pool.query(`UPDATE competition SET football_data_division = NULL WHERE id = $1`, [
         COMPETITION,
       ]);

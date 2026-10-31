@@ -1,11 +1,17 @@
-import type { FormResult, TableRow } from '@fmip/contracts';
+import {
+  DEFAULT_RANKING,
+  type FormResult,
+  type TableCriterion,
+  type TableRow,
+} from '@fmip/contracts';
 
 /**
  * A league table from finished results (blueprint 5.1), pure so the ranking
  * is tested without a database. Three points for a win, one for a draw;
- * ranked by points, goal difference, goals scored, then name — the common
- * default. Competition-specific tie-breakers (head-to-head, fair play) are
- * a later refinement and would be a rule per competition, not a change here.
+ * ranked by points, goal difference, goals scored, then name -- the common
+ * default. A league that ranks otherwise says so in its season's entry of the
+ * committed league list (T-1674, D-323: MLS puts wins after points), and the
+ * caller passes that order; the name always comes last.
  */
 export interface Result {
   fixtureId: string;
@@ -35,6 +41,7 @@ interface Tally {
 export function rankTable(
   results: readonly Result[],
   participants: readonly TableRow['team'][] = [],
+  ranking: readonly TableCriterion[] = DEFAULT_RANKING,
 ): TableRow[] {
   const tallies = new Map<string, Tally>();
   const tally = (team: TableRow['team']): Tally => {
@@ -67,13 +74,13 @@ export function rankTable(
     apply(away, r.awayGoals, r.homeGoals);
   }
 
-  const rows = [...tallies.values()].sort(
-    (a, b) =>
-      b.points - a.points ||
-      b.goalsFor - b.goalsAgainst - (a.goalsFor - a.goalsAgainst) ||
-      b.goalsFor - a.goalsFor ||
-      a.team.name.localeCompare(b.team.name),
-  );
+  const rows = [...tallies.values()].sort((a, b) => {
+    for (const criterion of ranking) {
+      const d = CRITERIA[criterion](b) - CRITERIA[criterion](a);
+      if (d !== 0) return d;
+    }
+    return a.team.name.localeCompare(b.team.name);
+  });
   return rows.map((t, index) => ({
     position: index + 1,
     team: t.team,
@@ -88,6 +95,14 @@ export function rankTable(
     form: t.form.slice(-FORM_WINDOW).reverse(),
   }));
 }
+
+/** Each criterion as a number, higher ranking first. */
+const CRITERIA: Record<TableCriterion, (t: Tally) => number> = {
+  points: (t) => t.points,
+  wins: (t) => t.won,
+  goal_difference: (t) => t.goalsFor - t.goalsAgainst,
+  goals_for: (t) => t.goalsFor,
+};
 
 function apply(t: Tally, scored: number, conceded: number): void {
   t.played += 1;
@@ -116,9 +131,10 @@ function apply(t: Tally, scored: number, conceded: number): void {
 export function rankGroup(
   results: readonly Result[],
   members: readonly TableRow['team'][],
+  ranking: readonly TableCriterion[] = DEFAULT_RANKING,
 ): TableRow[] {
   const ids = new Set(members.map((m) => m.id));
-  return rankTable(results, members)
+  return rankTable(results, members, ranking)
     .filter((row) => ids.has(row.team.id))
     .map((row, index) => ({ ...row, position: index + 1 }));
 }

@@ -53,6 +53,30 @@ describe('conferenceStandingsModule (T-1671)', () => {
     ]);
   });
 
+  it("ranks each conference by the league's own order when one is given (T-1674, D-323)", () => {
+    // e1: a win and a defeat, 3 points, -2. e2: three draws, 3 points, 0.
+    const results = [
+      result('e1', 'w1', 1, 0),
+      result('w2', 'e1', 3, 0),
+      result('e2', 'w1', 1, 1),
+      result('w2', 'e2', 0, 0),
+      result('e2', 'w1', 2, 2),
+    ];
+    const east = (ranking?: readonly ('points' | 'wins' | 'goal_difference' | 'goals_for')[]) =>
+      conferenceStandingsModule([EAST, WEST], results, ALL, 'available', AT, ranking).data?.[0];
+    expect(east()?.rows.map((r) => r.team.id)).toEqual(['e2', 'e1']);
+    expect(
+      east(['points', 'wins', 'goal_difference', 'goals_for'])?.rows.map((r) => [
+        r.position,
+        r.team.id,
+        r.won,
+      ]),
+    ).toEqual([
+      [1, 'e1', 1],
+      [2, 'e2', 0],
+    ]);
+  });
+
   it('lists the clubs of a conference with no finished match, without positions', () => {
     const module = conferenceStandingsModule(
       [EAST, WEST],

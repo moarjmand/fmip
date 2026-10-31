@@ -1037,12 +1037,21 @@ export type {
 } from './rating-threshold';
 // League zones from a committed list (T-1167, D-171). The list is
 // `zones/league-zones.json`, read as `@fmip/contracts/zones/league-zones.json`.
-export { LEAGUE_ZONE_KINDS, leagueZonesFor, zoneOfPlace } from './league-zones';
+// T-1674 (D-323): a league's own ranking.
+export {
+  DEFAULT_RANKING,
+  LEAGUE_ZONE_KINDS,
+  TABLE_CRITERIA,
+  leagueRankingFor,
+  leagueZonesFor,
+  zoneOfPlace,
+} from './league-zones';
 export type {
   LeagueZone,
   LeagueZoneEntry,
   LeagueZoneKind,
   LeagueZones,
+  TableCriterion,
   ZoneCompetition,
 } from './league-zones';
 // Today's moments that matter (T-1641, D-299): the top bar's matches.

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { CoverageState, Leader, TableRow } from '@fmip/contracts';
+import type { CoverageState, Leader, TableRow, ZoneCompetition } from '@fmip/contracts';
 
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
@@ -204,6 +204,38 @@ export class PostgresStandingsStore {
       else out.push({ name: r.conference, teams: [team] });
     }
     return out;
+  }
+
+  /**
+   * What the committed league list is looked up by for a season (T-1674,
+   * D-323; T-1167, D-234): the competition's kind, training division, the
+   * FIFA trigram of a senior men's domestic league, its tier, and the
+   * season's stored label (`2026/27`, which a calendar-year season keeps
+   * although its pages show `2026`). Null for an unknown season.
+   */
+  async listKey(seasonId: string): Promise<{ competition: ZoneCompetition; label: string } | null> {
+    const { rows } = await this.pool.query<{
+      kind: string;
+      division: string | null;
+      country: string | null;
+      tier: number | null;
+      label: string;
+    }>(
+      `SELECT c.kind, c.football_data_division AS division, c.tier, se.label,
+              CASE WHEN c.scope = 'domestic' AND c.gender = 'men' AND c.age_group = 'senior'
+                   THEN co.code END AS country
+         FROM season se
+         JOIN competition c ON c.id = se.competition_id
+         LEFT JOIN country co ON co.id = c.country_id
+        WHERE se.id = $1`,
+      [seasonId],
+    );
+    const r = rows[0];
+    if (r === undefined) return null;
+    return {
+      competition: { kind: r.kind, division: r.division, country: r.country, tier: r.tier },
+      label: r.label,
+    };
   }
 
   /** Every team of one group, finished or not. */

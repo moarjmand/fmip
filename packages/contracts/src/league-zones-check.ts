@@ -1,4 +1,4 @@
-import { LEAGUE_ZONE_KINDS, type LeagueZoneEntry } from './league-zones';
+import { LEAGUE_ZONE_KINDS, TABLE_CRITERIA, type LeagueZoneEntry } from './league-zones';
 
 /**
  * The checker for the committed list (T-1167, D-171). It lives in a file of its
@@ -16,7 +16,8 @@ const keyOf = (e: LeagueZoneEntry): string => e.division ?? `${e.country ?? '?'}
 /**
  * Every way the list can be wrong, as sentences; empty when it is sound. A
  * place past the table's size, bands that overlap, a band upside down, a
- * repeated key or a source that is not an https address all fail.
+ * repeated key or a source that is not an https address all fail. A ranking
+ * starts with points and names each criterion once (T-1674, D-323).
  */
 export function leagueZoneProblems(entries: readonly LeagueZoneEntry[]): string[] {
   const problems: string[] = [];
@@ -37,6 +38,14 @@ export function leagueZoneProblems(entries: readonly LeagueZoneEntry[]): string[
     if (e.sources.length === 0) problems.push(`${key}: no source`);
     for (const s of e.sources) {
       if (!s.startsWith('https://')) problems.push(`${key}: source ${s} is not https`);
+    }
+    if (e.ranking !== undefined) {
+      if (e.ranking[0] !== 'points') problems.push(`${key}: a ranking starts with points`);
+      if (new Set(e.ranking).size !== e.ranking.length)
+        problems.push(`${key}: a ranking names a criterion twice`);
+      for (const c of e.ranking)
+        if (!(TABLE_CRITERIA as readonly string[]).includes(c))
+          problems.push(`${key}: unknown ranking criterion ${c}`);
     }
     const taken = new Set<number>();
     for (const z of e.zones) {

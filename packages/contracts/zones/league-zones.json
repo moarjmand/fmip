@@ -2038,5 +2038,16 @@
     ],
     "note": "The AFC gave Saudi Arabia three direct Elite places and two preliminary ones; first to third took the direct ones. How the fourth and fifth places map to the other slots was unclear in the sources, so they are not marked. The 2026/27 rules were not found, so that season is not listed.",
     "note_fa": "AFC به عربستان سعودی سه سهمیه‌ی مستقیم لیگ نخبگان و دو سهمیه‌ی مقدماتی داد؛ تیم‌های اول تا سوم سهمیه‌های مستقیم را گرفتند. منابع روشن نکرده‌اند رده‌های چهارم و پنجم به کدام سهمیه‌ها می‌رسند، پس علامت‌گذاری نشده‌اند. قواعد ۲۰۲۶/۲۷ پیدا نشد، پس آن فصل فهرست نشده است."
+  },
+  {
+    "division": "US1",
+    "season": "2026/27",
+    "teams": 30,
+    "zones": [],
+    "complete": false,
+    "sources": ["https://www.mlssoccer.com/news/tiebreakers-for-2025-mls-regular-season-standings"],
+    "ranking": ["points", "wins", "goal_difference", "goals_for"],
+    "note": "The 2026/27 label stands for the calendar-year 2026 season. Clubs level on points are ranked by wins, then goal difference, then goals scored, as MLS ranked them in 2025 (no 2026 list was found). MLS then looks at disciplinary points, which count fouls and staff warnings this site does not store, so clubs still level are listed by name and their official order can differ. The play-off places of each conference are not listed yet.",
+    "note_fa": "برچسب ۲۰۲۶/۲۷ همان فصل سال تقویمی ۲۰۲۶ است. تیم‌های هم‌امتیاز به ترتیبِ تعداد برد، تفاضل گل و گل زده رده‌بندی می‌شوند، همان‌طور که MLS در ۲۰۲۵ رده‌بندی کرد (فهرستی برای ۲۰۲۶ پیدا نشد). پس از آن MLS امتیاز انضباطی را می‌سنجد که خطاها و اخطارهای کادر فنی را هم می‌شمارد و این سایت آن‌ها را ذخیره نمی‌کند؛ پس تیم‌هایی که باز هم برابرند به ترتیب نام آمده‌اند و ترتیب رسمی‌شان ممکن است فرق کند. سهمیه‌های پلی‌آف هر کنفرانس هنوز فهرست نشده است."
   }
 ]

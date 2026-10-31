@@ -3,8 +3,10 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { leagueZoneProblems } from './league-zones-check';
 import {
+  DEFAULT_RANKING,
   type LeagueZoneEntry,
   type ZoneCompetition,
+  leagueRankingFor,
   leagueZonesFor,
   zoneOfPlace,
 } from './league-zones';
@@ -228,5 +230,55 @@ describe('leagueZonesFor', () => {
   it('finds the zone of a place', () => {
     expect(zoneOfPlace(entry().zones, 3)?.kind).toBe('champions_league');
     expect(zoneOfPlace(entry().zones, 10)).toBeNull();
+  });
+});
+
+describe('a league ranking (T-1674, D-323)', () => {
+  const mls = (over: Partial<LeagueZoneEntry> = {}): LeagueZoneEntry =>
+    entry({
+      division: 'US1',
+      season: '2026/27',
+      teams: 30,
+      zones: [],
+      ranking: ['points', 'wins', 'goal_difference', 'goals_for'],
+      ...over,
+    });
+
+  it('wants a ranking that starts with points and names each criterion once', () => {
+    expect(leagueZoneProblems([mls()])).toEqual([]);
+    const problems = leagueZoneProblems([
+      mls({ ranking: ['wins', 'points'] }),
+      mls({ season: '2027/28', ranking: ['points', 'wins', 'wins'] }),
+      mls({ season: '2028/29', ranking: ['points', 'fair_play' as never] }),
+    ]);
+    expect(problems).toEqual([
+      'US1 2026/27: a ranking starts with points',
+      'US1 2027/28: a ranking names a criterion twice',
+      'US1 2028/29: unknown ranking criterion fair_play',
+    ]);
+  });
+
+  it('ranks MLS 2026 by wins after points, and every other listed league as before', () => {
+    const us1 = { kind: 'league', division: 'US1' } as const;
+    expect(leagueRankingFor(LIST, us1, '2026/27')).toEqual([
+      'points',
+      'wins',
+      'goal_difference',
+      'goals_for',
+    ]);
+    // A season the list does not hold, and a league with no entry, keep the default.
+    expect(leagueRankingFor(LIST, us1, '2025/26')).toEqual(DEFAULT_RANKING);
+    expect(leagueRankingFor(LIST, { kind: 'league', division: null }, '2026/27')).toEqual(
+      DEFAULT_RANKING,
+    );
+    expect(DEFAULT_RANKING).toEqual(['points', 'goal_difference', 'goals_for']);
+    for (const e of LIST) {
+      if (e.division === 'US1') continue;
+      const key = { kind: 'league', division: e.division ?? null, country: e.country ?? null };
+      expect(leagueRankingFor(LIST, key, e.season), `${e.division ?? e.country} ${e.season}`).toBe(
+        DEFAULT_RANKING,
+      );
+    }
+    expect(LIST.filter((e) => e.ranking !== undefined).map((e) => e.division)).toEqual(['US1']);
   });
 });
