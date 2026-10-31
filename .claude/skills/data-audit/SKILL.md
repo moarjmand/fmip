@@ -101,7 +101,12 @@ read pages as text. Each audit, check:
 
 A page check that fails is a finding with a screenshot or the page text quoted (one line).
 
-### 4. Report
+### 4. Findings and report
+
+Append one finding per critical or major check, and per failed page check, to
+`E:/FMIP/ops/findings/<YYYY-MM-DD>.jsonl` in the team charter's format (prefix `aud`; read
+`.claude/skills/team-charter/SKILL.md` for the format and the append-only rule), and name each
+finding's id in the report.
 
 Write the report in Persian (the maintainer's language), from `report-template.md`, to
 `E:/FMIP/data-audit/reports/<YYYY-MM-DD>.md`. Code identifiers, check names and URLs stay in
