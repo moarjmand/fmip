@@ -136,6 +136,20 @@ export function mapStatus(short: unknown): FixtureStatus | null {
   return typeof short === 'string' ? (STATUS[short] ?? null) : null;
 }
 
+/** The statuses of a match in or past extra time: extra time, its break, a shoot-out, AET, PEN. */
+const REACHED_EXTRA_TIME = new Set(['ET', 'BT', 'P', 'AET', 'PEN']);
+/** The statuses of a match in or past a shoot-out. */
+const REACHED_SHOOTOUT = new Set(['P', 'PEN']);
+
+/** A shoot-out's score, or `null` for a finished one the feed says is level (it never is). */
+function shootoutScore(
+  value: { home: number; away: number } | null,
+  short: string,
+): { home: number; away: number } | null {
+  if (value === null) return null;
+  return short === 'PEN' && value.home === value.away ? null : value;
+}
+
 /** "Regular Season - 3", "League Stage - 1" → stage kind from the words, round as given. */
 export function stageKindOf(round: string): StageKind | null {
   const r = round.toLowerCase();
@@ -202,6 +216,7 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
   const externalId = id(fixture.id);
   const kickoffAt = str(fixture.date);
   const status = mapStatus(statusRec.short);
+  const short = typeof statusRec.short === 'string' ? statusRec.short : '';
   const leagueId = id(league.id);
   const leagueName = str(league.name);
   const startYear = int(league.season);
@@ -267,8 +282,11 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
       // API-Football's `fulltime` is the 90-minute score, our full_time too;
       // `goals` carries the final including extra time and penalties are separate.
       fullTime: score(scores.fulltime) ?? (status === 'finished' ? goals : null),
-      extraTime: score(scores.extratime),
-      penalties: score(scores.penalty),
+      // Only for a match that reached those periods (T-1681): the feed sends zeros for
+      // both on matches that never had them (Ekstraklasa, an abandoned La Liga match),
+      // and a stored 0-0 shoot-out is shown as one. A finished shoot-out has a winner.
+      extraTime: REACHED_EXTRA_TIME.has(short) ? score(scores.extratime) : null,
+      penalties: REACHED_SHOOTOUT.has(short) ? shootoutScore(score(scores.penalty), short) : null,
       aggregate: null,
     },
     // The provider does not say when it last touched a fixture, so the fetch

@@ -349,6 +349,11 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
         'greco-roman',
         'freestyle wrestling',
         'wrestlers?',
+        // T-1681: "Hassan Yazdani makes wrestling history" (Tehran Times). Wrestling's own
+        // nouns, not the verb a football story uses ("wrestling with injuries").
+        'wrestling (history|championships?|federation|medals?|team|world cup|league|titles?)',
+        '(olympic|world) wrestling',
+        'weight class(es)?',
         'weightlift(ing|ers?)',
         'gymnast(s|ics)?',
         'cycling',
