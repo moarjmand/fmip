@@ -191,22 +191,30 @@ export function CoveredCard<T>({
  * The league table with every column and the form (T-1498). Zone marks are
  * drawn only where the feed lists the places (`zones.state === 'listed'`,
  * T-1167); otherwise the footer says they are not listed and no place has a
- * colour (rule 3).
+ * colour (rule 3). Beside a league's conference tables it is the overall
+ * table and says so (T-1672, D-319).
  */
 export function TableCard({
   page,
   locale,
   timeZone,
+  overall = false,
 }: {
   page: CompetitionPage;
   locale: string;
   timeZone: string;
+  overall?: boolean;
 }) {
   const rows = page.table.data ?? [];
   return (
     <CoveredCard
       testId="table"
-      title={<Translated locale={locale} message="competitionPage.table" />}
+      title={
+        <Translated
+          locale={locale}
+          message={overall ? 'competitionPage.overallTable' : 'competitionPage.table'}
+        />
+      }
       module={page.table}
       locale={locale}
       timeZone={timeZone}

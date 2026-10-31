@@ -1,7 +1,13 @@
-import type { GroupTable, LeagueZones, TableRow } from '@fmip/contracts';
+import type { ConferenceTable, GroupTable, LeagueZones, TableRow } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { GroupTables, StandingsTable, showsLeagueTable } from './standings-table';
+import {
+  ConferenceTables,
+  GroupTables,
+  StandingsTable,
+  conferenceName,
+  showsLeagueTable,
+} from './standings-table';
 
 /**
  * The competition page's tables (T-1336): a season with group stages shows
@@ -186,5 +192,63 @@ describe('the group tables', () => {
       <GroupTables locale="fa" groups={[group('Group Stage', 'A', [row('a', 1, 3)])]} />,
     );
     expect(html).toContain('گروه A');
+  });
+});
+
+const conference = (name: string, rows: TableRow[]): ConferenceTable => ({
+  name,
+  counted: rows.length === 0 ? 0 : 2,
+  rows,
+  teams: [
+    { id: `${name}1`, name: `${name} club 1`, short_name: null },
+    { id: `${name}2`, name: `${name} club 2`, short_name: null },
+  ],
+});
+
+describe('the conference tables (T-1672)', () => {
+  it('heads each conference by its name, its own clubs ranked, no zones', () => {
+    const html = renderToStaticMarkup(
+      <ConferenceTables
+        locale="en"
+        conferences={[
+          conference('Eastern Conference', [row('a', 1, 3), row('b', 2, 0)]),
+          conference('Western Conference', [row('c', 1, 3), row('d', 2, 0)]),
+        ]}
+      />,
+    );
+    expect(html).toContain('<h3 class="text-sm font-semibold">Eastern Conference</h3>');
+    expect(html).toContain('<h3 class="text-sm font-semibold">Western Conference</h3>');
+    expect(html).toContain('<caption class="sr-only">Western Conference</caption>');
+    expect(html.match(/data-testid="conference-table"/g)).toHaveLength(2);
+    expect(html.match(/data-testid="table-row"/g)).toHaveLength(4);
+    expect(html.indexOf('Eastern')).toBeLessThan(html.indexOf('Western'));
+    expect(html).not.toContain('data-zone=');
+    // Two abreast only from the wide desktop width: at 1024 the Persian names
+    // pushed the second table into its own sideways scroll (T-1672).
+    expect(html).toContain('xl:grid-cols-2');
+    expect(html).not.toContain('lg:grid-cols-2');
+  });
+
+  it('says a conference not yet started has no positions, and names its clubs', () => {
+    const html = renderToStaticMarkup(
+      <ConferenceTables locale="en" conferences={[conference('Eastern Conference', [])]} />,
+    );
+    expect(html).toContain('data-testid="conference-not-started"');
+    expect(html).toContain('no positions yet');
+    expect(html).toContain('Eastern Conference club 1 and Eastern Conference club 2');
+    expect(html).not.toContain('<table');
+  });
+
+  it('names the conferences in Persian, and one the catalogue lacks as the API does', () => {
+    expect(conferenceName('fa', 'Eastern Conference')).toBe('کنفرانس شرق');
+    expect(conferenceName('fa', 'Western Conference')).toBe('کنفرانس غرب');
+    expect(conferenceName('fa', 'Northern Conference')).toBe('Northern Conference');
+    const html = renderToStaticMarkup(
+      <ConferenceTables
+        locale="fa"
+        conferences={[conference('Western Conference', [row('a', 1, 3)])]}
+      />,
+    );
+    expect(html).toContain('کنفرانس غرب');
   });
 });
