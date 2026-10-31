@@ -1,11 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import type {
-  ConferenceTable,
-  CoverageState,
-  Covered,
-  GroupTable,
-  TableRow,
+import {
+  DEFAULT_RANKING,
+  leagueRankingFor,
+  leagueZonesFor,
+  type ConferenceTable,
+  type CoverageState,
+  type Covered,
+  type GroupTable,
+  type LeagueZoneEntry,
+  type LeagueZones,
+  type TableCriterion,
+  type TableRow,
 } from '@fmip/contracts';
+import leagueZoneList from '@fmip/contracts/zones/league-zones.json';
 import { covered } from '../fixtures/fixtures.service';
 import {
   PostgresStandingsStore,
@@ -26,6 +33,9 @@ export interface Boards {
   clean_sheets: Covered<BoardRow<{ clean_sheets: number; starts_in_goal: number }>[]>;
   cards: Covered<BoardRow<{ yellow_cards: number; red_cards: number }>[]>;
 }
+
+/** The committed league list (T-1167, D-171): zones and, for a few leagues, their ranking. */
+const LEAGUE_LIST = leagueZoneList as LeagueZoneEntry[];
 
 /** Rows each leader table shows (T-1441: twenty; ties at the cut-off are broken, not all shown). */
 export const LEADERS_LIMIT = 20;
@@ -56,12 +66,13 @@ export class StandingsService {
 
   /** The league table of a season's league stage, or the honest absence of one. */
   async table(seasonId: string): Promise<Covered<TableRow[]>> {
-    const [{ results, lastUpdatedAt }, participants, declared] = await Promise.all([
+    const [{ results, lastUpdatedAt }, participants, declared, ranking] = await Promise.all([
       this.store.leagueResults(seasonId),
       this.store.leagueParticipants(seasonId),
       this.store.declared(seasonId, 'standings'),
+      this.ranking(seasonId),
     ]);
-    const rows = results.length === 0 ? [] : rankTable(results, participants);
+    const rows = results.length === 0 ? [] : rankTable(results, participants, ranking);
     return covered(rows, rows.length === 0, declared, lastUpdatedAt);
   }
 
@@ -119,12 +130,44 @@ export class StandingsService {
   async conferenceStandings(seasonId: string): Promise<Covered<ConferenceTable[]> | null> {
     const conferences = await this.store.seasonConferences(seasonId);
     if (conferences.length === 0) return null;
-    const [{ results, lastUpdatedAt }, participants, declared] = await Promise.all([
+    const [{ results, lastUpdatedAt }, participants, declared, ranking] = await Promise.all([
       this.store.leagueResults(seasonId),
       this.store.leagueParticipants(seasonId),
       this.store.declared(seasonId, 'standings'),
+      this.ranking(seasonId),
     ]);
-    return conferenceStandingsModule(conferences, results, participants, declared, lastUpdatedAt);
+    return conferenceStandingsModule(
+      conferences,
+      results,
+      participants,
+      declared,
+      lastUpdatedAt,
+      ranking,
+    );
+  }
+
+  /**
+   * How a season's league table and conference tables rank clubs (T-1674,
+   * D-323): the order its entry in the committed league list gives (MLS 2026:
+   * wins after points), else points, goal difference, goals scored. Group
+   * tables keep the default.
+   */
+  async ranking(seasonId: string): Promise<readonly TableCriterion[]> {
+    const key = await this.store.listKey(seasonId);
+    return key === null
+      ? DEFAULT_RANKING
+      : leagueRankingFor(LEAGUE_LIST, key.competition, key.label);
+  }
+
+  /**
+   * The season's zones from the committed list (T-1167, D-171), looked up by
+   * the season's stored label: a calendar-year season shown as "2026" is
+   * listed as "2026/27" (T-1674 found the page asking for "2026").
+   */
+  async zones(seasonId: string): Promise<LeagueZones> {
+    const key = await this.store.listKey(seasonId);
+    if (key === null) return { state: 'not_listed', reason: 'season_not_listed' };
+    return leagueZonesFor(LEAGUE_LIST, key.competition, key.label);
   }
 
   /**
@@ -143,7 +186,7 @@ export class StandingsService {
     teams: number;
     declared: CoverageState | null;
   }> {
-    const [{ results, lastUpdatedAt }, participants, declared] = await Promise.all([
+    const [{ results, lastUpdatedAt }, participants, declared, ranking] = await Promise.all([
       group === null
         ? this.store.leagueResults(seasonId, before)
         : this.store.groupResults(group.stageId, group.name, before),
@@ -151,12 +194,13 @@ export class StandingsService {
         ? this.store.leagueParticipants(seasonId)
         : this.store.groupParticipants(group.stageId, group.name),
       this.store.declared(seasonId, 'standings'),
+      group === null ? this.ranking(seasonId) : Promise.resolve(DEFAULT_RANKING),
     ]);
     const rows =
       results.length === 0
         ? []
         : group === null
-          ? rankTable(results, participants)
+          ? rankTable(results, participants, ranking)
           : rankGroup(results, participants);
     return {
       table: covered(rows, rows.length === 0, declared, lastUpdatedAt),
@@ -291,7 +335,8 @@ export function supersededStages(spans: readonly StageSpan[]): Set<string> {
  * on them (`rankGroup`): a match against the other conference counts for the
  * member who played it. Rows only once one of them is finished. A club that
  * plays in the league and is in no conference makes the module `limited` at
- * best -- a table that would read as whole and is not (rule 3).
+ * best -- a table that would read as whole and is not (rule 3). `ranking` is
+ * the league's own order (T-1674, D-323).
  */
 export function conferenceStandingsModule(
   conferences: readonly { name: string; teams: TableRow['team'][] }[],
@@ -299,6 +344,7 @@ export function conferenceStandingsModule(
   participants: readonly TableRow['team'][],
   declared: CoverageState | null,
   lastUpdatedAt: string | null,
+  ranking: readonly TableCriterion[] = DEFAULT_RANKING,
 ): Covered<ConferenceTable[]> {
   const data = conferences.map((c): ConferenceTable => {
     const ids = new Set(c.teams.map((t) => t.id));
@@ -306,7 +352,7 @@ export function conferenceStandingsModule(
     return {
       name: c.name,
       counted: played.length,
-      rows: played.length === 0 ? [] : rankGroup(played, c.teams),
+      rows: played.length === 0 ? [] : rankGroup(played, c.teams, ranking),
       teams: c.teams,
     };
   });

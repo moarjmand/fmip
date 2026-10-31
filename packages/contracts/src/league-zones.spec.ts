@@ -3,10 +3,13 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { leagueZoneProblems } from './league-zones-check';
 import {
+  DEFAULT_RANKING,
   type LeagueZoneEntry,
   type ZoneCompetition,
+  leagueRankingFor,
   leagueZonesFor,
   zoneOfPlace,
+  zonesOfTable,
 } from './league-zones';
 
 /** The committed list (T-1167, D-171), read the way the API reads it. */
@@ -228,5 +231,161 @@ describe('leagueZonesFor', () => {
   it('finds the zone of a place', () => {
     expect(zoneOfPlace(entry().zones, 3)?.kind).toBe('champions_league');
     expect(zoneOfPlace(entry().zones, 10)).toBeNull();
+  });
+});
+
+describe('a league ranking (T-1674, D-323)', () => {
+  const mls = (over: Partial<LeagueZoneEntry> = {}): LeagueZoneEntry =>
+    entry({
+      division: 'US1',
+      season: '2026/27',
+      teams: 30,
+      zones: [],
+      ranking: ['points', 'wins', 'goal_difference', 'goals_for'],
+      ...over,
+    });
+
+  it('wants a ranking that starts with points and names each criterion once', () => {
+    expect(leagueZoneProblems([mls()])).toEqual([]);
+    const problems = leagueZoneProblems([
+      mls({ ranking: ['wins', 'points'] }),
+      mls({ season: '2027/28', ranking: ['points', 'wins', 'wins'] }),
+      mls({ season: '2028/29', ranking: ['points', 'fair_play' as never] }),
+    ]);
+    expect(problems).toEqual([
+      'US1 2026/27: a ranking starts with points',
+      'US1 2027/28: a ranking names a criterion twice',
+      'US1 2028/29: unknown ranking criterion fair_play',
+    ]);
+  });
+
+  it('ranks MLS 2026 by wins after points, and every other listed league as before', () => {
+    const us1 = { kind: 'league', division: 'US1' } as const;
+    expect(leagueRankingFor(LIST, us1, '2026/27')).toEqual([
+      'points',
+      'wins',
+      'goal_difference',
+      'goals_for',
+    ]);
+    // A season the list does not hold, and a league with no entry, keep the default.
+    expect(leagueRankingFor(LIST, us1, '2025/26')).toEqual(DEFAULT_RANKING);
+    expect(leagueRankingFor(LIST, { kind: 'league', division: null }, '2026/27')).toEqual(
+      DEFAULT_RANKING,
+    );
+    expect(DEFAULT_RANKING).toEqual(['points', 'goal_difference', 'goals_for']);
+    for (const e of LIST) {
+      if (e.division === 'US1') continue;
+      const key = { kind: 'league', division: e.division ?? null, country: e.country ?? null };
+      expect(leagueRankingFor(LIST, key, e.season), `${e.division ?? e.country} ${e.season}`).toBe(
+        DEFAULT_RANKING,
+      );
+    }
+    expect(LIST.filter((e) => e.ranking !== undefined).map((e) => e.division)).toEqual(['US1']);
+  });
+});
+
+describe("the zones of a conference's table (T-1674, D-323)", () => {
+  const mls = (zones: LeagueZoneEntry['zones']): LeagueZoneEntry =>
+    entry({ division: 'US1', season: '2026/27', teams: 30, zones });
+
+  it("lets two conferences' tables share places, never two bands of one table", () => {
+    expect(
+      leagueZoneProblems([
+        mls([
+          { kind: 'title_playoffs', from: 1, to: 7, conference: 'Eastern Conference' },
+          { kind: 'title_playoffs_wild_card', from: 8, to: 9, conference: 'Eastern Conference' },
+          { kind: 'title_playoffs', from: 1, to: 7, conference: 'Western Conference' },
+          { kind: 'title_playoffs_wild_card', from: 8, to: 9, conference: 'Western Conference' },
+        ]),
+      ]),
+    ).toEqual([]);
+    const problems = leagueZoneProblems([
+      mls([
+        { kind: 'title_playoffs', from: 1, to: 7, conference: 'Eastern Conference' },
+        { kind: 'title_playoffs_wild_card', from: 7, to: 9, conference: 'Eastern Conference' },
+        { kind: 'title_playoffs', from: 1, to: 1, conference: ' ' },
+      ]),
+    ]);
+    expect(problems).toContain('US1 2026/27: place 7 of the Eastern Conference is in two zones');
+    expect(problems).toContain('US1 2026/27: title_playoffs names an empty conference');
+    // A league's one table and a conference's are different tables.
+    expect(
+      leagueZoneProblems([
+        mls([
+          { kind: 'champions_league', from: 1, to: 1 },
+          { kind: 'title_playoffs', from: 1, to: 7, conference: 'Eastern Conference' },
+        ]),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("lists MLS 2026's play-off places on each conference's table, none on the overall one", () => {
+    const listed = leagueZonesFor(LIST, { kind: 'league', division: 'US1' }, '2026/27');
+    if (listed.state !== 'listed') throw new Error('MLS 2026/27 is listed');
+    expect(listed.complete).toBe(true);
+    expect(zonesOfTable(listed.zones, null)).toEqual([]);
+    for (const conference of ['Eastern Conference', 'Western Conference']) {
+      expect(zonesOfTable(listed.zones, conference)).toEqual([
+        { kind: 'title_playoffs', from: 1, to: 7, conference },
+        { kind: 'title_playoffs_wild_card', from: 8, to: 9, conference },
+      ]);
+    }
+    // A conference the list does not name shows nothing (rule 3).
+    expect(zonesOfTable(listed.zones, 'Central Conference')).toEqual([]);
+    // Only the season served is listed; earlier ones show no zones.
+    expect(LIST.filter((e) => e.division === 'US1').map((e) => e.season)).toEqual(['2026/27']);
+  });
+
+  it('gives every table without conferences exactly the zones it had', () => {
+    for (const e of LIST.filter((x) => x.division !== 'US1')) {
+      expect(e.zones.some((z) => z.conference !== undefined)).toBe(false);
+      expect(zonesOfTable(e.zones, null), `${e.division ?? e.country} ${e.season}`).toEqual(
+        e.zones,
+      );
+    }
+  });
+});
+
+describe('whether the legend names unmarked cup places (T-1674)', () => {
+  const at = (key: Partial<ZoneCompetition>, season: string) =>
+    leagueZonesFor(LIST, { kind: 'league', division: null, tier: 1, ...key }, season);
+  const says = (key: Partial<ZoneCompetition>, season: string) => {
+    const z = at(key, season);
+    if (z.state !== 'listed') throw new Error(`${JSON.stringify(key)} ${season} is listed`);
+    return z.unmarked_cup_places;
+  };
+
+  it('says so for a UEFA league, before its season has a Champions League place too', () => {
+    expect(says({ division: 'E0' }, '2025/26')).toBe(true);
+    // E0 2026/27 lists only relegation until UEFA publishes 2027/28's places.
+    expect(says({ division: 'E0' }, '2026/27')).toBe(true);
+    expect(says({ country: 'BEL' }, '2026/27')).toBe(true);
+  });
+
+  it('never for a second tier, another confederation or MLS', () => {
+    expect(says({ division: 'E1' }, '2025/26')).toBe(false);
+    expect(says({ country: 'BRA' }, '2026/27')).toBe(false);
+    expect(says({ country: 'KSA' }, '2025/26')).toBe(false);
+    expect(says({ division: 'IR1' }, '2024/25')).toBe(false);
+    expect(says({ division: 'US1' }, '2026/27')).toBe(false);
+  });
+
+  it('reads it from the same league only', () => {
+    const list = [
+      entry({ division: 'X1', season: '2025/26' }),
+      entry({
+        division: 'X1',
+        season: '2026/27',
+        zones: [{ kind: 'relegation', from: 18, to: 20 }],
+      }),
+      entry({
+        division: 'X2',
+        season: '2026/27',
+        zones: [{ kind: 'relegation', from: 18, to: 20 }],
+      }),
+    ];
+    const z = (division: string) => leagueZonesFor(list, { kind: 'league', division }, '2026/27');
+    expect(z('X1')).toMatchObject({ unmarked_cup_places: true });
+    expect(z('X2')).toMatchObject({ unmarked_cup_places: false });
   });
 });

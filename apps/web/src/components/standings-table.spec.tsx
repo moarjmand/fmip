@@ -71,6 +71,7 @@ describe('the league table', () => {
       sources: ['https://example.org'],
       complete: true,
       note: null,
+      unmarked_cup_places: true,
     };
     const html = renderToStaticMarkup(
       <StandingsTable rows={[row('a', 1, 3), row('b', 2, 0)]} locale="en" zones={zones} />,
@@ -205,6 +206,81 @@ const conference = (name: string, rows: TableRow[]): ConferenceTable => ({
   ],
 });
 
+/** MLS 2026's places as the committed list names them (T-1674, D-323). */
+const MLS_ZONES: LeagueZones = {
+  state: 'listed',
+  teams: 30,
+  zones: ['Eastern Conference', 'Western Conference'].flatMap((c) => [
+    { kind: 'title_playoffs' as const, from: 1, to: 7, conference: c },
+    { kind: 'title_playoffs_wild_card' as const, from: 8, to: 9, conference: c },
+  ]),
+  complete: true,
+  sources: ['https://www.mlssoccer.com/news/audi-2026-mls-cup-playoffs-format-how-it-works'],
+  note: null,
+  unmarked_cup_places: false,
+};
+
+const ranked = (prefix: string, n: number): TableRow[] =>
+  Array.from({ length: n }, (_, i) => row(`${prefix}${i + 1}`, i + 1, 0));
+
+const marks = (html: string): (string | null)[] =>
+  [...html.matchAll(/<tr [^>]*data-testid="table-row"[^>]*>\s*<td([^>]*)>/g)].map(
+    (m) => /data-zone="([^"]+)"/.exec(m[1] ?? '')?.[1] ?? null,
+  );
+
+describe('the play-off places of each conference (T-1674, D-323)', () => {
+  it("marks each conference's first seven and its eighth and ninth, the rest unmarked", () => {
+    const html = renderToStaticMarkup(
+      <ConferenceTables
+        locale="en"
+        conferences={[
+          conference('Eastern Conference', ranked('e', 11)),
+          conference('Western Conference', ranked('w', 11)),
+        ]}
+        zones={MLS_ZONES}
+      />,
+    );
+    const each = [
+      ...Array<string>(7).fill('title_playoffs'),
+      'title_playoffs_wild_card',
+      'title_playoffs_wild_card',
+      null,
+      null,
+    ];
+    expect(marks(html)).toEqual([...each, ...each]);
+    // The place names its band for a screen reader, colour never the only sign.
+    expect(html).toContain('(Play-offs)');
+    expect(html).toContain('(Play-off wild-card round)');
+  });
+
+  it('marks nothing on a conference the list does not name, nor on the overall table', () => {
+    const north = renderToStaticMarkup(
+      <ConferenceTables
+        locale="en"
+        conferences={[conference('Northern Conference', ranked('n', 9))]}
+        zones={MLS_ZONES}
+      />,
+    );
+    expect(north).not.toContain('data-zone=');
+    const overall = renderToStaticMarkup(
+      <StandingsTable rows={ranked('o', 18)} locale="en" zones={MLS_ZONES} />,
+    );
+    expect(overall).not.toContain('data-zone=');
+  });
+
+  it('names the bands in Persian', () => {
+    const html = renderToStaticMarkup(
+      <ConferenceTables
+        locale="fa"
+        conferences={[conference('Eastern Conference', ranked('e', 9))]}
+        zones={MLS_ZONES}
+      />,
+    );
+    expect(html).toContain('(پلی‌آف قهرمانی)');
+    expect(html).toContain('(دور وایلدکارت پلی‌آف)');
+  });
+});
+
 describe('the conference tables (T-1672)', () => {
   it('heads each conference by its name, its own clubs ranked, no zones', () => {
     const html = renderToStaticMarkup(
@@ -214,6 +290,7 @@ describe('the conference tables (T-1672)', () => {
           conference('Eastern Conference', [row('a', 1, 3), row('b', 2, 0)]),
           conference('Western Conference', [row('c', 1, 3), row('d', 2, 0)]),
         ]}
+        zones={null}
       />,
     );
     expect(html).toContain('<h3 class="text-sm font-semibold">Eastern Conference</h3>');
@@ -231,7 +308,11 @@ describe('the conference tables (T-1672)', () => {
 
   it('says a conference not yet started has no positions, and names its clubs', () => {
     const html = renderToStaticMarkup(
-      <ConferenceTables locale="en" conferences={[conference('Eastern Conference', [])]} />,
+      <ConferenceTables
+        locale="en"
+        conferences={[conference('Eastern Conference', [])]}
+        zones={MLS_ZONES}
+      />,
     );
     expect(html).toContain('data-testid="conference-not-started"');
     expect(html).toContain('no positions yet');
@@ -247,6 +328,7 @@ describe('the conference tables (T-1672)', () => {
       <ConferenceTables
         locale="fa"
         conferences={[conference('Western Conference', [row('a', 1, 3)])]}
+        zones={null}
       />,
     );
     expect(html).toContain('کنفرانس غرب');

@@ -8,7 +8,7 @@ import type {
   LeagueZones,
   TableRow,
 } from '@fmip/contracts';
-import { zoneOfPlace } from '@fmip/contracts';
+import { zoneOfPlace, zonesOfTable } from '@fmip/contracts';
 import { EntityImage } from '@/components/entity-image';
 import { LtrNumeric } from '@/components/score';
 import { Translated } from '@/components/translated';
@@ -151,7 +151,9 @@ export function signedGap(locale: string, value: number): string {
  * One table's grid (T-035, T-1203), the competition page's league table and
  * each of its group tables alike (T-1336). `zones` marks a league's places
  * (T-1167) only where the feed lists them; a group has none, and keeps the
- * blank edge so the numbers line up.
+ * blank edge so the numbers line up. A conference's table (`conference`)
+ * marks the places listed for that conference only, the league's one table
+ * those listed for no conference (T-1674, D-323).
  *
  * The Stadiomind look (T-1498): tabular figures, hairlines between rows, the
  * points in the heavy weight, the form in letters. `summary` keeps the
@@ -162,6 +164,7 @@ export function StandingsTable({
   rows,
   locale,
   zones,
+  conference = null,
   caption,
   summary = false,
   flush = false,
@@ -169,6 +172,8 @@ export function StandingsTable({
   rows: TableRow[];
   locale: string;
   zones: LeagueZones | null;
+  /** The conference this table is (T-1674); null for the league's one table. */
+  conference?: string | null;
   /** The table's name for a screen reader. */
   caption?: string;
   summary?: boolean;
@@ -213,7 +218,13 @@ export function StandingsTable({
         <tbody>
           {rows.map((row) => (
             <tr key={row.team.id} className="border-t border-default" data-testid="table-row">
-              <PlaceCell locale={locale} position={row.position} zones={zones} start={start} />
+              <PlaceCell
+                locale={locale}
+                position={row.position}
+                zones={zones}
+                conference={conference}
+                start={start}
+              />
               <td className="px-1.5 py-0">
                 {/* The row's height is the link's: a 44px target on a phone (T-1558). */}
                 <Link
@@ -252,15 +263,18 @@ function PlaceCell({
   locale,
   position,
   zones,
+  conference,
   start,
 }: {
   locale: string;
   position: number;
   zones: LeagueZones | null;
+  conference: string | null;
   /** The card's inner margin, when the table runs to its edges. */
   start: string;
 }) {
-  const zone = zones?.state === 'listed' ? zoneOfPlace(zones.zones, position) : null;
+  const zone =
+    zones?.state === 'listed' ? zoneOfPlace(zonesOfTable(zones.zones, conference), position) : null;
   return (
     <td
       className={cx(
@@ -416,15 +430,19 @@ export function conferenceName(locale: string, name: string): string {
  * League Soccer's Eastern and Western Conference), each its own clubs ranked
  * over all their league matches. Side by side from the desktop width, one
  * above the other on a phone. A conference none of whose clubs has played
- * says so and names them, never a grid of noughts. No zones: the places the
- * committed list marks are the overall table's.
+ * says so and names them, never a grid of noughts. Each marks the places the
+ * committed list names for its conference (T-1674, D-323: MLS's play-off and
+ * wild-card places), matched by the conference's stored name; a conference
+ * the list does not name has none.
  */
 export function ConferenceTables({
   conferences,
   locale,
+  zones,
 }: {
   conferences: ConferenceTable[];
   locale: string;
+  zones: LeagueZones | null;
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -447,7 +465,13 @@ export function ConferenceTables({
                 )}
               </p>
             ) : (
-              <StandingsTable rows={c.rows} locale={locale} zones={null} caption={name} />
+              <StandingsTable
+                rows={c.rows}
+                locale={locale}
+                zones={zones}
+                conference={c.name}
+                caption={name}
+              />
             )}
           </div>
         );

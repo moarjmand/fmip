@@ -13,6 +13,8 @@ import {
   QualifyingNote,
   ProviderTotalsNote,
   ScorerList,
+  ZoneLegend,
+  hasConferenceZones,
 } from '@/components/competition-page';
 import type { FreshnessWords } from '@/components/freshness-stamp';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
@@ -351,8 +353,14 @@ function TableModules({
           module={conferences}
           locale={locale}
           timeZone={timeZone}
+          footer={
+            hasConferenceZones(page.zones) &&
+            (conferences.data ?? []).some((c) => c.rows.length > 0) ? (
+              <ZoneLegend locale={locale} zones={page.zones} tables="conferences" />
+            ) : undefined
+          }
         >
-          {(data) => <ConferenceTables conferences={data} locale={locale} />}
+          {(data) => <ConferenceTables conferences={data} locale={locale} zones={page.zones} />}
         </CoveredCard>
       )}
       {showsLeagueTable(page) && (
