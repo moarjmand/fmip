@@ -301,6 +301,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
       [5, 'var', null, null, null],
     ]);
     expect(timeline.data?.[1]?.added_time).toBe(1);
+    // No shoot-out: no incident is a kick (T-1673).
+    expect(timeline.data?.map((i) => i.in_shootout)).toEqual([false, false, false, false, false]);
     expect(timeline.last_updated_at).not.toBeNull();
   });
 

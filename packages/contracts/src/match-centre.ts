@@ -153,6 +153,12 @@ export interface MatchIncident {
   /** The assist, or the player coming on. */
   related_player: { id: string; name: string } | null;
   detail: MatchIncidentDetail | null;
+  /**
+   * A kick of a penalty shoot-out (T-1673, D-322): never a goal of the match.
+   * Marked from the feed, or read once from the shoot-out score for matches
+   * stored before the mark. Absent from an API older than T-1673.
+   */
+  in_shootout?: boolean;
 }
 
 export type MatchStatMetric =
