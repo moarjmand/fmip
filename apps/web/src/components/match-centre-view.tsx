@@ -815,7 +815,11 @@ function scorersOf(centre: MatchCentre, locale: string): Record<'home' | 'away',
   if (recorded === null || recorded.some((i) => i.kind === 'own_goal')) return none;
   // A shoot-out's kicks are not goals of the match (T-1550): the band names
   // the scorers of play only, as the timeline splits them (T-1477).
-  const kicksFrom = shootoutStart(recorded, centre.fixture.scores.penalties);
+  const kicksFrom = shootoutStart(
+    recorded,
+    centre.fixture.scores.penalties,
+    centre.fixture.scores.current,
+  );
   const incidents = kicksFrom === null ? recorded : recorded.slice(0, kicksFrom);
   const by: Record<'home' | 'away', Map<string, string[]>> = { home: new Map(), away: new Map() };
   for (const i of incidents) {
@@ -890,7 +894,7 @@ function Timeline({
       {(incidents) => {
         // A shoot-out is its own block, its kicks in order and numbered, never
         // penalties at minutes of added time (T-1477).
-        const kicksFrom = shootoutStart(incidents, f.scores.penalties);
+        const kicksFrom = shootoutStart(incidents, f.scores.penalties, f.scores.current);
         const play = kicksFrom === null ? incidents : incidents.slice(0, kicksFrom);
         const kicks = (kicksFrom === null ? [] : incidents.slice(kicksFrom)).map((i, k) => ({
           i,

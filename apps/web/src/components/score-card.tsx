@@ -321,7 +321,7 @@ export function CardDetails({
 }) {
   const { m } = words;
   const n = (value: number): string => formatNumber(locale, value);
-  const kicksFrom = shootoutStart(card.incidents, card.scores.penalties);
+  const kicksFrom = shootoutStart(card.incidents, card.scores.penalties, card.scores.current);
   const leg = card.leg === null ? null : fill(m['scores.card.leg'].text, { leg: n(card.leg) });
   const stageBits = [
     ...stageAndRoundLabels(card.stage?.name, card.round, (key) => m[key].text, locale),

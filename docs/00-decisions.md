@@ -13401,3 +13401,16 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 **Rejected.** *Mapping the provider's table id to our team*: the id is another club's (Independiente is ours under it), and one provider id names one entity (rule 1). *Taking the group from the round name*: rejected by D-180 for the Nations League, and these rounds say "Group Stage" alone.
 
 **Consequence.** `IngestStore.assignGroups` (`internal/ingest-store.ts`); `group-assign.spec.ts` covers a team placed from two opponents of one group and one left out whose opponents are in two.
+
+## D-318 — A shoot-out with a kick missing from the feed is read from the score after play
+
+**Status:** Accepted · 2026-10-31 (the agent, on the maintainer's instruction to fix the teammate's cup-match report) · **Task:** T-1666 · **Follows:** T-1477, rule 3
+
+**Context.** T-1477 split a shoot-out from play by the trailing run of penalty incidents whose scored kicks add up, per side, to the shoot-out's score. The feed can leave a kick out: Manresa v Sant Andreu (27 Oct 2026) went 1-4 on penalties and only Sant Andreu's four scored kicks and two Manresa misses were recorded, so nothing added up, the kicks stayed in the list as penalties at 120+1' to 120+4', and the header named their takers as scorers of the match.
+
+**Decision.** When no run adds up, `shootoutStart` (`apps/web/src/lib/match.ts`) takes the score after play (`scores.current`, extra time included, the shoot-out never in it): the kicks start where the goals of play recorded before them add up to that score, among the trailing penalties filed at the last kick's minute (the feed files every kick at one minute, 120+1, 120+2, ...); the scored kicks may not pass the shoot-out's score on either side and may fall short of it by one goal at most. Goals of play are counted as a total, since own goals are filed under either side.
+
+**Rejected.** *Any shortfall*: two or more missing kicks would let a run of goals of play be read as kicks. *Every penalty at 120 or later*: an in-play penalty in added time of extra time would be taken for a kick.
+
+**Consequences.** The timeline, the header's scorers and the list card read the same split. A shoot-out recorded short shows the kicks the feed holds under the shoot-out's own score. The boards (top scorers) still count penalty goals at any minute; that is a separate question for the maintainer (shoot-out kicks are filed as `penalty_goal`).
+
