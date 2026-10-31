@@ -363,16 +363,25 @@ export function statusLabel(
 }
 
 /**
- * The headline score: the current one, or the full-time one once finished,
- * in the locale's digits (the caller isolates it left to right).
+ * A finished match's result (T-1665, D-317): the score after extra time where
+ * it was played (`current`; the provider's full time is the ninety minutes),
+ * else the full-time one. A shoot-out is never in it.
  */
-/** The goals the card shows: the full-time line once finished, else the current one. */
+export function resultLine<L>(scores: {
+  current: L | null;
+  full_time: L | null;
+  extra_time: L | null;
+}): L | null {
+  return scores.extra_time !== null
+    ? (scores.current ?? scores.full_time)
+    : (scores.full_time ?? scores.current);
+}
+
+/** The goals the card shows: the result once finished, else the current one. */
 export function scoreLine(
   card: Pick<ScoreCard, 'status' | 'scores'>,
 ): ScoreCard['scores']['current'] {
-  return card.status === 'finished'
-    ? (card.scores.full_time ?? card.scores.current)
-    : card.scores.current;
+  return card.status === 'finished' ? resultLine(card.scores) : card.scores.current;
 }
 
 export function scoreLabel(card: ScoreCard, locale = 'en'): string {

@@ -11,6 +11,7 @@ import {
   NEXT_DAY_WINDOWS,
   pageHref,
   readScoresQuery,
+  resultLine,
   scoreLabel,
   shiftDate,
   statusLabel,
@@ -172,6 +173,32 @@ describe('card labels', () => {
         }),
       ),
     ).toBe('2 – 2');
+  });
+
+  it('shows a finished match after extra time, never its ninety minutes (T-1665)', () => {
+    // RSD Alcalá v Las Palmas, Copa del Rey 2026-10-27: 1-1 at ninety, 1-3 after extra time.
+    const aet = card({
+      status: 'finished',
+      scores: {
+        ...card({}).scores,
+        full_time: { home: 1, away: 1 },
+        extra_time: { home: 0, away: 2 },
+        current: { home: 1, away: 3 },
+      },
+    });
+    expect(scoreLabel(aet)).toBe('1 – 3');
+    expect(resultLine(aet.scores)).toEqual({ home: 1, away: 3 });
+    // Without extra time the full-time line stands, the current one only in its absence.
+    expect(
+      resultLine({
+        current: { home: 2, away: 0 },
+        full_time: { home: 1, away: 0 },
+        extra_time: null,
+      }),
+    ).toEqual({ home: 1, away: 0 });
+    expect(
+      resultLine({ current: { home: 2, away: 0 }, full_time: null, extra_time: null }),
+    ).toEqual({ home: 2, away: 0 });
   });
 });
 

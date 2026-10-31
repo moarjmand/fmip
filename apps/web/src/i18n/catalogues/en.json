@@ -1447,6 +1447,7 @@
   "status.afterExtraTime": "AET",
   "status.penalties": "Pens",
   "status.halfTime": "HT",
+  "status.regularTime": "90′",
   "status.aggregate": "Agg",
   "status.postponed": "Postponed",
   "status.suspended": "Suspended",

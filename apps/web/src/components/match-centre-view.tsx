@@ -16,7 +16,7 @@ import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
 import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, shootoutStart, statValue } from '@/lib/match';
 import { isBehind } from '@/lib/live';
-import { formatKickoff, formatStamp, freshnessStamp, statusLabel } from '@/lib/scores';
+import { formatKickoff, formatStamp, freshnessStamp, resultLine, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { listName } from '@/lib/person-name';
 import { stageAndRoundLabels } from '@/lib/stage-label';
@@ -472,8 +472,9 @@ function Hero({
   const n = (value: number): string => formatNumber(locale, value);
   const f = centre.fixture;
   const naskh = ARABIC_SCRIPT.has(locale);
-  const headline =
-    f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : f.scores.current;
+  const headline = f.status === 'finished' ? resultLine(f.scores) : f.scores.current;
+  // After extra time the band also says the ninety minutes (D-317).
+  const ninety = f.scores.extra_time !== null ? f.scores.full_time : null;
   const behind = now !== undefined && isBehind(f, now);
   // At the half-time interval the feed's minute stays at 45: the band says
   // "HT" rather than a clock that looks stalled (T-1551). A feed that has
@@ -616,6 +617,23 @@ function Hero({
             f.status !== 'live' && (
               <span className="text-xs font-bold text-muted md:text-sm">
                 <span data-testid="match-status">{status}</span>
+                {f.scores.penalties !== null && (
+                  <>
+                    {' '}
+                    <Score
+                      home={f.scores.penalties.home}
+                      away={f.scores.penalties.away}
+                      locale={locale}
+                    />
+                  </>
+                )}
+                {ninety !== null && (
+                  <span data-testid="ninety">
+                    {' · '}
+                    <MessageText message={m['status.regularTime']} />{' '}
+                    <Score home={ninety.home} away={ninety.away} locale={locale} />
+                  </span>
+                )}
                 {f.scores.half_time !== null && (
                   <>
                     {' · '}

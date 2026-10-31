@@ -3,7 +3,7 @@ import { formatDate } from '@/i18n/format';
 import type { Locale } from '@/i18n/locales';
 import { type Message, type MessageKey, type PluralKey, message, plural } from '@/i18n/messages';
 import { isBehind } from '@/lib/live';
-import { type StatusKey, dateIn, statusLabel } from '@/lib/scores';
+import { type StatusKey, dateIn, resultLine, statusLabel } from '@/lib/scores';
 import { sharesToPercentages, wholePercentages } from '@/lib/triple';
 import { fill, formatPercent } from '@/lib/words';
 
@@ -48,7 +48,7 @@ function aheadOn(line: ScoreCard['scores']['current']): Side | null {
 }
 
 /**
- * The goals a card shows: the full-time line once over, the current one in
+ * The goals a card shows: the result once over (after extra time), the current one in
  * play, none before kick-off or for a match that was never played.
  */
 export function shownLine(card: ScoreCard): ScoreCard['scores']['current'] {
@@ -58,7 +58,7 @@ export function shownLine(card: ScoreCard): ScoreCard['scores']['current'] {
     case 'cancelled':
       return null;
     case 'finished':
-      return card.scores.full_time ?? card.scores.current;
+      return resultLine(card.scores);
     default:
       return card.scores.current;
   }

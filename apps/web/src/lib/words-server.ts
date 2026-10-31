@@ -61,6 +61,7 @@ const STATUS_KEYS = [
   'status.afterExtraTime',
   'status.penalties',
   'status.halfTime',
+  'status.regularTime',
   'status.aggregate',
   'status.postponed',
   'status.suspended',

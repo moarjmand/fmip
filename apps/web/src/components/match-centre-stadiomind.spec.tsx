@@ -392,6 +392,34 @@ describe('live', () => {
     expect(fa).not.toMatch(/data-testid="match-status">[۴4][۵5]/);
   });
 
+  it('heads a match after extra time with its result, the ninety minutes and the shoot-out beside it (T-1665)', () => {
+    // Manresa v Sant Andreu, Copa del Rey 2026-10-27: 0-0 at ninety, 2-2 after extra time, 1-4 on penalties.
+    const scores = {
+      current: { home: 2, away: 2 },
+      half_time: { home: 0, away: 0 },
+      full_time: { home: 0, away: 0 },
+      extra_time: { home: 2, away: 2 },
+      penalties: { home: 1, away: 4 },
+      aggregate: null,
+    };
+    const html = view(centre({ status: 'finished', minute: null, scores }));
+    const text = html.replace(/<[^>]+>/g, '');
+    expect(text).toMatch(/2–2/);
+    expect(text).toContain('Pens 1–4 · 90′ 0–0 · HT 0–0');
+    // Without extra time no ninety-minute line.
+    const ft = view(
+      centre({
+        status: 'finished',
+        minute: null,
+        scores: { ...scores, extra_time: null, penalties: null, current: { home: 0, away: 0 } },
+      }),
+    );
+    expect(ft).not.toContain('data-testid="ninety"');
+    // Persian.
+    const fa = view(centre({ status: 'finished', minute: null, scores }), undefined, 'fa');
+    expect(fa).toContain('۹۰ دقیقه');
+  });
+
   it('says when the feed has fallen behind, in the warning colour, never as current (rule 4)', () => {
     const html = view(centre(), Date.parse('2026-10-24T12:30:00.000Z'));
     // No live badge while the feed may be behind: amber words instead.
