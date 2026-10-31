@@ -245,6 +245,55 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(await listed(thin.home)).toEqual(ids(['b4']));
     });
 
+    it('moves the armband to the player the feed now names, and keeps one captain a side (T-1686)', async () => {
+      const m = await match(teams.a, teams.b);
+      const resolver: RefResolver = {
+        resolve: (ref) => {
+          const internalId = ref.entityType === 'person' ? people.get(ref.externalId) : undefined;
+          return Promise.resolve(
+            internalId === undefined ? { kind: 'unresolved' } : { kind: 'resolved', internalId },
+          );
+        },
+        link: () => Promise.resolve({ kind: 'linked' }),
+      };
+      const store = new IngestStore(pool, resolver);
+      const side = (keys: string[], captains: string[]) => ({
+        formation: null,
+        coach: null,
+        kitColour: null,
+        players: keys.map((key, index): NormalisedLineupPlayer => ({
+          externalId: key,
+          name: key,
+          role: 'starter',
+          shirtNumber: index + 1,
+          position: null,
+          isCaptain: captains.includes(key),
+          grid: { row: 2, col: index + 1 },
+        })),
+      });
+      const captainsOf = async (participant: string) => {
+        const { rows } = await pool.query<{ person_id: string }>(
+          `SELECT person_id FROM lineup WHERE participant_id = $1 AND is_captain`,
+          [participant],
+        );
+        return rows.map((r) => r.person_id);
+      };
+      const answer = (captains: string[]): NormalisedLineup => ({
+        fixtureExternalId: `t1686-${RUN}`,
+        home: side(A, captains),
+        away: side(B, []),
+      });
+
+      await store.saveLineup('api_football', m.id, answer(['a1']));
+      expect(await captainsOf(m.home)).toEqual([person('a1')]);
+      // The armband moves to a3: the write used to be refused by the one-captain index.
+      await store.saveLineup('api_football', m.id, answer(['a3']));
+      expect(await captainsOf(m.home)).toEqual([person('a3')]);
+      // A feed naming two captains keeps the first it lists.
+      await store.saveLineup('api_football', m.id, answer(['a2', 'a4']));
+      expect(await captainsOf(m.home)).toEqual([person('a2')]);
+    });
+
     it('puts a line-up the answer turned round back on its side as it is written', async () => {
       const m = await match(teams.a, teams.b);
       const resolver: RefResolver = {
