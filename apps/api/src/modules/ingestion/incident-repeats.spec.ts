@@ -20,6 +20,7 @@ function incident(over: Partial<NormalisedIncident> = {}): NormalisedIncident {
     player: { externalId: 'conceicao', name: 'F. Conceicao' },
     relatedPlayer: null,
     detail: null,
+    inShootout: false,
     ...over,
   };
 }

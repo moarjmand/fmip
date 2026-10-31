@@ -91,7 +91,10 @@ export interface GoalsRow extends FixtureRef {
   scores: Partial<Record<string, Score>>;
   /** Every incident of the fixture, of any kind. */
   incidents: number;
-  /** The goal incidents, with the side of the participant credited (null: none named). */
+  /**
+   * The goal incidents, with the side of the participant credited (null: none
+   * named); a shoot-out's marked kicks are not among them (T-1673).
+   */
   goals: { kind: GoalKind; side: Side | null; minute: number }[];
 }
 
@@ -107,7 +110,11 @@ export function expectedScore(row: Pick<GoalsRow, 'status' | 'scores'>): Score |
   return null;
 }
 
-/** A shoot-out penalty looks like a penalty goal at 120 in some feeds. */
+/**
+ * A shoot-out penalty looks like a penalty goal at 120 in some feeds. The
+ * marked kicks never reach `tally` (T-1673); this reading stays for the kicks
+ * no mark or reading of the score found.
+ */
 const SHOOTOUT_MINUTE = 120;
 
 function tally(

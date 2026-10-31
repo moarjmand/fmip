@@ -207,7 +207,8 @@ export class PostgresScoresStore {
                  FROM fixture_score sc WHERE sc.fixture_id = s.id) AS scores,
               (SELECT jsonb_agg(jsonb_build_object(
                         'kind', i.kind, 'minute', i.minute, 'added_time', i.added_time,
-                        'side', p.side, 'player', COALESCE(pe.known_as, pe.full_name))
+                        'side', p.side, 'player', COALESCE(pe.known_as, pe.full_name),
+                        'in_shootout', i.in_shootout)
                       ORDER BY i.sequence)
                  FROM incident i
                  LEFT JOIN fixture_participant p ON p.id = i.participant_id

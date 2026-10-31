@@ -219,6 +219,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /scores'
       ['red_card', 41, null, 'home', 'Mohamed Salah'],
       ['var', 45, 2, null, null],
     ]);
+    // No shoot-out: no incident is a kick (T-1673).
+    expect(live?.incidents.map((i) => i.in_shootout)).toEqual([false, false]);
     expect(Date.parse(live?.last_updated_at ?? '')).toBeGreaterThan(0);
   });
 

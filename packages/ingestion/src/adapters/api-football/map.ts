@@ -333,6 +333,9 @@ function inCoachSpace<T extends { externalId: string }>(ref: T | null): T | null
 /** The contract's ceiling on stoppage time (`validate.ts`, the incident table). */
 const MAX_ADDED_TIME = 30;
 
+/** API-Football's comment on every kick of a penalty shoot-out, lower-cased (T-1673). */
+const SHOOTOUT_COMMENT = 'penalty shootout';
+
 /**
  * `events` of one fixture. An event whose player the provider did not
  * identify cannot become an incident (the contract needs a player for every
@@ -376,6 +379,13 @@ export function mapIncidents(
       // ("Normal Goal", "Substitution 1") nor `comments` ("Foul") reaches a
       // page as the provider wrote it (rule 2, T-1378).
       detail: incidentDetail(kind, e.detail),
+      // A shoot-out's kicks carry `comments: "Penalty Shootout"` (T-1673,
+      // D-322); the text stays here, the flag is ours.
+      inShootout:
+        (kind === 'penalty_goal' || kind === 'penalty_missed') &&
+        String(e.comments ?? '')
+          .trim()
+          .toLowerCase() === SHOOTOUT_COMMENT,
     });
   }
   return out;

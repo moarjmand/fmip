@@ -303,6 +303,7 @@ describe('the incident list is the whole truth for its fixture (T-1382)', () => 
       player: { externalId: player, name: `Player ${player}` },
       relatedPlayer: null,
       detail: null,
+      inShootout: false,
     }) as NormalisedIncident;
 
   it('deletes every row at a place this answer did not write, a skipped one included', async () => {

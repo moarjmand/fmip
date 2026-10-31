@@ -324,12 +324,13 @@ export class PostgresMatchCentreStore {
       related_id: string | null;
       related_name: string | null;
       detail: string | null;
+      in_shootout: boolean;
       updated_at: Date;
     }>(
       `SELECT i.id, i.sequence, i.minute, i.added_time, i.kind, i.participant_id,
               i.person_id, COALESCE(p.known_as, p.full_name) AS person_name,
               i.related_person_id AS related_id, COALESCE(q.known_as, q.full_name) AS related_name,
-              i.detail, i.updated_at
+              i.detail, i.in_shootout, i.updated_at
          FROM incident i
          LEFT JOIN person p ON p.id = i.person_id
          LEFT JOIN person q ON q.id = i.related_person_id
@@ -355,6 +356,7 @@ export class PostgresMatchCentreStore {
         // The provider's text in a row stored before T-1378 is mapped to our
         // words here and never passed on (rule 2, D-196); our code maps to itself.
         detail: incidentDetail(r.kind, r.detail),
+        in_shootout: r.in_shootout,
       })),
       lastUpdatedAt: newest(rows.map((r) => r.updated_at)),
     };

@@ -526,7 +526,8 @@ export class DataQualityStore {
                   count(*)::int AS incidents,
                   COALESCE(jsonb_agg(jsonb_build_object('kind', i.kind, 'side', p.side, 'minute', i.minute)
                                      ORDER BY i.sequence)
-                             FILTER (WHERE i.kind IN ('goal', 'own_goal', 'penalty_goal')),
+                             FILTER (WHERE i.kind IN ('goal', 'own_goal', 'penalty_goal')
+                                       AND NOT i.in_shootout),
                            '[]'::jsonb) AS goals
              FROM incident i
              JOIN fixture f ON f.id = i.fixture_id AND f.status IN ('live', 'finished')

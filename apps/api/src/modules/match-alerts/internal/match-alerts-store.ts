@@ -85,6 +85,8 @@ export class MatchAlertsStore {
          LEFT JOIN person ON person.id = i.person_id
         WHERE i.fixture_id = $1
           AND i.kind IN ('goal', 'penalty_goal', 'own_goal', 'red_card', 'second_yellow_card')
+          -- A shoot-out's kick is no goal: it never names a scorer (T-1673).
+          AND NOT i.in_shootout
         ORDER BY i.sequence`,
       [fixtureId],
     );
