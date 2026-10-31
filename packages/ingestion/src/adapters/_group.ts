@@ -42,3 +42,29 @@ export function stageOfLabel(label: string | null): string | null {
     .trim();
   return stage === '' ? null : stage;
 }
+
+/**
+ * The conference a table's label names (T-1667, D-319): "Eastern Conference"
+ * → "Eastern Conference", also when the provider puts the league's name
+ * before it ("Major League Soccer - Western Conference", "MLS, Eastern
+ * Conference") or writes it in capitals or with underscores
+ * ("EASTERN_CONFERENCE"). Major League Soccer ranks its clubs in two such
+ * tables, each over all its clubs' league matches.
+ *
+ * Only a label ending in a word and "Conference" is one: "UEFA Conference
+ * League" is a competition's own table, and a group's label
+ * ("Conference - Group A") is a group (`groupOfLabel`). Null otherwise; a
+ * conference is never guessed from anything but the table's label (rule 3).
+ */
+export function conferenceOfLabel(label: string | null): string | null {
+  if (label === null || groupOfLabel(label) !== null) return null;
+  const match = CONFERENCE_SUFFIX.exec(label.trim());
+  if (match?.[1] === undefined) return null;
+  return `${titleCase(match[1])} Conference`;
+}
+
+const CONFERENCE_SUFFIX = /(?:^|[\s,\-_:])([a-z]+)[\s_]+conference\s*$/i;
+
+function titleCase(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+}

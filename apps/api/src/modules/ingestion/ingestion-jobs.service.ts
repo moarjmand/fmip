@@ -1207,6 +1207,11 @@ export class IngestionJobsService {
    * (`groupMembers`, `IngestStore.assignGroups`; the run's one write) — and
    * then compared group by group with the group tables ours builds from
    * those fixtures, not with a league table a group stage does not have.
+   *
+   * A league split into conferences (T-1667, D-319: Major League Soccer)
+   * has one table per conference, each over all its clubs' league matches.
+   * They name each club's conference, written to `season_conference`
+   * (`IngestStore.saveConferences`), and are compared with the league table.
    */
   private standingsCheck(now: Date = new Date()): Promise<JobReport> {
     return this.track('standings', async (source, targets) => {
@@ -1250,6 +1255,8 @@ export class IngestionJobsService {
           // other end.
           const resolved: {
             group: string | null;
+            /** The conference the table is (T-1667); null for any other table. */
+            conference: string | null;
             /** Our stage the provider's table names (T-1399); null when it names none we hold. */
             stageId: string | null;
             rows: { name: string; played: number; teamId: string }[];
@@ -1280,7 +1287,12 @@ export class IngestionJobsService {
               }
               stageId = stageIds.get(table.stage) ?? null;
             }
-            resolved.push({ group: table.group, stageId, rows });
+            resolved.push({
+              group: table.group,
+              conference: table.conference ?? null,
+              stageId,
+              rows,
+            });
           }
           unmapped += unmappedHere;
 
@@ -1296,6 +1308,23 @@ export class IngestionJobsService {
                   .map((t) => ({ group: t.group, teamIds: t.rows.map((r) => r.teamId) })),
               ),
               stageId,
+            );
+          }
+          // A season split into conferences (T-1667, D-319): each club's
+          // conference, written for the competition page's conference
+          // tables. Two conferences at least -- one alone splits nothing.
+          // A conference table counts all its clubs' league matches, so it
+          // is still compared with our league table below, as before.
+          const conferences = resolved.filter((t) => t.group === null && t.conference !== null);
+          if (new Set(conferences.map((t) => t.conference)).size >= 2) {
+            written += await this.store.saveConferences(
+              seasonId,
+              groupMembers(
+                conferences.map((t) => ({
+                  group: t.conference,
+                  teamIds: t.rows.map((r) => r.teamId),
+                })),
+              ).map((m) => ({ teamId: m.teamId, conference: m.group })),
             );
           }
           const mine = new Map<string, number>();
