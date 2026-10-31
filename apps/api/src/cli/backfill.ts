@@ -19,6 +19,11 @@ import { IngestionModule } from '../modules/ingestion/ingestion.module';
  * `catalog.mjs --add-season` (not `--current`) so the model can learn from it
  * (T-512, D-083).
  *
+ * `--standings --season 2025/26 [--competition <uuid>]` runs the standings job
+ * for that past season instead of the fixtures (T-1677): the scheduled run
+ * reads current seasons only, so a past season's conference tables (D-319) are
+ * written only when asked; with a competition, one request.
+ *
  * The admin page's button is the same act and stays the way in from a
  * browser. This is for the operator who is already on the server, adding a
  * competition with `catalog.mjs` and needing its season before the table can
@@ -32,7 +37,16 @@ import { IngestionModule } from '../modules/ingestion/ingestion.module';
 export const MAX_REASON = 300;
 
 export type BackfillArgs =
-  { by: string; reason: string; season: string | null } | { error: string };
+  | {
+      by: string;
+      reason: string;
+      season: string | null;
+      standings: boolean;
+      competition: string | null;
+    }
+  | { error: string };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** A season label as the catalogue writes it: `2025/26`. */
 const SEASON_LABEL = /^\d{4}\/\d{2}$/;
@@ -42,15 +56,22 @@ export function parseBackfillArgs(argv: string[]): BackfillArgs {
   let by = '';
   let reason = '';
   let season: string | null = null;
+  let standings = false;
+  let competition: string | null = null;
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     const value = argv[i + 1];
-    if (flag !== '--by' && flag !== '--reason' && flag !== '--season') {
+    if (flag === '--standings') {
+      standings = true;
+      continue;
+    }
+    if (flag !== '--by' && flag !== '--reason' && flag !== '--season' && flag !== '--competition') {
       return { error: `Unknown argument: ${flag}` };
     }
     if (value === undefined || value.startsWith('--')) return { error: `${flag} needs a value.` };
     if (flag === '--by') by = value.trim().toLowerCase();
     else if (flag === '--reason') reason = value.trim();
+    else if (flag === '--competition') competition = value.trim().toLowerCase();
     else season = value.trim();
     i += 1;
   }
@@ -59,7 +80,16 @@ export function parseBackfillArgs(argv: string[]): BackfillArgs {
   if (season !== null && !SEASON_LABEL.test(season)) {
     return { error: `--season takes a label such as 2025/26, not "${season}".` };
   }
-  return { by, reason: reason.slice(0, MAX_REASON), season };
+  if (standings && season === null) {
+    return { error: '--standings needs --season: the current seasons run every hour.' };
+  }
+  if (competition !== null && !standings) {
+    return { error: '--competition is for --standings only.' };
+  }
+  if (competition !== null && !UUID.test(competition)) {
+    return { error: `--competition takes our competition id, not "${competition}".` };
+  }
+  return { by, reason: reason.slice(0, MAX_REASON), season, standings, competition };
 }
 
 @Module({ imports: [DatabaseModule, IdentityModule, IngestionModule] })
@@ -70,7 +100,8 @@ async function main(): Promise<number> {
   if ('error' in parsed) {
     console.error(parsed.error);
     console.error(
-      'Usage: node dist/cli/backfill.js --by <admin e-mail> --reason "<why>" [--season 2025/26]',
+      'Usage: node dist/cli/backfill.js --by <admin e-mail> --reason "<why>" [--season 2025/26]' +
+        ' [--standings [--competition <id>]]',
     );
     return 2;
   }
@@ -91,10 +122,16 @@ async function main(): Promise<number> {
       return 1;
     }
     await app.get(IngestRunsService).auditBackfill(user.id, parsed.reason, parsed.season);
-    const report = await app.get(IngestionJobsService).backfill(new Date(), parsed.season);
+    const jobs = app.get(IngestionJobsService);
+    const report =
+      parsed.standings && parsed.season !== null
+        ? await jobs.standingsFor(parsed.season, parsed.competition)
+        : await jobs.backfill(new Date(), parsed.season);
     process.stdout.write(
-      `backfill ${report.partial === undefined ? 'succeeded' : 'partial'}: ` +
-        `${report.itemsSeen} fixture(s) seen, ${report.itemsWritten} row(s) written` +
+      `${parsed.standings ? 'standings' : 'backfill'} ` +
+        `${report.partial === undefined ? 'succeeded' : 'partial'}: ` +
+        `${report.itemsSeen} ${parsed.standings ? 'table row' : 'fixture'}(s) seen, ` +
+        `${report.itemsWritten} row(s) written` +
         (report.partial === undefined ? '.\n' : `\n  ${report.partial}\n`),
     );
     return 0;
