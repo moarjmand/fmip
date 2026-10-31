@@ -224,6 +224,23 @@ export interface GroupTable {
   teams: TableRow['team'][];
 }
 
+/**
+ * One conference of a league split into them (T-1671, D-319): Major League
+ * Soccer's Eastern and Western Conference. Unlike a group it is a split of
+ * the league table by club: each club ranked over all its league matches,
+ * those against the other conference included.
+ */
+export interface ConferenceTable {
+  /** The conference's name, e.g. "Eastern Conference". */
+  name: string;
+  /** Finished league matches of its clubs the table is counted from; 0 means no positions yet. */
+  counted: number;
+  /** Ranked rows, its own clubs only; empty while `counted` is 0, never a grid of noughts. */
+  rows: TableRow[];
+  /** Every club of the conference, by name. */
+  teams: TableRow['team'][];
+}
+
 export interface Leader {
   /** `photo`: from our own origin (T-1320). */
   person: { id: string; name: string; photo?: EntityMedia };
@@ -473,6 +490,13 @@ export interface CompetitionPage {
    * exists but no match of it carries a group yet.
    */
   group_tables: Covered<GroupTable[]> | null;
+  /**
+   * The conference tables of a league split into them (T-1671, D-319), by
+   * name; null for any other season, whose page is as before. `table` stays
+   * the overall table. `limited` when a club playing in the league is in no
+   * conference the provider's tables named.
+   */
+  conference_tables: Covered<ConferenceTable[]> | null;
   /**
    * The season's qualification and relegation places from the committed
    * list (T-1167, D-171), or why there are none.

@@ -357,6 +357,14 @@ export interface NormalisedStanding {
    * a group: a league's one table, a conference, a split.
    */
   group: string | null;
+  /**
+   * The conference the table is, as the adapter reads it from the label:
+   * "Eastern Conference" (T-1667, D-319, `adapters/_group.ts`). A conference
+   * ranks its clubs over all their league matches, so it is a split of the
+   * league table by club, not a group. Absent or null for every other table;
+   * only an adapter whose provider names conferences sets it.
+   */
+  conference?: string | null;
   rows: NormalisedStandingRow[];
   lastUpdatedAt: string;
 }

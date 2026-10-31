@@ -1003,6 +1003,44 @@ describe('a standings table names its group (T-1333)', () => {
     expect(tables.map((t) => t.group)).toEqual([null, null, null, null]);
   });
 
+  it("reads a conference from its table's label (T-1667), with the league's name before it or not", () => {
+    const tables = mapStandings(
+      groupBody([
+        'Eastern Conference',
+        'Western Conference',
+        'Major League Soccer - Eastern Conference',
+        'MLS, Western Conference',
+        'EASTERN_CONFERENCE',
+        'western conference',
+      ]),
+      '2026-10-01T00:00:00Z',
+    );
+    expect(tables.map((t) => t.conference)).toEqual([
+      'Eastern Conference',
+      'Western Conference',
+      'Eastern Conference',
+      'Western Conference',
+      'Eastern Conference',
+      'Western Conference',
+    ]);
+    expect(tables.map((t) => [t.group, t.stage])).toEqual(Array(6).fill([null, null]));
+  });
+
+  it('reads no conference from a table that is not one', () => {
+    const tables = mapStandings(
+      groupBody([
+        'Major League Soccer',
+        'UEFA Conference League',
+        'UEFA Europa Conference League',
+        'Conference - Group A',
+        'Group A',
+        'Conference',
+      ]),
+      '2026-10-01T00:00:00Z',
+    );
+    expect(tables.map((t) => t.conference)).toEqual([null, null, null, null, null, null]);
+  });
+
   it('keeps a recorded league table groupless', () => {
     const [table] = mapStandings(bodyOf('standings-final-table').response, '2026-10-01T00:00:00Z');
     expect(table?.group).toBeNull();

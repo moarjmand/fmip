@@ -882,6 +882,42 @@ export class IngestStore implements SquadStore {
     return rowCount ?? 0;
   }
 
+  /**
+   * Writes `season_conference` from the provider's conference tables (T-1667,
+   * D-319): `members` is each club of a conference, one conference per club
+   * (`groupMembers`). The season's rows become exactly these -- a club no
+   * longer listed is removed, a club that moved is updated -- in one
+   * statement. An empty list writes nothing: a run that read no conferences
+   * says nothing about them. Returns the rows changed.
+   */
+  async saveConferences(
+    seasonId: string,
+    members: readonly { teamId: string; conference: string }[],
+  ): Promise<number> {
+    if (members.length === 0) return 0;
+    const { rows } = await this.pool.query<{ changed: string }>(
+      `WITH member (team_id, name) AS (
+         SELECT * FROM unnest($2::uuid[], $3::text[])
+       ),
+       gone AS (
+         DELETE FROM season_conference s
+          WHERE s.season_id = $1 AND s.team_id NOT IN (SELECT team_id FROM member)
+         RETURNING 1
+       ),
+       put AS (
+         INSERT INTO season_conference (season_id, team_id, name)
+         SELECT $1, team_id, name FROM member
+         ON CONFLICT (season_id, team_id) DO UPDATE
+            SET name = EXCLUDED.name, updated_at = now()
+          WHERE season_conference.name IS DISTINCT FROM EXCLUDED.name
+         RETURNING 1
+       )
+       SELECT (SELECT count(*) FROM gone) + (SELECT count(*) FROM put) AS changed`,
+      [seasonId, members.map((m) => m.teamId), members.map((m) => m.conference)],
+    );
+    return Number(rows[0]?.changed ?? 0);
+  }
+
   /** The season's stage with that name, or `null`. Stages are never created here. */
   /**
    * The season's stage a fixture belongs to: by the stage name the adapter
