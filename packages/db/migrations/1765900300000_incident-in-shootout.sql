@@ -16,8 +16,8 @@
 -- provider's text). Readers that count goals leave the marked rows out.
 --
 -- Rows stored before this migration carry no mark, so they are read here
--- once with the web's reading of a shoot-out (`shootoutStart`, T-1477 and
--- D-318), for every match with a shoot-out score above nought:
+-- once with the web's readings of a shoot-out (`shootoutStart`, T-1477,
+-- D-318, D-322), for every match with a shoot-out score above nought:
 --
 -- 1. The candidates are the trailing run of penalty incidents (scored or
 --    missed), after the last incident of any other kind by `sequence`.
@@ -32,15 +32,29 @@
 --    play (`current`, else `full_time`; the shoot-out is never in it), and
 --    only when the scored kicks from there pass the shoot-out score on
 --    neither side and fall short of it by one goal at most.
--- 4. Otherwise nothing is marked (rule 3): the run is left as recorded, and
+-- 4. Else, the provider's own numbering of the kicks (the coordinator's
+--    decision, 2026-10-31): API-Football numbers a shoot-out's kicks 1, 2,
+--    3, ... in `added_time` at one minute. The kicks start at the run's last
+--    row numbered 1 at the last incident's minute (rows before it, an
+--    in-play penalty at 120+1 among them, stay play), when every row from
+--    there is at that minute, the numbers go up by one row to row, or by two
+--    where `sequence` also skips one place (a kick the provider listed and
+--    the ingestion did not write: on production every gap in the numbering
+--    of an unread run matched a gap in `sequence` of the same size, 1,029 of
+--    1,033 steps, the other four repeated numbers), there are two kicks at
+--    least, and the scored kicks pass the shoot-out score on neither side.
+--    A kick past 120+30 has no number (T-538), so a run that long is not
+--    read this way.
+-- 5. Otherwise nothing is marked (rule 3): the run is left as recorded, and
 --    the readers count it as before.
 --
--- Read on production the same day (the SELECT alone, read-only): 3,011 rows
--- in 307 matches, 2,146 of them penalty goals (exact: 2,482 rows in 246
--- matches; a kick short: 529 in 61). About 1,470 penalty goals at 120 or
--- later in some 317 matches stay unmarked: their kicks, and often a goal of
--- play, are missing from the store (gaps in `sequence`, players the
--- ingestion could not resolve), so no reading adds up (D-322).
+-- Read on production the same day (the SELECT alone, read-only): 3,746 rows
+-- in 398 matches, 2,710 of them penalty goals (exact: 2,482 rows in 246
+-- matches; a kick short: 529 in 61; by the numbering: 735 in 91). 908
+-- penalty goals at 120 or later in 228 matches with a shoot-out score stay
+-- unmarked: too many of their kicks are missing from the store (gaps in
+-- `sequence`, players the ingestion could not resolve; in 149 the kick
+-- numbered 1 itself), so no reading holds (D-322).
 --
 -- A side is the participant's (`fixture_participant.side`); a penalty with no
 -- participant scores for neither side, as on the page. A match that already
@@ -72,7 +86,7 @@ WITH shootout AS (
    WHERE pen.home + pen.away > 0
      AND NOT EXISTS (SELECT 1 FROM incident m WHERE m.fixture_id = f.id AND m.in_shootout)
 ), timeline AS (
-  SELECT i.id, i.fixture_id, i.sequence, i.kind, i.minute, p.side,
+  SELECT i.id, i.fixture_id, i.sequence, i.kind, i.minute, i.added_time, p.side,
          s.pen_home, s.pen_away, s.after_play,
          i.kind IN ('penalty_goal', 'penalty_missed') AS penalty,
          COALESCE(count(*) FILTER (WHERE i.kind IN ('goal', 'penalty_goal', 'own_goal'))
@@ -121,19 +135,47 @@ WITH shootout AS (
     FROM short_start
    WHERE home_from <= pen_home AND away_from <= pen_away
      AND pen_home + pen_away - home_from - away_from <= 1
+), numbered_from AS (
+  SELECT fixture_id, max(sequence) AS seq
+    FROM run
+   WHERE added_time = 1 AND minute = last_minute
+   GROUP BY fixture_id
+), numbered_kicks AS (
+  SELECT r.*, n.seq AS numbered_seq,
+         r.added_time - lag(r.added_time) OVER w AS number_step,
+         r.sequence - lag(r.sequence) OVER w AS place_step
+    FROM run r
+    JOIN numbered_from n ON n.fixture_id = r.fixture_id AND r.sequence >= n.seq
+  WINDOW w AS (PARTITION BY r.fixture_id ORDER BY r.sequence)
+), numbered AS (
+  -- COALESCE: a kick past 120+30 has no added time, and bool_and would skip
+  -- the NULL its step makes.
+  SELECT fixture_id, min(sequence) AS kicks_from
+    FROM numbered_kicks
+   GROUP BY fixture_id
+  HAVING count(*) >= 2
+     AND bool_and(minute = last_minute)
+     AND bool_and(COALESCE(sequence = numbered_seq OR number_step = 1
+                           OR (number_step = 2 AND place_step = 2), false))
+     AND count(*) FILTER (WHERE kind = 'penalty_goal' AND side = 'home') <= max(pen_home)
+     AND count(*) FILTER (WHERE kind = 'penalty_goal' AND side = 'away') <= max(pen_away)
 ), start AS (
-  SELECT d.fixture_id, COALESCE(x.kicks_from, s.kicks_from) AS kicks_from,
-         CASE WHEN x.kicks_from IS NOT NULL THEN 'exact' ELSE 'short' END AS reading
-    FROM (SELECT fixture_id FROM exact UNION SELECT fixture_id FROM short) d
+  SELECT d.fixture_id, COALESCE(x.kicks_from, s.kicks_from, n.kicks_from) AS kicks_from,
+         CASE WHEN x.kicks_from IS NOT NULL THEN 'exact'
+              WHEN s.kicks_from IS NOT NULL THEN 'short'
+              ELSE 'numbered' END AS reading
+    FROM (SELECT fixture_id FROM exact UNION SELECT fixture_id FROM short
+          UNION SELECT fixture_id FROM numbered) d
     LEFT JOIN exact x ON x.fixture_id = d.fixture_id
     LEFT JOIN short s ON s.fixture_id = d.fixture_id
+    LEFT JOIN numbered n ON n.fixture_id = d.fixture_id
 )
 SELECT r.id, r.fixture_id, r.sequence, r.kind, st.reading
   FROM run r
   JOIN start st ON st.fixture_id = r.fixture_id AND r.sequence >= st.kicks_from;
 
 COMMENT ON VIEW incident_shootout_reading IS
-  'Kicks of a shoot-out read from the shoot-out score for matches with no marked row (T-1673, D-322; the web''s shootoutStart, T-1477, D-318). Read by mark_shootout_kicks(); kept for checks.';
+  'Kicks of a shoot-out read from the shoot-out score, else from the provider''s numbering of the kicks, for matches with no marked row (T-1673, D-322; the web''s shootoutStart, T-1477, D-318). Read by mark_shootout_kicks(); kept for checks and for a re-run after a repair.';
 
 CREATE FUNCTION mark_shootout_kicks(fixtures uuid[] DEFAULT NULL) RETURNS integer
   LANGUAGE plpgsql AS $$

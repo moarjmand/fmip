@@ -73,6 +73,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       return rows.map((r) => r.sequence);
     }
 
+    /** Which reading the view takes for an unmarked match. */
+    async function reading(fixtureId: string): Promise<string[]> {
+      const { rows } = await pool.query<{ reading: string }>(
+        `SELECT DISTINCT reading FROM incident_shootout_reading WHERE fixture_id = $1`,
+        [fixtureId],
+      );
+      return rows.map((r) => r.reading);
+    }
+
     async function mark(fixtureId: string): Promise<number> {
       const { rows } = await pool.query<{ n: number }>(
         `SELECT mark_shootout_kicks(ARRAY[$1::uuid]) AS n`,
@@ -120,6 +129,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           [9, 'penalty_goal', 'home', 120, 5],
         ],
       );
+      expect(await reading(m.id)).toEqual(['exact']);
       expect(await mark(m.id)).toBe(5);
       expect(await marked(m.id)).toEqual([5, 6, 7, 8, 9]);
       // Read again, nothing new: the statement can run twice.
@@ -149,6 +159,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           [26, 'penalty_goal', 'away', 120, 4],
         ],
       );
+      expect(await reading(m.id)).toEqual(['short']);
       expect(await mark(m.id)).toBe(6);
       expect(await marked(m.id)).toEqual([21, 22, 23, 24, 25, 26]);
     });
@@ -174,9 +185,58 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(await marked(m.id)).toEqual([5, 6, 7, 8, 9]);
     });
 
-    it('marks nothing where two scored kicks are missing, or where no shoot-out was played', async () => {
-      // 1-1, 5-3 on penalties, three of Alpha's five scored kicks recorded.
-      const short = await match(
+    it('reads a long run by the numbering where goals of play are missing too', async () => {
+      // 1-1 after extra time with neither goal recorded, 5-4 on penalties:
+      // ten kicks numbered 120+1 to 120+10, the fifth (one of Alpha's scored
+      // kicks) never written, so its place 7 is empty. No score adds up.
+      const m = await match(
+        { full_time: [1, 1], current: [1, 1], penalties: [5, 4] },
+        [
+          [1, 'substitution', 'home', 60, null],
+          [2, 'yellow_card', 'away', 118, null],
+          [3, 'penalty_goal', 'home', 120, 1],
+          [4, 'penalty_goal', 'away', 120, 2],
+          [5, 'penalty_goal', 'home', 120, 3],
+          [6, 'penalty_goal', 'away', 120, 4],
+          [8, 'penalty_goal', 'away', 120, 6],
+          [9, 'penalty_goal', 'home', 120, 7],
+          [10, 'penalty_goal', 'away', 120, 8],
+          [11, 'penalty_goal', 'home', 120, 9],
+          [12, 'penalty_missed', 'away', 120, 10],
+        ],
+      );
+      expect(await reading(m.id)).toEqual(['numbered']);
+      expect(await mark(m.id)).toBe(9);
+      expect(await marked(m.id)).toEqual([3, 4, 5, 6, 8, 9, 10, 11, 12]);
+    });
+
+    it('starts the numbering at its last 1: an in-play penalty at 120+1 stays play', async () => {
+      // 2-2 after extra time, one goal of play not recorded, Alpha's
+      // equaliser a penalty at 120+1; the kicks restart at 120+1. 4-3 on
+      // penalties, Alpha's fifth kick (a goal) never written.
+      const m = await match(
+        { full_time: [1, 1], current: [2, 2], penalties: [4, 3] },
+        [
+          [1, 'goal', 'away', 50, null],
+          [2, 'yellow_card', 'home', 110, null],
+          [4, 'penalty_goal', 'home', 120, 1],
+          [5, 'penalty_goal', 'home', 120, 1],
+          [6, 'penalty_goal', 'away', 120, 2],
+          [7, 'penalty_goal', 'home', 120, 3],
+          [8, 'penalty_missed', 'away', 120, 4],
+          [10, 'penalty_goal', 'away', 120, 6],
+          [11, 'penalty_goal', 'home', 120, 7],
+        ],
+      );
+      expect(await reading(m.id)).toEqual(['numbered']);
+      expect(await mark(m.id)).toBe(6);
+      expect(await marked(m.id)).toEqual([5, 6, 7, 8, 10, 11]);
+    });
+
+    it('marks nothing where the numbering breaks, or where no shoot-out was played', async () => {
+      // 1-1, 5-3 on penalties, three of Alpha's five scored kicks recorded,
+      // and the numbers skip 4 where no place in the list is empty.
+      const broken = await match(
         { full_time: [1, 1], current: [1, 1], penalties: [5, 3] },
         [
           [1, 'goal', 'home', 30, null],
@@ -184,9 +244,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           [3, 'penalty_goal', 'home', 120, 1],
           [4, 'penalty_goal', 'away', 120, 2],
           [5, 'penalty_goal', 'home', 120, 3],
-          [6, 'penalty_goal', 'away', 120, 4],
-          [7, 'penalty_goal', 'home', 120, 5],
-          [8, 'penalty_goal', 'away', 120, 6],
+          [6, 'penalty_goal', 'away', 120, 5],
+          [7, 'penalty_goal', 'home', 120, 6],
+          [8, 'penalty_goal', 'away', 120, 7],
         ],
       );
       // A league match won by a penalty at 90+5: no shoot-out score, untouched.
@@ -197,7 +257,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const extra = await match({ full_time: [0, 0], current: [1, 0] }, [
         [1, 'penalty_goal', 'home', 120, 1],
       ]);
-      for (const m of [short, league, extra]) {
+      for (const m of [broken, league, extra]) {
         expect(await mark(m.id)).toBe(0);
         expect(await marked(m.id)).toEqual([]);
       }
