@@ -15896,6 +15896,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "stage.phase": {
+    "source": "{stage}, {phase}",
+    "text": "{stage}، {phase}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "stage.matchday": {
     "source": "Matchweek {round}",
     "text": "هفته‌ی {round}",

@@ -107,6 +107,12 @@ describe('stage and round labels (T-1339)', () => {
     expect(en('Apertura')).toBe('Apertura');
     expect(fa('Clausura')).toBe('کلاسورا');
     expect(fa('Apertura - 5')).toBe('آپرتورا، هفته‌ی ۵');
+    // Each half's knockout rounds (T-1676), once not shown at all.
+    expect(en('Apertura - Round of 16')).toBe('Apertura, Round of 16');
+    expect(fa('Apertura - Quarter-finals')).toBe('آپرتورا، یک‌چهارم نهایی');
+    expect(fa('Clausura - Final')).toBe('کلاسورا، فینال');
+    // A named round under a stage we cannot name is still not shown.
+    expect(fa('Unknown Stage - Final')).toBeNull();
   });
 
   it('keeps the round number of a stage it cannot name, and nothing of the stage', () => {

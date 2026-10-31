@@ -13090,6 +13090,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "stage.phase": {
+    "source": "{stage}, {phase}",
+    "text": "",
+    "status": "untranslated"
+  },
   "stage.matchday": {
     "source": "Matchweek {round}",
     "text": "",

@@ -2845,6 +2845,7 @@
   "stage.league": "League {letter}",
   "stage.group": "Group {group}",
   "stage.round": "{stage}, matchday {round}",
+  "stage.phase": "{stage}, {phase}",
   "stage.matchday": "Matchweek {round}",
   "stage.name.qualifying": "Qualifying Round",
   "stage.name.friendly": "Friendly",
