@@ -13679,3 +13679,21 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 - New files: `.claude/agents/{model-scientist,architect,designer,security}.md` and `.claude/skills/{model-watch,fmip-architecture,fmip-design,fmip-security}/`.
 - Updated: the data auditor's `invariants.sql` and `SKILL.md`, and the charter's finding prefixes (`mod`, `arc`, `des`, `sec`).
 - The daily run is unchanged. These agents run weekly, monthly or when asked, and the chief of staff reads their findings.
+
+## D-331 — The teammate decides like the maintainer, on a shared decision desk
+
+**Status:** Accepted · 2026-10-31 (the maintainer: "هم تیمی هم مثل من بتواند تصمیم بگیرد" ("the teammate should be able to decide like me too"), then the decision desk chosen from the architect's options) · **Task:** T-1684 · **Follows:** D-328, D-330
+
+**Decision.**
+- **Who decides.** The team's decisions are put to the maintainer and the teammate alike, and either may answer. Purchases, accounts and secrets stay with the maintainer, the only one who can act on them.
+- **Where.** A private claude.ai page, "میز تصمیم" ("the decision desk"), at `https://claude.ai/artifact/VdSk3YP7SZntbVw3BGo7Sf`, with a small database:
+  - `decisions/<id>` holds the questions, written only by the owner (the daily run writes them as the maintainer);
+  - `answers/<person id>` holds each person's answers, written only by that person (rule level `self`, so nobody can change another's answer, the owner included);
+  - every answer is kept with who gave it and when.
+
+  The maintainer shares the page with the teammate as a Contributor.
+- **The loop.** The daily run exports the desk to `E:/FMIP/ops/desk/` before the chief of staff starts. The chief of staff turns answers into the ledger and writes new decisions to `desk-new.json`. The run then puts those on the desk. Two different answers come back as one decision to settle, with both named.
+- **Rejected.**
+  - *The existing team board:* off limits to the agents since 2026-10-19.
+  - *GitHub issues:* an account and repository access for the teammate.
+  - *A file in the repository:* every answer would be a pull request.
