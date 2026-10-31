@@ -43,6 +43,7 @@ export const STAGE_KEYS = [
   'stage.league',
   'stage.group',
   'stage.round',
+  'stage.phase',
   'stage.matchday',
   'stage.roundNumber',
   'stage.roundOf',
@@ -88,6 +89,8 @@ const GROUP_LETTER = /^Group ([A-Z])$/;
 const GROUP_NUMBER = /^Group ([1-9][0-9]?)$/;
 /** "<stage> - <n>": the provider's round within a stage. */
 const ROUND = new RegExp(`^(.+) - ${N}$`);
+/** "<stage> - <named round>": a knockout round of one half ("Apertura - Final", T-1676). */
+const PHASE = /^(.+?) - (.+)$/;
 /** "Round of 64": a knockout round by the clubs left in it. */
 const ROUND_OF = new RegExp(`^Round of ${N}$`);
 /** "1st Round", "Round 3", "Matchday 4", "Matchweek 20": a numbered round. */
@@ -123,7 +126,8 @@ function nameOf(text: string, say: Say, locale: string): string | null {
 
 /**
  * "League A - 1" → «لیگ A، هفته‌ی ۱»; "Regular Season - 12" → «هفته‌ی ۱۲»;
- * "Group Stage" → «مرحله‌ی گروهی»; "Something New - 3" → «دور ۳». A text
+ * "Group Stage" → «مرحله‌ی گروهی»; "Apertura - Round of 16" → «آپرتورا، یک‌هشتم
+ * نهایی»; "Something New - 3" → «دور ۳». A text
  * nothing here recognises is `null`: leave the label out, never print it.
  */
 export function stageLabel(text: string, say: Say, locale: string): string | null {
@@ -137,6 +141,14 @@ export function stageLabel(text: string, say: Say, locale: string): string | nul
     if (stage !== null) return fill(say('stage.round'), { stage, round: n });
     // A stage we cannot name: its round number is still ours to say.
     return fill(say('stage.roundNumber'), { round: n });
+  }
+  // Both halves named, or nothing: a half's knockout round we can name under
+  // a stage we cannot would read as the season's own (T-1676).
+  const phase = PHASE.exec(text);
+  if (phase?.[1] !== undefined && phase[2] !== undefined) {
+    const stage = nameOf(phase[1], say, locale);
+    const named = nameOf(phase[2], say, locale);
+    if (stage !== null && named !== null) return fill(say('stage.phase'), { stage, phase: named });
   }
   return null;
 }
