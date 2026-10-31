@@ -36,7 +36,7 @@ import type {
   StatMetric,
 } from '../../normalised';
 import { decodeEntities } from '../../news/feed';
-import { groupOfLabel, stageOfLabel } from '../_group';
+import { conferenceOfLabel, groupOfLabel, stageOfLabel } from '../_group';
 import { incidentDetail } from '../_incident-detail';
 import { nationalityCode } from './nationality';
 
@@ -1032,7 +1032,9 @@ function standingRow(raw: unknown): NormalisedStandingRow | null {
  * plain league table); `group` here is the group's own name read from it
  * (`groupOfLabel`), null for a table that is not a group, and `stage` the
  * stage the label names before it ("Apertura - Group A" → "Apertura";
- * `stageOfLabel`, T-1399), null when it names none.
+ * `stageOfLabel`, T-1399), null when it names none. `conference` is the
+ * conference a label names ("Eastern Conference"; `conferenceOfLabel`,
+ * T-1667), null for any other table.
  */
 export function mapStandings(response: unknown, receivedAt: string): NormalisedStanding[] {
   if (!Array.isArray(response)) return [];
@@ -1056,6 +1058,7 @@ export function mapStandings(response: unknown, receivedAt: string): NormalisedS
         seasonLabel: seasonLabel(startYear),
         stage: stageOfLabel(label),
         group: groupOfLabel(label),
+        conference: conferenceOfLabel(label),
         rows,
         lastUpdatedAt: updates.at(-1) ?? receivedAt,
       });
