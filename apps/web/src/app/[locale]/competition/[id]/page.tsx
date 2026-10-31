@@ -19,7 +19,7 @@ import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { KnockoutBracket } from '@/components/knockout-bracket';
 import { EntityNews } from '@/components/related-news';
-import { GroupTables, showsLeagueTable } from '@/components/standings-table';
+import { ConferenceTables, GroupTables, showsLeagueTable } from '@/components/standings-table';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 import { formatNumber, localDigits } from '@/i18n/format';
@@ -311,7 +311,9 @@ interface TabProps {
 /**
  * The season's tables (T-1336): the league table when it has rows or no
  * group stage, every group's table when there is one, and for a cup played
- * only in knockout rounds the sentence that it has no table.
+ * only in knockout rounds the sentence that it has no table. A league split
+ * into conferences (T-1672, D-319) shows its conference tables first and the
+ * overall table below them.
  */
 function TableModules({
   page,
@@ -339,9 +341,23 @@ function TableModules({
       </Card>
     );
   }
+  const conferences = page.conference_tables;
   return (
     <>
-      {showsLeagueTable(page) && <TableCard page={page} locale={locale} timeZone={timeZone} />}
+      {conferences !== null && (
+        <CoveredCard
+          testId="conference-tables"
+          title={<Translated locale={locale} message="competitionPage.conferenceTables" />}
+          module={conferences}
+          locale={locale}
+          timeZone={timeZone}
+        >
+          {(data) => <ConferenceTables conferences={data} locale={locale} />}
+        </CoveredCard>
+      )}
+      {showsLeagueTable(page) && (
+        <TableCard page={page} locale={locale} timeZone={timeZone} overall={conferences !== null} />
+      )}
       {page.group_tables !== null && (
         <CoveredCard
           testId="group-tables"

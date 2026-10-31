@@ -2,6 +2,7 @@ import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import type {
   CompetitionPage,
+  ConferenceTable,
   FormResult,
   GroupTable,
   LeagueZones,
@@ -394,6 +395,63 @@ export function GroupTables({
           <div className="pt-2">{grid(stage)}</div>
         </details>
       ))}
+    </div>
+  );
+}
+
+/** The conferences the catalogue names (T-1672, D-319); any other is shown as the API names it. */
+const CONFERENCE_KEY: Record<string, MessageKey> = {
+  'Eastern Conference': 'competitionPage.conference.eastern',
+  'Western Conference': 'competitionPage.conference.western',
+};
+
+/** A conference's name in the reader's words, or as the API names it when the catalogue has none. */
+export function conferenceName(locale: string, name: string): string {
+  const key = CONFERENCE_KEY[name];
+  return key === undefined ? name : say(locale, key);
+}
+
+/**
+ * The conference tables of a league split into them (T-1672, D-319: Major
+ * League Soccer's Eastern and Western Conference), each its own clubs ranked
+ * over all their league matches. Side by side from the desktop width, one
+ * above the other on a phone. A conference none of whose clubs has played
+ * says so and names them, never a grid of noughts. No zones: the places the
+ * committed list marks are the overall table's.
+ */
+export function ConferenceTables({
+  conferences,
+  locale,
+}: {
+  conferences: ConferenceTable[];
+  locale: string;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {conferences.map((c) => {
+        const name = conferenceName(locale, c.name);
+        return (
+          <div
+            key={c.name}
+            className="flex min-w-0 flex-col gap-1"
+            data-testid="conference-table"
+            data-conference={c.name}
+          >
+            <h3 className="text-sm font-semibold">{name}</h3>
+            {c.rows.length === 0 ? (
+              <p className="text-sm text-muted" data-testid="conference-not-started">
+                <Translated locale={locale} message="competitionPage.conferenceNotStarted" />{' '}
+                {listText(
+                  locale,
+                  c.teams.map((t) => t.name),
+                )}
+              </p>
+            ) : (
+              <StandingsTable rows={c.rows} locale={locale} zones={null} caption={name} />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
