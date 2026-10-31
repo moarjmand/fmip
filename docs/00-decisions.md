@@ -13470,3 +13470,16 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 **Rejected.** *A group stage for MLS* (Argentina's set-up): it takes the overall table away and needs an operator's write. *`fixture.group_name` on league matches*: read by five other consumers, the model among them. *A committed list of clubs per conference, like the league zones (D-171, D-314)*: that file holds places in a table, never clubs.
 
 **Consequences.** The current season's rows appear on the first standings run after the deploy, which also confirms the provider's labels (15 and 15 clubs expected for MLS 2026/27). Past seasons (2020/21 to 2025/26) keep the one table: the standings job polls the current season only, and reading them is out of scope. Out of scope and left as follow-ups: MLS's tie-breakers (total wins before goal difference; ours rank on points, goal difference, goals for), the play-off lines of each conference (zones per conference), and a conference line in the match centre.
+
+## D-324 — IRNA and Khabar Varzeshi are read from their football feeds
+
+**Status:** Accepted · 2026-10-31 (the maintainer: "do all of it with high care", answering D-321's question) · **Task:** T-1675 · **Follows:** D-321, rule 10
+
+**Decision.** IRNA is read from `https://www.irna.ir/rss/tp/15` (its Sport > Football service) in place of `rss/tp/14` (Sport), and Khabar Varzeshi from `https://www.khabarvarzeshi.com/rss/tp/1` (Football, futsal and beach soccer included) in place of its whole-site `rss`. Both were the main source of other sports on /fa after D-321 (145 and 44 unfiled reports in 14 days with another sport's word). Each new feed was read live before the change: 30 items, all football (IRNA: the Pro League, Esteghlal, PSG, beach soccer; Khabar Varzeshi: the Pro League, the AFC Champions League, the Premier League, La Liga).
+
+**Kept.** Tehran Times (`rss/tp/699`) and Agência Brasil (`rss/esportes`) publish no football-only feed (their feed lists show Sports alone); their reports are judged by `otherCodeOf` (D-321). Mehr and Tasnim already read football services.
+
+**How.** The admin console's edit needs an administrator's sign-in, so the change was made on production as `NewsSourcesAdminStore.edit` makes it: one transaction updating `feed_url` and writing a `news_source.edit` audit row per source, actor the administrator, with the reason and the previous and next values.
+
+**Consequence.** Reports already stored from the general feeds stay (nothing deleted); new ones come from the football feeds from the next news run. The policy table (`docs/13-policy.md`) is unchanged: same publishers, same rights.
+
