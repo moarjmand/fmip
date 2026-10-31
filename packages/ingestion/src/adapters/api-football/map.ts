@@ -383,7 +383,9 @@ export function mapIncidents(
       // D-322); the text stays here, the flag is ours.
       inShootout:
         (kind === 'penalty_goal' || kind === 'penalty_missed') &&
-        String(e.comments ?? '').trim().toLowerCase() === SHOOTOUT_COMMENT,
+        String(e.comments ?? '')
+          .trim()
+          .toLowerCase() === SHOOTOUT_COMMENT,
     });
   }
   return out;

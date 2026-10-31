@@ -16,7 +16,8 @@ const DATABASE_URL = process.env.DATABASE_URL;
 const PL_2025 = '00000000-0000-4000-8000-000000000302';
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 
-type Kind = 'goal' | 'own_goal' | 'penalty_goal' | 'penalty_missed' | 'yellow_card' | 'substitution';
+type Kind =
+  'goal' | 'own_goal' | 'penalty_goal' | 'penalty_missed' | 'yellow_card' | 'substitution';
 /** sequence, kind, side, minute, added time */
 type Row = [number, Kind, 'home' | 'away', number, number | null];
 
@@ -59,7 +60,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           `INSERT INTO incident (fixture_id, participant_id, person_id, related_person_id, kind,
                                  minute, added_time, sequence)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [id, of(side), taker, kind === 'substitution' ? taker : null, kind, minute, added, sequence],
+          [
+            id,
+            of(side),
+            taker,
+            kind === 'substitution' ? taker : null,
+            kind,
+            minute,
+            added,
+            sequence,
+          ],
         );
       }
       return { id, home: of('home'), away: of('away') };
@@ -167,20 +177,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     it('starts a short shoot-out after an in-play penalty at 120+1', async () => {
       // 2-2 after extra time with the equaliser at 120+1; 3-2 on penalties,
       // one of Beta's scored kicks absent, so no run adds up.
-      const m = await match(
-        { full_time: [1, 1], current: [2, 2], penalties: [3, 2] },
-        [
-          [1, 'goal', 'home', 30, null],
-          [2, 'goal', 'away', 50, null],
-          [3, 'goal', 'away', 100, null],
-          [4, 'penalty_goal', 'home', 120, 1],
-          [5, 'penalty_goal', 'home', 120, 1],
-          [6, 'penalty_missed', 'away', 120, 2],
-          [7, 'penalty_goal', 'home', 120, 3],
-          [8, 'penalty_goal', 'away', 120, 4],
-          [9, 'penalty_goal', 'home', 120, 5],
-        ],
-      );
+      const m = await match({ full_time: [1, 1], current: [2, 2], penalties: [3, 2] }, [
+        [1, 'goal', 'home', 30, null],
+        [2, 'goal', 'away', 50, null],
+        [3, 'goal', 'away', 100, null],
+        [4, 'penalty_goal', 'home', 120, 1],
+        [5, 'penalty_goal', 'home', 120, 1],
+        [6, 'penalty_missed', 'away', 120, 2],
+        [7, 'penalty_goal', 'home', 120, 3],
+        [8, 'penalty_goal', 'away', 120, 4],
+        [9, 'penalty_goal', 'home', 120, 5],
+      ]);
       expect(await mark(m.id)).toBe(5);
       expect(await marked(m.id)).toEqual([5, 6, 7, 8, 9]);
     });
@@ -189,22 +196,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // 1-1 after extra time with neither goal recorded, 5-4 on penalties:
       // ten kicks numbered 120+1 to 120+10, the fifth (one of Alpha's scored
       // kicks) never written, so its place 7 is empty. No score adds up.
-      const m = await match(
-        { full_time: [1, 1], current: [1, 1], penalties: [5, 4] },
-        [
-          [1, 'substitution', 'home', 60, null],
-          [2, 'yellow_card', 'away', 118, null],
-          [3, 'penalty_goal', 'home', 120, 1],
-          [4, 'penalty_goal', 'away', 120, 2],
-          [5, 'penalty_goal', 'home', 120, 3],
-          [6, 'penalty_goal', 'away', 120, 4],
-          [8, 'penalty_goal', 'away', 120, 6],
-          [9, 'penalty_goal', 'home', 120, 7],
-          [10, 'penalty_goal', 'away', 120, 8],
-          [11, 'penalty_goal', 'home', 120, 9],
-          [12, 'penalty_missed', 'away', 120, 10],
-        ],
-      );
+      const m = await match({ full_time: [1, 1], current: [1, 1], penalties: [5, 4] }, [
+        [1, 'substitution', 'home', 60, null],
+        [2, 'yellow_card', 'away', 118, null],
+        [3, 'penalty_goal', 'home', 120, 1],
+        [4, 'penalty_goal', 'away', 120, 2],
+        [5, 'penalty_goal', 'home', 120, 3],
+        [6, 'penalty_goal', 'away', 120, 4],
+        [8, 'penalty_goal', 'away', 120, 6],
+        [9, 'penalty_goal', 'home', 120, 7],
+        [10, 'penalty_goal', 'away', 120, 8],
+        [11, 'penalty_goal', 'home', 120, 9],
+        [12, 'penalty_missed', 'away', 120, 10],
+      ]);
       expect(await reading(m.id)).toEqual(['numbered']);
       expect(await mark(m.id)).toBe(9);
       expect(await marked(m.id)).toEqual([3, 4, 5, 6, 8, 9, 10, 11, 12]);
@@ -214,20 +218,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // 2-2 after extra time, one goal of play not recorded, Alpha's
       // equaliser a penalty at 120+1; the kicks restart at 120+1. 4-3 on
       // penalties, Alpha's fifth kick (a goal) never written.
-      const m = await match(
-        { full_time: [1, 1], current: [2, 2], penalties: [4, 3] },
-        [
-          [1, 'goal', 'away', 50, null],
-          [2, 'yellow_card', 'home', 110, null],
-          [4, 'penalty_goal', 'home', 120, 1],
-          [5, 'penalty_goal', 'home', 120, 1],
-          [6, 'penalty_goal', 'away', 120, 2],
-          [7, 'penalty_goal', 'home', 120, 3],
-          [8, 'penalty_missed', 'away', 120, 4],
-          [10, 'penalty_goal', 'away', 120, 6],
-          [11, 'penalty_goal', 'home', 120, 7],
-        ],
-      );
+      const m = await match({ full_time: [1, 1], current: [2, 2], penalties: [4, 3] }, [
+        [1, 'goal', 'away', 50, null],
+        [2, 'yellow_card', 'home', 110, null],
+        [4, 'penalty_goal', 'home', 120, 1],
+        [5, 'penalty_goal', 'home', 120, 1],
+        [6, 'penalty_goal', 'away', 120, 2],
+        [7, 'penalty_goal', 'home', 120, 3],
+        [8, 'penalty_missed', 'away', 120, 4],
+        [10, 'penalty_goal', 'away', 120, 6],
+        [11, 'penalty_goal', 'home', 120, 7],
+      ]);
       expect(await reading(m.id)).toEqual(['numbered']);
       expect(await mark(m.id)).toBe(6);
       expect(await marked(m.id)).toEqual([5, 6, 7, 8, 10, 11]);
@@ -236,19 +237,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     it('marks nothing where the numbering breaks, or where no shoot-out was played', async () => {
       // 1-1, 5-3 on penalties, three of Alpha's five scored kicks recorded,
       // and the numbers skip 4 where no place in the list is empty.
-      const broken = await match(
-        { full_time: [1, 1], current: [1, 1], penalties: [5, 3] },
-        [
-          [1, 'goal', 'home', 30, null],
-          [2, 'goal', 'away', 50, null],
-          [3, 'penalty_goal', 'home', 120, 1],
-          [4, 'penalty_goal', 'away', 120, 2],
-          [5, 'penalty_goal', 'home', 120, 3],
-          [6, 'penalty_goal', 'away', 120, 5],
-          [7, 'penalty_goal', 'home', 120, 6],
-          [8, 'penalty_goal', 'away', 120, 7],
-        ],
-      );
+      const broken = await match({ full_time: [1, 1], current: [1, 1], penalties: [5, 3] }, [
+        [1, 'goal', 'home', 30, null],
+        [2, 'goal', 'away', 50, null],
+        [3, 'penalty_goal', 'home', 120, 1],
+        [4, 'penalty_goal', 'away', 120, 2],
+        [5, 'penalty_goal', 'home', 120, 3],
+        [6, 'penalty_goal', 'away', 120, 5],
+        [7, 'penalty_goal', 'home', 120, 6],
+        [8, 'penalty_goal', 'away', 120, 7],
+      ]);
       // A league match won by a penalty at 90+5: no shoot-out score, untouched.
       const league = await match({ full_time: [1, 0], current: [1, 0] }, [
         [1, 'penalty_goal', 'home', 90, 5],
@@ -264,13 +262,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     });
 
     it('leaves a match the feed has already marked to the feed', async () => {
-      const m = await match(
-        { full_time: [0, 0], current: [0, 0], penalties: [1, 0] },
-        [
-          [1, 'penalty_missed', 'away', 120, 1],
-          [2, 'penalty_goal', 'home', 120, 2],
-        ],
-      );
+      const m = await match({ full_time: [0, 0], current: [0, 0], penalties: [1, 0] }, [
+        [1, 'penalty_missed', 'away', 120, 1],
+        [2, 'penalty_goal', 'home', 120, 2],
+      ]);
       await pool.query(
         `UPDATE incident SET in_shootout = true WHERE fixture_id = $1 AND sequence = 2`,
         [m.id],
