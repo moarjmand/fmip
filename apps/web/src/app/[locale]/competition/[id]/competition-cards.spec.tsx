@@ -262,6 +262,15 @@ describe('the table', () => {
     expect(html).toContain('data-coverage-badge="not_supplied"');
   });
 
+  it('is the overall table beside conference tables (T-1672), in English and Persian', () => {
+    const plain = renderToStaticMarkup(<TableCard page={page()} locale="en" timeZone="UTC" />);
+    expect(plain).not.toContain('Overall table');
+    const en = renderToStaticMarkup(<TableCard page={page()} locale="en" timeZone="UTC" overall />);
+    expect(en).toContain('Overall table');
+    const fa = renderToStaticMarkup(<TableCard page={page()} locale="fa" timeZone="UTC" overall />);
+    expect(fa).toContain('جدول کلی');
+  });
+
   it('writes the table in Persian digits on /fa', () => {
     const html = renderToStaticMarkup(<TableCard page={page()} locale="fa" timeZone="UTC" />);
     expect(html).toContain('>۲۱<');

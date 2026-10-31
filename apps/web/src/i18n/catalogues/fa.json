@@ -12932,6 +12932,36 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.conferenceTables": {
+    "source": "Conference tables",
+    "text": "جدول کنفرانس‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.conferenceNotStarted": {
+    "source": "No club of this conference has played a match, so there are no positions yet. Its clubs:",
+    "text": "هنوز هیچ باشگاهی از این کنفرانس بازی نکرده است، پس هنوز رده‌ای ندارد. باشگاه‌های آن:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.conference.eastern": {
+    "source": "Eastern Conference",
+    "text": "کنفرانس شرق",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.conference.western": {
+    "source": "Western Conference",
+    "text": "کنفرانس غرب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "competitionPage.overallTable": {
+    "source": "Overall table",
+    "text": "جدول کلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.col.team": {
     "source": "Team",
     "text": "تیم",

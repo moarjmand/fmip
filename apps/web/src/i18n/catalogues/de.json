@@ -10654,6 +10654,31 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.conferenceTables": {
+    "source": "Conference tables",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.conferenceNotStarted": {
+    "source": "No club of this conference has played a match, so there are no positions yet. Its clubs:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.conference.eastern": {
+    "source": "Eastern Conference",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.conference.western": {
+    "source": "Western Conference",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.overallTable": {
+    "source": "Overall table",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.col.team": {
     "source": "Team",
     "text": "",
