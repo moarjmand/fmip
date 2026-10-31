@@ -345,3 +345,47 @@ describe("the zones of a conference's table (T-1674, D-323)", () => {
     }
   });
 });
+
+describe('whether the legend names unmarked cup places (T-1674)', () => {
+  const at = (key: Partial<ZoneCompetition>, season: string) =>
+    leagueZonesFor(LIST, { kind: 'league', division: null, tier: 1, ...key }, season);
+  const says = (key: Partial<ZoneCompetition>, season: string) => {
+    const z = at(key, season);
+    if (z.state !== 'listed') throw new Error(`${JSON.stringify(key)} ${season} is listed`);
+    return z.unmarked_cup_places;
+  };
+
+  it('says so for a UEFA league, before its season has a Champions League place too', () => {
+    expect(says({ division: 'E0' }, '2025/26')).toBe(true);
+    // E0 2026/27 lists only relegation until UEFA publishes 2027/28's places.
+    expect(says({ division: 'E0' }, '2026/27')).toBe(true);
+    expect(says({ country: 'BEL' }, '2026/27')).toBe(true);
+  });
+
+  it('never for a second tier, another confederation or MLS', () => {
+    expect(says({ division: 'E1' }, '2025/26')).toBe(false);
+    expect(says({ country: 'BRA' }, '2026/27')).toBe(false);
+    expect(says({ country: 'KSA' }, '2025/26')).toBe(false);
+    expect(says({ division: 'IR1' }, '2024/25')).toBe(false);
+    expect(says({ division: 'US1' }, '2026/27')).toBe(false);
+  });
+
+  it('reads it from the same league only', () => {
+    const list = [
+      entry({ division: 'X1', season: '2025/26' }),
+      entry({
+        division: 'X1',
+        season: '2026/27',
+        zones: [{ kind: 'relegation', from: 18, to: 20 }],
+      }),
+      entry({
+        division: 'X2',
+        season: '2026/27',
+        zones: [{ kind: 'relegation', from: 18, to: 20 }],
+      }),
+    ];
+    const z = (division: string) => leagueZonesFor(list, { kind: 'league', division }, '2026/27');
+    expect(z('X1')).toMatchObject({ unmarked_cup_places: true });
+    expect(z('X2')).toMatchObject({ unmarked_cup_places: false });
+  });
+});

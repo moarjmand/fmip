@@ -450,7 +450,9 @@ function legendLines(
  * `tables`: the league's one table (default), or its conference tables
  * (T-1674, D-323), whose places the list names by conference. A league whose
  * places are all its conferences' says so once, under the conference tables:
- * the overall table then has no legend of its own.
+ * the overall table then has no legend of its own. The cup-winners line only
+ * where the list says the league has unmarked Europa and Conference League
+ * places (`unmarked_cup_places`, T-1674).
  */
 export function ZoneLegend({
   locale,
@@ -499,8 +501,10 @@ export function ZoneLegend({
             {i === zones.sources.length - 1 ? ')' : ''}
           </span>
         ))}
-        .{/* Cup winners and continental places are a league table's matter, not a conference's. */}
-        {tables === 'league' && (
+        .
+        {/* Only a UEFA league's table has Europa and Conference League places for
+            cup winners to reassign (T-1674): never the Brasileirão, the Gulf or MLS. */}
+        {tables === 'league' && zones.unmarked_cup_places && (
           <>
             {' '}
             <Translated locale={locale} message="competitionPage.zones.cupWinners" />

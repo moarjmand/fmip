@@ -71,6 +71,7 @@ describe('the league table', () => {
       sources: ['https://example.org'],
       complete: true,
       note: null,
+      unmarked_cup_places: true,
     };
     const html = renderToStaticMarkup(
       <StandingsTable rows={[row('a', 1, 3), row('b', 2, 0)]} locale="en" zones={zones} />,
@@ -216,6 +217,7 @@ const MLS_ZONES: LeagueZones = {
   complete: true,
   sources: ['https://www.mlssoccer.com/news/audi-2026-mls-cup-playoffs-format-how-it-works'],
   note: null,
+  unmarked_cup_places: false,
 };
 
 const ranked = (prefix: string, n: number): TableRow[] =>

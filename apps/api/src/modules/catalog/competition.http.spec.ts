@@ -473,7 +473,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     ]);
     try {
       const listed = (await get()).zones;
-      expect(listed).toMatchObject({ state: 'listed', teams: 20, complete: true });
+      expect(listed).toMatchObject({
+        state: 'listed',
+        teams: 20,
+        complete: true,
+        unmarked_cup_places: true,
+      });
       if (listed.state !== 'listed') throw new Error('unreachable');
       expect(listed.zones).toContainEqual({ kind: 'relegation', from: 18, to: 20 });
       expect(listed.sources.every((s) => s.startsWith('https://'))).toBe(true);
@@ -506,7 +511,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
         })
       ).json() as CompetitionPage;
       expect(page.season.label).toBe('2026');
-      expect(page.zones).toMatchObject({ state: 'listed', teams: 30, complete: true });
+      expect(page.zones).toMatchObject({
+        state: 'listed',
+        teams: 30,
+        complete: true,
+        unmarked_cup_places: false,
+      });
       if (page.zones.state !== 'listed') throw new Error('unreachable');
       // Each conference's play-off places, named by the conference's stored name.
       expect(page.zones.zones).toContainEqual({

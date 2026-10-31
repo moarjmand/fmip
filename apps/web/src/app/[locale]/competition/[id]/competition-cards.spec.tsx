@@ -218,6 +218,7 @@ describe('the table', () => {
     sources: ['https://example.org/rules'],
     complete: true,
     note: null,
+    unmarked_cup_places: true,
   };
 
   it('draws no zone colour where the feed does not list the places, and says so', () => {
@@ -273,6 +274,38 @@ describe('the table', () => {
     expect(fa).toContain('جدول کلی');
   });
 
+  it('says cup winners reassign the Europa and Conference League places only for a UEFA league (T-1674)', () => {
+    const line = 'Cup winners change who takes the Europa and Conference League places';
+    const european = renderToStaticMarkup(
+      <TableCard page={page({ zones: listed })} locale="en" timeZone="UTC" />,
+    );
+    expect(european).toContain(line);
+    // A Brasileirão-like entry: Libertadores places, no UEFA competition to speak of.
+    const brazil: LeagueZones = {
+      state: 'listed',
+      teams: 20,
+      zones: [
+        { kind: 'copa_libertadores', from: 1, to: 4 },
+        { kind: 'relegation', from: 17, to: 20 },
+      ],
+      sources: ['https://example.org/rules'],
+      complete: false,
+      note: null,
+      unmarked_cup_places: false,
+    };
+    const html = renderToStaticMarkup(
+      <TableCard page={page({ zones: brazil })} locale="en" timeZone="UTC" />,
+    );
+    expect(html).toContain('data-testid="table-zones"');
+    expect(html).not.toContain('Europa');
+    expect(html).toContain('Copa Libertadores');
+    const fa = (zones: LeagueZones) =>
+      renderToStaticMarkup(<TableCard page={page({ zones })} locale="fa" timeZone="UTC" />);
+    const faLine = message('fa', 'competitionPage.zones.cupWinners').text;
+    expect(fa(listed)).toContain(faLine);
+    expect(fa(brazil)).not.toContain(faLine);
+  });
+
   describe('a league whose places are its conferences’ (T-1674, D-323)', () => {
     const mls = (zones: LeagueZone[]): LeagueZones => ({
       state: 'listed',
@@ -282,6 +315,7 @@ describe('the table', () => {
       sources: ['https://www.mlssoccer.com/news/audi-2026-mls-cup-playoffs-format-how-it-works'],
       note: 'Clubs level on points are ranked by wins.',
       note_fa: 'تیم‌های هم‌امتیاز به ترتیب تعداد برد رده‌بندی می‌شوند.',
+      unmarked_cup_places: false,
     });
     const both = mls(
       ['Eastern Conference', 'Western Conference'].flatMap((conference) => [

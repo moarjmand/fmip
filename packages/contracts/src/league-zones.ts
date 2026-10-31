@@ -123,6 +123,16 @@ export type LeagueZones =
       note: string | null;
       /** `note` in Persian (T-1557); a page in another language shows `note`. */
       note_fa?: string | null;
+      /**
+       * The league also earns Europa and Conference League places, which cup
+       * winners reassign and the list never marks (D-171), so the legend says
+       * so (T-1674). Read from the list itself: true when any listed season of
+       * the same league marks a Champions League place -- a UEFA league, the
+       * current season included before its places are published. False for a
+       * second tier (E1), for the leagues of other confederations
+       * (Brasileirão, the Gulf, IR1) and for MLS.
+       */
+      unmarked_cup_places: boolean;
     }
   | {
       state: 'not_listed';
@@ -166,6 +176,11 @@ export function leagueZonesFor(
     sources: e.sources,
     note: e.note ?? null,
     note_fa: e.note_fa ?? null,
+    unmarked_cup_places: entries.some(
+      (x) =>
+        (e.division !== undefined ? x.division === e.division : x.country === e.country) &&
+        x.zones.some((z) => z.kind === 'champions_league'),
+    ),
   };
 }
 
