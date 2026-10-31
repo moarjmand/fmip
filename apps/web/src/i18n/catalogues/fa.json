@@ -8144,6 +8144,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "status.regularTime": {
+    "source": "90′",
+    "text": "۹۰ دقیقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "status.aggregate": {
     "source": "Agg",
     "text": "مجموع",

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { CompetitionPage, MatchHeader, PlayerPage, TeamPage } from '@fmip/contracts';
 import { DEFAULT_LOCALE, LOCALES, isPseudoLocale, isUnfinishedLocale } from '../i18n/locales';
 import { demonstrationTitle, isDemonstrationData } from './demonstration';
+import { resultLine } from './scores';
 
 /**
  * The SEO surface (T-039, D-040): one canonical URL per page under its
@@ -140,7 +141,7 @@ function team(locale: string, t: { id: string; name: string }, origin: string): 
 export function matchJsonLd(locale: string, f: MatchHeader, origin = siteUrl()): JsonLd {
   const home = team(locale, f.home, origin);
   const away = team(locale, f.away, origin);
-  const fullTime = f.status === 'finished' ? (f.scores.full_time ?? f.scores.current) : null;
+  const fullTime = f.status === 'finished' ? resultLine(f.scores) : null;
   return {
     '@context': CONTEXT,
     '@type': 'SportsEvent',

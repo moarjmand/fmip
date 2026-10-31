@@ -6736,6 +6736,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "status.regularTime": {
+    "source": "90′",
+    "text": "",
+    "status": "untranslated"
+  },
   "status.aggregate": {
     "source": "Agg",
     "text": "",
