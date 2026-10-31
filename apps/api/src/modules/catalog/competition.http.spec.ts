@@ -717,4 +717,33 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       ]);
     }
   });
+  it('counts the numbered rounds of a league in its table and leaves its play-offs out (T-1678)', async () => {
+    // Stage-less rounds as the provider names them in a league season: a split
+    // league's numbered round is the table's; a play-off, a final and an
+    // unnumbered relegation tie are not.
+    const rounds: [string, string, string, [number, number]][] = [
+      ['Championship Round - 3', TEAMS.delta, TEAMS.epsilon, [1, 0]],
+      ['Promotion Play-offs - Final', TEAMS.alpha, TEAMS.beta, [5, 0]],
+      ['Relegation Round', TEAMS.gamma, TEAMS.alpha, [2, 0]],
+      ['MLS Cup - Round 1', TEAMS.epsilon, TEAMS.delta, [3, 0]],
+      ['Semi-finals', TEAMS.alpha, TEAMS.gamma, [1, 0]],
+    ];
+    for (const [round, home, away, score] of rounds) {
+      const id = await fixture(OLD_SEASON, OLD_STAGE, home, away, '2025-05-10T15:00:00Z', score);
+      await pool.query(`UPDATE fixture SET stage_id = NULL, round = $2 WHERE id = $1`, [id, round]);
+    }
+    const response = await app.inject({
+      method: 'GET',
+      url: `/competitions/${COMPETITION}?season=${OLD_SEASON}`,
+    });
+    const page = response.json() as CompetitionPage;
+    const row = (name: string) => page.table.data!.find((r) => r.team.name === `${name} ${RUN}`);
+    expect([row('Test Beta')?.played, row('Test Beta')?.points]).toEqual([1, 3]);
+    expect([row('Test Alpha')?.played, row('Test Alpha')?.points]).toEqual([1, 0]);
+    expect([row('Test Delta')?.played, row('Test Delta')?.points]).toEqual([1, 3]);
+    expect([row('Test Epsilon')?.played, row('Test Epsilon')?.points]).toEqual([1, 0]);
+    expect(row('Test Gamma')?.played ?? 0).toBe(0);
+    // The results list still shows every match played.
+    expect(page.results.length).toBeGreaterThanOrEqual(6);
+  });
 });

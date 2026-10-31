@@ -13,6 +13,29 @@ import { mainPhaseSql, mainPhaseStartSql } from '../../../database/main-phase';
 const MAIN_PHASE = mainPhaseSql('f', mainPhaseStartSql('$1'));
 import type { Result } from './table';
 
+/**
+ * Whether a stage-less fixture of a league competition is one of the table's
+ * rounds (T-1678, D-325). The provider files a league's play-offs as rounds
+ * with no stage of ours: MLS Cup, the Championship's promotion play-offs, the
+ * Bundesliga's relegation tie, the Eredivisie's European play-offs. They are
+ * matches of the season, not of its table. Left out: a round naming a final,
+ * a semi- or quarter-final, a round of N, a play-off or play-in (a play-off
+ * *group* is a league of its own and stays), a decider, an unnumbered
+ * "Relegation Round" or "Relegation/Promotion" (a tie; the numbered
+ * "Relegation Round - 3" of a split league is the table's), "1st Round" and the
+ * like (the Eredivisie's play-off rounds; a league's own rounds are
+ * "Regular Season - N"), and anything under "MLS Cup".
+ */
+const LEAGUE_ROUND = `(f.round IS NULL OR NOT (
+    (f.round ~* '(^|[^a-z])(finals?|semi-finals?|quarter-finals?|play-?offs?|play-in|decider)([^a-z]|$)'
+       AND f.round !~* 'play-?off group')
+    OR f.round ~* '^round of [0-9]+$'
+    OR f.round ~* '^relegation round$'
+    OR f.round ~* '^relegation/promotion$'
+    OR f.round ~* '^[0-9]+(st|nd|rd|th) round$'
+    OR f.round ~* '^mls cup'
+  ))`;
+
 /** A leader as the standings boundary knows it: goals, not minutes (T-824 adds those in the catalog). */
 export type Scorer = Omit<Leader, 'minutes' | 'appearances'>;
 
@@ -76,14 +99,16 @@ export class PostgresStandingsStore {
   /**
    * Finished league-stage results of a season with their full-time score:
    * fixtures whose stage is a league (or, in a league competition, fixtures
-   * with no stage), status `finished`, a `full_time` score row present.
+   * with no stage and a round of the league, T-1678), status `finished`, a
+   * `full_time` score row present.
    */
   async leagueResults(
     seasonId: string,
     before: string | null = null,
   ): Promise<{ results: Result[]; lastUpdatedAt: string | null }> {
     return this.results(
-      `f.season_id = $1 AND (st.kind = 'league' OR (f.stage_id IS NULL AND c.kind = 'league'))`,
+      `f.season_id = $1
+       AND (st.kind = 'league' OR (f.stage_id IS NULL AND c.kind = 'league' AND ${LEAGUE_ROUND}))`,
       [seasonId],
       before,
     );
