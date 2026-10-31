@@ -36,6 +36,16 @@ or by a page check in `SKILL.md`.
 
 ## Accepted: known and explained, not findings
 
-- **R4/R3b, past seasons:** shoot-outs whose first kick the feed never stored; the re-asks of
-  T-1679 bring the feed's mark where the provider has it. Report the count, not each match.
+- **The feed's own wrong answers, left to the provider (the maintainer, 2026-10-31):** re-asked on
+  2026-10-31 (T-1681) and answered the same. R1/R7: Pafos v Hajduk and Los Garres v Manises (4–0
+  after extra time, stored 2–0), Khujand v Neftchi 2020, Kocaelispor v Sivasspor 2025; R2:
+  Bengaluru v Maziya 2020; R3a: Malavan v Sepahan (Hazfi Cup 2025-04-26). Report them in one line
+  with their count; flag only a new match of that shape.
+- **I2, one provider player id on both line-ups** (five matches): a feed error; the page will mark
+  it as unclear in the source (the maintainer's choice). Report the count; flag only a new one.
+- **R4 after T-1679:** 2 shoot-outs (Danish Superliga 2021-05-28, Belgian Pro League 2026-05-31)
+  with one kick stored; nothing more can be read.
+
+- **R3b, past seasons:** shoot-outs whose first kick the feed never stored (154). Report the count,
+  not each match.
 - **T1, Major League Soccer 2020/21:** the MLS-is-Back group stage.
