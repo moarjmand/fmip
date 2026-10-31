@@ -58,6 +58,9 @@ edit the file mid-audit.
 | I3 sides_malformed | A match without exactly one home and one away club. |
 | I4 club_without_country | Clubs with no country (info: all of them today). |
 | M1 / M2 | A published forecast not summing to one; a modelled match in the next 24 hours with no forecast. |
+| P1 request_budget | Today's provider requests as a share of the plan (the watchdog's figure); 80% or more is major. |
+| P2 unresolved_pending | Provider players and clubs the ingestion could not tie to an identity yet (rule 1); a growing count means data that does not appear. |
+| P3 finished_without_lineup | Matches finished in the last day with no line-up stored, by competition: a coverage gap, or line-ups arriving late (the 2026-10-28 case). |
 | Q1 open_findings | The platform's own hourly checks (T-820) still open: triage the largest kind. |
 
 ### 2. Triage
