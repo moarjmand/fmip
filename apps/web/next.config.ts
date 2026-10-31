@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // No `X-Powered-By: Next.js` (T-1685, D-332): it tells a scanner what to try.
+  poweredByHeader: false,
   // Emits .next/standalone: the server plus only the node_modules it actually
   // reaches. The alternative is copying the whole workspace's node_modules into
   // the image, which for a pnpm monorepo means shipping every package every app
