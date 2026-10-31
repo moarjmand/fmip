@@ -244,3 +244,31 @@ describe('player photos on the bench (T-1616)', () => {
     expect(list).toMatch(/width="32" height="32"/);
   });
 });
+
+describe('one player on both line-ups (T-1687, D-333)', () => {
+  it('marks him on each side as unclear in the source, with a note, and guesses nothing', () => {
+    const home = eleven();
+    const twice = home[7] as MatchLineupPlayer;
+    const away = eleven();
+    away[7] = { ...twice, shirt_number: 32 };
+    const html = render(home, away);
+    expect(html.match(/\(unclear in the source\)/g)?.length).toBe(2);
+    expect(html).toContain('data-testid="lineup-both-sides"');
+    // Both rows stay: the player is shown where the feed put him on each side.
+    expect(html.split(twice.name).length - 1).toBeGreaterThanOrEqual(2);
+  });
+
+  it('says so in Persian', () => {
+    const home = eleven();
+    const away = eleven();
+    away[3] = { ...(home[3] as MatchLineupPlayer) };
+    const html = render(home, away, { locale: 'fa' });
+    expect(html).toContain('نامشخص در منبع');
+  });
+
+  it('marks nobody when the sides share no player', () => {
+    const html = render(eleven(), eleven());
+    expect(html).not.toContain('unclear in the source');
+    expect(html).not.toContain('lineup-both-sides');
+  });
+});

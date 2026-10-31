@@ -13641,3 +13641,19 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 - **What the programme showed:** with goals, our own Elo and per-division decay, the model is already near what these inputs can add on the data we hold. The one signal worth another look is expected-goals form: it was significantly better on the main leagues, but worse in too many smaller ones. A version limited to the leagues with full xG coverage would be a new formulation, written before its run.
 
 **Consequences.** `docs/04-tasks-phase-14.md`: T-1651 to T-1657, T-1659 and T-1660 marked with their verdicts; T-1658 waits for its run; T-1661 (the report) follows. The reports stay outside the repository: `~/fmip-lab/reports/` on the server and `E:/FMIP/lab-local/reports/` locally.
+
+## D-333 — A player the feed lists on both sides is marked as unclear, never moved
+
+**Status:** Accepted · 2026-10-31 (the maintainer: "بیان روشن روی صفحه" ("a clear statement on the page")) · **Task:** T-1687 · **Follows:** D-294, D-327, rule 3
+
+**Context.** The data auditor's I2 check found five matches whose line-ups carry one provider player id on both sides. Examples: "Mohamed Ali" in two UAE Pro League matches with shirts 68 and 32; a placeholder "Trialist" in a Scottish League Cup match. Each person has one provider id, so our resolution is not at fault: the feed itself names one player for both teams. A re-ask (T-1681) brought the same answer. The page showed the same name in both line-ups with nothing said.
+
+**Decision.** The match page keeps the player where the feed put him on each side, and marks him in both places as «(نامشخص در منبع)» / "(unclear in the source)". A note under the line-ups says the source lists one player in both teams' line-ups and that we mark him rather than guess his side.
+- **Not done:** no side is chosen, no row deleted (rule 3: never invent).
+- **Detection:** done on the page from the two lists (the same player id in both), so no contract or migration changes.
+
+**Rejected.**
+- *Hiding both rows:* a line-up of ten, said as if it were the data.
+- *Choosing a side by shirt number or other matches* (D-294's alignment works on whole line-ups, not one player): a guess presented as a fact.
+
+**Consequences.** `apps/web/src/components/match-lineups.tsx` (`unclear`, the marker on the pitch and in the lists, the note `lineup-both-sides`); `matchCentre.lineups.bothSides` and `.bothSidesNote` in every catalogue (Persian by the agent, D-175; the other seven untranslated); `match-lineups.spec.tsx`.

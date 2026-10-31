@@ -14155,5 +14155,15 @@
     "source": "Where are you watching?",
     "text": "",
     "status": "untranslated"
+  },
+  "matchCentre.lineups.bothSides": {
+    "source": "(unclear in the source)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.bothSidesNote": {
+    "source": "The data source lists one player in both teams’ line-ups. We show him where it puts him and mark him as unclear rather than guess which side he played for.",
+    "text": "",
+    "status": "untranslated"
   }
 }

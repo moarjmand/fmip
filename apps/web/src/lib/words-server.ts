@@ -371,6 +371,8 @@ export const MATCH_KEYS = [
   'matchCentre.lineups.pitchNote',
   'matchCentre.lineups.pitchNoteGrid',
   'matchCentre.lineups.pitchNoteMixed',
+  'matchCentre.lineups.bothSides',
+  'matchCentre.lineups.bothSidesNote',
   'matchCentre.lineups.noFormation',
   'matchCentre.lineups.noRoles',
   'matchCentre.lineups.linesUnknown',
