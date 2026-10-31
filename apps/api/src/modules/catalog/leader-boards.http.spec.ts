@@ -74,12 +74,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('leader board
     kind: string,
     person: string,
     related: string | null = null,
+    inShootout = false,
   ): Promise<void> {
     sequence += 1;
     await pool.query(
-      `INSERT INTO incident (fixture_id, participant_id, person_id, related_person_id, kind, minute, sequence)
-       VALUES ($1, $2, $3, $4, $5, 50, $6)`,
-      [fixtureId, participantId, person, related, kind, sequence],
+      `INSERT INTO incident (fixture_id, participant_id, person_id, related_person_id, kind, minute,
+                             sequence, in_shootout)
+       VALUES ($1, $2, $3, $4, $5, 50, $6, $7)`,
+      [fixtureId, participantId, person, related, kind, sequence, inShootout],
     );
   }
 
@@ -177,6 +179,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('leader board
     await incident(two.id, two.away, 'substitution', P.keeperOne, P.keeperThree);
     await keeper(two.home, P.keeperFour, null);
     await incident(two.id, two.home, 'red_card', P.hothead);
+    // Alpha win the shoot-out 1-0: the kick is no goal, nor an assist (T-1673).
+    await pool.query(
+      `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'penalties', 0, 1)`,
+      [two.id],
+    );
+    await incident(two.id, two.home, 'penalty_missed', P.keeperFour, null, true);
+    await incident(two.id, two.away, 'penalty_goal', P.scorer, P.maker, true);
 
     // Beta 1-1 gamma with no line-ups: two sides nobody can judge.
     const three = await match(SEASON, TEAMS.beta, TEAMS.gamma, '2025-09-15T15:00:00Z', [1, 1]);
@@ -206,6 +215,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('leader board
     expect(response.statusCode).toBe(200);
     return response.json() as CompetitionPage;
   };
+
+  it("leaves a shoot-out's kicks out of the scorers and the assists (T-1673)", async () => {
+    const page = await get();
+    expect(page.leaders.data?.map((l) => [l.person.id, l.goals])).toEqual([
+      [P.scorer, 2],
+      [P.defender, 1],
+    ]);
+    expect(page.boards.assists.data!.map((r) => [r.person.id, r.assists])).toEqual([[P.maker, 1]]);
+  });
 
   it('counts assists from the goals that name one', async () => {
     const { boards } = await get();

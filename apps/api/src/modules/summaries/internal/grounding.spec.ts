@@ -45,6 +45,7 @@ const FACTS: MatchFacts = {
         player: 'Mohamed Salah',
         related_player: null,
         detail: null,
+        in_shootout: false,
       },
       {
         minute: 45,
@@ -54,6 +55,7 @@ const FACTS: MatchFacts = {
         player: 'Bruno Fernandes',
         related_player: null,
         detail: null,
+        in_shootout: false,
       },
     ],
   },

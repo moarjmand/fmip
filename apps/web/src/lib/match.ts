@@ -93,12 +93,25 @@ export function minuteLabel(minute: number, addedTime: number | null, locale = '
  * of its goals. With no shoot-out
  * score, or neither reading, the list is left as recorded rather than
  * guessed at (rule 3).
+ *
+ * Since T-1673 (D-322) the API marks the kicks (`in_shootout`), from the
+ * feed or read once from the shoot-out score: where any incident is marked,
+ * the kicks are the trailing run of marked ones, with or without a shoot-out
+ * score yet (a shoot-out being played). The readings above are for a list
+ * with no mark (an older API, a feed without one), and a third after them
+ * (D-322): the provider's own numbering of the kicks, 120+1, 120+2, ...
+ * (`numberedShootoutStart`).
  */
 export function shootoutStart(
-  incidents: readonly { kind: string; side: 'home' | 'away' | null; minute?: number }[],
+  incidents: readonly ShootoutIncident[],
   penalties: { home: number; away: number } | null,
   afterPlay: { home: number; away: number } | null = null,
 ): number | null {
+  if (incidents.some((i) => i.in_shootout === true)) {
+    let marked = incidents.length;
+    while (marked > 0 && incidents[marked - 1]!.in_shootout === true) marked -= 1;
+    return marked < incidents.length ? marked : null;
+  }
   if (penalties === null || penalties.home + penalties.away === 0) return null;
   let start = incidents.length;
   while (start > 0 && isKick(incidents[start - 1]!.kind)) start -= 1;
@@ -108,7 +121,60 @@ export function shootoutStart(
     // A shorter run only scores fewer: none further on can add up.
     if (scored.home < penalties.home || scored.away < penalties.away) break;
   }
-  return afterPlay === null ? null : shortShootoutStart(incidents, start, penalties, afterPlay);
+  const short =
+    afterPlay === null ? null : shortShootoutStart(incidents, start, penalties, afterPlay);
+  return short ?? numberedShootoutStart(incidents, start, penalties);
+}
+
+/** What `shootoutStart` reads of an incident; the match centre's carry all of it. */
+interface ShootoutIncident {
+  kind: string;
+  side: 'home' | 'away' | null;
+  minute?: number;
+  added_time?: number | null;
+  /** The incident's place in the feed's list; the score cards carry none. */
+  sequence?: number;
+  in_shootout?: boolean;
+}
+
+/**
+ * The provider's numbering of the kicks (D-322, as the migration's third
+ * reading): the kicks start at the trailing run's last penalty numbered 1
+ * (`added_time` 1) at the last incident's minute, the rows before it staying
+ * play (an in-play penalty at 120+1 followed by kicks restarting at 120+1).
+ * Every kick from there is at that minute; the numbers go up by one, or by
+ * two where `sequence` also skips one place (a kick the feed listed and we
+ * did not store; without `sequence`, never); two kicks at least; the scored
+ * kicks pass the shoot-out score on neither side.
+ */
+function numberedShootoutStart(
+  incidents: readonly ShootoutIncident[],
+  start: number,
+  penalties: { home: number; away: number },
+): number | null {
+  const last = incidents.at(-1)?.minute;
+  if (last === undefined) return null;
+  let from = -1;
+  for (let at = incidents.length - 1; at >= start; at -= 1) {
+    if (incidents[at]!.added_time === 1 && incidents[at]!.minute === last) {
+      from = at;
+      break;
+    }
+  }
+  if (from < 0 || incidents.length - from < 2) return null;
+  for (let at = from + 1; at < incidents.length; at += 1) {
+    const kick = incidents[at]!;
+    const before = incidents[at - 1]!;
+    if (kick.minute !== last || kick.added_time == null || before.added_time == null) return null;
+    const step = kick.added_time - before.added_time;
+    const skipped =
+      kick.sequence !== undefined && before.sequence !== undefined
+        ? kick.sequence - before.sequence
+        : null;
+    if (step !== 1 && !(step === 2 && skipped === 2)) return null;
+  }
+  const scored = scoredKicks(incidents.slice(from));
+  return scored.home <= penalties.home && scored.away <= penalties.away ? from : null;
 }
 
 function isKick(kind: string): boolean {

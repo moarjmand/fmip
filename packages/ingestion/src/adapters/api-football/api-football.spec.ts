@@ -389,6 +389,45 @@ describe('mapping rules', () => {
     ]);
     expect(incidents.flatMap((i) => validateIncident(i))).toEqual([]);
   });
+
+  it("marks a shoot-out's kicks by the provider's comment, never a penalty of play (T-1673)", () => {
+    const event = (
+      elapsed: number,
+      extra: number | null,
+      type: string,
+      detail: string,
+      comments: string | null,
+    ) => ({
+      time: { elapsed, extra },
+      team: { id: 44 },
+      player: { id: 7, name: 'Taker' },
+      assist: { id: null, name: null },
+      type,
+      detail,
+      comments,
+    });
+    const incidents = mapIncidents(
+      [
+        event(120, 1, 'Goal', 'Penalty', null),
+        event(120, 1, 'Card', 'Yellow Card', 'Penalty Shootout'),
+        event(120, 1, 'Goal', 'Penalty', 'Penalty Shootout'),
+        event(120, 2, 'Goal', 'Missed Penalty', 'Penalty Shootout'),
+        event(120, 3, 'Goal', 'Penalty', 'penalty shootout '),
+      ],
+      '1',
+      '44',
+    );
+    expect(incidents.map((i) => [i.kind, i.inShootout])).toEqual([
+      ['penalty_goal', false],
+      ['yellow_card', false],
+      ['penalty_goal', true],
+      ['penalty_missed', true],
+      ['penalty_goal', true],
+    ]);
+    expect(incidents.flatMap((i) => validateIncident(i))).toEqual([]);
+    // The contract refuses a mark on anything but a penalty.
+    expect(validateIncident({ ...incidents[1], inShootout: true })).toHaveLength(1);
+  });
 });
 
 describe('the live list carries events and the half-time interval (T-830)', () => {

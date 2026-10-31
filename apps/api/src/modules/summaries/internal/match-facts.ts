@@ -51,6 +51,8 @@ export interface MatchFacts {
       player: string | null;
       related_player: string | null;
       detail: string | null;
+      /** A kick of a penalty shoot-out, never a goal of the match (T-1673). */
+      in_shootout: boolean;
     }[];
   };
   statistics: {
@@ -164,6 +166,7 @@ export function assembleFacts(
         player: i.player?.name ?? null,
         related_player: i.related_player?.name ?? null,
         detail: i.detail,
+        in_shootout: i.in_shootout === true,
       })),
     },
     statistics: {

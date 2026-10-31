@@ -122,6 +122,8 @@ export interface ScoreCardIncident {
   side: 'home' | 'away' | null;
   /** The player's display name, or `null` when the incident has no player. */
   player: string | null;
+  /** A kick of a penalty shoot-out (T-1673, D-322), as on `MatchIncident`. */
+  in_shootout?: boolean;
 }
 
 export interface ScoreCard {

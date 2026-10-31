@@ -285,6 +285,12 @@ export interface NormalisedIncident {
   relatedPlayer: EntityRef | null;
   /** What it adds to its kind, in our words; never the provider's text (T-1378). */
   detail: IncidentDetail | null;
+  /**
+   * A kick of a penalty shoot-out (T-1673, D-322), as the feed marks it: never
+   * a goal of the match. Only a `penalty_goal` or `penalty_missed` can be one;
+   * false where the feed has no such mark.
+   */
+  inShootout: boolean;
 }
 
 /**
