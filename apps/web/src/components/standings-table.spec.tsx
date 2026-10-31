@@ -223,8 +223,10 @@ describe('the conference tables (T-1672)', () => {
     expect(html.match(/data-testid="table-row"/g)).toHaveLength(4);
     expect(html.indexOf('Eastern')).toBeLessThan(html.indexOf('Western'));
     expect(html).not.toContain('data-zone=');
-    // Two abreast from the desktop width, logical properties only.
-    expect(html).toContain('lg:grid-cols-2');
+    // Two abreast only from the wide desktop width: at 1024 the Persian names
+    // pushed the second table into its own sideways scroll (T-1672).
+    expect(html).toContain('xl:grid-cols-2');
+    expect(html).not.toContain('lg:grid-cols-2');
   });
 
   it('says a conference not yet started has no positions, and names its clubs', () => {
