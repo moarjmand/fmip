@@ -109,6 +109,7 @@ function page(over: Partial<CompetitionPage> = {}): CompetitionPage {
       data: [row('a', 1, ['L', 'W', 'W', 'W', 'W']), row('b', 18, ['D'])],
     },
     group_tables: null,
+    conference_tables: null,
     zones: { state: 'not_listed', reason: 'season_not_listed' },
     results: [],
     fixtures: [fixture()],

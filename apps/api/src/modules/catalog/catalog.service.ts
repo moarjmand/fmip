@@ -554,6 +554,7 @@ export class CatalogService {
       bracketFixtures,
       division,
       lastCheckedAt,
+      conferenceTables,
     ] = await Promise.all([
       this.competitions_.stages(selected.id),
       this.competitions_.fixtures(selected.id),
@@ -566,6 +567,8 @@ export class CatalogService {
       this.competitions_.division(id),
       // When the provider last confirmed the season's whole list (T-1633, D-296).
       listsCheckedAt(this.pool, [selected.id]),
+      // A league split into conferences (T-1671, D-319); null for any other.
+      this.standings.conferenceStandings(selected.id),
     ]);
     // Group tables (T-1336) only for a season with a group stage: a league
     // reads nothing more and answers exactly as before (`group_tables: null`).
@@ -686,6 +689,7 @@ export class CatalogService {
       team: [
         ...(table.data ?? []).map((r) => r.team.id),
         ...(groupTables?.data ?? []).flatMap((g) => g.teams.map((t) => t.id)),
+        ...(conferenceTables?.data ?? []).flatMap((c) => c.teams.map((t) => t.id)),
         ...boardRows.flatMap((l) => (l.team === null ? [] : [l.team.id])),
         // Both sides of every listed match (T-1617).
         ...fixtureTeamIds(fixtures),
@@ -744,6 +748,23 @@ export class CatalogService {
                           team: { ...r.team, crest: media.crest(r.team.id) },
                         })),
                         teams: g.teams.map((t) => ({ ...t, crest: media.crest(t.id) })),
+                      })),
+              },
+        conference_tables:
+          conferenceTables === null
+            ? null
+            : {
+                ...conferenceTables,
+                data:
+                  conferenceTables.data === null
+                    ? null
+                    : conferenceTables.data.map((c) => ({
+                        ...c,
+                        rows: c.rows.map((r) => ({
+                          ...r,
+                          team: { ...r.team, crest: media.crest(r.team.id) },
+                        })),
+                        teams: c.teams.map((t) => ({ ...t, crest: media.crest(t.id) })),
                       })),
               },
         // T-1167 (D-171): the committed list, never the feed's standings.

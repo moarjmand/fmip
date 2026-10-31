@@ -324,6 +324,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect(page.bracket).toBeNull();
     // Nor group stages: its page is the league table alone, as before (T-1336).
     expect(page.group_tables).toBeNull();
+    // Nor conferences (T-1671): no conference table, the league table is the page's.
+    expect(page.conference_tables).toBeNull();
   });
 
   it('computes the table from stored results, with the unplayed club on it too', async () => {

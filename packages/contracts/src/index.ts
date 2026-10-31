@@ -208,6 +208,7 @@ export type {
   FollowSuggestionsResponse,
   FormResult,
   GroupTable,
+  ConferenceTable,
   KnockoutBracket,
   KnockoutLeg,
   KnockoutRound,
