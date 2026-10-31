@@ -13440,3 +13440,18 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 **Rejected.** *Narrowing the GNews query* (`NOT cricket`, `NOT "high school"`): it cannot be tried without spending the free plan's requests, and "tennis" or "basketball" would also exclude football stories that mention them; the job and the lists judge every item anyway. *Requiring every report to name football or one of ours*: most football-only feeds' unfiled reports name neither (kicker 870 of 1,356). *Marking each source as football-only or general sports*: a new column with a backfill (CLAUDE.md §7); the words already do it for the reports seen. *Dropping the general sports feeds*: they also carry Iranian and Brazilian football that the football-only feeds do not; which feeds to carry is the maintainer's (N-8).
 
 **Consequence.** `packages/ingestion/src/news/other-code.ts` (`OTHER_CODE_RULES`, `despiteSoccer`); no API change. With the rule, production's 14 days hide 1,069 reports (646 other sports, 407 school sport, 1 rugby union): of the 215 reports with simple other-sport evidence (cricket, tennis, kabaddi, basketball, ...) that the lists showed 201 of, 48 stay, almost all football stories using such a word. Left for the maintainer: whether to replace Tehran Times' and Agência Brasil's sports feeds with football-only ones, and IRNA's and Khabar Varzeshi's, which remain the source of most other-sport reports on /fa (145 and 44 of their unfiled reports with another sport's word still pass, mostly Para Games round-ups, futsal and beach soccer).
+
+## D-320 — A group stage a later one has replaced follows the current one, closed
+
+**Status:** Accepted · 2026-10-31 (the agent, on the coordinator's brief for the teammate's report) · **Task:** T-1668 · **Follows:** D-175, D-214, T-1336, T-1375
+
+**Context.** Argentina's Liga Profesional plays a season in two halves, the Apertura and the Clausura, each a group stage of two zones with its own knockout rounds. The competition page's group tables kept the two stages apart but headed both "Groups": the page translates stage names from a closed list (T-1375) and neither name was on it. The finished Apertura also came first, above the Clausura being played.
+
+**Decision.**
+- `Apertura` and `Clausura` are stage names the page knows (English as spelt; Persian «آپرتورا», «کلاسورا»), so the stage headings and the round labels ("Apertura - 5") name them.
+- A group stage is **superseded** when another group stage of the same season began after its last kick-off and has a finished match. The API marks it on `GroupTable.stage.superseded`; the page shows the stages that are not superseded first, as before, and each superseded one below them, the most recent first, closed under a disclosure that names it and says "Earlier stage". Nothing is hidden: the tables are one click away.
+- Time decides, not the stages' order: stages played side by side (the Nations League's League A..D overlap) never supersede one another, and a later stage that is only drawn does not replace the earlier one until its first result.
+
+**Rejected.** *Keep the order and only add the names*: the page would still open on a finished table above the one moving. *Hide the earlier stage*: it is the season's record and the knockout rounds come from it. *Decide in the web from the fixtures it carries*: the page's fixture and result lists are not the whole stage, so its first and last kick-off would be guessed.
+
+**Consequence.** `supersededStages` and `groupStageSpans` (`apps/api/src/modules/standings/`), `GroupTables` (`apps/web/src/components/standings-table.tsx`). The knockout stages "Apertura - Round of 16" and the like are still unnamed on the page (a follow-up).

@@ -275,14 +275,26 @@ function PlaceCell({
   );
 }
 
+/** One group stage on the page and its groups (T-1336, T-1668). */
+interface StageGroups {
+  id: string;
+  name: string;
+  superseded: boolean;
+  groups: GroupTable[];
+}
+
 /**
  * Every group's table of a season's group stages (T-1336), in the API's
- * order. With several group stages (the Nations League's League A..D) each
- * stage is a heading of its own and its groups sit under it; with one, the
- * stage's name ("Group Stage") would only repeat the section's, so it is
- * left out. A group none of whose matches is played has no positions yet:
- * a sentence and its teams, never a grid of noughts. Groups sit two abreast
- * from the desktop width, one per row on a phone.
+ * order. With several group stages (the Nations League's League A..D,
+ * Argentina's Apertura and Clausura) each stage is a heading of its own and
+ * its groups sit under it; with one, the stage's name ("Group Stage") would
+ * only repeat the section's, so it is left out. A stage a later one has
+ * replaced (T-1668: the Apertura once the Clausura is played) follows the
+ * stages being played, closed under a disclosure that names it, the most
+ * recent first: the page opens on the table that is moving, and the earlier
+ * one is a click away. A group none of whose matches is played has no
+ * positions yet: a sentence and its teams, never a grid of noughts. Groups
+ * sit two abreast from the desktop width, one per row on a phone.
  */
 export function GroupTables({
   groups,
@@ -294,7 +306,7 @@ export function GroupTables({
   /** The Overview's columns (T-1385). */
   summary?: boolean;
 }) {
-  const stages: { id: string; name: string; groups: GroupTable[] }[] = [];
+  const stages: StageGroups[] = [];
   for (const g of groups) {
     const last = stages[stages.length - 1];
     if (last !== undefined && last.id === g.stage.id) last.groups.push(g);
@@ -303,49 +315,84 @@ export function GroupTables({
         id: g.stage.id,
         // A stage we cannot name is headed by what it holds: groups (T-1375).
         name: stageName(locale, g.stage.name) ?? say(locale, 'stage.name.groups'),
+        superseded: g.stage.superseded,
         groups: [g],
       });
   }
   const several = stages.length > 1;
+  const current = stages.filter((s) => !s.superseded);
+  const earlier = stages.filter((s) => s.superseded).reverse();
+  const grid = (stage: StageGroups) => (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {stage.groups.map((g) => {
+        const name = say(locale, 'matchCentre.group', { group: g.group });
+        const Heading = several ? 'h4' : 'h3';
+        return (
+          <div
+            key={g.group}
+            className="flex min-w-0 flex-col gap-1"
+            data-testid="group-table"
+            data-group={g.group}
+          >
+            <Heading className="text-sm font-semibold">{name}</Heading>
+            {g.rows.length === 0 ? (
+              <p className="text-sm text-muted" data-testid="group-not-started">
+                <Translated locale={locale} message="competitionPage.groupNotStarted" />{' '}
+                {listText(
+                  locale,
+                  g.teams.map((t) => t.name),
+                )}
+              </p>
+            ) : (
+              <StandingsTable
+                rows={g.rows}
+                locale={locale}
+                zones={null}
+                caption={several ? `${stage.name}, ${name}` : name}
+                summary={summary}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
   return (
     <div className="flex flex-col gap-4">
-      {stages.map((stage) => (
+      {current.map((stage) => (
         <div key={stage.id} className="flex flex-col gap-2" data-testid="group-stage">
           {several && <h3 className="text-base font-semibold">{stage.name}</h3>}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {stage.groups.map((g) => {
-              const name = say(locale, 'matchCentre.group', { group: g.group });
-              const Heading = several ? 'h4' : 'h3';
-              return (
-                <div
-                  key={g.group}
-                  className="flex min-w-0 flex-col gap-1"
-                  data-testid="group-table"
-                  data-group={g.group}
-                >
-                  <Heading className="text-sm font-semibold">{name}</Heading>
-                  {g.rows.length === 0 ? (
-                    <p className="text-sm text-muted" data-testid="group-not-started">
-                      <Translated locale={locale} message="competitionPage.groupNotStarted" />{' '}
-                      {listText(
-                        locale,
-                        g.teams.map((t) => t.name),
-                      )}
-                    </p>
-                  ) : (
-                    <StandingsTable
-                      rows={g.rows}
-                      locale={locale}
-                      zones={null}
-                      caption={several ? `${stage.name}, ${name}` : name}
-                      summary={summary}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          {grid(stage)}
         </div>
+      ))}
+      {earlier.map((stage) => (
+        <details
+          key={stage.id}
+          className="group/stage border-t border-default pt-3"
+          data-testid="group-stage-earlier"
+        >
+          <summary className="flex min-h-touch cursor-pointer list-none items-center gap-2 rounded-control [&::-webkit-details-marker]:hidden">
+            <h3 className="text-base font-semibold">{stage.name}</h3>
+            <span className="text-xs text-muted">
+              <Translated locale={locale} message="competitionPage.groupStageEarlier" />
+            </span>
+            <svg
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="ms-auto text-muted transition-transform group-open/stage:rotate-180"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
+          <div className="pt-2">{grid(stage)}</div>
+        </details>
       ))}
     </div>
   );

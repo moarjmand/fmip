@@ -12938,6 +12938,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "competitionPage.groupStageEarlier": {
+    "source": "Earlier stage",
+    "text": "مرحله‌ی قبلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "competitionPage.col.team": {
     "source": "Team",
     "text": "تیم",
@@ -15917,6 +15923,18 @@
   "stage.name.relegationRound": {
     "source": "Relegation Round",
     "text": "مرحله‌ی سقوط",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.apertura": {
+    "source": "Apertura",
+    "text": "آپرتورا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.clausura": {
+    "source": "Clausura",
+    "text": "کلاسورا",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
