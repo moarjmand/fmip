@@ -13483,3 +13483,15 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 
 **Consequence.** Reports already stored from the general feeds stay (nothing deleted); new ones come from the football feeds from the next news run. The policy table (`docs/13-policy.md`) is unchanged: same publishers, same rights.
 
+## D-325 — A league's table counts its own rounds; the play-offs filed in it are matches of the season, not of the table
+
+**Status:** Accepted · 2026-10-31 (the agent, within the maintainer's "do all of it with high care") · **Task:** T-1678 · **Follows:** D-038, T-035, D-319
+
+**Context.** The provider files a league's play-offs as rounds of the league with no stage of ours, and `StandingsStore.leagueResults` took every stage-less match of a league competition. Running T-1677 for Major League Soccer's past seasons, the standings job reported 35 to 40 matches a club where the provider's tables count 34: the MLS Cup's rounds were in the table. Production holds 46 stage-less round names in league seasons, besides "Regular Season - N".
+
+**Decision.** In a league competition a stage-less match is in the table unless its round names a final ("Final", "Plate Final", "8th Finals"), a semi- or quarter-final, a round of N, a play-off or play-in (a "Play-off Group" is a league of its own and stays), a decider, an unnumbered "Relegation Round" or "Relegation/Promotion" (a two-legged tie; the numbered "Relegation Round - 3" of a split league is the table's), an ordinal "1st Round" (the Eredivisie's play-off rounds; a league's own are "Regular Season - N"), or anything under "MLS Cup". One SQL predicate, `LEAGUE_ROUND` in `standings-store.ts`.
+
+**On production.** 11 round names kept (Championship/Relegation Round and Group - N, Conference League (Play-off) Group - N, 1st/2nd Phase - N, Round - N, Lower Table Round - N, Group Stage - N), 35 left out (MLS Cup's, the promotion and European play-offs, relegation ties and deciders, finals and semi-finals). MLS 2025/26: 36 matches a club before, 34 after, the provider's count.
+
+**Not changed.** The results and fixture lists, the bracket and the boards keep every match. A split league's later rounds keep counting in the one table, as they did; whether a league halves points at the split is not modelled (D-038 stands).
+
