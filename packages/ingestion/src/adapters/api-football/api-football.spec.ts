@@ -290,6 +290,41 @@ describe('mapping rules', () => {
     ).toBeNull();
   });
 
+  it('keeps extra time and a shoot-out only for a match that reached them (T-1681)', () => {
+    const item = (short: string, extratime: unknown, penalty: unknown) => ({
+      fixture: { id: 1553211, date: '2026-10-30T19:30:00+00:00', status: { short, elapsed: 90 } },
+      league: { id: 106, name: 'Ekstraklasa', season: 2026, round: 'Regular Season - 13' },
+      teams: { home: { id: 340, name: 'Gornik Zabrze' }, away: { id: 339, name: 'Legia' } },
+      goals: { home: 0, away: 0 },
+      score: {
+        halftime: { home: 0, away: 0 },
+        fulltime: { home: 0, away: 0 },
+        extratime,
+        penalty,
+      },
+    });
+    const at = '2026-10-31T12:00:00Z';
+    const zeros = { home: 0, away: 0 };
+    // A league match the feed gave zeros for both periods it never had.
+    const league = mapFixture(item('FT', zeros, zeros), at);
+    expect(league?.scores.extraTime).toBeNull();
+    expect(league?.scores.penalties).toBeNull();
+    expect(mapFixture(item('ABD', zeros, zeros), at)?.scores.penalties).toBeNull();
+    // After extra time: its goals kept, a zero shoot-out not.
+    const aet = mapFixture(item('AET', { home: 4, away: 0 }, zeros), at);
+    expect(aet?.scores.extraTime).toEqual({ home: 4, away: 0 });
+    expect(aet?.scores.penalties).toBeNull();
+    // A shoot-out decided, and one under way (level is a running score there).
+    const pen = mapFixture(item('PEN', zeros, { home: 4, away: 2 }), at);
+    expect(pen?.scores.extraTime).toEqual(zeros);
+    expect(pen?.scores.penalties).toEqual({ home: 4, away: 2 });
+    expect(mapFixture(item('PEN', zeros, { home: 3, away: 3 }), at)?.scores.penalties).toBeNull();
+    expect(mapFixture(item('P', zeros, { home: 2, away: 2 }), at)?.scores.penalties).toEqual({
+      home: 2,
+      away: 2,
+    });
+  });
+
   it('drops a match a day or more ahead that the provider calls live or finished (T-1350)', () => {
     const item = (date: string, short: string) => ({
       fixture: { id: 1545957, date, status: { short, elapsed: 90 } },

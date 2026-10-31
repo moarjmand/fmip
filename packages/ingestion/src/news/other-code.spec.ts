@@ -130,6 +130,11 @@ describe('otherCodeOf', () => {
     ['Janfeshan takes bronze at 2026 Nagoya table tennis', null, 'other_sport'],
     ['Iranian para cyclists take bronze in Nagoya', null, 'other_sport'],
     ['Iran rout Qatar in goalball at Nagoya Para Asian Games', null, 'other_sport'],
+    [
+      'Hassan Yazdani makes wrestling history',
+      'Eleven years. Four different weight classes. Eleven World and Olympic medals.',
+      'other_sport',
+    ],
     // From IRNA's and Khabar Varzeshi's sports feeds (Persian), filed to none of ours.
     ['کشتی فرنگی قهرمانی جهان؛ سهرابی با شکست حریف روس فینالیست شد', null, 'other_sport'],
     ['کشتی‌فرنگی قهرمانی جهان؛ ساروی برنز گرفت و دست خالی نماند', null, 'other_sport'],
@@ -188,6 +193,7 @@ describe('otherCodeOf', () => {
     // production; the others are written for the spec).
     ['Premier League panel backs controversial Elliot Anderson handball decision', null],
     ['Rice leads the league for interceptions as Arsenal go top', null],
+    ['Arteta wrestling with selection headaches before the derby', null],
     [
       'Premier League predictions & Jones Knows’ best bets: Coventry to give Newcastle stern test on MNF',
       null,
