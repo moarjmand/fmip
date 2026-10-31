@@ -81,7 +81,8 @@ export function redact(text: string, apiKey: string): string {
  * One request per run, to GNews' search for association football in English:
  * the two searches of `GNEWS_SEARCHES` in turn, by the day's requests so far
  * (T-1400, D-215), and an item whose own words name another code of football
- * (`otherCodeOf`: American, Gaelic, Australian, rugby league) is not written.
+ * (`otherCodeOf`: American, Gaelic, Australian, rugby league, another sport,
+ * school and college sport -- T-1669, D-321) is not written.
  * Each run is a `news_fetch` row of the GNews source -- opened before the
  * request, closed with the outcome -- so the console's news sources page
  * shows when GNews was last asked and what it said, and the day's ceiling is

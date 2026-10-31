@@ -103,6 +103,10 @@ describe('stage and round labels (T-1339)', () => {
     expect(en('Matchday 4')).toBe('Round 4');
     expect(fa('Group A - 2')).toBe('گروه A، هفته‌ی ۲');
     expect(fa('Relegation Round - 3')).toBe('مرحله‌ی سقوط، هفته‌ی ۳');
+    // Argentina's two halves (T-1668): once unnamed, so both read "Groups".
+    expect(en('Apertura')).toBe('Apertura');
+    expect(fa('Clausura')).toBe('کلاسورا');
+    expect(fa('Apertura - 5')).toBe('آپرتورا، هفته‌ی ۵');
   });
 
   it('keeps the round number of a stage it cannot name, and nothing of the stage', () => {

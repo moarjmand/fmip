@@ -73,7 +73,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     await pool.query(
       `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES
          ($1, 'half_time', 1, 0), ($1, 'full_time', 2, 1), ($1, 'current', 2, 1),
-         ($2, 'full_time', 2, 0), ($3, 'full_time', 1, 1), ($4, 'full_time', 0, 3), ($5, 'full_time', 2, 1)`,
+         ($2, 'full_time', 2, 0), ($3, 'full_time', 1, 1), ($4, 'full_time', 0, 3), ($5, 'full_time', 2, 1),
+         -- Real Madrid won at Persepolis in extra time (T-1664).
+         ($3, 'extra_time', 0, 1), ($3, 'current', 1, 2)`,
       [MATCH, ...EARLIER],
     );
     await pool.query(
@@ -539,18 +541,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
 
   it('derives recent form and head-to-head from our own results, newest first', async () => {
     const { form, head_to_head } = (await get(MATCH)).json() as MatchCentre;
-    // Real Madrid before this match: W 2-0 v PER (home), D 1-1 at PER, L 0-3 v LIV (home): three of five → limited.
+    // Real Madrid before this match: W 2-0 v PER (home), W 2-1 at PER after extra time (1-1 at
+    // ninety: the result after extra time counts, T-1664), L 0-3 v LIV (home): three of five → limited.
     expect(form.home.coverage).toBe('limited');
     expect(
       form.home.data?.map((f) => [f.result, f.home, f.opponent.name, f.goals_for, f.goals_against]),
     ).toEqual([
       ['W', true, 'Persepolis', 2, 0],
-      ['D', false, 'Persepolis', 1, 1],
+      ['W', false, 'Persepolis', 2, 1],
       ['L', true, 'Liverpool', 0, 3],
     ]);
     expect(form.away.data?.map((f) => [f.result, f.opponent.name])).toEqual([
       ['L', 'Real Madrid'],
-      ['D', 'Real Madrid'],
+      ['L', 'Real Madrid'],
       ['W', 'Liverpool'],
     ]);
     expect(head_to_head.coverage).toBe('limited');
@@ -558,7 +561,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
       head_to_head.data?.map((m) => [m.home.name, m.full_time.home, m.full_time.away, m.away.name]),
     ).toEqual([
       ['Real Madrid', 2, 0, 'Persepolis'],
-      ['Persepolis', 1, 1, 'Real Madrid'],
+      ['Persepolis', 1, 2, 'Real Madrid'],
     ]);
     expect(head_to_head.last_updated_at).toBe('2086-03-08T15:00:00.000Z');
   });

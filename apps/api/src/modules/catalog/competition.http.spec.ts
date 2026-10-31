@@ -231,10 +231,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       ['full_time', 2, 0],
       ['current', 2, 0],
     ]);
-    // 90 minutes 2-0, 2-0 after extra time: level on aggregate, beta win the shoot-out.
+    // 90 minutes 1-0, 2-0 after extra time: level on aggregate, beta win the shoot-out.
     await cupFixture('Round of 16', TEAMS.beta, TEAMS.alpha, '2026-03-17T20:00:00Z', [
-      ['full_time', 2, 0],
-      ['extra_time', 0, 0],
+      ['full_time', 1, 0],
+      ['extra_time', 1, 0],
       ['current', 2, 0],
       ['penalties', 4, 3],
     ]);
@@ -576,6 +576,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect(tie.aggregate).toEqual([2, 2]);
     expect(tie.winner?.id).toBe(TEAMS.beta);
     expect(tie.decided_by).toBe('penalties');
+    // The results list shows the same score after extra time, never the ninety
+    // minutes' 1-0 (T-1664).
+    expect(page.results.find((f) => f.kickoff_at === '2026-03-17T20:00:00.000Z')?.score).toEqual({
+      home: 2,
+      away: 0,
+    });
   });
 
   it('ranks every group of every group stage, in order, with no grid before a match (T-1336)', async () => {
@@ -607,6 +613,60 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       [TEAMS.beta, 1],
       [TEAMS.gamma, 1],
     ]);
+    // Played side by side, neither stage replaces the other (T-1668).
+    expect(groups.data!.every((g) => !g.stage.superseded)).toBe(true);
+  });
+
+  it('marks the group stages a later one has replaced once it has a result (T-1668)', async () => {
+    // A second half of the season, Argentina's Clausura after its Apertura.
+    const later = randomUUID();
+    await pool.query(
+      `INSERT INTO stage (id, season_id, name, kind, sort_order) VALUES ($1, $2, 'Clausura', 'group', 3)`,
+      [later, GROUPED_SEASON],
+    );
+    const read = async () => {
+      const response = await app.inject({ method: 'GET', url: `/competitions/${GROUPED}` });
+      return (response.json() as CompetitionPage).group_tables!.data!.map((g) => [
+        g.stage.name,
+        g.group,
+        g.stage.superseded,
+      ]);
+    };
+    try {
+      const drawn = await fixture(
+        GROUPED_SEASON,
+        later,
+        TEAMS.alpha,
+        TEAMS.beta,
+        '2027-02-01T18:00:00Z',
+        null,
+      );
+      await pool.query(`UPDATE fixture SET group_name = 'A' WHERE id = $1`, [drawn]);
+      // Drawn, not started: nothing is replaced yet.
+      expect((await read()).filter((g) => g[2] === true)).toEqual([]);
+      await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [drawn]);
+      await pool.query(
+        `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 1, 1)`,
+        [drawn],
+      );
+      expect(await read()).toEqual([
+        ['League A', '2', true],
+        ['League A', '10', true],
+        ['League B', 'A', true],
+        ['Clausura', 'A', false],
+      ]);
+    } finally {
+      await pool.query(
+        `DELETE FROM fixture_score WHERE fixture_id IN (SELECT id FROM fixture WHERE stage_id = $1)`,
+        [later],
+      );
+      await pool.query(
+        `DELETE FROM fixture_participant WHERE fixture_id IN (SELECT id FROM fixture WHERE stage_id = $1)`,
+        [later],
+      );
+      await pool.query(`DELETE FROM fixture WHERE stage_id = $1`, [later]);
+      await pool.query(`DELETE FROM stage WHERE id = $1`, [later]);
+    }
   });
 
   it('dates the table by its results and says when the whole list was last answered (T-1633, T-1634)', async () => {

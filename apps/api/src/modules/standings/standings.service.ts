@@ -6,12 +6,13 @@ import {
   type BoardRow,
   type IncidentTally,
   type Scorer,
+  type StageSpan,
 } from './internal/standings-store';
 import { rankGroup, rankTable } from './internal/table';
 
 // The module's public surface. Other modules import from this file only.
 export { FORM_WINDOW, rankGroup, rankTable, type Result } from './internal/table';
-export type { BoardRow, IncidentTally, Scorer } from './internal/standings-store';
+export type { BoardRow, IncidentTally, Scorer, StageSpan } from './internal/standings-store';
 
 /** The boards beyond goals as the standings boundary knows them (T-943): no minutes yet. */
 export interface Boards {
@@ -89,14 +90,17 @@ export class StandingsService {
    * declared standings coverage. A group none of whose matches is finished
    * has no positions yet: its rows are empty and its teams are listed, never
    * a grid of noughts ordered by name. No group known at all is the honest
-   * absence of the module, not an empty list.
+   * absence of the module, not an empty list. A group stage a later one
+   * has replaced (T-1668: Argentina's Apertura once the Clausura is under way)
+   * is marked `superseded`, so the page opens on the stage being played.
    */
   async groupStandings(seasonId: string): Promise<Covered<GroupTable[]>> {
-    const [groups, declared] = await Promise.all([
+    const [groups, declared, spans] = await Promise.all([
       this.groupTables(seasonId),
       this.store.declared(seasonId, 'standings'),
+      this.store.groupStageSpans(seasonId),
     ]);
-    return groupStandingsModule(groups, declared);
+    return groupStandingsModule(groups, declared, supersededStages(spans));
   }
 
   /**
@@ -216,17 +220,42 @@ export function cleanSheetsModule<T>(
 export function groupStandingsModule(
   groups: SeasonGroupTable[],
   declared: CoverageState | null,
+  superseded: ReadonlySet<string> = new Set(),
 ): Covered<GroupTable[]> {
   let last: string | null = null;
   for (const g of groups)
     if (g.lastUpdatedAt !== null && (last === null || g.lastUpdatedAt > last))
       last = g.lastUpdatedAt;
   const data = groups.map((g): GroupTable => ({
-    stage: { id: g.stageId, name: g.stageName },
+    stage: { id: g.stageId, name: g.stageName, superseded: superseded.has(g.stageId) },
     group: g.name,
     counted: g.counted,
     rows: g.counted === 0 ? [] : g.rows,
     teams: g.teams,
   }));
   return covered(data, data.length === 0, declared, last);
+}
+
+/**
+ * The group stages a later one has replaced (T-1668): a stage is superseded
+ * once another group stage of the season that began after its last kick-off
+ * has a finished match. Argentina's Apertura and Clausura are played one
+ * after the other, so the Apertura is superseded from the Clausura's first
+ * result -- and not before, while the Clausura is only a list of fixtures.
+ * Stages played side by side (the Nations League's League A..D) overlap in
+ * time and never supersede one another; a single group stage never is.
+ */
+export function supersededStages(spans: readonly StageSpan[]): Set<string> {
+  const out = new Set<string>();
+  for (const s of spans) {
+    if (s.last === null) continue;
+    const last = s.last;
+    if (
+      spans.some(
+        (t) => t.stageId !== s.stageId && t.played > 0 && t.first !== null && t.first > last,
+      )
+    )
+      out.add(s.stageId);
+  }
+  return out;
 }

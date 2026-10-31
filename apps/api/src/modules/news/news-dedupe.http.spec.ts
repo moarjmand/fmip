@@ -366,5 +366,50 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news dedupe 
       expect(listed).not.toContain(rugby);
       expect(listed).toContain(filed);
     });
+
+    it('does not list the other sports and the school sport the lists showed on 2026-10-30 (T-1669)', async () => {
+      const now = new Date().toISOString();
+      // GNews' "Premier League" search brought India's women's cricket league;
+      // filed to a club of ours, a search's item is still judged by its words.
+      const cricket = await stored(
+        `lokmat-wpl-${RUN}.test`,
+        `Uma Kashvi Becomes Youngest WPL Player ${TEAM_NAME} ${RUN}`,
+        "Bengaluru's Uma Kashvi has made history as the youngest player ever to be signed in the Women's Premier League.",
+        now,
+        GNEWS_SOURCE_ID,
+      );
+      // A high-school soccer report from the "soccer" search: association
+      // football, but school sport.
+      const school = await stored(
+        `nj-school-${RUN}.test`,
+        `Ocean City boys soccer holds off Lindenwold ${RUN}`,
+        'The Ocean City High School boys soccer team defeated Lindenwold 1-0 in a nonconference game Wednesday.',
+        now,
+        GNEWS_SOURCE_ID,
+        false,
+      );
+      // A general sports feed's story, filed to none of ours (Tehran Times).
+      const para = await stored(
+        `tehrantimes-para-${RUN}.test`,
+        `2026 Nagoya: Iran’s men’s wheelchair basketball beat S. Korea ${RUN}`,
+        null,
+        now,
+        null,
+        false,
+      );
+      // A football story using one of those sports' words stays.
+      const tennisBalls = await stored(
+        `yahoo-tennis-balls-${RUN}.test`,
+        `${TEAM_NAME} fans throw tennis balls in protest ${RUN}`,
+        null,
+        now,
+        GNEWS_SOURCE_ID,
+      );
+      const listed = (await reader.latest(NO_FILTERS, 'en', null, 50)).cards.map((c) => c.story_id);
+      expect(listed).not.toContain(cricket);
+      expect(listed).not.toContain(school);
+      expect(listed).not.toContain(para);
+      expect(listed).toContain(tennisBalls);
+    });
   });
 });

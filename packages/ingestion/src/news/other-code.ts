@@ -26,6 +26,16 @@
  * by it only for an item filed to no club, competition or player of ours
  * (T-1619, D-290): a piece on an owner who once played in the NFL is still
  * about his club, but a feed that slips in a rugby story names none of ours.
+ *
+ * T-1669 (D-321): the other sports that share the query's competition names
+ * (India's Women's Premier League and Indian Premier League in cricket, the
+ * Kabaddi Champions League, the Tennis Premier League, Premier League Darts)
+ * and the ones a publisher's general sports feed carries (wheelchair
+ * basketball, wrestling, cycling, table tennis; in Persian too). And school and college sport (`school_sport`), the one kind that
+ * counts even where the text says "soccer": a high-school girls' soccer
+ * report is association football, but not the football this platform
+ * covers, and the "soccer" in "Hermitage football adds girls soccer standout
+ * as kicker" let a US high-school American football story through.
  */
 export type OtherCode =
   | 'american_football'
@@ -33,7 +43,8 @@ export type OtherCode =
   | 'australian_rules'
   | 'rugby_league'
   | 'rugby_union'
-  | 'other_sport';
+  | 'other_sport'
+  | 'school_sport';
 
 export interface OtherCodeRule {
   code: OtherCode;
@@ -41,6 +52,11 @@ export interface OtherCodeRule {
   pattern: string;
   /** Whether letter case is part of the rule (the acronyms). */
   caseSensitive: boolean;
+  /**
+   * Whether the marker counts even where the text says "soccer" (T-1669,
+   * D-321): school and college sport only.
+   */
+  despiteSoccer?: boolean;
 }
 
 const START = '(^|[^A-Za-z0-9])';
@@ -252,7 +268,9 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
   // ("Ireland prop Furlong cited ... in Leinster's United Rugby Championship
   // win"). Its competitions and positions only: "rugby" alone is also a town
   // and a ball kicked into a football ground.
-  { code: 'rugby_union', pattern: words('URC'), caseSensitive: true },
+  // T-1669: and its unions and English league by name ("the WRU were in
+  // negotiations with the Rugby Football Union and Gallagher Prem bosses").
+  { code: 'rugby_union', pattern: words('URC|WRU|RFU'), caseSensitive: true },
   {
     code: 'rugby_union',
     pattern: words(
@@ -265,6 +283,8 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
         'top 14',
         'rugby championship',
         'rugby world cup',
+        'rugby football union',
+        'gallagher prem',
         'fly-halfs?',
         'fly-halves',
         'scrum-halfs?',
@@ -285,24 +305,147 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
     pattern: words('cricket|wickets?|volleyball|netball'),
     caseSensitive: false,
   },
+  // T-1669 (D-321): the leagues of other sports whose names carry the query's
+  // "Premier League" or "Champions League" -- "Uma Kashvi Becomes Youngest WPL
+  // Player", "Robin Uthappa ... batting coach of Mumbai Indians ahead of the
+  // 2027 Indian Premier League season", "Rajasthan Rangers Ahead of Tennis
+  // Premier League Season 8", "Kabaddi Champions League Season 2 auction",
+  // "Premier League Darts" -- and the tours, leagues and series of other
+  // sports, in capitals. Not "tennis" alone ("tennis balls" thrown on to the
+  // pitch in protest), "Wimbledon" (AFC Wimbledon), "hockey" alone (Van Gaal
+  // wants an ice hockey style Champions League), "boxing" (Boxing Day), "golf",
+  // "chess" or "swimming", which football writing uses too.
+  {
+    code: 'other_sport',
+    pattern: words('WPL|PKL|BCCI|T20Is?|ODIs|PDC|WTA|ATP|NBA|WNBA|NHL|MLB|PGA|LPGA|UFC|F1|MotoGP'),
+    caseSensitive: true,
+  },
+  {
+    code: 'other_sport',
+    pattern: words(
+      [
+        "women['’]s premier league",
+        'indian premier league',
+        'big bash',
+        'ranji trophy',
+        'batting coach',
+        'bowling coach',
+        'wicket-?keepers?',
+        'kabaddi',
+        'premier league darts',
+        'tennis premier league',
+        'table tennis',
+        'basketball',
+        'baseball',
+        'softball',
+        'field hockey',
+        'handball (teams?|championships?|federation|league)',
+        'water polo',
+        'badminton',
+        'taekwondo',
+        'karate',
+        'judo(ka|kas)?',
+        'wushu',
+        'greco-roman',
+        'freestyle wrestling',
+        'wrestlers?',
+        'weightlift(ing|ers?)',
+        'gymnast(s|ics)?',
+        'cycling',
+        'cyclists?',
+        'archery',
+        'athletics',
+        'goalball',
+        'swimmers?',
+        'formula (1|one)',
+        'ryder cup',
+        'liv golf',
+      ].join('|'),
+    ),
+    caseSensitive: false,
+  },
+  // The same sports in the words of the Persian sports feeds (IRNA, Khabar
+  // Varzeshi). Persian letters are outside the word boundary's Latin set, so
+  // these match inside longer words too ("والیبالیست", "پاراتکواندو"); none is
+  // part of a football word ("کشتی" alone is also a ship, so only wrestling's
+  // own phrases; futsal and beach soccer are football's family and stay).
+  // Not Portuguese: Agência Brasil's summaries carry other stories' titles
+  // ("Surfe: ...", "Mundial de Ginástica") under its football reports.
+  {
+    code: 'other_sport',
+    pattern: words(
+      [
+        'والیبال',
+        'بسکتبال',
+        'تنیس',
+        'هندبال',
+        'وزنه[‌ ]?برداری',
+        'تکواندو',
+        'کاراته',
+        'جودو',
+        'ووشو',
+        'کشتی[‌ ]?(آزاد|فرنگی|گیر)',
+        'فدراسیون کشتی',
+        'بدمینتون',
+        'دوچرخه[‌ ]?سوار',
+        'ژیمناستیک',
+        'قایقرانی',
+        'شمشیربازی',
+        'دوومیدانی',
+        'گلبال',
+        'کوراش',
+        'اسکیت',
+        'کریکت',
+      ].join('|'),
+    ),
+    caseSensitive: false,
+  },
+  // School and college sport, whatever its code and even where the text says
+  // "soccer" (T-1669, D-321, which amends D-215's round-up that stayed):
+  // "High school girls soccer: Top seeds Lone Peak, Davis set for 6A final",
+  // "Ocean City boys soccer holds off Lindenwold", "No. 25 Auburn ... NCAA
+  // Women's Soccer RPI", "Boys Athlete of the Week". Not "academy" or "youth":
+  // the clubs' own academies are football's.
+  {
+    code: 'school_sport',
+    pattern: words('NCAA|NJCAA|NAIA|NFHS|JV'),
+    caseSensitive: true,
+    despiteSoccer: true,
+  },
+  {
+    code: 'school_sport',
+    pattern: words(
+      [
+        'high schools?',
+        'hs sports',
+        "(girls|boys)['’]? (soccer|volleyball|tennis|basketball)",
+        'prep (roundup|sports|soccer)',
+        'athletes? of (the )?week',
+      ].join('|'),
+    ),
+    caseSensitive: false,
+    despiteSoccer: true,
+  },
 ];
 
 const SOCCER = new RegExp(words('soccer'), 'i');
 
 const COMPILED = OTHER_CODE_RULES.map((rule) => ({
   code: rule.code,
+  despiteSoccer: rule.despiteSoccer === true,
   re: new RegExp(rule.pattern, rule.caseSensitive ? '' : 'i'),
 }));
 
 /**
  * The other sport an item's own title and description name, or `null` when
- * they name none or say "soccer" (association football).
+ * they name none or say "soccer" (association football) -- except school and
+ * college sport, which counts either way (T-1669, D-321).
  */
 export function otherCodeOf(headline: string, summary: string | null): OtherCode | null {
   const text = `${headline}\n${summary ?? ''}`;
-  if (SOCCER.test(text)) return null;
+  const soccer = SOCCER.test(text);
   for (const rule of COMPILED) {
-    if (rule.re.test(text)) return rule.code;
+    if ((rule.despiteSoccer || !soccer) && rule.re.test(text)) return rule.code;
   }
   return null;
 }

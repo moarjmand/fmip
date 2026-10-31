@@ -614,6 +614,8 @@ export class PostgresMatchCentreStore {
       `SELECT f.id AS fixture_id, f.kickoff_at, c.id AS competition_id, c.name AS competition_name,
               o.team_id AS opponent_id, t.name AS opponent_name,
               (me.side = 'home') AS home,
+              -- After extra time where it was played (T-1664): a tie lost in
+              -- extra time is a defeat in the form, as on the team page.
               CASE WHEN me.side = 'home' THEN sc.home ELSE sc.away END AS goals_for,
               CASE WHEN me.side = 'home' THEN sc.away ELSE sc.home END AS goals_against
          FROM fixture_participant me
@@ -622,7 +624,12 @@ export class PostgresMatchCentreStore {
          JOIN competition c ON c.id = se.competition_id
          JOIN fixture_participant o ON o.fixture_id = f.id AND o.side <> me.side
          JOIN team t ON t.id = o.team_id
-         JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
+         JOIN LATERAL (
+           SELECT home, away FROM fixture_score
+            WHERE fixture_id = f.id AND kind IN ('current', 'full_time')
+            ORDER BY CASE kind WHEN 'current' THEN 0 ELSE 1 END
+            LIMIT 1
+         ) sc ON true
         WHERE me.team_id = $1 AND f.status = 'finished' AND f.kickoff_at < $2 AND f.id <> $3
           AND c.kind <> 'friendly'
         ORDER BY f.kickoff_at DESC
@@ -671,7 +678,14 @@ export class PostgresMatchCentreStore {
          JOIN team th ON th.id = h.team_id
          JOIN fixture_participant a ON a.fixture_id = f.id AND a.side = 'away'
          JOIN team ta ON ta.id = a.team_id
-         JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
+         -- The meeting's result after extra time where it was played (T-1664),
+         -- under the contract's \`full_time\` name; the shoot-out never in it.
+         JOIN LATERAL (
+           SELECT home, away FROM fixture_score
+            WHERE fixture_id = f.id AND kind IN ('current', 'full_time')
+            ORDER BY CASE kind WHEN 'current' THEN 0 ELSE 1 END
+            LIMIT 1
+         ) sc ON true
          LEFT JOIN venue v ON v.id = f.venue_id
         WHERE f.status = 'finished' AND f.kickoff_at < $3 AND f.id <> $4
           AND ((h.team_id = $1 AND a.team_id = $2) OR (h.team_id = $2 AND a.team_id = $1))

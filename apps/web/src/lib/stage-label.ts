@@ -38,6 +38,8 @@ export const STAGE_KEYS = [
   'stage.name.friendly',
   'stage.name.championshipRound',
   'stage.name.relegationRound',
+  'stage.name.apertura',
+  'stage.name.clausura',
   'stage.league',
   'stage.group',
   'stage.round',
@@ -74,6 +76,9 @@ const NAMES: ReadonlyMap<string, StageKey> = new Map([
   ['Club Friendlies', 'stage.name.friendly'],
   ['Championship Round', 'stage.name.championshipRound'],
   ['Relegation Round', 'stage.name.relegationRound'],
+  // A season played in two halves, each a group stage of two zones (T-1668).
+  ['Apertura', 'stage.name.apertura'],
+  ['Clausura', 'stage.name.clausura'],
 ]);
 
 /** A count or a round as the provider writes it: no leading zero. */
