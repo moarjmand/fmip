@@ -111,6 +111,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       player: { externalId: X('saka'), name: 'Saka' },
       relatedPlayer: null,
       detail: null,
+      inShootout: false,
     };
     const sendingOff: NormalisedIncident = {
       fixtureExternalId: X('fixture'),
@@ -122,6 +123,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       player: { externalId: X('james'), name: 'James' },
       relatedPlayer: null,
       detail: null,
+      inShootout: false,
     };
 
     const ok = <T>(data: T): AdapterResult<T> => ({

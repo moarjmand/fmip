@@ -195,7 +195,7 @@ export function mapIncidents(match: unknown, homeTeamId: string): NormalisedInci
   const m = rec(match);
   const fixtureExternalId = id(m.id);
   if (fixtureExternalId === null) return [];
-  type Raw = Omit<NormalisedIncident, 'sequence' | 'fixtureExternalId'>;
+  type Raw = Omit<NormalisedIncident, 'sequence' | 'fixtureExternalId' | 'inShootout'>;
   const raws: Raw[] = [];
   const sideOf = (team: unknown): Side | null => {
     const teamId = id(rec(team).id);
@@ -257,7 +257,13 @@ export function mapIncidents(match: unknown, homeTeamId: string): NormalisedInci
   }
 
   raws.sort((a, b) => a.minute - b.minute || (a.addedTime ?? 0) - (b.addedTime ?? 0));
-  return raws.map((raw, index) => ({ fixtureExternalId, sequence: index + 1, ...raw }));
+  // The feed lists goals of play only; a shoot-out's kicks are not among them (T-1673).
+  return raws.map((raw, index) => ({
+    fixtureExternalId,
+    sequence: index + 1,
+    ...raw,
+    inShootout: false,
+  }));
 }
 
 // ---------------------------------------------------------------------------

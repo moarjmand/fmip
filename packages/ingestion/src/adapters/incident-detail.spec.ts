@@ -92,6 +92,7 @@ describe('incidentDetail (T-1378)', () => {
       side: 'home',
       player: { externalId: '7', name: 'P' },
       relatedPlayer: null,
+      inShootout: false,
     };
     expect(validateIncident({ ...incident, detail: 'Normal Goal' })).not.toEqual([]);
     expect(validateIncident({ ...incident, detail: 'goal_cancelled' })).not.toEqual([]);

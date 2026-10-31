@@ -431,7 +431,8 @@ export class PostgresPlayerStore {
                    NOT EXISTS (SELECT 1 FROM incident e WHERE e.fixture_id = f.id)
                    OR (SELECT count(*) FROM incident g
                         WHERE g.fixture_id = f.id
-                          AND g.kind IN ('goal', 'penalty_goal', 'own_goal'))
+                          AND g.kind IN ('goal', 'penalty_goal', 'own_goal')
+                          AND NOT g.in_shootout)
                       < (SELECT sc.home + sc.away FROM fixture_score sc
                           WHERE sc.fixture_id = f.id AND sc.kind = 'full_time'))) AS events_short
            FROM lineup l
@@ -450,10 +451,12 @@ export class PostgresPlayerStore {
                 count(*) FILTER (WHERE n.role = 'bench' AND n.came_on) AS sub_appearances,
                 (SELECT count(*) FROM incident i
                   WHERE i.participant_id = ANY(array_agg(n.participant_id))
-                    AND i.person_id = $1 AND i.kind IN ('goal', 'penalty_goal')) AS goals,
+                    AND i.person_id = $1 AND i.kind IN ('goal', 'penalty_goal')
+                    AND NOT i.in_shootout) AS goals,
                 (SELECT count(*) FROM incident i
                   WHERE i.participant_id = ANY(array_agg(n.participant_id))
-                    AND i.related_person_id = $1 AND i.kind IN ('goal', 'penalty_goal')) AS assists,
+                    AND i.related_person_id = $1 AND i.kind IN ('goal', 'penalty_goal')
+                    AND NOT i.in_shootout) AS assists,
                 (SELECT count(*) FROM incident i
                   WHERE i.participant_id = ANY(array_agg(n.participant_id))
                     AND i.person_id = $1 AND i.kind = 'yellow_card') AS yellow_cards,
@@ -621,10 +624,11 @@ export class PostgresPlayerStore {
               me.team_id, tm.name AS team_name, l.role,
               EXISTS (SELECT 1 FROM incident s WHERE s.fixture_id = f.id AND s.kind = 'substitution'
                         AND s.related_person_id = $1) AS came_on,
+              -- A shoot-out's kick is no goal of the match (T-1673).
               (SELECT count(*) FROM incident i WHERE i.fixture_id = f.id AND i.person_id = $1
-                  AND i.kind IN ('goal', 'penalty_goal'))::text AS goals,
+                  AND i.kind IN ('goal', 'penalty_goal') AND NOT i.in_shootout)::text AS goals,
               (SELECT count(*) FROM incident i WHERE i.fixture_id = f.id AND i.related_person_id = $1
-                  AND i.kind IN ('goal', 'penalty_goal'))::text AS assists,
+                  AND i.kind IN ('goal', 'penalty_goal') AND NOT i.in_shootout)::text AS assists,
               (SELECT count(*) FROM incident i WHERE i.fixture_id = f.id AND i.person_id = $1
                   AND i.kind = 'yellow_card')::text AS yellow_cards,
               (SELECT count(*) FROM incident i WHERE i.fixture_id = f.id AND i.person_id = $1

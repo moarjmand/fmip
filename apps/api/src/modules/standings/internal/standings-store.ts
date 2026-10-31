@@ -305,8 +305,9 @@ export class PostgresStandingsStore {
   }
 
   /**
-   * Goals (open play and penalties; own goals are not the scorer's) per person
-   * in the season; every scorer when `limit` is null.
+   * Goals (open play and penalties; own goals are not the scorer's, nor is a
+   * shoot-out's kick, T-1673) per person in the season; every scorer when
+   * `limit` is null.
    */
   async scorers(
     seasonId: string,
@@ -329,7 +330,7 @@ export class PostgresStandingsStore {
          LEFT JOIN fixture_participant p ON p.id = i.participant_id
          LEFT JOIN team t ON t.id = p.team_id
         WHERE f.season_id = $1 AND ${MAIN_PHASE}
-          AND i.kind IN ('goal', 'penalty_goal')
+          AND i.kind IN ('goal', 'penalty_goal') AND NOT i.in_shootout
           AND i.person_id IS NOT NULL
         GROUP BY i.person_id, person_name, p.team_id, t.name
         ORDER BY count(*) DESC, person_name ASC
@@ -372,7 +373,7 @@ export class PostgresStandingsStore {
            LEFT JOIN fixture_participant p ON p.id = i.participant_id
            LEFT JOIN team t ON t.id = p.team_id
           WHERE f.season_id = $1 AND ${MAIN_PHASE}
-            AND i.kind IN ('goal', 'penalty_goal')
+            AND i.kind IN ('goal', 'penalty_goal') AND NOT i.in_shootout
             AND i.related_person_id IS NOT NULL
           GROUP BY i.related_person_id, person_name, p.team_id, t.name
           ORDER BY count(*) DESC, person_name ASC`,
@@ -384,7 +385,8 @@ export class PostgresStandingsStore {
                 max(i.updated_at) AS updated_at
            FROM incident i
            JOIN fixture f ON f.id = i.fixture_id
-          WHERE f.season_id = $1 AND ${MAIN_PHASE} AND i.kind IN ('goal', 'penalty_goal')`,
+          WHERE f.season_id = $1 AND ${MAIN_PHASE} AND i.kind IN ('goal', 'penalty_goal')
+            AND NOT i.in_shootout`,
         [seasonId],
       ),
     ]);
@@ -543,7 +545,8 @@ export class PostgresStandingsStore {
               (SELECT COALESCE(sum(LEAST(sc.home + sc.away, (
                         SELECT count(*) FROM incident i
                          WHERE i.fixture_id = f.id
-                           AND i.kind IN ('goal', 'penalty_goal', 'own_goal')))), 0)
+                           AND i.kind IN ('goal', 'penalty_goal', 'own_goal')
+                           AND NOT i.in_shootout))), 0)
                  FROM fixture f
                  JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
                 WHERE f.season_id = $1 AND f.status = 'finished' AND ${MAIN_PHASE})::text AS recorded`,

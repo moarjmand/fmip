@@ -241,6 +241,16 @@ export function validateIncident(value: unknown, path = 'incident'): Problem[] {
   if (kindOk && value.kind === 'substitution' && value.relatedPlayer === null) {
     fail(sink, `${path}.relatedPlayer`, 'a substitution needs the player coming on');
   }
+  // Only a penalty, scored or missed, can be a kick of a shoot-out (T-1673).
+  expectBoolean(sink, value.inShootout, `${path}.inShootout`);
+  if (
+    kindOk &&
+    value.inShootout === true &&
+    value.kind !== 'penalty_goal' &&
+    value.kind !== 'penalty_missed'
+  ) {
+    fail(sink, `${path}.inShootout`, `a ${String(value.kind)} is no shoot-out kick`);
+  }
   return sink;
 }
 

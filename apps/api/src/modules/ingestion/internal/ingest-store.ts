@@ -1056,12 +1056,16 @@ export class IngestStore implements SquadStore {
       const participantId =
         incident.side === null ? null : (participants.get(incident.side) ?? null);
 
+      // A shoot-out's kick keeps its mark (T-1673, D-322): an answer that
+      // repeats the same incident without the mark does not take back the
+      // one the feed gave earlier or the migration's reading of the score; a
+      // different incident at the place takes the answer's mark.
       const { rowCount } = await this.pool.query(
         `INSERT INTO incident
            (fixture_id, participant_id, person_id, related_person_id, kind, minute,
-            added_time, sequence, detail)
+            added_time, sequence, detail, in_shootout)
          SELECT $1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::text, $6::smallint, $7::smallint,
-                $8::smallint, $9::text
+                $8::smallint, $9::text, $10::boolean
           WHERE NOT EXISTS (
                   SELECT 1 FROM incident
                    WHERE fixture_id = $1::uuid AND sequence = $8::smallint
@@ -1069,7 +1073,8 @@ export class IngestStore implements SquadStore {
                           added_time, detail)
                          IS NOT DISTINCT FROM
                          ($2::uuid, $3::uuid, $4::uuid, $5::text, $6::smallint, $7::smallint,
-                          $9::text))
+                          $9::text)
+                     AND (in_shootout OR NOT $10::boolean))
          ON CONFLICT (fixture_id, sequence) DO UPDATE
             SET participant_id = EXCLUDED.participant_id,
                 person_id = EXCLUDED.person_id,
@@ -1077,12 +1082,19 @@ export class IngestStore implements SquadStore {
                 kind = EXCLUDED.kind,
                 minute = EXCLUDED.minute,
                 added_time = EXCLUDED.added_time,
-                detail = EXCLUDED.detail
+                detail = EXCLUDED.detail,
+                in_shootout = EXCLUDED.in_shootout OR (incident.in_shootout AND
+                  (incident.participant_id, incident.person_id, incident.related_person_id,
+                   incident.kind, incident.minute, incident.added_time, incident.detail)
+                  IS NOT DISTINCT FROM
+                  (EXCLUDED.participant_id, EXCLUDED.person_id, EXCLUDED.related_person_id,
+                   EXCLUDED.kind, EXCLUDED.minute, EXCLUDED.added_time, EXCLUDED.detail))
           WHERE (incident.participant_id, incident.person_id, incident.related_person_id,
                  incident.kind, incident.minute, incident.added_time, incident.detail)
                 IS DISTINCT FROM
                 (EXCLUDED.participant_id, EXCLUDED.person_id, EXCLUDED.related_person_id,
-                 EXCLUDED.kind, EXCLUDED.minute, EXCLUDED.added_time, EXCLUDED.detail)`,
+                 EXCLUDED.kind, EXCLUDED.minute, EXCLUDED.added_time, EXCLUDED.detail)
+             OR (EXCLUDED.in_shootout AND NOT incident.in_shootout)`,
         [
           fixtureId,
           participantId,
@@ -1093,6 +1105,8 @@ export class IngestStore implements SquadStore {
           incident.addedTime,
           incident.sequence,
           incident.detail,
+          // An answer without the field (an older recording) carries no mark.
+          incident.inShootout === true,
         ],
       );
       changed += rowCount ?? 0;

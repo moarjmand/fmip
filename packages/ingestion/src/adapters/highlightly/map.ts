@@ -259,6 +259,8 @@ export function mapIncidents(
       relatedPlayer,
       // In our words, never the provider's type text (rule 2, T-1378).
       detail: incidentDetail(kind, e.type),
+      // The feed has no mark for a shoot-out's kicks (T-1673).
+      inShootout: false,
     });
   }
   return out;
