@@ -231,10 +231,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       ['full_time', 2, 0],
       ['current', 2, 0],
     ]);
-    // 90 minutes 2-0, 2-0 after extra time: level on aggregate, beta win the shoot-out.
+    // 90 minutes 1-0, 2-0 after extra time: level on aggregate, beta win the shoot-out.
     await cupFixture('Round of 16', TEAMS.beta, TEAMS.alpha, '2026-03-17T20:00:00Z', [
-      ['full_time', 2, 0],
-      ['extra_time', 0, 0],
+      ['full_time', 1, 0],
+      ['extra_time', 1, 0],
       ['current', 2, 0],
       ['penalties', 4, 3],
     ]);
@@ -576,6 +576,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     expect(tie.aggregate).toEqual([2, 2]);
     expect(tie.winner?.id).toBe(TEAMS.beta);
     expect(tie.decided_by).toBe('penalties');
+    // The results list shows the same score after extra time, never the ninety
+    // minutes' 1-0 (T-1664).
+    expect(page.results.find((f) => f.kickoff_at === '2026-03-17T20:00:00.000Z')?.score).toEqual({
+      home: 2,
+      away: 0,
+    });
   });
 
   it('ranks every group of every group stage, in order, with no grid before a match (T-1336)', async () => {

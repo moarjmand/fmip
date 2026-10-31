@@ -204,7 +204,9 @@ export class PostgresCompetitionStore {
               ${mainPhaseSql('f', 'mp.main_from')} AS main_phase,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
               a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
-              COALESCE(ft.home, cur.home) AS score_home, COALESCE(ft.away, cur.away) AS score_away,
+              -- The latest score, so extra time counts, as the team page reads
+              -- it (T-1664); the shoot-out is never in it.
+              COALESCE(cur.home, ft.home) AS score_home, COALESCE(cur.away, ft.away) AS score_away,
               GREATEST(f.updated_at, ft.updated_at, cur.updated_at) AS updated_at
          FROM fixture f
          LEFT JOIN stage st ON st.id = f.stage_id

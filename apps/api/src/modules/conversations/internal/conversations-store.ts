@@ -897,7 +897,8 @@ export class CardStore {
          LEFT JOIN LATERAL (
            SELECT home, away, updated_at FROM fixture_score
             WHERE fixture_id = f.id AND kind IN ('current', 'full_time')
-            ORDER BY CASE kind WHEN 'full_time' THEN 0 ELSE 1 END
+            -- The latest score, extra time included (T-1664).
+            ORDER BY CASE kind WHEN 'current' THEN 0 ELSE 1 END
             LIMIT 1
          ) s ON true
         WHERE f.id = ANY($1::uuid[])`,

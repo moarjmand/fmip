@@ -13401,3 +13401,16 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 **Rejected.** *Mapping the provider's table id to our team*: the id is another club's (Independiente is ours under it), and one provider id names one entity (rule 1). *Taking the group from the round name*: rejected by D-180 for the Nations League, and these rounds say "Group Stage" alone.
 
 **Consequence.** `IngestStore.assignGroups` (`internal/ingest-store.ts`); `group-assign.spec.ts` covers a team placed from two opponents of one group and one left out whose opponents are in two.
+
+## D-317 — A finished match is shown with its score after extra time, the ninety minutes and the shoot-out beside it
+
+**Status:** Accepted · 2026-10-31 (the agent, on the maintainer's instruction to fix the teammate's cup-match report) · **Tasks:** T-1664, T-1665 · **Follows:** T-034, T-632, D-175
+
+**Context.** The provider's `fulltime` is the score at ninety minutes, `extratime` the goals of extra time alone, and its `goals` the score after extra time; we store them as `full_time`, `extra_time` and `current`, the shoot-out as `penalties`. Since T-034 the match centre's headline, the score cards and several API reads took `full_time` first for a finished match, which is right only when no extra time was played. The club and player pages and the bracket took `current` first (T-632), so one match showed 1-1 in one place and 1-3 in another.
+
+**Decision.** Wherever a finished match's result is shown, it is the score after extra time where extra time was played (`current`, else `full_time`), the status saying "AET" or "Pens". The match header also says the ninety minutes' score ("90′ 1–1") and the shoot-out's beside the half-time one, so nothing is lost. A shoot-out is never added to a score (as T-632).
+
+**Not changed.** Predictions settle, the model is evaluated and the boards count on the ninety minutes (`full_time`), as their own rules say (D-139, the settlement rules): a prediction of a draw in a tie won in extra time is still right. The match page's "what the three products are set against" keeps the ninety minutes for the same reason.
+
+**Consequences.** API (T-1664): `CompetitionStore` results, `MatchCentreStore` form and head-to-head (the contract's `full_time` field carries the result after extra time; its name kept to spare a contract change), `ConversationsStore`'s list. Web (T-1665): `scoreLine` and `shownLine`, the match header and its JSON-LD.
+
