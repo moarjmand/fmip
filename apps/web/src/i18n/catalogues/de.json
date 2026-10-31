@@ -10654,6 +10654,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "competitionPage.groupStageEarlier": {
+    "source": "Earlier stage",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.col.team": {
     "source": "Team",
     "text": "",
@@ -13102,6 +13107,16 @@
   },
   "stage.name.relegationRound": {
     "source": "Relegation Round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.apertura": {
+    "source": "Apertura",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.clausura": {
+    "source": "Clausura",
     "text": "",
     "status": "untranslated"
   },

@@ -13401,3 +13401,18 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 **Rejected.** *Mapping the provider's table id to our team*: the id is another club's (Independiente is ours under it), and one provider id names one entity (rule 1). *Taking the group from the round name*: rejected by D-180 for the Nations League, and these rounds say "Group Stage" alone.
 
 **Consequence.** `IngestStore.assignGroups` (`internal/ingest-store.ts`); `group-assign.spec.ts` covers a team placed from two opponents of one group and one left out whose opponents are in two.
+
+## D-320 — A group stage a later one has replaced follows the current one, closed
+
+**Status:** Accepted · 2026-10-31 (the agent, on the coordinator's brief for the teammate's report) · **Task:** T-1668 · **Follows:** D-175, D-214, T-1336, T-1375
+
+**Context.** Argentina's Liga Profesional plays a season in two halves, the Apertura and the Clausura, each a group stage of two zones with its own knockout rounds. The competition page's group tables kept the two stages apart but headed both "Groups": the page translates stage names from a closed list (T-1375) and neither name was on it. The finished Apertura also came first, above the Clausura being played.
+
+**Decision.**
+- `Apertura` and `Clausura` are stage names the page knows (English as spelt; Persian «آپرتورا», «کلاسورا»), so the stage headings and the round labels ("Apertura - 5") name them.
+- A group stage is **superseded** when another group stage of the same season began after its last kick-off and has a finished match. The API marks it on `GroupTable.stage.superseded`; the page shows the stages that are not superseded first, as before, and each superseded one below them, the most recent first, closed under a disclosure that names it and says "Earlier stage". Nothing is hidden: the tables are one click away.
+- Time decides, not the stages' order: stages played side by side (the Nations League's League A..D overlap) never supersede one another, and a later stage that is only drawn does not replace the earlier one until its first result.
+
+**Rejected.** *Keep the order and only add the names*: the page would still open on a finished table above the one moving. *Hide the earlier stage*: it is the season's record and the knockout rounds come from it. *Decide in the web from the fixtures it carries*: the page's fixture and result lists are not the whole stage, so its first and last kick-off would be guessed.
+
+**Consequence.** `supersededStages` and `groupStageSpans` (`apps/api/src/modules/standings/`), `GroupTables` (`apps/web/src/components/standings-table.tsx`). The knockout stages "Apertura - Round of 16" and the like are still unnamed on the page (a follow-up).

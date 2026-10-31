@@ -207,8 +207,13 @@ export interface TableRow {
  * carry the group's name.
  */
 export interface GroupTable {
-  /** The group stage it belongs to (e.g. "League A", "Group Stage"). */
-  stage: { id: string; name: string };
+  /**
+   * The group stage it belongs to (e.g. "League A", "Group Stage"). `superseded`
+   * (T-1668): a later group stage of the season, begun after this one's last
+   * match, has a result -- Argentina's Apertura once the Clausura is played.
+   * The page leads with the stages that are not.
+   */
+  stage: { id: string; name: string; superseded: boolean };
   /** The group's own name ("A", "1"). */
   group: string;
   /** Finished matches the table is counted from; 0 means no positions yet. */

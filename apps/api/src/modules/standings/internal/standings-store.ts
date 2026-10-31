@@ -22,6 +22,14 @@ export type BoardRow<T> = {
   team: { id: string; name: string } | null;
 } & T;
 
+/** When a group stage is played (T-1668): its first and last kick-off and its finished matches. */
+export interface StageSpan {
+  stageId: string;
+  first: string | null;
+  last: string | null;
+  played: number;
+}
+
 type RawBoardRow = {
   person_id: string;
   person_name: string;
@@ -134,6 +142,36 @@ export class PostgresStandingsStore {
       stageId: r.stage_id,
       stageName: r.stage_name,
       name: r.group_name,
+    }));
+  }
+
+  /**
+   * When each of a season's group stages is played (T-1668): the first and
+   * last kick-off over all of its fixtures (a zone-less interzonal match
+   * too) and how many are finished. Only the stages `seasonGroups` lists --
+   * group stages whose fixtures carry a group.
+   */
+  async groupStageSpans(seasonId: string): Promise<StageSpan[]> {
+    const { rows } = await this.pool.query<{
+      stage_id: string;
+      first: Date | null;
+      last: Date | null;
+      played: string;
+    }>(
+      `SELECT f.stage_id, min(f.kickoff_at) AS first, max(f.kickoff_at) AS last,
+              count(*) FILTER (WHERE f.status IN ('finished', 'awarded')) AS played
+         FROM fixture f
+         JOIN stage st ON st.id = f.stage_id AND st.kind = 'group'
+        WHERE f.season_id = $1
+        GROUP BY f.stage_id
+       HAVING bool_or(f.group_name IS NOT NULL)`,
+      [seasonId],
+    );
+    return rows.map((r) => ({
+      stageId: r.stage_id,
+      first: r.first?.toISOString() ?? null,
+      last: r.last?.toISOString() ?? null,
+      played: Number(r.played),
     }));
   }
 

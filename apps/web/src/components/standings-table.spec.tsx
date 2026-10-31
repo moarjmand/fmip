@@ -24,8 +24,8 @@ const row = (id: string, position: number, points: number): TableRow => ({
   form: [points === 3 ? 'W' : 'L'],
 });
 
-const group = (stage: string, name: string, rows: TableRow[]): GroupTable => ({
-  stage: { id: stage, name: stage },
+const group = (stage: string, name: string, rows: TableRow[], superseded = false): GroupTable => ({
+  stage: { id: stage, name: stage, superseded },
   group: name,
   counted: rows.length === 0 ? 0 : 1,
   rows,
@@ -124,6 +124,61 @@ describe('the group tables', () => {
     expect(html).toContain('no positions yet');
     expect(html).toContain('Team C1 and Team C2');
     expect(html).not.toContain('<table');
+  });
+
+  it("names Argentina's halves and leads with the one being played (T-1668)", () => {
+    const html = renderToStaticMarkup(
+      <GroupTables
+        locale="en"
+        groups={[
+          group('Apertura', 'A', [row('a', 1, 3)], true),
+          group('Apertura', 'B', [row('b', 1, 3)], true),
+          group('Clausura', 'A', [row('c', 1, 3)]),
+          group('Clausura', 'B', [row('d', 1, 3)]),
+        ]}
+      />,
+    );
+    // Before T-1668 both halves were headed "Groups": the names were unknown.
+    expect(html).not.toContain('>Groups<');
+    expect(html.match(/data-testid="group-stage"/g)).toHaveLength(1);
+    expect(html).toContain('<h3 class="text-base font-semibold">Clausura</h3>');
+    expect(html).toContain('<caption class="sr-only">Clausura, Group A</caption>');
+    // The Apertura follows, closed, named, and still all there.
+    const earlier = html.indexOf('data-testid="group-stage-earlier"');
+    expect(earlier).toBeGreaterThan(html.indexOf('Clausura'));
+    expect(html.slice(earlier)).not.toContain('<details open');
+    expect(html.slice(earlier)).toContain('<h3 class="text-base font-semibold">Apertura</h3>');
+    expect(html.slice(earlier)).toContain('Earlier stage');
+    expect(html.slice(earlier)).toContain('<caption class="sr-only">Apertura, Group B</caption>');
+    expect(html.match(/data-testid="group-table"/g)).toHaveLength(4);
+    expect(html).not.toMatch(/\b(left|right)\b/);
+  });
+
+  it('keeps both halves open in stage order before the second has a result (T-1668)', () => {
+    const html = renderToStaticMarkup(
+      <GroupTables
+        locale="en"
+        groups={[group('Apertura', 'A', [row('a', 1, 3)]), group('Clausura', 'A', [])]}
+      />,
+    );
+    expect(html.match(/data-testid="group-stage"/g)).toHaveLength(2);
+    expect(html).not.toContain('group-stage-earlier');
+    expect(html.indexOf('Apertura')).toBeLessThan(html.indexOf('Clausura'));
+  });
+
+  it("names Argentina's halves in Persian (T-1668)", () => {
+    const html = renderToStaticMarkup(
+      <GroupTables
+        locale="fa"
+        groups={[
+          group('Apertura', 'A', [row('a', 1, 3)], true),
+          group('Clausura', 'A', [row('b', 1, 3)]),
+        ]}
+      />,
+    );
+    expect(html).toContain('کلاسورا');
+    expect(html).toContain('آپرتورا');
+    expect(html).toContain('مرحله‌ی قبلی');
   });
 
   it('labels the groups in Persian', () => {
