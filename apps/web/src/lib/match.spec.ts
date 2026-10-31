@@ -66,4 +66,42 @@ describe('shootoutStart (T-1477)', () => {
     expect(shootoutStart(play, { home: 2, away: 3 })).toBeNull();
     expect(shootoutStart([], { home: 0, away: 0 })).toBeNull();
   });
+
+  // Manresa 2-2 Sant Andreu after extra time, 2026-10-27, 1-4 on penalties: the
+  // feed left Manresa's scored kick out, so no run adds up (T-1666).
+  const m = (kind: string, side: Side, minute: number) => ({ kind, side, minute });
+  const manresa = [
+    m('goal', 'home', 93),
+    m('goal', 'away', 105),
+    m('yellow_card', 'away', 114),
+    m('penalty_goal', 'home', 116),
+    m('goal', 'away', 119),
+    m('yellow_card', 'away', 120),
+    m('penalty_missed', 'home', 120),
+    m('penalty_goal', 'away', 120),
+    m('penalty_missed', 'home', 120),
+    m('penalty_goal', 'away', 120),
+    m('penalty_goal', 'away', 120),
+    m('penalty_goal', 'away', 120),
+  ];
+  const pens = { home: 1, away: 4 };
+
+  it('reads a shoot-out with a kick missing from the score after play', () => {
+    expect(shootoutStart(manresa, pens)).toBeNull();
+    expect(shootoutStart(manresa, pens, { home: 2, away: 2 })).toBe(6);
+  });
+
+  it('keeps a penalty scored in play at the kicks minute out of the shoot-out', () => {
+    // Sant Andreu's third goal a penalty at 120+1 in play: the run of penalties
+    // at 120 starts with it, and its kicks still do not add up.
+    const late = [...manresa.slice(0, 5), m('penalty_goal', 'away', 120), ...manresa.slice(6)];
+    expect(shootoutStart(late, pens)).toBeNull();
+    expect(shootoutStart(late, pens, { home: 2, away: 3 })).toBe(6);
+  });
+
+  it('leaves the list as recorded when the goals of play do not add up', () => {
+    expect(shootoutStart(manresa, pens, { home: 3, away: 3 })).toBeNull();
+    expect(shootoutStart(manresa, pens, { home: 1, away: 1 })).toBeNull();
+    expect(shootoutStart(manresa, { home: 1, away: 2 }, { home: 2, away: 2 })).toBeNull();
+  });
 });

@@ -82,33 +82,79 @@ export function minuteLabel(minute: number, addedTime: number | null, locale = '
  * showed a shoot-out as penalties in added time. The kicks are the trailing
  * run of penalty incidents whose scored kicks, per side, are exactly the
  * shoot-out's score: the longest such run, so a miss that opens the shoot-out
- * is kept in it. With no shoot-out score, or no run that adds up to it, the
- * list is left as recorded rather than guessed at (rule 3).
+ * is kept in it.
+ *
+ * The feed can leave a kick out (Manresa v Sant Andreu, 2026-10-27: 1-4 on
+ * penalties, one Manresa kick unrecorded), so no run adds up. Then, given the
+ * score after play (T-1666), the kicks are the trailing penalties recorded at
+ * the last kick's minute (the feed files every kick at one minute, 120+1,
+ * 120+2, ...) after which the goals of play add up to that score, and whose
+ * scored kicks are no more than the shoot-out's per side and miss at most one
+ * of its goals. With no shoot-out
+ * score, or neither reading, the list is left as recorded rather than
+ * guessed at (rule 3).
  */
 export function shootoutStart(
-  incidents: readonly { kind: string; side: 'home' | 'away' | null }[],
+  incidents: readonly { kind: string; side: 'home' | 'away' | null; minute?: number }[],
   penalties: { home: number; away: number } | null,
+  afterPlay: { home: number; away: number } | null = null,
 ): number | null {
   if (penalties === null || penalties.home + penalties.away === 0) return null;
   let start = incidents.length;
-  while (
-    start > 0 &&
-    (incidents[start - 1]!.kind === 'penalty_goal' ||
-      incidents[start - 1]!.kind === 'penalty_missed')
-  ) {
-    start -= 1;
-  }
+  while (start > 0 && isKick(incidents[start - 1]!.kind)) start -= 1;
   for (let from = start; from < incidents.length; from += 1) {
-    let home = 0;
-    let away = 0;
-    for (const incident of incidents.slice(from)) {
-      if (incident.kind !== 'penalty_goal') continue;
-      if (incident.side === 'home') home += 1;
-      else if (incident.side === 'away') away += 1;
-    }
-    if (home === penalties.home && away === penalties.away) return from;
+    const scored = scoredKicks(incidents.slice(from));
+    if (scored.home === penalties.home && scored.away === penalties.away) return from;
     // A shorter run only scores fewer: none further on can add up.
-    if (home < penalties.home || away < penalties.away) return null;
+    if (scored.home < penalties.home || scored.away < penalties.away) break;
+  }
+  return afterPlay === null ? null : shortShootoutStart(incidents, start, penalties, afterPlay);
+}
+
+function isKick(kind: string): boolean {
+  return kind === 'penalty_goal' || kind === 'penalty_missed';
+}
+
+function scoredKicks(kicks: readonly { kind: string; side: 'home' | 'away' | null }[]): {
+  home: number;
+  away: number;
+} {
+  let home = 0;
+  let away = 0;
+  for (const kick of kicks) {
+    if (kick.kind !== 'penalty_goal') continue;
+    if (kick.side === 'home') home += 1;
+    else if (kick.side === 'away') away += 1;
+  }
+  return { home, away };
+}
+
+/** The reading of a shoot-out with a kick missing from the feed (T-1666). */
+function shortShootoutStart(
+  incidents: readonly { kind: string; side: 'home' | 'away' | null; minute?: number }[],
+  start: number,
+  penalties: { home: number; away: number },
+  afterPlay: { home: number; away: number },
+): number | null {
+  const last = incidents.at(-1)?.minute;
+  if (start === incidents.length || last === undefined) return null;
+  let from = start;
+  while (from < incidents.length && incidents[from]!.minute !== last) from += 1;
+  // An own goal is filed under either side by the feeds, so play is counted
+  // as a total, not per side.
+  const wanted = afterPlay.home + afterPlay.away;
+  let played = incidents
+    .slice(0, from)
+    .filter((i) => i.kind === 'goal' || i.kind === 'penalty_goal' || i.kind === 'own_goal').length;
+  for (; from < incidents.length; from += 1) {
+    if (played > wanted) return null;
+    if (played === wanted) {
+      const scored = scoredKicks(incidents.slice(from));
+      const fits = scored.home <= penalties.home && scored.away <= penalties.away;
+      const short = penalties.home + penalties.away - scored.home - scored.away;
+      return fits && short <= 1 ? from : null;
+    }
+    if (incidents[from]!.kind === 'penalty_goal') played += 1;
   }
   return null;
 }
