@@ -8434,13 +8434,13 @@
   },
   "scores.timesIn": {
     "source": "Times: {zoneName}",
-    "text": "ساعت‌ها به وقت {zone}",
+    "text": "ساعت‌ها {zoneName}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "scores.timesInGuest": {
     "source": "Times: {zoneName} (sign in for your own zone)",
-    "text": "ساعت‌ها به وقت {zone} (برای منطقه‌ی زمانی خودتان وارد شوید)",
+    "text": "ساعت‌ها {zoneName} (برای منطقه‌ی زمانی خودتان وارد شوید)",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -15706,7 +15706,7 @@
   },
   "watch.timesIn": {
     "source": "Times: {zoneName}",
-    "text": "ساعت‌ها به وقت {zone}",
+    "text": "ساعت‌ها {zoneName}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

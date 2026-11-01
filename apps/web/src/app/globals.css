@@ -283,6 +283,34 @@
     }
   }
 
+  /*
+   * The match page's fold on a phone (T-1693, D-338): one slim line that
+   * unfolds the rail in place. From 768px up there is no fold at all.
+   */
+  .moments-fold {
+    @apply md:hidden;
+  }
+
+  .moments-toggle {
+    @apply flex min-h-11 w-full items-center gap-2 text-start text-sm text-fg;
+  }
+
+  .moments-summary-label {
+    @apply min-w-0 truncate font-bold;
+  }
+
+  .moments-toggle-mark {
+    @apply ms-auto text-caption motion-safe:transition-transform;
+
+    [aria-expanded='true'] > & {
+      @apply rotate-180;
+    }
+  }
+
+  [data-folded='true'] > .moments-frame {
+    @apply max-md:hidden;
+  }
+
   .moments-picked {
     @apply hidden text-xs leading-snug text-caption md:block;
   }

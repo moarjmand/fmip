@@ -412,7 +412,7 @@ export function momentsView({
     behind: answer !== null && stripIsBehind(cards, answer.generated_at, now),
   };
   if (answer === null || moments.length === 0) {
-    return { ...base, title: null, lead: null, moments: [], more: null };
+    return { ...base, title: null, lead: null, summary: null, moments: [], more: null };
   }
   const d: Drawing = {
     locale,
@@ -455,6 +455,22 @@ export function momentsView({
           </span>
         </CompetitionsMenuTrigger>
       </div>
+    ),
+    // The match page's slim line on a phone (T-1693, D-338): "● 12 live ·
+    // Moments that matter", the button that unfolds the rail in place.
+    summary: (
+      <>
+        <span className="moments-live" data-count={live}>
+          <span aria-hidden="true" className={live > 0 ? 'live-dot moments-dot' : 'moments-dot'} />
+          <MessageText message={plural(lang, 'shell.moments.live', live)} />
+        </span>
+        <span aria-hidden="true" className="text-caption">
+          ·
+        </span>
+        <span className="moments-summary-label">
+          <MessageText message={message(lang, 'shell.moments.label')} />
+        </span>
+      </>
     ),
     moments: slots,
     more: (

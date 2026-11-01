@@ -1,6 +1,6 @@
 'use client';
 
-import { unstable_isUnrecognizedActionError } from 'next/navigation';
+import { unstable_isUnrecognizedActionError, usePathname } from 'next/navigation';
 import {
   type FocusEvent,
   type PointerEvent,
@@ -43,6 +43,13 @@ import { refreshRail } from '@/lib/rail-actions';
  *
  * On a quiet day with no moment, or with no answer, nothing is drawn, but
  * the asking goes on, so the rail appears once there is something to show.
+ *
+ * **Folded on a phone's match page** (T-1693, D-338). On the match page only,
+ * and only below 768px, the rail is one slim line ("● 12 live · Moments that
+ * matter", the server's `summary`), a button with `aria-expanded` that
+ * unfolds it in place, so the match header with the score comes first. The
+ * fold is the stylesheet's (`[data-folded]` in globals.css, `max-md:`), so
+ * from 768px up, and on every other page, the rail is exactly as before.
  */
 
 export interface MomentSlot {
@@ -63,6 +70,8 @@ export interface MomentsRailProps {
   title: ReactNode;
   /** "● 3 live", the caption and Leagues, drawn by the server. */
   lead: ReactNode;
+  /** "● 3 live · Moments that matter": the match page's folded line on a phone (D-338). */
+  summary: ReactNode;
   /** The moments in the answer's order; empty draws nothing. */
   moments: readonly MomentSlot[];
   /** The "N more" links, one per row width (`moreVariants`), drawn by the server. */
@@ -73,6 +82,11 @@ export interface MomentsRailProps {
   behindAt: number | null;
   /** Already behind when the server drew it. */
   behind: boolean;
+}
+
+/** The match page (`/<locale>/match/<id>`), where a phone folds the rail (D-338). */
+export function isMatchPage(pathname: string | null): boolean {
+  return pathname !== null && /^\/[^/]+\/match\/[^/]+\/?$/.test(pathname);
 }
 
 /** A pointer that hovers, a fine one, on a screen wide enough for the desktop row. */
@@ -257,6 +271,15 @@ export function MomentsRailView(props: MomentsRailProps) {
   }
   useRailRefresh(rail, show);
   const behind = useBehind(rail.behindAt, rail.behind);
+  // Folded on the match page (below 768px, by CSS); a new page folds it again.
+  const pathname = usePathname();
+  const onMatch = isMatchPage(pathname);
+  const [unfolded, setUnfolded] = useState(false);
+  const [foldedFor, setFoldedFor] = useState(pathname);
+  if (pathname !== foldedFor) {
+    setFoldedFor(pathname);
+    setUnfolded(false);
+  }
 
   // Esc closes the open hover card wherever the focus is; a focus inside the
   // panel goes back to its card, so it is not lost with the panel.
@@ -334,12 +357,30 @@ export function MomentsRailView(props: MomentsRailProps) {
       aria-labelledby="moments-title"
       data-testid="moments-rail"
       data-behind={behind ? 'true' : undefined}
+      data-folded={onMatch && !unfolded ? 'true' : undefined}
       className="group/moments border-b border-default bg-surface"
     >
       <h2 id="moments-title" className="sr-only">
         {rail.title}
       </h2>
-      <div className="page-frame moments-frame">
+      {onMatch && (
+        <div className="page-frame moments-fold">
+          <button
+            type="button"
+            className="moments-toggle focus-inset"
+            aria-expanded={unfolded}
+            aria-controls="moments-body"
+            data-testid="moments-toggle"
+            onClick={() => setUnfolded((open) => !open)}
+          >
+            {rail.summary}
+            <span aria-hidden="true" className="moments-toggle-mark">
+              ▾
+            </span>
+          </button>
+        </div>
+      )}
+      <div id="moments-body" className="page-frame moments-frame">
         {rail.lead}
         <div className="moments-row">
           <ul className="moments-cards" data-testid="moments-cards">
