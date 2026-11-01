@@ -1,0 +1,12 @@
+{
+  "extends": "@fmip/config/tsconfig/library.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "noEmit": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}
