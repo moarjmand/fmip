@@ -13697,3 +13697,28 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
   - *The existing team board:* off limits to the agents since 2026-10-19.
   - *GitHub issues:* an account and repository access for the teammate.
   - *A file in the repository:* every answer would be a pull request.
+
+## D-334 — Expected-goals form gets one forward test on the main leagues, written before any of its matches are played
+
+**Status:** Accepted · 2026-11-01 (the agent, on the maintainer's delegation: "مورد ۱ و ۲ اگر از نظر خودت هم مناسب است" ("items 1 and 2, if you think them right too")) · **Task:** T-1688 · **Follows:** D-139, D-303, D-312, D-329
+
+**Context.** D-329 kept the published model and named expected-goals form (D-312, T-1652) as the one factor worth another look: on 2024/25 it was significantly better on the football-data leagues (-0.00317 [-0.00521, -0.00104]) but worse in 6 of 15 divisions. The maintainer agreed to keep the model and to test a version "limited to the leagues with full xG coverage", if the agent judged it right.
+- **What the existing development run shows** (T-1652's report, per division): the seven divisions with at least 90% of matches carrying both sides' xG are CH1, DK1, US1, BR1, AR1, CZ1 and HR1. The input was worse in four of them (CH1, DK1, AR1, CZ1) and better in three. So the version limited to full coverage already fails D-139's "worse in at most a third" on the data in hand; running it would only confirm that.
+- **Where the gain was:** the ten main football-data leagues, with partial coverage. The input was better in seven of them (E0 -0.0111, E1 -0.0151, T1 -0.0145, SP1, D1, P1, B1) and worse in three (I1, F1, N1).
+- **Why the main leagues cannot simply be picked on that data:** choosing them after seeing which leagues improved, and judging the choice on the same matches, measures the choice, not the input. The 2025/26 holdout was spent on D-329's candidate (D-303: once).
+
+**Decision.**
+- **Not run:** the "full coverage" version. The development run already answers it.
+- **One forward test, written now:**
+  - **Input and constants:** D-312's input `xg_form`, with its formulation and constants unchanged.
+  - **Divisions:** the ten main football-data divisions, E0, E1, SP1, D1, I1, F1, N1, P1, T1 and B1, all of them, including the three where it was worse.
+  - **Matches:** only those played from 2026-11-01 to 2027-01-04, none of which exist today.
+  - **Judged against:** the published version, by D-139's bar unchanged (at least 300 matches where it applies, the log-loss interval wholly below zero, calibration not worse, worse in at most a third of the divisions).
+  - Nothing is tuned, added or removed after this entry.
+- **When:** a one-off scheduled run on 2027-01-05 (`fmip-xg-forward-test-2027-01`) on the lab store, after the new matches and their xG are loaded. If the input passes, a candidate carrying it goes to shadow like any other (D-082). If it fails, xG form is set aside until the data changes (for example, full xG coverage of the main leagues).
+- **The live calibration signal** the model scientist found on the published record (draws said 25% in the 20–30% band, seen 18% on 1,152 matches; D-330) is not part of this test. It is a separate question for its own entry after more matches.
+
+**Rejected.**
+- *Running the full-coverage version anyway:* its answer is already in the development run.
+- *The main leagues on 2024/25 or on the spent holdout:* a choice judged on the data it was chosen from.
+- *Waiting for a full new season:* the main leagues play about ninety matches a week, so nine weeks give the 300 needed many times over.
