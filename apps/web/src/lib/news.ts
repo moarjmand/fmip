@@ -223,6 +223,35 @@ export const LABEL_ORIGIN_KEY: Record<StoryLabelOrigin, MessageKey> = {
  */
 export const FRONT_CARDS = 4;
 
+/** The most stories in a row from one publisher in the latest list (T-1704). */
+export const SOURCE_RUN = 3;
+
+/**
+ * Latest, newest first, with no more than `run` stories in a row from one
+ * publisher (T-1704; the maintainer's desk answer d-2026-11-01-03): when the
+ * next story would make a longer run, the newest story from another
+ * publisher on the page goes first. Nothing is dropped, and a page with only
+ * one publisher left keeps its order. Pure; the page's cursor comes from the
+ * API, so reordering a page never moves its boundary.
+ */
+export function interleaveSources<T extends { source: { id: string } }>(
+  stories: readonly T[],
+  run = SOURCE_RUN,
+): T[] {
+  const pending = [...stories];
+  const out: T[] = [];
+  while (pending.length > 0) {
+    const tail = out.slice(-run);
+    const stuck =
+      tail.length === run && tail.every((s) => s.source.id === tail[0]!.source.id)
+        ? tail[0]!.source.id
+        : null;
+    const at = stuck === null ? 0 : pending.findIndex((s) => s.source.id !== stuck);
+    out.push(...pending.splice(at === -1 ? 0 : at, 1));
+  }
+  return out;
+}
+
 export function frontPage<T>(
   stories: readonly T[],
   front: boolean,

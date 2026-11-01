@@ -27,6 +27,7 @@ import {
   apiQuery,
   feedsStale,
   frontPage,
+  interleaveSources,
   isFiltered,
   pageHref,
   readNewsQuery,
@@ -151,7 +152,12 @@ export default async function NewsPage({
   const now = new Date().toISOString();
 
   // T-1613 (D-284): a first page is a front page -- the lead, the cards, the list.
-  const front = frontPage(result.ok ? (result.data.stories.data ?? []) : [], q.before === null);
+  // Latest mixes its publishers, three in a row at most (T-1704).
+  const stories = result.ok ? (result.data.stories.data ?? []) : [];
+  const front = frontPage(
+    q.section === 'latest' ? interleaveSources(stories) : stories,
+    q.before === null,
+  );
   const rail =
     railAnswers === null
       ? null
