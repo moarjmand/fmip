@@ -10,6 +10,7 @@ import type {
   ConsoleMe,
   ConsoleSnapshotResponse,
 } from '@fmip/contracts';
+import { consoleBase } from './console-base';
 
 /**
  * The agents console's calls to the API (D-340), made by the web server with
@@ -81,7 +82,10 @@ export function parseConsoleSetCookie(
   return { value, maxAge: maxAge === null ? 0 : Number(maxAge[1]) };
 }
 
-/** Mirrors the API's console cookie onto the console's host: host-only, strict. */
+/**
+ * Mirrors the API's console cookie onto the console's host: host-only, strict,
+ * and only under the console's base path when it shares a host (D-341).
+ */
 export async function applyConsoleCookie(header: string | null): Promise<void> {
   const parsed = parseConsoleSetCookie(header);
   if (parsed === null) return;
@@ -95,7 +99,7 @@ export async function applyConsoleCookie(header: string | null): Promise<void> {
     value: parsed.value,
     httpOnly: true,
     sameSite: 'strict',
-    path: '/',
+    path: (await consoleBase()) || '/',
     maxAge: parsed.maxAge,
     secure: process.env.NODE_ENV === 'production',
   });

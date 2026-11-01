@@ -23,7 +23,8 @@ import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/i
  *     ... finish-command --id <uuid> --status done|failed --outcome "what happened"
  *     ... import-board --as <username> < cards.json
  *
- * `invite` prints a one-time link to `https://$CONSOLE_HOST/invite/<token>`,
+ * `invite` prints a one-time link to `$CONSOLE_URL/invite/<token>` (D-341), or
+ * `https://$CONSOLE_HOST/invite/<token>` when that is unset,
  * open for three days; only the link holds the token. `load-snapshot` reads
  * the computer's snapshot from standard input, checks it and stores it with
  * an open security finding's detail removed. `take-commands` prints the
@@ -119,9 +120,12 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
     const store = app.get(PostgresConsoleStore);
     switch (args.kind) {
       case 'invite': {
+        // CONSOLE_URL (D-341) while the console lives under the site's host.
+        const url = process.env.CONSOLE_URL?.replace(/\/+$/, '');
         const host = process.env.CONSOLE_HOST;
-        if (host === undefined || host === '') {
-          console.error('CONSOLE_HOST is not set; see .env.example.');
+        const base = url || (host ? `https://${host}` : '');
+        if (base === '') {
+          console.error('Neither CONSOLE_URL nor CONSOLE_HOST is set; see .env.example.');
           return 1;
         }
         const token = newToken();
@@ -131,9 +135,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
           args.name,
           expires,
         );
-        process.stdout.write(
-          `https://${host}/invite/${token}\n(open until ${expires.toISOString()})\n`,
-        );
+        process.stdout.write(`${base}/invite/${token}\n(open until ${expires.toISOString()})\n`);
         return 0;
       }
       case 'load-snapshot': {

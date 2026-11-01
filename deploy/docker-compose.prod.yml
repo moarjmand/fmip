@@ -188,8 +188,10 @@ services:
       # Links in e-mails point at the public origin; derived from SITE_HOST so
       # there is one place to change the host name.
       WEB_BASE_URL: https://${SITE_HOST}
-      # The agents console's invitation links name its host (D-340).
+      # The agents console's invitation links name its host (D-340), or its
+      # address under the site's host while that has no DNS record (D-341).
       CONSOLE_HOST: ${CONSOLE_HOST:-agents.${SITE_HOST}}
+      CONSOLE_URL: ${CONSOLE_URL:-https://${SITE_HOST}/agents}
       MODEL_SERVICE_URL: http://model:8000
       # Crests, logos and player photos (T-1320, D-176), on the `media` volume:
       # every api container of a rollout mounts the same one, so the new
@@ -301,8 +303,11 @@ services:
       API_BASE_URL: http://api:3001
       # Canonical URLs, sitemap, structured data (T-039).
       SITE_URL: https://${SITE_HOST}
-      # The only host the console's routes are served on (D-340).
+      # The only host the console's routes are served on (D-340), and the
+      # path it is also served under on the site's host (D-341). An empty
+      # CONSOLE_PATH= in .env turns that path off.
       CONSOLE_HOST: ${CONSOLE_HOST:-agents.${SITE_HOST}}
+      CONSOLE_PATH: ${CONSOLE_PATH-/agents}
       # Off on a real deployment; on only where the database holds seeded fixtures (D-065).
       DEMONSTRATION_DATA: ${DEMONSTRATION_DATA:-off}
     depends_on:

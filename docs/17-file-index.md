@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2202), grouped by folder, with one line on
+Every file in the repository (2204), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -223,7 +223,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 4
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 5
 - [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 2
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
 - [`apps/web/src/app/console/(app)/audit`](#appswebsrcappconsoleappaudit) — 1
@@ -238,7 +238,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
-- [`apps/web/src/lib`](#appswebsrclib) — 207
+- [`apps/web/src/lib`](#appswebsrclib) — 208
 - [`apps/web/tests/e2e`](#appswebtestse2e) — 24
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
 - [`apps/web/tests/e2e/journeys`](#appswebtestse2ejourneys) — 25
@@ -2479,6 +2479,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `console-form.tsx` | A console form whose action answers with what happened (D-340): the outcome is said under the button, in a live region, and the button waits while the action runs. |
+| `console-link.tsx` | The site's link with a console path put under the request's base (D-341). |
 | `console.spec.tsx` | The agents console's web side (T-1698, D-340): served on its own host only, its cookie read back from the API's, and an open security finding shown without its detail. |
 | `layout.tsx` | The agents console's root (D-340): its own `<html>`, apart from the site's `[locale]` layout. |
 | `ui.tsx` | The agents console's building blocks (D-340): server components only, in Persian for the maintainer and the teammate, with the site's tokens and logical properties (rule 7). |
@@ -2920,6 +2921,7 @@ machine, `docs/18-handover.md`.
 | `competitions-menu.ts` | The competitions menu's rules (T-1643, D-301), pure so they are unit-tested (`competitions-menu.spec.ts`); `components/competitions-menu.tsx` fetches and draws. |
 | `console-actions.ts` | The agents console's forms (D-340), as server actions: each posts to the API with the console's cookie and comes back to the page with what happened. |
 | `console-api.ts` | The agents console's calls to the API (D-340), made by the web server with the console's own cookie, `fmip_console`, which lives on the console's host only. |
+| `console-base.ts` | The agents console's base path for this request (D-341): '' on its own host, `CONSOLE_PATH` (e.g. |
 | `console-host.ts` | The agents console's host (D-340): `CONSOLE_HOST`, e.g. |
 | `contributor-actions.ts` | Granting, pausing, resuming and withdrawing a contributor from the web (T-612), over the audited API of T-250. |
 | `contributor-flags.spec.ts` | Tests for `contributor-flags`. |

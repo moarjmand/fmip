@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { DEFAULT_LOCALE, WRITTEN_LOCALES, localeFromPathname } from '@/i18n/locales';
 import { fetchHeldLocales } from '@/lib/api';
-import { consoleRoute } from '@/lib/console-host';
+import { CONSOLE_BASE_HEADER, consoleRoute } from '@/lib/console-host';
 import { FIRST_RUN_COOKIE, parseGuestChoices } from '@/lib/first-run';
 import { negotiatedLanguage } from '@/lib/language-negotiation';
 import { READER_LOCALE_HEADER } from '@/lib/locale-query';
@@ -31,12 +31,21 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
   // The agents console (D-340): its own host serves only its routes, which
-  // no other host serves; neither is ever indexed.
-  const route = consoleRoute(request.headers.get('host'), pathname, process.env.CONSOLE_HOST);
+  // no other host serves; neither is ever indexed. Until that host has its
+  // DNS record, `CONSOLE_PATH` serves it under a path of this one (D-341).
+  const route = consoleRoute(
+    request.headers.get('host'),
+    pathname,
+    process.env.CONSOLE_HOST,
+    process.env.CONSOLE_PATH,
+  );
   if (route.kind === 'console') {
     const url = request.nextUrl.clone();
     url.pathname = route.pathname;
-    const response = NextResponse.rewrite(url);
+    // Set here, over anything the browser sent under the same name.
+    const forwarded = new Headers(request.headers);
+    forwarded.set(CONSOLE_BASE_HEADER, route.base);
+    const response = NextResponse.rewrite(url, { request: { headers: forwarded } });
     response.headers.set('X-Robots-Tag', 'noindex, nofollow');
     response.headers.set('Cache-Control', 'private, no-store');
     return response;

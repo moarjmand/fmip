@@ -13863,3 +13863,20 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 - *The server pulling from the computer:* the computer is behind a changing address and is not a server.
 
 **Consequences.** API module `apps/api/src/modules/agents-console/`, migrations for `console_user`, `console_session`, `console_invite`, `console_snapshot`, `console_command`, `console_board_card`; contracts in `packages/contracts/src/agents-console.ts`; web routes under `apps/web/src/app/console/`; `deploy/Caddyfile` (`{$CONSOLE_HOST}`); `ops/console-publish.mjs` and the daily run's last step; `.env.example` (`CONSOLE_HOST`, which production defaults to `agents.<SITE_HOST>` in the compose file, so the server's `.env` is not touched).
+
+## D-341 — The agents console also under `traveltohormuz.ir/agents`, until its host has DNS
+
+**Status:** Accepted · 2026-11-01 (the maintainer: «این را انجام بده traveltohormuz.ir/agents» ("do this, traveltohormuz.ir/agents")) · **Task:** T-1702 · **Amends:** D-340
+
+**Context.** D-340 put the console on `agents.traveltohormuz.ir`. That name needs a Cloudflare DNS record. The maintainer cannot sign in to Cloudflare for about a month: the Google account it signs in through is locked, with a recovery date about 30 days out. The console is deployed but cannot be reached.
+
+**Decision.**
+1. While `CONSOLE_PATH` is set (production default `/agents`, `deploy/docker-compose.prod.yml`), the web proxy also serves the console under that path on the site's own host. `traveltohormuz.ir/agents/x` is rewritten to `app/console/x`.
+2. The proxy tells the pages their base in a request header (`x-fmip-console-base`), always overwriting what the browser sent. Links (`ConsoleLink`), redirects (`consoleUrl`) and the cookie's `Path` keep the prefix. On the console's own host the base is empty, so D-340's behaviour is unchanged there.
+3. The invitation links name `CONSOLE_URL` (production default `https://<SITE_HOST>/agents`) instead of the host.
+4. Every console response still carries `X-Robots-Tag: noindex, nofollow` and `Cache-Control: private, no-store`. `/console/...` stays a 404 on the site's host.
+
+**Accepted cost.** D-340 rejected exactly this, because the console would share the site's origin. A script running on the public site could then reach the console's pages; the cookie's path scopes it, but a path is not a security boundary. The console's own protections stay in place: invitation-only accounts, scrypt, five-try lock, `SameSite=Strict`, HttpOnly, the audit log, and redacted security findings. The trade is accepted for a temporary period, with two readers.
+
+**Ending it.** Once the `agents` record exists in Cloudflare, put `CONSOLE_PATH=` (empty) in the server's `.env`, or change the compose default, and roll out `web`. The path then disappears and the host serves alone. Invitations already sent keep working on the host, because the token is the same.
+

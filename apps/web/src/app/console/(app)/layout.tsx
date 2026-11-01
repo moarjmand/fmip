@@ -1,8 +1,9 @@
-import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
+import { ConsoleLink as Link } from '@/app/console/console-link';
 import type { ReactNode } from 'react';
 import { signOut } from '@/lib/console-actions';
 import { consoleMe } from '@/lib/console-api';
+import { consoleUrl } from '@/lib/console-base';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,12 +18,12 @@ const NAV = [
 
 /**
  * Every console page but sign-in and the invitation (D-340): no session, no
- * page. Links are the console host's own paths; its proxy maps them under
- * `app/console`.
+ * page. Links are the console's own paths, under its base (D-341); the proxy
+ * maps them under `app/console`.
  */
 export default async function ConsoleAppLayout({ children }: { children: ReactNode }) {
   const me = await consoleMe();
-  if (!me.ok) redirect('/login');
+  if (!me.ok) redirect(await consoleUrl('/login'));
   return (
     <>
       <header className="border-b border-default bg-surface">

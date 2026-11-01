@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { applyConsoleCookie, consoleCall } from './console-api';
+import { consoleUrl } from './console-base';
 
 /**
  * The agents console's forms (D-340), as server actions: each posts to the
@@ -33,13 +34,13 @@ export async function signIn(_: ConsoleFormState, form: FormData): Promise<Conso
   });
   if (!result.ok) return failed(result.error?.message, 'ورود ممکن نشد. دوباره امتحان کنید.');
   await applyConsoleCookie(result.setCookie);
-  redirect('/');
+  redirect(await consoleUrl('/'));
 }
 
 export async function signOut(): Promise<void> {
   const result = await consoleCall('session', { method: 'DELETE' });
   await applyConsoleCookie(result.setCookie);
-  redirect('/login');
+  redirect(await consoleUrl('/login'));
 }
 
 export async function acceptInvitation(
@@ -59,7 +60,7 @@ export async function acceptInvitation(
   });
   if (!result.ok) return failed(result.error?.message, 'حساب باز نشد.');
   await applyConsoleCookie(result.setCookie);
-  redirect('/');
+  redirect(await consoleUrl('/'));
 }
 
 /** A command to the computer: pause, resume, run, model, schedule, or an answer on a decision. */

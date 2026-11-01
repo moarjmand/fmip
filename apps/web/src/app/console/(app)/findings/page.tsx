@@ -1,4 +1,4 @@
-import Link from '@/components/ui/link';
+import { ConsoleLink as Link } from '@/app/console/console-link';
 import type { Metadata } from 'next';
 import { consoleSnapshot } from '@/lib/console-api';
 import { Card, FindingRow, SEVERITY_WORDS, STATUS_WORDS, agentTitle, fa } from '../../ui';
