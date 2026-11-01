@@ -13642,6 +13642,80 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 
 **Consequences.** `docs/04-tasks-phase-14.md`: T-1651 to T-1657, T-1659 and T-1660 marked with their verdicts; T-1658 waits for its run; T-1661 (the report) follows. The reports stay outside the repository: `~/fmip-lab/reports/` on the server and `E:/FMIP/lab-local/reports/` locally.
 
+## D-330 — The agent team's second wave: model scientist, architect, designer, security, and the provider watch
+
+**Status:** Accepted · 2026-10-31 (the maintainer: "بله، همین الان" ("yes, right now")) · **Task:** T-1684 · **Follows:** D-326, D-328
+
+**Context.** D-328 planned twelve agents and built the first wave. The maintainer asked for the second at once.
+
+**Decision.** Four agents and one extension, each built as wave 1 was: a role file, a skill with a golden set of real past cases, a read-only script where one helps, a trial run whose notes were applied before commit.
+- **`model-scientist` (Opus).** Watches the model weekly with `model-watch.sql`, which reports:
+  - pre-kick-off log loss, Brier and accuracy by version;
+  - published against shadow on the same fixtures;
+  - 28-day drift, competitions with at least 20 matches, and calibration of the home probability.
+
+  It judges promotion readiness by D-139 at 300 paired matches and drafts new factors as decisions before any run. It never promotes, and it never looks at a holdout twice. Its first read showed 0.7.0 in shadow with 211 paired matches and no difference from the published version yet. Over 90 days, the Premier League (1.068) and the Bundesliga (1.067) were the weakest competitions.
+- **`architect` (Opus).** Before a substantial change it lays out two or three options against CLAUDE.md and the existing decisions, recommends one and drafts the decision. Monthly, it runs `boundary-check.sh` for module internals and provider adapters, and keeps the tech-debt register. Its first run found `conversations` importing `fixtures/internal/change-feed`.
+- **`designer`.** Draws a visible change on the design canvas on real data in the Stadiomind system before it is built. It reviews pages and release screenshots for:
+  - hierarchy and consistency;
+  - WCAG 2.2 AA;
+  - RTL and Persian type;
+  - dark mode, phone width and data honesty.
+
+  It never edits code.
+- **`security` (Opus).** Reviews pull requests for authorisation, input, SQL, XSS, secrets, rate limits, audited admin actions, dependencies and prompt injection. Weekly, `server-hardening.sh` reads the server and site: ports, SSH, firewall, updates, reboot, response headers, the origin lock, failed logins. Its first snapshot showed:
+  - no HSTS, CSP, frame or nosniff header on `/en`;
+  - a reboot pending;
+  - about a thousand failed SSH logins a day, noise while password login is off.
+
+  Server changes are proposals for the maintainer.
+- **The guard hook hardened** from the security agent's trial, which found 23 ways past it. It now refuses printing a container's environment (`exec ... printenv`, `docker inspect`), any reader of production's env file (not only `cat`), Compose `restart`, `stop` and `up --force-recreate` with no service named (each takes Postgres with it), quoted subcommands, Docker options before `compose`, `dropdb`, `git -C ... push --force` and `-fu`, `core.hooksPath`, `sed -i` on a migration, migration paths with doubled slashes, and turning the hooks off in either settings file. It has 57 cases. It is still a seatbelt, not a sandbox: a script file run elsewhere passes it, and the skills say so.
+- **The provider watch** joins the data auditor rather than becoming an agent, as D-328 planned. It adds three checks:
+  - P1, the day's request budget;
+  - P2, provider players and clubs waiting for an identity: 840;
+  - P3, matches finished in the last day with no line-up, by competition.
+
+**Consequences.**
+- New files: `.claude/agents/{model-scientist,architect,designer,security}.md` and `.claude/skills/{model-watch,fmip-architecture,fmip-design,fmip-security}/`.
+- Updated: the data auditor's `invariants.sql` and `SKILL.md`, and the charter's finding prefixes (`mod`, `arc`, `des`, `sec`).
+- The daily run is unchanged. These agents run weekly, monthly or when asked, and the chief of staff reads their findings.
+
+## D-331 — The teammate decides like the maintainer, on a shared decision desk
+
+**Status:** Accepted · 2026-10-31 (the maintainer: "هم تیمی هم مثل من بتواند تصمیم بگیرد" ("the teammate should be able to decide like me too"), then the decision desk chosen from the architect's options) · **Task:** T-1684 · **Follows:** D-328, D-330
+
+**Decision.**
+- **Who decides.** The team's decisions are put to the maintainer and the teammate alike, and either may answer. Purchases, accounts and secrets stay with the maintainer, the only one who can act on them.
+- **Where.** A private claude.ai page, "میز تصمیم" ("the decision desk"), at `https://claude.ai/artifact/VdSk3YP7SZntbVw3BGo7Sf`, with a small database:
+  - `decisions/<id>` holds the questions, written only by the owner (the daily run writes them as the maintainer);
+  - `answers/<person id>` holds each person's answers, written only by that person (rule level `self`, so nobody can change another's answer, the owner included);
+  - every answer is kept with who gave it and when.
+
+  The maintainer shares the page with the teammate as a Contributor.
+- **The loop.** The daily run exports the desk to `E:/FMIP/ops/desk/` before the chief of staff starts. The chief of staff turns answers into the ledger and writes new decisions to `desk-new.json`. The run then puts those on the desk. Two different answers come back as one decision to settle, with both named.
+- **Rejected.**
+  - *The existing team board:* off limits to the agents since 2026-10-19.
+  - *GitHub issues:* an account and repository access for the teammate.
+  - *A file in the repository:* every answer would be a pull request.
+
+## D-332 — Security headers on every response, in stages
+
+**Status:** Accepted · 2026-10-31 (the maintainer: "بله، مرحله‌به‌مرحله" ("yes, step by step")) · **Task:** T-1685 · **Follows:** D-112, D-330
+
+**Context.** The security agent's first weekly check found that `/en` sent none of HSTS, a content policy, a frame policy, `nosniff` or a referrer policy, and that Cloudflare added none. Nothing in the app or the Caddyfile set them, and no decision had chosen to leave them out. It also sent `X-Powered-By: Next.js`. Plain HTTP was already redirected, so the exposure was a first visit on a hostile network and other sites framing member pages.
+
+**Decision.** Caddy sets them on every response (`header { ... defer }`, so they replace any of the same name from `web`).
+- **Now:**
+  - `X-Content-Type-Options: nosniff`;
+  - `X-Frame-Options: SAMEORIGIN`;
+  - `Referrer-Policy: strict-origin-when-cross-origin`;
+  - a `Permissions-Policy` refusing camera, microphone, location, payment and USB;
+  - `X-Powered-By` removed (also `poweredByHeader: false` in `next.config.ts`).
+- **HSTS, rising:** `max-age=86400` (one day) first, so a mistake costs a day, not a year. It goes to six months once a week passes without a problem, and to `includeSubDomains`/preload only on a further decision.
+- **The content policy in report-only mode:** scripts and styles from the site with inline allowed (Next.js inlines its boot code), images from anywhere over HTTPS, frames from HTTPS sites (the highlights' embedded players), framing only by the site itself, no plugins. Violations show in the browser console. The enforcing policy, with nonces in place of `'unsafe-inline'`, is a later step after a clean week.
+
+**Consequences.** `deploy/Caddyfile`, `apps/web/next.config.ts`. The rollout recreates Caddy when its config changes. The security agent's weekly check now expects these headers.
+
 ## D-333 — A player the feed lists on both sides is marked as unclear, never moved
 
 **Status:** Accepted · 2026-10-31 (the maintainer: "بیان روشن روی صفحه" ("a clear statement on the page")) · **Task:** T-1687 · **Follows:** D-294, D-327, rule 3

@@ -23,6 +23,25 @@ import cloudflare-ranges.caddy
 {$SITE_HOST} {
 	tls /certs/origin.pem /certs/origin.key
 
+	# Security headers on every response (T-1685, D-332), in stages: the
+	# safe ones now, HSTS with a one-day max-age first (raised once a week
+	# passes without trouble), and the content policy in report-only mode,
+	# so a wrong source shows in the browser console instead of breaking a
+	# page. `defer` sets them after the upstream answers, so they win over
+	# the same header from `web`. Frames from other sites are allowed for
+	# the highlights' embedded players (viewing-panel.tsx); framing of this
+	# site is limited to itself.
+	header {
+		Strict-Transport-Security "max-age=86400"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' wss:; frame-src https:; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		-X-Powered-By
+		defer
+	}
+
 	# Only Cloudflare reaches the origin (T-930, D-112). A connection from any
 	# other address is closed without an answer, before either route below,
 	# so a request that skips Cloudflare cannot choose its own
