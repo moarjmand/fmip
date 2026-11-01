@@ -13756,3 +13756,31 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 - *Running the full-coverage version anyway:* its answer is already in the development run.
 - *The main leagues on 2024/25 or on the spent holdout:* a choice judged on the data it was chosen from.
 - *Waiting for a full new season:* the main leagues play about ninety matches a week, so nine weeks give the 300 needed many times over.
+
+## D-336 — A version that only adds divisions is promoted on "no worse, and better than chance where it is new"
+
+**Status:** Accepted · 2026-11-01 (the maintainer, on the decision desk: "ارتقا وقتی بدتر نیست و پوشش بیشتری دارد" ("promote when it is no worse and covers more")) · **Task:** T-1695 · **Follows:** D-082, D-139, D-140, D-233
+
+**Context.** `dixon-coles-elo@0.7.0` is the published `0.6.0` plus eleven divisions (D-233). The model scientist's first watch (D-330) found 211 paired pre-kick-off matches with 97% of them forecast identically (difference -0.00004 [-0.00017, +0.00009]), plus 31 finished fixtures that 0.7.0 forecast and the published version did not. D-139's paired bar asks for a significant improvement, which a version identical on the shared divisions can never show. So 0.7.0 would stay in shadow for ever, and its coverage would never reach the site.
+
+**Decision.** A shadow version whose difference from the published one is new divisions only is promote-ready when both of these hold:
+- **No worse:** on 300 or more paired pre-kick-off matches it is no worse. The paired log-loss interval's upper end is at or below +0.002.
+- **Better than chance where it is new:** on its new divisions' own pre-kick-off matches (100 or more) it beats one third each. Its log loss is below 1.0986, with the interval wholly below it.
+
+The model scientist judges this weekly, and readiness is a proposal: the maintainer promotes (D-082). A version that also changes constants or inputs on existing divisions is still judged by D-139.
+
+**Rejected.**
+- *D-139's bar for every version:* a coverage version could never pass it.
+- *Promoting 0.7.0 now:* 211 paired matches, below the 300 every promotion has needed.
+
+## D-339 — The agent team's third wave: product and strategy, content and community, business adviser
+
+**Status:** Accepted · 2026-11-01 (the maintainer and the teammate's decision desk: "همین الان" ("right now")) · **Task:** T-1694 · **Follows:** D-328, D-330, D-331
+
+**Decision.** The last three of D-328's twelve agents, built as the others were (a role file, a skill, a golden set of real cases, a read-only script where one helps, a trial run with its notes applied before commit):
+- **`product-strategist`** turns requests and feedback into task rows with checkable acceptance and prioritises them. It keeps the competitor view, and checks search and sharing health with `seo-check.sh`, run read-only from the server. Its first run found that `/en`, `/fa`, scores, news and the model page carry no share image (`og:image`). Hreflang (11) and canonicals are present.
+- **`content-community`** watches the news feeds with `content-watch.sql`: fetches, failing and silent directly fetched feeds, image licences, and football only on the pages. It also watches the moderation queue and sanctions. It prepares cases and decides none (rule 10). Its first read found seven directly fetched feeds without an image licence record. GNews's 314 publishers are read through GNews, so their silence is not a finding.
+- **`business-adviser`** (Opus) keeps the licence register (D-014), the costs and their trend, and the UK privacy basics. It writes any decision on money, licensing, terms or personal data as options with cost and risk, and every report says it is not legal or financial advice.
+- **The daily run** adds `content-community`. The product strategist and the business adviser run monthly and on demand, and the chief of staff reads all three.
+
+**Consequences.** `.claude/agents/{product-strategist,content-community,business-adviser}.md`, `.claude/skills/{product-strategy,content-watch,business-advice}/`, the charter's prefixes `str`, `cnt`, `biz`. All twelve of D-328's agents now exist.
