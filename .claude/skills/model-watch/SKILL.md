@@ -26,6 +26,13 @@ The method of the `model-scientist` agent. Read `.claude/skills/team-charter/SKI
    - **promotion readiness (D-140):** a shadow version with 300 or more paired pre-kick-off
      matches. Judge it by D-139's bar on the paired set; the verdict is a proposal to the
      maintainer, never a promotion.
+   - **a coverage version (D-336):** when a shadow version is the published one plus new
+     divisions (0.7.0 is 0.6.0 plus eleven), the paired test cannot separate them, because their
+     forecasts on the shared divisions are identical. Promote-ready when (a) 300 or more paired
+     matches show it no worse (the paired log-loss interval's upper end at or below +0.002), and
+     (b) on its new divisions' own pre-kick-off matches (100 or more) it beats one third each
+     (log loss below 1.0986, interval wholly below it). Still a proposal; the maintainer
+     promotes.
 3. Write `E:/FMIP/ops/reports/model-scientist/<date>.md` in Persian: the table of versions, the
    paired verdict, drift and calibration in one paragraph each, and what to watch next week.
 
