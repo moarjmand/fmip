@@ -13825,7 +13825,9 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 - *Hiding the rail on the match page:* a live match elsewhere is still worth one line.
 - *Folding on every page on a phone:* only the match page's score was pushed down, and only that was decided.
 
-**Consequences.** `apps/web/src/components/moments-rail.tsx` (`summary`), `apps/web/src/components/moments-rail-view.tsx` (`isMatchPage`, the toggle, `data-folded`, `id="moments-body"`), `apps/web/src/app/globals.css` (`.moments-fold`, `.moments-toggle`, `.moments-summary-label`, `.moments-toggle-mark`, the fold), `apps/web/src/components/moments-rail.spec.tsx` (the address rule, the closed button and its words in English and Persian, every other page's markup unchanged, the fold only below `md`). No new catalogue key.
+**Consequences.** `apps/web/src/components/moments-rail.tsx` (`summary`), `apps/web/src/components/moments-rail-view.tsx` (`isMatchPage`, the toggle, `data-folded`, `id="moments-body"`), `apps/web/src/app/globals.css` (`.moments-fold`, `.moments-toggle`, `.moments-summary-label`, the toggle's mark as `.moments-toggle::after`, the fold), `apps/web/src/components/moments-rail.spec.tsx` (the address rule, the closed button and its words in English and Persian, every other page's markup unchanged, the fold only below `md`). No new catalogue key.
+
+**The page budget.** The toggle put the match centre 0.3 KB over D-264's 191 KB ceiling, which is not raised. Instead the stage and round words (" · Round of 16", `stageAndRoundLabels` in `lib/stage-label.ts`) are now named by the server page and handed to the view as `MatchHero.stage`, so the stage parser left the page's JavaScript (a stage does not change while the match is live); the toggle keeps one state, the address it was unfolded on, and its mark is drawn by the stylesheet.
 
 ## D-339 — The agent team's third wave: product and strategy, content and community, business adviser
 

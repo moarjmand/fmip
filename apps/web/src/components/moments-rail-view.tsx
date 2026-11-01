@@ -271,15 +271,12 @@ export function MomentsRailView(props: MomentsRailProps) {
   }
   useRailRefresh(rail, show);
   const behind = useBehind(rail.behindAt, rail.behind);
-  // Folded on the match page (below 768px, by CSS); a new page folds it again.
+  // Folded on the match page (below 768px, by CSS). Unfolding is kept for the
+  // page it happened on, so a new page folds it again.
   const pathname = usePathname();
   const onMatch = isMatchPage(pathname);
-  const [unfolded, setUnfolded] = useState(false);
-  const [foldedFor, setFoldedFor] = useState(pathname);
-  if (pathname !== foldedFor) {
-    setFoldedFor(pathname);
-    setUnfolded(false);
-  }
+  const [unfoldedOn, setUnfoldedOn] = useState<string | null>(null);
+  const unfolded = unfoldedOn === pathname;
 
   // Esc closes the open hover card wherever the focus is; a focus inside the
   // panel goes back to its card, so it is not lost with the panel.
@@ -371,12 +368,9 @@ export function MomentsRailView(props: MomentsRailProps) {
             aria-expanded={unfolded}
             aria-controls="moments-body"
             data-testid="moments-toggle"
-            onClick={() => setUnfolded((open) => !open)}
+            onClick={() => setUnfoldedOn(unfolded ? null : pathname)}
           >
             {rail.summary}
-            <span aria-hidden="true" className="moments-toggle-mark">
-              ▾
-            </span>
           </button>
         </div>
       )}

@@ -293,18 +293,20 @@
 
   .moments-toggle {
     @apply flex min-h-11 w-full items-center gap-2 text-start text-sm text-fg;
+
+    /* The fold's mark, drawn here rather than in the markup (the page's JS budget). */
+    &::after {
+      content: 'BE' / '';
+      @apply ms-auto inline-block text-caption motion-safe:transition-transform;
+    }
+
+    &[aria-expanded='true']::after {
+      @apply rotate-180;
+    }
   }
 
   .moments-summary-label {
     @apply min-w-0 truncate font-bold;
-  }
-
-  .moments-toggle-mark {
-    @apply ms-auto text-caption motion-safe:transition-transform;
-
-    [aria-expanded='true'] > & {
-      @apply rotate-180;
-    }
   }
 
   [data-folded='true'] > .moments-frame {

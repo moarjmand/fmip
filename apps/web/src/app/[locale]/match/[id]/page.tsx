@@ -61,6 +61,7 @@ import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery } from '@/lib/viewing';
 import { matchWords } from '@/lib/words-server';
+import { stageAndRoundLabels } from '@/lib/stage-label';
 import { FilledMessage } from '@/components/filled-message';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
@@ -292,6 +293,14 @@ export default async function MatchPage({
               locale={locale}
               words={words}
               hero={{
+                stage: stageAndRoundLabels(
+                  result.data.fixture.stage?.name,
+                  result.data.fixture.round,
+                  (key) => words.m[key].text,
+                  locale,
+                )
+                  .map((label) => ` · ${label}`)
+                  .join(''),
                 // The broadcasters under the score, each a link-out (T-1384);
                 // the Watch section keeps the full list for the territory.
                 watch: <WatchLine locale={locale} viewing={viewingData} />,

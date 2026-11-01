@@ -19,7 +19,6 @@ import { isBehind } from '@/lib/live';
 import { formatKickoff, formatStamp, freshnessStamp, resultLine, statusLabel } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { listName } from '@/lib/person-name';
-import { stageAndRoundLabels } from '@/lib/stage-label';
 import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime, localDigits } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
@@ -64,6 +63,12 @@ export type MatchSlots = Partial<Record<MatchSlot, React.ReactNode>>;
  * official highlight. Server-rendered where they need the viewing answer.
  */
 export interface MatchHero {
+  /**
+   * " · Round of 16" after the season: the stage and round, named by the
+   * server (`stageAndRoundLabels`), so the stage parser is not in the page's
+   * JavaScript (T-1693; a stage does not change while the match is live).
+   */
+  stage?: React.ReactNode;
   live?: React.ReactNode;
   watch?: React.ReactNode;
   highlights?: React.ReactNode;
@@ -530,9 +535,7 @@ function Hero({
         </Link>
         <span>
           · {localDigits(locale, f.season.label)}
-          {stageAndRoundLabels(f.stage?.name, f.round, (key) => m[key].text, locale).map(
-            (label) => ` · ${label}`,
-          )}
+          {hero.stage}
           {f.group_name !== null
             ? ` · ${fill(m['matchCentre.group'].text, { group: f.group_name })}`
             : ''}
