@@ -197,6 +197,8 @@ const ANSWER =
   'Answers an invitation or request that already exists; each can be answered once, so it is bounded by the ceiling on sending them.';
 const GROUP_ADMIN =
   "A group owner's or moderator's decision on their own group's members or settings; bounded by the group's membership, and never reaches anyone outside it.";
+const CONSOLE_PERSON =
+  "One of the agents console's two invited people (D-340), signed in to its own account; the change is audited and reaches no member.";
 const ROLE_GATED =
   'Role-gated (the security spec, GATED_ELSEWHERE): only an administrator or the founder can call it, and the caller is the operator.';
 
@@ -313,6 +315,18 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'POST /settlements/run': ROLE_GATED,
   'POST /ratings/recompute': ROLE_GATED,
   'POST /fixtures/:fixtureId/founder-analysis': ROLE_GATED,
+
+  // The agents console (D-340): two people with their own accounts, apart
+  // from the members; every change is in `console_audit`.
+  'POST /console/session':
+    'Signing in to the agents console: five wrong passwords lock the name for 15 minutes (`afterFailure`), there are two names, and every try is audited.',
+  'DELETE /console/session': "Ends the caller's own console session; nothing is created.",
+  'POST /console/invitations/accept':
+    'Opens a console account from a one-time invitation made on the server: the token is 256 random bits and is spent by the first use.',
+  'POST /console/commands': CONSOLE_PERSON,
+  'POST /console/board': CONSOLE_PERSON,
+  'PATCH /console/board/:id': CONSOLE_PERSON,
+  'DELETE /console/board/:id': CONSOLE_PERSON,
 };
 
 /** Every write under this prefix is the console's: role-gated and audited, never rate limited. */

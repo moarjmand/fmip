@@ -364,7 +364,7 @@ const GATED_ELSEWHERE: Record<string, { roles: readonly Role[] }> = {
   'POST /fixtures/:fixtureId/founder-analysis': { roles: ['founder'] },
 };
 
-/** The only writes a guest may make: getting into, and out of, an account. */
+/** The only writes a guest may make: getting into, and out of, an account (a member's or a console person's). */
 const PUBLIC_WRITES = new Set([
   'POST /auth/register',
   'POST /auth/login',
@@ -372,6 +372,11 @@ const PUBLIC_WRITES = new Set([
   'POST /auth/verify-email',
   'POST /auth/password/forgot',
   'POST /auth/password/reset',
+  // The agents console's own accounts (D-340), which are not members:
+  // signing in and out, and opening one from a one-time invitation.
+  'POST /console/session',
+  'DELETE /console/session',
+  'POST /console/invitations/accept',
 ]);
 
 /** A 403 is `forbidden`, carrying a sentence and nothing else (D-108). */
