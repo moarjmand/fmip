@@ -17191,5 +17191,17 @@
     "text": "کجا تماشا می‌کنید؟",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.lineups.bothSides": {
+    "source": "(unclear in the source)",
+    "text": "(نامشخص در منبع)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.lineups.bothSidesNote": {
+    "source": "The data source lists one player in both teams’ line-ups. We show him where it puts him and mark him as unclear rather than guess which side he played for.",
+    "text": "منبع داده یک بازیکن را در ترکیب هر دو تیم آورده است. او را همان‌جایی که منبع گذاشته نشان می‌دهیم و به‌جای حدس زدنِ تیمش، «نامشخص» علامت می‌زنیم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   }
 }

@@ -81,6 +81,10 @@ export function MatchLineupsView({
       </p>
     );
   }
+  // One provider player id on both sides (T-1687, D-333): a feed error we cannot settle, so
+  // the player stays where the feed put him on each side, marked as unclear (rule 3).
+  const awayIds = new Set(lineups.away.map((p) => p.id));
+  const unclear = new Set(lineups.home.filter((p) => awayIds.has(p.id)).map((p) => p.id));
   const top = Math.max(...ratings.values());
   const chip = (p: MatchLineupPlayer) => ({
     rating: ratings.get(p.id),
@@ -166,6 +170,7 @@ export function MatchLineupsView({
                             player={p}
                             side={side}
                             {...chip(p)}
+                            unclear={unclear.has(p.id)}
                             locale={locale}
                             words={words}
                           />
@@ -179,6 +184,7 @@ export function MatchLineupsView({
                             player={p}
                             side={side}
                             {...chip(p)}
+                            unclear={unclear.has(p.id)}
                             locale={locale}
                             words={words}
                           />
@@ -230,7 +236,13 @@ export function MatchLineupsView({
                 .filter((p) => p.role === 'starter')
                 .map((p) => (
                   <li key={p.id} className={LINEUP_ROW}>
-                    <ListPlayer player={p} side={side} locale={locale} words={words} />
+                    <ListPlayer
+                      player={p}
+                      side={side}
+                      unclear={unclear.has(p.id)}
+                      locale={locale}
+                      words={words}
+                    />
                   </li>
                 ))}
             </ul>
@@ -238,6 +250,11 @@ export function MatchLineupsView({
         );
       })}
 
+      {unclear.size > 0 && (
+        <p dir="auto" className="text-xs text-caption" data-testid="lineup-both-sides">
+          <MessageText message={m['matchCentre.lineups.bothSidesNote']} />
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-3 @md:grid-cols-2" data-testid="lineup-benches">
         {(['home', 'away'] as const).map((side) => {
           const { team, players } = teams[side];
@@ -251,7 +268,13 @@ export function MatchLineupsView({
                 <ul>
                   {bench.map((p) => (
                     <li key={p.id} className={LINEUP_ROW}>
-                      <ListPlayer player={p} side={side} locale={locale} words={words} />
+                      <ListPlayer
+                        player={p}
+                        side={side}
+                        unclear={unclear.has(p.id)}
+                        locale={locale}
+                        words={words}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -380,11 +403,14 @@ function PlayerDisc({
 function ListPlayer({
   player: p,
   side,
+  unclear = false,
   locale,
   words,
 }: {
   player: MatchLineupPlayer;
   side: Side;
+  /** Listed on both sides by the feed (T-1687). */
+  unclear?: boolean;
   locale: string;
   words: MatchWords;
 }) {
@@ -397,6 +423,12 @@ function ListPlayer({
           {listName(locale, p.name)}
         </Link>
         {p.is_captain ? ` ${words.m['matchCentre.captain'].text}` : ''}
+        {unclear && (
+          <span className="text-caption" data-testid="lineup-unclear">
+            {' '}
+            <MessageText message={words.m['matchCentre.lineups.bothSides']} />
+          </span>
+        )}
       </span>
     </>
   );
@@ -407,6 +439,7 @@ function PitchPlayer({
   side,
   rating,
   best,
+  unclear = false,
   locale,
   words,
 }: {
@@ -414,6 +447,8 @@ function PitchPlayer({
   side: Side;
   rating: number | undefined;
   best: boolean;
+  /** Listed on both sides by the feed (T-1687). */
+  unclear?: boolean;
   locale: string;
   words: MatchWords;
 }) {
@@ -436,6 +471,7 @@ function PitchPlayer({
         <span dir="auto" className="block max-w-full truncate text-xs font-semibold text-fg">
           {listName(locale, p.name)}
           {p.is_captain ? ` ${words.m['matchCentre.captain'].text}` : ''}
+          {unclear ? ` ${words.m['matchCentre.lineups.bothSides'].text}` : ''}
         </span>
       </Link>
       {rating !== undefined && <RatingChip value={rating} text={formatFixed(locale, rating, 1)} />}
