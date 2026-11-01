@@ -54,15 +54,37 @@ JSONL
 
 Write is for an agent's own report and brief files only.
 
+## Your own memory (D-340)
+
+Each agent has a project memory, `.claude/agent-memory/<agent>/` (`memory: project` in its file),
+which Claude Code loads at the start of every run. Keep it short and durable, and write it in English:
+
+- the baselines you compare against (a normal count, a usual share, last month's figure);
+- false alarms you have ruled out, and why, so the next run does not raise them again;
+- where things are that took you time to find (a table, a script, a page);
+- what the maintainer or a teammate decided about your work (with the decision's number).
+
+Never put a secret, a password, a key or a member's personal data in it. Do not copy findings or
+reports into it: they have their own files. The agents console shows each agent's memory to the
+maintainer and the teammate.
+
 ## The finding format
 
 ```json
-{"id": "ops-2026-11-01-02", "agent": "ops-release", "severity": "major",
- "visible_to_users": false, "title": "disk 81% full, about 9 days left",
- "evidence": "df -h /: 81%; +1.9 points a day over 7 days",
- "likely_cause": "BuildKit cache", "proposal": "prune build cache older than 72 h",
- "owner": "engineering-session", "confidence": "high", "status": "new",
- "first_seen": "2026-11-01"}
+{
+  "id": "ops-2026-11-01-02",
+  "agent": "ops-release",
+  "severity": "major",
+  "visible_to_users": false,
+  "title": "disk 81% full, about 9 days left",
+  "evidence": "df -h /: 81%; +1.9 points a day over 7 days",
+  "likely_cause": "BuildKit cache",
+  "proposal": "prune build cache older than 72 h",
+  "owner": "engineering-session",
+  "confidence": "high",
+  "status": "new",
+  "first_seen": "2026-11-01"
+}
 ```
 
 - Required in every line: `id`, `agent`, `severity`, `visible_to_users`, `title`, `evidence`,

@@ -1,0 +1,23 @@
+{
+  "name": "@fmip/console-publisher",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The agents console's snapshot and command sync, run on the maintainer's computer (D-340).",
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fmip/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@fmip/config": "workspace:*",
+    "@types/node": "^22.19.0",
+    "eslint": "^9.39.5",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}

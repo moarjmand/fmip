@@ -1066,3 +1066,37 @@ export {
   countryConfederation,
 } from './confederation';
 export type { Confederation } from './confederation';
+export {
+  CONSOLE_AGENT_MODELS,
+  CONSOLE_AGENT_SCHEDULES,
+  CONSOLE_BOARD_COLUMNS,
+  CONSOLE_COMMAND_KINDS,
+  CONSOLE_SNAPSHOT_SCHEMA,
+  CONSOLE_USERNAME_PATTERN,
+} from './agents-console';
+export type {
+  ConsoleAcceptInvitationRequest,
+  ConsoleAgent,
+  ConsoleAgentRun,
+  ConsoleAuditEntry,
+  ConsoleBoardCard,
+  ConsoleBoardCardInput,
+  ConsoleBoardColumn,
+  ConsoleCommand,
+  ConsoleCommandKind,
+  ConsoleCommandRequest,
+  ConsoleCommandStatus,
+  ConsoleDecision,
+  ConsoleDecisionOption,
+  ConsoleFinding,
+  ConsoleFindingStatus,
+  ConsoleInvitationView,
+  ConsoleMe,
+  ConsoleMemoryEntry,
+  ConsoleMemorySource,
+  ConsoleReport,
+  ConsoleSeverity,
+  ConsoleSignInRequest,
+  ConsoleSnapshot,
+  ConsoleSnapshotResponse,
+} from './agents-console';

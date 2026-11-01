@@ -27,9 +27,13 @@ const CONTRACTS = join(WEB, '..', '..', '..', 'packages', 'contracts', 'src');
 type Rule = { rendered: [file: string, needle: string][] } | { exempt: string };
 
 const STAFF = 'a staff surface, not a member naming a member; it shows the stored record';
+const CONSOLE =
+  "the agents console's own accounts (D-340), never a member: no tombstone can reach it";
 
 const FIELDS: Record<string, Rule> = {
   'admin.ts:AdminUser.display_name': { exempt: STAFF },
+  'agents-console.ts:ConsoleInvitationView.display_name': { exempt: CONSOLE },
+  'agents-console.ts:ConsoleMe.display_name': { exempt: CONSOLE },
   'campaigns.ts:Audience.created_by': { exempt: STAFF },
   'campaigns.ts:Campaign.created_by': { exempt: STAFF },
   // The administrator who dismissed a contributor flag (T-1031): shown only on
@@ -203,6 +207,8 @@ describe('the web never renders a stored name or a tombstone handle directly', (
   /** Files allowed to read `.display_name`, each with its reason. */
   const DISPLAY_NAME_READERS: Record<string, string> = {
     'lib/member-name.ts': 'the rule itself',
+    'app/console/(app)/layout.tsx': CONSOLE,
+    'app/console/(open)/invite/[token]/page.tsx': CONSOLE,
     'components/member-name.tsx': 'the rule itself',
     'components/match-panel.tsx': '`Standing` branches on isDeletedMember first (T-812)',
     'components/founder-analysis.tsx': "the founder's own signed analysis (rule 6)",
