@@ -5,7 +5,7 @@ import { chosenTimeZone, defaultTimeZone } from './reader-time-zone';
 /**
  * The reader's zone for a page (T-1391, D-207): the member's, else the one a
  * guest chose in the first run, else the locale's default (UK time on `/en`,
- * UTC elsewhere). `chosen` says whether the reader picked it, so a page can
+ * Tehran time on `/fa` (D-337), UTC elsewhere). `chosen` says whether the reader picked it, so a page can
  * say "sign in for your own zone" only to a reader who has not.
  */
 export async function pageTimeZone(

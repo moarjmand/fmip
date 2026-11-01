@@ -8,13 +8,17 @@ import { isTimeZone } from './first-run';
  * the locale's default. Pure, so every page and the live strip agree and the
  * rule is tested once.
  *
- * The default is the English site's audience, abroad: UK time on `/en`
- * (D-207). Every other locale keeps UTC, as `/fa` did before.
+ * The default is each site's audience: UK time on `/en` (D-207), Tehran
+ * time on `/fa` (D-337; Iran has kept no daylight saving time since 2022,
+ * and the IANA zone knows it). Every other locale keeps UTC.
  */
 export const ENGLISH_DEFAULT_TIME_ZONE = 'Europe/London';
+export const PERSIAN_DEFAULT_TIME_ZONE = 'Asia/Tehran';
 
 export function defaultTimeZone(locale: string): string {
-  return locale === 'en' ? ENGLISH_DEFAULT_TIME_ZONE : 'UTC';
+  if (locale === 'en') return ENGLISH_DEFAULT_TIME_ZONE;
+  if (locale === 'fa') return PERSIAN_DEFAULT_TIME_ZONE;
+  return 'UTC';
 }
 
 type Zoned = { timezone?: string | null } | null | undefined;
@@ -37,7 +41,7 @@ export function readerTimeZone(locale: string, me: Zoned, guest: Zoned): string 
  */
 export function zoneWords(locale: string, timeZone: string): string {
   const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  if (timeZone === 'Asia/Tehran') return t(l, 'nextMatch.tehranTime');
+  if (timeZone === PERSIAN_DEFAULT_TIME_ZONE) return t(l, 'nextMatch.tehranTime');
   if (timeZone === ENGLISH_DEFAULT_TIME_ZONE) return t(l, 'nextMatch.ukTime');
   if (timeZone === 'UTC' || timeZone === 'Etc/UTC') return t(l, 'nextMatch.utc');
   return interpolate(t(l, 'nextMatch.zoneTime'), {

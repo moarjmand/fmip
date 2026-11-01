@@ -13792,6 +13792,43 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 - *D-139's bar for every version:* a coverage version could never pass it.
 - *Promoting 0.7.0 now:* 211 paired matches, below the 300 every promotion has needed.
 
+## D-337 — Persian pages show times in Tehran time
+
+**Status:** Accepted · 2026-11-01 (the maintainer, on the decision desk) · **Task:** T-1692 · **Follows:** D-207
+
+**Context.** D-207 made the reader's zone one rule on every page: the member's zone, else the one a guest chose in the first run, else the locale's default. The default was UK time on `/en` and UTC everywhere else, so a Persian reader who had chosen nothing read every kick-off three and a half hours early, with "به وقت UTC" beside it. The Persian site's audience reads Tehran time. Iran has kept no daylight saving time since 2022, and the IANA zone `Asia/Tehran` already knows it, so Tehran is UTC+3:30 all year.
+
+**Decision.**
+- `/fa`'s default zone is `Asia/Tehran` (`PERSIAN_DEFAULT_TIME_ZONE` in `lib/reader-time-zone.ts`, beside `ENGLISH_DEFAULT_TIME_ZONE`). `/en` stays on UK time; the other seven locales stay on UTC. A member's or a guest's own choice still comes first.
+- Every page takes its zone from that one function (`defaultTimeZone`, through `readerTimeZone` and `pageTimeZone`), so no page changes.
+- The Persian "Times: …" note (`scores.timesIn`, `scores.timesInGuest`, `watch.timesIn`) names the zone in words, `{zoneName}`, rather than the IANA id `{zone}`: "ساعت‌ها به وقت تهران", never "ساعت‌ها به وقت Asia/Tehran". For UTC the words are what they were ("ساعت‌ها به وقت UTC").
+
+**Rejected.**
+- *A fixed +03:30 offset:* the IANA zone is the one source of truth if Iran's clocks change again.
+- *Tehran time for every right-to-left locale:* Arabic readers are not in Iran; each locale's default is its audience's, and only `/fa` was decided.
+
+**Consequences.** `apps/web/src/lib/reader-time-zone.ts`, `apps/web/src/lib/reader-time-zone-server.ts` (comment), `apps/web/src/i18n/catalogues/fa.json` (the three notes), `apps/web/src/lib/reader-time-zone.spec.ts` (16:00 UTC is 19:30 on `/fa` in November and July, the note says Tehran time; `/en` unchanged with its summer hour). The Persian pages' visual baselines that print a kick-off without a `tz` move by three and a half hours.
+
+## D-338 — On a phone's match page the moments rail folds to one line
+
+**Status:** Accepted · 2026-11-01 (the maintainer, on the decision desk) · **Task:** T-1693 · **Follows:** D-300, D-301, D-302
+
+**Context.** The moments rail (D-300) is the one bar under the header on every page. On a phone the match page then opens with the header, the rail's lead and a row of cards before the match itself, and the score sat about two thirds of the way down the first screen. On the match page the reader has already chosen a match.
+
+**Decision.**
+- On the match page only (`/<locale>/match/<id>`, `isMatchPage` in `moments-rail-view.tsx`, read with `usePathname`), and only below 768px (`md`), the rail is one slim line: "● 12 live · Moments that matter" ("۱۲ زنده · لحظه‌های مهم" on `/fa`), drawn by the server from the existing keys (`shell.moments.live`, `shell.moments.label`) as the view's `summary`.
+- The line is a `button` with `aria-expanded` and `aria-controls="moments-body"` that unfolds the rail in place; another page folds it again. The fold is the stylesheet's (`[data-folded='true'] > .moments-frame` is `max-md:hidden`, `.moments-fold` is `md:hidden`), so the cards stay in the markup and nothing is measured.
+- Every other page, and the match page from 768px up, draw the rail exactly as before: no button, no `data-folded`, the same markup.
+
+**Rejected.**
+- *A native `details`/`summary`:* it cannot be forced open from 768px up by CSS alone in every supported browser, so the desktop rail would have depended on it.
+- *Hiding the rail on the match page:* a live match elsewhere is still worth one line.
+- *Folding on every page on a phone:* only the match page's score was pushed down, and only that was decided.
+
+**Consequences.** `apps/web/src/components/moments-rail.tsx` (`summary`), `apps/web/src/components/moments-rail-view.tsx` (`isMatchPage`, the toggle, `data-folded`, `id="moments-body"`), `apps/web/src/app/globals.css` (`.moments-fold`, `.moments-toggle`, `.moments-summary-label`, the toggle's mark as `.moments-toggle::after`, the fold), `apps/web/src/components/moments-rail.spec.tsx` (the address rule, the closed button and its words in English and Persian, every other page's markup unchanged, the fold only below `md`). No new catalogue key.
+
+**The page budget.** The toggle put the match centre 0.3 KB over D-264's 191 KB ceiling, which is not raised. Instead the stage and round words (" · Round of 16", `stageAndRoundLabels` in `lib/stage-label.ts`) are now named by the server page and handed to the view as `MatchHero.stage`, so the stage parser left the page's JavaScript (a stage does not change while the match is live); the toggle keeps one state, the address it was unfolded on, and its mark is drawn by the stylesheet.
+
 ## D-339 — The agent team's third wave: product and strategy, content and community, business adviser
 
 **Status:** Accepted · 2026-11-01 (the maintainer and the teammate's decision desk: "همین الان" ("right now")) · **Task:** T-1694 · **Follows:** D-328, D-330, D-331

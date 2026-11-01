@@ -19,6 +19,7 @@ import {
   MomentsRailView,
   OPEN_DELAY_MS,
   hoverAfter,
+  isMatchPage,
   panelAlign,
 } from './moments-rail-view';
 
@@ -31,7 +32,12 @@ import {
  * answer, Persian on /fa, only logical CSS, and the client half kept small.
  */
 
-vi.mock('next/navigation', () => ({ unstable_isUnrecognizedActionError: () => false }));
+/** The page the rail is drawn on (`usePathname`), set by a spec. */
+const nav = vi.hoisted(() => ({ pathname: '/en' as string | null }));
+vi.mock('next/navigation', () => ({
+  unstable_isUnrecognizedActionError: () => false,
+  usePathname: () => nav.pathname,
+}));
 
 const NOW = Date.parse('2026-10-24T18:00:00.000Z');
 const minutes = (n: number) => new Date(NOW + n * 60_000).toISOString();
@@ -411,6 +417,70 @@ describe('in Persian', () => {
     expect(out).toContain('>۲ بازی دیگر<');
     expect(out).toContain('>لیگ‌ها<');
     expect(out).not.toContain('data-translation="untranslated"');
+  });
+});
+
+describe('folded on a phone’s match page (T-1693, D-338)', () => {
+  const on = (pathname: string | null, locale = 'en') => {
+    nav.pathname = pathname;
+    try {
+      return draw(view(locale, answer(MOMENTS)));
+    } finally {
+      nav.pathname = '/en';
+    }
+  };
+  const STYLES = readFileSync(join(__dirname, '../app/globals.css'), 'utf8');
+
+  it('knows the match page by its address, and nothing else', () => {
+    expect(isMatchPage('/en/match/3f2a')).toBe(true);
+    expect(isMatchPage('/fa/match/3f2a/')).toBe(true);
+    expect(isMatchPage('/x-rtl/match/3f2a')).toBe(true);
+    expect(isMatchPage('/en')).toBe(false);
+    expect(isMatchPage('/en/scores')).toBe(false);
+    expect(isMatchPage('/en/match')).toBe(false);
+    expect(isMatchPage('/en/founder/3f2a')).toBe(false);
+    expect(isMatchPage('/en/competition/c/match/x')).toBe(false);
+    expect(isMatchPage(null)).toBe(false);
+  });
+
+  it('draws one slim line on the match page, a closed button that unfolds the rail in place', () => {
+    const out = on('/en/match/3f2a');
+    expect(tags(out, 'moments-rail')[0]).toContain('data-folded="true"');
+    const [toggle] = tags(out, 'moments-toggle');
+    expect(toggle).toMatch(/^<button/);
+    expect(toggle).toContain('type="button"');
+    expect(toggle).toContain('aria-expanded="false"');
+    expect(toggle).toContain('aria-controls="moments-body"');
+    const line = out.slice(out.indexOf('data-testid="moments-toggle"'), out.indexOf('</button>'));
+    expect(line).toContain('3 live');
+    expect(line).toContain('Moments that matter');
+    // The line comes before the rail it folds, and the rail is all still there.
+    expect(out.indexOf('moments-toggle')).toBeLessThan(out.indexOf('id="moments-body"'));
+    expect(tags(out, 'moment')).toHaveLength(MOMENTS.length);
+    expect(out).toContain('data-testid="moments-lead"');
+  });
+
+  it('says the line in Persian on /fa', () => {
+    const out = on('/fa/match/3f2a', 'fa');
+    const line = out.slice(out.indexOf('data-testid="moments-toggle"'), out.indexOf('</button>'));
+    expect(line).toContain('۳ زنده');
+    expect(line).toContain('لحظه‌های مهم');
+    expect(line).not.toContain('data-translation="untranslated"');
+  });
+
+  it('leaves every other page exactly as it was', () => {
+    for (const pathname of ['/en', '/en/scores', '/en/competition/c-epl', null]) {
+      const out = on(pathname);
+      expect(out, String(pathname)).not.toContain('moments-toggle');
+      expect(out, String(pathname)).not.toContain('data-folded');
+      expect(out, String(pathname)).toBe(on('/en'));
+    }
+  });
+
+  it('folds only below 768px, by the stylesheet, so from md up the rail is unchanged', () => {
+    expect(STYLES).toMatch(/\.moments-fold \{\s*@apply md:hidden;/);
+    expect(STYLES).toMatch(/\[data-folded='true'\] > \.moments-frame \{\s*@apply max-md:hidden;/);
+    expect(STYLES).not.toMatch(/\[data-folded[^\]]*\][^{]*\{\s*@apply (?!max-md:)/);
   });
 });
 
