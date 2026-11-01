@@ -334,6 +334,15 @@ export class PostgresConsoleStore {
     return rows.map(card);
   }
 
+  /** Whether a card moved from the old board is here already. */
+  async cardFromSource(sourceRef: string): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `SELECT 1 FROM console_board_card WHERE source_ref = $1`,
+      [sourceRef],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
   async createCard(
     input: ConsoleBoardCardInput,
     actor: ConsoleMe,

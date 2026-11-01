@@ -178,10 +178,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
     const locked = await send('POST', 'session', { username: name, password: PASSWORD }, null);
     expect(locked.statusCode).toBe(401);
 
-    await pool.query(
-      `UPDATE console_user SET locked_until = NULL WHERE username = $1`,
-      [name],
-    );
+    await pool.query(`UPDATE console_user SET locked_until = NULL WHERE username = $1`, [name]);
     const signedIn = await send(
       'POST',
       'session',

@@ -166,3 +166,44 @@ import cloudflare-ranges.caddy
 		format json
 	}
 }
+
+# The agents console (T-1700, D-340), for the maintainer and the teammate: the
+# same origin certificate (it names *.traveltohormuz.ir) and the same refusal
+# of anything but Cloudflare, stricter headers (never framed, no referrer),
+# and only the web app, whose proxy serves the console's routes on this host
+# and nothing else. Unset, the name is one that never resolves.
+{$CONSOLE_HOST:console.invalid} {
+	tls /certs/origin.pem /certs/origin.key
+	header {
+		Strict-Transport-Security "max-age=86400"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		X-Robots-Tag "noindex, nofollow"
+		Cache-Control "private, no-store"
+		-X-Powered-By
+		defer
+	}
+	@outside_cloudflare {
+		not {
+			import cloudflare_ranges
+			remote_ip 127.0.0.0/8 ::1 {$ORIGIN_EXTRA_RANGES}
+		}
+	}
+	handle @outside_cloudflare {
+		abort
+	}
+	handle {
+		reverse_proxy {
+			dynamic a {
+				name web
+				port 3000
+				refresh 1s
+			}
+			lb_try_duration 10s
+			lb_try_interval 250ms
+			fail_duration 10s
+		}
+	}
+}

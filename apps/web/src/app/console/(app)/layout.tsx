@@ -33,7 +33,7 @@ export default async function ConsoleAppLayout({ children }: { children: ReactNo
           </Link>
           <nav
             aria-label="کنسول"
-            className="order-3 w-full overflow-x-auto md:order-none md:w-auto"
+            className="order-3 w-full overflow-x-auto [scrollbar-width:none] md:order-none md:w-auto"
           >
             <ul className="flex gap-1">
               {NAV.map(([href, label]) => (

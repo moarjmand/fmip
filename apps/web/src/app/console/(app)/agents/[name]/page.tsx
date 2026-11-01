@@ -20,6 +20,7 @@ import {
   agentTitle,
   fa,
   inputClass,
+  plain,
   when,
 } from '../../../ui';
 
@@ -100,7 +101,7 @@ export default async function ConsoleAgentPage({ params }: Params) {
         <Card title="به چه چیزهایی دسترسی دارد">
           <ul className="flex flex-col gap-3">
             {agent.access.map((group) => (
-              <li key={group.area} className="flex flex-col gap-1">
+              <li key={plain(group.area)} className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <Badge
                     tone={
@@ -112,7 +113,7 @@ export default async function ConsoleAgentPage({ params }: Params) {
                     {group.level === 'write' ? 'نوشتن' : 'خواندن'}
                   </Badge>
                   <span className="text-sm text-fg" dir="auto">
-                    {group.area}
+                    {plain(group.area)}
                   </span>
                 </div>
                 <span className="text-xs text-caption" dir="ltr">
@@ -135,7 +136,7 @@ export default async function ConsoleAgentPage({ params }: Params) {
                 className="flex flex-wrap items-center gap-2 text-sm"
               >
                 <Badge>{SOURCE_WORDS[source.kind]}</Badge>
-                <span dir="auto">{source.label}</span>
+                <span dir="auto">{plain(source.label)}</span>
                 <span className="text-xs text-caption" dir="ltr">
                   {source.path}
                 </span>

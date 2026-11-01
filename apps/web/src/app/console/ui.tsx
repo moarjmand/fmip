@@ -31,6 +31,38 @@ export const SEVERITY_WORDS: Record<ConsoleSeverity, string> = {
   info: 'اطلاع',
 };
 
+/**
+ * The publisher's words for access and the workflow's ends, in Persian; the
+ * snapshot keeps them in English (D-340), and an unknown one shows as sent.
+ */
+const PLAIN_WORDS: Record<string, string> = {
+  'Reads the repository and the ops files': 'مخزن کد و پوشه‌ی عملیات را می‌خواند',
+  'Writes its own reports and findings': 'گزارش‌ها و یافته‌های خودش را می‌نویسد',
+  'Runs commands: scripts, git, and the server over ssh (read-only by the charter)':
+    'فرمان اجرا می‌کند: اسکریپت‌ها، git، و سرور از راه ssh (طبق منشور فقط‌خواندنی)',
+  'Searches and reads the web': 'در وب جست‌وجو می‌کند و می‌خواند',
+  'Opens the live site in the built-in browser': 'سایت زنده را در مرورگر داخلی باز می‌کند',
+  'Reads and writes the claude.ai pages (the desk)':
+    'صفحه‌های claude.ai (میز تصمیم) را می‌خواند و می‌نویسد',
+  'Asks other agents': 'از عامل‌های دیگر کمک می‌گیرد',
+  'Uses the team skills': 'از مهارت‌های تیم استفاده می‌کند',
+  'Other tools': 'ابزارهای دیگر',
+  'The project rules and the charter': 'قواعد پروژه و منشور تیم',
+  'Findings in E:/FMIP/ops/findings/': 'یافته‌ها در E:/FMIP/ops/findings/',
+  'The daily brief and the desk questions': 'خلاصه‌ی روز و پرسش‌های میز تصمیم',
+  'Its instructions': 'دستورالعمل خودش',
+  'The project rules': 'قواعد پروژه',
+  'The team charter': 'منشور تیم',
+  'Its past findings': 'یافته‌های قبلی‌اش',
+  'Its past reports': 'گزارش‌های قبلی‌اش',
+  'Its own memory': 'حافظه‌ی خودش',
+};
+export const plain = (words: string): string =>
+  (
+    PLAIN_WORDS[words] ??
+    words.replace(/^Reports in /, 'گزارش‌ها در ').replace(/^Skill: /, 'مهارت: ')
+  ).replace(/\/$/, ''); // a trailing slash jumps to the wrong end in right-to-left text
+
 export const SCHEDULE_WORDS: Record<string, string> = {
   daily: 'روزانه',
   weekly: 'هفتگی',
@@ -180,7 +212,7 @@ export function WorkflowDiagram({ workflow }: { workflow: ConsoleAgent['workflow
     <div className="flex flex-col gap-4 md:flex-row md:items-stretch" data-testid="workflow">
       <Column
         title="می‌خواند"
-        items={workflow.inputs}
+        items={workflow.inputs.map(plain)}
         tone="border-default bg-surface-raised text-fg"
       />
       {arrow}
@@ -192,7 +224,7 @@ export function WorkflowDiagram({ workflow }: { workflow: ConsoleAgent['workflow
       {arrow}
       <Column
         title="به‌جا می‌گذارد"
-        items={workflow.outputs}
+        items={workflow.outputs.map(plain)}
         tone="border-success bg-surface-raised text-fg"
       />
     </div>

@@ -250,6 +250,11 @@ describe('the command line', () => {
         'paused',
       ]),
     ).toMatchObject({ kind: 'finish-command', status: 'done' });
+    expect(parseConsoleArgs(['import-board', '--as', 'Mostafa'])).toEqual({
+      kind: 'import-board',
+      as: 'mostafa',
+    });
+    expect(parseConsoleArgs(['import-board']).kind).toBe('error');
     expect(parseConsoleArgs(['invite']).kind).toBe('error');
     expect(
       parseConsoleArgs(['finish-command', '--id', 'x', '--status', 'done', '--outcome', 'y']).kind,

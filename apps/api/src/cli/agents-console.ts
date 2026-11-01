@@ -6,6 +6,7 @@ import { AgentsConsoleModule } from '../modules/agents-console/agents-console.mo
 import {
   INVITATION_DAYS,
   SNAPSHOT_MAX_BYTES,
+  checkCard,
   checkSnapshot,
   consoleTokenText,
 } from '../modules/agents-console/internal/console-rules';
@@ -20,13 +21,16 @@ import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/i
  *     ... load-snapshot < snapshot.json
  *     ... take-commands
  *     ... finish-command --id <uuid> --status done|failed --outcome "what happened"
+ *     ... import-board --as <username> < cards.json
  *
  * `invite` prints a one-time link to `https://$CONSOLE_HOST/invite/<token>`,
  * open for three days; only the link holds the token. `load-snapshot` reads
  * the computer's snapshot from standard input, checks it and stores it with
  * an open security finding's detail removed. `take-commands` prints the
  * queued commands as JSON and marks them taken; `finish-command` writes one's
- * outcome back.
+ * outcome back. `import-board` moves the project board's cards from its
+ * claude.ai page once (T-1700): a JSON list of cards, each with its old id as
+ * `source_ref`, so running it again adds none twice.
  */
 
 export type ConsoleCliArgs =
@@ -34,6 +38,7 @@ export type ConsoleCliArgs =
   | { kind: 'load-snapshot' }
   | { kind: 'take-commands' }
   | { kind: 'finish-command'; id: string; status: 'done' | 'failed'; outcome: string }
+  | { kind: 'import-board'; as: string }
   | { kind: 'error'; message: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -60,6 +65,12 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
       return { kind: 'load-snapshot' };
     case 'take-commands':
       return { kind: 'take-commands' };
+    case 'import-board': {
+      const as = flags.get('as')?.trim().toLowerCase() ?? '';
+      if (as === '')
+        return { kind: 'error', message: '--as: the console account the cards are moved as.' };
+      return { kind: 'import-board', as };
+    }
     case 'finish-command': {
       const id = flags.get('id') ?? '';
       const status = flags.get('status');
@@ -71,7 +82,10 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
       return { kind: 'finish-command', id, status, outcome };
     }
     default:
-      return { kind: 'error', message: 'invite | load-snapshot | take-commands | finish-command' };
+      return {
+        kind: 'error',
+        message: 'invite | load-snapshot | take-commands | finish-command | import-board',
+      };
   }
 }
 
@@ -143,6 +157,36 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
             `${checked.snapshot.findings.length} findings, ${checked.snapshot.reports.length} reports\n`,
         );
         return 0;
+      }
+      case 'import-board': {
+        const user = await store.userByName(args.as);
+        if (user === null) {
+          console.error(`No console account ${args.as}.`);
+          return 1;
+        }
+        const actor = { id: user.id, username: user.username, display_name: user.display_name };
+        const cards = JSON.parse(await readStdin()) as unknown;
+        if (!Array.isArray(cards)) {
+          console.error('The board is not a JSON list of cards.');
+          return 1;
+        }
+        let added = 0;
+        const refused: string[] = [];
+        for (const raw of cards as Record<string, unknown>[]) {
+          const ref = typeof raw.source_ref === 'string' ? raw.source_ref : '';
+          const checked = checkCard({ ...raw, source_ref: undefined }, true);
+          if (ref === '' || !checked.ok) {
+            refused.push(`${ref || '?'}: ${checked.ok ? 'no source_ref' : checked.reason}`);
+            continue;
+          }
+          if (await store.cardFromSource(ref)) continue;
+          await store.createCard(checked.card, actor, ref);
+          added += 1;
+        }
+        process.stdout.write(
+          [`${added} card(s) added, ${refused.length} refused`, ...refused].join('\n') + '\n',
+        );
+        return refused.length === 0 ? 0 : 1;
       }
       case 'take-commands':
         process.stdout.write(`${JSON.stringify(await store.takeCommands())}\n`);
