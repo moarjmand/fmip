@@ -1229,6 +1229,20 @@ export class IngestStore implements SquadStore {
       changed += removed ?? 0;
     }
 
+    // One captain a side (the partial unique index `lineup_one_captain_per_participant`,
+    // T-1686): the armband the feed now gives one player is released by its former holder
+    // first, as a shirt is, or the insert is refused and the whole post-match run with it
+    // (2026-10-31 10:30). A feed naming two captains keeps the first it lists.
+    const captain = listed.find((entry) => entry.player.isCaptain)?.personId ?? null;
+    if (captain !== null) {
+      const { rowCount: uncaptained } = await this.pool.query(
+        `UPDATE lineup SET is_captain = false
+          WHERE participant_id = $1 AND is_captain AND person_id <> $2`,
+        [participantId, captain],
+      );
+      changed += uncaptained ?? 0;
+    }
+
     for (const { player, personId } of listed) {
       if (player.shirtNumber !== null) {
         // A shirt the provider moved to this player is released by its former
@@ -1271,7 +1285,7 @@ export class IngestStore implements SquadStore {
           player.role,
           player.shirtNumber,
           player.position,
-          player.isCaptain,
+          player.isCaptain && personId === captain,
           player.grid?.row ?? null,
           player.grid?.col ?? null,
         ],
