@@ -18,11 +18,14 @@ Project: FMIP (Football Match Intelligence Platform).
 Read CLAUDE.md and docs/03-project-map.md first.
 Then read "Environment constraints" and "Production" in docs/06-session-handoff.md
 — they will save you from re-discovering the network limits and the server the hard way.
-Current phase: 6 — see docs/01-roadmap.md and docs/04-tasks-phase-6.md
+Current phase: the highest docs/04-tasks-phase-<n>.md — see docs/01-roadmap.md
 What waits on the maintainer: "Now" in docs/14-maintainer.md
-Task: <task id> from docs/04-tasks-phase-6.md
+Task: <task id> from that phase's task file
 Do not read files outside what the project map indicates for this task.
 ```
+
+On a different Claude account or computer, start from `18-handover.md`
+instead: it brings across what lives outside the repository first.
 
 That is the whole handoff. Nothing else should be needed. If the agent asks a
 question that the documents should have answered, that is a **documentation
