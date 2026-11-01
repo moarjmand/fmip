@@ -33,7 +33,7 @@ nothing to promote; that decision stays the maintainer's.
 | Late-season stakes | 21% (the last eight rounds) | worse (+0.0050) |
 | Cross-league options (10 variants) | 3,952 European and cup matches | none better than the fit as it is |
 | Time decay per league (9 leagues) | all matches of those leagues | on the held-out seasons, the largest probability of a match moved 5.1 points on average; 39% of matches moved more than 5 points, the most 33 points |
-| Coach quality | — | its run had not finished; recorded when it does |
+| Coach quality | 63% of football-data matches, 70% of our records' | worse (+0.0007 and +0.0048), worse in 8 of 17 and 5 of 6 leagues (D-335) |
 
 ### 2. Accuracy, Brier, log loss, calibration
 
@@ -134,4 +134,4 @@ cross-league variants, and the draw by the draw recalibration. Each was tested a
 3. **The time decay again, with a guard on long memory for promoted and relegated clubs:** the
    Burnley pattern above; a new development run and a fresh holdout season.
 
-Coach quality's verdict is added to D-329 when its run ends.
+Coach quality's verdict came last (D-335): failed in both groups, so Phase 14 closes with no factor passed.
