@@ -48,7 +48,11 @@ const BLOCKED = [
   // Secrets: production's .env, read or copied in any way; `.env.example` is a template and passes.
   [/\/opt\/fmip\/\.env(?![.\w])|\/opt\/fmip\/\.en[?*[]/, 'reads or copies production\'s .env (secrets are never read; the team charter, rule 1)'],
   [/(fmip-prod|\/opt\/fmip)[\s\S]*(^|[\s'"/=<])(\.env(?![.\w])|\.en[?*[])/, 'reads or copies production\'s .env (secrets are never read; the team charter, rule 1)'],
-  [/\bdocker(\s+--?[\w-]+(\s+[^\s-]\S*)?)*\s+(inspect|container\s+inspect)\b/, 'prints a container\'s configuration, its environment and secrets included (docker inspect)'],
+  // A whole `docker inspect` prints the environment; a `-f`/`--format` template that names one
+  // harmless field (`{{.State.StartedAt}}`, the network address) does not, and the deploy check
+  // reads Postgres's start time that way (T-1689). A template naming the configuration or the
+  // environment, or `json`, is refused like the bare command.
+  [/\bdocker(\s+--?[\w-]+(\s+[^\s-]\S*)?)*\s+(inspect|container\s+inspect)\b(?![^|;&]*\s(-f|--format)[=\s]+["']?\{\{)|\bdocker\b[^|;&]*\binspect\b[^|;&]*(\.Config|\.Env|\bjson\b)/, 'prints a container\'s configuration, its environment and secrets included (docker inspect)'],
   [/\bdocker\s+exec\b[^|;&]*\s(printenv|env|export)(\s|$|['"])/, 'prints a container\'s environment, which holds the secrets'],
   [/\bdocker\s+(restart|stop|kill|rm|pause)\b[^|;&]*postgres/, 'restarts, stops or removes the Postgres container (never, T-1472)'],
   [/\bdocker\s+(volume\s+(rm|prune)\b|system\s+prune\b[^|;&]*--volumes)/, 'deletes Docker volumes (the database lives in one)'],
