@@ -15,6 +15,8 @@ predictions rather than popularity.
 |---|---|
 | An agent about to do work | `CLAUDE.md`, then `docs/03-project-map.md` |
 | Resuming after a break | `docs/06-session-handoff.md` |
+| Moving to another account or computer | `docs/18-handover.md` |
+| Looking up any single file | `docs/17-file-index.md` |
 | Wondering why something is built this way | `docs/00-decisions.md` |
 | Looking for what to build next | `docs/04-tasks-phase-1.md` |
 | Trying to understand the system | `docs/02-architecture.md` |
