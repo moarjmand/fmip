@@ -171,7 +171,8 @@ import cloudflare-ranges.caddy
 # same origin certificate (it names *.traveltohormuz.ir) and the same refusal
 # of anything but Cloudflare, stricter headers (never framed, no referrer),
 # and only the web app, whose proxy serves the console's routes on this host
-# and nothing else. Unset, the name is one that never resolves.
+# and nothing else. The compose file names it agents.<SITE_HOST>; outside it,
+# unset, the name is one that never resolves.
 {$CONSOLE_HOST:console.invalid} {
 	tls /certs/origin.pem /certs/origin.key
 	header {
