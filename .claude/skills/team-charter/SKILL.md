@@ -1,6 +1,6 @@
 ---
 name: team-charter
-description: The shared rules, finding format and folders of the Stadiomind agent team (D-328). Every team agent (chief-of-staff, ops-release, code-reviewer, qa-engineer, data-auditor) reads this first. Use when acting as one of them or reading their output.
+description: The shared rules, finding format and folders of the Stadiomind agent team (D-328). Every team agent (chief-of-staff, ops-release, code-reviewer, qa-engineer, data-auditor, designer, security, architect, model-scientist) reads this first. Use when acting as one of them or reading their output.
 ---
 
 # The Stadiomind agent team: shared charter (T-1682, D-328)
@@ -33,7 +33,7 @@ of roles: `docs/00-decisions.md` D-328.
 ```
 E:/FMIP/ops/
   findings/<YYYY-MM-DD>.jsonl   one JSON object per line, the format below
-  reports/<agent>/<YYYY-MM-DD>.md   each agent's Persian report
+  reports/<agent>/<YYYY-MM-DD>[-<subject>].md   each agent's Persian report (a subject when it writes several a day)
   handoffs/<YYYY-MM-DD>.md      proposed tasks for the engineering session
   brief/<YYYY-MM-DD>.md         the chief of staff's brief for the maintainer
   raid.md                       risks, assumptions, issues, dependencies (chief of staff)
@@ -62,6 +62,9 @@ Write is for an agent's own report and brief files only.
  "first_seen": "2026-11-01"}
 ```
 
+- Required in every line: `id`, `agent`, `severity`, `visible_to_users`, `title`, `evidence`,
+  `likely_cause` (or "unknown"), `proposal`, `owner`, `confidence`, `status`, `first_seen`. Lines are
+  in English; reports and briefs are in Persian.
 - `id`: `<agent prefix>-<date first seen>-<nn>`. A finding seen again keeps its id: append a
   line with the same id, today's evidence and `"status": "open"`, so the brief shows only
   what is new or changed.
@@ -74,7 +77,8 @@ Write is for an agent's own report and brief files only.
   which rule and why in `evidence`).
 - **Every agent writes its findings to the day's file**, not only to its report: the chief of
   staff works from the findings first and the reports for detail. Prefixes: `ops` (ops-release),
-  `qa` (qa-engineer), `rev` (code-reviewer), `aud` (data-auditor).
+  `qa` (qa-engineer), `rev` (code-reviewer), `aud` (data-auditor), `des` (designer), `sec` (security),
+  `arc` (architect), `mod` (model-scientist).
 
 ## Model tiers
 

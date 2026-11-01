@@ -278,6 +278,29 @@ WITH x AS (
 SELECT 'M2 forecast_missing_24h', 'major', count(*), string_agg(label, '; ') FILTER (WHERE rn <= 5)
   FROM (SELECT x.*, row_number() OVER () AS rn FROM x) y;
 
+-- P1 (the provider watch, T-1684): today's request budget against the plan, from the watchdog.
+SELECT 'P1 request_budget', CASE WHEN coalesce(observed, 0) >= 80 THEN 'major' ELSE 'info' END,
+       round(coalesce(observed, 0))::int, note
+  FROM watchdog_condition WHERE key = 'request_budget';
+
+-- P2 (rule 1): provider entities waiting for an identity (players and clubs the ingestion could not resolve).
+SELECT 'P2 unresolved_pending', CASE WHEN coalesce(sum(n), 0) > 2000 THEN 'major' ELSE 'info' END,
+       coalesce(sum(n), 0)::int, string_agg(entity_type || ' ' || n, '; ')
+  FROM (SELECT entity_type, count(*) AS n FROM unresolved_entity WHERE status = 'pending' GROUP BY 1) u;
+
+-- P3 (coverage, rule 3): matches finished in the last 26 hours with no line-up stored, by competition.
+WITH x AS (
+  SELECT c.name, count(*) AS played,
+         count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM fixture_participant fp JOIN lineup l ON l.participant_id = fp.id
+                                             WHERE fp.fixture_id = f.id)) AS without
+    FROM fixture f JOIN season s ON s.id = f.season_id JOIN competition c ON c.id = s.competition_id
+   WHERE f.status = 'finished' AND f.kickoff_at BETWEEN now() - interval '26 hours' AND now() - interval '2 hours'
+   GROUP BY c.name)
+SELECT 'P3 finished_without_lineup', CASE WHEN sum(without) * 10 > sum(played) * 3 THEN 'major' ELSE 'info' END,
+       coalesce(sum(without), 0)::int,
+       string_agg(name || ' ' || without || '/' || played, '; ' ORDER BY without DESC) FILTER (WHERE without > 0)
+  FROM x;
+
 -- Q1: the platform's own checks (T-820): open findings by kind, for the agent to triage.
 SELECT 'Q1 open_findings', 'info', coalesce(sum(n), 0),
        string_agg(check_kind || ' ' || n, '; ' ORDER BY n DESC)
