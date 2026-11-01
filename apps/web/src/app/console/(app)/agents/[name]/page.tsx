@@ -1,4 +1,4 @@
-import Link from '@/components/ui/link';
+import { ConsoleLink as Link } from '@/app/console/console-link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import {

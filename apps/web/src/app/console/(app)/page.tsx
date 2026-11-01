@@ -1,4 +1,4 @@
-import Link from '@/components/ui/link';
+import { ConsoleLink as Link } from '@/app/console/console-link';
 import type { ConsoleSnapshot } from '@fmip/contracts';
 import { consoleCommands, consoleSnapshot } from '@/lib/console-api';
 import {

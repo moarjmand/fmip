@@ -1,7 +1,13 @@
 import type { ConsoleFinding } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { consoleRoute, hostName, isConsoleHost } from '@/lib/console-host';
+import {
+  consoleHref,
+  consolePathOf,
+  consoleRoute,
+  hostName,
+  isConsoleHost,
+} from '@/lib/console-host';
 import { FindingRow, RunsBars, WorkflowDiagram, freshness } from './ui';
 
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
@@ -26,20 +32,53 @@ describe('the console host', () => {
   });
 
   it('serves every path of its host from the console, and hides the console everywhere else', () => {
-    expect(consoleRoute(HOST, '/', HOST)).toEqual({ kind: 'console', pathname: '/console' });
+    expect(consoleRoute(HOST, '/', HOST)).toEqual({
+      kind: 'console',
+      pathname: '/console',
+      base: '',
+    });
     expect(consoleRoute(HOST, '/agents/data-auditor', HOST)).toEqual({
       kind: 'console',
       pathname: '/console/agents/data-auditor',
+      base: '',
     });
     expect(consoleRoute(HOST, '/console/board', HOST)).toEqual({
       kind: 'console',
       pathname: '/console/board',
+      base: '',
     });
     expect(consoleRoute('traveltohormuz.ir', '/console', HOST)).toEqual({ kind: 'hidden' });
     expect(consoleRoute('traveltohormuz.ir', '/console/login', HOST)).toEqual({ kind: 'hidden' });
     expect(consoleRoute('traveltohormuz.ir', '/en/scores', HOST)).toEqual({ kind: 'site' });
     expect(consoleRoute('traveltohormuz.ir', '/consoles', HOST)).toEqual({ kind: 'site' });
     expect(consoleRoute('traveltohormuz.ir', '/console', undefined)).toEqual({ kind: 'hidden' });
+  });
+
+  it('serves the console under CONSOLE_PATH on the site host, with its base (D-341)', () => {
+    const SITE = 'traveltohormuz.ir';
+    expect(consoleRoute(SITE, '/agents', HOST, '/agents')).toEqual({
+      kind: 'console',
+      pathname: '/console',
+      base: '/agents',
+    });
+    expect(consoleRoute(SITE, '/agents/', HOST, '/agents')).toMatchObject({ pathname: '/console' });
+    expect(consoleRoute(SITE, '/agents/agents/security', HOST, '/agents')).toEqual({
+      kind: 'console',
+      pathname: '/console/agents/security',
+      base: '/agents',
+    });
+    expect(consoleRoute(SITE, '/agentsx', HOST, '/agents')).toEqual({ kind: 'site' });
+    expect(consoleRoute(SITE, '/agents', HOST, '')).toEqual({ kind: 'site' });
+    expect(consoleRoute(SITE, '/console/login', HOST, '/agents')).toEqual({ kind: 'hidden' });
+    // The console's own host keeps an empty base.
+    expect(consoleRoute(HOST, '/agents/security', HOST, '/agents')).toMatchObject({ base: '' });
+    expect(consolePathOf('/agents/')).toBe('/agents');
+    expect(consolePathOf('agents')).toBe('');
+    expect(consolePathOf('/console')).toBe('');
+    expect(consolePathOf('/a/b')).toBe('');
+    expect(consoleHref('', '/board')).toBe('/board');
+    expect(consoleHref('/agents', '/')).toBe('/agents');
+    expect(consoleHref('/agents', '/findings?status=open')).toBe('/agents/findings?status=open');
   });
 });
 
