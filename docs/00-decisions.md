@@ -13697,3 +13697,21 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
   - *The existing team board:* off limits to the agents since 2026-10-19.
   - *GitHub issues:* an account and repository access for the teammate.
   - *A file in the repository:* every answer would be a pull request.
+
+## D-332 — Security headers on every response, in stages
+
+**Status:** Accepted · 2026-10-31 (the maintainer: "بله، مرحله‌به‌مرحله" ("yes, step by step")) · **Task:** T-1685 · **Follows:** D-112, D-330
+
+**Context.** The security agent's first weekly check found that `/en` sent none of HSTS, a content policy, a frame policy, `nosniff` or a referrer policy, and that Cloudflare added none. Nothing in the app or the Caddyfile set them, and no decision had chosen to leave them out. It also sent `X-Powered-By: Next.js`. Plain HTTP was already redirected, so the exposure was a first visit on a hostile network and other sites framing member pages.
+
+**Decision.** Caddy sets them on every response (`header { ... defer }`, so they replace any of the same name from `web`).
+- **Now:**
+  - `X-Content-Type-Options: nosniff`;
+  - `X-Frame-Options: SAMEORIGIN`;
+  - `Referrer-Policy: strict-origin-when-cross-origin`;
+  - a `Permissions-Policy` refusing camera, microphone, location, payment and USB;
+  - `X-Powered-By` removed (also `poweredByHeader: false` in `next.config.ts`).
+- **HSTS, rising:** `max-age=86400` (one day) first, so a mistake costs a day, not a year. It goes to six months once a week passes without a problem, and to `includeSubDomains`/preload only on a further decision.
+- **The content policy in report-only mode:** scripts and styles from the site with inline allowed (Next.js inlines its boot code), images from anywhere over HTTPS, frames from HTTPS sites (the highlights' embedded players), framing only by the site itself, no plugins. Violations show in the browser console. The enforcing policy, with nonces in place of `'unsafe-inline'`, is a later step after a clean week.
+
+**Consequences.** `deploy/Caddyfile`, `apps/web/next.config.ts`. The rollout recreates Caddy when its config changes. The security agent's weekly check now expects these headers.
