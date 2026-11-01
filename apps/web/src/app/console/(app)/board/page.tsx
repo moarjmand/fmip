@@ -8,12 +8,15 @@ import { Badge, Card, fa, inputClass, when } from '../../ui';
 export const metadata: Metadata = { title: 'تابلوی پروژه' };
 
 const COLUMN_WORDS: Record<ConsoleBoardColumn, string> = {
-  backlog: 'فهرست کارها',
-  next: 'بعدی',
+  backlog: 'ایده‌ها',
+  next: 'برای انجام',
   doing: 'در دست انجام',
-  review: 'بازبینی',
+  review: 'منتظر',
   done: 'انجام شد',
 };
+
+/** The done column shows its newest cards only; the rest stay in the table. */
+const DONE_SHOWN = 30;
 
 /** The project board, moved here from its claude.ai page (T-1698, T-1700, D-340). */
 export default async function ConsoleBoardPage() {
@@ -24,14 +27,20 @@ export default async function ConsoleBoardPage() {
     <>
       <div className="flex gap-3 overflow-x-auto pb-2" data-testid="board">
         {CONSOLE_BOARD_COLUMNS.map((column) => {
-          const mine = cards.filter((card) => card.column === column);
+          const all = cards.filter((card) => card.column === column);
+          const mine =
+            column === 'done'
+              ? [...all]
+                  .sort((x, y) => y.updated_at.localeCompare(x.updated_at))
+                  .slice(0, DONE_SHOWN)
+              : all;
           return (
             <section
               key={column}
               className="flex w-72 shrink-0 flex-col gap-2 rounded-card bg-surface-raised p-3"
             >
               <h2 className="text-sm font-bold">
-                {COLUMN_WORDS[column]} <span className="text-caption">· {fa(mine.length)}</span>
+                {COLUMN_WORDS[column]} <span className="text-caption">· {fa(all.length)}</span>
               </h2>
               <ul className="flex flex-col gap-2">
                 {mine.map((card) => (
@@ -93,6 +102,11 @@ export default async function ConsoleBoardPage() {
                   </li>
                 ))}
               </ul>
+              {all.length > mine.length && (
+                <p className="text-xs text-caption">
+                  و {fa(all.length - mine.length)} کارت قدیمی‌تر
+                </p>
+              )}
             </section>
           );
         })}
