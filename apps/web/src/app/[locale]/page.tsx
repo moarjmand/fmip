@@ -98,7 +98,8 @@ export async function generateMetadata({
     path: '',
     // The only page in the layout's own segment, so the layout's title
     // template does not reach it and it carries the marker itself (T-087).
-    title: rootTitle('Stadiomind', locale),
+    // The brand with what the site is, for search results (T-1703).
+    title: rootTitle(t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shell.meta.homeTitle'), locale),
     description: t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'shell.meta.description'),
   });
 }

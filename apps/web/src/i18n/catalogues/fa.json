@@ -119,6 +119,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "shell.meta.homeTitle": {
+    "source": "Stadiomind — Live football scores, forecasts and stats",
+    "text": "Stadiomind — نتایج زنده، پیش‌بینی و آمار فوتبال",
+    "status": "translated",
+    "note": "The maintainer's answer on the decision desk, 2026-11-01 (T-1703)."
+  },
   "shell.meta.description": {
     "source": "Football match intelligence: live scores, match centre, forecasts and predictions.",
     "text": "اطلاعات هوشمند فوتبال: نتایج زنده، مرکز مسابقه، پیش‌بینی‌های مدل آماری و پیش‌بینی‌های کاربران.",

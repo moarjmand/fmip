@@ -19,6 +19,7 @@
   "error.failed.body": "Something went wrong while building this page. Trying again usually works; the rest of the site is still here.",
   "error.failed.retry": "Try again",
   "error.toScores": "Go to scores",
+  "shell.meta.homeTitle": "Stadiomind — Live football scores, forecasts and stats",
   "shell.meta.description": "Football match intelligence: live scores, match centre, forecasts and predictions.",
   "shell.nav.primary": "Primary",
   "shell.register": "Register",

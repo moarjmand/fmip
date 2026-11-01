@@ -159,7 +159,9 @@ describe('the locale root, which the template cannot reach', () => {
 
   it('is used by the one page it applies to', () => {
     const ROOT = readFileSync(join(__dirname, '..', 'app', '[locale]', 'page.tsx'), 'utf8');
-    expect(ROOT).toContain("rootTitle('Stadiomind', locale)");
+    // The brand with its description since T-1703, from the catalogue.
+    expect(ROOT).toContain("'shell.meta.homeTitle'), locale)");
+    expect(ROOT).toContain('rootTitle(');
   });
 
   it('applies to exactly one page, because a segment holds one page', () => {

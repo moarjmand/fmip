@@ -23,7 +23,7 @@ how to bring that across.
 | Place | What is there | Tied to | Carries over by itself? |
 |---|---|---|---|
 | **GitHub** `moarjmand/fmip` (public) | All code, migrations, docs, the agent team (`.claude/agents`, `.claude/skills`, `.claude/hooks`), CI | The GitHub account `moarjmand` | Yes. `git clone` on any machine; push needs that account's `gh auth login` |
-| **Production server** (Hetzner VPS, alias `fmip-prod`) | The live site `https://traveltohormuz.ir`, the agents console `agents.traveltohormuz.ir` (D-340), checkout `/opt/fmip`, `.env` with every secret, Postgres, Redis, backups to Backblaze B2 | An SSH key on the maintainer's computer | Yes, given the SSH key (§3.4) |
+| **Production server** (Hetzner VPS, alias `fmip-prod`) | The live site `https://traveltohormuz.ir`, the agents console (D-340; served at `traveltohormuz.ir/agents` until `agents.traveltohormuz.ir` has DNS, D-341), checkout `/opt/fmip`, `.env` with every secret, Postgres, Redis, backups to Backblaze B2 | An SSH key on the maintainer's computer | Yes, given the SSH key (§3.4) |
 | **Maintainer's computer, outside the repo**: `E:\FMIP\` | `ops\` (agent team folders: findings, reports, brief, desk, console state, invitations, `licences.md`, `raid.md`, `tech-debt.md`), `data-audit\runs`, `dashboard\` (dashboard snapshot pipeline), `lab-local\` (model lab copy), `server-backups\`, `archive\` | The disk (the external SSD `E:`) | Same computer: yes. New computer: copy `E:\FMIP` |
 | **Claude Code's local folder** `%USERPROFILE%\.claude\` | `projects\<project key>\memory\` (the agent's long-term memory, `MEMORY.md` index), `scheduled-tasks\<task>\SKILL.md` (recurring and one-time tasks), `settings.json`, session transcripts | The computer and the Windows user, **not** the Claude account | Same computer: yes. New computer: copy (§3.3) |
 | **claude.ai account** | Artifacts (decision desk, old project board, dashboard, design canvases, reports), the Persian setup guide in Claude Docs, the connectors (Claude Docs, Google Drive), desktop-app session history | The Claude account | **No.** Share each one as Editor to the new account, or rebuild (§2.2) |
@@ -210,8 +210,9 @@ Status lives in the task files and the memory. This is only a pointer for the
 first hour.
 
 - **Agents console.**
-  - The Cloudflare record is still missing: CNAME `agents` → `traveltohormuz.ir`, proxied. It is the maintainer's, or done through Claude in Chrome.
-  - After it: the two invitations (`E:\FMIP\ops\console\invitations.md`).
+  - Live at `https://traveltohormuz.ir/agents` (D-341). The Cloudflare record (CNAME `agents` → `traveltohormuz.ir`, proxied) still waits: the maintainer's Google sign-in, which Cloudflare uses, is locked until about 2026-12-01. Once it exists, set `CONSOLE_PATH=` empty and roll out `web`.
+  - The two invitations (`E:\FMIP\ops\console\invitations.md`, already in the `/agents/invite/` form).
   - Then the board import (`import-board --as <username>` with `E:\FMIP\ops\console\board-import.json`), and the old board page made read-only. This is T-1700.
-- **Decision desk.** Four questions are unanswered.
+- **Decision desk.** The four questions of 2026-11-01 were answered: home title (T-1703), news mix (T-1704), a privacy-notice draft for a lawyer, and 2 × 10 share-card concepts.
+- **Backups outside the repo.** `backup/` and `emails/` in the checkout are kept out of git by `.git/info/exclude`: a repository bundle, memory, scheduled tasks, claude.ai pages and their data, and recovery letters to every provider.
 - **Dated checks.** The ones listed in §6.4.
