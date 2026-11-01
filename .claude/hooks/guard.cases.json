@@ -278,5 +278,25 @@
     "pass",
     "Bash",
     "sed -i 's/72/24/' deploy/rollout.sh"
+  ],
+  [
+    "pass",
+    "Bash",
+    "ssh fmip-prod 'cd /opt/fmip && docker inspect -f \"{{.State.StartedAt}}\" $(docker compose ps -q postgres)'"
+  ],
+  [
+    "pass",
+    "Bash",
+    "ssh fmip-prod \"docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' abc\""
+  ],
+  [
+    "block",
+    "Bash",
+    "ssh fmip-prod 'docker inspect -f \"{{.Config.Env}}\" abc'"
+  ],
+  [
+    "block",
+    "Bash",
+    "ssh fmip-prod 'docker inspect --format \"{{json .}}\" abc'"
   ]
 ]
