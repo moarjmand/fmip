@@ -11,6 +11,7 @@ import {
   entityHref,
   feedsStale,
   frontPage,
+  interleaveSources,
   isFiltered,
   orderedEntities,
   panelMarks,
@@ -274,5 +275,34 @@ describe('recentAge (T-1613)', () => {
   it('reads a publisher a little ahead of the clock as now, and an unreadable time as none', () => {
     expect(recentAge('2026-10-26T12:05:00Z', now)).toBe(0);
     expect(recentAge('not a time', now)).toBeNull();
+  });
+});
+
+describe('interleaveSources (T-1704)', () => {
+  const story = (n: number, source: string) => ({ n, source: { id: source } });
+  const order = (list: { n: number }[]) => list.map((s) => s.n);
+
+  it('allows three in a row from one publisher, then brings the next other one forward', () => {
+    const list = [
+      story(1, 'yahoo'),
+      story(2, 'yahoo'),
+      story(3, 'yahoo'),
+      story(4, 'yahoo'),
+      story(5, 'yahoo'),
+      story(6, 'bbc'),
+      story(7, 'yahoo'),
+      story(8, 'guardian'),
+    ];
+    expect(order(interleaveSources(list))).toEqual([1, 2, 3, 6, 4, 5, 7, 8]);
+  });
+
+  it('drops nothing and keeps the order when only one publisher is left', () => {
+    const list = [1, 2, 3, 4, 5].map((n) => story(n, 'yahoo'));
+    expect(order(interleaveSources(list))).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('leaves an already mixed list alone', () => {
+    const list = [story(1, 'a'), story(2, 'b'), story(3, 'a'), story(4, 'a'), story(5, 'c')];
+    expect(order(interleaveSources(list))).toEqual([1, 2, 3, 4, 5]);
   });
 });
