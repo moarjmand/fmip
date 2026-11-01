@@ -26,6 +26,16 @@ import { hashToken, newToken } from './internal/tokens';
 
 // The module's public surface. Other modules import from this file only.
 export { SESSION_COOKIE, parseCookies } from './internal/cookies';
+// The agents console (D-340) keeps its own accounts but hashes their
+// passwords and tokens exactly as the site does.
+export {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  decoyHash,
+  hashPassword,
+  verifyPassword,
+} from './internal/password';
+export { hashToken, isWellFormedToken, newToken, sessionSecretFromEnv } from './internal/tokens';
 export { clientIpOf, refusalMessage } from './internal/auth-rate-limit';
 export type { AuthRateOutcome } from './internal/auth-rate-limit';
 

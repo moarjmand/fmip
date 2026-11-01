@@ -13840,3 +13840,26 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 - **The daily run** adds `content-community`. The product strategist and the business adviser run monthly and on demand, and the chief of staff reads all three.
 
 **Consequences.** `.claude/agents/{product-strategist,content-community,business-adviser}.md`, `.claude/skills/{product-strategy,content-watch,business-advice}/`, the charter's prefixes `str`, `cnt`, `biz`. All twelve of D-328's agents now exist.
+
+## D-340 — The agents console: `agents.traveltohormuz.ir`, its own login, fed from the maintainer's computer
+
+**Status:** Accepted · 2026-11-01 (the maintainer: the subdomain, "فقط یوزر پسورد" ("username and password only"), seeing plus deciding plus simple control, the board moved with all its cards) · **Task:** T-1696 to T-1700 · **Follows:** D-328, D-339
+
+**Context.** Twelve agents (D-328) now report daily, on the maintainer's computer: findings in `E:/FMIP/ops/findings`, reports in `E:/FMIP/ops/reports`, the chief of staff's brief, and decisions on a claude.ai desk; the project board is another claude.ai artifact. There is no one place to see what each agent did, what it can touch, what it remembers and what waits on a person, and none on the project's own domain.
+
+**Decision.**
+1. **Where.** A console at `agents.traveltohormuz.ir`: the same `web` and `api` containers, a second Caddy site with the same origin certificate (it already names `*.traveltohormuz.ir`) and one Cloudflare DNS record, which the maintainer adds. `web`'s proxy serves the console's routes (`app/console/`, its own root layout, English and Persian chrome) only on that host; on any other host `/console` is a 404, and the console's responses carry `X-Robots-Tag: noindex` and a strict frame policy.
+2. **Login.** Its own accounts, apart from the site's members: a `console_user` table, a username and a password (scrypt, as the site's), opened only by a one-time invitation link made on the server (`console:invite`), for the maintainer and the teammate. Its own session cookie, host-only, `Secure`, `HttpOnly`, `SameSite=Strict`, 12 hours idle; five wrong passwords lock a name for 15 minutes; every sign-in, failure and action is in the audit log (rule 10). No second factor, by the maintainer's choice; Cloudflare's origin lock (D-112) stays in front.
+3. **Data, one way in.** The source of truth stays on the computer: the agents' files (`.claude/agents`, `.claude/skills`), their findings, reports, briefs and memory. A publisher there (`ops/console-publish.mjs`, run at the end of the daily run and on demand) builds one snapshot (each agent's role, model, tools, skills, memory sources and memory, last runs, findings, reports, the brief, the decisions) and loads it over `ssh fmip-prod` into `console_snapshot`; the server never reaches the computer.
+4. **Commands, one way back.** What a person does in the console (an answer on a decision, a card moved on the board, pause or resume an agent, run it now, change its model or schedule) is a row in `console_command`, audited. The daily run, and the publisher, take the queue over `ssh`, apply what they can (a pause, a model, a schedule) and write each row's outcome back. Editing an agent's instructions from the web is not offered.
+5. **The board.** The project board's cards move into the console's own `console_board_card` table, once, from the claude.ai artifact, which then stays read-only.
+6. **Agent memory.** Each agent gets Claude Code's per-agent project memory (`memory: project`, `.claude/agent-memory/<agent>/`), and the console shows it, with what feeds it.
+7. **Security agent findings.** Open findings of the security agent show their title and severity only; their detail stays on the computer until they are fixed.
+
+**Rejected.**
+- *A path on the public site (`/agents`):* the console would share the site's cookies, headers and search indexing.
+- *A claude.ai page:* not on the project's domain, which the maintainer asked for.
+- *A separate Next.js app and container:* a second build and deploy for two readers.
+- *The server pulling from the computer:* the computer is behind a changing address and is not a server.
+
+**Consequences.** API module `apps/api/src/modules/agents-console/`, migrations for `console_user`, `console_session`, `console_invite`, `console_snapshot`, `console_command`, `console_board_card`; contracts in `packages/contracts/src/agents-console.ts`; web routes under `apps/web/src/app/console/`; `deploy/Caddyfile` (`{$CONSOLE_HOST}`); `ops/console-publish.mjs` and the daily run's last step; `.env.example` (`CONSOLE_HOST`).
