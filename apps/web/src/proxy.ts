@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { DEFAULT_LOCALE, WRITTEN_LOCALES, localeFromPathname } from '@/i18n/locales';
 import { fetchHeldLocales } from '@/lib/api';
+import { consoleRoute } from '@/lib/console-host';
 import { FIRST_RUN_COOKIE, parseGuestChoices } from '@/lib/first-run';
 import { negotiatedLanguage } from '@/lib/language-negotiation';
 import { READER_LOCALE_HEADER } from '@/lib/locale-query';
@@ -28,6 +29,21 @@ import { READER_LOCALE_HEADER } from '@/lib/locale-query';
  */
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
+
+  // The agents console (D-340): its own host serves only its routes, which
+  // no other host serves; neither is ever indexed.
+  const route = consoleRoute(request.headers.get('host'), pathname, process.env.CONSOLE_HOST);
+  if (route.kind === 'console') {
+    const url = request.nextUrl.clone();
+    url.pathname = route.pathname;
+    const response = NextResponse.rewrite(url);
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+    response.headers.set('Cache-Control', 'private, no-store');
+    return response;
+  }
+  if (route.kind === 'hidden') {
+    return new NextResponse('Not found', { status: 404, headers: { 'X-Robots-Tag': 'noindex' } });
+  }
 
   const locale = localeFromPathname(pathname);
   if (locale !== undefined) {
