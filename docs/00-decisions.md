@@ -13757,6 +13757,25 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 - *The main leagues on 2024/25 or on the spent holdout:* a choice judged on the data it was chosen from.
 - *Waiting for a full new season:* the main leagues play about ninety matches a week, so nine weeks give the 300 needed many times over.
 
+## D-335 — Coach quality failed: Phase 14's last verdict
+
+**Status:** Accepted · 2026-11-01 (the agent, recording the run D-329 left pending) · **Task:** T-1658 · **Follows:** D-139, D-310, D-329
+
+**Context.** D-329 recorded every Phase 14 verdict except coach quality (T-1658, D-310), whose local run had not finished. The first run, over 24 divisions with the cross-league matches (`XL`), spent more than 26 hours on `XL` alone after the other 23. It was stopped on 2026-11-01 and run again without `XL`, split by D-139's groups in two parallel processes. Each group is judged on its own, so the verdicts are those of one run. The note in each report says so.
+
+**Decision.**
+- **Verdict: failed in both groups** (window 2024/25, history from 2020/21, against `dixon-coles-elo@0.7.0`).
+  - **Football-data leagues:** +0.00065 [-0.00122, +0.00235] on 3,571 of 5,689 matches. Worse in 8 of 17 divisions (E1, SP1, N1, T1, SC0, G1, US1, AR1); calibration error 0.0232 against 0.0177.
+  - **Our records:** +0.00481 [-0.00079, +0.01003] on 1,011 of 1,453 matches. Worse in 5 of 6 (CZ1, HR1, RS1, SA1, AE1).
+- **The cross-league matches are not judged.** Their run did not finish, and with both league groups failing, another day of computation would not change what the candidate carries. If coach quality is ever reformulated, its first run will include them.
+- **Phase 14 is closed.** No factor passed. The published model stays (D-329), and expected-goals form has its forward test (D-334).
+
+**Consequences.**
+- `docs/04-tasks-phase-14.md`: T-1658 ticked with its verdict.
+- `docs/16-model-factors-report.md`: coach quality's row filled in.
+- The reports are in `E:/FMIP/lab-local/reports/cq-fd` and `cq-rec`.
+- The local lab copy is removed. The dump `E:/FMIP/lab-local/fmip_lab.dump` and the reports are kept.
+
 ## D-337 — Persian pages show times in Tehran time
 
 **Status:** Accepted · 2026-11-01 (the maintainer, on the decision desk) · **Task:** T-1692 · **Follows:** D-207
