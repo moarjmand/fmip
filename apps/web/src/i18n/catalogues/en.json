@@ -2951,6 +2951,7 @@
   "matchCentre.lineups.pitchNoteMixed": "{grid}: each player where the line-up places him. {roles}: placed by the formation and the role each was given, in shirt-number order along each line, because its line-up does not say who played on which side.",
   "matchCentre.lineups.noFormation": "No formation supplied, so this line-up is a list.",
   "matchCentre.lineups.noRoles": "Not every starter's role is supplied, so this line-up is a list.",
+  "matchCentre.lineups.short": "Only {count} of the eleven starters are named, so this line-up is a list; an unnamed place is not filled in.",
   "matchCentre.lineups.linesUnknown": "The line-up does not say which midfielder played in which line of the {formation}, so it is shown as a list.",
   "matchCentre.lineups.mismatch": "The roles supplied do not fit the {formation}, so this line-up is a list.",
   "matchCentre.modelTag": "Model",

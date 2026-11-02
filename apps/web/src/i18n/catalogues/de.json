@@ -13584,6 +13584,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.lineups.short": {
+    "source": "Only {count} of the eleven starters are named, so this line-up is a list; an unnamed place is not filled in.",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.lineups.linesUnknown": {
     "source": "The line-up does not say which midfielder played in which line of the {formation}, so it is shown as a list.",
     "text": "",
