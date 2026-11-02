@@ -13921,3 +13921,15 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 
 **Follow-up (T-1710).** The catalog's lists carry the same word (`listFreshnessOf`, only `awaiting_update`), and the web reads it there too. A "next match" is never a match awaiting an update: it is not to come, so the club's card and the home page's team line name the match after it, while the match itself stays on the Fixtures list with "Awaiting update" in place of its time. Hiding it from the list was rejected above; showing it as the next match with a label would put a past kick-off and a forecast bar at the top of the club page as if it were the plan. The competition Overview's own six-hour clock for the same case is gone: it reads the API's word.
 
+
+## D-344 — The match centre's first-load budget goes from 191 to 192 kB
+
+**Status:** Accepted · 2026-11-02 (agent, within the maintainer's "do every task now") · **Task:** T-1714 · **Follows:** D-264, D-206, T-808
+
+**Context.** The match centre measured 191.0 kB gzip against a budget of 191 after T-1710. T-1714 adds a line-up state (fewer than eleven named starters, so a trialist's unnamed slot since D-342 reads as ten rather than as a missing role) to `lib/formation.ts` and `components/match-lineups.tsx`, which the live view (`live-match.tsx`, a client component) imports, and the build went a few bytes over.
+
+**Decision.** Raise the match centre's `firstLoadJsGzipKB` to 192 in `apps/web/perf-budgets.json`, with the reason in docs/08 "Page budgets". The other three budgets are unchanged.
+
+**Rejected.**
+- *Dropping the sentence:* the line-up would go on saying a role is missing when a player is, which rule 3 does not allow.
+- *Moving the line-ups out of the live view:* a larger change to the live page for a few bytes.

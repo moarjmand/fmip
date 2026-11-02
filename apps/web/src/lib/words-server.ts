@@ -376,6 +376,7 @@ export const MATCH_KEYS = [
   'matchCentre.lineups.bothSidesNote',
   'matchCentre.lineups.noFormation',
   'matchCentre.lineups.noRoles',
+  'matchCentre.lineups.short',
   'matchCentre.lineups.linesUnknown',
   'matchCentre.lineups.mismatch',
   // The Stadiomind match centre (T-1497): the axis, the live "Not in yet"

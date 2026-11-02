@@ -16496,6 +16496,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.lineups.short": {
+    "source": "Only {count} of the eleven starters are named, so this line-up is a list; an unnamed place is not filled in.",
+    "text": "فقط {count} نفر از یازده بازیکن اصلی نام برده شده‌اند؛ برای همین این ترکیب به‌صورت فهرست آمده است و جای بی‌نام پر نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.lineups.linesUnknown": {
     "source": "The line-up does not say which midfielder played in which line of the {formation}, so it is shown as a list.",
     "text": "داده‌ها نمی‌گویند هر هافبک در کدام خطِ آرایش {formation} بازی کرد؛ برای همین این ترکیب به‌صورت فهرست آمده است.",

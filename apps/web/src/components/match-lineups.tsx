@@ -47,6 +47,7 @@ type Side = 'home' | 'away';
 const REASON_KEY = {
   no_formation: 'matchCentre.lineups.noFormation',
   no_roles: 'matchCentre.lineups.noRoles',
+  short: 'matchCentre.lineups.short',
   lines_unknown: 'matchCentre.lineups.linesUnknown',
   mismatch: 'matchCentre.lineups.mismatch',
 } as const satisfies Record<Exclude<PitchLines['state'], 'pitch'>, keyof MatchWords['m']>;
@@ -227,7 +228,10 @@ export function MatchLineupsView({
                 message={
                   players.length === 0
                     ? m['matchCentre.moduleNotSupplied']
-                    : filled(m[REASON_KEY[shape.state]], { formation: ltrIsolate(formation) })
+                    : filled(m[REASON_KEY[shape.state]], {
+                        formation: ltrIsolate(formation),
+                        count: shape.state === 'short' ? formatNumber(locale, shape.count) : '',
+                      })
                 }
               />
             </p>

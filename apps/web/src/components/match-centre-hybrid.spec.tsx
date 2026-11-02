@@ -80,7 +80,9 @@ describe('where the starters stand (pitchLines)', () => {
     const noRole = eleven(4, 4, 2);
     noRole[5] = { ...noRole[5]!, position: null };
     expect(pitchLines('4-4-2', noRole).state).toBe('no_roles');
-    expect(pitchLines('4-4-2', eleven(4, 4, 1)).state).toBe('no_roles');
+    // T-1714: ten named starters read as ten, before the formation is looked at.
+    expect(pitchLines('4-4-2', eleven(4, 4, 1))).toEqual({ state: 'short', count: 10 });
+    expect(pitchLines(null, eleven(4, 4, 1)).state).toBe('short');
     expect(pitchLines('4-4-2', eleven(5, 3, 2))).toEqual({ state: 'mismatch', formation: '4-4-2' });
     expect(pitchLines('4-4-3', eleven(4, 4, 2)).state).toBe('mismatch');
   });
@@ -162,6 +164,21 @@ describe('the line-ups on a pitch', () => {
     const both = render(null, null);
     expect(both).not.toContain('data-testid="lineup-pitch"');
     expect(both.match(/data-reason="no_formation"/g)).toHaveLength(2);
+  });
+
+  it('says a side of ten names ten of the eleven, never that a role is missing (T-1714)', () => {
+    const html = renderToStaticMarkup(
+      <MatchLineupsView
+        home={team('h', 'Tractor', '4-3-3')}
+        away={team('a', 'Esteghlal', '4-4-2')}
+        lineups={{ home: eleven(4, 3, 3), away: eleven(4, 4, 1) }}
+        locale="en"
+        words={words}
+      />,
+    );
+    expect(html).toContain('data-testid="lineup-list-away"');
+    expect(html).toContain('data-reason="short"');
+    expect(html).toContain('Only 10 of the eleven starters are named');
   });
 
   it('keeps the bench and the coach for each side, and says when a coach is not supplied', () => {

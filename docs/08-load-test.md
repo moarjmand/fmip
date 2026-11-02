@@ -181,7 +181,7 @@ made per row, a timeout -- does.
 | --- | --- | --- |
 | home `/en` | 150.3 / 158 (2026-10-25, T-1502, after T-1495) | 38 / 50 / 200 |
 | scores `/en/scores` | 172.2 / 180 (raised 2026-10-25, T-1496, D-264) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 182.6 / 191 (2026-10-25, T-1502; raised by T-1497, D-264) | 77 / 76 / 300 |
+| match centre `/en/match/…0901` | 191.0 / 192 (raised 2026-11-02, T-1714, D-344) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 151.1 / 158 (2026-10-25, T-1502, after T-1498) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
@@ -202,6 +202,14 @@ to 171.1, competition 222.4 to 149.8), and the four budgets were lowered to
 the new measurement plus about 5 % -- a smaller margin than the original 10 %,
 so that the next library a page gains is noticed, and no longer eaten by
 strings.
+
+**The raise of 2026-11-02 (T-1714, D-344).** The match centre's live view
+(`live-match.tsx`, a client component) renders the line-ups, so the line-up
+code is on its first load. It had grown to 191.0 of 191 kB through the
+redesign's rounds (T-1708 and T-1710 among the last); the line-up's new
+"fewer than eleven named" state put it a few bytes over. No library was
+added, so the budget goes from 191 to 192 rather than the page losing an
+honest sentence. The next addition to the live view is again a decision.
 
 **The raise of 2026-10-11 (T-1388, D-206).** The Hybrid data atoms reach
 the two live pages' client bundles: the freshness stamp on both live lines
