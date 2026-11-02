@@ -1,6 +1,8 @@
 // The provider-neutral model every adapter produces.
 export * from './normalised';
 export { foldCountry } from './country-name';
+// Line-up labels that name nobody: "Trialist", "Unknown", "TBA" (T-1707, D-342).
+export { PLACEHOLDER_PERSON_NAMES, isPlaceholderPersonName } from './placeholder-name';
 // How often transfers are asked for again (T-1440, D-231).
 export {
   TRANSFERS_REFRESH_DAYS_IN_WINDOW,
