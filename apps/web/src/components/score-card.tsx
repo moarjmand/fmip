@@ -165,15 +165,22 @@ export function ScoreCard({
             `${n(card.scores.penalties.home)}–${n(card.scores.penalties.away)}`,
           ),
         });
+  // The recorded goals disagree with the result (T-1717, D-347): the numbers
+  // stay quiet, no side is drawn as the winner, and the row says so.
+  const disputed = card.status === 'finished' && card.score_dispute != null;
   // What stays on the row under the teams: what changes the score's meaning.
-  const rowBits = [showCompetition ? card.competition.name : null, leg, aggregate, shootout].filter(
-    (bit): bit is string => bit !== null,
-  );
+  const rowBits = [
+    showCompetition ? card.competition.name : null,
+    leg,
+    aggregate,
+    shootout,
+    disputed ? m['matchCentre.scoreUnclear'].text : null,
+  ].filter((bit): bit is string => bit !== null);
   const live = card.status === 'live';
   const line = scoreLine(card);
   // At full time the winner is bold and the loser muted; a draw keeps both in ink.
   const weight = (side: 'home' | 'away'): string => {
-    if (card.status !== 'finished' || line === null || line.home === line.away) {
+    if (card.status !== 'finished' || disputed || line === null || line.home === line.away) {
       return 'font-semibold';
     }
     const won = side === 'home' ? line.home > line.away : line.away > line.home;
@@ -190,7 +197,7 @@ export function ScoreCard({
         {sentOff(card.red_cards[side])}
         {line !== null && (
           <span
-            className={`ms-auto shrink-0 ps-2 font-bold tabular-nums ${live ? 'text-live' : ''}`}
+            className={`ms-auto shrink-0 ps-2 font-bold tabular-nums ${live ? 'text-live' : disputed ? 'text-muted' : ''}`}
             data-testid={`${side}-score`}
           >
             {n(line[side])}

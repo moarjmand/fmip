@@ -85,6 +85,9 @@ export function MatchPreview({
   // a match still to come.
   const awaiting = awaitingUpdate(card);
   const live = card.status === 'live';
+  // The recorded goals disagree with the result (T-1717, D-347): the score is
+  // drawn quiet and said to be unclear, neither number as final.
+  const disputed = card.status === 'finished' && card.score_dispute != null;
   const when = `${formatDate(locale, card.kickoff_at, timeZone, { weekday: 'short' })} ${formatKickoff(locale, card.kickoff_at, timeZone)}`;
   const close = attribute(l, 'scores.preview.close');
   const side = (which: 'home' | 'away') => (
@@ -151,7 +154,7 @@ export function MatchPreview({
           ) : (
             // Home goals on the home side, in either direction (T-1375).
             <span
-              className={`flex gap-2 text-2xl font-extrabold tabular-nums ${live ? 'text-live' : ''}`}
+              className={`flex gap-2 text-2xl font-extrabold tabular-nums ${live ? 'text-live' : disputed ? 'text-muted' : ''}`}
               data-testid="preview-score"
             >
               <span>{formatNumber(locale, line.home)}</span>
@@ -168,6 +171,11 @@ export function MatchPreview({
               data-status={card.status}
             >
               {statusLabel(card, locale, timeZone, now, words.m)}
+            </span>
+          )}
+          {disputed && (
+            <span className="text-xs text-caption" data-testid="preview-score-unclear">
+              <Translated locale={l} message="matchCentre.scoreUnclear" />
             </span>
           )}
         </div>

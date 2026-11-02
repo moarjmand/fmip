@@ -11,7 +11,7 @@
 
 import type { CoverageState, Covered } from './coverage';
 import type { EntityMedia } from './media';
-import type { FixtureStatus, Freshness, ScoreCardTeam, ScoreLine } from './scores';
+import type { FixtureStatus, Freshness, ScoreCardTeam, ScoreDispute, ScoreLine } from './scores';
 
 export interface MatchTeam extends ScoreCardTeam {
   /** From `fixture_participant`; the confirmed formation when known. */
@@ -100,6 +100,11 @@ export interface MatchHeader {
    * `awaiting_update` when still scheduled over three hours after kick-off (T-1708, D-343); else `null`.
    */
   freshness: Freshness | null;
+  /**
+   * The recorded goals disagree with the result (T-1717, D-347): the page
+   * shows the score as unclear and announces no final number. See `ScoreDispute`.
+   */
+  score_dispute?: ScoreDispute | null;
   /**
    * When this match's fixture list was last answered, changed or not
    * (T-1371, D-189): the season's last whole-season ask, or its last window

@@ -13933,3 +13933,24 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 **Rejected.**
 - *Dropping the sentence:* the line-up would go on saying a role is missing when a player is, which rule 3 does not allow.
 - *Moving the line-ups out of the live view:* a larger change to the live page for a few bytes.
+
+## D-347 — A finished match whose recorded goals disagree with its result shows the score as unclear
+
+**Status:** Accepted · 2026-11-02 (maintainer) · **Task:** T-1717 · **Follows:** D-317, D-322, D-333, D-343, rule 3, T-820 (`goals_disagree`)
+
+**Context.** Two finished matches, Pafos v Hajduk and Los Garres v Manises, have a score saying 2-0 while their goal incidents (and the matches as played) say 4-0. The match header read "2–0 · 90′ 4–0": the result from `current` (an extra-time line is on record, D-317) and the ninety minutes beside it, both from the same source, neither marked. Data quality's `goals_disagree` and the data auditor's R1/R7 already report such matches to the operators; the reader was shown the result as certain. The maintainer refused hand corrections on 2026-10-31 and on 2026-11-02 chose: when the recorded goals do not agree with the result, the page shows the result as limited and announces no definitive number.
+
+**Decision.**
+1. **Derived at read time, never stored** (as D-343). `scoreDisputeOf` (`apps/api/src/modules/fixtures/internal/score-dispute.ts`) judges a finished match from the rows the match centre and `GET /scores` already load: no column, no migration, no backfill, no extra query. A repaired score or timeline clears it on the next read.
+2. **What is compared.** The result a page shows (D-317, the web's `resultLine`: after extra time where an extra-time line exists, else the ninety minutes), against the goal incidents (`goal`, `own_goal`, `penalty_goal`) with a shoot-out's marked kicks left out (D-322). The same readings as `goals_disagree` are accepted, so a match is called disputed only when none of them adds up: an own goal filed under the side credited or under the scorer's own side; a goal with no side counting toward the total only; with a shoot-out on record, an unmarked penalty goal at 120 or later read as a kick. A match with no goal recorded is never disputed: that is the incidents' coverage, not a contradiction.
+3. **The contract.** `ScoreDispute { recorded_goals, reported }` (`packages/contracts/src/scores.ts`) as `score_dispute` on `MatchHeader` and `ScoreCard`, optional and null when there is nothing to say. `recorded_goals` is the total, not per side: the total does not depend on how an own goal was filed.
+4. **The match page.** The band draws the score in the quiet colour with a "limited" coverage badge beside it, "Score unclear in the source" («نتیجه در منبع نامشخص است»), drops the ninety-minute line, and says under the band: "The recorded goals (4) and the reported result (2–0) do not agree, so neither is shown as final." Neither number is picked as the truth. The page's server draws both (`components/score-dispute.tsx`, `MatchHero.disputed`), so the words stay off the client bundle. The JSON-LD states no result for such a match.
+5. **The matches page.** A score row keeps the numbers in the quiet colour, draws no side as the winner, and says "Score unclear in the source" in its meta line; the open match preview draws its score quiet with the same words under it.
+6. **Not changed.** Predictions settle, the model is evaluated and the boards count as before, on their own inputs (the ninety minutes, D-139, D-317); the match page's "what the three products are set against" keeps `full_time`. Data quality's finding and the auditor's checks are unchanged and remain the operators' signal. No stored score or incident is corrected (the maintainer's refusal of hand corrections).
+
+**Rejected.**
+- *Trusting the goals* (showing 4-0) or *trusting the score* (2-0 as now): either picks one source's number as the truth, which rule 3 does not allow and the maintainer declined.
+- *Reading the open `goals_disagree` finding:* it is written by a five-minute sweep, so a sweep that stops would leave the page as stale as the score (D-343's reason against a stored flag), and its first reading of the score (`current` first) is not always the one the page shows.
+- *Hiding the score:* the match was played and both numbers are known; hiding them would say less than we hold.
+
+**Consequences.** The competition and team fixture lists, the club and player pages' results, the bracket, the share cards and the match summaries' facts do not read `score_dispute` yet and still state the stored result: follow-ups. The other seven catalogues have the two keys untranslated.

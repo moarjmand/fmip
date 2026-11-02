@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2211), grouped by folder, with one line on
+Every file in the repository (2214), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -60,8 +60,8 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/delivery/internal`](#appsapisrcmodulesdeliveryinternal) — 5
 - [`apps/api/src/modules/failure-counts`](#appsapisrcmodulesfailure-counts) — 4
 - [`apps/api/src/modules/failure-counts/internal`](#appsapisrcmodulesfailure-countsinternal) — 2
-- [`apps/api/src/modules/fixtures`](#appsapisrcmodulesfixtures) — 16
-- [`apps/api/src/modules/fixtures/internal`](#appsapisrcmodulesfixturesinternal) — 12
+- [`apps/api/src/modules/fixtures`](#appsapisrcmodulesfixtures) — 17
+- [`apps/api/src/modules/fixtures/internal`](#appsapisrcmodulesfixturesinternal) — 13
 - [`apps/api/src/modules/following-feed`](#appsapisrcmodulesfollowing-feed) — 3
 - [`apps/api/src/modules/following-feed/internal`](#appsapisrcmodulesfollowing-feedinternal) — 1
 - [`apps/api/src/modules/forecast`](#appsapisrcmodulesforecast) — 32
@@ -234,7 +234,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/(open)/invite/[token]`](#appswebsrcappconsoleopeninvitetoken) — 1
 - [`apps/web/src/app/console/(open)/login`](#appswebsrcappconsoleopenlogin) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 266
+- [`apps/web/src/components`](#appswebsrccomponents) — 267
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
@@ -818,6 +818,7 @@ machine, `docs/18-handover.md`.
 | `live-answer.http.spec.ts` | T-1394 (D-209) against the real schema: a match whose stored clock stands still is measured from the live list's last answer as well as its last change, so half-time is `current` while the provider answers; in play an u… |
 | `match-centre.controller.ts` | `GET /fixtures/:id`: the match centre payload (T-033). |
 | `match-centre.http.spec.ts` | Tests for `match-centre.http`. |
+| `score-dispute.spec.ts` | Tests for `score-dispute`. |
 | `scores.controller.ts` | `GET /scores?from=&to=&tz=&live=&favourites=&country=&competition=&stage=&gender=&age=`. |
 | `scores.http.spec.ts` | Tests for `scores.http`. |
 | `scores.spec.ts` | Tests for `scores`. |
@@ -838,6 +839,7 @@ machine, `docs/18-handover.md`.
 | `key-players.ts` | The key-players rule (T-841), pure so it is one tested function: the players with the most minutes for the team in this competition's season before the match; a tie on minutes goes to more goals plus assists, then the n… |
 | `live-answer.ts` | When the provider's live list last answered while a match was live or suspended (T-1394, D-209), as SQL over the fixture `id` expression given: the newest completed `live` ingestion run, of a provider the fixture is map… |
 | `match-centre-store.ts` | The window of recent matches the form and head-to-head modules show. |
+| `score-dispute.ts` | Whether a finished match's recorded goals disagree with its result (T-1717, D-347). |
 | `scores-query.ts` | Parsing and validation of `GET /scores` query parameters. |
 | `scores-store.ts` | A card plus the country its competition belongs to, for grouping. |
 | `shared-snapshots.ts` | One read and one serialisation per distinct snapshot at a time -- the first remedy in `docs/08-load-test.md`, "What limits it". |
@@ -2775,6 +2777,7 @@ machine, `docs/18-handover.md`.
 | `score-card-forecast.tsx` | The statistical model's line on a scores card (T-940, D-114). |
 | `score-card-stage.spec.tsx` | The provider's stage and round on a score card, in the reader's words (T-1339): Persian on /fa, exactly the provider's English on /en. |
 | `score-card.tsx` | A coverage state in the glossary's words (T-1303). |
+| `score-dispute.tsx` | What the match header says of a finished match whose recorded goals do not add up to its result (T-1717, D-347): a "limited" marker beside the score and one line under the band naming both numbers, neither as final. |
 | `score.tsx` | A score, rendered so it cannot be read backwards (T-153, T-1375, rule 7). **The rule.** A score is a pair, home first, read in the page's own direction: on an English page the home goals sit on the left, on a Persian or… |
 | `service-worker.tsx` | Registers the service worker (T-082) once the page has loaded, so the shell is cached for the next visit and the app can be installed. |
 | `share-card-image.tsx` | The pictures behind the share cards (T-520), for `next/og`'s `ImageResponse`. |

@@ -79,6 +79,14 @@ export interface MatchHero {
    * draws no kick-off time as its figure and no stream line beside it.
    */
   awaiting?: React.ReactNode;
+  /**
+   * A finished match whose recorded goals do not add up to its result
+   * (T-1717, D-347): the marker beside the score and the line under the band,
+   * drawn by the server from the answer's `score_dispute` (`scoreDisputeHero`).
+   * The band then draws the score in the quiet colour and no ninety minutes:
+   * no number is shown as final.
+   */
+  disputed?: { marker: React.ReactNode; note: React.ReactNode };
 }
 
 type Key = keyof MatchWords['m'];
@@ -485,8 +493,10 @@ function Hero({
   const f = centre.fixture;
   const naskh = ARABIC_SCRIPT.has(locale);
   const headline = f.status === 'finished' ? resultLine(f.scores) : f.scores.current;
+  // Goals and result disagree (T-1717, D-347): no number is drawn as final.
+  const disputed = f.status === 'finished' ? hero.disputed : undefined;
   // After extra time the band also says the ninety minutes (D-317).
-  const ninety = f.scores.extra_time !== null ? f.scores.full_time : null;
+  const ninety = f.scores.extra_time !== null && !disputed ? f.scores.full_time : null;
   const behind = now !== undefined && isBehind(f, now);
   // Scheduled, the kick-off long past and no word from the feed (T-1708,
   // D-343): the band says so, and draws neither the kick-off time as its
@@ -519,6 +529,7 @@ function Hero({
       ? 'text-display-3 leading-[1.1] md:text-display-5'
       : 'text-display-4 leading-[0.9] font-stretch-condensed md:text-display-5',
     f.status === 'live' && !behind && 'text-live',
+    disputed && 'text-muted',
   );
   const live = f.status === 'live' && !behind;
   const scorers = scorersOf(centre, locale);
@@ -663,6 +674,7 @@ function Hero({
               </span>
             )
           )}
+          {disputed?.marker}
         </div>
         <div data-testid="away-team" className="min-w-0">
           <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-start md:gap-5 md:text-start">
@@ -730,6 +742,7 @@ function Hero({
         </p>
       )}
       {awaiting && hero.awaiting}
+      {disputed?.note}
 
       {hero.highlights}
 

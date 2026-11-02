@@ -3080,5 +3080,7 @@
   "highlights.by": "By {publisher}",
   "highlights.territory": "Where are you watching?",
   "matchCentre.lineups.bothSides": "(unclear in the source)",
-  "matchCentre.lineups.bothSidesNote": "The data source lists one player in both teams’ line-ups. We show him where it puts him and mark him as unclear rather than guess which side he played for."
+  "matchCentre.lineups.bothSidesNote": "The data source lists one player in both teams’ line-ups. We show him where it puts him and mark him as unclear rather than guess which side he played for.",
+  "matchCentre.scoreUnclear": "Score unclear in the source",
+  "matchCentre.scoreUnclearNote": "The recorded goals ({goals}) and the reported result ({score}) do not agree, so neither is shown as final."
 }

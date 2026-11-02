@@ -33,6 +33,19 @@ export interface ScoreLine {
 }
 
 /**
+ * A finished match whose recorded goals do not add up to its result (T-1717,
+ * D-347): neither number is shown as final. Derived by the API at read time
+ * from the stored score and goal incidents, never stored; absent or null when
+ * they agree, when no goal is recorded, or when the match is not finished.
+ */
+export interface ScoreDispute {
+  /** The goals in the match's incidents, a shoot-out's kicks left out (D-322). */
+  recorded_goals: number;
+  /** The result the score gives, as a page shows it (D-317: after extra time). */
+  reported: ScoreLine;
+}
+
+/**
  * Whether a match not yet finished is still on the calendar (T-1560): it is
  * to be played, or is being played. A cancelled, abandoned or awarded match
  * will not be played, and a postponed one has lost its date, so none of them
@@ -183,6 +196,8 @@ export interface ScoreCard {
    * `awaiting_update` when still scheduled over three hours after kick-off (T-1708); else `null`.
    */
   freshness: Freshness | null;
+  /** The recorded goals disagree with the result (T-1717, D-347); see `ScoreDispute`. */
+  score_dispute?: ScoreDispute | null;
   /** Ranked above the standard list because of the viewer's favourites. */
   pinned: boolean;
 }

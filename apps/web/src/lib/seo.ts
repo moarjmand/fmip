@@ -141,7 +141,8 @@ function team(locale: string, t: { id: string; name: string }, origin: string): 
 export function matchJsonLd(locale: string, f: MatchHeader, origin = siteUrl()): JsonLd {
   const home = team(locale, f.home, origin);
   const away = team(locale, f.away, origin);
-  const fullTime = f.status === 'finished' ? resultLine(f.scores) : null;
+  // A result the recorded goals disagree with is not stated (T-1717, D-347).
+  const fullTime = f.status === 'finished' && f.score_dispute == null ? resultLine(f.scores) : null;
   return {
     '@context': CONTEXT,
     '@type': 'SportsEvent',
