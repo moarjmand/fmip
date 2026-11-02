@@ -17,6 +17,7 @@ import {
   receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { MatchCentreView, ratingsOf } from './match-centre-view';
+import { Translated } from './translated';
 import { MatchLineupsView } from './match-lineups';
 
 /**
@@ -418,6 +419,75 @@ describe('live', () => {
     // Persian.
     const fa = view(centre({ status: 'finished', minute: null, scores }), undefined, 'fa');
     expect(fa).toContain('۹۰ دقیقه');
+  });
+
+  it('says a scheduled match long past its kick-off is awaiting an update, never to come (T-1708, D-343)', () => {
+    // Rangers v Aberdeen, still "scheduled" two days after its kick-off (aud-2026-11-01-01).
+    const scheduled = {
+      status: 'scheduled' as const,
+      minute: null,
+      scores: { ...centre().fixture.scores, current: null },
+    };
+    const late = centre({ ...scheduled, freshness: 'awaiting_update' });
+    const after = Date.parse('2026-10-26T11:30:00.000Z');
+    // The page hands the band the notice (`page.tsx`); the stream's line is a marker here.
+    const notice = (locale: string) => (
+      <p data-testid="awaiting-update">
+        <Translated locale={locale} message="matchCentre.awaitingUpdate" />
+      </p>
+    );
+    const band = (c: MatchCentre, locale = 'en') =>
+      renderToStaticMarkup(
+        <MatchCentreView
+          words={matchWords(locale)}
+          centre={c}
+          timeZone="Europe/London"
+          locale={locale}
+          now={after}
+          hero={{ awaiting: notice(locale), live: <span data-testid="live-state" /> }}
+        />,
+      );
+    const html = band(late);
+    expect(html).toContain('data-testid="awaiting-update"');
+    expect(html).toContain(EN['matchCentre.awaitingUpdate']);
+    // The kick-off time is not the band's figure: a dash, no score invented.
+    expect(html).not.toMatch(/data-testid="match-status">12:30</);
+    expect(html).toMatch(/data-testid="score">–</);
+    // No "last checked": our check is not news of the match.
+    expect(html).not.toContain('data-testid="live-state"');
+    // Without the notice it is a match to come, its kick-off time the figure.
+    const coming = view(centre(scheduled), Date.parse(KICKOFF) - 60_000);
+    expect(coming).not.toContain('awaiting-update');
+    expect(coming).toMatch(/data-testid="match-status">12:30</);
+    // Once a snapshot brings what happened, the notice goes.
+    const done = band(centre({ status: 'finished', minute: null }));
+    expect(done).not.toContain('awaiting-update');
+    expect(band(centre({ status: 'postponed', minute: null }))).not.toContain('awaiting-update');
+    // In Persian.
+    expect(band(late, 'fa')).toContain('زمان شروع بازی گذشته است');
+  });
+
+  it('sets the forecast from before kick-off on a match awaiting an update, never as to come (T-1708)', () => {
+    const awaiting = renderToStaticMarkup(
+      <ForecastReality
+        forecasts={forecasts}
+        evaluations={null}
+        fixture={{ ...fixture('scheduled'), freshness: 'awaiting_update' }}
+        final={null}
+        matchXg={null}
+        timeZone="Europe/London"
+        locale="en"
+      />,
+    );
+    expect(awaiting).toContain('Before kick-off');
+    expect(awaiting).not.toContain('Model forecast');
+    // The last version computed before kick-off, stored as it was (rule 5).
+    expect(awaiting).toMatch(/data-version="3" data-current=""/);
+    expect(cardVersion(forecasts, null, 'scheduled', KICKOFF, true)?.version_number).toBe(3);
+    const later = { ...forecasts, latest: version(4, '2026-10-24T13:00:00.000Z') };
+    later.versions = [...forecasts.versions, later.latest];
+    expect(cardVersion(later, null, 'scheduled', KICKOFF)?.version_number).toBe(4);
+    expect(cardVersion(later, null, 'scheduled', KICKOFF, true)?.version_number).toBe(3);
   });
 
   it('says when the feed has fallen behind, in the warning colour, never as current (rule 4)', () => {

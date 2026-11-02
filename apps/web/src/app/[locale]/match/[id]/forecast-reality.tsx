@@ -31,7 +31,10 @@ import { cx } from '@/components/ui/cx';
  *
  * Which version: after kick-off, the one the model published before it --
  * the one its evaluation scored, else the last computed before kick-off
- * (the same choice as `ModelVerdict`); before kick-off, the latest.
+ * (the same choice as `ModelVerdict`); before kick-off, the latest. A match
+ * still scheduled long after its kick-off (`awaiting_update`, T-1708, D-343)
+ * counts as after: its card is the stored forecast from before kick-off,
+ * titled so, never the latest presented as a match still to come.
  */
 
 const STEPS = { home: 'bg-model', draw: 'bg-model/55', away: 'bg-model/25' } as const;
@@ -42,8 +45,9 @@ export function cardVersion(
   evaluations: FixtureEvaluationsResponse | null,
   status: MatchHeader['status'],
   kickoffAt: string,
+  awaiting = false,
 ): ForecastVersion | null {
-  if (status === 'scheduled') return forecasts.latest;
+  if (status === 'scheduled' && !awaiting) return forecasts.latest;
   const scored = evaluations?.evaluations.filter((e) => e.pre_kickoff).at(-1) ?? null;
   if (scored !== null) {
     const match = forecasts.versions.find((v) => v.version_number === scored.version_number);
@@ -159,7 +163,8 @@ export function ForecastReality({
 }: {
   forecasts: ForecastVersionsResponse | null;
   evaluations: FixtureEvaluationsResponse | null;
-  fixture: Pick<MatchHeader, 'status' | 'kickoff_at' | 'home' | 'away'>;
+  fixture: Pick<MatchHeader, 'status' | 'kickoff_at' | 'home' | 'away'> &
+    Partial<Pick<MatchHeader, 'freshness'>>;
   /** The full-time score, once the match is over. */
   final: { home: number; away: number } | null;
   /** The match's own expected goals from the statistics, when supplied. */
@@ -169,14 +174,20 @@ export function ForecastReality({
 }) {
   const locale: Locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const status = fixture.status;
+  // Kick-off long past with no word from the feed (T-1708, D-343): the card
+  // is the forecast from before kick-off, as once a match has started.
+  const awaiting = status === 'scheduled' && fixture.freshness === 'awaiting_update';
+  const upcoming = status === 'scheduled' && !awaiting;
   const title: MessageKey =
     final !== null
       ? 'matchCentre.reality.title'
-      : status === 'scheduled'
+      : upcoming
         ? 'forecast.title'
         : 'matchCentre.reality.before';
   const version =
-    forecasts === null ? null : cardVersion(forecasts, evaluations, status, fixture.kickoff_at);
+    forecasts === null
+      ? null
+      : cardVersion(forecasts, evaluations, status, fixture.kickoff_at, awaiting);
   const p = version?.probabilities ?? null;
   // A match whose every version is a placeholder no model answered (a
   // competition the model was not trained on, say) has no forecast: the
@@ -206,7 +217,7 @@ export function ForecastReality({
         >
           <Translated
             locale={locale}
-            message={status === 'scheduled' ? 'forecast.none' : 'forecastBar.noneBefore'}
+            message={upcoming ? 'forecast.none' : 'forecastBar.noneBefore'}
           />
         </p>
       ) : p === null ? (

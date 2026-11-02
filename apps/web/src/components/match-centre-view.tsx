@@ -72,6 +72,13 @@ export interface MatchHero {
   live?: React.ReactNode;
   watch?: React.ReactNode;
   highlights?: React.ReactNode;
+  /**
+   * The notice of a scheduled match long past its kick-off (T-1708, D-343),
+   * drawn by the server from the answer's `awaiting_update`, so its words are
+   * not in the page's JavaScript. While the match is still scheduled the band
+   * draws no kick-off time as its figure and no stream line beside it.
+   */
+  awaiting?: React.ReactNode;
 }
 
 type Key = keyof MatchWords['m'];
@@ -481,6 +488,11 @@ function Hero({
   // After extra time the band also says the ninety minutes (D-317).
   const ninety = f.scores.extra_time !== null ? f.scores.full_time : null;
   const behind = now !== undefined && isBehind(f, now);
+  // Scheduled, the kick-off long past and no word from the feed (T-1708,
+  // D-343): the band says so, and draws neither the kick-off time as its
+  // figure nor the stream's "last checked", which is our check, not the match's.
+  // Once a snapshot brings another status, the server's notice goes.
+  const awaiting = f.status === 'scheduled' && hero.awaiting != null;
   // At the half-time interval the feed's minute stays at 45: the band says
   // "HT" rather than a clock that looks stalled (T-1551). A feed that has
   // fallen behind keeps its own words (rule 4).
@@ -589,7 +601,7 @@ function Hero({
           </div>
         </div>
         <div className="flex flex-col items-center gap-2">
-          {f.status === 'scheduled' ? (
+          {f.status === 'scheduled' && !awaiting ? (
             // Before kick-off the band's figure is the kick-off time, never a 0-0.
             <span className={figure} data-testid="match-status">
               {status}
@@ -697,9 +709,10 @@ function Hero({
           </div>
         </div>
       )}
-      {(hero.watch !== undefined || (f.status !== 'live' && hero.live !== undefined)) && (
+      {(hero.watch !== undefined ||
+        (f.status !== 'live' && !awaiting && hero.live !== undefined)) && (
         <div className="-mt-1 flex flex-col items-center gap-2 text-center">
-          {f.status !== 'live' && hero.live}
+          {f.status !== 'live' && !awaiting && hero.live}
           {hero.watch}
         </div>
       )}
@@ -716,6 +729,7 @@ function Hero({
           />
         </p>
       )}
+      {awaiting && hero.awaiting}
 
       {hero.highlights}
 
@@ -820,7 +834,8 @@ function Hero({
 function unplayed(centre: MatchCentre, module: CoverageModule): 'kickoff' | 'unplayed' | null {
   const status = centre.fixture.status;
   if (status === 'postponed' || status === 'cancelled') return 'unplayed';
-  if (status !== 'scheduled') return null;
+  // Long past its kick-off with no word from the feed (T-1708): not known.
+  if (status !== 'scheduled' || centre.fixture.freshness === 'awaiting_update') return null;
   return centre.coverage[module] === 'not_supplied' ? null : 'kickoff';
 }
 

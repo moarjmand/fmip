@@ -287,6 +287,7 @@ export class PostgresMatchCentreStore {
         freshness: freshnessOf(r.status, r.last_updated_at, new Date(), undefined, {
           minute: r.status === 'live' ? r.minute : null,
           liveAnsweredAt: r.live_answered_at,
+          kickoffAt: r.kickoff_at,
         }),
         last_checked_at: r.last_checked_at?.toISOString() ?? null,
       },

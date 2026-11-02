@@ -44,13 +44,21 @@ export function stillToPlay(status: FixtureStatus | string): boolean {
 }
 
 /**
- * Freshness of a live fixture's data (rule 4, T-083, D-045). A match in
+ * Freshness of a fixture's data (rule 4, T-083, D-045). A match in
  * progress whose data has not changed for this long is `stale`: the feed
  * is behind, and the page must say so instead of showing the last minute as
  * the current one. Not applicable (`null`) before kick-off or after the end.
+ *
+ * `awaiting_update` (T-1708, D-343): the status is still `scheduled` and the
+ * kick-off was more than three hours ago -- longer than ninety minutes,
+ * half-time, added time, extra time and a shoot-out together -- so the match's
+ * state is not known and it is never shown as still to come. The API derives
+ * it when it answers (`freshnessOf`, `AWAITING_UPDATE_AFTER_MS`); nothing is
+ * stored. The rule lives there, not here: this package is in every page's
+ * JavaScript, and a reader only needs the word.
  */
 export const STALE_LIVE_AFTER_MS = 120_000;
-export type Freshness = 'current' | 'stale';
+export type Freshness = 'current' | 'stale' | 'awaiting_update';
 
 /**
  * The minutes at which a match's stored clock stands still while the match
@@ -170,7 +178,10 @@ export interface ScoreCard {
    * answer is recorded. `liveFreshnessFrom` reads it where no clock moves.
    */
   live_answered_at?: string | null;
-  /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (see `liveFreshnessFrom`); `null` when not live. */
+  /**
+   * `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (see `liveFreshnessFrom`);
+   * `awaiting_update` when still scheduled over three hours after kick-off (T-1708); else `null`.
+   */
   freshness: Freshness | null;
   /** Ranked above the standard list because of the viewer's favourites. */
   pinned: boolean;

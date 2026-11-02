@@ -13880,3 +13880,24 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 
 **Ending it.** Once the `agents` record exists in Cloudflare, put `CONSOLE_PATH=` (empty) in the server's `.env`, or change the compose default, and roll out `web`. The path then disappears and the host serves alone. Invitations already sent keep working on the host, because the token is the same.
 
+## D-343 — A scheduled match long past its kick-off is `awaiting_update`, derived at read time
+
+**Status:** Accepted · 2026-11-02 (the architect's proposal on arc-2026-11-02-02) · **Task:** T-1708 · **Follows:** D-045, D-189, D-209
+
+**Context.** Rangers v Aberdeen (fixture `f26d51e5-…`, Scottish Premiership) was still `scheduled` for 2026-10-31 15:00 UTC two days after kick-off (aud-2026-11-01-01, qa-2026-11-01-01). The match page showed it as a match to come, with the model's forecast and "Last checked 9 sec ago", and no notice. Rule 4 was broken: freshness was judged by our last check, not by whether the match's own state could still be true. The contract had no state for "scheduled, kick-off passed, no update".
+
+**Decision.**
+1. `Freshness` gains `awaiting_update` (`packages/contracts/src/scores.ts`; a type only). A fixture is awaiting an update when its status is `scheduled` and more than `AWAITING_UPDATE_AFTER_MS` has passed since its kick-off. At exactly the threshold it is still a match to come. Every other status (live, suspended, finished, postponed, cancelled, abandoned, awarded) is unaffected.
+2. The threshold is **three hours**. Ninety minutes, half-time, added time, extra time with its break, and a shoot-out come to under three hours. A match the feed still calls scheduled after that has started late, been postponed or been played, and we do not know which.
+3. The state is derived, never stored. The API sets it in `freshness` on `GET /scores` and the match centre (`freshnessOf` and `AWAITING_UPDATE_AFTER_MS`, `apps/api/src/modules/fixtures/internal/freshness.ts`). No column, no migration, no backfill. The stored row keeps what the feed said, so the next answer from the feed replaces the state on its own.
+4. The rule stays in the API. The contracts package is bundled whole into every page's JavaScript, and the match page was at its first-load budget (191 kB, docs/08). So the web reads the answer's word (`awaitingUpdate`, `apps/web/src/lib/live.ts`) and does not re-judge it on the reader's clock. A page left open across the threshold turns on its next load.
+5. The web. The status cell says "Awaiting update" instead of a kick-off time (`statusLabel`). The match page draws no kick-off time as its figure and no "last checked" line, which is our check and not the match's. It says "Kick-off time passed — awaiting an update on this match" (`matchCentre.awaitingUpdate`, English and Persian). The page's server draws that notice and hands it to the band (`MatchHero.awaiting`), so its words are not in the client bundle; once a snapshot brings another status, the notice goes. Modules no longer say "starts at kick-off".
+6. The forecast. The Summary's model card treats the match as after kick-off: it is titled "Before kick-off" and shows the last version computed before kick-off (`cardVersion`'s `awaiting`), never the latest presented as a forecast for a match to come. Nothing is rewritten (rule 5). The three products stay apart (rule 6).
+
+**Rejected.**
+- *A new `FixtureStatus`:* the status is what the feed said. Every consumer of the status (settlement, the job queues, notifications) would have had to learn a value that no provider sends.
+- *A stored flag set by a job:* it would need a backfill, and a job that stops would leave the flag as stale as the status it guards.
+- *Hiding the match:* it is in the competition's calendar. Not showing it would hide that we do not know.
+
+**Consequences.** The surfaces that call `statusLabel` with a card from `GET /scores` or the match centre (scores list, home, rails) say "Awaiting update". Surfaces that test `status === 'scheduled'` on their own (the competition and team fixture lists, next-match cards, the matchday rail, share cards) are follow-ups. Correcting the Rangers v Aberdeen row on production is an operator step, not part of this decision.
+

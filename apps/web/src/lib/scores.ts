@@ -1,5 +1,5 @@
 import type { ScoreCard } from '@fmip/contracts';
-import { isBehind } from './live';
+import { awaitingUpdate, isBehind } from './live';
 import { formatDate, formatDateTime, formatDaysAgo, formatNumber, formatTime } from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
 import { fill, formatMinute } from '@/lib/words';
@@ -307,9 +307,11 @@ export type StatusKey =
   | 'status.suspended'
   | 'status.cancelled'
   | 'status.abandoned'
-  | 'status.awarded';
+  | 'status.awarded'
+  | 'status.awaitingUpdate';
 
 const ENGLISH_STATUS: Record<StatusKey, string> = {
+  'status.awaitingUpdate': 'Awaiting update',
   'status.live': 'Live',
   'status.behind': 'Behind',
   'status.fullTime': 'FT',
@@ -325,7 +327,8 @@ const ENGLISH_STATUS: Record<StatusKey, string> = {
 /**
  * The status cell: the clock while live, an abbreviation after, the time
  * before. A live match whose data is behind (T-083) shows "Behind" instead of
- * a minute that is no longer the current one. `words` are the reader's
+ * a minute that is no longer the current one, and a scheduled one long past
+ * its kick-off "Awaiting update" (T-1708). `words` are the reader's
  * (T-1303); a caller that has none yet gets the English.
  */
 export function statusLabel(
@@ -348,7 +351,11 @@ export function statusLabel(
           ? w('status.afterExtraTime')
           : w('status.fullTime');
     case 'scheduled':
-      return formatKickoff(locale, card.kickoff_at, timeZone);
+      // Kick-off long past and no word from the feed (T-1708, D-343): never
+      // the kick-off time, which would read as a match still to come.
+      return awaitingUpdate(card)
+        ? w('status.awaitingUpdate')
+        : formatKickoff(locale, card.kickoff_at, timeZone);
     case 'postponed':
       return w('status.postponed');
     case 'suspended':

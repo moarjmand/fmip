@@ -64,6 +64,19 @@ export function isBehind(
 }
 
 /**
+ * Whether a scheduled match's kick-off is long past with no word from the
+ * feed (T-1708, D-343), as the API derived it when it answered (`freshnessOf`
+ * in the fixtures module). Such a match is not "to come": no kick-off time as
+ * its status, no "starts at kick-off", and its forecast is the one made
+ * before kick-off. Read from the answer, not re-judged on the reader's
+ * clock: the match page and the scores list are drawn per request, and the
+ * rule stays out of their client bundles (both at their budgets, docs/08).
+ */
+export function awaitingUpdate(fixture: { freshness?: Freshness | null }): boolean {
+  return fixture.freshness === 'awaiting_update';
+}
+
+/**
  * What the scores page says when the ingestion feed's latest run failed
  * (from `GET /health/ingestion`): the outage and its time, which the page
  * names in the reader's words, keeping what it has, labelled, rather than
