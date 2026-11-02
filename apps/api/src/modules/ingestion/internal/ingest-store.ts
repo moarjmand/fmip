@@ -45,7 +45,7 @@ import type {
   Provider,
   Side,
 } from '@fmip/ingestion';
-import { PERIOD_KINDS } from '@fmip/ingestion';
+import { PERIOD_KINDS, isPlaceholderPersonName } from '@fmip/ingestion';
 import type { LineupCandidate } from './lineup-asks';
 import type { EntityType } from './resolver';
 
@@ -1210,6 +1210,12 @@ export class IngestStore implements SquadStore {
 
     const listed: { player: NormalisedSideLineup['players'][number]; personId: string }[] = [];
     for (const player of lineup.players) {
+      // A slot the feed labels "Trialist", "Unknown", "TBA" (T-1707, D-342)
+      // names nobody: it is never resolved, so it can neither reuse the one
+      // person its shared provider id was adopted as -- the same "Trialist"
+      // on both sides of a match -- nor queue a new one. Skipped like an
+      // ignored id: no reviewer can say who it was, so it is no gap.
+      if (isPlaceholderPersonName(player.name)) continue;
       const personId = await this.resolveRef(provider, 'person', player.externalId, player);
       if (personId === null || personId === IGNORED) {
         // Set aside by a reviewer (T-1338): skipped, and no gap to report.
@@ -1342,6 +1348,8 @@ export class IngestStore implements SquadStore {
     for (const stat of statistics) {
       const participantId = participants.get(stat.side) ?? null;
       if (participantId === null) continue;
+      // The same placeholder slot in the per-player block (T-1707, D-342).
+      if (isPlaceholderPersonName(stat.player.name)) continue;
       if (!people.has(stat.player.externalId)) {
         people.set(
           stat.player.externalId,
