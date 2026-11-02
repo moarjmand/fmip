@@ -179,7 +179,10 @@ function facts(
 /**
  * The season menu: the current season as a quiet button that opens the list
  * of seasons, each a plain link that keeps the tab -- a `details` element,
- * so it needs no script. One season is a label, not a menu.
+ * so it needs no script. One season is a label, not a menu. On a phone the
+ * button sits at the start of its row, so the list hangs from the start edge
+ * and stays on the screen; from sm up the row sits at the end of the header
+ * and the list hangs from the end edge (T-1706).
  */
 function SeasonMenu({
   page,
@@ -213,7 +216,10 @@ function SeasonMenu({
         {season}
         <Chevron to="down" />
       </summary>
-      <ul className="absolute end-0 top-full z-20 mt-1 flex max-h-80 min-w-40 flex-col overflow-y-auto rounded-control border border-default bg-surface py-1">
+      <ul
+        className="absolute start-0 top-full z-20 mt-1 flex max-h-80 min-w-40 flex-col overflow-y-auto rounded-control border border-default bg-surface py-1 sm:start-auto sm:end-0"
+        data-testid="season-options"
+      >
         {page.seasons.map((s) => {
           const current = s.id === page.season.id;
           return (

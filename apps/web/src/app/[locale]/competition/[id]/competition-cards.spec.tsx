@@ -183,6 +183,18 @@ describe('the header and the section tabs', () => {
     expect(html).toContain('aria-label="Back to all competitions"');
   });
 
+  it('hangs the season list from the start edge on a phone, the end edge from sm up (T-1706)', () => {
+    for (const locale of ['en', 'fa']) {
+      const html = header(page(), locale);
+      const list = html.match(/<ul class="([^"]*)" data-testid="season-options"/);
+      expect(list).not.toBeNull();
+      const classes = (list?.[1] ?? '').split(' ');
+      expect(classes).toEqual(expect.arrayContaining(['start-0', 'sm:start-auto', 'sm:end-0']));
+      expect(classes).not.toContain('end-0');
+      expect(classes.some((c) => /(^|:)(left|right)-/.test(c))).toBe(false);
+    }
+  });
+
   it('shows one season as a label, not a menu', () => {
     const html = header(page({ seasons: page().seasons.slice(0, 1) }));
     expect(html).toContain('data-testid="season-label"');
