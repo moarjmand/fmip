@@ -38,6 +38,7 @@ import type {
 import { decodeEntities } from '../../news/feed';
 import { conferenceOfLabel, groupOfLabel, stageOfLabel } from '../_group';
 import { incidentDetail } from '../_incident-detail';
+import { entityName } from '../_name';
 import { nationalityCode } from './nationality';
 
 // ---------------------------------------------------------------------------
@@ -218,12 +219,12 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
   const status = mapStatus(statusRec.short);
   const short = typeof statusRec.short === 'string' ? statusRec.short : '';
   const leagueId = id(league.id);
-  const leagueName = str(league.name);
+  const leagueName = entityName(league.name);
   const startYear = int(league.season);
   const homeId = id(home.id);
-  const homeName = str(home.name);
+  const homeName = entityName(home.name);
   const awayId = id(away.id);
-  const awayName = str(away.name);
+  const awayName = entityName(away.name);
 
   if (
     externalId === null ||
@@ -249,7 +250,7 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
   const round = str(league.round);
   const stageKind = round === null ? null : stageKindOf(round);
   const venue = rec(fixture.venue);
-  const venueName = str(venue.name);
+  const venueName = entityName(venue.name);
   const referee = refereeName(fixture.referee);
   const elapsed = int(statusRec.elapsed);
   const goals = score(it.goals);
@@ -322,7 +323,7 @@ function incidentKind(type: unknown, detail: unknown): IncidentKind | null {
 function ref(value: unknown): { externalId: string; name: string } | null {
   const r = rec(value);
   const externalId = id(r.id);
-  const name = str(r.name);
+  const name = entityName(r.name);
   return externalId === null || name === null ? null : { externalId, name };
 }
 

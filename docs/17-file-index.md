@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2210), grouped by folder, with one line on
+Every file in the repository (2213), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -260,17 +260,17 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 169
+- [`packages/db/migrations`](#packagesdbmigrations) — 170
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
-- [`packages/db/src`](#packagesdbsrc) — 14
+- [`packages/db/src`](#packagesdbsrc) — 15
 - [`packages/ingestion`](#packagesingestion) — 5
 - [`packages/ingestion/bakeoff`](#packagesingestionbakeoff) — 3
 - [`packages/ingestion/scripts`](#packagesingestionscripts) — 2
 - [`packages/ingestion/scripts/plans`](#packagesingestionscriptsplans) — 4
 - [`packages/ingestion/src`](#packagesingestionsrc) — 6
-- [`packages/ingestion/src/adapters`](#packagesingestionsrcadapters) — 6
+- [`packages/ingestion/src/adapters`](#packagesingestionsrcadapters) — 7
 - [`packages/ingestion/src/adapters/_fixtures`](#packagesingestionsrcadapters-fixtures) — 1
 - [`packages/ingestion/src/adapters/_fixtures/api-football`](#packagesingestionsrcadapters-fixturesapi-football) — 7
 - [`packages/ingestion/src/adapters/_fixtures/api-football-coachs`](#packagesingestionsrcadapters-fixturesapi-football-coachs) — 2
@@ -3606,6 +3606,7 @@ machine, `docs/18-handover.md`.
 | `1765900400000_fake-periods.sql` | T-1681 (D-327): scores of periods a match never had are removed. |
 | `1765900500000_agents-console.sql` | The agents console (T-1696, D-340): `agents.traveltohormuz.ir`, for the maintainer and the teammate, apart from the site's members. |
 | `1765900600000_placeholder-lineup-persons.sql` | T-1707 (D-342): line-up slots a feed labels "Trialist", "Unknown", "TBA" are not people. |
+| `1765900700000_trim-team-names.sql` | T-1711 (str-2026-11-02-02): team names stored with a provider's padding. |
 
 ## packages/db/scripts
 
@@ -3651,6 +3652,7 @@ machine, `docs/18-handover.md`.
 | `season-display-label.spec.ts` | `season_display_label` (T-1483, D-256): a season played within one calendar year is shown by its year; every other label is shown as stored. |
 | `seed.spec.ts` | Tests for `seed`. |
 | `seed.ts` | Where the seed files live. Resolved from this file so it is correct whether the package is used from source or from `dist`. |
+| `trim-team-names.spec.ts` | Migration `1765900700000_trim-team-names.sql` against the real schema (T-1711, str-2026-11-02-02): a team name stored with the provider's padding is tidied, a tidy one is left alone. |
 | `viewing-cli.spec.ts` | The refusals in `scripts/viewing.mjs` (T-1360): the desk's listings from a terminal. |
 
 ## packages/ingestion
@@ -3706,6 +3708,7 @@ machine, `docs/18-handover.md`.
 | `_contract.ts` | The interface every provider adapter implements (02-architecture.md, "The adapter layer"). |
 | `_group.ts` | A group's own name from the label a provider gives one of its tables (T-1333): "Group A" → "A", "League A - Group 1" → "1", "GROUP_B" read as "Group B" → "B". |
 | `_incident-detail.ts` | A provider's incident detail in our words (T-1378, D-196, rule 2). |
+| `_name.ts` | A team's, competition's or venue's name as a provider wrote it, made tidy (T-1711): leading and trailing whitespace dropped, runs of whitespace inside collapsed to one space. |
 | `absence-reason.spec.ts` | T-1601: every reason API-Football gave on production (2026-10-26, 56 texts over 3,415 absences) in our words, so a Persian page never shows the provider's English. |
 | `incident-detail.spec.ts` | T-1378 (rule 2): a provider's incident text never reaches a page. |
 

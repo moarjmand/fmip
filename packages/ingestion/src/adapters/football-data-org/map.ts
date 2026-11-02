@@ -26,6 +26,7 @@ import type {
   StageKind,
 } from '../../normalised';
 import { groupOfLabel } from '../_group';
+import { entityName } from '../_name';
 
 export type Json = Record<string, unknown>;
 
@@ -48,7 +49,7 @@ const id = (value: unknown): string | null => {
 function ref(value: unknown): { externalId: string; name: string } | null {
   const r = rec(value);
   const externalId = id(r.id);
-  const name = str(r.name);
+  const name = entityName(r.name);
   return externalId === null || name === null ? null : { externalId, name };
 }
 
@@ -144,7 +145,7 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
   const referees = Array.isArray(m.referees) ? m.referees : [];
   const referee = referees.map(rec).find((r) => r.type === 'REFEREE' || r.type === undefined);
   const refereeName = referee === undefined ? null : str(referee.name);
-  const venue = str(m.venue);
+  const venue = entityName(m.venue);
   const minute = int(m.minute);
   const sc = rec(m.score);
   const fullTime = score(sc.fullTime);
