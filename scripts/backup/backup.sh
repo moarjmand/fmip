@@ -153,8 +153,14 @@ if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
     exit 1
   fi
   echo "==> off-provider copy -> $BACKUP_RCLONE_REMOTE"
-  rclone copy --checksum "/data/$NAME.dump" "$BACKUP_RCLONE_REMOTE/"
-  rclone copy --checksum "/data/$NAME.manifest" "$BACKUP_RCLONE_REMOTE/"
+  # --no-check-dest (T-1719): each name is new, so there is nothing on the
+  # remote to compare with, and the per-file check is a download-class request
+  # (a HEAD). On B2's free tier that cap is shared with the restore drill's
+  # download: on 2026-11-02 the drill used it up and the upload of the day's
+  # dump failed on the check alone ("failed to HEAD for download: 403"). The
+  # upload's own hash is still checked by rclone, and the size is re-read below.
+  rclone copy --no-check-dest "/data/$NAME.dump" "$BACKUP_RCLONE_REMOTE/"
+  rclone copy --no-check-dest "/data/$NAME.manifest" "$BACKUP_RCLONE_REMOTE/"
   # Re-read what landed. size and sha256 come back from the remote, not from the
   # local file, so a truncated upload fails here rather than on restore day.
   REMOTE_SIZE="$(rclone size --json "$BACKUP_RCLONE_REMOTE/$NAME.dump" | sed -E 's/.*"bytes":([0-9]+).*/\1/')"
