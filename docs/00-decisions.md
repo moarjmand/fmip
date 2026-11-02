@@ -13954,3 +13954,26 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 **Rejected.**
 - *Keeping `licensed` with a comment:* the column is what people read; the finding is that the word misleads.
 - *One kind for both GNews and its publishers:* the GNews row would then claim to arrive through an aggregator, and the both-ways check on `via_source_id` would not hold.
+
+## D-345 — Retention periods and a daily purge
+
+**Status:** Accepted · 2026-11-02 (maintainer, option A) · **Task:** T-1715 · **Follows:** D-094, D-097
+
+**Context.** Findings arc-2026-11-02-03 and biz-2026-11-01-03: nothing deleted a row when its job was done. Expired sessions, used and expired one-time e-mail tokens, and the record of every notification's delivery stayed for ever; only account deletion (`account-deletion-store.ts`) and a gone push subscription (`push-subscriptions.ts`) deleted anything. The maintainer chose option A on 2026-11-02.
+
+**Decision.**
+1. Periods, as `RETENTION_DAYS` in `apps/api/src/modules/retention/retention.service.ts`:
+   - an expired session (`session`, and the agents console's `console_session`) is deleted 30 days after its `expires_at`;
+   - a one-time e-mail token (`email_token`: verify_email, reset_password) is deleted 7 days after its `expires_at`;
+   - a notification's delivery record (`notification_delivery`) is reduced to anonymous counts 90 days after its `claimed_at`.
+2. "Then anonymous counts" is a roll-up, not nulled columns. Each purged delivery row is added to `notification_delivery_daily` (UTC claim day, the notification's kind, the e-mail and push outcomes, `uncarried` for a claim never carried, and `n`) and deleted, in one statement, so a row is counted exactly once. Nulling was not possible: the outcomes are the counts, the key (`notification_id`) is what links a row to a member, and a carried row is immutable (`refuse_second_outcome`). The notification itself is not touched by this decision.
+3. A daily BullMQ job, `retention`/`purge` at 03:23 UTC (`RETENTION_SCHEDULE`), runs where `INGESTION_SCHEDULE=on`, like the data-quality sweep. Every table is purged in statements of at most 5,000 rows (`PURGE_BATCH_SIZE`), each committing on its own, until a statement comes back short; at most 2,000 statements per table per run (`PURGE_MAX_BATCHES`), and a run that reaches it logs `capped` and the next day carries on. The counts are logged as `retention.purged`.
+4. An index on `notification_delivery (claimed_at)`, because each batch reads the oldest claims and would otherwise scan the whole table past the rows earlier batches deleted. `session` and `email_token` are small (one row per sign-in, one per mailed link) and are read without one.
+5. The notice: a "How long records are kept" section under the rules on `/rules` (`rules.retention.*`, English and Persian written, the other seven catalogues untranslated) states the three periods and that backups are kept for up to 90 days (`BACKUP_KEEP_REMOTE_DAYS`, docs/07-backups.md), so a deleted record can remain in a backup that long. It is outside the versioned rules text: a notice, not something a member accepts.
+
+**Rejected.**
+- *Nulling the personal columns of `notification_delivery`:* see 2; it would also need the immutability trigger lifted.
+- *One unbounded `DELETE` per table:* the first run on production would hold its locks over months of rows while the carrier claims into the same table.
+- *Purging `notification` too:* not part of option A; the inbox is the member's own.
+
+**Consequences.** The Activity page (up to 90 days) counts `sign_ins` and `active_members` from `session.created_at`. A session is now deleted about 44 days after it starts (14-day lifetime plus 30), so on a window longer than that the oldest days of those two series count only the sessions still kept and read low. A roll-up for them, or a note on the page, is a follow-up for the maintainer. The admin alerts report reads `notification_delivery` for its 20 most recent alerts (`outcomesFor`); an alert in that list older than 90 days would show its outcomes as pending. The agents console's one-time invitations (`console_invite`) are not purged.

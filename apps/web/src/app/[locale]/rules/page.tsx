@@ -36,6 +36,19 @@ const OUTCOMES: Record<string, { tone: NoticeTone; message: MessageKey }> = {
 };
 
 /**
+ * How long records are kept (T-1715, D-345), under the rules rather than in
+ * them: it is a notice, not a version a member accepts, and it is translated.
+ * The periods are `RETENTION_DAYS` in the API's retention module and the
+ * backups' `BACKUP_KEEP_REMOTE_DAYS` default; change them together.
+ */
+const RETENTION_LINES: MessageKey[] = [
+  'rules.retention.sessions',
+  'rules.retention.emailLinks',
+  'rules.retention.notifications',
+  'rules.retention.backups',
+];
+
+/**
  * The platform rules in force (T-931, D-113), for anybody. A member with a
  * newer version waiting reads it here and accepts it with the form under the
  * text; the form names the version shown, so a version published while they
@@ -135,6 +148,26 @@ export default async function RulesPage({
           )}
         </>
       )}
+
+      <section
+        aria-labelledby="retention-heading"
+        className="flex flex-col gap-2 border-t border-default pt-6"
+        data-testid="rules-retention"
+      >
+        <h2 id="retention-heading" className="text-lg font-semibold">
+          <Translated locale={locale} message="rules.retention.heading" />
+        </h2>
+        <p>
+          <Translated locale={locale} message="rules.retention.lead" />
+        </p>
+        <ul className="list-disc ps-6">
+          {RETENTION_LINES.map((message) => (
+            <li key={message}>
+              <Translated locale={locale} message={message} />
+            </li>
+          ))}
+        </ul>
+      </section>
     </main>
   );
 }
