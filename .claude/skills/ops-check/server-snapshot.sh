@@ -59,7 +59,7 @@ SELECT coalesce(route, 'none'), coalesce(status::text, ''), coalesce(sum(count):
   FROM (SELECT 1) one LEFT JOIN http_error_count
     ON hour > now() - interval '24 hours' AND status >= 500
  GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 8;
-\echo == failed queue jobs, last 24 h (queue | job | kind | count | last job id; job "*" = the queue's total)
+\echo == failed queue jobs, last 24 h (queue | job | kind | count | last job id; job "*" = the total for the queue)
 SELECT coalesce(queue, 'none'), coalesce(job, ''), coalesce(kind, ''), coalesce(sum(count)::text, ''), coalesce(max(last_job_id), '')
   FROM (SELECT 1) one LEFT JOIN job_failure_count ON hour > now() - interval '24 hours'
  GROUP BY 1, 2, 3 ORDER BY 4 DESC LIMIT 8;
