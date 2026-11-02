@@ -13897,6 +13897,7 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 - *A nameless slot in the stored line-up* (a nullable person with the label): a schema, contract and page change for every reader of `lineup`. The slot is left out for now, as an unmapped player's is.
 - *Dropping the placeholder in the adapter:* the label is not API-Football's alone, and the store is the one place every source's line-up passes.
 - *Deleting the "Trialist" person:* incidents and other rows may name it; with no line-up it no longer shows as a player of both sides.
+
 ## D-343 — A scheduled match long past its kick-off is `awaiting_update`, derived at read time
 
 **Status:** Accepted · 2026-11-02 (the architect's proposal on arc-2026-11-02-02) · **Task:** T-1708 · **Follows:** D-045, D-189, D-209
