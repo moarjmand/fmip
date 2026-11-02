@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2240), grouped by folder, with one line on
+Every file in the repository (2243), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -253,7 +253,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 36
+- [`docs`](#docs) — 38
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 173
+- [`packages/db/migrations`](#packagesdbmigrations) — 174
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -3290,6 +3290,8 @@ machine, `docs/18-handover.md`.
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
+| `03-project-map.md` | Project map |
+| `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
@@ -3675,6 +3677,7 @@ machine, `docs/18-handover.md`.
 | `1765900700000_trim-team-names.sql` | T-1711 (str-2026-11-02-02): team names stored with a provider's padding. |
 | `1765900800000_news-aggregated-kind.sql` | T-1716 (D-346): GNews and the publishers it brings are no longer kind `licensed`. |
 | `1765900805000_retention.sql` | T-1715 (D-345): retention periods and a daily purge. |
+| `1765900818000_persian-news-only.sql` | T-1718 (D-348): Persian readers are shown Persian-language sources only. /fa/news listed English and German headlines among its first thirty (aud-2026-11-01-02, qa-2026-10-31-04): only a source set `same_language_only`… |
 | `1765900830000_console-message.sql` | Chat with an agent in the agents console (T-1722, D-350). |
 
 ## packages/db/scripts
