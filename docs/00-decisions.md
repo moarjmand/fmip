@@ -13788,6 +13788,8 @@ It needs `training.fixture_stat` loaded into the lab (`load records-stats --into
 
 The model scientist judges this weekly, and readiness is a proposal: the maintainer promotes (D-082). A version that also changes constants or inputs on existing divisions is still judged by D-139.
 
+**Amendment 2026-11-02 (the maintainer, finding mod-2026-11-02-02; T-1720): one look per condition.** Each condition is judged once, at the first weekly watch where its count is reached (300 paired matches for *no worse*, 100 new-division matches for *better than chance*), and that verdict is recorded. The watch does not look again to wait for a better interval: repeated looks at a fixed threshold raise the chance of a false "ready". A second look happens only if the maintainer asks for one, is labelled as a second look, and uses only matches played after the first. Until a count is reached the weekly watch reports the count alone, not an interval.
+
 **Rejected.**
 - *D-139's bar for every version:* a coverage version could never pass it.
 - *Promoting 0.7.0 now:* 211 paired matches, below the 300 every promotion has needed.
