@@ -21,6 +21,10 @@ export const AGENT_TITLES: Record<string, string> = {
   'product-strategist': 'محصول و راهبرد',
   'content-community': 'محتوا و جامعه',
   'business-adviser': 'مشاور کسب‌وکار',
+  'marketing-manager': 'مدیر بازاریابی',
+  'seo-search': 'جست‌وجو و سئو',
+  'social-media': 'شبکه‌های اجتماعی',
+  'growth-analyst': 'تحلیلگر رشد',
 };
 export const agentTitle = (name: string): string => AGENT_TITLES[name] ?? name;
 

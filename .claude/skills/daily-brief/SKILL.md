@@ -22,6 +22,16 @@ The method of the `chief-of-staff` agent. Read `.claude/skills/team-charter/SKIL
   to date), and decisions with `**Status:** Proposed` in
   `docs/00-decisions.md`.
 
+The marketing wing (D-349) is read like the others, with three habits of its own:
+- `mkt`, `seo`, `soc` and `gro` findings go in the brief's items by their severity like any
+  other; on Mondays the marketing manager's report gives the week's three marketing priorities,
+  one line in «در جریان» ("in progress").
+- The social media agent's drafts (`E:/FMIP/ops/reports/social-media/<today>.md`) are never
+  copied into the brief: one line says how many drafts wait for the maintainer's approval and
+  the file's path, or nothing on a day with none. The drafts are his to publish.
+- Growth numbers are quoted as the growth analyst wrote them, aggregates only, a breakdown cell
+  under 5 as «کمتر از ۵».
+
 Read-only git is fine (`git log`, `git merge-base --is-ancestor` to tell a stale PR whose commits
 are all on main). Findings come first; a report without findings in the day's file is still read,
 and the brief says which agent wrote no findings.

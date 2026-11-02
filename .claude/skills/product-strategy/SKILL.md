@@ -29,7 +29,11 @@ The method of the `product-strategist` agent. Read `.claude/skills/team-charter/
   would notice, from their public pages and release notes (WebSearch). Name three ideas worth
   taking and one that is not, and say why. Never copy a design or text; describe the idea. Mark
   second-hand sources (app-store notes, news articles) as such, and say when evidence is thin.
-- **Search and sharing.** Run `bash .claude/skills/product-strategy/seo-check.sh` and judge it.
+- **Search and sharing.** Since D-349 the `seo-search` agent runs this check weekly (it uses this
+  skill's `seo-check.sh` and the bar below): read its newest reports in
+  `E:/FMIP/ops/reports/seo-search/` instead of running it again, and run it yourself only when
+  that agent has no report from the last fourteen days.
+  The check: run `bash .claude/skills/product-strategy/seo-check.sh` and judge it.
   Every key page needs a 200 answer in under 1.5 s, a specific title and a description of 50 to
   160 characters, its canonical, alternates for en, fa and x-default, a share image (`og:image`)
   and a `summary_large_image` card where it has one. The script appends the sitemap's count to

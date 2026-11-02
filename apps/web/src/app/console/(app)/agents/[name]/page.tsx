@@ -91,6 +91,12 @@ export default async function ConsoleAgentPage({ params }: Params) {
         <p className="max-w-measure text-sm text-muted" dir="auto">
           {agent.description}
         </p>
+        <Link
+          href={`/agents/${encodeURIComponent(agent.name)}/chat`}
+          className="inline-flex min-h-touch w-fit items-center rounded-control border border-brand px-4 text-sm font-bold text-brand"
+        >
+          گفتگو با این عامل
+        </Link>
       </div>
 
       <Card title="چطور کار می‌کند">

@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2219), grouped by folder, with one line on
+Every file in the repository (2244), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -11,7 +11,7 @@ machine, `docs/18-handover.md`.
 
 - [`(root)`](#root) — 19
 - [`.claude`](#claude) — 1
-- [`.claude/agents`](#claudeagents) — 12
+- [`.claude/agents`](#claudeagents) — 16
 - [`.claude/hooks`](#claudehooks) — 3
 - [`.claude/skills/business-advice`](#claudeskillsbusiness-advice) — 1
 - [`.claude/skills/content-watch`](#claudeskillscontent-watch) — 2
@@ -22,9 +22,13 @@ machine, `docs/18-handover.md`.
 - [`.claude/skills/fmip-qa`](#claudeskillsfmip-qa) — 1
 - [`.claude/skills/fmip-review`](#claudeskillsfmip-review) — 2
 - [`.claude/skills/fmip-security`](#claudeskillsfmip-security) — 2
+- [`.claude/skills/growth-funnel`](#claudeskillsgrowth-funnel) — 2
+- [`.claude/skills/marketing-plan`](#claudeskillsmarketing-plan) — 1
 - [`.claude/skills/model-watch`](#claudeskillsmodel-watch) — 2
 - [`.claude/skills/ops-check`](#claudeskillsops-check) — 3
 - [`.claude/skills/product-strategy`](#claudeskillsproduct-strategy) — 2
+- [`.claude/skills/search-visibility`](#claudeskillssearch-visibility) — 2
+- [`.claude/skills/social-drafts`](#claudeskillssocial-drafts) — 2
 - [`.claude/skills/team-charter`](#claudeskillsteam-charter) — 1
 - [`.github/workflows`](#githubworkflows) — 2
 - [`apps/api`](#appsapi) — 6
@@ -60,8 +64,8 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/delivery/internal`](#appsapisrcmodulesdeliveryinternal) — 5
 - [`apps/api/src/modules/failure-counts`](#appsapisrcmodulesfailure-counts) — 4
 - [`apps/api/src/modules/failure-counts/internal`](#appsapisrcmodulesfailure-countsinternal) — 2
-- [`apps/api/src/modules/fixtures`](#appsapisrcmodulesfixtures) — 16
-- [`apps/api/src/modules/fixtures/internal`](#appsapisrcmodulesfixturesinternal) — 12
+- [`apps/api/src/modules/fixtures`](#appsapisrcmodulesfixtures) — 17
+- [`apps/api/src/modules/fixtures/internal`](#appsapisrcmodulesfixturesinternal) — 13
 - [`apps/api/src/modules/following-feed`](#appsapisrcmodulesfollowing-feed) — 3
 - [`apps/api/src/modules/following-feed/internal`](#appsapisrcmodulesfollowing-feedinternal) — 1
 - [`apps/api/src/modules/forecast`](#appsapisrcmodulesforecast) — 32
@@ -225,9 +229,10 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 5
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 6
 - [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 2
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
+- [`apps/web/src/app/console/(app)/agents/[name]/chat`](#appswebsrcappconsoleappagentsnamechat) — 1
 - [`apps/web/src/app/console/(app)/audit`](#appswebsrcappconsoleappaudit) — 1
 - [`apps/web/src/app/console/(app)/board`](#appswebsrcappconsoleappboard) — 1
 - [`apps/web/src/app/console/(app)/decisions`](#appswebsrcappconsoleappdecisions) — 1
@@ -236,7 +241,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/(open)/invite/[token]`](#appswebsrcappconsoleopeninvitetoken) — 1
 - [`apps/web/src/app/console/(open)/login`](#appswebsrcappconsoleopenlogin) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 266
+- [`apps/web/src/components`](#appswebsrccomponents) — 267
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
@@ -248,21 +253,21 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 36
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
 - [`packages/config/prettier`](#packagesconfigprettier) — 1
 - [`packages/config/tests`](#packagesconfigtests) — 1
 - [`packages/config/tsconfig`](#packagesconfigtsconfig) — 4
-- [`packages/console-publisher`](#packagesconsole-publisher) — 4
-- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 3
+- [`packages/console-publisher`](#packagesconsole-publisher) — 5
+- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 5
 - [`packages/contracts`](#packagescontracts) — 5
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 172
+- [`packages/db/migrations`](#packagesdbmigrations) — 174
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -334,11 +339,15 @@ machine, `docs/18-handover.md`.
 | `content-community.md` | The FMIP / Stadiomind news editor and community moderator's assistant - watches the news feeds (fetches, failing or silent sources, image licences, football only), the moderation queue and sanctions, and the Persian tex… |
 | `data-auditor.md` | Audits the correctness of FMIP / Stadiomind production data and the live site (scores after extra time, shoot-outs, league and conference tables, stage names, line-ups, duplicate entities, stale jobs, forecasts, the new… |
 | `designer.md` | The FMIP / Stadiomind product designer - draws a visible change on real data in the Stadiomind design system (desktop and phone, English and Persian, light and dark) before it is built, and reviews pages and release scr… |
+| `growth-analyst.md` | The FMIP / Stadiomind growth analyst - measures sign-up and retention funnels, weekly cohorts, follows, push and community-prediction activity from the site's own database with read-only SQL, says what is not measured (… |
+| `marketing-manager.md` | The FMIP / Stadiomind marketing manager - owns the growth plan (audience and positioning, the brand message in English and Persian, the channels, a campaign calendar) and measures it against the site's own numbers; sets… |
 | `model-scientist.md` | Watches the FMIP / Stadiomind forecast model's live record (pre-kick-off log loss, Brier, accuracy, calibration, published against shadow, drift, weak competitions), keeps the lab's verdicts, judges promotion readiness… |
 | `ops-release.md` | Watches FMIP / Stadiomind production (server, containers, disk, build cache, backups, ingestion jobs, request budget, watchdog, site response) with a read-only snapshot, and runs the release checklist before and after e… |
 | `product-strategist.md` | The FMIP / Stadiomind product manager and strategist - turns requests and teammate feedback into tasks with checkable acceptance criteria against the blueprint, prioritises them, keeps the competitor view, and checks se… |
 | `qa-engineer.md` | Tests FMIP / Stadiomind - checks a pull request's tests and runs the targeted ones, walks the live site daily in English and Persian at phone and desktop widths (layout, RTL, overflow, console errors, speed, stale or wr… |
 | `security.md` | The FMIP / Stadiomind security engineer - reviews pull requests for authorisation, input handling, SQL, XSS, secrets, rate limits, audited admin actions, dependencies and prompt injection, and checks the server and site… |
+| `seo-search.md` | The FMIP / Stadiomind search specialist - Google and AI-answer visibility: keywords per language (English and Persian first), robots and sitemap, structured data (schema.org SportsEvent, SportsTeam, BreadcrumbList), can… |
+| `social-media.md` | The FMIP / Stadiomind social media editor - writes DRAFTS of Telegram, Instagram and X posts in Persian and English from the site's real data (results, the statistical model's forecasts named as the model's, the founder… |
 
 ## .claude/hooks
 
@@ -410,6 +419,19 @@ machine, `docs/18-handover.md`.
 | `SKILL.md` | Security for FMIP / Stadiomind - a pull request's security review (authorisation, input handling, SQL, XSS, secrets, rate limits, audit of admin actions, dependencies) and a weekly read-only check of the server and site… |
 | `server-hardening.sh` | Read-only security snapshot of the production server and site (T-1684, D-328), for the security agent. bash .claude/skills/fmip-security/server-hardening.sh Lists listening ports, the SSH daemon's effective settings, th… |
 
+## .claude/skills/growth-funnel
+
+| File | What it is |
+|---|---|
+| `SKILL.md` | Growth analytics for FMIP / Stadiomind from the site's own database - the sign-up funnel, weekly cohorts and retention, active members, follows, push and the community-prediction activity, the channel's own output - as… |
+| `growth-funnel.sql` | The growth analyst's weekly read (T-1721, D-349), read-only through the data auditor's runner: bash .claude/skills/data-audit/run.sh .claude/skills/growth-funnel/growth-funnel.sql Aggregates only: no id, name, username,… |
+
+## .claude/skills/marketing-plan
+
+| File | What it is |
+|---|---|
+| `SKILL.md` | Marketing for FMIP / Stadiomind - the growth plan (audience, positioning, the brand message in English and Persian, channels, a campaign calendar), the marketing wing's priorities, and measuring results against the site… |
+
 ## .claude/skills/model-watch
 
 | File | What it is |
@@ -431,6 +453,20 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `SKILL.md` | Product, strategy and growth for FMIP / Stadiomind - turn a request or feedback into a task with acceptance criteria against the blueprint and roadmap, keep the competitor view (Sofascore, FotMob, 365Scores, ESPN, Opta-… |
 | `seo-check.sh` | Read-only search and sharing health of the live site (T-1694, D-339), for the product and strategy agent. bash .claude/skills/product-strategy/seo-check.sh Fetches robots.txt, the sitemap and key pages from the server (… |
+
+## .claude/skills/search-visibility
+
+| File | What it is |
+|---|---|
+| `SKILL.md` | Search and AI-answer visibility for FMIP / Stadiomind - keywords per language (English and Persian first), robots and sitemap, schema.org structured data (SportsEvent, SportsTeam, SportsOrganization, Person, BreadcrumbL… |
+| `structured-data.sh` | Read-only structured-data and indexing check of the live site (T-1721, D-349), for the seo-search agent. bash .claude/skills/search-visibility/structured-data.sh Fetches key pages from the server (the PC's own link is u… |
+
+## .claude/skills/social-drafts
+
+| File | What it is |
+|---|---|
+| `SKILL.md` | Social media drafts for FMIP / Stadiomind - Telegram, Instagram and X posts in Persian and English built only from what the live site shows (results, the statistical model's forecasts with their version, the founder's a… |
+| `social-drafts.sql` | The social media agent's daily read (T-1721, D-349), read-only through the data auditor's runner: bash .claude/skills/data-audit/run.sh .claude/skills/social-drafts/social-drafts.sql What the system already posted to th… |
 
 ## .claude/skills/team-charter
 
@@ -820,6 +856,7 @@ machine, `docs/18-handover.md`.
 | `live-answer.http.spec.ts` | T-1394 (D-209) against the real schema: a match whose stored clock stands still is measured from the live list's last answer as well as its last change, so half-time is `current` while the provider answers; in play an u… |
 | `match-centre.controller.ts` | `GET /fixtures/:id`: the match centre payload (T-033). |
 | `match-centre.http.spec.ts` | Tests for `match-centre.http`. |
+| `score-dispute.spec.ts` | Tests for `score-dispute`. |
 | `scores.controller.ts` | `GET /scores?from=&to=&tz=&live=&favourites=&country=&competition=&stage=&gender=&age=`. |
 | `scores.http.spec.ts` | Tests for `scores.http`. |
 | `scores.spec.ts` | Tests for `scores`. |
@@ -840,6 +877,7 @@ machine, `docs/18-handover.md`.
 | `key-players.ts` | The key-players rule (T-841), pure so it is one tested function: the players with the most minutes for the team in this competition's season before the match; a tie on minutes goes to more goals plus assists, then the n… |
 | `live-answer.ts` | When the provider's live list last answered while a match was live or suspended (T-1394, D-209), as SQL over the fixture `id` expression given: the newest completed `live` ingestion run, of a provider the fixture is map… |
 | `match-centre-store.ts` | The window of recent matches the form and head-to-head modules show. |
+| `score-dispute.ts` | Whether a finished match's recorded goals disagree with its result (T-1717, D-347). |
 | `scores-query.ts` | Parsing and validation of `GET /scores` query parameters. |
 | `scores-store.ts` | A card plus the country its competition belongs to, for grouping. |
 | `shared-snapshots.ts` | One read and one serialisation per distinct snapshot at a time -- the first remedy in `docs/08-load-test.md`, "What limits it". |
@@ -2497,6 +2535,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `chat.tsx` | The chat with an agent (T-1722, D-350), drawn on the server: no model answers here. |
 | `console-form.tsx` | A console form whose action answers with what happened (D-340): the outcome is said under the button, in a live region, and the button waits while the action runs. |
 | `console-link.tsx` | The site's link with a console path put under the request's base (D-341). |
 | `console.spec.tsx` | The agents console's web side (T-1698, D-340): served on its own host only, its cookie read back from the API's, and an open security finding shown without its detail. |
@@ -2515,6 +2554,12 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | One agent (T-1698, D-340): how it works, what it can touch, what feeds its memory and what it holds, its runs, and its controls. |
+
+## apps/web/src/app/console/(app)/agents/[name]/chat
+
+| File | What it is |
+|---|---|
+| `page.tsx` | The chat with one agent (T-1722, D-350): the conversation, newest last, and a box to write in. |
 
 ## apps/web/src/app/console/(app)/audit
 
@@ -2793,6 +2838,7 @@ machine, `docs/18-handover.md`.
 | `score-card-forecast.tsx` | The statistical model's line on a scores card (T-940, D-114). |
 | `score-card-stage.spec.tsx` | The provider's stage and round on a score card, in the reader's words (T-1339): Persian on /fa, exactly the provider's English on /en. |
 | `score-card.tsx` | A coverage state in the glossary's words (T-1303). |
+| `score-dispute.tsx` | What the match header says of a finished match whose recorded goals do not add up to its result (T-1717, D-347): a "limited" marker beside the score and one line under the band naming both numbers, neither as final. |
 | `score.tsx` | A score, rendered so it cannot be read backwards (T-153, T-1375, rule 7). **The rule.** A score is a pair, home first, read in the page's own direction: on an English page the home goals sit on the left, on a Persian or… |
 | `service-worker.tsx` | Registers the service worker (T-082) once the page has loaded, so the shell is cached for the next visit and the app can be installed. |
 | `share-card-image.tsx` | The pictures behind the share cards (T-520), for `next/og`'s `ImageResponse`. |
@@ -3242,6 +3288,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
@@ -3249,6 +3297,8 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -3321,6 +3371,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `README.md` | @fmip/console-publisher |
 | `eslint.config.mjs` | Eslint configuration. |
 | `package.json` | Package `@fmip/console-publisher`: The agents console's snapshot and command sync, run on the maintainer's computer (D-340).: scripts and dependencies. |
 | `tsconfig.json` | TypeScript compiler settings. |
@@ -3330,6 +3381,8 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `chat.spec.ts` | Tests for `chat`. |
+| `chat.ts` | The chat with the agents, on the maintainer's computer (T-1722, D-350): the pure part. |
 | `publish.ts` | The agents console's publisher, on the maintainer's computer (T-1699, D-340). |
 | `snapshot.spec.ts` | Tests for `snapshot`. |
 | `snapshot.ts` | The agents console's snapshot, built on the maintainer's computer (T-1699, D-340): pure functions over what the files say, so they are tested on fixtures and `publish.ts` only reads files and runs `ssh`. |
@@ -3625,6 +3678,8 @@ machine, `docs/18-handover.md`.
 | `1765900700000_trim-team-names.sql` | T-1711 (str-2026-11-02-02): team names stored with a provider's padding. |
 | `1765900800000_news-aggregated-kind.sql` | T-1716 (D-346): GNews and the publishers it brings are no longer kind `licensed`. |
 | `1765900805000_retention.sql` | T-1715 (D-345): retention periods and a daily purge. |
+| `1765900818000_persian-news-only.sql` | T-1718 (D-348): Persian readers are shown Persian-language sources only. /fa/news listed English and German headlines among its first thirty (aud-2026-11-01-02, qa-2026-10-31-04): only a source set `same_language_only`… |
+| `1765900830000_console-message.sql` | Chat with an agent in the agents console (T-1722, D-350). |
 
 ## packages/db/scripts
 

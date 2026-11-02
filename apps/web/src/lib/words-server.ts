@@ -130,6 +130,8 @@ export const SCORES_KEYS = [
   'scores.card.redCard',
   'scores.card.oneListing',
   'scores.card.behind',
+  // A result the recorded goals disagree with (T-1717, D-347).
+  'matchCentre.scoreUnclear',
   'scores.card.details',
   'scores.card.kickoff',
   'scores.card.coverage',

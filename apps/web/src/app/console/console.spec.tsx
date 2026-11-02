@@ -1,4 +1,4 @@
-import type { ConsoleFinding } from '@fmip/contracts';
+import type { ConsoleFinding, ConsoleMessage } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -8,6 +8,7 @@ import {
   hostName,
   isConsoleHost,
 } from '@/lib/console-host';
+import { ChatThread, MESSAGE_STATUS_WORDS } from './chat';
 import { FindingRow, RunsBars, WorkflowDiagram, freshness } from './ui';
 
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
@@ -148,6 +149,53 @@ describe('the console pieces', () => {
       />,
     );
     expect(html).toContain('۳');
+  });
+
+  it('draws a conversation: who wrote what, where a message is, and why one failed (T-1722)', () => {
+    const base: ConsoleMessage = {
+      id: 'm1',
+      agent: 'data-auditor',
+      author_kind: 'person',
+      author: 'Mostafa',
+      body: 'What did you find?\nToday.',
+      created_at: '2026-11-02T08:00:00.000Z',
+      status: 'answered',
+      reply_to: null,
+      failure: null,
+    };
+    const html = renderToStaticMarkup(
+      <ChatThread
+        messages={[
+          base,
+          {
+            ...base,
+            id: 'r1',
+            author_kind: 'agent',
+            author: 'data-auditor',
+            body: 'Three minor findings.',
+            status: null,
+            reply_to: 'm1',
+          },
+          { ...base, id: 'm2', body: '<b>not markup</b>', status: 'queued' },
+          { ...base, id: 'm3', status: 'answering' },
+          { ...base, id: 'm4', status: 'failed', failure: 'The run timed out.' },
+        ]}
+      />,
+    );
+    expect(html).toContain('data-author="agent"');
+    expect(html).toContain('Three minor findings.');
+    expect(html).toContain('What did you find?\nToday.');
+    expect(html).toContain('&lt;b&gt;not markup&lt;/b&gt;');
+    expect(html).toContain(MESSAGE_STATUS_WORDS.queued);
+    expect(MESSAGE_STATUS_WORDS.queued).toContain('۱۰ دقیقه');
+    expect(html).toContain(MESSAGE_STATUS_WORDS.answering);
+    expect(html).toContain(MESSAGE_STATUS_WORDS.failed);
+    expect(html).toContain('The run timed out.');
+    // An answered message shows its reply, not a badge.
+    expect(html).not.toContain(MESSAGE_STATUS_WORDS.answered);
+    // Logical sides only (rule 7).
+    expect(html).not.toMatch(/\b(ml|mr|pl|pr|left|right)-/);
+    expect(renderToStaticMarkup(<ChatThread messages={[]} />)).toContain('هنوز پیامی نیامده');
   });
 
   it('says when the snapshot is stale (rule 4)', () => {

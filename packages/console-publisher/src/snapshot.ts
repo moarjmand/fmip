@@ -20,14 +20,21 @@ import type {
 
 export const SNAPSHOT_SCHEMA = 1;
 
-/** How often each agent runs, as the daily run's prompt has it (D-328, D-339). */
+/**
+ * How often each agent runs, as the daily run's prompt and the team charter's
+ * "Schedules" have it (D-328, D-339, D-349). Weekly is Monday.
+ */
 export const DEFAULT_SCHEDULES: Record<string, string> = {
   'data-auditor': 'daily',
   'ops-release': 'daily',
   'qa-engineer': 'daily',
   'content-community': 'daily',
+  'social-media': 'daily',
   'chief-of-staff': 'daily',
   'model-scientist': 'weekly',
+  'marketing-manager': 'weekly',
+  'seo-search': 'weekly',
+  'growth-analyst': 'weekly',
   security: 'monthly',
   architect: 'monthly',
   'product-strategist': 'monthly',

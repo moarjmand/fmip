@@ -14,6 +14,7 @@ import { availabilityOf, keyPlayersSide, pickKeyPlayers } from './internal/key-p
 import { PostgresKeyPlayersStore, type TeamSeason } from './internal/key-players-store';
 import { FORM_WINDOW, PostgresMatchCentreStore } from './internal/match-centre-store';
 import { PostgresScoresStore, type ScoredRow } from './internal/scores-store';
+import { scoreDisputeOf } from './internal/score-dispute';
 
 // The module's public surface. Other modules import from this file only.
 export {
@@ -162,6 +163,8 @@ export class FixturesService {
     const withPhoto = <P extends { id: string }>(p: P) => ({ ...p, photo: media.photo(p.id) });
     const fixture = {
       ...header,
+      // The recorded goals against the result, from the rows loaded above (T-1717, D-347).
+      score_dispute: scoreDisputeOf(header.status, header.scores, incidents.rows),
       competition: { ...header.competition, logo: media.logo(header.competition.id) },
       home: { ...header.home, crest: media.crest(header.home.id) },
       away: { ...header.away, crest: media.crest(header.away.id) },

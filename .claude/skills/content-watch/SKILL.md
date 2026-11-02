@@ -33,8 +33,8 @@ like), some of them general sports feeds whose other sports the filter removes.
 
    Read with `javascript_tool`, not the whole page:
    `[...document.querySelectorAll('main article h2, main article h3, main h3')].slice(0,30).map(h=>h.textContent.trim())`.
-   By design, `/fa/news` mixes languages (English and German stories appear unless a source is
-   `same_language_only`), so a non-Persian headline is not a finding; broken direction is.
+   Since D-348 (T-1718), `/fa/news` lists Persian-language sources only, so a non-Persian headline
+   there is a finding (a source stored with the wrong language), and so is broken direction.
    Football's family is in scope: futsal and beach soccer, men's and women's, youth (D-321).
 3. Write findings (prefix `cnt`) for:
    - a source failing all day;
@@ -46,6 +46,9 @@ like), some of them general sports feeds whose other sports the filter removes.
 
 ## Rules of this role
 
+- Social posts are not yours: the `social-media` agent drafts them (D-349), never from a news
+  story's text or photo. A news item it should know about (a big transfer, a ban) goes in your
+  report; it reads your findings.
 - Recommend, never publish, drop a source, or decide a moderation case. Moderation decisions and
   sanctions are a person's, recorded with a reason (CLAUDE.md rule 10). You prepare the case:
   the content, the rule it may break (the platform rules page), similar past decisions.

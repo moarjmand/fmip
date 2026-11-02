@@ -64,6 +64,7 @@ import { matchWords } from '@/lib/words-server';
 import { stageAndRoundLabels } from '@/lib/stage-label';
 import { FilledMessage } from '@/components/filled-message';
 import { Translated } from '@/components/translated';
+import { scoreDisputeHero } from '@/components/score-dispute';
 import { Notice } from '@/components/ui';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
 import { zoneWords } from '@/lib/reader-time-zone';
@@ -319,6 +320,9 @@ export default async function MatchPage({
                       <Translated locale={locale} message="matchCentre.awaitingUpdate" />
                     </p>
                   ) : undefined,
+                // The recorded goals disagree with the result (T-1717, D-347):
+                // the API's derived word, said here so its words stay off the client.
+                disputed: scoreDisputeHero(locale, result.data.fixture),
               }}
               slots={{
                 // The Summary opens with what the model forecast and, after

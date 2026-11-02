@@ -6,8 +6,18 @@ vi.mock('next/headers', () => ({
   headers: async () => new Headers(reader === null ? {} : { 'x-fmip-locale': reader }),
 }));
 
-const { fetchAdminOverview, fetchCompetition, fetchMatchCentre, fetchModelUpset, fetchScores } =
-  await import('./api');
+const {
+  fetchAdminOverview,
+  fetchBreakingNews,
+  fetchCompetition,
+  fetchEntityNews,
+  fetchFixtureNews,
+  fetchMatchCentre,
+  fetchModelUpset,
+  fetchNewsSection,
+  fetchScores,
+  fetchStory,
+} = await import('./api');
 
 describe('the API client asks for names in the reader language (T-1312)', () => {
   const urls: string[] = [];
@@ -54,5 +64,23 @@ describe('the API client asks for names in the reader language (T-1312)', () => 
     await fetchModelUpset();
     expect(urls[0]).toMatch(/\/model\/upset\?date=2026-10-25&tz=Asia%2FTehran&locale=fa$/);
     expect(urls[1]).toMatch(/\/model\/upset\?locale=fa$/);
+  });
+
+  it('asks for every news list in the page language, which keeps /fa to Persian sources (T-1718, D-348)', async () => {
+    await fetchNewsSection('?section=latest&limit=31', 'fa', undefined);
+    await fetchNewsSection('?section=trending&limit=5', 'fa', undefined);
+    await fetchBreakingNews('fa');
+    await fetchFixtureNews('m1', 'fa');
+    await fetchEntityNews('team', 't1', 'fa');
+    await fetchEntityNews('competition', 'c1', 'fa');
+    await fetchEntityNews('person', 'p1', 'fa');
+    await fetchStory('s1', null, 'fa');
+    expect(urls).toHaveLength(8);
+    for (const url of urls) expect(new URL(url).searchParams.get('locale')).toBe('fa');
+    expect(urls[0]).toMatch(/\/news\?section=latest&limit=31&locale=fa$/);
+    expect(urls[3]).toMatch(/\/fixtures\/m1\/news\?locale=fa$/);
+    expect(urls[4]).toMatch(/\/teams\/t1\/news\?locale=fa$/);
+    expect(urls[5]).toMatch(/\/competitions\/c1\/news\?locale=fa$/);
+    expect(urls[6]).toMatch(/\/players\/p1\/news\?locale=fa$/);
   });
 });
