@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2211), grouped by folder, with one line on
+Every file in the repository (2212), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -260,7 +260,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 170
+- [`packages/db/migrations`](#packagesdbmigrations) — 171
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -3605,6 +3605,7 @@ machine, `docs/18-handover.md`.
 | `1765900500000_agents-console.sql` | The agents console (T-1696, D-340): `agents.traveltohormuz.ir`, for the maintainer and the teammate, apart from the site's members. |
 | `1765900600000_placeholder-lineup-persons.sql` | T-1707 (D-342): line-up slots a feed labels "Trialist", "Unknown", "TBA" are not people. |
 | `1765900700000_trim-team-names.sql` | T-1711 (str-2026-11-02-02): team names stored with a provider's padding. |
+| `1765900818000_persian-news-only.sql` | T-1718 (D-348): Persian readers are shown Persian-language sources only. /fa/news listed English and German headlines among its first thirty (aud-2026-11-01-02, qa-2026-10-31-04): only a source set `same_language_only`… |
 
 ## packages/db/scripts
 
