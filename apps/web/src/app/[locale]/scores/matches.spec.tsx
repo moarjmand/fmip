@@ -472,6 +472,15 @@ describe('the preview', () => {
     expect(preview(member, null)).not.toContain('preview-status');
   });
 
+  it('says awaiting an update under the "v" when the feed never moved past kick-off (T-1713)', () => {
+    const html = preview(null, null, AVAILABLE, 'en', {
+      kickoff_at: new Date(Date.now() - 5 * 3_600_000).toISOString(),
+      freshness: 'awaiting_update',
+    });
+    expect(html).toMatch(/data-testid="preview-status" data-status="scheduled">Awaiting update</);
+    expect(html).not.toContain('preview-score');
+  });
+
   it('tells a guest after kick-off that picks are locked, without the note on making one', () => {
     const html = preview(null, null, AVAILABLE, 'en', { ...started, status: 'live', minute: 74 });
     expect(html).toContain('data-testid="preview-locked"');

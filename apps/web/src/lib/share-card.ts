@@ -115,7 +115,10 @@ export function matchCardText(header: MatchHeader, latest: ForecastVersion | nul
         ? 'Live'
         : `Live ${header.minute}′`
       : header.status === 'scheduled'
-        ? kickoffUtc(header.kickoff_at)
+        ? // Never a kick-off time already long past (T-1713, D-343).
+          header.freshness === 'awaiting_update'
+          ? 'Awaiting update'
+          : kickoffUtc(header.kickoff_at)
         : (STATUS_WORDS[header.status] ?? header.status);
 
   let forecast: MatchCardText['forecast'] = null;

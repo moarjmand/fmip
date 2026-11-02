@@ -7,6 +7,7 @@ import { type Locale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
 import { fetchFounderAnalysis, fetchMatchCentre, fetchMe } from '@/lib/api';
 import { publishAnalysisAction } from '@/lib/founder-actions';
+import { isLocked } from '@/lib/prediction-form';
 import {
   asLocale,
   confidenceText,
@@ -76,7 +77,12 @@ export default async function FounderAnalysisPage({
   const fixture = match.ok ? match.data.fixture : null;
   const analysis = existing.ok ? existing.data.analysis : null;
   const latest = analysis?.versions[0] ?? null;
-  const kickedOff = fixture !== null && fixture.status !== 'scheduled';
+  // By the clock as well as the status (T-1713): the database locks at
+  // kick-off by its own clock, and a match the feed never moved on stays
+  // `scheduled` long after it.
+  const kickedOff =
+    fixture !== null &&
+    (fixture.status !== 'scheduled' || isLocked(fixture.kickoff_at));
   const teamWin = (team: string): string =>
     interpolate(t(l, 'predictions.outcome.teamWin'), { team });
 

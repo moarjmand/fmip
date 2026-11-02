@@ -120,6 +120,10 @@ describe('the match card', () => {
       null,
     );
     expect([done.centre, done.status]).toEqual(['0 – 0', 'Full time']);
+    // T-1713: a kick-off long past with no word from the feed is not a time to come.
+    expect(matchCardText(header({ freshness: 'awaiting_update' }), null).status).toBe(
+      'Awaiting update',
+    );
     expect(matchCardText(header({ status: 'postponed' }), null)).toMatchObject({
       centre: 'v',
       status: 'Postponed',

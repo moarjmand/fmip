@@ -10,6 +10,7 @@ import { Translated } from '@/components/translated';
 import { Icon } from '@/components/ui';
 import { formatDate, formatNumber } from '@/i18n/format';
 import { attribute } from '@/i18n/messages';
+import { awaitingUpdate } from '@/lib/live';
 import { isLocked } from '@/lib/prediction-form';
 import { asLocale, matchTitle } from '@/lib/prediction-text';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
@@ -79,6 +80,10 @@ export function MatchPreview({
   const revealed = locked || current !== null;
   const line = scoreLine(card);
   const started = card.status !== 'scheduled';
+  // Kick-off long past with no word from the feed (T-1713, D-343): the status
+  // says so under the "v" rather than leaving the header's time to read as
+  // a match still to come.
+  const awaiting = awaitingUpdate(card);
   const live = card.status === 'live';
   const when = `${formatDate(locale, card.kickoff_at, timeZone, { weekday: 'short' })} ${formatKickoff(locale, card.kickoff_at, timeZone)}`;
   const close = attribute(l, 'scores.preview.close');
@@ -156,7 +161,7 @@ export function MatchPreview({
               <span>{formatNumber(locale, line.away)}</span>
             </span>
           )}
-          {started && (
+          {(started || awaiting) && (
             <span
               className={`text-xs font-bold tabular-nums ${live ? 'text-live' : 'text-muted'}`}
               data-testid="preview-status"
