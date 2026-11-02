@@ -3,6 +3,7 @@ import { queueCommand } from '@/lib/console-actions';
 import { consoleCommands, consoleSnapshot } from '@/lib/console-api';
 import { ConsoleForm } from '../../console-form';
 import { Badge, Card, STATUS_WORDS, fa, inputClass, when } from '../../ui';
+import { deciderWords } from '../../words';
 
 export const metadata: Metadata = { title: 'تصمیم‌ها' };
 
@@ -46,8 +47,8 @@ export default async function ConsoleDecisionsPage() {
                   )}
                   {pending !== undefined ? (
                     <p className="mt-3 text-sm text-success">
-                      پاسخ {pending.requested_by} ثبت شده ({STATUS_WORDS[pending.status]})؛ در اجرای
-                      بعدی اعمال می‌شود.
+                      پاسخ <span dir="ltr">{pending.requested_by}</span> ثبت شده (
+                      {STATUS_WORDS[pending.status]})؛ در اجرای بعدی اعمال می‌شود.
                     </p>
                   ) : (
                     <div className="mt-3">
@@ -110,7 +111,7 @@ export default async function ConsoleDecisionsPage() {
               </div>
               <span className="text-xs text-muted" dir="auto">
                 {decision.answer !== null ? `پاسخ: ${decision.answer} · ` : ''}
-                {decision.decided_by ?? ''}{' '}
+                {deciderWords(decision.decided_by)}{' '}
                 {decision.decided_at !== null ? `· ${when(decision.decided_at, false)}` : ''}
               </span>
             </li>

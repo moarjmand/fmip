@@ -3,7 +3,7 @@ import {
   type ConsoleMessage,
   type ConsoleMessageStatus,
 } from '@fmip/contracts';
-import { Badge, fa, when } from './ui';
+import { Badge, agentTitle, fa, when } from './ui';
 
 /**
  * The chat with an agent (T-1722, D-350), drawn on the server: no model
@@ -40,7 +40,7 @@ function MessageBubble({ message }: { message: ConsoleMessage }) {
       >
         <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-caption">
           <span className="font-bold text-fg" dir="auto">
-            {message.author}
+            {fromAgent ? agentTitle(message.author) : message.author}
           </span>
           <span>{when(message.created_at)}</span>
         </div>

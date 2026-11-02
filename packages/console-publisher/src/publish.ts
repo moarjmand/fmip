@@ -9,7 +9,9 @@ import type {
   ConsoleSnapshot,
 } from '@fmip/contracts';
 import { type ChatInbox, dropFromInbox, emptyInbox, mergeInbox, parseReplyArgs } from './chat.ts';
+import { flowsOf, parseCharter } from './flow.ts';
 import {
+  DEFAULT_SCHEDULES,
   type ConsoleState,
   type DeskQuestion,
   type FindingLine,
@@ -117,6 +119,31 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
     .map((name) => parseAgentFile(read(join(ROOT, '.claude', 'agents', name))))
     .filter((file) => file !== null);
 
+  // The schematic's data (T-1725, D-352): every agent's file, its skill and the charter.
+  const charterPath = join(ROOT, '.claude', 'skills', 'team-charter', 'SKILL.md');
+  const charter = parseCharter(
+    existsSync(charterPath) ? read(charterPath) : '',
+    agentFiles.map((file) => file.name),
+  );
+  const flows = flowsOf(
+    agentFiles.map((file) => {
+      const skills = skillsOf(file.body, skillNames);
+      const primary = skills[0];
+      return {
+        file,
+        skills,
+        skillText:
+          primary === undefined ? '' : read(join(ROOT, '.claude', 'skills', primary, 'SKILL.md')),
+        schedule:
+          state.agents[file.name]?.schedule ??
+          charter.schedules[file.name] ??
+          DEFAULT_SCHEDULES[file.name] ??
+          'on-demand',
+      };
+    }),
+    charter,
+  );
+
   const reportFiles: ReportFile[] = [];
   const agents = agentFiles.map((file) => {
     const dir = join(FMIP, reportDirOf(file.name));
@@ -142,6 +169,7 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
         reportDays: names
           .map((name) => name.slice(0, 10))
           .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day)),
+        flow: flows.get(file.name),
       },
       state,
     );
@@ -261,7 +289,8 @@ export function main(argv = process.argv.slice(2)): number {
       let inbox = mergeInbox(loadInbox(), taken, new Date());
       for (const item of inbox.items) {
         if (existsSync(join(ROOT, item.agent_file))) continue;
-        replyRemote(item.id, 'failed', `No agent "${item.agent}" on the maintainer's computer.`);
+        // Persian: the console shows it as written (D-352).
+        replyRemote(item.id, 'failed', `عامل ${item.agent} روی رایانه‌ی نگهدارنده نیست.`);
         inbox = dropFromInbox(inbox, item.id, new Date());
       }
       saveInbox(inbox);

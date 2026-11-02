@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { CONSOLE_CHAT_EVERY_MINUTES } from '@fmip/contracts';
+import { apiErrorWords } from '@/app/console/words';
 import { applyConsoleCookie, consoleCall } from './console-api';
 import { consoleUrl } from './console-base';
 
@@ -23,8 +24,9 @@ const field = (form: FormData, name: string): string => {
   return typeof value === 'string' ? value : '';
 };
 
+/** The API's message in Persian, or the form's own Persian when it is not one the console knows (D-352). */
 const failed = (message: string | undefined, fallback: string): ConsoleFormState => ({
-  error: message ?? fallback,
+  error: apiErrorWords(message, fallback),
   done: null,
 });
 

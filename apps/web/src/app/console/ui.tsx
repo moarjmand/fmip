@@ -28,6 +28,47 @@ export const AGENT_TITLES: Record<string, string> = {
 };
 export const agentTitle = (name: string): string => AGENT_TITLES[name] ?? name;
 
+/**
+ * Each agent's job in one Persian sentence (T-1725, D-352), shown instead of
+ * its file's English description; a console spec fails on an agent without one.
+ */
+export const AGENT_DESCRIPTIONS: Record<string, string> = {
+  'chief-of-staff':
+    'یافته‌ها و گزارش‌های همه‌ی عامل‌ها، PRها و تصمیم‌های منتظر را می‌خواند و هر روز یک صفحه خلاصه‌ی فارسی با گزینه‌ها و پیشنهادش برای نگهدارنده می‌نویسد؛ هماهنگ می‌کند و چیزی نمی‌سازد، merge یا deploy نمی‌کند.',
+  'data-auditor':
+    'درستی داده‌ی production و سایت زنده را با بررسی‌های فقط‌خواندنی می‌سنجد (نتیجه‌ها، جدول‌ها، ترکیب‌ها، موجودیت‌های تکراری، کارهای کهنه، پیش‌بینی‌ها) و برای هر خطا اصلاح و بررسی تازه پیشنهاد می‌کند؛ داده را عوض نمی‌کند.',
+  'ops-release':
+    'سرور، کانتینرها، دیسک، پشتیبان‌ها، کارهای دریافت داده و پاسخ سایت را با snapshot فقط‌خواندنی می‌پاید و فهرست بررسی پیش و پس از هر deploy را اجرا می‌کند؛ سرور را تغییر نمی‌دهد.',
+  'qa-engineer':
+    'آزمون‌های هر PR را بررسی و اجرا می‌کند، هر روز سایت زنده را در دو زبان و در عرض گوشی و دسکتاپ می‌گردد و اسکرین‌شات‌های پیش از انتشار را می‌گیرد؛ آزمون را فقط به درخواست نشست مهندسی می‌نویسد.',
+  'code-reviewer':
+    'هر شاخه یا PR را با چشم تازه در برابر قواعد CLAUDE.md و خطاهای شناخته‌شده بازبینی می‌کند و حکم APPROVE یا CHANGES REQUESTED با یافته‌های فایل و خط می‌دهد؛ ویرایش، commit یا merge نمی‌کند.',
+  'model-scientist':
+    'کارنامه‌ی زنده‌ی مدل پیش‌بینی (log loss، Brier، calibration، نسخه‌ی منتشرشده در برابر shadow) را می‌پاید و آمادگی ارتقا را طبق D-139 می‌سنجد؛ نسخه‌ای را ارتقا یا ویرایش نمی‌کند.',
+  architect:
+    'پیش از هر تغییر بزرگ دو یا سه گزینه با پیامدهایشان می‌چیند، یکی را پیشنهاد و تصمیمش را پیش‌نویس می‌کند و هر ماه مرز ماژول‌ها و دفتر بدهی فنی را بررسی می‌کند؛ کد را ویرایش نمی‌کند.',
+  designer:
+    'هر تغییر دیدنی را پیش از ساخت روی داده‌ی واقعی در design system می‌کشد و صفحه‌ها و اسکرین‌شات‌ها را از نظر سلسله‌مراتب، دسترس‌پذیری، RTL و حالت تاریک بازبینی می‌کند؛ کد را ویرایش نمی‌کند.',
+  security:
+    'PRها را از نظر مجوز، ورودی، SQL، XSS، رازها و وابستگی‌ها بازبینی می‌کند و سرور و سایت را دوره‌ای با snapshot فقط‌خواندنی می‌سنجد؛ کد یا سرور را تغییر نمی‌دهد.',
+  'product-strategist':
+    'درخواست‌ها و بازخوردها را به کار با معیار پذیرش تبدیل و اولویت‌بندی می‌کند، رقبا را زیر نظر دارد و سلامت جست‌وجو و اشتراک‌گذاری را فقط‌خواندنی بررسی می‌کند؛ چیزی نمی‌سازد.',
+  'content-community':
+    'خبرخوان‌ها (منبع خاموش یا خراب، مجوز تصویر، فقط فوتبال)، صف بازبینی جامعه و متن فارسی و راست‌به‌چپ را می‌پاید و پرونده آماده می‌کند؛ منتشر نمی‌کند و درباره‌ی بازبینی تصمیم نمی‌گیرد.',
+  'business-adviser':
+    'دفتر مجوز همه‌ی منابع داده، خبر و تصویر، هزینه‌ها و تکلیف‌های حریم خصوصی را نگه می‌دارد و تصمیم‌های پولی و حقوقی را به شکل گزینه با هزینه و ریسک می‌نویسد؛ مشاوره‌ی حقوقی یا مالی نیست و چیزی نمی‌خرد.',
+  'marketing-manager':
+    'برنامه‌ی رشد (مخاطب، جایگاه، پیام، کانال‌ها، تقویم کمپین) را نگه می‌دارد، اولویت‌های جست‌وجو، شبکه‌های اجتماعی و تحلیلگر رشد را می‌چیند و گزارش دوشنبه را می‌نویسد؛ منتشر نمی‌کند، خرج نمی‌کند و حساب باز نمی‌کند.',
+  'seo-search':
+    'دیده‌شدن در Google و پاسخ‌های هوش مصنوعی را می‌سنجد: کلیدواژه‌ها، robots و sitemap، داده‌ی ساختاریافته، canonical و hreflang، عنوان‌ها و کارت‌های اشتراک، هر یافته با URL دقیقش؛ سایت را ویرایش نمی‌کند.',
+  'social-media':
+    'از داده‌ی واقعی سایت پیش‌نویس پست‌های Telegram، Instagram و X به فارسی و انگلیسی می‌نویسد تا نگهدارنده تأیید و منتشر کند؛ خودش منتشر نمی‌کند و وارد هیچ شبکه‌ای نمی‌شود.',
+  'growth-analyst':
+    'قیف ثبت‌نام و بازگشت، گروه‌های هفتگی، دنبال‌کردن‌ها و پیش‌بینی‌های جامعه را از پایگاه داده‌ی خود سایت با SQL فقط‌خواندنی می‌سنجد و فقط شمار کلی گزارش می‌کند؛ ردیاب اضافه نمی‌کند.',
+};
+export const agentDescription = (name: string): string =>
+  AGENT_DESCRIPTIONS[name] ?? 'شرح فارسی این عامل هنوز در کنسول نوشته نشده است.';
+
 export const SEVERITY_WORDS: Record<ConsoleSeverity, string> = {
   critical: 'بحرانی',
   major: 'مهم',
@@ -179,58 +220,6 @@ export function Stat({
     <div className="rounded-tile bg-surface-raised p-3">
       <div className="text-xs text-muted">{label}</div>
       <div className={`mt-1 text-xl font-bold ${tone}`}>{value}</div>
-    </div>
-  );
-}
-
-function Column({ title, items, tone }: { title: string; items: string[]; tone: string }) {
-  return (
-    <div className="min-w-0 flex-1">
-      <div className="mb-2 text-xs font-bold text-muted">{title}</div>
-      <ol className="flex flex-col gap-2">
-        {items.length === 0 ? (
-          <li className="text-xs text-caption">—</li>
-        ) : (
-          items.map((item, i) => (
-            <li key={`${i}-${item}`} className={`rounded-control border px-3 py-2 text-sm ${tone}`}>
-              {item}
-            </li>
-          ))
-        )}
-      </ol>
-    </div>
-  );
-}
-
-/** How the agent works: what it reads, its steps in order, what it leaves. */
-export function WorkflowDiagram({ workflow }: { workflow: ConsoleAgent['workflow'] }) {
-  const arrow = (
-    <div
-      aria-hidden="true"
-      className="hidden items-center self-center text-xl text-caption md:flex"
-    >
-      ←
-    </div>
-  );
-  return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-stretch" data-testid="workflow">
-      <Column
-        title="می‌خواند"
-        items={workflow.inputs.map(plain)}
-        tone="border-default bg-surface-raised text-fg"
-      />
-      {arrow}
-      <Column
-        title="گام‌ها"
-        items={workflow.steps.map((step, i) => `${fa(i + 1)}. ${step}`)}
-        tone="border-accent bg-surface text-fg"
-      />
-      {arrow}
-      <Column
-        title="به‌جا می‌گذارد"
-        items={workflow.outputs.map(plain)}
-        tone="border-success bg-surface-raised text-fg"
-      />
     </div>
   );
 }

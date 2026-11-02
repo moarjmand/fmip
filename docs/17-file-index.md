@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2240), grouped by folder, with one line on
+Every file in the repository (2247), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -229,8 +229,8 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 6
-- [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 2
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 10
+- [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 3
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
 - [`apps/web/src/app/console/(app)/agents/[name]/chat`](#appswebsrcappconsoleappagentsnamechat) — 1
 - [`apps/web/src/app/console/(app)/audit`](#appswebsrcappconsoleappaudit) — 1
@@ -261,7 +261,7 @@ machine, `docs/18-handover.md`.
 - [`packages/config/tests`](#packagesconfigtests) — 1
 - [`packages/config/tsconfig`](#packagesconfigtsconfig) — 4
 - [`packages/console-publisher`](#packagesconsole-publisher) — 5
-- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 5
+- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 7
 - [`packages/contracts`](#packagescontracts) — 5
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
 - [`packages/contracts/src`](#packagescontractssrc) — 69
@@ -2538,14 +2538,19 @@ machine, `docs/18-handover.md`.
 | `chat.tsx` | The chat with an agent (T-1722, D-350), drawn on the server: no model answers here. |
 | `console-form.tsx` | A console form whose action answers with what happened (D-340): the outcome is said under the button, in a live region, and the button waits while the action runs. |
 | `console-link.tsx` | The site's link with a console path put under the request's base (D-341). |
+| `console-persian.spec.tsx` | The console is Persian only (T-1725, D-352), and each agent page draws how the agent works. |
 | `console.spec.tsx` | The agents console's web side (T-1698, D-340): served on its own host only, its cookie read back from the API's, and an open security finding shown without its detail. |
 | `layout.tsx` | The agents console's root (D-340): its own `<html>`, apart from the site's `[locale]` layout. |
+| `not-found.tsx` | A console page that is not there (T-1725, D-352): an agent the snapshot does not have, or a path the console does not know. |
+| `schematic.tsx` | How one agent works, drawn on the server as SVG (T-1725, D-352): what starts it, what it reads, its method's steps and its model, what it may not do, what it leaves and who reads that, with a legend. |
 | `ui.tsx` | The agents console's building blocks (D-340): server components only, in Persian for the maintainer and the teammate, with the site's tokens and logical properties (rule 7). |
+| `words.ts` | The console's Persian for what reaches it in English (T-1725, D-352): the API's error messages, the audit trail's actions and system reasons, the computer's command outcomes and who decided. |
 
 ## apps/web/src/app/console/(app)
 
 | File | What it is |
 |---|---|
+| `error.tsx` | A console page that failed to render (T-1725, D-352): the header stays, the content says so in Persian and offers to try again. |
 | `layout.tsx` | Every console page but sign-in and the invitation (D-340): no session, no page. |
 | `page.tsx` | The console's first page (T-1698, D-340): how the team is, what waits on a person. |
 
@@ -3379,6 +3384,8 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `chat.spec.ts` | Tests for `chat`. |
 | `chat.ts` | The chat with the agents, on the maintainer's computer (T-1722, D-350): the pure part. |
+| `flow.spec.ts` | The console's schematic data (T-1725, D-352), from an agent's file, its skill and the charter. |
+| `flow.ts` | How each agent works, for the console's schematic (T-1725, D-352): pure functions over the agent's file, its skill and the team charter, so every box the console draws is something those files say. |
 | `publish.ts` | The agents console's publisher, on the maintainer's computer (T-1699, D-340). |
 | `snapshot.spec.ts` | Tests for `snapshot`. |
 | `snapshot.ts` | The agents console's snapshot, built on the maintainer's computer (T-1699, D-340): pure functions over what the files say, so they are tested on fixtures and `publish.ts` only reads files and runs `ssh`. |
