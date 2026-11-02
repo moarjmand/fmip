@@ -383,6 +383,7 @@ export type {
   ScoreCardIncident,
   ScoreCardIncidentKind,
   ScoreCardTeam,
+  ScoreDispute,
   ScoreLine,
   ScoresAgeFilter,
   ScoresFilters,

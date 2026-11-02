@@ -18,6 +18,8 @@ import {
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { MatchCentreView, ratingsOf } from './match-centre-view';
 import { Translated } from './translated';
+import { scoreDisputeHero } from './score-dispute';
+import { matchJsonLd } from '@/lib/seo';
 import { MatchLineupsView } from './match-lineups';
 
 /**
@@ -465,6 +467,55 @@ describe('live', () => {
     expect(band(centre({ status: 'postponed', minute: null }))).not.toContain('awaiting-update');
     // In Persian.
     expect(band(late, 'fa')).toContain('زمان شروع بازی گذشته است');
+  });
+
+  it('shows a result its recorded goals disagree with as unclear, neither number as final (T-1717, D-347)', () => {
+    // Pafos v Hajduk: the score says 2-0 after an extra-time line, the goals 4-0.
+    const scores = {
+      ...centre().fixture.scores,
+      current: { home: 2, away: 0 },
+      half_time: { home: 1, away: 0 },
+      full_time: { home: 4, away: 0 },
+      extra_time: { home: 0, away: 0 },
+    };
+    const score_dispute = { recorded_goals: 4, reported: { home: 2, away: 0 } };
+    const disputed = centre({ status: 'finished', minute: null, scores, score_dispute });
+    const band = (c: MatchCentre, locale: string) =>
+      renderToStaticMarkup(
+        <MatchCentreView
+          words={matchWords(locale)}
+          centre={c}
+          timeZone="Europe/London"
+          locale={locale}
+          hero={{ disputed: scoreDisputeHero(locale, c.fixture) }}
+        />,
+      );
+    const html = band(disputed, 'en');
+    const text = html.replace(/<[^>]+>/g, '');
+    expect(html).toContain('data-testid="score-unclear"');
+    expect(html).toContain('data-coverage-badge="limited"');
+    expect(text).toContain('Score unclear in the source');
+    expect(text).toContain(
+      'The recorded goals (4) and the reported result (2–0) do not agree, so neither is shown as final.',
+    );
+    // The score in the quiet colour, and no ninety minutes beside it.
+    expect(html).toMatch(/class="[^"]*text-muted[^"]*" data-testid="score"/);
+    expect(html).not.toContain('data-testid="ninety"');
+    // The structured data states no result.
+    expect(JSON.stringify(matchJsonLd('en', disputed.fixture))).not.toContain('Full time');
+    expect(
+      JSON.stringify(matchJsonLd('en', { ...disputed.fixture, score_dispute: null })),
+    ).toContain('Full time');
+    // In Persian, with its own digits.
+    const fa = band(disputed, 'fa').replace(/<[^>]+>/g, '');
+    expect(fa).toContain('نتیجه در منبع نامشخص است');
+    expect(fa).toContain('گل‌های ثبت‌شده (۴)');
+    expect(fa).toContain('هیچ‌کدام به‌عنوان نتیجه‌ی نهایی نشان داده نمی‌شود');
+    // Agreed, or not finished: nothing said, the ninety minutes back.
+    const agreed = band(centre({ status: 'finished', minute: null, scores }), 'en');
+    expect(agreed).not.toContain('score-unclear');
+    expect(agreed).toContain('data-testid="ninety"');
+    expect(scoreDisputeHero('en', { status: 'live', score_dispute })).toBeUndefined();
   });
 
   it('sets the forecast from before kick-off on a match awaiting an update, never as to come (T-1708)', () => {

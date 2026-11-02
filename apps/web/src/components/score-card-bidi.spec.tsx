@@ -89,6 +89,34 @@ describe('a score row in English', () => {
   });
 });
 
+describe('a row whose recorded goals disagree with its result (T-1717, D-347)', () => {
+  const disputed = (locale: 'en' | 'fa'): string =>
+    renderToStaticMarkup(
+      <ul>
+        <ScoreCard
+          words={scoresWords(locale)}
+          card={{ ...card, score_dispute: { recorded_goals: 9, reported: { home: 6, away: 1 } } }}
+          timeZone="UTC"
+          locale={locale}
+        />
+      </ul>,
+    );
+
+  it('says the score is unclear, draws no winner and keeps the numbers quiet', () => {
+    const html = disputed('en');
+    expect(html).toContain('Score unclear in the source');
+    expect(html).toMatch(/class="[^"]*text-muted[^"]*" data-testid="home-score"/);
+    // Without the dispute the home side is drawn as the winner, in bold.
+    expect(render('en')).toMatch(/font-bold" title="سپاهان"/);
+    expect(html).not.toMatch(/font-bold" title="سپاهان"/);
+    expect(render('en')).not.toContain('Score unclear in the source');
+  });
+
+  it('says it in Persian', () => {
+    expect(disputed('fa')).toContain('نتیجه در منبع نامشخص است');
+  });
+});
+
 describe('the score primitives', () => {
   it('isolates a pair in the page’s direction, or the inherited one without a locale', () => {
     expect(renderToStaticMarkup(<Score home={2} away={1} locale="fa" />)).toBe(
