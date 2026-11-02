@@ -24,6 +24,7 @@ export {
   type ParsedScoresQuery,
 } from './internal/scores-query';
 export { covered, derived } from './internal/covered';
+export { listFreshnessOf } from './internal/freshness';
 export { FORM_WINDOW } from './internal/match-centre-store';
 
 export type ScoresOutcome = { kind: 'ok'; response: ScoresResponse } | { kind: 'needs_session' };

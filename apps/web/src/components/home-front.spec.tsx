@@ -423,6 +423,32 @@ describe('today by competition', () => {
     expect(row).toMatch(/flex min-w-0 items-center gap-2 text-muted">.*Nassaji/);
   });
 
+  it('says "Awaiting update" for a match still scheduled long after its kick-off (T-1710, D-343)', () => {
+    const stuck = (locale: string) =>
+      renderToStaticMarkup(
+        <TodayByCompetition
+          groups={[
+            {
+              kind: 'competition',
+              competition: { id: 'pgpl', name: 'Pro League', short_name: null },
+              cards: [card({ id: 'stuck', freshness: 'awaiting_update' })],
+              more: 0,
+            },
+          ]}
+          isToday
+          day="2026-10-08"
+          total={1}
+          scoresHref={`/${locale}/scores`}
+          locale={locale}
+          timeZone="Asia/Tehran"
+        />,
+      );
+    const en = stuck('en');
+    expect(en).toContain('Awaiting update');
+    expect(en).not.toContain('>17:00<');
+    expect(stuck('fa')).toContain('در انتظار به‌روزرسانی');
+  });
+
   it('says which day it is when today has no match', () => {
     expect(today('en', false)).toContain('Matches · Thursday 8 October');
   });

@@ -522,6 +522,37 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('team page', 
     }
   });
 
+  it('never makes a match still scheduled long after its kick-off the next one, and says so on the list (T-1710, D-343)', async () => {
+    const id = randomUUID();
+    const kickoff = new Date(Date.now() - 2 * 24 * 60 * 60_000).toISOString();
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, stage_id, kickoff_at, status)
+       VALUES ($1, $2, $3, $4::timestamptz, 'scheduled')`,
+      [id, SEASON, STAGE, kickoff],
+    );
+    await pool.query(
+      `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+      [id, TEAMS.alpha, TEAMS.gamma],
+    );
+    try {
+      const page = (
+        await app.inject({ method: 'GET', url: `/teams/${TEAMS.alpha}` })
+      ).json() as TeamPage;
+      // The match to come is next; the one past its kick-off stays listed, labelled.
+      expect(page.next_match).toMatchObject({
+        status: 'scheduled',
+        home: { id: TEAMS.beta },
+        freshness: null,
+      });
+      expect(page.fixtures.find((f) => f.id === id)).toMatchObject({
+        status: 'scheduled',
+        freshness: 'awaiting_update',
+      });
+    } finally {
+      await pool.query(`DELETE FROM fixture WHERE id = $1`, [id]);
+    }
+  });
+
   it('says when the provider last answered its whole list of matches, beside the last change (T-1633)', async () => {
     const read = async () =>
       (await app.inject({ method: 'GET', url: `/teams/${TEAMS.alpha}` })).json() as TeamPage;

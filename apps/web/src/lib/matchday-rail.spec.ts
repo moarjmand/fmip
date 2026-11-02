@@ -136,6 +136,20 @@ describe('a league’s status', () => {
     ).toEqual({ kind: 'later', at: '2026-10-24T19:30:00Z' });
   });
 
+  it('never counts a match still scheduled long after its kick-off as later today (T-1710, D-343)', () => {
+    const stuck = card('1', {
+      status: 'scheduled',
+      kickoff_at: '2026-10-24T13:00:00Z',
+      freshness: 'awaiting_update',
+    });
+    expect(
+      railStatus(group('a', [stuck, at('2', '2026-10-24T20:00:00Z')]), null, NOW, ZONE),
+    ).toEqual({ kind: 'later', at: '2026-10-24T20:00:00Z' });
+    expect(railStatus(group('a', [stuck]), '2026-10-27T19:00:00Z', NOW, ZONE)).toMatchObject({
+      kind: 'day',
+    });
+  });
+
   it('is the next match day after today, by the reader’s calendar', () => {
     // Every match today over: the directory's next kick-off counts.
     expect(railStatus(group('a', [card('1')]), '2026-10-27T19:00:00Z', NOW, ZONE)).toEqual({
@@ -257,12 +271,20 @@ describe('the drawer', () => {
       { id: 'live-b', status: 'live', kickoff_at: '2026-10-26T19:00:00Z' },
       { id: 'soon', status: 'scheduled', kickoff_at: '2026-10-26T20:00:00Z' },
       { id: 'live-a', status: 'live', kickoff_at: '2026-10-26T18:45:00Z' },
+      // Still scheduled long after its kick-off: with the rest (T-1710, D-343).
+      {
+        id: 'stuck',
+        status: 'scheduled',
+        kickoff_at: '2026-10-26T12:00:00Z',
+        freshness: 'awaiting_update' as const,
+      },
     ];
     expect(drawerFixtures(cards).map((c) => c.id)).toEqual([
       'live-a',
       'live-b',
       'soon',
       'late',
+      'stuck',
       'early-ft',
     ]);
   });

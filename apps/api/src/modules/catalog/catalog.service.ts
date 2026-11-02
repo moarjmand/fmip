@@ -35,7 +35,7 @@ import {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../database/database.module';
-import { derived } from '../fixtures/fixtures.service';
+import { derived, listFreshnessOf } from '../fixtures/fixtures.service';
 import { MediaService, type MediaIndex } from '../media/media.service';
 import { LEADERS_LIMIT, StandingsService } from '../standings/standings.service';
 import { buildBracket, tieOf } from './internal/bracket';
@@ -672,7 +672,11 @@ export class CatalogService {
     );
     const reds = board(tables.red_cards.module, picked.red_cards, tables.red_cards.figure, minutes);
     const results = fixtures.filter((f) => f.status === 'finished').reverse();
-    const upcoming = fixtures.filter((f) => f.status !== 'finished');
+    // A match still scheduled long after its kick-off says so (T-1710, D-343).
+    const answeredAt = new Date();
+    const upcoming = fixtures
+      .filter((f) => f.status !== 'finished')
+      .map((f) => ({ ...f, freshness: listFreshnessOf(f.status, f.kickoff_at, answeredAt) }));
     // The logo, the table's crests and the leaders' photos from our own origin
     // (T-1320), and the other boards' rows too (T-1321), in one query.
     const leaders = scored.module;
@@ -870,7 +874,12 @@ export class CatalogService {
       ],
     });
     const team = { ...found, country: withFlag(found.country, media), crest: media.crest(id) };
-    const listed = fixtures.map((f) => withFixtureMedia(f, media));
+    // A match still scheduled long after its kick-off says so (T-1710, D-343).
+    const answeredAt = new Date();
+    const listed = fixtures.map((f) => ({
+      ...withFixtureMedia(f, media),
+      freshness: listFreshnessOf(f.status, f.kickoff_at, answeredAt),
+    }));
     const results = listed.filter((f) => f.status === 'finished').reverse();
     // A cancelled, abandoned or awarded match already past is neither ahead
     // nor a result (T-1578): left in, it stood as the club's next match, with
@@ -881,8 +890,12 @@ export class CatalogService {
         f.status !== 'finished' && !(VOID_STATUSES.has(f.status) && Date.parse(f.kickoff_at) < now),
     );
     // The next match is one that will be played or is being played: a
-    // postponed one has no date to be next on.
-    const next = upcoming.find((f) => PLAYABLE_STATUSES.has(f.status)) ?? null;
+    // postponed one has no date to be next on, and one still scheduled long
+    // after its kick-off is not to come (T-1710, D-343) -- it stays on the
+    // list, labelled, and the card names the match after it.
+    const next =
+      upcoming.find((f) => PLAYABLE_STATUSES.has(f.status) && f.freshness !== 'awaiting_update') ??
+      null;
     return {
       kind: 'ok',
       page: {

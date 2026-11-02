@@ -13919,3 +13919,5 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 
 **Consequences.** The surfaces that call `statusLabel` with a card from `GET /scores` or the match centre (scores list, home, rails) say "Awaiting update". Surfaces that test `status === 'scheduled'` on their own (the competition and team fixture lists, next-match cards, the matchday rail, share cards) are follow-ups. Correcting the Rangers v Aberdeen row on production is an operator step, not part of this decision.
 
+**Follow-up (T-1710).** The catalog's lists carry the same word (`listFreshnessOf`, only `awaiting_update`), and the web reads it there too. A "next match" is never a match awaiting an update: it is not to come, so the club's card and the home page's team line name the match after it, while the match itself stays on the Fixtures list with "Awaiting update" in place of its time. Hiding it from the list was rejected above; showing it as the next match with a label would put a past kick-off and a forecast bar at the top of the club page as if it were the plan. The competition Overview's own six-hour clock for the same case is gone: it reads the API's word.
+

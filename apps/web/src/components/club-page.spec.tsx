@@ -540,6 +540,41 @@ describe('recent results and coming up', () => {
     expect(tab.match(/data-testid="match-line"/g)).toHaveLength(4);
     expect(tab.match(/data-testid="viewing-line"/g)).toHaveLength(2);
   });
+
+  it('leaves out a match still scheduled long after its kick-off, which the Fixtures tab labels (T-1710, D-343)', () => {
+    const next = fixture({ id: 'n0', status: 'scheduled', score: null });
+    const stuck = fixture({
+      id: 'stuck',
+      status: 'scheduled',
+      score: null,
+      freshness: 'awaiting_update',
+    });
+    const later = fixture({ id: 'n1', status: 'scheduled', score: null });
+    const p = page({ next_match: next, fixtures: [stuck, next, later] });
+    const html = renderToStaticMarkup(
+      <ComingUp page={p} locale="en" timeZone="UTC" territory={undefined} freshness={null} />,
+    );
+    expect(html).toContain('/match/n1"');
+    expect(html).not.toContain('/match/stuck"');
+    const tab = (locale: string) =>
+      renderToStaticMarkup(
+        <FixturesPanel
+          page={p}
+          locale={locale}
+          timeZone="UTC"
+          viewing={new Map()}
+          signedIn={false}
+          territory={undefined}
+          freshness={null}
+        />,
+      );
+    const en = tab('en');
+    expect(en.match(/data-testid="match-line"/g)).toHaveLength(3);
+    // Where to watch it only for the two to come; the stuck one says so instead.
+    expect(en.match(/data-testid="viewing-line"/g)).toHaveLength(2);
+    expect(en).toMatch(/data-testid="fixture-status"[^>]*>Awaiting update</);
+    expect(tab('fa')).toMatch(/data-testid="fixture-status"[^>]*>در انتظار به‌روزرسانی</);
+  });
 });
 
 describe('the top scorer (T-1528, D-275)', () => {

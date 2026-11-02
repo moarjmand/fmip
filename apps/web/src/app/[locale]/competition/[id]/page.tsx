@@ -61,6 +61,7 @@ import {
   seasonRounds,
   tabHref,
 } from '@/lib/competition-overview';
+import { awaitingUpdate } from '@/lib/live';
 import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { competitionJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -133,10 +134,18 @@ async function forecastsFor(ids: string[]): Promise<Record<string, CardForecast>
   );
 }
 
+/**
+ * Being played or still to come: not a match the API says is awaiting an
+ * update (T-1710, D-343), which is neither and keeps no model slot.
+ */
+function stillToCome(f: Page['fixtures'][number]): boolean {
+  return f.status === 'live' || (f.status === 'scheduled' && !awaitingUpdate(f));
+}
+
 /** The fixtures still to come that the Matches tab asks the model about, soonest first. */
 function upcoming(page: Page): string[] {
   return page.fixtures
-    .filter((f) => f.status === 'scheduled' || f.status === 'live')
+    .filter(stillToCome)
     .slice(0, MAX_FORECAST_FIXTURES)
     .map((f) => f.id);
 }
@@ -199,7 +208,7 @@ export default async function CompetitionPage({
   // next, or the one `?round=` names; the latest results are the day before
   // the round the page opens on while it has a match to play (`resultsBefore`).
   const rounds = tab === 'overview' ? seasonRounds(locale, page, timeZone) : [];
-  const opening = defaultRound(rounds, now);
+  const opening = defaultRound(rounds);
   const asked = readRoundParam(query, rounds.length);
   const round = asked === null ? opening : (rounds[asked - 1] ?? opening);
   const forecasts =
@@ -258,7 +267,7 @@ export default async function CompetitionPage({
                   forecasts={forecasts}
                 />
                 <ResultsCard
-                  day={lastResultDay(page, timeZone, resultsBefore(opening, page, timeZone, now))}
+                  day={lastResultDay(page, timeZone, resultsBefore(opening, page, timeZone))}
                   locale={locale}
                   timeZone={timeZone}
                 />
@@ -406,7 +415,7 @@ function MatchesTab({
   forecasts,
 }: TabProps & { forecasts: Record<string, CardForecast> }) {
   const asked = Object.keys(forecasts).length;
-  const toCome = page.fixtures.filter((f) => f.status === 'scheduled' || f.status === 'live');
+  const toCome = page.fixtures.filter(stillToCome);
   return (
     <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
       <RoundsCard

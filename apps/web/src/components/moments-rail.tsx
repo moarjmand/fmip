@@ -20,7 +20,7 @@ import { DEFAULT_LOCALE, type Locale, isLocale, isPseudoLocale } from '@/i18n/lo
 import { type Message, message, plural, resolveMessages } from '@/i18n/messages';
 import { type ApiResult, fetchMoments } from '@/lib/api';
 import { followAction } from '@/lib/auth-actions';
-import { isBehind } from '@/lib/live';
+import { awaitingUpdate, isBehind } from '@/lib/live';
 import {
   FRESH_ANSWER_MS,
   type KeptAnswer,
@@ -335,7 +335,7 @@ function MomentPanel({ moment, d }: { moment: Moment; d: Drawing }) {
         // Rule 3: no forecast is a sentence, never an empty bar.
         <ForecastBar
           forecast={{ state: 'none' }}
-          started={card.status !== 'scheduled'}
+          started={card.status !== 'scheduled' || awaitingUpdate(card)}
           home={name.home}
           away={name.away}
           locale={d.lang}

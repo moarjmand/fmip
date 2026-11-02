@@ -338,6 +338,15 @@ describe('the hover card', () => {
     expect(out).not.toContain('moment-panel-receipt');
   });
 
+  it('counts a match still scheduled long after its kick-off as started: no forecast "yet" (T-1710, D-343)', () => {
+    const stuck = card('m9', { kickoff_at: minutes(-240), freshness: 'awaiting_update' });
+    const out = (locale: string) =>
+      html(view(locale, answer([m('followed', stuck, { forecast: null })])).moments[0]!.panel);
+    expect(out('en')).toContain('The model had no forecast for this match before kick-off.');
+    expect(out('en')).not.toContain('No model forecast for this match yet.');
+    expect(out('fa')).toContain('مدل آماری پیش از شروع این بازی پیش‌بینی‌ای برای آن نداشت.');
+  });
+
   it('leads to the match centre, and offers a member the moment’s team to follow', () => {
     expect(tags(panel(0), 'moment-panel-open')[0]).toContain('href="/en/match/m1"');
     expect(panel(0)).not.toContain('moment-panel-follow');

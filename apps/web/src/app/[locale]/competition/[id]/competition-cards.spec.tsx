@@ -515,6 +515,20 @@ describe('a match row', () => {
     expect(html).toMatch(/text-live[^>]*>live</);
   });
 
+  it('says "Awaiting update" for a match still scheduled long after its kick-off, never its time (T-1710, D-343)', () => {
+    const stuck = fixture({ kickoff_at: '2026-10-01T16:00:00.000Z', freshness: 'awaiting_update' });
+    const line = (locale: string) =>
+      renderToStaticMarkup(
+        <ul>
+          <MatchLine fixture={stuck} locale={locale} timeZone="UTC" />
+        </ul>,
+      );
+    const en = line('en');
+    expect(en).toMatch(/text-warning[^>]*data-testid="fixture-status"[^>]*>Awaiting update</);
+    expect(en).not.toContain('16:00');
+    expect(line('fa')).toContain('در انتظار به‌روزرسانی');
+  });
+
   it('gives the model’s three percentages whole, and words when there are none', () => {
     const html = renderToStaticMarkup(<ModelFigures locale="en" forecast={available} />);
     expect(html).toContain('48 · 25 · 27');

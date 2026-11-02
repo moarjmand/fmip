@@ -24,6 +24,7 @@ import { type MessageKey, interpolate, message, plural, t } from '@/i18n/message
 import { factorLabel, kindLabel } from '@/lib/forecast';
 import { type HeroMatch, type HeroSlot, type KeyGroup, sharedRound, topFactors } from '@/lib/home';
 import { stageName } from '@/lib/competition';
+import { awaitingUpdate } from '@/lib/live';
 import type { CardForecast } from '@/lib/score-card-products';
 import { formatKickoff, statusLabel } from '@/lib/scores';
 import { formatFixed, formatPercent, formatSigned } from '@/lib/words';
@@ -642,7 +643,8 @@ function TodayRow({
             card.status === 'live' ? 'font-extrabold text-live' : 'text-muted',
           )}
         >
-          {card.status === 'scheduled'
+          {/* "Awaiting update" from the status words for one still scheduled long after its kick-off (T-1710). */}
+          {card.status === 'scheduled' && !awaitingUpdate(card)
             ? formatKickoff(locale, card.kickoff_at, timeZone)
             : status(card, locale, timeZone)}
         </span>

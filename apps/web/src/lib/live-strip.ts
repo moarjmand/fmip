@@ -1,5 +1,5 @@
 import { type ScoreCard, STALE_LIVE_AFTER_MS } from '@fmip/contracts';
-import { isBehind } from '@/lib/live';
+import { awaitingUpdate, isBehind } from '@/lib/live';
 
 /**
  * The live strip's rules (T-1381, D-199), pure so they are unit-tested
@@ -16,7 +16,9 @@ import { isBehind } from '@/lib/live';
  * `null` when nothing on it can change today (every match over or off).
  * A live match can change at any moment, so the answer's own time counts; a
  * match yet to start can change from its kick-off. Past either by
- * `STALE_LIVE_AFTER_MS` (D-045), the strip says it may be behind. The strip
+ * `STALE_LIVE_AFTER_MS` (D-045), the strip says it may be behind. A match
+ * still scheduled long after its kick-off says "Awaiting update" on its own
+ * chip (T-1710, D-343) and does not turn the whole strip behind. The strip
  * lives in the locale layout, which a client-side navigation does not render
  * again; since T-1635 the rail asks again while a match is being played
  * (`momentsAskIn` since T-1642), and each answer moves this time on, so it is
@@ -29,7 +31,7 @@ export function stripBehindAt(cards: readonly ScoreCard[], generatedAt: string):
     const changes =
       card.status === 'live' || card.status === 'suspended'
         ? answered
-        : card.status === 'scheduled'
+        : card.status === 'scheduled' && !awaitingUpdate(card)
           ? Math.max(answered, Date.parse(card.kickoff_at))
           : null;
     if (changes !== null && !Number.isNaN(changes)) {

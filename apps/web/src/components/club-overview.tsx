@@ -33,6 +33,7 @@ import {
   topScorerEntry,
 } from '@/lib/team';
 import { tabHref } from '@/lib/competition-overview';
+import { awaitingUpdate } from '@/lib/live';
 import { withTerritory } from '@/lib/viewing';
 
 /**
@@ -472,8 +473,11 @@ export function ComingUp({
   const teamId = page.team.id;
   const nextId = page.next_match?.id;
   // Only matches still to play (T-1560): a cancelled or postponed one is
-  // listed with its status on the Fixtures tab, not "coming up".
-  const later = page.fixtures.filter((f) => f.id !== nextId && stillToPlay(f.status));
+  // listed with its status on the Fixtures tab, not "coming up"; so is one
+  // still scheduled long after its kick-off (T-1710, D-343).
+  const later = page.fixtures.filter(
+    (f) => f.id !== nextId && stillToPlay(f.status) && !awaitingUpdate(f),
+  );
   const shown = later.slice(0, COMING_UP);
   return (
     <Card

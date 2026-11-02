@@ -351,7 +351,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       { home: 3, away: 1 },
     ]);
     expect(page.fixtures).toHaveLength(1);
-    expect(page.fixtures[0]).toMatchObject({ status: 'scheduled', score: null, round: 'Matchday' });
+    // A match still to come is not awaiting an update (T-1710, D-343).
+    expect(page.fixtures[0]).toMatchObject({
+      status: 'scheduled',
+      score: null,
+      round: 'Matchday',
+      freshness: null,
+    });
     // Both crests on every listed match, said not supplied where none is held (T-1617).
     for (const f of [...page.fixtures, ...page.results]) {
       expect(f.home.crest).toEqual({ coverage: 'not_supplied', url: null });
