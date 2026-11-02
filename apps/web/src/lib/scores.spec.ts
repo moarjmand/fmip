@@ -154,6 +154,24 @@ describe('card labels', () => {
     expect(formatKickoff('ar', '2025-01-05T16:30:00.000Z', 'Europe/London')).toMatch(/16.30/);
   });
 
+  it('never shows a kick-off long past as a match to come (T-1708, D-343)', () => {
+    // The API's state (the threshold is the API's, tested in `freshness.spec.ts`).
+    const late = card({ freshness: 'awaiting_update' });
+    expect(statusLabel(late, 'en', 'UTC', NOW.getTime(), EN_WORDS)).toBe('Awaiting update');
+    expect(statusLabel(late, 'en', 'UTC')).toBe('Awaiting update');
+    // Without it a scheduled match keeps its kick-off time.
+    expect(statusLabel(card({}), 'en', 'UTC', NOW.getTime(), EN_WORDS)).toBe('16:30');
+    // In Persian.
+    expect(statusLabel(late, 'fa', 'UTC', NOW.getTime(), scoresWords('fa').m)).toBe(
+      'در انتظار به‌روزرسانی',
+    );
+    // A status that says what happened keeps its own words.
+    expect(statusLabel(card({ status: 'finished' }), 'en', 'UTC', NOW.getTime())).toBe('FT');
+    expect(statusLabel(card({ status: 'postponed' }), 'en', 'UTC', NOW.getTime())).toBe(
+      'Postponed',
+    );
+  });
+
   it('never shows a score it does not have', () => {
     expect(scoreLabel(card({}))).toBe('–');
     expect(

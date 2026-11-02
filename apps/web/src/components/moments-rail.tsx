@@ -80,6 +80,7 @@ const STATUS_KEYS: readonly StatusKey[] = [
   'status.cancelled',
   'status.abandoned',
   'status.awarded',
+  'status.awaitingUpdate',
 ];
 
 /** The language the rail speaks: the page's (the pseudo-locale's is English, marked as such). */

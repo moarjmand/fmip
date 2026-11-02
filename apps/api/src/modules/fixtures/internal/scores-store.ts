@@ -136,6 +136,7 @@ function toRow(row: Row): ScoredRow {
       freshness: freshnessOf(row.status, row.last_updated_at, new Date(), undefined, {
         minute: row.minute,
         liveAnsweredAt: row.live_answered_at,
+        kickoffAt: row.kickoff_at,
       }),
       pinned: false,
     },

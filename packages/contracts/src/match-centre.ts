@@ -95,7 +95,10 @@ export interface MatchHeader {
    * answer is recorded. `liveFreshnessFrom` reads it where no clock moves.
    */
   live_answered_at?: string | null;
-  /** `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (T-083, see `liveFreshnessFrom`); `null` when not live. */
+  /**
+   * `stale` when live and unchanged for `STALE_LIVE_AFTER_MS` (T-083, see `liveFreshnessFrom`);
+   * `awaiting_update` when still scheduled over three hours after kick-off (T-1708, D-343); else `null`.
+   */
   freshness: Freshness | null;
   /**
    * When this match's fixture list was last answered, changed or not

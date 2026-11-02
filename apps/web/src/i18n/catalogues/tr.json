@@ -6776,6 +6776,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "status.awaitingUpdate": {
+    "source": "Awaiting update",
+    "text": "",
+    "status": "untranslated"
+  },
   "status.coverage.available": {
     "source": "available",
     "text": "",
@@ -7365,6 +7370,11 @@
   },
   "matchCentre.behind": {
     "source": "The data for this match is behind: nothing has changed since {time}. The score and minute shown are the last known, not the current ones.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.awaitingUpdate": {
+    "source": "Kick-off time passed — awaiting an update on this match. Its status and result are not known yet.",
     "text": "",
     "status": "untranslated"
   },

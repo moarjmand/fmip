@@ -1,7 +1,7 @@
 import type { CoverageState, ScoreCard as ScoreCardData, ScoreCardIncident } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { formatNumber } from '@/i18n/format';
-import { isBehind } from '@/lib/live';
+import { awaitingUpdate, isBehind } from '@/lib/live';
 import { shootoutStart } from '@/lib/match';
 import { formatKickoff, formatStamp, scoreLine, statusLabel } from '@/lib/scores';
 import { isOpenForPick } from '@/lib/scores-filters';
@@ -128,6 +128,8 @@ export function ScoreCard({
   const { m, p } = words;
   const n = (value: number): string => formatNumber(locale, value);
   const behind = now !== undefined && isBehind(card, now);
+  // Scheduled, kick-off long past, no word from the feed (T-1708, D-343).
+  const awaiting = awaitingUpdate(card);
   // The red-card mark is an image to a screen reader, named in words (T-081).
   const sentOff = (count: number): React.ReactNode =>
     count === 0 ? null : (
@@ -215,8 +217,9 @@ export function ScoreCard({
         data-testid="match-link"
       >
         <span
-          className={`text-sm leading-tight font-bold tabular-nums hyphens-auto [overflow-wrap:anywhere] ${live ? 'text-live' : ''}`}
+          className={`text-sm leading-tight font-bold tabular-nums hyphens-auto [overflow-wrap:anywhere] ${live ? 'text-live' : awaiting ? 'text-warning' : ''}`}
           data-testid="score-status"
+          data-awaiting-update={awaiting ? '' : undefined}
         >
           {statusLabel(card, locale, timeZone, now, m)}
         </span>
@@ -381,7 +384,7 @@ export function CardDetails({
           forecast={forecast}
           home={card.home.name}
           away={card.away.name}
-          started={card.status !== 'scheduled'}
+          started={card.status !== 'scheduled' || awaitingUpdate(card)}
           locale={locale}
           timeZone={timeZone}
           words={words}

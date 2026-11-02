@@ -307,6 +307,18 @@ export default async function MatchPage({
                 // After full time the official highlight comes first.
                 highlights:
                   final !== null ? <HighlightsLink locale={locale} viewing={viewingData} /> : null,
+                // Still scheduled long after its kick-off (T-1708, D-343): the
+                // API's derived state, said here so its words stay off the client.
+                awaiting:
+                  result.data.fixture.freshness === 'awaiting_update' ? (
+                    <p
+                      role="status"
+                      className="text-center text-sm font-medium text-warning"
+                      data-testid="awaiting-update"
+                    >
+                      <Translated locale={locale} message="matchCentre.awaitingUpdate" />
+                    </p>
+                  ) : undefined,
               }}
               slots={{
                 // The Summary opens with what the model forecast and, after

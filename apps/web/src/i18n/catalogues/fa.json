@@ -8192,6 +8192,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "status.awaitingUpdate": {
+    "source": "Awaiting update",
+    "text": "در انتظار به‌روزرسانی",
+    "status": "translated",
+    "note": "Written by the agent for a scheduled match long past its kick-off (T-1708)."
+  },
   "status.coverage.available": {
     "source": "available",
     "text": "موجود",
@@ -8911,6 +8917,12 @@
     "text": "داده‌های این بازی عقب است: از {time} چیزی تغییر نکرده. نتیجه و دقیقه‌ی نشان‌داده‌شده آخرین مقادیر شناخته‌شده‌اند، نه مقادیر فعلی.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.awaitingUpdate": {
+    "source": "Kick-off time passed — awaiting an update on this match. Its status and result are not known yet.",
+    "text": "زمان شروع بازی گذشته است — در انتظار به‌روزرسانی این بازی. وضعیت و نتیجه‌ی آن هنوز مشخص نیست.",
+    "status": "translated",
+    "note": "Written by the agent for a scheduled match long past its kick-off (T-1708)."
   },
   "matchCentre.neutralVenue": {
     "source": "{venue} (neutral)",

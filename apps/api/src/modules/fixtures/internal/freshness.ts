@@ -16,14 +16,26 @@ import {
  * where the stored clock stands still (half-time, added time, the breaks, a
  * suspension), the later of that and the provider's last live answer, so a
  * half-time the provider is still answering about is not called behind.
+ *
+ * A match still `scheduled` more than `AWAITING_UPDATE_AFTER_MS` after its
+ * kick-off is `awaiting_update` (T-1708, D-343); at exactly the threshold it
+ * is still to come. Derived here at read time from the stored status and
+ * kick-off, never written back: the stored row keeps what the feed said, and
+ * the feed's next answer replaces the state on its own.
  */
 export function freshnessOf(
   status: FixtureStatus,
   lastUpdatedAt: Date,
   now: Date,
   staleAfterMs: number = STALE_LIVE_AFTER_MS,
-  clock: { minute?: number | null; liveAnsweredAt?: Date | null } = {},
+  clock: { minute?: number | null; liveAnsweredAt?: Date | null; kickoffAt?: Date | null } = {},
 ): Freshness | null {
+  if (status === 'scheduled') {
+    return clock.kickoffAt != null &&
+      now.getTime() - clock.kickoffAt.getTime() > AWAITING_UPDATE_AFTER_MS
+      ? 'awaiting_update'
+      : null;
+  }
   if (status !== 'live' && status !== 'suspended') return null;
   const from = liveFreshnessFrom({
     status,
@@ -33,3 +45,13 @@ export function freshnessOf(
   });
   return now.getTime() - from > staleAfterMs ? 'stale' : 'current';
 }
+
+/**
+ * How long after its kick-off a match may still be `scheduled` (T-1708,
+ * D-343): three hours. Ninety minutes, half-time, added time, extra time with
+ * its break and a shoot-out come to under three hours, so a match the feed
+ * still calls scheduled by then started late, was postponed or was played,
+ * and we do not know which. Kept here, not in the contracts, which are in
+ * every page's JavaScript: the web reads the derived word, never the rule.
+ */
+export const AWAITING_UPDATE_AFTER_MS = 3 * 60 * 60_000;

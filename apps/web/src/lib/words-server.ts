@@ -68,6 +68,7 @@ const STATUS_KEYS = [
   'status.cancelled',
   'status.abandoned',
   'status.awarded',
+  'status.awaitingUpdate',
   'status.coverage.available',
   'status.coverage.limited',
   'status.coverage.notSupplied',
