@@ -8,18 +8,25 @@ import type { FixtureStatus, ScoreDispute, ScoreLine } from '@fmip/contracts';
  * clears it on its own.
  *
  * The result is the one a page shows (D-317, the web's `resultLine`): after
- * extra time where extra time was played, else the ninety minutes. The goals
- * are judged with the same readings as data quality's `goals_disagree`
- * (T-820), so a match is called disputed only when no reasonable reading of
- * its incidents adds up to that result:
- * - an own goal filed under the side credited or under the scorer's own side;
- * - a goal with no side counts toward the total only;
- * - a shoot-out's marked kicks are never goals (D-322); with a shoot-out on
- *   record, an unmarked penalty goal at 120 or later may be a kick too.
+ * extra time where extra time was played, else the ninety minutes.
  *
- * Nothing is claimed for a match with no goal recorded: that is the
- * incidents' coverage, not a contradiction (rule 3). Predictions, settlement
- * and the model's evaluation do not read this.
+ * Only MORE recorded goals than the result is a dispute: the incidents then
+ * hold goals the score does not, so the score cannot be right as it stands
+ * (Pafos v Hajduk, Los Garres v Manises: 2-0 against four goals). Fewer
+ * recorded goals is a timeline the source left incomplete, and the score
+ * stands: the timeline's own coverage says so (rule 3). The same total with
+ * the sides differing is an own goal filed under one side or the other, as
+ * data quality's `goals_disagree` reads it (T-820). On production
+ * (2026-11-02) 12,300 of the 12,346 open `goals_disagree` findings had fewer
+ * goals, 43 more, 3 the same total.
+ *
+ * The goals counted, as `goals_disagree` counts them:
+ * - a goal with no side counts toward the total;
+ * - a shoot-out's marked kicks are never goals (D-322); with a shoot-out on
+ *   record, an unmarked penalty goal at 120 or later is read as a kick, so
+ *   the smaller total is the one judged.
+ *
+ * Predictions, settlement and the model's evaluation do not read this.
  */
 
 /** One incident as the match centre and the scores list carry it. */
@@ -49,35 +56,6 @@ export function shownResult(scores: DisputeScores): ScoreLine | null {
     : (scores.full_time ?? scores.current);
 }
 
-function agrees(
-  goals: readonly DisputeIncident[],
-  reported: ScoreLine,
-  ownOnCredited: boolean,
-): boolean {
-  let home = 0;
-  let away = 0;
-  let unattributed = 0;
-  for (const goal of goals) {
-    if (goal.side === null) {
-      unattributed += 1;
-      continue;
-    }
-    const credited =
-      goal.kind === 'own_goal' && !ownOnCredited
-        ? goal.side === 'home'
-          ? 'away'
-          : 'home'
-        : goal.side;
-    if (credited === 'home') home += 1;
-    else away += 1;
-  }
-  return unattributed === 0
-    ? home === reported.home && away === reported.away
-    : home + away + unattributed === reported.home + reported.away &&
-        home <= reported.home &&
-        away <= reported.away;
-}
-
 export function scoreDisputeOf(
   status: FixtureStatus,
   scores: DisputeScores,
@@ -88,13 +66,12 @@ export function scoreDisputeOf(
   if (reported === null) return null;
   const goals = incidents.filter((i) => GOAL_KINDS.has(i.kind) && i.in_shootout !== true);
   if (goals.length === 0) return null;
-  const readings: (readonly DisputeIncident[])[] = [goals];
-  if (scores.penalties !== null) {
-    readings.push(goals.filter((g) => !(g.kind === 'penalty_goal' && g.minute >= SHOOTOUT_MINUTE)));
-  }
-  if (readings.some((r) => agrees(r, reported, true) || agrees(r, reported, false))) return null;
   // With a shoot-out on record, the goals of play: the unmarked kicks are not
   // goals of the result (as data quality's finding, T-1640).
-  const counted = readings[readings.length - 1]!;
+  const counted =
+    scores.penalties !== null
+      ? goals.filter((g) => !(g.kind === 'penalty_goal' && g.minute >= SHOOTOUT_MINUTE))
+      : goals;
+  if (counted.length <= reported.home + reported.away) return null;
   return { recorded_goals: counted.length, reported: { home: reported.home, away: reported.away } };
 }
