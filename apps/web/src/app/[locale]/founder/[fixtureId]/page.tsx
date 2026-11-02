@@ -81,8 +81,7 @@ export default async function FounderAnalysisPage({
   // kick-off by its own clock, and a match the feed never moved on stays
   // `scheduled` long after it.
   const kickedOff =
-    fixture !== null &&
-    (fixture.status !== 'scheduled' || isLocked(fixture.kickoff_at));
+    fixture !== null && (fixture.status !== 'scheduled' || isLocked(fixture.kickoff_at));
   const teamWin = (team: string): string =>
     interpolate(t(l, 'predictions.outcome.teamWin'), { team });
 
