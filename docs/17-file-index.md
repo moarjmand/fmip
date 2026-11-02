@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2211), grouped by folder, with one line on
+Every file in the repository (2219), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -110,6 +110,8 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/rating-thresholds/internal`](#appsapisrcmodulesrating-thresholdsinternal) — 2
 - [`apps/api/src/modules/reputation`](#appsapisrcmodulesreputation) — 31
 - [`apps/api/src/modules/reputation/internal`](#appsapisrcmodulesreputationinternal) — 14
+- [`apps/api/src/modules/retention`](#appsapisrcmodulesretention) — 5
+- [`apps/api/src/modules/retention/internal`](#appsapisrcmodulesretentioninternal) — 1
 - [`apps/api/src/modules/search`](#appsapisrcmodulessearch) — 8
 - [`apps/api/src/modules/search/internal`](#appsapisrcmodulessearchinternal) — 5
 - [`apps/api/src/modules/social`](#appsapisrcmodulessocial) — 5
@@ -260,7 +262,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 170
+- [`packages/db/migrations`](#packagesdbmigrations) — 172
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -1544,6 +1546,22 @@ machine, `docs/18-handover.md`.
 | `points-store.ts` | SQL for the Career Points ledger (D-025). |
 | `points.ts` | Career Points rules (blueprint 9.2), version 1. |
 | `rating-store.ts` | SQL for rating snapshots (D-025). Insert-only; the newest per user is current. |
+
+## apps/api/src/modules/retention
+
+| File | What it is |
+|---|---|
+| `retention-scheduler.service.ts` | The retention purge's BullMQ queue and worker (T-1715). |
+| `retention.module.ts` | Retention periods and the daily purge (T-1715, D-345). |
+| `retention.schema.spec.ts` | The retention purge against the real schema (T-1715, D-345): every statement is valid SQL over the tables it deletes from, the periods are measured on the right column, and a delivery row becomes a count in the same sta… |
+| `retention.service.ts` | Retention periods (D-345), their cut-offs, the batching loop and the daily purge service (T-1715). |
+| `retention.spec.ts` | Unit tests of the retention purge: periods, cut-offs, batching and the schedule (T-1715, D-345). |
+
+## apps/api/src/modules/retention/internal
+
+| File | What it is |
+|---|---|
+| `retention-store.ts` | The retention purge's bounded delete statements, one per table (T-1715, D-345). |
 
 ## apps/api/src/modules/search
 
@@ -3605,6 +3623,8 @@ machine, `docs/18-handover.md`.
 | `1765900500000_agents-console.sql` | The agents console (T-1696, D-340): `agents.traveltohormuz.ir`, for the maintainer and the teammate, apart from the site's members. |
 | `1765900600000_placeholder-lineup-persons.sql` | T-1707 (D-342): line-up slots a feed labels "Trialist", "Unknown", "TBA" are not people. |
 | `1765900700000_trim-team-names.sql` | T-1711 (str-2026-11-02-02): team names stored with a provider's padding. |
+| `1765900800000_news-aggregated-kind.sql` | T-1716 (D-346): GNews and the publishers it brings are no longer kind `licensed`. |
+| `1765900805000_retention.sql` | T-1715 (D-345): retention periods and a daily purge. |
 
 ## packages/db/scripts
 

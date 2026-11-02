@@ -64,7 +64,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('gnews ingest
     const { rows } = await pool.query<{ id: string }>(
       `INSERT INTO news_source (name, homepage_url, kind, rights, language, same_language_only,
                                 dropped_at, dropped_reason)
-       VALUES ($1, 'https://gnews.test', 'licensed', 'summary', 'en', true, $2, $3) RETURNING id`,
+       VALUES ($1, 'https://gnews.test', 'aggregator', 'summary', 'en', true, $2, $3) RETURNING id`,
       [`GNews ${created.length} ${RUN}`, dropped ? new Date() : null, dropped ? 'stopped' : null],
     );
     created.push(rows[0]!.id);
@@ -135,7 +135,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('gnews ingest
     expect((await fetches(GNEWS_SOURCE_ID)).rows.length).toBe(before);
   });
 
-  it('the seeded GNews row is licensed, summary, English, for English readers, with no photo right', async () => {
+  it('the seeded GNews row is an aggregator (D-346), summary, English, for English readers, with no photo right', async () => {
     const { rows } = await pool.query(
       `SELECT name, kind, rights, language, same_language_only, feed_url, image_licence, via_source_id
          FROM news_source WHERE id = $1`,
@@ -143,7 +143,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('gnews ingest
     );
     expect(rows[0]).toEqual({
       name: 'GNews',
-      kind: 'licensed',
+      kind: 'aggregator',
       rights: 'summary',
       language: 'en',
       same_language_only: true,
@@ -184,7 +184,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('gnews ingest
       {
         publisher: `Example Times ${RUN}`,
         homepage_url: `https://times-${RUN}.example`,
-        kind: 'licensed',
+        kind: 'aggregated',
         rights: 'summary',
         same_language_only: true,
         url: `https://times-${RUN}.example/sport/sacking`,
@@ -196,7 +196,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('gnews ingest
       {
         publisher: `The Example Post ${RUN}`,
         homepage_url: `https://www.post-${RUN}.example`,
-        kind: 'licensed',
+        kind: 'aggregated',
         rights: 'summary',
         same_language_only: true,
         url: `https://www.post-${RUN}.example/football/derby`,

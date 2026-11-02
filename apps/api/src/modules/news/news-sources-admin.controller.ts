@@ -19,6 +19,7 @@ import {
   type AuthUser,
   NEWS_SOURCE_KINDS,
   NEWS_SOURCE_RIGHTS,
+  isNewsFeedKind,
   type NewsFeedPreview,
   type NewsSourceKind,
   type NewsSourceRights,
@@ -154,11 +155,11 @@ export class NewsSourcesAdminController {
     if (Object.keys(fields).length > 0) invalid(fields);
     const current = await this.store.get(sourceId);
     if (current === null) throw new NotFoundException(NO_SOURCE);
-    if (current.kind === 'licensed') {
-      invalid({ kind: 'A licensed source is not edited from the console.' });
+    if (!isNewsFeedKind(current.kind)) {
+      invalid({ kind: `A source of kind ${current.kind} is not edited from the console.` });
     }
     const feedUrl = changes.feed_url ?? current.feed_url ?? '';
-    const kind = changes.kind ?? (current.kind as NewsSourceKind);
+    const kind = changes.kind ?? current.kind;
     let preview: NewsFeedPreview | null = null;
     // A new address, or a new kind for the same one, is checked as on adding.
     if (feedUrl !== current.feed_url || kind !== current.kind) {

@@ -583,6 +583,21 @@ export interface BreakingNewsResponse {
 export const NEWS_SOURCE_KINDS = ['rss', 'atom'] as const;
 export type NewsSourceKind = (typeof NEWS_SOURCE_KINDS)[number];
 
+/**
+ * The kinds of a source the console neither adds nor edits (D-346): an
+ * `aggregator` is a search API over many publishers, queried on that API's
+ * own plan and terms (GNews, on its free, non-commercial plan, D-185); an
+ * `aggregated` source is a publisher reached only through one; `licensed` is
+ * a wire under a licence, which no source is today.
+ */
+export const NEWS_SOURCE_OTHER_KINDS = ['aggregator', 'aggregated', 'licensed'] as const;
+export type NewsSourceOtherKind = (typeof NEWS_SOURCE_OTHER_KINDS)[number];
+
+/** Whether a source is a feed the console adds and edits (`rss`/`atom`). */
+export function isNewsFeedKind(kind: string): kind is NewsSourceKind {
+  return (NEWS_SOURCE_KINDS as readonly string[]).includes(kind);
+}
+
 /** What a free feed may grant (D-061): the headline, or the headline and the publisher's summary. */
 export const NEWS_SOURCE_RIGHTS = ['headline', 'summary'] as const;
 export type NewsSourceRights = (typeof NEWS_SOURCE_RIGHTS)[number];
@@ -604,8 +619,8 @@ export interface NewsSourceRecord {
   name: string;
   homepage_url: string;
   feed_url: string | null;
-  /** `licensed` only for a row the console did not add. */
-  kind: NewsSourceKind | 'licensed';
+  /** A feed kind, or one of `NEWS_SOURCE_OTHER_KINDS` for a row the console did not add. */
+  kind: NewsSourceKind | NewsSourceOtherKind;
   rights: NewsRights;
   /** BCP 47 of the language the publisher writes in. */
   language: string;

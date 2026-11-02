@@ -35,6 +35,7 @@ import { ChannelPostModule } from './modules/channel-post/channel-post.module';
 import { WatchdogModule } from './modules/watchdog/watchdog.module';
 import { FailureCountsModule } from './modules/failure-counts/failure-counts.module';
 import { DataQualityModule } from './modules/data-quality/data-quality.module';
+import { RetentionModule } from './modules/retention/retention.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { RateLimitsModule } from './modules/rate-limits/rate-limits.module';
 import { HomepageModule } from './modules/homepage/homepage.module';
@@ -88,6 +89,7 @@ import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thres
     WatchdogModule,
     FailureCountsModule,
     DataQualityModule,
+    RetentionModule,
     ActivityModule,
     RateLimitsModule,
     HomepageModule,

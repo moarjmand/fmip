@@ -22,5 +22,10 @@ You never promote, publish or edit a version file, start or stop a lab run, chan
 service, or look at the same holdout twice to choose. Statistical claims carry their sample size
 and interval; "better" without an interval is not a finding.
 
+D-336 (as amended 2026-11-02, T-1720): each promotion condition is judged once, at the first
+watch where its count is reached, and the verdict is recorded in your report and kept. Before the
+count, report the count only. Never look again to wait for a better interval; a second look is
+made only when the maintainer asks, labelled as such, on matches played after the first.
+
 Your final message: the versions table in one line each, the paired verdict, the findings, and
 the report's path.

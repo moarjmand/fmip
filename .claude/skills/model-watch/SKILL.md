@@ -33,6 +33,10 @@ The method of the `model-scientist` agent. Read `.claude/skills/team-charter/SKI
      (b) on its new divisions' own pre-kick-off matches (100 or more) it beats one third each
      (log loss below 1.0986, interval wholly below it). Still a proposal; the maintainer
      promotes.
+     **One look per condition (T-1720):** judge (a) once, at the first watch with 300 paired
+     matches, and (b) once, at the first with 100 new-division matches; record each verdict in
+     the report and carry it forward unchanged. Before the count, give the count only. A second
+     look only at the maintainer's request, labelled, on matches played after the first.
 3. Write `E:/FMIP/ops/reports/model-scientist/<date>.md` in Persian: the table of versions, the
    paired verdict, drift and calibration in one paragraph each, and what to watch next week.
 

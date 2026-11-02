@@ -419,8 +419,10 @@ T-1719 the nightly upload asked the remote whether each file was already
 there, a download-class request, so on 2026-11-02 the drill's download left
 no room and the day's upload failed with `failed to HEAD for download: 403`
 before sending a byte. `backup.sh` now uploads with `--no-check-dest` (each
-name is new) and re-reads the size by listing, so an upload never depends on
-the download cap.
+name is new) and re-reads the size by listing the folder (`--include` the
+dump's name), so an upload never depends on the download cap. Naming the file
+directly is itself a per-file lookup: on the same day it answered 0 bytes for
+a dump that had landed whole.
 
 The `Restore drill` line reads the newest drill from `backup_run` and whether
 `fmip-restore-drill.timer` is enabled: `ON` with the age of the newest pass
