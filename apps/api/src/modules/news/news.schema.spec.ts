@@ -148,6 +148,38 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('article sche
         ),
       ).resolves.toBeDefined();
     });
+
+    it('calls a publisher reached through an aggregator `aggregated`, never `licensed` (D-346)', async () => {
+      const insert = (kind: string, via: string | null) =>
+        pool.query<{ id: string }>(
+          `INSERT INTO news_source (name, homepage_url, kind, rights, language, via_source_id)
+           VALUES ($1, 'https://via.test', $2, 'summary', 'en', $3) RETURNING id`,
+          [`Via ${kind} ${RUN} ${Math.random()}`, kind, via],
+        );
+      const hub = (await insert('aggregator', null)).rows[0]!.id;
+      sources.push(hub);
+      for (const kind of ['licensed', 'aggregator']) {
+        await expect(insert(kind, hub)).rejects.toSatisfy((error: unknown) => {
+          expect(constraintOf(error)).toBe('news_source_via_is_aggregated');
+          return true;
+        });
+      }
+      // An `aggregated` row always names the aggregator it came through.
+      await expect(insert('aggregated', null)).rejects.toSatisfy((error: unknown) => {
+        expect(constraintOf(error)).toBe('news_source_via_is_aggregated');
+        return true;
+      });
+      const publisher = await insert('aggregated', hub);
+      sources.push(publisher.rows[0]!.id);
+      // GNews' own row is the aggregator, and nothing is left `licensed` under it.
+      const { rows } = await pool.query<{ kind: string; under: number }>(
+        `SELECT kind,
+                (SELECT count(*)::int FROM news_source p
+                  WHERE p.via_source_id = s.id AND p.kind <> 'aggregated') AS under
+           FROM news_source s WHERE id = '00000000-0000-4000-8000-000000001367'`,
+      );
+      expect(rows).toEqual([{ kind: 'aggregator', under: 0 }]);
+    });
   });
 
   describe('one canonical article, versions per language', () => {

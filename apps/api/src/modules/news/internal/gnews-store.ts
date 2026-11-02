@@ -45,7 +45,7 @@ export class PostgresGNewsStore {
   async aggregator(id: string): Promise<AggregatorRow | null> {
     const { rows } = await this.pool.query<AggregatorRow>(
       `SELECT id, name, rights, language, same_language_only, dropped_at IS NOT NULL AS dropped
-         FROM news_source WHERE id = $1 AND kind = 'licensed'`,
+         FROM news_source WHERE id = $1 AND kind = 'aggregator'`,
       [id],
     );
     return rows[0] ?? null;
@@ -53,9 +53,10 @@ export class PostgresGNewsStore {
 
   /**
    * The publisher's row under the aggregator, created the first time it is
-   * named with the aggregator's rights, language and language setting. An
-   * existing row is returned as it is -- its name, rights and setting are the
-   * console's from then on, and a dropped one stays dropped.
+   * named, kind `aggregated` (D-346), with the aggregator's rights, language
+   * and language setting. An existing row is returned as it is -- its name,
+   * rights and setting are the console's from then on, and a dropped one stays
+   * dropped.
    */
   async publisher(
     aggregator: AggregatorRow,
@@ -65,7 +66,7 @@ export class PostgresGNewsStore {
     await this.pool.query(
       `INSERT INTO news_source
          (name, homepage_url, feed_url, kind, rights, language, same_language_only, via_source_id)
-       VALUES ($1, $2, NULL, 'licensed', $3, $4, $5, $6)
+       VALUES ($1, $2, NULL, 'aggregated', $3, $4, $5, $6)
        ON CONFLICT (via_source_id, homepage_url) WHERE via_source_id IS NOT NULL DO NOTHING`,
       [
         name,

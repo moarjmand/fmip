@@ -238,7 +238,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('news dedupe 
     ): Promise<string> {
       const src = await pool.query<{ id: string }>(
         `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language, via_source_id)
-         VALUES ($1, $2, NULL, 'licensed', 'summary', 'en', $3) RETURNING id`,
+         VALUES ($1, $2, NULL, CASE WHEN $3::uuid IS NULL THEN 'licensed' ELSE 'aggregated' END,
+                 'summary', 'en', $3) RETURNING id`,
         [`Stored ${site} ${randomUUID()}`, `https://${site}/`, via],
       );
       sources.push(src.rows[0]!.id);

@@ -1190,7 +1190,8 @@ before you sign up.
 (`/en/admin/news-sources`) shows the **GNews** row with a recent fetch
 (succeeded, or partial with the reason in GNews' own words -- an invalid key
 says so), and new rows below it, one per publisher GNews brought (BBC, ESPN
-...), each `licensed`. `/en/news` shows their stories under the publisher's
+...), each of kind `aggregated` (reached through GNews' free plan, not
+licensed; D-346). `/en/news` shows their stories under the publisher's
 own name, linking to the original; Persian readers do not see them.
 
 **To stop it.** Empty `GNEWS_API_KEY` and roll the API out again, or drop the

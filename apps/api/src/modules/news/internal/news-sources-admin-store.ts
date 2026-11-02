@@ -219,8 +219,9 @@ export class PostgresNewsSourcesAdminStore {
   /**
    * Whether the source's stories are shown only to readers of its language
    * (T-1330, D-178), with its audit row (`news_source.visibility`, previous
-   * and next) in the same transaction. A licensed source may be set too: the
-   * setting is about who reads it, not about its feed.
+   * and next) in the same transaction. A source that is not a feed (an
+   * aggregator, a publisher under one, D-346) may be set too: the setting is
+   * about who reads it, not about its feed.
    */
   async setVisibility(
     actorId: string,
