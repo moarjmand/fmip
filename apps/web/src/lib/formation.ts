@@ -62,7 +62,8 @@ export function pitchLines(formation: string | null, players: MatchLineupPlayer[
   // Said before anything about the formation (T-1714): a side of ten reads as
   // ten, not as a role missing, when the feed names fewer than eleven -- a
   // trialist's slot, for one, which is never a person (D-342).
-  if (starters.length > 0 && starters.length < 11) return { state: 'short', count: starters.length };
+  if (starters.length > 0 && starters.length < 11)
+    return { state: 'short', count: starters.length };
   const shape = formation?.trim() ?? '';
   if (shape === '' || !FORMATION.test(shape)) return { state: 'no_formation' };
   const counts = shape.split('-').map(Number);
