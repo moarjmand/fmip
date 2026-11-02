@@ -1,6 +1,6 @@
 import { STALE_LIVE_AFTER_MS } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { AWAITING_UPDATE_AFTER_MS, freshnessOf } from './internal/freshness';
+import { AWAITING_UPDATE_AFTER_MS, freshnessOf, listFreshnessOf } from './internal/freshness';
 
 const NOW = new Date('2026-09-12T20:00:00.000Z');
 const ago = (ms: number) => new Date(NOW.getTime() - ms);
@@ -79,5 +79,23 @@ describe('freshnessOf', () => {
     );
     // Never for a match that is over.
     expect(freshnessOf('finished', ago(10 * 60_000), NOW, undefined, clock)).toBeNull();
+  });
+});
+
+describe('listFreshnessOf (T-1710, D-343)', () => {
+  const kickoff = (agoMs: number) => ago(agoMs).toISOString();
+
+  it('says awaiting_update for a scheduled match past three hours after kick-off', () => {
+    expect(listFreshnessOf('scheduled', kickoff(AWAITING_UPDATE_AFTER_MS + 1), NOW)).toBe(
+      'awaiting_update',
+    );
+    expect(listFreshnessOf('scheduled', kickoff(AWAITING_UPDATE_AFTER_MS), NOW)).toBeNull();
+    expect(listFreshnessOf('scheduled', kickoff(-60 * 60_000), NOW)).toBeNull();
+  });
+
+  it('never says anything else: a live match on a list is not judged stale here', () => {
+    for (const status of ['live', 'suspended', 'finished', 'postponed', 'cancelled']) {
+      expect(listFreshnessOf(status, kickoff(2 * 24 * 60 * 60_000), NOW)).toBeNull();
+    }
   });
 });

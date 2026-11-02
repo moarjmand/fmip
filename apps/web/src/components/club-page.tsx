@@ -24,6 +24,7 @@ import { cx } from '@/components/ui/cx';
 import { formatDate, formatNumber, intlLocale, localDigits } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
 import { FORM_KEY, say } from '@/lib/competition';
+import { awaitingUpdate } from '@/lib/live';
 import { POSITION_KEY as PLAYER_POSITION_KEY, dayText } from '@/lib/player';
 import {
   METRIC_KEY,
@@ -418,9 +419,11 @@ export function FixturesPanel({
                 locale={locale}
                 timeZone={timeZone}
                 // Where to watch it, for a match still to play (T-1560): a
-                // cancelled or postponed one has nothing to tune in to.
+                // cancelled or postponed one has nothing to tune in to, nor
+                // one still scheduled long after its kick-off (T-1710).
                 below={
-                  stillToPlay(fixture.status) && (
+                  stillToPlay(fixture.status) &&
+                  !awaitingUpdate(fixture) && (
                     <div className="ps-[5.625rem]">
                       <ViewingPanel
                         variant="line"

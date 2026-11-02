@@ -29,6 +29,7 @@ import { cx } from '@/components/ui/cx';
 import { formatDate, formatNumber } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
 import { followAction, unfollowAction } from '@/lib/auth-actions';
+import { awaitingUpdate } from '@/lib/live';
 import {
   COVERAGE_KEY,
   STATUS_KEY,
@@ -355,12 +356,15 @@ export function When({
     minute: '2-digit',
     hourCycle: 'h23',
   });
-  const word = STATUS_KEY[status];
+  // Still scheduled long after its kick-off (T-1710, D-343), as the API
+  // derived it: the day stays, the kick-off time gives way to the word.
+  const awaiting = awaitingUpdate(fixture);
+  const word: MessageKey | undefined = awaiting ? 'status.awaitingUpdate' : STATUS_KEY[status];
   return (
     <span className="flex flex-col font-mono text-xs [:root:is(:lang(fa),:lang(ar))_&]:font-sans leading-snug text-muted">
       <time dateTime={fixture.kickoff_at}>
         <span className="block">{day}</span>
-        {status !== 'finished' && <span className="block">{time}</span>}
+        {status !== 'finished' && !awaiting && <span className="block">{time}</span>}
       </time>
       {word !== undefined && (
         <span

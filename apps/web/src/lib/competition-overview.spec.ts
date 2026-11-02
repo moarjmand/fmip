@@ -168,6 +168,11 @@ describe('the Overview’s round (T-1385)', () => {
     expect(currentMatchweek('en', { results: [], fixtures: [postponed, fx()] })?.label).toBe(
       'Matchweek 8',
     );
+    // Nor one still scheduled long after its kick-off (T-1710, D-343).
+    const awaiting = fx({ round: 'Regular Season - 7', freshness: 'awaiting_update' });
+    expect(currentMatchweek('en', { results: [], fixtures: [awaiting, fx()] })?.label).toBe(
+      'Matchweek 8',
+    );
   });
 
   it('shows the last round played when nothing is left, and nothing for an empty season', () => {
@@ -301,7 +306,6 @@ describe('the season in figures (T-1385)', () => {
 });
 
 describe('the day of matches (T-1498)', () => {
-  const now = Date.parse('2026-10-25T09:00:00.000Z');
   const season = (fixtures: SeasonFixture[], results: SeasonFixture[] = []) => ({
     fixtures,
     results,
@@ -317,29 +321,38 @@ describe('the day of matches (T-1498)', () => {
       score: { home: 1, away: 0 },
     });
     const tomorrow = fx({ id: 't', kickoff_at: '2026-10-26T19:00:00.000Z' });
-    const day = nextMatchDay(season([late, early, tomorrow], [done]), 'Europe/London', now);
+    const day = nextMatchDay(season([late, early, tomorrow], [done]), 'Europe/London');
     expect(day?.day).toBe('2026-10-25');
     expect(day?.fixtures.map((f) => f.id)).toEqual(['d', 'e', 'l']);
   });
 
   it('reads the day in the reader’s zone: 23:30 in London is the next day in Tehran', () => {
     const f = fx({ kickoff_at: '2026-10-25T22:30:00.000Z' });
-    expect(nextMatchDay(season([f]), 'Europe/London', now)?.day).toBe('2026-10-25');
-    expect(nextMatchDay(season([f]), 'Asia/Tehran', now)?.day).toBe('2026-10-26');
+    expect(nextMatchDay(season([f]), 'Europe/London')?.day).toBe('2026-10-25');
+    expect(nextMatchDay(season([f]), 'Asia/Tehran')?.day).toBe('2026-10-26');
   });
 
   it('lets a live match set the day, and never an old match the feed left scheduled', () => {
-    const stale = fx({ id: 's', kickoff_at: '2026-10-20T13:00:00.000Z' });
+    // The API's word (T-1710, D-343), never the page's own clock.
+    const stale = fx({
+      id: 's',
+      kickoff_at: '2026-10-20T13:00:00.000Z',
+      freshness: 'awaiting_update',
+    });
     const next = fx({ id: 'n', kickoff_at: '2026-10-28T13:00:00.000Z' });
-    expect(nextMatchDay(season([stale, next]), 'UTC', now)?.day).toBe('2026-10-28');
+    expect(nextMatchDay(season([stale, next]), 'UTC')?.day).toBe('2026-10-28');
+    // Without the word the match is still to come: the page does not re-judge it.
+    expect(nextMatchDay(season([{ ...stale, freshness: null }, next]), 'UTC')?.day).toBe(
+      '2026-10-20',
+    );
     const live = fx({ id: 'v', kickoff_at: '2026-10-25T08:30:00.000Z', status: 'live' });
-    expect(nextMatchDay(season([live, next]), 'UTC', now)?.day).toBe('2026-10-25');
+    expect(nextMatchDay(season([live, next]), 'UTC')?.day).toBe('2026-10-25');
   });
 
   it('has no day when nothing is left to play', () => {
     const done = fx({ status: 'finished', score: { home: 0, away: 0 } });
-    expect(nextMatchDay(season([], [done]), 'UTC', now)).toBeNull();
-    expect(nextMatchDay(season([fx({ status: 'postponed' })]), 'UTC', now)).toBeNull();
+    expect(nextMatchDay(season([], [done]), 'UTC')).toBeNull();
+    expect(nextMatchDay(season([fx({ status: 'postponed' })]), 'UTC')).toBeNull();
   });
 
   it('gives the latest day of results before the match day, finished matches only', () => {
@@ -513,7 +526,6 @@ describe('the model in this league (T-1498)', () => {
 });
 
 describe('the season round by round (T-1636, D-298)', () => {
-  const now = Date.parse('2026-10-25T09:00:00.000Z');
   const played = (over: Partial<SeasonFixture>) =>
     fx({ status: 'finished', score: { home: 1, away: 1 }, ...over });
   const mw = (round: number, kickoff: string, over: Partial<SeasonFixture> = {}) =>
@@ -606,20 +618,20 @@ describe('the season round by round (T-1636, D-298)', () => {
     const r9next = mw(9, '2026-10-26T20:00:00.000Z');
     const r10 = mw(10, '2026-10-31T15:00:00.000Z');
     const at = (fixtures: SeasonFixture[], results: SeasonFixture[]) =>
-      defaultRound(seasonRounds('en', { results, fixtures }, 'UTC'), now)?.label;
+      defaultRound(seasonRounds('en', { results, fixtures }, 'UTC'))?.label;
     expect(at([r9next, r10], [r9, r8])).toBe('Matchweek 9');
     expect(at([r10], [r9, r8])).toBe('Matchweek 10');
     const live = mw(10, '2026-10-25T08:30:00.000Z', { status: 'live' });
     expect(at([r9next, live], [r9, r8])).toBe('Matchweek 10');
     // An old match the feed left "scheduled" does not pull the page back to its round.
-    const stale = mw(7, '2026-10-11T14:00:00.000Z');
+    const stale = mw(7, '2026-10-11T14:00:00.000Z', { freshness: 'awaiting_update' });
     expect(at([stale, r10], [r9, r8])).toBe('Matchweek 10');
     // Nothing left to play: the last round with a result.
     expect(at([], [r9, r8])).toBe('Matchweek 9');
     expect(at([mw(11, '2026-11-07T15:00:00.000Z', { status: 'postponed' })], [r8])).toBe(
       'Matchweek 8',
     );
-    expect(defaultRound([], now)).toBeNull();
+    expect(defaultRound([])).toBeNull();
   });
 
   it('counts the latest results back from the round opened on, or shows the last ones', () => {
@@ -627,20 +639,18 @@ describe('the season round by round (T-1636, D-298)', () => {
     const r9 = played({ round: 'Regular Season - 9', kickoff_at: '2026-10-24T14:00:00.000Z' });
     const r9next = mw(9, '2026-10-26T20:00:00.000Z');
     const open = { results: [r9, r8], fixtures: [r9next] };
-    const opening = defaultRound(seasonRounds('en', open, 'UTC'), now);
+    const opening = defaultRound(seasonRounds('en', open, 'UTC'));
     // Matchweek 9 still has a match to play: the results card is the day before it.
-    expect(resultsBefore(opening, open, 'UTC', now)).toBe('2026-10-24');
-    expect(lastResultDay(open, 'UTC', resultsBefore(opening, open, 'UTC', now))?.day).toBe(
-      '2026-10-18',
-    );
+    expect(resultsBefore(opening, open, 'UTC')).toBe('2026-10-24');
+    expect(lastResultDay(open, 'UTC', resultsBefore(opening, open, 'UTC'))?.day).toBe('2026-10-18');
     // Nothing left to play: the last results, never "no results" (rule 3).
     const closed = { results: [r9, r8], fixtures: [] };
-    const last = defaultRound(seasonRounds('en', closed, 'UTC'), now);
-    expect(resultsBefore(last, closed, 'UTC', now)).toBeNull();
-    expect(lastResultDay(closed, 'UTC', resultsBefore(last, closed, 'UTC', now))?.day).toBe(
+    const last = defaultRound(seasonRounds('en', closed, 'UTC'));
+    expect(resultsBefore(last, closed, 'UTC')).toBeNull();
+    expect(lastResultDay(closed, 'UTC', resultsBefore(last, closed, 'UTC'))?.day).toBe(
       '2026-10-24',
     );
-    expect(resultsBefore(null, { results: [], fixtures: [] }, 'UTC', now)).toBeNull();
+    expect(resultsBefore(null, { results: [], fixtures: [] }, 'UTC')).toBeNull();
   });
 
   it('reads `?round=` as a round of this season, and links one keeping the season', () => {

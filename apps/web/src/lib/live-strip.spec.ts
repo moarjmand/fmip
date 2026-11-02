@@ -72,6 +72,19 @@ describe('when the strip may be behind (rule 4)', () => {
     );
   });
 
+  it('not for a match still scheduled long after its kick-off: its chip says so (T-1710, D-343)', () => {
+    const stuck = stripCard({
+      kickoff_at: '2026-10-11T09:00:00.000Z',
+      freshness: 'awaiting_update',
+    });
+    expect(stripBehindAt([stuck], generated)).toBeNull();
+    expect(stripIsBehind([stuck], generated, NOW + 86_400_000)).toBe(false);
+    const later = stripCard({ kickoff_at: '2026-10-11T17:00:00.000Z' });
+    expect(stripBehindAt([stuck, later], generated)).toBe(
+      Date.parse('2026-10-11T17:00:00.000Z') + STALE_LIVE_AFTER_MS,
+    );
+  });
+
   it('at once when a chip is already behind', () => {
     const stuck = [
       stripCard({

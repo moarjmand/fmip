@@ -23,6 +23,7 @@ import {
   dayKey,
   roundDays,
 } from '@/lib/competition-overview';
+import { awaitingUpdate } from '@/lib/live';
 import type { CardForecast } from '@/lib/score-card-products';
 import { wholePercentages } from '@/lib/triple';
 import { formatFixed, formatPercent } from '@/lib/words';
@@ -318,7 +319,11 @@ function MatchState({
       </span>
     );
   }
-  const word = STATUS_KEY[status as keyof typeof STATUS_KEY];
+  // Still scheduled long after its kick-off (T-1710, D-343), as the API
+  // derived it: the word, never a kick-off time that reads as still to come.
+  const word: MessageKey | undefined = awaitingUpdate(fixture)
+    ? 'status.awaitingUpdate'
+    : STATUS_KEY[status as keyof typeof STATUS_KEY];
   if (word !== undefined) {
     return (
       <span

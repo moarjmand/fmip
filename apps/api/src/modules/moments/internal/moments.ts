@@ -258,7 +258,10 @@ export function bigOneOf(
     featured.has(card.id) ? 1 : rank(card) < BIG_COMPETITIONS ? 2 : 3;
 
   const live = home.filter((card) => card.status === 'live' && tier(card) < 3);
-  const scheduled = home.filter((card) => card.status === 'scheduled');
+  // A match still scheduled long after its kick-off is not to come (T-1710, D-343).
+  const scheduled = home.filter(
+    (card) => card.status === 'scheduled' && card.freshness !== 'awaiting_update',
+  );
   const scheduledDays = [...new Set(scheduled.map(day))].sort();
   const soon = scheduledDays.filter((d) => d <= shiftDate(today, 1));
   const window = new Set(soon.length > 0 ? soon : scheduledDays.slice(0, 1));

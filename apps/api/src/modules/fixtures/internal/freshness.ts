@@ -47,6 +47,25 @@ export function freshnessOf(
 }
 
 /**
+ * The freshness a list of fixtures carries (T-1710, D-343): the competition
+ * and team pages' lists, and the team page's next match. Only
+ * `awaiting_update`, by the same rule as `freshnessOf`; never `stale`, which
+ * needs the provider's live answers that only the scores answer and the
+ * match centre read.
+ */
+export function listFreshnessOf(
+  status: string,
+  kickoffAt: string,
+  now: Date,
+): 'awaiting_update' | null {
+  if (status !== 'scheduled') return null;
+  return freshnessOf('scheduled', now, now, undefined, { kickoffAt: new Date(kickoffAt) }) ===
+    'awaiting_update'
+    ? 'awaiting_update'
+    : null;
+}
+
+/**
  * How long after its kick-off a match may still be `scheduled` (T-1708,
  * D-343): three hours. Ninety minutes, half-time, added time, extra time with
  * its break and a shoot-out come to under three hours, so a match the feed

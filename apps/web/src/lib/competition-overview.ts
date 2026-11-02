@@ -10,6 +10,7 @@ import type {
 import { ACCURACY_MINIMUM_MATCHES } from '@fmip/contracts';
 import { formatNumber, intlLocale } from '@/i18n/format';
 import { competitionQuery, stageNames } from '@/lib/competition';
+import { awaitingUpdate } from '@/lib/live';
 
 /**
  * The Hybrid competition page's pure helpers (T-1385, D-203): which tab the
@@ -134,7 +135,7 @@ export function currentMatchweek(
 ): Matchweek | null {
   const anchor =
     page.fixtures.find((f) => f.status === 'live') ??
-    page.fixtures.find((f) => f.status === 'scheduled') ??
+    page.fixtures.find((f) => toCome(f)) ??
     page.results[0];
   if (anchor === undefined) return null;
   const state = page.fixtures.includes(anchor) ? 'next' : 'latest';
@@ -311,10 +312,15 @@ export interface MatchDay {
 }
 
 /**
- * A scheduled match this long past its kick-off with no word from the feed
- * does not make its day "the next match day": it is late news, not the plan.
+ * A scheduled match still to come: not one the API says is awaiting an update
+ * (T-1710, D-343: still scheduled over three hours after its kick-off). Such a
+ * match does not make its day "the next match day" or its round the one the
+ * page opens on: it is late news, not the plan. The rule is the API's; the
+ * page reads its word and keeps no clock of its own (it kept six hours before).
  */
-const STALE_SCHEDULED_MS = 6 * 60 * 60 * 1000;
+function toCome(f: SeasonFixture): boolean {
+  return f.status === 'scheduled' && !awaitingUpdate(f);
+}
 
 function sameDay(
   page: Pick<CompetitionPage, 'results' | 'fixtures'>,
@@ -335,14 +341,9 @@ function sameDay(
 export function nextMatchDay(
   page: Pick<CompetitionPage, 'results' | 'fixtures'>,
   timeZone: string,
-  now: number,
 ): MatchDay | null {
   const first = [...page.fixtures]
-    .filter(
-      (f) =>
-        f.status === 'live' ||
-        (f.status === 'scheduled' && Date.parse(f.kickoff_at) > now - STALE_SCHEDULED_MS),
-    )
+    .filter((f) => f.status === 'live' || toCome(f))
     .sort(byKickoff)[0];
   if (first === undefined) return null;
   const day = dayKey(first.kickoff_at, timeZone);
@@ -437,7 +438,7 @@ export function seasonRounds(
  * as for the next match day); else the last round with a result. A round of
  * postponed matches alone never sets it. Null for a season with no match.
  */
-export function defaultRound(rounds: readonly SeasonRound[], now: number): SeasonRound | null {
+export function defaultRound(rounds: readonly SeasonRound[]): SeasonRound | null {
   const live = rounds.find((r) => r.fixtures.some((f) => f.status === 'live'));
   if (live !== undefined) return live;
   let next: { round: SeasonRound; at: number } | null = null;
@@ -445,7 +446,7 @@ export function defaultRound(rounds: readonly SeasonRound[], now: number): Seaso
   for (const round of rounds) {
     for (const f of round.fixtures) {
       const at = Date.parse(f.kickoff_at);
-      if (f.status === 'scheduled' && at > now - STALE_SCHEDULED_MS) {
+      if (toCome(f)) {
         if (next === null || at < next.at) next = { round, at };
       }
       if (f.status === 'finished' && (played === null || at > played.at)) played = { round, at };
@@ -466,12 +467,11 @@ export function resultsBefore(
   opening: SeasonRound | null,
   page: Pick<CompetitionPage, 'results' | 'fixtures'>,
   timeZone: string,
-  now: number,
 ): string | null {
   if (opening !== null && opening.fixtures.some((f) => f.status !== 'finished')) {
     return dayKey(opening.first, timeZone);
   }
-  return nextMatchDay(page, timeZone, now)?.day ?? null;
+  return nextMatchDay(page, timeZone)?.day ?? null;
 }
 
 /** `?round=`: a round's number in this season; anything else (or nothing) is the page's own. */

@@ -1,11 +1,13 @@
 import type {
   CompetitionDirectoryEntry,
   EntityMedia,
+  Freshness,
   ScoresGroup,
   ScoresResponse,
 } from '@fmip/contracts';
 import { formatDate, formatTime } from '@/i18n/format';
 import { BAR_COMPETITIONS } from '@/lib/competitions-directory';
+import { awaitingUpdate } from '@/lib/live';
 import { dateIn } from '@/lib/scores';
 
 /**
@@ -64,8 +66,10 @@ export function railStatus(
   if (today !== null) {
     const live = today.fixtures.filter((card) => card.status === 'live').length;
     if (live > 0) return { kind: 'live', count: live };
+    // Not one still scheduled long after its kick-off (T-1710, D-343): it is
+    // not "later today", and its time has passed.
     const later = today.fixtures
-      .filter((card) => card.status === 'scheduled')
+      .filter((card) => card.status === 'scheduled' && !awaitingUpdate(card))
       .map((card) => card.kickoff_at)
       .sort((a, b) => Date.parse(a) - Date.parse(b))[0];
     if (later !== undefined) return { kind: 'later', at: later };
@@ -148,11 +152,12 @@ export function railLeagues(
  * inside each. A league marked "2 live" opens on its two live matches, not
  * on the ones that finished this afternoon.
  */
-export function drawerFixtures<T extends { status: string; kickoff_at: string }>(
-  fixtures: readonly T[],
-): T[] {
+export function drawerFixtures<
+  T extends { status: string; kickoff_at: string; freshness?: Freshness | null },
+>(fixtures: readonly T[]): T[] {
+  // One still scheduled long after its kick-off is with the rest (T-1710, D-343).
   const rank = (card: T): number =>
-    card.status === 'live' ? 0 : card.status === 'scheduled' ? 1 : 2;
+    card.status === 'live' ? 0 : card.status === 'scheduled' && !awaitingUpdate(card) ? 1 : 2;
   return [...fixtures].sort(
     (a, b) => rank(a) - rank(b) || Date.parse(a.kickoff_at) - Date.parse(b.kickoff_at),
   );

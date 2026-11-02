@@ -14,6 +14,7 @@ import {
   type ViewingOption,
 } from '@fmip/contracts';
 import { formatDate } from '@/i18n/format';
+import { awaitingUpdate } from './live';
 import { dateIn, shiftDate } from './scores';
 import { optionsState } from './viewing';
 
@@ -138,8 +139,10 @@ export function heroMatch(
     involves(card, followedTeams) ? 0 : featured.has(card.id) ? 1 : rank(card) < big ? 2 : 3;
   const cards = allCards(scores);
   const live = cards.filter((card) => card.status === 'live' && tier(card) < 3);
+  // Not one still scheduled long after its kick-off (T-1710, D-343): it is not to come.
   const scheduled = cards.filter(
-    (card) => card.status === 'scheduled' && dayOf(card, timeZone) >= today,
+    (card) =>
+      card.status === 'scheduled' && !awaitingUpdate(card) && dayOf(card, timeZone) >= today,
   );
   const days = [...new Set(scheduled.map((card) => dayOf(card, timeZone)))].sort();
   const soon = days.filter((day) => day <= shiftDate(today, 1));

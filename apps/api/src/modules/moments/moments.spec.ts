@@ -254,6 +254,19 @@ describe('big_one', () => {
     expect(kindOf(result, 'smaller')).not.toBe('big_one');
   });
 
+  it('is never a match still scheduled long after its kick-off (T-1710, D-343)', () => {
+    const result = run({
+      cards: [
+        {
+          ...card({ id: 'stuck', competition: 'C0', kickoff: at(-4 * HOUR) }),
+          freshness: 'awaiting_update',
+        },
+        card({ id: 'later', competition: 'C1', kickoff: at(2 * HOUR) }),
+      ],
+    });
+    expect(idsOf(result, 'big_one')).toEqual(['later']);
+  });
+
   it('is none while the hero is in play, for a client that does not ask', () => {
     const result = run({
       cards: [live('playing', 30, [0, 0]), card({ id: 'later', kickoff: at(3 * HOUR) })],

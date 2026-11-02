@@ -139,6 +139,16 @@ describe('the front page (T-1382, D-200; T-1495, D-270)', () => {
     expect(hero(data, '2026-10-08', 'UTC')).toEqual(['early', 'today']);
   });
 
+  it('never opens on a match still scheduled long after its kick-off (T-1710, D-343)', () => {
+    const stuck = {
+      ...pgpl('stuck', 'scheduled', '2026-10-08T09:00:00Z'),
+      freshness: 'awaiting_update' as const,
+    };
+    const data = scores([], [[stuck, pgpl('next', 'scheduled', '2026-10-08T18:00:00Z')]]);
+    expect(hero(data, '2026-10-08', 'UTC')).toEqual(['next', 'today']);
+    expect(hero(scores([], [[stuck]]), '2026-10-08', 'UTC')).toBeNull();
+  });
+
   it('puts a member’s own team first, then an editor’s feature, and never a finished match', () => {
     const data = scores(
       [],

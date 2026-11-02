@@ -10,6 +10,7 @@ import type { Confederation } from './confederation';
 import type { CoverageState, Covered } from './coverage';
 import type { LeagueZones } from './league-zones';
 import type { EntityMedia } from './media';
+import type { Freshness } from './scores';
 import type { AbsenceReasonCode, ExpectedGoalsMetric, ExpectedGoalsSource } from './match-centre';
 
 export interface CountrySummary {
@@ -378,6 +379,14 @@ export interface SeasonFixture {
    * only, where the season's figures leave these matches out and say so.
    */
   qualifying?: boolean;
+  /**
+   * `awaiting_update` when the match is still `scheduled` more than three
+   * hours after its kick-off (T-1710, D-343), derived by the API when it
+   * answers, as on a score card; else `null`. Only that word is set on these
+   * lists: a live match's staleness is the scores answer's. Absent where a
+   * builder does not derive it.
+   */
+  freshness?: Freshness | null;
 }
 
 // ---------------------------------------------------------------------------
