@@ -213,3 +213,52 @@ export interface ConsoleAuditEntry {
   reason: string;
   at: string;
 }
+
+// --- Chat with an agent (T-1722, D-350) ------------------------------------
+
+/** The longest message a console person may write to an agent, in characters. */
+export const CONSOLE_MESSAGE_MAX = 4000;
+/** The longest reply an agent's run may post back; a longer one is cut. */
+export const CONSOLE_REPLY_MAX = 8000;
+/** How often the maintainer's computer answers the queue, in minutes (said on the page). */
+export const CONSOLE_CHAT_EVERY_MINUTES = 10;
+
+/** A person's message: waiting, taken by the computer, answered, or not answered. */
+export type ConsoleMessageStatus = 'queued' | 'answering' | 'answered' | 'failed';
+
+export interface ConsoleMessage {
+  id: string;
+  agent: string;
+  /** `person`: a console person wrote it; `agent`: the agent's reply, posted by the computer. */
+  author_kind: 'person' | 'agent';
+  /** The person's display name, or the agent's name. */
+  author: string;
+  body: string;
+  created_at: string;
+  /** A person's message only; `null` on an agent's reply. */
+  status: ConsoleMessageStatus | null;
+  /** On an agent's reply: the person's message it answers. */
+  reply_to: string | null;
+  /** On a failed message: why it was not answered, as the computer said. */
+  failure: string | null;
+}
+
+/** `GET /console/agents/:name/messages[?before=<id>]`: oldest first, the newest last. */
+export interface ConsoleConversation {
+  agent: string;
+  messages: ConsoleMessage[];
+  /** Whether there are older messages; ask again with `before` = the first message's id. */
+  has_older: boolean;
+}
+
+/** `POST /console/agents/:name/messages`. */
+export interface ConsolePostMessageRequest {
+  body: string;
+}
+
+/** One message the computer took (`take-messages`), with the conversation it belongs to. */
+export interface ConsoleChatItem {
+  message: ConsoleMessage;
+  /** The agent's conversation up to and including `message`, oldest first, at most 20. */
+  conversation: ConsoleMessage[];
+}

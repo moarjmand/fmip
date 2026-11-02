@@ -532,6 +532,7 @@ const SUBJECT_WORDS: Record<RateLimitCeiling['subject'], string> = {
   member: 'per member',
   address: 'per network address',
   identifier: 'per identifier typed',
+  console_user: 'per agents-console account',
 };
 
 export function RateLimitsSection({ report }: { report: RateLimitsReport | null }) {

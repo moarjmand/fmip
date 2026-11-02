@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { CONSOLE_CHAT_EVERY_MINUTES } from '@fmip/contracts';
 import { applyConsoleCookie, consoleCall } from './console-api';
 import { consoleUrl } from './console-base';
 
@@ -82,6 +83,25 @@ export async function queueCommand(_: ConsoleFormState, form: FormData): Promise
   if (!result.ok) return failed(result.error?.message, 'دستور ثبت نشد.');
   revalidatePath('/console', 'layout');
   return { error: null, done: 'ثبت شد. رایانه در همگام‌سازی بعدی آن را انجام می‌دهد.' };
+}
+
+/**
+ * A message to an agent (T-1722, D-350). The API checks the agent against
+ * the roster, the length and the hourly ceiling; the maintainer's computer
+ * answers within about ten minutes.
+ */
+export async function postMessage(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {
+  const agent = field(form, 'agent');
+  const result = await consoleCall(`agents/${encodeURIComponent(agent)}/messages`, {
+    method: 'POST',
+    body: { body: field(form, 'body') },
+  });
+  if (!result.ok) return failed(result.error?.message, 'پیام فرستاده نشد.');
+  revalidatePath('/console', 'layout');
+  return {
+    error: null,
+    done: `فرستاده شد. عامل حدود ${new Intl.NumberFormat('fa-IR').format(CONSOLE_CHAT_EVERY_MINUTES)} دقیقه‌ی دیگر جواب می‌دهد.`,
+  };
 }
 
 export async function addCard(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {

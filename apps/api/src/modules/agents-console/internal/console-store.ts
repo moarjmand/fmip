@@ -4,14 +4,24 @@ import type {
   ConsoleBoardCard,
   ConsoleBoardCardInput,
   ConsoleBoardColumn,
+  ConsoleChatItem,
   ConsoleCommand,
   ConsoleCommandRequest,
+  ConsoleConversation,
   ConsoleMe,
+  ConsoleMessage,
   ConsoleSnapshot,
 } from '@fmip/contracts';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
-import { SESSION_IDLE_HOURS } from './console-rules';
+import {
+  ANSWERING_TIMEOUT_MINUTES,
+  CHAT_CONTEXT,
+  CONVERSATION_PAGE,
+  FAILURE_MAX,
+  MESSAGE_CEILING,
+  SESSION_IDLE_HOURS,
+} from './console-rules';
 
 export interface ConsoleUserRow {
   id: string;
@@ -86,6 +96,36 @@ const command = (r: CommandRow): ConsoleCommand => ({
   finished_at: r.finished_at?.toISOString() ?? null,
   outcome: r.outcome,
 });
+
+interface MessageRow {
+  id: string;
+  agent: string;
+  author_id: string | null;
+  author: string | null;
+  body: string;
+  status: ConsoleMessage['status'];
+  reply_to: string | null;
+  failure: string | null;
+  created_at: Date;
+}
+
+const MESSAGE_COLUMNS = `m.id, m.agent, m.author_id, u.display_name AS author, m.body, m.status,
+  m.reply_to, m.failure, m.created_at`;
+
+const message = (r: MessageRow): ConsoleMessage => ({
+  id: r.id,
+  agent: r.agent,
+  author_kind: r.author_id === null ? 'agent' : 'person',
+  author: r.author_id === null ? r.agent : (r.author ?? '?'),
+  body: r.body,
+  created_at: r.created_at.toISOString(),
+  status: r.status,
+  reply_to: r.reply_to,
+  failure: r.failure,
+});
+
+export type PostMessageOutcome =
+  { kind: 'ok'; message: ConsoleMessage } | { kind: 'limited'; retryAfterSeconds: number };
 
 /**
  * The agents console's tables (T-1696, T-1697, D-340). Every change a person
@@ -447,6 +487,167 @@ export class PostgresConsoleStore {
       });
       return true;
     });
+  }
+
+  // --- Chat with an agent (T-1722, D-350) ----------------------------------
+
+  /**
+   * A person's message to an agent, queued for the computer and audited, or
+   * refused past the `console_message` ceiling: that person's messages in
+   * the current clock hour, counted from these rows. The person's row is
+   * locked first, so two of their posts at once are counted one after the
+   * other; a refusal is counted in `rate_refusal` like the API's other
+   * ceilings (T-811). A missing `rate_limit` row means no ceiling.
+   */
+  async postMessage(agent: string, body: string, actor: ConsoleMe): Promise<PostMessageOutcome> {
+    return this.transaction(async (client) => {
+      await client.query(`SELECT 1 FROM console_user WHERE id = $1 FOR UPDATE`, [actor.id]);
+      const { rows: verdict } = await client.query<{
+        per_hour: number | null;
+        used: number;
+        retry_after: number;
+      }>(
+        `SELECT l.per_hour,
+                (SELECT count(*) FROM console_message
+                  WHERE author_id = $1 AND created_at >= date_trunc('hour', now()))::int AS used,
+                ceil(extract(epoch FROM date_trunc('hour', now()) + interval '1 hour' - now()))::int
+                  AS retry_after
+           FROM (SELECT 1) AS one LEFT JOIN rate_limit l ON l.action = $2`,
+        [actor.id, MESSAGE_CEILING],
+      );
+      const row = verdict[0];
+      if (row !== undefined && row.per_hour !== null && row.used >= row.per_hour) {
+        // The day is the application's, like the report's (RateLimitsService).
+        await client.query(
+          `INSERT INTO rate_refusal (action, day, count) VALUES ($1, $2::date, 1)
+           ON CONFLICT (action, day) DO UPDATE SET count = rate_refusal.count + 1`,
+          [MESSAGE_CEILING, new Date().toISOString().slice(0, 10)],
+        );
+        return { kind: 'limited', retryAfterSeconds: Math.max(1, row.retry_after) };
+      }
+      const { rows } = await client.query<{ id: string }>(
+        `INSERT INTO console_message (agent, author_id, body, status) VALUES ($1, $2, $3, 'queued')
+         RETURNING id`,
+        [agent, actor.id, body],
+      );
+      const id = rows[0]!.id;
+      await this.audit(client, {
+        actorId: actor.id,
+        actorName: actor.username,
+        action: 'chat.message_posted',
+        targetType: 'agent',
+        targetId: agent,
+        reason: 'message to the agent',
+        next: { message_id: id, characters: [...body].length },
+      });
+      return { kind: 'ok', message: (await this.messagesById(client, [id]))[0]! };
+    });
+  }
+
+  /** An agent's conversation, a page of it ending before `before` (a message id), oldest first. */
+  async conversation(
+    agent: string,
+    before: string | null = null,
+    limit = CONVERSATION_PAGE,
+  ): Promise<ConsoleConversation> {
+    const { rows } = await this.pool.query<MessageRow>(
+      `SELECT ${MESSAGE_COLUMNS}
+         FROM console_message m LEFT JOIN console_user u ON u.id = m.author_id
+        WHERE m.agent = $1
+          AND ($2::uuid IS NULL OR (m.created_at, m.id) <
+               (SELECT b.created_at, b.id FROM console_message b WHERE b.id = $2 AND b.agent = $1))
+        ORDER BY m.created_at DESC, m.id DESC
+        LIMIT $3`,
+      [agent, before, limit + 1],
+    );
+    return {
+      agent,
+      messages: rows.slice(0, limit).map(message).reverse(),
+      has_older: rows.length > limit,
+    };
+  }
+
+  /**
+   * The computer takes every queued message, oldest first, each with its
+   * conversation up to it; a message taken over an hour ago and never
+   * answered (the run died) is taken again.
+   */
+  async takeMessages(): Promise<ConsoleChatItem[]> {
+    const { rows } = await this.pool.query<MessageRow>(
+      `WITH taken AS (
+         UPDATE console_message SET status = 'answering', taken_at = now()
+          WHERE author_id IS NOT NULL
+            AND (status = 'queued'
+                 OR (status = 'answering' AND taken_at < now() - make_interval(mins => $1)))
+          RETURNING *
+       )
+       SELECT ${MESSAGE_COLUMNS}
+         FROM taken m LEFT JOIN console_user u ON u.id = m.author_id
+        ORDER BY m.created_at, m.id`,
+      [ANSWERING_TIMEOUT_MINUTES],
+    );
+    const items: ConsoleChatItem[] = [];
+    for (const row of rows) {
+      const context = await this.pool.query<MessageRow>(
+        `SELECT ${MESSAGE_COLUMNS}
+           FROM console_message m LEFT JOIN console_user u ON u.id = m.author_id
+          WHERE m.agent = $1
+            AND (m.created_at, m.id) <= (SELECT b.created_at, b.id FROM console_message b WHERE b.id = $2)
+          ORDER BY m.created_at DESC, m.id DESC
+          LIMIT $3`,
+        // The row's own time from the table: a JavaScript Date drops the microseconds.
+        [row.agent, row.id, CHAT_CONTEXT],
+      );
+      items.push({ message: message(row), conversation: context.rows.map(message).reverse() });
+    }
+    return items;
+  }
+
+  /**
+   * The computer's answer to a message it took: the agent's reply stored as
+   * the agent's message, or why there is none. False when no such message
+   * is waiting for an answer.
+   */
+  async postReply(id: string, status: 'answered' | 'failed', text: string): Promise<boolean> {
+    return this.transaction(async (client) => {
+      const { rows } = await client.query<{ agent: string }>(
+        `SELECT agent FROM console_message
+          WHERE id = $1 AND author_id IS NOT NULL AND status = 'answering' FOR UPDATE`,
+        [id],
+      );
+      const waiting = rows[0];
+      if (waiting === undefined) return false;
+      if (status === 'answered') {
+        await client.query(
+          `INSERT INTO console_message (agent, author_id, body, reply_to) VALUES ($1, NULL, $2, $3)`,
+          [waiting.agent, text, id],
+        );
+        await client.query(
+          `UPDATE console_message SET status = 'answered', answered_at = now() WHERE id = $1`,
+          [id],
+        );
+      } else {
+        const why = [...(text.trim() || 'The run did not answer.')];
+        await client.query(
+          `UPDATE console_message SET status = 'failed', failure = $2, answered_at = now() WHERE id = $1`,
+          [
+            id,
+            why.length > FAILURE_MAX ? `${why.slice(0, FAILURE_MAX - 1).join('')}…` : why.join(''),
+          ],
+        );
+      }
+      return true;
+    });
+  }
+
+  private async messagesById(client: PoolClient, ids: string[]): Promise<ConsoleMessage[]> {
+    const { rows } = await client.query<MessageRow>(
+      `SELECT ${MESSAGE_COLUMNS}
+         FROM console_message m LEFT JOIN console_user u ON u.id = m.author_id
+        WHERE m.id = ANY($1::uuid[]) ORDER BY m.created_at, m.id`,
+      [ids],
+    );
+    return rows.map(message);
   }
 
   // --- Audit ---------------------------------------------------------------

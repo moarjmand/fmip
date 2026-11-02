@@ -5,10 +5,12 @@ import { DatabaseModule } from '../database/database.module';
 import { AgentsConsoleModule } from '../modules/agents-console/agents-console.module';
 import {
   INVITATION_DAYS,
+  MESSAGE_ID,
   SNAPSHOT_MAX_BYTES,
   checkCard,
   checkSnapshot,
   consoleTokenText,
+  replyText,
 } from '../modules/agents-console/internal/console-rules';
 import { PostgresConsoleStore } from '../modules/agents-console/internal/console-store';
 import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/identity.service';
@@ -22,6 +24,8 @@ import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/i
  *     ... take-commands
  *     ... finish-command --id <uuid> --status done|failed --outcome "what happened"
  *     ... import-board --as <username> < cards.json
+ *     ... take-messages
+ *     ... post-reply --message <uuid> --status answered|failed < reply.txt
  *
  * `invite` prints a one-time link to `$CONSOLE_URL/invite/<token>` (D-341), or
  * `https://$CONSOLE_HOST/invite/<token>` when that is unset,
@@ -32,6 +36,12 @@ import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/i
  * outcome back. `import-board` moves the project board's cards from its
  * claude.ai page once (T-1700): a JSON list of cards, each with its old id as
  * `source_ref`, so running it again adds none twice.
+ *
+ * The chat with the agents (T-1722, D-350): `take-messages` prints the queued
+ * messages, each with its conversation, as JSON and marks them answering;
+ * `post-reply` stores the agent's reply, read from standard input (never
+ * from the arguments, so no shell quoting touches it), or with `failed` why
+ * there is none.
  */
 
 export type ConsoleCliArgs =
@@ -40,6 +50,8 @@ export type ConsoleCliArgs =
   | { kind: 'take-commands' }
   | { kind: 'finish-command'; id: string; status: 'done' | 'failed'; outcome: string }
   | { kind: 'import-board'; as: string }
+  | { kind: 'take-messages' }
+  | { kind: 'post-reply'; id: string; status: 'answered' | 'failed' }
   | { kind: 'error'; message: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -82,10 +94,21 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
       if (outcome === '') return { kind: 'error', message: '--outcome: what happened.' };
       return { kind: 'finish-command', id, status, outcome };
     }
+    case 'take-messages':
+      return { kind: 'take-messages' };
+    case 'post-reply': {
+      const id = flags.get('message') ?? '';
+      const status = flags.get('status');
+      if (!MESSAGE_ID.test(id)) return { kind: 'error', message: '--message: the message id.' };
+      if (status !== 'answered' && status !== 'failed')
+        return { kind: 'error', message: '--status: answered or failed.' };
+      return { kind: 'post-reply', id, status };
+    }
     default:
       return {
         kind: 'error',
-        message: 'invite | load-snapshot | take-commands | finish-command | import-board',
+        message:
+          'invite | load-snapshot | take-commands | finish-command | import-board | take-messages | post-reply',
       };
   }
 }
@@ -97,7 +120,7 @@ async function readStdin(): Promise<string> {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk));
     size += buffer.length;
     if (size > SNAPSHOT_MAX_BYTES)
-      throw new Error(`The snapshot is over ${SNAPSHOT_MAX_BYTES} bytes.`);
+      throw new Error(`Standard input is over ${SNAPSHOT_MAX_BYTES} bytes.`);
     chunks.push(buffer);
   }
   return Buffer.concat(chunks).toString('utf8');
@@ -199,6 +222,21 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
           return 1;
         }
         return 0;
+      case 'take-messages':
+        process.stdout.write(`${JSON.stringify(await store.takeMessages())}\n`);
+        return 0;
+      case 'post-reply': {
+        const text = replyText(await readStdin());
+        if (args.status === 'answered' && text === '') {
+          console.error('An answer needs a reply on standard input.');
+          return 1;
+        }
+        if (!(await store.postReply(args.id, args.status, text))) {
+          console.error(`No message ${args.id} is waiting for an answer.`);
+          return 1;
+        }
+        return 0;
+      }
     }
   } finally {
     await app.close();
