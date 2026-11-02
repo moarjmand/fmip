@@ -3616,7 +3616,7 @@ machine, `docs/18-handover.md`.
 | `1765900500000_agents-console.sql` | The agents console (T-1696, D-340): `agents.traveltohormuz.ir`, for the maintainer and the teammate, apart from the site's members. |
 | `1765900600000_placeholder-lineup-persons.sql` | T-1707 (D-342): line-up slots a feed labels "Trialist", "Unknown", "TBA" are not people. |
 | `1765900700000_trim-team-names.sql` | T-1711 (str-2026-11-02-02): team names stored with a provider's padding. |
-| `1765900800000_console-message.sql` | Chat with an agent in the agents console (T-1722, D-350). |
+| `1765900830000_console-message.sql` | Chat with an agent in the agents console (T-1722, D-350). |
 
 ## packages/db/scripts
 
