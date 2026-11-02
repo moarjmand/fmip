@@ -413,6 +413,15 @@ the remote's side: raise the account's cap (on B2, a payment method and the
 Caps & Alerts page), or keep fewer days with `BACKUP_KEEP_REMOTE_DAYS`. The
 next nightly run and the next ship then catch up by themselves.
 
+**A daily download cap.** B2's free tier also caps download-class requests
+per day, and the monthly drill downloads the whole dump (about 1 GB). Until
+T-1719 the nightly upload asked the remote whether each file was already
+there, a download-class request, so on 2026-11-02 the drill's download left
+no room and the day's upload failed with `failed to HEAD for download: 403`
+before sending a byte. `backup.sh` now uploads with `--no-check-dest` (each
+name is new) and re-reads the size by listing, so an upload never depends on
+the download cap.
+
 The `Restore drill` line reads the newest drill from `backup_run` and whether
 `fmip-restore-drill.timer` is enabled: `ON` with the age of the newest pass
 and the next run, `STALE` past 35 days, `FAILED` when the newest drill
