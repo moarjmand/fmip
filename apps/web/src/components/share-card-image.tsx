@@ -1,6 +1,7 @@
-import type { ReactElement } from 'react';
+import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import { BrandMark } from '@/components/brand-mark';
-import { BRAND_COLOURS } from '@/lib/brand-colours';
+import { NIGHT_COLOURS } from '@/lib/brand-colours';
+import { CARD_FACES } from '@/lib/card-fonts';
 import {
   nameSize,
   type MatchCardText,
@@ -12,51 +13,117 @@ import {
  * The pictures behind the share cards (T-520), for `next/og`'s
  * `ImageResponse`. Its renderer understands inline styles and flexbox only,
  * so nothing here uses the app's classes; every box with more than one child
- * says `display: flex`. The words come from `lib/share-card.ts`. Nor can it
- * read a CSS variable, so the colours are the light tokens' values from
- * `lib/brand-colours.ts` (T-602): a card is an image, drawn once, in light.
+ * says `display: flex`, and no grid, `font-stretch` or logical property is
+ * used (none of them is drawn). The words come from `lib/share-card.ts`.
+ *
+ * Drawn on Night (T-1723, D-351, turning T-602's light card dark, as every
+ * card on the Design System's canvas is): the colours are the dark tokens'
+ * values from `lib/brand-colours.ts`, since the renderer cannot read a CSS
+ * variable, and the faces are the bundled TrueType files (`lib/card-fonts.ts`).
+ * Turquoise is the model's colour and nothing else's (rule 6).
  */
 
-const INK = BRAND_COLOURS.text;
-const MUTED = BRAND_COLOURS['text-muted'];
-const PAPER = BRAND_COLOURS.canvas;
-const RULE = BRAND_COLOURS.border;
+export const INK = NIGHT_COLOURS.text;
+export const MUTED = NIGHT_COLOURS['text-muted'];
+export const CAPTION = NIGHT_COLOURS.caption;
+export const GROUND = NIGHT_COLOURS.canvas;
+export const RULE = NIGHT_COLOURS.border;
+export const SAFFRON = NIGHT_COLOURS.accent;
+export const MODEL = NIGHT_COLOURS.model;
 
-function Frame({ children }: { children: ReactElement | ReactElement[] }): ReactElement {
+export const SANS = `${CARD_FACES.sans}, sans-serif`;
+export const NARROW = `${CARD_FACES.narrow}, ${CARD_FACES.sans}, sans-serif`;
+export const BLACK = `${CARD_FACES.black}, ${CARD_FACES.sans}, sans-serif`;
+export const MONO = `${CARD_FACES.mono}, monospace`;
+
+const flex = (style: CSSProperties = {}): CSSProperties => ({ display: 'flex', ...style });
+
+export function Frame({
+  children,
+  padding = '48px 64px',
+  gap = 24,
+}: {
+  children: ReactNode;
+  padding?: string;
+  gap?: number;
+}): ReactElement {
   return (
     <div
-      style={{
+      style={flex({
         width: '100%',
         height: '100%',
-        display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '56px 72px',
-        background: PAPER,
+        gap,
+        padding,
+        background: GROUND,
         color: INK,
-        fontFamily: 'sans-serif',
-      }}
+        fontFamily: SANS,
+      })}
     >
       {children}
     </div>
   );
 }
 
-/** The mark and the name, with the address the card links to. */
-function Brand({ host }: { host: string }): ReactElement {
+/**
+ * A crest on the white tile every logo stands on (D-280), or an empty ring of
+ * the same size when there is none to draw (rule 3: nothing made up).
+ */
+export function Crest({ src, size }: { src: string | null; size: number }): ReactElement {
+  if (src === null) {
+    return (
+      <div
+        style={flex({
+          width: size,
+          height: size,
+          borderRadius: size,
+          border: `3px solid ${RULE}`,
+        })}
+      />
+    );
+  }
+  const inner = Math.round(size * 0.7);
   return (
     <div
-      style={{
-        display: 'flex',
+      style={flex({
+        width: size,
+        height: size,
+        borderRadius: size,
+        background: NIGHT_COLOURS['logo-tile'],
         alignItems: 'center',
-        gap: 14,
-        fontSize: 28,
-        fontWeight: 700,
-        color: MUTED,
-      }}
+        justifyContent: 'center',
+      })}
     >
-      <BrandMark size={40} />
-      <div style={{ display: 'flex' }}>{`Stadiomind · ${host}`}</div>
+      {/* eslint-disable-next-line @next/next/no-img-element -- drawn by next/og, not a page */}
+      <img src={src} width={inner} height={inner} alt="" style={{ objectFit: 'contain' }} />
+    </div>
+  );
+}
+
+/** The mark, the name in capitals, and the address the card links to. */
+export function Wordmark({
+  host,
+  size = 20,
+}: {
+  host: string | null;
+  size?: number;
+}): ReactElement {
+  return (
+    <div style={flex({ alignItems: 'center', gap: Math.round(size * 0.6) })}>
+      <BrandMark size={Math.round(size * 2)} ground="night" />
+      <div style={flex({ flexDirection: 'column', gap: 4 })}>
+        <div style={flex({ fontFamily: BLACK, fontWeight: 900, fontSize: size, letterSpacing: 1 })}>
+          STADIOMIND
+        </div>
+        {host !== null && (
+          <div
+            style={flex({ fontFamily: MONO, fontSize: Math.round(size * 0.75), color: CAPTION })}
+          >
+            {host}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -64,88 +131,147 @@ function Brand({ host }: { host: string }): ReactElement {
 /** Only the product: what a card says when its page could not be read. */
 export function PlainCard(): ReactElement {
   return (
-    <Frame>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-        <BrandMark size={96} />
-        <div style={{ display: 'flex', fontSize: 72, fontWeight: 700 }}>Stadiomind</div>
+    <Frame padding="56px 72px">
+      <div style={flex({ alignItems: 'center', gap: 28 })}>
+        <BrandMark size={96} ground="night" />
+        <div style={flex({ fontFamily: BLACK, fontWeight: 900, fontSize: 72, letterSpacing: 2 })}>
+          STADIOMIND
+        </div>
       </div>
-      <div style={{ display: 'flex', fontSize: 34, color: MUTED }}>
+      <div style={flex({ fontSize: 34, color: MUTED })}>
         Live scores, match centres and forecasts
       </div>
     </Frame>
   );
 }
 
+function TeamColumn({
+  name,
+  crest,
+  muted,
+}: {
+  name: string;
+  crest: string | null;
+  muted: boolean;
+}): ReactElement {
+  return (
+    <div
+      style={flex({
+        flex: 1,
+        flexBasis: 0,
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 18,
+      })}
+    >
+      <Crest src={crest} size={176} />
+      <div
+        style={flex({
+          textAlign: 'center',
+          justifyContent: 'center',
+          fontSize: nameSize(name),
+          fontWeight: muted ? 700 : 800,
+          lineHeight: 1.1,
+          color: muted ? MUTED : INK,
+        })}
+      >
+        {name}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The match card: A10 "Matchday poster" (T-1723). The two crests and names in
+ * equal columns (a zero basis keeps the score in the middle however long
+ * either name is), the score or "v" between, the state under it, and the
+ * model's line in its own colour at the foot -- or no model line at all for a
+ * match not played as scheduled.
+ */
 export function MatchCardImage({
   text,
   host,
+  crests = { home: null, away: null },
 }: {
   text: MatchCardText;
   host: string;
+  crests?: { home: string | null; away: string | null };
 }): ReactElement {
+  const before = text.centre === 'v';
   return (
     <Frame>
-      <div style={{ display: 'flex', fontSize: 30, color: MUTED }}>{text.eyebrow}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
-          {/*
-            Equal columns (a zero basis) keep the score in the middle however
-            long either name is; a long name wraps within its own column,
-            against the score, at a size chosen for its length.
-          */}
+      <div
+        style={flex({
+          fontFamily: MONO,
+          fontSize: 22,
+          color: SAFFRON,
+          textTransform: 'uppercase',
+          letterSpacing: 1,
+        })}
+      >
+        {text.eyebrow}
+      </div>
+      <div style={flex({ flex: 1, flexDirection: 'column', justifyContent: 'center', gap: 14 })}>
+        <div style={flex({ alignItems: 'flex-start', gap: 32 })}>
+          <TeamColumn name={text.home} crest={crests.home} muted={text.loser === 'home'} />
           <div
-            style={{
-              display: 'flex',
-              flex: 1,
-              flexBasis: 0,
-              justifyContent: 'flex-end',
-              textAlign: 'end',
-              fontSize: nameSize(text.home),
-              fontWeight: 700,
-            }}
+            style={flex({
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: 176,
+              gap: 4,
+            })}
           >
-            {text.home}
+            <div
+              style={flex({
+                fontFamily: NARROW,
+                fontWeight: 700,
+                fontSize: before ? 80 : 132,
+                lineHeight: 1,
+                color: before ? CAPTION : INK,
+              })}
+            >
+              {text.centre}
+            </div>
+            {text.decided !== null && (
+              <div style={flex({ fontFamily: MONO, fontSize: 22, color: MUTED })}>
+                {text.decided}
+              </div>
+            )}
           </div>
-          <div style={{ display: 'flex', fontSize: 72, fontWeight: 700 }}>{text.centre}</div>
-          <div
-            style={{
-              display: 'flex',
-              flex: 1,
-              flexBasis: 0,
-              textAlign: 'start',
-              fontSize: nameSize(text.away),
-              fontWeight: 700,
-            }}
-          >
-            {text.away}
-          </div>
+          <TeamColumn name={text.away} crest={crests.away} muted={text.loser === 'away'} />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'center', fontSize: 32, color: MUTED }}>
+        <div
+          style={flex({ justifyContent: 'center', fontSize: 26, fontWeight: 700, color: MUTED })}
+        >
           {text.status}
         </div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {text.forecast === null ? (
-          <div style={{ display: 'flex' }} />
+      <div
+        style={flex({
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 32,
+          borderTop: `1px solid ${RULE}`,
+          paddingTop: 18,
+        })}
+      >
+        {text.model === null ? (
+          <div style={flex({ flex: 1 })} />
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              borderTop: `2px solid ${RULE}`,
-              paddingTop: 18,
-            }}
-          >
-            <div style={{ display: 'flex', fontSize: 34, fontWeight: 600 }}>
-              {text.forecast.line}
+          <div style={flex({ flex: 1, flexDirection: 'column', gap: 6 })}>
+            <div style={flex({ fontFamily: MONO, fontSize: 19, color: MODEL, lineHeight: 1.3 })}>
+              {text.model.line}
             </div>
-            <div style={{ display: 'flex', fontSize: 24, color: MUTED }}>
-              {text.forecast.source}
-            </div>
+            {text.model.source !== null && (
+              <div style={flex({ fontFamily: MONO, fontSize: 15, color: CAPTION })}>
+                {`The statistical model · ${text.model.source}`}
+              </div>
+            )}
           </div>
         )}
-        <Brand host={host} />
+        <Wordmark host={host} />
       </div>
     </Frame>
   );
@@ -159,29 +285,29 @@ export function TableCardImage({
   host: string;
 }): ReactElement {
   return (
-    <Frame>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', fontSize: 52, fontWeight: 700 }}>{text.title}</div>
-        <div style={{ display: 'flex', fontSize: 28, color: MUTED }}>{text.season}</div>
+    <Frame padding="56px 72px">
+      <div style={flex({ flexDirection: 'column', gap: 6 })}>
+        <div style={flex({ fontSize: 52, fontWeight: 800 })}>{text.title}</div>
+        <div style={flex({ fontFamily: MONO, fontSize: 24, color: CAPTION })}>{text.season}</div>
       </div>
       {text.absence !== null ? (
-        <div style={{ display: 'flex', fontSize: 34, color: MUTED }}>{text.absence}</div>
+        <div style={flex({ fontSize: 34, color: MUTED })}>{text.absence}</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={flex({ flexDirection: 'column', gap: 8 })}>
           {text.rows.map((row) => (
             <div
               key={row.position}
-              style={{ display: 'flex', fontSize: 32, gap: 24, borderBottom: `1px solid ${RULE}` }}
+              style={flex({ fontSize: 32, gap: 24, borderBottom: `1px solid ${RULE}` })}
             >
-              <div style={{ display: 'flex', width: 56 }}>{row.position}</div>
-              <div style={{ display: 'flex', flex: 1 }}>{row.team}</div>
-              <div style={{ display: 'flex', width: 110, color: MUTED }}>P {row.played}</div>
-              <div style={{ display: 'flex', width: 120, fontWeight: 700 }}>{row.points} pts</div>
+              <div style={flex({ width: 56, color: MUTED })}>{row.position}</div>
+              <div style={flex({ flex: 1, fontWeight: 700 })}>{row.team}</div>
+              <div style={flex({ width: 110, color: MUTED })}>P {row.played}</div>
+              <div style={flex({ width: 120, fontWeight: 800 })}>{row.points} pts</div>
             </div>
           ))}
         </div>
       )}
-      <Brand host={host} />
+      <Wordmark host={host} />
     </Frame>
   );
 }
@@ -194,24 +320,24 @@ export function MemberCardImage({
   host: string;
 }): ReactElement {
   return (
-    <Frame>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', fontSize: 56, fontWeight: 700 }}>{text.name}</div>
-        <div style={{ display: 'flex', fontSize: 30, color: MUTED }}>{text.handle}</div>
-        <div style={{ display: 'flex', fontSize: 34, marginTop: 12 }}>{text.rating}</div>
+    <Frame padding="56px 72px">
+      <div style={flex({ flexDirection: 'column', gap: 6 })}>
+        <div style={flex({ fontSize: 56, fontWeight: 800 })}>{text.name}</div>
+        <div style={flex({ fontFamily: MONO, fontSize: 26, color: CAPTION })}>{text.handle}</div>
+        <div style={flex({ fontSize: 34, marginTop: 12 })}>{text.rating}</div>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={flex({ flexDirection: 'column', gap: 10 })}>
         {text.recent.map((line) => (
           <div
             key={line.match}
-            style={{ display: 'flex', fontSize: 30, gap: 24, borderBottom: `1px solid ${RULE}` }}
+            style={flex({ fontSize: 30, gap: 24, borderBottom: `1px solid ${RULE}` })}
           >
-            <div style={{ display: 'flex', flex: 1 }}>{line.match}</div>
-            <div style={{ display: 'flex', color: MUTED }}>{line.verdict}</div>
+            <div style={flex({ flex: 1 })}>{line.match}</div>
+            <div style={flex({ color: MUTED })}>{line.verdict}</div>
           </div>
         ))}
       </div>
-      <Brand host={host} />
+      <Wordmark host={host} />
     </Frame>
   );
 }

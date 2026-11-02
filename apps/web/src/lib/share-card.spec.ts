@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type {
+  CalledItCard,
   CompetitionPage,
   ForecastVersion,
   MatchHeader,
@@ -8,6 +9,9 @@ import type {
   TableRow,
 } from '@fmip/contracts';
 import {
+  aheadOfKickoff,
+  calledItText,
+  cardName,
   kickoffUtc,
   matchCardText,
   memberCardText,
@@ -88,7 +92,7 @@ const forecast = (over: Partial<ForecastVersion> = {}): ForecastVersion =>
     ...over,
   }) as ForecastVersion;
 
-describe('the match card', () => {
+describe('the match card (A10, T-1723)', () => {
   it('writes the kick-off in UTC and says so, since a preview is the same for everyone', () => {
     expect(kickoffUtc('2026-10-04T14:00:00.000Z')).toBe('Sun 4 Oct 2026 · 14:00 UTC');
     const text = matchCardText(header(), null);
@@ -97,47 +101,182 @@ describe('the match card', () => {
       home: 'Arsenal',
       away: 'Chelsea',
       centre: 'v',
+      loser: null,
+      decided: null,
       status: 'Sun 4 Oct 2026 · 14:00 UTC',
-      forecast: null,
+      model: { line: 'The model’s forecast appears before kick-off', source: null },
     });
   });
 
-  it('shows the score and the minute live, and full time after', () => {
-    const live = matchCardText(
+  it('shows the score live with when it was last heard from, and says so when it is stale', () => {
+    const live = header({
+      status: 'live',
+      minute: 67,
+      last_updated_at: '2026-10-04T15:12:00.000Z',
+      scores: { ...header().scores, current: { home: 2, away: 1 } },
+    });
+    expect(matchCardText(live, null)).toMatchObject({
+      centre: '2–1',
+      loser: null,
+      status: 'Live 67′ · as of 15:12 UTC',
+    });
+    expect(matchCardText({ ...live, freshness: 'stale' }, null).status).toBe(
+      'Live 67′ · no update since 15:12 UTC',
+    );
+    expect(matchCardText({ ...live, at_half_time: true }, null).status).toBe(
+      'Half time · as of 15:12 UTC',
+    );
+  });
+
+  it('mutes the loser after full time, neither side after a draw', () => {
+    const won = matchCardText(
       header({
-        status: 'live',
-        minute: 67,
-        scores: { ...header().scores, current: { home: 2, away: 1 } },
+        status: 'finished',
+        scores: { ...header().scores, full_time: { home: 0, away: 1 } },
       }),
       null,
     );
-    expect([live.centre, live.status]).toEqual(['2 – 1', 'Live 67′']);
-    const done = matchCardText(
+    expect([won.centre, won.status, won.loser]).toEqual(['0–1', 'Full time', 'home']);
+    const drawn = matchCardText(
+      header({
+        status: 'finished',
+        scores: { ...header().scores, full_time: { home: 1, away: 1 } },
+      }),
+      null,
+    );
+    expect(drawn.loser).toBeNull();
+  });
+
+  it('says how a cup tie was decided only when the feed says so', () => {
+    const scores = {
+      ...header().scores,
+      full_time: { home: 1, away: 1 },
+      extra_time: { home: 0, away: 0 },
+    };
+    expect(matchCardText(header({ status: 'finished', scores }), null).decided).toBe('AET');
+    expect(
+      matchCardText(
+        header({ status: 'finished', scores: { ...scores, penalties: { home: 4, away: 3 } } }),
+        null,
+      ).decided,
+    ).toBe('Pens 4–3');
+  });
+
+  it('names the model beside its pre-kick-off forecast, totalling 100', () => {
+    const text = matchCardText(header(), forecast());
+    expect(text.model).toEqual({
+      line: 'The model: Arsenal 45.5% · Draw 29.1% · Chelsea 25.4%',
+      source: 'dixon-coles@1.0.0',
+    });
+    const after = matchCardText(
       header({
         status: 'finished',
         scores: { ...header().scores, full_time: { home: 0, away: 0 } },
       }),
-      null,
+      forecast(),
     );
-    expect([done.centre, done.status]).toEqual(['0 – 0', 'Full time']);
-    // T-1713: a kick-off long past with no word from the feed is not a time to come.
-    expect(matchCardText(header({ freshness: 'awaiting_update' }), null).status).toBe(
-      'Awaiting update',
+    expect(after.model?.line).toBe(
+      'Before kick-off, the model: Arsenal 45.5% · Draw 29.1% · Chelsea 25.4%',
     );
+    // No version before kick-off: said, never an empty box.
+    expect(matchCardText(header({ status: 'live', minute: 3 }), null).model).toEqual({
+      line: 'The model published no forecast before kick-off',
+      source: null,
+    });
+    expect(
+      matchCardText(header(), forecast({ status: 'unavailable', probabilities: null })).model
+        ?.source,
+    ).toBeNull();
+  });
+
+  it('draws no model line for a match not played as scheduled, or one the feed went quiet on', () => {
+    for (const status of ['postponed', 'cancelled', 'abandoned', 'awarded', 'suspended'] as const) {
+      const text = matchCardText(header({ status }), forecast());
+      expect(text.model, status).toBeNull();
+    }
     expect(matchCardText(header({ status: 'postponed' }), null)).toMatchObject({
       centre: 'v',
       status: 'Postponed',
     });
+    // T-1713, D-343: a kick-off long past with no word from the feed is not a time to come.
+    expect(matchCardText(header({ freshness: 'awaiting_update' }), forecast())).toMatchObject({
+      status: 'Awaiting update',
+      model: null,
+    });
   });
 
-  it('names the model beside its forecast, totalling 100, and shows none that is unavailable', () => {
-    const text = matchCardText(header(), forecast());
-    expect(text.forecast?.line).toBe('Arsenal 45.5% · Draw 29.1% · Chelsea 25.4%');
-    expect(text.forecast?.source).toContain('statistical model');
-    expect(text.forecast?.source).toContain('dixon-coles@1.0.0');
-    expect(
-      matchCardText(header(), forecast({ status: 'unavailable', probabilities: null })).forecast,
-    ).toBeNull();
+  it('uses the short name for a very long one, when there is one', () => {
+    const long = {
+      ...header().home,
+      name: 'Esteghlal Khuzestan Football Club',
+      short_name: 'Esteghlal Khuz.',
+    };
+    expect(matchCardText(header({ home: long }), null).home).toBe('Esteghlal Khuz.');
+    expect(cardName({ name: 'Gençlerbirliği S.K.', short_name: null })).toBe('Gençlerbirliği S.K.');
+  });
+});
+
+describe('the called-it card (B01 + B17, T-1723)', () => {
+  const card = (over: Partial<CalledItCard> = {}): CalledItCard => ({
+    fixture_id: 'f1',
+    competition: 'Premier League',
+    round: 'Regular Season - 9',
+    home: { name: 'Liverpool', short_name: null },
+    away: { name: 'Arsenal', short_name: null },
+    actual: { home: 0, away: 1 },
+    pick: { outcome: 'away', score: null },
+    exact: false,
+    picked_at: '2026-10-30T17:34:00.000Z',
+    kickoff_at: '2026-11-01T16:30:00.000Z',
+    username: 'mosiop',
+    ...over,
+  });
+
+  it('says the pick, the settled score and when it was made, in UTC', () => {
+    expect(calledItText(card())).toEqual({
+      eyebrow: 'Premier League · Regular Season - 9 · Sun 1 Nov',
+      home: 'Liverpool',
+      away: 'Arsenal',
+      score: '0–1',
+      loser: 'home',
+      exact: null,
+      pick: 'My pick: Arsenal to win',
+      proof: 'Picked Fri 30 Oct · 17:34 UTC · 46 hours before kick-off',
+      handle: '@mosiop',
+    });
+  });
+
+  it('writes a draw and an exact score from the side picked', () => {
+    const draw = calledItText(
+      card({ actual: { home: 1, away: 1 }, pick: { outcome: 'draw', score: null } }),
+    );
+    expect([draw.pick, draw.loser]).toEqual(['My pick: Draw', null]);
+    const exact = calledItText(
+      card({ pick: { outcome: 'away', score: { home: 0, away: 1 } }, exact: true }),
+    );
+    expect([exact.pick, exact.exact]).toEqual(['My pick: Arsenal 1–0', 'Exact score, too']);
+    const level = calledItText(
+      card({
+        actual: { home: 2, away: 2 },
+        pick: { outcome: 'draw', score: { home: 1, away: 1 } },
+      }),
+    );
+    expect([level.pick, level.exact]).toEqual(['My pick: Draw 1–1', null]);
+  });
+
+  it('counts the time before kick-off in the largest whole unit', () => {
+    const kickoff = '2026-11-01T16:30:00.000Z';
+    expect(aheadOfKickoff('2026-10-28T16:30:00.000Z', kickoff)).toBe('4 days before kick-off');
+    expect(aheadOfKickoff('2026-10-31T10:30:00.000Z', kickoff)).toBe('30 hours before kick-off');
+    expect(aheadOfKickoff('2026-11-01T15:00:00.000Z', kickoff)).toBe('90 minutes before kick-off');
+    expect(aheadOfKickoff('2026-11-01T16:29:30.000Z', kickoff)).toBe('1 minute before kick-off');
+  });
+
+  it('never uses a bookmaker’s words, a rating or the model', () => {
+    const words = JSON.stringify(
+      calledItText(card({ exact: true, pick: { outcome: 'away', score: { home: 0, away: 1 } } })),
+    );
+    expect(words).not.toMatch(/\b(won|winner|settled|odds|payout|bet|rating|model)\b/i);
   });
 });
 
@@ -176,10 +315,10 @@ describe('the table card', () => {
 });
 
 describe('team names on the match card', () => {
-  it('gets smaller as a name gets longer, so two lines still sit beside the score', () => {
-    expect(nameSize('Arsenal')).toBe(58);
-    expect(nameSize('Omonia Nicosia')).toBe(50);
-    expect(nameSize('Gençlerbirliği S.K.')).toBe(42);
+  it('gets smaller as a name gets longer, so two lines still sit under its crest', () => {
+    expect(nameSize('Arsenal')).toBe(44);
+    expect(nameSize('Omonia Nicosia')).toBe(38);
+    expect(nameSize('Gençlerbirliği S.K.')).toBe(32);
   });
 });
 

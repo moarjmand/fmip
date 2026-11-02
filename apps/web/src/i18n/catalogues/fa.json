@@ -16238,6 +16238,150 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "shareCard.title": {
+    "source": "Your card",
+    "text": "کارت شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.calledIt": {
+    "source": "Called it. Here is your card.",
+    "text": "درست گفتی. این کارت توست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.previewAlt": {
+    "source": "Your card: the score, your pick and when you made it",
+    "text": "کارت تو: نتیجه، پیش‌بینی تو و زمانی که ثبتش کردی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.privacy": {
+    "source": "Sharing makes a public link to this one card: anyone with the link can see it. Your other predictions and your profile stay as they are, and you can stop sharing at any time.",
+    "text": "اشتراک‌گذاری یک پیوند عمومی فقط برای همین یک کارت می‌سازد: هر کس پیوند را داشته باشد آن را می‌بیند. پیش‌بینی‌های دیگر و نمایهٔ تو همان‌طور که هستند می‌مانند و هر وقت بخواهی می‌توانی اشتراک را متوقف کنی.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.create": {
+    "source": "Create the share link",
+    "text": "ساختن پیوند اشتراک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.link": {
+    "source": "Your public link",
+    "text": "پیوند عمومی تو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.share": {
+    "source": "Share image",
+    "text": "اشتراک تصویر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.save": {
+    "source": "Save image",
+    "text": "ذخیرهٔ تصویر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.saveStory": {
+    "source": "Save for a story",
+    "text": "ذخیره برای استوری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.stop": {
+    "source": "Stop sharing",
+    "text": "توقف اشتراک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.made": {
+    "source": "Your link is ready.",
+    "text": "پیوند تو آماده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.stopped": {
+    "source": "The link is withdrawn and opens nothing now.",
+    "text": "پیوند پس گرفته شد و دیگر چیزی را باز نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.rateLimited": {
+    "source": "That is more share links than this hour allows. Try again later.",
+    "text": "این بیش از تعداد پیوندهایی است که در این ساعت مجاز است. بعداً دوباره امتحان کن.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.failed": {
+    "source": "That did not work. Try again.",
+    "text": "انجام نشد. دوباره امتحان کن.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.notCalled.open": {
+    "source": "This match is not settled yet. A correct pick gets its card once it is.",
+    "text": "این بازی هنوز تسویه نشده است. پیش‌بینی درست پس از تسویه کارتش را می‌گیرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.notCalled.void": {
+    "source": "This prediction was void, so it has no card.",
+    "text": "این پیش‌بینی باطل شد، پس کارتی ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.notCalled.wrong": {
+    "source": "Only a correct pick has a card to share.",
+    "text": "فقط پیش‌بینی درست کارتی برای اشتراک دارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.back": {
+    "source": "Your predictions",
+    "text": "پیش‌بینی‌های تو",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.unreachable": {
+    "source": "The card cannot be read right now.",
+    "text": "کارت الان خوانده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shareCard.openMatch": {
+    "source": "Open the match",
+    "text": "باز کردن بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "calledIt.title": {
+    "source": "{handle} called it",
+    "text": "{handle} درست گفت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "calledIt.summary": {
+    "source": "{handle} made this pick before kick-off on Stadiomind, and it came in.",
+    "text": "{handle} این پیش‌بینی را پیش از شروع بازی در Stadiomind ثبت کرد و درست درآمد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "calledIt.alt": {
+    "source": "A correct pick on Stadiomind: the score, the pick and when it was made",
+    "text": "یک پیش‌بینی درست در Stadiomind: نتیجه، پیش‌بینی و زمان ثبت آن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "calledIt.cta": {
+    "source": "Make your own picks",
+    "text": "پیش‌بینی‌های خودت را ثبت کن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "shared.action.refused": {
     "source": "You may not do this. {reason}",
     "text": "شما اجازه‌ی این کار را ندارید. {reason}",

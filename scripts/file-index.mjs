@@ -141,6 +141,7 @@ function byKind(path) {
   if (ext === '.html' || ext === '.xml') return 'Saved page or feed used as a test fixture.';
   if (IMAGE.has(ext)) return 'Image asset.';
   if (FONT.has(ext)) return 'Font file.';
+  if (/^OFL-.+\.txt$/.test(name)) return 'A bundled font’s licence (SIL Open Font License 1.1).';
   if (/\.(spec|test)\.[cm]?[jt]sx?$/.test(name) || /^test_.*\.py$/.test(name))
     return `Tests for \`${name.replace(/\.(spec|test)\.[cm]?[jt]sx?$/, '').replace(/^test_|\.py$/g, '')}\`.`;
   if (name === 'package.json') {

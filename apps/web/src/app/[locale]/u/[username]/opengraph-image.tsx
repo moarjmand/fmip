@@ -1,10 +1,9 @@
-import { ImageResponse } from 'next/og';
 import { drawCard } from '@/components/draw-card';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { MemberCardImage, PlainCard } from '@/components/share-card-image';
 import { fetchPredictionHistory, fetchProfile, fetchRating } from '@/lib/api';
 import { siteUrl } from '@/lib/seo';
-import { cardImageMetadata, CARD_SIZE, memberCardText } from '@/lib/share-card';
+import { cardImageMetadata, memberCardText } from '@/lib/share-card';
 
 /**
  * The card a chat app shows for a member's profile link (T-520): their name,
@@ -27,8 +26,6 @@ export function generateImageMetadata({ params }: { params: { locale: string } }
  */
 export const dynamic = 'force-dynamic';
 
-const size = CARD_SIZE;
-
 export default async function Image({
   params,
 }: {
@@ -40,7 +37,7 @@ export default async function Image({
 
   const profile = await fetchProfile(name, undefined);
   if (!profile.ok || profile.data.kind !== 'visible') {
-    return new ImageResponse(<PlainCard />, size);
+    return drawCard(<PlainCard />);
   }
   const [rating, history] = await Promise.all([
     fetchRating(name),

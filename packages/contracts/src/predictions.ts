@@ -230,3 +230,62 @@ export interface FriendPredictionsResponse {
   /** ISO 8601: the start of the window the answer covers. */
   since: string;
 }
+
+// ---------------------------------------------------------------------------
+// A public link to one correct prediction's card (T-1723, D-351)
+// ---------------------------------------------------------------------------
+
+/** A share token: 128 random bits, base64url without padding. */
+export const PREDICTION_SHARE_TOKEN = /^[A-Za-z0-9_-]{22}$/;
+
+/**
+ * What the "called it" card draws, and nothing else: the member's own pick
+ * from the version that was settled, when they made it, and the score it was
+ * settled against. No rating, no model, no other prediction (rule 6). Only a
+ * prediction whose current settlement is `settled` with the outcome right has
+ * one.
+ */
+export interface CalledItCard {
+  fixture_id: string;
+  /** Canonical (English) names: the card's words stay English (T-1309, T-1506). */
+  competition: string;
+  round: string | null;
+  home: { name: string; short_name: string | null };
+  away: { name: string; short_name: string | null };
+  /** The score the prediction was settled against (`Settlement.actual`). */
+  actual: { home: number; away: number };
+  /** From the settled version (`Settlement.version_number`). */
+  pick: { outcome: PredictionOutcome; score: { home: number; away: number } | null };
+  /** The settled version carried an exact score and it was right. */
+  exact: boolean;
+  /** ISO 8601: when the settled version was submitted. */
+  picked_at: string;
+  /** ISO 8601 of the kick-off, for "N days before kick-off". */
+  kickoff_at: string;
+  /** The handle, never the display name (a card's words stay English, T-1309). */
+  username: string;
+}
+
+/** One live public link. */
+export interface PredictionShare {
+  token: string;
+  created_at: string;
+}
+
+/**
+ * `GET /me/predictions/:predictionId/share`, the owner only: the card and the
+ * live link, if there is one, or why there is no card.
+ */
+export type OwnPredictionShareResponse =
+  | { kind: 'called'; card: CalledItCard; share: PredictionShare | null }
+  | { kind: 'not_called'; reason: 'open' | 'void' | 'wrong' };
+
+/** `POST /me/predictions/:predictionId/share`: the live link, made now or already standing. */
+export interface PredictionShareResponse {
+  share: PredictionShare;
+}
+
+/** `GET /prediction-shares/:token`, public: the card a live link shows. 404 otherwise. */
+export interface PublicPredictionShareResponse {
+  card: CalledItCard;
+}

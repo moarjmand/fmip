@@ -43,6 +43,11 @@ COPY --from=build --chown=node:node /app/apps/web/public ./apps/web/public
 # place it can go wrong, and a 404 for `/sw.js` is not a failure anything else
 # is looking at.
 RUN test -s ./apps/web/public/sw.js && test -d ./apps/web/public/icons
+# The share cards' faces (T-1723, `src/lib/card-fonts.ts`), read from `public`
+# at run time: without them every card draws in the renderer's default face.
+RUN test -s ./apps/web/public/fonts/card/Archivo-Regular.ttf \
+ && test -s ./apps/web/public/fonts/card/ArchivoBlack-Regular.ttf \
+ && test -s ./apps/web/public/fonts/card/OFL-Archivo.txt
 
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]

@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { BRAND_COLOURS } from '@/lib/brand-colours';
+import { BRAND_COLOURS, NIGHT_COLOURS } from '@/lib/brand-colours';
 
 /**
  * The colour tokens (T-602, D-089) keep their promises.
@@ -330,6 +330,14 @@ describe('the tokens themselves', () => {
     expect(entries.length).toBeGreaterThan(3);
     for (const [name, colour] of entries) {
       expect(colour, name).toBe(value(LIGHT, `--token-${name}`));
+    }
+  });
+
+  it('are what the share cards draw with: NIGHT_COLOURS mirrors the dark values (D-351)', () => {
+    const entries = Object.entries(NIGHT_COLOURS);
+    expect(entries.length).toBeGreaterThan(5);
+    for (const [name, colour] of entries) {
+      expect(colour, name).toBe(value(DARK, `--token-${name}`));
     }
   });
 

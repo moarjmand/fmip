@@ -110,6 +110,8 @@ import type {
   PlayerTransfers,
   PowerIndexResponse,
   PredictionHistoryResponse,
+  OwnPredictionShareResponse,
+  PublicPredictionShareResponse,
   PredictionResponse,
   ProfileView,
   RatingHistoryResponse,
@@ -921,6 +923,34 @@ export function fetchMyPredictions(
   limit: number,
 ): Promise<ApiResult<PredictionHistoryResponse>> {
   return apiRequest<PredictionHistoryResponse>(`/me/predictions?limit=${limit}`, { cookie });
+}
+
+/**
+ * `GET /me/predictions/:id/share` (T-1723, D-351): the owner's card and its
+ * live public link, or why there is no card. 404 for a prediction that is not
+ * theirs, exactly as for one that does not exist.
+ */
+export function fetchOwnPredictionShare(
+  predictionId: string,
+  cookie: string | undefined,
+): Promise<ApiResult<OwnPredictionShareResponse>> {
+  return apiRequest<OwnPredictionShareResponse>(
+    `/me/predictions/${encodeURIComponent(predictionId)}/share`,
+    cookie === undefined ? {} : { cookie },
+  );
+}
+
+/**
+ * `GET /prediction-shares/:token` (T-1723, D-351): the card a live public link
+ * shows. **No cookie**: the link is the whole permission, the same for every
+ * reader; 404 when it is unknown, revoked or no longer a correct pick.
+ */
+export function fetchPredictionShare(
+  token: string,
+): Promise<ApiResult<PublicPredictionShareResponse>> {
+  return apiRequest<PublicPredictionShareResponse>(
+    `/prediction-shares/${encodeURIComponent(token)}`,
+  );
 }
 
 /** `GET /users/:username/rating` (T-053): the current rating, null before the first settlement. Public. */
