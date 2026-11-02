@@ -13933,3 +13933,22 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 **Rejected.**
 - *Dropping the sentence:* the line-up would go on saying a role is missing when a player is, which rule 3 does not allow.
 - *Moving the line-ups out of the live view:* a larger change to the live page for a few bytes.
+
+## D-346 — GNews and the publishers it brings are kind `aggregator` and `aggregated`, not `licensed`
+
+**Status:** Accepted · 2026-11-02 (maintainer) · **Task:** T-1716 · **Amends:** D-185 · **Follows:** D-061, finding biz-2026-11-01-05
+
+**Context.** T-1367 (D-185) stored the GNews row and every publisher GNews names (313 on production on 2026-11-02) with kind `licensed`, because `licensed` was the only kind without a feed. GNews runs on its free plan, which its terms allow for non-commercial use only, and D-185 holds only while the site is non-commercial. A reader of the table, the console or the licence register could take `licensed` for a commercial licence that does not exist (finding biz-2026-11-01-05). The maintainer decided to correct the label and keep the site's behaviour as it is.
+
+**Decision.** Migration `1765900800000_news-aggregated-kind.sql` adds two kinds:
+
+1. `aggregated`: a publisher whose reports reach us only through an aggregator's API, on that aggregator's plan and terms. Every row with `via_source_id` moves to it. The word says how the article arrived, and says nothing about a licence we hold. It is chosen over `via_aggregator` (longer, and repeats the column) and `free_api` (describes GNews' plan, which can change, not the publisher's row).
+2. `aggregator`: the search API itself (the GNews row, fixed id `…1367`). It is not a publisher and carries no article; its `news_fetch` rows are its requests. It is neither `licensed` (no licence) nor `aggregated` (it does not arrive through anything).
+
+`news_source_via_is_licensed` becomes `news_source_via_is_aggregated`: a row has a `via_source_id` exactly when it is `aggregated`. `news_source_feed_for_feed_kinds` lets the three non-feed kinds have no feed. `licensed` stays allowed for a wire under a real licence; no row holds it after the migration. The GNews job finds its row by `aggregator` and creates publishers as `aggregated`; the console refuses to edit any source that is not a feed (`isNewsFeedKind` in `@fmip/contracts`, with `NEWS_SOURCE_OTHER_KINDS`). The down migration puts both kinds back to `licensed`.
+
+**What does not change.** Which stories show, to whom, their attribution, links and rights (`summary`, no photo): no read path looks at `kind` except the feed job (`rss`/`atom` only), the GNews job and the console's edit guard. D-185's terms are unchanged: the free plan holds only while the site is non-commercial.
+
+**Rejected.**
+- *Keeping `licensed` with a comment:* the column is what people read; the finding is that the word misleads.
+- *One kind for both GNews and its publishers:* the GNews row would then claim to arrive through an aggregator, and the both-ways check on `via_source_id` would not hold.

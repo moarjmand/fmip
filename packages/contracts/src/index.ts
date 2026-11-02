@@ -788,6 +788,7 @@ export {
   STORY_TYPES,
   TRENDING_WEIGHTS,
   TRENDING_WINDOW_HOURS,
+  isNewsFeedKind,
   isNewsSection,
   newsCoverageState,
   isStoryType,
@@ -837,6 +838,7 @@ export {
   NEWS_FEED_PREVIEW_ITEMS,
   NEWS_IMAGE_LICENCES,
   NEWS_SOURCE_KINDS,
+  NEWS_SOURCE_OTHER_KINDS,
   NEWS_SOURCE_RIGHTS,
 } from './news';
 export type { ArticleImageOverrideRequest, NewsImage, NewsImageLicence } from './news';
@@ -849,6 +851,7 @@ export type {
   NewsSourceEditRequest,
   NewsSourceFetch,
   NewsSourceKind,
+  NewsSourceOtherKind,
   NewsSourceRecord,
   NewsSourceRequest,
   NewsSourceRights,

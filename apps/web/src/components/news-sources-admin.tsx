@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import {
   NEWS_SOURCE_KINDS,
   NEWS_SOURCE_RIGHTS,
+  isNewsFeedKind,
   type NewsFeedPreview,
   type NewsSourceRecord,
   type RobotsVerdict,
@@ -280,7 +281,7 @@ function Source({ locale, source }: { locale: string; source: NewsSourceRecord }
         </p>
       ) : (
         <>
-          {source.kind !== 'licensed' && (
+          {isNewsFeedKind(source.kind) && (
             <details>
               <summary className="cursor-pointer text-sm underline">Edit</summary>
               <ActionForm

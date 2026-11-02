@@ -1,4 +1,9 @@
-import type { NewsFeedPreview, NewsSourceRecord } from '@fmip/contracts';
+import {
+  NEWS_SOURCE_OTHER_KINDS,
+  isNewsFeedKind,
+  type NewsFeedPreview,
+  type NewsSourceRecord,
+} from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -70,6 +75,37 @@ describe('NewsSourcesAdmin (T-1015)', () => {
     // Edit, who is shown its stories (D-178), and drop.
     expect(html.match(/name="reason"/g)).toHaveLength(3);
     expect(html).not.toMatch(PHYSICAL);
+  });
+
+  it('an aggregator and a publisher under it say their kind and are dropped, never edited (D-346)', () => {
+    const gnews = source({
+      id: '00000000-0000-4000-8000-000000001367',
+      name: 'GNews',
+      feed_url: null,
+      kind: 'aggregator',
+      rights: 'summary',
+    });
+    const publisher = source({
+      id: '00000000-0000-4000-8000-00000000c004',
+      name: 'Example Post',
+      feed_url: null,
+      kind: 'aggregated',
+      rights: 'summary',
+    });
+    const html = renderToStaticMarkup(
+      <NewsSourcesAdmin locale="en" sources={[gnews, publisher]} />,
+    );
+    for (const row of [gnews, publisher]) {
+      expect(html).not.toContain(`news-source-edit-${row.id}`);
+      expect(html).toContain(`data-testid="news-source-drop-${row.id}"`);
+      expect(html).toContain(`data-testid="news-source-visibility-${row.id}"`);
+    }
+    expect(html).toContain('aggregator ·');
+    expect(html).toContain('aggregated ·');
+    expect(html).not.toContain('licensed');
+    expect(isNewsFeedKind('rss')).toBe(true);
+    expect(isNewsFeedKind('atom')).toBe(true);
+    for (const kind of NEWS_SOURCE_OTHER_KINDS) expect(isNewsFeedKind(kind)).toBe(false);
   });
 });
 
