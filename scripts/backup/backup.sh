@@ -163,7 +163,10 @@ if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   rclone copy --no-check-dest "/data/$NAME.manifest" "$BACKUP_RCLONE_REMOTE/"
   # Re-read what landed. size and sha256 come back from the remote, not from the
   # local file, so a truncated upload fails here rather than on restore day.
-  REMOTE_SIZE="$(rclone size --json "$BACKUP_RCLONE_REMOTE/$NAME.dump" | sed -E 's/.*"bytes":([0-9]+).*/\1/')"
+  # By listing the folder, not by naming the file (T-1719): naming one file is
+  # a per-file lookup that B2 counts against the same daily download cap, and
+  # on 2026-11-02 it answered 0 bytes for a dump that had landed whole.
+  REMOTE_SIZE="$(rclone size --json --max-depth 1 --include "$NAME.dump" "$BACKUP_RCLONE_REMOTE/" | sed -E 's/.*"bytes":([0-9]+).*/\1/')"
   LOCAL_SIZE="$(grep '^size ' "$MANIFEST" | cut -d' ' -f2)"
   if [ "$REMOTE_SIZE" != "$LOCAL_SIZE" ]; then
     echo "ERROR: remote copy is $REMOTE_SIZE bytes, local dump is $LOCAL_SIZE" >&2
