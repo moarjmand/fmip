@@ -18,7 +18,9 @@ postgres container, `rclone` in its official image.
 - A **manifest** beside it (`fmip-<timestamp>.manifest`): the list of applied
   migrations, the exact row count of every table, size and SHA-256 of the
   dump. The drill checks the restored copy against this file, so a silently
-  truncated or partial dump cannot pass.
+  truncated or partial dump cannot pass. The counts are taken in the dump's own snapshot
+  (`pg_dump --snapshot`, T-1712), so writes during the dump never make a sound
+  dump fail its drill.
 - The **media volume** (T-1341): crests, competition logos, player photos and
   licensed news photos (T-1320, T-1322), files the database only points at.
   `backup.sh` copies it to `<remote>/media/` after the dump with
