@@ -3623,7 +3623,7 @@ machine, `docs/18-handover.md`.
 | `1765900500000_agents-console.sql` | The agents console (T-1696, D-340): `agents.traveltohormuz.ir`, for the maintainer and the teammate, apart from the site's members. |
 | `1765900600000_placeholder-lineup-persons.sql` | T-1707 (D-342): line-up slots a feed labels "Trialist", "Unknown", "TBA" are not people. |
 | `1765900700000_trim-team-names.sql` | T-1711 (str-2026-11-02-02): team names stored with a provider's padding. |
-| `1765900800000_retention.sql` | T-1715 (D-345): retention periods and a daily purge. |
+| `1765900805000_retention.sql` | T-1715 (D-345): retention periods and a daily purge. |
 
 ## packages/db/scripts
 
