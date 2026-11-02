@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2204), grouped by folder, with one line on
+Every file in the repository (2212), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -76,7 +76,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/identity`](#appsapisrcmodulesidentity) — 9
 - [`apps/api/src/modules/identity/internal`](#appsapisrcmodulesidentityinternal) — 12
 - [`apps/api/src/modules/ingestion`](#appsapisrcmodulesingestion) — 23
-- [`apps/api/src/modules/ingestion/internal`](#appsapisrcmodulesingestioninternal) — 67
+- [`apps/api/src/modules/ingestion/internal`](#appsapisrcmodulesingestioninternal) — 68
 - [`apps/api/src/modules/intelligence`](#appsapisrcmodulesintelligence) — 4
 - [`apps/api/src/modules/intelligence/internal`](#appsapisrcmodulesintelligenceinternal) — 4
 - [`apps/api/src/modules/locale-holds`](#appsapisrcmoduleslocale-holds) — 3
@@ -246,7 +246,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 36
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -260,7 +260,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 168
+- [`packages/db/migrations`](#packagesdbmigrations) — 169
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -269,7 +269,7 @@ machine, `docs/18-handover.md`.
 - [`packages/ingestion/bakeoff`](#packagesingestionbakeoff) — 3
 - [`packages/ingestion/scripts`](#packagesingestionscripts) — 2
 - [`packages/ingestion/scripts/plans`](#packagesingestionscriptsplans) — 4
-- [`packages/ingestion/src`](#packagesingestionsrc) — 4
+- [`packages/ingestion/src`](#packagesingestionsrc) — 6
 - [`packages/ingestion/src/adapters`](#packagesingestionsrcadapters) — 6
 - [`packages/ingestion/src/adapters/_fixtures`](#packagesingestionsrcadapters-fixtures) — 1
 - [`packages/ingestion/src/adapters/_fixtures/api-football`](#packagesingestionsrcadapters-fixturesapi-football) — 7
@@ -1090,6 +1090,7 @@ machine, `docs/18-handover.md`.
 | `person-name-store.ts` | A Latin initial (or several), then a Latin letter: the provider's short form ("M. |
 | `person-names.spec.ts` | The name rule and the sweep of the `people_names` job (T-1398, D-213). |
 | `person-names.ts` | Full player names from the provider's player profile (T-1398, D-213). |
+| `placeholder-persons.spec.ts` | A line-up slot labelled "Trialist" (T-1707, D-342). |
 | `player-season-store.spec.ts` | The `player_seasons` job's SQL on a database (T-1431, D-223): who is owed a season or a career ask, the replacing writes that keep only competitions and teams we know, and the ask records that pace the retries. |
 | `player-season-store.ts` | The players the job may ask about: each person named in a line-up of a finished match of a current season that kicked off before `$2`, with the year that season starts in and the latest such kick-off. |
 | `player-seasons.spec.ts` | The `player_seasons` sweep (T-1431, D-223) against a fake store and adapter. |
@@ -3223,6 +3224,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
@@ -3230,6 +3233,8 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -3602,6 +3607,7 @@ machine, `docs/18-handover.md`.
 | `1765900300000_incident-in-shootout.sql` | T-1673 (D-322): a penalty shoot-out's kicks are marked on the incident. |
 | `1765900400000_fake-periods.sql` | T-1681 (D-327): scores of periods a match never had are removed. |
 | `1765900500000_agents-console.sql` | The agents console (T-1696, D-340): `agents.traveltohormuz.ir`, for the maintainer and the teammate, apart from the site's members. |
+| `1765900600000_placeholder-lineup-persons.sql` | T-1707 (D-342): line-up slots a feed labels "Trialist", "Unknown", "TBA" are not people. |
 
 ## packages/db/scripts
 
@@ -3690,6 +3696,8 @@ machine, `docs/18-handover.md`.
 | `country-name.ts` | How two spellings of a country's name compare (T-1428, D-220): lower case, no accents, every run of anything but letters and digits one space, so "Côte d'Ivoire", "Cote-d’Ivoire" and "COTE D IVOIRE" are one name. |
 | `index.ts` | The provider-neutral model every adapter produces. |
 | `normalised.ts` | The provider-neutral shapes every adapter produces (rule 2 in CLAUDE.md: nothing provider-specific crosses this boundary). |
+| `placeholder-name.spec.ts` | Tests for `placeholder-name`. |
+| `placeholder-name.ts` | Labels a feed prints in a line-up slot in place of a player's name (T-1707, D-342): "Trialist" for a club's unnamed trialist, "Unknown", "TBA" and the like. |
 | `transfer-window.ts` | How often a club's or a player's transfers are asked for again (T-1440, D-231): weekly while a transfer window is open, monthly otherwise. |
 
 ## packages/ingestion/src/adapters

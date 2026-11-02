@@ -123,7 +123,7 @@ describe('the ingest store and ids set aside (T-1338)', () => {
       coach: null,
       players: [
         { externalId: '7', name: 'Set aside' },
-        { externalId: '8', name: 'Unknown' },
+        { externalId: '8', name: 'Not yet reviewed' },
       ],
     };
     const lineup = { home: side, away: { ...side, players: [] } } as unknown as NormalisedLineup;
@@ -171,6 +171,106 @@ describe('the ingest store and ids set aside (T-1338)', () => {
     await store.saveLineup('api_football', 'fixture', lineup);
 
     expect(statements.some((sql) => sql.includes('DELETE FROM lineup'))).toBe(false);
+  });
+});
+
+describe('a line-up slot labelled "Trialist" (T-1707, D-342)', () => {
+  // Scottish League Cup, aud-2026-11-02-01: the feed gave each side's trialist
+  // the same provider id, adopted once as one person "Trialist", so that one
+  // person was listed for both teams.
+  const TRIALIST = '00000000-0000-4000-8000-000000000999';
+  const PLAYER = '00000000-0000-4000-8000-000000000011';
+
+  function asked(): { resolver: RefResolver; refs: string[] } {
+    const refs: string[] = [];
+    const inner = resolverOf({ 'person:4242': TRIALIST, 'person:11': PLAYER });
+    return {
+      refs,
+      resolver: {
+        resolve: (ref, payload) => {
+          refs.push(`${ref.entityType}:${ref.externalId}`);
+          return inner.resolve(ref, payload);
+        },
+        link: inner.link,
+      },
+    };
+  }
+
+  it('never resolves a placeholder, writes no row for it and reports no gap', async () => {
+    const { pool, statements } = recordingPool();
+    const { resolver, refs } = asked();
+    const store = new IngestStore(pool, resolver);
+    const side = (shirt: number) => ({
+      formation: null,
+      coach: null,
+      players: [
+        { externalId: '4242', name: 'Trialist', shirtNumber: shirt },
+        { externalId: '4243', name: ' unknown ', shirtNumber: shirt + 1 },
+      ],
+    });
+    const lineup = { home: side(19), away: side(30) } as unknown as NormalisedLineup;
+
+    const write = await store.saveLineup('api_football', 'fixture', lineup);
+
+    expect(refs).toEqual([]);
+    expect(write.unresolved).toEqual([]);
+    expect(statements.some((sql) => sql.includes('INSERT INTO lineup'))).toBe(false);
+    // The side's stored rows are still replaced by the feed's: a "Trialist"
+    // row an earlier ask wrote goes, as any player no longer listed does.
+    expect(statements.filter((sql) => sql.includes('DELETE FROM lineup'))).toHaveLength(2);
+  });
+
+  it('still writes the real players listed beside it', async () => {
+    const { pool, statements } = recordingPool();
+    const { resolver, refs } = asked();
+    const store = new IngestStore(pool, resolver);
+    const side = {
+      formation: null,
+      coach: null,
+      players: [
+        { externalId: '4242', name: 'Trialist', shirtNumber: 19 },
+        { externalId: '11', name: 'Real Player', shirtNumber: 9 },
+      ],
+    };
+    const lineup = { home: side, away: { ...side, players: [] } } as unknown as NormalisedLineup;
+
+    await store.saveLineup('api_football', 'fixture', lineup);
+
+    expect(refs).toEqual(['person:11']);
+    expect(statements.filter((sql) => sql.includes('INSERT INTO lineup'))).toHaveLength(1);
+  });
+
+  it('skips the placeholder in the per-player statistics too', async () => {
+    const { pool, statements } = recordingPool();
+    const { resolver, refs } = asked();
+    const store = new IngestStore(pool, resolver);
+
+    const write = await store.savePlayerStatistics('api_football', 'fixture', [
+      {
+        side: 'home',
+        player: { externalId: '4242', name: 'Trialist' },
+        metric: 'minutes',
+        value: 90,
+      },
+      {
+        side: 'away',
+        player: { externalId: '4242', name: 'Trialist' },
+        metric: 'minutes',
+        value: 45,
+      },
+      {
+        side: 'home',
+        player: { externalId: '11', name: 'Real Player' },
+        metric: 'minutes',
+        value: 90,
+      },
+    ]);
+
+    expect(refs).toEqual(['person:11']);
+    expect(write.unresolved).toEqual([]);
+    expect(
+      statements.filter((sql) => sql.includes('INSERT INTO fixture_player_stat')),
+    ).toHaveLength(1);
   });
 });
 

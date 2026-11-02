@@ -13880,6 +13880,23 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 
 **Ending it.** Once the `agents` record exists in Cloudflare, put `CONSOLE_PATH=` (empty) in the server's `.env`, or change the compose default, and roll out `web`. The path then disappears and the host serves alone. Invitations already sent keep working on the host, because the token is the same.
 
+
+## D-342 — A line-up slot labelled "Trialist", "Unknown" or "TBA" is never a person
+
+**Status:** Accepted · 2026-11-02 (agent; the data auditor's finding aud-2026-11-02-01) · **Task:** T-1707 · **Follows:** D-079, D-333, rule 1, rule 3
+
+**Context.** The auditor's I2 check (one person on both sides of a match's line-ups) rose from 5 to 10. Six of the ten are Scottish League Cup matches with a person "Trialist" on both sides, with different shirts. A line-up player becomes a person only through the provider's id (`IngestStore.saveSideLineup` → `resolveRef` → the resolver's `provider_mapping` lookup), and people are adopted one row per provider id (D-079); no name is compared anywhere on that path. So the same person on both sides means the feed gave both sides' players one id. For a trialist that id is a placeholder: API-Football names the slot "Trialist" and gives the trialists of different clubs the same positive id, which was adopted once as one person "Trialist". The other four (Mohamed Ali in the UAE Pro League, Kiko Bondoso in the Primeira Liga, Giannis Michailidis in the Super League Greece) are real names with one id on both sides: the feed error D-333 already covers.
+
+**Decision.**
+1. A player whose name in the feed is empty or one of a short, explicit list -- `trialist`, `unknown`, `unknown player`, `tba`, `tbc`, `tbd`, `n/a`, `-`, `?`, compared as a whole name after trimming, collapsing spaces and folding case -- is not resolved in a line-up or in the per-player statistics. It reuses no person, queues none, writes no row, and is not reported as a gap, like an id a reviewer has set aside (T-1338): no reviewer can say who it was. The list lives in `packages/ingestion/src/placeholder-name.ts` (`isPlaceholderPersonName`).
+2. Migration `1765900600000_placeholder-lineup-persons.sql` removes the `lineup` and `fixture_player_stat` rows of people whose stored name (`full_name` or `known_as`) is one of those labels. The person rows and their mappings stay, since other rows may name them.
+3. A real player the feed lists on both sides is left as D-333 decided: kept on both sides and marked on the page. The store does not choose a side or drop both.
+
+**Rejected.**
+- *Refusing a person on both sides in the store* (keep one side, or neither): D-333 rejected both with the maintainer, as a guess presented as fact or a line-up of ten said as if it were the data. Nothing new about those cases changes that.
+- *A nameless slot in the stored line-up* (a nullable person with the label): a schema, contract and page change for every reader of `lineup`. The slot is left out for now, as an unmapped player's is.
+- *Dropping the placeholder in the adapter:* the label is not API-Football's alone, and the store is the one place every source's line-up passes.
+- *Deleting the "Trialist" person:* incidents and other rows may name it; with no line-up it no longer shows as a player of both sides.
 ## D-343 — A scheduled match long past its kick-off is `awaiting_update`, derived at read time
 
 **Status:** Accepted · 2026-11-02 (the architect's proposal on arc-2026-11-02-02) · **Task:** T-1708 · **Follows:** D-045, D-189, D-209
