@@ -20,6 +20,7 @@ const {
   parseArgs,
   parseExternalIds,
   parseNationalTeams,
+  tidyName,
 } = catalog;
 
 /**
@@ -399,6 +400,14 @@ describe('national teams', () => {
     expect(adoptedTeamKind('domestic')).toBe('club');
     // Queued before T-1332, with no competition: a club, as every adoption was.
     expect(adoptedTeamKind(null)).toBe('club');
+  });
+
+  it('adopts a queued name tidied, never with the provider’s padding (T-1711)', () => {
+    expect(tidyName(' Johnstone Burgh')).toBe('Johnstone Burgh');
+    expect(tidyName('Kahramanmaraş  \t İstiklal Spor ')).toBe('Kahramanmaraş İstiklal Spor');
+    expect(tidyName('Burnley')).toBe('Burnley');
+    expect(tidyName('   ')).toBeNull();
+    expect(tidyName(null)).toBeNull();
   });
 
   it('reads the list of countries, ignoring the name column and comments', () => {
