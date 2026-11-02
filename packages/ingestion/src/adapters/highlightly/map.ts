@@ -35,6 +35,7 @@ import type {
 } from '../../normalised';
 import { groupOfLabel } from '../_group';
 import { incidentDetail } from '../_incident-detail';
+import { entityName } from '../_name';
 
 export type Json = Record<string, unknown>;
 
@@ -57,7 +58,7 @@ const id = (value: unknown): string | null => {
 function ref(value: unknown): { externalId: string; name: string } | null {
   const r = rec(value);
   const externalId = id(r.id);
-  const name = str(r.name);
+  const name = entityName(r.name);
   return externalId === null || name === null ? null : { externalId, name };
 }
 
@@ -166,7 +167,7 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
   const penalties = parseScore(scoreRec.penalties);
   const clock = int(state.clock);
   const venue = rec(m.venue);
-  const venueName = str(venue.name) ?? str(m.venue);
+  const venueName = entityName(venue.name) ?? entityName(m.venue);
   const referee = str(rec(m.referee).name) ?? str(m.referee);
 
   return {

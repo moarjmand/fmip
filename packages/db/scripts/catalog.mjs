@@ -544,6 +544,17 @@ export function adoptedTeamKind(seenScope) {
 }
 
 /**
+ * A name as an adopted row stores it (T-1711): surrounding whitespace dropped
+ * and inner runs collapsed to one space, the way the ingestion adapters tidy
+ * it (`entityName` in packages/ingestion). `null` for a blank or missing one.
+ */
+export function tidyName(value) {
+  if (typeof value !== 'string') return null;
+  const name = value.replace(/\s+/g, ' ').trim();
+  return name === '' ? null : name;
+}
+
+/**
  * What each adoption creates from a queued id: the one row, holding only what
  * the queue knows. A club gets its name and the kind every covered competition
  * has (a national team is `--adopt-national`'s, since it needs a country); a person the name the provider printed (often "J. Bellingham" -- it is
@@ -598,7 +609,12 @@ async function waiting(client, provider, entityType) {
       ORDER BY u.external_id`,
     [provider, entityType],
   );
-  return rows;
+  // A queued name is tidied before it becomes a row (T-1711): a payload
+  // queued before the adapters tidied names may still carry the provider's
+  // padding (" Johnstone Burgh"). One left blank by tidying is not named.
+  return rows
+    .map((row) => ({ ...row, name: tidyName(row.name) }))
+    .filter((row) => row.name !== null);
 }
 
 async function adopt(client, options, entityType) {

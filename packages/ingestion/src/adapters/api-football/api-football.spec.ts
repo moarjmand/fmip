@@ -1248,3 +1248,44 @@ describe('the provider writes 0 for an id it does not know (T-1600)', () => {
     expect(fixture?.venue).toEqual({ externalId: null, name: 'Somewhere', city: 'Town' });
   });
 });
+
+describe('a name the provider pads is stored tidy (T-1711)', () => {
+  it('trims and collapses the team, competition and venue names of a fixture', () => {
+    const fixture = mapFixture(
+      {
+        fixture: {
+          id: 1,
+          date: '2026-09-10T19:00:00+00:00',
+          status: { short: 'NS' },
+          venue: { id: 7, name: '  Keanie  Park ', city: 'Johnstone' },
+        },
+        league: { id: 182, name: ' Scottish  League Cup ', season: 2026 },
+        teams: {
+          home: { id: 44, name: ' Johnstone Burgh' },
+          away: { id: 50, name: 'Kahramanmaraş \t İstiklal Spor ' },
+        },
+        goals: {},
+        score: {},
+      },
+      '2026-09-10T19:05:00Z',
+    );
+    expect(fixture?.competition.name).toBe('Scottish League Cup');
+    expect(fixture?.home.name).toBe('Johnstone Burgh');
+    expect(fixture?.away.name).toBe('Kahramanmaraş İstiklal Spor');
+    expect(fixture?.venue?.name).toBe('Keanie Park');
+  });
+
+  it('drops a team whose name is only whitespace, as it drops a missing one', () => {
+    const fixture = mapFixture(
+      {
+        fixture: { id: 1, date: '2026-09-10T19:00:00+00:00', status: { short: 'NS' } },
+        league: { id: 182, name: 'Scottish League Cup', season: 2026 },
+        teams: { home: { id: 44, name: '   ' }, away: { id: 50, name: 'City' } },
+        goals: {},
+        score: {},
+      },
+      '2026-09-10T19:05:00Z',
+    );
+    expect(fixture).toBeNull();
+  });
+});
