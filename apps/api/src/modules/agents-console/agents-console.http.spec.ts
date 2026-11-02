@@ -1,10 +1,14 @@
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import {
+  CONSOLE_MESSAGE_MAX,
   CONSOLE_SNAPSHOT_SCHEMA,
+  type ApiError,
   type ConsoleAuditEntry,
   type ConsoleBoardCard,
   type ConsoleCommand,
+  type ConsoleConversation,
+  type ConsoleMessage,
   type ConsoleSnapshot,
   type ConsoleSnapshotResponse,
 } from '@fmip/contracts';
@@ -92,6 +96,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       [`ac_${RUN}%`],
     );
     const ids = rows.map((r) => r.id);
+    await pool.query(
+      `DELETE FROM console_message WHERE reply_to IN
+         (SELECT id FROM console_message WHERE author_id = ANY($1::uuid[]))`,
+      [ids],
+    );
+    await pool.query(`DELETE FROM console_message WHERE author_id = ANY($1::uuid[])`, [ids]);
     await pool.query(`DELETE FROM console_command WHERE requested_by = ANY($1::uuid[])`, [ids]);
     await pool.query(`DELETE FROM console_board_card WHERE created_by = ANY($1::uuid[])`, [ids]);
     await pool.query(`DELETE FROM console_snapshot WHERE generated_at = $1`, [GENERATED]);
@@ -288,6 +298,123 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
     expect(listed.find((c) => c.id === command.id)).toMatchObject({
       status: 'done',
       outcome: 'paused in the daily run',
+    });
+  });
+
+  describe('chat with an agent (T-1722, D-350)', () => {
+    const agent = 'data-auditor';
+    const messages = `agents/${agent}/messages`;
+
+    it('needs a session to read or write a conversation', async () => {
+      expect((await get(messages, null)).statusCode).toBe(401);
+      expect((await get(messages, 'not-a-token')).statusCode).toBe(401);
+      expect((await send('POST', messages, { body: 'hello' }, null)).statusCode).toBe(401);
+      expect((await send('POST', messages, { body: 'hello' }, 'not-a-token')).statusCode).toBe(401);
+    });
+
+    it('refuses an agent the snapshot does not name, no text, and too much text', async () => {
+      expect((await send('POST', 'agents/nobody/messages', { body: 'hi' })).statusCode).toBe(400);
+      expect((await send('POST', messages, {})).statusCode).toBe(400);
+      expect((await send('POST', messages, { body: '   ' })).statusCode).toBe(400);
+      const long = await send('POST', messages, { body: 'x'.repeat(CONSOLE_MESSAGE_MAX + 1) });
+      expect(long.statusCode).toBe(400);
+      expect(long.json<ApiError>().error).toBe('validation');
+      expect((await get('agents/Not_A_Name/messages')).statusCode).toBe(404);
+      expect((await get(`${messages}?before=nope`)).statusCode).toBe(400);
+    });
+
+    it('queues a message, audited, which the computer takes and answers', async () => {
+      const posted = await send('POST', messages, { body: `  What did you find today? ${RUN} ` });
+      expect(posted.statusCode).toBe(201);
+      const message = posted.json<ConsoleMessage>();
+      expect(message).toMatchObject({
+        agent,
+        author_kind: 'person',
+        author: `AC ${RUN} maintainer`,
+        body: `What did you find today? ${RUN}`,
+        status: 'queued',
+        reply_to: null,
+      });
+
+      const { rows: audit } = await pool.query<{ target_id: string; next: { message_id: string } }>(
+        `SELECT target_id, next FROM console_audit WHERE action = 'chat.message_posted' AND next->>'message_id' = $1`,
+        [message.id],
+      );
+      expect(audit).toEqual([
+        { target_id: agent, next: { message_id: message.id, characters: message.body.length } },
+      ]);
+
+      const taken = await store.takeMessages();
+      const item = taken.find((t) => t.message.id === message.id);
+      expect(item?.message.status).toBe('answering');
+      expect(item?.conversation.at(-1)?.id).toBe(message.id);
+      // Taken once: a second pull does not hand it out again.
+      expect((await store.takeMessages()).some((t) => t.message.id === message.id)).toBe(false);
+
+      expect(await store.postReply(message.id, 'answered', 'Three findings, all minor.')).toBe(
+        true,
+      );
+      expect(await store.postReply(message.id, 'answered', 'twice')).toBe(false);
+
+      const conversation = (await get(messages)).json<ConsoleConversation>();
+      const mine = conversation.messages.filter(
+        (m) => m.id === message.id || m.reply_to === message.id,
+      );
+      expect(mine).toMatchObject([
+        { id: message.id, status: 'answered' },
+        {
+          author_kind: 'agent',
+          author: agent,
+          body: 'Three findings, all minor.',
+          status: null,
+          reply_to: message.id,
+        },
+      ]);
+    });
+
+    it('says why a message was not answered, and pages a long conversation', async () => {
+      const posted = (
+        await send('POST', messages, { body: `Fails ${RUN}` })
+      ).json<ConsoleMessage>();
+      await store.takeMessages();
+      expect(await store.postReply(posted.id, 'failed', '')).toBe(true);
+      const after = (await get(messages)).json<ConsoleConversation>();
+      expect(after.messages.find((m) => m.id === posted.id)).toMatchObject({
+        status: 'failed',
+        failure: 'The run did not answer.',
+      });
+
+      const page = await store.conversation(agent, null, 2);
+      expect(page.messages).toHaveLength(2);
+      expect(page.has_older).toBe(true);
+      expect(page.messages.at(-1)?.id).toBe(posted.id);
+      const older = (
+        await get(`${messages}?before=${page.messages[0]!.id}`)
+      ).json<ConsoleConversation>();
+      expect(older.messages.every((m) => m.created_at <= page.messages[0]!.created_at)).toBe(true);
+      expect(older.messages.some((m) => m.id === page.messages[0]!.id)).toBe(false);
+    });
+
+    it('holds a person to the hourly ceiling, with Retry-After', async () => {
+      const { rows } = await pool.query<{ per_hour: number }>(
+        `SELECT per_hour FROM rate_limit WHERE action = 'console_message'`,
+      );
+      expect(rows[0]?.per_hour).toBe(30);
+      try {
+        // One an hour: this person has written one this hour after the first post, whatever the clock.
+        await pool.query(`UPDATE rate_limit SET per_hour = 1 WHERE action = 'console_message'`);
+        await send('POST', messages, { body: `Warm-up ${RUN}` });
+        const refused = await send('POST', messages, { body: 'one more' });
+        expect(refused.statusCode).toBe(429);
+        expect(refused.json<ApiError>().error).toBe('rate_limited');
+        expect(Number(refused.headers['retry-after'])).toBeGreaterThan(0);
+        const { rowCount } = await pool.query(
+          `SELECT 1 FROM console_message WHERE body = 'one more'`,
+        );
+        expect(rowCount).toBe(0);
+      } finally {
+        await pool.query(`UPDATE rate_limit SET per_hour = 30 WHERE action = 'console_message'`);
+      }
     });
   });
 

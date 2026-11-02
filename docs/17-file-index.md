@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2211), grouped by folder, with one line on
+Every file in the repository (2217), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -223,9 +223,10 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 5
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 6
 - [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 2
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
+- [`apps/web/src/app/console/(app)/agents/[name]/chat`](#appswebsrcappconsoleappagentsnamechat) — 1
 - [`apps/web/src/app/console/(app)/audit`](#appswebsrcappconsoleappaudit) — 1
 - [`apps/web/src/app/console/(app)/board`](#appswebsrcappconsoleappboard) — 1
 - [`apps/web/src/app/console/(app)/decisions`](#appswebsrcappconsoleappdecisions) — 1
@@ -253,14 +254,14 @@ machine, `docs/18-handover.md`.
 - [`packages/config/prettier`](#packagesconfigprettier) — 1
 - [`packages/config/tests`](#packagesconfigtests) — 1
 - [`packages/config/tsconfig`](#packagesconfigtsconfig) — 4
-- [`packages/console-publisher`](#packagesconsole-publisher) — 4
-- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 3
+- [`packages/console-publisher`](#packagesconsole-publisher) — 5
+- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 5
 - [`packages/contracts`](#packagescontracts) — 5
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 170
+- [`packages/db/migrations`](#packagesdbmigrations) — 171
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -2479,6 +2480,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `chat.tsx` | The chat with an agent (T-1722, D-350), drawn on the server: no model answers here. |
 | `console-form.tsx` | A console form whose action answers with what happened (D-340): the outcome is said under the button, in a live region, and the button waits while the action runs. |
 | `console-link.tsx` | The site's link with a console path put under the request's base (D-341). |
 | `console.spec.tsx` | The agents console's web side (T-1698, D-340): served on its own host only, its cookie read back from the API's, and an open security finding shown without its detail. |
@@ -2497,6 +2499,12 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | One agent (T-1698, D-340): how it works, what it can touch, what feeds its memory and what it holds, its runs, and its controls. |
+
+## apps/web/src/app/console/(app)/agents/[name]/chat
+
+| File | What it is |
+|---|---|
+| `page.tsx` | The chat with one agent (T-1722, D-350): the conversation, newest last, and a box to write in. |
 
 ## apps/web/src/app/console/(app)/audit
 
@@ -3303,6 +3311,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `README.md` | @fmip/console-publisher |
 | `eslint.config.mjs` | Eslint configuration. |
 | `package.json` | Package `@fmip/console-publisher`: The agents console's snapshot and command sync, run on the maintainer's computer (D-340).: scripts and dependencies. |
 | `tsconfig.json` | TypeScript compiler settings. |
@@ -3312,6 +3321,8 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `chat.spec.ts` | Tests for `chat`. |
+| `chat.ts` | The chat with the agents, on the maintainer's computer (T-1722, D-350): the pure part. |
 | `publish.ts` | The agents console's publisher, on the maintainer's computer (T-1699, D-340). |
 | `snapshot.spec.ts` | Tests for `snapshot`. |
 | `snapshot.ts` | The agents console's snapshot, built on the maintainer's computer (T-1699, D-340): pure functions over what the files say, so they are tested on fixtures and `publish.ts` only reads files and runs `ssh`. |
@@ -3605,6 +3616,7 @@ machine, `docs/18-handover.md`.
 | `1765900500000_agents-console.sql` | The agents console (T-1696, D-340): `agents.traveltohormuz.ir`, for the maintainer and the teammate, apart from the site's members. |
 | `1765900600000_placeholder-lineup-persons.sql` | T-1707 (D-342): line-up slots a feed labels "Trialist", "Unknown", "TBA" are not people. |
 | `1765900700000_trim-team-names.sql` | T-1711 (str-2026-11-02-02): team names stored with a provider's padding. |
+| `1765900800000_console-message.sql` | Chat with an agent in the agents console (T-1722, D-350). |
 
 ## packages/db/scripts
 

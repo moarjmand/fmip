@@ -3,6 +3,8 @@ import {
   CONSOLE_AGENT_SCHEDULES,
   CONSOLE_BOARD_COLUMNS,
   CONSOLE_COMMAND_KINDS,
+  CONSOLE_MESSAGE_MAX,
+  CONSOLE_REPLY_MAX,
   CONSOLE_SNAPSHOT_SCHEMA,
   CONSOLE_USERNAME_PATTERN,
   type ConsoleBoardCardInput,
@@ -193,6 +195,63 @@ export function checkCommand(
       reason: reason.trim(),
     },
   };
+}
+
+// --- Chat with an agent (T-1722, D-350) --------------------------------------
+
+/** The `rate_limit` row of a console person's messages to the agents. */
+export const MESSAGE_CEILING = 'console_message';
+/** How much of the conversation the computer is given with each message. */
+export const CHAT_CONTEXT = 20;
+/** A message the computer took but never answered is taken again after this long. */
+export const ANSWERING_TIMEOUT_MINUTES = 60;
+/** The conversation's page. */
+export const CONVERSATION_PAGE = 50;
+/** Why a message was not answered, as the computer says it. */
+export const FAILURE_MAX = 1000;
+
+/** An agent's name as the snapshot and the table have it (`.claude/agents/<name>.md`). */
+export const AGENT_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/;
+export const MESSAGE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * Text as stored: line ends made `\n`, and the characters Postgres cannot
+ * hold or that only hide text (NUL and the other C0 controls but tab and
+ * newline) removed.
+ */
+export function cleanText(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '');
+}
+
+/**
+ * A message as a person wrote it to an agent, or the reason it cannot be
+ * sent: the agent must be one the newest snapshot names, and the text one to
+ * 4,000 characters. The text is data for the agent, never a command to the
+ * server: nothing here reads it beyond its length.
+ */
+export function checkMessage(
+  agent: string,
+  body: unknown,
+  agents: readonly string[],
+): { ok: true; body: string } | { ok: false; reason: string } {
+  if (!AGENT_NAME.test(agent) || !agents.includes(agent))
+    return { ok: false, reason: 'No such agent.' };
+  const raw = isObject(body) ? body.body : undefined;
+  if (!isString(raw)) return { ok: false, reason: 'Write a message.' };
+  const text = cleanText(raw).trim();
+  if (text === '') return { ok: false, reason: 'Write a message.' };
+  if ([...text].length > CONSOLE_MESSAGE_MAX)
+    return { ok: false, reason: `A message is at most ${CONSOLE_MESSAGE_MAX} characters.` };
+  return { ok: true, body: text };
+}
+
+/** An agent's reply as the computer sent it, cut to the longest the console keeps. */
+export function replyText(raw: string): string {
+  const text = cleanText(raw).trim();
+  const chars = [...text];
+  if (chars.length <= CONSOLE_REPLY_MAX) return text;
+  return `${chars.slice(0, CONSOLE_REPLY_MAX - 1).join('')}…`;
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
