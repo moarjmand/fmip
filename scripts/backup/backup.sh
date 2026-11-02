@@ -75,36 +75,71 @@ psql_src() {
   docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA -v ON_ERROR_STOP=1 "$@"
 }
 
+STEP='snapshot'
+# The dump and the manifest's counts read one snapshot (T-1712): a session
+# holds a REPEATABLE READ transaction open, exports its snapshot, pg_dump
+# dumps exactly that, and the counts below are taken in the same session.
+# Counting after the dump let the feed's writes in between (2 incidents and 4
+# ingest runs on 2026-11-02) fail a drill of a sound dump.
+coproc SNAP { psql_src -q; }
+echo "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY; SELECT pg_export_snapshot();" >&"${SNAP[1]}"
+read -r SNAPSHOT <&"${SNAP[0]}"
+SNAPSHOT="${SNAPSHOT%$'\r'}"
+[ -n "$SNAPSHOT" ] || { echo "no snapshot exported" >&2; exit 1; }
+
+# Puts what the snapshot's session answers to $1, up to a marker line, in
+# SNAP_OUT. Never call it in $( ) or a pipeline: a subshell does not have the
+# coprocess's descriptors.
+snap_query() {
+  printf '%s;\nSELECT %s;\n' "$1" "'__end__'" >&"${SNAP[1]}"
+  SNAP_OUT=''
+  local line
+  while read -r line <&"${SNAP[0]}"; do
+    line="${line%$'\r'}"
+    [ "$line" = '__end__' ] && return 0
+    SNAP_OUT+="$line"$'\n'
+  done
+  return 1
+}
+
 STEP='pg_dump'
-echo "==> pg_dump $POSTGRES_DB -> $DUMP"
+echo "==> pg_dump $POSTGRES_DB -> $DUMP (snapshot $SNAPSHOT)"
 # Custom format: compressed, restorable table by table, and pg_restore can
 # list its contents. --no-owner/--no-privileges so a restore into a database
 # owned by another role (the drill, a new VPS) needs no role juggling.
 # zstd at level 9 (T-1487): a third smaller than gzip at 6 on the feed's
 # largest tables, so more days fit the off-provider budget.
 docker compose exec -T postgres pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
-  --format=custom --compress=zstd:9 --no-owner --no-privileges > "$DUMP"
+  --snapshot="$SNAPSHOT" --format=custom --compress=zstd:9 --no-owner --no-privileges > "$DUMP"
 
 STEP='manifest'
 echo "==> manifest $MANIFEST"
-# Exact row counts of every table in the application schemas, captured right
-# after the dump. The drill recomputes them on the restored copy; a mismatch
+# Exact row counts of every table in the application schemas, in the dump's
+# own snapshot. The drill recomputes them on the restored copy; a mismatch
 # fails the drill. n_live_tup would be an estimate, so this generates one
 # COUNT(*) per table instead.
-COUNT_SQL="$(psql_src -c "
+snap_query "
   SELECT string_agg(
            format('SELECT %L AS t, count(*) AS n FROM %I.%I', schemaname || '.' || tablename, schemaname, tablename),
            ' UNION ALL ' ORDER BY schemaname, tablename)
-    FROM pg_tables WHERE schemaname IN ('public', 'training')")"
+    FROM pg_tables WHERE schemaname IN ('public', 'training')"
+COUNT_SQL="${SNAP_OUT%$'\n'}"
+snap_query "SELECT 'migration ' || name FROM schema_migration ORDER BY id"
+MIGRATIONS="$SNAP_OUT"
+snap_query "$COUNT_SQL"
+COUNTS="$SNAP_OUT"
+echo "COMMIT;" >&"${SNAP[1]}"
 {
   echo "database $POSTGRES_DB"
   echo "dumped_at $STAMP"
   echo "pg_dump $(docker compose exec -T postgres pg_dump --version | tr -d '\r')"
-  psql_src -c "SELECT 'migration ' || name FROM schema_migration ORDER BY id"
-  psql_src -c "$COUNT_SQL" | tr '|' ' ' | sed 's/^/rows /'
+  printf '%s' "$MIGRATIONS"
+  printf '%s' "$COUNTS" | tr '|' ' ' | sed 's/^/rows /'
   echo "size $(wc -c < "$DUMP")"
   echo "sha256 $(sha256sum "$DUMP" | cut -d' ' -f1)"
 } | tr -d '\r' > "$MANIFEST"
+exec {SNAP[1]}>&-
+wait "${SNAP_PID:-}" 2>/dev/null || true
 
 TABLES="$(grep -c '^rows ' "$MANIFEST")"
 ROWS="$(awk '/^rows /{s+=$3} END{print s+0}' "$MANIFEST")"
