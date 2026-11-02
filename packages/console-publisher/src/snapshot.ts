@@ -1,5 +1,6 @@
 import type {
   ConsoleAgent,
+  ConsoleAgentFlow,
   ConsoleAgentRun,
   ConsoleCommand,
   ConsoleDecision,
@@ -314,6 +315,8 @@ export interface AgentInputs {
   memoryEntries: ConsoleMemoryEntry[];
   findingDays: ReadonlyMap<string, number>;
   reportDays: string[];
+  /** How it works, for the console's schematic (`flow.ts`, D-352). */
+  flow?: ConsoleAgentFlow;
 }
 
 /** One agent as the console shows it, its file and its history put together. */
@@ -363,6 +366,7 @@ export function agentOf(inputs: AgentInputs, state: ConsoleState): ConsoleAgent 
       steps: inputs.steps,
       outputs,
     },
+    ...(inputs.flow === undefined ? {} : { flow: inputs.flow }),
     memory: { sources, entries: inputs.memoryEntries },
     runs: runsOf(file.name, inputs.findingDays, inputs.reportDays),
   };

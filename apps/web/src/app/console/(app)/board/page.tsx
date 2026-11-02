@@ -65,7 +65,7 @@ export default async function ConsoleBoardPage() {
                       )}
                     </div>
                     <p className="mt-2 text-[0.625rem] text-caption">
-                      {card.updated_by ?? ''} · {when(card.updated_at)}
+                      <span dir="ltr">{card.updated_by ?? ''}</span> · {when(card.updated_at)}
                     </p>
                     <div className="mt-2 flex items-center gap-2">
                       <form action={moveCard} className="flex flex-1 gap-1">

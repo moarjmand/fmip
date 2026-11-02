@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { consoleAudit } from '@/lib/console-api';
 import { Card, when } from '../../ui';
+import { auditActionWords, auditReasonWords } from '../../words';
 
 export const metadata: Metadata = { title: 'کارنامه‌ی کنسول' };
 
@@ -31,14 +32,18 @@ export default async function ConsoleAuditPage() {
                   <td className="py-2 pe-3" dir="ltr">
                     {entry.actor}
                   </td>
-                  <td className="py-2 pe-3" dir="ltr">
-                    {entry.action}
+                  <td className="py-2 pe-3">
+                    {auditActionWords(entry.action).known ? (
+                      auditActionWords(entry.action).words
+                    ) : (
+                      <span dir="ltr">{entry.action}</span>
+                    )}
                   </td>
                   <td className="py-2 pe-3 text-xs text-caption" dir="ltr">
                     {entry.target}
                   </td>
                   <td className="py-2 text-muted" dir="auto">
-                    {entry.reason}
+                    {auditReasonWords(entry.reason)}
                   </td>
                 </tr>
               ))}

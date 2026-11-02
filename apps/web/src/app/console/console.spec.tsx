@@ -9,7 +9,7 @@ import {
   isConsoleHost,
 } from '@/lib/console-host';
 import { ChatThread, MESSAGE_STATUS_WORDS } from './chat';
-import { FindingRow, RunsBars, WorkflowDiagram, freshness } from './ui';
+import { FindingRow, RunsBars, freshness } from './ui';
 
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
 const { parseConsoleSetCookie } = await import('@/lib/console-api');
@@ -127,18 +127,6 @@ describe('the console pieces', () => {
     expect(other).toContain('the evidence');
   });
 
-  it('draws the workflow in three columns, steps numbered', () => {
-    const html = renderToStaticMarkup(
-      <WorkflowDiagram
-        workflow={{ inputs: ['The server'], steps: ['Check', 'Report'], outputs: ['Findings'] }}
-      />,
-    );
-    expect(html).toContain('می‌خواند');
-    expect(html).toContain('۱. Check');
-    expect(html).toContain('۲. Report');
-    expect(html).toContain('Findings');
-  });
-
   it('draws a bar a run, or says there is none', () => {
     expect(renderToStaticMarkup(<RunsBars runs={[]} />)).toContain('هنوز اجرایی');
     const html = renderToStaticMarkup(
@@ -183,6 +171,8 @@ describe('the console pieces', () => {
       />,
     );
     expect(html).toContain('data-author="agent"');
+    // The agent signs with its Persian title (T-1725).
+    expect(html).toContain('بازرس داده');
     expect(html).toContain('Three minor findings.');
     expect(html).toContain('What did you find?\nToday.');
     expect(html).toContain('&lt;b&gt;not markup&lt;/b&gt;');
