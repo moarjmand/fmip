@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2211), grouped by folder, with one line on
+Every file in the repository (2222), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -11,7 +11,7 @@ machine, `docs/18-handover.md`.
 
 - [`(root)`](#root) — 19
 - [`.claude`](#claude) — 1
-- [`.claude/agents`](#claudeagents) — 12
+- [`.claude/agents`](#claudeagents) — 16
 - [`.claude/hooks`](#claudehooks) — 3
 - [`.claude/skills/business-advice`](#claudeskillsbusiness-advice) — 1
 - [`.claude/skills/content-watch`](#claudeskillscontent-watch) — 2
@@ -22,9 +22,13 @@ machine, `docs/18-handover.md`.
 - [`.claude/skills/fmip-qa`](#claudeskillsfmip-qa) — 1
 - [`.claude/skills/fmip-review`](#claudeskillsfmip-review) — 2
 - [`.claude/skills/fmip-security`](#claudeskillsfmip-security) — 2
+- [`.claude/skills/growth-funnel`](#claudeskillsgrowth-funnel) — 2
+- [`.claude/skills/marketing-plan`](#claudeskillsmarketing-plan) — 1
 - [`.claude/skills/model-watch`](#claudeskillsmodel-watch) — 2
 - [`.claude/skills/ops-check`](#claudeskillsops-check) — 3
 - [`.claude/skills/product-strategy`](#claudeskillsproduct-strategy) — 2
+- [`.claude/skills/search-visibility`](#claudeskillssearch-visibility) — 2
+- [`.claude/skills/social-drafts`](#claudeskillssocial-drafts) — 2
 - [`.claude/skills/team-charter`](#claudeskillsteam-charter) — 1
 - [`.github/workflows`](#githubworkflows) — 2
 - [`apps/api`](#appsapi) — 6
@@ -332,11 +336,15 @@ machine, `docs/18-handover.md`.
 | `content-community.md` | The FMIP / Stadiomind news editor and community moderator's assistant - watches the news feeds (fetches, failing or silent sources, image licences, football only), the moderation queue and sanctions, and the Persian tex… |
 | `data-auditor.md` | Audits the correctness of FMIP / Stadiomind production data and the live site (scores after extra time, shoot-outs, league and conference tables, stage names, line-ups, duplicate entities, stale jobs, forecasts, the new… |
 | `designer.md` | The FMIP / Stadiomind product designer - draws a visible change on real data in the Stadiomind design system (desktop and phone, English and Persian, light and dark) before it is built, and reviews pages and release scr… |
+| `growth-analyst.md` | The FMIP / Stadiomind growth analyst - measures sign-up and retention funnels, weekly cohorts, follows, push and community-prediction activity from the site's own database with read-only SQL, says what is not measured (… |
+| `marketing-manager.md` | The FMIP / Stadiomind marketing manager - owns the growth plan (audience and positioning, the brand message in English and Persian, the channels, a campaign calendar) and measures it against the site's own numbers; sets… |
 | `model-scientist.md` | Watches the FMIP / Stadiomind forecast model's live record (pre-kick-off log loss, Brier, accuracy, calibration, published against shadow, drift, weak competitions), keeps the lab's verdicts, judges promotion readiness… |
 | `ops-release.md` | Watches FMIP / Stadiomind production (server, containers, disk, build cache, backups, ingestion jobs, request budget, watchdog, site response) with a read-only snapshot, and runs the release checklist before and after e… |
 | `product-strategist.md` | The FMIP / Stadiomind product manager and strategist - turns requests and teammate feedback into tasks with checkable acceptance criteria against the blueprint, prioritises them, keeps the competitor view, and checks se… |
 | `qa-engineer.md` | Tests FMIP / Stadiomind - checks a pull request's tests and runs the targeted ones, walks the live site daily in English and Persian at phone and desktop widths (layout, RTL, overflow, console errors, speed, stale or wr… |
 | `security.md` | The FMIP / Stadiomind security engineer - reviews pull requests for authorisation, input handling, SQL, XSS, secrets, rate limits, audited admin actions, dependencies and prompt injection, and checks the server and site… |
+| `seo-search.md` | The FMIP / Stadiomind search specialist - Google and AI-answer visibility: keywords per language (English and Persian first), robots and sitemap, structured data (schema.org SportsEvent, SportsTeam, BreadcrumbList), can… |
+| `social-media.md` | The FMIP / Stadiomind social media editor - writes DRAFTS of Telegram, Instagram and X posts in Persian and English from the site's real data (results, the statistical model's forecasts named as the model's, the founder… |
 
 ## .claude/hooks
 
@@ -408,6 +416,19 @@ machine, `docs/18-handover.md`.
 | `SKILL.md` | Security for FMIP / Stadiomind - a pull request's security review (authorisation, input handling, SQL, XSS, secrets, rate limits, audit of admin actions, dependencies) and a weekly read-only check of the server and site… |
 | `server-hardening.sh` | Read-only security snapshot of the production server and site (T-1684, D-328), for the security agent. bash .claude/skills/fmip-security/server-hardening.sh Lists listening ports, the SSH daemon's effective settings, th… |
 
+## .claude/skills/growth-funnel
+
+| File | What it is |
+|---|---|
+| `SKILL.md` | Growth analytics for FMIP / Stadiomind from the site's own database - the sign-up funnel, weekly cohorts and retention, active members, follows, push and the community-prediction activity, the channel's own output - as… |
+| `growth-funnel.sql` | The growth analyst's weekly read (T-1721, D-349), read-only through the data auditor's runner: bash .claude/skills/data-audit/run.sh .claude/skills/growth-funnel/growth-funnel.sql Aggregates only: no id, name, username,… |
+
+## .claude/skills/marketing-plan
+
+| File | What it is |
+|---|---|
+| `SKILL.md` | Marketing for FMIP / Stadiomind - the growth plan (audience, positioning, the brand message in English and Persian, channels, a campaign calendar), the marketing wing's priorities, and measuring results against the site… |
+
 ## .claude/skills/model-watch
 
 | File | What it is |
@@ -429,6 +450,20 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `SKILL.md` | Product, strategy and growth for FMIP / Stadiomind - turn a request or feedback into a task with acceptance criteria against the blueprint and roadmap, keep the competitor view (Sofascore, FotMob, 365Scores, ESPN, Opta-… |
 | `seo-check.sh` | Read-only search and sharing health of the live site (T-1694, D-339), for the product and strategy agent. bash .claude/skills/product-strategy/seo-check.sh Fetches robots.txt, the sitemap and key pages from the server (… |
+
+## .claude/skills/search-visibility
+
+| File | What it is |
+|---|---|
+| `SKILL.md` | Search and AI-answer visibility for FMIP / Stadiomind - keywords per language (English and Persian first), robots and sitemap, schema.org structured data (SportsEvent, SportsTeam, SportsOrganization, Person, BreadcrumbL… |
+| `structured-data.sh` | Read-only structured-data and indexing check of the live site (T-1721, D-349), for the seo-search agent. bash .claude/skills/search-visibility/structured-data.sh Fetches key pages from the server (the PC's own link is u… |
+
+## .claude/skills/social-drafts
+
+| File | What it is |
+|---|---|
+| `SKILL.md` | Social media drafts for FMIP / Stadiomind - Telegram, Instagram and X posts in Persian and English built only from what the live site shows (results, the statistical model's forecasts with their version, the founder's a… |
+| `social-drafts.sql` | The social media agent's daily read (T-1721, D-349), read-only through the data auditor's runner: bash .claude/skills/data-audit/run.sh .claude/skills/social-drafts/social-drafts.sql What the system already posted to th… |
 
 ## .claude/skills/team-charter
 

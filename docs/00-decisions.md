@@ -13933,3 +13933,25 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 **Rejected.**
 - *Dropping the sentence:* the line-up would go on saying a role is missing when a player is, which rule 3 does not allow.
 - *Moving the line-ups out of the live view:* a larger change to the live page for a few bytes.
+
+## D-349 — The agent team's marketing wing: marketing manager, search, social drafts, growth analyst
+
+**Status:** Accepted · 2026-11-02 (maintainer) · **Task:** T-1721 · **Follows:** D-331, D-339
+
+**Context.** The maintainer asked on 2026-11-02 for a marketing manager "and related items" and chose four roles. The site has almost no members yet (str-2026-11-02-01: 4 members, 9 predictions, none in the last 7 days), most pages share without a picture (str-2026-11-01-01), the public Telegram channel already receives the system's own daily posts (T-525, D-222), and the site stores nothing about where visitors come from.
+
+**Decision.** Four agents, built as D-339's were (a role file, a skill with a golden set of real cases, a read-only script or query where one helps), Sonnet each, `memory: project`:
+- **`marketing-manager`** owns the growth plan (`E:/FMIP/ops/marketing/plan.md`: audience, positioning, the message in English and Persian, channels, a four-week campaign calendar, measures with a baseline before any target) and writes the Monday report with the wing's three priorities; brand, spend and accounts go to the desk as options. Skill `marketing-plan`, prefix `mkt`.
+- **`seo-search`** checks search and AI-answer visibility weekly: `seo-check.sh` (moved here from the product strategist's monthly check, who now reads these reports), a new `structured-data.sh` (`<html lang>`/`dir`, robots meta, `<h1>` count, each JSON-LD block's type and missing fields), keywords per language (English and Persian first) and whether AI answers cite the site; every finding with its URL. Skill `search-visibility`, prefix `seo`.
+- **`social-media`** writes daily drafts of Telegram, Instagram and X posts in Persian and English from what the live site shows, only on a day worth posting, never repeating the channel's automatic posts, the model's forecast labelled with its version, the founder's analysis as his, the community's picks as theirs, never blended (rule 6). It never publishes: the maintainer approves and publishes. `social-drafts.sql` reads the channel's own posts and the founder's newest analyses. Skill `social-drafts`, prefix `soc`.
+- **`growth-analyst`** reads the funnel weekly from the database through the auditor's read-only runner (`growth-funnel.sql`: accounts, the funnel from registration to prediction and return, twelve weekly cohorts, active members, prediction activity, breakdowns with cells under 5 folded in SQL, the channel's output) and says what is not measured (entry page, referrer, subscribers) as `not_supplied`. Skill `growth-funnel`, prefix `gro`.
+- **The wing's rules,** in the charter: no paid tools and no accounts; no publishing; no personal data in reports (aggregates, a breakdown cell under 5 written as "fewer than 5"); no tracker, a first-party measure being a decision past the business adviser; no claim about a competitor without a source; forecasts always the statistical model's.
+- **Schedules** (the charter's new "Schedules" table, the publisher's `DEFAULT_SCHEDULES`): `social-media` daily; `seo-search` and `growth-analyst` on Mondays, then `marketing-manager`, before the chief of staff. The brief gives the wing's findings by severity, Monday's priorities in one line, and one line on drafts waiting for approval, never the drafts themselves.
+- **One skill per agent,** not one shared `marketing` skill: the console shows each agent's steps from its own skill, and the four methods share only the rules, which live in the charter.
+
+**Rejected.**
+- *A single marketing agent with sections:* four different inputs (the database, the live pages, the web) and cadences in one run; the hub-and-spoke shape of D-328 is kept.
+- *Letting the social agent post through the channel's bot:* publishing stays a person's act after approval.
+- *Google Analytics, a pixel or any hosted tracker for the funnel:* a third party with members' data and a new dependency; the database already answers most of it.
+
+**Consequences.** `.claude/agents/{marketing-manager,seo-search,social-media,growth-analyst}.md`; `.claude/skills/{marketing-plan,search-visibility,social-drafts,growth-funnel}/`; the charter's prefixes, schedules and wing rules; the chief of staff's roster and the daily brief's inputs; the product strategy and content watch skills point at the new agents; the console's `DEFAULT_SCHEDULES` and Persian titles. The daily run's scheduled task, outside the repository, gains the four agents. Trial runs on production wait for the first run of the daily round, since the building session does not reach the server.
