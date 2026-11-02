@@ -15842,6 +15842,42 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "rules.retention.heading": {
+    "source": "How long records are kept",
+    "text": "سوابق تا چه مدت نگه داشته می‌شوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.retention.lead": {
+    "source": "Some records are needed only for a while. A daily clean-up removes them once their time is up:",
+    "text": "برخی سوابق فقط برای مدتی لازم‌اند. یک پاک‌سازی روزانه آن‌ها را پس از پایان مدتشان حذف می‌کند:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.retention.sessions": {
+    "source": "Sign-in sessions are deleted 30 days after they expire.",
+    "text": "نشست‌های ورود ۳۰ روز پس از انقضا حذف می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.retention.emailLinks": {
+    "source": "Email verification and password reset links are deleted 7 days after they expire.",
+    "text": "پیوندهای تأیید ایمیل و بازنشانی گذرواژه ۷ روز پس از انقضا حذف می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.retention.notifications": {
+    "source": "The record of whether each notification reached you by email or push is kept for 90 days. After that only anonymous daily counts remain.",
+    "text": "سابقه‌ی اینکه هر اعلان از راه ایمیل یا اعلان مرورگر به شما رسید یا نه، ۹۰ روز نگه داشته می‌شود. پس از آن فقط شمارش‌های روزانه‌ی بی‌نام باقی می‌ماند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.retention.backups": {
+    "source": "Backups are kept for up to 90 days, so something deleted here can remain in a backup for up to 90 days longer.",
+    "text": "نسخه‌های پشتیبان تا ۹۰ روز نگه داشته می‌شوند؛ پس چیزی که اینجا حذف شده ممکن است تا ۹۰ روز دیگر در یک نسخه‌ی پشتیبان بماند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "stage.name.regularSeason": {
     "source": "Regular Season",
     "text": "فصل عادی",
