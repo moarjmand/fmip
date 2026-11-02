@@ -200,6 +200,25 @@ test.describe('on a 390 px phone', () => {
   });
 });
 
+test.describe('on a 375 px phone', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('the opened season menu stays on the screen in both directions (T-1706)', async ({
+    page,
+  }) => {
+    for (const locale of ['en', 'fa']) {
+      await page.goto(`/${locale}/competition/${PREMIER_LEAGUE}`);
+      await page.getByTestId('seasons').locator('summary').click();
+      const menu = page.getByTestId('season-options');
+      await expect(menu).toBeVisible();
+      const b = await box(page, 'season-options');
+      expect(b.x).toBeGreaterThanOrEqual(0);
+      expect(b.x + b.width).toBeLessThanOrEqual(375);
+      await noSidewaysScroll(page);
+    }
+  });
+});
+
 test.describe('the section tabs', () => {
   test('open the Model and Matches tabs, and an old Hybrid address lands on Matches', async ({
     page,
