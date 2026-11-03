@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2277), grouped by folder, with one line on
+Every file in the repository (2279), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -38,7 +38,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/cli`](#appsapisrccli) — 9
 - [`apps/api/src/database`](#appsapisrcdatabase) — 3
 - [`apps/api/src/modules/activity`](#appsapisrcmodulesactivity) — 4
-- [`apps/api/src/modules/activity/internal`](#appsapisrcmodulesactivityinternal) — 2
+- [`apps/api/src/modules/activity/internal`](#appsapisrcmodulesactivityinternal) — 3
 - [`apps/api/src/modules/admin`](#appsapisrcmodulesadmin) — 7
 - [`apps/api/src/modules/admin/internal`](#appsapisrcmodulesadmininternal) — 2
 - [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 3
@@ -273,7 +273,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 175
+- [`packages/db/migrations`](#packagesdbmigrations) — 176
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -578,6 +578,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `activity-store.ts` | A timestamp column as its UTC calendar day, `YYYY-MM-DD`. |
+| `daily.ts` | The anonymous daily roll-up of sign-ins and active members (T-1727, D-353): which days to keep before the retention purge deletes their sessions, and how the kept days and the live rows meet in one report without a day… |
 | `series.ts` | `?days=`: absent means the default thirty; otherwise a whole number from 1 to `ACTIVITY_MAX_DAYS`. |
 
 ## apps/api/src/modules/admin
@@ -3749,6 +3750,7 @@ machine, `docs/18-handover.md`.
 | `1765900818000_persian-news-only.sql` | T-1718 (D-348): Persian readers are shown Persian-language sources only. /fa/news listed English and German headlines among its first thirty (aud-2026-11-01-02, qa-2026-10-31-04): only a source set `same_language_only`… |
 | `1765900830000_console-message.sql` | Chat with an agent in the agents console (T-1722, D-350). |
 | `1765900900000_prediction-share.sql` | T-1723 (D-351): a public link to one prediction's "called it" card, made only when its owner presses Share. |
+| `1765901000000_activity-daily.sql` | T-1727 (D-353): the Activity page's sign-ins and active members, kept per day before the retention purge deletes the sessions they are counted from. |
 
 ## packages/db/scripts
 

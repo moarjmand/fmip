@@ -62,8 +62,10 @@ export class ActivityController {
 
 /**
  * Activity counts for the admin console (T-807, E80). Imports only identity,
- * for the admin gate; its SQL counts rows in tables other boundaries own and
- * writes nothing.
+ * for the admin gate; its SQL counts rows in tables other boundaries own.
+ * Owns `activity_daily` (T-1727, D-353), the anonymous daily sign-ins and
+ * active members it keeps when the retention purge asks, before the sessions
+ * they were counted from are deleted.
  */
 @Module({
   imports: [IdentityModule],

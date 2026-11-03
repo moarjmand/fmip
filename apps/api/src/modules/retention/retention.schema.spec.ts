@@ -1,5 +1,8 @@
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { withTriggersOff } from '../../testing/cleanup';
+import { ActivityService } from '../activity/activity.service';
+import { ActivityStore } from '../activity/internal/activity-store';
 import { RetentionStore } from './internal/retention-store';
 import { RetentionService, purgeInBatches } from './retention.service';
 
@@ -13,9 +16,15 @@ import { RetentionService, purgeInBatches } from './retention.service';
  * so its cut-offs fall in 2001 too. Other suites write rows dated now into
  * the same shared database at the same time, and a purge run at the real
  * date would delete their expired sessions and claims under them.
+ *
+ * The purge also keeps the Activity report's day counts (T-1727, D-353) in
+ * `activity_daily`, which only this file writes: its rows are set aside
+ * before the suite and put back after it, so the 2001 days are the only
+ * ones the purge sees.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
+const UPCOMING = '00000000-0000-4000-8000-000000000902';
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const NOW = new Date('2001-06-01T03:23:00Z');
 
@@ -23,7 +32,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
   let pool: Pool;
   let service: RetentionService;
   let store: RetentionStore;
+  let activity: ActivityStore;
   let member = '';
+  let other = '';
+  let keptBefore: { day: string; sign_ins: number; active_members: number; kept_at: Date }[] = [];
   let consoleUser = '';
   const ids: Record<string, string> = {};
 
@@ -40,13 +52,32 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
       `DELETE FROM notification_delivery_daily WHERE day BETWEEN '2001-01-01' AND '2001-12-31'`,
     );
 
-  async function session(label: string, created: string, expires: string): Promise<void> {
+  async function session(
+    label: string,
+    created: string,
+    expires: string,
+    user: string = member,
+  ): Promise<void> {
     const { rows } = await pool.query<{ id: string }>(
       `INSERT INTO session (user_id, token_hash, created_at, last_seen_at, expires_at)
        VALUES ($1, $2, $3, $3, $4) RETURNING id`,
-      [member, `retention-${label}-${RUN}`, created, expires],
+      [user, `retention-${label}-${RUN}`, created, expires],
     );
     ids[label] = rows[0]?.id ?? '';
+  }
+
+  /** A prediction on the seeded upcoming fixture, its one version submitted at `submitted`. */
+  async function predict(user: string, submitted: string): Promise<void> {
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO user_prediction (user_id, fixture_id, created_at, updated_at)
+       VALUES ($1, $2, $3, $3) RETURNING id`,
+      [user, UPCOMING, submitted],
+    );
+    await pool.query(
+      `INSERT INTO prediction_version (prediction_id, version_number, outcome, confidence, submitted_at)
+       VALUES ($1, 1, 'home', 3, $2)`,
+      [rows[0]?.id, submitted],
+    );
   }
 
   async function token(label: string, created: string, expires: string): Promise<void> {
@@ -82,17 +113,28 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
   beforeAll(async () => {
     pool = new Pool({ connectionString: DATABASE_URL });
     store = new RetentionStore(pool);
-    service = new RetentionService(store);
+    activity = new ActivityStore(pool);
+    service = new RetentionService(store, new ActivityService(activity));
     await clearCounts();
-    const { rows } = await pool.query<{ id: string }>(
-      `INSERT INTO user_account
-         (username, display_name, email, country_id, preferred_language, timezone,
-          accepted_rules_at, email_verified_at)
-       VALUES ($1, 'Retention tester', $1 || '@example.test', $2, 'en', 'Europe/London', now(), now())
-       RETURNING id`,
-      [`rt_${RUN}`, ENGLAND],
-    );
-    member = rows[0]?.id ?? '';
+    keptBefore = (
+      await pool.query<{ day: string; sign_ins: number; active_members: number; kept_at: Date }>(
+        `DELETE FROM activity_daily
+         RETURNING to_char(day, 'YYYY-MM-DD') AS day, sign_ins, active_members, kept_at`,
+      )
+    ).rows;
+    const account = async (username: string) => {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO user_account
+           (username, display_name, email, country_id, preferred_language, timezone,
+            accepted_rules_at, email_verified_at)
+         VALUES ($1, 'Retention tester', $1 || '@example.test', $2, 'en', 'Europe/London', now(), now())
+         RETURNING id`,
+        [username, ENGLAND],
+      );
+      return rows[0]?.id ?? '';
+    };
+    member = await account(`rt_${RUN}`);
+    other = await account(`rt2_${RUN}`);
     const consoleRows = await pool.query<{ id: string }>(
       `INSERT INTO console_user (username, display_name, password_hash)
        VALUES ($1, 'Retention tester', 'not-a-hash') RETURNING id`,
@@ -103,6 +145,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
     // Sessions: the cut-off is 2001-05-02 (expired more than 30 days before).
     await session('sessionOld', '2001-01-01T00:00:00Z', '2001-01-15T00:00:00Z');
     await session('sessionRecent', '2001-05-01T00:00:00Z', '2001-05-15T00:00:00Z');
+
+    // The Activity day counts (D-353): on 2001-02-10 three sign-ins by two
+    // members, one of whom also predicts; on 2001-02-11 a prediction only.
+    // All three sessions expired more than 30 days before the run.
+    await session('dayA1', '2001-02-10T08:00:00Z', '2001-02-24T08:00:00Z');
+    await session('dayA2', '2001-02-10T20:00:00Z', '2001-02-24T20:00:00Z');
+    await session('dayA3', '2001-02-10T23:30:00Z', '2001-02-24T23:30:00Z', other);
+    await predict(other, '2001-02-10T12:00:00Z');
+    await predict(member, '2001-02-11T12:00:00Z');
     const consoleSession = await pool.query<{ id: string }>(
       `INSERT INTO console_session (token_hash, user_id, created_at, last_seen_at, expires_at)
        VALUES ($1, $2, '2001-01-01T00:00:00Z', '2001-01-01T00:00:00Z', '2001-01-02T00:00:00Z')
@@ -126,8 +177,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
   afterAll(async () => {
     if (pool === undefined) return;
     await clearCounts();
+    await pool.query(`DELETE FROM activity_daily WHERE day < '2002-01-01'`);
+    for (const row of keptBefore) {
+      await pool.query(
+        `INSERT INTO activity_daily (day, sign_ins, active_members, kept_at)
+         VALUES ($1, $2, $3, $4) ON CONFLICT (day) DO NOTHING`,
+        [row.day, row.sign_ins, row.active_members, row.kept_at],
+      );
+    }
+    const accounts = [member, other];
+    await withTriggersOff(pool, async (c) => {
+      await c.query(
+        `DELETE FROM prediction_version WHERE prediction_id IN
+           (SELECT id FROM user_prediction WHERE user_id = ANY($1::uuid[]))`,
+        [accounts],
+      );
+      await c.query(`DELETE FROM user_prediction WHERE user_id = ANY($1::uuid[])`, [accounts]);
+    });
     // Cascades take the sessions, tokens, notifications and their deliveries.
-    await pool.query(`DELETE FROM user_account WHERE id = $1`, [member]);
+    await pool.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [accounts]);
     await pool.query(`DELETE FROM console_user WHERE id = $1`, [consoleUser]);
     await pool.end();
   });
@@ -172,6 +240,51 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
       },
       { day: '2001-01-11', kind: 'message_received', email: 'skipped', push: 'failed', n: '1' },
     ]);
+  });
+
+  it('keeps a day’s sign-ins and active members when its sessions are purged (T-1727)', async () => {
+    const since = new Date('2001-01-01T00:00:00Z');
+    const members = new Set(['sign_ins', 'active_members']);
+    const report2001 = async () =>
+      Object.fromEntries(
+        (await activity.counts(since))
+          .filter((row) => members.has(row.metric) && row.day.startsWith('2001-'))
+          .map((row) => [`${row.metric} ${row.day}`, row.n]),
+      );
+
+    const before = await report2001();
+    expect(before).toMatchObject({
+      'sign_ins 2001-01-01': 1,
+      'active_members 2001-01-01': 1,
+      'sign_ins 2001-02-10': 3,
+      'active_members 2001-02-10': 2,
+      'active_members 2001-02-11': 1,
+      'sign_ins 2001-05-01': 1,
+      'active_members 2001-05-01': 1,
+    });
+
+    const report = await service.purge(NOW);
+    for (const label of ['sessionOld', 'dayA1', 'dayA2', 'dayA3']) {
+      expect(await exists('session', ids[label] ?? '')).toBe(false);
+    }
+    // The same figures, now from the kept days up to 2001-02-10 and live after.
+    expect(await report2001()).toEqual(before);
+
+    // Kept: every day through the latest creation day of a purged session,
+    // quiet days as zeros; 2001-02-11 and later stay live.
+    const { rows } = await pool.query<{ day: string; sign_ins: number; active_members: number }>(
+      `SELECT to_char(day, 'YYYY-MM-DD') AS day, sign_ins, active_members
+         FROM activity_daily WHERE day BETWEEN '2001-01-01' AND '2001-12-31' ORDER BY day`,
+    );
+    expect(rows).toHaveLength(41);
+    expect(report.activity_days_kept).toBeGreaterThanOrEqual(41);
+    expect(rows[0]).toEqual({ day: '2001-01-01', sign_ins: 1, active_members: 1 });
+    expect(rows[1]).toEqual({ day: '2001-01-02', sign_ins: 0, active_members: 0 });
+    expect(rows.at(-1)).toEqual({ day: '2001-02-10', sign_ins: 3, active_members: 2 });
+
+    // A second run keeps nothing again and changes nothing.
+    expect((await service.purge(NOW)).activity_days_kept).toBe(0);
+    expect(await report2001()).toEqual(before);
   });
 
   it('purges expired sessions and tokens by their own periods, and keeps the rest', async () => {

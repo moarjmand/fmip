@@ -1,5 +1,15 @@
 import { ACTIVITY_METRICS } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
+import { ActivityService } from './activity.service';
+import type { ActivityStore } from './internal/activity-store';
+import {
+  DAILY_THROUGH,
+  dayStart,
+  daysToRollUp,
+  mergeRolledUp,
+  nextDay,
+  type RollUpState,
+} from './internal/daily';
 import { GROUP_OF, assemble, sinceOf, utcDays, windowDays } from './internal/series';
 
 const NOW = new Date('2026-09-28T01:30:00Z');
@@ -86,5 +96,140 @@ describe('assemble', () => {
       expect(Object.keys(series).sort()).toEqual(['counts', 'group', 'metric', 'total']);
       expect(series.counts.every((n) => Number.isInteger(n))).toBe(true);
     }
+  });
+});
+
+describe('daysToRollUp (T-1727, D-353)', () => {
+  const state = (over: Partial<RollUpState>): RollUpState => ({
+    keptThrough: null,
+    purgeThrough: null,
+    firstDay: null,
+    ...over,
+  });
+
+  it('keeps nothing when the purge deletes no session', () => {
+    expect(daysToRollUp(state({ keptThrough: '2026-09-01', firstDay: '2026-06-01' }))).toBeNull();
+  });
+
+  it('starts at the first day with any activity while nothing is kept yet', () => {
+    expect(daysToRollUp(state({ firstDay: '2026-06-01', purgeThrough: '2026-09-20' }))).toEqual({
+      from: '2026-06-01',
+      through: '2026-09-20',
+    });
+  });
+
+  it('carries on the day after the last kept day, across a month end', () => {
+    expect(
+      daysToRollUp(
+        state({ keptThrough: '2026-09-30', firstDay: '2026-06-01', purgeThrough: '2026-10-02' }),
+      ),
+    ).toEqual({ from: '2026-10-01', through: '2026-10-02' });
+  });
+
+  it('never writes a kept day again', () => {
+    for (const purgeThrough of ['2026-09-20', '2026-09-19']) {
+      expect(
+        daysToRollUp(state({ keptThrough: '2026-09-20', firstDay: '2026-06-01', purgeThrough })),
+      ).toBeNull();
+    }
+  });
+
+  it('counts in whole UTC days', () => {
+    expect(nextDay('2026-12-31')).toBe('2027-01-01');
+    expect(nextDay('2028-02-28')).toBe('2028-02-29');
+    expect(dayStart('2026-10-25').toISOString()).toBe('2026-10-25T00:00:00.000Z');
+  });
+});
+
+describe('mergeRolledUp (T-1727, D-353)', () => {
+  const through = { metric: DAILY_THROUGH, day: '2026-09-20', n: 0 };
+
+  it('passes the live rows through untouched while nothing is kept', () => {
+    const live = [
+      { metric: 'sign_ins', day: '2026-09-01', n: 4 },
+      { metric: 'active_members', day: '2026-09-01', n: 3 },
+    ];
+    expect(mergeRolledUp(live)).toEqual(live);
+  });
+
+  it('takes the kept days up to and including the boundary, and the live rows after it', () => {
+    const rows = [
+      // Live rows of kept days, partly purged: dropped.
+      { metric: 'sign_ins', day: '2026-09-19', n: 1 },
+      { metric: 'active_members', day: '2026-09-20', n: 2 },
+      // Live rows after the boundary: kept.
+      { metric: 'sign_ins', day: '2026-09-21', n: 9 },
+      { metric: 'active_members', day: '2026-09-21', n: 6 },
+      // The roll-up's rows.
+      { metric: 'daily:sign_ins', day: '2026-09-19', n: 12 },
+      { metric: 'daily:sign_ins', day: '2026-09-20', n: 10 },
+      { metric: 'daily:active_members', day: '2026-09-20', n: 7 },
+      through,
+    ];
+    expect(mergeRolledUp(rows)).toEqual([
+      { metric: 'sign_ins', day: '2026-09-21', n: 9 },
+      { metric: 'active_members', day: '2026-09-21', n: 6 },
+      { metric: 'sign_ins', day: '2026-09-19', n: 12 },
+      { metric: 'sign_ins', day: '2026-09-20', n: 10 },
+      { metric: 'active_members', day: '2026-09-20', n: 7 },
+    ]);
+  });
+
+  it('gives each day and metric one source, so assembling never adds the two', () => {
+    const days = ['2026-09-20', '2026-09-21'];
+    const rows = mergeRolledUp([
+      { metric: 'sign_ins', day: '2026-09-20', n: 3 },
+      { metric: 'daily:sign_ins', day: '2026-09-20', n: 5 },
+      { metric: 'sign_ins', day: '2026-09-21', n: 2 },
+      { metric: 'daily:sign_ins', day: '2026-09-21', n: 99 },
+      through,
+    ]);
+    const report = assemble(days, rows, NOW);
+    expect(report.series.find((s) => s.metric === 'sign_ins')?.counts).toEqual([5, 2]);
+  });
+
+  it('leaves every other metric live on every day', () => {
+    const rows = [
+      { metric: 'registrations', day: '2026-09-01', n: 2 },
+      { metric: 'predictions', day: '2026-09-20', n: 8 },
+      through,
+    ];
+    expect(mergeRolledUp(rows)).toEqual(rows.slice(0, 2));
+  });
+});
+
+describe('ActivityService.keepDailyCounts', () => {
+  function service(state: RollUpState) {
+    const calls: { from: string; until: string }[] = [];
+    const store = {
+      rollUpState: async () => state,
+      rollUp: async (from: Date, until: Date) => {
+        calls.push({ from: from.toISOString(), until: until.toISOString() });
+        return 3;
+      },
+    } as unknown as ActivityStore;
+    return { activity: new ActivityService(store), calls };
+  }
+
+  it('writes the days through the latest purged creation day, as whole UTC days', async () => {
+    const { activity, calls } = service({
+      keptThrough: '2026-09-17',
+      purgeThrough: '2026-09-20',
+      firstDay: '2026-06-01',
+    });
+    expect(await activity.keepDailyCounts(new Date('2026-10-04T03:23:00Z'))).toBe(3);
+    expect(calls).toEqual([
+      { from: '2026-09-18T00:00:00.000Z', until: '2026-09-21T00:00:00.000Z' },
+    ]);
+  });
+
+  it('writes nothing when there is nothing new to keep', async () => {
+    const { activity, calls } = service({
+      keptThrough: '2026-09-20',
+      purgeThrough: '2026-09-20',
+      firstDay: '2026-06-01',
+    });
+    expect(await activity.keepDailyCounts(new Date('2026-10-04T03:23:00Z'))).toBe(0);
+    expect(calls).toEqual([]);
   });
 });

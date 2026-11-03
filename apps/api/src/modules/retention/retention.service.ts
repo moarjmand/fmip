@@ -1,5 +1,6 @@
 /** Retention periods (D-345), their cut-offs, the batching loop and the daily purge service (T-1715). */
 import { Injectable, Logger } from '@nestjs/common';
+import { ActivityService } from '../activity/activity.service';
 import { RetentionStore } from './internal/retention-store';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -79,6 +80,8 @@ export async function purgeInBatches(
 
 export interface PurgeReport {
   ran_at: string;
+  /** Days of sign-ins and active members kept in `activity_daily` before the sessions went (D-353). */
+  activity_days_kept: number;
   sessions: BatchedOutcome;
   console_sessions: BatchedOutcome;
   email_tokens: BatchedOutcome;
@@ -91,17 +94,27 @@ export interface PurgeReport {
  * notification delivery records after 90 days, reduced to anonymous daily
  * counts. Backups keep what they hold for up to `BACKUP_KEEP_REMOTE_DAYS`
  * (docs/07-backups.md) and are not touched here.
+ *
+ * First of all it has the Activity report keep the sign-ins and active
+ * members of the days whose sessions are about to go (T-1727, D-353); if that
+ * throws, the run fails before anything is deleted and the next day's run
+ * tries again.
  */
 @Injectable()
 export class RetentionService {
   private readonly log = new Logger('Retention');
 
-  constructor(private readonly store: RetentionStore) {}
+  constructor(
+    private readonly store: RetentionStore,
+    private readonly activity: ActivityService,
+  ) {}
 
   async purge(now: Date = new Date()): Promise<PurgeReport> {
     const cutoff = purgeCutoffs(now);
+    const activityDaysKept = await this.activity.keepDailyCounts(cutoff.sessions);
     const report: PurgeReport = {
       ran_at: now.toISOString(),
+      activity_days_kept: activityDaysKept,
       sessions: await purgeInBatches((limit) => this.store.deleteSessions(cutoff.sessions, limit)),
       console_sessions: await purgeInBatches((limit) =>
         this.store.deleteConsoleSessions(cutoff.sessions, limit),
@@ -121,6 +134,7 @@ export class RetentionService {
     ].some((outcome) => outcome.capped);
     this.log.log('retention purge ran', {
       event: 'retention.purged',
+      activity_days_kept: report.activity_days_kept,
       sessions: report.sessions.deleted,
       console_sessions: report.console_sessions.deleted,
       email_tokens: report.email_tokens.deleted,

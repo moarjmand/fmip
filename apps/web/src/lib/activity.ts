@@ -20,7 +20,8 @@ export const METRIC_WORDS: Record<ActivityMetric, { label: string; counts: strin
   },
   sign_ins: {
     label: 'Sign-ins',
-    counts: 'sessions started (a deleted account’s go with it)',
+    counts:
+      'sessions started (a deleted account’s go with it, until the day’s count is kept after about 44 days)',
   },
   active_members: {
     label: 'Active members',
