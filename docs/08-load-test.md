@@ -180,8 +180,8 @@ made per row, a timeout -- does.
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
 | home `/en` | 150.3 / 158 (2026-10-25, T-1502, after T-1495) | 38 / 50 / 200 |
-| scores `/en/scores` | 172.2 / 180 (raised 2026-10-25, T-1496, D-264) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 191.0 / 192 (raised 2026-11-02, T-1714, D-344) | 77 / 76 / 300 |
+| scores `/en/scores` | 167.8 / 170 (lowered 2026-11-03, T-1730, D-356) | 21 / 31 / 150 |
+| match centre `/en/match/…0901` | 180.3 / 183 (lowered 2026-11-03, T-1730, D-356) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 151.1 / 158 (2026-10-25, T-1502, after T-1498) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
@@ -202,6 +202,37 @@ to 171.1, competition 222.4 to 149.8), and the four budgets were lowered to
 the new measurement plus about 5 % -- a smaller margin than the original 10 %,
 so that the next library a page gains is noticed, and no longer eaten by
 strings.
+
+**The slimming of 2026-11-03 (T-1730, D-356).** The match centre measured
+191.9 of 192 kB and scores 179.5 of 180. Both carried the whole
+`@fmip/contracts` barrel, 11.9 kB gzip in a chunk only those two pages load:
+the package is built as CommonJS, which a bundler cannot tree-shake, so a
+client module that used one constant (`STALE_LIVE_AFTER_MS`,
+`PREDICTION_REASON_TAGS`, `PANEL_REACTIONS`) brought every constant, helper
+and table of the package with it, the notification catalogue and the agents
+console's included. The package now also writes an ES-module twin of each
+entry point (`tsconfig.esm.json`, to `dist/esm/`), named by a `browser`
+condition in its `exports`, and declares `"sideEffects": false`; Node (the
+API, the web server, the scripts) still resolves the CommonJS build. What the
+browser keeps of the package is now about 0.2 kB. No component changed, and
+full-page screenshots of the seeded match before and after, desktop and
+phone, English and Persian, are pixel-identical. Measured before and after:
+
+| Route | Before (gzip kB) | After (gzip kB) | Budget before / after |
+| --- | --- | --- | --- |
+| home | 156.2 | 156.2 | 158 / 158 |
+| scores | 179.5 | 167.8 | 180 / 170 |
+| match centre | 191.9 | 180.3 | 192 / 183 |
+| competition | 157.0 | 157.0 | 158 / 158 |
+
+The two budgets that fell are lowered to the new measurement rounded up plus
+about 2 kB; home and competition did not change, so neither did their
+budgets. `packages/contracts/src/entry-points.spec.ts` fails if an entry point
+is added without its browser twin. The next large items on the match
+centre's first load, should it need room again, are the live view itself
+(`match-centre-view.tsx`, about 9 kB gzip, with the line-ups about 2.3 kB)
+and the inline pick form (`prediction-form.tsx` with its field and action
+helpers, about 4 kB), which could load on the reader's first tap.
 
 **The raise of 2026-11-02 (T-1714, D-344).** The match centre's live view
 (`live-match.tsx`, a client component) renders the line-ups, so the line-up

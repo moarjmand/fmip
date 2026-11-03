@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2301), grouped by folder, with one line on
+Every file in the repository (2304), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -272,9 +272,9 @@ machine, `docs/18-handover.md`.
 - [`packages/config/tsconfig`](#packagesconfigtsconfig) — 4
 - [`packages/console-publisher`](#packagesconsole-publisher) — 5
 - [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 9
-- [`packages/contracts`](#packagescontracts) — 5
+- [`packages/contracts`](#packagescontracts) — 6
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
-- [`packages/contracts/src`](#packagescontractssrc) — 70
+- [`packages/contracts/src`](#packagescontractssrc) — 72
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
 - [`packages/db/migrations`](#packagesdbmigrations) — 177
@@ -3507,6 +3507,7 @@ machine, `docs/18-handover.md`.
 | `eslint.config.mjs` | Eslint configuration. |
 | `package.json` | Package `@fmip/contracts`: The single source of truth for the API shape. Consumed by apps/api and apps/web.: scripts and dependencies. |
 | `tsconfig.build.json` | TypeScript compiler settings. |
+| `tsconfig.esm.json` | TypeScript compiler settings. |
 | `tsconfig.json` | TypeScript compiler settings. |
 | `vitest.config.mts` | Vitest configuration. |
 
@@ -3543,11 +3544,13 @@ machine, `docs/18-handover.md`.
 | `confederation.ts` | Football's six confederations (T-1643, D-301): which one a competition belongs to, so the header's competitions menu can file it by region. |
 | `consensus.ts` | Community consensus (blueprint 6.6, T-134). |
 | `console-model.ts` | The agents console's forecast-model page (T-1729, D-355): what the published model version is, what is in shadow, and how accurate the published version is now -- every figure from the stored pre-kick-off evaluations (T… |
+| `console.ts` | The agents console's runtime constants (T-1728, T-1729), on their own entry point `@fmip/contracts/console`: the main barrel is in every public page's first-load bundle, and these are only the console's (the match centr… |
 | `contributor.ts` | Approval to post on a public match panel (blueprint 9.4 and 10.2, T-250). |
 | `conversations.ts` | Conversations (blueprint 8.3, T-220). **Order is a sequence, not a time.** Every message carries `seq`, unique and increasing within its conversation, and every question a client asks about order is asked in those terms. |
 | `coverage.spec.ts` | Tests for `coverage`. |
 | `coverage.ts` | Coverage states. Not every competition has the same data depth. Rule 3 in `CLAUDE.md`: when data is missing the API says so explicitly. It never returns an empty module that looks populated, and never invents a value. |
 | `data-quality.ts` | Data-quality checks over the stored feed (T-820, E82, D-097). |
+| `entry-points.spec.ts` | The browser gets ES modules, Node gets CommonJS (T-1730, D-356). |
 | `failure-counts.ts` | API errors and job failures, counted (T-803): 5xx responses per route template and failed or stalled BullMQ jobs per queue, in UTC-hour buckets, kept for thirty days. |
 | `following-feed.ts` | The Following feed (blueprint 12.1, T-333): what is happening around the teams, competitions and contributors a member follows, **ranked from qualified signals and never from raw volume**, and saying what it is showing. |
 | `following.ts` | `/me/following` on `apps/api` (T-042). Following is a row; favourite is a flag on it. Favourites are pinned first on the scores page and shown on the profile; everything followed feeds the Following views (blueprint 4.1… |

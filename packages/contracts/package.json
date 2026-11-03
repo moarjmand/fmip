@@ -5,20 +5,24 @@
   "description": "The single source of truth for the API shape. Consumed by apps/api and apps/web.",
   "license": "UNLICENSED",
   "main": "dist/index.js",
+  "sideEffects": false,
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "browser": "./dist/esm/index.js",
       "default": "./dist/index.js"
     },
     "./translation-checks": {
       "types": "./dist/translation-checks.d.ts",
+      "browser": "./dist/esm/translation-checks.js",
       "default": "./dist/translation-checks.js"
     },
     "./glossary/*.json": "./glossary/*.json",
     "./zones/*.json": "./zones/*.json",
     "./console": {
       "types": "./dist/console.d.ts",
+      "browser": "./dist/esm/console.js",
       "default": "./dist/console.js"
     }
   },
@@ -38,7 +42,7 @@
     "zones"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.esm.json",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
