@@ -330,6 +330,22 @@ export type {
   ModelUnavailableReason,
 } from './forecast';
 export { MAX_FORECAST_FIXTURES } from './forecast';
+// The agents console's forecast-model page (T-1729, D-355).
+export {
+  CONSOLE_MODEL_CALIBRATION_MINIMUM,
+  CONSOLE_MODEL_NEW_DIVISIONS_MINIMUM,
+  CONSOLE_MODEL_NO_WORSE_MARGIN,
+  CONSOLE_MODEL_PAIRED_MINIMUM,
+} from './console-model';
+export type {
+  ConsoleModelCalibrationBand,
+  ConsoleModelCandidate,
+  ConsoleModelCompetition,
+  ConsoleModelEstimate,
+  ConsoleModelOutcome,
+  ConsoleModelRecord,
+  ConsoleModelReport,
+} from './console-model';
 export type {
   ForecastKind,
   ForecastListEntry,

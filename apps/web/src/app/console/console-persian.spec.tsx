@@ -64,6 +64,8 @@ vi.mock('@/lib/console-api', () => {
   return {
     consoleMe: () => ok({ id: 'u1', username: 'maryam', display_name: 'مریم' }),
     consoleSnapshot: () => ok({ snapshot: fixtures.snapshot, loaded_at: '2026-11-03T05:00:00Z' }),
+    // T-1729: the model page, on the stand-in shaped like the weekly watch's numbers.
+    consoleModel: async () => ok((await import('./model-report.fixture')).MODEL_REPORT),
     consoleCommands: () =>
       ok({
         commands: [
@@ -397,6 +399,7 @@ const TECHNICAL_TERMS = new Set([
   'Brier',
   'calibration',
   'shadow',
+  'Elo',
   'APPROVE',
   'CHANGES',
   'REQUESTED',
@@ -561,6 +564,7 @@ describe('the Persian-only scan', () => {
     ['the decisions', async () => render((await import('./(app)/decisions/page')).default())],
     ['the board', async () => render((await import('./(app)/board/page')).default())],
     ['the audit trail', async () => render((await import('./(app)/audit/page')).default())],
+    ['the forecast model', async () => render((await import('./(app)/model/page')).default())],
     [
       'the header',
       async () => render((await import('./(app)/layout')).default({ children: <p>بدنه</p> })),
@@ -632,6 +636,7 @@ describe('the Persian-only scan', () => {
       './(app)/board/page',
       './(app)/decisions/page',
       './(app)/findings/page',
+      './(app)/model/page',
       './(app)/reports/page',
       './(open)/login/page',
       './(open)/invite/[token]/page',

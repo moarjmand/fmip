@@ -2,16 +2,36 @@ import { Injectable } from '@nestjs/common';
 import type {
   AccuracyPeriod,
   AdminModelAccuracyResponse,
+  ConsoleModelReport,
   FixtureEvaluationsResponse,
   ForecastEvaluation,
   ModelPerformanceResponse,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
-import { type CountedRow, PostgresEvaluationStore } from './internal/evaluation-store';
+import { type CandidateInput, consoleModelReport } from './internal/console-model';
+import {
+  type CountedRow,
+  type PairedRow,
+  PostgresEvaluationStore,
+} from './internal/evaluation-store';
 import { adminAccuracy, publicAccuracy } from './internal/model-accuracy';
 import { UNIFORM_BRIER, UNIFORM_LOG_LOSS, score } from './internal/scoring';
 
 export type CountedEvaluation = CountedRow;
+
+const DAY_MS = 86_400_000;
+
+/** A candidate paired with nothing: no published version has forecast. */
+const NO_PAIRS: PairedRow = {
+  matches: 0,
+  identical: 0,
+  publishedLogLoss: null,
+  candidateLogLoss: null,
+  publishedBrier: null,
+  candidateBrier: null,
+  difference: null,
+  differenceSd: null,
+};
 
 export type EvaluateOutcome =
   | { kind: 'evaluated'; added: number; evaluations: ForecastEvaluation[] }
@@ -82,6 +102,65 @@ export class EvaluationService {
       this.store.publishedCompetitions(),
     ]);
     return publicAccuracy(rows, competitions, period);
+  }
+
+  /**
+   * The agents console's model page (T-1729, D-355). `versions` is what the
+   * model service says it runs now (its published version and its shadow
+   * candidates, null when it named none), or null when it did not answer:
+   * then the published version is the newest published forecast's and the
+   * candidates are those that stored a shadow forecast in the last week. The
+   * trend is the console's weekly accuracy series of that version (T-1369),
+   * read, not computed a second time.
+   */
+  async consoleModel(
+    versions: { published: string; candidates: string[] | null } | null,
+    now: Date,
+  ): Promise<ConsoleModelReport> {
+    const published = versions?.published ?? (await this.store.newestPublishedModel());
+    const listed = versions?.candidates ?? null;
+    const candidateIds =
+      listed ?? (await this.store.recentShadowModels(new Date(now.getTime() - 7 * DAY_MS)));
+    const candidates: CandidateInput[] = await Promise.all(
+      candidateIds
+        .filter((id) => id !== published)
+        .map(async (id) => {
+          const [span, own, paired, newDivisions] = await Promise.all([
+            this.store.modelSpan(id, 'shadow'),
+            this.store.modelRecords(id, 'shadow'),
+            published === null ? Promise.resolve(NO_PAIRS) : this.store.pairedRecord(id, published),
+            this.store.newDivisionsRecord(id),
+          ]);
+          return {
+            modelVersion: id,
+            inService: listed === null ? null : listed.includes(id),
+            span,
+            own: own.find((row) => row.competition === null),
+            paired,
+            newDivisions,
+          };
+        }),
+    );
+    const service = versions === null ? 'unreachable' : 'answered';
+    if (published === null) {
+      return consoleModelReport({ service, published: null, candidates, now });
+    }
+    const [span, records, calibration, weekly] = await Promise.all([
+      this.store.modelSpan(published, 'published'),
+      this.store.modelRecords(published, 'published'),
+      this.store.calibration(published),
+      this.adminAccuracy('week', now),
+    ]);
+    const trend =
+      weekly.series.find(
+        (s) => s.role === 'published' && s.model_version === published && s.competition === null,
+      )?.points ?? [];
+    return consoleModelReport({
+      service,
+      published: { modelVersion: published, since: span.first, records, calibration, trend },
+      candidates,
+      now,
+    });
   }
 
   async performance(
