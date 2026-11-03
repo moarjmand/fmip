@@ -223,6 +223,7 @@ address never leaves a reader without a search.
 | `briefing` | 6 | member | API | `POST /me/briefing` |
 | `push_subscription` | 10 | member | API | `POST /me/push-subscriptions` |
 | `console_message` | 30 | agents-console account | API | `POST /console/agents/:name/messages` (T-1722, D-350: each message is an agent run on the maintainer's computer; counted from the person's own `console_message` rows in the clock hour) |
+| `console_request` | 60 | agents-console account | API | `POST /console/requests`, `PATCH /console/requests/:id`, `POST /console/requests/:id/status`, `POST /console/requests/:id/execute`, `POST /console/requests/:id/decision` (T-1728, D-354: the teammate requests; counted from the person's own `console_request_event` rows in the clock hour) |
 | `ask` | 60 | member | API | `GET /ask` (a read: a model call) |
 | `ask_ip` | 120 | address | API | `GET /ask` (a read: a model call) |
 

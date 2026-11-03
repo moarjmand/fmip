@@ -8,6 +8,8 @@ import {
   CONSOLE_FLOW_TRIGGERS,
   type ConsoleAgent,
   type ConsoleAgentFlow,
+  type ConsoleRequestDetail,
+  type ConsoleRequestEvent,
   type ConsoleSnapshot,
 } from '@fmip/contracts';
 import type { ReactNode } from 'react';
@@ -56,6 +58,10 @@ vi.mock('@/lib/console-actions', () => {
     addCard: action,
     moveCard: async () => undefined,
     archiveCard: async () => undefined,
+    createRequest: action,
+    editRequest: action,
+    requestAction: action,
+    decideRequest: action,
   };
 });
 vi.mock('@/lib/console-api', () => {
@@ -64,6 +70,8 @@ vi.mock('@/lib/console-api', () => {
   return {
     consoleMe: () => ok({ id: 'u1', username: 'maryam', display_name: 'مریم' }),
     consoleSnapshot: () => ok({ snapshot: fixtures.snapshot, loaded_at: '2026-11-03T05:00:00Z' }),
+    // T-1729: the model page, on the stand-in shaped like the weekly watch's numbers.
+    consoleModel: async () => ok((await import('./model-report.fixture')).MODEL_REPORT),
     consoleCommands: () =>
       ok({
         commands: [
@@ -170,6 +178,10 @@ vi.mock('@/lib/console-api', () => {
           },
         ],
       }),
+    // Teammate requests (T-1728): one of every state, with the English the
+    // API really sends (statuses, kinds, choices) and Persian free text.
+    consoleRequests: () => ok({ requests: REQUESTS, counts: REQUEST_COUNTS }),
+    consoleRequestCounts: () => ok(REQUEST_COUNTS),
     consoleInvitation: () =>
       fixtures.invitationOk
         ? ok({ display_name: 'مریم', expires_at: '2026-11-05T08:00:00Z' })
@@ -178,6 +190,165 @@ vi.mock('@/lib/console-api', () => {
 });
 
 // --- Fixtures ----------------------------------------------------------------
+
+const REQUEST_EVENTS: ConsoleRequestEvent[] = [
+  {
+    id: 'e1',
+    kind: 'created',
+    actor_kind: 'person',
+    actor: 'مریم',
+    from_status: null,
+    to_status: 'new',
+    note: null,
+    at: '2026-11-03T08:00:00Z',
+  },
+  {
+    id: 'e2',
+    kind: 'edited',
+    actor_kind: 'person',
+    actor: 'مریم',
+    from_status: 'new',
+    to_status: 'new',
+    note: null,
+    at: '2026-11-03T08:01:00Z',
+  },
+  {
+    id: 'e3',
+    kind: 'execute_requested',
+    actor_kind: 'person',
+    actor: 'مریم',
+    from_status: 'new',
+    to_status: 'new',
+    note: null,
+    at: '2026-11-03T08:02:00Z',
+  },
+  {
+    id: 'e4',
+    kind: 'result',
+    actor_kind: 'agent',
+    actor: null,
+    from_status: 'new',
+    to_status: 'in_progress',
+    note: 'شروع شد',
+    at: '2026-11-03T08:03:00Z',
+  },
+  {
+    id: 'e5',
+    kind: 'asked',
+    actor_kind: 'agent',
+    actor: null,
+    from_status: 'in_progress',
+    to_status: 'waiting_decision',
+    note: 'کدام؟',
+    at: '2026-11-03T08:04:00Z',
+  },
+  {
+    id: 'e6',
+    kind: 'decided',
+    actor_kind: 'person',
+    actor: 'علی',
+    from_status: 'waiting_decision',
+    to_status: 'decided',
+    note: 'other: نیمی از آن',
+    at: '2026-11-03T08:05:00Z',
+  },
+  {
+    id: 'e7',
+    kind: 'execute_withdrawn',
+    actor_kind: 'person',
+    actor: 'مریم',
+    from_status: 'decided',
+    to_status: 'decided',
+    note: null,
+    at: '2026-11-03T08:06:00Z',
+  },
+  {
+    id: 'e8',
+    kind: 'cancelled',
+    actor_kind: 'person',
+    actor: 'مریم',
+    from_status: 'decided',
+    to_status: 'cancelled',
+    note: null,
+    at: '2026-11-03T08:07:00Z',
+  },
+  {
+    id: 'e9',
+    kind: 'reopened',
+    actor_kind: 'person',
+    actor: 'مریم',
+    from_status: 'cancelled',
+    to_status: 'new',
+    note: null,
+    at: '2026-11-03T08:08:00Z',
+  },
+];
+
+const requestFixture = (overrides: Partial<ConsoleRequestDetail>): ConsoleRequestDetail => ({
+  id: 'r1',
+  title: 'جدول لیگ',
+  body: 'جزئیات درخواست',
+  status: 'new',
+  priority: 'normal',
+  created_by: 'مریم',
+  created_at: '2026-11-03T08:00:00Z',
+  updated_at: '2026-11-03T08:00:00Z',
+  result: null,
+  result_at: null,
+  decision_question: null,
+  decision_asked_at: null,
+  decision_choice: null,
+  decision_text: null,
+  decision_by: null,
+  decided_at: null,
+  execute_requested_at: null,
+  events: REQUEST_EVENTS,
+  ...overrides,
+});
+
+const REQUESTS: ConsoleRequestDetail[] = [
+  requestFixture({ id: 'r1', priority: 'high', execute_requested_at: '2026-11-03T08:02:00Z' }),
+  requestFixture({
+    id: 'r2',
+    status: 'in_progress',
+    result: 'شاخه باز شد',
+    result_at: '2026-11-03T09:00:00Z',
+  }),
+  requestFixture({
+    id: 'r3',
+    status: 'waiting_decision',
+    decision_question: 'کدام؟',
+    decision_asked_at: '2026-11-03T09:00:00Z',
+  }),
+  requestFixture({
+    id: 'r4',
+    status: 'decided',
+    decision_question: 'کدام؟',
+    decision_asked_at: '2026-11-03T09:00:00Z',
+    decision_choice: 'approve',
+    decision_text: 'موافقم',
+    decision_by: 'علی',
+    decided_at: '2026-11-03T10:00:00Z',
+  }),
+  requestFixture({
+    id: 'r5',
+    status: 'done',
+    result: 'انجام شد',
+    result_at: '2026-11-03T11:00:00Z',
+  }),
+  requestFixture({
+    id: 'r6',
+    status: 'cancelled',
+    decision_question: 'کدام؟',
+    decision_asked_at: '2026-11-03T09:00:00Z',
+  }),
+];
+
+const REQUEST_COUNTS = {
+  all: 6,
+  open: 4,
+  by_status: { new: 1, in_progress: 1, waiting_decision: 1, decided: 1, done: 1, cancelled: 1 },
+};
 
 const FULL_FLOW: ConsoleAgentFlow = {
   triggers: CONSOLE_FLOW_TRIGGERS.map((kind) => ({
@@ -357,6 +528,7 @@ const SNAPSHOT: ConsoleSnapshot = {
  */
 const TECHNICAL_TERMS = new Set([
   'Stadiomind',
+  'Claude',
   'PR',
   'PRs',
   'CI',
@@ -397,6 +569,7 @@ const TECHNICAL_TERMS = new Set([
   'Brier',
   'calibration',
   'shadow',
+  'Elo',
   'APPROVE',
   'CHANGES',
   'REQUESTED',
@@ -560,7 +733,22 @@ describe('the Persian-only scan', () => {
     ],
     ['the decisions', async () => render((await import('./(app)/decisions/page')).default())],
     ['the board', async () => render((await import('./(app)/board/page')).default())],
+    [
+      'the teammate requests',
+      async () =>
+        render((await import('./(app)/requests/page')).default({ searchParams: params({}) })),
+    ],
+    [
+      'the teammate requests filtered',
+      async () =>
+        render(
+          (await import('./(app)/requests/page')).default({
+            searchParams: params({ status: 'waiting_decision' }),
+          }),
+        ),
+    ],
     ['the audit trail', async () => render((await import('./(app)/audit/page')).default())],
+    ['the forecast model', async () => render((await import('./(app)/model/page')).default())],
     [
       'the header',
       async () => render((await import('./(app)/layout')).default({ children: <p>بدنه</p> })),
@@ -632,7 +820,9 @@ describe('the Persian-only scan', () => {
       './(app)/board/page',
       './(app)/decisions/page',
       './(app)/findings/page',
+      './(app)/model/page',
       './(app)/reports/page',
+      './(app)/requests/page',
       './(open)/login/page',
       './(open)/invite/[token]/page',
     ]) {

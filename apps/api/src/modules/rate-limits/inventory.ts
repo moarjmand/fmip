@@ -181,6 +181,22 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     what: "Messages to the agents in the agents console: each is an agent run on the maintainer's computer.",
     routes: ['POST /console/agents/:name/messages'],
   },
+  // T-1728 (D-354): the teammate requests. Counted from the person's own
+  // `console_request_event` rows this hour, before the write; Claude's
+  // results and questions come through the server's command line, not here.
+  {
+    action: 'console_request',
+    subject: 'console_user',
+    enforced: 'api',
+    what: 'Changes to the teammate requests in the agents console: adding, editing, cancelling, reopening, marking to run and deciding.',
+    routes: [
+      'POST /console/requests',
+      'PATCH /console/requests/:id',
+      'POST /console/requests/:id/status',
+      'POST /console/requests/:id/execute',
+      'POST /console/requests/:id/decision',
+    ],
+  },
 
   // Not a write, and the one read with a ceiling (T-838, D-103's gap): every
   // question is a model call, and the route is public. A member is counted

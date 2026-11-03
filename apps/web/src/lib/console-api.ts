@@ -9,6 +9,10 @@ import type {
   ConsoleConversation,
   ConsoleInvitationView,
   ConsoleMe,
+  ConsoleRequestCounts,
+  ConsoleRequestList,
+  ConsoleRequestStatus,
+  ConsoleModelReport,
   ConsoleSnapshotResponse,
 } from '@fmip/contracts';
 import { consoleBase } from './console-base';
@@ -111,6 +115,8 @@ export const consoleSnapshot = () => consoleCall<ConsoleSnapshotResponse>('snaps
 export const consoleCommands = () => consoleCall<{ commands: ConsoleCommand[] }>('commands');
 export const consoleBoard = () => consoleCall<{ cards: ConsoleBoardCard[] }>('board');
 export const consoleAudit = () => consoleCall<{ entries: ConsoleAuditEntry[] }>('audit');
+/** The forecast model's page (T-1729): the published version, its accuracy, and shadow. */
+export const consoleModel = () => consoleCall<ConsoleModelReport>('model');
 /** An agent's conversation (T-1722): the newest page, or the one before `before`. */
 export const consoleConversation = (agent: string, before?: string) =>
   consoleCall<ConsoleConversation>(
@@ -118,5 +124,12 @@ export const consoleConversation = (agent: string, before?: string) =>
       before === undefined ? '' : `?before=${encodeURIComponent(before)}`
     }`,
   );
+/** The teammate requests (T-1728): all, or one status, each with its history. */
+export const consoleRequests = (status?: ConsoleRequestStatus) =>
+  consoleCall<ConsoleRequestList>(
+    `requests${status === undefined ? '' : `?status=${encodeURIComponent(status)}`}`,
+  );
+/** The counts alone, for the navigation's badge. */
+export const consoleRequestCounts = () => consoleCall<ConsoleRequestCounts>('requests/counts');
 export const consoleInvitation = (token: string) =>
   consoleCall<ConsoleInvitationView>(`invitations/${encodeURIComponent(token)}`);

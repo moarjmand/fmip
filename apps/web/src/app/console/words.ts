@@ -54,6 +54,43 @@ const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^An assignee is a name\.$/, () => 'مسئول باید یک نام باشد.'],
   [/^A due date is YYYY-MM-DD\.$/, () => 'موعد باید به شکل YYYY-MM-DD باشد.'],
   [/^A new card needs a title and a column\.$/, () => 'کارت تازه عنوان و ستون می‌خواهد.'],
+  // Teammate requests (T-1728): `request-rules.ts` and the controller.
+  [/^No such request\.$/, () => 'چنین درخواستی نیست.'],
+  [/^Give the request a title\.$/, () => 'عنوان درخواست را بنویسید.'],
+  [/^A title is at most (\d+) characters\.$/, (m) => `عنوان حداکثر ${fa(m[1]!)} نویسه است.`],
+  [/^The details are text\.$/, () => 'جزئیات باید متن باشد.'],
+  [/^The details are at most (\d+) characters\.$/, (m) => `جزئیات حداکثر ${fa(m[1]!)} نویسه است.`],
+  [/^A priority is normal or high\.$/, () => 'اولویت باید عادی یا فوری باشد.'],
+  [/^Say what to change\.$/, () => 'بگویید چه چیزی عوض شود.'],
+  [/^The action is cancel or reopen\.$/, () => 'فقط لغو یا بازگشایی ممکن است.'],
+  [/^execute is true or false\.$/, () => 'علامت اجرا درست فرستاده نشد.'],
+  [
+    /^Choose agree, disagree or another view\.$/,
+    () => 'یکی از «موافقم»، «مخالفم» یا «نظر دیگر» را انتخاب کنید.',
+  ],
+  [/^The decision text is text\.$/, () => 'متن تصمیم باید متن باشد.'],
+  [
+    /^The decision text is at most (\d+) characters\.$/,
+    (m) => `متن تصمیم حداکثر ${fa(m[1]!)} نویسه است.`,
+  ],
+  [/^Write your view when you choose another view\.$/, () => 'برای «نظر دیگر» نظرتان را بنویسید.'],
+  [/^Not a status a request has\.$/, () => 'چنین وضعیتی برای درخواست نیست.'],
+  [
+    /^A closed request is reopened before it is edited\.$/,
+    () => 'این درخواست بسته است؛ برای ویرایش اول آن را بازگشایی کنید.',
+  ],
+  [/^This request is closed already\.$/, () => 'این درخواست از قبل بسته است.'],
+  [/^This request is open already\.$/, () => 'این درخواست از قبل باز است.'],
+  [/^This request waits for a decision first\.$/, () => 'این درخواست اول منتظر تصمیم است.'],
+  [
+    /^A closed request is reopened before it is run\.$/,
+    () => 'این درخواست بسته است؛ برای اجرا اول آن را بازگشایی کنید.',
+  ],
+  [/^This request has no open question\.$/, () => 'این درخواست پرسش بازی ندارد.'],
+  [
+    /^That is the most changes to the requests/,
+    () => 'به سقف تغییرهای یک ساعت در درخواست‌ها رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
 ];
 
 const hasLatin = (text: string) => /[A-Za-z]{2,}/.test(text);
@@ -121,6 +158,15 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'board.card_changed': 'تغییر کارت',
   'board.card_archived': 'بایگانی کارت',
   'chat.message_posted': 'پیام به عامل',
+  'request.created': 'درخواست تازه',
+  'request.edited': 'ویرایش درخواست',
+  'request.cancelled': 'لغو درخواست',
+  'request.reopened': 'بازگشایی درخواست',
+  'request.execute_requested': 'علامت «اجرا شود»',
+  'request.execute_withdrawn': 'برداشتن علامت اجرا',
+  'request.asked': 'پرسش برای هم‌تیمی',
+  'request.decided': 'تصمیم روی درخواست',
+  'request.result': 'نتیجه‌ی درخواست',
 };
 
 /** An audit row's action in Persian (`command.agent_pause` from `COMMAND_WORDS`); an unknown one keeps its id. */
@@ -144,6 +190,15 @@ export function auditReasonWords(reason: string): string {
     [/^card changed$/, () => 'کارت تغییر کرد'],
     [/^card archived$/, () => 'کارت بایگانی شد'],
     [/^message to the agent$/, () => 'پیام به عامل'],
+    [/^request added$/, () => 'درخواست ثبت شد'],
+    [/^request edited$/, () => 'درخواست ویرایش شد'],
+    [/^request cancelled$/, () => 'درخواست لغو شد'],
+    [/^request reopened$/, () => 'درخواست بازگشایی شد'],
+    [/^marked to run now$/, () => 'برای اجرا علامت خورد'],
+    [/^run mark withdrawn$/, () => 'علامت اجرا برداشته شد'],
+    [/^question put on the maintainer's word$/, () => 'پرسش به گفتهٔ نگهدارنده گذاشته شد'],
+    [/^decision recorded$/, () => 'تصمیم ثبت شد'],
+    [/^result written$/, () => 'نتیجه نوشته شد'],
   ];
   for (const [pattern, words] of system) {
     const match = pattern.exec(reason);

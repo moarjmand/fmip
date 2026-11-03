@@ -124,6 +124,24 @@ const message = (r: MessageRow): ConsoleMessage => ({
   failure: r.failure,
 });
 
+/** A `console_audit` row, inside the change's own transaction (rule 10). */
+export async function writeConsoleAudit(client: PoolClient, entry: AuditInput): Promise<void> {
+  await client.query(
+    `INSERT INTO console_audit (actor_id, actor_name, action, target_type, target_id, reason, previous, next)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [
+      entry.actorId,
+      entry.actorName,
+      entry.action,
+      entry.targetType,
+      entry.targetId,
+      entry.reason,
+      entry.previous === undefined ? null : JSON.stringify(entry.previous),
+      entry.next === undefined ? null : JSON.stringify(entry.next),
+    ],
+  );
+}
+
 export type PostMessageOutcome =
   { kind: 'ok'; message: ConsoleMessage } | { kind: 'limited'; retryAfterSeconds: number };
 
@@ -675,20 +693,7 @@ export class PostgresConsoleStore {
   }
 
   private async audit(client: PoolClient, entry: AuditInput): Promise<void> {
-    await client.query(
-      `INSERT INTO console_audit (actor_id, actor_name, action, target_type, target_id, reason, previous, next)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [
-        entry.actorId,
-        entry.actorName,
-        entry.action,
-        entry.targetType,
-        entry.targetId,
-        entry.reason,
-        entry.previous === undefined ? null : JSON.stringify(entry.previous),
-        entry.next === undefined ? null : JSON.stringify(entry.next),
-      ],
-    );
+    await writeConsoleAudit(client, entry);
   }
 
   private async cardById(client: PoolClient, id: string): Promise<ConsoleBoardCard> {

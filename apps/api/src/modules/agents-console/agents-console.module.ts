@@ -5,7 +5,9 @@ import {
   CONSOLE_OPTIONS,
   type ConsoleOptions,
 } from './agents-console.controller';
+import { ConsoleSessions } from './console-sessions.service';
 import { PostgresConsoleStore } from './internal/console-store';
+import { PostgresRequestStore } from './internal/request-store';
 
 /**
  * The agents console (T-1696, T-1697, D-340): owns the `console_*` tables.
@@ -16,6 +18,9 @@ import { PostgresConsoleStore } from './internal/console-store';
   controllers: [AgentsConsoleController],
   providers: [
     PostgresConsoleStore,
+    PostgresRequestStore,
+    // T-1729: the session check, for the model page another module serves.
+    ConsoleSessions,
     {
       provide: CONSOLE_OPTIONS,
       useFactory: (): ConsoleOptions => ({
@@ -24,6 +29,6 @@ import { PostgresConsoleStore } from './internal/console-store';
       }),
     },
   ],
-  exports: [PostgresConsoleStore],
+  exports: [PostgresConsoleStore, PostgresRequestStore, ConsoleSessions],
 })
 export class AgentsConsoleModule {}

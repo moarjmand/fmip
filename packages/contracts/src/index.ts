@@ -330,6 +330,16 @@ export type {
   ModelUnavailableReason,
 } from './forecast';
 export { MAX_FORECAST_FIXTURES } from './forecast';
+// The agents console's forecast-model page (T-1729, D-355); its runtime constants are in './console' (kept out of this barrel so they never reach a public page's bundle).
+export type {
+  ConsoleModelCalibrationBand,
+  ConsoleModelCandidate,
+  ConsoleModelCompetition,
+  ConsoleModelEstimate,
+  ConsoleModelOutcome,
+  ConsoleModelRecord,
+  ConsoleModelReport,
+} from './console-model';
 export type {
   ForecastKind,
   ForecastListEntry,
@@ -1108,6 +1118,7 @@ export type {
   ConsoleCommandStatus,
   ConsoleConversation,
   ConsoleDecision,
+  ConsoleDecisionChoice,
   ConsoleDecisionOption,
   ConsoleFinding,
   ConsoleFindingStatus,
@@ -1126,6 +1137,18 @@ export type {
   ConsoleMessageStatus,
   ConsolePostMessageRequest,
   ConsoleReport,
+  ConsoleRequest,
+  ConsoleRequestCounts,
+  ConsoleRequestCreate,
+  ConsoleRequestDecide,
+  ConsoleRequestDetail,
+  ConsoleRequestEdit,
+  ConsoleRequestEvent,
+  ConsoleRequestEventKind,
+  ConsoleRequestList,
+  ConsoleRequestPriority,
+  ConsoleRequestStatus,
+  ConsoleRequestStatusChange,
   ConsoleSeverity,
   ConsoleSignInRequest,
   ConsoleSnapshot,

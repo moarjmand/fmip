@@ -6,9 +6,20 @@ import type {
   ConsoleChatItem,
   ConsoleCommand,
   ConsoleMemoryEntry,
+  ConsoleRequestList,
   ConsoleSnapshot,
 } from '@fmip/contracts';
 import { type ChatInbox, dropFromInbox, emptyInbox, mergeInbox, parseReplyArgs } from './chat.ts';
+import {
+  askCommand,
+  listCommand,
+  parseAskArgs,
+  parsePullArgs,
+  parseResultArgs,
+  requestsFile,
+  resultCommand,
+  summary,
+} from './requests.ts';
 import { flowsOf, parseCharter } from './flow.ts';
 import {
   DEFAULT_SCHEDULES,
@@ -57,6 +68,17 @@ import {
  * for is answered `failed` at once); `chat-reply` posts the reply, read from
  * `--file` or standard input, never from the arguments, and drops the
  * message from the inbox. The loop is in the package's README.
+ *
+ * Teammate requests (T-1728, D-354), run by Claude in the maintainer's own
+ * chat (`.claude/skills/teammate-requests/SKILL.md`):
+ *
+ *     node packages/console-publisher/src/publish.ts requests-pull [--status s]
+ *     node packages/console-publisher/src/publish.ts request-result <request-id> in_progress|done|cancelled [--file result.txt] [< result.txt]
+ *     node packages/console-publisher/src/publish.ts request-ask <request-id> [--file question.txt] [< question.txt]
+ *
+ * `requests-pull` writes `E:/FMIP/ops/console/requests.json` and prints a
+ * short summary; the other two write the result box or the question for the
+ * teammate, the text from `--file` or standard input, never the arguments.
  */
 
 const ROOT = process.cwd();
@@ -64,6 +86,7 @@ const FMIP = process.env.FMIP_HOME ?? 'E:/FMIP';
 const OPS = join(FMIP, 'ops');
 const STATE_FILE = join(OPS, 'console', 'state.json');
 const INBOX_FILE = join(OPS, 'console', 'chat-inbox.json');
+const REQUESTS_FILE = join(OPS, 'console', 'requests.json');
 const SSH_HOST = process.env.FMIP_SSH_HOST ?? 'fmip-prod';
 const CLI = 'cd /opt/fmip && docker compose exec -T api node dist/cli/agents-console.js';
 
@@ -325,9 +348,51 @@ export function main(argv = process.argv.slice(2)): number {
       saveInbox(dropFromInbox(loadInbox(), parsed.id, new Date()));
       return 0;
     }
+    case 'requests-pull': {
+      const parsed = parsePullArgs(rest);
+      if (!parsed.ok) {
+        process.stderr.write(`requests-pull [--status s]: ${parsed.reason}\n`);
+        return 2;
+      }
+      const list = JSON.parse(ssh(listCommand(CLI, parsed.status))) as ConsoleRequestList;
+      mkdirSync(dirname(REQUESTS_FILE), { recursive: true });
+      writeFileSync(REQUESTS_FILE, `${JSON.stringify(requestsFile(list, new Date()), null, 2)}\n`);
+      process.stdout.write(`${JSON.stringify({ file: REQUESTS_FILE, ...summary(list) })}\n`);
+      return 0;
+    }
+    case 'request-result': {
+      const parsed = parseResultArgs(rest);
+      if (!parsed.ok) {
+        process.stderr.write(
+          `request-result <request-id> in_progress|done|cancelled [--file f]: ${parsed.reason}\n`,
+        );
+        return 2;
+      }
+      const body = readFileSync(parsed.file ?? 0, 'utf8');
+      if (body.trim() === '') {
+        process.stderr.write('A result needs its text.\n');
+        return 2;
+      }
+      process.stdout.write(ssh(resultCommand(CLI, parsed.id, parsed.status), body));
+      return 0;
+    }
+    case 'request-ask': {
+      const parsed = parseAskArgs(rest);
+      if (!parsed.ok) {
+        process.stderr.write(`request-ask <request-id> [--file f]: ${parsed.reason}\n`);
+        return 2;
+      }
+      const body = readFileSync(parsed.file ?? 0, 'utf8');
+      if (body.trim() === '') {
+        process.stderr.write('A question needs its text.\n');
+        return 2;
+      }
+      process.stdout.write(ssh(askCommand(CLI, parsed.id), body));
+      return 0;
+    }
     default:
       process.stderr.write(
-        'build [--out file] | publish | sync | finish <id> done|failed "outcome" | chat-pull | chat-reply <id> answered|failed [--file f]\n',
+        'build [--out file] | publish | sync | finish <id> done|failed "outcome" | chat-pull | chat-reply <id> answered|failed [--file f] | requests-pull [--status s] | request-result <id> in_progress|done|cancelled [--file f] | request-ask <id> [--file f]\n',
       );
       return 2;
   }

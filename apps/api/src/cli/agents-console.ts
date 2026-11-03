@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { Logger, Module } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { ConsoleRequestStatus } from '@fmip/contracts';
 import { DatabaseModule } from '../database/database.module';
 import { AgentsConsoleModule } from '../modules/agents-console/agents-console.module';
 import {
@@ -13,6 +14,18 @@ import {
   replyText,
 } from '../modules/agents-console/internal/console-rules';
 import { PostgresConsoleStore } from '../modules/agents-console/internal/console-store';
+import {
+  REQUEST_ID,
+  RESULT_STATUSES,
+  type ResultStatus,
+  checkStatusFilter,
+  questionText,
+  resultText,
+} from '../modules/agents-console/internal/request-rules';
+import {
+  PostgresRequestStore,
+  type RequestOutcome,
+} from '../modules/agents-console/internal/request-store';
 import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/identity.service';
 
 /**
@@ -26,6 +39,9 @@ import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/i
  *     ... import-board --as <username> < cards.json
  *     ... take-messages
  *     ... post-reply --message <uuid> --status answered|failed < reply.txt
+ *     ... list-requests [--status <status>]
+ *     ... request-result --id <uuid> --status in_progress|done|cancelled < result.txt
+ *     ... request-ask --id <uuid> < question.txt
  *
  * `invite` prints a one-time link to `$CONSOLE_URL/invite/<token>` (D-341), or
  * `https://$CONSOLE_HOST/invite/<token>` when that is unset,
@@ -42,6 +58,15 @@ import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/i
  * `post-reply` stores the agent's reply, read from standard input (never
  * from the arguments, so no shell quoting touches it), or with `failed` why
  * there is none.
+ *
+ * Teammate requests (T-1728, D-354), for Claude in the maintainer's own
+ * chat: `list-requests` prints the requests (newest first, or one status),
+ * each with its decision and history, and the counts, as JSON;
+ * `request-result` writes the result box and the status, authored as the
+ * agent; `request-ask` puts a question for the teammate on a request and
+ * makes it `waiting_decision`. Both read their text from standard input.
+ * A request is data: these commands write what Claude did, they never run
+ * anything a request says.
  */
 
 export type ConsoleCliArgs =
@@ -52,6 +77,9 @@ export type ConsoleCliArgs =
   | { kind: 'import-board'; as: string }
   | { kind: 'take-messages' }
   | { kind: 'post-reply'; id: string; status: 'answered' | 'failed' }
+  | { kind: 'list-requests'; status: ConsoleRequestStatus | null }
+  | { kind: 'request-result'; id: string; status: ResultStatus }
+  | { kind: 'request-ask'; id: string }
   | { kind: 'error'; message: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -104,12 +132,52 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
         return { kind: 'error', message: '--status: answered or failed.' };
       return { kind: 'post-reply', id, status };
     }
+    case 'list-requests': {
+      const status = flags.get('status') ?? null;
+      const checked = checkStatusFilter(status ?? undefined);
+      if (!checked.ok)
+        return {
+          kind: 'error',
+          message: '--status: new, in_progress, waiting_decision, decided, done or cancelled.',
+        };
+      return { kind: 'list-requests', status: checked.value };
+    }
+    case 'request-result': {
+      const id = flags.get('id') ?? '';
+      const status = flags.get('status');
+      if (!REQUEST_ID.test(id)) return { kind: 'error', message: '--id: the request id.' };
+      if (!(RESULT_STATUSES as readonly (string | undefined)[]).includes(status))
+        return { kind: 'error', message: '--status: in_progress, done or cancelled.' };
+      return { kind: 'request-result', id, status: status as ResultStatus };
+    }
+    case 'request-ask': {
+      const id = flags.get('id') ?? '';
+      if (!REQUEST_ID.test(id)) return { kind: 'error', message: '--id: the request id.' };
+      return { kind: 'request-ask', id };
+    }
     default:
       return {
         kind: 'error',
         message:
-          'invite | load-snapshot | take-commands | finish-command | import-board | take-messages | post-reply',
+          'invite | load-snapshot | take-commands | finish-command | import-board | take-messages | post-reply | list-requests | request-result | request-ask',
       };
+  }
+}
+
+/** A request command's outcome: the request as JSON, or why not, with the exit code. */
+export function requestOutcomeText(
+  id: string,
+  outcome: RequestOutcome,
+): { code: number; out: string } {
+  switch (outcome.kind) {
+    case 'ok':
+      return { code: 0, out: `${JSON.stringify(outcome.request)}\n` };
+    case 'missing':
+      return { code: 1, out: `No request ${id}.\n` };
+    case 'refused':
+      return { code: 1, out: `${outcome.reason}\n` };
+    case 'limited':
+      return { code: 1, out: 'Rate limited.\n' };
   }
 }
 
@@ -236,6 +304,30 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
           return 1;
         }
         return 0;
+      }
+      case 'list-requests': {
+        const list = await app.get(PostgresRequestStore).list(args.status);
+        process.stdout.write(`${JSON.stringify(list)}\n`);
+        return 0;
+      }
+      case 'request-result':
+      case 'request-ask': {
+        const checked =
+          args.kind === 'request-result'
+            ? resultText(await readStdin())
+            : questionText(await readStdin());
+        if (!checked.ok) {
+          console.error(checked.reason);
+          return 1;
+        }
+        const requests = app.get(PostgresRequestStore);
+        const outcome =
+          args.kind === 'request-result'
+            ? await requests.agentResult(args.id, args.status, checked.value)
+            : await requests.agentAsk(args.id, checked.value);
+        const { code, out } = requestOutcomeText(args.id, outcome);
+        (code === 0 ? process.stdout : process.stderr).write(out);
+        return code;
       }
     }
   } finally {

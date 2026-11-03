@@ -355,3 +355,133 @@ export interface ConsoleChatItem {
   /** The agent's conversation up to and including `message`, oldest first, at most 20. */
   conversation: ConsoleMessage[];
 }
+
+// --- Teammate requests (T-1728, D-354) --------------------------------------
+
+/**
+ * Where a request stands. `new`: written, not started. `in_progress`: Claude
+ * is on it. `waiting_decision`: a question is open for a console user.
+ * `decided`: the question was answered and waits for the maintainer's word.
+ * `done` and `cancelled` are closed; only reopening moves them.
+ */
+export const CONSOLE_REQUEST_STATUSES = [
+  'new',
+  'in_progress',
+  'waiting_decision',
+  'decided',
+  'done',
+  'cancelled',
+] as const;
+export type ConsoleRequestStatus = (typeof CONSOLE_REQUEST_STATUSES)[number];
+
+export const CONSOLE_REQUEST_PRIORITIES = ['normal', 'high'] as const;
+export type ConsoleRequestPriority = (typeof CONSOLE_REQUEST_PRIORITIES)[number];
+
+export const CONSOLE_DECISION_CHOICES = ['approve', 'reject', 'other'] as const;
+export type ConsoleDecisionChoice = (typeof CONSOLE_DECISION_CHOICES)[number];
+
+/** The longest title, details, result, question and decision text, in characters. */
+export const CONSOLE_REQUEST_TITLE_MAX = 200;
+export const CONSOLE_REQUEST_BODY_MAX = 4000;
+export const CONSOLE_REQUEST_RESULT_MAX = 8000;
+export const CONSOLE_REQUEST_QUESTION_MAX = 2000;
+export const CONSOLE_DECISION_TEXT_MAX = 4000;
+
+/** What one line of a request's history records. */
+export const CONSOLE_REQUEST_EVENT_KINDS = [
+  'created',
+  'edited',
+  'cancelled',
+  'reopened',
+  'execute_requested',
+  'execute_withdrawn',
+  'asked',
+  'decided',
+  'result',
+] as const;
+export type ConsoleRequestEventKind = (typeof CONSOLE_REQUEST_EVENT_KINDS)[number];
+
+/** One line of a request's history; append-only. */
+export interface ConsoleRequestEvent {
+  id: string;
+  kind: ConsoleRequestEventKind;
+  /** `person`: a console user; `agent`: Claude, through the server's command line. */
+  actor_kind: 'person' | 'agent';
+  /** The console user's display name; `null` for the agent. */
+  actor: string | null;
+  from_status: ConsoleRequestStatus | null;
+  to_status: ConsoleRequestStatus | null;
+  /** The question, the decision's text or the result as written then, when the event has one. */
+  note: string | null;
+  at: string;
+}
+
+export interface ConsoleRequest {
+  id: string;
+  title: string;
+  /** The details; `''` when none were written. */
+  body: string;
+  status: ConsoleRequestStatus;
+  priority: ConsoleRequestPriority;
+  /** The console user who added it (display name). */
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  /** The result box, written by Claude; `null` until one is. */
+  result: string | null;
+  result_at: string | null;
+  /** The question put to the teammate; `null` when none is. */
+  decision_question: string | null;
+  decision_asked_at: string | null;
+  decision_choice: ConsoleDecisionChoice | null;
+  decision_text: string | null;
+  /** Who answered the question (display name). */
+  decision_by: string | null;
+  decided_at: string | null;
+  /** When a console user marked it "run it now"; `null` when it is not marked. */
+  execute_requested_at: string | null;
+}
+
+/** A request with its history, oldest first (`GET /console/requests/:id`, `list-requests`). */
+export interface ConsoleRequestDetail extends ConsoleRequest {
+  events: ConsoleRequestEvent[];
+}
+
+/** Requests per status, and the open ones (every status but `done` and `cancelled`). */
+export interface ConsoleRequestCounts {
+  all: number;
+  open: number;
+  by_status: Record<ConsoleRequestStatus, number>;
+}
+
+/** `GET /console/requests[?status=s]`: newest first, each with its history. */
+export interface ConsoleRequestList {
+  requests: ConsoleRequestDetail[];
+  counts: ConsoleRequestCounts;
+}
+
+/** `POST /console/requests`. */
+export interface ConsoleRequestCreate {
+  title: string;
+  body?: string;
+  priority?: ConsoleRequestPriority;
+}
+
+/** `PATCH /console/requests/:id`: any of the three. */
+export interface ConsoleRequestEdit {
+  title?: string;
+  body?: string;
+  priority?: ConsoleRequestPriority;
+}
+
+/** `POST /console/requests/:id/status`: a console user cancels or reopens. */
+export interface ConsoleRequestStatusChange {
+  action: 'cancel' | 'reopen';
+}
+
+/** `POST /console/requests/:id/decision`. */
+export interface ConsoleRequestDecide {
+  choice: ConsoleDecisionChoice;
+  /** Optional with `approve` or `reject`; required with `other`. */
+  text?: string;
+}
