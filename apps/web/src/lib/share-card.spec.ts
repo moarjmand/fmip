@@ -147,6 +147,23 @@ describe('the match card (A10, T-1723)', () => {
     expect(drawn.loser).toBeNull();
   });
 
+  it('says a disputed score is unclear and names no loser (T-1726, D-347)', () => {
+    const text = matchCardText(
+      header({
+        status: 'finished',
+        scores: { ...header().scores, full_time: { home: 0, away: 1 } },
+        score_dispute: { recorded_goals: 2, reported: { home: 0, away: 1 } },
+      }),
+      null,
+    );
+    expect(text).toMatchObject({
+      centre: '0–1',
+      disputed: true,
+      loser: null,
+      status: 'Score unclear in the source',
+    });
+  });
+
   it('says how a cup tie was decided only when the feed says so', () => {
     const scores = {
       ...header().scores,
