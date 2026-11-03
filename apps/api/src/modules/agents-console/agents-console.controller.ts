@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -25,6 +26,9 @@ import type {
   ConsoleInvitationView,
   ConsoleMe,
   ConsoleMessage,
+  ConsoleRequestCounts,
+  ConsoleRequestDetail,
+  ConsoleRequestList,
   ConsoleSignInRequest,
   ConsoleSnapshotResponse,
 } from '@fmip/contracts';
@@ -56,6 +60,16 @@ import {
   isLocked,
 } from './internal/console-rules';
 import { PostgresConsoleStore } from './internal/console-store';
+import {
+  REQUEST_ID,
+  checkDecision,
+  checkExecute,
+  checkRequestCreate,
+  checkRequestEdit,
+  checkStatusAction,
+  checkStatusFilter,
+} from './internal/request-rules';
+import { PostgresRequestStore, type RequestOutcome } from './internal/request-store';
 
 export interface ConsoleOptions {
   /** Keys the HMAC of the console's session and invitation tokens. */
@@ -71,6 +85,8 @@ const WRONG: ApiError = {
   error: 'unauthenticated',
   message: 'Wrong name or password, or the name is locked for a while after too many tries.',
 };
+
+const NO_REQUEST: ApiError = { error: 'not_found', message: 'No such request.' };
 
 function invalid(message: string): BadRequestException {
   return new BadRequestException({ error: 'validation', message } satisfies ApiError);
@@ -89,6 +105,7 @@ function invalid(message: string): BadRequestException {
 export class AgentsConsoleController {
   constructor(
     private readonly store: PostgresConsoleStore,
+    private readonly requestStore: PostgresRequestStore,
     @Inject(CONSOLE_OPTIONS) private readonly options: ConsoleOptions,
   ) {}
 
@@ -288,10 +305,152 @@ export class AgentsConsoleController {
     return outcome.message;
   }
 
+  // --- Teammate requests (T-1728, D-354) ------------------------------------
+
+  /** The requests, newest first, each with its history, and the counts per status. */
+  @Get('requests')
+  async requests(
+    @Query('status') status: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<ConsoleRequestList> {
+    await this.person(request);
+    const checked = checkStatusFilter(status);
+    if (!checked.ok) throw invalid(checked.reason);
+    return this.requestStore.list(checked.value);
+  }
+
+  /** The counts alone, for the navigation's badge. */
+  @Get('requests/counts')
+  async requestCounts(@Req() request: FastifyRequest): Promise<ConsoleRequestCounts> {
+    await this.person(request);
+    return this.requestStore.counts();
+  }
+
+  @Get('requests/:id')
+  async request(
+    @Param('id') id: string,
+    @Req() request: FastifyRequest,
+  ): Promise<ConsoleRequestDetail> {
+    await this.person(request);
+    const found = REQUEST_ID.test(id) ? await this.requestStore.get(id) : null;
+    if (found === null) throw new NotFoundException(NO_REQUEST);
+    return found;
+  }
+
+  /**
+   * A request, as a console user wrote it down. It is data: nothing on the
+   * server acts on it, and Claude acts on it only on the maintainer's word in
+   * his own chat (D-354). Every write below is audited and held to the
+   * `console_request` ceiling per person.
+   */
+  @Post('requests')
+  async createRequest(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleRequestDetail> {
+    const actor = await this.person(request);
+    const checked = checkRequestCreate(body);
+    if (!checked.ok) throw invalid(checked.reason);
+    return this.answer(await this.requestStore.create(checked.value, actor), reply);
+  }
+
+  /**
+   * Title, details or priority, by any console user: the console has two
+   * invited people (D-340), the maintainer writes down what the teammate
+   * said and the teammate may put it in his own words; each edit is in the
+   * history and the audit with what it was before.
+   */
+  @Patch('requests/:id')
+  async editRequest(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleRequestDetail> {
+    const actor = await this.person(request);
+    const checked = checkRequestEdit(body);
+    if (!checked.ok) throw invalid(checked.reason);
+    if (!REQUEST_ID.test(id)) throw new NotFoundException(NO_REQUEST);
+    return this.answer(await this.requestStore.edit(id, checked.value, actor), reply);
+  }
+
+  /** Cancel an open request, or reopen a closed one. */
+  @Post('requests/:id/status')
+  @HttpCode(200)
+  async requestStatus(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleRequestDetail> {
+    const actor = await this.person(request);
+    const checked = checkStatusAction(body);
+    if (!checked.ok) throw invalid(checked.reason);
+    if (!REQUEST_ID.test(id)) throw new NotFoundException(NO_REQUEST);
+    return this.answer(await this.requestStore.changeStatus(id, checked.value, actor), reply);
+  }
+
+  /** "Run it now" (`{ execute: true }`) or its withdrawal; Claude still waits for the maintainer's word. */
+  @Post('requests/:id/execute')
+  @HttpCode(200)
+  async requestExecute(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleRequestDetail> {
+    const actor = await this.person(request);
+    const checked = checkExecute(body);
+    if (!checked.ok) throw invalid(checked.reason);
+    if (!REQUEST_ID.test(id)) throw new NotFoundException(NO_REQUEST);
+    return this.answer(await this.requestStore.setExecute(id, checked.value, actor), reply);
+  }
+
+  /** Any console user answers the open question: agree, disagree, or another view with text. */
+  @Post('requests/:id/decision')
+  @HttpCode(200)
+  async requestDecision(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleRequestDetail> {
+    const actor = await this.person(request);
+    const checked = checkDecision(body);
+    if (!checked.ok) throw invalid(checked.reason);
+    if (!REQUEST_ID.test(id)) throw new NotFoundException(NO_REQUEST);
+    return this.answer(
+      await this.requestStore.decide(id, checked.value.choice, checked.value.text, actor),
+      reply,
+    );
+  }
+
   @Get('audit')
   async audit(@Req() request: FastifyRequest): Promise<{ entries: ConsoleAuditEntry[] }> {
     await this.person(request);
     return { entries: await this.store.auditTrail() };
+  }
+
+  /** A request store's outcome as the answer: the request, or 429, 404 or 409. */
+  private answer(outcome: RequestOutcome, reply: FastifyReply): ConsoleRequestDetail {
+    switch (outcome.kind) {
+      case 'ok':
+        return outcome.request;
+      case 'limited':
+        return refuseOverRate(
+          reply,
+          { ok: false, retryAfterSeconds: outcome.retryAfterSeconds },
+          'That is the most changes to the requests an hour allows.',
+        );
+      case 'missing':
+        throw new NotFoundException(NO_REQUEST);
+      case 'refused':
+        throw new ConflictException({
+          error: 'conflict',
+          message: outcome.reason,
+        } satisfies ApiError);
+    }
   }
 
   private async openSession(userId: string, reply: FastifyReply): Promise<void> {

@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2279), grouped by folder, with one line on
+Every file in the repository (2289), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -30,6 +30,7 @@ machine, `docs/18-handover.md`.
 - [`.claude/skills/search-visibility`](#claudeskillssearch-visibility) — 2
 - [`.claude/skills/social-drafts`](#claudeskillssocial-drafts) — 2
 - [`.claude/skills/team-charter`](#claudeskillsteam-charter) — 1
+- [`.claude/skills/teammate-requests`](#claudeskillsteammate-requests) — 1
 - [`.github/workflows`](#githubworkflows) — 2
 - [`apps/api`](#appsapi) — 6
 - [`apps/api/backtest`](#appsapibacktest) — 22
@@ -42,7 +43,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/admin`](#appsapisrcmodulesadmin) — 7
 - [`apps/api/src/modules/admin/internal`](#appsapisrcmodulesadmininternal) — 2
 - [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 3
-- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 3
+- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 6
 - [`apps/api/src/modules/analysis`](#appsapisrcmodulesanalysis) — 5
 - [`apps/api/src/modules/analysis/internal`](#appsapisrcmodulesanalysisinternal) — 1
 - [`apps/api/src/modules/ask`](#appsapisrcmodulesask) — 5
@@ -235,7 +236,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 10
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 12
 - [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 3
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
 - [`apps/web/src/app/console/(app)/agents/[name]/chat`](#appswebsrcappconsoleappagentsnamechat) — 1
@@ -244,6 +245,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/(app)/decisions`](#appswebsrcappconsoleappdecisions) — 1
 - [`apps/web/src/app/console/(app)/findings`](#appswebsrcappconsoleappfindings) — 1
 - [`apps/web/src/app/console/(app)/reports`](#appswebsrcappconsoleappreports) — 1
+- [`apps/web/src/app/console/(app)/requests`](#appswebsrcappconsoleapprequests) — 1
 - [`apps/web/src/app/console/(open)/invite/[token]`](#appswebsrcappconsoleopeninvitetoken) — 1
 - [`apps/web/src/app/console/(open)/login`](#appswebsrcappconsoleopenlogin) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
@@ -267,13 +269,13 @@ machine, `docs/18-handover.md`.
 - [`packages/config/tests`](#packagesconfigtests) — 1
 - [`packages/config/tsconfig`](#packagesconfigtsconfig) — 4
 - [`packages/console-publisher`](#packagesconsole-publisher) — 5
-- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 7
+- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 9
 - [`packages/contracts`](#packagescontracts) — 5
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 176
+- [`packages/db/migrations`](#packagesdbmigrations) — 177
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -480,6 +482,12 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `SKILL.md` | The shared rules, finding format and folders of the Stadiomind agent team (D-328). |
 
+## .claude/skills/teammate-requests
+
+| File | What it is |
+|---|---|
+| `SKILL.md` | Read and answer the teammate requests the maintainer keeps on the agents console's «درخواست‌های هم‌تیمی» page (traveltohormuz.ir/agents/requests) - pull them, write the follow-up result in Persian, put a question to the… |
+
 ## .github/workflows
 
 | File | What it is |
@@ -614,7 +622,10 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `console-rules.spec.ts` | Tests for `console-rules`. |
 | `console-rules.ts` | The agents console's rules (T-1696, T-1697, D-340), pure so they are tested without a database: the session cookie, the lock after wrong passwords, the snapshot's shape and what is withheld from it, and what a command o… |
-| `console-store.ts` | The agents console's tables (T-1696, T-1697, D-340). |
+| `console-store.ts` | A `console_audit` row, inside the change's own transaction (rule 10). |
+| `request-rules.spec.ts` | Tests for `request-rules`. |
+| `request-rules.ts` | Teammate requests (T-1728, D-354), the pure part: what a person may write, and which status a request may move to from which. |
+| `request-store.ts` | Teammate requests (T-1728, D-354). Every change writes one `console_request_event` (the request's timeline) and, in the same transaction, its `console_audit` row with what it was before (rule 10). A person's changes are… |
 
 ## apps/api/src/modules/analysis
 
@@ -2600,6 +2611,8 @@ machine, `docs/18-handover.md`.
 | `console.spec.tsx` | The agents console's web side (T-1698, D-340): served on its own host only, its cookie read back from the API's, and an open security finding shown without its detail. |
 | `layout.tsx` | The agents console's root (D-340): its own `<html>`, apart from the site's `[locale]` layout. |
 | `not-found.tsx` | A console page that is not there (T-1725, D-352): an agent the snapshot does not have, or a path the console does not know. |
+| `requests.spec.tsx` | Teammate requests (T-1728, D-354): every state of a card, drawn on the server. |
+| `requests.tsx` | Teammate requests (T-1728, D-354), drawn on the server: each request as a card, the request at the start and Claude's result box at the end (stacked on a phone), the question for the teammate with its three answers whil… |
 | `schematic.tsx` | How one agent works, drawn on the server as SVG (T-1725, D-352): what starts it, what it reads, its method's steps and its model, what it may not do, what it leaves and who reads that, with a legend. |
 | `ui.tsx` | The agents console's building blocks (D-340): server components only, in Persian for the maintainer and the teammate, with the site's tokens and logical properties (rule 7). |
 | `words.ts` | The console's Persian for what reaches it in English (T-1725, D-352): the API's error messages, the audit trail's actions and system reasons, the computer's command outcomes and who decided. |
@@ -2653,6 +2666,12 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | Every agent's reports, newest first, and the one chosen (T-1698, D-340). |
+
+## apps/web/src/app/console/(app)/requests
+
+| File | What it is |
+|---|---|
+| `page.tsx` | Teammate requests (T-1728, D-354): what the teammate asks for, written down by the maintainer; Claude's result in front of each one; a question for the teammate with its answers. |
 
 ## apps/web/src/app/console/(open)/invite/[token]
 
@@ -3453,6 +3472,8 @@ machine, `docs/18-handover.md`.
 | `flow.spec.ts` | The console's schematic data (T-1725, D-352), from an agent's file, its skill and the charter. |
 | `flow.ts` | How each agent works, for the console's schematic (T-1725, D-352): pure functions over the agent's file, its skill and the team charter, so every box the console draws is something those files say. |
 | `publish.ts` | The agents console's publisher, on the maintainer's computer (T-1699, D-340). |
+| `requests.spec.ts` | Tests for `requests`. |
+| `requests.ts` | Teammate requests on the maintainer's computer (T-1728, D-354): the pure part. |
 | `snapshot.spec.ts` | Tests for `snapshot`. |
 | `snapshot.ts` | The agents console's snapshot, built on the maintainer's computer (T-1699, D-340): pure functions over what the files say, so they are tested on fixtures and `publish.ts` only reads files and runs `ssh`. |
 
@@ -3751,6 +3772,7 @@ machine, `docs/18-handover.md`.
 | `1765900830000_console-message.sql` | Chat with an agent in the agents console (T-1722, D-350). |
 | `1765900900000_prediction-share.sql` | T-1723 (D-351): a public link to one prediction's "called it" card, made only when its owner presses Share. |
 | `1765901000000_activity-daily.sql` | T-1727 (D-353): the Activity page's sign-ins and active members, kept per day before the retention purge deletes the sessions they are counted from. |
+| `1765901100000_console-request.sql` | Teammate requests in the agents console (T-1728, D-354). |
 
 ## packages/db/scripts
 

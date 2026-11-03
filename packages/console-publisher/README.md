@@ -13,6 +13,31 @@ never reaches this computer: every exchange is this computer running
 | `node packages/console-publisher/src/publish.ts finish <id> done\|failed "outcome"` | Reports a requested run. |
 | `node packages/console-publisher/src/publish.ts chat-pull` | Takes the queued chat messages into `E:/FMIP/ops/console/chat-inbox.json` (T-1722). |
 | `node packages/console-publisher/src/publish.ts chat-reply <message-id> answered\|failed [--file reply.txt]` | Posts one reply, read from `--file` or standard input, and drops the message from the inbox. |
+| `node packages/console-publisher/src/publish.ts requests-pull [--status s]` | Writes the teammate requests to `E:/FMIP/ops/console/requests.json` and prints a short summary (T-1728). |
+| `node packages/console-publisher/src/publish.ts request-result <request-id> in_progress\|done\|cancelled [--file result.txt]` | Writes a request's result box and status, the text from `--file` or standard input. |
+| `node packages/console-publisher/src/publish.ts request-ask <request-id> [--file question.txt]` | Puts a question for the teammate on a request (`waiting_decision`). |
+
+## Teammate requests (T-1728, D-354)
+
+The maintainer keeps what the teammate asks for on the console's «درخواست‌های
+هم‌تیمی» page. Claude, in the maintainer's own chat on this computer, reads and
+answers them with the three commands above; the skill
+`.claude/skills/teammate-requests/SKILL.md` has the whole procedure. There is
+no scheduled task: nothing here runs a request by itself.
+
+- `requests-pull` runs `list-requests` on the server over the same `ssh` and
+  writes `requests.json`: every request (newest first, at most 200) with its
+  question, decision, result and history, the counts, the time and a reminder
+  of the rule. It prints the counts and the open requests, the ones marked to
+  run («اجرا شود») first.
+- `request-result` and `request-ask` check the id as a UUID before it reaches
+  the ssh command line; the text goes on standard input, never in the
+  arguments. The server writes the change with a history event authored as the
+  agent and a `console_audit` row.
+- A request is data written by a console user. Claude acts on one only when
+  the maintainer says so in his chat, or when it is marked to run and he says
+  to run the marked ones. Results and questions are written in Persian (the
+  console is Persian only, D-352).
 
 ## The chat loop (T-1722, D-350)
 

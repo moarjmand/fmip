@@ -37,6 +37,9 @@ const FIELDS: Record<string, Rule> = {
   // The console user who wrote a chat message to an agent (T-1722): shown only
   // inside the agents console, to its invited users.
   'agents-console.ts:ConsoleMessage.author': { exempt: CONSOLE },
+  // The console user who added a teammate request (T-1728): shown only inside
+  // the agents console, to its invited users.
+  'agents-console.ts:ConsoleRequest.created_by': { exempt: CONSOLE },
   'campaigns.ts:Audience.created_by': { exempt: STAFF },
   'campaigns.ts:Campaign.created_by': { exempt: STAFF },
   // The administrator who dismissed a contributor flag (T-1031): shown only on

@@ -106,6 +106,78 @@ export async function postMessage(_: ConsoleFormState, form: FormData): Promise<
   };
 }
 
+// --- Teammate requests (T-1728, D-354) ---------------------------------------
+
+const requestPath = (form: FormData, tail = ''): string =>
+  `requests/${encodeURIComponent(field(form, 'id'))}${tail}`;
+
+const requestsChanged = () => revalidatePath('/console', 'layout');
+
+/** A new request: title, details and priority. */
+export async function createRequest(
+  _: ConsoleFormState,
+  form: FormData,
+): Promise<ConsoleFormState> {
+  const result = await consoleCall('requests', {
+    method: 'POST',
+    body: {
+      title: field(form, 'title'),
+      body: field(form, 'body'),
+      priority: field(form, 'priority') === 'high' ? 'high' : 'normal',
+    },
+  });
+  if (!result.ok) return failed(result.error?.message, 'درخواست ثبت نشد.');
+  requestsChanged();
+  return { error: null, done: 'درخواست ثبت شد.' };
+}
+
+/** Title, details and priority of an open request, by any console user. */
+export async function editRequest(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {
+  const result = await consoleCall(requestPath(form), {
+    method: 'PATCH',
+    body: {
+      title: field(form, 'title'),
+      body: field(form, 'body'),
+      priority: field(form, 'priority') === 'high' ? 'high' : 'normal',
+    },
+  });
+  if (!result.ok) return failed(result.error?.message, 'تغییر ذخیره نشد.');
+  requestsChanged();
+  return { error: null, done: 'ذخیره شد.' };
+}
+
+/** Cancel or reopen (`action`), mark to run or withdraw (`execute`): one button each. */
+export async function requestAction(
+  _: ConsoleFormState,
+  form: FormData,
+): Promise<ConsoleFormState> {
+  const action = field(form, 'action');
+  const result =
+    action === 'cancel' || action === 'reopen'
+      ? await consoleCall(requestPath(form, '/status'), { method: 'POST', body: { action } })
+      : await consoleCall(requestPath(form, '/execute'), {
+          method: 'POST',
+          body: { execute: action === 'execute' },
+        });
+  if (!result.ok) return failed(result.error?.message, 'انجام نشد.');
+  requestsChanged();
+  return { error: null, done: null };
+}
+
+/** Any console user answers the open question: agree, disagree, or another view with text. */
+export async function decideRequest(
+  _: ConsoleFormState,
+  form: FormData,
+): Promise<ConsoleFormState> {
+  const result = await consoleCall(requestPath(form, '/decision'), {
+    method: 'POST',
+    body: { choice: field(form, 'choice'), text: field(form, 'text') },
+  });
+  if (!result.ok) return failed(result.error?.message, 'تصمیم ثبت نشد.');
+  requestsChanged();
+  return { error: null, done: 'تصمیم ثبت شد.' };
+}
+
 export async function addCard(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {
   const labels = field(form, 'labels')
     .split(/[,،]/)

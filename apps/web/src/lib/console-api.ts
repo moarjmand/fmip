@@ -9,6 +9,9 @@ import type {
   ConsoleConversation,
   ConsoleInvitationView,
   ConsoleMe,
+  ConsoleRequestCounts,
+  ConsoleRequestList,
+  ConsoleRequestStatus,
   ConsoleSnapshotResponse,
 } from '@fmip/contracts';
 import { consoleBase } from './console-base';
@@ -118,5 +121,12 @@ export const consoleConversation = (agent: string, before?: string) =>
       before === undefined ? '' : `?before=${encodeURIComponent(before)}`
     }`,
   );
+/** The teammate requests (T-1728): all, or one status, each with its history. */
+export const consoleRequests = (status?: ConsoleRequestStatus) =>
+  consoleCall<ConsoleRequestList>(
+    `requests${status === undefined ? '' : `?status=${encodeURIComponent(status)}`}`,
+  );
+/** The counts alone, for the navigation's badge. */
+export const consoleRequestCounts = () => consoleCall<ConsoleRequestCounts>('requests/counts');
 export const consoleInvitation = (token: string) =>
   consoleCall<ConsoleInvitationView>(`invitations/${encodeURIComponent(token)}`);
