@@ -200,6 +200,13 @@ services:
       API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
       FOOTBALL_DATA_ORG_KEY: ${FOOTBALL_DATA_ORG_KEY:-}
       HIGHLIGHTLY_KEY: ${HIGHLIGHTLY_KEY:-}
+      # Forwarded ahead of their adapters (T-1732), so a key the maintainer puts
+      # in .env reaches the API the day it is set: the 14-day Sportmonks Starter
+      # trial (line-up lead time, TV stations; decided 2026-11-02) and official
+      # YouTube channels as a second highlights source (D-261). Empty = off.
+      SPORTMONKS_API_TOKEN: ${SPORTMONKS_API_TOKEN:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      YOUTUBE_DAILY_UNITS: ${YOUTUBE_DAILY_UNITS:-}
       # The daily ceiling the highlights feed and the box scores share
       # (T-1366, D-184; T-1432, D-224); empty = 5000.
       HIGHLIGHTS_DAILY_BUDGET: ${HIGHLIGHTS_DAILY_BUDGET:-}
