@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
-  CONSOLE_REQUEST_STATUSES,
   type ConsoleDecisionChoice,
   type ConsoleMe,
   type ConsoleRequestCounts,
@@ -12,6 +11,7 @@ import {
   type ConsoleRequestList,
   type ConsoleRequestStatus,
 } from '@fmip/contracts';
+import { CONSOLE_REQUEST_STATUSES } from '@fmip/contracts/console';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { writeConsoleAudit } from './console-store';

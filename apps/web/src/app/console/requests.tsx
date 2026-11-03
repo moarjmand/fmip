@@ -1,12 +1,14 @@
 import {
-  CONSOLE_DECISION_TEXT_MAX,
-  CONSOLE_REQUEST_BODY_MAX,
-  CONSOLE_REQUEST_TITLE_MAX,
   type ConsoleDecisionChoice,
   type ConsoleRequestDetail,
   type ConsoleRequestEvent,
   type ConsoleRequestStatus,
 } from '@fmip/contracts';
+import {
+  CONSOLE_DECISION_TEXT_MAX,
+  CONSOLE_REQUEST_BODY_MAX,
+  CONSOLE_REQUEST_TITLE_MAX,
+} from '@fmip/contracts/console';
 import { decideRequest, editRequest, requestAction } from '@/lib/console-actions';
 import { ConsoleForm } from './console-form';
 import { Badge, fa, inputClass, when } from './ui';

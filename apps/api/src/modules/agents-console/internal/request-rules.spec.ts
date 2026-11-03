@@ -1,3 +1,4 @@
+import { type ConsoleRequestStatus } from '@fmip/contracts';
 import {
   CONSOLE_DECISION_TEXT_MAX,
   CONSOLE_REQUEST_BODY_MAX,
@@ -5,8 +6,7 @@ import {
   CONSOLE_REQUEST_RESULT_MAX,
   CONSOLE_REQUEST_STATUSES,
   CONSOLE_REQUEST_TITLE_MAX,
-  type ConsoleRequestStatus,
-} from '@fmip/contracts';
+} from '@fmip/contracts/console';
 import { describe, expect, it } from 'vitest';
 import { parseConsoleArgs, requestOutcomeText } from '../../../cli/agents-console';
 import {

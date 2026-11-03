@@ -2,16 +2,18 @@ import { ConsoleLink as Link } from '@/app/console/console-link';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import {
-  CONSOLE_MODEL_CALIBRATION_MINIMUM,
-  CONSOLE_MODEL_NEW_DIVISIONS_MINIMUM,
-  CONSOLE_MODEL_NO_WORSE_MARGIN,
-  CONSOLE_MODEL_PAIRED_MINIMUM,
   type ConsoleModelCalibrationBand,
   type ConsoleModelCandidate,
   type ConsoleModelCompetition,
   type ConsoleModelReport,
   type ConsoleReport,
 } from '@fmip/contracts';
+import {
+  CONSOLE_MODEL_CALIBRATION_MINIMUM,
+  CONSOLE_MODEL_NEW_DIVISIONS_MINIMUM,
+  CONSOLE_MODEL_NO_WORSE_MARGIN,
+  CONSOLE_MODEL_PAIRED_MINIMUM,
+} from '@fmip/contracts/console';
 import { consoleModel, consoleSnapshot } from '@/lib/console-api';
 import {
   CalibrationPanels,

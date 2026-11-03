@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2311), grouped by folder, with one line on
+Every file in the repository (2301), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -42,7 +42,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/activity/internal`](#appsapisrcmodulesactivityinternal) — 3
 - [`apps/api/src/modules/admin`](#appsapisrcmodulesadmin) — 7
 - [`apps/api/src/modules/admin/internal`](#appsapisrcmodulesadmininternal) — 2
-- [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 6
+- [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 4
 - [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 6
 - [`apps/api/src/modules/analysis`](#appsapisrcmodulesanalysis) — 5
 - [`apps/api/src/modules/analysis/internal`](#appsapisrcmodulesanalysisinternal) — 1
@@ -255,7 +255,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
-- [`apps/web/src/lib`](#appswebsrclib) — 215
+- [`apps/web/src/lib`](#appswebsrclib) — 213
 - [`apps/web/tests/e2e`](#appswebtestse2e) — 24
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
 - [`apps/web/tests/e2e/journeys`](#appswebtestse2ejourneys) — 25
@@ -263,7 +263,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 38
+- [`docs`](#docs) — 32
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -616,8 +616,6 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `agents-console.controller.ts` | The agents console (T-1696, T-1697, D-340), under `/console/`. |
 | `agents-console.http.spec.ts` | The agents console (T-1696, T-1697, D-340): an account opens only from a one-time invitation; a session is the console's own cookie; wrong passwords lock a name; nothing but signing in answers without a session; the sna… |
-| `agents-console.module.ts` | The agents console (T-1696, T-1697, D-340): owns the `console_*` tables. |
-| `agents-console.module.ts` | The agents console (T-1696, T-1697, D-340): owns the `console_*` tables. |
 | `agents-console.module.ts` | The agents console (T-1696, T-1697, D-340): owns the `console_*` tables. |
 | `console-sessions.service.ts` | The console's session, for a read-only console page another module serves (T-1729: the forecast model's page): the person behind the request's `fmip_console` cookie, or null. |
 
@@ -3097,8 +3095,6 @@ machine, `docs/18-handover.md`.
 | `competitions-menu.ts` | The competitions menu's rules (T-1643, D-301), pure so they are unit-tested (`competitions-menu.spec.ts`); `components/competitions-menu.tsx` fetches and draws. |
 | `console-actions.ts` | The agents console's forms (D-340), as server actions: each posts to the API with the console's cookie and comes back to the page with what happened. |
 | `console-api.ts` | The agents console's calls to the API (D-340), made by the web server with the console's own cookie, `fmip_console`, which lives on the console's host only. |
-| `console-api.ts` | The agents console's calls to the API (D-340), made by the web server with the console's own cookie, `fmip_console`, which lives on the console's host only. |
-| `console-api.ts` | The agents console's calls to the API (D-340), made by the web server with the console's own cookie, `fmip_console`, which lives on the console's host only. |
 | `console-base.ts` | The agents console's base path for this request (D-341): '' on its own host, `CONSOLE_PATH` (e.g. |
 | `console-host.ts` | The agents console's host (D-340): `CONSOLE_HOST`, e.g. |
 | `contributor-actions.ts` | Granting, pausing, resuming and withdrawing a contributor from the web (T-612), over the audited API of T-250. |
@@ -3405,19 +3401,13 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
-| `03-project-map.md` | Project map |
-| `03-project-map.md` | Project map |
 | `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |

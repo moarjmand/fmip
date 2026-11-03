@@ -1,7 +1,5 @@
 import {
   ACCURACY_MINIMUM_MATCHES,
-  CONSOLE_MODEL_NEW_DIVISIONS_MINIMUM,
-  CONSOLE_MODEL_PAIRED_MINIMUM,
   type AccuracyPoint,
   type ConsoleModelCalibrationBand,
   type ConsoleModelCandidate,
@@ -10,6 +8,10 @@ import {
   type ConsoleModelRecord,
   type ConsoleModelReport,
 } from '@fmip/contracts';
+import {
+  CONSOLE_MODEL_NEW_DIVISIONS_MINIMUM,
+  CONSOLE_MODEL_PAIRED_MINIMUM,
+} from '@fmip/contracts/console';
 import type { CalibrationRow, ModelRecordRow, PairedRow } from './evaluation-store';
 import { ACCURACY_REFERENCE, accuracyCoverage } from './model-accuracy';
 

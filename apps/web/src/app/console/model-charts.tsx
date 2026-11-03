@@ -1,10 +1,10 @@
 import {
-  CONSOLE_MODEL_CALIBRATION_MINIMUM,
   type AccuracyPoint,
   type ConsoleModelCalibrationBand,
   type ConsoleModelEstimate,
   type ConsoleModelOutcome,
 } from '@fmip/contracts';
+import { CONSOLE_MODEL_CALIBRATION_MINIMUM } from '@fmip/contracts/console';
 
 /**
  * The console's model charts (T-1729, D-355): server-rendered SVG, no client

@@ -1,4 +1,11 @@
 import {
+  type ConsoleDecisionChoice,
+  type ConsoleRequestCreate,
+  type ConsoleRequestEdit,
+  type ConsoleRequestPriority,
+  type ConsoleRequestStatus,
+} from '@fmip/contracts';
+import {
   CONSOLE_DECISION_CHOICES,
   CONSOLE_DECISION_TEXT_MAX,
   CONSOLE_REQUEST_BODY_MAX,
@@ -7,12 +14,7 @@ import {
   CONSOLE_REQUEST_RESULT_MAX,
   CONSOLE_REQUEST_STATUSES,
   CONSOLE_REQUEST_TITLE_MAX,
-  type ConsoleDecisionChoice,
-  type ConsoleRequestCreate,
-  type ConsoleRequestEdit,
-  type ConsoleRequestPriority,
-  type ConsoleRequestStatus,
-} from '@fmip/contracts';
+} from '@fmip/contracts/console';
 import { cleanText } from './console-rules';
 
 /**

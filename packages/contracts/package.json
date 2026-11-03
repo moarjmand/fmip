@@ -16,12 +16,19 @@
       "default": "./dist/translation-checks.js"
     },
     "./glossary/*.json": "./glossary/*.json",
-    "./zones/*.json": "./zones/*.json"
+    "./zones/*.json": "./zones/*.json",
+    "./console": {
+      "types": "./dist/console.d.ts",
+      "default": "./dist/console.js"
+    }
   },
   "typesVersions": {
     "*": {
       "translation-checks": [
         "dist/translation-checks.d.ts"
+      ],
+      "console": [
+        "dist/console.d.ts"
       ]
     }
   },

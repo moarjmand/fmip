@@ -2,7 +2,6 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { Test } from '@nestjs/testing';
 import {
   CONSOLE_MESSAGE_MAX,
-  CONSOLE_REQUEST_BODY_MAX,
   CONSOLE_SNAPSHOT_SCHEMA,
   type ApiError,
   type ConsoleAuditEntry,
@@ -15,6 +14,7 @@ import {
   type ConsoleSnapshot,
   type ConsoleSnapshotResponse,
 } from '@fmip/contracts';
+import { CONSOLE_REQUEST_BODY_MAX } from '@fmip/contracts/console';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';

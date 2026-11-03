@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
+import { type ConsoleRequestStatus } from '@fmip/contracts';
 import {
   CONSOLE_REQUEST_BODY_MAX,
   CONSOLE_REQUEST_STATUSES,
   CONSOLE_REQUEST_TITLE_MAX,
-  type ConsoleRequestStatus,
-} from '@fmip/contracts';
+} from '@fmip/contracts/console';
 import { ConsoleLink as Link } from '@/app/console/console-link';
 import { createRequest } from '@/lib/console-actions';
 import { consoleRequests } from '@/lib/console-api';

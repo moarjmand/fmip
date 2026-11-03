@@ -330,13 +330,7 @@ export type {
   ModelUnavailableReason,
 } from './forecast';
 export { MAX_FORECAST_FIXTURES } from './forecast';
-// The agents console's forecast-model page (T-1729, D-355).
-export {
-  CONSOLE_MODEL_CALIBRATION_MINIMUM,
-  CONSOLE_MODEL_NEW_DIVISIONS_MINIMUM,
-  CONSOLE_MODEL_NO_WORSE_MARGIN,
-  CONSOLE_MODEL_PAIRED_MINIMUM,
-} from './console-model';
+// The agents console's forecast-model page (T-1729, D-355); its runtime constants are in './console' (kept out of this barrel so they never reach a public page's bundle).
 export type {
   ConsoleModelCalibrationBand,
   ConsoleModelCandidate,
@@ -1103,17 +1097,8 @@ export {
   CONSOLE_FLOW_OUTPUTS,
   CONSOLE_FLOW_READERS,
   CONSOLE_FLOW_TRIGGERS,
-  CONSOLE_DECISION_CHOICES,
-  CONSOLE_DECISION_TEXT_MAX,
   CONSOLE_MESSAGE_MAX,
   CONSOLE_REPLY_MAX,
-  CONSOLE_REQUEST_BODY_MAX,
-  CONSOLE_REQUEST_EVENT_KINDS,
-  CONSOLE_REQUEST_PRIORITIES,
-  CONSOLE_REQUEST_QUESTION_MAX,
-  CONSOLE_REQUEST_RESULT_MAX,
-  CONSOLE_REQUEST_STATUSES,
-  CONSOLE_REQUEST_TITLE_MAX,
   CONSOLE_SNAPSHOT_SCHEMA,
   CONSOLE_USERNAME_PATTERN,
 } from './agents-console';
