@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2289), grouped by folder, with one line on
+Every file in the repository (2311), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -42,7 +42,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/activity/internal`](#appsapisrcmodulesactivityinternal) — 3
 - [`apps/api/src/modules/admin`](#appsapisrcmodulesadmin) — 7
 - [`apps/api/src/modules/admin/internal`](#appsapisrcmodulesadmininternal) — 2
-- [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 3
+- [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 6
 - [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 6
 - [`apps/api/src/modules/analysis`](#appsapisrcmodulesanalysis) — 5
 - [`apps/api/src/modules/analysis/internal`](#appsapisrcmodulesanalysisinternal) — 1
@@ -57,6 +57,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/channel-post/internal`](#appsapisrcmoduleschannel-postinternal) — 10
 - [`apps/api/src/modules/consensus`](#appsapisrcmodulesconsensus) — 6
 - [`apps/api/src/modules/consensus/internal`](#appsapisrcmodulesconsensusinternal) — 2
+- [`apps/api/src/modules/console-model`](#appsapisrcmodulesconsole-model) — 3
 - [`apps/api/src/modules/conversations`](#appsapisrcmodulesconversations) — 11
 - [`apps/api/src/modules/conversations/internal`](#appsapisrcmodulesconversationsinternal) — 2
 - [`apps/api/src/modules/data-quality`](#appsapisrcmodulesdata-quality) — 6
@@ -69,8 +70,8 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/fixtures/internal`](#appsapisrcmodulesfixturesinternal) — 13
 - [`apps/api/src/modules/following-feed`](#appsapisrcmodulesfollowing-feed) — 3
 - [`apps/api/src/modules/following-feed/internal`](#appsapisrcmodulesfollowing-feedinternal) — 1
-- [`apps/api/src/modules/forecast`](#appsapisrcmodulesforecast) — 32
-- [`apps/api/src/modules/forecast/internal`](#appsapisrcmodulesforecastinternal) — 14
+- [`apps/api/src/modules/forecast`](#appsapisrcmodulesforecast) — 33
+- [`apps/api/src/modules/forecast/internal`](#appsapisrcmodulesforecastinternal) — 15
 - [`apps/api/src/modules/founder`](#appsapisrcmodulesfounder) — 6
 - [`apps/api/src/modules/founder/internal`](#appsapisrcmodulesfounderinternal) — 2
 - [`apps/api/src/modules/groups`](#appsapisrcmodulesgroups) — 14
@@ -236,7 +237,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 12
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 16
 - [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 3
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
 - [`apps/web/src/app/console/(app)/agents/[name]/chat`](#appswebsrcappconsoleappagentsnamechat) — 1
@@ -244,6 +245,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/(app)/board`](#appswebsrcappconsoleappboard) — 1
 - [`apps/web/src/app/console/(app)/decisions`](#appswebsrcappconsoleappdecisions) — 1
 - [`apps/web/src/app/console/(app)/findings`](#appswebsrcappconsoleappfindings) — 1
+- [`apps/web/src/app/console/(app)/model`](#appswebsrcappconsoleappmodel) — 1
 - [`apps/web/src/app/console/(app)/reports`](#appswebsrcappconsoleappreports) — 1
 - [`apps/web/src/app/console/(app)/requests`](#appswebsrcappconsoleapprequests) — 1
 - [`apps/web/src/app/console/(open)/invite/[token]`](#appswebsrcappconsoleopeninvitetoken) — 1
@@ -253,7 +255,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
-- [`apps/web/src/lib`](#appswebsrclib) — 213
+- [`apps/web/src/lib`](#appswebsrclib) — 215
 - [`apps/web/tests/e2e`](#appswebtestse2e) — 24
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
 - [`apps/web/tests/e2e/journeys`](#appswebtestse2ejourneys) — 25
@@ -261,7 +263,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 38
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -272,7 +274,7 @@ machine, `docs/18-handover.md`.
 - [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 9
 - [`packages/contracts`](#packagescontracts) — 5
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
-- [`packages/contracts/src`](#packagescontractssrc) — 69
+- [`packages/contracts/src`](#packagescontractssrc) — 70
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
 - [`packages/db/migrations`](#packagesdbmigrations) — 177
@@ -615,6 +617,9 @@ machine, `docs/18-handover.md`.
 | `agents-console.controller.ts` | The agents console (T-1696, T-1697, D-340), under `/console/`. |
 | `agents-console.http.spec.ts` | The agents console (T-1696, T-1697, D-340): an account opens only from a one-time invitation; a session is the console's own cookie; wrong passwords lock a name; nothing but signing in answers without a session; the sna… |
 | `agents-console.module.ts` | The agents console (T-1696, T-1697, D-340): owns the `console_*` tables. |
+| `agents-console.module.ts` | The agents console (T-1696, T-1697, D-340): owns the `console_*` tables. |
+| `agents-console.module.ts` | The agents console (T-1696, T-1697, D-340): owns the `console_*` tables. |
+| `console-sessions.service.ts` | The console's session, for a read-only console page another module serves (T-1729: the forecast model's page): the person behind the request's `fmip_console` cookie, or null. |
 
 ## apps/api/src/modules/agents-console/internal
 
@@ -783,6 +788,14 @@ machine, `docs/18-handover.md`.
 | `consensus-store.ts` | The SQL for community consensus (T-134). All of it, and nothing else. It reads `user_prediction` / `prediction_version` and `rating_snapshot` directly rather than through the predictions and reputation services. That is… |
 | `distribution.ts` | Turning a fixture's standing predictions into the two distributions blueprint 6.6 asks for (T-134). |
 
+## apps/api/src/modules/console-model
+
+| File | What it is |
+|---|---|
+| `console-model.controller.ts` | The agents console's forecast-model page (T-1729, D-355): read-only, a console session required, the same refusal as the console's own routes. |
+| `console-model.http.spec.ts` | T-1729 against the real schema: `GET /console/model` refuses without a console session, names the versions the model service runs, and computes the published version's record, calibration, trend and competitions, and th… |
+| `console-model.module.ts` | The agents console's forecast-model page (T-1729, D-355), apart from the console's own module so that the console's command-line tool, which imports that module, does not need the model service. |
+
 ## apps/api/src/modules/conversations
 
 | File | What it is |
@@ -923,6 +936,7 @@ machine, `docs/18-handover.md`.
 | `candidate-records.spec.ts` | Tests for `candidate-records`. |
 | `candidates.controller.ts` | The candidates' shadow records for the console (T-1103, D-140): read-only, administrators only (a member gets `forbidden`, D-108). |
 | `candidates.store.spec.ts` | T-1103 against the real schema: each candidate's pre-kick-off record and its pairs with the published version, from the stored evaluations. |
+| `console-model.spec.ts` | The console's model page (T-1729, D-355): the intervals are the model watch's, competitions rank best first with the thin ones after, and a candidate's comparison stays a count until D-336's thresholds (T-1720). |
 | `evaluation.controller.ts` | Evaluations are read by anyone; running one is an operator action over HTTP (the result-ingestion job of E2 will call the service directly). |
 | `evaluation.http.spec.ts` | Runs statements in one transaction so trigger toggles never leak to another suite. |
 | `evaluation.service.ts` | Post-match evaluation (T-066): once a fixture has a full-time score, every available forecast version is scored against it, once, immutably. |
@@ -957,6 +971,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `candidate-records.ts` | Every candidate's shadow record (T-1103): each model version with stored shadow forecasts, and each the model service offers now even before its first forecast (a count of zero, never absent). |
+| `console-model.ts` | The console's model page (T-1729, D-355), as pure arithmetic over the rows `PostgresEvaluationStore` reads. |
 | `evaluation-store.ts` | SQL for the evaluation side of the forecast boundary (D-025). |
 | `forecast-store.ts` | What the store needs to know about a fixture to ask the model. |
 | `forecast-triggers.ts` | When a forecast version is due (T-120, blueprint 6.4). |
@@ -2610,6 +2625,10 @@ machine, `docs/18-handover.md`.
 | `console-persian.spec.tsx` | The console is Persian only (T-1725, D-352), and each agent page draws how the agent works. |
 | `console.spec.tsx` | The agents console's web side (T-1698, D-340): served on its own host only, its cookie read back from the API's, and an open security finding shown without its detail. |
 | `layout.tsx` | The agents console's root (D-340): its own `<html>`, apart from the site's `[locale]` layout. |
+| `model-charts.tsx` | The console's model charts (T-1729, D-355): server-rendered SVG, no client code and no library, as the schematic (D-352). |
+| `model-notes.ts` | What each forecast-model version is made of, in Persian (T-1729, D-355): the console's model page reads the versions and the figures from the API, and their make-up from here, written from the version files in `apps/mod… |
+| `model-page.spec.tsx` | The console's forecast-model page (T-1729, D-355): each section on a report shaped like the weekly watch's, then the states with too little to show -- nothing published, a version just promoted -- and a candidate whose… |
+| `model-report.fixture.ts` | A stand-in `GET /console/model` answer for the console's model page specs and its local screenshots (T-1729), shaped on the model scientist's weekly report of 2026-11-02: 0.6.0 on 1,831 matches (log loss 0.9538, Brier 0… |
 | `not-found.tsx` | A console page that is not there (T-1725, D-352): an agent the snapshot does not have, or a path the console does not know. |
 | `requests.spec.tsx` | Teammate requests (T-1728, D-354): every state of a card, drawn on the server. |
 | `requests.tsx` | Teammate requests (T-1728, D-354), drawn on the server: each request as a card, the request at the start and Claude's result box at the end (stacked on a phone), the question for the teammate with its three answers whil… |
@@ -2660,6 +2679,12 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | Every agent's findings (T-1698, D-340), filtered by agent, severity and status. |
+
+## apps/web/src/app/console/(app)/model
+
+| File | What it is |
+|---|---|
+| `page.tsx` | The forecast model, simply and exactly (T-1729, D-355): what the published version is and what it reads, what is in shadow, and how accurate the published version is now -- every figure from `GET /console/model`, with i… |
 
 ## apps/web/src/app/console/(app)/reports
 
@@ -3072,6 +3097,8 @@ machine, `docs/18-handover.md`.
 | `competitions-menu.ts` | The competitions menu's rules (T-1643, D-301), pure so they are unit-tested (`competitions-menu.spec.ts`); `components/competitions-menu.tsx` fetches and draws. |
 | `console-actions.ts` | The agents console's forms (D-340), as server actions: each posts to the API with the console's cookie and comes back to the page with what happened. |
 | `console-api.ts` | The agents console's calls to the API (D-340), made by the web server with the console's own cookie, `fmip_console`, which lives on the console's host only. |
+| `console-api.ts` | The agents console's calls to the API (D-340), made by the web server with the console's own cookie, `fmip_console`, which lives on the console's host only. |
+| `console-api.ts` | The agents console's calls to the API (D-340), made by the web server with the console's own cookie, `fmip_console`, which lives on the console's host only. |
 | `console-base.ts` | The agents console's base path for this request (D-341): '' on its own host, `CONSOLE_PATH` (e.g. |
 | `console-host.ts` | The agents console's host (D-340): `CONSOLE_HOST`, e.g. |
 | `contributor-actions.ts` | Granting, pausing, resuming and withdrawing a contributor from the web (T-612), over the audited API of T-250. |
@@ -3378,13 +3405,19 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
+| `03-project-map.md` | Project map |
+| `03-project-map.md` | Project map |
 | `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -3519,6 +3552,7 @@ machine, `docs/18-handover.md`.
 | `confederation.spec.ts` | Tests for `confederation`. |
 | `confederation.ts` | Football's six confederations (T-1643, D-301): which one a competition belongs to, so the header's competitions menu can file it by region. |
 | `consensus.ts` | Community consensus (blueprint 6.6, T-134). |
+| `console-model.ts` | The agents console's forecast-model page (T-1729, D-355): what the published model version is, what is in shadow, and how accurate the published version is now -- every figure from the stored pre-kick-off evaluations (T… |
 | `contributor.ts` | Approval to post on a public match panel (blueprint 9.4 and 10.2, T-250). |
 | `conversations.ts` | Conversations (blueprint 8.3, T-220). **Order is a sequence, not a time.** Every message carries `seq`, unique and increasing within its conversation, and every question a client asks about order is asked in those terms. |
 | `coverage.spec.ts` | Tests for `coverage`. |

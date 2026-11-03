@@ -12,6 +12,7 @@ import type {
   ConsoleRequestCounts,
   ConsoleRequestList,
   ConsoleRequestStatus,
+  ConsoleModelReport,
   ConsoleSnapshotResponse,
 } from '@fmip/contracts';
 import { consoleBase } from './console-base';
@@ -114,6 +115,8 @@ export const consoleSnapshot = () => consoleCall<ConsoleSnapshotResponse>('snaps
 export const consoleCommands = () => consoleCall<{ commands: ConsoleCommand[] }>('commands');
 export const consoleBoard = () => consoleCall<{ cards: ConsoleBoardCard[] }>('board');
 export const consoleAudit = () => consoleCall<{ entries: ConsoleAuditEntry[] }>('audit');
+/** The forecast model's page (T-1729): the published version, its accuracy, and shadow. */
+export const consoleModel = () => consoleCall<ConsoleModelReport>('model');
 /** An agent's conversation (T-1722): the newest page, or the one before `before`. */
 export const consoleConversation = (agent: string, before?: string) =>
   consoleCall<ConsoleConversation>(
