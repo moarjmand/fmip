@@ -11,6 +11,7 @@ import {
 } from '@fmip/contracts/console';
 import { decideRequest, editRequest, requestAction } from '@/lib/console-actions';
 import { ConsoleForm } from './console-form';
+import { CardImages } from './request-images';
 import { Badge, fa, inputClass, when } from './ui';
 
 /**
@@ -97,6 +98,12 @@ export function eventWords(event: ConsoleRequestEvent): string {
     }
     case 'result':
       return `نتیجه نوشت؛ وضعیت: ${to}`;
+    case 'image_added':
+      return 'تصویر افزود';
+    case 'image_removed':
+      return 'تصویری را حذف کرد';
+    case 'image_captioned':
+      return 'توضیح تصویر را تغییر داد';
   }
 }
 
@@ -351,8 +358,18 @@ function History({ events }: { events: ConsoleRequestEvent[] }) {
   );
 }
 
-/** One request: on a wide screen the request at the start and the result at the end. */
-export function RequestCard({ request }: { request: ConsoleRequestDetail }) {
+/**
+ * One request: on a wide screen the request at the start and the result at
+ * the end; its pictures under the details (T-1731). `base` is the console's
+ * base path, for the pictures' addresses.
+ */
+export function RequestCard({
+  request,
+  base = '',
+}: {
+  request: ConsoleRequestDetail;
+  base?: string;
+}) {
   const open = OPEN.includes(request.status);
   return (
     <article
@@ -383,6 +400,12 @@ export function RequestCard({ request }: { request: ConsoleRequestDetail }) {
               {request.body}
             </p>
           )}
+          <CardImages
+            base={base}
+            requestId={request.id}
+            images={request.images ?? []}
+            open={open}
+          />
           <p className="text-xs text-caption">
             ثبت: <span dir="auto">{request.created_by}</span> · {when(request.created_at)}
           </p>

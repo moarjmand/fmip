@@ -8,6 +8,12 @@ import {
 import { ConsoleSessions } from './console-sessions.service';
 import { PostgresConsoleStore } from './internal/console-store';
 import { PostgresRequestStore } from './internal/request-store';
+import { ImageBodyParser } from './internal/image-body';
+import {
+  REQUEST_IMAGE_FILES,
+  RequestImageFiles,
+  consoleMediaDir,
+} from './internal/request-image-files';
 
 /**
  * The agents console (T-1696, T-1697, D-340): owns the `console_*` tables.
@@ -21,6 +27,12 @@ import { PostgresRequestStore } from './internal/request-store';
     PostgresRequestStore,
     // T-1729: the session check, for the model page another module serves.
     ConsoleSessions,
+    // T-1731 (D-357): the requests' pictures, private on the media volume.
+    ImageBodyParser,
+    {
+      provide: REQUEST_IMAGE_FILES,
+      useFactory: (): RequestImageFiles => new RequestImageFiles(consoleMediaDir()),
+    },
     {
       provide: CONSOLE_OPTIONS,
       useFactory: (): ConsoleOptions => ({
@@ -29,6 +41,6 @@ import { PostgresRequestStore } from './internal/request-store';
       }),
     },
   ],
-  exports: [PostgresConsoleStore, PostgresRequestStore, ConsoleSessions],
+  exports: [PostgresConsoleStore, PostgresRequestStore, ConsoleSessions, REQUEST_IMAGE_FILES],
 })
 export class AgentsConsoleModule {}

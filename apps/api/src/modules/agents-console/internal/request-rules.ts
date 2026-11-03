@@ -178,6 +178,8 @@ export const questionText = (raw: string) =>
  *   result or asks, and when the request closes.
  * - Any console user decides a request that is `waiting_decision`; it moves
  *   to `decided`.
+ * - A person adds, removes or captions a picture on an open request only
+ *   (T-1731), like an edit; the status stays.
  * - Claude writes a result in any status (`in_progress`, `done` or
  *   `cancelled`), and asks a question on an open request (to
  *   `waiting_decision`, the earlier decision cleared; it stays in the history).
@@ -189,7 +191,9 @@ export type RequestMove =
   | { kind: 'execute'; on: boolean }
   | { kind: 'decide' }
   | { kind: 'result'; status: ResultStatus }
-  | { kind: 'ask' };
+  | { kind: 'ask' }
+  // T-1731 (D-357): a picture added, removed or captioned, like an edit.
+  | { kind: 'image' };
 
 export function nextStatus(
   status: ConsoleRequestStatus,
@@ -225,5 +229,9 @@ export function nextStatus(
       return isOpen(status)
         ? { ok: true, status: 'waiting_decision' }
         : { ok: false, reason: 'A closed request is reopened before a question is put on it.' };
+    case 'image':
+      return isOpen(status)
+        ? { ok: true, status }
+        : { ok: false, reason: 'A closed request is reopened before its pictures change.' };
   }
 }

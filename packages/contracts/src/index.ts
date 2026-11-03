@@ -1145,6 +1145,8 @@ export type {
   ConsoleRequestEdit,
   ConsoleRequestEvent,
   ConsoleRequestEventKind,
+  ConsoleRequestImage,
+  ConsoleRequestImageCaption,
   ConsoleRequestList,
   ConsoleRequestPriority,
   ConsoleRequestStatus,

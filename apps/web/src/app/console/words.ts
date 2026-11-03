@@ -91,6 +91,44 @@ const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
     /^That is the most changes to the requests/,
     () => 'به سقف تغییرهای یک ساعت در درخواست‌ها رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
   ],
+  // Pictures on a request (T-1731): `request-images.ts`, the store, the routes.
+  [/^No such picture\.$/, () => 'چنین تصویری نیست.'],
+  [
+    /^A request holds at most (\d+) pictures\.$/,
+    (m) => `هر درخواست حداکثر ${fa(m[1]!)} تصویر دارد.`,
+  ],
+  [
+    /^A closed request is reopened before its pictures change\.$/,
+    () => 'این درخواست بسته است؛ برای تغییر تصویرها اول آن را بازگشایی کنید.',
+  ],
+  [/^The picture is empty\.$/, () => 'فایل تصویر خالی است.'],
+  [/^A picture is at most (\d+) MB\.$/, (m) => `هر تصویر حداکثر ${fa(m[1]!)} مگابایت است.`],
+  [
+    /^HEIC pictures cannot be read here\./,
+    () =>
+      'تصویرهای آیفون با قالب اچ‌ئی‌آی‌سی اینجا خوانده نمی‌شوند؛ از آن اسکرین‌شات بگیرید یا جی‌پگ بفرستید.',
+  ],
+  [
+    /^Only PNG, JPEG, WebP and GIF pictures/,
+    () => 'فقط تصویرهای پی‌ان‌جی، جی‌پگ، وب‌پی و گیف پذیرفته می‌شود.',
+  ],
+  [/^The picture could not be read\.$/, () => 'این تصویر خوانده نشد؛ شاید فایل خراب است.'],
+  [
+    /^The picture has too many pixels\.$/,
+    () => 'این تصویر بیش از اندازه بزرگ است؛ نسخهٔ کوچک‌تری بفرستید.',
+  ],
+  [/^A caption is text\.$/, () => 'توضیح تصویر باید متن باشد.'],
+  [
+    /^A caption is at most (\d+) characters\.$/,
+    (m) => `توضیح تصویر حداکثر ${fa(m[1]!)} نویسه است.`,
+  ],
+  [/^Send the picture's own bytes/, () => 'فایل تصویر درست فرستاده نشد.'],
+  [/^Send JSON\.$/, () => 'درخواست درست فرستاده نشد.'],
+  [/^This upload is not from the console\.$/, () => 'این بارگذاری از صفحهٔ کنسول نیامده است.'],
+  [
+    /^That is the most pictures an hour allows/,
+    () => 'به سقف تصویرهای یک ساعت رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
 ];
 
 const hasLatin = (text: string) => /[A-Za-z]{2,}/.test(text);
@@ -167,6 +205,9 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'request.asked': 'پرسش برای هم‌تیمی',
   'request.decided': 'تصمیم روی درخواست',
   'request.result': 'نتیجه‌ی درخواست',
+  'request.image_added': 'افزودن تصویر به درخواست',
+  'request.image_removed': 'حذف تصویر درخواست',
+  'request.image_captioned': 'توضیح تصویر درخواست',
 };
 
 /** An audit row's action in Persian (`command.agent_pause` from `COMMAND_WORDS`); an unknown one keeps its id. */
@@ -199,6 +240,9 @@ export function auditReasonWords(reason: string): string {
     [/^question put on the maintainer's word$/, () => 'پرسش به گفتهٔ نگهدارنده گذاشته شد'],
     [/^decision recorded$/, () => 'تصمیم ثبت شد'],
     [/^result written$/, () => 'نتیجه نوشته شد'],
+    [/^picture added$/, () => 'تصویر اضافه شد'],
+    [/^picture removed$/, () => 'تصویر حذف شد'],
+    [/^picture caption changed$/, () => 'توضیح تصویر تغییر کرد'],
   ];
   for (const [pattern, words] of system) {
     const match = pattern.exec(reason);

@@ -1,16 +1,12 @@
 import type { Metadata } from 'next';
 import { type ConsoleRequestStatus } from '@fmip/contracts';
-import {
-  CONSOLE_REQUEST_BODY_MAX,
-  CONSOLE_REQUEST_STATUSES,
-  CONSOLE_REQUEST_TITLE_MAX,
-} from '@fmip/contracts/console';
+import { CONSOLE_REQUEST_STATUSES } from '@fmip/contracts/console';
 import { ConsoleLink as Link } from '@/app/console/console-link';
-import { createRequest } from '@/lib/console-actions';
 import { consoleRequests } from '@/lib/console-api';
-import { ConsoleForm } from '../../console-form';
+import { consoleBase } from '@/lib/console-base';
+import { NewRequestForm } from '../../request-images';
 import { REQUEST_STATUS_WORDS, RequestCard } from '../../requests';
-import { Card, fa, inputClass } from '../../ui';
+import { Card, fa } from '../../ui';
 
 export const metadata: Metadata = { title: 'درخواست‌های هم‌تیمی' };
 
@@ -25,13 +21,15 @@ const TAB_WORDS = (tab: ConsoleRequestStatus | 'all') =>
  * Teammate requests (T-1728, D-354): what the teammate asks for, written down
  * by the maintainer; Claude's result in front of each one; a question for the
  * teammate with its answers. Server-rendered; the forms are server actions.
+ * T-1731 (D-357): pictures on a request, added in the new-request form and on
+ * any open card, shown as thumbnails with a lightbox (`request-images.tsx`).
  */
 export default async function ConsoleRequestsPage({ searchParams }: Props) {
   const raw = (await searchParams).status;
   const status = (CONSOLE_REQUEST_STATUSES as readonly unknown[]).includes(raw)
     ? (raw as ConsoleRequestStatus)
     : undefined;
-  const result = await consoleRequests(status);
+  const [result, base] = await Promise.all([consoleRequests(status), consoleBase()]);
   const list = result.ok ? result.data : null;
   const current = status ?? 'all';
 
@@ -47,33 +45,7 @@ export default async function ConsoleRequestsPage({ searchParams }: Props) {
       </div>
 
       <Card title="درخواست تازه">
-        <ConsoleForm action={createRequest} submit="ثبت درخواست" className="flex flex-col gap-3">
-          <label className="flex flex-col gap-1 text-xs text-muted">
-            عنوان
-            <input
-              name="title"
-              required
-              maxLength={CONSOLE_REQUEST_TITLE_MAX}
-              dir="auto"
-              placeholder="هم‌تیمی چه می‌خواهد؟"
-              className={inputClass}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-muted">
-            جزئیات (اختیاری)
-            <textarea
-              name="body"
-              rows={3}
-              maxLength={CONSOLE_REQUEST_BODY_MAX}
-              dir="auto"
-              className={`${inputClass} py-2`}
-            />
-          </label>
-          <label className="flex items-center gap-2 text-sm text-fg">
-            <input type="checkbox" name="priority" value="high" className="size-4 accent-brand" />
-            فوری
-          </label>
-        </ConsoleForm>
+        <NewRequestForm base={base} />
       </Card>
 
       <nav
@@ -128,7 +100,7 @@ export default async function ConsoleRequestsPage({ searchParams }: Props) {
       ) : (
         <div className="flex flex-col gap-4">
           {list.requests.map((request) => (
-            <RequestCard key={request.id} request={request} />
+            <RequestCard key={request.id} request={request} base={base} />
           ))}
         </div>
       )}

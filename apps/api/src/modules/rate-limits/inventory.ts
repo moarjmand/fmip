@@ -188,14 +188,27 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     action: 'console_request',
     subject: 'console_user',
     enforced: 'api',
-    what: 'Changes to the teammate requests in the agents console: adding, editing, cancelling, reopening, marking to run and deciding.',
+    what: 'Changes to the teammate requests in the agents console: adding, editing, cancelling, reopening, marking to run and deciding, and adding, captioning or removing a picture.',
     routes: [
       'POST /console/requests',
       'PATCH /console/requests/:id',
       'POST /console/requests/:id/status',
       'POST /console/requests/:id/execute',
       'POST /console/requests/:id/decision',
+      'POST /console/requests/:id/images',
+      'PATCH /console/requests/:id/images/:imageId',
+      'DELETE /console/requests/:id/images/:imageId',
     ],
+  },
+  // T-1731 (D-357): the pictures on the requests, each decoded and re-encoded
+  // on the server. Counted from the person's own `image_added` events this
+  // hour, before the upload is read; each is also one `console_request` change.
+  {
+    action: 'console_request_image',
+    subject: 'console_user',
+    enforced: 'api',
+    what: 'Pictures added to the teammate requests in the agents console: each is decoded and re-encoded on the server.',
+    routes: ['POST /console/requests/:id/images'],
   },
 
   // Not a write, and the one read with a ceiling (T-838, D-103's gap): every
