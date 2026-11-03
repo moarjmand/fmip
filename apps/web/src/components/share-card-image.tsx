@@ -229,7 +229,7 @@ export function MatchCardImage({
                 fontWeight: 700,
                 fontSize: before ? 80 : 132,
                 lineHeight: 1,
-                color: before ? CAPTION : INK,
+                color: before ? CAPTION : text.disputed ? MUTED : INK,
               })}
             >
               {text.centre}

@@ -81,6 +81,11 @@ export interface MatchCardText {
   /** How a cup tie was decided, when the feed says so: "AET" or "Pens 4–3". */
   decided: string | null;
   /**
+   * The recorded goals outnumber the reported result (T-1717, D-347): the score
+   * is drawn muted, no side as the loser, and the status says it is unclear.
+   */
+  disputed: boolean;
+  /**
    * Full time; live with the minute and when it was last heard from (a chat
    * keeps a preview for days, rule 4); the kick-off in UTC; or what happened
    * instead.
@@ -211,6 +216,8 @@ export function matchCardText(header: MatchHeader, preKickoff: CardForecast | nu
   }
 
   const finished = header.status === 'finished' && score !== null;
+  // T-1726: the card says what the match page says (D-347), never a final score in doubt.
+  const disputed = finished && header.score_dispute != null;
   return {
     eyebrow: [header.competition.name, header.season.label, header.round]
       .filter((part): part is string => part !== null && part !== '')
@@ -218,15 +225,17 @@ export function matchCardText(header: MatchHeader, preKickoff: CardForecast | nu
     home,
     away,
     centre: started && score !== null ? `${score.home}–${score.away}` : 'v',
-    loser: !finished
-      ? null
-      : score.home > score.away
-        ? 'away'
-        : score.home < score.away
-          ? 'home'
-          : null,
-    decided: started ? decidedBy(header) : null,
-    status,
+    loser:
+      !finished || disputed
+        ? null
+        : score.home > score.away
+          ? 'away'
+          : score.home < score.away
+            ? 'home'
+            : null,
+    decided: started && !disputed ? decidedBy(header) : null,
+    disputed,
+    status: disputed ? 'Score unclear in the source' : status,
     model,
   };
 }
