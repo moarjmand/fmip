@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2313), grouped by folder, with one line on
+Every file in the repository (2319), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -266,7 +266,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 36
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -275,9 +275,9 @@ machine, `docs/18-handover.md`.
 - [`packages/config/tsconfig`](#packagesconfigtsconfig) — 4
 - [`packages/console-publisher`](#packagesconsole-publisher) — 5
 - [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 9
-- [`packages/contracts`](#packagescontracts) — 5
+- [`packages/contracts`](#packagescontracts) — 6
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
-- [`packages/contracts/src`](#packagescontractssrc) — 72
+- [`packages/contracts/src`](#packagescontractssrc) — 73
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
 - [`packages/db/migrations`](#packagesdbmigrations) — 178
@@ -3428,6 +3428,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
@@ -3435,6 +3437,8 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -3534,6 +3538,7 @@ machine, `docs/18-handover.md`.
 | `eslint.config.mjs` | Eslint configuration. |
 | `package.json` | Package `@fmip/contracts`: The single source of truth for the API shape. Consumed by apps/api and apps/web.: scripts and dependencies. |
 | `tsconfig.build.json` | TypeScript compiler settings. |
+| `tsconfig.esm.json` | TypeScript compiler settings. |
 | `tsconfig.json` | TypeScript compiler settings. |
 | `vitest.config.mts` | Vitest configuration. |
 
@@ -3577,6 +3582,7 @@ machine, `docs/18-handover.md`.
 | `coverage.spec.ts` | Tests for `coverage`. |
 | `coverage.ts` | Coverage states. Not every competition has the same data depth. Rule 3 in `CLAUDE.md`: when data is missing the API says so explicitly. It never returns an empty module that looks populated, and never invents a value. |
 | `data-quality.ts` | Data-quality checks over the stored feed (T-820, E82, D-097). |
+| `entry-points.spec.ts` | The browser gets ES modules, Node gets CommonJS (T-1730, D-356). |
 | `failure-counts.ts` | API errors and job failures, counted (T-803): 5xx responses per route template and failed or stalled BullMQ jobs per queue, in UTC-hour buckets, kept for thirty days. |
 | `following-feed.ts` | The Following feed (blueprint 12.1, T-333): what is happening around the teams, competitions and contributors a member follows, **ranked from qualified signals and never from raw volume**, and saying what it is showing. |
 | `following.ts` | `/me/following` on `apps/api` (T-042). Following is a row; favourite is a flag on it. Favourites are pinned first on the scores page and shown on the profile; everything followed feeds the Following views (blueprint 4.1… |

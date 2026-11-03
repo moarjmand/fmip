@@ -1,0 +1,16 @@
+{
+  // The same sources as ES modules, for the browser bundles only (T-1730,
+  // D-356): `package.json` points each entry's "browser" condition here. The
+  // CommonJS build in `dist/` cannot be tree-shaken, so every client bundle that
+  // used one constant carried the whole barrel (~11 kB gzip). Node (the API, the
+  // web server, scripts) keeps resolving the CommonJS build, so these files are
+  // never loaded by Node and need no "type": "module" or file extensions.
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "module": "ES2022",
+    "outDir": "dist/esm",
+    "declaration": false,
+    "declarationMap": false,
+    "incremental": false
+  }
+}

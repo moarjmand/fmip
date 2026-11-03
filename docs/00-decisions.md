@@ -14175,6 +14175,24 @@ A narrow surface with no Persian story says so with the empty state it already h
 
 **Consequences.** A new published or shadow version needs its entry in `model-notes.ts` with its decision, or the page says its make-up is not written. The figures need nothing: they follow the stored evaluations. When 0.7.0 reaches 300 paired matches, the page shows its paired figures as live numbers, and the verdict stays the weekly report's.
 
+## D-356 — The browser gets the contracts as ES modules, and the match centre's budget falls to 183 kB
+
+**Status:** Accepted · 2026-11-03 (maintainer) · **Task:** T-1730 · **Follows:** D-344, D-264, D-206, D-138
+
+**Context.** The match centre measured 191.9 kB gzip against 192 and scores 179.5 against 180, so the next addition to either page would have been another raise. The maintainer approved a slimming task on 2026-11-03: about 10 kB of room, with the page looking and behaving exactly as before. Source maps of the production build put 11.9 kB gzip of the two pages' first load in one chunk holding all of `@fmip/contracts`. The package is built as CommonJS, which a bundler cannot tree-shake, so the three constants and one helper the client uses (`STALE_LIVE_AFTER_MS` and `liveFreshnessFrom`, `PREDICTION_REASON_TAGS`, `PANEL_REACTIONS`, the media helpers) brought every constant, helper and table of the package with them. T-1728 and T-1729 had moved the console's constants to an entry point of their own for the same reason, one entry at a time.
+
+**Decision.**
+1. `@fmip/contracts` is also built as ES modules: `tsconfig.esm.json` writes the same sources to `dist/esm/`, run by the package's `build` after the CommonJS build. Each entry of `exports` (`.`, `./console`, `./translation-checks`) names its twin under a `browser` condition placed before `default`, and the package declares `"sideEffects": false`. Node (the API, the web server, the scripts, Playwright) resolves `default`, the CommonJS build, as before; types are unchanged.
+2. `packages/contracts/src/entry-points.spec.ts` checks the manifest: no side effects, every entry's browser twin, and the build step.
+3. The match centre's `firstLoadJsGzipKB` goes from 192 to 183 and scores' from 180 to 170: each new measurement (180.3 and 167.8) rounded up plus about 2 kB. Home (156.2) and competition (157.0) did not change, nor did their budgets of 158.
+
+**Rejected.**
+- *More entry points, one per constant the client needs (T-1728's way):* every new constant would be another choice of where it lives, and the barrel would still be paid in full by the first import someone forgets.
+- *Making the whole package ES modules:* the API is CommonJS, and Node would need file extensions in every relative import. The browser condition reaches only the bundles that profit.
+- *Loading the pick form on the first tap, or rendering the line-ups on the server:* real gains (about 4 kB and 2 kB) but changes to how the live page is put together, and the room was found without them. They are named in docs/08 for the next time.
+
+**Consequences.** A client bundle pays only for the contracts it uses, on every page; a new entry point needs its browser twin or the spec fails. The match centre and scores have about 3 and 2 kB of margin under budgets that are each about 10 kB lower than before, so the next library on either page is again a decision.
+
 ## D-357 — Pictures on the teammate requests: re-encoded without metadata, stored privately, pulled to the maintainer's computer for Claude
 
 **Status:** Accepted · 2026-11-03 (maintainer) · **Task:** T-1731 · **Follows:** D-354, D-340, D-176, D-177, D-259
