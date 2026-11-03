@@ -1,5 +1,6 @@
 /** Unit tests of the retention purge: periods, cut-offs, batching and the schedule (T-1715, D-345). */
 import { describe, expect, it } from 'vitest';
+import type { ActivityService } from '../activity/activity.service';
 import type { RetentionStore } from './internal/retention-store';
 import { RetentionSchedulerService, RETENTION_SCHEDULE } from './retention-scheduler.service';
 import {
@@ -106,9 +107,17 @@ describe('RetentionService.purge', () => {
       ]),
     ) as unknown as RetentionStore;
 
-    const report = await new RetentionService(store).purge(NOW);
+    const activity = {
+      keepDailyCounts: async (sessionsBefore: Date) => {
+        calls.push({ method: 'keepDailyCounts', cutoff: sessionsBefore.toISOString(), limit: 0 });
+        return 2;
+      },
+    } as unknown as ActivityService;
+
+    const report = await new RetentionService(store, activity).purge(NOW);
 
     expect(report.ran_at).toBe(NOW.toISOString());
+    expect(report.activity_days_kept).toBe(2);
     expect(report.sessions).toEqual({ deleted: 7, batches: 1, capped: false });
     expect(report.console_sessions).toEqual({ deleted: 1, batches: 1, capped: false });
     expect(report.email_tokens).toEqual({ deleted: 0, batches: 1, capped: false });
@@ -118,6 +127,8 @@ describe('RetentionService.purge', () => {
       capped: false,
     });
     expect(calls).toEqual([
+      // The day counts are kept first, with the sessions' own cut-off (D-353).
+      { method: 'keepDailyCounts', cutoff: '2026-10-03T03:23:00.000Z', limit: 0 },
       { method: 'deleteSessions', cutoff: '2026-10-03T03:23:00.000Z', limit: PURGE_BATCH_SIZE },
       {
         method: 'deleteConsoleSessions',
@@ -128,6 +139,30 @@ describe('RetentionService.purge', () => {
       { method: 'rollUpDeliveries', cutoff: '2026-08-04T03:23:00.000Z', limit: PURGE_BATCH_SIZE },
       { method: 'rollUpDeliveries', cutoff: '2026-08-04T03:23:00.000Z', limit: PURGE_BATCH_SIZE },
     ]);
+  });
+});
+
+describe('RetentionService.purge and the day counts (D-353)', () => {
+  it('deletes nothing when keeping the day counts fails', async () => {
+    const called: string[] = [];
+    const store = new Proxy(
+      {},
+      {
+        get: (_target, method) => async () => {
+          called.push(String(method));
+          return 0;
+        },
+      },
+    ) as unknown as RetentionStore;
+    const activity = {
+      keepDailyCounts: async () => {
+        throw new Error('connection terminated');
+      },
+    } as unknown as ActivityService;
+    await expect(new RetentionService(store, activity).purge(NOW)).rejects.toThrow(
+      'connection terminated',
+    );
+    expect(called).toEqual([]);
   });
 });
 
