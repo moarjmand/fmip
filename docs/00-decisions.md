@@ -14000,3 +14000,5 @@ The model scientist judges this weekly, and readiness is a proposal: the maintai
 - *Emitting `prediction_settled` for every settlement:* a notification for each wrong pick, with nothing to do about it.
 - *Keeping the light card:* every concept the maintainer chose from is drawn on Night.
 - *Instancing the variable Archivo at 75% and 125%:* a modified font, and a toolchain (fontTools) the repository does not have, for a difference the static Narrow and Black faces already cover.
+
+**Channels (the maintainer, 2026-11-03).** The share invitation (`prediction_settled`) is carried to the inbox and by push, never by e-mail (`NotificationsService.composeLine`); a member can still turn it off like any kind.

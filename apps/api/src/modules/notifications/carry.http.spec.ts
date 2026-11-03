@@ -186,6 +186,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('carry', () =
     expect(pushes.filter((p) => p.userId === ids.get(bob))[0]?.url).toBe('/en/notifications');
   });
 
+  it('sends the share invitation for a correct pick by push only, never by e-mail (T-1723)', async () => {
+    const mailsBefore = mails.filter((mail) => mail.to === `${bob}@example.test`).length;
+    const pushesBefore = pushes.filter((p) => p.userId === ids.get(bob)).length;
+    await pool.query(
+      `INSERT INTO notification (user_id, kind, subject_type, subject_id)
+       VALUES ($1, 'prediction_settled', 'prediction', gen_random_uuid())`,
+      [ids.get(bob)],
+    );
+    await service.carry({ userIds: [ids.get(ada)!, ids.get(bob)!] });
+    expect(mails.filter((mail) => mail.to === `${bob}@example.test`)).toHaveLength(mailsBefore);
+    expect(pushes.filter((p) => p.userId === ids.get(bob)).length).toBe(pushesBefore + 1);
+  });
+
   it('does not carry a notification older than a day: a channel arriving is not a flood', async () => {
     await pool.query(
       `INSERT INTO notification (user_id, kind, subject_type, subject_id, created_at, deliver_after)
