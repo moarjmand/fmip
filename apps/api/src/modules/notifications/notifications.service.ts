@@ -532,11 +532,16 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
       kind: due.kind,
     });
     return {
-      email: {
-        to: due.email,
-        subject: line,
-        text: path === null ? line : `${line}\n\n${this.webOrigin}${path}`,
-      },
+      // A correct pick's share invitation (T-1723, D-351) goes to the inbox and
+      // push only: the maintainer chose not to e-mail it (2026-11-03).
+      email:
+        due.kind === 'prediction_settled'
+          ? null
+          : {
+              to: due.email,
+              subject: line,
+              text: path === null ? line : `${line}\n\n${this.webOrigin}${path}`,
+            },
       push: {
         userId: due.user_id,
         title: PUSH_TITLE,

@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2247), grouped by folder, with one line on
+Every file in the repository (2283), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -105,8 +105,8 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/notifications/internal`](#appsapisrcmodulesnotificationsinternal) — 2
 - [`apps/api/src/modules/panel`](#appsapisrcmodulespanel) — 13
 - [`apps/api/src/modules/panel/internal`](#appsapisrcmodulespanelinternal) — 5
-- [`apps/api/src/modules/predictions`](#appsapisrcmodulespredictions) — 17
-- [`apps/api/src/modules/predictions/internal`](#appsapisrcmodulespredictionsinternal) — 6
+- [`apps/api/src/modules/predictions`](#appsapisrcmodulespredictions) — 21
+- [`apps/api/src/modules/predictions/internal`](#appsapisrcmodulespredictionsinternal) — 8
 - [`apps/api/src/modules/profile`](#appsapisrcmodulesprofile) — 9
 - [`apps/api/src/modules/profile/internal`](#appsapisrcmodulesprofileinternal) — 5
 - [`apps/api/src/modules/rate-limits`](#appsapisrcmodulesrate-limits) — 6
@@ -153,6 +153,7 @@ machine, `docs/18-handover.md`.
 - [`apps/model/tests/fixtures`](#appsmodeltestsfixtures) — 1
 - [`apps/web`](#appsweb) — 12
 - [`apps/web/public`](#appswebpublic) — 1
+- [`apps/web/public/fonts/card`](#appswebpublicfontscard) — 10
 - [`apps/web/public/icons`](#appswebpublicicons) — 6
 - [`apps/web/scripts`](#appswebscripts) — 5
 - [`apps/web/scripts/lib`](#appswebscriptslib) — 2
@@ -186,6 +187,9 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/admin/translations/[articleId]/[language]`](#appswebsrcapplocaleadmintranslationsarticleidlanguage) — 1
 - [`apps/web/src/app/[locale]/admin/viewing`](#appswebsrcapplocaleadminviewing) — 1
 - [`apps/web/src/app/[locale]/analyses/[fixtureId]`](#appswebsrcapplocaleanalysesfixtureid) — 1
+- [`apps/web/src/app/[locale]/called-it/[token]`](#appswebsrcapplocalecalled-ittoken) — 1
+- [`apps/web/src/app/[locale]/called-it/[token]/card`](#appswebsrcapplocalecalled-ittokencard) — 1
+- [`apps/web/src/app/[locale]/called-it/[token]/story`](#appswebsrcapplocalecalled-ittokenstory) — 1
 - [`apps/web/src/app/[locale]/coach/[id]`](#appswebsrcapplocalecoachid) — 1
 - [`apps/web/src/app/[locale]/competition/[id]`](#appswebsrcapplocalecompetitionid) — 5
 - [`apps/web/src/app/[locale]/competitions`](#appswebsrcapplocalecompetitions) — 1
@@ -212,6 +216,8 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/player/[id]`](#appswebsrcapplocaleplayerid) — 1
 - [`apps/web/src/app/[locale]/player/[id]/compare`](#appswebsrcapplocaleplayeridcompare) — 2
 - [`apps/web/src/app/[locale]/predictions`](#appswebsrcapplocalepredictions) — 1
+- [`apps/web/src/app/[locale]/predictions/[id]/share`](#appswebsrcapplocalepredictionsidshare) — 1
+- [`apps/web/src/app/[locale]/predictions/[id]/share/preview`](#appswebsrcapplocalepredictionsidsharepreview) — 1
 - [`apps/web/src/app/[locale]/register`](#appswebsrcapplocaleregister) — 1
 - [`apps/web/src/app/[locale]/reset-password`](#appswebsrcapplocalereset-password) — 1
 - [`apps/web/src/app/[locale]/rules`](#appswebsrcapplocalerules) — 1
@@ -241,11 +247,11 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/(open)/invite/[token]`](#appswebsrcappconsoleopeninvitetoken) — 1
 - [`apps/web/src/app/console/(open)/login`](#appswebsrcappconsoleopenlogin) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 267
+- [`apps/web/src/components`](#appswebsrccomponents) — 270
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
-- [`apps/web/src/lib`](#appswebsrclib) — 208
+- [`apps/web/src/lib`](#appswebsrclib) — 213
 - [`apps/web/tests/e2e`](#appswebtestse2e) — 24
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
 - [`apps/web/tests/e2e/journeys`](#appswebtestse2ejourneys) — 25
@@ -253,7 +259,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 38
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -267,7 +273,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 69
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 174
+- [`packages/db/migrations`](#packagesdbmigrations) — 175
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -1457,6 +1463,9 @@ machine, `docs/18-handover.md`.
 | `history.http.spec.ts` | Tests for `history.http`. |
 | `history.spec.ts` | Tests for `history`. |
 | `lock.http.spec.ts` | A two throwaway clubs fixture kicking off at `kickoff` (SQL expression, DB clock). |
+| `prediction-share.controller.ts` | A public link to one correct prediction's card (T-1723, D-351). |
+| `prediction-share.http.spec.ts` | A public link to one correct prediction's card (T-1723, D-351): made only by its owner, for a correct settled pick only, revocable, and nothing is public without it. |
+| `prediction-share.service.ts` | A public link to one correct prediction's card (T-1723, D-351). **Public only by its owner's action.** A member's predictions are seen by whom their profile says (D-063); this is the one exception, and it is one predict… |
 | `predictions.controller.ts` | `/fixtures/:id/prediction`: the signed-in member's own prediction. |
 | `predictions.http.spec.ts` | Tests for `predictions.http`. |
 | `predictions.module.ts` | The predictions boundary (02-architecture.md): user predictions, locking (T-051), settlement (T-052) and the member's history (T-056, whose visibility the profile boundary decides). |
@@ -1466,6 +1475,7 @@ machine, `docs/18-handover.md`.
 | `settlement.controller.ts` | Settlement over HTTP (T-052): the aggregate per fixture is public (how the crowd did); the settlement tick (T-1380) settles on its own, and these endpoints stay for an operator who wants a run now. |
 | `settlement.http.spec.ts` | A two throwaway clubs fixture; predictions are placed while it is open, then it is moved into the past. |
 | `settlement.service.ts` | Settlement (T-052): every prediction on a final fixture gets its settlement row, once; a void one is superseded when the match is finished for real. |
+| `share.spec.ts` | T-1723 (D-351): a prediction has a "called it" card only when its current settlement is settled with the outcome right, and the card shows the settled version and the score it was settled against. |
 
 ## apps/api/src/modules/predictions/internal
 
@@ -1476,6 +1486,8 @@ machine, `docs/18-handover.md`.
 | `prediction-store.ts` | SQL for the predictions boundary (D-025). |
 | `settle.ts` | The settlement rules (blueprint 6.6: "a postponed or abandoned match is void until a valid settlement rule is applied"). |
 | `settlement-store.ts` | One settled prediction as the rating engine reads it (T-053). |
+| `share-store.ts` | The SQL behind a prediction's public link (T-1723, D-351): the prediction with its current settlement, and the `prediction_share` rows. |
+| `share.ts` | The "called it" card's rules (T-1723, D-351), pure so each is tested without a database. |
 | `validation.ts` | A submission after validation; what the store writes. |
 
 ## apps/api/src/modules/profile
@@ -2029,6 +2041,21 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `sw.js` | The service worker. |
 
+## apps/web/public/fonts/card
+
+| File | What it is |
+|---|---|
+| `Archivo-Bold.ttf` | Font file. |
+| `Archivo-ExtraBold.ttf` | Font file. |
+| `Archivo-Regular.ttf` | Font file. |
+| `ArchivoBlack-Regular.ttf` | Font file. |
+| `ArchivoNarrow-Bold.ttf` | Font file. |
+| `GeistMono-Regular.ttf` | Font file. |
+| `OFL-Archivo.txt` | A bundled font’s licence (SIL Open Font License 1.1). |
+| `OFL-ArchivoBlack.txt` | A bundled font’s licence (SIL Open Font License 1.1). |
+| `OFL-ArchivoNarrow.txt` | A bundled font’s licence (SIL Open Font License 1.1). |
+| `OFL-GeistMono.txt` | A bundled font’s licence (SIL Open Font License 1.1). |
+
 ## apps/web/public/icons
 
 | File | What it is |
@@ -2258,6 +2285,24 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `page.tsx` | The analyst's editor for one match (blueprint 10.3, T-262). |
 
+## apps/web/src/app/[locale]/called-it/[token]
+
+| File | What it is |
+|---|---|
+| `page.tsx` | The page a shared "called it" link opens (T-1723, D-351): the card, what it says in the reader's language, the match, and a way in. |
+
+## apps/web/src/app/[locale]/called-it/[token]/card
+
+| File | What it is |
+|---|---|
+| `route.tsx` | The public link's picture (T-1723, D-351), 1200 x 630: what a chat preview shows and what the share sheet attaches. |
+
+## apps/web/src/app/[locale]/called-it/[token]/story
+
+| File | What it is |
+|---|---|
+| `route.tsx` | The public link's picture for a phone's story (T-1723, D-351), 1080 x 1920: the same card, laid out tall. |
+
 ## apps/web/src/app/[locale]/coach/[id]
 
 | File | What it is |
@@ -2360,7 +2405,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `forecast-reality.tsx` | The Summary's opening card (T-1497, D-263 point 4): what the statistical model forecast, and -- after full time -- what happened. |
-| `opengraph-image.tsx` | The card a chat app shows for a match link (T-520): the teams, the score or the kick-off, and the statistical model's forecast when the page shows one. |
+| `opengraph-image.tsx` | The card a chat app shows for a match link (T-520; A10 "Matchday poster", T-1723): the crests and teams, the score or the kick-off, and the statistical model's forecast from before kick-off. |
 | `page.tsx` | The match centre page (blueprint 4.2, T-034). |
 
 ## apps/web/src/app/[locale]/messages
@@ -2424,6 +2469,18 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | The old Predictions page (T-137, D-201) is gone (T-1519, D-269): matches and picks are one page (D-268), the founder's analysis is on it at `#analysis`, and the leaderboard and the model's record are linked from there. |
+
+## apps/web/src/app/[locale]/predictions/[id]/share
+
+| File | What it is |
+|---|---|
+| `page.tsx` | A member's own card for one correct pick (T-1723, D-351; B06's flow), where the notification after full time opens. **Nothing here is public until its owner says so.** The preview is drawn for them alone (`preview`, beh… |
+
+## apps/web/src/app/[locale]/predictions/[id]/share/preview
+
+| File | What it is |
+|---|---|
+| `route.tsx` | The owner's own preview of their card (T-1723, D-351), before they decide to share it: drawn only for the signed-in member whose prediction it is (the API answers 404 to anyone else, and 401 without a session), and neve… |
 
 ## apps/web/src/app/[locale]/register
 
@@ -2637,6 +2694,7 @@ machine, `docs/18-handover.md`.
 | `breaking-strip.spec.tsx` | The homepage's breaking strip (T-1004, D-125), left to right and right to left. |
 | `breaking-strip.tsx` | The homepage's breaking strip (blueprint 2.3, T-1004, D-125): the stories an editor marked breaking whose window has not run out, each with the editor's note, the publisher's headline (in its own language) and a way to… |
 | `briefing.tsx` | The member's briefing on the Following page (E43, T-431): a machine's prose over the feed below it, labelled as such with the model, the window and the time; the sentence that says why there is none; and the button that… |
+| `called-it-image.tsx` | The "called it" card (T-1723, D-351): B01 "The stamp" with B17's proof line. |
 | `campaigns-admin.tsx` | Campaigns (T-332, D-075): a message to an audience, sent once, with the report of who it reached. |
 | `candidate-records-report.spec.tsx` | The candidates' records in the console (T-1103), rendered: the count toward the minimum, never a verdict below it; the pairs with the published version per competition; the service's silence said. |
 | `candidate-records-report.tsx` | The candidates in shadow and their records, for the console (T-1103, D-140): each candidate's pre-kick-off forecasts counted toward the minimum (D-031), and its log loss and Brier beside the published version's on the s… |
@@ -2678,6 +2736,7 @@ machine, `docs/18-handover.md`.
 | `deleted-member-rtl.spec.tsx` | A deleted member under the right-to-left pseudo-locale (T-908, rule 7). |
 | `demonstration-banner.tsx` | The band that says the football on this site did not happen (T-087). **Why `connection()` is the first line.** `DEMONSTRATION_DATA` reaches the container as a runtime variable; Render does not pass it into `docker build… |
 | `device-time-zone.tsx` | Selects this device's own time zone in a form's zone list (T-1480), once, after load: the register form otherwise opened on UTC, and a reader who did not look registered in it. |
+| `draw-called-it.tsx` | How long a public card may be kept (T-1723): a minute, so a revoked link stops drawing within one, at the edge and in a browser alike. |
 | `draw-card.spec.tsx` | T-1506: a share card is drawn to the end before it is answered, and the card routes ask the API for English names whatever the reader's language. |
 | `draw-card.tsx` | A share card drawn to the end before it is answered (T-1506). |
 | `english-copy.spec.tsx` | T-1395 (D-210): the English site's reader-facing copy. |
@@ -2846,6 +2905,7 @@ machine, `docs/18-handover.md`.
 | `score-dispute.tsx` | What the match header says of a finished match whose recorded goals do not add up to its result (T-1717, D-347): a "limited" marker beside the score and one line under the band naming both numbers, neither as final. |
 | `score.tsx` | A score, rendered so it cannot be read backwards (T-153, T-1375, rule 7). **The rule.** A score is a pair, home first, read in the page's own direction: on an English page the home goals sit on the left, on a Persian or… |
 | `service-worker.tsx` | Registers the service worker (T-082) once the page has loaded, so the shell is cached for the next visit and the app can be installed. |
+| `share-card-button.tsx` | The one control on a card's page that needs JavaScript (T-1723, B06): the phone's own share sheet with the card's picture attached, where the browser can share files; else the link alone, or a copied link. |
 | `share-card-image.tsx` | The pictures behind the share cards (T-520), for `next/og`'s `ImageResponse`. |
 | `share-link.tsx` | A share control (T-521): the share sheet, or a copied link. |
 | `shared-persian.spec.tsx` | The shared helpers in Persian (T-1309, D-175): what is left on a `/fa` page once the areas moved their own words is these helpers' -- the bracket, the status cell, the viewing line, a conversation's name, a page title. |
@@ -2972,6 +3032,7 @@ machine, `docs/18-handover.md`.
 | `breaking-actions.ts` | The editor's breaking mark from the news page (T-1004, D-125, rule 10): marking a story with the note readers see on the homepage strip, and ending a mark early with a reason. |
 | `briefing-actions.ts` | What became of the inbox notification (T-432), as the second sentence of a published outcome. |
 | `campaign-actions.ts` | Campaigns from the administration area (T-332, D-075). |
+| `card-fonts.ts` | The faces the share cards are drawn in (T-1723, D-351): static TrueType files, because `next/og`'s renderer reads TTF, OTF and WOFF but not WOFF2, and cannot pick a width from a variable font (no `font-stretch`). |
 | `client-ip.spec.ts` | Tests for `client-ip`. |
 | `client-ip.ts` | The reader's network address, for the API's per-address rate limits on the account forms (T-810, D-093). |
 | `coach.ts` | The coach page's rules (T-1439, D-230), apart from the markup so they can be argued with in a unit test. |
@@ -2999,6 +3060,7 @@ machine, `docs/18-handover.md`.
 | `conversation-actions.ts` | Sending, reading and leaving a conversation (blueprint 8.3, T-224). |
 | `conversation-title.spec.ts` | Naming a conversation (T-244). A group's room and every one of its match threads carry the same `group` and no members of their own, so the failure to guard against is the quiet one: a list that named them all by their… |
 | `conversation-title.ts` | A catalogue sentence in the reader's language (T-1309), its values in. |
+| `crest-image.ts` | A crest for a share card (T-1723), as a `data:` address the renderer can draw without fetching anything itself. |
 | `data-export.ts` | Settings -> Download my data (T-846, D-158): the route handler at `app/[locale]/settings/data-export/route.ts` sends a refused member back to Settings with one of these in `?export=`, and the page says why. |
 | `data-quality-actions.ts` | Marking a data-quality finding reviewed from the web (T-821), over the audited API: the reason is recorded with the administrator's name. |
 | `debate-actions.ts` | The editor's two decisions about the debate section (T-143, rule 10), from the news page itself: selecting a story with the note readers will see, and clearing one with a reason. |
@@ -3096,6 +3158,7 @@ machine, `docs/18-handover.md`.
 | `prediction-form.ts` | Turns the prediction form's fields into the API request (T-050). |
 | `prediction-history.spec.ts` | Tests for `prediction-history`. |
 | `prediction-history.ts` | The prediction history's pure helpers (T-056): how a version, its time and its settlement read, and the paging of the profile's list. |
+| `prediction-share-actions.ts` | Making and withdrawing the public link to one correct pick's card (T-1723, D-351). |
 | `prediction-text.spec.ts` | Tests for `prediction-text`. |
 | `prediction-text.ts` | The words of the prediction surfaces (T-1307): the predictions page, the leaderboard, a member's prediction history, the founder's and the contributors' analysis. |
 | `predictions-days.spec.ts` | The member's own picks from one page of their history (D-201), as the matches page reads them (T-1496): a per-match read only where that page cannot answer. |
@@ -3127,6 +3190,8 @@ machine, `docs/18-handover.md`.
 | `set-cookie.ts` | Reads the session out of the API's `Set-Cookie` header so the web app can set the same cookie on its own origin (D-027). |
 | `share-card.spec.ts` | T-520: a share card says what its page says and nothing more, the same way for everybody who sees the chat it was pasted into. |
 | `share-card.ts` | The words on a share card (T-520): the picture a chat app shows when a link to a match or a table is pasted into it. |
+| `share-image.spec.ts` | Tests for `share-image`. |
+| `share-image.ts` | What sharing a picture needs of the browser: `share` with files, and `canShare` to ask first. |
 | `share.spec.ts` | T-521: the share sheet where there is one, a copied link where not. |
 | `share.ts` | Sharing a page (T-521): the platform's share sheet where there is one, a copied link where not, and the link itself to copy by hand when neither works. |
 | `shell-nav.spec.ts` | The shell's navigations (T-1381, D-199; Stadiomind, T-1494, D-267; T-1610, D-281): the header's order and targets, the tab bar's, the footer's, and which entry a page belongs to. |
@@ -3293,13 +3358,19 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
+| `03-project-map.md` | Project map |
+| `03-project-map.md` | Project map |
 | `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -3683,6 +3754,7 @@ machine, `docs/18-handover.md`.
 | `1765900805000_retention.sql` | T-1715 (D-345): retention periods and a daily purge. |
 | `1765900818000_persian-news-only.sql` | T-1718 (D-348): Persian readers are shown Persian-language sources only. /fa/news listed English and German headlines among its first thirty (aud-2026-11-01-02, qa-2026-10-31-04): only a source set `same_language_only`… |
 | `1765900830000_console-message.sql` | Chat with an agent in the agents console (T-1722, D-350). |
+| `1765900900000_prediction-share.sql` | T-1723 (D-351): a public link to one prediction's "called it" card, made only when its owner presses Share. |
 
 ## packages/db/scripts
 

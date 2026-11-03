@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { FixtureSettlementsResponse } from '@fmip/contracts';
+import { NotificationsService } from '../notifications/notifications.service';
 import { settleOne, verdictFor } from './internal/settle';
 import {
   PostgresSettlementStore,
@@ -33,7 +34,12 @@ export const DUE_BATCH = 50;
  */
 @Injectable()
 export class SettlementService {
-  constructor(private readonly store: PostgresSettlementStore) {}
+  private readonly log = new Logger('Settlement');
+
+  constructor(
+    private readonly store: PostgresSettlementStore,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async settleFixture(fixtureId: string): Promise<SettleOutcome> {
     const fixture = await this.store.fixtureFinal(fixtureId);
@@ -48,6 +54,7 @@ export class SettlementService {
     // What the run actually wrote: another run may have settled some of
     // these between the read above and the write (T-1476).
     const written = await this.store.record(fixtureId, rows, predictions.length - rows.length);
+    await this.tellCalled(written.called);
     return {
       kind: 'settled',
       runId: written.runId,
@@ -55,6 +62,33 @@ export class SettlementService {
       voided: written.voided,
       unchanged: written.unchanged,
     };
+  }
+
+  /**
+   * A correct pick, settled by this run, is told to its member with the way to
+   * its card (T-1723, D-351): `prediction_settled`, once per prediction (the
+   * dedupe key), sourceless. Only a correct pick: the notification is the
+   * door to sharing it, and a wrong one has nothing to share. Never fails the
+   * settlement, which is already committed (`emit` never throws either).
+   */
+  private async tellCalled(called: { predictionId: string; userId: string }[]): Promise<void> {
+    if (called.length === 0) return;
+    try {
+      await this.notifications.emitMany(
+        called.map(({ predictionId, userId }) => ({
+          userId,
+          kind: 'prediction_settled' as const,
+          subjectType: 'prediction' as const,
+          subjectId: predictionId,
+          dedupeKey: `prediction_settled:${predictionId}`,
+        })),
+      );
+    } catch (error) {
+      this.log.error(
+        `prediction_settled.failed predictions=${called.length}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
   }
 
   /**

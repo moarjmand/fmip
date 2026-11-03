@@ -21,6 +21,26 @@ export const BRAND_COLOURS = {
 } as const;
 
 /**
+ * The Night (dark) tokens the share cards are drawn in (T-1723, D-351, which
+ * turns T-602's light card dark, as the Design System's cards are). Each key
+ * is a token's name in `app/tokens.css`, and `app/tokens.spec.ts` fails if a
+ * value here differs from the dark value there. `model` is the turquoise only
+ * the statistical model's words wear (rule 6); `logo-tile` is the white a
+ * crest stands on in every theme (D-280).
+ */
+export const NIGHT_COLOURS = {
+  canvas: '#0f1215',
+  surface: '#171b1f',
+  text: '#eef0f1',
+  'text-muted': '#a3acb5',
+  caption: '#828c96',
+  border: '#2a3037',
+  accent: '#eba53c',
+  model: '#3cc4be',
+  'logo-tile': '#ffffff',
+} as const;
+
+/**
  * The Stadiomind mark's colours (T-1492, D-262), from the Design System's
  * logos and never recoloured: three bars, home, draw and away, in a Day set
  * for the paper ground and a Night set for the ink one. `tile` is that ink

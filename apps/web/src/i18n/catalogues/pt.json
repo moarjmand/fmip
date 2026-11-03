@@ -13373,6 +13373,126 @@
     "text": "",
     "status": "untranslated"
   },
+  "shareCard.title": {
+    "source": "Your card",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.calledIt": {
+    "source": "Called it. Here is your card.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.previewAlt": {
+    "source": "Your card: the score, your pick and when you made it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.privacy": {
+    "source": "Sharing makes a public link to this one card: anyone with the link can see it. Your other predictions and your profile stay as they are, and you can stop sharing at any time.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.create": {
+    "source": "Create the share link",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.link": {
+    "source": "Your public link",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.share": {
+    "source": "Share image",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.save": {
+    "source": "Save image",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.saveStory": {
+    "source": "Save for a story",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.stop": {
+    "source": "Stop sharing",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.made": {
+    "source": "Your link is ready.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.stopped": {
+    "source": "The link is withdrawn and opens nothing now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.rateLimited": {
+    "source": "That is more share links than this hour allows. Try again later.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.failed": {
+    "source": "That did not work. Try again.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.notCalled.open": {
+    "source": "This match is not settled yet. A correct pick gets its card once it is.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.notCalled.void": {
+    "source": "This prediction was void, so it has no card.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.notCalled.wrong": {
+    "source": "Only a correct pick has a card to share.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.back": {
+    "source": "Your predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.unreachable": {
+    "source": "The card cannot be read right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shareCard.openMatch": {
+    "source": "Open the match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "calledIt.title": {
+    "source": "{handle} called it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "calledIt.summary": {
+    "source": "{handle} made this pick before kick-off on Stadiomind, and it came in.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "calledIt.alt": {
+    "source": "A correct pick on Stadiomind: the score, the pick and when it was made",
+    "text": "",
+    "status": "untranslated"
+  },
+  "calledIt.cta": {
+    "source": "Make your own picks",
+    "text": "",
+    "status": "untranslated"
+  },
   "shared.action.refused": {
     "source": "You may not do this. {reason}",
     "text": "",

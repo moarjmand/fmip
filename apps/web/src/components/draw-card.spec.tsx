@@ -8,13 +8,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const api = vi.hoisted(() => ({
   fetchMatchCentre: vi.fn(),
-  fetchForecasts: vi.fn(),
+  fetchForecastSummaries: vi.fn(),
   fetchCompetition: vi.fn(),
   fetchProfile: vi.fn(),
   fetchRating: vi.fn(),
   fetchPredictionHistory: vi.fn(),
+  fetchPredictionShare: vi.fn(),
+  fetchOwnPredictionShare: vi.fn(),
 }));
 vi.mock('@/lib/api', () => api);
+const session = vi.hoisted(() => ({ sessionCookieHeader: vi.fn() }));
+vi.mock('@/lib/session', () => session);
 
 const { drawCard } = await import('./draw-card');
 const { PlainCard } = await import('./share-card-image');
@@ -30,6 +34,21 @@ async function png(response: Response): Promise<Buffer> {
   return body;
 }
 
+const CARD = {
+  fixture_id: ID,
+  competition: 'Premier League',
+  round: 'Regular Season - 9',
+  home: { name: 'Liverpool', short_name: null },
+  away: { name: 'Arsenal', short_name: null },
+  actual: { home: 0, away: 1 },
+  pick: { outcome: 'away', score: null },
+  exact: false,
+  picked_at: '2026-10-30T17:34:00.000Z',
+  kickoff_at: '2026-11-01T16:30:00.000Z',
+  username: 'mosiop',
+};
+const TOKEN = 'AAAAAAAAAAAAAAAAAAAAAA';
+
 describe('drawCard', () => {
   it('answers the card it was given as a PNG', async () => {
     await png(await drawCard(createElement(PlainCard)));
@@ -43,6 +62,85 @@ describe('drawCard', () => {
     const plain = await png(await drawCard(createElement(PlainCard)));
     expect(fallback.equals(plain)).toBe(true);
   }, 20_000);
+
+  it('draws in the bundled faces, at the size asked, with the cache header asked', async () => {
+    const { cardFonts } = await import('@/lib/card-fonts');
+    expect((await cardFonts()).map((font) => `${font.name} ${font.weight}`)).toEqual([
+      'Archivo 400',
+      'Archivo 700',
+      'Archivo 800',
+      'Archivo Narrow 700',
+      'Archivo Black 900',
+      'Geist Mono 400',
+    ]);
+    const response = await drawCard(createElement(PlainCard), {
+      size: { width: 1080, height: 1920 },
+      cacheControl: 'public, max-age=60',
+    });
+    const body = await png(response);
+    expect(body.readUInt32BE(16)).toBe(1080);
+    expect(body.readUInt32BE(20)).toBe(1920);
+    expect(response.headers.get('cache-control')).toBe('public, max-age=60');
+  }, 20_000);
+});
+
+describe('the called-it card routes (T-1723): nothing public without a live token', () => {
+  const params = (token: string) => ({ params: Promise.resolve({ locale: 'en', token }) });
+
+  beforeEach(() => {
+    for (const fetcher of Object.values(api)) fetcher.mockReset().mockResolvedValue(UNREACHABLE);
+    session.sessionCookieHeader.mockReset().mockResolvedValue(undefined);
+  });
+
+  it('draws a live link, card and story, cached for a minute at most', async () => {
+    api.fetchPredictionShare.mockResolvedValue({ ok: true, status: 200, data: { card: CARD } });
+    const { GET: card } = await import('@/app/[locale]/called-it/[token]/card/route');
+    const { GET: story } = await import('@/app/[locale]/called-it/[token]/story/route');
+    const drawn = await card(new Request('http://web.test'), params(TOKEN));
+    expect((await png(drawn)).readUInt32BE(16)).toBe(1200);
+    expect(drawn.headers.get('cache-control')).toBe('public, max-age=60');
+    expect(
+      (await png(await story(new Request('http://web.test'), params(TOKEN)))).readUInt32BE(20),
+    ).toBe(1920);
+    expect(api.fetchPredictionShare).toHaveBeenCalledWith(TOKEN);
+  }, 30_000);
+
+  it('answers 404 -- no picture -- for an unknown or a revoked token', async () => {
+    api.fetchPredictionShare.mockResolvedValue({ ok: false, status: 404, error: null });
+    const { GET } = await import('@/app/[locale]/called-it/[token]/card/route');
+    const response = await GET(new Request('http://web.test'), params('revoked-or-unknown'));
+    expect(response.status).toBe(404);
+    expect(response.headers.get('content-type')).toBeNull();
+    // The API being down is not a 404, and still no picture.
+    api.fetchPredictionShare.mockResolvedValue({ ok: false, status: 0, error: null });
+    expect((await GET(new Request('http://web.test'), params(TOKEN))).status).toBe(503);
+  });
+
+  it('draws the owner preview only for the owner, never cached anywhere shared', async () => {
+    const { GET } = await import('@/app/[locale]/predictions/[id]/share/preview/route');
+    const own = { params: Promise.resolve({ locale: 'en', id: ID }) };
+    // Somebody else's prediction: the API answers 404, so does the route.
+    session.sessionCookieHeader.mockResolvedValue('fmip_session=other');
+    api.fetchOwnPredictionShare.mockResolvedValue({ ok: false, status: 404, error: null });
+    expect((await GET(new Request('http://web.test'), own)).status).toBe(404);
+    // A pick that is not correct has no card either.
+    api.fetchOwnPredictionShare.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { kind: 'not_called', reason: 'wrong' },
+    });
+    expect((await GET(new Request('http://web.test'), own)).status).toBe(404);
+    session.sessionCookieHeader.mockResolvedValue('fmip_session=owner');
+    api.fetchOwnPredictionShare.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { kind: 'called', card: CARD, share: null },
+    });
+    const drawn = await GET(new Request('http://web.test'), own);
+    await png(drawn);
+    expect(drawn.headers.get('cache-control')).toBe('private, no-store');
+    expect(api.fetchOwnPredictionShare).toHaveBeenLastCalledWith(ID, 'fmip_session=owner');
+  }, 30_000);
 });
 
 describe('the card routes read English names on any locale', () => {

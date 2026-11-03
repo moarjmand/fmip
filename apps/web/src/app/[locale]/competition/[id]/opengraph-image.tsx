@@ -1,10 +1,9 @@
-import { ImageResponse } from 'next/og';
 import { drawCard } from '@/components/draw-card';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
 import { PlainCard, TableCardImage } from '@/components/share-card-image';
 import { fetchCompetition } from '@/lib/api';
 import { siteUrl } from '@/lib/seo';
-import { cardImageMetadata, CARD_SIZE, tableCardText } from '@/lib/share-card';
+import { cardImageMetadata, tableCardText } from '@/lib/share-card';
 
 /**
  * The card a chat app shows for a competition link (T-520): the top of the
@@ -27,8 +26,6 @@ export function generateImageMetadata({ params }: { params: { locale: string } }
  */
 export const dynamic = 'force-dynamic';
 
-const size = CARD_SIZE;
-
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function Image({
@@ -38,10 +35,10 @@ export default async function Image({
 }): Promise<Response> {
   const { id } = await params;
   const host = new URL(siteUrl()).host;
-  if (!UUID.test(id)) return new ImageResponse(<PlainCard />, size);
+  if (!UUID.test(id)) return drawCard(<PlainCard />);
 
   // English names, as on every card (T-1309, T-1506).
   const page = await fetchCompetition(id, '', DEFAULT_LOCALE);
-  if (!page.ok) return new ImageResponse(<PlainCard />, size);
+  if (!page.ok) return drawCard(<PlainCard />);
   return drawCard(<TableCardImage text={tableCardText(page.data)} host={host} />);
 }

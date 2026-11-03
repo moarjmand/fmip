@@ -7,6 +7,9 @@ import { SocialModule } from '../social/social.module';
 import { HistoryController } from './history.controller';
 import { PostgresPredictionStore } from './internal/prediction-store';
 import { PostgresSettlementStore } from './internal/settlement-store';
+import { PostgresShareStore } from './internal/share-store';
+import { PredictionShareController } from './prediction-share.controller';
+import { PredictionShareService } from './prediction-share.service';
 import { PredictionsController } from './predictions.controller';
 import { PredictionsService } from './predictions.service';
 import { SettlementController } from './settlement.controller';
@@ -25,12 +28,20 @@ import { SettlementService } from './settlement.service';
 @Module({
   // Social and notifications tell a member's friends they predicted (T-832).
   imports: [IdentityModule, ProfileModule, GroupsModule, SocialModule, NotificationsModule],
-  controllers: [PredictionsController, SettlementController, HistoryController],
+  controllers: [
+    PredictionsController,
+    SettlementController,
+    HistoryController,
+    // A public link to one correct prediction's card (T-1723, D-351).
+    PredictionShareController,
+  ],
   providers: [
     PredictionsService,
     PostgresPredictionStore,
     SettlementService,
     PostgresSettlementStore,
+    PredictionShareService,
+    PostgresShareStore,
   ],
   exports: [PredictionsService, SettlementService],
 })

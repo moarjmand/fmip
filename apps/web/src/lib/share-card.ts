@@ -1,6 +1,7 @@
 import type {
+  CalledItCard,
   CompetitionPage,
-  ForecastVersion,
+  ForecastSummary,
   MatchHeader,
   PredictionHistoryItem,
   PublicProfile,
@@ -62,20 +63,38 @@ export async function cardImageMetadata(
   ];
 }
 
+/** What the model line needs of a forecast: a version or the pre-kick-off summary. */
+export type CardForecast = Pick<ForecastSummary, 'status' | 'probabilities' | 'model_version'>;
+
 export interface MatchCardText {
   /** Competition, season, and the round when there is one. */
   eyebrow: string;
   home: string;
   away: string;
-  /** The score, or "v" before a ball is kicked. */
+  /** The score, or "v" before a ball is kicked (and for a match that never was). */
   centre: string;
-  /** Full time, live with the minute, the kick-off in UTC, or what happened instead. */
+  /**
+   * The side that lost a finished match, whose name is drawn muted; `null`
+   * for a draw and every other state.
+   */
+  loser: 'home' | 'away' | null;
+  /** How a cup tie was decided, when the feed says so: "AET" or "Pens 4–3". */
+  decided: string | null;
+  /**
+   * Full time; live with the minute and when it was last heard from (a chat
+   * keeps a preview for days, rule 4); the kick-off in UTC; or what happened
+   * instead.
+   */
   status: string;
   /**
-   * The statistical model's three probabilities, when the page shows them;
-   * labelled as the model's, never as a prediction by a person (rule 6).
+   * The statistical model's line (rule 6: named as the model's, in its own
+   * colour): its three probabilities from the version computed **before
+   * kick-off**, or a sentence saying there is none. `null` -- no model line at
+   * all -- for a match that will not be played as scheduled (postponed,
+   * cancelled, abandoned, awarded, suspended) or that the feed has gone quiet
+   * on (`awaiting_update`, D-343): a forecast beside it would read as current.
    */
-  forecast: { line: string; source: string } | null;
+  model: { line: string; source: string | null } | null;
 }
 
 const STATUS_WORDS: Partial<Record<MatchHeader['status'], string>> = {
@@ -87,6 +106,15 @@ const STATUS_WORDS: Partial<Record<MatchHeader['status'], string>> = {
   awarded: 'Awarded',
 };
 
+/** The states with no model line: the match is not being played as scheduled. */
+const NO_MODEL_LINE: ReadonlySet<MatchHeader['status']> = new Set([
+  'postponed',
+  'suspended',
+  'cancelled',
+  'abandoned',
+  'awarded',
+]);
+
 /** "Sat 4 Oct 2026 · 14:00 UTC". */
 export function kickoffUtc(iso: string): string {
   const at = new Date(iso);
@@ -97,60 +125,198 @@ export function kickoffUtc(iso: string): string {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(at);
-  const time = new Intl.DateTimeFormat('en-GB', {
+  return `${day.replace(',', '')} · ${clockUtc(iso)} UTC`;
+}
+
+/** "14:00", in UTC. */
+function clockUtc(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
     hourCycle: 'h23',
     timeZone: 'UTC',
-  }).format(at);
-  return `${day.replace(',', '')} · ${time} UTC`;
+  }).format(new Date(iso));
 }
 
-export function matchCardText(header: MatchHeader, latest: ForecastVersion | null): MatchCardText {
+/** A name that fits a card: the short name for a very long one, when there is one. */
+export function cardName(team: { name: string; short_name: string | null }): string {
+  return team.name.length > 18 && team.short_name !== null && team.short_name !== ''
+    ? team.short_name
+    : team.name;
+}
+
+function liveStatus(header: MatchHeader): string {
+  const minute =
+    header.at_half_time === true
+      ? 'Half time'
+      : header.minute === null
+        ? 'Live'
+        : `Live ${header.minute}′`;
+  const at = clockUtc(header.last_updated_at);
+  return header.freshness === 'stale'
+    ? `${minute} · no update since ${at} UTC`
+    : `${minute} · as of ${at} UTC`;
+}
+
+function decidedBy(header: MatchHeader): string | null {
+  const pens = header.scores.penalties;
+  if (pens !== null) return `Pens ${pens.home}–${pens.away}`;
+  return header.scores.extra_time !== null ? 'AET' : null;
+}
+
+/**
+ * The match card's words (T-520; A10 "Matchday poster", T-1723). `preKickoff`
+ * is the model's latest version computed before kick-off
+ * (`GET /forecasts/pre-kickoff`), never a version computed during or after
+ * the match (finding des-2026-11-02-01).
+ */
+export function matchCardText(header: MatchHeader, preKickoff: CardForecast | null): MatchCardText {
   const score = header.scores.current ?? header.scores.full_time;
+  const awaiting = header.status === 'scheduled' && header.freshness === 'awaiting_update';
   const started = header.status !== 'scheduled' && header.status !== 'postponed';
   const status =
     header.status === 'live'
-      ? header.minute === null
-        ? 'Live'
-        : `Live ${header.minute}′`
+      ? liveStatus(header)
       : header.status === 'scheduled'
         ? // Never a kick-off time already long past (T-1713, D-343).
-          header.freshness === 'awaiting_update'
+          awaiting
           ? 'Awaiting update'
           : kickoffUtc(header.kickoff_at)
         : (STATUS_WORDS[header.status] ?? header.status);
 
-  let forecast: MatchCardText['forecast'] = null;
-  if (latest !== null && latest.status === 'available' && latest.probabilities !== null) {
-    const p = percentages(latest.probabilities);
-    forecast = {
-      line: `${header.home.name} ${p.home}% · Draw ${p.draw}% · ${header.away.name} ${p.away}%`,
-      source: `The statistical model’s forecast (${latest.model_version})`,
-    };
+  const home = cardName(header.home);
+  const away = cardName(header.away);
+  let model: MatchCardText['model'] = null;
+  if (!awaiting && !NO_MODEL_LINE.has(header.status)) {
+    const before = header.status === 'scheduled' ? 'The model' : 'Before kick-off, the model';
+    if (
+      preKickoff !== null &&
+      preKickoff.status === 'available' &&
+      preKickoff.probabilities !== null
+    ) {
+      const p = percentages(preKickoff.probabilities);
+      model = {
+        line: `${before}: ${home} ${p.home}% · Draw ${p.draw}% · ${away} ${p.away}%`,
+        source: preKickoff.model_version,
+      };
+    } else {
+      model = {
+        line:
+          header.status === 'scheduled'
+            ? 'The model’s forecast appears before kick-off'
+            : 'The model published no forecast before kick-off',
+        source: null,
+      };
+    }
   }
 
+  const finished = header.status === 'finished' && score !== null;
   return {
     eyebrow: [header.competition.name, header.season.label, header.round]
       .filter((part): part is string => part !== null && part !== '')
       .join(' · '),
-    home: header.home.name,
-    away: header.away.name,
-    centre: started && score !== null ? `${score.home} – ${score.away}` : 'v',
+    home,
+    away,
+    centre: started && score !== null ? `${score.home}–${score.away}` : 'v',
+    loser: !finished
+      ? null
+      : score.home > score.away
+        ? 'away'
+        : score.home < score.away
+          ? 'home'
+          : null,
+    decided: started ? decidedBy(header) : null,
     status,
-    forecast,
+    model,
   };
 }
 
 /**
  * The type size for a team's name on the match card: full size for most, and
- * smaller for a long one so that two lines of it still sit beside the score
+ * smaller for a long one so that two lines of it still sit under its crest
  * (seen on the server: "Omonia Nicosia", "Gençlerbirliği S.K.").
  */
 export function nameSize(name: string): number {
-  if (name.length <= 12) return 58;
-  if (name.length <= 18) return 50;
-  return 42;
+  if (name.length <= 12) return 44;
+  if (name.length <= 18) return 38;
+  return 32;
+}
+
+/** The match card's size, and the called-it card's; its story variant is tall. */
+export const STORY_SIZE = { width: 1080, height: 1920 } as const;
+
+export interface CalledItText {
+  /** "PREMIER LEAGUE · REGULAR SEASON - 9 · SUN 1 NOV" (UTC), drawn in capitals. */
+  eyebrow: string;
+  home: string;
+  away: string;
+  /** The score the pick was settled against. */
+  score: string;
+  loser: 'home' | 'away' | null;
+  /** "Exact score, too" when it was; otherwise null. */
+  exact: string | null;
+  /** "My pick: Arsenal to win", "My pick: Draw", "My pick: Arsenal 1–0". */
+  pick: string;
+  /** "Picked Fri 30 Oct · 17:34 UTC · 2 days before kick-off" (B17). */
+  proof: string;
+  handle: string;
+}
+
+/** "Sun 1 Nov", in UTC. */
+function dayUtc(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+    .format(new Date(iso))
+    .replace(',', '');
+}
+
+/** How long before kick-off a pick was made, in the largest whole unit. */
+export function aheadOfKickoff(pickedAt: string, kickoffAt: string): string {
+  const minutes = Math.floor((Date.parse(kickoffAt) - Date.parse(pickedAt)) / 60_000);
+  const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 's'}`;
+  if (minutes >= 2 * 24 * 60)
+    return `${plural(Math.floor(minutes / (24 * 60)), 'day')} before kick-off`;
+  if (minutes >= 120) return `${plural(Math.floor(minutes / 60), 'hour')} before kick-off`;
+  return `${plural(Math.max(minutes, 1), 'minute')} before kick-off`;
+}
+
+/**
+ * The called-it card's words (B01 "The stamp" with B17's proof line, T-1723).
+ * Only the member's own pick and the stored truth: no rating, no model, no
+ * other member (rule 6), and none of a bookmaker's words ("won", "settled",
+ * "odds"). The score is the one the pick was settled against.
+ */
+export function calledItText(card: CalledItCard): CalledItText {
+  const home = cardName(card.home);
+  const away = cardName(card.away);
+  const { actual, pick } = card;
+  const side = pick.outcome === 'home' ? home : pick.outcome === 'away' ? away : null;
+  // A score is written from the side picked to win: "Arsenal 1–0", "Draw 1–1".
+  const high = pick.score === null ? 0 : Math.max(pick.score.home, pick.score.away);
+  const low = pick.score === null ? 0 : Math.min(pick.score.home, pick.score.away);
+  const words =
+    pick.score !== null
+      ? `${side ?? 'Draw'} ${high}–${low}`
+      : side === null
+        ? 'Draw'
+        : `${side} to win`;
+  return {
+    eyebrow: [card.competition, card.round, dayUtc(card.kickoff_at)]
+      .filter((part): part is string => part !== null && part !== '')
+      .join(' · '),
+    home,
+    away,
+    score: `${actual.home}–${actual.away}`,
+    loser: actual.home > actual.away ? 'away' : actual.home < actual.away ? 'home' : null,
+    exact: card.exact && pick.score !== null ? 'Exact score, too' : null,
+    pick: `My pick: ${words}`,
+    proof: `Picked ${dayUtc(card.picked_at)} · ${clockUtc(card.picked_at)} UTC · ${aheadOfKickoff(card.picked_at, card.kickoff_at)}`,
+    handle: `@${card.username}`,
+  };
 }
 
 export interface TableCardRow extends Pick<TableRow, 'position' | 'played' | 'points'> {

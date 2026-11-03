@@ -443,7 +443,9 @@ export interface SetQuietHoursRequest {
  * platform, not to a person.
  */
 export const NOTIFICATION_TEXT: Record<NotificationKind, { text: string; named: boolean }> = {
-  prediction_settled: { text: 'A prediction of yours was settled.', named: false },
+  // Emitted for a correct pick only, and it opens the card's page (T-1723,
+  // D-351): the flow after full time is "your pick came in, share it".
+  prediction_settled: { text: 'Your pick came in. Share your card?', named: false },
   rating_changed: { text: 'Your Performance Rating changed.', named: false },
   career_points_awarded: { text: 'You earned Career Points.', named: false },
   // Which one is on the profile it opens; an achievement changes nothing (D-091).
@@ -586,7 +588,10 @@ export function notificationPath(
       // panel has a per-post anchor there is nothing more precise to open.
       return null;
     case 'prediction':
-      return `/${locale}/predictions`;
+      // A correct pick opens its card, where its owner may share it (T-1723).
+      return notification.kind === 'prediction_settled' && /^[0-9a-f-]{36}$/i.test(id)
+        ? `/${locale}/predictions/${id}/share`
+        : `/${locale}/predictions`;
     case 'sanction':
       // A member's own standing, which is where an appeal starts.
       return `/${locale}/settings`;

@@ -83,17 +83,22 @@ describe('BrandMark', () => {
 
 describe('the share cards', () => {
   it('carry the mark beside the name, on the plain card and in every card footer', () => {
-    const day = shapes(renderToStaticMarkup(createElement(BrandMark, { size: 20 })));
+    // The cards are drawn on Night (T-1723, D-351), so the mark is its Night set.
+    const night = shapes(
+      renderToStaticMarkup(createElement(BrandMark, { size: 20, ground: 'night' })),
+    );
     const plain = renderToStaticMarkup(createElement(PlainCard));
-    expect(shapes(plain)).toEqual(day);
+    expect(shapes(plain)).toEqual(night);
+    expect(plain).toContain('STADIOMIND');
     const table = renderToStaticMarkup(
       createElement(TableCardImage, {
         text: { title: 'Premier League', season: '2026/27', rows: [], absence: 'No table yet' },
         host: 'example.org',
       }),
     );
-    expect(shapes(table)).toEqual(day);
-    expect(table).toContain('Stadiomind · example.org');
+    expect(shapes(table)).toEqual(night);
+    expect(table).toContain('STADIOMIND');
+    expect(table).toContain('example.org');
   });
 });
 

@@ -192,7 +192,14 @@ export class PostgresSettlementStore {
     fixtureId: string,
     rows: NewSettlement[],
     unchanged: number,
-  ): Promise<{ runId: string; settled: number; voided: number; unchanged: number }> {
+  ): Promise<{
+    runId: string;
+    settled: number;
+    voided: number;
+    unchanged: number;
+    /** The predictions this run settled with the outcome right, and whose they are (T-1723). */
+    called: { predictionId: string; userId: string }[];
+  }> {
     const client: PoolClient = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -250,8 +257,22 @@ export class PostgresSettlementStore {
           ],
         );
       }
+      const right = owed
+        .filter((r) => r.status === 'settled' && r.outcomeCorrect === true)
+        .map((r) => r.predictionId);
+      const { rows: owners } =
+        right.length === 0
+          ? { rows: [] }
+          : await client.query<{ id: string; user_id: string }>(
+              `SELECT id, user_id FROM user_prediction WHERE id = ANY($1::uuid[])`,
+              [right],
+            );
       await client.query('COMMIT');
-      return { runId, ...counts };
+      return {
+        runId,
+        ...counts,
+        called: owners.map((o) => ({ predictionId: o.id, userId: o.user_id })),
+      };
     } catch (error: unknown) {
       await client.query('ROLLBACK');
       throw error;

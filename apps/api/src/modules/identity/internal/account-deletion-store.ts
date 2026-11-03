@@ -139,6 +139,8 @@ export class PostgresAccountDeletionStore {
     await q(`DELETE FROM rate_window WHERE user_id = $1`);
     await q(`DELETE FROM member_briefing WHERE user_id = $1`);
     await q(`DELETE FROM saved_article WHERE user_id = $1`);
+    // A card made public by the member is public no longer (T-1723, D-351).
+    await q(`DELETE FROM prediction_share WHERE user_id = $1`);
 
     // 5. The social graph, both directions.
     await q(`DELETE FROM member_follow WHERE follower_id = $1 OR followed_id = $1`);
