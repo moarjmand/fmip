@@ -225,13 +225,14 @@ export function matchCardText(header: MatchHeader, preKickoff: CardForecast | nu
     home,
     away,
     centre: started && score !== null ? `${score.home}–${score.away}` : 'v',
-    loser: !finished || disputed
-      ? null
-      : score.home > score.away
-        ? 'away'
-        : score.home < score.away
-          ? 'home'
-          : null,
+    loser:
+      !finished || disputed
+        ? null
+        : score.home > score.away
+          ? 'away'
+          : score.home < score.away
+            ? 'home'
+            : null,
     decided: started && !disputed ? decidedBy(header) : null,
     disputed,
     status: disputed ? 'Score unclear in the source' : status,
