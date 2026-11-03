@@ -6,6 +6,13 @@
 // Nothing here is a member's: the console's people are not the site's.
 // ---------------------------------------------------------------------------
 
+import type {
+  CONSOLE_DECISION_CHOICES,
+  CONSOLE_REQUEST_EVENT_KINDS,
+  CONSOLE_REQUEST_PRIORITIES,
+  CONSOLE_REQUEST_STATUSES,
+} from './console-requests';
+
 /** The snapshot shape this API reads; the publisher writes the same number. */
 export const CONSOLE_SNAPSHOT_SCHEMA = 1;
 
@@ -358,47 +365,13 @@ export interface ConsoleChatItem {
 
 // --- Teammate requests (T-1728, D-354) --------------------------------------
 
-/**
- * Where a request stands. `new`: written, not started. `in_progress`: Claude
- * is on it. `waiting_decision`: a question is open for a console user.
- * `decided`: the question was answered and waits for the maintainer's word.
- * `done` and `cancelled` are closed; only reopening moves them.
- */
-export const CONSOLE_REQUEST_STATUSES = [
-  'new',
-  'in_progress',
-  'waiting_decision',
-  'decided',
-  'done',
-  'cancelled',
-] as const;
+// The runtime lists are in './console-requests' (T-1731): this module is in
+// every public page's bundle through the barrel's values, and these are only
+// the console's. A type-only import costs nothing at runtime.
 export type ConsoleRequestStatus = (typeof CONSOLE_REQUEST_STATUSES)[number];
-
-export const CONSOLE_REQUEST_PRIORITIES = ['normal', 'high'] as const;
 export type ConsoleRequestPriority = (typeof CONSOLE_REQUEST_PRIORITIES)[number];
-
-export const CONSOLE_DECISION_CHOICES = ['approve', 'reject', 'other'] as const;
 export type ConsoleDecisionChoice = (typeof CONSOLE_DECISION_CHOICES)[number];
 
-/** The longest title, details, result, question and decision text, in characters. */
-export const CONSOLE_REQUEST_TITLE_MAX = 200;
-export const CONSOLE_REQUEST_BODY_MAX = 4000;
-export const CONSOLE_REQUEST_RESULT_MAX = 8000;
-export const CONSOLE_REQUEST_QUESTION_MAX = 2000;
-export const CONSOLE_DECISION_TEXT_MAX = 4000;
-
-/** What one line of a request's history records. */
-export const CONSOLE_REQUEST_EVENT_KINDS = [
-  'created',
-  'edited',
-  'cancelled',
-  'reopened',
-  'execute_requested',
-  'execute_withdrawn',
-  'asked',
-  'decided',
-  'result',
-] as const;
 export type ConsoleRequestEventKind = (typeof CONSOLE_REQUEST_EVENT_KINDS)[number];
 
 /** One line of a request's history; append-only. */
@@ -440,6 +413,41 @@ export interface ConsoleRequest {
   decided_at: string | null;
   /** When a console user marked it "run it now"; `null` when it is not marked. */
   execute_requested_at: string | null;
+  /** The pictures on the request (T-1731, D-357), in the order they were added. */
+  images: ConsoleRequestImage[];
+}
+
+// --- Pictures on a teammate request (T-1731, D-357) -------------------------
+
+/**
+ * One picture on a request, as stored: re-encoded on the server as WebP with
+ * every piece of metadata removed (EXIF, GPS, ICC), so these figures are the
+ * stored file's, not the upload's. The bytes are served only to a console
+ * session (`GET /console/requests/:id/images/:imageId[/thumb]`) and to the
+ * server's command line (`request-image`).
+ */
+export interface ConsoleRequestImage {
+  id: string;
+  /** 1, 2, 3 ... in the order added; a removed picture leaves its number unused. */
+  position: number;
+  caption: string | null;
+  /** The stored file's type: `image/webp`. */
+  content_type: string;
+  byte_size: number;
+  width: number;
+  height: number;
+  /** The stored file's sha256, hex: the computer skips a download it already holds. */
+  sha256: string;
+  thumb_width: number;
+  thumb_height: number;
+  /** The console user who added it (display name). */
+  uploaded_by: string;
+  created_at: string;
+}
+
+/** `PATCH /console/requests/:id/images/:imageId`: the caption, or `''` to clear it. */
+export interface ConsoleRequestImageCaption {
+  caption: string;
 }
 
 /** A request with its history, oldest first (`GET /console/requests/:id`, `list-requests`). */

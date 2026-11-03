@@ -10,6 +10,7 @@ import {
   type ConsoleAgentFlow,
   type ConsoleRequestDetail,
   type ConsoleRequestEvent,
+  type ConsoleRequestImage,
   type ConsoleSnapshot,
 } from '@fmip/contracts';
 import type { ReactNode } from 'react';
@@ -62,6 +63,9 @@ vi.mock('@/lib/console-actions', () => {
     editRequest: action,
     requestAction: action,
     decideRequest: action,
+    removeRequestImage: action,
+    captionRequestImage: action,
+    refreshRequests: async () => undefined,
   };
 });
 vi.mock('@/lib/console-api', () => {
@@ -193,6 +197,16 @@ vi.mock('@/lib/console-api', () => {
 
 const REQUEST_EVENTS: ConsoleRequestEvent[] = [
   {
+    id: 'e0',
+    kind: 'image_added',
+    actor_kind: 'person',
+    actor: 'مریم',
+    from_status: 'new',
+    to_status: 'new',
+    note: 'نمای جدول',
+    at: '2026-11-03T07:59:00Z',
+  },
+  {
     id: 'e1',
     kind: 'created',
     actor_kind: 'person',
@@ -284,6 +298,21 @@ const REQUEST_EVENTS: ConsoleRequestEvent[] = [
   },
 ];
 
+const REQUEST_IMAGE: ConsoleRequestImage = {
+  id: 'i1',
+  position: 1,
+  caption: 'نمای جدول روی گوشی',
+  content_type: 'image/webp',
+  byte_size: 120_000,
+  width: 1170,
+  height: 2400,
+  sha256: 'a'.repeat(64),
+  thumb_width: 234,
+  thumb_height: 480,
+  uploaded_by: 'مریم',
+  created_at: '2026-11-03T08:01:00Z',
+};
+
 const requestFixture = (overrides: Partial<ConsoleRequestDetail>): ConsoleRequestDetail => ({
   id: 'r1',
   title: 'جدول لیگ',
@@ -302,6 +331,7 @@ const requestFixture = (overrides: Partial<ConsoleRequestDetail>): ConsoleReques
   decision_by: null,
   decided_at: null,
   execute_requested_at: null,
+  images: [],
   events: REQUEST_EVENTS,
   ...overrides,
 });
@@ -313,6 +343,8 @@ const REQUESTS: ConsoleRequestDetail[] = [
     status: 'in_progress',
     result: 'شاخه باز شد',
     result_at: '2026-11-03T09:00:00Z',
+    // T-1731: pictures, with a Persian caption and without one.
+    images: [REQUEST_IMAGE, { ...REQUEST_IMAGE, id: 'i2', position: 2, caption: null }],
   }),
   requestFixture({
     id: 'r3',

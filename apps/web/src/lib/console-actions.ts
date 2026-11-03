@@ -17,6 +17,8 @@ import { consoleUrl } from './console-base';
 export interface ConsoleFormState {
   error: string | null;
   done: string | null;
+  /** The new request's id, after `createRequest` (T-1731: its pictures follow it). */
+  id?: string;
 }
 
 const field = (form: FormData, name: string): string => {
@@ -118,7 +120,7 @@ export async function createRequest(
   _: ConsoleFormState,
   form: FormData,
 ): Promise<ConsoleFormState> {
-  const result = await consoleCall('requests', {
+  const result = await consoleCall<{ id: string }>('requests', {
     method: 'POST',
     body: {
       title: field(form, 'title'),
@@ -128,7 +130,7 @@ export async function createRequest(
   });
   if (!result.ok) return failed(result.error?.message, 'درخواست ثبت نشد.');
   requestsChanged();
-  return { error: null, done: 'درخواست ثبت شد.' };
+  return { error: null, done: 'درخواست ثبت شد.', id: result.data.id };
 }
 
 /** Title, details and priority of an open request, by any console user. */
@@ -176,6 +178,44 @@ export async function decideRequest(
   if (!result.ok) return failed(result.error?.message, 'تصمیم ثبت نشد.');
   requestsChanged();
   return { error: null, done: 'تصمیم ثبت شد.' };
+}
+
+// --- Pictures on a request (T-1731, D-357) -----------------------------------
+// The upload itself is a route handler (`app/console/request-images/`), since
+// an action's body is capped at 1 MB and has no progress; these are the rest.
+
+const picturePath = (requestId: string, imageId: string): string =>
+  `requests/${encodeURIComponent(requestId)}/images/${encodeURIComponent(imageId)}`;
+
+/** Removes a picture from an open request, by any console user. */
+export async function removeRequestImage(
+  requestId: string,
+  imageId: string,
+): Promise<ConsoleFormState> {
+  const result = await consoleCall(picturePath(requestId, imageId), { method: 'DELETE' });
+  if (!result.ok) return failed(result.error?.message, 'تصویر حذف نشد.');
+  requestsChanged();
+  return { error: null, done: 'تصویر حذف شد.' };
+}
+
+/** A picture's caption; empty clears it. */
+export async function captionRequestImage(
+  requestId: string,
+  imageId: string,
+  caption: string,
+): Promise<ConsoleFormState> {
+  const result = await consoleCall(picturePath(requestId, imageId), {
+    method: 'PATCH',
+    body: { caption },
+  });
+  if (!result.ok) return failed(result.error?.message, 'توضیح ذخیره نشد.');
+  requestsChanged();
+  return { error: null, done: 'ذخیره شد.' };
+}
+
+/** After the pictures are uploaded: the page drawn again with them. */
+export async function refreshRequests(): Promise<void> {
+  requestsChanged();
 }
 
 export async function addCard(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {

@@ -1,3 +1,8 @@
+import { createHash } from 'node:crypto';
+import { existsSync, readdirSync } from 'node:fs';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import {
@@ -14,9 +19,15 @@ import {
   type ConsoleSnapshot,
   type ConsoleSnapshotResponse,
 } from '@fmip/contracts';
-import { CONSOLE_REQUEST_BODY_MAX } from '@fmip/contracts/console';
+import {
+  CONSOLE_REQUEST_BODY_MAX,
+  CONSOLE_REQUEST_IMAGE_MAX_BYTES,
+  CONSOLE_REQUEST_IMAGES_MAX,
+} from '@fmip/contracts/console';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import sharp from 'sharp';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { main as consoleCli, parseConsoleArgs } from '../../cli/agents-console';
 import { DatabaseModule } from '../../database/database.module';
 import { withTriggersOff } from '../../testing/cleanup';
 import { hashToken, newToken } from '../identity/identity.service';
@@ -25,6 +36,7 @@ import { AgentsConsoleModule } from './agents-console.module';
 import { LOCK_AFTER_FAILURES, checkSnapshot, consoleTokenText } from './internal/console-rules';
 import { PostgresConsoleStore } from './internal/console-store';
 import { PostgresRequestStore } from './internal/request-store';
+import { IMAGE_REFUSALS } from './internal/request-images';
 
 /**
  * The agents console (T-1696, T-1697, D-340): an account opens only from a
@@ -34,7 +46,8 @@ import { PostgresRequestStore } from './internal/request-store';
  * queued, taken and finished; board changes and sign-ins are audited.
  *
  * Its names start `ac_<run>` and its snapshot is dated 2099, so it is the
- * newest while the spec runs; everything is removed afterwards.
+ * newest while the spec runs; everything is removed afterwards. The media
+ * volume of the requests' pictures (T-1731) is a temporary folder.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -52,6 +65,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
   let pool: Pool;
   let store: PostgresConsoleStore;
   let cookie = '';
+  let media = '';
+  const previousMedia = process.env.MEDIA_DIR;
   const name = `ac_${RUN}`;
 
   const as = (value: string | null) => (value === null ? {} : { cookie: `fmip_console=${value}` });
@@ -81,6 +96,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
   }
 
   beforeAll(async () => {
+    media = await mkdtemp(join(tmpdir(), 'fmip-console-'));
+    process.env.MEDIA_DIR = media;
     const moduleRef = await Test.createTestingModule({
       imports: [DatabaseModule, AgentsConsoleModule],
     })
@@ -110,6 +127,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
     await pool.query(`DELETE FROM console_board_card WHERE created_by = ANY($1::uuid[])`, [ids]);
     await pool.query(`DELETE FROM console_snapshot WHERE generated_at = $1`, [GENERATED]);
     await withTriggersOff(pool, async (client) => {
+      // Replica mode runs no cascade, so the pictures go first (T-1731).
+      await client.query(
+        `DELETE FROM console_request_image WHERE request_id IN
+           (SELECT id FROM console_request WHERE created_by = ANY($1::uuid[]))`,
+        [ids],
+      );
       // The request history is immutable like the audit (T-1728).
       await client.query(
         `DELETE FROM console_request_event WHERE request_id IN
@@ -129,6 +152,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
     await pool.query(`DELETE FROM console_user WHERE id = ANY($1::uuid[])`, [ids]);
     await pool.end();
     await app.close();
+    await rm(media, { recursive: true, force: true });
+    if (previousMedia === undefined) delete process.env.MEDIA_DIR;
+    else process.env.MEDIA_DIR = previousMedia;
   });
 
   it('opens an account once from an invitation, and only then', async () => {
@@ -664,6 +690,376 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
         expect(rowCount).toBe(0);
       } finally {
         await pool.query(`UPDATE rate_limit SET per_hour = 60 WHERE action = 'console_request'`);
+      }
+    });
+  });
+
+  // --- Pictures on a request (T-1731, D-357) --------------------------------
+  //
+  // In this file, not their own, because the ceiling tests above change the
+  // shared `rate_limit` rows for a moment, and spec files run side by side.
+  describe('pictures on a request (T-1731, D-357)', () => {
+    let picMate = '';
+
+    const solid = (width: number, height: number) =>
+      sharp({ create: { width, height, channels: 3, background: { r: 200, g: 40, b: 40 } } });
+
+    /** A JPEG as a phone writes it: EXIF with the maker and a GPS position. */
+    const gpsJpeg = () =>
+      solid(320, 240)
+        .withExif({
+          IFD0: { Make: 'TestPhone', Model: `ai-${RUN}` },
+          IFD3: {
+            GPSLatitudeRef: 'N',
+            GPSLatitude: '35/1 41/1 0/1',
+            GPSLongitudeRef: 'E',
+            GPSLongitude: '51/1 25/1 0/1',
+          },
+        })
+        .jpeg()
+        .toBuffer();
+
+    const upload = (
+      requestId: string,
+      bytes: Buffer,
+      options: { who?: string | null; caption?: string; type?: string } = {},
+    ) =>
+      app.inject({
+        method: 'POST',
+        url: `/console/requests/${requestId}/images${
+          options.caption === undefined ? '' : `?caption=${encodeURIComponent(options.caption)}`
+        }`,
+        headers: {
+          ...as(options.who === undefined ? cookie : options.who),
+          'content-type': options.type ?? 'application/octet-stream',
+        },
+        payload: bytes,
+      });
+
+    async function newRequest(title: string): Promise<ConsoleRequestDetail> {
+      const created = await send('POST', 'requests', { title });
+      expect(created.statusCode).toBe(201);
+      return created.json<ConsoleRequestDetail>();
+    }
+
+    const readdirCount = (dir: string): number => readdirSync(dir).length;
+
+    beforeAll(async () => {
+      const token = await invite(`AC ${RUN} picture mate`);
+      const accepted = await send(
+        'POST',
+        'invitations/accept',
+        { token, username: `${name}_pic`, password: PASSWORD },
+        null,
+      );
+      picMate = cookieOf(accepted.headers['set-cookie']);
+    });
+
+    it('needs a session for every picture route', async () => {
+      const request = await newRequest(`Session ${RUN}`);
+      const added = await upload(request.id, await solid(20, 20).png().toBuffer());
+      expect(added.statusCode).toBe(201);
+      const imageId = added.json<ConsoleRequestDetail>().images[0]!.id;
+      for (const who of [null, 'not-a-token']) {
+        expect(
+          (await upload(request.id, await solid(4, 4).png().toBuffer(), { who })).statusCode,
+        ).toBe(401);
+        expect((await get(`requests/${request.id}/images/${imageId}`, who)).statusCode).toBe(401);
+        expect((await get(`requests/${request.id}/images/${imageId}/thumb`, who)).statusCode).toBe(
+          401,
+        );
+        const patch = await app.inject({
+          method: 'PATCH',
+          url: `/console/requests/${request.id}/images/${imageId}`,
+          headers: as(who),
+          payload: { caption: 'x' },
+        });
+        expect(patch.statusCode).toBe(401);
+        const remove = await app.inject({
+          method: 'DELETE',
+          url: `/console/requests/${request.id}/images/${imageId}`,
+          headers: as(who),
+        });
+        expect(remove.statusCode).toBe(401);
+      }
+      // A served picture is behind the session even with the right ids.
+      const served = await get(`requests/${request.id}/images/${imageId}`);
+      expect(served.statusCode).toBe(200);
+    });
+
+    it('judges an upload by its first bytes, not its name or stated type', async () => {
+      const request = await newRequest(`Types ${RUN}`);
+      const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>');
+      const refusedSvg = await upload(request.id, svg);
+      expect(refusedSvg.statusCode).toBe(400);
+      expect(refusedSvg.json<ApiError>().message).toBe(IMAGE_REFUSALS.type);
+      const heic = Buffer.concat([
+        Buffer.from([0, 0, 0, 24]),
+        Buffer.from('ftypheic'),
+        Buffer.alloc(64),
+      ]);
+      const refusedHeic = await upload(request.id, heic);
+      expect(refusedHeic.statusCode).toBe(400);
+      expect(refusedHeic.json<ApiError>().message).toBe(IMAGE_REFUSALS.heic);
+      // PNG bytes behind a JPEG's first three bytes: the decoder disagrees.
+      const png = await solid(8, 8).png().toBuffer();
+      const polyglot = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), png]);
+      expect((await upload(request.id, polyglot)).statusCode).toBe(400);
+      // A picture's bytes sent as JSON or as image/png are not this route's body.
+      expect((await upload(request.id, png, { type: 'image/png' })).statusCode).toBe(415);
+      // The raw type is refused by every other route.
+      const elsewhere = await app.inject({
+        method: 'POST',
+        url: '/console/requests',
+        headers: { ...as(cookie), 'content-type': 'application/octet-stream' },
+        payload: png,
+      });
+      expect(elsewhere.statusCode).toBe(415);
+      const { rows } = await pool.query(
+        `SELECT 1 FROM console_request_image WHERE request_id = $1`,
+        [request.id],
+      );
+      expect(rows).toHaveLength(0);
+    });
+
+    it('refuses more than 8 MB, and a ninth picture', { timeout: 30_000 }, async () => {
+      const request = await newRequest(`Limits ${RUN}`);
+      const big = Buffer.alloc(CONSOLE_REQUEST_IMAGE_MAX_BYTES + 1);
+      Buffer.from([0xff, 0xd8, 0xff]).copy(big);
+      const tooBig = await upload(request.id, big);
+      expect(tooBig.statusCode).toBe(413);
+      expect(tooBig.json<ApiError>().message).toBe(IMAGE_REFUSALS.tooBig);
+
+      for (let i = 0; i < CONSOLE_REQUEST_IMAGES_MAX; i += 1)
+        expect(
+          (
+            await upload(
+              request.id,
+              await solid(10 + i, 10)
+                .png()
+                .toBuffer(),
+            )
+          ).statusCode,
+        ).toBe(201);
+      const ninth = await upload(request.id, await solid(30, 30).png().toBuffer());
+      expect(ninth.statusCode).toBe(409);
+      expect(ninth.json<ApiError>().message).toBe('A request holds at most 8 pictures.');
+      const list = (await get('requests')).json<ConsoleRequestList>();
+      const listed = list.requests.find((r) => r.id === request.id)!;
+      expect(listed.images.map((i) => i.position)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    });
+
+    it('stores and serves a WebP without the EXIF and GPS of the upload', async () => {
+      const request = await newRequest(`Metadata ${RUN}`);
+      const jpeg = await gpsJpeg();
+      expect(jpeg.includes(Buffer.from('TestPhone'))).toBe(true);
+      const added = await upload(request.id, jpeg, { caption: '  نمای صفحه  ' });
+      expect(added.statusCode).toBe(201);
+      const image = added.json<ConsoleRequestDetail>().images[0]!;
+      expect(image).toMatchObject({
+        position: 1,
+        caption: 'نمای صفحه',
+        content_type: 'image/webp',
+        width: 320,
+        height: 240,
+        uploaded_by: `AC ${RUN} maintainer`,
+      });
+      expect(image.thumb_width).toBeLessThanOrEqual(480);
+
+      const served = await get(`requests/${request.id}/images/${image.id}`);
+      expect(served.statusCode).toBe(200);
+      expect(served.headers['content-type']).toBe('image/webp');
+      expect(served.headers['cache-control']).toBe('private, max-age=3600');
+      expect(String(served.headers['content-disposition'])).toMatch(/^inline; filename="request-/);
+      expect(served.headers['x-content-type-options']).toBe('nosniff');
+      expect(String(served.headers['content-security-policy'])).toContain('sandbox');
+      const bytes = served.rawPayload;
+      expect(bytes.length).toBe(image.byte_size);
+      const meta = await sharp(bytes).metadata();
+      expect(meta.format).toBe('webp');
+      expect(meta.exif).toBeUndefined();
+      expect(bytes.includes(Buffer.from('TestPhone'))).toBe(false);
+      expect(bytes.includes(Buffer.from('GPS'))).toBe(false);
+      expect(bytes.includes(Buffer.from('Exif'))).toBe(false);
+
+      // The file on the volume is the same stored WebP, under the private folder.
+      const onDisk = await readFile(
+        join(media, 'console-requests', request.id, `${image.id}.webp`),
+      );
+      expect(onDisk.equals(bytes)).toBe(true);
+      const thumb = await get(`requests/${request.id}/images/${image.id}/thumb`);
+      expect(thumb.statusCode).toBe(200);
+      expect((await sharp(thumb.rawPayload).metadata()).exif).toBeUndefined();
+
+      // Another request's id with this picture's id finds nothing.
+      const other = await newRequest(`Other ${RUN}`);
+      expect((await get(`requests/${other.id}/images/${image.id}`)).statusCode).toBe(404);
+      expect((await get(`requests/${request.id}/images/not-an-id`)).statusCode).toBe(404);
+    });
+
+    it('captions and removes a picture, with its files, history and audit', async () => {
+      const request = await newRequest(`Remove ${RUN}`);
+      const added = await upload(request.id, await solid(50, 30).png().toBuffer(), {
+        who: picMate,
+      });
+      const image = added.json<ConsoleRequestDetail>().images[0]!;
+      const full = join(media, 'console-requests', request.id, `${image.id}.webp`);
+      const thumb = join(media, 'console-requests', request.id, `${image.id}-thumb.webp`);
+      expect(existsSync(full) && existsSync(thumb)).toBe(true);
+
+      const captioned = await app.inject({
+        method: 'PATCH',
+        url: `/console/requests/${request.id}/images/${image.id}`,
+        headers: as(cookie),
+        payload: { caption: 'جدول لیگ' },
+      });
+      expect(captioned.statusCode).toBe(200);
+      expect(captioned.json<ConsoleRequestDetail>().images[0]!.caption).toBe('جدول لیگ');
+      const long = await app.inject({
+        method: 'PATCH',
+        url: `/console/requests/${request.id}/images/${image.id}`,
+        headers: as(cookie),
+        payload: { caption: 'x'.repeat(301) },
+      });
+      expect(long.statusCode).toBe(400);
+
+      const removed = await app.inject({
+        method: 'DELETE',
+        url: `/console/requests/${request.id}/images/${image.id}`,
+        headers: as(cookie),
+      });
+      expect(removed.statusCode).toBe(200);
+      const after = removed.json<ConsoleRequestDetail>();
+      expect(after.images).toHaveLength(0);
+      expect(after.events.map((e) => e.kind)).toEqual([
+        'created',
+        'image_added',
+        'image_captioned',
+        'image_removed',
+      ]);
+      expect(existsSync(full) || existsSync(thumb)).toBe(false);
+      expect((await get(`requests/${request.id}/images/${image.id}`)).statusCode).toBe(404);
+      const again = await app.inject({
+        method: 'DELETE',
+        url: `/console/requests/${request.id}/images/${image.id}`,
+        headers: as(cookie),
+      });
+      expect(again.statusCode).toBe(404);
+      expect(again.json<ApiError>().message).toBe('No such picture.');
+
+      const { rows } = await pool.query<{ action: string; actor_name: string; previous: unknown }>(
+        `SELECT action, actor_name, previous FROM console_audit
+          WHERE target_type = 'console_request' AND target_id = $1 ORDER BY created_at, id`,
+        [request.id],
+      );
+      expect(rows.map((r) => r.action)).toEqual([
+        'request.created',
+        'request.image_added',
+        'request.image_captioned',
+        'request.image_removed',
+      ]);
+      expect(rows[1]!.actor_name).toBe(`${name}_pic`);
+      expect(rows[3]!.previous).toMatchObject({ image: image.id, caption: 'جدول لیگ' });
+    });
+
+    it('takes no picture on a closed request until it is reopened', async () => {
+      const request = await newRequest(`Closed ${RUN}`);
+      const added = await upload(request.id, await solid(12, 12).png().toBuffer());
+      const imageId = added.json<ConsoleRequestDetail>().images[0]!.id;
+      await app.inject({
+        method: 'POST',
+        url: `/console/requests/${request.id}/status`,
+        headers: as(cookie),
+        payload: { action: 'cancel' },
+      });
+      const refused = await upload(request.id, await solid(12, 12).png().toBuffer());
+      expect(refused.statusCode).toBe(409);
+      const remove = await app.inject({
+        method: 'DELETE',
+        url: `/console/requests/${request.id}/images/${imageId}`,
+        headers: as(cookie),
+      });
+      expect(remove.statusCode).toBe(409);
+      // Still served: a closed request keeps its pictures.
+      expect((await get(`requests/${request.id}/images/${imageId}`)).statusCode).toBe(200);
+      expect(readdirCount(join(media, 'console-requests', request.id))).toBe(2);
+    });
+
+    it('holds a person to the hourly picture ceiling', async () => {
+      const { rows } = await pool.query<{ per_hour: number }>(
+        `SELECT per_hour FROM rate_limit WHERE action = 'console_request_image'`,
+      );
+      expect(rows[0]?.per_hour).toBe(40);
+      const request = await newRequest(`Ceiling ${RUN}`);
+      try {
+        await pool.query(
+          `UPDATE rate_limit SET per_hour = 1 WHERE action = 'console_request_image'`,
+        );
+        // The teammate's first picture this hour is the one allowed.
+        await pool.query(
+          `UPDATE rate_limit SET per_hour = per_hour + (SELECT count(*) FROM console_request_event e
+              JOIN console_user u ON u.id = e.actor_id
+             WHERE u.username = $1 AND e.kind = 'image_added'
+               AND e.created_at >= date_trunc('hour', now()))
+           WHERE action = 'console_request_image'`,
+          [`${name}_pic`],
+        );
+        expect(
+          (await upload(request.id, await solid(9, 9).png().toBuffer(), { who: picMate }))
+            .statusCode,
+        ).toBe(201);
+        const refused = await upload(request.id, await solid(9, 9).png().toBuffer(), {
+          who: picMate,
+        });
+        expect(refused.statusCode).toBe(429);
+        expect(refused.json<ApiError>().message).toMatch(
+          /^That is the most pictures an hour allows\./,
+        );
+        expect(Number(refused.headers['retry-after'])).toBeGreaterThan(0);
+      } finally {
+        await pool.query(
+          `UPDATE rate_limit SET per_hour = 40 WHERE action = 'console_request_image'`,
+        );
+      }
+    });
+
+    it('prints a picture as base64 from the command line', async () => {
+      expect(parseConsoleArgs(['request-image', '--id', 'nope'])).toMatchObject({ kind: 'error' });
+      const request = await newRequest(`CLI ${RUN}`);
+      const added = await upload(request.id, await solid(64, 48).png().toBuffer());
+      const image = added.json<ConsoleRequestDetail>().images[0]!;
+      expect(parseConsoleArgs(['request-image', '--id', image.id, '--thumb'])).toEqual({
+        kind: 'request-image',
+        id: image.id,
+        thumb: true,
+      });
+      const secret = process.env.SESSION_SECRET;
+      process.env.SESSION_SECRET ??= SECRET;
+      const written: string[] = [];
+      const spy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+        written.push(String(chunk));
+        return true;
+      });
+      let code: number;
+      try {
+        code = await consoleCli(['request-image', '--id', image.id]);
+      } finally {
+        spy.mockRestore();
+      }
+      expect(code).toBe(0);
+      const out = written.join('');
+      expect(out).toMatch(/^[A-Za-z0-9+/]+=*\n$/);
+      const bytes = Buffer.from(out.trim(), 'base64');
+      expect(bytes.length).toBe(image.byte_size);
+      expect(createHash('sha256').update(bytes).digest('hex')).toBe(image.sha256);
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        expect(
+          await consoleCli(['request-image', '--id', '0f8fad5b-d9cb-469f-a165-70867728950e']),
+        ).toBe(1);
+      } finally {
+        errors.mockRestore();
+        if (secret === undefined) delete process.env.SESSION_SECRET;
       }
     });
   });

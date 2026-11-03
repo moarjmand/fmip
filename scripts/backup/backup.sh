@@ -226,6 +226,12 @@ if [ -n "${BACKUP_RCLONE_REMOTE:-}" ]; then
   # Not in the database: files in the media volume (T-1320, T-1322). Copied,
   # never synced, so a file deleted on the server is still on the remote;
   # rclone sends only what is new or changed, so a day costs that day's files.
+  # The whole volume, deliberately: that includes `console-requests/`, the
+  # pictures on the agents console's teammate requests (T-1731, D-357), which
+  # are private. They may go only to a private copy, and this one is: the
+  # remote is an rclone crypt remote, so names and bytes are encrypted before
+  # they leave the server. They count toward BACKUP_REMOTE_BUDGET_GB with the
+  # rest of media/ (prune_to_budget measures the whole remote).
   STEP='media copy'
   if [ "$BACKUP_MEDIA_VOLUME" != 'off' ] && docker volume inspect "$BACKUP_MEDIA_VOLUME" > /dev/null 2>&1; then
     echo "==> media $BACKUP_MEDIA_VOLUME -> $BACKUP_RCLONE_REMOTE/media/"

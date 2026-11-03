@@ -70,6 +70,36 @@ export async function consoleCall<T>(
   return { ok: false, status: response.status, error, setCookie };
 }
 
+/**
+ * A call whose answer is passed on as the API sent it, streamed: the
+ * requests' pictures (T-1731), up and down. `null` when the API did not
+ * answer.
+ */
+export async function consoleRaw(
+  path: string,
+  init: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: BodyInit;
+    signal?: AbortSignal;
+  } = {},
+): Promise<Response | null> {
+  const headers: Record<string, string> = { ...init.headers };
+  const cookie = await cookieHeader();
+  if (cookie !== undefined) headers.cookie = cookie;
+  try {
+    return await fetch(`${API_BASE_URL}/console/${path}`, {
+      method: init.method ?? 'GET',
+      headers,
+      body: init.body,
+      cache: 'no-store',
+      signal: init.signal,
+    });
+  } catch {
+    return null;
+  }
+}
+
 /** The `fmip_console` value from the API's `Set-Cookie`, and its age; `null` when it set none. */
 export function parseConsoleSetCookie(
   header: string | null,

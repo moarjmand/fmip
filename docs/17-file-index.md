@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2301), grouped by folder, with one line on
+Every file in the repository (2313), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -43,7 +43,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/admin`](#appsapisrcmodulesadmin) — 7
 - [`apps/api/src/modules/admin/internal`](#appsapisrcmodulesadmininternal) — 2
 - [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 4
-- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 6
+- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 10
 - [`apps/api/src/modules/analysis`](#appsapisrcmodulesanalysis) — 5
 - [`apps/api/src/modules/analysis/internal`](#appsapisrcmodulesanalysisinternal) — 1
 - [`apps/api/src/modules/ask`](#appsapisrcmodulesask) — 5
@@ -237,7 +237,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 16
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 18
 - [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 3
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
 - [`apps/web/src/app/console/(app)/agents/[name]/chat`](#appswebsrcappconsoleappagentsnamechat) — 1
@@ -250,6 +250,9 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/(app)/requests`](#appswebsrcappconsoleapprequests) — 1
 - [`apps/web/src/app/console/(open)/invite/[token]`](#appswebsrcappconsoleopeninvitetoken) — 1
 - [`apps/web/src/app/console/(open)/login`](#appswebsrcappconsoleopenlogin) — 1
+- [`apps/web/src/app/console/request-images`](#appswebsrcappconsolerequest-images) — 1
+- [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
+- [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
 - [`apps/web/src/components`](#appswebsrccomponents) — 270
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
@@ -274,10 +277,10 @@ machine, `docs/18-handover.md`.
 - [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 9
 - [`packages/contracts`](#packagescontracts) — 5
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
-- [`packages/contracts/src`](#packagescontractssrc) — 70
+- [`packages/contracts/src`](#packagescontractssrc) — 72
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 177
+- [`packages/db/migrations`](#packagesdbmigrations) — 178
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -626,9 +629,13 @@ machine, `docs/18-handover.md`.
 | `console-rules.spec.ts` | Tests for `console-rules`. |
 | `console-rules.ts` | The agents console's rules (T-1696, T-1697, D-340), pure so they are tested without a database: the session cookie, the lock after wrong passwords, the snapshot's shape and what is withheld from it, and what a command o… |
 | `console-store.ts` | A `console_audit` row, inside the change's own transaction (rule 10). |
+| `image-body.ts` | The raw body of a picture upload (T-1731, D-357). |
+| `request-image-files.ts` | Where the teammate requests' pictures are kept (T-1731, D-357): the media volume (`MEDIA_DIR`, T-1320), under `console-requests/<request>/`, as `<image>.webp` and `<image>-thumb.webp`. |
+| `request-images.spec.ts` | Pictures on the teammate requests (T-1731, D-357): the first bytes decide the type, the decoder must agree, and what is stored is a WebP with no metadata, the long side at most 2400 px, plus a 480 px thumbnail. |
+| `request-images.ts` | Pictures on the teammate requests (T-1731, D-357): what an upload may be, and the re-encoding that makes the stored file. |
 | `request-rules.spec.ts` | Tests for `request-rules`. |
 | `request-rules.ts` | Teammate requests (T-1728, D-354), the pure part: what a person may write, and which status a request may move to from which. |
-| `request-store.ts` | Teammate requests (T-1728, D-354). Every change writes one `console_request_event` (the request's timeline) and, in the same transaction, its `console_audit` row with what it was before (rule 10). A person's changes are… |
+| `request-store.ts` | Teammate requests (T-1728, D-354) and their pictures (T-1731, D-357): the store. |
 
 ## apps/api/src/modules/analysis
 
@@ -2628,6 +2635,8 @@ machine, `docs/18-handover.md`.
 | `model-page.spec.tsx` | The console's forecast-model page (T-1729, D-355): each section on a report shaped like the weekly watch's, then the states with too little to show -- nothing published, a version just promoted -- and a candidate whose… |
 | `model-report.fixture.ts` | A stand-in `GET /console/model` answer for the console's model page specs and its local screenshots (T-1729), shaped on the model scientist's weekly report of 2026-11-02: 0.6.0 on 1,831 matches (log loss 0.9538, Brier 0… |
 | `not-found.tsx` | A console page that is not there (T-1725, D-352): an agent the snapshot does not have, or a path the console does not know. |
+| `request-images.spec.tsx` | Pictures on the teammate requests (T-1731, D-357), as the console draws them: the attachment zone's ways in and its states, the waiting strip with progress, a card's thumbnails and the lightbox; Persian throughout, side… |
+| `request-images.tsx` | Pictures on the teammate requests (T-1731, D-357), the console's only client code besides its form: an attachment zone with several ways in (choose files, drag and drop onto the zone or the card, paste anywhere in the f… |
 | `requests.spec.tsx` | Teammate requests (T-1728, D-354): every state of a card, drawn on the server. |
 | `requests.tsx` | Teammate requests (T-1728, D-354), drawn on the server: each request as a card, the request at the start and Claude's result box at the end (stacked on a phone), the question for the teammate with its three answers whil… |
 | `schematic.tsx` | How one agent works, drawn on the server as SVG (T-1725, D-352): what starts it, what it reads, its method's steps and its model, what it may not do, what it leaves and who reads that, with a legend. |
@@ -2707,6 +2716,24 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | Signing in to the console (T-1696, D-340): the console's own name and password. |
+
+## apps/web/src/app/console/request-images
+
+| File | What it is |
+|---|---|
+| `picture-route.ts` | The console pictures' route handlers' shared checks (T-1731, D-357). |
+
+## apps/web/src/app/console/request-images/[requestId]
+
+| File | What it is |
+|---|---|
+| `route.ts` | A picture for a teammate request (T-1731, D-357), from the console's own page: the browser sends the file's bytes here (`XMLHttpRequest`, for the progress bar) and this hands them to the API's `POST /console/requests/:i… |
+
+## apps/web/src/app/console/request-images/[requestId]/[imageId]
+
+| File | What it is |
+|---|---|
+| `route.ts` | A teammate request's picture (T-1731, D-357), or with `?size=thumb` its thumbnail, for the console's page: asked of the API with the console's cookie and streamed through with its headers (`private`, inline, `nosniff`,… |
 
 ## apps/web/src/app/health
 
@@ -3543,6 +3570,8 @@ machine, `docs/18-handover.md`.
 | `confederation.ts` | Football's six confederations (T-1643, D-301): which one a competition belongs to, so the header's competitions menu can file it by region. |
 | `consensus.ts` | Community consensus (blueprint 6.6, T-134). |
 | `console-model.ts` | The agents console's forecast-model page (T-1729, D-355): what the published model version is, what is in shadow, and how accurate the published version is now -- every figure from the stored pre-kick-off evaluations (T… |
+| `console-requests.ts` | The teammate requests' runtime constants (T-1728, D-354; pictures T-1731, D-357), on the console's entry point only (`./console`). |
+| `console.ts` | The agents console's runtime constants (T-1728, T-1729), on their own entry point `@fmip/contracts/console`: the main barrel is in every public page's first-load bundle, and these are only the console's (the match centr… |
 | `contributor.ts` | Approval to post on a public match panel (blueprint 9.4 and 10.2, T-250). |
 | `conversations.ts` | Conversations (blueprint 8.3, T-220). **Order is a sequence, not a time.** Every message carries `seq`, unique and increasing within its conversation, and every question a client asks about order is asked in those terms. |
 | `coverage.spec.ts` | Tests for `coverage`. |
@@ -3797,6 +3826,7 @@ machine, `docs/18-handover.md`.
 | `1765900900000_prediction-share.sql` | T-1723 (D-351): a public link to one prediction's "called it" card, made only when its owner presses Share. |
 | `1765901000000_activity-daily.sql` | T-1727 (D-353): the Activity page's sign-ins and active members, kept per day before the retention purge deletes the sessions they are counted from. |
 | `1765901100000_console-request.sql` | Teammate requests in the agents console (T-1728, D-354). |
+| `1765901200000_console-request-image.sql` | Pictures on the teammate requests (T-1731, D-357). |
 
 ## packages/db/scripts
 

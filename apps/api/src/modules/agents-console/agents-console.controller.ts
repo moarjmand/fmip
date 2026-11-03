@@ -9,6 +9,7 @@ import {
   Inject,
   NotFoundException,
   Param,
+  PayloadTooLargeException,
   Patch,
   Post,
   Query,
@@ -32,6 +33,8 @@ import type {
   ConsoleSignInRequest,
   ConsoleSnapshotResponse,
 } from '@fmip/contracts';
+import { CONSOLE_REQUEST_IMAGE_MAX_BYTES } from '@fmip/contracts/console';
+import { randomUUID } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import {
   PASSWORD_MAX_LENGTH,
@@ -70,6 +73,20 @@ import {
   checkStatusFilter,
 } from './internal/request-rules';
 import { PostgresRequestStore, type RequestOutcome } from './internal/request-store';
+import { isReadable, readCapped } from './internal/image-body';
+import {
+  REQUEST_IMAGE_FILES,
+  type RequestImageFiles,
+  imageKeys,
+} from './internal/request-image-files';
+import {
+  IMAGE_CEILING,
+  IMAGE_ID,
+  IMAGE_REFUSALS,
+  checkCaption,
+  checkUpload,
+  processUpload,
+} from './internal/request-images';
 
 export interface ConsoleOptions {
   /** Keys the HMAC of the console's session and invitation tokens. */
@@ -87,9 +104,17 @@ const WRONG: ApiError = {
 };
 
 const NO_REQUEST: ApiError = { error: 'not_found', message: 'No such request.' };
+const NO_IMAGE: ApiError = { error: 'not_found', message: 'No such picture.' };
 
 function invalid(message: string): BadRequestException {
   return new BadRequestException({ error: 'validation', message } satisfies ApiError);
+}
+
+function tooBig(): PayloadTooLargeException {
+  return new PayloadTooLargeException({
+    error: 'validation',
+    message: IMAGE_REFUSALS.tooBig,
+  } satisfies ApiError);
 }
 
 /**
@@ -107,6 +132,7 @@ export class AgentsConsoleController {
     private readonly store: PostgresConsoleStore,
     private readonly requestStore: PostgresRequestStore,
     @Inject(CONSOLE_OPTIONS) private readonly options: ConsoleOptions,
+    @Inject(REQUEST_IMAGE_FILES) private readonly imageFiles: RequestImageFiles,
   ) {}
 
   @Post('session')
@@ -426,6 +452,159 @@ export class AgentsConsoleController {
     );
   }
 
+  // --- Pictures on a request (T-1731, D-357) ---------------------------------
+
+  /**
+   * A picture for an open request: the file's own bytes as
+   * `application/octet-stream`, at most 8 MiB, and an optional `?caption=`.
+   * The session, the request, its room (eight at most) and both ceilings are
+   * checked before a byte is read; the first bytes decide the type; the
+   * stored file is a WebP re-encoding without metadata, and its thumbnail.
+   * Audited, with an event in the request's history.
+   */
+  @Post('requests/:id/images')
+  async addImage(
+    @Param('id') id: string,
+    @Query('caption') caption: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleRequestDetail> {
+    const actor = await this.person(request);
+    if (!REQUEST_ID.test(id)) throw new NotFoundException(NO_REQUEST);
+    const checkedCaption = checkCaption(caption);
+    if (!checkedCaption.ok) throw invalid(checkedCaption.reason);
+    const stated = Number(request.headers['content-length'] ?? NaN);
+    if (Number.isFinite(stated) && stated > CONSOLE_REQUEST_IMAGE_MAX_BYTES) throw tooBig();
+    const room = await this.requestStore.imageRoom(id, actor);
+    if (room !== null) return this.answer(room, reply);
+    if (!isReadable(request.body))
+      throw invalid("Send the picture's own bytes as application/octet-stream.");
+    const bytes = await readCapped(request.body, CONSOLE_REQUEST_IMAGE_MAX_BYTES);
+    if (bytes === 'too_big') throw tooBig();
+    const upload = checkUpload(bytes);
+    if (!upload.ok) throw invalid(upload.reason);
+    const processed = await processUpload(bytes, upload.value);
+    if (!processed.ok) throw invalid(processed.reason);
+    const imageId = randomUUID();
+    const keys = imageKeys(id, imageId);
+    let outcome: RequestOutcome;
+    try {
+      await this.imageFiles.put(keys.full, processed.value.full.bytes);
+      await this.imageFiles.put(keys.thumb, processed.value.thumb.bytes);
+      outcome = await this.requestStore.addImage(
+        id,
+        {
+          id: imageId,
+          caption: checkedCaption.value,
+          originalType: upload.value,
+          originalByteSize: bytes.length,
+          processed: processed.value,
+        },
+        actor,
+      );
+    } catch (error) {
+      await this.imageFiles.remove(keys.full, keys.thumb);
+      throw error;
+    }
+    if (outcome.kind !== 'ok') await this.imageFiles.remove(keys.full, keys.thumb);
+    return this.answer(outcome, reply);
+  }
+
+  /** A picture's caption (`''` clears it), on an open request, by any console user. */
+  @Patch('requests/:id/images/:imageId')
+  async captionImage(
+    @Param('id') id: string,
+    @Param('imageId') imageId: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleRequestDetail> {
+    const actor = await this.person(request);
+    if (!REQUEST_ID.test(id) || !IMAGE_ID.test(imageId)) throw new NotFoundException(NO_IMAGE);
+    const raw =
+      typeof body === 'object' && body !== null ? (body as { caption?: unknown }).caption : null;
+    if (raw === undefined) throw invalid('A caption is text.');
+    const checked = checkCaption(raw);
+    if (!checked.ok) throw invalid(checked.reason);
+    return this.answer(
+      await this.requestStore.captionImage(id, imageId, checked.value, actor),
+      reply,
+    );
+  }
+
+  /** Removes a picture from an open request, by any console user; its files go with it. */
+  @Delete('requests/:id/images/:imageId')
+  @HttpCode(200)
+  async removeImage(
+    @Param('id') id: string,
+    @Param('imageId') imageId: string,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleRequestDetail> {
+    const actor = await this.person(request);
+    if (!REQUEST_ID.test(id) || !IMAGE_ID.test(imageId)) throw new NotFoundException(NO_IMAGE);
+    const { outcome, keys } = await this.requestStore.removeImage(id, imageId, actor);
+    await this.imageFiles.remove(...keys);
+    return this.answer(outcome, reply);
+  }
+
+  /** The stored picture, to a console session only. */
+  @Get('requests/:id/images/:imageId')
+  async image(
+    @Param('id') id: string,
+    @Param('imageId') imageId: string,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    await this.serveImage(id, imageId, 'full', request, reply);
+  }
+
+  /** Its thumbnail (480 px), to a console session only. */
+  @Get('requests/:id/images/:imageId/thumb')
+  async imageThumb(
+    @Param('id') id: string,
+    @Param('imageId') imageId: string,
+    @Req() request: FastifyRequest,
+    @Res() reply: FastifyReply,
+  ): Promise<void> {
+    await this.serveImage(id, imageId, 'thumb', request, reply);
+  }
+
+  /**
+   * Streams a picture: never cached by anyone but the viewer's own browser
+   * (`private`), shown in place rather than saved, its type not to be
+   * guessed, and nothing in it able to run (`sandbox`).
+   */
+  private async serveImage(
+    id: string,
+    imageId: string,
+    size: 'full' | 'thumb',
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    await this.person(request);
+    const row =
+      REQUEST_ID.test(id) && IMAGE_ID.test(imageId)
+        ? await this.requestStore.imageFile(imageId, id)
+        : null;
+    const file =
+      row === null
+        ? null
+        : await this.imageFiles.open(size === 'full' ? row.storage_key : row.thumb_key);
+    if (row === null || file === null) throw new NotFoundException(NO_IMAGE);
+    const name = `request-${id.slice(0, 8)}-${row.position}${size === 'thumb' ? '-thumb' : ''}.webp`;
+    void reply
+      .status(200)
+      .header('content-type', row.content_type)
+      .header('content-length', String(file.size))
+      .header('cache-control', 'private, max-age=3600')
+      .header('content-disposition', `inline; filename="${name}"`)
+      .header('x-content-type-options', 'nosniff')
+      .header('content-security-policy', "default-src 'none'; sandbox")
+      .header('referrer-policy', 'no-referrer')
+      .send(file.stream);
+  }
+
   @Get('audit')
   async audit(@Req() request: FastifyRequest): Promise<{ entries: ConsoleAuditEntry[] }> {
     await this.person(request);
@@ -441,10 +620,12 @@ export class AgentsConsoleController {
         return refuseOverRate(
           reply,
           { ok: false, retryAfterSeconds: outcome.retryAfterSeconds },
-          'That is the most changes to the requests an hour allows.',
+          outcome.ceiling === IMAGE_CEILING
+            ? 'That is the most pictures an hour allows.'
+            : 'That is the most changes to the requests an hour allows.',
         );
       case 'missing':
-        throw new NotFoundException(NO_REQUEST);
+        throw new NotFoundException(outcome.what === 'image' ? NO_IMAGE : NO_REQUEST);
       case 'refused':
         throw new ConflictException({
           error: 'conflict',

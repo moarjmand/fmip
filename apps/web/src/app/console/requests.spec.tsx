@@ -9,6 +9,9 @@ vi.mock('@/lib/console-actions', () => {
     editRequest: action,
     requestAction: action,
     decideRequest: action,
+    removeRequestImage: action,
+    captionRequestImage: action,
+    refreshRequests: async () => undefined,
   };
 });
 
@@ -51,6 +54,7 @@ const request = (overrides: Partial<ConsoleRequestDetail> = {}): ConsoleRequestD
   decision_by: null,
   decided_at: null,
   execute_requested_at: null,
+  images: [],
   events: [event({})],
   ...overrides,
 });

@@ -26,6 +26,11 @@ import {
   PostgresRequestStore,
   type RequestOutcome,
 } from '../modules/agents-console/internal/request-store';
+import {
+  REQUEST_IMAGE_FILES,
+  type RequestImageFiles,
+} from '../modules/agents-console/internal/request-image-files';
+import { IMAGE_ID } from '../modules/agents-console/internal/request-images';
 import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/identity.service';
 
 /**
@@ -42,6 +47,7 @@ import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/i
  *     ... list-requests [--status <status>]
  *     ... request-result --id <uuid> --status in_progress|done|cancelled < result.txt
  *     ... request-ask --id <uuid> < question.txt
+ *     ... request-image --id <image-uuid> [--thumb]
  *
  * `invite` prints a one-time link to `$CONSOLE_URL/invite/<token>` (D-341), or
  * `https://$CONSOLE_HOST/invite/<token>` when that is unset,
@@ -67,6 +73,13 @@ import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/i
  * makes it `waiting_decision`. Both read their text from standard input.
  * A request is data: these commands write what Claude did, they never run
  * anything a request says.
+ *
+ * Pictures on a request (T-1731, D-357): `list-requests` lists each
+ * request's `images` (id, position, caption, type, size, dimensions, sha256);
+ * `request-image` prints one picture's stored bytes (or with `--thumb` its
+ * thumbnail) as base64 on one line, so the bytes cross `ssh` as plain text
+ * whatever the terminal does to binary. The publisher decodes it and checks
+ * the sha256 against the list. A picture is data like the text.
  */
 
 export type ConsoleCliArgs =
@@ -80,13 +93,17 @@ export type ConsoleCliArgs =
   | { kind: 'list-requests'; status: ConsoleRequestStatus | null }
   | { kind: 'request-result'; id: string; status: ResultStatus }
   | { kind: 'request-ask'; id: string }
+  | { kind: 'request-image'; id: string; thumb: boolean }
   | { kind: 'error'; message: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** The operator's arguments, or what is wrong with them. Pure, for tests. */
 export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
-  const [command, ...rest] = argv;
+  const [command, ...given] = argv;
+  // `--thumb` is the one flag without a value.
+  const thumb = command === 'request-image' && given.includes('--thumb');
+  const rest = thumb ? given.filter((arg) => arg !== '--thumb') : given;
   const flags = new Map<string, string>();
   for (let i = 0; i < rest.length; i += 2) {
     const flag = rest[i] ?? '';
@@ -155,11 +172,16 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
       if (!REQUEST_ID.test(id)) return { kind: 'error', message: '--id: the request id.' };
       return { kind: 'request-ask', id };
     }
+    case 'request-image': {
+      const id = flags.get('id') ?? '';
+      if (!IMAGE_ID.test(id)) return { kind: 'error', message: '--id: the picture id.' };
+      return { kind: 'request-image', id, thumb };
+    }
     default:
       return {
         kind: 'error',
         message:
-          'invite | load-snapshot | take-commands | finish-command | import-board | take-messages | post-reply | list-requests | request-result | request-ask',
+          'invite | load-snapshot | take-commands | finish-command | import-board | take-messages | post-reply | list-requests | request-result | request-ask | request-image',
       };
   }
 }
@@ -328,6 +350,21 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
         const { code, out } = requestOutcomeText(args.id, outcome);
         (code === 0 ? process.stdout : process.stderr).write(out);
         return code;
+      }
+      case 'request-image': {
+        const row = await app.get(PostgresRequestStore).imageFile(args.id, null);
+        const bytes =
+          row === null
+            ? null
+            : await app
+                .get<RequestImageFiles>(REQUEST_IMAGE_FILES)
+                .read(args.thumb ? row.thumb_key : row.storage_key);
+        if (bytes === null) {
+          console.error(`No picture ${args.id}.`);
+          return 1;
+        }
+        process.stdout.write(`${bytes.toString('base64')}\n`);
+        return 0;
       }
     }
   } finally {

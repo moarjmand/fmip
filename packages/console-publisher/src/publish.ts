@@ -1,5 +1,13 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
@@ -12,12 +20,17 @@ import type {
 import { type ChatInbox, dropFromInbox, emptyInbox, mergeInbox, parseReplyArgs } from './chat.ts';
 import {
   askCommand,
+  decodeImage,
+  imageCommand,
+  imagesToPull,
   listCommand,
   parseAskArgs,
   parsePullArgs,
   parseResultArgs,
   requestsFile,
   resultCommand,
+  sha256Of,
+  staleImageFiles,
   summary,
 } from './requests.ts';
 import { flowsOf, parseCharter } from './flow.ts';
@@ -79,6 +92,14 @@ import {
  * `requests-pull` writes `E:/FMIP/ops/console/requests.json` and prints a
  * short summary; the other two write the result box or the question for the
  * teammate, the text from `--file` or standard input, never the arguments.
+ *
+ * Pictures (T-1731, D-357): `requests-pull` also downloads every picture of
+ * every open request (and of any marked to run) to
+ * `E:/FMIP/ops/console/requests/<request-id>/<position>-<image-id>.webp`,
+ * one `request-image` over ssh each, its base64 checked against the list's
+ * sha256; a file already there with that sha256 is not fetched again, and a
+ * file of a picture since removed is deleted. `requests.json` names each
+ * picture's `local_path`, for a Claude session's Read tool.
  */
 
 const ROOT = process.cwd();
@@ -87,6 +108,7 @@ const OPS = join(FMIP, 'ops');
 const STATE_FILE = join(OPS, 'console', 'state.json');
 const INBOX_FILE = join(OPS, 'console', 'chat-inbox.json');
 const REQUESTS_FILE = join(OPS, 'console', 'requests.json');
+const REQUEST_IMAGES_DIR = join(OPS, 'console', 'requests');
 const SSH_HOST = process.env.FMIP_SSH_HOST ?? 'fmip-prod';
 const CLI = 'cd /opt/fmip && docker compose exec -T api node dist/cli/agents-console.js';
 
@@ -237,6 +259,8 @@ function ssh(command: string, input?: string): string {
     input,
     encoding: 'utf8',
     timeout: 120_000,
+    // A picture is up to ~4 MB as base64, and the request list grows (T-1731).
+    maxBuffer: 64 * 1024 * 1024,
   });
   if (result.status !== 0)
     throw new Error(
@@ -265,6 +289,55 @@ function saveInbox(inbox: ChatInbox): void {
 const replyRemote = (id: string, status: 'answered' | 'failed', body: string): void => {
   ssh(`${CLI} post-reply --message ${id} --status ${status}`, body);
 };
+
+/** A path as the Read tool takes it on this computer, with forward slashes. */
+const forward = (path: string): string => path.replace(/\\/g, '/');
+
+/**
+ * The pictures of the pulled requests on this computer (T-1731): fetched
+ * unless a file with the same sha256 is there, removed ones deleted. A
+ * failed picture is reported and left out; the rest still land.
+ */
+function pullImages(list: ConsoleRequestList): {
+  local: Map<string, string>;
+  downloaded: number;
+  kept: number;
+  failed: string[];
+} {
+  const local = new Map<string, string>();
+  const failed: string[] = [];
+  let downloaded = 0;
+  let kept = 0;
+  const wanted = imagesToPull(list);
+  for (const { image, relative } of wanted) {
+    const path = join(REQUEST_IMAGES_DIR, relative);
+    if (existsSync(path) && sha256Of(readFileSync(path)) === image.sha256) {
+      local.set(image.id, forward(path));
+      kept += 1;
+      continue;
+    }
+    try {
+      const decoded = decodeImage(ssh(imageCommand(CLI, image.id)), image.sha256);
+      if (!decoded.ok) throw new Error(decoded.reason);
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, decoded.bytes);
+      local.set(image.id, forward(path));
+      downloaded += 1;
+    } catch (error) {
+      failed.push(`${image.id}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  // A picture removed on the console goes from this computer too.
+  for (const request of list.requests) {
+    const folder = join(REQUEST_IMAGES_DIR, request.id);
+    if (!existsSync(folder)) continue;
+    const keep = wanted
+      .filter((w) => w.requestId === request.id)
+      .map((w) => w.relative.slice(request.id.length + 1));
+    for (const name of staleImageFiles(readdirSync(folder), keep)) rmSync(join(folder, name));
+  }
+  return { local, downloaded, kept, failed };
+}
 
 export function main(argv = process.argv.slice(2)): number {
   const [command, ...rest] = argv;
@@ -355,10 +428,25 @@ export function main(argv = process.argv.slice(2)): number {
         return 2;
       }
       const list = JSON.parse(ssh(listCommand(CLI, parsed.status))) as ConsoleRequestList;
+      const images = pullImages(list);
       mkdirSync(dirname(REQUESTS_FILE), { recursive: true });
-      writeFileSync(REQUESTS_FILE, `${JSON.stringify(requestsFile(list, new Date()), null, 2)}\n`);
-      process.stdout.write(`${JSON.stringify({ file: REQUESTS_FILE, ...summary(list) })}\n`);
-      return 0;
+      writeFileSync(
+        REQUESTS_FILE,
+        `${JSON.stringify(requestsFile(list, new Date(), images.local), null, 2)}\n`,
+      );
+      process.stdout.write(
+        `${JSON.stringify({
+          file: REQUESTS_FILE,
+          ...summary(list),
+          images: {
+            folder: REQUEST_IMAGES_DIR,
+            downloaded: images.downloaded,
+            kept: images.kept,
+            failed: images.failed,
+          },
+        })}\n`,
+      );
+      return images.failed.length === 0 ? 0 : 1;
     }
     case 'request-result': {
       const parsed = parseResultArgs(rest);
