@@ -1,4 +1,9 @@
-import { CONSOLE_SNAPSHOT_SCHEMA, type ConsoleSnapshot } from '@fmip/contracts';
+import {
+  CONSOLE_MESSAGE_MAX,
+  CONSOLE_REPLY_MAX,
+  CONSOLE_SNAPSHOT_SCHEMA,
+  type ConsoleSnapshot,
+} from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import { parseConsoleArgs } from '../../../cli/agents-console';
 import {
@@ -8,10 +13,13 @@ import {
   afterFailure,
   checkCard,
   checkCommand,
+  checkMessage,
   checkSnapshot,
+  cleanText,
   consoleCookie,
   isConsoleUsername,
   isLocked,
+  replyText,
 } from './console-rules';
 
 const NOW = new Date('2026-11-01T12:00:00Z');
@@ -260,5 +268,70 @@ describe('the command line', () => {
       parseConsoleArgs(['finish-command', '--id', 'x', '--status', 'done', '--outcome', 'y']).kind,
     ).toBe('error');
     expect(parseConsoleArgs(['drop']).kind).toBe('error');
+  });
+
+  it('reads the chat commands, the reply never from the arguments (T-1722)', () => {
+    const id = '0f8fad5b-d9cb-469f-a165-70867728950e';
+    expect(parseConsoleArgs(['take-messages'])).toEqual({ kind: 'take-messages' });
+    expect(parseConsoleArgs(['post-reply', '--message', id, '--status', 'answered'])).toEqual({
+      kind: 'post-reply',
+      id,
+      status: 'answered',
+    });
+    expect(parseConsoleArgs(['post-reply', '--message', id, '--status', 'failed'])).toMatchObject({
+      status: 'failed',
+    });
+    expect(parseConsoleArgs(['post-reply', '--message', 'x', '--status', 'answered']).kind).toBe(
+      'error',
+    );
+    expect(parseConsoleArgs(['post-reply', '--message', id, '--status', 'done']).kind).toBe(
+      'error',
+    );
+    expect(parseConsoleArgs(['post-reply', '--message', id]).kind).toBe('error');
+  });
+});
+
+describe('chat messages (T-1722)', () => {
+  const agents = ['data-auditor', 'security'];
+
+  it('takes a known agent and one to 4,000 characters, trimmed, line ends made \\n', () => {
+    expect(checkMessage('data-auditor', { body: '  Why?\r\nTell me.  ' }, agents)).toEqual({
+      ok: true,
+      body: 'Why?\nTell me.',
+    });
+    expect(checkMessage('security', { body: 'x'.repeat(CONSOLE_MESSAGE_MAX) }, agents).ok).toBe(
+      true,
+    );
+    // Characters, not UTF-16 units: a Persian or emoji message is counted as Postgres counts it.
+    expect(checkMessage('security', { body: '😀'.repeat(CONSOLE_MESSAGE_MAX) }, agents).ok).toBe(
+      true,
+    );
+  });
+
+  it('refuses an unknown or malformed agent, no text, blank text, or too much', () => {
+    expect(checkMessage('nobody', { body: 'hi' }, agents)).toEqual({
+      ok: false,
+      reason: 'No such agent.',
+    });
+    expect(checkMessage('../security', { body: 'hi' }, [...agents, '../security']).ok).toBe(false);
+    expect(checkMessage('security', {}, agents).ok).toBe(false);
+    expect(checkMessage('security', 'hi', agents).ok).toBe(false);
+    expect(checkMessage('security', { body: 42 }, agents).ok).toBe(false);
+    expect(checkMessage('security', { body: ' \n\t ' }, agents).ok).toBe(false);
+    expect(checkMessage('security', { body: '\u0000\u0007' }, agents).ok).toBe(false);
+    const long = checkMessage('security', { body: 'x'.repeat(CONSOLE_MESSAGE_MAX + 1) }, agents);
+    expect(long).toEqual({ ok: false, reason: 'A message is at most 4000 characters.' });
+  });
+
+  it('removes the control characters Postgres cannot hold or that hide text, keeping tabs', () => {
+    expect(cleanText('a\u0000b\tc\u001bd\u007fe\rf')).toBe('ab\tcde\nf');
+  });
+
+  it('cuts a reply to the longest the console keeps', () => {
+    expect(replyText('  fine \r\n')).toBe('fine');
+    const cut = replyText('y'.repeat(CONSOLE_REPLY_MAX + 50));
+    expect([...cut]).toHaveLength(CONSOLE_REPLY_MAX);
+    expect(cut.endsWith('…')).toBe(true);
+    expect(replyText('z'.repeat(CONSOLE_REPLY_MAX))).toHaveLength(CONSOLE_REPLY_MAX);
   });
 });

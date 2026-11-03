@@ -17407,5 +17407,17 @@
     "text": "منبع داده یک بازیکن را در ترکیب هر دو تیم آورده است. او را همان‌جایی که منبع گذاشته نشان می‌دهیم و به‌جای حدس زدنِ تیمش، «نامشخص» علامت می‌زنیم.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.scoreUnclear": {
+    "source": "Score unclear in the source",
+    "text": "نتیجه در منبع نامشخص است",
+    "status": "translated",
+    "note": "Written by the agent for a finished match whose recorded goals disagree with its result (T-1717, D-347)."
+  },
+  "matchCentre.scoreUnclearNote": {
+    "source": "The recorded goals ({goals}) and the reported result ({score}) do not agree, so neither is shown as final.",
+    "text": "گل‌های ثبت‌شده ({goals}) و نتیجه‌ی اعلام‌شده ({score}) با هم نمی‌خوانند، پس هیچ‌کدام به‌عنوان نتیجه‌ی نهایی نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent for a finished match whose recorded goals disagree with its result (T-1717, D-347)."
   }
 }

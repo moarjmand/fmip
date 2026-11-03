@@ -16,13 +16,15 @@ import {
   RunsBars,
   SCHEDULE_WORDS,
   STATUS_WORDS,
-  WorkflowDiagram,
+  agentDescription,
   agentTitle,
   fa,
   inputClass,
   plain,
   when,
 } from '../../../ui';
+import { AgentSchematic } from '../../../schematic';
+import { COMMAND_WORDS, outcomeWords } from '../../../words';
 
 type Params = { params: Promise<{ name: string }> };
 
@@ -88,13 +90,17 @@ export default async function ConsoleAgentPage({ params }: Params) {
           <Badge>مدل: {agent.model}</Badge>
           <Badge>{SCHEDULE_WORDS[agent.schedule] ?? agent.schedule}</Badge>
         </div>
-        <p className="max-w-measure text-sm text-muted" dir="auto">
-          {agent.description}
-        </p>
+        <p className="max-w-measure text-sm text-muted">{agentDescription(agent.name)}</p>
+        <Link
+          href={`/agents/${encodeURIComponent(agent.name)}/chat`}
+          className="inline-flex min-h-touch w-fit items-center rounded-control border border-brand px-4 text-sm font-bold text-brand"
+        >
+          گفتگو با این عامل
+        </Link>
       </div>
 
       <Card title="چطور کار می‌کند">
-        <WorkflowDiagram workflow={agent.workflow} />
+        <AgentSchematic agent={agent} />
       </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
@@ -233,10 +239,10 @@ export default async function ConsoleAgentPage({ params }: Params) {
             {commands.map((c) => (
               <li key={c.id} className="flex flex-wrap gap-2">
                 <Badge>{STATUS_WORDS[c.status]}</Badge>
-                <span dir="ltr">{c.kind}</span>
+                <span>{COMMAND_WORDS[c.kind]}</span>
                 <span className="text-muted">
-                  {c.requested_by} · {when(c.requested_at)}
-                  {c.outcome !== null ? ` · ${c.outcome}` : ''}
+                  <span dir="ltr">{c.requested_by}</span> · {when(c.requested_at)}
+                  {c.outcome !== null ? ` · ${outcomeWords(c.outcome)}` : ''}
                 </span>
               </li>
             ))}

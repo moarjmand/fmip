@@ -65,6 +65,97 @@ export interface ConsoleAgentRun {
   duration_seconds: number | null;
 }
 
+// --- How an agent works, as the console's schematic draws it (T-1725, D-352) ---
+
+/** What starts a run: its schedule, a pull request, a person asking, the console's "run now", a chat message. */
+export const CONSOLE_FLOW_TRIGGERS = [
+  'schedule',
+  'pull-request',
+  'request',
+  'run-now',
+  'chat',
+] as const;
+/** What it reads. */
+export const CONSOLE_FLOW_INPUTS = [
+  'rules',
+  'skill',
+  'memory',
+  'repository',
+  'tasks',
+  'production-db',
+  'server',
+  'public-pages',
+  'github',
+  'live-site',
+  'web',
+  'design-canvas',
+  'lab',
+  'dashboard',
+  'team-findings',
+  'team-reports',
+  'desk',
+] as const;
+/** What it may not do (the team charter, its own file, the marketing wing's rules). */
+export const CONSOLE_FLOW_LIMITS = [
+  'server-read-only',
+  'no-purchase-account-secret',
+  'outside-text-data',
+  'proposals-only',
+  'no-repo-edit',
+  'tests-on-request',
+  'no-merge-deploy',
+  'no-publish',
+  'maintainer-decides',
+  'no-paid-tools',
+  'no-personal-data',
+] as const;
+/** What it leaves behind. */
+export const CONSOLE_FLOW_OUTPUTS = [
+  'report',
+  'brief',
+  'findings',
+  'desk-questions',
+  'handoffs',
+  'ops-file',
+  'design-canvas',
+  'memory',
+] as const;
+/** Who reads what it leaves: another agent (named in `detail`), the engineering session, people, the console. */
+export const CONSOLE_FLOW_READERS = [
+  'agent',
+  'engineering-session',
+  'maintainer',
+  'console',
+] as const;
+
+export type ConsoleFlowTrigger = (typeof CONSOLE_FLOW_TRIGGERS)[number];
+export type ConsoleFlowInput = (typeof CONSOLE_FLOW_INPUTS)[number];
+export type ConsoleFlowLimit = (typeof CONSOLE_FLOW_LIMITS)[number];
+export type ConsoleFlowOutput = (typeof CONSOLE_FLOW_OUTPUTS)[number];
+export type ConsoleFlowReader = (typeof CONSOLE_FLOW_READERS)[number];
+
+/** One box of the schematic: a closed kind the console words in Persian, and its technical detail (a path, a schedule, an agent id). */
+export interface ConsoleFlowNode<K extends string> {
+  kind: K;
+  detail: string | null;
+}
+
+/** One step of the agent's method: as its skill writes it, and in Persian when the publisher knows it. */
+export interface ConsoleFlowStep {
+  text: string;
+  fa: string | null;
+}
+
+/** How an agent works, built by the publisher from its file, its skill and the team charter. */
+export interface ConsoleAgentFlow {
+  triggers: ConsoleFlowNode<ConsoleFlowTrigger>[];
+  inputs: ConsoleFlowNode<ConsoleFlowInput>[];
+  steps: ConsoleFlowStep[];
+  limits: ConsoleFlowNode<ConsoleFlowLimit>[];
+  outputs: ConsoleFlowNode<ConsoleFlowOutput>[];
+  readers: ConsoleFlowNode<ConsoleFlowReader>[];
+}
+
 /** One agent as the console shows it. */
 export interface ConsoleAgent {
   name: string;
@@ -79,6 +170,8 @@ export interface ConsoleAgent {
   paused: boolean;
   /** How it works, drawn as a diagram: what it reads, its steps, what it leaves. */
   workflow: { inputs: string[]; steps: string[]; outputs: string[] };
+  /** The schematic's data (D-352); absent in a snapshot built before it, when the console draws from `workflow`. */
+  flow?: ConsoleAgentFlow;
   memory: { sources: ConsoleMemorySource[]; entries: ConsoleMemoryEntry[] };
   runs: ConsoleAgentRun[];
 }
@@ -212,4 +305,53 @@ export interface ConsoleAuditEntry {
   target: string;
   reason: string;
   at: string;
+}
+
+// --- Chat with an agent (T-1722, D-350) ------------------------------------
+
+/** The longest message a console person may write to an agent, in characters. */
+export const CONSOLE_MESSAGE_MAX = 4000;
+/** The longest reply an agent's run may post back; a longer one is cut. */
+export const CONSOLE_REPLY_MAX = 8000;
+/** How often the maintainer's computer answers the queue, in minutes (said on the page). */
+export const CONSOLE_CHAT_EVERY_MINUTES = 10;
+
+/** A person's message: waiting, taken by the computer, answered, or not answered. */
+export type ConsoleMessageStatus = 'queued' | 'answering' | 'answered' | 'failed';
+
+export interface ConsoleMessage {
+  id: string;
+  agent: string;
+  /** `person`: a console person wrote it; `agent`: the agent's reply, posted by the computer. */
+  author_kind: 'person' | 'agent';
+  /** The person's display name, or the agent's name. */
+  author: string;
+  body: string;
+  created_at: string;
+  /** A person's message only; `null` on an agent's reply. */
+  status: ConsoleMessageStatus | null;
+  /** On an agent's reply: the person's message it answers. */
+  reply_to: string | null;
+  /** On a failed message: why it was not answered, as the computer said. */
+  failure: string | null;
+}
+
+/** `GET /console/agents/:name/messages[?before=<id>]`: oldest first, the newest last. */
+export interface ConsoleConversation {
+  agent: string;
+  messages: ConsoleMessage[];
+  /** Whether there are older messages; ask again with `before` = the first message's id. */
+  has_older: boolean;
+}
+
+/** `POST /console/agents/:name/messages`. */
+export interface ConsolePostMessageRequest {
+  body: string;
+}
+
+/** One message the computer took (`take-messages`), with the conversation it belongs to. */
+export interface ConsoleChatItem {
+  message: ConsoleMessage;
+  /** The agent's conversation up to and including `message`, oldest first, at most 20. */
+  conversation: ConsoleMessage[];
 }

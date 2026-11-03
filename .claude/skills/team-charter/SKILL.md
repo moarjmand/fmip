@@ -1,6 +1,6 @@
 ---
 name: team-charter
-description: The shared rules, finding format and folders of the Stadiomind agent team (D-328). Every team agent (chief-of-staff, ops-release, code-reviewer, qa-engineer, data-auditor, designer, security, architect, model-scientist, product-strategist, content-community, business-adviser) reads this first. Use when acting as one of them or reading their output.
+description: The shared rules, finding format and folders of the Stadiomind agent team (D-328). Every team agent (chief-of-staff, ops-release, code-reviewer, qa-engineer, data-auditor, designer, security, architect, model-scientist, product-strategist, content-community, business-adviser, and the marketing wing: marketing-manager, seo-search, social-media, growth-analyst) reads this first. Use when acting as one of them or reading their output.
 ---
 
 # The Stadiomind agent team: shared charter (T-1682, D-328)
@@ -104,7 +104,39 @@ maintainer and the teammate.
   staff works from the findings first and the reports for detail. Prefixes: `ops` (ops-release),
   `qa` (qa-engineer), `rev` (code-reviewer), `aud` (data-auditor), `des` (designer), `sec` (security),
   `arc` (architect), `mod` (model-scientist), `str` (product-strategist), `cnt`
-  (content-community), `biz` (business-adviser).
+  (content-community), `biz` (business-adviser), `mkt` (marketing-manager), `seo` (seo-search),
+  `soc` (social-media), `gro` (growth-analyst).
+
+## Schedules
+
+The daily run (the scheduled task `stadiomind-daily-team`, outside the repository) starts each
+agent on its schedule; a person can change one in the agents console. Weekly means Monday,
+monthly the first Monday.
+
+| Schedule | Agents |
+|---|---|
+| daily | data-auditor, ops-release, qa-engineer, content-community, social-media (drafts only on a day worth posting), then chief-of-staff |
+| weekly (Monday) | model-scientist, seo-search, growth-analyst, then marketing-manager (it reads their fresh reports), before chief-of-staff |
+| monthly | security, architect, product-strategist, business-adviser |
+| on demand | code-reviewer, designer |
+
+## The marketing wing (T-1721, D-349)
+
+`marketing-manager` owns the growth plan and sets the priorities of `seo-search`, `social-media`
+and `growth-analyst`, who read its newest report (`E:/FMIP/ops/reports/marketing-manager/`)
+before their own run. On top of the rules above, the wing keeps these:
+
+1. **No paid tools, no accounts.** No ads, keyword tool, analytics service, scheduler, Search
+   Console or social account is opened or used; each is proposed to the maintainer on the desk.
+2. **No publishing.** Posts are drafts in a report. Only the maintainer publishes, after his
+   approval; no agent signs in to a network or asks a bot to post.
+3. **No personal data in reports.** Aggregate counts only; a breakdown cell under 5 is written
+   «کمتر از ۵» ("fewer than 5"). Never an id, name, username, e-mail or message.
+4. **No tracker.** Measures come from what the site already stores; a new first-party measure is
+   a decision for the maintainer, past the business adviser.
+5. **No claim about a competitor without a public source** named in the report.
+6. **Forecasts are always the statistical model's,** with its version; the founder's analysis is
+   his and community picks are the community's, never blended (CLAUDE.md rule 6).
 
 ## Model tiers
 

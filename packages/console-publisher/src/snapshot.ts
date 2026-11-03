@@ -1,5 +1,6 @@
 import type {
   ConsoleAgent,
+  ConsoleAgentFlow,
   ConsoleAgentRun,
   ConsoleCommand,
   ConsoleDecision,
@@ -20,14 +21,21 @@ import type {
 
 export const SNAPSHOT_SCHEMA = 1;
 
-/** How often each agent runs, as the daily run's prompt has it (D-328, D-339). */
+/**
+ * How often each agent runs, as the daily run's prompt and the team charter's
+ * "Schedules" have it (D-328, D-339, D-349). Weekly is Monday.
+ */
 export const DEFAULT_SCHEDULES: Record<string, string> = {
   'data-auditor': 'daily',
   'ops-release': 'daily',
   'qa-engineer': 'daily',
   'content-community': 'daily',
+  'social-media': 'daily',
   'chief-of-staff': 'daily',
   'model-scientist': 'weekly',
+  'marketing-manager': 'weekly',
+  'seo-search': 'weekly',
+  'growth-analyst': 'weekly',
   security: 'monthly',
   architect: 'monthly',
   'product-strategist': 'monthly',
@@ -307,6 +315,8 @@ export interface AgentInputs {
   memoryEntries: ConsoleMemoryEntry[];
   findingDays: ReadonlyMap<string, number>;
   reportDays: string[];
+  /** How it works, for the console's schematic (`flow.ts`, D-352). */
+  flow?: ConsoleAgentFlow;
 }
 
 /** One agent as the console shows it, its file and its history put together. */
@@ -356,6 +366,7 @@ export function agentOf(inputs: AgentInputs, state: ConsoleState): ConsoleAgent 
       steps: inputs.steps,
       outputs,
     },
+    ...(inputs.flow === undefined ? {} : { flow: inputs.flow }),
     memory: { sources, entries: inputs.memoryEntries },
     runs: runsOf(file.name, inputs.findingDays, inputs.reportDays),
   };

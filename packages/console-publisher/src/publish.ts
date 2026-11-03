@@ -2,8 +2,16 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ConsoleCommand, ConsoleMemoryEntry, ConsoleSnapshot } from '@fmip/contracts';
+import type {
+  ConsoleChatItem,
+  ConsoleCommand,
+  ConsoleMemoryEntry,
+  ConsoleSnapshot,
+} from '@fmip/contracts';
+import { type ChatInbox, dropFromInbox, emptyInbox, mergeInbox, parseReplyArgs } from './chat.ts';
+import { flowsOf, parseCharter } from './flow.ts';
 import {
+  DEFAULT_SCHEDULES,
   type ConsoleState,
   type DeskQuestion,
   type FindingLine,
@@ -37,12 +45,25 @@ import {
  * reports each back, publishes, and prints the agents a person asked to run,
  * as JSON, for the scheduled task to start; `finish` reports such a run.
  * The server never reaches this computer.
+ *
+ * The chat (T-1722, D-350), run by the ten-minute scheduled task:
+ *
+ *     node packages/console-publisher/src/publish.ts chat-pull
+ *     node packages/console-publisher/src/publish.ts chat-reply <message-id> answered|failed [--file reply.txt] [< reply.txt]
+ *
+ * `chat-pull` takes the queued messages over the same `ssh` and keeps them in
+ * `E:/FMIP/ops/console/chat-inbox.json`, each with the agent's file and the
+ * prompt to start it with (a message to an agent this computer has no file
+ * for is answered `failed` at once); `chat-reply` posts the reply, read from
+ * `--file` or standard input, never from the arguments, and drops the
+ * message from the inbox. The loop is in the package's README.
  */
 
 const ROOT = process.cwd();
 const FMIP = process.env.FMIP_HOME ?? 'E:/FMIP';
 const OPS = join(FMIP, 'ops');
 const STATE_FILE = join(OPS, 'console', 'state.json');
+const INBOX_FILE = join(OPS, 'console', 'chat-inbox.json');
 const SSH_HOST = process.env.FMIP_SSH_HOST ?? 'fmip-prod';
 const CLI = 'cd /opt/fmip && docker compose exec -T api node dist/cli/agents-console.js';
 
@@ -98,6 +119,31 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
     .map((name) => parseAgentFile(read(join(ROOT, '.claude', 'agents', name))))
     .filter((file) => file !== null);
 
+  // The schematic's data (T-1725, D-352): every agent's file, its skill and the charter.
+  const charterPath = join(ROOT, '.claude', 'skills', 'team-charter', 'SKILL.md');
+  const charter = parseCharter(
+    existsSync(charterPath) ? read(charterPath) : '',
+    agentFiles.map((file) => file.name),
+  );
+  const flows = flowsOf(
+    agentFiles.map((file) => {
+      const skills = skillsOf(file.body, skillNames);
+      const primary = skills[0];
+      return {
+        file,
+        skills,
+        skillText:
+          primary === undefined ? '' : read(join(ROOT, '.claude', 'skills', primary, 'SKILL.md')),
+        schedule:
+          state.agents[file.name]?.schedule ??
+          charter.schedules[file.name] ??
+          DEFAULT_SCHEDULES[file.name] ??
+          'on-demand',
+      };
+    }),
+    charter,
+  );
+
   const reportFiles: ReportFile[] = [];
   const agents = agentFiles.map((file) => {
     const dir = join(FMIP, reportDirOf(file.name));
@@ -123,6 +169,7 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
         reportDays: names
           .map((name) => name.slice(0, 10))
           .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day)),
+        flow: flows.get(file.name),
       },
       state,
     );
@@ -181,6 +228,21 @@ const finishRemote = (id: string, status: 'done' | 'failed', outcome: string): v
   ssh(`${CLI} finish-command --id ${id} --status ${status} --outcome ${JSON.stringify(outcome)}`);
 };
 
+const loadInbox = (): ChatInbox => ({
+  ...emptyInbox(),
+  ...readJson<Partial<ChatInbox>>(INBOX_FILE, {}),
+});
+
+function saveInbox(inbox: ChatInbox): void {
+  mkdirSync(dirname(INBOX_FILE), { recursive: true });
+  writeFileSync(INBOX_FILE, `${JSON.stringify(inbox, null, 2)}\n`);
+}
+
+/** Posts a reply; the id is checked against MESSAGE_ID before it reaches the command line. */
+const replyRemote = (id: string, status: 'answered' | 'failed', body: string): void => {
+  ssh(`${CLI} post-reply --message ${id} --status ${status}`, body);
+};
+
 export function main(argv = process.argv.slice(2)): number {
   const [command, ...rest] = argv;
   switch (command) {
@@ -222,9 +284,50 @@ export function main(argv = process.argv.slice(2)): number {
       finishRemote(id, status, words.join(' '));
       return 0;
     }
+    case 'chat-pull': {
+      const taken = JSON.parse(ssh(`${CLI} take-messages`) || '[]') as ConsoleChatItem[];
+      let inbox = mergeInbox(loadInbox(), taken, new Date());
+      for (const item of inbox.items) {
+        if (existsSync(join(ROOT, item.agent_file))) continue;
+        // Persian: the console shows it as written (D-352).
+        replyRemote(item.id, 'failed', `عامل ${item.agent} روی رایانه‌ی نگهدارنده نیست.`);
+        inbox = dropFromInbox(inbox, item.id, new Date());
+      }
+      saveInbox(inbox);
+      process.stdout.write(
+        `${JSON.stringify(inbox.items.map(({ id, agent, agent_file }) => ({ id, agent, agent_file })))}\n`,
+      );
+      return 0;
+    }
+    case 'chat-reply': {
+      const parsed = parseReplyArgs(rest);
+      if (!parsed.ok) {
+        process.stderr.write(
+          `chat-reply <message-id> answered|failed [--file reply.txt]: ${parsed.reason}\n`,
+        );
+        return 2;
+      }
+      const file = rest[2] === '--file' ? rest[3] : undefined;
+      const body = readFileSync(file ?? 0, 'utf8');
+      if (parsed.status === 'answered' && body.trim() === '') {
+        process.stderr.write('An answer needs the reply text.\n');
+        return 2;
+      }
+      try {
+        replyRemote(parsed.id, parsed.status, body);
+      } catch (error) {
+        const text = error instanceof Error ? error.message : String(error);
+        // Answered already, or never taken: nothing will take it again, so it leaves the inbox.
+        if (text.includes('is waiting for an answer'))
+          saveInbox(dropFromInbox(loadInbox(), parsed.id, new Date()));
+        throw error;
+      }
+      saveInbox(dropFromInbox(loadInbox(), parsed.id, new Date()));
+      return 0;
+    }
     default:
       process.stderr.write(
-        'build [--out file] | publish | sync | finish <id> done|failed "outcome"\n',
+        'build [--out file] | publish | sync | finish <id> done|failed "outcome" | chat-pull | chat-reply <id> answered|failed [--file f]\n',
       );
       return 2;
   }

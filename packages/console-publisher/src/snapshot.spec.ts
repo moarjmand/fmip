@@ -1,6 +1,10 @@
+import { readFileSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ConsoleCommand } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  DEFAULT_SCHEDULES,
   accessOf,
   agentOf,
   applyCommand,
@@ -220,6 +224,47 @@ describe('an agent in the snapshot', () => {
       ['2026-10-31', 0],
     ]);
     expect(agent.workflow.steps).toHaveLength(3);
+  });
+});
+
+describe("the team's own files", () => {
+  const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '.claude');
+  const known = readdirSync(join(root, 'skills')).sort();
+  const files = readdirSync(join(root, 'agents'))
+    .filter((name) => name.endsWith('.md'))
+    .map((name) => parseAgentFile(readFileSync(join(root, 'agents', name), 'utf8')));
+
+  it('parses every agent file and gives each a schedule', () => {
+    expect(files.every((file) => file !== null)).toBe(true);
+    const unscheduled = files
+      .map((file) => file!.name)
+      .filter((name) => DEFAULT_SCHEDULES[name] === undefined);
+    expect(unscheduled.sort()).toEqual([]);
+  });
+
+  it('shows the marketing wing (D-349) with its schedule, skill, steps and report folder', () => {
+    const wing = {
+      'marketing-manager': { schedule: 'weekly', skills: ['marketing-plan'] },
+      'seo-search': { schedule: 'weekly', skills: ['search-visibility'] },
+      'social-media': { schedule: 'daily', skills: ['social-drafts', 'data-audit'] },
+      'growth-analyst': { schedule: 'weekly', skills: ['growth-funnel', 'data-audit'] },
+    };
+    for (const [name, expected] of Object.entries(wing)) {
+      const file = files.find((f) => f?.name === name);
+      expect(file, name).toBeDefined();
+      const skills = skillsOf(file!.body, known);
+      const steps = stepsOf(readFileSync(join(root, 'skills', skills[0]!, 'SKILL.md'), 'utf8'));
+      const agent = agentOf(
+        { file: file!, skills, steps, memoryEntries: [], findingDays: new Map(), reportDays: [] },
+        emptyState(),
+      );
+      expect(agent).toMatchObject({ name, schedule: expected.schedule, skills: expected.skills });
+      expect(agent.model).toBe('sonnet');
+      expect(agent.memory.sources.map((s) => s.kind)).toContain('memory');
+      expect(agent.workflow.steps.length).toBeGreaterThan(2);
+      expect(agent.workflow.outputs).toContain(`Reports in E:/FMIP/ops/reports/${name}/`);
+      expect(agent.access.some((a) => a.area === 'Writes its own reports and findings')).toBe(true);
+    }
   });
 });
 

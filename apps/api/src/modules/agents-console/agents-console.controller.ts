@@ -10,6 +10,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UnauthorizedException,
@@ -20,8 +21,10 @@ import type {
   ConsoleAuditEntry,
   ConsoleBoardCard,
   ConsoleCommand,
+  ConsoleConversation,
   ConsoleInvitationView,
   ConsoleMe,
+  ConsoleMessage,
   ConsoleSignInRequest,
   ConsoleSnapshotResponse,
 } from '@fmip/contracts';
@@ -37,12 +40,16 @@ import {
   parseCookies,
   verifyPassword,
 } from '../identity/identity.service';
+import { refuseOverRate } from '../rate-limits/rate-limits.service';
 import {
+  AGENT_NAME,
   CONSOLE_COOKIE,
+  MESSAGE_ID,
   SESSION_IDLE_HOURS,
   afterFailure,
   checkCard,
   checkCommand,
+  checkMessage,
   consoleCookie,
   consoleTokenText,
   isConsoleUsername,
@@ -236,6 +243,49 @@ export class AgentsConsoleController {
     const actor = await this.person(request);
     const archived = /^[0-9a-f-]{36}$/.test(id) && (await this.store.archiveCard(id, actor));
     if (!archived) throw new NotFoundException({ error: 'not_found', message: 'No such card.' });
+  }
+
+  /** An agent's conversation (T-1722, D-350): a page, oldest first, ending before `before`. */
+  @Get('agents/:name/messages')
+  async conversation(
+    @Param('name') name: string,
+    @Query('before') before: unknown,
+    @Req() request: FastifyRequest,
+  ): Promise<ConsoleConversation> {
+    await this.person(request);
+    if (!AGENT_NAME.test(name))
+      throw new NotFoundException({ error: 'not_found', message: 'No such agent.' });
+    const cursor = typeof before === 'string' && before !== '' ? before : null;
+    if (cursor !== null && !MESSAGE_ID.test(cursor)) throw invalid('before is a message id.');
+    return this.store.conversation(name, cursor);
+  }
+
+  /**
+   * A message to an agent (T-1722, D-350), queued for the maintainer's
+   * computer, which runs the agent and posts its reply back; nothing on the
+   * server reads the text. Audited, and held to the `console_message`
+   * ceiling per person.
+   */
+  @Post('agents/:name/messages')
+  async postMessage(
+    @Param('name') name: string,
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleMessage> {
+    const actor = await this.person(request);
+    const latest = await this.store.latestSnapshot();
+    const agents = latest?.snapshot.agents.map((agent) => agent.name) ?? [];
+    const checked = checkMessage(name, body, agents);
+    if (!checked.ok) throw invalid(checked.reason);
+    const outcome = await this.store.postMessage(name, checked.body, actor);
+    if (outcome.kind === 'limited')
+      refuseOverRate(
+        reply,
+        { ok: false, retryAfterSeconds: outcome.retryAfterSeconds },
+        'That is the most messages to the agents an hour allows.',
+      );
+    return outcome.message;
   }
 
   @Get('audit')

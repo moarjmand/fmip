@@ -171,6 +171,16 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     what: 'Push endpoints registered: every notification is sent to each one.',
     routes: ['POST /me/push-subscriptions'],
   },
+  // T-1722 (D-350): each message is an agent run on the maintainer's
+  // computer, which spends the maintainer's subscription. Counted from the
+  // person's own `console_message` rows this hour, before the insert.
+  {
+    action: 'console_message',
+    subject: 'console_user',
+    enforced: 'api',
+    what: "Messages to the agents in the agents console: each is an agent run on the maintainer's computer.",
+    routes: ['POST /console/agents/:name/messages'],
+  },
 
   // Not a write, and the one read with a ceiling (T-838, D-103's gap): every
   // question is a model call, and the route is public. A member is counted

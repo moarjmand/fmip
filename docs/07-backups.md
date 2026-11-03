@@ -413,6 +413,17 @@ the remote's side: raise the account's cap (on B2, a payment method and the
 Caps & Alerts page), or keep fewer days with `BACKUP_KEEP_REMOTE_DAYS`. The
 next nightly run and the next ship then catch up by themselves.
 
+**A full storage cap with no way out.** Until T-1724 the size budget was
+applied only after a verified upload, so once the remote was at its cap (on
+2026-11-02 an extra manual copy put it there) every later run failed at the
+upload and never reached the prune. `backup.sh` now applies the budget before
+the upload as well, keeping the newest dumps within the budget less the new
+dump's size (never fewer than `BACKUP_REMOTE_MIN_COPIES`), and again after it.
+The budget is the whole remote's, not the dumps' alone: `media/` and the
+point-in-time base count against the same cap, so the dumps get what the
+budget leaves after them. On 2026-11-03 the nightly pruned to 7 GiB of dumps
+and still hit B2's 10 GB, because 2.2 GB of media and base sat beside them.
+
 **A daily download cap.** B2's free tier also caps download-class requests
 per day, and the monthly drill downloads the whole dump (about 1 GB). Until
 T-1719 the nightly upload asked the remote whether each file was already

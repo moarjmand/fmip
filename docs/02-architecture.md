@@ -222,6 +222,7 @@ address never leaves a reader without a search.
 | `prediction_share` | 30 | member | trigger | `POST /me/predictions/:predictionId/share` |
 | `briefing` | 6 | member | API | `POST /me/briefing` |
 | `push_subscription` | 10 | member | API | `POST /me/push-subscriptions` |
+| `console_message` | 30 | agents-console account | API | `POST /console/agents/:name/messages` (T-1722, D-350: each message is an agent run on the maintainer's computer; counted from the person's own `console_message` rows in the clock hour) |
 | `ask` | 60 | member | API | `GET /ask` (a read: a model call) |
 | `ask_ip` | 120 | address | API | `GET /ask` (a read: a model call) |
 

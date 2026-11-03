@@ -6,6 +6,7 @@ import type {
   ConsoleAuditEntry,
   ConsoleBoardCard,
   ConsoleCommand,
+  ConsoleConversation,
   ConsoleInvitationView,
   ConsoleMe,
   ConsoleSnapshotResponse,
@@ -110,5 +111,12 @@ export const consoleSnapshot = () => consoleCall<ConsoleSnapshotResponse>('snaps
 export const consoleCommands = () => consoleCall<{ commands: ConsoleCommand[] }>('commands');
 export const consoleBoard = () => consoleCall<{ cards: ConsoleBoardCard[] }>('board');
 export const consoleAudit = () => consoleCall<{ entries: ConsoleAuditEntry[] }>('audit');
+/** An agent's conversation (T-1722): the newest page, or the one before `before`. */
+export const consoleConversation = (agent: string, before?: string) =>
+  consoleCall<ConsoleConversation>(
+    `agents/${encodeURIComponent(agent)}/messages${
+      before === undefined ? '' : `?before=${encodeURIComponent(before)}`
+    }`,
+  );
 export const consoleInvitation = (token: string) =>
   consoleCall<ConsoleInvitationView>(`invitations/${encodeURIComponent(token)}`);

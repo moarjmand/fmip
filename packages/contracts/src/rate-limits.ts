@@ -13,8 +13,11 @@ export const RATE_REFUSAL_RETENTION_DAYS = 30;
 /** The days the System page shows. */
 export const RATE_REFUSAL_DAYS = 7;
 
-/** Whose count a ceiling is: one member, one network address, or one identifier typed. */
-export type RateLimitSubject = 'member' | 'address' | 'identifier';
+/**
+ * Whose count a ceiling is: one member, one network address, one identifier
+ * typed, or one agents-console account (T-1722), which is not a member.
+ */
+export type RateLimitSubject = 'member' | 'address' | 'identifier' | 'console_user';
 
 /** Where the ceiling is enforced: a trigger on the insert, or the API before the work. */
 export type RateLimitEnforcement = 'database' | 'api';

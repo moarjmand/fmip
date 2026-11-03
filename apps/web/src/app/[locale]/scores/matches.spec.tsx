@@ -458,6 +458,23 @@ describe('the preview', () => {
     expect(html).toMatch(/class="[^"]*text-live[^"]*" data-testid="preview-score"/);
   });
 
+  it('draws a result its recorded goals disagree with quiet, and says it is unclear (T-1717, D-347)', () => {
+    const finished = {
+      ...started,
+      status: 'finished' as const,
+      scores: { ...started.scores, current: { home: 2, away: 0 }, full_time: { home: 2, away: 0 } },
+    };
+    const score_dispute = { recorded_goals: 4, reported: { home: 2, away: 0 } };
+    const html = preview(null, null, AVAILABLE, 'en', { ...finished, score_dispute });
+    expect(html).toContain('data-testid="preview-score-unclear"');
+    expect(html).toContain('Score unclear in the source');
+    expect(html).toMatch(/class="[^"]*text-muted[^"]*" data-testid="preview-score"/);
+    expect(preview(null, null, AVAILABLE, 'en', finished)).not.toContain('preview-score-unclear');
+    expect(preview(null, null, AVAILABLE, 'fa', { ...finished, score_dispute })).toContain(
+      'نتیجه در منبع نامشخص است',
+    );
+  });
+
   it('says full time on a finished match and postponed on one with no score', () => {
     const done = preview(null, null, AVAILABLE, 'en', {
       ...started,

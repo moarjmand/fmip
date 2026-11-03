@@ -11,6 +11,7 @@ import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { freshnessOf } from './freshness';
 import { liveAnsweredAtSql } from './live-answer';
+import { scoreDisputeOf } from './score-dispute';
 
 /** A card plus the country its competition belongs to, for grouping. */
 export interface ScoredRow {
@@ -138,6 +139,8 @@ function toRow(row: Row): ScoredRow {
         liveAnsweredAt: row.live_answered_at,
         kickoffAt: row.kickoff_at,
       }),
+      // The recorded goals against the result, derived here (T-1717, D-347).
+      score_dispute: scoreDisputeOf(row.status, scores, incidents),
       pinned: false,
     },
     country:
