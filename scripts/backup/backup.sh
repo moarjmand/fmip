@@ -15,7 +15,7 @@
 #   BACKUP_RCLONE_REMOTE     rclone destination, e.g. offsite:fmip-backups
 #                            (unset = local only, and the script says so)
 #   BACKUP_KEEP_REMOTE_DAYS  remote copies older than this go     (default 90)
-#   BACKUP_REMOTE_BUDGET_GB  the newest remote dumps are kept within this many GiB,
+#   BACKUP_REMOTE_BUDGET_GB  the newest remote dumps are kept so the whole remote (media and base too) stays within this many GiB,
 #                            the rest go (default 7; 0 = no budget; T-1487, D-259)
 #   BACKUP_REMOTE_MIN_COPIES never fewer remote dumps than this, budget or not (default 3)
 #   BACKUP_RCLONE_CONFIG     rclone.conf with the remote          (default ~/.config/rclone/rclone.conf)
@@ -147,7 +147,8 @@ echo "    $TABLES tables, $ROWS rows, $(grep -c '^migration ' "$MANIFEST") migra
 
 # A size budget as well as an age (T-1487, D-259): a free remote has a hard
 # cap, and a dump grows with the data. The newest dumps are kept while they
-# fit BACKUP_REMOTE_BUDGET_GB less $1 bytes, never fewer than
+# fit BACKUP_REMOTE_BUDGET_GB (the whole remote, media and base included)
+# less $1 bytes, never fewer than
 # BACKUP_REMOTE_MIN_COPIES; each older dump goes with its manifest. Names carry
 # the time, so a reverse sort puts the newest first. Called before the upload
 # with the new dump's size as $1 (T-1724) and after it with 0: on 2026-11-02 an
@@ -155,10 +156,16 @@ echo "    $TABLES tables, $ROWS rows, $(grep -c '^migration ' "$MANIFEST") migra
 # successful upload, no later run could upload, and so none could prune.
 prune_to_budget() {
   [ "$BACKUP_REMOTE_BUDGET_GB" != '0' ] || return 0
-  local reserve=$1 path size kept=0 used=0 full=no budget
+  local reserve=$1 path size kept=0 used=0 full=no budget total dumps other
   STEP='remote budget'
-  budget=$(( BACKUP_REMOTE_BUDGET_GB * 1024 * 1024 * 1024 - reserve ))
-  echo "==> keep the newest remote dumps within ${BACKUP_REMOTE_BUDGET_GB} GiB less $reserve bytes (at least $BACKUP_REMOTE_MIN_COPIES)"
+  # The budget is the whole remote's (T-1724): media/ and the point-in-time
+  # base live beside the dumps and count against the same cap, so on
+  # 2026-11-03 7 GiB of dumps plus 2.2 GB of the rest still hit B2's 10 GB.
+  total="$(rclone size --json "$BACKUP_RCLONE_REMOTE/" | sed -E 's/.*"bytes":([0-9]+).*/\1/')"
+  dumps="$(rclone size --json --max-depth 1 --include 'fmip-*.dump' "$BACKUP_RCLONE_REMOTE/" | sed -E 's/.*"bytes":([0-9]+).*/\1/')"
+  other=$(( total - dumps ))
+  budget=$(( BACKUP_REMOTE_BUDGET_GB * 1024 * 1024 * 1024 - reserve - other ))
+  echo "==> keep the newest remote dumps within ${BACKUP_REMOTE_BUDGET_GB} GiB for the whole remote, less $other bytes of other files and $reserve bytes for the new dump (at least $BACKUP_REMOTE_MIN_COPIES)"
   while read -r path size; do
     [ -n "$path" ] || continue
     # Once one dump does not fit, every older one goes too: the copies kept
