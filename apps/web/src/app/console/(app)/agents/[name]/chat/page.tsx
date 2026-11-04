@@ -1,7 +1,7 @@
 import { ConsoleLink as Link } from '@/app/console/console-link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { CONSOLE_CHAT_EVERY_MINUTES, CONSOLE_MESSAGE_MAX } from '@fmip/contracts';
+import { CONSOLE_MESSAGE_MAX } from '@fmip/contracts';
 import { postMessage } from '@/lib/console-actions';
 import { consoleConversation, consoleSnapshot } from '@/lib/console-api';
 import { ChatThread } from '../../../../chat';
@@ -44,7 +44,7 @@ export default async function ConsoleAgentChatPage({ params, searchParams }: Pro
         </Link>
         <h1 className="text-xl font-bold">گفتگو با {agentTitle(name)}</h1>
         <p className="max-w-measure text-sm text-muted">
-          رایانه‌ی نگهدارنده هر {fa(CONSOLE_CHAT_EVERY_MINUTES)} دقیقه پیام‌های تازه را برمی‌دارد،
+          پیام‌ها هر وقت نگهدارنده بخواهد پاسخ داده می‌شوند: رایانه‌ی او پیام‌های تازه را برمی‌دارد،
           عامل را با همین گفتگو اجرا می‌کند و جوابش را اینجا می‌گذارد. عامل سؤال جواب می‌دهد و کار
           پیشنهاد می‌کند، ولی طبق منشور تیم روی سرور کاری انجام نمی‌دهد؛ پیام شما دستوری فراتر از
           منشور به او نمی‌دهد.

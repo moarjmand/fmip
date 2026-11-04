@@ -1,9 +1,5 @@
-import {
-  CONSOLE_CHAT_EVERY_MINUTES,
-  type ConsoleMessage,
-  type ConsoleMessageStatus,
-} from '@fmip/contracts';
-import { Badge, agentTitle, fa, when } from './ui';
+import { type ConsoleMessage, type ConsoleMessageStatus } from '@fmip/contracts';
+import { Badge, agentTitle, when } from './ui';
 
 /**
  * The chat with an agent (T-1722, D-350), drawn on the server: no model
@@ -13,7 +9,8 @@ import { Badge, agentTitle, fa, when } from './ui';
  */
 
 export const MESSAGE_STATUS_WORDS: Record<ConsoleMessageStatus, string> = {
-  queued: `در صف — عامل حدود ${fa(CONSOLE_CHAT_EVERY_MINUTES)} دقیقه‌ی دیگر جواب می‌دهد`,
+  // On demand since 2026-11-04 (T-1733): no fixed delay is promised.
+  queued: 'در صف — هر وقت نگهدارنده پاسخ‌ها را اجرا کند جواب می‌آید',
   answering: 'رایانه آن را برداشته؛ عامل در حال نوشتن جواب است',
   answered: 'جواب داده شد',
   failed: 'جوابی نیامد',
