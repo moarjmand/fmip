@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { CONSOLE_CHAT_EVERY_MINUTES } from '@fmip/contracts';
 import { apiErrorWords } from '@/app/console/words';
 import { applyConsoleCookie, consoleCall } from './console-api';
 import { consoleUrl } from './console-base';
@@ -104,7 +103,7 @@ export async function postMessage(_: ConsoleFormState, form: FormData): Promise<
   revalidatePath('/console', 'layout');
   return {
     error: null,
-    done: `فرستاده شد. عامل حدود ${new Intl.NumberFormat('fa-IR').format(CONSOLE_CHAT_EVERY_MINUTES)} دقیقه‌ی دیگر جواب می‌دهد.`,
+    done: 'فرستاده شد. هر وقت نگهدارنده پاسخ‌ها را اجرا کند، جواب عامل همین‌جا می‌آید.',
   };
 }
 

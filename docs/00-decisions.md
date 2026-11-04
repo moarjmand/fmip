@@ -14062,6 +14062,8 @@ A narrow surface with no Persian story says so with the empty state it already h
 
 **Consequences.** The coordinator creates the scheduled task with the instruction text in `packages/console-publisher/README.md`. Replies arrive only while the computer is on and `ssh fmip-prod` works. Until then a message stays `queued`, and the page says so.
 
+**Amendment 2026-11-04 (the maintainer; T-1733): on demand.** 105 ten-minute runs in a day found no message, and each opened a Claude session on the maintainer's subscription. The scheduled task `stadiomind-console-chat` no longer runs by itself: the maintainer runs it ("Run now") or asks Claude in chat to answer the console chats. The console no longer promises a reply within ten minutes; a queued message says it is answered when the maintainer runs the replies.
+
 ## D-351 — Share cards: a dark match poster, a "called it" stamp behind a public link the member makes, bundled OFL faces
 
 **Status:** Accepted · 2026-11-02 (maintainer, the designer's picks A10 and B01) · **Task:** T-1723 · **Amends:** D-090 (T-602's light card) · **Follows:** D-063, D-103, D-263, D-280, D-343, T-520, T-1309, T-1506

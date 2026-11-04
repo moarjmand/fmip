@@ -177,7 +177,7 @@ describe('the console pieces', () => {
     expect(html).toContain('What did you find?\nToday.');
     expect(html).toContain('&lt;b&gt;not markup&lt;/b&gt;');
     expect(html).toContain(MESSAGE_STATUS_WORDS.queued);
-    expect(MESSAGE_STATUS_WORDS.queued).toContain('۱۰ دقیقه');
+    expect(MESSAGE_STATUS_WORDS.queued).toContain('هر وقت نگهدارنده');
     expect(html).toContain(MESSAGE_STATUS_WORDS.answering);
     expect(html).toContain(MESSAGE_STATUS_WORDS.failed);
     expect(html).toContain('The run timed out.');
