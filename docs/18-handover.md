@@ -2,7 +2,7 @@
 
 **Purpose.** Everything needed to carry on with FMIP (brand: Stadiomind) from a
 different Claude account, a different computer, or both, without losing work
-or re-deciding anything. Written 2026-11-01 (T-1701).
+or re-deciding anything. Written 2026-11-01 (T-1701); refreshed 2026-11-04 (T-1734).
 
 **How to use it.** Read §1 to see where each piece lives. Then follow §2
 (another account on the same computer) or §3 (another computer). Then give
@@ -165,7 +165,7 @@ Refresh it with the same steps whenever a move is planned. It is a snapshot.
 | `packages/console-publisher` | Builds the agents console's snapshot on the maintainer's computer and syncs commands | `00-decisions.md` D-340 |
 | `deploy/` | Production compose file, Caddyfile, `rollout.sh`, `check-setup.sh` | `09-deploy.md` |
 | `scripts/` | Backups (`backup/`), the model backtest, dev stack checks, this index generator | project map |
-| `.claude/` | The agent team: 12 agents, their skills, the guard hook | project map `.claude/agents` |
+| `.claude/` | The agent team: 16 agents (incl. the marketing wing, D-349), their skills, the guard hook | project map `.claude/agents` |
 | `docs/` | Decisions, roadmap, architecture, per-phase task lists, runbooks | project map `docs/` |
 
 ### 6.2 Rules that bite
@@ -179,23 +179,25 @@ Refresh it with the same steps whenever a move is planned. It is a snapshot.
 
 ### 6.3 The agent team and the console
 
-- **The agents.** Twelve Claude Code subagents are defined in `.claude/agents/*.md` (D-326, D-328, D-330, D-339). They share the charter in `.claude/skills/team-charter/`. They write to `E:\FMIP\ops\` and keep their own memory in `.claude/agent-memory/<agent>/` (`memory: project`).
-- **The daily run.** The scheduled task `stadiomind-daily-team` (08:00 Tehran) runs the auditor, ops-release and QA, then the chief of staff's Persian brief.
-- **The console.** `agents.traveltohormuz.ir` (D-340) shows the agents, findings, reports, decisions and the board.
-  - Accounts open only from one-time invitations made on the server.
-  - The computer pushes a snapshot to it, and pulls its commands back, through `packages/console-publisher` and the hourly task `stadiomind-console-sync`.
+- **The agents.** Sixteen Claude Code subagents are defined in `.claude/agents/*.md` (D-326, D-328, D-330, D-339, D-349: the marketing wing marketing-manager, seo-search, social-media drafts only, growth-analyst). They share the charter in `.claude/skills/team-charter/`. They write to `E:\FMIP\ops\` and keep their own memory in `.claude/agent-memory/<agent>/` (`memory: project`; that folder is not in git, the bundle copies it).
+- **The daily run.** The scheduled task `stadiomind-daily-team` (09:00 Tehran) runs the auditor, ops-release, QA, content-community and social-media drafts (seo-search, growth-analyst and the marketing manager on Mondays), then the chief of staff's Persian brief for the maintainer and the teammate.
+- **The console** at `https://traveltohormuz.ir/agents` (D-340, D-341), fully Persian (D-352): the agents with a schematic of each (D-352), findings, reports, decisions, the board (456 cards imported 2026-11-03), chat with any agent (D-350, answered on demand since 2026-11-04), «درخواست‌های هم‌تیمی» (D-354; with images, D-357) and «مدل پیش‌بینی» (D-355).
+  - Accounts: `mostafa` (maintainer) and `mohammad` (teammate). New ones only from one-time invitations made on the server (`agents-console.js invite`).
+  - The computer pushes a snapshot to it and pulls its commands back through `packages/console-publisher` and the hourly task `stadiomind-console-sync`.
+  - Teammate requests: `node packages/console-publisher/src/publish.ts requests-pull` (text and images to `E:\FMIP\ops\console\`), `request-result`, `request-ask`; Claude acts on a request only when the maintainer says so in chat (skill `teammate-requests`).
+  - Chat: `chat-pull` / `chat-reply`, run when the maintainer asks (or "Run now" on `stadiomind-console-chat`).
 
 ### 6.4 Scheduled tasks (Claude desktop app, on the maintainer's computer)
 
 | Task | When | What |
 |---|---|---|
-| `stadiomind-daily-team` | daily 08:00 Tehran | Agent team's read-only checks and the Persian morning brief |
+| `stadiomind-daily-team` | daily 09:00 Tehran | Agent team's read-only checks and the Persian morning brief |
 | `stadiomind-console-sync` | hourly | Console commands in, snapshot out |
+| `stadiomind-console-chat` | on demand (paused) | Answers the console chats when the maintainer runs it |
 | `stadiomind-dashboard-refresh` | every 3 h | Dashboard snapshot from the server and the lab |
 | `fmip-server-followup` | every 6 h | Server health, backlog, adoption, weekly training reload |
 | `fmip-promotion-watch` | Mondays | The shadow model candidate against the published version |
 | `fmip-iran-watch-channels` | daily 10:30 Tehran | Iran league matches' TV channels |
-| `fmip-lineup-timing-check-1102` | once, 2026-11-02 | Line-up lead time; the Sportmonks decision |
 | `fmip-hsts-raise-2026-11-08` | once, 2026-11-08 | Raise HSTS if the week was clean |
 | `fmip-xg-forward-test-2027-01` | once, 2027-01-05 | D-334's forward test of xG form |
 
@@ -204,15 +206,17 @@ disabled. They are kept as a record.
 
 ---
 
-## 7. Open at the time of writing (2026-11-01)
+## 7. Open at the time of writing (2026-11-04)
 
 Status lives in the task files and the memory. This is only a pointer for the
-first hour.
+first hour. Server, `main` and GitHub were all at `7028ba2a` with no open pull
+request; `check-setup.sh` passed (backups included).
 
-- **Agents console.**
-  - Live at `https://traveltohormuz.ir/agents` (D-341). The Cloudflare record (CNAME `agents` → `traveltohormuz.ir`, proxied) still waits: the maintainer's Google sign-in, which Cloudflare uses, is locked until about 2026-12-01. Once it exists, set `CONSOLE_PATH=` empty and roll out `web`.
-  - The two invitations (`E:\FMIP\ops\console\invitations.md`, already in the `/agents/invite/` form).
-  - Then the board import (`import-board --as <username>` with `E:\FMIP\ops\console\board-import.json`), and the old board page made read-only. This is T-1700.
-- **Decision desk.** The four questions of 2026-11-01 were answered: home title (T-1703), news mix (T-1704), a privacy-notice draft for a lawyer, and 2 × 10 share-card concepts.
+- **The maintainer's own steps (purchases and keys, never the agent's):**
+  - the 14-day Sportmonks Starter trial, then `SPORTMONKS_API_TOKEN=` in the server's `.env` (forwarded since T-1732); then the agent builds the adapter (a decision entry, rule 2) and measures line-up lead time, TV stations and cup line-ups over the 14 days;
+  - a YouTube Data API v3 key from a Google account other than the locked one, then `YOUTUBE_API_KEY=`; then the agent builds D-261 phase A and shows the privacy-text change for approval.
+- **Cloudflare record** for `agents.` (CNAME `agents` → `traveltohormuz.ir`, proxied) waits for the maintainer's Google recovery (about 2026-12-01); then set `CONSOLE_PATH=` empty and roll out `web`.
+- **Match page budget** after T-1730: 180.3 of 183 kB; scores 167.9 of 170. Ideas for more room are in `08-load-test.md` ("The slimming of 2026-11-03").
+- **Activity charts** read their old days from `activity_daily` (T-1727), which fills as the daily purge keeps each day; days before about 2026-09-20 were lost to the first purge.
 - **Backups outside the repo.** `backup/` and `emails/` in the checkout are kept out of git by `.git/info/exclude`: a repository bundle, memory, scheduled tasks, claude.ai pages and their data, and recovery letters to every provider.
-- **Dated checks.** The ones listed in §6.4.
+- **Dated checks.** The ones listed in §6.4 (HSTS 2026-11-08, xG forward test 2027-01-05).
