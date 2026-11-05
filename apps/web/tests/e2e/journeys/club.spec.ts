@@ -55,6 +55,34 @@ for (const width of [390, 1440]) {
           await expect(page.getByTestId('band-standing')).toContainText(PERSIAN_DIGIT);
         }
 
+        // T-1741 (D-362): on a phone the band is one row and the ground,
+        // followers and coach are a card under the next match; from 768px
+        // the band has them and that card is not drawn.
+        if (width < 768) {
+          await expect(band.getByTestId('band-eyebrow')).toBeHidden();
+          await expect(band.getByTestId('followers')).toBeHidden();
+          await expect(page.getByTestId('club-facts')).toBeVisible();
+          await expect(page.getByTestId('facts-followers')).toBeVisible();
+        } else {
+          await expect(band.getByTestId('followers')).toBeVisible();
+          await expect(page.getByTestId('club-facts')).toBeHidden();
+        }
+        // The next match leads to the match page's pick card until kick-off,
+        // and a guest's Follow to sign-in with the way back.
+        const pick = page.getByTestId('next-match-pick');
+        if ((await pick.count()) > 0) {
+          await expect(pick).toHaveAttribute(
+            'href',
+            new RegExp(`^/${locale}/match/[0-9a-f-]+#pick$`),
+          );
+        }
+        if ((await page.getByTestId('next-match').count()) > 0) {
+          await expect(page.getByTestId('team-card-follow-guest')).toHaveAttribute(
+            'href',
+            `/${locale}/login?next=${encodeURIComponent(`/${locale}/team/${MAN_UTD}`)}`,
+          );
+        }
+
         // The footer says its time is the matches' (T-1633, D-296), never a
         // bare "Last data update"; in Persian words and digits on /fa.
         const updated = page.getByTestId('team-updated');

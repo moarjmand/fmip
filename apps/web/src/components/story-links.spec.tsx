@@ -6,12 +6,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/story-actions', () => ({ storyFollowAction: async () => undefined }));
 
-const { StoryFollowControls, StoryPredictionLinks, followableEntities } =
-  await import('./story-links');
+const { StoryFollowControls, followableEntities } = await import('./story-links');
 
 /**
- * The story page's share, follow and prediction-product links (T-941,
- * blueprint 3.3).
+ * The story page's share and follow controls (T-941, blueprint 3.3).
  */
 const STORY = readFileSync(
   join(__dirname, '..', 'app', '[locale]', 'news', 'story', '[id]', 'page.tsx'),
@@ -94,38 +92,15 @@ describe('follow controls on a story (T-941)', () => {
   });
 });
 
-describe('the three prediction products on a match story (T-941, rule 6)', () => {
-  const html = renderToStaticMarkup(
-    <StoryPredictionLinks locale="en" fixtureId="00000000-0000-4000-8000-000000000901" />,
-  );
-
-  it('is three links, each to its own section of the match centre with its own name', () => {
-    for (const anchor of ['forecast', 'analysis', 'community']) {
-      expect(html).toContain(`href="/en/match/00000000-0000-4000-8000-000000000901#${anchor}"`);
-    }
-    expect(html).toContain('The model&#x27;s forecast');
-    expect(html).toContain('The founder&#x27;s analysis');
-    expect(html).toContain('The community consensus');
-    expect(html.match(/<a /g)).toHaveLength(3);
-  });
-
-  it('shows no figure from any of them', () => {
-    expect(html).not.toMatch(/\d+(\.\d)?%/);
-  });
-
-  it('is placed on the story page with the share and follow controls, and the old sentence is gone', () => {
-    expect(STORY).toContain('<StoryPredictionLinks');
+describe('the story page’s onward controls (T-941)', () => {
+  it('places share, follow and the predictions card, and the old sentence is gone', () => {
+    // The predictions card is `story-predictions.tsx` since T-1741 (D-362);
+    // `story-predictions.spec.tsx` covers it and what the page reads for it.
+    expect(STORY).toContain('<StoryPredictions');
+    expect(STORY).not.toContain('StoryPredictionLinks');
     expect(STORY).toContain('<StoryFollowControls');
     expect(STORY).toContain('<ShareLink');
     expect(STORY).not.toContain('story.notYet');
     expect(STORY).not.toMatch(/save and share are not built/i);
-    // Links only for the founder and the community: the page fetches neither.
-    expect(STORY).not.toMatch(/fetchConsensus|fetchFounderAnalysis/);
-    // The model alone, and only for a match report (T-1383, D-201): its
-    // pre-match version and that version's evaluation, in its own lane.
-    expect(STORY).not.toMatch(/fetchForecastList|fetchForecasts\(/);
-    expect(STORY).toContain("story.type.data?.type === 'match_report'");
-    expect(STORY).toContain('fetchForecastSummaries([fixtureId])');
-    expect(STORY).toContain('<ModelExpected');
   });
 });

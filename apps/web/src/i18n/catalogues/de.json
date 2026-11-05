@@ -4290,18 +4290,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.intro": {
-    "source": "Three separate products, each on the match centre under its own name. None is shown here, and they are never combined.",
+  "story.predictions.pick": {
+    "source": "Make your pick on the match page",
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.model": {
-    "source": "The model's forecast",
+  "story.predictions.noMatch": {
+    "source": "This story is not linked to an upcoming match, so there is no forecast to show here.",
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.modelNote": {
-    "source": "probabilities from the versioned statistical model",
+  "story.predictions.started": {
+    "source": "This match has kicked off, so picks are closed. Its forecasts are on the match page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.matchUnreachable": {
+    "source": "The match could not be loaded right now, so its forecast is not shown here.",
     "text": "",
     "status": "untranslated"
   },
@@ -4310,8 +4315,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.founderNote": {
-    "source": "one person's signed view, not the model",
+  "story.predictions.founderNone": {
+    "source": "{founder}: none published for this match yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderPublished": {
+    "source": "{founder}: published. {link}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderRead": {
+    "source": "Read it on the match page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderUnknown": {
+    "source": "{founder}: cannot be checked right now.",
     "text": "",
     "status": "untranslated"
   },
@@ -4320,8 +4340,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.communityNote": {
-    "source": "what members predicted, shown once five have predicted",
+  "story.predictions.communityNotYet": {
+    "source": "{community}: not yet. It is shown once {floor} members have picked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communityIn": {
+    "source": "{community}: published. {link}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communitySee": {
+    "source": "See it on the match page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communityUnknown": {
+    "source": "{community}: cannot be checked right now.",
     "text": "",
     "status": "untranslated"
   },
@@ -11474,6 +11509,11 @@
   },
   "teamPage.noGround": {
     "source": "Home ground not recorded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.details": {
+    "source": "Team details",
     "text": "",
     "status": "untranslated"
   },

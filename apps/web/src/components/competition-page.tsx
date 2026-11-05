@@ -328,6 +328,74 @@ export function EntityFollow({
   );
 }
 
+/**
+ * Follow as a card's second button (T-1741, D-362): beside "Make your pick"
+ * on the club's next-match card. A guest gets a link to sign-in carrying the
+ * way back (`guestHref`: a same-origin path in `next`); on a phone it is the
+ * guest's only follow control, the band's being left out there. A member
+ * gets the band's own follow action as one button, and once following a line
+ * saying so -- from 768px only: on a phone the member keeps the band's
+ * control, which also holds "stop following" and the push offer, and a
+ * second one a thumb away would say the same thing twice. With the follows
+ * unreadable it draws nothing; the band says so. The test ids are
+ * `<type>-card-follow…`.
+ */
+export function CardFollow({
+  locale,
+  entityType,
+  entityId,
+  signedIn,
+  following,
+  followingKey,
+  guestHref,
+}: {
+  locale: string;
+  entityType: 'competition' | 'team';
+  entityId: string;
+  signedIn: boolean;
+  /** `null` when `/me/following` could not be read. */
+  following: FollowedEntity[] | null;
+  followingKey: MessageKey;
+  /** Where a guest is sent: sign-in with `next` set to this page. */
+  guestHref: string;
+}) {
+  if (!signedIn) {
+    return (
+      <ButtonLink href={guestHref} size="md" data-testid={`${entityType}-card-follow-guest`}>
+        <Icon name="bell" size={18} />
+        <Translated locale={locale} message="competitionPage.follow.start" />
+      </ButtonLink>
+    );
+  }
+  if (following === null) return null;
+  if (following.some((f) => f.entity_type === entityType && f.entity_id === entityId)) {
+    return (
+      <p
+        className="inline-flex min-h-touch items-center gap-1.5 text-sm font-semibold text-accent max-md:hidden"
+        data-testid={`${entityType}-card-following`}
+      >
+        <Icon name="check" size={16} />
+        <Translated locale={locale} message={followingKey} />
+      </p>
+    );
+  }
+  return (
+    <form
+      action={followAction.bind(null, locale)}
+      className="max-md:hidden"
+      data-testid={`${entityType}-card-follow`}
+    >
+      <input type="hidden" name="entity_type" value={entityType} />
+      <input type="hidden" name="entity_id" value={entityId} />
+      <FollowIntentMark />
+      <Button type="submit" size="md">
+        <Icon name="bell" size={18} />
+        <Translated locale={locale} message="competitionPage.follow.start" />
+      </Button>
+    </form>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Matches
 // ---------------------------------------------------------------------------

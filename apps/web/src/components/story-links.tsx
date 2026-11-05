@@ -1,13 +1,12 @@
 import type { FollowedEntity, NewsEntity } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { Translated } from '@/components/translated';
-import type { MessageKey } from '@/i18n/messages';
 import { storyFollowAction } from '@/lib/story-actions';
 
 /**
  * The story page's controls that lead somewhere else (T-941, blueprint 3.3):
- * following what the story is about, and the match's three prediction
- * products.
+ * following what the story is about. The match's prediction products are
+ * `story-predictions.tsx` since T-1741 (D-362).
  */
 
 type Followable = NewsEntity & { entity_type: 'team' | 'competition' };
@@ -95,58 +94,6 @@ export function StoryFollowControls({
           })}
         </ul>
       )}
-    </section>
-  );
-}
-
-/**
- * The match's three prediction products, each its own link with its own
- * name and what it is (rule 6). Links, never figures: nothing of any of the
- * three is fetched or shown here, so the story page cannot put them side by
- * side as one answer, and each lands on its own section of the match centre.
- */
-const PRODUCTS: readonly {
-  anchor: 'forecast' | 'analysis' | 'community';
-  label: MessageKey;
-  note: MessageKey;
-}[] = [
-  { anchor: 'forecast', label: 'story.predictions.model', note: 'story.predictions.modelNote' },
-  {
-    anchor: 'analysis',
-    label: 'story.predictions.founder',
-    note: 'story.predictions.founderNote',
-  },
-  {
-    anchor: 'community',
-    label: 'story.predictions.community',
-    note: 'story.predictions.communityNote',
-  },
-];
-
-export function StoryPredictionLinks({ locale, fixtureId }: { locale: string; fixtureId: string }) {
-  return (
-    <section aria-labelledby="story-predictions" className="flex flex-col gap-2 text-sm">
-      <h2 id="story-predictions" className="font-semibold">
-        <Translated locale={locale} message="story.predictions.title" />
-      </h2>
-      <p className="text-muted">
-        <Translated locale={locale} message="story.predictions.intro" />
-      </p>
-      <ul className="flex flex-col gap-1" data-testid="story-predictions">
-        {PRODUCTS.map((product) => (
-          <li key={product.anchor} data-testid={`story-product-${product.anchor}`}>
-            <Link
-              href={`/${locale}/match/${fixtureId}#${product.anchor}`}
-              className="inline-flex min-h-11 items-center font-medium underline"
-            >
-              <Translated locale={locale} message={product.label} />
-            </Link>{' '}
-            <span className="text-muted">
-              <Translated locale={locale} message={product.note} />
-            </span>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
