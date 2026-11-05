@@ -86,7 +86,7 @@ const row = (
         locale={locale}
         now={NOW}
         forecast={AVAILABLE}
-        pickHref={`/${locale}/scores?pick=${ID}#pick`}
+        pickHref={`/${locale}/scores?pick=${ID}#m-${ID}`}
         words={scoresWords(locale)}
         {...props}
       />
@@ -162,7 +162,9 @@ describe("the row's Pick", () => {
 
   it('links to this page with the match preview open, named for the match', () => {
     const html = row('en');
-    expect(html).toContain(`href="/en/scores?pick=${ID}#pick"`);
+    // To the row's own anchor (T-1738): the sheet opens and the list stays put.
+    expect(html).toContain(`href="/en/scores?pick=${ID}#m-${ID}"`);
+    expect(html).toContain(`<li id="m-${ID}"`);
     expect(html).toContain('data-pick="open"');
     expect(html).toContain('aria-label="Pick: Barcelona v Real Madrid"');
     expect(html).toContain('>Pick<');
@@ -419,18 +421,65 @@ describe('the preview', () => {
   it('opens on the outcomes, and holds the community split back until the reader picks', () => {
     const before = preview(member, null);
     expect(before).toContain('id="pick"');
-    expect(before).toContain('data-testid="prediction-form"');
-    expect(before).not.toContain('data-pick="before"');
+    expect(before).toContain('data-testid="pick-control" data-pick="open"');
+    expect(before).toContain('<button type="submit" value="home" aria-pressed="false"');
     expect(before).not.toContain('community-split');
     const after = preview(member, pick);
-    expect(after).toContain('data-pick="picked"');
+    expect(after).toContain('data-pick="saved"');
     expect(after).toContain('community-split');
   });
 
-  it('asks a guest to sign in and shows no split', () => {
+  it('shows a guest the three outcomes as links towards an account, and no split', () => {
     const html = preview(null, null);
-    expect(html).toContain('data-pick="guest"');
+    expect(html).toContain('data-testid="pick-control" data-pick="open"');
+    expect(html).toContain(
+      `href="/en/register?next=${encodeURIComponent(`/en/match/${ID}?pick=away#pick`)}"`,
+    );
+    expect(html).not.toContain('href="/en/login"');
     expect(html).not.toContain('community-split');
+  });
+
+  it('is a bottom sheet under 1024px: fixed, scrolling inside itself, over a scrim (T-1738)', () => {
+    const html = preview(null, null);
+    const section = /<section id="pick"[^>]*class="([^"]*)"/.exec(html)?.[1] ?? '';
+    for (const part of [
+      'max-lg:fixed',
+      'max-lg:inset-x-0',
+      'max-lg:bottom-0',
+      'max-lg:max-h-[70dvh]',
+      'max-lg:overflow-y-auto',
+    ]) {
+      expect(section).toContain(part);
+    }
+    // Nothing fixed from 1024px, where it is the side column's card.
+    expect(section).not.toMatch(/(^| )fixed( |$)/);
+    // The scrim and the 44px close control are links back, without scrolling.
+    expect(html).toMatch(
+      /<a aria-hidden="true" tabindex="-1" class="fixed inset-0 z-50 [^"]*lg:hidden" data-testid="preview-scrim" href="\/en\/scores"/,
+    );
+    expect(html).toMatch(/class="[^"]*size-11[^"]*" data-testid="preview-close"/);
+    // The sheet names the match on one line; the crest block is the desktop's.
+    expect(html).toMatch(/lg:hidden" data-testid="preview-teams"/);
+    // Unasked (the desktop's first open match), there is nothing to close and no scrim.
+    const unasked = renderToStaticMarkup(
+      <MatchPreview
+        card={card({ kickoff_at: new Date(Date.now() + 86_400_000).toISOString() })}
+        now={Date.now()}
+        locale="en"
+        timeZone="UTC"
+        zone="UTC"
+        me={null}
+        current={null}
+        consensus={null}
+        forecast={AVAILABLE}
+        community={{ state: 'below_floor' }}
+        viewing={{ state: 'ask' }}
+        words={scoresWords('en')}
+        forecastWords={forecastBarWords('en')}
+      />,
+    );
+    expect(unasked).not.toContain('preview-scrim');
+    expect(unasked).not.toContain('preview-close');
   });
 
   it('shows the model beside the pick with its version and time, or says it has none', () => {
@@ -500,11 +549,13 @@ describe('the preview', () => {
 
   it('tells a guest after kick-off that picks are locked, without the note on making one', () => {
     const html = preview(null, null, AVAILABLE, 'en', { ...started, status: 'live', minute: 74 });
-    expect(html).toContain('data-testid="preview-locked"');
+    expect(html).toContain('data-testid="pick-control" data-pick="locked"');
     expect(html).toContain('Locked at kick-off');
-    expect(html).not.toContain('records a community pick only');
-    expect(preview(null, null)).toContain('records a community pick only');
-    expect(preview(null, null)).not.toContain('preview-locked');
+    expect(html).toContain('Picks lock at kick-off.');
+    expect(html).not.toContain('/register');
+    expect(html).not.toContain('No account is needed to choose');
+    expect(preview(null, null)).toContain('No account is needed to choose');
+    expect(preview(null, null)).not.toContain('data-pick="locked"');
   });
 
   it('draws the MODEL tag as an outline, which holds 4.5:1 in Day (T-1545)', () => {

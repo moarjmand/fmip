@@ -176,7 +176,10 @@ export function LiveScores({
   const pickHref = (id: string): string | undefined =>
     pickBase === undefined
       ? undefined
-      : `${pickBase}${pickBase.includes('?') ? '&' : '?'}pick=${id}#pick`;
+      : // The fragment is the row's own anchor (T-1738): the sheet or the panel
+        // opens without the list moving, and without JavaScript the page
+        // comes back at the row that asked.
+        `${pickBase}${pickBase.includes('?') ? '&' : '?'}pick=${id}#m-${id}`;
   const row = (card: (typeof shown.groups)[number]['fixtures'][number], pinned: boolean) => (
     <ScoreCard
       key={card.id}

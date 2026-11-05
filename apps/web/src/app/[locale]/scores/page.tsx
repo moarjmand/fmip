@@ -515,11 +515,14 @@ export default async function ScoresPage({
         </div>
 
         {/* The preview: beside the list from 1024px, sticky while the list
-            scrolls; on a phone above the list, and only once a Pick asked for it. */}
+            scrolls; below that a bottom sheet over the list, and only once a
+            Pick asked for it (T-1738). The sheet and its scrim are fixed, so
+            under 1024px this box is `contents`: it takes no row of the grid
+            and the list does not move when the sheet opens or closes. */}
         {result.ok && (
           <aside
-            className={`flex min-w-0 flex-col gap-4 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto xl:col-start-3 ${
-              chosen === null ? 'max-lg:hidden' : ''
+            className={`min-w-0 flex-col gap-4 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto xl:col-start-3 ${
+              chosen === null ? 'max-lg:hidden' : 'max-lg:contents'
             }`}
             data-testid="preview-column"
           >
@@ -537,7 +540,8 @@ export default async function ScoresPage({
                 forecast={previewLines.forecast[previewCard.id]}
                 community={previewLines.community[previewCard.id]}
                 viewing={previewLines.viewing[previewCard.id]}
-                closeHref={chosen === null ? undefined : pageHref(locale, q)}
+                // Back to the row that asked, never to the top of the page.
+                closeHref={chosen === null ? undefined : `${pageHref(locale, q)}#m-${chosen.id}`}
                 now={now}
                 words={words}
                 forecastWords={forecastBarWords(locale)}

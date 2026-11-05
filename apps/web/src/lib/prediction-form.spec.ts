@@ -43,6 +43,24 @@ describe('formToSubmission', () => {
     ).toEqual({ outcome: 'draw', score: null, confidence: 3, reason_tags: [], explanation: null });
   });
 
+  it('keeps a carried score only with the outcome it was given for (T-1738)', () => {
+    const carried = (outcome: string) =>
+      formToSubmission(
+        form([
+          ['outcome', outcome],
+          ['score_for', 'home'],
+          ['score_home', '2'],
+          ['score_away', '1'],
+          ['confidence', '4'],
+        ]),
+      ).score;
+    // The same outcome tapped again: the stored score stands.
+    expect(carried('home')).toEqual({ home: 2, away: 1 });
+    // Another outcome: 2-1 no longer agrees with it, so it is dropped.
+    expect(carried('away')).toBeNull();
+    expect(carried('draw')).toBeNull();
+  });
+
   it('forwards a fourth tag so the API can refuse it by name', () => {
     const request = formToSubmission(
       form([

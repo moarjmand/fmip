@@ -99,7 +99,8 @@ test('a match row is one thumb-sized row, and its details open in the preview', 
   expect(Math.abs((await middle('home-score')) - (await middle('home-team')))).toBeLessThan(6);
 
   // The labels, the model's and the community's lines are one press away:
-  // the row's own Pick (or View) opens the preview above the list on a phone.
+  // the row's own Pick (or View) opens the preview as a bottom sheet over the
+  // list on a phone (T-1738).
   await expect(page.getByTestId('match-preview')).toBeHidden();
   const pick = row.getByTestId('row-pick');
   expect((await pick.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);

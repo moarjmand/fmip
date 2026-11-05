@@ -8540,12 +8540,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "scores.preview.yourPick": {
-    "source": "Your pick",
-    "text": "انتخاب شما",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "scores.preview.model": {
     "source": "Model",
     "text": "مدل",
@@ -11891,12 +11885,6 @@
   "predictions.action.saved": {
     "source": "Saved as version {version}. You can change it until kick-off.",
     "text": "به‌عنوان نسخه‌ی {version} ذخیره شد. تا شروع بازی می‌توانید آن را تغییر دهید.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.page.pickNote": {
-    "source": "“Make your pick” records a community pick only; it never changes the model’s numbers. The community split stays hidden until you pick.",
-    "text": "«انتخاب کنید» فقط یک انتخاب در نظر جمعی کاربران ثبت می‌کند و هرگز اعداد مدل را تغییر نمی‌دهد. تا انتخاب نکرده‌اید، نظر جمعی پنهان می‌ماند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -16681,6 +16669,78 @@
     "text": "انتخاب‌های کاربران: {home} {homePct}، مساوی {drawPct}، {away} {awayPct}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "pick.title": {
+    "source": "Your pick",
+    "text": "پیش‌بینی شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.locks": {
+    "source": "Locks {time} {zone}",
+    "text": "قفل در {time} {zone}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.note.guest": {
+    "source": "Tap an outcome. No account is needed to choose; an account is needed to save it.",
+    "text": "یک نتیجه را انتخاب کنید. برای انتخاب حساب لازم نیست؛ برای ذخیره‌کردنش حساب لازم است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.note.chosen": {
+    "source": "Your pick: {outcome}. Not saved yet. Create a free account to lock it before {time}.",
+    "text": "پیش‌بینی شما: {outcome}. هنوز ذخیره نشده است. برای قفل‌کردن آن پیش از {time} یک حساب رایگان بسازید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.note.member": {
+    "source": "Tap an outcome to save your pick. You can change it until {time}.",
+    "text": "یک نتیجه را انتخاب کنید تا پیش‌بینی شما ذخیره شود. تا {time} می‌توانید آن را عوض کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); not on the P1 boards, worded to match them (D-359)."
+  },
+  "pick.note.carried": {
+    "source": "Your pick: {outcome}. Not saved yet. Tap it to save it before {time}.",
+    "text": "پیش‌بینی شما: {outcome}. هنوز ذخیره نشده است. برای ذخیره‌کردنش پیش از {time} روی آن بزنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); not on the P1 boards, worded to match them (D-359)."
+  },
+  "pick.note.saved": {
+    "source": "You can change it until {time}.",
+    "text": "تا {time} می‌توانید آن را عوض کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.note.locked": {
+    "source": "Picks lock at kick-off. Your pick: {outcome}.",
+    "text": "پیش‌بینی‌ها با شروع بازی قفل می‌شوند. پیش‌بینی شما: {outcome}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.note.lockedNone": {
+    "source": "Picks lock at kick-off.",
+    "text": "پیش‌بینی‌ها با شروع بازی قفل می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.saved": {
+    "source": "Saved",
+    "text": "ذخیره شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.create": {
+    "source": "Create account",
+    "text": "ساخت حساب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.detail": {
+    "source": "Add detail: exact score, confidence, reasons",
+    "text": "افزودن جزئیات: نتیجه‌ی دقیق، میزان اطمینان، دلیل‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); not on the P1 boards, worded to match them (D-359)."
   },
   "nextMatch.title": {
     "source": "Next match",
