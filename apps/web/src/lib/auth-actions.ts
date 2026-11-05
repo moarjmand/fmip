@@ -19,6 +19,9 @@ import { type ApiResult, apiRequest } from './api';
 import { stepHref } from './first-run';
 import { applyGuestChoices } from './first-run-actions';
 import { afterRegistration, readInviter } from './invite';
+import { offeredNow } from './language-hold';
+import { registrationDisplayName, registrationLanguage } from './register';
+import { RETURN_PARAM, safeReturnPath } from './return-to';
 import { applyApiSetCookie, readerAddress, sessionCookieHeader } from './session';
 import { reconcileThemeAtSignIn } from './theme-cookie';
 import { territoryName } from './territory';
@@ -72,13 +75,17 @@ export async function registerAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const username = text(formData, 'username');
   const body: RegisterRequest = {
-    username: text(formData, 'username'),
-    display_name: text(formData, 'display_name'),
+    username,
+    // The form asks for neither (T-1737, D-358): the display name is the
+    // username until the member changes it in Settings, and the language is
+    // the page's own when the product offers it.
+    display_name: registrationDisplayName(text(formData, 'display_name'), username),
     email: text(formData, 'email'),
     password: text(formData, 'password'),
     country_id: text(formData, 'country_id'),
-    preferred_language: text(formData, 'preferred_language'),
+    preferred_language: registrationLanguage(locale, await offeredNow()),
     timezone: text(formData, 'timezone'),
     accept_rules: formData.get('accept_rules') === 'on',
   };
@@ -104,7 +111,11 @@ export async function registerAction(
   // Through a member's invite link, the new member lands on the inviter's
   // profile and its friend-request control; nothing is sent for them (T-522).
   const inviter = readInviter(text(formData, 'invited_by') || undefined);
-  const destination = afterRegistration(locale, result.data.user.username, inviter);
+  // The page the guest was on its way to wins (T-1736, D-358): it is what they
+  // asked for. The field is read by the same rule as the query it came from.
+  const destination =
+    safeReturnPath(locale, text(formData, RETURN_PARAM)) ??
+    afterRegistration(locale, result.data.user.username, inviter);
   // A new member is offered the first run once, and then goes where they were going.
   redirect(firstRunDone ? destination : stepHref(locale, 'language', destination));
 }
@@ -131,7 +142,11 @@ export async function loginAction(
   await applyGuestChoices(result.setCookie, 'sign_in');
   // The account's theme reaches this browser, or this browser's an account that never chose (T-602).
   await reconcileThemeAtSignIn(result.setCookie);
-  redirect(`/${locale}/u/${encodeURIComponent(result.data.user.username)}`);
+  // Back to the page that asked for the sign-in (T-1736, D-358), else the profile.
+  redirect(
+    safeReturnPath(locale, text(formData, RETURN_PARAM)) ??
+      `/${locale}/u/${encodeURIComponent(result.data.user.username)}`,
+  );
 }
 
 export async function logoutAction(locale: string): Promise<void> {

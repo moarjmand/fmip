@@ -38,6 +38,8 @@ import { Fragment } from 'react';
 export type MatchSlot =
   // The Summary's opening card (T-1497): what the model forecast, and what happened.
   | 'outcome'
+  // The reader's own pick (T-1739, D-360): the card directly under the model's.
+  | 'pick'
   | 'summary'
   // The three voices against the result, after full time.
   | 'verdict'
@@ -100,6 +102,9 @@ type Key = keyof MatchWords['m'];
  * when there is none), so a tab, a deep link (`#lineups`, `#forecast`) and a
  * page with no script all work alike. The statistical model, the founder's
  * analysis and the community stay three sections inside Predictions (rule 6).
+ * The pick card (T-1739, D-360) is a Predictions section the Summary also
+ * shows: under the model's card there, first on Predictions, one element.
+ * While the match is scheduled the Predictions tab opens it (`#pick`).
  */
 export const TABS = [
   ['summary', 'matchCentre.tab.summary'],
@@ -125,6 +130,7 @@ export const SECTIONS = {
   stats: 'stats',
   lineups: 'lineups',
   players: 'lineups',
+  pick: 'predictions',
   forecast: 'predictions',
   analysis: 'predictions',
   community: 'predictions',
@@ -264,9 +270,20 @@ function playerCell(locale: string, player: MatchPlayerStats, metric: PlayerMatc
 /**
  * One section of the page, the target of an anchor. Its top clears the
  * sticky tabs when jumped to; with nothing in it, it is not rendered. `tab`
- * makes it a tab's whole panel (Stats, Watch, Discussion).
+ * makes it a tab's whole panel (Stats, Watch, Discussion); `also` names a
+ * second tab that shows it on a phone (the pick card, `globals.css`).
  */
-function Region({ id, tab, children }: { id: string; tab?: MatchTab; children?: React.ReactNode }) {
+function Region({
+  id,
+  tab,
+  also,
+  children,
+}: {
+  id: string;
+  tab?: MatchTab;
+  also?: MatchTab;
+  children?: React.ReactNode;
+}) {
   if (children === undefined || children === null || children === false) return null;
   return (
     <div
@@ -274,6 +291,7 @@ function Region({ id, tab, children }: { id: string; tab?: MatchTab; children?: 
       className="flex min-w-0 scroll-mt-16 flex-col gap-5"
       data-testid={`section-${id}`}
       data-tab={tab}
+      data-tab-also={also}
     >
       {children}
     </div>
@@ -337,15 +355,25 @@ export function MatchCentreView({
 
   const panels: Record<MatchTab, React.ReactNode> = {
     summary: (
-      <Panel tab="summary" id="summary">
-        {/* What the model forecast and what happened, then the three voices (T-1497). */}
-        {slots.outcome}
-        <Region id="verdict">{slots.verdict}</Region>
-        <Region id="timeline">
-          <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
+      <>
+        <Panel tab="summary" id="summary">
+          {/* What the model forecast and what happened (T-1497). */}
+          {slots.outcome}
+        </Panel>
+        {/* The reader's pick, directly under the model's card (T-1739): a
+            Predictions section, outside the Summary's panel so that tab shows it too. */}
+        <Region id="pick" tab="predictions" also="summary">
+          {slots.pick}
         </Region>
-        {slots.summary}
-      </Panel>
+        <Panel tab="summary">
+          {/* Then the three voices, and the match as it went. */}
+          <Region id="verdict">{slots.verdict}</Region>
+          <Region id="timeline">
+            <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
+          </Region>
+          {slots.summary}
+        </Panel>
+      </>
     ),
     stats: (
       <Region id="stats" tab="stats">
@@ -408,7 +436,7 @@ export function MatchCentreView({
   const COLUMN = 'flex min-w-0 flex-col gap-6 max-md:contents';
 
   return (
-    <div className="flex flex-col gap-5 md:gap-6" data-match-root="">
+    <div className="flex flex-col gap-5 md:gap-6" data-match-root="" data-status={f.status}>
       <Hero
         centre={centre}
         locale={locale}
@@ -417,6 +445,7 @@ export function MatchCentreView({
         hero={hero}
         words={words}
         tabs={tabs}
+        pick={has('pick') && f.status === 'scheduled'}
       />
 
       <div
@@ -479,6 +508,7 @@ function Hero({
   hero,
   words,
   tabs,
+  pick,
 }: {
   centre: MatchCentre;
   locale: string;
@@ -487,6 +517,8 @@ function Hero({
   hero: MatchHero;
   words: MatchWords;
   tabs: readonly (readonly [MatchTab, Key])[];
+  /** The pick is open: the Predictions tab leads to its card (D-360). */
+  pick: boolean;
 }) {
   const m = words.m;
   const n = (value: number): string => formatNumber(locale, value);
@@ -824,7 +856,7 @@ function Hero({
           {tabs.map(([tab, label]) => (
             <li key={tab} className="shrink-0">
               <a
-                href={`#${tab}`}
+                href={`#${pick && tab === 'predictions' ? 'pick' : tab}`}
                 data-tab-link={tab}
                 className="inline-flex min-h-touch items-center px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg"
               >

@@ -29,6 +29,7 @@ export const FOOTER_LABELS: Record<FooterLink['id'], MessageKey> = {
   analysis: 'analysis.founder.title',
   about: 'about.meta.title',
   rules: 'rules.title',
+  settings: 'nav.settings',
 };
 
 /**

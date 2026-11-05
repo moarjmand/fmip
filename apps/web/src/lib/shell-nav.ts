@@ -78,6 +78,7 @@ const ME_SECTIONS = [
   '/notifications',
   '/login',
   '/register',
+  '/you',
 ] as const;
 
 /**
@@ -85,7 +86,8 @@ const ME_SECTIONS = [
  * News, You. Matches is current on the homepage too, as the canvas's phone
  * home shows it; Predict leads to the picks to make, and is current there
  * (D-281) and on the league, the model's record and the founder's analysis;
- * "You" is the member's settings, or Sign in for a guest.
+ * "You" is the member's settings, or for a guest the page that offers an
+ * account and the sign-in (`/you`, T-1736, D-358).
  */
 export function tabBarLinks(signedIn: boolean): readonly ShellLink[] {
   return [
@@ -101,7 +103,7 @@ export function tabBarLinks(signedIn: boolean): readonly ShellLink[] {
       match: LEAGUES,
     },
     { id: 'news', path: '/news', match: ['/news', '/highlights'] },
-    { id: 'you', path: signedIn ? '/settings' : '/login', match: ME_SECTIONS },
+    { id: 'you', path: signedIn ? '/settings' : '/you', match: ME_SECTIONS },
   ];
 }
 
@@ -117,7 +119,8 @@ export interface FooterLink {
     | 'model'
     | 'analysis'
     | 'about'
-    | 'rules';
+    | 'rules'
+    | 'settings';
   path: string;
 }
 
@@ -133,7 +136,7 @@ export interface FooterGroup {
  * competitions, highlights, where to watch, news. Predictions: the
  * prediction league, the model's record and the founder's analysis, each
  * under its own name and never as one (rule 6). Stadiomind: what it is and
- * its rules, which are linked from nowhere else (T-1572).
+ * its rules, which are linked from nowhere else (T-1572), and Settings.
  */
 export const FOOTER_NAV: readonly FooterGroup[] = [
   {
@@ -159,6 +162,9 @@ export const FOOTER_NAV: readonly FooterGroup[] = [
     links: [
       { id: 'about', path: '/about' },
       { id: 'rules', path: '/rules' },
+      // Appearance needs no account (T-621). A guest's desktop bar no longer
+      // carries its gear (T-1736, D-358), so every page ends with the link.
+      { id: 'settings', path: '/settings' },
     ],
   },
 ];

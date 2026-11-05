@@ -41,7 +41,12 @@ export default function robots(): MetadataRoute.Robots {
   const disallow = [
     '/api/',
     ...PSEUDO_LOCALES.map((l) => `/${l}/`),
-    ...INDEXABLE_LOCALES.flatMap((l) => [`/${l}/settings`, `/${l}/login`, `/${l}/register`]),
+    ...INDEXABLE_LOCALES.flatMap((l) => [
+      `/${l}/settings`,
+      `/${l}/login`,
+      `/${l}/register`,
+      `/${l}/you`,
+    ]),
   ];
   return {
     rules: [

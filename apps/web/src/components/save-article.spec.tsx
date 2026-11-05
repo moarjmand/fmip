@@ -70,7 +70,10 @@ describe('where saving lives (T-842)', () => {
 
   it('lists the saved stories under Following, for the member only', () => {
     expect(FOLLOWING).toContain('/following/saved');
-    expect(SAVED).toContain('redirect(`/${locale}/login?next=/${locale}/following/saved`)');
+    // A guest sees the gate, which carries the page as the return address (T-1736).
+    expect(SAVED).toContain(
+      'if (me === null) return <GatePage locale={locale} route="/following/saved" />;',
+    );
     expect(SAVED).toContain('fetchSavedArticles(cookie)');
     // A dropped publisher is said, not linked (D-061).
     expect(SAVED).toContain("'saved.dropped'");

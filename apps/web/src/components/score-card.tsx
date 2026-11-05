@@ -211,7 +211,9 @@ export function ScoreCard({
 
   return (
     <li
-      className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-2.5 px-4 data-selected:bg-selected sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] sm:gap-x-3.5"
+      // The anchor its own Pick and the preview's close control return to (T-1738).
+      id={pickHref === undefined ? undefined : `m-${card.id}`}
+      className="grid scroll-mt-24 grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-2.5 px-4 data-selected:bg-selected sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] sm:gap-x-3.5"
       data-testid="score-card"
       data-fixture-id={card.id}
       data-status={card.status}

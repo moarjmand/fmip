@@ -251,8 +251,8 @@ describe('the bottom tab bar', () => {
     expect(html.match(/aria-current/g)).toHaveLength(1);
   });
 
-  it('sends You to Sign in for a guest and to Settings for a member', () => {
-    expect(tag(render('en', false), 'tab-you')).toContain('href="/en/login"');
+  it('sends You to the account offer for a guest and to Settings for a member', () => {
+    expect(tag(render('en', false), 'tab-you')).toContain('href="/en/you"');
     expect(tag(render('en', true), 'tab-you')).toContain('href="/en/settings"');
   });
 

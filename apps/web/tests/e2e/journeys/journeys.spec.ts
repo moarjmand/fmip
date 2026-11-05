@@ -5,9 +5,11 @@ import { leaveFirstRun, verifyLink } from './members';
  * The blueprint's essential user journeys, the slices of them Phase 1 ships
  * (T-080, D-043), driven through the real web app, API, database and seed:
  *
- *   18.1 a new member predicts a match — sent to sign in, registers, verifies
- *        the e-mail from the real message, submits a prediction that lands in
- *        the history and stays open until kick-off;
+ *   18.1 a new member predicts a match — picks an outcome on the match page's
+ *        pick card (T-1739), is sent to create an account with the way back,
+ *        registers, verifies the e-mail from the real message, saves the pick
+ *        with one tap and adds a score, which lands in the history and stays
+ *        open until kick-off;
  *   18.2 the live match card — the scores list and the match centre stay
  *        current over the stream;
  *   18.3 eligibility for high-rating privileges is a function of rating and
@@ -46,59 +48,122 @@ test.describe('blueprint journeys', () => {
     await page.close();
   });
 
-  test('18.1 a visitor is sent to sign in, registers, verifies and predicts', async () => {
+  test('18.1 a visitor picks an outcome, is sent to create an account, verifies and predicts', async () => {
     await page.goto(`/en/match/${OPEN_MATCH}`);
     await expect(page.getByTestId('match-header')).toBeVisible();
     await expect(page.getByTestId('home-team')).toContainText('Liverpool');
-    await expect(page.getByTestId('prediction-guest')).toBeVisible();
-    await page.getByTestId('prediction-guest').getByRole('link', { name: 'Sign in' }).click();
-    await expect(page).toHaveURL(/\/en\/login/);
+    // The pick card stands directly under the model's card, before the
+    // timeline (T-1739, D-360), and is on the page once.
+    const card = page.locator('#pick');
+    const control = card.getByTestId('pick-control');
+    await expect(page.getByTestId('pick-control')).toHaveCount(1);
+    await expect(control).toHaveAttribute('data-pick', 'open');
+    const model = (await page.getByTestId('forecast-reality').boundingBox())!;
+    const pick = (await card.boundingBox())!;
+    const timeline = (await page.getByTestId('section-timeline').boundingBox())!;
+    expect(pick.y).toBeGreaterThanOrEqual(model.y + model.height);
+    expect(pick.y + pick.height).toBeLessThanOrEqual(timeline.y);
+    // While the pick is open the Predictions tab leads to it.
+    await expect(page.locator('[data-tab-link="predictions"]')).toHaveAttribute('href', '#pick');
+    // A guest is told what saving takes in plain words, and that the pick
+    // stays the community's.
+    await expect(card.getByTestId('match-pick-account')).toContainText(
+      'a free account and a confirmed email address',
+    );
+    await expect(card).not.toContainText(/verified account/i);
+    await expect(card.getByTestId('match-pick-separate')).toContainText('community picks only');
 
-    // The header offers Sign in alone from 768px (T-1381); the way to register is on the login page.
-    await page.getByRole('link', { name: 'Create an account' }).click();
+    // Coming back with an outcome in the address: it is marked, nothing is
+    // stored, and the account is offered with the way back (D-359).
+    const back = encodeURIComponent(`/en/match/${OPEN_MATCH}?pick=away#pick`);
+    await page.goto(`/en/match/${OPEN_MATCH}?pick=away#pick`);
+    await expect(control).toHaveAttribute('data-pick', 'chosen');
+    await expect(control.locator('[data-option="away"] a')).toHaveAttribute('aria-current', 'true');
+    await expect(control.getByTestId('pick-create')).toHaveAttribute(
+      'href',
+      `/en/register?next=${back}`,
+    );
+    await expect(control.getByTestId('pick-sign-in')).toHaveAttribute(
+      'href',
+      `/en/login?next=${back}`,
+    );
+
+    // A guest's outcome is a link to Create account, carrying the way back.
+    await control.locator('[data-option="home"] a').click();
+    await expect(page).toHaveURL(
+      /\/en\/register\?next=%2Fen%2Fmatch%2F[0-9a-f-]+%3Fpick%3Dhome%23pick$/,
+    );
     const form = page.getByTestId('register-form');
+    // The form asks for what only the reader knows (T-1737, D-358): no display
+    // name and no language; the zone is one line with the list behind it.
+    await expect(form.getByLabel('Display name')).toHaveCount(0);
+    await expect(form.getByLabel('Language')).toHaveCount(0);
+    await expect(form.getByTestId('timezone-line')).toContainText('Time zone:');
+    await expect(page.getByTestId('register-points').getByRole('listitem')).toHaveCount(3);
+    await expect(page.getByTestId('register-email-use')).toBeVisible();
     await form.getByLabel('Username').fill(USERNAME);
-    await form.getByLabel('Display name').fill('Journey Tester');
     await form.getByLabel('Email').fill(EMAIL);
-    await form.getByLabel('Password').fill(PASSWORD);
+    // The password can be shown and hidden again before it is sent.
+    const password = form.getByLabel('Password', { exact: true });
+    await password.fill(PASSWORD);
+    await expect(password).toHaveAttribute('type', 'password');
+    await form.getByTestId('password-reveal').click();
+    await expect(password).toHaveAttribute('type', 'text');
+    await expect(password).toHaveValue(PASSWORD);
+    await form.getByTestId('password-reveal').click();
+    await expect(password).toHaveAttribute('type', 'password');
     await form.getByLabel('Country or territory').selectOption({ label: 'England' });
-    await form.getByLabel('I accept the platform rules.').check();
+    await form.getByLabel('I accept the platform rules').check();
     await form.getByRole('button', { name: 'Create account' }).click();
     // The first run is offered once (T-620): skip a step, then "Not now" lands
-    // where registration was going, and the homepage does not offer it again.
-    await leaveFirstRun(page, `/en/u/${USERNAME}`, { skipFirst: true });
-    await expect(page).toHaveURL(new RegExp(`/en/u/${USERNAME}$`));
-    await expect(page.getByTestId('profile-name')).toHaveText('Journey Tester');
+    // on the way back the outcome link carried (T-1736, D-358): the same match
+    // with the outcome still in the address. The homepage does not offer the
+    // first run again.
+    await leaveFirstRun(page, `/en/match/${OPEN_MATCH}?pick=home#pick`, { skipFirst: true });
+    await expect(control).toHaveAttribute('data-pick', 'chosen');
+    // The display name is the username until the member chooses one in Settings.
+    await page.goto(`/en/u/${USERNAME}`);
+    await expect(page.getByTestId('profile-name')).toHaveText(USERNAME);
     await page.goto('/en');
     await expect(page.getByTestId('title')).toBeVisible();
     await expect(page.getByTestId('first-run-offer')).toHaveCount(0);
 
-    // Signed in but not verified: the form is there, the requirement is named.
-    await page.goto(`/en/match/${OPEN_MATCH}`);
-    await expect(page.getByTestId('prediction-form')).toBeVisible();
+    // Signed in but not verified, back at the match with the outcome they
+    // chose as a guest: it is marked and not stored, the three outcomes are
+    // there, and the requirement is named.
+    await page.goto(`/en/match/${OPEN_MATCH}?pick=home#pick`);
+    await expect(control).toHaveAttribute('data-pick', 'chosen');
+    const home = control.locator('button[name="outcome"][value="home"]');
+    await expect(home).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('Verify your email address before predicting')).toBeVisible();
+    await expect(card.getByTestId('match-pick-account')).toHaveCount(0);
 
     await page.goto(verifyLink(EMAIL));
     await expect(page.getByTestId('verify-result')).toBeVisible();
 
-    await page.goto(`/en/match/${OPEN_MATCH}`);
-    const prediction = page.getByTestId('prediction-form');
-    // "Make your pick" (T-1388): one control first, then the three choices,
-    // each a pressable label over a native radio, in the community colour.
-    // Before any pick the members' spread is not on the page.
-    await expect(prediction).toHaveAttribute('data-pick', 'before');
+    await page.goto(`/en/match/${OPEN_MATCH}?pick=home#pick`);
+    // The pick control (T-1738, D-359): the outcome from the address is
+    // marked, and one tap stores it. Before any pick the members' spread is
+    // not on the page.
+    await expect(control).toHaveAttribute('data-pick', 'chosen');
     await expect(page.getByTestId('consensus-crowd')).toHaveCount(0);
-    await prediction.getByRole('button', { name: 'Make your pick' }).click();
-    await expect(prediction).toHaveAttribute('data-pick', 'choosing');
-    await prediction.locator('label[data-outcome="home"]').click();
-    await expect(prediction.getByLabel('Liverpool', { exact: true })).toBeChecked();
-    await prediction.getByLabel('Liverpool goals').fill('2');
-    await prediction.getByLabel('Manchester United goals').fill('1');
-    await prediction.getByLabel('Confidence').selectOption('4');
-    await prediction.getByRole('button', { name: 'Submit prediction' }).click();
-    await expect(page.getByTestId('prediction-state')).toHaveAttribute('role', 'status');
+    await expect(page.getByTestId('community-split')).toHaveCount(0);
+    await home.click();
+    await expect(control).toHaveAttribute('data-pick', 'saved');
+    await expect(control.getByTestId('pick-saved')).toBeVisible();
+    await expect(home).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('prediction-versions')).toContainText('Version 1');
-    await expect(page.getByTestId('prediction')).toContainText(/open until kick-off/i);
+    // The optional score and confidence are one disclosure away, and write a
+    // new version (blueprint 6.6).
+    await control.getByTestId('pick-detail').locator('summary').click();
+    const detail = control.getByTestId('pick-detail-form');
+    await detail.getByLabel('Liverpool goals').fill('2');
+    await detail.getByLabel('Manchester United goals').fill('1');
+    await detail.getByLabel('Confidence').selectOption('4');
+    await detail.getByRole('button', { name: 'Update prediction' }).click();
+    await expect(page.getByTestId('prediction-versions')).toContainText('Version 2');
+    await expect(control).toHaveAttribute('data-pick', 'saved');
+    await expect(control.getByTestId('pick-lock')).toContainText(/^Locks /);
 
     // 18.2: the match centre is kept current over the stream.
     await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live', {

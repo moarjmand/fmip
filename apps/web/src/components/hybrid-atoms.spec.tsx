@@ -1,22 +1,16 @@
-import type {
-  CommunityConsensusResponse,
-  MatchViewing,
-  Prediction,
-  TeamFixture,
-} from '@fmip/contracts';
+import type { CommunityConsensusResponse, MatchViewing, TeamFixture } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { message } from '@/i18n/messages';
 import type { CardForecast } from '@/lib/score-card-products';
 import { CommunityForecastPanel, CommunitySplit } from './community-consensus';
 import { NextMatchCard } from './next-match-card';
-import { PredictionForm, type PredictionFormWords, pickState } from './prediction-form';
 
 /**
  * The Hybrid design's shared data atoms (T-1388, D-206) not yet rebuilt to
- * the Design System, each in its states: the community spread, the pick
- * before and after, and the next-match card -- in English and in Persian,
- * where the reading order turns round and the digits are Persian. The
+ * the Design System, each in its states: the community spread and the
+ * next-match card -- in English and in Persian, where the reading order
+ * turns round and the digits are Persian. The pick is the pick control's
+ * (`pick-control.spec.tsx`, T-1738) on every page since T-1739. The
  * coverage badge, the freshness stamp and the link-out have their own specs
  * (T-1493), and so do the forecast bar, the receipt and the match row
  * (T-1508) and the three voices (T-1509).
@@ -95,97 +89,6 @@ describe('the community spread opens only after the reader’s own pick', () => 
     );
     expect(below).toContain('data-state="not_supplied"');
     expect(below).toContain('no consensus to show yet');
-  });
-});
-
-const FORM_WORDS: PredictionFormWords = {
-  call: 'Your call',
-  draw: 'Draw',
-  score: 'Score',
-  homeGoals: { text: 'Tractor goals' },
-  awayGoals: { text: 'Esteghlal goals' },
-  confidence: 'Confidence',
-  confidenceOptions: ['1', '2', '3', '4', '5'],
-  reasons: 'Reasons',
-  reasonTags: {
-    form: 'Form',
-    lineup: 'Line-up',
-    home_advantage: 'Home advantage',
-    injuries: 'Injuries',
-    tactics: 'Tactics',
-    fatigue: 'Fatigue',
-    competition_importance: 'Competition importance',
-    head_to_head: 'Head-to-head',
-    motivation: 'Motivation',
-  },
-  why: 'Why',
-  submit: 'Submit prediction',
-  update: 'Update prediction',
-  version: 'Version 1',
-  share: 'Share',
-  shareTitle: 'Tractor v Esteghlal',
-  shareMessages: { copied: message('en', 'share.copied'), manual: message('en', 'share.manual') },
-  makePick: 'Make your pick',
-  group: { text: 'Your pick: Tractor v Esteghlal' },
-};
-
-const PREDICTION: Prediction = {
-  id: 'p1',
-  fixture_id: 'f1',
-  locks_at: '2026-10-12T15:30:00.000Z',
-  locked: false,
-  latest: {
-    id: 'v1',
-    version_number: 1,
-    outcome: 'home',
-    score: null,
-    confidence: 3,
-    reason_tags: [],
-    explanation: null,
-    submitted_at: '2026-10-11T09:00:00.000Z',
-  },
-  versions: [],
-  settlement: null,
-};
-
-describe('Make your pick', () => {
-  const form = (current: Prediction | null) =>
-    renderToStaticMarkup(
-      <PredictionForm
-        action={async () => null}
-        current={current}
-        home="Tractor"
-        away="Esteghlal"
-        split={<p data-testid="the-split">split</p>}
-        words={FORM_WORDS}
-      />,
-    );
-
-  it('moves before, choosing, picked', () => {
-    expect(pickState(false, false)).toBe('before');
-    expect(pickState(false, true)).toBe('choosing');
-    expect(pickState(true, false)).toBe('picked');
-    expect(pickState(true, true)).toBe('picked');
-  });
-
-  it('starts as one control in the community colour, with the split nowhere on the page', () => {
-    const html = form(null);
-    expect(html).toContain('data-pick="before"');
-    expect(html).toContain('Make your pick');
-    expect(html).toContain('border-community');
-    expect(html).not.toContain('bg-accent text-on-accent');
-    expect(html).not.toContain('type="radio"');
-    expect(html).not.toContain('the-split');
-  });
-
-  it('once picked, shows the choice pressed in the community colour and reveals the split', () => {
-    const html = form(PREDICTION);
-    expect(html).toContain('data-pick="picked"');
-    expect(html).toMatch(/checked="" value="home"/);
-    expect(html).toContain('has-checked:bg-community');
-    expect(html).toContain('aria-label="Your pick: Tractor v Esteghlal"');
-    expect(html).toContain('data-testid="the-split"');
-    expect(html).toContain('Update prediction');
   });
 });
 

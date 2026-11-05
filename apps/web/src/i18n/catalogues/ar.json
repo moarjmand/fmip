@@ -115,7 +115,7 @@
     "status": "untranslated"
   },
   "shell.register": {
-    "source": "Register",
+    "source": "Create account",
     "text": "",
     "status": "untranslated"
   },
@@ -1699,6 +1699,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "auth.passwordShow": {
+    "source": "Show",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.passwordHide": {
+    "source": "Hide",
+    "text": "",
+    "status": "untranslated"
+  },
   "auth.needsLink": {
     "source": "This page needs the link from your email.",
     "text": "",
@@ -1725,7 +1735,27 @@
     "status": "untranslated"
   },
   "auth.register.title": {
-    "source": "Register",
+    "source": "Create your account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.lead": {
+    "source": "Join Stadiomind to:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.point.pick": {
+    "source": "Pick the result before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.point.rating": {
+    "source": "Earn a rating anyone can recompute",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.point.follow": {
+    "source": "Follow your teams",
     "text": "",
     "status": "untranslated"
   },
@@ -1759,8 +1789,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "auth.register.language": {
-    "source": "Language",
+  "auth.register.countryWhy": {
+    "source": "Stored with your account, so the platform can send a message to members in one country.",
     "text": "",
     "status": "untranslated"
   },
@@ -1769,8 +1799,28 @@
     "text": "",
     "status": "untranslated"
   },
+  "auth.register.timezoneLine": {
+    "source": "Time zone: {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.timezoneChange": {
+    "source": "Change",
+    "text": "",
+    "status": "untranslated"
+  },
   "auth.register.acceptRules": {
-    "source": "I accept the platform rules.",
+    "source": "I accept the {rules}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.rulesLink": {
+    "source": "platform rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.emailUse": {
+    "source": "We use your email only for sign-in, password reset and the notifications you choose.",
     "text": "",
     "status": "untranslated"
   },
@@ -1866,6 +1916,66 @@
   },
   "auth.reset.submit": {
     "source": "Change password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.following": {
+    "source": "Follow teams and competitions; their matches come first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.saved": {
+    "source": "Keep stories to read later.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.friends": {
+    "source": "Add friends and compare your picks.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.notifications": {
+    "source": "Choose which goals, line-ups and results reach you.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.notificationSettings": {
+    "source": "Choose which alerts you get, and when.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.messages": {
+    "source": "Talk in private with members you are friends with.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.groups": {
+    "source": "Pick together and see where you stand.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.picks.title": {
+    "source": "Your picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.picks": {
+    "source": "See the matches still waiting for your pick.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.you.title": {
+    "source": "Your Stadiomind",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.you": {
+    "source": "Follow your teams, pick the result before kick-off and earn a rating anyone can recompute.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.you.settings": {
+    "source": "Theme, text size and contrast are kept in this browser, without an account.",
     "text": "",
     "status": "untranslated"
   },
@@ -4180,18 +4290,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.intro": {
-    "source": "Three separate products, each on the match centre under its own name. None is shown here, and they are never combined.",
+  "story.predictions.pick": {
+    "source": "Make your pick on the match page",
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.model": {
-    "source": "The model's forecast",
+  "story.predictions.noMatch": {
+    "source": "This story is not linked to an upcoming match, so there is no forecast to show here.",
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.modelNote": {
-    "source": "probabilities from the versioned statistical model",
+  "story.predictions.started": {
+    "source": "This match has kicked off, so picks are closed. Its forecasts are on the match page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.matchUnreachable": {
+    "source": "The match could not be loaded right now, so its forecast is not shown here.",
     "text": "",
     "status": "untranslated"
   },
@@ -4200,8 +4315,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.founderNote": {
-    "source": "one person's signed view, not the model",
+  "story.predictions.founderNone": {
+    "source": "{founder}: none published for this match yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderPublished": {
+    "source": "{founder}: published. {link}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderRead": {
+    "source": "Read it on the match page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderUnknown": {
+    "source": "{founder}: cannot be checked right now.",
     "text": "",
     "status": "untranslated"
   },
@@ -4210,8 +4340,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.communityNote": {
-    "source": "what members predicted, shown once five have predicted",
+  "story.predictions.communityNotYet": {
+    "source": "{community}: not yet. It is shown once {floor} members have picked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communityIn": {
+    "source": "{community}: published. {link}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communitySee": {
+    "source": "See it on the match page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communityUnknown": {
+    "source": "{community}: cannot be checked right now.",
     "text": "",
     "status": "untranslated"
   },
@@ -6956,11 +7101,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "scores.preview.yourPick": {
-    "source": "Your pick",
-    "text": "",
-    "status": "untranslated"
-  },
   "scores.preview.model": {
     "source": "Model",
     "text": "",
@@ -9593,23 +9733,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.section.title": {
-    "source": "Your prediction",
-    "text": "",
-    "status": "untranslated"
-  },
   "predictions.section.locked": {
     "source": "Locked at kick-off",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.section.open": {
-    "source": "Open until kick-off",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.section.guest": {
-    "source": "{signIn} to predict this match. Predictions need a verified account and lock at kick-off.",
     "text": "",
     "status": "untranslated"
   },
@@ -9671,11 +9796,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.form.submit": {
-    "source": "Submit prediction",
-    "text": "",
-    "status": "untranslated"
-  },
   "predictions.form.update": {
     "source": "Update prediction",
     "text": "",
@@ -9686,11 +9806,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.form.share": {
-    "source": "Share this match",
-    "text": "",
-    "status": "untranslated"
-  },
   "predictions.action.signIn": {
     "source": "Sign in to predict.",
     "text": "",
@@ -9698,11 +9813,6 @@
   },
   "predictions.action.saved": {
     "source": "Saved as version {version}. You can change it until kick-off.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.pickNote": {
-    "source": "“Make your pick” records a community pick only; it never changes the model’s numbers. The community split stays hidden until you pick.",
     "text": "",
     "status": "untranslated"
   },
@@ -11402,6 +11512,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "teamPage.details": {
+    "source": "Team details",
+    "text": "",
+    "status": "untranslated"
+  },
   "teamPage.groundFromFixtures": {
     "source": "{venue} (home matches this season: {matches} of {total}; no home ground recorded)",
     "text": "",
@@ -13040,11 +13155,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "rules.registerLink": {
-    "source": "Read the platform rules",
-    "text": "",
-    "status": "untranslated"
-  },
   "rules.retention.heading": {
     "source": "How long records are kept",
     "text": "",
@@ -13631,6 +13741,71 @@
   },
   "pick.splitLabel": {
     "source": "Community picks: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.title": {
+    "source": "Your pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.locks": {
+    "source": "Locks {time} {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.guest": {
+    "source": "Tap an outcome. No account is needed to choose; an account is needed to save it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.chosen": {
+    "source": "Your pick: {outcome}. Not saved yet. Create a free account to lock it before {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.member": {
+    "source": "Tap an outcome to save your pick. You can change it until {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.carried": {
+    "source": "Your pick: {outcome}. Not saved yet. Tap it to save it before {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.saved": {
+    "source": "You can change it until {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.locked": {
+    "source": "Picks lock at kick-off. Your pick: {outcome}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.lockedNone": {
+    "source": "Picks lock at kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.account": {
+    "source": "Saving a pick needs a free account and a confirmed email address. Picks lock at kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.saved": {
+    "source": "Saved",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.create": {
+    "source": "Create account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.detail": {
+    "source": "Add detail: exact score, confidence, reasons",
     "text": "",
     "status": "untranslated"
   },

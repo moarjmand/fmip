@@ -122,6 +122,8 @@ function Label({
 export type TextFieldProps = FieldFrame &
   Omit<InputHTMLAttributes<HTMLInputElement>, 'size' | 'className' | 'type'> & {
     type?: 'text' | 'email' | 'password' | 'url' | 'search' | 'number' | 'time' | 'date' | 'tel';
+    /** A control on the input's own line, after it: a password's show/hide button (T-1737). */
+    after?: ReactNode;
   };
 
 export function TextField({
@@ -134,21 +136,35 @@ export function TextField({
   controlClassName,
   id: givenId,
   type = 'text',
+  after,
   'aria-describedby': describedBy,
   ...rest
 }: TextFieldProps) {
   const { id, hintId, errorId, control } = useDescription(givenId, hint, error, describedBy);
+  const trailing = present(after);
+  const input = (
+    <input
+      type={type}
+      className={controlClasses(size, cx(trailing && 'min-w-0 grow', controlClassName))}
+      {...control}
+      {...rest}
+    />
+  );
   return (
     <div className={cx('flex flex-col gap-1', className)}>
       <Label htmlFor={id} hidden={hideLabel}>
         {label}
       </Label>
-      <input
-        type={type}
-        className={controlClasses(size, controlClassName)}
-        {...control}
-        {...rest}
-      />
+      {trailing ? (
+        <div className="flex items-stretch gap-2">
+          {input}
+          {/* The control's own box, right after the input: it finds the input
+              as the box's previous sibling. */}
+          <div className="flex shrink-0">{after}</div>
+        </div>
+      ) : (
+        input
+      )}
       <Messages hint={hint} hintId={hintId} error={error} errorId={errorId} />
     </div>
   );
@@ -216,7 +232,10 @@ export function Select({
 }
 
 export type ChoiceProps = Omit<FieldFrame, 'hideLabel' | 'size'> &
-  Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'type' | 'size'>;
+  Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'type' | 'size'> & {
+    /** On the label that holds the box and its words: `min-h-touch` for a 44px row. */
+    labelClassName?: string;
+  };
 
 function Choice({
   type,
@@ -225,6 +244,7 @@ function Choice({
   error,
   className,
   controlClassName,
+  labelClassName,
   id: givenId,
   'aria-describedby': describedBy,
   ...rest
@@ -232,8 +252,13 @@ function Choice({
   const { id, hintId, errorId, control } = useDescription(givenId, hint, error, describedBy);
   return (
     <div className={cx('flex flex-col gap-1', className)}>
-      <label htmlFor={id} className="flex items-center gap-2">
-        <input type={type} className={cx('size-4', controlClassName)} {...control} {...rest} />
+      <label htmlFor={id} className={cx('flex items-center gap-2', labelClassName)}>
+        <input
+          type={type}
+          className={cx('size-4 shrink-0', controlClassName)}
+          {...control}
+          {...rest}
+        />
         <span>{label}</span>
       </label>
       <Messages hint={hint} hintId={hintId} error={error} errorId={errorId} />

@@ -28,6 +28,7 @@ const ROUTES = [
   '/highlights',
   '/search?q=arsenal',
   '/login',
+  '/you',
   '/about',
   '/no-such-page',
 ];
@@ -42,7 +43,7 @@ const TABS = [
   ['tab-predict', /\/scores\?unpicked=1$/, 'tab-predict'],
   ['tab-leagues', /\/competitions$/, 'tab-leagues'],
   ['tab-news', /\/news$/, 'tab-news'],
-  ['tab-you', /\/login$/, 'tab-you'],
+  ['tab-you', /\/you$/, 'tab-you'],
 ] as const;
 
 /** The outline a keyboard-focused element draws. */
@@ -171,6 +172,7 @@ test.describe('on a 1440px screen', () => {
         'nav-more',
         'nav-search-form',
         'nav-sign-in',
+        'nav-create-account',
       ]) {
         await expect(page.getByTestId(id), id).toBeVisible();
       }
@@ -237,13 +239,15 @@ test.describe('on a 1440px screen', () => {
       ['footer-rules', /\/en\/rules$/],
       ['footer-league', /\/en\/leaderboard$/],
       ['footer-highlights', /\/en\/highlights$/],
+      // A guest's Settings: the desktop bar no longer carries its gear (T-1736).
+      ['footer-settings', /\/en\/settings$/],
     ] as const) {
       await page.goto('/en/scores');
       await page.getByTestId(id).click();
       await expect(page).toHaveURL(url);
     }
     const footer = page.getByTestId('site-footer');
-    await expect(footer.getByRole('link')).toHaveCount(11);
+    await expect(footer.getByRole('link')).toHaveCount(12);
     await expect(footer).toContainText('© 2');
   });
 

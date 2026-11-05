@@ -240,6 +240,16 @@ export function teamTabHref(locale: string, teamId: string, tab: TeamTab): strin
   return tab === 'overview' ? base : `${base}?tab=${tab}`;
 }
 
+/**
+ * Where a guest's Follow on the next-match card leads (T-1741, D-362):
+ * sign-in with the way back to the club's page in `next`, a same-origin
+ * path, URL-encoded -- `/<locale>/login?next=<encoded /<locale>/team/<id>>`.
+ * The sign-in page reads `next`; nothing about the guest is in the address.
+ */
+export function guestFollowHref(locale: string, teamId: string): string {
+  return `/${locale}/login?next=${encodeURIComponent(teamTabHref(locale, teamId, 'overview'))}`;
+}
+
 /** Results on the Overview's "Recent results" (T-1499, the Club board's six); the tab has them all. */
 export const RECENT_RESULTS = 6;
 

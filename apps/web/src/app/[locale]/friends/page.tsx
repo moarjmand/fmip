@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
-import { redirect } from 'next/navigation';
+import { GatePage } from '@/components/gate-card';
 import { FriendControls } from '@/components/friend-controls';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import { formatDateTime } from '@/i18n/format';
@@ -47,7 +47,8 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  if (me === null) redirect(`/${locale}/login`);
+  // A guest sees what the page is for and the two ways in (T-1736, D-358).
+  if (me === null) return <GatePage locale={locale} route="/friends" />;
 
   const [friends, requests, blocks] = await Promise.all([
     fetchFriends(cookie),
