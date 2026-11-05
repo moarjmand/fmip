@@ -289,3 +289,59 @@ export interface PredictionShareResponse {
 export interface PublicPredictionShareResponse {
   card: CalledItCard;
 }
+
+// ---------------------------------------------------------------------------
+// A pick saved before the e-mail address is confirmed (T-1740, D-361)
+// ---------------------------------------------------------------------------
+
+/**
+ * The confidence a pick made by one tap carries (T-1738): the middle of 1 to
+ * 5. A prediction always has one (blueprint 6.6); a pick that names only an
+ * outcome -- the control's one tap, and a pending pick when it becomes a
+ * prediction (D-361) -- is written with this, and the member changes it under
+ * "Add detail".
+ */
+export const DEFAULT_PICK_CONFIDENCE = 3;
+
+/**
+ * What became of a pending pick. `pending`: saved, waiting for the member to
+ * confirm their e-mail address before kick-off. `converted`: confirmed in
+ * time, and written as an ordinary prediction at the moment of confirmation.
+ * `expired`: kick-off came first -- saved, not counted. `replaced`: the
+ * member chose again before confirming. `withdrawn`: the member took it back.
+ */
+export type PendingPickStatus = 'pending' | 'converted' | 'expired' | 'replaced' | 'withdrawn';
+
+/**
+ * A pick made before the member confirmed their e-mail address (D-361). **Not
+ * a prediction**: it is in no consensus, is never settled and never touches a
+ * rating; it is shown to its owner and to nobody else. It carries the outcome
+ * and nothing more (no score, confidence or reasons).
+ */
+export interface PendingPick {
+  id: string;
+  fixture_id: string;
+  outcome: PredictionOutcome;
+  /** As the server's clock has it now: a pick still waiting at kick-off reads `expired`. */
+  status: PendingPickStatus;
+  /** ISO 8601: when the member chose it. */
+  saved_at: string;
+  /** ISO 8601: when it stopped waiting (converted, expired, replaced or withdrawn), else null. */
+  resolved_at: string | null;
+  /** ISO 8601, the kick-off: it counts only if the e-mail address is confirmed before this. */
+  counts_before: string;
+}
+
+/** `PUT /fixtures/:fixtureId/pending-pick`: the outcome, and nothing else. */
+export interface SavePendingPickRequest {
+  outcome: PredictionOutcome;
+}
+
+/**
+ * `GET`/`PUT /fixtures/:fixtureId/pending-pick`, the signed-in member's own:
+ * the newest pending pick they made on the match, whatever became of it, or
+ * null when they made none.
+ */
+export interface PendingPickResponse {
+  pending_pick: PendingPick | null;
+}

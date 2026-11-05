@@ -5,7 +5,10 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { guestPickHref, guestSignInHref, readPick } from '@/lib/pick';
 
-vi.mock('@/lib/prediction-actions', () => ({ submitPredictionAction: async () => null }));
+vi.mock('@/lib/prediction-actions', () => ({
+  submitPredictionAction: async () => null,
+  savePendingPickAction: async () => null,
+}));
 
 const { MatchPickCard, PickBar } = await import('./match-pick');
 
@@ -87,8 +90,9 @@ describe('the match page pick card: a guest', () => {
   it('says what saving takes in plain words, never "verified account"', () => {
     const html = card();
     expect(html).toContain('data-testid="match-pick-account"');
+    // Saving takes the account; counting takes the confirmed address (D-361).
     expect(html).toContain(
-      'Saving a pick needs a free account and a confirmed email address. Picks lock at kick-off.',
+      'Saving a pick needs a free account. It counts once you confirm your email address before kick-off, when picks lock.',
     );
     expect(html).not.toMatch(/verified account/i);
     // The pick stays the community product's (rule 6).
@@ -189,9 +193,66 @@ describe('the match page pick card: a member', () => {
     expect(html).not.toContain('data-testid="split"');
   });
 
-  it('who has not verified is told so in the control', () => {
+  it('who has not confirmed their email address is told what a tap does and when it counts', () => {
     const html = card({ me: { ...ME, email_verified: false } as AuthUser });
-    expect(html).toContain('Verify your email address before predicting');
+    expect(html).toContain('data-pick="open"');
+    expect(html).toContain('A pick is saved when you tap it. It counts once you confirm');
+    expect(html).not.toContain('Verify your email address before predicting');
+  });
+});
+
+describe('the match page pick card: a pending pick (T-1740, D-361)', () => {
+  const UNCONFIRMED = { ...ME, email_verified: false } as AuthUser;
+  const waiting = { outcome: 'away', status: 'pending' } as const;
+  const expired = { outcome: 'away', status: 'expired' } as const;
+
+  it('shows the pick waiting, in the reader’s zone, without the community split', () => {
+    const html = card({ me: UNCONFIRMED, pending: waiting, chosen: readPick('home') });
+    expect(html).toContain('data-pick="pending"');
+    expect(html).toMatch(
+      /Saved\. It counts once you confirm your email before <time dateTime="2099-11-05T17:45:00Z">17:45<\/time>\./,
+    );
+    expect(html).not.toContain('data-testid="split"');
+    expect(html).not.toContain('data-testid="match-pick-account"');
+    // Still the community product's alone (rule 6).
+    expect(html).toContain('Your pick counts towards the community picks only');
+  });
+
+  it('after kick-off says saved, not counted, and still not beside the split', () => {
+    const html = card({ me: UNCONFIRMED, fixture: PAST, pending: expired });
+    expect(html).toContain('data-pick="uncounted"');
+    expect(html).toContain('Saved, not counted');
+    expect(html).toContain('<bdi>Bournemouth</bdi> win');
+    expect(html).not.toContain('data-testid="split"');
+    expect(html).not.toContain('<form');
+  });
+
+  it('is the ordinary saved pick once the address was confirmed in time', () => {
+    const html = card({
+      me: ME,
+      current: stored('away'),
+      pending: { outcome: 'away', status: 'converted' },
+    });
+    expect(html).toContain('data-pick="saved"');
+    expect(html).toContain('data-testid="split"');
+  });
+
+  it('the phone’s bar shows the waiting pick and says it is not counted yet', () => {
+    const html = bar({ pending: waiting });
+    expect(html).toContain('data-pick="pending"');
+    expect(html).toMatch(/data-testid="pick-bar-outcome" data-outcome="away"/);
+    expect(html).toContain('Counts once you confirm your email');
+    expect(html).not.toContain('Make your pick');
+    // Never plainly "Saved": that is a prediction's word.
+    expect(html).not.toMatch(/>Saved</);
+  });
+
+  it('the bar puts a prediction before a pending pick, and is gone once one expired', () => {
+    expect(bar({ current: stored('home'), pending: waiting })).toContain('data-pick="saved"');
+    expect(bar({ pending: expired })).toBe('');
+    expect(bar({ pending: { outcome: 'away', status: 'withdrawn' } })).toContain(
+      'data-pick="open"',
+    );
   });
 });
 
@@ -200,7 +261,7 @@ describe('the match page pick card: Persian', () => {
     const html = card({ locale: 'fa', timeZone: 'Asia/Tehran' });
     expect(html).toContain('پیش‌بینی شما');
     expect(html).toContain('۲۱:۱۵');
-    expect(html).toContain('ذخیره‌ی پیش‌بینی به یک حساب رایگان و تأیید نشانی ایمیل نیاز دارد.');
+    expect(html).toContain('ذخیره‌ی پیش‌بینی به یک حساب رایگان نیاز دارد.');
     expect(html).toContain(`href="${attr(guestPickHref('fa', FIXTURE, 'home'))}"`);
   });
 });

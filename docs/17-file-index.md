@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2337), grouped by folder, with one line on
+Every file in the repository (2344), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -107,8 +107,8 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/notifications/internal`](#appsapisrcmodulesnotificationsinternal) — 2
 - [`apps/api/src/modules/panel`](#appsapisrcmodulespanel) — 13
 - [`apps/api/src/modules/panel/internal`](#appsapisrcmodulespanelinternal) — 5
-- [`apps/api/src/modules/predictions`](#appsapisrcmodulespredictions) — 21
-- [`apps/api/src/modules/predictions/internal`](#appsapisrcmodulespredictionsinternal) — 8
+- [`apps/api/src/modules/predictions`](#appsapisrcmodulespredictions) — 25
+- [`apps/api/src/modules/predictions/internal`](#appsapisrcmodulespredictionsinternal) — 10
 - [`apps/api/src/modules/profile`](#appsapisrcmodulesprofile) — 9
 - [`apps/api/src/modules/profile/internal`](#appsapisrcmodulesprofileinternal) — 5
 - [`apps/api/src/modules/rate-limits`](#appsapisrcmodulesrate-limits) — 6
@@ -281,7 +281,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 73
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 178
+- [`packages/db/migrations`](#packagesdbmigrations) — 179
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -1496,6 +1496,10 @@ machine, `docs/18-handover.md`.
 | `history.http.spec.ts` | Tests for `history.http`. |
 | `history.spec.ts` | Tests for `history`. |
 | `lock.http.spec.ts` | A two throwaway clubs fixture kicking off at `kickoff` (SQL expression, DB clock). |
+| `pending-pick.controller.ts` | `/fixtures/:fixtureId/pending-pick` (T-1740, D-361): the signed-in member's own pick made before their e-mail address is confirmed. |
+| `pending-pick.http.spec.ts` | Every pending pick of a member on a match, oldest first: outcome and stored status. |
+| `pending-pick.service.ts` | A pick made before the member confirmed their e-mail address (T-1740, D-361): saved as pending, and a prediction only if the address is confirmed before kick-off. **Not a prediction.** It has its own table and this serv… |
+| `pending-pick.spec.ts` | The rules of a pending pick (T-1740, D-361) without a database: the pure ones, and the service over a store kept in memory and a predictions boundary that records what it was asked to write. |
 | `prediction-share.controller.ts` | A public link to one correct prediction's card (T-1723, D-351). |
 | `prediction-share.http.spec.ts` | A public link to one correct prediction's card (T-1723, D-351): made only by its owner, for a correct settled pick only, revocable, and nothing is public without it. |
 | `prediction-share.service.ts` | A public link to one correct prediction's card (T-1723, D-351). **Public only by its owner's action.** A member's predictions are seen by whom their profile says (D-063); this is the one exception, and it is one predict… |
@@ -1516,6 +1520,8 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `friend-alerts.ts` | "A friend predicted a match you follow" (blueprint 8.1, T-832, D-100), as a function over three questions so the rule can be tested without a database: who the predictor's friends are, which of them care about this matc… |
 | `history-query.ts` | Paging for a member's prediction history (T-056). |
+| `pending-pick-store.ts` | SQLSTATE raised by `refuse_pending_pick_not_open()` (migration 1765901300000); the hint says why. |
+| `pending-pick.ts` | The rules of a pending pick that are not SQL (T-1740, D-361), pure, so the spec covers them without a database: what a body must be, what the member is told when they choose, what a choice does to the pick already waiti… |
 | `prediction-store.ts` | SQL for the predictions boundary (D-025). |
 | `settle.ts` | The settlement rules (blueprint 6.6: "a postponed or abandoned match is void until a valid settlement rule is applied"). |
 | `settlement-store.ts` | One settled prediction as the rating engine reads it (T-053). |
@@ -3110,7 +3116,7 @@ machine, `docs/18-handover.md`.
 | `announce.spec.ts` | Tests for `announce`. |
 | `announce.ts` | Live-score announcements for assistive technology (T-081, D-041). |
 | `api-locale.spec.ts` | Tests for `api-locale`. |
-| `api.ts` | `GET /admin/overview` (T-070): the operator's view; 401/403 come back as results. |
+| `api.ts` | The API's own reachability, as seen from the web app. |
 | `appearance.ts` | The accessibility preferences (blueprint 2.2, T-621), kept exactly as the theme is (T-602, D-090): a cookie per preference that the locale layout reads and writes on <html> as an attribute, so the first paint already ha… |
 | `auth-actions.ts` | What a form gets back. `null` before the first submit; `ok: true` for an action that stays on the page; field errors come straight from the API's `ApiError.fields`, so the web app never re-implements a validation rule. |
 | `band-colour.spec.ts` | The club band's paint (T-1418, D-204, D-218): every text on it at 4.5:1 or more. |
@@ -3857,6 +3863,7 @@ machine, `docs/18-handover.md`.
 | `1765901000000_activity-daily.sql` | T-1727 (D-353): the Activity page's sign-ins and active members, kept per day before the retention purge deletes the sessions they are counted from. |
 | `1765901100000_console-request.sql` | Teammate requests in the agents console (T-1728, D-354). |
 | `1765901200000_console-request-image.sql` | Pictures on the teammate requests (T-1731, D-357). |
+| `1765901300000_pending-pick.sql` | T-1740 (D-361): a pick made before the member confirmed their e-mail address. |
 
 ## packages/db/scripts
 

@@ -197,6 +197,19 @@ export interface DataExport {
       settled_at: string;
     }[];
   }[];
+  /**
+   * Picks saved before the e-mail address was confirmed (T-1740, D-361), every
+   * row still kept, whatever became of it. Not predictions: none is in a
+   * consensus, a settlement or a rating. `status` is as the clock had it when
+   * the file was made (a pick still waiting at kick-off reads `expired`).
+   */
+  pending_picks: {
+    fixture_id: string;
+    outcome: string;
+    status: string;
+    saved_at: string;
+    resolved_at: string | null;
+  }[];
   rating_history: {
     formula_version: string;
     settled_count: number;

@@ -9748,11 +9748,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.section.verify": {
-    "source": "Verify your email address before predicting; the link is in your inbox.",
-    "text": "",
-    "status": "untranslated"
-  },
   "predictions.section.note": {
     "source": "Your pick counts towards the community picks only; it is never blended with the statistical model or the founder’s analysis.",
     "text": "",
@@ -13180,6 +13175,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "rules.retention.pendingPicks": {
+    "source": "A pick you saved before confirming your email address is deleted 30 days after the match kicks off. If it became a prediction, the saved pick is deleted at the next daily clean-up and the prediction is kept.",
+    "text": "",
+    "status": "untranslated"
+  },
   "rules.retention.backups": {
     "source": "Backups are kept for up to 90 days, so something deleted here can remain in a backup for up to 90 days longer.",
     "text": "",
@@ -13790,12 +13790,47 @@
     "status": "untranslated"
   },
   "pick.account": {
-    "source": "Saving a pick needs a free account and a confirmed email address. Picks lock at kick-off.",
+    "source": "Saving a pick needs a free account. It counts once you confirm your email address before kick-off, when picks lock.",
     "text": "",
     "status": "untranslated"
   },
   "pick.saved": {
     "source": "Saved",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.saved": {
+    "source": "Saved. It counts once you confirm your email before {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.note": {
+    "source": "You can change it until {time}. The confirmation link is in your inbox.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.confirm": {
+    "source": "A pick is saved when you tap it. It counts once you confirm your email address before {time}; the link is in your inbox.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.short": {
+    "source": "Counts once you confirm your email",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.announce": {
+    "source": "Pick saved. It counts once you confirm your email address before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.uncounted.title": {
+    "source": "Saved, not counted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.uncounted.note": {
+    "source": "Your pick: {outcome}. It was never counted, because your email address was not confirmed before kick-off.",
     "text": "",
     "status": "untranslated"
   },

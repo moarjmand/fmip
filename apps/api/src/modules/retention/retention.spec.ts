@@ -15,11 +15,12 @@ import {
 const NOW = new Date('2026-11-02T03:23:00Z');
 
 describe('retention periods (D-345)', () => {
-  it('are the maintainer’s option A', () => {
+  it('are the maintainer’s option A, and the pending pick’s 30 days (D-361)', () => {
     expect(RETENTION_DAYS).toEqual({
       expiredSession: 30,
       expiredEmailToken: 7,
       notificationDelivery: 90,
+      pendingPick: 30,
     });
     expect(PURGE_BATCH_SIZE).toBe(5_000);
   });
@@ -29,6 +30,7 @@ describe('retention periods (D-345)', () => {
       sessions: new Date('2026-10-03T03:23:00Z'),
       emailTokens: new Date('2026-10-26T03:23:00Z'),
       deliveries: new Date('2026-08-04T03:23:00Z'),
+      pendingPicks: new Date('2026-10-03T03:23:00Z'),
     });
   });
 });
@@ -94,6 +96,7 @@ describe('RetentionService.purge', () => {
       deleteConsoleSessions: 1,
       deleteEmailTokens: 0,
       rollUpDeliveries: PURGE_BATCH_SIZE + 3,
+      deletePendingPicks: 4,
     };
     const store = Object.fromEntries(
       Object.keys(rows).map((method) => [
@@ -126,6 +129,7 @@ describe('RetentionService.purge', () => {
       batches: 2,
       capped: false,
     });
+    expect(report.pending_picks).toEqual({ deleted: 4, batches: 1, capped: false });
     expect(calls).toEqual([
       // The day counts are kept first, with the sessions' own cut-off (D-353).
       { method: 'keepDailyCounts', cutoff: '2026-10-03T03:23:00.000Z', limit: 0 },
@@ -138,6 +142,12 @@ describe('RetentionService.purge', () => {
       { method: 'deleteEmailTokens', cutoff: '2026-10-26T03:23:00.000Z', limit: PURGE_BATCH_SIZE },
       { method: 'rollUpDeliveries', cutoff: '2026-08-04T03:23:00.000Z', limit: PURGE_BATCH_SIZE },
       { method: 'rollUpDeliveries', cutoff: '2026-08-04T03:23:00.000Z', limit: PURGE_BATCH_SIZE },
+      // Compared with the match's kick-off, not a column of the pick's (D-361).
+      {
+        method: 'deletePendingPicks',
+        cutoff: '2026-10-03T03:23:00.000Z',
+        limit: PURGE_BATCH_SIZE,
+      },
     ]);
   });
 });

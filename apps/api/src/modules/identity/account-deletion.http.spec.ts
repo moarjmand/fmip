@@ -232,6 +232,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Deleting an 
         [id('gone'), savedSource, `saved-${RUN}`],
       )
     ).rows[0]!.story_id;
+    // Picks saved before an address was confirmed (T-1740, D-361), one waiting
+    // and one that kick-off left uncounted; written past the insert guard,
+    // which refuses a member whose address is confirmed.
+    await withTriggersOff(pool, async (c) => {
+      await c.query(
+        `INSERT INTO pending_pick (user_id, fixture_id, outcome, status, created_at, resolved_at)
+         VALUES ($1, $2, 'home', 'pending', now() - interval '6 days', NULL),
+                ($1, $3, 'draw', 'expired', now() - interval '6 days', now() - interval '5 days')`,
+        [id('gone'), upcoming, played[0]],
+      );
+    });
     await pool.query(
       `INSERT INTO member_follow (follower_id, followed_id) VALUES ($1, $2), ($2, $1)`,
       [id('gone'), id('keeper')],
@@ -519,6 +530,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Deleting an 
         'push_subscription',
         'member_briefing',
         'saved_article',
+        'pending_pick',
       ])
         expect(
           await count(`SELECT count(*)::text AS n FROM ${table} WHERE user_id = $1`, [

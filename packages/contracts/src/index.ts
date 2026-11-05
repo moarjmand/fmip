@@ -432,6 +432,7 @@ export type {
 export { KEY_PLAYERS_PER_SIDE } from './key-players';
 export type { KeyPlayer, KeyPlayerAvailability, KeyPlayers, KeyPlayersSide } from './key-players';
 export {
+  DEFAULT_PICK_CONFIDENCE,
   FRIEND_PREDICTIONS_DAYS,
   FRIEND_PREDICTIONS_LIMIT,
   MAX_EXPLANATION_LENGTH,
@@ -448,6 +449,9 @@ export type {
   GroupPredictionComparison,
   GroupPredictionComparisonResponse,
   OwnPredictionShareResponse,
+  PendingPick,
+  PendingPickResponse,
+  PendingPickStatus,
   Prediction,
   PredictionHistoryFixture,
   PredictionHistoryItem,
@@ -459,6 +463,7 @@ export type {
   PredictionShareResponse,
   PredictionVersion,
   PublicPredictionShareResponse,
+  SavePendingPickRequest,
   Settlement,
   SettlementRunResponse,
   SettlementVoidReason,
