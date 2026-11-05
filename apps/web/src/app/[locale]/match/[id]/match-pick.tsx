@@ -195,10 +195,13 @@ export function PickBar({
                   locale={l}
                   message={waiting === null ? 'pick.saved' : 'pick.pending.short'}
                 />
-                {' · '}
+                {waiting === null && ' · '}
               </>
             )}
-            {locks}
+            {/* A pending pick's line is long enough alone: with the lock time
+                beside it the outcome was squeezed to "Liverp…" at 375px. The
+                card the bar leads to says when it locks. */}
+            {waiting === null && locks}
           </span>
         </span>
         {saved === null ? (
@@ -210,7 +213,7 @@ export function PickBar({
         ) : (
           // The chosen outcome as the control draws it: saffron, with a tick.
           <span
-            className="inline-flex min-h-9 max-w-[55%] min-w-0 items-center gap-1 rounded-control border border-brand bg-brand px-3 text-sm leading-tight font-extrabold text-on-brand"
+            className="inline-flex min-h-9 max-w-[55%] shrink-0 items-center gap-1 rounded-control border border-brand bg-brand px-3 text-sm leading-tight font-extrabold text-on-brand"
             data-testid="pick-bar-outcome"
             data-outcome={saved}
           >
