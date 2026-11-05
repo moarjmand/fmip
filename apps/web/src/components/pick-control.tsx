@@ -133,7 +133,7 @@ export function PickControl({
       {outcome === 'draw' ? (
         <Translated locale={l} message="predictions.outcome.draw" />
       ) : (
-        <bdi className="min-w-0 break-words">{fixture[outcome]}</bdi>
+        <bdi className="min-w-0 font-stretch-condensed break-words">{fixture[outcome]}</bdi>
       )}
     </>
   );
