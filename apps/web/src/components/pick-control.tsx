@@ -129,7 +129,12 @@ export function PickControl({
     );
   const face = (outcome: PickOutcome): ReactNode => (
     <>
-      {marked === outcome && <Icon name={locked ? 'lock' : 'check'} size={16} strokeWidth={2} />}
+      {/* In the corner, out of the line: beside the name it took the room a long name needs. */}
+      {marked === outcome && (
+        <span className="absolute end-1 top-1 inline-flex" data-testid="pick-mark">
+          <Icon name={locked ? 'lock' : 'check'} size={14} strokeWidth={2.5} />
+        </span>
+      )}
       {outcome === 'draw' ? (
         <Translated locale={l} message="predictions.outcome.draw" />
       ) : (
@@ -329,7 +334,7 @@ export function PickControl({
  */
 function optionClasses(chosen: boolean, locked: boolean): string {
   const box =
-    'inline-flex min-h-touch w-full grow items-center justify-center gap-1 rounded-control px-1.5 py-1.5 text-center text-sm leading-tight';
+    'relative inline-flex min-h-touch w-full grow items-center justify-center gap-1 rounded-control px-1.5 py-1.5 text-center text-sm leading-tight';
   if (chosen) {
     return `${box} bg-brand font-extrabold text-on-brand ${locked ? 'border-2 border-accent' : 'border border-brand'}`;
   }

@@ -439,15 +439,19 @@ export default async function StoryPage({
               <StoryPredictions about={about} locale={locale} timeZone={timeZone} now={now} />
             </div>
 
-            <div className={CARD}>
-              <StoryFollowControls
-                locale={locale}
-                storyId={story.story_id}
-                entities={followableEntities(named)}
-                signedIn={me !== null}
-                following={following}
-              />
-            </div>
+            {/* No card for a story that names nothing to follow: the control
+                draws nothing then, and an empty box looked like a module. */}
+            {followableEntities(named).length > 0 && (
+              <div className={CARD} data-testid="story-follow-card">
+                <StoryFollowControls
+                  locale={locale}
+                  storyId={story.story_id}
+                  entities={followableEntities(named)}
+                  signedIn={me !== null}
+                  following={following}
+                />
+              </div>
+            )}
 
             <section aria-labelledby="reports" className={CARD}>
               <h2 id="reports" className={CARD_HEADING}>
