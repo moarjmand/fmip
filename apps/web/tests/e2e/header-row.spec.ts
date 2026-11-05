@@ -61,6 +61,7 @@ async function row(page: Page): Promise<{ height: number; centres: Record<string
         'theme-switch-compact',
         'nav-settings-guest',
         'nav-sign-in',
+        'nav-create-account',
       ];
       const centres: Record<string, number> = {};
       for (const id of ids) {
@@ -99,6 +100,7 @@ for (const width of WIDTHS) {
               'language-picker',
               'theme-switch-compact',
               'nav-sign-in',
+              'nav-create-account',
             ]),
           );
           const first = centres['nav-home']!;

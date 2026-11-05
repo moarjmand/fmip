@@ -6,6 +6,7 @@ import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 import { fetchGroup, fetchGroupHistory, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
+import { loginHref } from '@/lib/return-to';
 import { sessionCookieHeader } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,7 @@ export default async function GroupHistoryPage({
   const { locale, slug } = await params;
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  if (me === null) redirect(`/${locale}/login`);
+  if (me === null) redirect(loginHref(locale, `/${locale}/groups/${slug}/history`));
 
   const found = await fetchGroup(slug, cookie);
   if (!found.ok && found.status === 404) notFound();

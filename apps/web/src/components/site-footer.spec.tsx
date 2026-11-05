@@ -74,6 +74,7 @@ describe('the site footer', () => {
       'site',
       'about',
       'rules',
+      'settings',
       'copyright',
     ]);
     for (const [id, href] of [
@@ -87,6 +88,7 @@ describe('the site footer', () => {
       ['analysis', '/en/scores#analysis'],
       ['about', '/en/about'],
       ['rules', '/en/rules'],
+      ['settings', '/en/settings'],
     ] as const) {
       expect(tag(html, `footer-${id}`), id).toContain(`href="${href}"`);
       expect(tag(html, `footer-${id}`), id).toContain('class="footer-link"');

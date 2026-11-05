@@ -26,6 +26,7 @@ import {
 import { favouriteDirectoryHref, favouriteHref, languageName } from '@/lib/group-about';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
+import { loginHref } from '@/lib/return-to';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
 import { AppealNotes } from '@/components/group-moderation';
@@ -110,7 +111,7 @@ export default async function GroupPage({
   const { locale, slug } = await params;
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  if (me === null) redirect(`/${locale}/login`);
+  if (me === null) redirect(loginHref(locale, `/${locale}/groups/${slug}`));
 
   const result = await fetchGroup(slug, cookie);
   if (!result.ok) {

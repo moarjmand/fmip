@@ -7,6 +7,7 @@ import { fetchCountries, fetchMe } from '@/lib/api';
 import { readGuestChoices } from '@/lib/first-run-cookie';
 import { readInviter } from '@/lib/invite';
 import { registerAction } from '@/lib/auth-actions';
+import { RETURN_PARAM, loginHref, safeReturnPath } from '@/lib/return-to';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
@@ -35,8 +36,11 @@ export default async function RegisterPage({
   const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   // A member's invite link names them (T-522); anything else is ignored.
   const inviter = readInviter(query.invited_by);
+  // Where the reader was going (T-1736, D-358): the new account lands there
+  // after the first run. A path of ours under this locale, or nothing.
+  const next = safeReturnPath(locale, query[RETURN_PARAM]);
   const me = await fetchMe(await sessionCookieHeader());
-  if (me !== null) redirect(`/${locale}/u/${encodeURIComponent(me.username)}`);
+  if (me !== null) redirect(next ?? `/${locale}/u/${encodeURIComponent(me.username)}`);
 
   const countries = await fetchCountries();
   const timezones = Intl.supportedValuesOf('timeZone');
@@ -81,6 +85,17 @@ export default async function RegisterPage({
             label: 'Invited by',
             type: 'hidden' as const,
             defaultValue: inviter,
+          },
+        ]),
+    ...(next === null
+      ? []
+      : [
+          {
+            name: RETURN_PARAM,
+            // A hidden field: its label is never shown.
+            label: 'Return to',
+            type: 'hidden' as const,
+            defaultValue: next,
           },
         ]),
     {
@@ -181,7 +196,7 @@ export default async function RegisterPage({
       )}
       <p className="text-sm">
         <Translated locale={locale} message="auth.register.already" />{' '}
-        <Link href={`/${locale}/login`}>
+        <Link href={loginHref(locale, next)} data-testid="register-sign-in">
           <Translated locale={locale} message="nav.signIn" />
         </Link>
         .

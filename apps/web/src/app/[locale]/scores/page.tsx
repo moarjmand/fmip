@@ -56,6 +56,7 @@ import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { forecastBarWords, scoresWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
+import { GateCard } from '@/components/gate-card';
 import { Translated } from '@/components/translated';
 import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
@@ -277,6 +278,11 @@ export default async function ScoresPage({
       <h1 className="text-2xl font-extrabold font-stretch-semi-expanded" data-testid="title">
         <Translated locale={locale} message="scores.title" />
       </h1>
+      {/* A guest who asks for the picks still to make has none (T-1736, D-358):
+          the gate says what the view is, above every match of the day. */}
+      {me === null && asked.unpicked === true && (
+        <GateCard locale={locale} route="/scores?unpicked=1" heading="h2" compact />
+      )}
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21.25rem] xl:grid-cols-[13.75rem_minmax(0,1fr)_21.25rem]">
         {result.ok && (

@@ -115,7 +115,7 @@
     "status": "untranslated"
   },
   "shell.register": {
-    "source": "Register",
+    "source": "Create account",
     "text": "",
     "status": "untranslated"
   },
@@ -1866,6 +1866,66 @@
   },
   "auth.reset.submit": {
     "source": "Change password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.following": {
+    "source": "Follow teams and competitions; their matches come first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.saved": {
+    "source": "Keep stories to read later.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.friends": {
+    "source": "Add friends and compare your picks.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.notifications": {
+    "source": "Choose which goals, line-ups and results reach you.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.notificationSettings": {
+    "source": "Choose which alerts you get, and when.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.messages": {
+    "source": "Talk in private with members you are friends with.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.groups": {
+    "source": "Pick together and see where you stand.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.picks.title": {
+    "source": "Your picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.picks": {
+    "source": "See the matches still waiting for your pick.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.you.title": {
+    "source": "Your Stadiomind",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.you": {
+    "source": "Follow your teams, pick the result before kick-off and earn a rating anyone can recompute.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.you.settings": {
+    "source": "Theme, text size and contrast are kept in this browser, without an account.",
     "text": "",
     "status": "untranslated"
   },

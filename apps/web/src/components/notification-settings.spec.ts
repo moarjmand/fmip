@@ -125,8 +125,10 @@ describe('quiet hours explain themselves', () => {
 });
 
 describe('the page', () => {
-  it('sends a signed-out visitor to sign in rather than showing empty settings', () => {
-    expect(PAGE).toContain('redirect(`/${locale}/login?next=/${locale}/settings/notifications`)');
+  it('shows a signed-out visitor the gate rather than empty settings (T-1736)', () => {
+    expect(PAGE).toContain(
+      'if (me === null) return <GatePage locale={locale} route="/settings/notifications" />;',
+    );
   });
 
   it('says so when the settings could not be fetched', () => {

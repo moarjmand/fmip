@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { conversationTitle, threadStanding } from '@/lib/conversation-title';
 import Link from '@/components/ui/link';
-import { redirect } from 'next/navigation';
+import { GatePage } from '@/components/gate-card';
 import { fetchConversations, fetchMe } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -41,7 +41,8 @@ export default async function MessagesPage({ params }: { params: Promise<{ local
   const { locale } = await params;
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  if (me === null) redirect(`/${locale}/login`);
+  // A guest sees what the page is for and the two ways in (T-1736, D-358).
+  if (me === null) return <GatePage locale={locale} route="/messages" />;
 
   const result = await fetchConversations(cookie);
   const zone = me.timezone;

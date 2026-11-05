@@ -21,6 +21,7 @@ import {
 } from '@/lib/api';
 import { markReadAction } from '@/lib/conversation-actions';
 import { pageMetadata } from '@/lib/seo';
+import { loginHref } from '@/lib/return-to';
 import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
@@ -73,7 +74,7 @@ export default async function ConversationPage({
   const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  if (me === null) redirect(`/${locale}/login`);
+  if (me === null) redirect(loginHref(locale, `/${locale}/messages/${id}`));
 
   const before = first(query.before);
   const term = first(query.q).trim();

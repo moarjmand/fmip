@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
-import { redirect } from 'next/navigation';
+import { GatePage } from '@/components/gate-card';
 import type { FeedItem, FeedSignal, MatchViewing } from '@fmip/contracts';
 import { BriefingPanel } from '@/components/briefing';
 import { FollowNextSteps } from '@/components/follow-next-steps';
@@ -60,7 +60,8 @@ export default async function FollowingPage({ params }: { params: Promise<{ loca
   const { locale } = await params;
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  if (me === null) redirect(`/${locale}/login?next=/${locale}/following`);
+  // A guest sees what the page is for and the two ways in (T-1736, D-358).
+  if (me === null) return <GatePage locale={locale} route="/following" />;
   const timeZone = me.timezone;
   const result = await fetchFeed(cookie);
   // The briefing (E43): a stored version or the reason there is none; never a model call on this request.

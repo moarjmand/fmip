@@ -38,6 +38,7 @@ for (const width of [1024, 1280, 1350]) {
         'nav-more',
         'language-toggle',
         'nav-sign-in',
+        'nav-create-account',
       ]) {
         expect(Math.abs((await centre(id)) - home), id).toBeLessThanOrEqual(2);
       }

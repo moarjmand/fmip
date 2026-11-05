@@ -28,7 +28,11 @@ export type IconName =
   | 'screen'
   | 'play'
   | 'bell'
-  | 'bolt';
+  | 'bolt'
+  | 'star'
+  | 'bookmark'
+  | 'chat'
+  | 'user';
 
 const PATHS: Record<IconName, ReactNode> = {
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
@@ -91,6 +95,16 @@ const PATHS: Record<IconName, ReactNode> = {
     <>
       <path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z" />
       <path d="M10 20.5a2 2 0 0 0 4 0" />
+    </>
+  ),
+  // The gate card's page icons (T-1736): following, saved, messages, you.
+  star: <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z" />,
+  bookmark: <path d="M7 4h10v16l-5-3.6L7 20z" />,
+  chat: <path d="M5 5h14v10h-8l-4.5 4v-4H5z" />,
+  user: (
+    <>
+      <circle cx="12" cy="8.5" r="3.8" />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
     </>
   ),
 };

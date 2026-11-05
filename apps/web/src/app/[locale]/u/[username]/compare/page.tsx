@@ -10,6 +10,7 @@ import { fetchMe, fetchPredictionHistory, fetchRating } from '@/lib/api';
 import { COMPARE_WINDOW, compared, settledCount, tally, truncated } from '@/lib/compare';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { pageMetadata } from '@/lib/seo';
+import { loginHref } from '@/lib/return-to';
 import { sessionCookieHeader } from '@/lib/session';
 import { Notice } from '@/components/ui';
 
@@ -71,7 +72,7 @@ export default async function ComparePage({
   const name = decodeURIComponent(username);
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  if (me === null) redirect(`/${locale}/login`);
+  if (me === null) redirect(loginHref(locale, `/${locale}/u/${username}/compare`));
   if (me.username.toLowerCase() === name.toLowerCase()) {
     redirect(`/${locale}/u/${encodeURIComponent(me.username)}`);
   }
