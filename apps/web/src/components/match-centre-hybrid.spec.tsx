@@ -634,14 +634,19 @@ describe('the phone tabs need no script (T-1384)', () => {
     const start = css.indexOf("The match centre's tabs (T-1384");
     const block = css.slice(start, css.indexOf('Fallback faces matched', start));
     const phone = block.slice(block.indexOf('@media (width < 48rem)'), block.indexOf('\n}\n'));
+    // The Summary also shows a section that names it as its second tab: the
+    // pick card, a Predictions section under the model's card (T-1739, D-360).
+    const also = ", \\[data-tab-also='summary'\\]";
     expect(phone).toMatch(
-      /\[data-match-tabs\]:not\(:has\(\[data-tab\]:target, \[data-tab\] :target\)\)\s+\[data-tab\]:not\(\[data-tab='summary'\]\)/,
+      new RegExp(
+        `\\[data-match-tabs\\]:not\\(:has\\(\\[data-tab\\]:target, \\[data-tab\\] :target\\)\\)\\s+\\[data-tab\\]:not\\(\\[data-tab='summary'\\]${also}\\)`,
+      ),
     );
     for (const tab of ['summary', 'lineups', 'stats', 'predictions', 'watch', 'discussion']) {
       // A section shows by the tab it names, so a tab may hold sections in both columns.
       expect(phone).toMatch(
         new RegExp(
-          `\\[data-match-tabs\\]:has\\(\\[data-tab='${tab}'\\]:target, \\[data-tab='${tab}'\\] :target\\)\\s+\\[data-tab\\]:not\\(\\[data-tab='${tab}'\\]\\)`,
+          `\\[data-match-tabs\\]:has\\(\\[data-tab='${tab}'\\]:target, \\[data-tab='${tab}'\\] :target\\)\\s+\\[data-tab\\]:not\\(\\[data-tab='${tab}'\\]${tab === 'summary' ? also : ''}\\)`,
         ),
       );
       // The tab on show is marked at every width.

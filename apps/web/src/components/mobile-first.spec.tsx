@@ -279,6 +279,8 @@ describe('the match centre', () => {
       timeZone="Asia/Tehran"
       locale="en"
       slots={{
+        outcome: <p>OUTCOME</p>,
+        pick: <p>PICK</p>,
         context: <p>TABLE</p>,
         forecast: <p>MODEL</p>,
         analysis: <p>FOUNDER</p>,
@@ -357,6 +359,51 @@ describe('the match centre', () => {
     expect(section('community', 'watch')).not.toMatch(/MODEL|FOUNDER/);
     // All three inside the one Predictions tab, never merged into one section.
     expect(at('predictions')).toBeLessThan(at('forecast'));
+  });
+
+  it('places the pick directly under the model’s card, a Predictions section the Summary also shows (T-1739)', () => {
+    const at = (needle: string) => html.indexOf(needle);
+    // The Summary opens with the model's card; the pick is the next thing,
+    // before the timeline, in its own section `#pick`.
+    expect(at('OUTCOME')).toBeGreaterThan(at('id="summary"'));
+    expect(at('OUTCOME')).toBeLessThan(at('id="pick"'));
+    expect(at('id="pick"')).toBeLessThan(at('id="timeline"'));
+    expect(html.slice(at('OUTCOME'), at('PICK'))).not.toMatch(/MODEL|FOUNDER|CROWD/);
+    // Outside the Summary's panel, so the phone's Predictions tab shows it
+    // too (`globals.css`), and once on the page.
+    expect(html).toMatch(
+      /<p>OUTCOME<\/p><\/div><div id="pick" class="[^"]*scroll-mt-16[^"]*" data-testid="section-pick" data-tab="predictions" data-tab-also="summary"><p>PICK<\/p><\/div>/,
+    );
+    expect(html.split('id="pick"').length - 1).toBe(1);
+    // The live view says its status, so a page left open past kick-off can
+    // drop the phone's pick bar without a script.
+    expect(html).toContain('data-match-root="" data-status="live"');
+    // This match is live: the Predictions tab leads to its own panel.
+    expect(html).toContain('href="#predictions"');
+    expect(html).not.toContain('href="#pick"');
+  });
+
+  it('points the Predictions tab at the pick card while the match is scheduled (T-1739)', () => {
+    const view = (slots: Parameters<typeof FullView>[0]['slots']) =>
+      renderToStaticMarkup(
+        <FullView
+          words={MATCH_EN}
+          centre={{ ...centre, fixture: { ...centre.fixture, status: 'scheduled', minute: null } }}
+          timeZone="UTC"
+          locale="en"
+          slots={slots}
+        />,
+      );
+    const open = view({ pick: <p>PICK</p>, forecast: <p>MODEL</p> });
+    expect(open).toMatch(/href="#pick" data-tab-link="predictions"/);
+    expect(open).not.toContain('href="#predictions"');
+    // The panel itself keeps its anchor: other pages link to it.
+    expect(open).toContain('id="predictions"');
+    expect(open).toContain('data-match-root="" data-status="scheduled"');
+    // No pick card on the page: the tab is the panel's, as before.
+    const none = view({ forecast: <p>MODEL</p> });
+    expect(none).toMatch(/href="#predictions" data-tab-link="predictions"/);
+    expect(none).not.toContain('id="pick"');
   });
 
   it('draws each statistic as a split bar, home in ink and away in grey (Design System StatBar)', () => {

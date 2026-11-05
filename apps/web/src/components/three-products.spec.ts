@@ -215,10 +215,6 @@ describe('the three products stay three on the page', () => {
     expect(bar).not.toMatch(/CardCommunity|Consensus|FounderAnalysis|bg-community|bg-founder/);
     const community = source('community-consensus.tsx');
     expect(community).not.toMatch(/forecast-bar|ForecastBar|bg-model/);
-    // The pick feeds the community product only: its colour, never the brand green.
-    const pick = source('prediction-form.tsx');
-    expect(pick).toContain('has-checked:bg-community');
-    expect(pick).not.toMatch(/has-checked:bg-accent|bg-model|bg-founder/);
     // The pick control (T-1738, D-359): saffron on the chosen outcome and
     // nowhere else, and nothing of the model's in it -- no turquoise, no
     // forecast, no consensus. The model's box is its own file, handed in as a
@@ -231,6 +227,21 @@ describe('the three products stay three on the page', () => {
     const box = source('model-box.tsx');
     expect(box).toContain('border-model');
     expect(box).not.toMatch(/bg-brand|PickControl|PickForm|Consensus|CommunitySplit|bg-community/);
+    // The match page's pick card and phone bar (T-1739, D-360): the control
+    // and the words around it, under the model's card and repeating nothing
+    // of it -- no model colour, no forecast, no percentage, not even the
+    // model's box; the community's split arrives as a slot from the page.
+    const matchPick = readFileSync(
+      join(COMPONENTS, '..', 'app', '[locale]', 'match', '[id]', 'match-pick.tsx'),
+      'utf8',
+    );
+    expect(matchPick).toContain('<PickControl');
+    expect(matchPick).not.toMatch(
+      /(text|bg|border)-model|(text|bg|border)-(founder|community)|Forecast|ModelBox|Consensus|CommunitySplit|probabilit/,
+    );
+    // And the pick is on the page once: the old section is not imported.
+    expect(page).not.toMatch(/PredictionSection|components\/prediction-form/);
+    expect(page.split('<MatchPickCard').length - 1).toBe(1);
   });
 
   it('never averages the three into one number', () => {

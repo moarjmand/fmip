@@ -6,6 +6,7 @@ import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
 import { ForecastPanel, ModelVerdict } from '@/components/forecast-panel';
 import { ForecastReality } from './forecast-reality';
+import { MatchPickCard, PickBar } from './match-pick';
 import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CompetitionContextPanel } from '@/components/competition-context';
 import {
@@ -28,7 +29,6 @@ import { MatchSummaryPanel } from '@/components/match-summary';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { ShareLink } from '@/components/share-link';
 import { MatchThreads } from '@/components/match-threads';
-import { PredictionSection } from '@/components/prediction-section';
 import { RelatedNews } from '@/components/related-news';
 import { VenueCard } from '@/components/venue-card';
 import { ViewingDesk } from '@/components/viewing-desk';
@@ -56,6 +56,7 @@ import {
   fetchPowerIndex,
   fetchTerritories,
 } from '@/lib/api';
+import { readPick } from '@/lib/pick';
 import { isTimeZone } from '@/lib/scores';
 import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -339,6 +340,31 @@ export default async function MatchPage({
                     locale={locale}
                   />
                 ),
+                // The reader's own pick, directly under the model's card
+                // (T-1739, D-360): the pick control in the section `#pick`,
+                // with the outcome a guest's link brought back in `?pick=`
+                // marked and never stored. The community's split opens in it
+                // only once they have picked or kick-off has locked every
+                // pick (D-206), so it cannot anchor a pick.
+                pick: (
+                  <MatchPickCard
+                    locale={locale}
+                    fixture={result.data.fixture}
+                    timeZone={timeZone}
+                    me={me}
+                    current={prediction}
+                    chosen={readPick(query.pick)}
+                    finished={final !== null}
+                    split={
+                      <CommunitySplit
+                        consensus={consensus !== null && consensus.ok ? consensus.data : null}
+                        home={result.data.fixture.home.name}
+                        away={result.data.fixture.away.name}
+                        locale={locale}
+                      />
+                    }
+                  />
+                ),
                 // What does not move in play, drawn here so its code stays out
                 // of the page's client bundle (T-1384).
                 form: (
@@ -458,24 +484,11 @@ export default async function MatchPage({
                 ),
                 community: (
                   <>
-                    {/* The community picks lane (T-1388): the reader's own pick and
-                    the members' spread, which opens only once they have picked or
-                    kick-off has locked every pick, so it cannot anchor a pick. */}
+                    {/* The community picks lane (T-1388): the members' spread,
+                    which opens only once the reader has picked or kick-off has
+                    locked every pick, so it cannot anchor a pick. The reader's
+                    own pick is the card under the model's (T-1739), once. */}
                     <CommunityVoice locale={locale}>
-                      <PredictionSection
-                        locale={locale}
-                        fixture={result.data.fixture}
-                        me={me}
-                        current={prediction}
-                        split={
-                          <CommunitySplit
-                            consensus={consensus !== null && consensus.ok ? consensus.data : null}
-                            home={result.data.fixture.home.name}
-                            away={result.data.fixture.away.name}
-                            locale={locale}
-                          />
-                        }
-                      />
                       <CommunityForecastPanel
                         consensus={consensus !== null && consensus.ok ? consensus.data : null}
                         home={result.data.fixture.home.name}
@@ -609,6 +622,16 @@ export default async function MatchPage({
           </>
         )}
       </div>
+      {/* On a phone, until kick-off: the call to pick, fixed above the tab
+          bar, a link to the card (T-1739, D-360). */}
+      {result.ok && (
+        <PickBar
+          locale={locale}
+          fixture={result.data.fixture}
+          timeZone={timeZone}
+          current={prediction}
+        />
+      )}
     </main>
   );
 }

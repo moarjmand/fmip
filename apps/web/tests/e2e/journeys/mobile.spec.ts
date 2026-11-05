@@ -175,3 +175,92 @@ test('the match centre opens every section from 768px, a main and a side column,
   if (main !== null && side !== null) expect(side.x).toBeGreaterThan(main.x + main.width - 1);
   await context.close();
 });
+
+/**
+ * The phone's pick bar (T-1739, D-360): until kick-off a slim bar fixed above
+ * the tab bar repeats the call to pick. It never covers the tab bar, the end
+ * of the page clears it, and it is one link to the pick card -- which the
+ * Predictions tab shows first and the Summary shows under the model's card.
+ * No script decides any of it.
+ */
+for (const locale of ['en', 'x-rtl'] as const) {
+  test(`/${locale}: the pick bar stands above the tab bar until kick-off and leads to the card`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 360, height: 800 },
+      javaScriptEnabled: false,
+    });
+    const page = await context.newPage();
+    await page.goto(`/${locale}/match/${OPEN_MATCH}`);
+    const bar = page.getByTestId('pick-bar');
+    await expect(bar).toBeVisible();
+    await expect(bar).toHaveAttribute('data-pick', 'open');
+    const link = (await page.getByTestId('pick-bar-link').boundingBox())!;
+    const tabs = (await page.getByTestId('tab-bar').boundingBox())!;
+    // Directly above the tab bar: never over it, and no strip of page between.
+    expect(link.y + link.height).toBeLessThanOrEqual(tabs.y + 0.5);
+    expect(tabs.y - (link.y + link.height)).toBeLessThan(8);
+    expect(link.height).toBeGreaterThanOrEqual(44);
+    expect(link.height).toBeLessThanOrEqual(61);
+    expect(link.width).toBeGreaterThan(340);
+    // The tab bar still answers where it stands.
+    const hit = await page.evaluate(
+      ([x, y]) =>
+        document
+          .elementFromPoint(x ?? 0, y ?? 0)
+          ?.closest('[data-testid^="tab-"]')
+          ?.getAttribute('data-testid') ?? null,
+      [tabs.x + tabs.width / 2, tabs.y + tabs.height / 2],
+    );
+    expect(hit).toMatch(/^tab-/);
+    expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+
+    // The end of the page clears the bar: the footer's last line is above it.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const footer = (await page.getByTestId('site-footer').boundingBox())!;
+    const at = (await bar.boundingBox())!;
+    expect(footer.y + footer.height).toBeLessThanOrEqual(at.y + 0.5);
+
+    // On Summary the card is under the model's card and before the timeline.
+    await page.goto(`/${locale}/match/${OPEN_MATCH}`);
+    const card = page.locator('#pick');
+    await expect(card.getByTestId('pick-control')).toHaveAttribute('data-pick', 'open');
+    const model = (await page.getByTestId('forecast-reality').boundingBox())!;
+    const pick = (await card.boundingBox())!;
+    const timeline = (await page.getByTestId('section-timeline').boundingBox())!;
+    expect(pick.y).toBeGreaterThanOrEqual(model.y + model.height);
+    expect(pick.y + pick.height).toBeLessThanOrEqual(timeline.y);
+
+    // One tap on the bar: the card, first on the Predictions tab.
+    await page.getByTestId('pick-bar-link').click();
+    await expect(page).toHaveURL(/#pick$/);
+    await expect(card.getByTestId('pick-control')).toBeInViewport();
+    await expect(page.getByTestId('timeline')).toBeHidden();
+    await expect(page.locator('#forecast')).toBeVisible();
+    const first = (await card.boundingBox())!;
+    const panel = (await page.locator('#forecast').boundingBox())!;
+    expect(first.y + first.height).toBeLessThanOrEqual(panel.y);
+    // The Predictions tab is the same address while the pick is open.
+    await expect(page.locator('[data-tab-link="predictions"]')).toHaveAttribute('href', '#pick');
+    // Another tab leaves the card out; the bar stays.
+    await page.locator('[data-tab-link="lineups"]').click();
+    await expect(card).toBeHidden();
+    await expect(bar).toBeVisible();
+    await context.close();
+  });
+}
+
+test('a match that has kicked off has no pick bar, and its card is locked', async ({ page }) => {
+  await page.goto(`/en/match/${PLAYED_MATCH}`);
+  await expect(page.getByTestId('match-header')).toBeVisible();
+  await expect(page.getByTestId('pick-bar')).toHaveCount(0);
+  const control = page.locator('#pick').getByTestId('pick-control');
+  await expect(control).toHaveAttribute('data-pick', 'locked');
+  await expect(control.getByRole('button', { disabled: true })).toHaveCount(3);
+  // After kick-off the Predictions tab is the panel's again.
+  await expect(page.locator('[data-tab-link="predictions"]')).toHaveAttribute(
+    'href',
+    '#predictions',
+  );
+});
