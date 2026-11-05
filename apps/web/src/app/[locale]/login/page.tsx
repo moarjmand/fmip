@@ -61,6 +61,9 @@ export default async function LoginPage({
             label: t(lang, 'auth.login.identifier'),
             required: true,
             autoComplete: 'username',
+            // A username or an e-mail address: Latin either way (T-1737, D-358).
+            latin: true,
+            enterKeyHint: 'next',
           },
           {
             name: 'password',
@@ -68,6 +71,8 @@ export default async function LoginPage({
             type: 'password',
             required: true,
             autoComplete: 'current-password',
+            latin: true,
+            enterKeyHint: 'go',
           },
         ]}
         submitLabel={t(lang, 'nav.signIn')}

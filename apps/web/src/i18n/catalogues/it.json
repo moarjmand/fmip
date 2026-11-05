@@ -1699,6 +1699,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "auth.passwordShow": {
+    "source": "Show",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.passwordHide": {
+    "source": "Hide",
+    "text": "",
+    "status": "untranslated"
+  },
   "auth.needsLink": {
     "source": "This page needs the link from your email.",
     "text": "",
@@ -1725,7 +1735,27 @@
     "status": "untranslated"
   },
   "auth.register.title": {
-    "source": "Register",
+    "source": "Create your account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.lead": {
+    "source": "Join Stadiomind to:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.point.pick": {
+    "source": "Pick the result before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.point.rating": {
+    "source": "Earn a rating anyone can recompute",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.point.follow": {
+    "source": "Follow your teams",
     "text": "",
     "status": "untranslated"
   },
@@ -1759,8 +1789,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "auth.register.language": {
-    "source": "Language",
+  "auth.register.countryWhy": {
+    "source": "Stored with your account, so the platform can send a message to members in one country.",
     "text": "",
     "status": "untranslated"
   },
@@ -1769,8 +1799,28 @@
     "text": "",
     "status": "untranslated"
   },
+  "auth.register.timezoneLine": {
+    "source": "Time zone: {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.timezoneChange": {
+    "source": "Change",
+    "text": "",
+    "status": "untranslated"
+  },
   "auth.register.acceptRules": {
-    "source": "I accept the platform rules.",
+    "source": "I accept the {rules}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.rulesLink": {
+    "source": "platform rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.emailUse": {
+    "source": "We use your email only for sign-in, password reset and the notifications you choose.",
     "text": "",
     "status": "untranslated"
   },
@@ -13097,11 +13147,6 @@
   },
   "rules.promptLink": {
     "source": "Read the new rules",
-    "text": "",
-    "status": "untranslated"
-  },
-  "rules.registerLink": {
-    "source": "Read the platform rules",
     "text": "",
     "status": "untranslated"
   },

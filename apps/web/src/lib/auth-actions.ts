@@ -19,6 +19,8 @@ import { type ApiResult, apiRequest } from './api';
 import { stepHref } from './first-run';
 import { applyGuestChoices } from './first-run-actions';
 import { afterRegistration, readInviter } from './invite';
+import { offeredNow } from './language-hold';
+import { registrationDisplayName, registrationLanguage } from './register';
 import { RETURN_PARAM, safeReturnPath } from './return-to';
 import { applyApiSetCookie, readerAddress, sessionCookieHeader } from './session';
 import { reconcileThemeAtSignIn } from './theme-cookie';
@@ -73,13 +75,17 @@ export async function registerAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const username = text(formData, 'username');
   const body: RegisterRequest = {
-    username: text(formData, 'username'),
-    display_name: text(formData, 'display_name'),
+    username,
+    // The form asks for neither (T-1737, D-358): the display name is the
+    // username until the member changes it in Settings, and the language is
+    // the page's own when the product offers it.
+    display_name: registrationDisplayName(text(formData, 'display_name'), username),
     email: text(formData, 'email'),
     password: text(formData, 'password'),
     country_id: text(formData, 'country_id'),
-    preferred_language: text(formData, 'preferred_language'),
+    preferred_language: registrationLanguage(locale, await offeredNow()),
     timezone: text(formData, 'timezone'),
     accept_rules: formData.get('accept_rules') === 'on',
   };

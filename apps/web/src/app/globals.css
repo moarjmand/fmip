@@ -891,6 +891,16 @@ header:has(#competitions-menu:not([hidden])) {
 }
 
 /*
+ * The register page (T-1737, D-358): its own Create account is the view's one
+ * filled button, so the header's, which would lead to this same page, is not
+ * drawn there. By CSS because the layout draws the header and does not know
+ * the page. A browser without `:has()` keeps the button.
+ */
+:root:has(main[data-page='register']) .header-create-account {
+  display: none;
+}
+
+/*
  * The header's mark (T-1494, D-267). The header follows the theme, and the
  * mark is never recoloured (D-262): it is drawn in the Day and the Night
  * colours, and the theme shows one, by the same three ways tokens.css turns

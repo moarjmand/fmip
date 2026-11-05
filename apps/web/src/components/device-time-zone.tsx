@@ -8,7 +8,9 @@ import { useEffect } from 'react';
  * not look registered in it. `Intl` reads the zone on this device, never from
  * an address. Only a zone the list offers is chosen, only while the list
  * still shows the server's default, and nothing is saved until the form is
- * sent. Without script the server's default stands.
+ * sent. Without script the server's default stands. The choice is announced
+ * as a `change`, so the form's own line ("Time zone: <zone> · Change",
+ * T-1737) says the zone the list now holds.
  */
 export function DeviceTimeZone({
   form,
@@ -30,7 +32,9 @@ export function DeviceTimeZone({
       `form[data-testid="${form}"] select[name="${field}"]`,
     );
     if (zone === undefined || select === null || select.value !== unless) return;
-    if ([...select.options].some((option) => option.value === zone)) select.value = zone;
+    if (![...select.options].some((option) => option.value === zone)) return;
+    select.value = zone;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
   }, [form, field, unless]);
   return null;
 }

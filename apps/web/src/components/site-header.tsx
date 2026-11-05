@@ -278,11 +278,13 @@ export async function SiteHeader({
                       header's one saffron button, Sign in the outlined one beside
                       it; in the phone's Menu both are full width, Create account
                       first. In the desktop bar Sign in comes first so the filled
-                      button ends the row. */}
+                      button ends the row. On the register page, whose own button
+                      is the view's filled one, globals.css does not draw it
+                      (`header-create-account`, T-1737). */}
                   <div className="mt-1 flex flex-col gap-2 lg:mt-0 lg:flex-row-reverse lg:items-center">
                     <Link
                       href={href('/register')}
-                      className="inline-flex h-11 items-center justify-center rounded-control border border-brand bg-brand px-4 text-sm font-extrabold whitespace-nowrap text-on-brand hover:brightness-95 lg:px-3"
+                      className="header-create-account inline-flex h-11 items-center justify-center rounded-control border border-brand bg-brand px-4 text-sm font-extrabold whitespace-nowrap text-on-brand hover:brightness-95 lg:px-3"
                       data-testid="nav-create-account"
                     >
                       <Translated locale={locale} message="shell.register" />

@@ -57,18 +57,33 @@ test.describe('blueprint journeys', () => {
     // The header offers Create account too (T-1736); this visitor takes the link on the login page.
     await page.getByRole('link', { name: 'Create an account' }).click();
     const form = page.getByTestId('register-form');
+    // The form asks for what only the reader knows (T-1737, D-358): no display
+    // name and no language; the zone is one line with the list behind it.
+    await expect(form.getByLabel('Display name')).toHaveCount(0);
+    await expect(form.getByLabel('Language')).toHaveCount(0);
+    await expect(form.getByTestId('timezone-line')).toContainText('Time zone:');
+    await expect(page.getByTestId('register-points').getByRole('listitem')).toHaveCount(3);
+    await expect(page.getByTestId('register-email-use')).toBeVisible();
     await form.getByLabel('Username').fill(USERNAME);
-    await form.getByLabel('Display name').fill('Journey Tester');
     await form.getByLabel('Email').fill(EMAIL);
-    await form.getByLabel('Password').fill(PASSWORD);
+    // The password can be shown and hidden again before it is sent.
+    const password = form.getByLabel('Password', { exact: true });
+    await password.fill(PASSWORD);
+    await expect(password).toHaveAttribute('type', 'password');
+    await form.getByTestId('password-reveal').click();
+    await expect(password).toHaveAttribute('type', 'text');
+    await expect(password).toHaveValue(PASSWORD);
+    await form.getByTestId('password-reveal').click();
+    await expect(password).toHaveAttribute('type', 'password');
     await form.getByLabel('Country or territory').selectOption({ label: 'England' });
-    await form.getByLabel('I accept the platform rules.').check();
+    await form.getByLabel('I accept the platform rules').check();
     await form.getByRole('button', { name: 'Create account' }).click();
     // The first run is offered once (T-620): skip a step, then "Not now" lands
     // where registration was going, and the homepage does not offer it again.
     await leaveFirstRun(page, `/en/u/${USERNAME}`, { skipFirst: true });
     await expect(page).toHaveURL(new RegExp(`/en/u/${USERNAME}$`));
-    await expect(page.getByTestId('profile-name')).toHaveText('Journey Tester');
+    // The display name is the username until the member chooses one in Settings.
+    await expect(page.getByTestId('profile-name')).toHaveText(USERNAME);
     await page.goto('/en');
     await expect(page.getByTestId('title')).toBeVisible();
     await expect(page.getByTestId('first-run-offer')).toHaveCount(0);

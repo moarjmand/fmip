@@ -2040,6 +2040,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "auth.passwordShow": {
+    "source": "Show",
+    "text": "نمایش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.passwordHide": {
+    "source": "Hide",
+    "text": "پنهان کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "auth.needsLink": {
     "source": "This page needs the link from your email.",
     "text": "این صفحه به پیوندی نیاز دارد که به ایمیل شما فرستاده شده است.",
@@ -2071,8 +2083,32 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "auth.register.title": {
-    "source": "Register",
-    "text": "ثبت‌نام",
+    "source": "Create your account",
+    "text": "حساب خود را بسازید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.lead": {
+    "source": "Join Stadiomind to:",
+    "text": "به استادیومایند بپیوندید تا:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.point.pick": {
+    "source": "Pick the result before kick-off",
+    "text": "پیش از شروع بازی نتیجه را پیش‌بینی کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.point.rating": {
+    "source": "Earn a rating anyone can recompute",
+    "text": "امتیازی بگیرید که هر کسی بتواند دوباره حسابش کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.point.follow": {
+    "source": "Follow your teams",
+    "text": "تیم‌هایتان را دنبال کنید",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -2112,9 +2148,9 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "auth.register.language": {
-    "source": "Language",
-    "text": "زبان",
+  "auth.register.countryWhy": {
+    "source": "Stored with your account, so the platform can send a message to members in one country.",
+    "text": "در حساب شما نگه داشته می‌شود تا سایت بتواند پیامی را برای اعضای یک کشور بفرستد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -2124,9 +2160,33 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "auth.register.timezoneLine": {
+    "source": "Time zone: {zone}",
+    "text": "منطقه‌ی زمانی: {zone}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.timezoneChange": {
+    "source": "Change",
+    "text": "تغییر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "auth.register.acceptRules": {
-    "source": "I accept the platform rules.",
-    "text": "قوانین پلتفرم را می‌پذیرم.",
+    "source": "I accept the {rules}",
+    "text": "{rules} را می‌پذیرم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.rulesLink": {
+    "source": "platform rules",
+    "text": "قوانین پلتفرم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.emailUse": {
+    "source": "We use your email only for sign-in, password reset and the notifications you choose.",
+    "text": "ایمیل شما فقط برای ورود، بازیابی گذرواژه و اعلان‌هایی که خودتان انتخاب می‌کنید استفاده می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -15905,12 +15965,6 @@
   "rules.promptLink": {
     "source": "Read the new rules",
     "text": "خواندن قوانین تازه",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "rules.registerLink": {
-    "source": "Read the platform rules",
-    "text": "خواندن قوانین پلتفرم",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
