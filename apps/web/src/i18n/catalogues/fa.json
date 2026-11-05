@@ -11624,27 +11624,9 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "predictions.section.title": {
-    "source": "Your prediction",
-    "text": "پیش‌بینی شما",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "predictions.section.locked": {
     "source": "Locked at kick-off",
     "text": "با شروع بازی قفل شد",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.section.open": {
-    "source": "Open until kick-off",
-    "text": "تا شروع بازی باز است",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.section.guest": {
-    "source": "{signIn} to predict this match. Predictions need a verified account and lock at kick-off.",
-    "text": "برای پیش‌بینی این بازی {signIn}. پیش‌بینی به حساب کاربری تأییدشده نیاز دارد و با شروع بازی قفل می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -11720,12 +11702,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "predictions.form.submit": {
-    "source": "Submit prediction",
-    "text": "ثبت پیش‌بینی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "predictions.form.update": {
     "source": "Update prediction",
     "text": "به‌روزرسانی پیش‌بینی",
@@ -11735,12 +11711,6 @@
   "predictions.form.version": {
     "source": "Version {version}, submitted {time} UTC. Every version is kept.",
     "text": "نسخه‌ی {version}، ثبت‌شده در {time} به وقت UTC. همه‌ی نسخه‌ها نگه داشته می‌شوند.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "predictions.form.share": {
-    "source": "Share this match",
-    "text": "اشتراک‌گذاری این بازی",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -16597,6 +16567,12 @@
     "text": "پیش‌بینی‌ها با شروع بازی قفل می‌شوند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.account": {
+    "source": "Saving a pick needs a free account and a confirmed email address. Picks lock at kick-off.",
+    "text": "ذخیره‌ی پیش‌بینی به یک حساب رایگان و تأیید نشانی ایمیل نیاز دارد. پیش‌بینی‌ها با شروع بازی قفل می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); plain words in place of the old \"verified account\" sentence (D-360), not yet reviewed by a translator."
   },
   "pick.saved": {
     "source": "Saved",

@@ -1057,12 +1057,16 @@ header:has(#competitions-menu:not([hidden])) {
  * this needs no script and a page with none behaves the same. From 768px
  * every section is open, in a main and a side column, and the tabs jump to
  * them. The tab bar marks the tab on show the same way at every width.
+ *
+ * The pick card (T-1739, D-360) is a Predictions section the Summary shows
+ * as well (`data-tab-also`): under the model's card on Summary, first on
+ * Predictions, and `#pick` opens Predictions with it at the top.
  */
 @media (width < 48rem) {
   [data-match-tabs]:not(:has([data-tab]:target, [data-tab] :target))
-    [data-tab]:not([data-tab='summary']),
+    [data-tab]:not([data-tab='summary'], [data-tab-also='summary']),
   [data-match-tabs]:has([data-tab='summary']:target, [data-tab='summary'] :target)
-    [data-tab]:not([data-tab='summary']),
+    [data-tab]:not([data-tab='summary'], [data-tab-also='summary']),
   [data-match-tabs]:has([data-tab='lineups']:target, [data-tab='lineups'] :target)
     [data-tab]:not([data-tab='lineups']),
   [data-match-tabs]:has([data-tab='stats']:target, [data-tab='stats'] :target)
@@ -1096,6 +1100,30 @@ header:has(#competitions-menu:not([hidden])) {
   box-shadow: inset 0 -3px 0 var(--token-accent);
   color: var(--token-text);
   font-weight: 800;
+}
+
+/*
+ * The match page's pick bar on a phone (T-1739, D-360): fixed above the tab
+ * bar until kick-off, so the page's end gains its height and the footer's
+ * last line clears it. It is not shown on a viewport too short to spare it
+ * (a phone on its side), nor once the live view says the match is no longer
+ * scheduled: the server stops rendering it at kick-off, and this rule covers
+ * a page left open across it. No script: the bar is a link to the pick card.
+ */
+@media (width < 48rem) and (height >= 28rem) {
+  body:has([data-pick-bar]) {
+    padding-block-end: 3.75rem;
+  }
+}
+
+@media (height < 28rem) {
+  [data-pick-bar] {
+    display: none;
+  }
+}
+
+main:has([data-match-root]:not([data-status='scheduled'])) [data-pick-bar] {
+  display: none;
 }
 
 /*

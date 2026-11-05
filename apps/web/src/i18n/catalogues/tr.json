@@ -9588,23 +9588,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.section.title": {
-    "source": "Your prediction",
-    "text": "",
-    "status": "untranslated"
-  },
   "predictions.section.locked": {
     "source": "Locked at kick-off",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.section.open": {
-    "source": "Open until kick-off",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.section.guest": {
-    "source": "{signIn} to predict this match. Predictions need a verified account and lock at kick-off.",
     "text": "",
     "status": "untranslated"
   },
@@ -9666,11 +9651,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.form.submit": {
-    "source": "Submit prediction",
-    "text": "",
-    "status": "untranslated"
-  },
   "predictions.form.update": {
     "source": "Update prediction",
     "text": "",
@@ -9678,11 +9658,6 @@
   },
   "predictions.form.version": {
     "source": "Version {version}, submitted {time} UTC. Every version is kept.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.form.share": {
-    "source": "Share this match",
     "text": "",
     "status": "untranslated"
   },
@@ -13666,6 +13641,11 @@
   },
   "pick.note.lockedNone": {
     "source": "Picks lock at kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.account": {
+    "source": "Saving a pick needs a free account and a confirmed email address. Picks lock at kick-off.",
     "text": "",
     "status": "untranslated"
   },
