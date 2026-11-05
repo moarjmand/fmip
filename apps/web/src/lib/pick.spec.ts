@@ -3,12 +3,40 @@ import {
   guestPickHref,
   guestSignInHref,
   markedOutcome,
+  pickCardPath,
   pickControlState,
+  pickOpen,
   pickReturnPath,
   readPick,
 } from './pick';
 
 const ID = '00000000-0000-4000-8000-000000001738';
+
+describe('the way to the pick card from another card (T-1741, D-362)', () => {
+  const KICKOFF = '2026-11-07T15:00:00.000Z';
+  const at = (iso: string) => Date.parse(iso);
+
+  it('is the match page at its pick card, with no outcome chosen', () => {
+    expect(pickCardPath('en', ID)).toBe(`/en/match/${ID}#pick`);
+    expect(pickCardPath('fa', ID)).toBe(`/fa/match/${ID}#pick`);
+    expect(pickCardPath('en', ID)).not.toContain('?');
+  });
+
+  it('is offered only while the match has not kicked off', () => {
+    const scheduled = { status: 'scheduled', kickoff_at: KICKOFF };
+    expect(pickOpen(scheduled, at('2026-11-07T14:59:59.000Z'))).toBe(true);
+    // At kick-off and after it, whatever the status still says.
+    expect(pickOpen(scheduled, at(KICKOFF))).toBe(false);
+    expect(pickOpen(scheduled, at('2026-11-07T15:30:00.000Z'))).toBe(false);
+    // A match under way, over or off is never open, whatever the clock says.
+    for (const status of ['live', 'suspended', 'finished', 'postponed', 'cancelled']) {
+      expect(pickOpen({ status, kickoff_at: KICKOFF }, at('2026-11-01T00:00:00.000Z'))).toBe(false);
+    }
+    // Without the render's moment the status alone decides.
+    expect(pickOpen(scheduled)).toBe(true);
+    expect(pickOpen({ status: 'live', kickoff_at: KICKOFF })).toBe(false);
+  });
+});
 
 describe('the guest link contract (D-359)', () => {
   it('returns to the match page with the outcome in the address, at the control', () => {

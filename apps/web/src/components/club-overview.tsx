@@ -135,19 +135,34 @@ function ResultTile({ locale, result }: { locale: string; result: 'W' | 'D' | 'L
  * the place as an ordinal in the narrow display face and the points from
  * the matches on that table. Nothing when no table places the club; "Around
  * them" says so.
+ *
+ * On a phone (T-1741, D-362) it is one line under the club's name --
+ * "Premier League · 1st · 24 pts from 9" -- so the band stays one row; from
+ * 768px it is the three stacked lines at the band's end.
  */
 export function BandStanding({ page, locale }: { page: TeamPage; locale: string }) {
   const standing = mainStanding(page.competitions, page.team.id);
   if (standing === null) return null;
   const { entry, context, played } = standing;
+  // Between the parts on the phone's one line; the stacked lines need none.
+  const dot = (
+    <span aria-hidden="true" className="text-muted md:hidden">
+      ·
+    </span>
+  );
   return (
-    <div className="flex flex-col gap-1 sm:items-end" data-testid="band-standing">
+    <div
+      className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 md:flex-col md:items-end"
+      data-testid="band-standing"
+    >
       <span className="text-sm text-muted">
         {entry.competition.short_name ?? entry.competition.name}
       </span>
-      <span className="font-sans text-display-2 leading-none font-black font-stretch-condensed">
+      {dot}
+      <span className="font-sans text-sm font-extrabold md:text-display-2 md:leading-none md:font-black md:font-stretch-condensed">
         {plural(pageLocale(locale), 'team.position', context.position).text}
       </span>
+      {dot}
       <span className="text-sm text-muted">
         {played === null
           ? say(locale, 'teamPage.contextLine', {

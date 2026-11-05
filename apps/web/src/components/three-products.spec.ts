@@ -180,12 +180,42 @@ describe('the three products stay three on the page', () => {
     expect(lib).toMatch(/community: Record<string, CardCommunity>/);
   });
 
-  it('links the three from a match story, each under its own name, never as one figure (T-941)', () => {
-    const links = source('story-links.tsx');
-    expect(links).toContain("anchor: 'forecast'");
-    expect(links).toContain("anchor: 'analysis'");
-    expect(links).toContain("anchor: 'community'");
-    expect(links).not.toMatch(/ForecastVersion|ForecastSummary|CommunityConsensus|FounderAnalysis/);
+  it('shows the model alone on a match story and names the other two, never as one figure (T-941, T-1741)', () => {
+    // The story's predictions card (D-362) draws the model's bar. That makes
+    // it the next place a founder's call or the community's split would be
+    // "one more row", so the card cannot be handed either: it takes a state
+    // for each (is there one or not) and nothing they said or counted.
+    const card = source('story-predictions.tsx');
+    const code = card.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[\r\n])\s*\/\/.*/g, '$1');
+    expect(code).toContain('<ModelBox');
+    expect(code).toContain('<ForecastBar');
+    expect(code).toContain("export type StoryFounder = 'published' | 'none' | 'unreachable';");
+    expect(code).toContain(
+      "export type StoryCommunity = 'published' | 'below_floor' | 'unreachable';",
+    );
+    expect(code).not.toMatch(
+      /FounderAnalysis|FounderOutcome|CommunityConsensus|ConsensusResponse|CardCommunity|CommunitySplit/,
+    );
+    expect(code).not.toMatch(/bg-community|text-community|bg-founder|text-founder/);
+    expect(code).not.toMatch(/'model'\s*\|\s*'founder'|'founder'\s*\|\s*'community'/);
+    // Each of the two is a sentence of its own, to its own section of the match page.
+    expect(code).toContain('#analysis');
+    expect(code).toContain('#community');
+    expect(code).toContain('testId="story-model"');
+    // The old links file holds no product any more.
+    expect(source('story-links.tsx')).not.toMatch(
+      /ForecastVersion|ForecastSummary|CommunityConsensus|FounderAnalysis/,
+    );
+    // The page asks each product's own endpoint and hands the card states.
+    const story = readFileSync(
+      join(COMPONENTS, '..', 'app', '[locale]', 'news', 'story', '[id]', 'page.tsx'),
+      'utf8',
+    );
+    expect(story).toContain('fetchForecastSummaries([fixtureId])');
+    expect(story).toContain('fetchFounderAnalysis(fixtureId)');
+    expect(story).toContain('fetchConsensus(fixtureId)');
+    expect(story).toMatch(/founder: !reads\.founder\.ok\s+\? 'unreachable'/);
+    expect(story).toMatch(/community: !reads\.consensus\.ok\s+\? 'unreachable'/);
   });
 
   it('gives the three their own voices and bars, none of which can be handed another product (T-1388, T-1509)', () => {

@@ -5060,21 +5060,27 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "story.predictions.intro": {
-    "source": "Three separate products, each on the match centre under its own name. None is shown here, and they are never combined.",
-    "text": "سه محصول جداگانه که هر کدام با نام خودش در مرکز مسابقه آمده است. هیچ‌کدام اینجا نمایش داده نمی‌شود و هرگز با هم ترکیب نمی‌شوند.",
+  "story.predictions.pick": {
+    "source": "Make your pick on the match page",
+    "text": "در صفحهٔ مسابقه انتخاب کنید",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "story.predictions.model": {
-    "source": "The model's forecast",
-    "text": "پیش‌بینی مدل آماری",
+  "story.predictions.noMatch": {
+    "source": "This story is not linked to an upcoming match, so there is no forecast to show here.",
+    "text": "این خبر به مسابقه‌ای که هنوز برگزار نشده پیوند ندارد؛ بنابراین پیش‌بینی‌ای برای نمایش در اینجا نیست.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "story.predictions.modelNote": {
-    "source": "probabilities from the versioned statistical model",
-    "text": "احتمالات به‌دست‌آمده از مدل آماری نسخه‌دار",
+  "story.predictions.started": {
+    "source": "This match has kicked off, so picks are closed. Its forecasts are on the match page.",
+    "text": "این مسابقه شروع شده و انتخاب‌ها بسته شده‌اند. پیش‌بینی‌های آن در صفحهٔ مسابقه است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.matchUnreachable": {
+    "source": "The match could not be loaded right now, so its forecast is not shown here.",
+    "text": "اطلاعات این مسابقه هم‌اکنون خوانده نشد؛ بنابراین پیش‌بینی آن اینجا نشان داده نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -5084,9 +5090,27 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "story.predictions.founderNote": {
-    "source": "one person's signed view, not the model",
-    "text": "دیدگاه امضاشده‌ی یک نفر، نه مدل آماری",
+  "story.predictions.founderNone": {
+    "source": "{founder}: none published for this match yet.",
+    "text": "{founder}: هنوز برای این مسابقه منتشر نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.founderPublished": {
+    "source": "{founder}: published. {link}",
+    "text": "{founder}: منتشر شده است. {link}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.founderRead": {
+    "source": "Read it on the match page",
+    "text": "آن را در صفحهٔ مسابقه بخوانید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.founderUnknown": {
+    "source": "{founder}: cannot be checked right now.",
+    "text": "{founder}: هم‌اکنون قابل بررسی نیست.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -5096,9 +5120,27 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "story.predictions.communityNote": {
-    "source": "what members predicted, shown once five have predicted",
-    "text": "آنچه اعضا پیش‌بینی کرده‌اند؛ از پنج پیش‌بینی‌کننده به بالا منتشر می‌شود",
+  "story.predictions.communityNotYet": {
+    "source": "{community}: not yet. It is shown once {floor} members have picked.",
+    "text": "{community}: هنوز نه. پس از انتخاب {floor} عضو نشان داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.communityIn": {
+    "source": "{community}: published. {link}",
+    "text": "{community}: منتشر شده است. {link}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.communitySee": {
+    "source": "See it on the match page",
+    "text": "آن را در صفحهٔ مسابقه ببینید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.predictions.communityUnknown": {
+    "source": "{community}: cannot be checked right now.",
+    "text": "{community}: هم‌اکنون قابل بررسی نیست.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -13829,6 +13871,12 @@
   "teamPage.noGround": {
     "source": "Home ground not recorded",
     "text": "ورزشگاه خانگی ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "teamPage.details": {
+    "source": "Team details",
+    "text": "مشخصات تیم",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

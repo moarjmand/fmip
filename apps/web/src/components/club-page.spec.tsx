@@ -7,9 +7,16 @@ import type {
   TeamPage,
   TeamPageFixture,
 } from '@fmip/contracts';
+import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { homeAwayLean, readTeamTab, squadIncomplete, teamTabHref } from '@/lib/team';
+import {
+  guestFollowHref,
+  homeAwayLean,
+  readTeamTab,
+  squadIncomplete,
+  teamTabHref,
+} from '@/lib/team';
 
 // The server actions need a request; the component only binds them.
 vi.mock('@/lib/auth-actions', () => ({
@@ -17,11 +24,11 @@ vi.mock('@/lib/auth-actions', () => ({
   unfollowAction: async () => undefined,
 }));
 
-const { ClubBand, FixturesPanel, NoNextMatch, SquadPanel, TeamMatchRow } =
+const { ClubBand, ClubFacts, FixturesPanel, NoNextMatch, SquadPanel, TeamMatchRow } =
   await import('./club-page');
 const { AroundThem, ComingUp, RecentResults, RecordPanel, SquadCard, TopScorerCard } =
   await import('./club-overview');
-const { EntityFollow } = await import('./competition-page');
+const { CardFollow, EntityFollow } = await import('./competition-page');
 const { NextMatchCard } = await import('./next-match-card');
 
 /**
@@ -372,6 +379,205 @@ describe('the next match', () => {
 
   it('says there is none rather than leaving the top of the page blank', () => {
     expect(renderToStaticMarkup(<NoNextMatch locale="en" />)).toContain('No match scheduled.');
+  });
+});
+
+describe('from the next match to a pick (T-1741, D-362)', () => {
+  const KICKOFF = '2026-11-07T15:00:00.000Z';
+  const BEFORE = Date.parse('2026-11-07T09:00:00.000Z');
+  const AFTER = Date.parse('2026-11-07T15:05:00.000Z');
+  const FORECAST = {
+    state: 'available' as const,
+    home: 60.8,
+    draw: 27.8,
+    away: 11.4,
+    version: 3,
+    model_version: 'dixon-coles-elo@0.6.0',
+    computed_at: '2026-11-02T15:10:00.000Z',
+  };
+  const card = (
+    over: Partial<TeamPageFixture> = {},
+    now: number | undefined = BEFORE,
+    follow?: ReactNode,
+    locale = 'en',
+  ) =>
+    renderToStaticMarkup(
+      <NextMatchCard
+        fixture={fixture({ status: 'scheduled', score: null, kickoff_at: KICKOFF, ...over })}
+        forecast={FORECAST}
+        viewing={null}
+        locale={locale}
+        timeZone="Europe/London"
+        now={now}
+        follow={follow}
+      />,
+    );
+  const guestFollow = (
+    <CardFollow
+      locale="en"
+      entityType="team"
+      entityId={TEAM}
+      signedIn={false}
+      following={null}
+      followingKey="teamPage.follow.following"
+      guestHref={guestFollowHref('en', TEAM)}
+    />
+  );
+  const memberFollow = (following: FollowedEntity[] | null) =>
+    renderToStaticMarkup(
+      <CardFollow
+        locale="en"
+        entityType="team"
+        entityId={TEAM}
+        signedIn
+        following={following}
+        followingKey="teamPage.follow.following"
+        guestHref={guestFollowHref('en', TEAM)}
+      />,
+    );
+
+  it('ends the card in "Make your pick", an outlined link to the match page’s pick card', () => {
+    const html = card();
+    const pick = /<a[^>]*data-testid="next-match-pick"[^>]*>/.exec(html)?.[0] ?? '';
+    expect(pick).toContain(`href="/en/match/00000000-0000-4000-8000-00000000f001#pick"`);
+    // Secondary, in the saffron edge and ink; the fill stays the primary's.
+    expect(pick).toContain('border-accent');
+    expect(pick).toContain('text-accent');
+    expect(pick).not.toContain('bg-brand');
+    expect(pick).toContain('min-h-touch');
+    expect(html).toContain('>Make your pick<');
+    // A link, not the pick control: no outcome buttons on this card.
+    expect(html).not.toContain('aria-pressed');
+    expect(card({}, BEFORE, undefined, 'fa')).toContain(
+      'href="/fa/match/00000000-0000-4000-8000-00000000f001#pick"',
+    );
+  });
+
+  it('offers the pick only while the match has not kicked off', () => {
+    // The kick-off has passed by the clock, though the status has not moved yet.
+    expect(card({}, AFTER)).not.toContain('next-match-pick');
+    // Under way, or over, by the match's own status.
+    expect(card({ status: 'live' })).not.toContain('next-match-pick');
+    expect(card({ status: 'finished', score: { home: 1, away: 0 } })).not.toContain(
+      'next-match-pick',
+    );
+    // With neither a pick nor a follow there is no empty row of actions.
+    expect(card({ status: 'live' })).not.toContain('next-match-actions');
+    // Follow does not depend on the kick-off.
+    expect(card({ status: 'live' }, BEFORE, guestFollow)).toContain('team-card-follow-guest');
+  });
+
+  it('keeps the percentages the model’s: in its box, each beside its side’s name, with the version', () => {
+    const html = card();
+    const box = /data-testid="next-match-model".*?data-testid="next-match-actions"/s.exec(html);
+    expect(box).not.toBeNull();
+    const words = (box?.[0] ?? '').replace(/<[^>]+>/g, '');
+    expect(words).toContain('Model');
+    expect(words).toMatch(/Tractor\s*60\.8%/);
+    expect(words).toMatch(/Draw\s*27\.8%/);
+    expect(words).toMatch(/Esteghlal\s*11\.4%/);
+    expect(words).toContain('dixon-coles-elo@0.6.0');
+    // The model's tag is the turquoise outline; nothing of it is saffron.
+    expect(box?.[0]).toContain('border-model');
+    expect(box?.[0]).not.toContain('bg-brand');
+    // And nothing outside the box is a percentage.
+    expect(html.replace(box?.[0] ?? '', '')).not.toMatch(/\d+(\.\d)?%/);
+  });
+
+  it('sends a guest’s Follow to sign-in with the way back in next, a same-origin path', () => {
+    const html = card({}, BEFORE, guestFollow);
+    const link = /<a[^>]*data-testid="team-card-follow-guest"[^>]*>/.exec(html)?.[0] ?? '';
+    const href = /href="([^"]*)"/.exec(link)?.[1];
+    expect(href).toBe(`/en/login?next=${encodeURIComponent(`/en/team/${TEAM}`)}`);
+    const next = new URL(href ?? '', 'https://stadiomind.test').searchParams.get('next');
+    expect(next).toBe(`/en/team/${TEAM}`);
+    expect(next).not.toMatch(/^\/\/|:/);
+    expect(guestFollowHref('fa', TEAM)).toBe(
+      `/fa/login?next=${encodeURIComponent(`/fa/team/${TEAM}`)}`,
+    );
+    // Beside the pick, in one row.
+    expect(html).toMatch(
+      /data-testid="next-match-actions".*next-match-pick.*team-card-follow-guest/s,
+    );
+  });
+
+  it('gives a member the band’s follow action, says so once following, and nothing when unreadable', () => {
+    const off = memberFollow([]);
+    expect(off).toContain('data-testid="team-card-follow"');
+    expect(off).toContain('value="team"');
+    expect(off).toContain(`value="${TEAM}"`);
+    expect(off).toContain('type="submit"');
+    const on = memberFollow([{ entity_type: 'team', entity_id: TEAM } as FollowedEntity]);
+    expect(on).toContain('data-testid="team-card-following"');
+    expect(on).toContain('You follow this team');
+    expect(on).not.toContain('<form');
+    expect(memberFollow(null)).toBe('');
+    // On a phone the member keeps the band's control, so the card adds no second one there.
+    expect(off).toMatch(/<form[^>]*class="max-md:hidden"/);
+    expect(on).toContain('max-md:hidden');
+  });
+});
+
+describe('the band on a phone (T-1741, D-362)', () => {
+  const band = (p: TeamPage, followOnCard = false) =>
+    renderToStaticMarkup(
+      <ClubBand
+        page={p}
+        locale="en"
+        timeZone="Asia/Tehran"
+        tab="overview"
+        follow={<span data-testid="the-follow" />}
+        followOnCard={followOnCard}
+        territory={undefined}
+      />,
+    );
+
+  it('is one row below 768px: the crest, the name and where the club stands on one line', () => {
+    const html = band(page());
+    expect(html).toContain('data-phone="compact"');
+    // The crest spans the name and the standing line beside it.
+    expect(html).toMatch(/<span class="[^"]*max-md:row-span-2[^"]*"/);
+    // The standing as one line with its separators, stacked again from 768px.
+    const standing = /<div[^>]*data-testid="band-standing">.*?<\/div>/s.exec(html)?.[0] ?? '';
+    expect(standing.replace(/<[^>]+>/g, '')).toBe('Pro League·1st·17 pts from 8');
+    expect(standing.match(/aria-hidden="true" class="[^"]*md:hidden[^"]*"/g)).toHaveLength(2);
+    // The eyebrow, the ground and the coach leave the band on a phone and stay in it from 768px.
+    expect(html).toMatch(/<p class="[^"]*max-md:hidden[^"]*" data-testid="band-eyebrow"/);
+    expect(html).toMatch(/<div class="max-md:hidden">.*data-testid="team-ground"/s);
+    expect(html).toMatch(/<div class="max-md:hidden">.*data-testid="manager"/s);
+    // The name is never left out.
+    expect(html).toMatch(/data-testid="title"[^>]*>Tractor</);
+    expect(BAND).not.toMatch(PHYSICAL);
+  });
+
+  it('leaves the band’s follow out on a phone only when the next-match card carries it', () => {
+    expect(band(page(), true)).toMatch(
+      /<div class="[^"]*max-md:hidden[^"]*"><span data-testid="the-follow"/,
+    );
+    expect(band(page(), false)).not.toMatch(
+      /<div class="[^"]*max-md:hidden[^"]*"><span data-testid="the-follow"/,
+    );
+    // A guest's Follow is on the card only where there is a card: the Overview with a next match.
+    expect(PAGE).toContain('followOnCard={overview && page.next_match !== null && me === null}');
+  });
+
+  it('shows what the band left out as a card under the next match, in the same words', () => {
+    const html = renderToStaticMarkup(
+      <ClubFacts page={page()} locale="en" timeZone="Asia/Tehran" />,
+    );
+    // Phones only: from 768px the band has them.
+    expect(html).toMatch(/<section[^>]*class="[^"]*md:hidden[^"]*"[^>]*data-testid="club-facts"/);
+    expect(html).toMatch(/<h2 id="club-facts-heading"[^>]*>Team details<\/h2>/);
+    expect(html).toContain('Iran · Club · Founded 1970');
+    expect(html).toMatch(/data-testid="facts-team-ground">Yadegar-e-Emam Stadium, Tabriz</);
+    expect(html).toContain('12 followers');
+    expect(html).toContain('data-testid="facts-manager-none"');
+    // Its ids are its own, so the band's stay the only ones of their name.
+    expect(html).not.toMatch(/data-testid="(team-ground|followers|manager|head-coach)"/);
+    expect(html).not.toMatch(PHYSICAL);
+    // Placed after the next match on the Overview, and after the tab's content elsewhere.
+    expect(PAGE).toMatch(/<NextMatchCard[\s\S]*?<ClubFacts[\s\S]*?<RecentResults/);
+    expect(PAGE).toContain('{!overview && <ClubFacts');
   });
 });
 

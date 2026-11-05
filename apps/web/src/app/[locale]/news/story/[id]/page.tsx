@@ -10,9 +10,11 @@ import { languageName } from '@/lib/group-about';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
 import {
+  fetchConsensus,
   fetchEvaluations,
   fetchFollowing,
   fetchForecastSummaries,
+  fetchFounderAnalysis,
   fetchMatchCentre,
   fetchMe,
   fetchSavedArticles,
@@ -22,11 +24,9 @@ import { ModelExpected } from '@/components/forecast-panel';
 import { NewsImageCredit, NewsPhoto, NewsThumb, drawableNewsImage } from '@/components/news-image';
 import { SaveArticle } from '@/components/save-article';
 import { ShareLink } from '@/components/share-link';
-import {
-  StoryFollowControls,
-  StoryPredictionLinks,
-  followableEntities,
-} from '@/components/story-links';
+import { StoryFollowControls, followableEntities } from '@/components/story-links';
+import { StoryPredictions, type StoryPredictionsAbout } from '@/components/story-predictions';
+import { cardForecast } from '@/lib/score-card-products';
 import {
   VERSION_STATUS_KEY,
   entityHref,
@@ -95,6 +95,14 @@ export async function generateMetadata({
  * model's lane only. The publisher's credit, the photo credit and the link
  * out naming the publisher stay.
  *
+ * T-1741 (D-362): the predictions card shows instead of explaining --
+ * `StoryPredictions`: the match, the model's bar in its own box and the way
+ * to the match page's pick card, the founder's analysis and the community
+ * consensus each named in a sentence of its own, and one line with a
+ * coverage state when the story links no match or the match has no forecast.
+ * "Read the original" is the first button under the summary, the sentence
+ * about headline and summary only small print under it.
+ *
  * T-1621 (D-291) takes it off editorial paper: it follows the theme like
  * every other page. The reading stays a reading: the headline in the
  * editorial face, as the news front page sets its lead (D-284), and the
@@ -141,10 +149,61 @@ export default async function StoryPage({
   const match = story.entities.find((e) => e.entity_type === 'fixture') ?? null;
   const named = story.entities.filter((e) => e.entity_type !== 'fixture');
   const when = (iso: string): string => formatDateTime(locale, iso, timeZone);
+  // The moment this answer is rendered: a kick-off already past offers no pick.
+  const now = new Date().getTime();
+  // What is read about the story's match (T-1741), each from its own public
+  // endpoint: the match itself, the model's pre-kick-off version, whether the
+  // founder has published an analysis and whether the community's consensus
+  // is published -- and, for a match report only, the model's evaluation.
+  const reads =
+    match === null
+      ? null
+      : await matchReads(match.entity_id, locale, story.type.data?.type === 'match_report');
+  const about: StoryPredictionsAbout =
+    match === null || reads === null
+      ? { state: 'no_match' }
+      : !reads.centre.ok
+        ? { state: 'unreachable', fixtureId: match.entity_id }
+        : {
+            state: 'match',
+            match: reads.centre.data.fixture,
+            forecast:
+              reads.summary === 'unreachable'
+                ? { state: 'unreachable' }
+                : cardForecast(reads.summary),
+            // A state for each, never their words or figures (rule 6).
+            founder: !reads.founder.ok
+              ? 'unreachable'
+              : reads.founder.data.analysis === null
+                ? 'none'
+                : 'published',
+            community: !reads.consensus.ok
+              ? 'unreachable'
+              : reads.consensus.data.data === null
+                ? 'below_floor'
+                : 'published',
+          };
   const expected =
-    match !== null && story.type.data?.type === 'match_report'
-      ? await modelExpected(match.entity_id, locale)
-      : null;
+    reads !== null && reads.evaluations !== null ? modelExpected(reads, locale) : null;
+  // D-061: a free feed grants no body. The way to the original is the first
+  // button under the summary, and the sentence saying why is small print
+  // under it (T-1741, D-362).
+  const original =
+    page.body.data !== null ? null : (
+      // The reader's words, not the publisher's: the page's language, not the story's.
+      <div
+        className="flex flex-col items-start gap-2"
+        lang={locale}
+        data-testid="story-body-not-supplied"
+      >
+        <LinkOut href={story.url} host={story.source.name} look="button" testId="story-link">
+          <Translated locale={locale} message="story.readOriginal" />
+        </LinkOut>
+        <p className="text-sm text-muted" data-testid="story-body-note">
+          <Translated locale={locale} message="story.bodyAtSource" />
+        </p>
+      </div>
+    );
 
   return (
     <main className="pb-16" data-testid="story-page">
@@ -219,34 +278,17 @@ export default async function StoryPage({
                   <time dateTime={story.published_at}>{when(story.published_at)}</time>
                 )}
               </p>
+              {original}
             </header>
             <NewsPhoto image={story.image} headline={story.headline} locale={locale} />
 
-            {page.body.data !== null ? (
+            {page.body.data !== null && (
               <div
                 dir="auto"
                 className="font-article text-article whitespace-pre-line"
                 data-testid="story-body"
               >
                 {page.body.data}
-              </div>
-            ) : (
-              // D-061: the free feed grants no body. The product is the way to the original.
-              <div
-                className="flex flex-col items-start gap-3"
-                data-testid="story-body-not-supplied"
-              >
-                <p className="font-article text-article">
-                  <Translated locale={locale} message="story.bodyAtSource" />
-                </p>
-                <LinkOut
-                  href={story.url}
-                  host={story.source.name}
-                  look="button"
-                  testId="story-link"
-                >
-                  <Translated locale={locale} message="story.readOriginal" />
-                </LinkOut>
               </div>
             )}
 
@@ -393,11 +435,9 @@ export default async function StoryPage({
               )}
             </section>
 
-            {match !== null && (
-              <div className={CARD}>
-                <StoryPredictionLinks locale={locale} fixtureId={match.entity_id} />
-              </div>
-            )}
+            <div className={CARD}>
+              <StoryPredictions about={about} locale={locale} timeZone={timeZone} now={now} />
+            </div>
 
             <div className={CARD}>
               <StoryFollowControls
@@ -485,25 +525,41 @@ export default async function StoryPage({
 }
 
 /**
- * What a match report's model box needs (T-1383): the match's names and
- * full-time score, the version computed before kick-off, and that version's
- * evaluation. Three reads, only for a match report.
+ * What the page reads about the story's match, once and together (T-1741):
+ * the match (`GET /fixtures/:id`), the model's latest version computed
+ * before kick-off (`/forecasts/pre-kickoff`), whether the founder has
+ * published an analysis (`/fixtures/:id/founder-analysis`) and whether the
+ * community's consensus is published (`/fixtures/:id/consensus`) -- each
+ * product from its own endpoint, never a combined one (rule 6) -- and, for a
+ * match report, the model's evaluations (T-1383).
  */
-async function modelExpected(
-  fixtureId: string,
-  locale: string,
-): Promise<Omit<Parameters<typeof ModelExpected>[0], 'timeZone' | 'locale'>> {
-  const [centre, summaries, evaluations] = await Promise.all([
-    fetchMatchCentre(fixtureId),
+async function matchReads(fixtureId: string, locale: string, report: boolean) {
+  const [centre, summaries, founder, consensus, evaluations] = await Promise.all([
+    fetchMatchCentre(fixtureId, locale),
     fetchForecastSummaries([fixtureId]),
-    fetchEvaluations(fixtureId),
+    fetchFounderAnalysis(fixtureId),
+    fetchConsensus(fixtureId),
+    report ? fetchEvaluations(fixtureId) : null,
   ]);
-  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const summary = !summaries.ok
     ? ('unreachable' as const)
     : (summaries.data.fixtures.find((f) => f.fixture_id === fixtureId)?.pre_kickoff ?? null);
+  return { centre, summary, founder, consensus, evaluations };
+}
+
+/**
+ * What a match report's model box needs (T-1383): the match's names and
+ * full-time score, the version computed before kick-off, and that version's
+ * evaluation, from the page's reads of the match.
+ */
+function modelExpected(
+  reads: Awaited<ReturnType<typeof matchReads>>,
+  locale: string,
+): Omit<Parameters<typeof ModelExpected>[0], 'timeZone' | 'locale'> {
+  const { centre, summary, evaluations } = reads;
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const evaluation =
-    summary === null || summary === 'unreachable' || !evaluations.ok
+    summary === null || summary === 'unreachable' || evaluations === null || !evaluations.ok
       ? null
       : (evaluations.data.evaluations
           .filter((e) => e.pre_kickoff && e.version_number === summary.version_number)

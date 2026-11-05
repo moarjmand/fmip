@@ -73,3 +73,25 @@ export function markedOutcome(input: {
   if (input.saved !== null) return input.saved;
   return input.locked ? null : input.chosen;
 }
+
+/**
+ * The match page at its pick card with nothing chosen yet (T-1741, D-362):
+ * `/<locale>/match/<fixture id>#pick`. Where "Make your pick" leads from a
+ * card that shows a match without the control itself -- the team page's next
+ * match and the news story's predictions card.
+ */
+export function pickCardPath(locale: string, fixtureId: string): string {
+  return `/${locale}/match/${encodeURIComponent(fixtureId)}#pick`;
+}
+
+/**
+ * Whether a card may still offer the way to the pick card (T-1741): the
+ * match is still `scheduled` and, when the caller passes the moment of its
+ * render, kick-off is after it. Picks lock at kick-off (blueprint 6.6) and
+ * the API is the authority; this only keeps a match already under way, or
+ * one whose status is behind its kick-off, from inviting a pick.
+ */
+export function pickOpen(fixture: { status: string; kickoff_at: string }, now?: number): boolean {
+  if (fixture.status !== 'scheduled') return false;
+  return now === undefined || Date.parse(fixture.kickoff_at) > now;
+}

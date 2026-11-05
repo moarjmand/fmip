@@ -18,6 +18,8 @@ const api = vi.hoisted(() => ({
   fetchEvaluations: vi.fn(),
   fetchForecastSummaries: vi.fn(),
   fetchMatchCentre: vi.fn(),
+  fetchFounderAnalysis: vi.fn(),
+  fetchConsensus: vi.fn(),
 }));
 vi.mock('@/lib/api', () => api);
 vi.mock('@/lib/session', () => ({ sessionCookieHeader: async () => undefined }));
@@ -95,8 +97,24 @@ const page = (rights: 'summary' | 'full_text'): StoryPageData => ({
   last_updated_at: '2026-10-25T18:05:00Z',
 });
 
-async function render(rights: 'summary' | 'full_text', locale = 'en'): Promise<string> {
-  api.fetchStory.mockResolvedValue({ ok: true, data: page(rights) });
+const FIXTURE = '00000000-0000-4000-8000-000000000901';
+
+async function render(
+  rights: 'summary' | 'full_text',
+  locale = 'en',
+  /** Link the story to a match, as a preview of it would be. */
+  linked = false,
+): Promise<string> {
+  const data = page(rights);
+  if (linked) {
+    data.story.entities.push({
+      entity_type: 'fixture',
+      entity_id: FIXTURE,
+      name: null,
+      localised_name: null,
+    });
+  }
+  api.fetchStory.mockResolvedValue({ ok: true, data });
   const element = await StoryPage({
     params: Promise.resolve({ locale, id: ID }),
     searchParams: Promise.resolve({}),
@@ -148,6 +166,115 @@ describe('the story page (T-1621, D-291)', () => {
     expect(summary.replace(/<[^>]+>/g, '')).toContain('Example Times');
   });
 
+  it('puts "Read the original" first under the summary, the note about it small under the button (T-1741)', async () => {
+    const out = await render('summary');
+    const order = ['story-summary', 'story-source', 'story-link', 'story-body-note'].map((id) =>
+      out.indexOf(`data-testid="${id}"`),
+    );
+    expect(order.every((at) => at >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    // Inside the header, so nothing (a photo) comes between the summary and the button.
+    expect(out.indexOf('data-testid="story-link"')).toBeLessThan(out.indexOf('</header>'));
+    expect(out).toMatch(/<p class="text-sm text-muted" data-testid="story-body-note">Only the/);
+    expect(out.replace(/<[^>]+>/g, '')).toContain('Read the original (Example Times)');
+  });
+});
+
+describe('the predictions card on the story page (T-1741, D-362)', () => {
+  const centre = (status: string, kickoff: string) => ({
+    ok: true,
+    data: {
+      fixture: {
+        id: FIXTURE,
+        kickoff_at: kickoff,
+        status,
+        competition: { id: 'pl', name: 'Premier League', short_name: null, country_id: null },
+        home: { id: 'h', name: 'Arsenal', short_name: null, code: null },
+        away: { id: 'a', name: 'Hull City', short_name: null, code: null },
+        scores: { full_time: null },
+      },
+    },
+  });
+  const summaries = (pre: unknown) => ({
+    ok: true,
+    data: { fixtures: [{ fixture_id: FIXTURE, pre_kickoff: pre }] },
+  });
+  const FORECAST = {
+    fixture_id: FIXTURE,
+    version_number: 3,
+    model_version: 'dixon-coles-elo@0.6.0',
+    computed_at: '2026-11-02T15:10:00.000Z',
+    status: 'available',
+    unavailable_reason: null,
+    probabilities: { home: 0.608, draw: 0.278, away: 0.114 },
+  };
+  // A kick-off that is always ahead of the test's clock.
+  const AHEAD = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+
+  beforeEach(() => {
+    api.fetchMatchCentre.mockResolvedValue(centre('scheduled', AHEAD));
+    api.fetchForecastSummaries.mockResolvedValue(summaries(FORECAST));
+    api.fetchFounderAnalysis.mockResolvedValue({
+      ok: true,
+      data: { fixture_id: FIXTURE, analysis: null },
+    });
+    api.fetchConsensus.mockResolvedValue({ ok: true, data: { fixture_id: FIXTURE, data: null } });
+    api.fetchEvaluations.mockReset();
+  });
+
+  it('shows the linked match’s forecast as the model’s, with the way to the pick card', async () => {
+    const out = await render('summary', 'en', true);
+    expect(out).toContain('data-testid="story-predictions" data-state="forecast"');
+    expect(out).toContain('data-testid="story-model"');
+    const words = out.replace(/<[^>]+>/g, '');
+    expect(words).toContain('60.8%');
+    expect(words).toContain('dixon-coles-elo@0.6.0');
+    expect(out).toContain(`href="/en/match/${FIXTURE}#pick"`);
+    expect(out).toContain('data-testid="story-product-analysis" data-state="none"');
+    expect(out).toContain('data-testid="story-product-community" data-state="below_floor"');
+    // Each product from its own endpoint, asked once; no evaluation for a preview.
+    expect(api.fetchMatchCentre).toHaveBeenCalledWith(FIXTURE, 'en');
+    expect(api.fetchForecastSummaries).toHaveBeenCalledWith([FIXTURE]);
+    expect(api.fetchFounderAnalysis).toHaveBeenCalledWith(FIXTURE);
+    expect(api.fetchConsensus).toHaveBeenCalledWith(FIXTURE);
+    expect(api.fetchEvaluations).not.toHaveBeenCalled();
+    expect(out).not.toMatch(PHYSICAL);
+  });
+
+  it('says there is no forecast with the coverage state, never an empty bar', async () => {
+    api.fetchForecastSummaries.mockResolvedValue(summaries(null));
+    const out = await render('summary', 'en', true);
+    expect(out).toContain('data-testid="story-predictions" data-state="no_forecast"');
+    expect(out).toContain('data-coverage-badge="not_supplied"');
+    expect(out).not.toContain('data-segment=');
+    // The forecast service not answering is delayed, not "none".
+    api.fetchForecastSummaries.mockResolvedValue({ ok: false, status: 503 });
+    const down = await render('summary', 'en', true);
+    expect(down).toContain('data-coverage-badge="delayed"');
+  });
+
+  it('says a story with no linked match in one line, and asks nothing about a match', async () => {
+    api.fetchMatchCentre.mockClear();
+    const out = await render('summary');
+    expect(out).toContain('data-testid="story-predictions" data-state="no_match"');
+    expect(out).toMatch(/data-testid="story-predictions-missing" data-coverage="not_supplied"/);
+    expect(out).not.toContain('data-testid="story-model"');
+    expect(api.fetchMatchCentre).not.toHaveBeenCalled();
+  });
+
+  it('offers no pick for a match that has kicked off, or that could not be read', async () => {
+    api.fetchMatchCentre.mockResolvedValue(centre('finished', '2026-10-25T16:00:00.000Z'));
+    const over = await render('summary', 'en', true);
+    expect(over).toContain('data-testid="story-predictions" data-state="started"');
+    expect(over).not.toContain('#pick');
+    api.fetchMatchCentre.mockResolvedValue({ ok: false, status: 503 });
+    const down = await render('summary', 'en', true);
+    expect(down).toContain('data-testid="story-predictions" data-state="unreachable"');
+    expect(down).not.toContain('#pick');
+  });
+});
+
+describe('the story page’s targets (T-1621, D-291)', () => {
   it('gives the back link, the language and the entity links a 44px target', async () => {
     const out = await render('summary');
     for (const testId of ['back-to-news']) {
