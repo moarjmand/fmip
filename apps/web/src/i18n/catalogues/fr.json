@@ -6956,11 +6956,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "scores.preview.yourPick": {
-    "source": "Your pick",
-    "text": "",
-    "status": "untranslated"
-  },
   "scores.preview.model": {
     "source": "Model",
     "text": "",
@@ -9698,11 +9693,6 @@
   },
   "predictions.action.saved": {
     "source": "Saved as version {version}. You can change it until kick-off.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.pickNote": {
-    "source": "“Make your pick” records a community pick only; it never changes the model’s numbers. The community split stays hidden until you pick.",
     "text": "",
     "status": "untranslated"
   },
@@ -13631,6 +13621,66 @@
   },
   "pick.splitLabel": {
     "source": "Community picks: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.title": {
+    "source": "Your pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.locks": {
+    "source": "Locks {time} {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.guest": {
+    "source": "Tap an outcome. No account is needed to choose; an account is needed to save it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.chosen": {
+    "source": "Your pick: {outcome}. Not saved yet. Create a free account to lock it before {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.member": {
+    "source": "Tap an outcome to save your pick. You can change it until {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.carried": {
+    "source": "Your pick: {outcome}. Not saved yet. Tap it to save it before {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.saved": {
+    "source": "You can change it until {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.locked": {
+    "source": "Picks lock at kick-off. Your pick: {outcome}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.lockedNone": {
+    "source": "Picks lock at kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.saved": {
+    "source": "Saved",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.create": {
+    "source": "Create account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.detail": {
+    "source": "Add detail: exact score, confidence, reasons",
     "text": "",
     "status": "untranslated"
   },

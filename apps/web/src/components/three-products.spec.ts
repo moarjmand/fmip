@@ -132,14 +132,15 @@ describe('the three products stay three on the page', () => {
     // The preview: the model's bar in its own block, the pick the community's
     // own control with its split, side by side and never one figure.
     expect(preview).toContain('<ForecastBar');
-    expect(preview).toContain('<InlinePick');
+    expect(preview).toContain('<PickControl');
+    expect(preview).toContain('<ModelBox');
     expect(preview).toContain('<CommunitySplit');
-    expect(source('forecast-bar.tsx')).not.toMatch(/CommunitySplit|Consensus|InlinePick/);
+    expect(source('forecast-bar.tsx')).not.toMatch(/CommunitySplit|Consensus|PickControl/);
 
     // The founder's analysis in the founder's voice, and nothing else in it.
     expect(analysis).toContain('<FounderVoice');
     expect(analysis).toContain('<FounderAnalysisFeed');
-    expect(analysis).not.toMatch(/Forecast(Bar|Summary)|Consensus|CommunitySplit|InlinePick/);
+    expect(analysis).not.toMatch(/Forecast(Bar|Summary)|Consensus|CommunitySplit|PickControl/);
     expect(page).toContain('<MatchesAnalysis');
   });
 
@@ -218,6 +219,18 @@ describe('the three products stay three on the page', () => {
     const pick = source('prediction-form.tsx');
     expect(pick).toContain('has-checked:bg-community');
     expect(pick).not.toMatch(/has-checked:bg-accent|bg-model|bg-founder/);
+    // The pick control (T-1738, D-359): saffron on the chosen outcome and
+    // nowhere else, and nothing of the model's in it -- no turquoise, no
+    // forecast, no consensus. The model's box is its own file, handed in as a
+    // slot, and holds nothing of the pick's or the community's.
+    const control = source('pick-control.tsx');
+    expect(control).toContain('bg-brand');
+    expect(control).not.toMatch(
+      /(text|bg|border)-model|(text|bg|border)-founder|Forecast|Consensus|CommunitySplit|probabilit/,
+    );
+    const box = source('model-box.tsx');
+    expect(box).toContain('border-model');
+    expect(box).not.toMatch(/bg-brand|PickControl|PickForm|Consensus|CommunitySplit|bg-community/);
   });
 
   it('never averages the three into one number', () => {

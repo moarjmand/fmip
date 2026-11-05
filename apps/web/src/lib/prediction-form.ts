@@ -32,7 +32,14 @@ export function formToSubmission(form: FormData): SubmitPredictionRequest {
   const outcome = text('outcome');
   const home = text('score_home');
   const away = text('score_away');
-  const score = home !== '' && away !== '' ? { home: Number(home), away: Number(away) } : null;
+  // The pick control's one-tap form (T-1738) carries the stored score along
+  // with the outcome it was given for (`score_for`): it stands while that
+  // outcome does and is dropped when another is tapped, since a score must
+  // agree with its outcome and the API would refuse the pair.
+  const scoreFor = text('score_for');
+  const kept = scoreFor === '' || scoreFor === outcome;
+  const score =
+    kept && home !== '' && away !== '' ? { home: Number(home), away: Number(away) } : null;
   const tags = form
     .getAll('reason_tags')
     .filter(
