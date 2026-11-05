@@ -90,7 +90,9 @@ test.describe('blueprint journeys', () => {
 
     // A guest's outcome is a link to Create account, carrying the way back.
     await control.locator('[data-option="home"] a').click();
-    await expect(page).toHaveURL(/\/en\/register\?next=%2Fen%2Fmatch%2F[0-9a-f-]+%3Fpick%3Dhome%23pick$/);
+    await expect(page).toHaveURL(
+      /\/en\/register\?next=%2Fen%2Fmatch%2F[0-9a-f-]+%3Fpick%3Dhome%23pick$/,
+    );
     const form = page.getByTestId('register-form');
     // The form asks for what only the reader knows (T-1737, D-358): no display
     // name and no language; the zone is one line with the list behind it.
