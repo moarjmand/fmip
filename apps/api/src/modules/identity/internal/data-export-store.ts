@@ -101,6 +101,14 @@ SELECT json_build_object(
        WHERE st.prediction_id = up.id), '[]'::json))
       ORDER BY up.created_at, up.fixture_id)
     FROM user_prediction up WHERE up.user_id = $1), '[]'::json),
+  'pending_picks', coalesce((SELECT json_agg(json_build_object(
+      'fixture_id', pp.fixture_id, 'outcome', pp.outcome,
+      'status', CASE WHEN pp.status = 'pending' AND pf.kickoff_at <= now()
+                     THEN 'expired' ELSE pp.status END,
+      'saved_at', pp.created_at, 'resolved_at', pp.resolved_at)
+      ORDER BY pp.created_at, pp.id)
+    FROM pending_pick pp JOIN fixture pf ON pf.id = pp.fixture_id
+   WHERE pp.user_id = $1), '[]'::json),
   'rating_history', coalesce((SELECT json_agg(json_build_object(
       'formula_version', rs.formula_version, 'settled_count', rs.settled_count,
       'rating', rs.rating, 'provisional', rs.provisional, 'established', rs.established,
@@ -227,6 +235,7 @@ export class PostgresDataExportStore {
 export function sizesOf(data: DataExport): Record<string, number> {
   return {
     predictions: data.predictions.length,
+    pending_picks: data.pending_picks.length,
     messages: data.messages.length,
     panel_posts: data.panel_posts.length,
     analyses: data.analyses.length,

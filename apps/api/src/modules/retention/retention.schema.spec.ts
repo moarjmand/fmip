@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { withTriggersOff } from '../../testing/cleanup';
@@ -25,6 +26,11 @@ import { RetentionService, purgeInBatches } from './retention.service';
 const DATABASE_URL = process.env.DATABASE_URL;
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const UPCOMING = '00000000-0000-4000-8000-000000000902';
+const PL_2025 = '00000000-0000-4000-8000-000000000302';
+// Two matches of this suite's own, dated in 2001 like everything else here:
+// one that kicked off more than 30 days before the run, one that did not.
+const MATCH_OLD = randomUUID();
+const MATCH_RECENT = randomUUID();
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const NOW = new Date('2001-06-01T03:23:00Z');
 
@@ -172,6 +178,70 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
     await claim('uncarried', '2001-01-10T11:00:00Z', null);
     await claim('failedC', '2001-01-11T09:00:00Z', { email: 'skipped', push: 'failed' });
     await claim('recent', '2001-04-01T10:00:00Z', { email: 'sent', push: 'sent' });
+
+    // Pending picks (T-1740, D-361): the cut-off is 2001-05-02, compared with
+    // the match's kick-off. Written past the insert guard, which refuses a
+    // match that has kicked off and a member whose address is confirmed.
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES
+       ($1, $3, TIMESTAMPTZ '2001-03-01 15:00:00+00', 'finished'),
+       ($2, $3, TIMESTAMPTZ '2001-05-20 15:00:00+00', 'finished')`,
+      [MATCH_OLD, MATCH_RECENT, PL_2025],
+    );
+    const pick = async (
+      label: string,
+      user: string,
+      fixture: string,
+      status: string,
+      created: string,
+      resolved: string | null,
+    ) => {
+      await withTriggersOff(pool, async (c) => {
+        const { rows } = await c.query<{ id: string }>(
+          `INSERT INTO pending_pick (user_id, fixture_id, outcome, status, created_at, resolved_at)
+           VALUES ($1, $2, 'home', $3, $4, $5) RETURNING id`,
+          [user, fixture, status, created, resolved],
+        );
+        ids[label] = rows[0]?.id ?? '';
+      });
+    };
+    // Kicked off before the cut-off: gone, whatever became of them.
+    await pick('pickOldWaiting', member, MATCH_OLD, 'pending', '2001-02-20T10:00:00Z', null);
+    await pick(
+      'pickOldReplaced',
+      member,
+      MATCH_OLD,
+      'replaced',
+      '2001-02-19T10:00:00Z',
+      '2001-02-20T10:00:00Z',
+    );
+    // Kicked off after it: kept, except the one that became a prediction.
+    await pick('pickRecentWaiting', member, MATCH_RECENT, 'pending', '2001-05-10T10:00:00Z', null);
+    await pick(
+      'pickRecentExpired',
+      other,
+      MATCH_RECENT,
+      'expired',
+      '2001-05-10T10:00:00Z',
+      '2001-05-21T10:00:00Z',
+    );
+    await pick(
+      'pickConverted',
+      other,
+      MATCH_RECENT,
+      'converted',
+      '2001-05-11T10:00:00Z',
+      '2001-05-12T10:00:00Z',
+    );
+    // Converted after this run's moment: the next run's, not this one's.
+    await pick(
+      'pickConvertedLater',
+      member,
+      UPCOMING,
+      'converted',
+      '2001-06-15T10:00:00Z',
+      '2001-07-01T10:00:00Z',
+    );
   });
 
   afterAll(async () => {
@@ -196,6 +266,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
     });
     // Cascades take the sessions, tokens, notifications and their deliveries.
     await pool.query(`DELETE FROM user_account WHERE id = ANY($1::uuid[])`, [accounts]);
+    // Their pending picks went with the accounts; the two matches are this suite's own.
+    await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[MATCH_OLD, MATCH_RECENT]]);
     await pool.query(`DELETE FROM console_user WHERE id = $1`, [consoleUser]);
     await pool.end();
   });
@@ -295,6 +367,39 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
     expect(await exists('email_token', ids.tokenOld ?? '')).toBe(false);
     expect(await exists('email_token', ids.tokenRecent ?? '')).toBe(true);
     expect(await delivered(ids.recent ?? '')).toBe(true);
+  });
+
+  it('purges pending picks 30 days after kick-off, and a converted one at the next run (T-1740)', async () => {
+    const predictionsBefore = await pool.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM prediction_version v
+         JOIN user_prediction p ON p.id = v.prediction_id
+        WHERE p.user_id = ANY($1::uuid[])`,
+      [[member, other]],
+    );
+    await service.purge(NOW);
+    expect(await exists('pending_pick', ids.pickOldWaiting ?? '')).toBe(false);
+    expect(await exists('pending_pick', ids.pickOldReplaced ?? '')).toBe(false);
+    expect(await exists('pending_pick', ids.pickConverted ?? '')).toBe(false);
+    expect(await exists('pending_pick', ids.pickRecentWaiting ?? '')).toBe(true);
+    expect(await exists('pending_pick', ids.pickRecentExpired ?? '')).toBe(true);
+    expect(await exists('pending_pick', ids.pickConvertedLater ?? '')).toBe(true);
+
+    // In bounded batches like every other table, and a second run finds nothing.
+    expect(
+      await purgeInBatches(
+        (limit) => store.deletePendingPicks(new Date('2001-05-02T03:23:00Z'), limit, NOW),
+        2,
+      ),
+    ).toEqual({ deleted: 0, batches: 1, capped: false });
+
+    // No prediction is touched: a pending pick is not one (rule 8).
+    const predictionsAfter = await pool.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM prediction_version v
+         JOIN user_prediction p ON p.id = v.prediction_id
+        WHERE p.user_id = ANY($1::uuid[])`,
+      [[member, other]],
+    );
+    expect(predictionsAfter.rows).toEqual(predictionsBefore.rows);
   });
 
   it('adds to an existing day’s count rather than replacing it', async () => {

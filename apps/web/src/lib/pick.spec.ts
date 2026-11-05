@@ -3,8 +3,10 @@ import {
   guestPickHref,
   guestSignInHref,
   markedOutcome,
+  pendingView,
   pickCardPath,
   pickControlState,
+  pickFromReturnPath,
   pickOpen,
   pickReturnPath,
   readPick,
@@ -103,5 +105,115 @@ describe('the control’s four states', () => {
   it('marks the address-borne outcome while the match is open', () => {
     expect(markedOutcome({ locked: false, saved: null, chosen: 'away' })).toBe('away');
     expect(markedOutcome({ locked: false, saved: null, chosen: null })).toBeNull();
+  });
+});
+
+describe('the match pick in a return address (T-1740, D-361)', () => {
+  it('reads the match and the outcome from the address the guest link writes', () => {
+    for (const outcome of ['home', 'draw', 'away'] as const) {
+      expect(pickFromReturnPath('en', pickReturnPath('en', ID, outcome))).toEqual({
+        fixtureId: ID,
+        outcome,
+      });
+    }
+    // With or without the fragment, and under the page's own locale.
+    expect(pickFromReturnPath('fa', `/fa/match/${ID}?pick=draw`)).toEqual({
+      fixtureId: ID,
+      outcome: 'draw',
+    });
+  });
+
+  it('gives the id in lower case, as the API keys it', () => {
+    const upper = ID.replace('4000', '4ABC');
+    expect(pickFromReturnPath('en', `/en/match/${upper}?pick=home#pick`)).toEqual({
+      fixtureId: upper.toLowerCase(),
+      outcome: 'home',
+    });
+  });
+
+  it('reads nothing from an address that is not exactly that', () => {
+    for (const next of [
+      null,
+      undefined,
+      '',
+      `/en/match/${ID}`,
+      `/en/match/${ID}#pick`,
+      `/en/match/${ID}?pick=`,
+      `/en/match/${ID}?pick=win`,
+      `/en/match/${ID}?pick=home&pick=away`,
+      `/en/match/${ID}?pick=home&tz=UTC`,
+      `/en/match/${ID}?tz=UTC&pick=home`,
+      `/en/match/${ID}?pick=home#other`,
+      `/en/match/${ID}/?pick=home`,
+      `/en/match/not-a-match?pick=home`,
+      `/en/team/${ID}?pick=home`,
+      `/en/scores?pick=${ID}`,
+      `/match/${ID}?pick=home`,
+      `//en/match/${ID}?pick=home`,
+      `https://example.test/en/match/${ID}?pick=home`,
+      `/en/match/${ID}?pick=home\n`,
+      ` /en/match/${ID}?pick=home`,
+    ]) {
+      expect(pickFromReturnPath('en', next), String(next)).toBeNull();
+    }
+  });
+
+  it('reads nothing under another locale than the page’s own', () => {
+    expect(pickFromReturnPath('fa', `/en/match/${ID}?pick=home#pick`)).toBeNull();
+    expect(pickFromReturnPath('en', `/fa/match/${ID}?pick=home#pick`)).toBeNull();
+  });
+});
+
+describe('the pending pick’s two states (T-1740, D-361)', () => {
+  const waiting = pendingView({ outcome: 'home', status: 'pending' });
+  const uncounted = pendingView({ outcome: 'home', status: 'expired' });
+
+  it('reads a pick that waits and one that kick-off left uncounted, and no other', () => {
+    expect(waiting).toEqual({ outcome: 'home', state: 'pending' });
+    expect(uncounted).toEqual({ outcome: 'home', state: 'uncounted' });
+    expect(pendingView(null)).toBeNull();
+    expect(pendingView(undefined)).toBeNull();
+    for (const status of ['converted', 'replaced', 'withdrawn']) {
+      expect(pendingView({ outcome: 'home', status })).toBeNull();
+    }
+  });
+
+  it('is pending while it waits, whatever the address says, and marks the saved outcome', () => {
+    const input = { locked: false, saved: null, chosen: 'away', pending: waiting } as const;
+    expect(pickControlState(input)).toBe('pending');
+    expect(markedOutcome(input)).toBe('home');
+  });
+
+  it('is uncounted once kick-off came first, by the API’s word or this page’s clock', () => {
+    expect(pickControlState({ locked: true, saved: null, chosen: null, pending: uncounted })).toBe(
+      'uncounted',
+    );
+    // The API has said so before this page's clock has.
+    expect(pickControlState({ locked: false, saved: null, chosen: null, pending: uncounted })).toBe(
+      'uncounted',
+    );
+    // This page's clock has passed kick-off since the API answered.
+    expect(pickControlState({ locked: true, saved: null, chosen: null, pending: waiting })).toBe(
+      'uncounted',
+    );
+    expect(markedOutcome({ locked: true, saved: null, chosen: 'away', pending: uncounted })).toBe(
+      'home',
+    );
+  });
+
+  it('gives way to a prediction: once there is one, the pending pick has done its job', () => {
+    const input = { saved: 'draw', chosen: null, pending: waiting } as const;
+    expect(pickControlState({ ...input, locked: false })).toBe('saved');
+    expect(pickControlState({ ...input, locked: true })).toBe('locked');
+    expect(markedOutcome({ ...input, locked: false })).toBe('draw');
+  });
+
+  it('leaves the four states as they were when there is no pending pick', () => {
+    expect(pickControlState({ locked: false, saved: null, chosen: null, pending: null })).toBe(
+      'open',
+    );
+    expect(pickControlState({ locked: true, saved: null, chosen: 'away', pending: null })).toBe(
+      'locked',
+    );
   });
 });

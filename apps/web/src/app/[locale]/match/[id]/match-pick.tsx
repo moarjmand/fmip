@@ -1,4 +1,4 @@
-import type { AuthUser, MatchHeader, Prediction } from '@fmip/contracts';
+import type { AuthUser, MatchHeader, PendingPick, Prediction } from '@fmip/contracts';
 import type { ReactNode } from 'react';
 import { FilledMessage } from '@/components/filled-message';
 import { CARD } from '@/components/match-centre-cards';
@@ -6,7 +6,7 @@ import { PickControl } from '@/components/pick-control';
 import { Translated } from '@/components/translated';
 import { Icon } from '@/components/ui';
 import { message } from '@/i18n/messages';
-import type { PickOutcome } from '@/lib/pick';
+import { type PickOutcome, pendingView } from '@/lib/pick';
 import { isLocked } from '@/lib/prediction-form';
 import { asLocale } from '@/lib/prediction-text';
 import { zoneWords } from '@/lib/reader-time-zone';
@@ -28,9 +28,10 @@ import { formatKickoff } from '@/lib/scores';
  * link to that card.
  *
  * Where the states are decided: `pickControlState` in `lib/pick.ts`, from
- * the stored prediction (`current`), the outcome in the address (`chosen`,
- * `readPick(?pick=)`, never stored) and the kick-off lock. This file only
- * decides what stands around the control.
+ * the stored prediction (`current`), the member's pending pick (`pending`,
+ * T-1740, D-361), the outcome in the address (`chosen`, `readPick(?pick=)`,
+ * never stored) and the kick-off lock. This file only decides what stands
+ * around the control.
  */
 
 type PickFixture = Pick<MatchHeader, 'id' | 'kickoff_at' | 'home' | 'away'>;
@@ -46,6 +47,7 @@ export function MatchPickCard({
   timeZone,
   me,
   current,
+  pending = null,
   chosen,
   split,
   finished,
@@ -56,6 +58,12 @@ export function MatchPickCard({
   me: AuthUser | null;
   /** The member's stored prediction, or `null`. */
   current: Prediction | null;
+  /**
+   * The member's pick saved before their email address was confirmed
+   * (T-1740, D-361), as the API has it now, or `null`. The control draws it
+   * as pending, or as "Saved, not counted" once kick-off came first.
+   */
+  pending?: Pick<PendingPick, 'outcome' | 'status'> | null;
   /** The outcome carried in the address (`readPick` of `?pick=`); marked, never stored. */
   chosen: PickOutcome | null;
   /**
@@ -84,6 +92,7 @@ export function MatchPickCard({
         zone={zoneWords(locale, timeZone)}
         me={me}
         current={current}
+        pending={pending}
         chosen={chosen}
         split={!finished && (me !== null || locked) ? split : undefined}
         heading="h2"
@@ -128,15 +137,26 @@ export function PickBar({
   fixture,
   timeZone,
   current,
+  pending = null,
 }: {
   locale: string;
   fixture: Pick<MatchHeader, 'status' | 'kickoff_at' | 'home' | 'away'>;
   timeZone: string;
   current: Prediction | null;
+  /** The member's pending pick (D-361), or `null`; a prediction comes before it. */
+  pending?: Pick<PendingPick, 'outcome' | 'status'> | null;
 }) {
-  if (fixture.status !== 'scheduled' || pickLocked(fixture, current)) return null;
+  const stored = current?.latest.outcome ?? null;
+  const waiting = stored === null ? pendingView(pending) : null;
+  if (
+    fixture.status !== 'scheduled' ||
+    pickLocked(fixture, current) ||
+    waiting?.state === 'uncounted'
+  ) {
+    return null;
+  }
   const l = asLocale(locale);
-  const saved = current?.latest.outcome ?? null;
+  const saved = stored ?? waiting?.outcome ?? null;
   const locks = (
     <FilledMessage
       message={message(l, 'pick.locks')}
@@ -155,7 +175,7 @@ export function PickBar({
       className="fixed inset-x-0 bottom-0 z-20 border-t border-default bg-surface pb-[calc(3.8125rem+env(safe-area-inset-bottom))] md:hidden"
       data-testid="pick-bar"
       data-pick-bar=""
-      data-pick={saved === null ? 'open' : 'saved'}
+      data-pick={saved === null ? 'open' : waiting === null ? 'saved' : 'pending'}
     >
       <a
         href="#pick"
@@ -169,7 +189,12 @@ export function PickBar({
           <span className="text-xs leading-tight text-muted">
             {saved !== null && (
               <>
-                <Translated locale={l} message="pick.saved" />
+                {/* A pending pick is not said to be simply "Saved": it counts
+                    only once the email address is confirmed (D-361). */}
+                <Translated
+                  locale={l}
+                  message={waiting === null ? 'pick.saved' : 'pick.pending.short'}
+                />
                 {' · '}
               </>
             )}

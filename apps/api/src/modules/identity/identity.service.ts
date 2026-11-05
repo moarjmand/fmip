@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type {
   AuthUser,
   DataExport,
@@ -109,6 +109,14 @@ export type LoginOutcome =
 export type Checked = boolean | Limited;
 
 /**
+ * Told when a member's e-mail address has just been confirmed (T-1740, D-361).
+ * How another boundary reacts to a confirmation without identity importing
+ * it: that boundary registers one of these at start-up, the way a module
+ * registers its composer with notifications.
+ */
+export type EmailVerifiedListener = (userId: string) => Promise<void>;
+
+/**
  * The roles `user_role` can grant (migration `..._identity`, `editor` added in
  * `..._editor-role` for T-261).
  *
@@ -140,6 +148,9 @@ export type UserRole = 'admin' | 'founder' | 'moderator' | 'editor';
  */
 @Injectable()
 export class IdentityService {
+  private readonly log = new Logger('Identity');
+  private readonly emailVerifiedListeners: EmailVerifiedListener[] = [];
+
   constructor(
     private readonly store: PostgresIdentityStore,
     private readonly deletion: PostgresAccountDeletionStore,
@@ -253,7 +264,37 @@ export class IdentityService {
     const userId = await this.store.consumeEmailToken(this.hash(token), 'verify_email');
     if (userId === null) return false;
     await this.store.markEmailVerified(userId);
+    await this.tellEmailVerified(userId);
     return true;
+  }
+
+  /**
+   * Registers what another boundary does when an address is confirmed
+   * (T-1740, D-361: the predictions boundary turns the member's waiting picks
+   * into predictions). Called once at start-up by the boundary that reacts;
+   * identity knows nothing of what a listener does.
+   */
+  onEmailVerified(listener: EmailVerifiedListener): void {
+    this.emailVerifiedListeners.push(listener);
+  }
+
+  /**
+   * After the address is marked confirmed, each listener in turn, awaited so
+   * the answer to the member already holds what followed. A listener that
+   * throws is logged and never fails the confirmation: the address is
+   * confirmed whatever a reaction to it did.
+   */
+  private async tellEmailVerified(userId: string): Promise<void> {
+    for (const listener of this.emailVerifiedListeners) {
+      try {
+        await listener(userId);
+      } catch (error) {
+        this.log.error(
+          `email_verified.listener_failed member=${userId}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
   }
 
   /**

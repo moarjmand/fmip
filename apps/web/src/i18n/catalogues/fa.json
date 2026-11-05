@@ -11816,12 +11816,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "predictions.section.verify": {
-    "source": "Verify your email address before predicting; the link is in your inbox.",
-    "text": "پیش از پیش‌بینی، نشانی ایمیل خود را تأیید کنید؛ پیوند تأیید در صندوق ورودی شماست.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "predictions.section.note": {
     "source": "Your pick counts towards the community picks only; it is never blended with the statistical model or the founder’s analysis.",
     "text": "انتخاب شما فقط در انتخاب‌های کاربران حساب می‌شود و هرگز با مدل آماری یا تحلیل بنیان‌گذار آمیخته نمی‌شود.",
@@ -16004,6 +15998,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "rules.retention.pendingPicks": {
+    "source": "A pick you saved before confirming your email address is deleted 30 days after the match kicks off. If it became a prediction, the saved pick is deleted at the next daily clean-up and the prediction is kept.",
+    "text": "پیش‌بینی‌ای که پیش از تأیید نشانی ایمیل‌تان ذخیره کرده‌اید ۳۰ روز پس از شروع بازی حذف می‌شود. اگر به پیش‌بینی ثبت‌شده تبدیل شده باشد، خودِ آن در پاک‌سازی روزانه‌ی بعدی حذف می‌شود و پیش‌بینی ثبت‌شده می‌ماند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the retention rule of D-361. Not yet reviewed by a translator."
+  },
   "rules.retention.backups": {
     "source": "Backups are kept for up to 90 days, so something deleted here can remain in a backup for up to 90 days longer.",
     "text": "نسخه‌های پشتیبان تا ۹۰ روز نگه داشته می‌شوند؛ پس چیزی که اینجا حذف شده ممکن است تا ۹۰ روز دیگر در یک نسخه‌ی پشتیبان بماند.",
@@ -16743,16 +16743,58 @@
     "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
   },
   "pick.account": {
-    "source": "Saving a pick needs a free account and a confirmed email address. Picks lock at kick-off.",
-    "text": "ذخیره‌ی پیش‌بینی به یک حساب رایگان و تأیید نشانی ایمیل نیاز دارد. پیش‌بینی‌ها با شروع بازی قفل می‌شوند.",
+    "source": "Saving a pick needs a free account. It counts once you confirm your email address before kick-off, when picks lock.",
+    "text": "ذخیره‌ی پیش‌بینی به یک حساب رایگان نیاز دارد. پس از آن‌که نشانی ایمیل خود را پیش از شروع بازی تأیید کنید حساب می‌شود؛ پیش‌بینی‌ها با شروع بازی قفل می‌شوند.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); plain words in place of the old \"verified account\" sentence (D-360), not yet reviewed by a translator."
+    "note": "Written by the agent at the maintainer's request (D-175); reworded for the pending pick (D-361): saving needs the account, counting needs the confirmed address. Not yet reviewed by a translator."
   },
   "pick.saved": {
     "source": "Saved",
     "text": "ذخیره شد",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P1 boards (D-359), not yet reviewed by a translator."
+  },
+  "pick.pending.saved": {
+    "source": "Saved. It counts once you confirm your email before {time}.",
+    "text": "ذخیره شد. پس از تأیید ایمیل‌تان پیش از {time} حساب می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of board P1-4, option A (D-361), not yet reviewed by a translator."
+  },
+  "pick.pending.note": {
+    "source": "You can change it until {time}. The confirmation link is in your inbox.",
+    "text": "تا {time} می‌توانید آن را عوض کنید. پیوند تأیید در صندوق ورودی شماست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); not on the P1 boards, worded to match them (D-361). Not yet reviewed by a translator."
+  },
+  "pick.pending.confirm": {
+    "source": "A pick is saved when you tap it. It counts once you confirm your email address before {time}; the link is in your inbox.",
+    "text": "پیش‌بینی با زدن روی آن ذخیره می‌شود. پس از تأیید نشانی ایمیل‌تان پیش از {time} حساب می‌شود؛ پیوند تأیید در صندوق ورودی شماست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); not on the P1 boards, worded to match them (D-361). Not yet reviewed by a translator."
+  },
+  "pick.pending.short": {
+    "source": "Counts once you confirm your email",
+    "text": "پس از تأیید ایمیل حساب می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); not on the P1 boards, worded to match them (D-361). Not yet reviewed by a translator."
+  },
+  "pick.pending.announce": {
+    "source": "Pick saved. It counts once you confirm your email address before kick-off.",
+    "text": "پیش‌بینی ذخیره شد. پس از تأیید نشانی ایمیل‌تان پیش از شروع بازی حساب می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); not on the P1 boards, worded to match them (D-361). Not yet reviewed by a translator."
+  },
+  "pick.uncounted.title": {
+    "source": "Saved, not counted",
+    "text": "ذخیره شد، حساب نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of board P1-4, option A (D-361), not yet reviewed by a translator."
+  },
+  "pick.uncounted.note": {
+    "source": "Your pick: {outcome}. It was never counted, because your email address was not confirmed before kick-off.",
+    "text": "پیش‌بینی شما: {outcome}. چون نشانی ایمیل‌تان پیش از شروع بازی تأیید نشد، هیچ‌گاه حساب نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); not the board's sentence (which promised a place in the history that is not built), worded to say why (D-361). Not yet reviewed by a translator."
   },
   "pick.create": {
     "source": "Create account",

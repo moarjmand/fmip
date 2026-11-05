@@ -3,7 +3,22 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { guestPickHref, guestSignInHref } from '@/lib/pick';
 
-vi.mock('@/lib/prediction-actions', () => ({ submitPredictionAction: async () => null }));
+// Each action records what it was bound to, so a test can say which one a
+// form posts to: the markup of a bound action does not name it.
+const bound = vi.hoisted(() => ({ prediction: [] as unknown[][], pending: [] as unknown[][] }));
+vi.mock('@/lib/prediction-actions', () => {
+  const action = (calls: unknown[][]) =>
+    Object.assign(async () => null, {
+      bind: (...args: unknown[]) => {
+        calls.push(args.slice(1));
+        return async () => null;
+      },
+    });
+  return {
+    submitPredictionAction: action(bound.prediction),
+    savePendingPickAction: action(bound.pending),
+  };
+});
 
 const { PickControl } = await import('./pick-control');
 
@@ -238,11 +253,124 @@ describe('PickControl: saved for a member', () => {
     expect(detailed).toContain('Form, Tactics');
     expect(detailed).toContain('Azadi.');
   });
+});
 
-  it('tells an unverified member to verify, the API being the one that refuses', () => {
-    const unverified = control({ me: { ...ME, email_verified: false } as AuthUser });
-    expect(unverified).toContain('Verify your email address before predicting');
-    expect(control({ me: ME })).not.toContain('Verify your email address');
+describe('PickControl: a member whose email address is not confirmed (T-1740, D-361)', () => {
+  const UNCONFIRMED = { ...ME, email_verified: false } as AuthUser;
+  const waiting = { outcome: 'home', status: 'pending' } as const;
+  const expired = { outcome: 'home', status: 'expired' } as const;
+
+  it('before any pick says what a tap does and when it counts, and posts a pending pick', () => {
+    bound.prediction.length = 0;
+    bound.pending.length = 0;
+    const html = control({ me: UNCONFIRMED });
+    expect(html).toContain('data-pick="open"');
+    expect(html).toMatch(
+      /data-testid="pick-confirm">A pick is saved when you tap it\. It counts once you confirm your email address before <time dateTime="2099-10-08T13:30:00Z">13:30<\/time>; the link is in your inbox\./,
+    );
+    expect(html).not.toContain('Verify your email address before predicting');
+    expect(count(html, '<button type="submit" value="')).toBe(3);
+    // The tap saves a pending pick, never a prediction.
+    expect(bound.pending).toEqual([['en', FIXTURE]]);
+    expect(bound.prediction).toEqual([]);
+    // A member whose address is confirmed posts the prediction, and is told nothing of this.
+    bound.pending.length = 0;
+    const confirmed = control({ me: ME });
+    expect(confirmed).not.toContain('data-testid="pick-confirm"');
+    expect(bound.pending).toEqual([]);
+    expect(bound.prediction).toEqual([['en', FIXTURE]]);
+  });
+
+  it('with a pick waiting marks it and says it counts once the address is confirmed before kick-off', () => {
+    const html = control({ me: UNCONFIRMED, pending: waiting });
+    expect(html).toContain('data-pick="pending"');
+    const home = column(html, 'home');
+    expect(home).toContain('aria-pressed="true"');
+    expect(home).toContain('bg-brand');
+    expect(home).toContain('<svg');
+    expect(count(html, 'aria-pressed="true"')).toBe(1);
+    expect(html).toMatch(
+      /data-testid="pick-pending">.*Saved\. It counts once you confirm your email before <time dateTime="2099-10-08T13:30:00Z">13:30<\/time>\./,
+    );
+    expect(html).toMatch(
+      /data-testid="pick-note">You can change it until <time[^>]*>13:30<\/time>\. The confirmation link is in your inbox\./,
+    );
+    // Not the saved state of a prediction: no "Saved" of its own, no version, no detail.
+    expect(html).not.toContain('data-testid="pick-saved"');
+    expect(html).not.toContain('data-testid="prediction-versions"');
+    expect(html).not.toContain('<details');
+    // The line above the outcomes has been said by the pick's own.
+    expect(html).not.toContain('data-testid="pick-confirm"');
+    // It can still be changed: three submit buttons.
+    expect(count(html, '<button type="submit" value="')).toBe(3);
+  });
+
+  it('keeps the community split closed while a pick waits: it is in no community figure', () => {
+    expect(control({ me: UNCONFIRMED, pending: waiting })).not.toContain('data-testid="split"');
+  });
+
+  it('marks the saved outcome whatever the address says', () => {
+    const html = control({ me: UNCONFIRMED, pending: waiting, chosen: 'away' });
+    expect(html).toContain('data-pick="pending"');
+    expect(column(html, 'home')).toContain('aria-pressed="true"');
+    expect(column(html, 'away')).toContain('aria-pressed="false"');
+  });
+
+  it('after kick-off without the confirmation is locked: saved, not counted, and why', () => {
+    const html = control({ fixture: PAST, me: UNCONFIRMED, pending: expired });
+    expect(html).toContain('data-pick="uncounted"');
+    expect(count(html, '<button type="button" disabled=""')).toBe(3);
+    expect(column(html, 'home')).toContain('aria-pressed="true"');
+    expect(html).toContain('Locked at kick-off');
+    expect(html).toMatch(/data-testid="pick-uncounted">.*Saved, not counted/);
+    expect(html).toContain(
+      'Your pick: <bdi>Tractor</bdi> win. It was never counted, because your email address was not confirmed before kick-off.',
+    );
+    // Nothing of a prediction's, nothing to send, and not beside the community's numbers.
+    expect(html).not.toContain('Picks lock at kick-off. Your pick');
+    expect(html).not.toContain('You did not predict');
+    expect(html).not.toContain('<form');
+    expect(html).not.toContain('data-testid="split"');
+  });
+
+  it('is uncounted by the API’s word before this page’s clock, and by this clock after the API’s', () => {
+    expect(control({ me: UNCONFIRMED, pending: expired })).toContain('data-pick="uncounted"');
+    expect(control({ fixture: PAST, me: UNCONFIRMED, pending: waiting })).toContain(
+      'data-pick="uncounted"',
+    );
+  });
+
+  it('says the same to a member who confirmed only after kick-off', () => {
+    const html = control({ fixture: PAST, me: ME, pending: expired });
+    expect(html).toContain('data-pick="uncounted"');
+    expect(html).toContain('Saved, not counted');
+  });
+
+  it('gives way to the prediction once the pick became one', () => {
+    const html = control({
+      me: ME,
+      current: stored({ outcome: 'home' }),
+      pending: { outcome: 'home', status: 'converted' },
+    });
+    expect(html).toContain('data-pick="saved"');
+    expect(html).toContain('data-testid="pick-saved"');
+    expect(html).not.toContain('data-testid="pick-pending"');
+  });
+
+  it('draws nothing for a pick that was replaced or taken back', () => {
+    for (const status of ['replaced', 'withdrawn', 'converted'] as const) {
+      const html = control({ me: UNCONFIRMED, pending: { outcome: 'home', status } });
+      expect(html, status).toContain('data-pick="open"');
+      expect(html, status).not.toContain('aria-pressed="true"');
+    }
+  });
+
+  it('says both states in Persian', () => {
+    const fa = control({ locale: 'fa', me: UNCONFIRMED, pending: waiting });
+    expect(fa).toContain('ذخیره شد. پس از تأیید ایمیل‌تان پیش از');
+    expect(control({ locale: 'fa', fixture: PAST, me: UNCONFIRMED, pending: expired })).toContain(
+      'ذخیره شد، حساب نشد',
+    );
   });
 });
 

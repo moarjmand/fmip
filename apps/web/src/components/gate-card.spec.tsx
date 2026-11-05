@@ -212,11 +212,25 @@ describe('the account pages and their actions', () => {
   });
 
   it('land a registration on it after the first run', () => {
+    // Read once by the one rule; the same value is where the pending pick
+    // comes from (T-1740, D-361) and where the registration lands.
+    expect(ACTIONS).toContain('const next = safeReturnPath(locale, text(formData, RETURN_PARAM));');
     expect(ACTIONS).toMatch(
-      /const destination =\s*safeReturnPath\(locale, text\(formData, RETURN_PARAM\)\) \?\?\s*afterRegistration\(locale, result\.data\.user\.username, inviter\);/,
+      /const destination = next \?\?\s*afterRegistration\(locale, result\.data\.user\.username, inviter\);/,
     );
     expect(ACTIONS).toContain(
       "redirect(firstRunDone ? destination : stepHref(locale, 'language', destination));",
+    );
+  });
+
+  it('save the outcome a guest chose with the new account, from the validated address only', () => {
+    // After the account exists, in the POST action: never on a page load.
+    expect(ACTIONS).toContain('await keepChosenOutcome(locale, next, result.setCookie);');
+    expect(ACTIONS).toContain('const chosen = pickFromReturnPath(locale, next);');
+    // Sign-in stores nothing: a member taps the outcome they came back with.
+    const login = ACTIONS.slice(ACTIONS.indexOf('export async function loginAction'));
+    expect(login.slice(0, login.indexOf('export async function logoutAction'))).not.toContain(
+      'savePendingPick',
     );
   });
 });

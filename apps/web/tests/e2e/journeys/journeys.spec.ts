@@ -7,9 +7,10 @@ import { leaveFirstRun, verifyLink } from './members';
  *
  *   18.1 a new member predicts a match — picks an outcome on the match page's
  *        pick card (T-1739), is sent to create an account with the way back,
- *        registers, verifies the e-mail from the real message, saves the pick
- *        with one tap and adds a score, which lands in the history and stays
- *        open until kick-off;
+ *        registers and finds the outcome saved as a pending pick (T-1740,
+ *        D-361), verifies the e-mail from the real message and finds it their
+ *        prediction without tapping again, then adds a score, which lands in
+ *        the history and stays open until kick-off;
  *   18.2 the live match card — the scores list and the match centre stay
  *        current over the stream;
  *   18.3 eligibility for high-rating privileges is a function of rating and
@@ -33,6 +34,7 @@ const EMAIL = `${USERNAME}@example.test`;
 const PASSWORD = 'correct horse battery staple';
 const OPEN_MATCH = '00000000-0000-4000-8000-000000000902';
 const LIVERPOOL = '00000000-0000-4000-8000-000000000602';
+const OPEN_DAY = '2099-01-01';
 const PLAYED_DAY = '2025-01-05';
 
 test.describe.configure({ mode: 'serial' });
@@ -68,7 +70,7 @@ test.describe('blueprint journeys', () => {
     // A guest is told what saving takes in plain words, and that the pick
     // stays the community's.
     await expect(card.getByTestId('match-pick-account')).toContainText(
-      'a free account and a confirmed email address',
+      'needs a free account. It counts once you confirm your email address before kick-off',
     );
     await expect(card).not.toContainText(/verified account/i);
     await expect(card.getByTestId('match-pick-separate')).toContainText('community picks only');
@@ -120,36 +122,61 @@ test.describe('blueprint journeys', () => {
     // with the outcome still in the address. The homepage does not offer the
     // first run again.
     await leaveFirstRun(page, `/en/match/${OPEN_MATCH}?pick=home#pick`, { skipFirst: true });
-    await expect(control).toHaveAttribute('data-pick', 'chosen');
+    // The outcome the guest tapped was saved with the account (T-1740, D-361):
+    // a pending pick, marked, with the line that it counts once the email
+    // address is confirmed before kick-off. Nothing was tapped again.
+    await expect(control).toHaveAttribute('data-pick', 'pending');
+    const home = control.locator('button[name="outcome"][value="home"]');
+    await expect(home).toHaveAttribute('aria-pressed', 'true');
+    await expect(control.getByTestId('pick-pending')).toContainText(
+      'Saved. It counts once you confirm your email before',
+    );
+    await expect(control.getByTestId('pick-saved')).toHaveCount(0);
+    await expect(page.getByTestId('prediction-versions')).toHaveCount(0);
+    await expect(page.getByText('Verify your email address before predicting')).toHaveCount(0);
+    await expect(card.getByTestId('match-pick-account')).toHaveCount(0);
+    // It is not a prediction: the members' spread stays closed beside it.
+    await expect(control.getByTestId('pick-split')).toHaveCount(0);
+    await expect(page.getByTestId('community-split')).toHaveCount(0);
     // The display name is the username until the member chooses one in Settings.
     await page.goto(`/en/u/${USERNAME}`);
     await expect(page.getByTestId('profile-name')).toHaveText(USERNAME);
+    // A pending pick is not in the history: that is the predictions' own.
+    await expect(page.getByTestId('history-item')).toHaveCount(0);
     await page.goto('/en');
     await expect(page.getByTestId('title')).toBeVisible();
     await expect(page.getByTestId('first-run-offer')).toHaveCount(0);
 
-    // Signed in but not verified, back at the match with the outcome they
-    // chose as a guest: it is marked and not stored, the three outcomes are
-    // there, and the requirement is named.
-    await page.goto(`/en/match/${OPEN_MATCH}?pick=home#pick`);
-    await expect(control).toHaveAttribute('data-pick', 'chosen');
-    const home = control.locator('button[name="outcome"][value="home"]');
+    // Back at the match without an outcome in the address: the pending pick
+    // is the stored one, not the address's. A load writes nothing; a tap on
+    // another outcome replaces it, and a tap back restores it.
+    await page.goto(`/en/match/${OPEN_MATCH}#pick`);
+    await expect(control).toHaveAttribute('data-pick', 'pending');
     await expect(home).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.getByText('Verify your email address before predicting')).toBeVisible();
-    await expect(card.getByTestId('match-pick-account')).toHaveCount(0);
+    const draw = control.locator('button[name="outcome"][value="draw"]');
+    await draw.click();
+    await expect(draw).toHaveAttribute('aria-pressed', 'true');
+    await expect(home).toHaveAttribute('aria-pressed', 'false');
+    await expect(control).toHaveAttribute('data-pick', 'pending');
+    await home.click();
+    await expect(home).toHaveAttribute('aria-pressed', 'true');
+    await expect(control).toHaveAttribute('data-pick', 'pending');
+    // The matches page's control says the same of the same pick.
+    await page.goto(`/en/scores?date=${OPEN_DAY}&tz=UTC&pick=${OPEN_MATCH}`);
+    const preview = page.getByTestId('match-preview').getByTestId('pick-control');
+    await expect(preview).toHaveAttribute('data-pick', 'pending');
+    await expect(preview.getByTestId('pick-pending')).toBeVisible();
 
     await page.goto(verifyLink(EMAIL));
     await expect(page.getByTestId('verify-result')).toBeVisible();
 
-    await page.goto(`/en/match/${OPEN_MATCH}?pick=home#pick`);
-    // The pick control (T-1738, D-359): the outcome from the address is
-    // marked, and one tap stores it. Before any pick the members' spread is
-    // not on the page.
-    await expect(control).toHaveAttribute('data-pick', 'chosen');
-    await expect(page.getByTestId('consensus-crowd')).toHaveCount(0);
-    await expect(page.getByTestId('community-split')).toHaveCount(0);
-    await home.click();
+    // Confirmed before kick-off: the pending pick is now the member's
+    // prediction, an ordinary first version, without tapping again.
+    await page.goto(`/en/match/${OPEN_MATCH}`);
     await expect(control).toHaveAttribute('data-pick', 'saved');
+    await expect(control.getByTestId('pick-pending')).toHaveCount(0);
+    // One member's pick is no consensus: the spread is not on the page.
+    await expect(page.getByTestId('consensus-crowd')).toHaveCount(0);
     await expect(control.getByTestId('pick-saved')).toBeVisible();
     await expect(home).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByTestId('prediction-versions')).toContainText('Version 1');

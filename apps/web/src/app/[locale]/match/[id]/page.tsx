@@ -52,6 +52,7 @@ import {
   fetchConsensus,
   fetchFounderAnalysis,
   fetchOwnPrediction,
+  fetchPendingPick,
   fetchPanelPermission,
   fetchPowerIndex,
   fetchTerritories,
@@ -164,6 +165,18 @@ export default async function MatchPage({
   const context = fetchCompetitionContext(id);
 
   const me = await fetchMe(cookie);
+  // The pick the reader saved before their email address was confirmed
+  // (T-1740, D-361), asked beside the rest and only where one can stand: a
+  // member not confirmed yet, or any member once the match has kicked off
+  // ("saved, not counted"). A read; nothing is written on a page load.
+  const pendingRead =
+    me === null
+      ? Promise.resolve(null)
+      : centre.then((r) =>
+          r.ok && (!me.email_verified || isLocked(r.data.fixture.kickoff_at))
+            ? fetchPendingPick(id, cookie)
+            : null,
+        );
   const tzParam = typeof query.tz === 'string' ? query.tz : undefined;
   // The reader's zone (D-207): a `tz` on the link, else the member's or a
   // guest's choice, else the locale's default (UK time on /en).
@@ -214,6 +227,7 @@ export default async function MatchPage({
   ] = result.ok
     ? await Promise.all([reads, me === null ? fetchTerritories() : Promise.resolve(null)])
     : [[null, null, null, null, null, null, null, null, null, null, null, null], null];
+  const pendingPick = result.ok ? await pendingRead : null;
 
   // The final score, once there is one: what the three products are set against.
   const fixture = result.ok ? result.data.fixture : null;
@@ -353,6 +367,7 @@ export default async function MatchPage({
                     timeZone={timeZone}
                     me={me}
                     current={prediction}
+                    pending={pendingPick}
                     chosen={readPick(query.pick)}
                     finished={final !== null}
                     split={
@@ -630,6 +645,7 @@ export default async function MatchPage({
           fixture={result.data.fixture}
           timeZone={timeZone}
           current={prediction}
+          pending={pendingPick}
         />
       )}
     </main>

@@ -1,4 +1,10 @@
-import type { AuthUser, CommunityConsensusResponse, Prediction, ScoreCard } from '@fmip/contracts';
+import type {
+  AuthUser,
+  CommunityConsensusResponse,
+  PendingPick,
+  Prediction,
+  ScoreCard,
+} from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { CommunitySplit } from '@/components/community-consensus';
 import { EntityImage } from '@/components/entity-image';
@@ -55,6 +61,7 @@ export function MatchPreview({
   zone,
   me,
   current,
+  pending = null,
   consensus,
   forecast,
   community,
@@ -71,6 +78,12 @@ export function MatchPreview({
   zone: string;
   me: AuthUser | null;
   current: Prediction | null;
+  /**
+   * The member's pick saved before their email address was confirmed
+   * (T-1740, D-361), or `null`: the control's pending and "Saved, not
+   * counted" states. Never part of the split or the community's line.
+   */
+  pending?: Pick<PendingPick, 'outcome' | 'status'> | null;
   /** The match's consensus, or `null` when the service did not answer. */
   consensus: CommunityConsensusResponse | null;
   forecast: CardForecast | undefined;
@@ -251,6 +264,7 @@ export function MatchPreview({
             zone={zone}
             me={me}
             current={current}
+            pending={pending}
             split={
               me !== null || locked ? (
                 <CommunitySplit

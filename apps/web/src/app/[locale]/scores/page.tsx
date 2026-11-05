@@ -16,6 +16,7 @@ import {
   fetchMe,
   fetchMyPredictions,
   fetchOwnPrediction,
+  fetchPendingPick,
   fetchScores,
   fetchViewingBatch,
 } from '@/lib/api';
@@ -45,6 +46,7 @@ import {
   withSelected,
   type FilterOption,
 } from '@/lib/scores-filters';
+import { isLocked } from '@/lib/prediction-form';
 import { ownPredictions } from '@/lib/predictions-days';
 import {
   cardIds,
@@ -194,6 +196,17 @@ export default async function ScoresPage({
       ? ownPredictions(mine.data.items, mine.data.items.length >= MAX_CONSENSUS_FIXTURES, cards)
           .found
       : new Map<string, Prediction>();
+  // The pick the reader saved on the previewed match before their email
+  // address was confirmed (T-1740, D-361), asked beside the read below and
+  // only where one can stand: no prediction on the match, and a member not
+  // confirmed yet or a match that has kicked off. A read; nothing is written.
+  const pendingRead =
+    previewCard !== null &&
+    me !== null &&
+    !own.has(previewCard.id) &&
+    (!me.email_verified || isLocked(previewCard.kickoff_at, now))
+      ? fetchPendingPick(previewCard.id, cookie)
+      : Promise.resolve(null);
   // The previewed match's own pick is read directly when the page could not answer.
   const current: Prediction | null =
     previewCard === null
@@ -201,6 +214,7 @@ export default async function ScoresPage({
       : (own.get(previewCard.id) ??
         (me === null ? null : await fetchOwnPrediction(previewCard.id, cookie)));
   if (previewCard !== null && current !== null) own.set(previewCard.id, current);
+  const pendingPick = await pendingRead;
 
   // A provider outage is named on the page (T-083), never hidden behind old numbers.
   const trouble = feedTrouble(ingestion, locale, q.timezone);
@@ -536,6 +550,7 @@ export default async function ScoresPage({
                 zone={zoneWords(locale, q.timezone)}
                 me={me}
                 current={current}
+                pending={pendingPick}
                 consensus={consensus}
                 forecast={previewLines.forecast[previewCard.id]}
                 community={previewLines.community[previewCard.id]}

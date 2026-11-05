@@ -5,9 +5,12 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { ProfileModule } from '../profile/profile.module';
 import { SocialModule } from '../social/social.module';
 import { HistoryController } from './history.controller';
+import { PostgresPendingPickStore } from './internal/pending-pick-store';
 import { PostgresPredictionStore } from './internal/prediction-store';
 import { PostgresSettlementStore } from './internal/settlement-store';
 import { PostgresShareStore } from './internal/share-store';
+import { PendingPickController } from './pending-pick.controller';
+import { PendingPickService } from './pending-pick.service';
 import { PredictionShareController } from './prediction-share.controller';
 import { PredictionShareService } from './prediction-share.service';
 import { PredictionsController } from './predictions.controller';
@@ -34,10 +37,15 @@ import { SettlementService } from './settlement.service';
     HistoryController,
     // A public link to one correct prediction's card (T-1723, D-351).
     PredictionShareController,
+    // A pick made before the e-mail address is confirmed (T-1740, D-361):
+    // its own table and service, a prediction only through `PredictionsService`.
+    PendingPickController,
   ],
   providers: [
     PredictionsService,
     PostgresPredictionStore,
+    PendingPickService,
+    PostgresPendingPickStore,
     SettlementService,
     PostgresSettlementStore,
     PredictionShareService,

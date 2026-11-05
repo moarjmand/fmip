@@ -1,7 +1,9 @@
 import {
+  DEFAULT_PICK_CONFIDENCE,
   MAX_REASON_TAGS,
   PREDICTION_REASON_TAGS,
   type AuthUser,
+  type PendingPick,
   type Prediction,
 } from '@fmip/contracts';
 import type { ReactNode } from 'react';
@@ -19,9 +21,10 @@ import {
   guestPickHref,
   guestSignInHref,
   markedOutcome,
+  pendingView,
   pickControlState,
 } from '@/lib/pick';
-import { submitPredictionAction } from '@/lib/prediction-actions';
+import { savePendingPickAction, submitPredictionAction } from '@/lib/prediction-actions';
 import { isLocked } from '@/lib/prediction-form';
 import {
   OUTCOME_KEY,
@@ -53,12 +56,21 @@ import { formatKickoff } from '@/lib/scores';
  *   optional score, confidence, reasons and note behind "Add detail";
  * - `locked`: after kick-off the three are inert and the stored one is locked.
  *
+ * And two for a member whose email address is not confirmed yet (T-1740,
+ * D-361), whose tap saves a pending pick instead of a prediction:
+ * - `pending`: the pick is saved and marked, and the line says it counts once
+ *   they confirm their email address before the kick-off time;
+ * - `uncounted`: kick-off came first -- locked, "Saved, not counted", and one
+ *   sentence why. A pending pick is the member's alone: it is in no community
+ *   figure, and the `split` slot stays closed while one waits.
+ *
  * How it works without state of its own: a guest's outcome is a plain link
  * (`guestPickHref`, the contract other pages implement the far side of); a
- * member's is a submit button of the existing server action
- * (`submitPredictionAction`, the API's rules and field errors unchanged), and
- * the saved state is the server's next render of the stored pick. The one
- * client module is `PickForm`, the `<form>` around the server's markup.
+ * member's is a submit button of a server action -- `submitPredictionAction`
+ * (the API's rules and field errors unchanged), or `savePendingPickAction`
+ * while the address is not confirmed -- and the saved state is the server's
+ * next render of the stored pick. The one client module is `PickForm`, the
+ * `<form>` around the server's markup.
  *
  * Rule 6: the pick feeds the community product only. The model's figures
  * arrive in the `model` slot (`ModelBox`), under the control and labelled as
@@ -73,6 +85,7 @@ export function PickControl({
   zone,
   me,
   current,
+  pending = null,
   chosen = null,
   split,
   model,
@@ -86,9 +99,17 @@ export function PickControl({
   me: AuthUser | null;
   /** The member's stored prediction, or `null`. */
   current: Prediction | null;
+  /**
+   * The member's pick saved before their email address was confirmed (D-361),
+   * as the API has it now, or `null`. Not a prediction; theirs alone.
+   */
+  pending?: Pick<PendingPick, 'outcome' | 'status'> | null;
   /** The outcome carried in the address (`readPick` of `?pick=`); never stored. */
   chosen?: PickOutcome | null;
-  /** The community's split; drawn only in the saved and locked states. */
+  /**
+   * The community's split; drawn only in the saved and locked states, never
+   * beside a pending pick, waiting or uncounted (rule 6, D-361).
+   */
   split?: ReactNode;
   /** The model's box, beside the pick and never mixed with it. */
   model?: ReactNode;
@@ -96,11 +117,18 @@ export function PickControl({
 }) {
   const l = asLocale(locale);
   const latest = current?.latest ?? null;
-  const locked = current?.locked ?? isLocked(fixture.kickoff_at);
   const saved = latest?.outcome ?? null;
-  const state = pickControlState({ locked, saved, chosen });
-  const marked = markedOutcome({ locked, saved, chosen });
+  const waiting = pendingView(pending);
+  const kickedOff = current?.locked ?? isLocked(fixture.kickoff_at);
+  const state = pickControlState({ locked: kickedOff, saved, chosen, pending: waiting });
+  // The API's word that a pending pick expired is a kick-off this page's
+  // clock may not have reached yet: the control is locked either way.
+  const locked = kickedOff || state === 'uncounted';
+  const marked = markedOutcome({ locked, saved, chosen, pending: waiting });
   const member = me !== null;
+  // A member whose email address is not confirmed yet: their tap saves a
+  // pending pick, not a prediction (D-361).
+  const unconfirmed = member && !me.email_verified;
   const time = (
     <time dateTime={fixture.kickoff_at}>{formatKickoff(locale, fixture.kickoff_at, timeZone)}</time>
   );
@@ -170,9 +198,12 @@ export function PickControl({
         </p>
       </div>
 
-      {member && !locked && !me.email_verified && (
-        <p className="text-sm" role="status">
-          <Translated locale={l} message="predictions.section.verify" />
+      {/* Before a pick is saved, what a tap will do for a member whose email
+          address is not confirmed yet; once one is, the line under the
+          outcomes says it of that pick. */}
+      {unconfirmed && (state === 'open' || state === 'chosen') && (
+        <p className="text-sm" role="status" data-testid="pick-confirm">
+          <FilledMessage message={message(l, 'pick.pending.confirm')} params={{ time }} />
         </p>
       )}
 
@@ -195,7 +226,11 @@ export function PickControl({
         </div>
       ) : member ? (
         <PickForm
-          action={submitPredictionAction.bind(null, locale, fixture.id)}
+          action={(unconfirmed ? savePendingPickAction : submitPredictionAction).bind(
+            null,
+            locale,
+            fixture.id,
+          )}
           className="flex flex-col gap-2 aria-busy:pointer-events-none aria-busy:opacity-60"
           testId="pick-form"
         >
@@ -218,8 +253,14 @@ export function PickControl({
           </div>
           {/* What the stored version already says goes with a changed outcome:
               the confidence, the reasons and the note as they are, the score
-              only while the outcome it was given for stands (`score_for`). */}
-          <input type="hidden" name="confidence" value={latest?.confidence ?? 3} />
+              only while the outcome it was given for stands (`score_for`). A
+              pending pick keeps the outcome alone; the confidence rides along
+              for the tap that arrives after the address was confirmed. */}
+          <input
+            type="hidden"
+            name="confidence"
+            value={latest?.confidence ?? DEFAULT_PICK_CONFIDENCE}
+          />
           {latest !== null && latest.score !== null && (
             <>
               <input type="hidden" name="score_for" value={latest.outcome} />
@@ -259,9 +300,33 @@ export function PickControl({
           <Translated locale={l} message="pick.saved" />
         </p>
       )}
+      {state === 'pending' && (
+        <p className="flex items-start gap-1 text-sm font-bold" data-testid="pick-pending">
+          <Icon name="check" size={16} strokeWidth={2} className="mt-0.5 shrink-0" />
+          <span>
+            <FilledMessage message={message(l, 'pick.pending.saved')} params={{ time }} />
+          </span>
+        </p>
+      )}
+      {state === 'uncounted' && (
+        <p
+          className="inline-flex items-center gap-1 text-sm font-bold"
+          data-testid="pick-uncounted"
+        >
+          <Icon name="lock" size={16} strokeWidth={2} />
+          <Translated locale={l} message="pick.uncounted.title" />
+        </p>
+      )}
 
       <p className="text-sm leading-normal text-muted" data-testid="pick-note">
-        {state === 'locked' ? (
+        {state === 'uncounted' && marked !== null ? (
+          <FilledMessage
+            message={message(l, 'pick.uncounted.note')}
+            params={{ outcome: outcomePhrase(marked) }}
+          />
+        ) : state === 'pending' ? (
+          <FilledMessage message={message(l, 'pick.pending.note')} params={{ time }} />
+        ) : state === 'locked' || state === 'uncounted' ? (
           marked !== null ? (
             <FilledMessage
               message={message(l, 'pick.note.locked')}
