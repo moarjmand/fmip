@@ -17396,12 +17396,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.reality.happened": {
-    "source": "{outcome} · happened",
-    "text": "{outcome} · رخ داد",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "matchCentre.reality.rps": {
     "source": "Ranked probability score for this match {rps} (0 is perfect).",
     "text": "امتیاز احتمال رتبه‌ای (RPS) این بازی {rps} (صفر یعنی بی‌خطا).",

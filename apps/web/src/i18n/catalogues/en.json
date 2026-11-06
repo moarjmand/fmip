@@ -3121,7 +3121,6 @@
   "matchCentre.reality.title": "What was forecast, what happened",
   "matchCentre.reality.before": "Before kick-off",
   "matchCentre.reality.details": "Forecast details",
-  "matchCentre.reality.happened": "{outcome} · happened",
   "matchCentre.reality.rps": "Ranked probability score for this match {rps} (0 is perfect).",
   "matchCentre.reality.goals": "Goals: expected and scored",
   "matchCentre.reality.modelXg": "Model, before kick-off",

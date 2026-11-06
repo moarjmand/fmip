@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2357), grouped by folder, with one line on
+Every file in the repository (2362), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -255,7 +255,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 291
+- [`apps/web/src/components`](#appswebsrccomponents) — 292
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 36
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -2839,9 +2839,10 @@ machine, `docs/18-handover.md`.
 | `follow-next-steps.spec.ts` | Following with nothing followed (T-622) keeps three promises. **Never an empty page that looks broken**: a member who follows nothing gets a sentence and concrete next steps, and every way the suggestions can fail is a… |
 | `follow-next-steps.tsx` | What a member who follows nothing does next (T-622): never an empty page that looks broken. |
 | `following-section.tsx` | The member's follows and favourites on the settings page (T-042). |
-| `forecast-bar.spec.tsx` | The model's forecast bar (the Design System's `ForecastBar`, T-1508): the labels above the bar, the receipt under it, `outcome` after full time, `compact`, and a sentence for every way there can be no forecast. |
-| `forecast-bar.tsx` | The statistical model's forecast as a bar (the Design System's `ForecastBar`, T-1508, D-263): the three outcomes with their percentages written above one bar -- home in the model's colour, the draw neutral, away the mod… |
+| `forecast-bar.spec.tsx` | The model's three probabilities, one component and one language (T-1748, D-368; T-1749, D-369; boards P3-2 and P3-3): the steps by rank, the fixed order, a label on each segment with the name whole or absent, what happe… |
+| `forecast-bar.tsx` | The statistical model's three probabilities, drawn one way everywhere (T-1748, D-368; T-1749, D-369; boards P3-2 and P3-3). |
 | `forecast-panel.tsx` | "How the forecast was reached" on the match centre (T-065, blueprint 6.1-6.4; T-1744, D-365). |
+| `forecast-receipt.tsx` | The model's forecast where a page holds a `CardForecast` (the Design System's `ForecastBar`, T-1508, D-263; split from the bar in T-1748): the one `ForecastBar` with the model's receipt under it -- **always** (blueprint… |
 | `founder-analysis.tsx` | The founder's analysis on the pages a reader meets it (blueprint 6.5, T-132). **Always attributed and signed.** Every rendering here carries the author's name and the publication time, because the blueprint asks that ea… |
 | `freshness-stamp.spec.tsx` | The freshness stamp (rule 4; the Design System's `Freshness`, T-1493): quiet while the surface is within its threshold, the warning saffron and a triangle past it, and nothing at all without a clock. |
 | `freshness-stamp.tsx` | The stamp's words, resolved on the server for the reader's locale (T-1303). |
@@ -2911,7 +2912,7 @@ machine, `docs/18-handover.md`.
 | `match-panel.tsx` | The public match discussion (blueprint 10.2, T-251). **Reading is open, and the reading half renders for everybody including a signed-out visitor.** There is no branch in this file that hides the posts from anybody — th… |
 | `match-record.tsx` | The parts of the match centre that do not move during a match (T-1384, D-202): recent form, head-to-head and the season's coverage. |
 | `match-row.spec.tsx` | The match row (the Design System's `MatchRow`, T-1508): status, the sides stacked home first, and the score or the model's three percentages with the receipt under the row, or a badge when there is no forecast. |
-| `match-row.tsx` | One match in a list (the Design System's `MatchRow`, T-1508, D-263): the status column, both teams stacked with home first, and at the end the score -- or, before kick-off, the model's three percentages over a thin bar,… |
+| `match-row.tsx` | One match in a list (the Design System's `MatchRow`, T-1508, D-263): the status column, both teams stacked with home first, and at the end the score -- or, before kick-off, the model's three whole percentages over the o… |
 | `match-score-bar.spec.tsx` | The compact score bar and the sticky tab row (T-1742, D-363; boards P2-1a and P2-1b): what the bar says in each state, in English and Persian; that it is drawn from the band's own answer in the band's own render; and th… |
 | `match-score-bar.tsx` | The compact score bar (T-1742, D-363; boards P2-1a and P2-1b): 48px, the match in one line once the big band has scrolled away -- "20:00 · Everton v Coventry" before kick-off, "Palmeiras 2–0 Remo · ● Live · 14′" in play… |
 | `match-summary.tsx` | The match summary on the match centre (E41, T-413): what a language model wrote from the record beside it, labelled as a machine's with the model, the version and the time, and never mistaken for the founder's analysis,… |
@@ -3475,6 +3476,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
@@ -3482,6 +3485,8 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |

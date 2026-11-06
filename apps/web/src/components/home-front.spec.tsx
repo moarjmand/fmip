@@ -602,7 +602,7 @@ describe('the side column', () => {
       <UpsetCard answer={answer} placement="side" locale={locale} timeZone="Europe/London" />,
     );
 
-  it('shows the day’s biggest miss: the score, what happened in saffron, the share it was given', () => {
+  it('shows the day’s biggest miss: the score, what happened outlined and ticked, the share it was given', () => {
     const html = upsetCard(upset());
     expect(html).toContain('data-state="available"');
     expect(html).toContain('Forecast against reality');
@@ -610,7 +610,22 @@ describe('the side column', () => {
     expect(html).toContain('<bdi>Man City</bdi>');
     expect(html).toContain('The model gave Aston Villa 21%.');
     expect(html).toContain('of 38 matches finished today');
-    expect(html).toMatch(/data-outcome="home" data-happened="" class="bg-accent"/);
+    // The one bar (T-1748): Man City, the likeliest, is the full step; what
+    // happened is an ink outline and a tick, never saffron (T-1749, D-369).
+    expect(html).toContain('data-testid="home-upset-bar"');
+    expect(html).toMatch(
+      /data-segment="home" data-step="3" data-happened="" class="bg-model\/50 [^"]*outline-2 outline-offset-1 outline-fg/,
+    );
+    expect(html).toMatch(/data-segment="away" data-step="1" class="bg-model /);
+    expect(html).toMatch(/data-outcome="home" data-happened=""[^>]*>.*?data-icon="check".*?21\.1%/);
+    expect(html).toContain(
+      'aria-label="Model forecast: Aston Villa 21.1% (happened), draw 24.8%, Man City 54.1%"',
+    );
+    const bar = /data-testid="home-upset-bar"[^]*?<\/div><\/div>/.exec(html)?.[0] ?? '';
+    expect(bar).toContain('data-segment="away"');
+    expect(bar).not.toMatch(/bg-accent|bg-brand|text-accent|text-live/);
+    // The word is the match page's headline's alone.
+    expect(html).not.toContain('data-happened-word');
     expect(html).toContain('version 2, Confirmed line-ups, computed 24 Oct, 14:05 UK time');
     expect(html).toContain('href="/en/match/f9"');
   });

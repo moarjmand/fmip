@@ -14314,11 +14314,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.reality.happened": {
-    "source": "{outcome} · happened",
-    "text": "",
-    "status": "untranslated"
-  },
   "matchCentre.reality.rps": {
     "source": "Ranked probability score for this match {rps} (0 is perfect).",
     "text": "",

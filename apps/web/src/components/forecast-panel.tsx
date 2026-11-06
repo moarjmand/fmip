@@ -26,7 +26,7 @@ import { formatFixed, formatPercent } from '@/lib/words';
 import { forecastBarWords } from '@/lib/words-server';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { FilledMessage } from '@/components/filled-message';
-import { ForecastBar } from '@/components/forecast-bar';
+import { ForecastBarWithReceipt } from '@/components/forecast-receipt';
 import { ModelVoice } from '@/components/voices';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Score } from '@/components/score';
@@ -346,7 +346,7 @@ export function ModelExpected({
         <p className="text-sm text-muted">
           <Translated locale={l} message="story.expected.intro" />
         </p>
-        <ForecastBar
+        <ForecastBarWithReceipt
           forecast={forecast}
           home={home}
           away={away}

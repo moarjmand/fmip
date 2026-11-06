@@ -8,7 +8,7 @@ import type {
 import Link from '@/components/ui/link';
 import { CommunitySplit } from '@/components/community-consensus';
 import { EntityImage } from '@/components/entity-image';
-import { ForecastBar, type ForecastBarWords } from '@/components/forecast-bar';
+import { ForecastBarWithReceipt, type ForecastBarWords } from '@/components/forecast-receipt';
 import { ModelBox } from '@/components/model-box';
 import { PickControl } from '@/components/pick-control';
 import { FilledMessage } from '@/components/filled-message';
@@ -277,7 +277,7 @@ export function MatchPreview({
             }
             model={
               <ModelBox locale={locale} testId="preview-model">
-                <ForecastBar
+                <ForecastBarWithReceipt
                   forecast={forecast ?? { state: 'unreachable' }}
                   home={card.home.name}
                   away={card.away.name}

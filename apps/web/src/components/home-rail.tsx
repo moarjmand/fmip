@@ -32,7 +32,10 @@ import { kindLabel } from '@/lib/forecast';
 import { type AccuracyFigure, type HomeBroadcasts, HOME_TABLE_ROWS } from '@/lib/home';
 import { formatKickoff } from '@/lib/scores';
 import { fromTeamSide } from '@/lib/team';
+import { sharesToPercentages } from '@/lib/triple';
 import { formatFixed, formatPercent, formatSigned } from '@/lib/words';
+import { forecastBarWords } from '@/lib/words-server';
+import { ForecastBar } from '@/components/forecast-bar';
 import { ModelVersion } from '@/components/model-version';
 
 /**
@@ -64,13 +67,12 @@ function ModelTag({ locale }: { locale: Locale }) {
   );
 }
 
-const OUTCOMES = ['home', 'draw', 'away'] as const;
-
 /**
  * "Forecast against reality" (T-1516, D-265, D-270): the day's finished match
  * whose result the model's last pre-kick-off version rated least likely,
  * among competitions with full coverage. The score, the three probabilities
- * as a bar with what happened in saffron, the share the model gave it, the
+ * as the one `ForecastBar` with what happened outlined and ticked (T-1749,
+ * D-369), the share the model gave it, the
  * version it was, and the way to the match. No answer, and no such match,
  * are each said (rule 3); the card is never an empty frame.
  */
@@ -134,26 +136,17 @@ export function UpsetCard({
             />
             <bdi>{upset.away_team.short_name ?? upset.away_team.name}</bdi>
           </p>
-          <div aria-hidden="true" className="flex h-3 gap-0.5 overflow-hidden rounded-pill">
-            {OUTCOMES.map((outcome) => (
-              <span
-                key={outcome}
-                data-outcome={outcome}
-                data-happened={outcome === upset.outcome ? '' : undefined}
-                className={cx(
-                  outcome === upset.outcome
-                    ? 'bg-accent'
-                    : outcome === 'draw'
-                      ? 'bg-model/55'
-                      : 'bg-model/25',
-                )}
-                style={{
-                  flexGrow: Math.max(upset.probabilities[outcome] * 100, 1.5),
-                  flexBasis: 0,
-                }}
-              />
-            ))}
-          </div>
+          {/* The one bar (T-1748), what happened outlined and ticked (T-1749);
+              the version and its time are the card's own line below. */}
+          <ForecastBar
+            forecast={sharesToPercentages(upset.probabilities)}
+            home={upset.home_team.short_name ?? upset.home_team.name}
+            away={upset.away_team.short_name ?? upset.away_team.name}
+            outcome={upset.outcome}
+            locale={l}
+            words={forecastBarWords(l)}
+            testId="home-upset-bar"
+          />
           <p className="text-sm leading-relaxed text-muted" data-testid="home-upset-gave">
             <MessageText
               message={{

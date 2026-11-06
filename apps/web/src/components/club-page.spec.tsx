@@ -473,13 +473,16 @@ describe('from the next match to a pick (T-1741, D-362)', () => {
     expect(box).not.toBeNull();
     const words = (box?.[0] ?? '').replace(/<[^>]+>/g, '');
     expect(words).toContain('Model');
-    expect(words).toMatch(/Tractor\s*60\.8%/);
-    expect(words).toMatch(/Draw\s*27\.8%/);
-    expect(words).toMatch(/Esteghlal\s*11\.4%/);
+    // The one bar (T-1748): the number first, the side's name after it.
+    expect(words).toMatch(/60\.8%\s*Tractor/);
+    expect(words).toMatch(/27\.8%\s*Draw/);
+    expect(words).toMatch(/11\.4%\s*Esteghlal/);
     expect(words).toContain('dixon-coles-elo@0.6.0');
     // The model's tag is the turquoise outline; nothing of it is saffron.
     expect(box?.[0]).toContain('border-model');
     expect(box?.[0]).not.toContain('bg-brand');
+    expect(box?.[0]).toContain('data-testid="forecast-bar"');
+    expect(box?.[0]).toContain('data-size="card"');
     // And nothing outside the box is a percentage.
     expect(html.replace(box?.[0] ?? '', '')).not.toMatch(/\d+(\.\d)?%/);
   });
