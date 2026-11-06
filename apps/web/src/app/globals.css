@@ -570,6 +570,39 @@
       }
     }
   }
+
+  /*
+   * A side's name beside its share on the model's forecast bar (T-1748,
+   * D-368): whole or absent, never cut and never broken. The box is one line
+   * tall and clips; the name follows a zero-width strut on a wrapping line,
+   * so a name wider than the box wraps under the strut, out of sight. In the
+   * label's cell (a wrapping line too) the box sits beside the number when
+   * both fit and under it when the name alone fits. When the server's
+   * estimate of the name (`--forecast-name`) is wider than the cell (the
+   * query container), the box gives up its line, so a bar whose names do not
+   * fit keeps its numbers directly over the segments.
+   */
+  .forecast-name {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: baseline;
+    max-inline-size: 100%;
+    white-space: nowrap;
+
+    /* Without `lh` or container units: one line, never given up. */
+    block-size: 1.35em;
+    block-size: clamp(0px, (100cqi - var(--forecast-name, 0px)) * 9999, 1lh);
+    overflow: hidden;
+
+    &::before {
+      content: '\200b';
+    }
+
+    & > * {
+      flex: none;
+    }
+  }
 }
 
 /*
@@ -669,8 +702,8 @@
  *   bg-accent  bg-accent-strong  bg-danger  ...
  *   bg-brand  text-on-brand  (the Design System's bright saffron fill: the
  *     primary button, the top rating chip; T-1493)
- *   bg-prob-draw  bg-prob-away  (the forecast bar's draw and away segments;
- *     home is bg-model)
+ *   bg-model  bg-model/75  bg-model/50  (the forecast bar's three steps, by
+ *     the rank of each share; `forecast-bar.tsx`, T-1748)
  *   bg-rating-low  text-on-rating-low  bg-rating-good  text-on-rating-good
  *     (the match rating chip's bands)
  *   bg-logo-tile  ring-logo-edge  (a competition logo's white tile and its
@@ -705,8 +738,6 @@
   --color-community: var(--token-community);
   --color-brand: var(--token-brand);
   --color-on-brand: var(--token-on-brand);
-  --color-prob-draw: var(--token-prob-draw);
-  --color-prob-away: var(--token-prob-away);
   --color-rating-low: var(--token-rating-low);
   --color-on-rating-low: var(--token-on-rating-low);
   --color-rating-good: var(--token-rating-good);

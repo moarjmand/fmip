@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { formatNumber } from '@/i18n/format';
 import type { CardForecast } from '@/lib/score-card-products';
-import { ForecastReceipt, ForecastStrip, type ForecastBarWords } from '@/components/forecast-bar';
+import { ForecastBar, ForecastReceipt, type ForecastBarWords } from '@/components/forecast-bar';
 import { MessageText } from '@/components/message-text';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
@@ -10,8 +10,9 @@ import Link from '@/components/ui/link';
 /**
  * One match in a list (the Design System's `MatchRow`, T-1508, D-263): the
  * status column, both teams stacked with home first, and at the end the
- * score -- or, before kick-off, the model's three percentages over a thin
- * bar, with the model's receipt on a line of its own under the row
+ * score -- or, before kick-off, the model's three whole percentages over the
+ * one `ForecastBar` at `row` size (T-1748, D-368), with the model's receipt
+ * on a line of its own under the row
  * (blueprint 6.2). A scheduled match with no forecast says "No forecast" in
  * a coverage badge, never an empty bar (rule 3); one whose forecast could
  * not be loaded says that instead.
@@ -132,14 +133,16 @@ export function MatchRow({
           <span />
         ) : scheduled && model !== undefined ? (
           available !== null ? (
-            <ForecastStrip
+            <ForecastBar
               forecast={available}
+              receipt={false}
+              size="row"
               home={home.name}
               away={away.name}
               locale={locale}
               words={model.words}
-              compact
               className="w-30"
+              testId="match-row-bar"
             />
           ) : (
             <CoverageBadge

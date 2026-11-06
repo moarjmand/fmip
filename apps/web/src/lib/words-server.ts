@@ -153,6 +153,8 @@ export const SCORES_KEYS = [
   'scores.card.community.label',
   // The match row and its preview (T-1496).
   'forecastBar.label',
+  // What happened, said in the row bar's accessible name (T-1749).
+  'forecastBar.happened',
   'scores.unpickedEmpty',
   'scores.row.pick',
   'scores.row.picked',
