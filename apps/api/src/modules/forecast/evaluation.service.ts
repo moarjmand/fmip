@@ -108,16 +108,22 @@ export class EvaluationService {
     const shadow = (
       listed ?? (await this.store.recentShadowModels(new Date(now.getTime() - 7 * DAY_MS)))
     ).filter((id) => id !== published);
-    const [counts, records, calibration, pairs, weekly, inputs, newDivisions] = await Promise.all([
-      this.store.versionCounts(),
-      this.store.versionRecords(),
-      this.store.versionCalibration(),
-      this.store.versionPairs(),
-      this.adminAccuracy('week', now),
-      // A count that cannot be read is said as "not counted", never guessed.
-      this.store.modelInputs(now).catch(() => []),
-      Promise.all(shadow.map(async (id) => [id, await this.store.newDivisionsCount(id)] as const)),
-    ]);
+    const [counts, records, calibration, pairs, weekly, inputs, newDivisions, unscored] =
+      await Promise.all([
+        this.store.versionCounts(),
+        this.store.versionRecords(),
+        this.store.versionCalibration(),
+        this.store.versionPairs(),
+        this.adminAccuracy('week', now),
+        // A count that cannot be read is said as "not counted", never guessed.
+        this.store.modelInputs(now).catch(() => []),
+        Promise.all(
+          shadow.map(async (id) => [id, await this.store.newDivisionsCount(id)] as const),
+        ),
+        published === null
+          ? Promise.resolve(null)
+          : this.store.unscored(published).catch(() => null),
+      ]);
     return consoleModelReport({
       service: versions === null ? 'unreachable' : 'answered',
       published,
@@ -127,6 +133,7 @@ export class EvaluationService {
       records,
       calibration,
       pairs,
+      unscored,
       trends: weekly.series,
       inputs: inputs.map((row) => inputState(row, now)),
       newDivisions: new Map(newDivisions),

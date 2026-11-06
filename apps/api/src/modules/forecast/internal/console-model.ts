@@ -88,6 +88,8 @@ export function modelRecord(row: ModelRecordRow | undefined): ConsoleModelRecord
       accuracy: null,
       first_kickoff_at: null,
       last_kickoff_at: null,
+      limited: null,
+      median_lead_hours: null,
     };
   }
   return {
@@ -100,6 +102,8 @@ export function modelRecord(row: ModelRecordRow | undefined): ConsoleModelRecord
     accuracy: wilsonEstimate(row.correct, n),
     first_kickoff_at: row.firstKickoffAt?.toISOString() ?? null,
     last_kickoff_at: row.lastKickoffAt?.toISOString() ?? null,
+    limited: row.limited,
+    median_lead_hours: row.medianLeadHours === null ? null : round(row.medianLeadHours, 2),
   };
 }
 
@@ -452,6 +456,8 @@ export interface ReportInput extends VersionsInput {
   /** How many matches each shadow version scored that no published version forecast. */
   newDivisions: ReadonlyMap<string, number>;
   pairs: readonly VersionPairRow[];
+  /** What the published version's record does not cover; null when not counted. */
+  unscored: { finished: number; without: number } | null;
   inputs: readonly ConsoleModelInputState[];
   now: Date;
 }
@@ -476,6 +482,7 @@ export function consoleModelReport(input: ReportInput): ConsoleModelReport {
             model_version: input.published,
             since: site?.first_forecast_at ?? null,
             record: site?.record ?? modelRecord(undefined),
+            unscored: input.unscored,
           },
     reference: ACCURACY_REFERENCE,
     minimum_matches: ACCURACY_MINIMUM_MATCHES,

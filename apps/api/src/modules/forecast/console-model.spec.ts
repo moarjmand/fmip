@@ -39,6 +39,8 @@ const row = (overrides: Partial<ModelRecordRow> = {}): ModelRecordRow => ({
   rps: 0.2,
   rpsSd: 0.15,
   uniformRps: 0.2361,
+  limited: 198,
+  medianLeadHours: 0.4512,
   correct: 232,
   firstKickoffAt: new Date('2026-10-10T12:00:00Z'),
   lastKickoffAt: new Date('2026-11-01T20:00:00Z'),
@@ -95,6 +97,8 @@ describe('a record', () => {
     expect(record.accuracy?.mean).toBe(0.58);
     expect(record.rps).toEqual({ mean: 0.2, low: 0.1853, high: 0.2147 });
     expect(record.uniform_rps).toBe(0.2361);
+    expect(record.limited).toBe(198);
+    expect(record.median_lead_hours).toBe(0.45);
     expect(record.first_kickoff_at).toBe('2026-10-10T12:00:00.000Z');
     expect(modelRecord(row({ matches: 12 })).coverage).toBe('limited');
   });
@@ -500,6 +504,7 @@ describe('the whole answer', () => {
       inService: () => true,
       newDivisions: new Map([[V7, 72]]),
       pairs: [pair(['shadow', V7], ['published', V6])],
+      unscored: { finished: 814, without: 100 },
       inputs: [],
       now: new Date('2026-11-06T12:00:00Z'),
     });
@@ -508,6 +513,7 @@ describe('the whole answer', () => {
       since: '2026-10-08T09:00:00.000Z',
     });
     expect(report.published?.record.matches).toBe(517);
+    expect(report.published?.unscored).toEqual({ finished: 814, without: 100 });
     expect(report.versions).toHaveLength(4);
     expect(report.comparisons).toHaveLength(1);
     expect(report.candidates[0]).toMatchObject({
@@ -528,6 +534,7 @@ describe('the whole answer', () => {
       inService: () => null,
       newDivisions: new Map(),
       pairs: [],
+      unscored: null,
       inputs: [],
       now: new Date('2026-11-06T12:00:00Z'),
     });

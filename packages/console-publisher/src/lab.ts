@@ -44,10 +44,15 @@ const isDay = (value: unknown): value is string =>
 /** Reads one entry's fields, collecting what is wrong with them. */
 class Reader {
   readonly problems: string[] = [];
-  constructor(
-    private readonly raw: Record<string, unknown>,
-    private readonly where: string,
-  ) {}
+  // Plain fields, not parameter properties: the publisher runs from source,
+  // and Node strips types without rewriting a constructor.
+  private readonly raw: Record<string, unknown>;
+  private readonly where: string;
+
+  constructor(raw: Record<string, unknown>, where: string) {
+    this.raw = raw;
+    this.where = where;
+  }
 
   private wrong(field: string, what: string): void {
     this.problems.push(`${this.where}: ${field} ${what}`);

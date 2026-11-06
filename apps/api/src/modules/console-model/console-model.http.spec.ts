@@ -279,6 +279,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console mode
     // A one-third guess on the same two results: a decided match and a draw.
     expect(record?.uniform_rps).toBeCloseTo((5 / 18 + 1 / 9) / 2, 5);
 
+    // Both counted forecasts said their data was whole; made 29 and 33 hours before kick-off.
+    expect(record?.limited).toBe(0);
+    expect(record?.median_lead_hours).toBe(31);
+    // The four finished matches of this run are in a competition it forecast; the
+    // one only the shadow forecast and the one forecast late have no scored forecast.
+    expect(body.published?.unscored?.finished).toBeGreaterThanOrEqual(3);
+    expect(body.published?.unscored?.without).toBeGreaterThanOrEqual(2);
+
     // Every version of this run, in each role: the one on the site, the one in shadow, the earlier one.
     const mine = body.versions.filter((v) => v.model_version.startsWith(`cm-${RUN}@`));
     expect(mine.map((v) => [v.model_version, v.role, v.state])).toEqual([

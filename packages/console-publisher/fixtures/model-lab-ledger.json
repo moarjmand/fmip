@@ -1,0 +1,3813 @@
+{
+  "schema": 1,
+  "updated_at": "2026-11-06T20:12:42Z",
+  "skipped": 0,
+  "entries": [
+    {
+      "key": "dixon_coles_baseline",
+      "family": "هستهٔ مدل",
+      "phase": 1,
+      "title": "مدل پایه: دیکسون-کولز با وزن زمانی (نسخهٔ 0.1.0)",
+      "technical": "fmip_model/model/dixon_coles.py fit()",
+      "kind": "input",
+      "why": "بند ۶٫۲ طرح محصول یک مدل گل با وزن زمانی از حمله، دفاع و اثر میزبانی می‌خواهد. دیکسون-کولز شکل شناخته‌شده و توضیح‌پذیر آن است و جدول کامل نتیجه‌ها را می‌دهد.",
+      "data": "انبار آموزش (football-data)؛ لیگ برتر انگلیس از ۱ اکتبر ۲۰۲۴ تا ۳۱ مه ۲۰۲۵؛ آغاز تاریخچه در منبع ثبت نشده است؛ یک لیگ.",
+      "against": null,
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 320,
+          "matches_total": 320,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": 1.017,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "سنجه‌ها بازار (ضرایب پایانی بدون حاشیهٔ سود) و حدس یک‌سوم بودند، نه یک نسخهٔ دیگر. log loss مدل ۱٫۰۱۷۰، بازار ۰٫۹۸۱۱ و حدس یک‌سوم ۱٫۰۹۸۶. مدل بیش از ۰٫۰۲ از بازار بدتر بود؛ گزارش می‌گوید «آمادهٔ انتشار نیست» (D-016). خطای calibration مدل ۰٫۰۶۶۱ و بازار ۰٫۰۴۶۹."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "تصمیم D-029 آن را نخستین مدل منتشرشده کرد: شناخته‌شده، شفاف و سریع در برازش. گزارش خودش روی لیگ برتر انگلیس می‌گوید بیش از ۰٫۰۲ از بازار عقب بود، یعنی طبق D-016 «آمادهٔ انتشار نیست»؛ هیچ تصمیمی ثبت نکرده که چرا با این حال منتشر شد.",
+      "decisions": [
+        "D-029",
+        "D-016",
+        "D-031"
+      ],
+      "task": null,
+      "decided_on": "2026-09-10",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.1.0/E0_2024-10-01..2025-05-31.md"
+      ],
+      "missing": [
+        "شناسهٔ کار (D-029 کاری را نام نمی‌برد)",
+        "اختلاف log loss با بازهٔ ۹۵٪: گزارش فقط log loss نقطه‌ای می‌دهد",
+        "تصمیمی که «آمادهٔ انتشار نیست» طبق D-016 را کنار گذاشته باشد"
+      ]
+    },
+    {
+      "key": "clubelo_prior",
+      "family": "پیشین قدرت تیم با Elo",
+      "phase": 1,
+      "title": "رتبه‌بندی کلاب Elo به‌عنوان پیشین قدرت تیم",
+      "technical": "elo_prior: clubelo",
+      "kind": "input",
+      "why": "پیشین بلندمدت قدرت، مشکل شروع سرد را پاسخ می‌دهد: باشگاه تازه‌صعودکرده یا تازه‌بارشده همان‌جا رتبه می‌گیرد که Elo می‌گوید، تا وقتی نتیجه‌هایش چیز دیگری بگویند.",
+      "data": "رتبه‌های کلاب Elo که در انبار آموزش نگه داشته می‌شد؛ هیچ پنجرهٔ آزمون و هیچ اجرایی برای سنجش اثر آن ثبت نشده است.",
+      "against": null,
+      "groups": [],
+      "verdict": "adopted",
+      "reason": "با نسخهٔ 0.1.0 پذیرفته شد (D-029). از ۲۵ سپتامبر ۲۰۲۶ سرویس کلاب Elo خطای ۵۰۲ می‌داد و 0.1.0 از آن پس بدون هیچ پیشینی برازش می‌شد (D-111). تصمیم D-162 آن را بازنشسته کرد: بدون مجوز، خاموش‌شده و خلاف D-014. هیچ نسخه‌ای پس از 0.1.0 آن را نمی‌خواند و با انتشار 0.6.0 خواندنش پایان یافت (D-191).",
+      "decisions": [
+        "D-029",
+        "D-111",
+        "D-162",
+        "D-191"
+      ],
+      "task": "T-920، T-947",
+      "decided_on": "2026-09-10",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.5.0/elo_prior_2025-08-01..2026-06-30.md"
+      ],
+      "missing": [
+        "هیچ اندازه‌گیری از اثر پیشین کلاب Elo: ستون مقایسه در اجرای محلی «اجرا نشد» بود و اجرایی روی سرور ثبت نشده است"
+      ]
+    },
+    {
+      "key": "division_ir1",
+      "family": "افزودن لیگ ایران",
+      "phase": 6,
+      "title": "لیگ برتر خلیج فارس از سوابق خود ما",
+      "technical": "division IR1",
+      "kind": "input",
+      "why": "مدیر پروژه اجازه داد سوابق خود سکو مدل را آموزش دهد (D-083)؛ پس لیگ ایران یک لیگ دیگر برای همان مدل می‌شود.",
+      "data": "انبار آموزش روی سرور، از سوابق خود ما: ۷۰۹ مسابقهٔ پایان‌یافتهٔ لیگ برتر خلیج فارس از فصل ۲۰۲۳/۲۴ تا ۲۰۲۵/۲۶؛ آزمون روی فصل‌های ۲۰۲۴/۲۵ و ۲۰۲۵/۲۶، هر مسابقه فقط از مسابقه‌های پیش از خودش، با ثابت‌های 0.1.0 و بدون Elo؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": "فصل ۲۰۲۴/۲۵",
+          "result": "passed",
+          "matches": 238,
+          "matches_total": 238,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0715,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "بهتر از حدس یک‌سوم و بهتر از نرخ برد میزبان، مساوی و برد مهمان در فصل پیش (log loss آن ۱٫۰۹۳۵). بازار در کار نیست: فید ضرایب ندارد."
+        },
+        {
+          "group": "our_records",
+          "label": "فصل ۲۰۲۵/۲۶",
+          "result": "passed",
+          "matches": 177,
+          "matches_total": 177,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0757,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "بهتر از حدس یک‌سوم و بهتر از نرخ برد میزبان، مساوی و برد مهمان در فصل پیش (log loss آن ۱٫۰۸۴۱). بازار در کار نیست: فید ضرایب ندارد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "در هر دو فصل از هر دو سنجه (حدس یک‌سوم و نرخ نتیجه‌های فصل پیش) بهتر بود. قاعدهٔ D-083: لیگ ایران یک لیگ دیگر برای همان مدل است و مثل هر لیگ دیگر وقتی وارد نسخهٔ منتشرشده می‌شود که آزمون گذشته‌نگرش کنار بقیه بایستد.",
+      "decisions": [
+        "D-083"
+      ],
+      "task": "T-512",
+      "decided_on": "2026-09-26",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.1.0/IR1_2024-08-15..2025-05-15.md",
+        "apps/model/reports/dixon-coles-elo-0.1.0/IR1_2025-08-18..2026-07-22.md"
+      ],
+      "missing": [
+        "بازهٔ ۹۵٪ اختلاف با حدس یک‌سوم (فقط برآورد نقطه‌ای هست)",
+        "تصمیمی که حکم خودش را داشته باشد: قاعدهٔ ورود در D-083 آمده و عددها در یادداشت‌های کار فاز ۶"
+      ]
+    },
+    {
+      "key": "per_division_decay_ridge_pass1",
+      "family": "فراموشی زمانی و انقباض برای هر لیگ",
+      "phase": 6,
+      "title": "فراموشی زمانی و انقباض جدا برای هر لیگ، دور اول (نسخهٔ 0.2.0)",
+      "technical": "per_division {xi, ridge}",
+      "kind": "constants",
+      "why": "D-029 فراموشی زمانی، انقباض و وزن Elo را به آزمون گذشته‌نگر سپرده بود؛ شاید هر لیگ حافظهٔ متفاوتی بخواهد.",
+      "data": "انبار آموزش روی سرور، ۱۱ لیگ football-data؛ انتخاب روی فصل ۲۰۲۴/۲۵ و آزمون از ۱ اوت ۲۰۲۵ تا ۳۰ ژوئن ۲۰۲۶؛ آغاز تاریخچه در منبع ثبت نشده است.",
+      "against": "dixon-coles-elo@0.1.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 3735,
+          "matches_total": 3735,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": 1.0192,
+          "tested_log_loss": 1.011,
+          "worse_divisions": null,
+          "divisions": 11,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "در ۱۰ لیگ از ۱۱ لیگ پذیرفته شد. چمپیونشیپ جفت ثابت منتشرشده را نگه داشت، چون بهبودش ۰٫۰۰۱۹ بود و از حد ۰٫۰۰۲ کمتر."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "ده لیگ حافظهٔ بلندتری گرفتند و log loss کلی فصل ۲۰۲۵/۲۶ از ۱٫۰۱۹۲ به ۱٫۰۱۱۰ رسید، حدود یک‌چهارم فاصله تا بازار. به‌عنوان نسخهٔ 0.2.0 در shadow ثابت شد و همان روز، پیش از هر پیش‌بینی shadow، دور دوم (0.3.0) جایش را گرفت.",
+      "decisions": [
+        "D-082"
+      ],
+      "task": "T-532",
+      "decided_on": "2026-09-26",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/tuning_2025-08-01..2026-06-30.json"
+      ],
+      "missing": [
+        "ثبت تصمیم (فقط یادداشت کار و یک کامیت هست)",
+        "بازهٔ ۹۵٪ بهبود کلی",
+        "وزن Elo: ردیف کار می‌گوید تنظیم شد، ولی شبکهٔ جست‌وجو فقط فراموشی زمانی و انقباض را دارد"
+      ]
+    },
+    {
+      "key": "per_division_decay_ridge_pass2",
+      "family": "فراموشی زمانی و انقباض برای هر لیگ",
+      "phase": 6,
+      "title": "فراموشی زمانی و انقباض جدا برای هر لیگ، دور دوم (نسخهٔ 0.3.0؛ به 0.6.0 رسید)",
+      "technical": "per_division {xi, ridge}",
+      "kind": "constants",
+      "why": "بیشتر انتخاب‌های دور اول روی لبهٔ شبکهٔ جست‌وجو نشسته بود؛ شاید حافظهٔ بلندتر و انقباض سنگین‌تر بهتر باشد.",
+      "data": "انبار آموزش روی سرور، ۱۱ لیگ football-data؛ انتخاب روی فصل ۲۰۲۴/۲۵ و آزمون از ۱ اوت ۲۰۲۵ تا ۳۰ ژوئن ۲۰۲۶؛ آغاز تاریخچه در منبع ثبت نشده است.",
+      "against": "dixon-coles-elo@0.1.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 3735,
+          "matches_total": 3735,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": 1.0192,
+          "tested_log_loss": 1.0087,
+          "worse_divisions": null,
+          "divisions": 11,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "در ۱۰ لیگ از ۱۱ لیگ پذیرفته شد؛ چمپیونشیپ جفت ثابت منتشرشده را نگه داشت. log loss دور اول ۱٫۰۱۱۰ بود."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "برای هر لیگ جفتی ماند که در مجموع دو دور، log loss کمتری روی ۲۰۲۴/۲۵ داشت؛ و فقط جایی پذیرفته شد که روی ۲۰۲۵/۲۶ دست‌کم ۰٫۰۰۲ از 0.1.0 بهتر بود. نسخهٔ 0.3.0 روی ۲۰۲۵/۲۶ به ۱٫۰۰۸۷ رسید، در برابر ۱٫۰۱۱۰ برای 0.2.0 و ۱٫۰۱۹۲ برای 0.1.0. همین جفت‌ها ثابت‌های نسخهٔ منتشرشدهٔ 0.6.0 برای ده لیگ football-data هستند.",
+      "decisions": [
+        "D-082",
+        "D-191"
+      ],
+      "task": "T-532",
+      "decided_on": "2026-09-26",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/tuning_2025-08-01..2026-06-30_xi0.0005-0.003.json"
+      ],
+      "missing": [
+        "ثبت تصمیم",
+        "بازهٔ ۹۵٪ بهبود",
+        "فصل آزمون ۲۰۲۵/۲۶ در هر دو دور دیده شد: هر دور یک بار دیگر از فصل دیده‌نشده خرج می‌کند"
+      ]
+    },
+    {
+      "key": "history_window_1100",
+      "family": "پنجرهٔ تاریخچه",
+      "phase": 6,
+      "title": "پنجرهٔ تاریخچهٔ ۱٬۱۰۰روزه",
+      "technical": "history_days 1100 (0.1.0: 400)",
+      "kind": "constants",
+      "why": "بگذاریم فراموشی زمانی مسابقه‌های قدیمی را کنار بگذارد، نه بریدن پنجره.",
+      "data": "هیچ اجرای جداگانه‌ای ثبت نشده است. این مقدار با نسخهٔ 0.2.0 آمد؛ در 0.1.0 پنجره ۴۰۰ روز بود.",
+      "against": null,
+      "groups": [],
+      "verdict": "adopted",
+      "reason": "با نسخهٔ 0.2.0 آمد «تا فراموشی زمانی فراموش کند، نه پنجره» و همهٔ نسخه‌های بعدی نگهش داشتند. هرگز به‌تنهایی اندازه‌گیری نشده است.",
+      "decisions": [
+        "D-190"
+      ],
+      "task": "T-532",
+      "decided_on": "2026-09-26",
+      "due_on": null,
+      "reports": [],
+      "missing": [
+        "هر اندازه‌گیری از اثر خود پنجره"
+      ]
+    },
+    {
+      "key": "cross_league_fit",
+      "family": "برازش میان‌لیگی",
+      "phase": 6,
+      "title": "یک برازش مشترک میان لیگ‌ها برای جام‌ها و رقابت‌های قاره‌ای",
+      "technical": "cross_league {xi 0.0005, team_ridge 4, group_ridge 0.001}",
+      "kind": "input",
+      "why": "برازش جدا برای هر لیگ نمی‌تواند باشگاه‌های لیگ‌های مختلف را با هم بسنجد؛ مسابقه‌هایی که از مرز لیگ‌ها می‌گذرند می‌توانند سطح هر لیگ را تعیین کنند.",
+      "data": "انبار سرور: مسابقه‌های جامی سوابق خود ما به‌همراه همهٔ لیگ‌های بارشده، ۳٬۱۸۸ مسابقهٔ جامی از سه فصل گذشته و فصل ۲۰۲۶/۲۷؛ انتخاب روی فصل ۲۰۲۴/۲۵ (۹۰۵ مسابقهٔ جامی، در دو دور) و یک بار سنجش از ۱ ژوئیه ۲۰۲۵ تا ۳۰ ژوئن ۲۰۲۶؛ آغاز تاریخچه در منبع ثبت نشده است.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "همهٔ مسابقه‌ها",
+          "result": "passed",
+          "matches": 929,
+          "matches_total": 929,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 0.9727,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "بهتر از حدس یک‌سوم و بهتر از نرخ‌های پایه (log loss نرخ‌های پایه ۱٫۰۴۰۲). پیش از آن هیچ نسخه‌ای به این مسابقه‌ها پاسخ نمی‌داد."
+        },
+        {
+          "group": "cross_league",
+          "label": "هر دو باشگاه از لیگ‌هایی که داریم",
+          "result": "not_judged",
+          "matches": 227,
+          "matches_total": 929,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": 0.9292,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "جداگانه داوری نشده است. log loss نرخ‌های پایه روی همین مسابقه‌ها ۱٫۰۰۱۷."
+        },
+        {
+          "group": "cross_league",
+          "label": "با باشگاهی از لیگی که نداریم",
+          "result": "not_judged",
+          "matches": 702,
+          "matches_total": 929,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": 0.9868,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "جداگانه داوری نشده است. log loss نرخ‌های پایه روی همین مسابقه‌ها ۱٫۰۵۲۷."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "به‌عنوان نامزد 0.4.0 وارد shadow شد (D-085). سپس مدیر پروژه پاسخ‌های جامی 0.6.0 را بر پایهٔ همین آزمون گذشته‌نگر منتشر کرد و منتظر کارنامهٔ پیش از بازی خود جام‌ها نماند (D-191، استثنای دوم).",
+      "decisions": [
+        "D-085",
+        "D-191"
+      ],
+      "task": "T-533",
+      "decided_on": "2026-09-26",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.4.0/cross_league_2025-07-01..2026-06-30_pass1.json",
+        "apps/model/reports/dixon-coles-elo-0.4.0/cross_league_2025-07-01..2026-06-30_pass2.json"
+      ],
+      "missing": [
+        "بازهٔ ۹۵٪ هیچ اختلافی (فقط log loss نقطه‌ای هست)",
+        "عددهای calibration"
+      ]
+    },
+    {
+      "key": "own_elo_prior",
+      "family": "پیشین قدرت تیم با Elo",
+      "phase": 9,
+      "title": "Elo خود ما به‌عنوان پیشین قدرت تیم",
+      "technical": "elo_prior: own",
+      "kind": "input",
+      "why": "کلاب Elo دیگر پاسخ نمی‌داد؛ Elo که از داده‌ی آموزشی مجاز خودمان حساب شود پیشین را در چارچوب D-014 برمی‌گرداند.",
+      "data": "انبار روی لپ‌تاپ: football-data از فصل ۲۰۲۳/۲۴ تا ۲۰۲۶/۲۷، ده لیگ، بدون نام‌های مستعار و بدون سوابق خود ما؛ فصل ۲۰۲۵/۲۶ گام‌به‌گام رو به جلو، از ۱ اوت ۲۰۲۵ تا ۳۰ ژوئن ۲۰۲۶.",
+      "against": null,
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 3185,
+          "matches_total": 3185,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": 0.9965,
+          "tested_log_loss": 0.9933,
+          "worse_divisions": 2,
+          "divisions": 10,
+          "worse_in": [
+            "P1",
+            "T1"
+          ],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "در ۸ لیگ از ۱۰ لیگ بهتر از «بدون پیشین». مرجع همان نامزد بدون هیچ پیشینی است، نه یک نسخهٔ دیگر؛ ستون کلاب Elo در گزارش «اجرا نشد» بود."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "در هشت لیگ از ده لیگ از «بدون پیشین» بهتر بود و در مجموع ۰٫۰۰۳۲ بهتر؛ در لیگ برتر پرتغال (۰٫۰۰۰۴) و سوپرلیگ ترکیه (۰٫۰۰۲۳) بدتر شد. چون شاهدی از کلاب Elo در دست نبود، نسخهٔ 0.5.0 «همیشه Elo خودمان» را گرفت، که پیشین را هم در چارچوب D-014 نگه می‌دارد.",
+      "decisions": [
+        "D-111",
+        "D-162"
+      ],
+      "task": "T-921، T-922",
+      "decided_on": "2026-09-29",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.5.0/elo_prior_2025-08-01..2026-06-30.md"
+      ],
+      "missing": [
+        "بازهٔ ۹۵٪ اختلاف کلی",
+        "اجرا روی انبار سرور (با پل و سوابق جام‌ها)"
+      ]
+    },
+    {
+      "key": "clubelo_then_own",
+      "family": "پیشین قدرت تیم با Elo",
+      "phase": 9,
+      "title": "اول کلاب Elo، و Elo خود ما هر جا کلاب Elo رتبه ندارد",
+      "technical": "elo_prior: clubelo_then_own",
+      "kind": "input",
+      "why": "اگر رتبه‌های کلاب Elo از Elo خود ما بهتر باشد، اول آن خوانده شود و هر جا نبود، Elo خودمان.",
+      "data": "اجرا نشد؛ داده‌ای برای این ردیف در منبع نیست.",
+      "against": null,
+      "groups": [],
+      "verdict": "not_run",
+      "reason": "D-111 این مقایسه را به یک اجرای سرور سپرده بود. هیچ اجرایی ثبت نشده است، و بعد D-162 خواندن کلاب Elo را برای هر نسخهٔ تازه ممنوع کرد.",
+      "decisions": [
+        "D-111",
+        "D-162"
+      ],
+      "task": "T-922",
+      "decided_on": "2026-09-30",
+      "due_on": null,
+      "reports": [],
+      "missing": [
+        "اجرای سرور: پوشهٔ گزارش آن روی سرور خالی است (بازبینی ۶ نوامبر ۲۰۲۶)"
+      ]
+    },
+    {
+      "key": "version_0_5_0",
+      "family": "نسخه‌های نامزد",
+      "phase": 9,
+      "title": "نسخهٔ نامزد 0.5.0 (همان 0.4.0 به‌اضافهٔ Elo خود ما)",
+      "technical": "retired/dixon-coles-elo-0.5.0.json",
+      "kind": "version",
+      "why": "ثابت‌های تنظیم‌شده، برازش میان‌لیگی و Elo خود ما با هم باید از نسخهٔ منتشرشده بهتر باشند.",
+      "data": "انبار محلی football-data، یازده لیگ؛ از ۱ اوت ۲۰۲۵ تا ۳۰ ژوئن ۲۰۲۶؛ آغاز تاریخچه در منبع ثبت نشده است.",
+      "against": "dixon-coles-elo@0.1.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 3724,
+          "matches_total": 3724,
+          "difference": -0.02006,
+          "low": -0.02814,
+          "high": -0.01235,
+          "reference_log_loss": 1.0255,
+          "tested_log_loss": 1.0055,
+          "worse_divisions": 0,
+          "divisions": 11,
+          "worse_in": [],
+          "calibration_before": 0.0317,
+          "calibration_after": 0.0215,
+          "note": "در هیچ لیگی بدتر نبود. log loss بازار روی همین مسابقه‌ها ۰٫۹۸۵۰."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-139 را در برابر 0.1.0 گذراند و از ۲۹ سپتامبر ۲۰۲۶ در shadow بود. هرگز ارتقا نیافت: ۹ اکتبر ۲۰۲۶ که 0.6.0 (همان 0.5.0 به‌اضافهٔ ثابت‌های لیگ ایران) منتشر شد، بازنشسته شد (D-191). ترکیبش در 0.6.0 ادامه دارد.",
+      "decisions": [
+        "D-111",
+        "D-140",
+        "D-191"
+      ],
+      "task": "T-922",
+      "decided_on": "2026-09-29",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.5.0/compare_2025-08-01..2026-06-30.md"
+      ],
+      "missing": [
+        "حکم پیش از بازی خودش: ۱۹۷ پیش‌بینی shadow ذخیره شد و هرگز در ۳۰۰ داوری نشد"
+      ]
+    },
+    {
+      "key": "ir1_tuned_constants",
+      "family": "فراموشی زمانی و انقباض برای هر لیگ",
+      "phase": 6,
+      "title": "فراموشی زمانی و انقباض تنظیم‌شده برای لیگ ایران (نسخهٔ 0.6.0)",
+      "technical": "per_division.IR1 = xi 0.002 (347-day half-life), ridge 3",
+      "kind": "constants",
+      "why": "با حافظهٔ ۱۰۷روزه و تقریباً بدون انقباض، چند بازی بدون گل خورده در آغاز فصل دفاع تیم‌های لیگ ایران را نفوذناپذیر نشان می‌داد: ۵۵٫۸٪ مساوی برای تراکتور و استقلال.",
+      "data": "انبار آموزش روی سرور: ۷۰۹ مسابقهٔ لیگ برتر خلیج فارس از ۹ اوت ۲۰۲۳ تا ۱۳ سپتامبر ۲۰۲۶؛ انتخاب روی فصل ۲۰۲۴/۲۵ و آزمون از ۱ ژوئیه ۲۰۲۵ تا ۸ اکتبر ۲۰۲۶؛ تاریخچه از فصل ۲۰۲۳/۲۴؛ یک لیگ.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": "در برابر نسخهٔ 0.5.0 (معیار D-139)",
+          "result": "insufficient",
+          "matches": 229,
+          "matches_total": 229,
+          "difference": -0.0163,
+          "low": -0.0378,
+          "high": 0.0041,
+          "reference_log_loss": 1.0653,
+          "tested_log_loss": 1.049,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": 0.0478,
+          "calibration_after": 0.0459,
+          "note": "داده ناکافی: ۲۲۹ مسابقه، کمتر از ۳۰۰."
+        },
+        {
+          "group": "our_records",
+          "label": "در برابر نسخهٔ 0.1.0 (برای مقایسه)",
+          "result": "passed",
+          "matches": 229,
+          "matches_total": 229,
+          "difference": -0.0361,
+          "low": -0.0721,
+          "high": -0.0024,
+          "reference_log_loss": 1.0852,
+          "tested_log_loss": 1.049,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": 0.0675,
+          "calibration_after": 0.0459,
+          "note": "کل بازهٔ ۹۵٪ زیر صفر است."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "طبق D-139 در برابر 0.5.0 «داده ناکافی» است (۲۲۹ مسابقه). ولی فقط یک لیگ را عوض می‌کند، در همهٔ سنجه‌ها بهتر است، نسخهٔ منتشرشده را با بازهٔ ۹۵٪ زیر صفر شکست می‌دهد و هیچ مساوی بالای ۴۵٪ نمی‌دهد. وارد shadow شد و با استثنای ثبت‌شدهٔ مدیر پروژه منتشر شد.",
+      "decisions": [
+        "D-190",
+        "D-191"
+      ],
+      "task": "T-1372",
+      "decided_on": "2026-10-09",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.6.0/compare_2025-07-01..2026-10-08.md"
+      ],
+      "missing": [
+        "قاعدهٔ «لیگ‌های بدتر» اینجا کاربرد ندارد (فقط یک لیگ)"
+      ]
+    },
+    {
+      "key": "version_0_6_0_promotion",
+      "family": "نسخه‌های نامزد",
+      "phase": 6,
+      "title": "انتشار نسخهٔ 0.6.0 پیش از ۳۰۰ پیش‌بینی خودش",
+      "technical": "published/dixon-coles-elo-0.6.0.json",
+      "kind": "version",
+      "why": "نسخهٔ 0.1.0 از ۲۵ سپتامبر ۲۰۲۶ بدون پیشین برازش می‌شد و در لیگ ایران آشکارا غلط بود؛ شواهد آزمون گذشته‌نگر برای 0.6.0 قوی بود.",
+      "data": "انبار محلی football-data برای یازده لیگ (از ۱ اوت ۲۰۲۵ تا ۳۰ ژوئن ۲۰۲۶) و انبار سرور برای لیگ ایران (از ۱ ژوئیه ۲۰۲۵ تا ۸ اکتبر ۲۰۲۶)؛ آغاز تاریخچه در منبع ثبت نشده است.",
+      "against": "dixon-coles-elo@0.1.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 3724,
+          "matches_total": 3724,
+          "difference": -0.0201,
+          "low": -0.0281,
+          "high": -0.0124,
+          "reference_log_loss": 1.0255,
+          "tested_log_loss": 1.0055,
+          "worse_divisions": 0,
+          "divisions": 11,
+          "worse_in": [],
+          "calibration_before": 0.0317,
+          "calibration_after": 0.0215,
+          "note": "در هر یازده لیگ بهتر بود. log loss بازار روی همین مسابقه‌ها ۰٫۹۸۵۰."
+        },
+        {
+          "group": "our_records",
+          "label": "لیگ برتر خلیج فارس",
+          "result": "passed",
+          "matches": 229,
+          "matches_total": 229,
+          "difference": -0.0361,
+          "low": -0.0721,
+          "high": -0.0024,
+          "reference_log_loss": 1.0852,
+          "tested_log_loss": 1.049,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": 0.0675,
+          "calibration_after": 0.0459,
+          "note": "کل بازهٔ ۹۵٪ زیر صفر است."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "مدیر پروژه 0.6.0 را بر پایهٔ شواهد آزمون گذشته‌نگر منتشر کرد، به‌عنوان استثنای ثبت‌شده بر کف ۳۰۰ پیش‌بینی در D-082. این استثنا فقط همین ارتقا را می‌پوشاند.",
+      "decisions": [
+        "D-191"
+      ],
+      "task": "T-1373",
+      "decided_on": "2026-10-09",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.6.0/compare_2025-08-01..2026-06-30.md",
+        "apps/model/reports/dixon-coles-elo-0.5.0/compare_2025-08-01..2026-06-30.md"
+      ],
+      "missing": [
+        "کارنامهٔ shadow خود 0.6.0: همان روز وارد shadow و منتشر شد؛ سرور هیچ پیش‌بینی shadow از 0.6.0 ندارد (پرس‌وجوی ۶ نوامبر ۲۰۲۶)"
+      ]
+    },
+    {
+      "key": "lineup_beta",
+      "family": "ترکیب تیم‌ها",
+      "phase": 6,
+      "title": "جملهٔ قدرت ترکیب (اختلاف میانگین امتیاز یازده نفر دو تیم)",
+      "technical": "lineup_beta",
+      "kind": "input",
+      "why": "تیمی که چند بازیکن اصلی‌اش را ندارد تیم هفتهٔ پیش نیست؛ میانگین امتیاز فصل یازده نفر باید گل‌های مورد انتظار را جابه‌جا کند.",
+      "data": "انبار سرور، سوابق خود ما که هر دو ترکیبش امتیاز دارد؛ فقط فصل ۲۰۲۵/۲۶: برازش از ۱ ژوئیه ۲۰۲۵ تا ۳۱ دسامبر ۲۰۲۵ (۱٬۰۷۸ مسابقه) و سنجش از ۱ ژانویه ۲۰۲۶ تا ۳۰ ژوئن ۲۰۲۶ (۱٬۳۷۰ مسابقه)؛ شمار لیگ‌ها در منبع نیامده است.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 1370,
+          "matches_total": 1370,
+          "difference": null,
+          "low": -0.0013,
+          "high": 0.0044,
+          "reference_log_loss": 1.0187,
+          "tested_log_loss": 1.0203,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "ضریب برازش‌شده ‎−۰٫۲۴۵۱. اختلاف نقطه‌ای در منبع فقط به شکل «بهبود ‎−۰٫۰۰۱۶» آمده است، برای جمله‌ای که log loss را بدتر کرد. بازهٔ ۹۵٪ به شکل «با آن منهای بدون آن» نوشته شده است."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "این جمله در برآورد نقطه‌ای پیش‌بینی را بدتر کرد (log loss با آن ۱٫۰۲۰۳ و بدون آن ۱٫۰۱۸۷) و بازهٔ ۹۵٪ صفر را کنار نمی‌گذارد. اجرای تعیین‌کننده (برازش روی ۲۰۲۳/۲۴ تا ۲۰۲۴/۲۵) شدنی نبود، چون هیچ مسابقهٔ قدیمی‌تری هر دو ترکیب را با امتیاز نداشت. هیچ نسخه‌ای این جمله را ندارد؛ قدرت ترکیب با هر درخواست ذخیره می‌شود ولی هیچ نسخه‌ای آن را به کار نمی‌برد.",
+      "decisions": [
+        "D-086",
+        "D-121"
+      ],
+      "task": "T-534، T-923",
+      "decided_on": "2026-09-30",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/inputs/lineups_2025-07-01_2026-01-01.json"
+      ],
+      "missing": [
+        "اختلاف نقطه‌ای (با آن منهای بدون آن) فقط به شکل «بهبود ‎−۰٫۰۰۱۶» آمده است",
+        "calibration",
+        "شمار لیگ‌هایی که بدتر شدند",
+        "اجرای تعیین‌کننده میان دو فصل"
+      ]
+    },
+    {
+      "key": "rest_p11",
+      "family": "استراحت و فشردگی برنامه",
+      "phase": 11,
+      "title": "استراحت و فشردگی برنامه (برنامهٔ لیگ)",
+      "technical": "input rest",
+      "kind": "input",
+      "why": "تیم خسته کمتر گل می‌زند و بیشتر گل می‌خورد.",
+      "data": "انبار خصوصی روی لپ‌تاپ: football-data از فصل ۲۰۲۳/۲۴ تا ۲۰۲۶/۲۷، ۱۰ لیگ، بدون پل و بدون سوابق خود ما؛ از ۱ اوت ۲۰۲۵ تا ۳۰ ژوئن ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۳.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 3185,
+          "matches_total": 3185,
+          "difference": 0.00223,
+          "low": 0.00026,
+          "high": 0.00425,
+          "reference_log_loss": 0.9933,
+          "tested_log_loss": 0.9955,
+          "worse_divisions": 9,
+          "divisions": 10,
+          "worse_in": [],
+          "calibration_before": 0.019,
+          "calibration_after": 0.0195,
+          "note": "در ۹ لیگ از ۱۰ لیگ بدتر بود: همه به‌جز سوپرلیگ ترکیه (منبع فقط شمار را داده، نه فهرست را). log loss نسخهٔ منتشرشده روی همین مسابقه‌ها ۱٫۰۰۸۹."
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "not_judged",
+          "matches": null,
+          "matches_total": null,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "اجرا نشد."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "این ورودی نامزد را به‌طور سنجش‌پذیر بدتر کرد: بدون پل، برنامهٔ لیگ در football-data بیشتر هفته‌ای یک بازی است و چهار ضریب روی نوفه برازش می‌شوند.",
+      "decisions": [
+        "D-141",
+        "D-150"
+      ],
+      "task": "T-1110",
+      "decided_on": "2026-09-29",
+      "due_on": null,
+      "reports": [],
+      "missing": [
+        "اجرای دوباره روی سرور که D-141 خواسته بود: D-150 می‌گوید استراحت «روی انبار کامل سرور» رد شد، ولی هیچ جدولی ثبت نشده و پوشهٔ گزارش‌های سرور گزارشی از استراحت ندارد",
+        "مسیر گزارش اجرای لپ‌تاپ"
+      ]
+    },
+    {
+      "key": "league_stakes_locked",
+      "family": "انگیزهٔ جدول لیگ",
+      "phase": 11,
+      "title": "انگیزهٔ جدول: تیمی که جایگاهش قطعی شده",
+      "technical": "input league_stakes",
+      "kind": "input",
+      "why": "تیمی که دیگر چیزی برای بازی‌کردن ندارد شاید به اندازهٔ قدرتش بازی نکند.",
+      "data": "انبار کامل سرور (۱۲ لیگ) و پیش از آن یک رونوشت football-data روی لپ‌تاپ (۱۰ لیگ)؛ از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۳.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "all",
+          "label": "لیگ‌های football-data و سوابق خود ما با هم، اجرای سرور",
+          "result": "insufficient",
+          "matches": 110,
+          "matches_total": null,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: ۱۱۰ مسابقه، کمتر از ۳۰۰. شمار کل مسابقه‌های پنجره در منبع نیست."
+        },
+        {
+          "group": "football_data",
+          "label": "اجرای لپ‌تاپ",
+          "result": "insufficient",
+          "matches": 94,
+          "matches_total": 6447,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": 10,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: ۹۴ مسابقه از ۶٬۴۴۷، کمتر از ۳۰۰."
+        }
+      ],
+      "verdict": "insufficient",
+      "reason": "فقط ۱۱۰ مسابقه تیمی با جایگاه قطعی داشت، بسیار کمتر از ۳۰۰؛ قطعیت کم پیش می‌آید. شمار در هر لیگ: لیگ برتر انگلیس ۱۱، چمپیونشیپ ۱۳، لالیگا ۱۹، بوندس‌لیگا ۱۰، سری آ ۱۰، لیگ ۱ فرانسه ۱۴، اردیویسه ۱۱، لیگ برتر پرتغال ۴، سوپرلیگ ترکیه ۱۵ و لیگ برتر خلیج فارس ۳.",
+      "decisions": [
+        "D-143",
+        "D-150"
+      ],
+      "task": "T-1120",
+      "decided_on": "2026-09-29",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/inputs (server run; no league_stakes file found there on 2026-11-06)"
+      ],
+      "missing": [
+        "عددهای log loss (زیر ۳۰۰ حکمی داده نمی‌شود)",
+        "فایل گزارش سرور"
+      ]
+    },
+    {
+      "key": "second_leg_p11",
+      "family": "بازی برگشت",
+      "phase": 11,
+      "title": "بازی برگشت با توجه به نتیجهٔ بازی رفت",
+      "technical": "input second_leg",
+      "kind": "input",
+      "why": "تیمی که دو گل عقب است باید حمله کند و تیمی که دو گل جلوست می‌تواند عقب بنشیند.",
+      "data": "انبار کامل سرور، دیدارهای رفت و برگشت جامی در سوابق خود ما (مسابقه‌های میان‌لیگی)؛ از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۳.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 560,
+          "matches_total": 1807,
+          "difference": -0.00459,
+          "low": -0.01424,
+          "high": 0.00468,
+          "reference_log_loss": 1.0913,
+          "tested_log_loss": 1.0867,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": 0.1004,
+          "calibration_after": 0.0946,
+          "note": "log loss نسخهٔ منتشرشده روی همین مسابقه‌ها ۱٫۲۰۱۶."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "در برآورد نقطه‌ای بهتر بود، ولی بازهٔ ۹۵٪ صفر را کنار نمی‌گذارد. نزدیک‌ترین ورودی فاز ۱۱ به قبولی بود و ارزش اجرای دوباره با یک فصل دیگر از دیدارهای جامی را دارد.",
+      "decisions": [
+        "D-144",
+        "D-150"
+      ],
+      "task": "T-1121",
+      "decided_on": "2026-09-29",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/inputs/dixon-coles-elo-0.5.0/inputs_second_leg_2024-07-01..2026-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "neutral_ground",
+      "family": "برتری میزبانی",
+      "phase": 11,
+      "title": "بدون برتری میزبانی در زمینی که زمین همیشگی هیچ‌کدام نیست",
+      "technical": "input neutral_ground",
+      "kind": "input",
+      "why": "فینال یا بازی جابه‌جاشده تیم میزبان ندارد.",
+      "data": "انبار کامل سرور، سوابق خود ما (لیگ برتر خلیج فارس و مسابقه‌های میان‌لیگی)؛ از ۱ اوت ۲۰۲۵ تا ۳۰ ژوئن ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۳.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "insufficient",
+          "matches": 0,
+          "matches_total": 890,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: هیچ مسابقه‌ای خوانده نشد. ۸۹۰ مسابقه امتیازدهی شد: ۱۷۷ از لیگ برتر خلیج فارس و ۷۱۳ میان‌لیگی."
+        }
+      ],
+      "verdict": "insufficient",
+      "reason": "در سوابق خود ما هیچ مسابقه‌ای در زمینی بازی نشده بود که زمین همیشگی هیچ‌کدام از دو باشگاه نباشد؛ پس ورودی روی هیچ مسابقه‌ای اعمال نشد.",
+      "decisions": [
+        "D-145",
+        "D-150"
+      ],
+      "task": "T-1122",
+      "decided_on": "2026-09-29",
+      "due_on": null,
+      "reports": [],
+      "missing": [
+        "فایل گزارش سرور (۶ نوامبر ۲۰۲۶ در پوشهٔ گزارش‌های سرور نبود)"
+      ]
+    },
+    {
+      "key": "new_coach_p11",
+      "family": "سرمربی",
+      "phase": 11,
+      "title": "جهش با سرمربی تازه",
+      "technical": "input new_coach",
+      "kind": "input",
+      "why": "تیم‌ها در نخستین بازی‌های سرمربی تازه تغییر می‌کنند.",
+      "data": "انبار کامل سرور، ترکیب‌های سوابق خود ما (لیگ برتر خلیج فارس و مسابقه‌های میان‌لیگی)؛ از ۱ ژوئیه ۲۰۲۴ تا ۲۹ سپتامبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۳.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "insufficient",
+          "matches": 217,
+          "matches_total": 2708,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: در لیگ برتر خلیج فارس ۵ مسابقه از ۴۷۲ و در مسابقه‌های میان‌لیگی ۲۱۲ از ۲٬۲۳۶ خوانده شد."
+        }
+      ],
+      "verdict": "insufficient",
+      "reason": "۲۱۷ مسابقه خوانده شد، کمتر از ۳۰۰. لیگ‌های football-data سرمربی ندارند و امتیازدهی نشدند.",
+      "decisions": [
+        "D-147",
+        "D-173"
+      ],
+      "task": "T-1130، T-1131",
+      "decided_on": "2026-09-30",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/inputs/dixon-coles-elo-0.5.0/inputs_new_coach_2024-07-01..2026-09-29.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "head_to_head_p11",
+      "family": "سابقهٔ رودررو",
+      "phase": 11,
+      "title": "سابقهٔ رودررو، پس از حساب قدرت کنونی",
+      "technical": "input head_to_head",
+      "kind": "input",
+      "why": "شاید یک جفت تیم، فراتر از قدرت کنونی، برتری ویژهٔ خودش را داشته باشد.",
+      "data": "انبار کامل سرور (football-data از فصل ۲۰۲۳/۲۴ به‌همراه لیگ ایران) و پیش از آن انبار لپ‌تاپ با football-data از ۲۰۱۲/۱۳ تا ۲۰۲۶/۲۷؛ پنجرهٔ لپ‌تاپ از ۱ ژوئیه ۲۰۲۴ تا ۲۸ سپتامبر ۲۰۲۶ و پنجرهٔ گزارش سرور تا ۳۰ ژوئن ۲۰۲۶؛ تاریخچه از دو سال پیش از پنجره؛ ۱۲ لیگ.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": "اجرای سرور",
+          "result": "failed",
+          "matches": 6646,
+          "matches_total": 7511,
+          "difference": 0.00121,
+          "low": 1e-05,
+          "high": 0.00239,
+          "reference_log_loss": 0.9939,
+          "tested_log_loss": 0.9951,
+          "worse_divisions": 9,
+          "divisions": 11,
+          "worse_in": [
+            "E0",
+            "E1",
+            "D1",
+            "I1",
+            "F1",
+            "N1",
+            "P1",
+            "T1",
+            "SC0"
+          ],
+          "calibration_before": 0.0148,
+          "calibration_after": 0.0162,
+          "note": "بدتر، و کل بازهٔ ۹۵٪ بالای صفر است."
+        },
+        {
+          "group": "our_records",
+          "label": "اجرای سرور، لیگ برتر خلیج فارس",
+          "result": "failed",
+          "matches": 372,
+          "matches_total": 415,
+          "difference": -0.00229,
+          "low": -0.0078,
+          "high": 0.00353,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": 0.0447,
+          "calibration_after": 0.0474,
+          "note": "رد شد: منبع می‌گوید شمار ناکافی است و بازهٔ ۹۵٪ صفر را در بر می‌گیرد."
+        },
+        {
+          "group": "football_data",
+          "label": "اجرای لپ‌تاپ",
+          "result": "failed",
+          "matches": 6590,
+          "matches_total": 6946,
+          "difference": 0.00056,
+          "low": -0.00011,
+          "high": 0.00121,
+          "reference_log_loss": 0.9821,
+          "tested_log_loss": 0.9826,
+          "worse_divisions": 8,
+          "divisions": 10,
+          "worse_in": [],
+          "calibration_before": 0.0134,
+          "calibration_after": 0.0139,
+          "note": "در ۸ لیگ از ۱۰ لیگ بدتر بود؛ فقط در لیگ برتر انگلیس و لیگ بلژیک بهتر (منبع فقط شمار را داده، نه فهرست را)."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "روی لیگ‌های football-data بدتر بود و کل بازهٔ ۹۵٪ بالای صفر است؛ روی سوابق خود ما هم بهتر نبود.",
+      "decisions": [
+        "D-148",
+        "D-150"
+      ],
+      "task": "T-1140",
+      "decided_on": "2026-09-29",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/inputs/dixon-coles-elo-0.5.0/inputs_head_to_head_2024-07-01..2026-06-30.md",
+        "apps/model/reports/dixon-coles-elo-0.5.0/inputs_head_to_head_2024-07-01..2026-09-28.md"
+      ],
+      "missing": [
+        "گروه سوابق خود ما فقط ۳۷۲ مسابقهٔ خوانده‌شده داشت؛ تصمیم آن را «طبق معیار بهتر نیست» نامیده، نه «داده ناکافی»"
+      ]
+    },
+    {
+      "key": "team_home_advantage_p11",
+      "family": "برتری میزبانی",
+      "phase": 11,
+      "title": "برتری میزبانی جدا برای هر تیم (انحراف جریمه‌دار)",
+      "technical": "input team_home_advantage",
+      "kind": "input",
+      "why": "بعضی باشگاه‌ها در خانه بیش از میانگین لیگشان سود می‌برند.",
+      "data": "انبار لپ‌تاپ با football-data از ۲۰۱۲/۱۳ تا ۲۰۲۶/۲۷ (انتخاب و سنجش) و انبار کامل سرور (اجرای دوباره)؛ جریمه روی ۱ ژوئیه ۲۰۲۳ تا ۳۰ ژوئن ۲۰۲۴ انتخاب شد؛ سنجش از ۱ ژوئیه ۲۰۲۴ تا ۲۸ سپتامبر ۲۰۲۶ روی لپ‌تاپ و تا ۳۰ ژوئن ۲۰۲۶ روی سرور؛ آغاز تاریخچه در منبع ثبت نشده است؛ ۱۲ لیگ.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": "اجرای سرور",
+          "result": "failed",
+          "matches": 7511,
+          "matches_total": 7511,
+          "difference": 3e-05,
+          "low": -0.00011,
+          "high": 0.00016,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 6,
+          "divisions": 11,
+          "worse_in": [
+            "E1",
+            "D1",
+            "I1",
+            "T1",
+            "B1",
+            "SC0"
+          ],
+          "calibration_before": 0.0159,
+          "calibration_after": 0.0164,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": "اجرای سرور، لیگ برتر خلیج فارس",
+          "result": "failed",
+          "matches": 415,
+          "matches_total": 415,
+          "difference": 0.00024,
+          "low": 6e-05,
+          "high": 0.00043,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 1,
+          "divisions": 1,
+          "worse_in": [
+            "IR1"
+          ],
+          "calibration_before": 0.046,
+          "calibration_after": 0.0433,
+          "note": "بدتر شد."
+        },
+        {
+          "group": "football_data",
+          "label": "اجرای لپ‌تاپ، جریمهٔ ۱۰۰",
+          "result": "failed",
+          "matches": 6946,
+          "matches_total": 6946,
+          "difference": -4e-05,
+          "low": -0.00019,
+          "high": 0.00012,
+          "reference_log_loss": 0.9866,
+          "tested_log_loss": 0.9866,
+          "worse_divisions": 3,
+          "divisions": 10,
+          "worse_in": [
+            "I1",
+            "T1",
+            "B1"
+          ],
+          "calibration_before": 0.0138,
+          "calibration_after": 0.014,
+          "note": null
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "روی پنجرهٔ انتخاب، هر مقدار جریمه پیش‌بینی را بدتر کرد؛ مقدار برگزیده روی پنجرهٔ سنجش دو سوی صفر است و سوابق خود ما بدتر شد. تفاوت‌های باشگاهی که پس از انقباض می‌مانند خیلی کوچک یا ناپایدارند.",
+      "decisions": [
+        "D-149",
+        "D-150"
+      ],
+      "task": "T-1141",
+      "decided_on": "2026-09-29",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/inputs/dixon-coles-elo-0.5.0/inputs_team_home_advantage_2024-07-01..2026-06-30.md",
+        "apps/model/reports/dixon-coles-elo-0.5.0/inputs_team_home_advantage_2024-07-01..2026-09-28.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "league_stakes_zones_p11",
+      "family": "انگیزهٔ جدول لیگ",
+      "phase": 11,
+      "title": "انگیزهٔ جدول با منطقه‌ها: تیمی که وضعش روشن شده",
+      "technical": "input league_stakes_zones",
+      "kind": "input",
+      "why": "منطقه‌های جدول «جایگاه قطعی» را به «چیزی در منطقه‌های مهم باقی نمانده» گسترش می‌دهند.",
+      "data": "انبار کامل سرور، دوازده لیگ؛ از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۳.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 476,
+          "matches_total": 7505,
+          "difference": 0.0632,
+          "low": 0.03323,
+          "high": 0.09602,
+          "reference_log_loss": 1.0254,
+          "tested_log_loss": 1.0886,
+          "worse_divisions": 4,
+          "divisions": 4,
+          "worse_in": [
+            "E0",
+            "I1",
+            "P1",
+            "T1"
+          ],
+          "calibration_before": 0.0361,
+          "calibration_after": 0.0628,
+          "note": "رد شد و calibration هم در کل بازهٔ ۹۵٪ بدتر بود."
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "insufficient",
+          "matches": 21,
+          "matches_total": 415,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: ۲۱ مسابقه از ۴۱۵."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "آشکارا بدتر بود (‎+۰٫۰۶۳۲) و calibration هم ضعیف‌تر شد؛ منطقه‌ها فقط در صفحهٔ رقابت می‌مانند.",
+      "decisions": [
+        "D-171",
+        "D-150"
+      ],
+      "task": "T-1167",
+      "decided_on": "2026-09-30",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/inputs/dixon-coles-elo-0.5.0/inputs_league_stakes_zones_2024-08-01..2026-06-30.md"
+      ],
+      "missing": [
+        "D-171 تاریخ این اجرای سرور را ۲۹ سپتامبر ۲۰۲۶ نوشته، یک روز پیش از پیاده‌سازی ورودی (T-1167، ۳۰ سپتامبر ۲۰۲۶)"
+      ]
+    },
+    {
+      "key": "cross_border",
+      "family": "سفر",
+      "phase": 11,
+      "title": "جانشین سفر: دو باشگاه از دو کشور",
+      "technical": "input cross_border",
+      "kind": "input",
+      "why": "مهمانی که سفر کرده کمتر گل می‌زند و میزبان در برابر او بیشتر سود می‌برد.",
+      "data": "انبار کامل سرور، سوابق خود ما (لیگ برتر خلیج فارس و مسابقه‌های میان‌لیگی)؛ پنجرهٔ گسترده از ۱ اوت ۲۰۲۳ تا ۲۸ سپتامبر ۲۰۲۶ (اجرای نخست از ۱ اوت ۲۰۲۵ تا ۳۰ ژوئن ۲۰۲۶)؛ تاریخچه از ۱ ژوئیه ۲۰۲۳.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": "پنجرهٔ گسترده",
+          "result": "failed",
+          "matches": 602,
+          "matches_total": 3465,
+          "difference": 0.00409,
+          "low": 0.00037,
+          "high": 0.00781,
+          "reference_log_loss": 1.0461,
+          "tested_log_loss": 1.0502,
+          "worse_divisions": 1,
+          "divisions": 1,
+          "worse_in": [
+            "XL"
+          ],
+          "calibration_before": 0.0721,
+          "calibration_after": 0.0792,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": "اجرای نخست",
+          "result": "insufficient",
+          "matches": 217,
+          "matches_total": 890,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: ۲۱۷ مسابقه از ۸۹۰."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "وقتی دیدارهای قاره‌ای فصل‌های گذشته بار شد، ۶۰۲ مسابقه خواند و پیش‌بینی را بدتر کرد. این حکم جای «داده ناکافی» اجرای نخست را می‌گیرد.",
+      "decisions": [
+        "D-170"
+      ],
+      "task": "T-1166",
+      "decided_on": "2026-09-30",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/reports/inputs/dixon-coles-elo-0.5.0/inputs_cross_border_2023-08-01..2026-09-28.md",
+        "fmip-prod:~/reports/inputs/dixon-coles-elo-0.5.0/inputs_cross_border_2025-08-01..2026-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "null_control_p11",
+      "family": "کنترل پوچ",
+      "phase": 11,
+      "title": "کنترل پوچ (شیر یا خط، بدون هیچ اثری)، فاز ۱۱",
+      "technical": "--input null",
+      "kind": "control",
+      "why": "کنترل خود ابزار آزمون باید رد شود.",
+      "data": "جدولی برای این اجرا ثبت نشده است؛ داده‌ای برای این ردیف در منبع نیست.",
+      "against": "dixon-coles-elo@0.5.0",
+      "groups": [],
+      "verdict": "rejected",
+      "reason": "در اجراهای سابقهٔ رودررو و برتری میزبانی رد شد، همان‌طور که باید.",
+      "decisions": [
+        "D-139",
+        "D-148",
+        "D-149"
+      ],
+      "task": "T-1101",
+      "decided_on": "2026-09-29",
+      "due_on": null,
+      "reports": [],
+      "missing": [
+        "عددهایش: هیچ جدولی ثبت نشده است"
+      ]
+    },
+    {
+      "key": "rest_p14",
+      "family": "استراحت و فشردگی برنامه",
+      "phase": 14,
+      "title": "استراحت و فشردگی برنامه، روی انبار بلندتر",
+      "technical": "input rest (D-141, unchanged)",
+      "kind": "input",
+      "why": "D-141 روی انباری کوتاه از بازی‌های لیگ رد شده بود؛ تاریخچهٔ بلندتر شاید اثر را نشان دهد.",
+      "data": "انبار آزمایشگاه روی سرور (رونوشت انبار آموزش، با یازده لیگ اصلی football-data از فصل ۲۰۲۰/۲۱)؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 5688,
+          "matches_total": 5688,
+          "difference": 0.00078,
+          "low": -0.00045,
+          "high": 0.00212,
+          "reference_log_loss": 1.0062,
+          "tested_log_loss": 1.007,
+          "worse_divisions": 11,
+          "divisions": 17,
+          "worse_in": [
+            "E0",
+            "E1",
+            "SP1",
+            "D1",
+            "F1",
+            "B1",
+            "T1",
+            "G1",
+            "CH1",
+            "US1",
+            "AR1"
+          ],
+          "calibration_before": 0.0136,
+          "calibration_after": 0.0135,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 1451,
+          "matches_total": 1451,
+          "difference": 0.00193,
+          "low": -0.00202,
+          "high": 0.00615,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 4,
+          "divisions": 6,
+          "worse_in": [
+            "IR1",
+            "CZ1",
+            "HR1",
+            "SA1"
+          ],
+          "calibration_before": 0.0226,
+          "calibration_after": 0.0273,
+          "note": null
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "در هر دو گروه کمی بدتر بود، بازه‌های ۹۵٪ صفر را در بر می‌گیرند و در بیشتر لیگ‌ها بدتر شد.",
+      "decisions": [
+        "D-303",
+        "D-329"
+      ],
+      "task": "T-1651",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/dixon-coles-elo-0.7.0/inputs_rest_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "rest_with_cups_p14",
+      "family": "استراحت و فشردگی برنامه",
+      "phase": 14,
+      "title": "استراحت و فشردگی برنامه، با ده جام افزوده",
+      "technical": "input rest on the lab store with T-1649's ten cups",
+      "kind": "input",
+      "why": "بازی‌های میان‌هفتهٔ جام‌های داخلی برای ورودی استراحت دیده نمی‌شد؛ با آن‌ها فشردگی واقعی است.",
+      "data": "انبار آزمایشگاه با ده جام T-1649؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 5689,
+          "matches_total": 5689,
+          "difference": 0.00102,
+          "low": -0.00013,
+          "high": 0.00211,
+          "reference_log_loss": 1.0062,
+          "tested_log_loss": 1.0072,
+          "worse_divisions": 11,
+          "divisions": 17,
+          "worse_in": [
+            "E1",
+            "SP1",
+            "D1",
+            "F1",
+            "N1",
+            "B1",
+            "G1",
+            "CH1",
+            "US1",
+            "BR1",
+            "AR1"
+          ],
+          "calibration_before": 0.0142,
+          "calibration_after": 0.0128,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 1453,
+          "matches_total": 1453,
+          "difference": 0.00203,
+          "low": -0.00151,
+          "high": 0.00581,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 5,
+          "divisions": 6,
+          "worse_in": [
+            "IR1",
+            "CZ1",
+            "HR1",
+            "SA1",
+            "AE1"
+          ],
+          "calibration_before": 0.0231,
+          "calibration_after": 0.0245,
+          "note": null
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "در هر دو گروه کمی بدتر بود: در ۱۱ لیگ از ۱۷ لیگ football-data و در ۵ لیگ از ۶ لیگ سوابق خود ما بدتر شد.",
+      "decisions": [
+        "D-303",
+        "D-304",
+        "D-329"
+      ],
+      "task": "T-1651",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/with-cups/dixon-coles-elo-0.7.0/inputs_rest_2024-08-01..2025-06-30.md"
+      ],
+      "missing": [
+        "T-1649 (جام‌ها) در فهرست کارها هنوز تیک نخورده، با اینکه این اجرا از آن‌ها استفاده کرد"
+      ]
+    },
+    {
+      "key": "team_home_advantage_p14",
+      "family": "برتری میزبانی",
+      "phase": 14,
+      "title": "برتری میزبانی جدا برای هر تیم، روی انبار بلندتر",
+      "technical": "input team_home_advantage (PENALTY 100, unchanged)",
+      "kind": "input",
+      "why": "اجرای دوباره روی انبار بلندتر. بررسی D-303 نشان داده بود برتری میزبانی اضافهٔ یک تیم از فصلی به فصل بعد همبستگی ۰٫۰۲ دارد (۲٬۱۱۶ جفت).",
+      "data": "انبار آزمایشگاه روی سرور (رونوشت انبار آموزش، با یازده لیگ اصلی football-data از فصل ۲۰۲۰/۲۱)؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 5685,
+          "matches_total": 5689,
+          "difference": -0.00018,
+          "low": -0.00034,
+          "high": -2e-05,
+          "reference_log_loss": 1.0062,
+          "tested_log_loss": 1.006,
+          "worse_divisions": 6,
+          "divisions": 17,
+          "worse_in": [
+            "E1",
+            "SP1",
+            "I1",
+            "B1",
+            "T1",
+            "BR1"
+          ],
+          "calibration_before": 0.0141,
+          "calibration_after": 0.0134,
+          "note": "کل بازهٔ ۹۵٪ زیر صفر است، ولی در ۶ لیگ از ۱۷ بدتر بود؛ بیش از یک‌سوم مجاز."
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 1451,
+          "matches_total": 1453,
+          "difference": 6e-05,
+          "low": -0.00013,
+          "high": 0.00025,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 5,
+          "divisions": 6,
+          "worse_in": [
+            "CZ1",
+            "HR1",
+            "RS1",
+            "SA1",
+            "AE1"
+          ],
+          "calibration_before": 0.0229,
+          "calibration_after": 0.0236,
+          "note": null
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "روی لیگ‌های football-data بهبودی بسیار کوچک ولی معنادار داشت (‎−۰٫۰۰۰۱۸)، اما در ۶ لیگ از ۱۷ بدتر بود که از حد یک‌سوم بیشتر است؛ روی سوابق خود ما چیزی نشان نداد.",
+      "decisions": [
+        "D-303",
+        "D-329"
+      ],
+      "task": "T-1651",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/dixon-coles-elo-0.7.0/inputs_team_home_advantage_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "head_to_head_p14",
+      "family": "سابقهٔ رودررو",
+      "phase": 14,
+      "title": "سابقهٔ رودررو، روی انبار بلندتر",
+      "technical": "input head_to_head (unchanged)",
+      "kind": "input",
+      "why": "انبار بلندتر دیدارهای گذشتهٔ بیشتری می‌دهد.",
+      "data": "انبار آزمایشگاه روی سرور (رونوشت انبار آموزش، با یازده لیگ اصلی football-data از فصل ۲۰۲۰/۲۱)؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 5361,
+          "matches_total": 5689,
+          "difference": 0.00028,
+          "low": -0.00053,
+          "high": 0.00102,
+          "reference_log_loss": 1.0041,
+          "tested_log_loss": 1.0044,
+          "worse_divisions": 11,
+          "divisions": 17,
+          "worse_in": [
+            "E1",
+            "D1",
+            "I1",
+            "F1",
+            "N1",
+            "T1",
+            "G1",
+            "CH1",
+            "DK1",
+            "US1",
+            "BR1"
+          ],
+          "calibration_before": 0.0135,
+          "calibration_after": 0.0135,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 1327,
+          "matches_total": 1453,
+          "difference": 0.00273,
+          "low": 0.0005,
+          "high": 0.00487,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 6,
+          "divisions": 6,
+          "worse_in": [
+            "IR1",
+            "CZ1",
+            "HR1",
+            "RS1",
+            "SA1",
+            "AE1"
+          ],
+          "calibration_before": 0.0256,
+          "calibration_after": 0.0253,
+          "note": "به‌طور معنادار بدتر: کل بازهٔ ۹۵٪ بالای صفر است."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "روی سوابق خود ما به‌طور معنادار بدتر بود و در ۱۱ لیگ از ۱۷ لیگ football-data بدتر شد.",
+      "decisions": [
+        "D-303",
+        "D-329"
+      ],
+      "task": "T-1651",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/dixon-coles-elo-0.7.0/inputs_head_to_head_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "new_coach_p14",
+      "family": "سرمربی",
+      "phase": 14,
+      "title": "جهش با سرمربی تازه، روی انبار بلندتر",
+      "technical": "input new_coach (unchanged)",
+      "kind": "input",
+      "why": "ترکیب‌های گذشتهٔ بیشتر، تغییر سرمربی بیشتری می‌دهد.",
+      "data": "انبار آزمایشگاه با رونوشتی از ستون‌های سرمربی؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "insufficient",
+          "matches": 0,
+          "matches_total": 5689,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: هیچ تغییر سرمربی خوانده نشد."
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 654,
+          "matches_total": 1453,
+          "difference": 0.00257,
+          "low": -0.00314,
+          "high": 0.00799,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 3,
+          "divisions": 6,
+          "worse_in": [
+            "CZ1",
+            "HR1",
+            "SA1"
+          ],
+          "calibration_before": 0.0415,
+          "calibration_after": 0.0471,
+          "note": null
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "در لیگ‌های اصلی هیچ مسابقه‌ای خوانده نشد؛ روی سوابق خود ما بدتر بود.",
+      "decisions": [
+        "D-303",
+        "D-329"
+      ],
+      "task": "T-1651",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/dixon-coles-elo-0.7.0/inputs_new_coach_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "league_stakes_zones_p14",
+      "family": "انگیزهٔ جدول لیگ",
+      "phase": 14,
+      "title": "انگیزهٔ جدول با منطقه‌ها، روی انبار بلندتر",
+      "technical": "input league_stakes_zones (unchanged)",
+      "kind": "input",
+      "why": "منطقه‌های جدول تا فصل ۲۰۲۰/۲۱ شاید نمونه را بزرگ‌تر کند.",
+      "data": "انبار آزمایشگاه با رونوشتی از کاتالوگ رقابت‌ها؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "insufficient",
+          "matches": 232,
+          "matches_total": 5689,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: ۲۳۲ مسابقه از ۵٬۶۸۹."
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "insufficient",
+          "matches": 21,
+          "matches_total": 1453,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: ۲۱ مسابقه از ۱٬۴۵۳."
+        }
+      ],
+      "verdict": "insufficient",
+      "reason": "۲۳۲ مسابقه؛ ۳۰۰ لازم است.",
+      "decisions": [
+        "D-303",
+        "D-329"
+      ],
+      "task": "T-1651",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/dixon-coles-elo-0.7.0/inputs_league_stakes_zones_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "second_leg_p14",
+      "family": "بازی برگشت",
+      "phase": 14,
+      "title": "بازی برگشت، روی انبار بلندتر",
+      "technical": "input second_leg (unchanged)",
+      "kind": "input",
+      "why": "نزدیک‌ترین ورودی فاز ۱۱ به قبولی بود و حالا دیدارهای جامی بیشتری ذخیره شده است.",
+      "data": "انبار آزمایشگاه با رونوشتی از کاتالوگ رقابت‌ها؛ مسابقه‌های میان‌لیگی؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": "مسابقه‌های میان‌لیگی",
+          "result": "insufficient",
+          "matches": 289,
+          "matches_total": 3696,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": 1.0161,
+          "tested_log_loss": 1.0259,
+          "worse_divisions": 1,
+          "divisions": 1,
+          "worse_in": [
+            "XL"
+          ],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی (۲۸۹ مسابقه، کمتر از ۳۰۰) و بدتر. اختلاف و بازهٔ ۹۵٪ در منبع نیامده است."
+        }
+      ],
+      "verdict": "insufficient",
+      "reason": "۲۸۹ مسابقه از ۳۰۰ مسابقهٔ لازم، و بدتر هم بود (log loss از ۱٫۰۱۶۱ به ۱٫۰۲۵۹).",
+      "decisions": [
+        "D-303",
+        "D-329"
+      ],
+      "task": "T-1651",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/dixon-coles-elo-0.7.0/inputs_second_leg_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "null_control_p14",
+      "family": "کنترل پوچ",
+      "phase": 14,
+      "title": "کنترل پوچ، فاز ۱۴",
+      "technical": "--input null",
+      "kind": "control",
+      "why": "کنترل باید رد شود.",
+      "data": "انبار آزمایشگاه روی سرور (رونوشت انبار آموزش، با یازده لیگ اصلی football-data از فصل ۲۰۲۰/۲۱)؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 5689,
+          "matches_total": 5689,
+          "difference": 0.00018,
+          "low": -0.00033,
+          "high": 0.00069,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 12,
+          "divisions": 17,
+          "worse_in": [
+            "E0",
+            "E1",
+            "D1",
+            "F1",
+            "N1",
+            "P1",
+            "B1",
+            "SC0",
+            "G1",
+            "CH1",
+            "DK1",
+            "AR1"
+          ],
+          "calibration_before": 0.0142,
+          "calibration_after": 0.0135,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 1453,
+          "matches_total": 1453,
+          "difference": 0.00093,
+          "low": -0.00075,
+          "high": 0.0027,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 4,
+          "divisions": 6,
+          "worse_in": [
+            "HR1",
+            "RS1",
+            "SA1",
+            "AE1"
+          ],
+          "calibration_before": 0.0231,
+          "calibration_after": 0.022,
+          "note": null
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "رد شد، همان‌طور که باید: ابزار آزمون نوفه را قبول نمی‌کند.",
+      "decisions": [
+        "D-139",
+        "D-329"
+      ],
+      "task": "T-1651",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/dixon-coles-elo-0.7.0/inputs_null_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "xg_form",
+      "family": "فرم بر پایهٔ xG",
+      "phase": 14,
+      "title": "فرم بر پایهٔ xG (xG منهای گل، زده و خورده)",
+      "technical": "input xg_form",
+      "kind": "input",
+      "why": "نتیجه‌هایی که از موقعیت‌ها جلو می‌زنند برمی‌گردند؛ برازشی که فقط گل را می‌بیند شانس را قدرت حساب می‌کند.",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۲ لیگ (همان ۲۳ لیگ بدون لیگ ایران).",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 3744,
+          "matches_total": 5689,
+          "difference": -0.00317,
+          "low": -0.00521,
+          "high": -0.00104,
+          "reference_log_loss": 1.0262,
+          "tested_log_loss": 1.023,
+          "worse_divisions": 6,
+          "divisions": 15,
+          "worse_in": [
+            "I1",
+            "F1",
+            "N1",
+            "CH1",
+            "DK1",
+            "AR1"
+          ],
+          "calibration_before": 0.0233,
+          "calibration_after": 0.0214,
+          "note": "کل بازهٔ ۹۵٪ زیر صفر است، ولی در ۶ لیگ از ۱۵ بدتر بود."
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 441,
+          "matches_total": 1212,
+          "difference": 0.00119,
+          "low": -0.00262,
+          "high": 0.00495,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 1,
+          "divisions": 2,
+          "worse_in": [
+            "CZ1"
+          ],
+          "calibration_before": 0.032,
+          "calibration_after": 0.0323,
+          "note": null
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "روی لیگ‌های football-data به‌طور معنادار بهتر بود، ولی در ۶ لیگ از ۱۵ بدتر شد (معیار تا یک‌سوم را می‌پذیرد)؛ روی سوابق خود ما بهتر نبود. تنها نشانه‌ای که ارزش نگاه دوباره دارد: یک آزمون رو به جلو برایش زمان‌بندی شده است (D-334).",
+      "decisions": [
+        "D-312",
+        "D-329",
+        "D-334"
+      ],
+      "task": "T-1652",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/inputs_xg_form_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "regulars_missing",
+      "family": "ترکیب تیم‌ها",
+      "phase": 14,
+      "title": "غیبت بازیکنان همیشگی در ترکیب (شاخص چرخش)",
+      "technical": "input regulars_missing",
+      "kind": "input",
+      "why": "قدرت ترکیب چرخش را نمی‌دید و میان لیگ‌ها هم‌سنگ نشده بود؛ سهم دقیقه‌های همیشگی که در ترکیب امروز نیست، چرخش و غیبت را یکسان می‌بیند.",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 3260,
+          "matches_total": 5689,
+          "difference": 0.00167,
+          "low": -0.00116,
+          "high": 0.00454,
+          "reference_log_loss": 1.0186,
+          "tested_log_loss": 1.0203,
+          "worse_divisions": 10,
+          "divisions": 17,
+          "worse_in": [
+            "E1",
+            "SP1",
+            "I1",
+            "N1",
+            "B1",
+            "SC0",
+            "G1",
+            "CH1",
+            "DK1",
+            "BR1"
+          ],
+          "calibration_before": 0.021,
+          "calibration_after": 0.0244,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 435,
+          "matches_total": 1453,
+          "difference": 0.00487,
+          "low": -0.00582,
+          "high": 0.01605,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 3,
+          "divisions": 4,
+          "worse_in": [
+            "HR1",
+            "RS1",
+            "SA1"
+          ],
+          "calibration_before": 0.0591,
+          "calibration_after": 0.0688,
+          "note": null
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "در هر دو گروه بدتر بود و در ۱۰ لیگ از ۱۷ لیگ football-data بدتر شد.",
+      "decisions": [
+        "D-313",
+        "D-329"
+      ],
+      "task": "T-1655",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/inputs_regulars_missing_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "rest_next",
+      "family": "استراحت و فشردگی برنامه",
+      "phase": 14,
+      "title": "استراحت به‌همراه بازی بعدی (بازی اروپایی یا جام در چهار روز آینده)",
+      "technical": "input rest_next",
+      "kind": "input",
+      "why": "تیم پیش از بازی اروپایی بازیکنانش را می‌چرخاند.",
+      "data": "رونوشت محلی انبار آزمایشگاه با ده جام؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 3754,
+          "matches_total": 5689,
+          "difference": 0.00268,
+          "low": -0.00044,
+          "high": 0.00595,
+          "reference_log_loss": 1.0187,
+          "tested_log_loss": 1.0213,
+          "worse_divisions": 12,
+          "divisions": 16,
+          "worse_in": [
+            "E1",
+            "SP1",
+            "D1",
+            "F1",
+            "N1",
+            "P1",
+            "B1",
+            "T1",
+            "G1",
+            "DK1",
+            "BR1",
+            "AR1"
+          ],
+          "calibration_before": 0.0228,
+          "calibration_after": 0.0223,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 1453,
+          "matches_total": 1453,
+          "difference": 0.00619,
+          "low": 0.00055,
+          "high": 0.01312,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 4,
+          "divisions": 6,
+          "worse_in": [
+            "IR1",
+            "CZ1",
+            "SA1",
+            "AE1"
+          ],
+          "calibration_before": 0.0229,
+          "calibration_after": 0.025,
+          "note": "به‌طور معنادار بدتر: کل بازهٔ ۹۵٪ بالای صفر است."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "روی سوابق خود ما به‌طور معنادار بدتر بود و در ۱۲ لیگ از ۱۶ لیگ football-data بدتر شد.",
+      "decisions": [
+        "D-307",
+        "D-329"
+      ],
+      "task": "T-1656",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/inputs_rest_next_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "draw_calibration",
+      "family": "calibration احتمال مساوی",
+      "phase": 14,
+      "title": "تنظیم دوبارهٔ احتمال مساوی بر پایهٔ فاصلهٔ دو تیم",
+      "technical": "CalibrationInput draw_calibration",
+      "kind": "input",
+      "why": "کارنامهٔ زنده (۵۰۰ مسابقه از ۱۰ اکتبر ۲۰۲۶) نشان می‌داد مدل مساوی را جایی که فاصلهٔ دو تیم ۱۰ تا ۴۵ واحد درصد است بیش از اندازه پیش‌بینی می‌کند: در فاصلهٔ ۱۰ تا ۲۵، ۲۷٪ گفته و ۱۹٪ دیده شد.",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ ۱۱ لیگ football-data؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ تاریخچهٔ calibration از ۱ ژوئیه ۲۰۲۱.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 3783,
+          "matches_total": 3783,
+          "difference": -0.0001,
+          "low": -0.00181,
+          "high": 0.00158,
+          "reference_log_loss": 0.9866,
+          "tested_log_loss": 0.9865,
+          "worse_divisions": 5,
+          "divisions": 11,
+          "worse_in": [
+            "SP1",
+            "D1",
+            "N1",
+            "P1",
+            "SC0"
+          ],
+          "calibration_before": 0.0137,
+          "calibration_after": 0.0121,
+          "note": "فاصلهٔ گفته و دیده در نوارهای مساوی: ۰٫۸٪ پیش و ۰٫۷٪ پس."
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "not_judged",
+          "matches": null,
+          "matches_total": null,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "اجرا نشد."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "اثری نداشت: روی فصل ۲۰۲۴/۲۵ calibration مساوی‌ها از پیش درست بود (فاصلهٔ گفته و دیده ۰٫۸٪ پیش از آن و ۰٫۷٪ پس از آن) و در ۵ لیگ از ۱۱ بدتر شد. کارنامهٔ زنده از آن پس خلاف این را نشان داده است (ردیف «نشانهٔ زندهٔ calibration» را ببینید).",
+      "decisions": [
+        "D-308",
+        "D-329"
+      ],
+      "task": "T-1657",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/inputs_draw_calibration_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "late_stakes",
+      "family": "انگیزهٔ جدول لیگ",
+      "phase": 14,
+      "title": "انگیزهٔ پایان فصل (بالا، خطر، هیچ) در هشت هفتهٔ آخر",
+      "technical": "input late_stakes",
+      "kind": "input",
+      "why": "آنچه تیم برایش بازی می‌کند در پایان فصل از همیشه روشن‌تر است؛ خوانش‌های کل فصل (D-143 و D-171) آن را کم‌رنگ کرده بود.",
+      "data": "رونوشت محلی انبار آزمایشگاه با منطقه‌های D-314؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۱۰ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 694,
+          "matches_total": 3251,
+          "difference": 0.00499,
+          "low": -0.00491,
+          "high": 0.01568,
+          "reference_log_loss": 0.9778,
+          "tested_log_loss": 0.9828,
+          "worse_divisions": 6,
+          "divisions": 9,
+          "worse_in": [
+            "E0",
+            "SP1",
+            "I1",
+            "F1",
+            "N1",
+            "P1"
+          ],
+          "calibration_before": 0.0289,
+          "calibration_after": 0.0339,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "insufficient",
+          "matches": 63,
+          "matches_total": 241,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داده ناکافی: ۶۳ مسابقه از ۲۴۱."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "روی ۶۹۴ مسابقه بدتر بود و در ۶ لیگ از ۹؛ سوابق خود ما خیلی کم بود (۶۳ مسابقه).",
+      "decisions": [
+        "D-311",
+        "D-314",
+        "D-315",
+        "D-329"
+      ],
+      "task": "T-1659",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/inputs_late_stakes_2024-08-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "coach_quality",
+      "family": "سرمربی",
+      "phase": 14,
+      "title": "کیفیت سرمربی (کارنامهٔ تیم‌هایش در برابر یک خط پایه، با انقباض) و طول حضور",
+      "technical": "input coach_quality",
+      "kind": "input",
+      "why": "هم‌تیمی عملکرد و ثبات سرمربی را خواسته بود؛ ورودی «سرمربی تازه» مسابقه‌های خیلی کمی می‌خواند.",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ پنجرهٔ توسعه (فصل ۲۰۲۴/۲۵) از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰؛ ۲۳ لیگ. اجرای مسابقه‌های میان‌لیگی پس از ۲۶ ساعت متوقف شد و داوری نشد.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 3571,
+          "matches_total": 5689,
+          "difference": 0.00065,
+          "low": -0.00122,
+          "high": 0.00235,
+          "reference_log_loss": 1.0196,
+          "tested_log_loss": 1.0202,
+          "worse_divisions": 8,
+          "divisions": 17,
+          "worse_in": [
+            "E1",
+            "SP1",
+            "N1",
+            "T1",
+            "SC0",
+            "G1",
+            "US1",
+            "AR1"
+          ],
+          "calibration_before": 0.0177,
+          "calibration_after": 0.0232,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 1011,
+          "matches_total": 1453,
+          "difference": 0.00481,
+          "low": -0.00079,
+          "high": 0.01003,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 5,
+          "divisions": 6,
+          "worse_in": [
+            "CZ1",
+            "HR1",
+            "RS1",
+            "SA1",
+            "AE1"
+          ],
+          "calibration_before": 0.0256,
+          "calibration_after": 0.0317,
+          "note": null
+        },
+        {
+          "group": "cross_league",
+          "label": null,
+          "result": "not_judged",
+          "matches": null,
+          "matches_total": null,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "داوری نشد: اجرا متوقف شد."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "در هر دو گروه رد شد. با ردشدن هر دو گروه لیگ، اجرای ناتمام میان‌لیگی چیزی را که یک نامزد با خود می‌برد عوض نمی‌کرد. فاز ۱۴ بدون قبولی هیچ عاملی بسته شد.",
+      "decisions": [
+        "D-310",
+        "D-335"
+      ],
+      "task": "T-1658",
+      "decided_on": "2026-11-01",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/cq-fd/dixon-coles-elo-0.7.0/inputs_coach_quality_2024-08-01..2025-06-30.md",
+        "E:/FMIP/lab-local/reports/cq-rec/dixon-coles-elo-0.7.0/inputs_coach_quality_2024-08-01..2025-06-30.md"
+      ],
+      "missing": [
+        "بازهٔ ۹۵٪ برای calibration (تصمیم فقط مقدار نقطه‌ای را آورده است)"
+      ]
+    },
+    {
+      "key": "cross_league_elo_0_1",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "پیشین Elo در برازش میان‌لیگی، وزن ۰٫۱",
+      "technical": "cross_league.elo_weight 0.1",
+      "kind": "constants",
+      "why": "نبود پیشین Elo در برازش میان‌لیگی هر پیش‌بینی اروپایی را «محدود» می‌کند و می‌گذارد باشگاهی از لیگی که نداریم افراطی دیده شود (اسپورتینگ ۹۲٪ در برابر لاسک).",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": 0.0009,
+          "low": 0.0004,
+          "high": 0.0015,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9864,
+          "worse_divisions": 3,
+          "divisions": 4,
+          "worse_in": [
+            "uefa",
+            "domestic_cup",
+            "other"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.026,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۳ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "cross_league_elo_0_5",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "پیشین Elo در برازش میان‌لیگی، وزن ۰٫۵",
+      "technical": "cross_league.elo_weight 0.5",
+      "kind": "constants",
+      "why": "نبود پیشین Elo در برازش میان‌لیگی هر پیش‌بینی اروپایی را «محدود» می‌کند و می‌گذارد باشگاهی از لیگی که نداریم افراطی دیده شود (اسپورتینگ ۹۲٪ در برابر لاسک).",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": 0.0045,
+          "low": 0.0025,
+          "high": 0.0065,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9899,
+          "worse_divisions": 3,
+          "divisions": 4,
+          "worse_in": [
+            "uefa",
+            "domestic_cup",
+            "other"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.0261,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۳ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "cross_league_elo_2",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "پیشین Elo در برازش میان‌لیگی، وزن ۲",
+      "technical": "cross_league.elo_weight 2",
+      "kind": "constants",
+      "why": "نبود پیشین Elo در برازش میان‌لیگی هر پیش‌بینی اروپایی را «محدود» می‌کند و می‌گذارد باشگاهی از لیگی که نداریم افراطی دیده شود (اسپورتینگ ۹۲٪ در برابر لاسک).",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": 0.0117,
+          "low": 0.0077,
+          "high": 0.0158,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9971,
+          "worse_divisions": 3,
+          "divisions": 4,
+          "worse_in": [
+            "uefa",
+            "domestic_cup",
+            "other"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.0257,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۳ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "cross_league_home_3",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "برتری میزبانی جدا برای هر گروه رقابت، انقباض ۳",
+      "technical": "cross_league.home_by_competition 3",
+      "kind": "constants",
+      "why": "یک برتری میزبانی مشترک شاید برای دیدارهای یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی و بقیه یکسان درست نباشد.",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": -0.0002,
+          "low": -0.0008,
+          "high": 0.0004,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9852,
+          "worse_divisions": 2,
+          "divisions": 4,
+          "worse_in": [
+            "uefa",
+            "other"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.0279,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۲ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "cross_league_home_30",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "برتری میزبانی جدا برای هر گروه رقابت، انقباض ۳۰",
+      "technical": "cross_league.home_by_competition 30",
+      "kind": "constants",
+      "why": "یک برتری میزبانی مشترک شاید برای دیدارهای یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی و بقیه یکسان درست نباشد.",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": -0.0002,
+          "low": -0.0008,
+          "high": 0.0004,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9852,
+          "worse_divisions": 2,
+          "divisions": 4,
+          "worse_in": [
+            "uefa",
+            "other"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.0278,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۲ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "cross_league_home_300",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "برتری میزبانی جدا برای هر گروه رقابت، انقباض ۳۰۰",
+      "technical": "cross_league.home_by_competition 300",
+      "kind": "constants",
+      "why": "یک برتری میزبانی مشترک شاید برای دیدارهای یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی و بقیه یکسان درست نباشد.",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": -0.0002,
+          "low": -0.0007,
+          "high": 0.0002,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9852,
+          "worse_divisions": 2,
+          "divisions": 4,
+          "worse_in": [
+            "uefa",
+            "other"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.0283,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۲ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "cross_league_xi_0_00025",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "نیمه‌عمر ۷٫۶ سال برای برازش میان‌لیگی (ثابت فراموشی ۰٫۰۰۰۲۵)",
+      "technical": "cross_league.xi 0.00025",
+      "kind": "constants",
+      "why": "نیمه‌عمر ۳٫۸ سالهٔ برازش میان‌لیگی شاید باشگاه رو به رشد را دیر ببیند (کومو در برابر منچستر یونایتد).",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": -0.0003,
+          "low": -0.0009,
+          "high": 0.0005,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9851,
+          "worse_divisions": 2,
+          "divisions": 4,
+          "worse_in": [
+            "uefa",
+            "continental"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.0277,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۲ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1653، T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "cross_league_xi_0_001",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "نیمه‌عمر ۱٫۹ سال برای برازش میان‌لیگی (ثابت فراموشی ۰٫۰۰۱)",
+      "technical": "cross_league.xi 0.001",
+      "kind": "constants",
+      "why": "نیمه‌عمر ۳٫۸ سالهٔ برازش میان‌لیگی شاید باشگاه رو به رشد را دیر ببیند (کومو در برابر منچستر یونایتد).",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": 0.0014,
+          "low": 0.0001,
+          "high": 0.0025,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9868,
+          "worse_divisions": 2,
+          "divisions": 4,
+          "worse_in": [
+            "domestic_cup",
+            "other"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.0258,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۲ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1653، T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "cross_league_xi_0_002",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "نیمه‌عمر ۰٫۹۵ سال برای برازش میان‌لیگی (ثابت فراموشی ۰٫۰۰۲)",
+      "technical": "cross_league.xi 0.002",
+      "kind": "constants",
+      "why": "نیمه‌عمر ۳٫۸ سالهٔ برازش میان‌لیگی شاید باشگاه رو به رشد را دیر ببیند (کومو در برابر منچستر یونایتد).",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": 0.0057,
+          "low": 0.0024,
+          "high": 0.0086,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9911,
+          "worse_divisions": 2,
+          "divisions": 4,
+          "worse_in": [
+            "domestic_cup",
+            "other"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.0286,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۲ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1653، T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "cross_league_xi_0_004",
+      "family": "گزینه‌های برازش میان‌لیگی",
+      "phase": 14,
+      "title": "نیمه‌عمر ۱۷۳ روز برای برازش میان‌لیگی (ثابت فراموشی ۰٫۰۰۴)",
+      "technical": "cross_league.xi 0.004",
+      "kind": "constants",
+      "why": "نیمه‌عمر ۳٫۸ سالهٔ برازش میان‌لیگی شاید باشگاه رو به رشد را دیر ببیند (کومو در برابر منچستر یونایتد).",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ مسابقه‌های میان‌لیگی از ۱ ژوئیه ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچهٔ ۱٬۱۰۰روزه؛ به‌جای لیگ، چهار گروه رقابت.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "cross_league",
+          "label": "چهار گروه رقابت: یوفا، دیگر جام‌های قاره‌ای، جام‌های داخلی، بقیه",
+          "result": "failed",
+          "matches": 3952,
+          "matches_total": 4197,
+          "difference": 0.0144,
+          "low": 0.0089,
+          "high": 0.0196,
+          "reference_log_loss": 0.9854,
+          "tested_log_loss": 0.9998,
+          "worse_divisions": 3,
+          "divisions": 4,
+          "worse_in": [
+            "uefa",
+            "domestic_cup",
+            "other"
+          ],
+          "calibration_before": 0.0266,
+          "calibration_after": 0.0324,
+          "note": "شمار «بدتر» اینجا گروه رقابت است، نه لیگ: در ۳ گروه از ۴ بدتر بود."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "از برازش کنونی بهتر نبود: کل بازهٔ ۹۵٪ زیر صفر نیست و دست‌کم در نیمی از چهار گروه رقابت بدتر بود.",
+      "decisions": [
+        "D-309",
+        "D-329"
+      ],
+      "task": "T-1653، T-1654",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/cross_league_variants_2024-07-01..2025-06-30.md"
+      ],
+      "missing": []
+    },
+    {
+      "key": "decay_per_division_t1653_fd",
+      "family": "فراموشی زمانی و انقباض برای هر لیگ",
+      "phase": 14,
+      "title": "فراموشی زمانی و انقباض برای پنج لیگ تنظیم‌نشدهٔ football-data",
+      "technical": "backtest.tune grid xi 0.0005/0.001/0.002/0.004/0.0065 x ridge 0.03/0.3/3",
+      "kind": "constants",
+      "why": "این لیگ‌ها هنوز با حافظهٔ پیش‌فرض ۱۰۷روزه و انقباض ۰٫۰۱ برازش می‌شدند.",
+      "data": "رونوشت محلی انبار آزمایشگاه؛ ۵ لیگ: چمپیونشیپ، یونان، سوئیس، آمریکا و برزیل؛ انتخاب روی فصل ۲۰۲۳/۲۴ و تأیید روی پنجرهٔ توسعه از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": "پنجرهٔ توسعه، هر لیگ جدا روی فصل آزمون",
+          "result": "passed",
+          "matches": null,
+          "matches_total": null,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 0,
+          "divisions": 5,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "در ۵ لیگ از ۵ لیگ پذیرفته شد. log loss با ثابت‌های پایه (0.7.0) و با ثابت‌های تنظیم‌شده: چمپیونشیپ از ۱٫۰۳۷۸ به ۱٫۰۲۳۸ (۵۵۱ مسابقه)؛ یونان از ۱٫۰۰۵۲ به ۰٫۹۹۴۴ (۲۳۲ مسابقه)؛ سوئیس از ۱٫۰۵۹۶ به ۱٫۰۴۶۱ (۲۱۵ مسابقه)؛ آمریکا از ۱٫۰۶۰۷ به ۱٫۰۵۶۴ (۴۵۱ مسابقه)؛ برزیل از ۱٫۰۳۳۳ به ۱٫۰۲۴۹ (۳۰۷ مسابقه)."
+        },
+        {
+          "group": "football_data",
+          "label": "فصل کنارگذاشته، درون نسخهٔ 0.8.0",
+          "result": "failed",
+          "matches": 2572,
+          "matches_total": 3819,
+          "difference": -0.0013,
+          "low": -0.00673,
+          "high": 0.00468,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 2,
+          "divisions": 5,
+          "worse_in": [
+            "E1",
+            "CH1"
+          ],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": null
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "روی پنجرهٔ توسعه برای هر پنج لیگ پذیرفته شد. ولی تنها نسخه‌ای که این ثابت‌ها را داشت، 0.8.0، در تنها اجرای فصل کنارگذاشته رد شد (در چمپیونشیپ و لیگ سوئیس بدتر بود) و هرگز به کار نرفت. حافظهٔ بلند، برنلی را پس از صعود همچنان قوی نگه داشت؛ دلیل بدترشدن چمپیونشیپ همین بود. فهرست آزمون‌های داشبورد این ردیف را «پذیرفته» نوشته و ردشدن 0.8.0 را نگفته است.",
+      "decisions": [
+        "D-329"
+      ],
+      "task": "T-1653",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/lab-local/reports/tune-fd/tuning_2024-08-01..2025-06-30_xi0.0005-0.0065.json",
+        "fmip-prod:~/fmip-lab/reports/holdout/dixon-coles-elo-0.8.0/compare_2025-07-01..2026-10-31.md"
+      ],
+      "missing": [
+        "بازهٔ ۹۵٪ جفتی برای هر لیگ روی فصل توسعه (ابزار تنظیم فقط log loss نقطه‌ای می‌دهد)"
+      ]
+    },
+    {
+      "key": "decay_per_division_t1653_records",
+      "family": "فراموشی زمانی و انقباض برای هر لیگ",
+      "phase": 14,
+      "title": "فراموشی زمانی و انقباض برای پنج لیگ تنظیم‌نشدهٔ سوابق خود ما",
+      "technical": "backtest.tune, same grid",
+      "kind": "constants",
+      "why": "همان فرض ردیف football-data، برای لیگ‌هایی که از سوابق خود ما خوانده می‌شوند.",
+      "data": "انبار آزمایشگاه روی سرور؛ ۵ لیگ: چک، کرواسی، صربستان، عربستان و امارات؛ انتخاب روی فصل ۲۰۲۳/۲۴ و تأیید روی پنجرهٔ توسعه از ۱ اوت ۲۰۲۴ تا ۳۰ ژوئن ۲۰۲۵؛ تاریخچه از ۱ ژوئیه ۲۰۲۰.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": "پنجرهٔ توسعه، هر لیگ جدا روی فصل آزمون",
+          "result": "passed",
+          "matches": null,
+          "matches_total": null,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": 1,
+          "divisions": 5,
+          "worse_in": [
+            "CZ1"
+          ],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "در ۴ لیگ از ۵ لیگ پذیرفته شد؛ لیگ چک پذیرفته نشد. log loss با ثابت‌های پایه (0.7.0) و با ثابت‌های تنظیم‌شده: چک از ۰٫۹۰۵۴ به ۰٫۹۲۲۱ (۲۶۳ مسابقه)؛ کرواسی از ۱٫۰۴۵۶ به ۱٫۰۳۶۸ (۱۸۰ مسابقه)؛ صربستان از ۱٫۰۱۱۹ به ۰٫۹۹۶۹ (۲۸۶ مسابقه)؛ عربستان از ۰٫۹۶۸۸ به ۰٫۹۵۹۱ (۳۰۳ مسابقه)؛ امارات از ۰٫۹۷۸۴ به ۰٫۹۶۳۳ (۱۸۰ مسابقه)."
+        },
+        {
+          "group": "our_records",
+          "label": "فصل کنارگذاشته، درون نسخهٔ 0.8.0",
+          "result": "failed",
+          "matches": 1247,
+          "matches_total": 3819,
+          "difference": -0.00468,
+          "low": -0.01215,
+          "high": 0.00262,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": 4,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "رد شد: بازهٔ ۹۵٪ صفر را در بر می‌گیرد."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "روی پنجرهٔ توسعه برای چهار لیگ پذیرفته شد (لیگ چک پذیرفته نشد). ولی تنها نسخه‌ای که این ثابت‌ها را داشت، 0.8.0، در فصل کنارگذاشته رد شد و هرگز به کار نرفت. نگه‌داشتن فقط لیگ‌هایی که در فصل کنارگذاشته بهتر شدند یعنی انتخاب روی خود فصل کنارگذاشته (D-303). فهرست آزمون‌های داشبورد این ردیف را «پذیرفته» نوشته و ردشدن 0.8.0 را نگفته است.",
+      "decisions": [
+        "D-329"
+      ],
+      "task": "T-1653",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/phase-c/tune-records/tuning_2024-08-01..2025-06-30_xi0.0005-0.0065.json",
+        "fmip-prod:~/fmip-lab/reports/holdout/dixon-coles-elo-0.8.0/compare_2025-07-01..2026-10-31.md"
+      ],
+      "missing": [
+        "شمارهٔ خط‌های فایل گزارش سرور (از راه دور خوانده شد و روی این رایانه ذخیره نشد)"
+      ]
+    },
+    {
+      "key": "version_0_8_0",
+      "family": "نسخه‌های نامزد",
+      "phase": 14,
+      "title": "نسخهٔ نامزد 0.8.0 (همان 0.7.0 به‌اضافهٔ نه جفت ثابت T-1653)",
+      "technical": "fmip-prod:~/fmip-lab/cand/dixon-coles-elo-0.8.0.json (never committed)",
+      "kind": "version",
+      "why": "وقتی هیچ ورودی قبول نشد، شاید نه نیمه‌عمر تنظیم‌شده به‌تنهایی پیش‌بینی را بهتر کند.",
+      "data": "انبار آموزش روی سرور (همان که یک نامزد می‌خواند)، یک بار اجرا روی سرور؛ فصل کنارگذاشته از ۱ ژوئیه ۲۰۲۵ تا ۳۱ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ ۹ لیگ.",
+      "against": "dixon-coles-elo@0.7.0",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 2572,
+          "matches_total": 3819,
+          "difference": -0.0013,
+          "low": -0.00673,
+          "high": 0.00468,
+          "reference_log_loss": 1.035,
+          "tested_log_loss": 1.0337,
+          "worse_divisions": 2,
+          "divisions": 5,
+          "worse_in": [
+            "E1",
+            "CH1"
+          ],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": null
+        },
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 1247,
+          "matches_total": 3819,
+          "difference": -0.00468,
+          "low": -0.01215,
+          "high": 0.00262,
+          "reference_log_loss": 0.9565,
+          "tested_log_loss": 0.9518,
+          "worse_divisions": 1,
+          "divisions": 4,
+          "worse_in": [
+            "RS1"
+          ],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": null
+        },
+        {
+          "group": "all",
+          "label": "هر نه لیگ با هم (فقط توصیفی)",
+          "result": "not_judged",
+          "matches": 3819,
+          "matches_total": 3819,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": 1.0094,
+          "tested_log_loss": 1.007,
+          "worse_divisions": null,
+          "divisions": 9,
+          "worse_in": [],
+          "calibration_before": 0.0249,
+          "calibration_after": 0.0174,
+          "note": "داوری نمی‌شود؛ فقط توصیف است. Brier از ۰٫۶۰۴۲ به ۰٫۶۰۲۳ رسید و بالاترین احتمال مساوی از ۵۹٫۵٪ به ۴۵٫۷٪."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "به‌طور میانگین بهتر بود و calibration بهتری داشت، ولی معیار D-139 را نگذراند: هر دو بازهٔ ۹۵٪ صفر را در بر می‌گیرند و در چمپیونشیپ و لیگ سوئیس بدتر بود (دو لیگ از پنج). وارد shadow نمی‌شود، فایلش ثبت نمی‌شود و روی همین فصل کنارگذاشته بار دومی در کار نیست.",
+      "decisions": [
+        "D-303",
+        "D-329"
+      ],
+      "task": "T-1660",
+      "decided_on": "2026-10-31",
+      "due_on": null,
+      "reports": [
+        "fmip-prod:~/fmip-lab/reports/holdout/dixon-coles-elo-0.8.0/compare_2025-07-01..2026-10-31.md"
+      ],
+      "missing": [
+        "مقایسهٔ دوم و دیرتری هم هست (۳٬۸۳۶ مسابقه)؛ D-329 اولی را ثبت کرده است"
+      ]
+    },
+    {
+      "key": "new_division_ae1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ امارات",
+      "technical": "division AE1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: سوابق خود ما؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "passed",
+          "matches": 222,
+          "matches_total": 222,
+          "difference": -0.127,
+          "low": -0.1963,
+          "high": -0.056,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 0.9716,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.05,
+          "note": "Brier ۰٫۵۷۸۳ و دقت ۵۲٫۷٪. log loss بازار برای این لیگ در گزارش نیست. با ثابت‌های پیش‌فرض نسخهٔ 0.6.0 سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_ar1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ آرژانتین",
+      "technical": "division AR1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: فایل افزودهٔ football-data؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 701,
+          "matches_total": 701,
+          "difference": -0.0295,
+          "low": -0.0553,
+          "high": -0.0039,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0691,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0358,
+          "note": "Brier ۰٫۶۴۴۸ و دقت ۴۲٫۴٪. log loss بازار روی همین مسابقه‌ها ۱٫۰۵۹۸؛ بازار فقط برای مقایسه است، نه معیار. با جفت ثابت تنظیم‌شدهٔ خودش سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_at1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ اتریش",
+      "technical": "division AT1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: فایل افزودهٔ football-data؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 246,
+          "matches_total": 246,
+          "difference": -0.0379,
+          "low": -0.0815,
+          "high": 0.0034,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0607,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0519,
+          "note": "Brier ۰٫۶۳۹۴ و دقت ۴۵٫۱٪. log loss بازار روی همین مسابقه‌ها ۱٫۰۳۱۵؛ بازار فقط برای مقایسه است، نه معیار. با جفت ثابت تنظیم‌شدهٔ خودش سنجیده شد."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "در برآورد نقطه‌ای از حدس یک‌سوم بهتر بود، ولی این ثابت نشد (بازهٔ ۹۵٪ از صفر بالاتر می‌رود)، حتی با جفت ثابت تنظیم‌شدهٔ خودش. داده‌اش بار شده، ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌دهد تا وقتی آزمون گذشته‌نگر بعدی قبول شود.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_br1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ برزیل",
+      "technical": "division BR1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: فایل افزودهٔ football-data؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 572,
+          "matches_total": 572,
+          "difference": -0.089,
+          "low": -0.1259,
+          "high": -0.0525,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0096,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0398,
+          "note": "Brier ۰٫۶۰۶۰ و دقت ۵۰٫۹٪. log loss بازار روی همین مسابقه‌ها ۰٫۹۹۱۳؛ بازار فقط برای مقایسه است، نه معیار. با ثابت‌های پیش‌فرض نسخهٔ 0.6.0 سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_ch1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ سوئیس",
+      "technical": "division CH1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: فایل افزودهٔ football-data؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 288,
+          "matches_total": 288,
+          "difference": -0.066,
+          "low": -0.1195,
+          "high": -0.0123,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0327,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0526,
+          "note": "Brier ۰٫۶۱۹۴ و دقت ۴۷٫۹٪. log loss بازار روی همین مسابقه‌ها ۱٫۰۱۱۳؛ بازار فقط برای مقایسه است، نه معیار. با ثابت‌های پیش‌فرض نسخهٔ 0.6.0 سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_cz1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ چک",
+      "technical": "division CZ1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: سوابق خود ما؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "passed",
+          "matches": 365,
+          "matches_total": 365,
+          "difference": -0.0876,
+          "low": -0.1344,
+          "high": -0.0379,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.011,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0468,
+          "note": "Brier ۰٫۶۰۵۲ و دقت ۵۰٫۷٪. log loss بازار برای این لیگ در گزارش نیست. با ثابت‌های پیش‌فرض نسخهٔ 0.6.0 سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_dk1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ دانمارک",
+      "technical": "division DK1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: فایل افزودهٔ football-data؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 257,
+          "matches_total": 257,
+          "difference": -0.0591,
+          "low": -0.1032,
+          "high": -0.0123,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0395,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.035,
+          "note": "Brier ۰٫۶۲۵۰ و دقت ۴۹٫۸٪. log loss بازار روی همین مسابقه‌ها ۱٫۰۱۷۱؛ بازار فقط برای مقایسه است، نه معیار. با جفت ثابت تنظیم‌شدهٔ خودش سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_g1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ یونان",
+      "technical": "division G1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: فایل اصلی football-data؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 282,
+          "matches_total": 282,
+          "difference": -0.1339,
+          "low": -0.1907,
+          "high": -0.0735,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 0.9647,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0475,
+          "note": "Brier ۰٫۵۷۳۸ و دقت ۵۲٫۱٪. log loss بازار روی همین مسابقه‌ها ۰٫۹۴۳۵؛ بازار فقط برای مقایسه است، نه معیار. با ثابت‌های پیش‌فرض نسخهٔ 0.6.0 سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_hr1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ کرواسی",
+      "technical": "division HR1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: سوابق خود ما؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "passed",
+          "matches": 228,
+          "matches_total": 228,
+          "difference": -0.1006,
+          "low": -0.1642,
+          "high": -0.0385,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 0.998,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0611,
+          "note": "Brier ۰٫۵۹۱۴ و دقت ۵۲٫۲٪. log loss بازار برای این لیگ در گزارش نیست. با ثابت‌های پیش‌فرض نسخهٔ 0.6.0 سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_pl1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ لهستان",
+      "technical": "division PL1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: فایل افزودهٔ football-data؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "failed",
+          "matches": 401,
+          "matches_total": 401,
+          "difference": -0.0234,
+          "low": -0.0605,
+          "high": 0.0129,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0752,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0462,
+          "note": "Brier ۰٫۶۴۷۱ و دقت ۴۴٫۱٪. log loss بازار روی همین مسابقه‌ها ۱٫۰۵۲۱؛ بازار فقط برای مقایسه است، نه معیار. با جفت ثابت تنظیم‌شدهٔ خودش سنجیده شد."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "در برآورد نقطه‌ای از حدس یک‌سوم بهتر بود، ولی این ثابت نشد (بازهٔ ۹۵٪ از صفر بالاتر می‌رود)، حتی با جفت ثابت تنظیم‌شدهٔ خودش. داده‌اش بار شده، ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌دهد تا وقتی آزمون گذشته‌نگر بعدی قبول شود.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_qa1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ قطر",
+      "technical": "division QA1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: سوابق خود ما؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "failed",
+          "matches": 167,
+          "matches_total": 167,
+          "difference": -0.0718,
+          "low": -0.1529,
+          "high": 0.0133,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0268,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0666,
+          "note": "Brier ۰٫۶۰۹۷ و دقت ۵۰٫۳٪. log loss بازار برای این لیگ در گزارش نیست. با جفت ثابت تنظیم‌شدهٔ خودش سنجیده شد."
+        }
+      ],
+      "verdict": "rejected",
+      "reason": "در برآورد نقطه‌ای از حدس یک‌سوم بهتر بود، ولی این ثابت نشد (بازهٔ ۹۵٪ از صفر بالاتر می‌رود)، حتی با جفت ثابت تنظیم‌شدهٔ خودش. داده‌اش بار شده، ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌دهد تا وقتی آزمون گذشته‌نگر بعدی قبول شود.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_rs1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ صربستان",
+      "technical": "division RS1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: سوابق خود ما؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "passed",
+          "matches": 377,
+          "matches_total": 377,
+          "difference": -0.1332,
+          "low": -0.1806,
+          "high": -0.0846,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 0.9654,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0561,
+          "note": "Brier ۰٫۵۷۴۴ و دقت ۵۳٫۸٪. log loss بازار برای این لیگ در گزارش نیست. با ثابت‌های پیش‌فرض نسخهٔ 0.6.0 سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_sa1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ عربستان",
+      "technical": "division SA1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: سوابق خود ما؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "our_records",
+          "label": null,
+          "result": "passed",
+          "matches": 388,
+          "matches_total": 388,
+          "difference": -0.185,
+          "low": -0.2388,
+          "high": -0.1345,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 0.9136,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0556,
+          "note": "Brier ۰٫۵۴۰۲ و دقت ۵۶٫۷٪. log loss بازار برای این لیگ در گزارش نیست. با ثابت‌های پیش‌فرض نسخهٔ 0.6.0 سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "new_division_us1",
+      "family": "لیگ‌های تازه",
+      "phase": 12,
+      "title": "لیگ تازه: لیگ آمریکا (ام‌ال‌اس)",
+      "technical": "division US1 in 0.7.0's `divisions`",
+      "kind": "input",
+      "why": "سایت این لیگ را دنبال می‌کند ولی هیچ نسخه‌ای برایش پیش‌بینی نمی‌داد؛ شاید همان مدل آن را بهتر از شانس پیش‌بینی کند.",
+      "data": "رونوشت آفلاین انبار آموزش سرور (خوانده‌شده در ۲۱ اکتبر ۲۰۲۶) به‌همراه بارگذاری‌های D-233؛ منبع مسابقه‌های این لیگ: فایل افزودهٔ football-data؛ از ۱ ژوئیه ۲۰۲۵ تا ۲۰ اکتبر ۲۰۲۶؛ تاریخچه از ۱ ژوئیه ۲۰۲۲؛ یک لیگ.",
+      "against": "حدس یک‌سوم",
+      "groups": [
+        {
+          "group": "football_data",
+          "label": null,
+          "result": "passed",
+          "matches": 699,
+          "matches_total": 699,
+          "difference": -0.051,
+          "low": -0.0845,
+          "high": -0.0182,
+          "reference_log_loss": 1.0986,
+          "tested_log_loss": 1.0477,
+          "worse_divisions": null,
+          "divisions": 1,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": 0.0432,
+          "note": "Brier ۰٫۶۲۸۵ و دقت ۴۹٫۸٪. log loss بازار روی همین مسابقه‌ها ۱٫۰۱۹۷؛ بازار فقط برای مقایسه است، نه معیار. با ثابت‌های پیش‌فرض نسخهٔ 0.6.0 سنجیده شد."
+        }
+      ],
+      "verdict": "adopted",
+      "reason": "معیار D-233 را گذراند: log loss زیر حدس یک‌سوم با کل بازهٔ ۹۵٪ زیر صفر، روی دست‌کم ۱۵۰ مسابقه. در نسخهٔ 0.7.0 است که هنوز در shadow است؛ پس هنوز روی سایت نیست.",
+      "decisions": [
+        "D-233"
+      ],
+      "task": "T-1442",
+      "decided_on": "2026-10-21",
+      "due_on": null,
+      "reports": [
+        "apps/model/reports/dixon-coles-elo-0.7.0/new_divisions_2025-07-01..2026-10-20.md",
+        "apps/model/reports/dixon-coles-elo-0.7.0/tune_2024-07-01..2025-06-30.json"
+      ],
+      "missing": [
+        "calibration یک مرجع (فقط خطای calibration خود مدل گزارش شده است)"
+      ]
+    },
+    {
+      "key": "version_0_7_0_shadow",
+      "family": "نسخه‌های نامزد",
+      "phase": 12,
+      "title": "نسخهٔ نامزد 0.7.0 در shadow (همان 0.6.0 به‌اضافهٔ یازده لیگ)",
+      "technical": "candidates/dixon-coles-elo-0.7.0.json",
+      "kind": "version",
+      "why": "در لیگ‌های مشترک همان پیش‌بینی‌های 0.6.0 را می‌دهد و برای یازده لیگی که سایت «بدون پیش‌بینی» نشان می‌دهد پیش‌بینی می‌آورد.",
+      "data": "ارزیابی‌های پیش از بازی روی سرور؛ کارنامهٔ shadow از ۲۱ اکتبر ۲۰۲۶؛ آغاز تاریخچه در منبع ثبت نشده است؛ ۲۴ لیگ در فهرست نسخه.",
+      "against": "dixon-coles-elo@0.6.0",
+      "groups": [
+        {
+          "group": "all",
+          "label": "شرط الف (بدتر نبودن): جفت با نسخهٔ 0.6.0",
+          "result": "not_judged",
+          "matches": 254,
+          "matches_total": 300,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "فقط شمارش: ۲۵۴ مسابقهٔ جفت از ۳۰۰ مسابقهٔ لازم، در پایش ۲ نوامبر ۲۰۲۶. ۹۷٫۲٪ یکسان بود. پیش از رسیدن شمارش به حد، نه اختلاف نشان داده می‌شود و نه بازه."
+        },
+        {
+          "group": "all",
+          "label": "شرط ب (بهتر از شانس): کارنامهٔ خود لیگ‌های تازه",
+          "result": "not_judged",
+          "matches": 72,
+          "matches_total": 100,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "فقط شمارش: ۷۲ مسابقه از ۱۰۰ مسابقهٔ لازم، در پایش ۲ نوامبر ۲۰۲۶. سنجه حدس یک‌سوم است."
+        }
+      ],
+      "verdict": "running",
+      "reason": "هر شرط D-336 فقط یک بار داوری می‌شود: در نخستین پایش هفتگی که شمارش به حد برسد، و آن حکم می‌ماند. هنوز هیچ حکمی ثبت نشده است و این دفتر نگاه تازه‌ای نکرده است.",
+      "decisions": [
+        "D-233",
+        "D-336"
+      ],
+      "task": "T-1442، T-1695، T-1720",
+      "decided_on": null,
+      "due_on": "2026-11-09",
+      "reports": [
+        "E:/FMIP/ops/reports/model-scientist/2026-11-02.md",
+        "E:/FMIP/ops/reports/model-scientist/2026-10-31.md"
+      ],
+      "missing": [
+        "بازه‌ها عمداً پیش از رسیدن شمارش نشان داده نمی‌شوند (اصلاحیهٔ D-336 و بند ۳ از D-355)",
+        "حکم ثبت‌شده برای هر یک از دو شرط",
+        "اینکه کدام‌یک از یازده لیگ در ۲ نوامبر ۲۰۲۶ هیچ مسابقهٔ ارزیابی‌شده‌ای نداشت (بررسی نشد)"
+      ]
+    },
+    {
+      "key": "xg_form_forward_test",
+      "family": "فرم بر پایهٔ xG",
+      "phase": 14,
+      "title": "فرم بر پایهٔ xG: یک آزمون رو به جلو روی ده لیگ اصلی football-data",
+      "technical": "input xg_form (D-312 unchanged) on E0 E1 SP1 D1 I1 F1 N1 P1 T1 B1",
+      "kind": "input",
+      "why": "اجرای پنجرهٔ توسعه روی لیگ‌های اصلی به‌طور معنادار بهتر بود؛ آزمونی روی مسابقه‌هایی که هنوز بازی نشده‌اند می‌تواند این را بسنجد، بی‌آنکه روی دادهٔ دیده‌شده انتخابی شود.",
+      "data": "انبار آزمایشگاه، پس از بارشدن مسابقه‌های تازه و xG آن‌ها؛ مسابقه‌های ۱ نوامبر ۲۰۲۶ تا ۴ ژانویه ۲۰۲۷، یک بار اجرا در ۵ ژانویه ۲۰۲۷؛ ۱۰ لیگ؛ در برابر نسخهٔ منتشرشده، با همان معیار D-139 بدون تغییر.",
+      "against": null,
+      "groups": [],
+      "verdict": "scheduled",
+      "reason": "پیش از بازی‌شدن هر یک از مسابقه‌هایش نوشته شد؛ پس از آن چیزی تنظیم، افزوده یا برداشته نشده است. شروعی در ۳ نوامبر ۲۰۲۶ بود که ۶۳ روز زود بود و اجرا نشد.",
+      "decisions": [
+        "D-334"
+      ],
+      "task": "T-1688",
+      "decided_on": null,
+      "due_on": "2027-01-05",
+      "reports": [
+        "E:/FMIP/ops/reports/xg-forward-test-early-2026-11-03.md"
+      ],
+      "missing": [
+        "همهٔ نتیجه‌ها (تا ۵ ژانویه ۲۰۲۷ موعدش نیست)",
+        "گونهٔ پوشش کامل عمداً اجرا نشد (D-334)"
+      ]
+    },
+    {
+      "key": "live_calibration_signal",
+      "family": "calibration احتمال مساوی",
+      "phase": null,
+      "title": "نشانهٔ زندهٔ calibration: مساوی بیش از اندازه، تیم کمی برتر کمتر از اندازه",
+      "technical": "model-watch.sql calibration bands on 0.6.0's pre-kick-off record",
+      "kind": "input",
+      "why": "کارنامهٔ منتشرشده نشان می‌دهد در نوار ۲۰ تا ۳۰ درصد، مساوی ۲۵٪ گفته و حدود ۱۸٪ دیده شده است، و مهمان برتر با احتمال ۴۰ تا ۵۰ درصد حدود ۶۲٪ برده است.",
+      "data": "ارزیابی‌های پیش از بازی نسخهٔ 0.6.0 روی سرور؛ از ۱۰ اکتبر ۲۰۲۶ تا ۱ نوامبر ۲۰۲۶؛ همهٔ لیگ‌های منتشرشده؛ سنجه احتمال‌هایی است که خود نسخهٔ منتشرشده گفته است.",
+      "against": null,
+      "groups": [
+        {
+          "group": "all",
+          "label": "مساوی، نوار ۲۰ تا ۳۰ درصد",
+          "result": "not_judged",
+          "matches": 1239,
+          "matches_total": 1831,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "گفته ۲۵٫۰٪، دیده ۱۷٫۳٪ (بازه: ۱۵٫۲ تا ۱۹٫۴)."
+        },
+        {
+          "group": "all",
+          "label": "برد مهمان، نوار ۴۰ تا ۵۰ درصد",
+          "result": "not_judged",
+          "matches": 253,
+          "matches_total": 1831,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "گفته ۴۴٫۱٪، دیده ۶۲٫۱٪ (بازه: ۵۶٫۱ تا ۶۸٫۰)."
+        },
+        {
+          "group": "all",
+          "label": "همهٔ مساوی‌ها",
+          "result": "not_judged",
+          "matches": 1831,
+          "matches_total": 1831,
+          "difference": null,
+          "low": null,
+          "high": null,
+          "reference_log_loss": null,
+          "tested_log_loss": null,
+          "worse_divisions": null,
+          "divisions": null,
+          "worse_in": [],
+          "calibration_before": null,
+          "calibration_after": null,
+          "note": "گفته ۲۴٫۴٪، دیده ۱۹٫۰٪."
+        }
+      ],
+      "verdict": "parked",
+      "reason": "D-334 آن را کنار گذاشت: «پرسشی جدا، برای ردیف خودش، پس از مسابقه‌های بیشتر». پایش هفتگی آن را باز نگه داشته است و وقتی 0.6.0 حدود ۲٬۴۰۰ مسابقه داشته باشد پیش‌نویس تصمیم پیشنهاد می‌کند (با پنجرهٔ توسعهٔ ۲۰۲۴/۲۵ و شرط شکست). این نشانه با حکم T-1657 روی پنجرهٔ توسعه ناسازگار است.",
+      "decisions": [
+        "D-334",
+        "D-330"
+      ],
+      "task": null,
+      "decided_on": "2026-11-01",
+      "due_on": null,
+      "reports": [
+        "E:/FMIP/ops/reports/model-scientist/2026-11-02.md"
+      ],
+      "missing": [
+        "صورت‌بندی (هیچ‌کدام نوشته نشده است)",
+        "عدد «۱٬۱۵۲ مسابقه» در D-334 با هیچ یافتهٔ ذخیره‌شده‌ای نمی‌خواند (۱٬۲۳۳ در ۳۱ اکتبر ۲۰۲۶ و ۱٬۲۳۹ در ۲ نوامبر ۲۰۲۶)",
+        "بازه‌هایی که برای خوشه‌بندی روز مسابقه گشاد شده باشند"
+      ]
+    }
+  ],
+  "judgements": []
+}

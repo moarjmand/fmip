@@ -916,6 +916,37 @@ export class PostgresEvaluationStore {
   }
 
   /**
+   * What a published version's record does not cover (T-1752): the finished
+   * matches since its first forecast, in the competitions it has forecast,
+   * and how many of them have no published forecast scored before kick-off.
+   */
+  async unscored(modelId: string): Promise<{ finished: number; without: number } | null> {
+    const { rows } = await this.pool.query<{ finished: number; without: number }>(
+      `WITH own AS (
+         SELECT f.computed_at, se.competition_id
+           FROM forecast f
+           JOIN model_version m ON m.id = f.model_version_id
+           JOIN fixture fx ON fx.id = f.fixture_id
+           JOIN season se ON se.id = fx.season_id
+          WHERE f.role = 'published' AND f.status = 'available' AND m.model_id = $1),
+       fin AS (
+         SELECT fx.id
+           FROM fixture fx JOIN season se ON se.id = fx.season_id
+          WHERE fx.status = 'finished'
+            AND fx.kickoff_at >= (SELECT MIN(computed_at) FROM own)
+            AND se.competition_id IN (SELECT competition_id FROM own))
+       SELECT COUNT(*)::int AS finished,
+              (COUNT(*) FILTER (WHERE NOT EXISTS (
+                 SELECT 1 FROM evaluation e JOIN forecast f2 ON f2.id = e.forecast_id
+                  WHERE e.fixture_id = fin.id AND e.pre_kickoff AND f2.role = 'published')))::int
+                AS without
+         FROM fin`,
+      [modelId],
+    );
+    return rows[0] ?? null;
+  }
+
+  /**
    * How many matches a shadow version scored that no published version
    * forecast before kick-off: its new divisions' count toward D-336's
    * "better than chance" (100). The count alone: the figure is the weekly
@@ -968,7 +999,7 @@ export const MODEL_HISTORY_DAYS = 1100;
 const COUNTED_ALL = `SELECT DISTINCT ON (e.fixture_id, f.role, m.model_id)
                  e.fixture_id, f.role, m.model_id, e.log_loss, e.brier, e.correct,
                  e.outcome, e.evaluated_at, f.p_home, f.p_draw, f.p_away, fx.kickoff_at,
-                 se.competition_id
+                 f.computed_at, f.data_completeness, se.competition_id
             FROM evaluation e
             JOIN forecast f ON f.id = e.forecast_id
             JOIN model_version m ON m.id = f.model_version_id
@@ -983,6 +1014,10 @@ const RECORD_COLUMNS = `COUNT(*)::int AS matches,
               AVG(${rpsSql('c', 'c')})::text AS rps,
               STDDEV_SAMP(${rpsSql('c', 'c')})::text AS rps_sd,
               AVG(${uniformRpsSql('c')})::text AS uniform_rps,
+              (COUNT(*) FILTER (WHERE c.data_completeness = 'limited'))::int AS limited,
+              (percentile_cont(0.5) WITHIN GROUP (
+                 ORDER BY EXTRACT(EPOCH FROM (c.kickoff_at - c.computed_at)) / 3600))::text
+                AS lead_hours,
               (COUNT(*) FILTER (WHERE c.correct))::int AS correct,
               MIN(c.kickoff_at) AS first_kickoff_at, MAX(c.kickoff_at) AS last_kickoff_at,
               MAX(c.evaluated_at) AS last_evaluated_at`;
@@ -998,6 +1033,8 @@ interface RawRecordRow {
   rps: string | null;
   rps_sd: string | null;
   uniform_rps: string | null;
+  limited: number;
+  lead_hours: string | null;
   correct: number;
   first_kickoff_at: Date | null;
   last_kickoff_at: Date | null;
@@ -1019,6 +1056,8 @@ const toRecordRow = (row: RawRecordRow): ModelRecordRow => {
     rps: num(row.rps),
     rpsSd: num(row.rps_sd),
     uniformRps: num(row.uniform_rps),
+    limited: row.limited,
+    medianLeadHours: num(row.lead_hours),
     correct: row.correct,
     firstKickoffAt: row.first_kickoff_at,
     lastKickoffAt: row.last_kickoff_at,
@@ -1039,6 +1078,10 @@ export interface ModelRecordRow {
   rpsSd: number | null;
   /** A one-third guess's RPS on the same results. */
   uniformRps: number | null;
+  /** How many of the matches were forecast with `limited` data. */
+  limited: number;
+  /** The median hours from the counted forecast to kick-off. */
+  medianLeadHours: number | null;
   correct: number;
   firstKickoffAt: Date | null;
   lastKickoffAt: Date | null;

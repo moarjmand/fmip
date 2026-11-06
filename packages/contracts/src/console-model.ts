@@ -48,6 +48,16 @@ export interface ConsoleModelRecord {
   /** The first and last kick-off counted: the window the figures are over. */
   first_kickoff_at: string | null;
   last_kickoff_at: string | null;
+  /**
+   * How many of `matches` were forecast with `limited` data (rule 3: the
+   * model said so itself); null where it is not counted.
+   */
+  limited: number | null;
+  /**
+   * The median time from the counted forecast to kick-off, in hours: two
+   * records made at very different lead times are not like for like.
+   */
+  median_lead_hours: number | null;
 }
 
 export type ConsoleModelOutcome = 'home' | 'draw' | 'away';
@@ -229,6 +239,12 @@ export interface ConsoleModelReport {
     /** Its first stored published forecast. */
     since: string | null;
     record: ConsoleModelRecord;
+    /**
+     * Finished matches since then, in the competitions it has forecast, and
+     * how many of them no published forecast was scored for (a refusal, or
+     * none made in time): what the record does not cover. Null when not counted.
+     */
+    unscored: { finished: number; without: number } | null;
   } | null;
   reference: AccuracyReference;
   /** A competition row below this many matches is `limited` and shows its count only. */
