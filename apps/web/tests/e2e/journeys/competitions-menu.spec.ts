@@ -114,6 +114,42 @@ test.describe('competitions menu', () => {
     await expect(trigger).toBeFocused();
   });
 
+  test('closes when the reader goes elsewhere: a header link, the page behind, Back (T-1753)', async ({
+    page,
+  }) => {
+    const panel = page.getByTestId('competitions-menu');
+    const open = async () => {
+      await page.getByTestId('nav-competitions').click();
+      await expect(panel.getByTestId('competitions-menu-item').first()).toBeVisible();
+    };
+
+    // A link in the header, over the scrim: the new page comes without the panel.
+    await page.goto('/en/scores');
+    await open();
+    await page.locator('header a[href$="/en/news"]').first().click();
+    await expect(page).toHaveURL(/\/en\/news$/);
+    await expect(panel).toBeHidden();
+
+    // The same with no focus moved by the click, as Safari follows a link.
+    await open();
+    await page.evaluate(() =>
+      document.querySelector<HTMLAnchorElement>('header a[href$="/en/scores"]')?.click(),
+    );
+    await expect(page).toHaveURL(/\/en\/scores$/);
+    await expect(panel).toBeHidden();
+
+    // Back, with the panel open: it does not follow the reader to the page before.
+    await open();
+    await page.goBack();
+    await expect(page).toHaveURL(/\/en\/news$/);
+    await expect(panel).toBeHidden();
+
+    // A click inside the panel that is on no link leaves it open.
+    await open();
+    await panel.getByTestId('competitions-menu-counts').click();
+    await expect(panel).toBeVisible();
+  });
+
   test('passes axe open, target-size included', async ({ page }) => {
     await page.goto('/en/scores');
     await page.getByTestId('nav-competitions').click();

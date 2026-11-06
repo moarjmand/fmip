@@ -1,6 +1,7 @@
 'use client';
 
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { MessageText } from '@/components/message-text';
 import Link from '@/components/ui/link';
@@ -135,6 +136,35 @@ export default function CompetitionsMenuPanelBody({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
+
+  // A click anywhere outside the panel closes it -- the header's own links and
+  // buttons above all, which sit over the scrim. Focus leaving the panel is
+  // not enough: a click on a link moves no focus in Safari, and none at all
+  // while the list is still loading (T-1753). An opener toggles it itself.
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (event: MouseEvent) => {
+      const at = event.target as Element | null;
+      if (at === null || panel.current?.contains(at)) return;
+      if (at.closest('[aria-controls="competitions-menu"]')) return;
+      closeCompetitionsMenu(false);
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, [open]);
+
+  // A new page under an open panel (Back, Forward, a link followed by the
+  // keyboard): the reader has moved on, so the panel does not follow them.
+  const pathname = usePathname();
+  const openedOn = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) {
+      openedOn.current = null;
+      return;
+    }
+    if (openedOn.current === null) openedOn.current = pathname;
+    else if (openedOn.current !== pathname) closeCompetitionsMenu(false);
+  }, [open, pathname]);
 
   const title = (
     <h2 id={titleId} className="text-lg font-bold">
