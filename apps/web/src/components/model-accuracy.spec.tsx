@@ -171,7 +171,7 @@ type Props = Omit<Parameters<typeof ModelAccuracy>[0], 'locale' | 'report'>;
 const html = (r: PublicModelAccuracyResponse | null, locale = 'en', props: Props = {}) =>
   renderToStaticMarkup(
     <>
-      <ModelAccuracyBand locale={locale} report={r} />
+      <ModelAccuracyBand locale={locale} />
       <ModelAccuracy locale={locale} report={r} {...props} />
     </>,
   );
@@ -312,15 +312,29 @@ describe('ModelAccuracy (T-1369)', () => {
   });
 
   describe('the Stadiomind page (T-1620, D-291)', () => {
-    it('names the model alone in its band, with its versions and the last scoring day', () => {
+    it('names the model alone in its band; its versions and the last scoring day sit under the verdict', () => {
       const out = html(report({}));
       const band = /<header[^>]*data-testid="accuracy-band"[\s\S]*?<\/header>/.exec(out)?.[0] ?? '';
       expect(text(band)).toContain('Statistical model');
       expect(text(band)).toContain('How accurate is our model?');
       // Rule 6: the model only, the other two products named as not counted.
       expect(text(band)).toContain('The statistical model’s published forecasts only');
-      expect(text(band)).toContain('Model versions: dixon-coles-elo@0.1.0.');
-      expect(text(band)).toContain('Last scored on 12 October 2026.');
+      // Under the verdict, not in the band: a phone's first screen keeps the two figures.
+      expect(band).not.toContain('data-testid="accuracy-meta"');
+      const meta = part(out, 'accuracy-meta', 'ul');
+      expect(text(meta)).toContain('Model versions: dixon-coles-elo@0.1.0.');
+      expect(text(meta)).toContain('Last scored on 12 October 2026.');
+      expect(meta).not.toMatch(PHYSICAL);
+      expect(out.indexOf('data-testid="accuracy-meta"')).toBeGreaterThan(
+        out.indexOf('data-testid="accuracy-verdict-sentence"'),
+      );
+      const page = live();
+      expect(page.indexOf('data-testid="accuracy-meta"')).toBeGreaterThan(
+        page.indexOf('data-testid="accuracy-verdict-sentence"'),
+      );
+      expect(page.indexOf('data-testid="accuracy-meta"')).toBeLessThan(
+        page.indexOf('data-testid="accuracy-weekly-chart"'),
+      );
       expect(band).not.toMatch(PHYSICAL);
       // No serif and no paper: the interface face on the theme's grounds.
       expect(out).not.toMatch(/font-serif|font-article|data-mode/);
@@ -882,13 +896,11 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
   });
 
   it('says plainly that the figures combine the published versions (D9, interim)', () => {
-    const band = part(live(), 'accuracy-band', 'header');
-    expect(text(band)).toContain(
+    const meta = part(live(), 'accuracy-meta', 'ul');
+    expect(text(meta)).toContain(
       'Model versions: dixon-coles-elo@0.1.0, dixon-coles-elo@0.6.0. The figures combine these versions; they are not yet shown version by version.',
     );
-    expect(part(html(report({})), 'accuracy-band', 'header')).not.toContain(
-      'data-testid="accuracy-versions-combined"',
-    );
+    expect(html(report({}))).not.toContain('data-testid="accuracy-versions-combined"');
   });
 
   it('ships no calibration chart and no per-version card, not even as a frame (D10)', () => {

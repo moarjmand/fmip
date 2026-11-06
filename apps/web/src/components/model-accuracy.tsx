@@ -141,23 +141,12 @@ function VersionList({ versions, className }: { versions: readonly string[]; cla
 
 /**
  * The page's band (T-1620): the model's lane and the question on the
- * surface, the one line that this is the statistical model and nothing else
- * (rule 6), the published versions the figures are from and the day they
- * were last scored. With more than one version it says plainly that the
- * figures combine them (T-1750, D-370: the split by version needs an API
- * field, T-1751); a candidate still in testing is never named here. Without
- * an answer from the API only the name and the line: no version and no date
- * is guessed.
+ * surface, and the one line that this is the statistical model and nothing
+ * else (rule 6). The versions and the last scoring day sit under the verdict
+ * (`AccuracyMeta`).
  */
-export function ModelAccuracyBand({
-  locale,
-  report,
-}: {
-  locale: string;
-  report: PublicModelAccuracyResponse | null;
-}) {
+export function ModelAccuracyBand({ locale }: { locale: string }) {
   const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const versions = report?.overall.model_versions ?? [];
   return (
     <header className="border-b border-default bg-surface" data-testid="accuracy-band">
       <div className="page-frame flex flex-col gap-4 py-6 sm:gap-5 sm:py-9">
@@ -176,44 +165,6 @@ export function ModelAccuracyBand({
             <Translated locale={lang} message="competitionPage.model.only" />
           </p>
         </div>
-        {report !== null && (versions.length > 0 || report.last_updated_at !== null) && (
-          <ul
-            className="flex flex-wrap gap-x-5 gap-y-2 border-t border-default pt-4 text-sm text-muted"
-            data-testid="accuracy-meta"
-          >
-            {versions.length > 0 && (
-              <li data-testid="accuracy-versions">
-                <FilledMessage
-                  message={message(lang, 'modelAccuracy.versions')}
-                  params={{
-                    versions: <VersionList versions={versions} className="font-semibold text-fg" />,
-                  }}
-                />
-                {versions.length > 1 && (
-                  <>
-                    {' '}
-                    <span data-testid="accuracy-versions-combined">
-                      <Translated locale={lang} message="modelAccuracy.versionsCombined" />
-                    </span>
-                  </>
-                )}
-              </li>
-            )}
-            {report.last_updated_at !== null && (
-              <li data-testid="accuracy-updated">
-                <MessageText
-                  message={filled(message(lang, 'modelAccuracy.updated'), {
-                    date: formatDate(lang, report.last_updated_at, 'UTC', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    }),
-                  })}
-                />
-              </li>
-            )}
-          </ul>
-        )}
       </div>
     </header>
   );
@@ -1093,6 +1044,57 @@ function ForecastsCta({ lang }: { lang: Locale }) {
   );
 }
 
+/**
+ * The published versions the figures are from and the day they were last
+ * scored. With more than one version it says plainly that the figures combine
+ * them (T-1750, D-370: the split by version needs an API field, T-1751); a
+ * candidate still in testing is never named here. It sits under the verdict,
+ * not in the band: on a phone the band's four extra lines pushed the page's
+ * two figures off the first screen (found on the real-data screenshots).
+ */
+function AccuracyMeta({ lang, report }: { lang: Locale; report: PublicModelAccuracyResponse }) {
+  const versions = report.overall.model_versions;
+  if (versions.length === 0 && report.last_updated_at === null) return null;
+  return (
+    <ul
+      className="flex flex-wrap gap-x-5 gap-y-1.5 px-1 text-sm text-muted"
+      data-testid="accuracy-meta"
+    >
+      {versions.length > 0 && (
+        <li data-testid="accuracy-versions">
+          <FilledMessage
+            message={message(lang, 'modelAccuracy.versions')}
+            params={{
+              versions: <VersionList versions={versions} className="font-semibold text-fg" />,
+            }}
+          />
+          {versions.length > 1 && (
+            <>
+              {' '}
+              <span data-testid="accuracy-versions-combined">
+                <Translated locale={lang} message="modelAccuracy.versionsCombined" />
+              </span>
+            </>
+          )}
+        </li>
+      )}
+      {report.last_updated_at !== null && (
+        <li data-testid="accuracy-updated">
+          <MessageText
+            message={filled(message(lang, 'modelAccuracy.updated'), {
+              date: formatDate(lang, report.last_updated_at, 'UTC', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              }),
+            })}
+          />
+        </li>
+      )}
+    </ul>
+  );
+}
+
 export function ModelAccuracy({
   locale,
   report,
@@ -1135,7 +1137,10 @@ export function ModelAccuracy({
       data-testid="model-accuracy"
       data-period={report.period}
     >
-      <VerdictCard lang={lang} report={report} weeks={weeks} />
+      <div className="flex flex-col gap-3">
+        <VerdictCard lang={lang} report={report} weeks={weeks} />
+        <AccuracyMeta lang={lang} report={report} />
+      </div>
 
       {/* Under the sample rule there is no chart: a few matches a week are not a trend. */}
       {state === 'available' && (

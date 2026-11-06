@@ -73,7 +73,7 @@ export default async function ModelAccuracyPage({
     // The Stadiomind page (T-1620, D-291): it follows the theme like the
     // other data pages (D-274, D-276), no longer on editorial paper.
     <main data-mode="data" className="pb-16" data-testid="model-accuracy-page">
-      <ModelAccuracyBand locale={lang} report={report} />
+      <ModelAccuracyBand locale={lang} />
       <div className="page-frame pt-6 sm:pt-8">
         <ModelAccuracy
           locale={lang}
