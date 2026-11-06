@@ -1,12 +1,14 @@
 import type { AuthUser, MatchHeader, PendingPick, Prediction } from '@fmip/contracts';
-import type { ReactNode } from 'react';
+import { type ReactNode, useId } from 'react';
 import { FilledMessage } from '@/components/filled-message';
 import { CARD } from '@/components/match-centre-cards';
-import { PickControl } from '@/components/pick-control';
+import { PickControl, StoredDetail } from '@/components/pick-control';
+import { ProductRow } from '@/components/product-row';
 import { Translated } from '@/components/translated';
 import { Icon } from '@/components/ui';
+import type { Locale } from '@/i18n/locales';
 import { message } from '@/i18n/messages';
-import { type PickOutcome, pendingView } from '@/lib/pick';
+import { type PickOutcome, markedOutcome, pendingView, pickControlState } from '@/lib/pick';
 import { isLocked } from '@/lib/prediction-form';
 import { asLocale } from '@/lib/prediction-text';
 import { zoneWords } from '@/lib/reader-time-zone';
@@ -16,10 +18,11 @@ import { formatKickoff } from '@/lib/scores';
  * The reader's pick on the match page (T-1739, D-360; boards P1-3a and
  * P1-3b), two server components and no script of their own.
  *
- * `MatchPickCard` is the card directly under the statistical model's card:
- * the pick control (`pick-control.tsx`, D-359) in its four states, the plain
- * words a guest needs about an account, and the line that a pick counts
- * towards the community picks only. The live view places it in the section
+ * `MatchPickCard` is the card directly under the statistical model's
+ * headline: until kick-off the pick control (`pick-control.tsx`, D-359) in
+ * its open states, the plain words a guest needs about an account, and the
+ * line that a pick counts towards the community picks only; from kick-off on
+ * one locked row (T-1744, D-365). The live view places it in the section
  * `id="pick"`, the fragment a guest's link comes back to. It repeats nothing
  * of the model's: that card stands directly above with its own bar, version
  * and receipt, so the control is handed no model slot here (rule 6).
@@ -50,7 +53,6 @@ export function MatchPickCard({
   pending = null,
   chosen,
   split,
-  finished,
 }: {
   locale: string;
   fixture: PickFixture;
@@ -67,19 +69,34 @@ export function MatchPickCard({
   /** The outcome carried in the address (`readPick` of `?pick=`); marked, never stored. */
   chosen: PickOutcome | null;
   /**
-   * The community's split. Handed to the control for a member or after
+   * The community's split. Handed to the control for a member before
    * kick-off only, and the control draws it only once the reader has picked
-   * or every pick is locked (D-206); after full time the verdict card below
-   * says it, so it is left out here.
+   * (D-206). From kick-off on the pick is one locked row and the community
+   * picks say their split in their own place on the page, once.
    */
   split?: ReactNode;
-  /** The match has a full-time score. */
-  finished: boolean;
 }) {
   const l = asLocale(locale);
-  const locked = pickLocked(fixture, current);
+  const saved = current?.latest.outcome ?? null;
+  const waiting = pendingView(pending);
+  const kickedOff = pickLocked(fixture, current);
+  const state = pickControlState({ locked: kickedOff, saved, chosen, pending: waiting });
+  // The API's word that a pending pick expired is a kick-off this page's
+  // clock may not have reached yet: the pick is locked either way.
+  if (kickedOff || state === 'uncounted') {
+    return (
+      <LockedPick
+        locale={l}
+        fixture={fixture}
+        member={me !== null}
+        current={current}
+        marked={markedOutcome({ locked: true, saved, chosen, pending: waiting })}
+        uncounted={state === 'uncounted'}
+      />
+    );
+  }
   return (
-    <div className={CARD} data-testid="match-pick">
+    <div className={CARD} data-testid="match-pick" data-pick-card="open">
       <PickControl
         locale={locale}
         fixture={{
@@ -94,14 +111,14 @@ export function MatchPickCard({
         current={current}
         pending={pending}
         chosen={chosen}
-        split={!finished && (me !== null || locked) ? split : undefined}
+        split={me !== null ? split : undefined}
         heading="h2"
       />
       {/* What saving a pick takes, in plain words, where the old section
           spoke of a "verified account" (finding D-03). The offer itself is
           the control's: every outcome is a link to Create account with the
           way back, and Sign in beside it once an outcome is chosen. */}
-      {me === null && !locked && (
+      {me === null && (
         <p className="text-sm leading-normal text-muted" data-testid="match-pick-account">
           <Translated locale={l} message="pick.account" />
         </p>
@@ -110,6 +127,82 @@ export function MatchPickCard({
         <Translated locale={l} message="predictions.section.note" />
       </p>
     </div>
+  );
+}
+
+/**
+ * From kick-off on (T-1744, D-365; board P2-2): the pick is one locked row of
+ * about 72px where the card with three inert buttons stood -- the reader's
+ * locked pick if there is one, else that picks are locked -- with the lock
+ * and its words at the end. A member's stored pick keeps what it said beyond
+ * the outcome (score, confidence, reasons, note, which version was final)
+ * under the row's sentence; a pick that was never counted says so (D-361).
+ * Nothing of the model's or the community's is in it (rule 6).
+ */
+function LockedPick({
+  locale,
+  fixture,
+  member,
+  current,
+  marked,
+  uncounted,
+}: {
+  locale: Locale;
+  fixture: PickFixture;
+  member: boolean;
+  current: Prediction | null;
+  /** The stored or pending outcome; an address cannot claim one after kick-off. */
+  marked: PickOutcome | null;
+  uncounted: boolean;
+}) {
+  const id = useId();
+  const outcome =
+    marked === null ? null : marked === 'draw' ? (
+      <Translated locale={locale} message="predictions.outcome.draw" />
+    ) : (
+      <FilledMessage
+        message={message(locale, 'predictions.outcome.teamWin')}
+        params={{ team: <bdi>{fixture[marked].name}</bdi> }}
+      />
+    );
+  return (
+    <ProductRow
+      labelledBy={id}
+      testId="match-pick"
+      state={uncounted ? 'uncounted' : 'locked'}
+      name={
+        <h2 id={id} className="text-sm font-extrabold">
+          <Translated locale={locale} message="pick.title" />
+        </h2>
+      }
+      status={
+        <span
+          className="inline-flex min-h-6 items-center gap-1 text-xs font-semibold text-muted"
+          data-testid="pick-lock"
+        >
+          <Icon name="lock" size={14} />
+          <Translated
+            locale={locale}
+            message={uncounted ? 'pick.uncounted.title' : 'predictions.section.locked'}
+          />
+        </span>
+      }
+    >
+      <p data-testid="pick-note">
+        {outcome === null ? (
+          <Translated
+            locale={locale}
+            message={member ? 'predictions.section.none' : 'pick.note.lockedNone'}
+          />
+        ) : (
+          <FilledMessage
+            message={message(locale, uncounted ? 'pick.uncounted.note' : 'pick.note.locked')}
+            params={{ outcome: <b className="font-bold text-fg">{outcome}</b> }}
+          />
+        )}
+      </p>
+      {current !== null && <StoredDetail locale={locale} prediction={current} locked />}
+    </ProductRow>
   );
 }
 

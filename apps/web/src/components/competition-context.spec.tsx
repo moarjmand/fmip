@@ -134,9 +134,36 @@ describe('the competition context panel', () => {
     );
     expect(html).toContain('data-state="table"');
     expect(html).toContain('League table, before kick-off');
+    // A compact two-team table (T-1746): a row per side, no neighbours.
     expect(html.match(/data-testid="competition-context-side"/g)).toHaveLength(2);
-    expect(html).toContain('2nd of 4 · 3 pts from 2 played');
-    expect(html).toContain('<span dir="auto">W L</span>');
+    expect(html.match(/<tbody>[^]*<\/tbody>/)?.[0].match(/<tr /g)).toHaveLength(2);
+    const row = html.match(/<tr [^>]*data-testid="competition-context-side"[^]*?<\/tr>/)?.[0] ?? '';
+    const cells = [...row.matchAll(/<t[dh][^>]*>([^]*?)<\/t[dh]>/g)].map((m) =>
+      (m[1] ?? '').replace(/<[^>]+>/g, '').replace(/[\u2066-\u2069]/g, ''),
+    );
+    // Position, team, played, won-drawn-lost, goal difference, points.
+    expect(cells).toEqual(['2', 'Beta', '2', '1-0-1', '+1', '3']);
+    for (const title of ['Played', 'Won', 'Drawn', 'Lost', 'Goal difference', 'Points']) {
+      expect(html).toContain(`<abbr title="${title}"`);
+    }
+    // The form as squares that carry their letter and differ in shape, not hue.
+    const squares = html.match(
+      /data-testid="competition-context-squares">[^]*?<\/span><\/span>/,
+    )?.[0];
+    expect(squares).toMatch(/class="[^"]*bg-fg text-surface" data-result="W">W</);
+    expect(squares).toMatch(/class="[^"]*border-dashed[^"]*" data-result="L">L</);
+    expect(html).not.toMatch(
+      /data-result="[WDL]"[^>]*(bg|text|border)-(accent|danger|success|live)/,
+    );
+    // Every sentence the card had is kept; the gaps sit behind a native disclosure.
+    const gaps = html.match(
+      /<details data-testid="competition-context-gaps">[^]*?<\/details>/,
+    )?.[0];
+    expect(gaps).toContain('Gaps to the places around');
+    expect(gaps).toContain('2nd of 4 · 3 pts from 2 played');
+    expect(gaps).toContain(
+      '3 pts behind first · 3 pts behind the place above · 2 pts clear of the place below',
+    );
     // The form here is this competition's only, told apart from Recent form (T-1364).
     expect(html).toContain('Form in this competition only, latest first:');
     expect(html.match(/data-testid="competition-context-form-scope"/g)).toHaveLength(1);
@@ -145,8 +172,45 @@ describe('the competition context panel', () => {
     expect(html).toContain('From the 4 finished matches of this table played before kick-off.');
     expect(html).toContain('no gap to them is shown');
     expect(html).toContain('href="/en/team/b"');
-    // Stacked on a phone, side by side from `sm`.
-    expect(html).toContain('grid-cols-1 gap-3 sm:grid-cols-2');
+    // The table scrolls in its own box where a column is too narrow for it.
+    expect(html).toMatch(/class="scroll-cue overflow-x-auto"><table/);
+    expect(html).not.toMatch(
+      /class="[^"]*(?<![\w-])(left|right|ml|mr|pl|pr|text-left|text-right)-[^"]*"/,
+    );
+  });
+
+  it('says a side with no result in this competition has no form, and draws no square', () => {
+    const html = renderToStaticMarkup(
+      <CompetitionContextPanel
+        locale="fa"
+        timeZone="UTC"
+        context={{
+          ...base,
+          table: {
+            coverage: 'available',
+            last_updated_at: null,
+            data: {
+              scope: 'league',
+              group_name: null,
+              matches_counted: 4,
+              teams: 4,
+              leader: null,
+              home: side({ form: [] }),
+              away: side({ team: team('c', 'Gamma'), position: 3, form: ['D', 'W', 'L'] }),
+              places: 'not_supplied',
+            },
+          },
+        }}
+      />,
+    );
+    expect(html.match(/data-testid="competition-context-squares"/g)).toHaveLength(1);
+    // Persian letters, each in its own square.
+    expect(html.match(/data-result="[WDL]">[^<]+</g)).toEqual([
+      'data-result="D">م<',
+      'data-result="W">ب<',
+      'data-result="L">ش<',
+    ]);
+    expect(html).not.toContain('data-translation="untranslated"');
   });
 
   it('says a table that has not started has no positions yet', () => {

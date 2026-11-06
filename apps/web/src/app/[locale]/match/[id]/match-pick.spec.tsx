@@ -58,7 +58,6 @@ const card = (props: Partial<Parameters<typeof MatchPickCard>[0]> = {}) =>
       me={null}
       current={null}
       chosen={null}
-      finished={false}
       split={<span data-testid="split">split</span>}
       {...props}
     />,
@@ -121,21 +120,31 @@ describe('the match page pick card: a guest', () => {
     }
   });
 
-  it('after kick-off is locked with nothing to pick, and no account sentence', () => {
+  it('after kick-off is one locked row with nothing to pick, and no account sentence', () => {
     const html = card({ fixture: PAST, chosen: readPick('away') });
-    expect(html).toContain('data-pick="locked"');
+    // The row (T-1744, D-365): the name, that picks are locked, the lock and its words.
+    expect(html).toContain('data-testid="match-pick"');
+    expect(html).toContain('data-product-row=""');
+    expect(html).toContain('data-state="locked"');
+    expect(html).toContain('Your pick');
     expect(html).toContain('Picks lock at kick-off.');
-    expect(count(html, 'disabled=""')).toBe(3);
+    expect(html).toMatch(/data-testid="pick-lock"[^>]*><svg[\s\S]*?Locked at kick-off/);
+    // No three inert buttons any more, and no control at all.
+    expect(html).not.toContain('<button');
+    expect(html).not.toContain('data-testid="pick-control"');
     // An address cannot claim a pick the API never took.
-    expect(html).not.toContain('aria-pressed="true"');
+    expect(html).not.toContain('Bournemouth');
     expect(html).not.toContain('data-testid="match-pick-account"');
     expect(html).not.toContain('href=');
+    // The line about the community picks belongs to the open card.
+    expect(html).not.toContain('data-testid="match-pick-separate"');
   });
 
-  it('never hands a guest the split before kick-off, and shows it once locked', () => {
+  it('never hands a guest the split, before kick-off or in the locked row', () => {
     expect(card()).not.toContain('data-testid="split"');
     expect(card({ chosen: 'away' })).not.toContain('data-testid="split"');
-    expect(card({ fixture: { ...PAST, status: 'live' } as MatchHeader })).toContain(
+    // From kick-off on the community picks say their split in their own place.
+    expect(card({ fixture: { ...PAST, status: 'live' } as MatchHeader })).not.toContain(
       'data-testid="split"',
     );
   });
@@ -173,24 +182,43 @@ describe('the match page pick card: a member', () => {
       fixture: { ...PAST, status: 'live' } as MatchHeader,
       current: stored('away', true),
     });
-    expect(picked).toContain('data-pick="locked"');
+    expect(picked).toContain('data-product-row=""');
+    expect(picked).toContain('data-state="locked"');
     expect(picked).toContain('Picks lock at kick-off. Your pick: ');
-    expect(picked).toMatch(/disabled="" aria-pressed="true" aria-label="Bournemouth win"/);
+    expect(picked).toMatch(/<b class="[^"]*"><bdi>Bournemouth<\/bdi> win<\/b>/);
+    // What the stored pick said beyond its outcome stays under the sentence.
+    expect(picked).toContain('data-testid="pick-stored"');
+    expect(picked).toContain('data-testid="prediction-versions"');
     expect(picked).not.toContain('<form');
+    expect(picked).not.toContain('<button');
     const none = card({ me: ME, fixture: PAST });
-    expect(none).toContain('data-pick="locked"');
+    expect(none).toContain('data-state="locked"');
     expect(none).toContain('You did not predict this match before kick-off.');
+    expect(none).not.toContain('data-testid="pick-stored"');
   });
 
   it("is locked by the API's word even when the clock here disagrees", () => {
     const html = card({ me: ME, current: stored('home', true) });
-    expect(html).toContain('data-pick="locked"');
+    expect(html).toContain('data-state="locked"');
+    expect(html).toContain('data-product-row=""');
   });
 
-  it('after full time leaves the split to the verdict card below', () => {
-    const html = card({ me: ME, fixture: PAST, current: stored('away', true), finished: true });
-    expect(html).toContain('data-pick="locked"');
-    expect(html).not.toContain('data-testid="split"');
+  it('from kick-off on leaves the split to the community picks, live and after full time', () => {
+    for (const status of ['live', 'finished'] as const) {
+      const html = card({
+        me: ME,
+        fixture: { ...PAST, status } as MatchHeader,
+        current: stored('away', true),
+      });
+      expect(html).toContain('data-state="locked"');
+      expect(html).not.toContain('data-testid="split"');
+    }
+  });
+
+  it('the locked row is the pick alone: no colour or figure of another product (rule 6)', () => {
+    const html = card({ me: ME, fixture: PAST, current: stored('away', true) });
+    expect(html).not.toMatch(/(text|bg|border)-(model|founder|community)/);
+    expect(html).not.toMatch(/\d%/);
   });
 
   it('who has not confirmed their email address is told what a tap does and when it counts', () => {
@@ -220,8 +248,10 @@ describe('the match page pick card: a pending pick (T-1740, D-361)', () => {
 
   it('after kick-off says saved, not counted, and still not beside the split', () => {
     const html = card({ me: UNCONFIRMED, fixture: PAST, pending: expired });
-    expect(html).toContain('data-pick="uncounted"');
+    expect(html).toContain('data-product-row=""');
+    expect(html).toContain('data-state="uncounted"');
     expect(html).toContain('Saved, not counted');
+    expect(html).toContain('It was never counted, because your email address was not confirmed');
     expect(html).toContain('<bdi>Bournemouth</bdi> win');
     expect(html).not.toContain('data-testid="split"');
     expect(html).not.toContain('<form');

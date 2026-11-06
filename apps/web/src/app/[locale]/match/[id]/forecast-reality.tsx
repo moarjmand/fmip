@@ -14,9 +14,9 @@ import { kindLabel, percentages, unavailableLabel } from '@/lib/forecast';
 import { formatFixed, formatPercent } from '@/lib/words';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { AtApart } from '@/components/model-version';
-import { pairIsolate } from '@/components/score';
+import { nameIsolate, pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
-import { Notice } from '@/components/ui';
+import { CoverageBadge, Notice } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
 
 /**
@@ -29,9 +29,13 @@ import { cx } from '@/components/ui/cx';
  * about carries its receipt: model, version, kind, computation time and what
  * it was fitted on. No version is a sentence, never an empty bar (rule 3).
  *
+ * It is the one place the forecast is drawn on the page (T-1744, D-365): the
+ * lower section says only why, and after full time this card carries the
+ * result sentence and the match's ranked probability score.
+ *
  * Which version: after kick-off, the one the model published before it --
- * the one its evaluation scored, else the last computed before kick-off
- * (the same choice as `ModelVerdict`); before kick-off, the latest. A match
+ * the one its evaluation scored, else the last computed before kick-off;
+ * before kick-off, the latest. A match
  * still scheduled long after its kick-off (`awaiting_update`, T-1708, D-343)
  * counts as after: its card is the stored forecast from before kick-off,
  * titled so, never the latest presented as a match still to come.
@@ -139,6 +143,21 @@ export function receipt(
 }
 
 /**
+ * The receipt's first facts on one line, for the headline before kick-off
+ * (T-1744): the model, the version and when it was computed. The full
+ * receipt stands with the model's details.
+ */
+export function receiptShort(locale: Locale, version: ForecastVersion, timeZone: string): string {
+  return [
+    ...(version.model_version === NO_MODEL_VERSION ? [] : [version.model_version]),
+    interpolate(t(locale, 'matchCentre.receipt.version'), {
+      version: formatNumber(locale, version.version_number),
+      time: `${formatVersionStamp(locale, version.computed_at, timeZone)} ${zoneWords(locale, timeZone)}`,
+    }),
+  ].join(' · ');
+}
+
+/**
  * The MODEL tag (Design System `model-tag`): the model's colour and nothing
  * else's. An outline rather than the Design System's tint: on Day the
  * turquoise text has little room on white (4.62:1) and falls under 4.5:1 on
@@ -152,15 +171,12 @@ export function ModelTag({ locale }: { locale: string }) {
   );
 }
 
-export function ForecastReality({
-  forecasts,
-  evaluations,
-  fixture,
-  final,
-  matchXg,
-  timeZone,
-  locale: raw,
-}: {
+const CARD_FRAME =
+  'flex min-w-0 flex-col gap-5 rounded-card border border-default bg-surface p-4 md:px-6 md:py-5';
+const CARD_TITLE =
+  'flex flex-wrap items-center gap-2.5 text-lg font-extrabold font-stretch-semi-expanded md:text-xl';
+
+interface RealityProps {
   forecasts: ForecastVersionsResponse | null;
   evaluations: FixtureEvaluationsResponse | null;
   fixture: Pick<MatchHeader, 'status' | 'kickoff_at' | 'home' | 'away'> &
@@ -171,13 +187,55 @@ export function ForecastReality({
   matchXg: { home: number; away: number } | null;
   timeZone: string;
   locale: string;
-}) {
+}
+
+/** What the card says when the model has no forecast for the match. */
+interface NoForecastProps {
+  /**
+   * The match has no Power Index either, as the page's own answer says
+   * (T-1746): the card then says so, and the page draws no Power Index block
+   * to say it a second time. Left out when there is one or it is not known.
+   */
+  noPowerIndex?: boolean;
+}
+
+/**
+ * Whether the match is still to come, as this card reads it: scheduled and
+ * not long past its kick-off with no word from the feed (T-1708, D-343).
+ */
+export function isUpcoming(fixture: RealityProps['fixture']): boolean {
+  return fixture.status === 'scheduled' && fixture.freshness !== 'awaiting_update';
+}
+
+/**
+ * The model's forecast, once on the page (T-1744, D-365).
+ *
+ * Before kick-off it is the headline alone -- the title, the bar with its
+ * three percentages and one receipt line -- so that the reader's pick can
+ * stand directly under it (decision 4 of package 2); `ForecastDetails`, after
+ * the pick, holds the rest. From kick-off on it is the whole card: the bar,
+ * after full time the result sentence, expected goals and likeliest scores,
+ * every version and the receipt, and the way to why.
+ *
+ * With no forecast -- no version at all, or none that gave probabilities --
+ * the card is the one place the page says so (T-1746, D-367; board P2-5):
+ * "No model forecast for this match", the stored reason, that there is no
+ * Power Index either when that is so, and one link to where the model's
+ * coverage can be read. Never an empty bar (rule 3).
+ */
+export function ForecastReality({
+  forecasts,
+  evaluations,
+  fixture,
+  final,
+  matchXg,
+  timeZone,
+  locale: raw,
+  noPowerIndex = false,
+}: RealityProps & NoForecastProps) {
   const locale: Locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const status = fixture.status;
-  // Kick-off long past with no word from the feed (T-1708, D-343): the card
-  // is the forecast from before kick-off, as once a match has started.
-  const awaiting = status === 'scheduled' && fixture.freshness === 'awaiting_update';
-  const upcoming = status === 'scheduled' && !awaiting;
+  const upcoming = isUpcoming(fixture);
   const title: MessageKey =
     final !== null
       ? 'matchCentre.reality.title'
@@ -187,53 +245,78 @@ export function ForecastReality({
   const version =
     forecasts === null
       ? null
-      : cardVersion(forecasts, evaluations, status, fixture.kickoff_at, awaiting);
+      : cardVersion(forecasts, evaluations, status, fixture.kickoff_at, !upcoming);
   const p = version?.probabilities ?? null;
-  // A match whose every version is a placeholder no model answered (a
-  // competition the model was not trained on, say) has no forecast: the
-  // sentence above says why, once, and no version list or receipt follows it
-  // to repeat the reason or show the placeholder (T-1524).
-  const forecastsAny =
-    forecasts !== null && forecasts.versions.some((v) => v.probabilities !== null);
+  // No forecast, as against a forecast service that did not answer.
+  const none = forecasts !== null && p === null;
   return (
     <article
-      className="flex min-w-0 flex-col gap-5 rounded-card border border-default bg-surface p-4 md:px-6 md:py-5"
+      className={CARD_FRAME}
       data-testid="forecast-reality"
       data-state={forecasts === null ? 'unreachable' : p === null ? 'none' : 'available'}
+      data-part={upcoming ? 'headline' : 'whole'}
     >
-      <h2 className="flex flex-wrap items-center gap-2.5 text-lg font-extrabold font-stretch-semi-expanded md:text-xl">
+      <h2 className={CARD_TITLE}>
         <ModelTag locale={locale} />
-        <Translated locale={locale} message={title} />
+        <Translated locale={locale} message={none ? 'matchCentre.noForecast.title' : title} />
+        {none && (
+          // The state as an icon and a word, as every module says its own.
+          <CoverageBadge
+            state="not_supplied"
+            label={<Translated locale={locale} message="forecastBar.noForecast" />}
+          />
+        )}
       </h2>
       {forecasts === null ? (
         <Notice tone="danger">
           <Translated locale={locale} message="forecast.unreachable" />
         </Notice>
-      ) : version === null ? (
-        <p
-          dir="auto"
-          className="rounded-control border border-dashed border-model px-3 py-2 text-sm text-muted"
-          data-testid="forecast-reality-none"
-        >
-          <Translated
-            locale={locale}
-            message={upcoming ? 'forecast.none' : 'forecastBar.noneBefore'}
-          />
-        </p>
-      ) : p === null ? (
-        <p
-          dir="auto"
-          className="rounded-control border border-dashed border-model px-3 py-2 text-sm text-muted"
-          data-testid="forecast-reality-unavailable"
-        >
-          {version.unavailable_reason !== null ? (
-            unavailableLabel(version.unavailable_reason, locale)
-          ) : (
-            <Translated locale={locale} message="forecast.couldNotProduce" />
-          )}
-        </p>
+      ) : version === null || p === null ? (
+        <>
+          <p
+            dir="auto"
+            className="-mt-2 max-w-190 text-sm text-muted"
+            data-testid={
+              version === null ? 'forecast-reality-none' : 'forecast-reality-unavailable'
+            }
+          >
+            {version === null ? (
+              <Translated
+                locale={locale}
+                message={upcoming ? 'forecast.none' : 'forecastBar.noneBefore'}
+              />
+            ) : version.unavailable_reason !== null ? (
+              unavailableLabel(version.unavailable_reason, locale)
+            ) : (
+              <Translated locale={locale} message="forecast.couldNotProduce" />
+            )}
+            {noPowerIndex && (
+              <span data-testid="forecast-reality-no-power">
+                {' '}
+                <Translated locale={locale} message="matchCentre.noForecast.power" />
+              </span>
+            )}
+          </p>
+          <p className="-mt-2 text-sm">
+            {/* A stopgap the maintainer accepted: there is no page about the
+                model's coverage, and the record lists every competition it has. */}
+            <Link
+              href={`/${locale}/model-accuracy`}
+              className="inline-flex min-h-touch items-center font-bold text-fg underline md:min-h-0"
+              data-testid="forecast-coverage-link"
+            >
+              <Translated locale={locale} message="matchCentre.noForecast.link" />
+            </Link>
+          </p>
+        </>
       ) : (
         <>
+          {!upcoming && (
+            // From kick-off on the card is the forecast as it stood then.
+            <p className="-mt-2 text-sm text-muted" data-testid="forecast-reality-frozen">
+              <Translated locale={locale} message="forecast.verdict.frozen" />
+            </p>
+          )}
           <OutcomeBar
             p={p}
             outcome={final === null ? null : outcomeOf(final)}
@@ -242,26 +325,128 @@ export function ForecastReality({
             locale={locale}
           />
           {final !== null && (
-            <p className="max-w-190 text-sm text-muted" data-testid="forecast-reality-note">
-              {interpolate(t(locale, 'matchCentre.reality.note'), {
-                probability: formatPercent(locale, percentages(p)[outcomeOf(final)]),
-              })}{' '}
-              <Link
-                href={`/${locale}/model-accuracy`}
-                className="font-bold text-fg underline"
-                data-testid="forecast-accuracy-link"
-              >
-                <Translated locale={locale} message="matchCentre.reality.calibration" />
-              </Link>
-            </p>
+            <Result
+              version={version}
+              p={p}
+              final={final}
+              evaluations={evaluations}
+              home={fixture.home.name}
+              away={fixture.away.name}
+              locale={locale}
+            />
           )}
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(16rem,100%),1fr))] gap-4">
-            <Goals version={version} final={final} matchXg={matchXg} locale={locale} />
-            <Likeliest version={version} final={final} locale={locale} />
-          </div>
+          {upcoming ? (
+            <p
+              className="font-mono text-xs leading-relaxed text-model [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
+              data-testid="receipt-short"
+            >
+              <AtApart text={receiptShort(locale, version, timeZone)} />
+            </p>
+          ) : (
+            <Tiles version={version} final={final} matchXg={matchXg} locale={locale} />
+          )}
         </>
       )}
-      {forecasts !== null && forecastsAny && (
+      {!upcoming && (
+        <Record
+          forecasts={forecasts}
+          version={version}
+          fixture={fixture}
+          timeZone={timeZone}
+          locale={locale}
+        />
+      )}
+    </article>
+  );
+}
+
+/**
+ * The model's details before kick-off (T-1744, decision 4): expected goals,
+ * the likeliest scores, every stored version and the receipt, in a card of
+ * the model's own after the reader's pick. Nothing is left out of the page;
+ * only the order changed. Not rendered from kick-off on (the card above is
+ * then whole), nor when no version ever gave probabilities: the headline has
+ * said why, once.
+ */
+export function ForecastDetails({
+  forecasts,
+  evaluations,
+  fixture,
+  matchXg,
+  timeZone,
+  locale: raw,
+}: Omit<RealityProps, 'final'>) {
+  const locale: Locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
+  if (forecasts === null || !isUpcoming(fixture)) return null;
+  if (!forecasts.versions.some((v) => v.probabilities !== null)) return null;
+  const version = cardVersion(forecasts, evaluations, fixture.status, fixture.kickoff_at);
+  return (
+    <article className={CARD_FRAME} data-testid="forecast-details">
+      <h2 className={CARD_TITLE}>
+        <ModelTag locale={locale} />
+        <Translated locale={locale} message="matchCentre.reality.details" />
+      </h2>
+      {version !== null && version.probabilities !== null && (
+        <Tiles version={version} final={null} matchXg={matchXg} locale={locale} />
+      )}
+      <Record
+        forecasts={forecasts}
+        version={version}
+        fixture={fixture}
+        timeZone={timeZone}
+        locale={locale}
+      />
+    </article>
+  );
+}
+
+/** Expected goals and the likeliest scores, side by side where there is room. */
+function Tiles({
+  version,
+  final,
+  matchXg,
+  locale,
+}: {
+  version: ForecastVersion;
+  final: { home: number; away: number } | null;
+  matchXg: { home: number; away: number } | null;
+  locale: Locale;
+}) {
+  return (
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(16rem,100%),1fr))] gap-4">
+      <Goals version={version} final={final} matchXg={matchXg} locale={locale} />
+      <Likeliest version={version} final={final} locale={locale} />
+    </div>
+  );
+}
+
+/**
+ * The stored record under the forecast: every version in order, the receipt
+ * of the version the card is about, and the one link to why (the section
+ * `#forecast`). A match whose every version is a placeholder no model
+ * answered (a competition the model was not trained on, say) has no forecast:
+ * the sentence above says why, once, and no version list or receipt follows
+ * it to repeat the reason or show the placeholder (T-1524).
+ */
+function Record({
+  forecasts,
+  version,
+  fixture,
+  timeZone,
+  locale,
+}: {
+  forecasts: ForecastVersionsResponse | null;
+  version: ForecastVersion | null;
+  fixture: RealityProps['fixture'];
+  timeZone: string;
+  locale: Locale;
+}) {
+  if (forecasts === null) return null;
+  const any = forecasts.versions.some((v) => v.probabilities !== null);
+  const explained = version !== null && version.probabilities !== null;
+  return (
+    <>
+      {any && (
         <Versions
           versions={forecasts.versions}
           current={version?.id ?? null}
@@ -269,18 +454,93 @@ export function ForecastReality({
           locale={locale}
         />
       )}
-      {version !== null && p !== null && (
+      {explained && (
         <p
           className="border-t border-dashed border-default pt-2.5 font-mono text-xs leading-relaxed text-model [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
           data-testid="receipt"
         >
           {/* The model version's `@` set apart: no address in the HTML (T-1580). */}
           <AtApart
-            text={receipt(locale, version, fixture.kickoff_at, timeZone, status === 'live')}
+            text={receipt(locale, version, fixture.kickoff_at, timeZone, fixture.status === 'live')}
           />
         </p>
       )}
-    </article>
+      {explained && (
+        <p className="text-sm">
+          <a
+            href="#forecast"
+            className="inline-flex min-h-touch items-center font-bold text-fg underline md:min-h-0"
+            data-testid="forecast-why-link"
+          >
+            <Translated locale={locale} message="matchCentre.reality.why" />
+          </a>
+        </p>
+      )}
+    </>
+  );
+}
+
+/**
+ * After full time, what happened against what the model gave it (T-1744; the
+ * sentence the removed three-lane card carried): the result, the share the
+ * card's version gave that outcome, and the ranked probability score of this
+ * one match -- only from the stored evaluation of that same version. Not
+ * scored yet is said; a score of another version is never shown as this
+ * one's (rule 3).
+ */
+function Result({
+  version,
+  p,
+  final,
+  evaluations,
+  home,
+  away,
+  locale,
+}: {
+  version: ForecastVersion;
+  p: ModelProbabilities;
+  final: { home: number; away: number };
+  evaluations: FixtureEvaluationsResponse | null;
+  home: string;
+  away: string;
+  locale: Locale;
+}) {
+  const outcome = outcomeOf(final);
+  const scored = evaluations?.evaluations.filter((e) => e.pre_kickoff).at(-1) ?? null;
+  const rps =
+    scored !== null && scored.version_number === version.version_number ? scored.rps : null;
+  return (
+    <p
+      className="max-w-190 text-sm text-muted"
+      data-testid="forecast-reality-result"
+      data-scored={rps !== null}
+    >
+      <span className="font-semibold text-fg">
+        {interpolate(t(locale, 'forecast.verdict.result'), {
+          outcome:
+            outcome === 'draw'
+              ? t(locale, 'forecast.aDraw')
+              : interpolate(t(locale, 'predictions.outcome.teamWin'), {
+                  team: nameIsolate(outcome === 'home' ? home : away),
+                }),
+          probability: formatPercent(locale, percentages(p)[outcome]),
+        })}
+      </span>{' '}
+      {rps !== null ? (
+        <span data-testid="forecast-reality-rps">
+          {interpolate(t(locale, 'matchCentre.reality.rps'), { rps: formatFixed(locale, rps, 3) })}
+        </span>
+      ) : (
+        <Translated locale={locale} message="forecast.verdict.unscored" />
+      )}{' '}
+      <Link
+        href={`/${locale}/model-accuracy`}
+        className="font-bold text-fg underline"
+        data-testid="forecast-accuracy-link"
+      >
+        <Translated locale={locale} message="forecast.verdict.accuracy" />
+      </Link>
+    </p>
   );
 }
 

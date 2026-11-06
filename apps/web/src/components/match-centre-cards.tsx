@@ -2,7 +2,8 @@ import type { CoverageState, Covered } from '@fmip/contracts';
 import type { Message } from '@/i18n/messages';
 import type { MatchWords } from '@/lib/words-server';
 import { MessageText } from '@/components/message-text';
-import { CoverageBadge } from '@/components/ui/coverage-badge';
+import { CoverageBadge, CoverageGlyph } from '@/components/ui/coverage-badge';
+import { cx } from '@/components/ui/cx';
 import { Icon } from '@/components/ui/icons';
 
 /**
@@ -61,32 +62,6 @@ export function DataCard({ children }: { children: React.ReactNode }) {
   return <div className={CARD}>{children}</div>;
 }
 
-/**
- * "What was forecast, and what happened" (board h5, T-1384): after full time,
- * three lanes -- the model's, the founder's and the community's, each its own
- * component from its own file (rule 6) -- passed in as three children and
- * laid side by side where the card is wide, one under another where not.
- */
-export function VerdictCard({
-  title,
-  note,
-  children,
-}: {
-  title: React.ReactNode;
-  note: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex min-w-0 flex-col gap-3" data-testid="verdict">
-      <h2 className="sr-only">{title}</h2>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-4">
-        {children}
-      </div>
-      {note}
-    </section>
-  );
-}
-
 /** A module's title and its coverage badge, a gap between them in either direction. */
 export const MODULE_HEADING = 'flex flex-wrap items-center justify-between gap-x-2 gap-y-1';
 
@@ -100,13 +75,6 @@ export const TITLE = 'text-base font-extrabold text-fg font-stretch-semi-expande
  * `dir="auto"` (T-605): a fallback English sentence in a right-to-left
  * paragraph had its full stop resolved by the paragraph.
  */
-/** The badge of a module that waits for the match (T-1550, T-1627). */
-const PENDING_KEY = {
-  kickoff: 'matchCentre.fromKickoff',
-  lineup: 'matchCentre.beforeKickoff',
-  unplayed: 'matchCentre.notPlayed',
-} as const satisfies Record<'kickoff' | 'lineup' | 'unplayed', Key>;
-
 export function Module<T>({
   title,
   module,
@@ -130,14 +98,13 @@ export function Module<T>({
    */
   notInYet?: boolean;
   /**
-   * The match has not been played (T-1550): `'kickoff'` before kick-off, for
-   * a module the season covers, says it starts then; `'unplayed'` for a
-   * postponed or cancelled match says there was no play to record. Either
-   * replaces "Not supplied for this match", which would read as a verdict
-   * on the feed when the match simply has not happened. `'lineup'` is the
-   * line-ups' own (T-1627): they come before kick-off, not from it.
+   * The match was not played (T-1550): a postponed or cancelled match says
+   * there was no play to record, in place of "Not supplied for this match",
+   * which would read as a verdict on the feed. A match still to come has no
+   * module of its own here: before kick-off the in-play modules are one
+   * card, `ComingCard` (T-1745).
    */
-  before?: 'kickoff' | 'lineup' | 'unplayed' | null;
+  before?: 'unplayed' | null;
   children: (data: T) => React.ReactNode;
 }) {
   const m = words.m;
@@ -145,11 +112,9 @@ export function Module<T>({
   const why: Key =
     pending === 'unplayed'
       ? 'matchCentre.notPlayedWhy'
-      : pending === 'kickoff' || pending === 'lineup'
-        ? (empty ?? 'matchCentre.fromKickoffWhy')
-        : module.coverage === 'delayed'
-          ? 'matchCentre.moduleDelayed'
-          : (empty ?? 'matchCentre.moduleNotSupplied');
+      : module.coverage === 'delayed'
+        ? 'matchCentre.moduleDelayed'
+        : (empty ?? 'matchCentre.moduleNotSupplied');
   const waiting = notInYet && module.data === null;
   const pill =
     'inline-flex min-h-6 items-center gap-1 rounded-pill border border-dashed border-caption px-2 text-xs font-semibold text-muted';
@@ -161,8 +126,7 @@ export function Module<T>({
         </span>
         {pending !== null ? (
           <span dir="auto" className={pill} data-testid="not-yet" data-not-yet={pending}>
-            {pending !== 'unplayed' && <Icon name="clock" size={12} />}
-            <MessageText message={m[PENDING_KEY[pending]]} />
+            <MessageText message={m['matchCentre.notPlayed']} />
           </span>
         ) : waiting ? (
           <span dir="auto" className={pill} data-testid="not-in-yet">
@@ -182,6 +146,166 @@ export function Module<T>({
         </p>
       ) : (
         children(module.data)
+      )}
+    </section>
+  );
+}
+
+/**
+ * What an in-play module will be before the match has kicked off (T-1745,
+ * D-366): `coming` when the season covers it, `limited` when the season's
+ * coverage of it is limited, `delayed` when it is declared delayed, and
+ * `not_supplied` when the season does not cover it and it will not come.
+ */
+export type ComingState = 'coming' | 'limited' | 'delayed' | 'not_supplied';
+
+/** One module the card names: its title, where its tab is, and its state. */
+export interface ComingItem {
+  id: 'timeline' | 'statistics' | 'player_statistics' | 'expected_goals' | 'lineups';
+  title: Key;
+  tab: 'summary' | 'stats' | 'lineups';
+  state: ComingState;
+}
+
+/** The groups in reading order: what will come first, what will not last. */
+const COMING_GROUPS = [
+  ['coming', 'matchCentre.coming.atKickoff', null],
+  ['limited', 'matchCentre.coming.limited', 'matchCentre.coming.limitedWhy'],
+  ['delayed', 'status.coverage.delayed', 'matchCentre.moduleDelayed'],
+  ['not_supplied', 'matchCentre.coming.notSupplied', 'matchCentre.coming.notSuppliedWhy'],
+] as const satisfies readonly (readonly [ComingState, Key, Key | null])[];
+
+/** The glyph of a state: the coverage badge's own, a clock for what is still to come. */
+const COMING_GLYPH = {
+  coming: 'delayed',
+  limited: 'limited',
+  delayed: 'delayed',
+  not_supplied: 'not_supplied',
+} as const satisfies Record<ComingState, CoverageState>;
+
+/**
+ * One module in the card (T-1745): its name behind its state's glyph, the
+ * state's words beside it for a screen reader -- an icon and a word, never
+ * colour alone. What is still expected sits on a dashed edge, as the
+ * coverage badge draws "delayed"; what will not come is quiet.
+ */
+export function CoverageChip({
+  state,
+  word,
+  module,
+  children,
+}: {
+  state: ComingState;
+  /** The state in words, read after the name. */
+  word: Message;
+  module: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li
+      dir="auto"
+      className={cx(
+        'inline-flex min-h-7 items-center gap-1.5 rounded-pill border px-2.5 text-xs font-semibold',
+        state === 'not_supplied'
+          ? 'border-default text-muted'
+          : 'border-dashed border-caption text-fg',
+      )}
+      data-coverage-chip={state}
+      data-module={module}
+    >
+      <CoverageGlyph state={COMING_GLYPH[state]} />
+      <span>{children}</span>
+      <span className="sr-only">
+        {' · '}
+        <MessageText message={word} />
+      </span>
+    </li>
+  );
+}
+
+/**
+ * "After kick-off you'll see" (T-1745, D-366; board P2-3): before kick-off,
+ * the one card that stands where each in-play module -- live timeline,
+ * statistics, player statistics, xG, line-ups -- showed its own empty card.
+ * It lists what will come, grouped by what the season's coverage says: coming
+ * at kick-off, coming with limited coverage, and, named apart, what this
+ * competition does not supply and will not appear. Nothing is drawn as an
+ * empty module and nothing is promised that the season does not cover
+ * (rule 3). With nothing expected at all the card is titled by that group.
+ *
+ * `phone` is the copy a phone's Line-ups or Stats tab shows for its own
+ * modules until their data exists; from 768px, where every section is open,
+ * only the Summary's card is drawn.
+ */
+export function ComingCard({
+  items,
+  words,
+  phone = false,
+}: {
+  items: readonly ComingItem[];
+  words: MatchWords;
+  phone?: boolean;
+}) {
+  const m = words.m;
+  if (items.length === 0) return null;
+  const expected = items.some((item) => item.state !== 'not_supplied');
+  const lineups = items.some((item) => item.id === 'lineups' && item.state !== 'not_supplied');
+  return (
+    <section
+      className={cx(CARD, phone && 'md:hidden')}
+      data-testid="coming"
+      data-coming={phone ? 'tab' : 'all'}
+      data-expected={expected}
+    >
+      <h2 className={MODULE_HEADING}>
+        <span className={cx(TITLE, 'inline-flex items-center gap-2')}>
+          <span className="inline-flex text-muted">
+            <CoverageGlyph state={expected ? 'delayed' : 'not_supplied'} size={16} />
+          </span>
+          <MessageText
+            message={m[expected ? 'matchCentre.coming.title' : 'matchCentre.coming.notSupplied']}
+          />
+        </span>
+      </h2>
+      {expected && (
+        <p dir="auto" className="text-sm text-muted">
+          <MessageText message={m['matchCentre.fromKickoffWhy']} />
+        </p>
+      )}
+      {COMING_GROUPS.map(([state, label, why]) => {
+        const group = items.filter((item) => item.state === state);
+        if (group.length === 0) return null;
+        return (
+          <div key={state} className="flex flex-col gap-2" data-coming-group={state}>
+            {/* With nothing expected the card's title is this group's name. */}
+            {expected && (
+              <h3 className="inline-flex items-center gap-1.5 text-xs font-extrabold text-muted">
+                <CoverageGlyph state={COMING_GLYPH[state]} />
+                <span className="inline-block first-letter:uppercase">
+                  <MessageText message={m[label]} />
+                </span>
+              </h3>
+            )}
+            <ul className="flex flex-wrap gap-1.5">
+              {group.map((item) => (
+                <CoverageChip key={item.id} state={state} word={m[label]} module={item.id}>
+                  <MessageText message={m[item.title]} />
+                </CoverageChip>
+              ))}
+            </ul>
+            {why !== null && (
+              <p dir="auto" className="text-xs text-caption">
+                <MessageText message={m[why]} />
+              </p>
+            )}
+          </div>
+        );
+      })}
+      {lineups && (
+        // Line-ups come about an hour before kick-off, not from it (T-1627).
+        <p dir="auto" className="text-xs text-caption" data-testid="coming-lineups">
+          <MessageText message={m['matchCentre.lineupsNotYet']} />
+        </p>
       )}
     </section>
   );

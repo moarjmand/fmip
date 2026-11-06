@@ -412,9 +412,10 @@ function optionClasses(chosen: boolean, locked: boolean): string {
  * What the stored version says beyond its outcome, and which version it is:
  * the score, the confidence and the reasons on one quiet line when any was
  * given, the note, then "Version 2, submitted … Every version is kept." while
- * the pick is open or "Final version 2 of 3 …" once it is locked.
+ * the pick is open or "Final version 2 of 3 …" once it is locked. Exported
+ * for the match page's locked row (T-1744), which keeps it under its sentence.
  */
-function StoredDetail({
+export function StoredDetail({
   locale,
   prediction,
   locked,

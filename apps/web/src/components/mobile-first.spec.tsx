@@ -331,7 +331,6 @@ describe('the match centre', () => {
     expect(nav).not.toContain('<button');
     // Every anchor another page links to is still on the page, in its tab.
     for (const [id, tab] of Object.entries(SECTIONS)) {
-      if (id === 'verdict') continue; // after full time only
       const at = html.indexOf(`id="${id}"`);
       expect(at).toBeGreaterThan(-1);
       const panel = html.lastIndexOf(`data-tab="${tab}"`, at + `id="${id}"`.length + 200);
@@ -351,19 +350,33 @@ describe('the match centre', () => {
     expect(html).toMatch(/data-column="side"><div class="[^"]*" data-tab="summary">/);
   });
 
-  it('keeps the model, the founder and the community in three sections, in that order', () => {
+  it('keeps the model, the founder and the community in three sections, each once (T-1744)', () => {
     const at = (id: string) => html.indexOf(`id="${id}"`);
-    expect(at('forecast')).toBeLessThan(at('analysis'));
+    // The founder's analysis and the community follow the pick; how the
+    // model's forecast was reached is the lower Predictions section.
+    expect(at('pick')).toBeLessThan(at('predictions'));
+    expect(at('predictions')).toBeLessThan(at('analysis'));
     expect(at('analysis')).toBeLessThan(at('community'));
+    expect(at('community')).toBeLessThan(at('timeline'));
+    expect(at('timeline')).toBeLessThan(at('forecast'));
     const section = (id: string, next: string) => html.slice(at(id), at(next));
-    expect(section('forecast', 'analysis')).toContain('MODEL');
-    expect(section('forecast', 'analysis')).not.toMatch(/FOUNDER|CROWD/);
     expect(section('analysis', 'community')).toContain('FOUNDER');
     expect(section('analysis', 'community')).not.toMatch(/MODEL|CROWD/);
-    expect(section('community', 'watch')).toContain('CROWD');
-    expect(section('community', 'watch')).not.toMatch(/MODEL|FOUNDER/);
-    // All three inside the one Predictions tab, never merged into one section.
-    expect(at('predictions')).toBeLessThan(at('forecast'));
+    expect(section('community', 'timeline')).toContain('CROWD');
+    expect(section('community', 'timeline')).not.toMatch(/MODEL|FOUNDER/);
+    expect(section('forecast', 'watch')).toContain('MODEL');
+    expect(section('forecast', 'watch')).not.toMatch(/FOUNDER|CROWD/);
+    // Each of the three is on the page once.
+    for (const product of ['MODEL', 'FOUNDER', 'CROWD']) {
+      expect(html.split(product).length - 1).toBe(1);
+    }
+    // The founder's and the community's sections are Predictions sections the
+    // Summary also shows, as the pick is: one element each, never a copy.
+    expect(html).toMatch(
+      /id="predictions"[^>]*data-tab="predictions" data-tab-also="summary"><div id="analysis"/,
+    );
+    expect(html).toMatch(/id="forecast"[^>]*data-tab="predictions"/);
+    expect(html).not.toContain('id="verdict"');
   });
 
   it('places the pick directly under the model’s card, a Predictions section the Summary also shows (T-1739)', () => {
@@ -499,8 +512,12 @@ describe('why the line-ups and the absences are empty (T-1364)', () => {
   };
 
   it('says when the official line-up is usually announced, before kick-off only', () => {
-    const before = section(page({ lineups: empty }, 'scheduled'), 'lineups');
-    expect(before).toContain(EN['matchCentre.lineupsNotYet']);
+    // Before kick-off the line-ups are named in the one card of what will
+    // come (T-1745), which keeps their sentence; there is no empty module.
+    const scheduled = page({ lineups: empty }, 'scheduled');
+    expect(scheduled).not.toContain('data-testid="lineups"');
+    const before = scheduled.slice(scheduled.indexOf('data-testid="coming-lineups"'));
+    expect(before.slice(0, before.indexOf('</p>'))).toContain(EN['matchCentre.lineupsNotYet']);
     expect(before).toContain('about an hour before kick-off');
     const after = section(page({ lineups: empty }, 'finished'), 'lineups');
     expect(after).toContain('Not supplied for this match.');

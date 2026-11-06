@@ -8,7 +8,9 @@ import { FilledMessage } from '@/components/filled-message';
 import { LtrNumeric, nameIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { type Triple, difference, sharesToPercentages } from '@/lib/triple';
-import { Icon, Notice } from '@/components/ui';
+import { CoverageBadge, Icon, Notice } from '@/components/ui';
+import { CommunityVoice } from '@/components/voices';
+import { formatNumber } from '@/i18n/format';
 
 /**
  * The community forecast on the match centre (blueprint 4.2, T-135).
@@ -231,78 +233,53 @@ export function CommunityPicksBrief({
 }
 
 /**
- * The community's lane in "What was forecast, and what happened" (T-1384,
- * D-202): after full time every pick is locked, so the spread is open to
- * everyone; the lane says what share of members picked what happened, over
- * the spread and how many picks it is drawn from. The members' picks only:
- * a spread of picks, never a probability and never beside the model's or the
- * founder's in one figure (rule 6). Below D-052's floor there is no consensus
- * to set against the result, and the lane says so (rule 3).
+ * The community picks with nothing to show (T-1744, D-365): one compact row
+ * in the community's own voice -- the prediction service did not answer, or
+ * fewer than D-052's floor have picked, which is no consensus rather than a
+ * small one (rule 3) -- where a card stood. `null` when there is a consensus:
+ * the page then draws `CommunityForecastPanel` in the community's voice.
  */
-export function CommunityVerdict({
+export function CommunityPicksRow({
   consensus,
-  result,
-  home,
-  away,
   locale,
 }: {
   consensus: CommunityConsensusResponse | null;
-  /** The full-time score. */
-  result: { home: number; away: number };
-  home: string;
-  away: string;
   locale: string;
 }) {
   const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const data = consensus?.data ?? null;
-  const outcome: (typeof OUTCOME_KEYS)[number] =
-    result.home > result.away ? 'home' : result.home < result.away ? 'away' : 'draw';
+  if (consensus !== null && consensus.data !== null) return null;
   return (
-    <div
-      className="flex flex-col gap-2"
-      data-testid="community-verdict"
-      data-state={consensus === null ? 'unreachable' : data === null ? 'not_supplied' : 'available'}
-    >
-      {consensus === null ? (
-        <p className="text-sm text-muted">
+    <CommunityVoice
+      locale={l}
+      testId="consensus"
+      state={consensus === null ? 'unreachable' : 'not_supplied'}
+      empty={
+        consensus === null ? (
           <Translated locale={l} message="matchCentre.community.unreachable" />
-        </p>
-      ) : data === null ? (
-        <p className="text-sm text-muted">
+        ) : (
           <Translated
             locale={l}
             message="matchCentre.community.belowFloor"
             count={MIN_CONSENSUS_SAMPLE}
           />
-        </p>
-      ) : (
-        <>
-          <p className="text-2xl leading-tight font-black" data-testid="community-verdict-share">
-            {interpolate(
-              t(
-                l,
-                outcome === 'draw'
-                  ? 'matchCentre.community.verdict.draw'
-                  : 'matchCentre.community.verdict.win',
-              ),
-              {
-                share: formatPercent(l, sharesToPercentages(data.crowd.shares)[outcome]),
-                team: nameIsolate(outcome === 'home' ? home : away),
-              },
-            )}
-          </p>
-          <SpreadBar
-            percentages={sharesToPercentages(data.crowd.shares)}
-            home={home}
-            away={away}
-            locale={l}
-          />
-          <p className="text-xs text-caption">
-            <Translated locale={l} message="pick.picks" count={data.sample} />
-          </p>
-        </>
-      )}
-    </div>
+        )
+      }
+      row={
+        <CoverageBadge
+          state="not_supplied"
+          label={
+            consensus === null ? (
+              <Translated locale={l} message="lanes.row.unreachable" />
+            ) : (
+              <FilledMessage
+                message={message(l, 'lanes.row.underFloor')}
+                params={{ count: formatNumber(l, MIN_CONSENSUS_SAMPLE) }}
+              />
+            )
+          }
+        />
+      }
+    />
   );
 }
 
@@ -314,12 +291,20 @@ export function CommunityForecastPanel({
   model,
   locale,
   revealed = true,
+  result = null,
 }: {
   consensus: CommunityConsensusResponse | null;
   home: string;
   away: string;
   timeZone: string;
   locale: string;
+  /**
+   * The full-time score, once there is one (T-1744): the panel then opens
+   * with the share of members who picked what happened. The members' picks
+   * only: a spread of picks against a result, never a probability and never
+   * beside the model's or the founder's in one figure (rule 6).
+   */
+  result?: { home: number; away: number } | null;
   /**
    * Whether the reader may see the spread (T-1388, D-206): on the match centre,
    * only once they have made their own pick, or once kick-off has locked every
@@ -399,6 +384,14 @@ export function CommunityForecastPanel({
   const crowdPercentages = sharesToPercentages(crowd.shares);
   const weightedPercentages = weighted === null ? null : sharesToPercentages(weighted.shares);
   const gap = model === null ? null : difference(crowdPercentages, sharesToPercentages(model));
+  const happened: (typeof OUTCOME_KEYS)[number] | null =
+    result === null
+      ? null
+      : result.home > result.away
+        ? 'home'
+        : result.home < result.away
+          ? 'away'
+          : 'draw';
 
   return (
     <section
@@ -411,6 +404,23 @@ export function CommunityForecastPanel({
       <p className="text-xs text-muted">
         <Translated locale={locale} message="matchCentre.community.intro" />
       </p>
+
+      {happened !== null && (
+        <p className="text-xl leading-tight font-black" data-testid="community-verdict-share">
+          {interpolate(
+            t(
+              l,
+              happened === 'draw'
+                ? 'matchCentre.community.verdict.draw'
+                : 'matchCentre.community.verdict.win',
+            ),
+            {
+              share: formatPercent(l, crowdPercentages[happened]),
+              team: nameIsolate(happened === 'home' ? home : away),
+            },
+          )}
+        </p>
+      )}
 
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-medium">
