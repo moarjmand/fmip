@@ -8,7 +8,7 @@ import {
   type PluralForms,
   type PluralKey,
 } from '@/i18n/messages';
-import { FORECAST_BAR_KEYS, type ForecastBarWords } from '@/components/forecast-bar';
+import { FORECAST_BAR_KEYS, type ForecastBarWords } from '@/components/forecast-receipt';
 import { STAGE_KEYS } from '@/lib/stage-label';
 import type { ClientPlural, ClientWords } from '@/lib/words';
 
@@ -153,6 +153,8 @@ export const SCORES_KEYS = [
   'scores.card.community.label',
   // The match row and its preview (T-1496).
   'forecastBar.label',
+  // What happened, said in the row bar's accessible name (T-1749).
+  'forecastBar.happened',
   'scores.unpickedEmpty',
   'scores.row.pick',
   'scores.row.picked',

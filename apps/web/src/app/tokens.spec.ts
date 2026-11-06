@@ -292,7 +292,7 @@ describe('more contrast, as a whole (T-621)', () => {
 describe('the tokens themselves', () => {
   it('declare the same names in light and in both ways to dark', () => {
     const names = [...LIGHT.keys()].sort();
-    expect(names.length).toBe(32);
+    expect(names.length).toBe(30);
     expect([...DARK.keys()].sort()).toEqual(names);
     expect([...DARK_CHOSEN.keys()].sort()).toEqual(names);
   });
@@ -400,19 +400,12 @@ describe('the tokens themselves', () => {
     }
   });
 
-  it('draw the forecast bar in three lightnesses, home the model colour itself (T-1493)', () => {
-    // Home, draw and away differ in lightness, so the bar reads without hue;
-    // the three percentages are always written beside it.
-    for (const theme of [LIGHT, DARK, LIGHT_MORE, DARK_MORE]) {
-      const [home, draw, away] = [
-        value(theme, '--token-model'),
-        value(theme, '--token-prob-draw'),
-        value(theme, '--token-prob-away'),
-      ];
-      expect(contrast(home, draw), 'home and draw').toBeGreaterThanOrEqual(1.2);
-      expect(contrast(draw, away), 'draw and away').toBeGreaterThanOrEqual(1.2);
-      expect(contrast(home, away), 'home and away').toBeGreaterThanOrEqual(1.2);
-    }
+  it('have no token for the forecast bar: its steps are the model colour itself (T-1748, D-368)', () => {
+    // The bar's three steps are `bg-model` at full, 75% and 50% by the rank
+    // of each share; the two tokens that coloured draw and away by their
+    // place are gone, and must not come back under the same names.
+    expect(TOKENS).not.toMatch(/--token-prob-(draw|away)/);
+    expect(GLOBALS).not.toMatch(/--color-prob-(draw|away)/);
   });
 
   it('are what every Tailwind colour class in globals.css reads', () => {

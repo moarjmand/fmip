@@ -13,6 +13,8 @@ import { type MessageKey, interpolate, t } from '@/i18n/messages';
 import { kindLabel, percentages, unavailableLabel } from '@/lib/forecast';
 import { formatFixed, formatPercent } from '@/lib/words';
 import { zoneWords } from '@/lib/reader-time-zone';
+import { forecastBarWords } from '@/lib/words-server';
+import { ForecastBar } from '@/components/forecast-bar';
 import { AtApart } from '@/components/model-version';
 import { nameIsolate, pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
@@ -40,8 +42,6 @@ import { cx } from '@/components/ui/cx';
  * counts as after: its card is the stored forecast from before kick-off,
  * titled so, never the latest presented as a match still to come.
  */
-
-const STEPS = { home: 'bg-model', draw: 'bg-model/55', away: 'bg-model/25' } as const;
 
 /** The version a card about this match is about (see above). */
 export function cardVersion(
@@ -350,12 +350,18 @@ export function ForecastReality({
               <Translated locale={locale} message="forecast.verdict.frozen" />
             </p>
           )}
-          <OutcomeBar
-            p={p}
+          {/* The one bar at headline size (T-1748, D-368); after full time
+              the outcome that happened is outlined, ticked and named in
+              words (T-1749, D-369). The receipt is the card's own. */}
+          <ForecastBar
+            forecast={percentages(p)}
+            size="headline"
             outcome={final === null ? null : outcomeOf(final)}
             home={fixture.home.name}
             away={fixture.away.name}
             locale={locale}
+            words={forecastBarWords(locale)}
+            testId="outcome-bar"
           />
           {final !== null && (
             <Result
@@ -370,7 +376,10 @@ export function ForecastReality({
           )}
           {upcoming ? (
             <p
-              className="font-mono text-xs leading-relaxed text-model [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
+              // On a phone the receipt stands closer to its bar: the 8px pay
+              // for the names' second line, so the headline is never taller
+              // than it was with one line of labels (T-1748).
+              className="font-mono text-xs leading-relaxed text-model max-md:-mt-2 [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
               data-testid="receipt-short"
             >
               {/* A phone has room for the model and the version on one line;
@@ -393,6 +402,7 @@ export function ForecastReality({
           forecasts={forecasts}
           version={version}
           fixture={fixture}
+          outcome={final === null ? null : outcomeOf(final)}
           timeZone={timeZone}
           locale={locale}
         />
@@ -473,12 +483,15 @@ function Record({
   forecasts,
   version,
   fixture,
+  outcome = null,
   timeZone,
   locale,
 }: {
   forecasts: ForecastVersionsResponse | null;
   version: ForecastVersion | null;
   fixture: RealityProps['fixture'];
+  /** What happened, once there is a full-time score. */
+  outcome?: MatchOutcome | null;
   timeZone: string;
   locale: Locale;
 }) {
@@ -491,6 +504,9 @@ function Record({
         <Versions
           versions={forecasts.versions}
           current={version?.id ?? null}
+          outcome={outcome}
+          home={fixture.home.name}
+          away={fixture.away.name}
           timeZone={timeZone}
           locale={locale}
         />
@@ -582,65 +598,6 @@ function Result({
         <Translated locale={locale} message="forecast.verdict.accuracy" />
       </Link>
     </p>
-  );
-}
-
-/**
- * The model's three chances as one bar (Design System `ForecastBar`), the
- * three percentages written above it; after full time the segment that
- * happened turns saffron and its label says so.
- */
-function OutcomeBar({
-  p,
-  outcome,
-  home,
-  away,
-  locale,
-}: {
-  p: ModelProbabilities;
-  outcome: MatchOutcome | null;
-  home: string;
-  away: string;
-  locale: Locale;
-}) {
-  const pct = percentages(p);
-  const outcomes = [
-    { key: 'home', name: home, value: pct.home },
-    { key: 'draw', name: t(locale, 'forecast.draw'), value: pct.draw },
-    { key: 'away', name: away, value: pct.away },
-  ] as const;
-  const label = (name: string, value: number) => `${name} ${formatPercent(locale, value)}`;
-  return (
-    <div className="flex flex-col gap-2" data-testid="outcome-bar">
-      <div className="flex flex-wrap justify-between gap-x-2 gap-y-1 text-sm font-bold tabular-nums max-md:font-stretch-condensed md:gap-x-4 md:text-base">
-        {outcomes.map(({ key, name, value }) => (
-          <span
-            key={key}
-            data-outcome={key}
-            data-happened={key === outcome ? '' : undefined}
-            className={key === outcome ? 'text-accent' : key === 'draw' ? 'text-muted' : 'text-fg'}
-          >
-            {key === outcome ? (
-              interpolate(t(locale, 'matchCentre.reality.happened'), {
-                outcome: label(name, value),
-              })
-            ) : (
-              <bdi>{label(name, value)}</bdi>
-            )}
-          </span>
-        ))}
-      </div>
-      <div aria-hidden="true" className="flex h-4.5 gap-0.5 overflow-hidden rounded-pill">
-        {outcomes.map(({ key, value }) => (
-          <span
-            key={key}
-            data-outcome={key}
-            className={key === outcome ? 'bg-accent' : STEPS[key]}
-            style={{ flexGrow: Math.max(value, 1.5), flexBasis: 0 }}
-          />
-        ))}
-      </div>
-    </div>
   );
 }
 
@@ -759,21 +716,31 @@ function Likeliest({
 
 /**
  * Every stored version in the order it was computed (rule 5): its number,
- * kind and time, its own three chances as it gave them, or why it gave none.
- * The version the card is about is marked; none is ever re-drawn.
+ * kind and time, its own three chances as it gave them -- the one bar with a
+ * label on each segment -- or why it gave none. The version the card is
+ * about is marked; none is ever re-drawn. After full time the outcome that
+ * happened is marked on every version's bar (T-1749).
  */
 function Versions({
   versions,
   current,
+  outcome,
+  home,
+  away,
   timeZone,
   locale,
 }: {
   versions: ForecastVersion[];
   current: string | null;
+  /** What happened, once the match is over: marked on every version. */
+  outcome: MatchOutcome | null;
+  home: string;
+  away: string;
   timeZone: string;
   locale: Locale;
 }) {
   const ordered = [...versions].sort((a, b) => a.version_number - b.version_number);
+  const words = forecastBarWords(locale);
   return (
     <div className="flex flex-col gap-2.5" data-testid="forecast-versions-list">
       <h3 className={KICKER}>
@@ -808,25 +775,22 @@ function Versions({
                     : t(locale, 'forecast.unavailable')}
                 </span>
               ) : (
-                <>
-                  <span
-                    aria-hidden="true"
-                    className="col-start-2 flex h-2 gap-0.5 overflow-hidden rounded-pill md:col-start-3"
-                  >
-                    {(['home', 'draw', 'away'] as const).map((key) => (
-                      <span
-                        key={key}
-                        className={STEPS[key]}
-                        style={{ flexGrow: Math.max(p[key], 1.5), flexBasis: 0 }}
-                      />
-                    ))}
-                  </span>
-                  <span className="col-start-2 font-mono text-xs md:col-start-4 md:text-end">
-                    {[p.home, p.draw, p.away]
-                      .map((value) => formatPercent(locale, value))
-                      .join(' · ')}
-                  </span>
-                </>
+                // The one bar at row size with its labels: each figure over
+                // its own segment and the side's name where it fits, so the
+                // order no longer has to be known (T-1748); what happened is
+                // marked on every version (T-1749).
+                <ForecastBar
+                  forecast={p}
+                  size="row"
+                  labels="named"
+                  outcome={outcome}
+                  home={home}
+                  away={away}
+                  locale={locale}
+                  words={words}
+                  className="col-start-2 md:col-span-2 md:col-start-3"
+                  testId="version-bar"
+                />
               )}
             </li>
           );

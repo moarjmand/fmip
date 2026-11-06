@@ -9067,21 +9067,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "modelAccuracy.kpi.rpsMeaning": {
-    "source": "How far the probabilities were from the result; 0 is perfect.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "modelAccuracy.kpi.brierMeaning": {
-    "source": "The squared distance between the probabilities and the result.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "modelAccuracy.kpi.logLossMeaning": {
-    "source": "How surprised the model was by the results.",
-    "text": "",
-    "status": "untranslated"
-  },
   "modelAccuracy.competition.months": {
     "source": "Month by month",
     "text": "",
@@ -9089,6 +9074,291 @@
   },
   "modelAccuracy.competition.weeks": {
     "source": "Week by week",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.versionsCombined": {
+    "source": "The figures combine these versions; they are not yet shown version by version.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.right": {
+    "source": {
+      "one": "Over {count} match, the model picked the right result {share} of the time; a blind guess gets about {guess}.",
+      "other": "Over {count} matches, the model picked the right result {share} of the time; a blind guess gets about {guess}."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.less": {
+    "source": "Its probabilities also had {edge} less error than a guess of one third each.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.more": {
+    "source": "Its probabilities had {edge} more error than a guess of one third each.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.rightCaption": {
+    "source": {
+      "one": "of {count} match called right",
+      "other": "of {count} matches called right"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.lessCaption": {
+    "source": "less error than a guess of one third each",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.moreCaption": {
+    "source": "more error than a guess of one third each",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.rightExact": {
+    "source": "Exactly {share}. A blind guess gets about {guess}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.rpsExact": {
+    "source": "Ranked probability score (RPS): {model} for the model, {guess} for the guess. Lower is better.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.model": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.guess": {
+    "source": "A guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.arithmetic": {
+    "source": "{equation}, so {percent}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.range": {
+    "source": {
+      "one": "{count} match, {from} to {to}",
+      "other": "{count} matches, {from} to {to}"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.caveat": {
+    "source": "A guess of one third each is the weakest benchmark. It shows the model knows something; it does not show that it beats bookmakers or other models, and this page cannot say.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.early": {
+    "source": {
+      "one": "{count} week and {matches} matches are an early record, not a verdict.",
+      "other": "{count} weeks and {matches} matches are an early record, not a verdict."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.limitedNote": {
+    "source": "With so few matches the page draws no headline figure and no chart. What has been scored so far is under “Show all measures”, marked limited.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.title": {
+    "source": "Each week, how much better than a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.lede": {
+    "source": "How much lower the model’s RPS error was than a one-third guess on the same matches. Taller is better.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.allBeat": {
+    "source": "Every week so far beat a guess; the margin moved between {low} and {high}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.someWorse": {
+    "source": {
+      "one": "{count} week of {weeks} was worse than a guess; its bar is drawn below the line.",
+      "other": "{count} weeks of {weeks} were worse than a guess; their bars are drawn below the line."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.chartLabel": {
+    "source": {
+      "one": "Bar chart of how much better than a guess the model was in {count} week: {values}; {overall} over all {matches} matches.",
+      "other": "Bar chart of how much better than a guess the model was in each of {count} weeks: {values}; {overall} over all {matches} matches."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.overall": {
+    "source": {
+      "one": "All {count} match: {edge}",
+      "other": "All {count} matches: {edge}"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.partial": {
+    "source": "The last week is incomplete (scored to {date}), so its bar is lighter and dashed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.partialMark": {
+    "source": "incomplete",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.thin": {
+    "source": "Lighter and dashed: fewer than {minimum} matches that week.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.axis": {
+    "source": "Each week is named by its Monday (UTC); the number under it is its matches scored.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.latest": {
+    "source": "The chart shows the latest {weeks} weeks; every week is in the table.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.table": {
+    "source": "The chart as a table",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.edge": {
+    "source": "Better than a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.tooFew": {
+    "source": "The weekly chart appears once two complete weeks have been scored.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.soFar": {
+    "source": {
+      "one": "So far: {count} week.",
+      "other": "So far: {count} weeks."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.unreachable": {
+    "source": "The weekly figures cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.lede": {
+    "source": "How much better than a guess, by competition. On the “Better” side of the line: better than a guess; on the other side: worse. Dashed: fewer than {minimum} matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.worse": {
+    "source": "Worse than a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.better": {
+    "source": "Better",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.competition": {
+    "source": "Competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.groupFull": {
+    "source": {
+      "one": "{minimum} matches or more · {count} competition",
+      "other": "{minimum} matches or more · {count} competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.groupEarly": {
+    "source": {
+      "one": "Early record: fewer than {minimum} matches · {count} competition. An early record, not a verdict.",
+      "other": "Early record: fewer than {minimum} matches · {count} competitions. An early record, not a verdict."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.sortedByMatches": {
+    "source": "Sorted by matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.sortByEdge": {
+    "source": "Sort by edge over a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.sortedByEdge": {
+    "source": "Sorted by edge over a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.sortByMatches": {
+    "source": "Sort by matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.page": {
+    "source": "{name}: the competition’s page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.title": {
+    "source": "Show all measures",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.lede": {
+    "source": "RPS, Brier, log loss, the month and week tables, what the figures mean",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.rps": {
+    "source": "How far the three probabilities were from what happened, with part credit for a near miss. 0 is perfect.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.brier": {
+    "source": "The average squared gap between each probability and what happened.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.logLoss": {
+    "source": "How surprised the model was by the results; being confidently wrong costs the most.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.cta.title": {
+    "source": "See today’s forecasts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.cta.lede": {
+    "source": "Every forecast is stored before kick-off and never edited, so this record can be checked against the next match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.cta.button": {
+    "source": "See today’s forecasts",
     "text": "",
     "status": "untranslated"
   },
@@ -14041,11 +14311,6 @@
   },
   "matchCentre.reality.details": {
     "source": "Forecast details",
-    "text": "",
-    "status": "untranslated"
-  },
-  "matchCentre.reality.happened": {
-    "source": "{outcome} · happened",
     "text": "",
     "status": "untranslated"
   },
