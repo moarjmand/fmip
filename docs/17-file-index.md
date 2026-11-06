@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2361), grouped by folder, with one line on
+Every file in the repository (2353), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -207,7 +207,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/highlights`](#appswebsrcapplocalehighlights) — 4
 - [`apps/web/src/app/[locale]/leaderboard`](#appswebsrcapplocaleleaderboard) — 1
 - [`apps/web/src/app/[locale]/login`](#appswebsrcapplocalelogin) — 1
-- [`apps/web/src/app/[locale]/match/[id]`](#appswebsrcapplocalematchid) — 7
+- [`apps/web/src/app/[locale]/match/[id]`](#appswebsrcapplocalematchid) — 5
 - [`apps/web/src/app/[locale]/messages`](#appswebsrcapplocalemessages) — 1
 - [`apps/web/src/app/[locale]/messages/[id]`](#appswebsrcapplocalemessagesid) — 1
 - [`apps/web/src/app/[locale]/model-accuracy`](#appswebsrcapplocalemodel-accuracy) — 1
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 38
+- [`docs`](#docs) — 32
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -2448,8 +2448,6 @@ machine, `docs/18-handover.md`.
 | `match-pick.tsx` | The reader's pick on the match page (T-1739, D-360; boards P1-3a and P1-3b), two server components and no script of their own. |
 | `opengraph-image.tsx` | The card a chat app shows for a match link (T-520; A10 "Matchday poster", T-1723): the crests and teams, the score or the kick-off, and the statistical model's forecast from before kick-off. |
 | `page.tsx` | The match centre page (blueprint 4.2, T-034). |
-| `page.tsx` | The match centre page (blueprint 4.2, T-034). |
-| `page.tsx` | The match centre page (blueprint 4.2, T-034). |
 
 ## apps/web/src/app/[locale]/messages
 
@@ -3473,19 +3471,13 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
-| `03-project-map.md` | Project map |
-| `03-project-map.md` | Project map |
 | `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |

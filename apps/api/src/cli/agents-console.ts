@@ -32,6 +32,7 @@ import {
 } from '../modules/agents-console/internal/request-image-files';
 import { IMAGE_ID } from '../modules/agents-console/internal/request-images';
 import { hashToken, newToken, sessionSecretFromEnv } from '../modules/identity/identity.service';
+import { leaveWhenWritten } from './leave';
 
 /**
  * The agents console's server side that has no route (T-1696, T-1697,
@@ -374,10 +375,11 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
 
 if (require.main === module) {
   main().then(
-    (code) => process.exit(code),
+    // Not `process.exit` at once: a long answer to a pipe would be cut (T-1754).
+    (code) => leaveWhenWritten(code),
     (error: unknown) => {
       new Logger('agents-console').error(error instanceof Error ? error.message : String(error));
-      process.exit(1);
+      leaveWhenWritten(1);
     },
   );
 }
