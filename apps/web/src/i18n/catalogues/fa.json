@@ -8282,6 +8282,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "match.follow.short": {
+    "source": "Follow",
+    "text": "دنبال کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
+  },
   "match.follow.unreachable": {
     "source": "Whether you follow this match cannot be checked right now.",
     "text": "اکنون نمی‌توان بررسی کرد که این بازی را دنبال می‌کنید یا نه.",
@@ -9164,6 +9170,30 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.freshness.checked": {
+    "source": "Data checked {time}",
+    "text": "آخرین بررسی داده‌ها {time}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
+  },
+  "matchCentre.freshness.stale": {
+    "source": "Data may be out of date, last checked {time}",
+    "text": "داده‌ها شاید به‌روز نباشند؛ آخرین بررسی {time}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
+  },
+  "matchCentre.freshness.details": {
+    "source": "Details",
+    "text": "جزئیات",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
+  },
+  "matchCentre.kickoffIn": {
+    "source": "Kick-off {time} {zone}",
+    "text": "شروع بازی {time} {zone}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
+  },
   "matchCentre.onThisPage": {
     "source": "On this page",
     "text": "در این صفحه",
@@ -9626,11 +9656,29 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (T-1626)."
   },
-  "matchCentre.beforeKickoff": {
-    "source": "Before kick-off",
-    "text": "پیش از شروع بازی",
+  "matchCentre.absences.group": {
+    "source": "{status} · {reason} ({count})",
+    "text": "{status} · {reason} ({count})",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (T-1627)."
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.absences.groupPlain": {
+    "source": "{status} ({count})",
+    "text": "{status} ({count})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.absences.more": {
+    "source": "Show {count} more",
+    "text": "نمایش {count} نفر دیگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.absences.names": {
+    "source": "Show {count} names",
+    "text": "نمایش {count} نام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.absenceReason.injury": {
     "source": "Injury",
@@ -10064,12 +10112,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.context.record": {
-    "source": "W {won} · D {drawn} · L {lost} · GD {difference}",
-    "text": "ب {won} · م {drawn} · ش {lost} · تفاضل {difference}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "matchCentre.context.form": {
     "source": "Form in this competition only, latest first:",
     "text": "فرم فقط در این رقابت، تازه‌ترین اول:",
@@ -10085,6 +10127,12 @@
   "matchCentre.context.formScope": {
     "source": "Form here counts only matches in this competition; Recent form counts the last five in every competition.",
     "text": "فرم در این‌جا فقط بازی‌های همین رقابت را می‌شمارد؛ «فرم اخیر» پنج بازی آخر را در همه‌ی رقابت‌ها می‌شمارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.context.gaps": {
+    "source": "Gaps to the places around",
+    "text": "فاصله با رتبه‌های بالا و پایین",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -10532,6 +10580,24 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "forecast.how.title": {
+    "source": "How the forecast was reached",
+    "text": "پیش‌بینی چگونه به دست آمد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.how.pointer": {
+    "source": "The forecast and every version are in {summary}; this section only says why.",
+    "text": "پیش‌بینی و همه‌ی نسخه‌ها در {summary} آمده‌اند؛ این بخش فقط دلیلش را می‌گوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.how.summary": {
+    "source": "the summary",
+    "text": "خلاصه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "forecast.unreachable": {
     "source": "The forecast service could not be reached, so no forecast can be shown.",
     "text": "سرویس پیش‌بینی مدل آماری در دسترس نبود، بنابراین هیچ پیش‌بینی‌ای را نمی‌توان نشان داد.",
@@ -10547,24 +10613,6 @@
   "forecast.couldNotProduce": {
     "source": "The model could not produce a forecast.",
     "text": "مدل آماری نتوانست پیش‌بینی‌ای ارائه کند.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.versionLine": {
-    "source": "Version {version} · {kind} · computed {time}",
-    "text": "نسخه‌ی {version} · {kind} · محاسبه‌شده در {time}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.meta": {
-    "source": "Version {version} · {kind} · computed {time} · model {model} · data {completeness}",
-    "text": "نسخه‌ی {version} · {kind} · محاسبه‌شده در {time} · مدل {model} · داده {completeness}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.unknown": {
-    "source": "unknown",
-    "text": "نامعلوم",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -10601,24 +10649,6 @@
   "forecast.draw": {
     "source": "Draw",
     "text": "مساوی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.expectedGoals": {
-    "source": "Expected goals {home} – {away}",
-    "text": "گل مورد انتظار {home} – {away}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.scorelines": {
-    "source": "Most likely scorelines: {list}",
-    "text": "محتمل‌ترین نتیجه‌ها: {list}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "forecast.scoreline": {
-    "source": "{score} ({probability})",
-    "text": "{score} ({probability})",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -10667,6 +10697,24 @@
   "forecast.evaluation.scores": {
     "source": "Log loss {logLoss}, Brier {brier} (lower is better; knowing nothing scores 1.099 and 0.667).",
     "text": "لاگ‌لاس {logLoss}، بریر {brier} (کمتر بهتر است؛ پیش‌بینی بی‌اطلاع ۱٫۰۹۹ و ۰٫۶۶۷ می‌گیرد).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.evaluation.plain": {
+    "source": "Both numbers measure how much probability the model put on what really happened.",
+    "text": "هر دو عدد می‌سنجند مدل به آنچه واقعاً رخ داد چه‌قدر احتمال داده بود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.evaluation.worse": {
+    "source": "Here both are worse than knowing nothing.",
+    "text": "این‌جا هر دو از پیش‌بینی بی‌اطلاع بدترند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "forecast.evaluation.better": {
+    "source": "Here both are better than knowing nothing.",
+    "text": "این‌جا هر دو از پیش‌بینی بی‌اطلاع بهترند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -12653,6 +12701,12 @@
   "analysis.community.title": {
     "source": "Analysis from approved contributors",
     "text": "تحلیل تحلیلگران تأییدشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "analysis.community.rowTitle": {
+    "source": "Approved contributors",
+    "text": "تحلیلگران تأییدشده",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -16652,6 +16706,30 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "lanes.others": {
+    "source": "Other predictions of this match",
+    "text": "پیش‌بینی‌های دیگر این بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.row.none": {
+    "source": "None yet",
+    "text": "هنوز نیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.row.underFloor": {
+    "source": "Under {count}",
+    "text": "کمتر از {count}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "lanes.row.unreachable": {
+    "source": "Not loaded",
+    "text": "بارگیری نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "pick.make": {
     "source": "Make your pick",
     "text": "انتخاب کنید",
@@ -16964,21 +17042,21 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.reality.details": {
+    "source": "Forecast details",
+    "text": "جزئیات پیش‌بینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.reality.happened": {
     "source": "{outcome} · happened",
     "text": "{outcome} · رخ داد",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.reality.note": {
-    "source": "The model gave what happened {probability} before kick-off. A forecast is a share, not a promise: what matters is whether calls like this come true at the rate they claim.",
-    "text": "مدل پیش از شروع بازی به آنچه رخ داد {probability} داده بود. پیش‌بینی یک سهم است، نه یک وعده: مهم این است که پیش‌بینی‌هایی از این دست به همان نسبتی که می‌گویند درست درآیند.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "matchCentre.reality.calibration": {
-    "source": "The model's record",
-    "text": "کارنامه‌ی مدل",
+  "matchCentre.reality.rps": {
+    "source": "Ranked probability score for this match {rps} (0 is perfect).",
+    "text": "امتیاز احتمال رتبه‌ای (RPS) این بازی {rps} (صفر یعنی بی‌خطا).",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -17033,6 +17111,30 @@
   "matchCentre.reality.version": {
     "source": "v{version}",
     "text": "نسخه‌ی {version}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.reality.why": {
+    "source": "Why these numbers: leading factors and what changed between versions",
+    "text": "چرا این اعداد: عوامل اصلی و تغییرات میان نسخه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.noForecast.title": {
+    "source": "No model forecast for this match",
+    "text": "این بازی پیش‌بینی مدل آماری ندارد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.noForecast.power": {
+    "source": "There is no Power Index for it either.",
+    "text": "شاخص قدرت هم برای آن وجود ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.noForecast.link": {
+    "source": "Which competitions does the model cover?",
+    "text": "مدل کدام رقابت‌ها را پوشش می‌دهد؟",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -17126,15 +17228,45 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.fromKickoff": {
-    "source": "From kick-off",
-    "text": "از شروع بازی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "matchCentre.fromKickoffWhy": {
     "source": "Recorded once the match kicks off; nothing is shown before then.",
     "text": "از لحظه‌ی شروع بازی ثبت می‌شود؛ پیش از آن چیزی نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.title": {
+    "source": "After kick-off you'll see",
+    "text": "پس از شروع بازی می‌بینید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.atKickoff": {
+    "source": "Coming at kick-off",
+    "text": "از شروع بازی می‌آید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.limited": {
+    "source": "Coming, with limited coverage",
+    "text": "می‌آید، با پوشش ناقص",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.limitedWhy": {
+    "source": "Limited: our source supplies only part of this in this competition, so some of it can be missing for this match.",
+    "text": "ناقص: منبع ما در این رقابت فقط بخشی از این داده‌ها را می‌دهد، پس ممکن است برای این بازی بخشی از آن نباشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.notSupplied": {
+    "source": "Not supplied in this competition",
+    "text": "در این رقابت ارائه نمی‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.notSuppliedWhy": {
+    "source": "We do not receive these for this competition, so they will not appear after kick-off either.",
+    "text": "این‌ها را برای این رقابت دریافت نمی‌کنیم، پس پس از شروع بازی هم نمایش داده نمی‌شوند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -17186,12 +17318,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.verdict.title": {
-    "source": "What was forecast, and what happened",
-    "text": "پیش‌بینی‌ها و آنچه رخ داد",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "forecast.verdict.frozen": {
     "source": "Pre-match forecast, frozen at kick-off. It does not update during the match.",
     "text": "پیش‌بینی پیش از بازی، ثابت از سوت شروع؛ در طول بازی به‌روز نمی‌شود.",
@@ -17204,12 +17330,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "forecast.verdict.rps": {
-    "source": "ranked probability score for this match · 0 is perfect",
-    "text": "امتیاز احتمال رتبه‌ای (RPS) این بازی · صفر یعنی بی‌خطا",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "forecast.verdict.unscored": {
     "source": "Not scored yet: the evaluation runs once the result is confirmed.",
     "text": "هنوز ارزیابی نشده است: ارزیابی پس از قطعی شدن نتیجه انجام می‌شود.",
@@ -17219,12 +17339,6 @@
   "forecast.verdict.accuracy": {
     "source": "One match says little: the model's record",
     "text": "یک بازی چیز زیادی نمی‌گوید: کارنامه‌ی مدل",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "analysis.founder.verdict.pick": {
-    "source": "Pick:",
-    "text": "انتخاب:",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

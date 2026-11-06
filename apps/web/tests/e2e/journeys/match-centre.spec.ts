@@ -46,11 +46,72 @@ for (const locale of ['en', 'fa', 'x-rtl'] as const) {
         const card = page.getByTestId('forecast-reality');
         await expect(card).toBeVisible();
         await expect(card).not.toHaveAttribute('data-state', 'available');
+        // "No forecast" is said once (T-1746): the card and its one link, and
+        // no lower section to say it a second time.
+        await expect(card.getByTestId('forecast-coverage-link')).toHaveCount(1);
+        await expect(page.getByTestId('forecast')).toHaveCount(0);
+        // After full time the pick is one locked row under it, then the
+        // founder's analysis, the community picks and the contributors, a
+        // row or a card each and each once (T-1744); no three-lane card.
+        await expect(page.getByTestId('match-pick')).toHaveAttribute('data-product-row', '');
+        for (const id of ['founder-analysis', 'consensus', 'community-analysis-panel']) {
+          await expect(page.getByTestId(id)).toHaveCount(1);
+          await expect(page.getByTestId(id)).toBeVisible();
+        }
+        await expect(page.getByTestId('three-products-note')).toHaveCount(1);
+        await expect(page.getByTestId('verdict')).toHaveCount(0);
         await expect(page.getByTestId('timeline')).toBeVisible();
-        // The section tabs, at every width, inside the band.
-        const nav = header.getByTestId('section-nav');
+        // The section tabs, at every width, directly under the band (T-1742).
+        const nav = page.getByTestId('section-nav');
         await expect(nav).toBeVisible();
         await expect(nav.locator('[data-tab-link="summary"]')).toBeVisible();
+        // The compact score bar is in the page and not drawn while the band is.
+        await expect(page.getByTestId('score-bar')).toBeHidden();
+        expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+      });
+
+      test('keeps the tabs, and the score in a compact bar, once the band has scrolled away (T-1742)', async ({
+        page,
+      }) => {
+        await page.goto(`/${locale}/match/${PLAYED_MATCH}`);
+        const nav = page.getByTestId('section-nav');
+        const bar = page.getByTestId('score-bar');
+        await expect(nav).toBeVisible();
+        // The bar needs scroll-driven animations; without them only the tabs stick.
+        const supported = await page.evaluate(
+          () =>
+            CSS.supports('animation-timeline: view()') && CSS.supports('timeline-scope: --band'),
+        );
+        const { bandEnd, furthest } = await page.evaluate(() => {
+          const band = document.querySelector('[data-match-band]');
+          const root = document.scrollingElement ?? document.documentElement;
+          return {
+            bandEnd: band === null ? 0 : band.getBoundingClientRect().bottom + window.scrollY,
+            furthest: root.scrollHeight - window.innerHeight,
+          };
+        });
+        // The page is long enough to scroll the band away.
+        expect(furthest).toBeGreaterThanOrEqual(bandEnd);
+        // Past the band: the tabs are stuck under the bar's slot.
+        await page.evaluate((y) => window.scrollTo(0, y), Math.min(bandEnd + 300, furthest));
+        await expect
+          .poll(async () => Math.round((await nav.boundingBox())?.y ?? -1))
+          .toBe(supported ? 48 : 0);
+        if (supported) {
+          await expect(bar).toBeVisible();
+          await expect(bar).toHaveText(locale === 'fa' ? /۲.*۲/ : /2.*2/);
+          const at = await bar.boundingBox();
+          expect(Math.round(at?.y ?? -1)).toBe(0);
+          expect(Math.round(at?.height ?? 0)).toBe(48);
+          // A repeat of the band for the eye: not in the accessibility tree.
+          await expect(bar).toHaveAttribute('aria-hidden', 'true');
+        } else {
+          await expect(bar).toBeHidden();
+        }
+        // A tab still lands its section clear of the stack.
+        await nav.locator('[data-tab-link="stats"]').click();
+        const stats = await page.getByTestId('section-stats').boundingBox();
+        expect(Math.round(stats?.y ?? 0)).toBeGreaterThanOrEqual(supported ? 92 : 44);
         expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
       });
 

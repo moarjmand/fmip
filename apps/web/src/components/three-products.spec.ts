@@ -274,6 +274,85 @@ describe('the three products stay three on the page', () => {
     expect(page.split('<MatchPickCard').length - 1).toBe(1);
   });
 
+  it('draws the forecast once and gives the others their own rows, never one row for all (T-1744, D-365)', () => {
+    // The match page stopped saying each product two or three times. What
+    // makes that tempting to do wrong is the compact row: three empty
+    // products look like three rows of one list, and one `<ProductRow
+    // product="founder">` is the single panel this file exists to refuse.
+    const code = (text: string) =>
+      text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[\r\n])\s*\/\/.*/g, '$1');
+    const dir = join(COMPONENTS, '..', 'app', '[locale]', 'match', '[id]');
+    const page = readFileSync(join(dir, 'page.tsx'), 'utf8');
+    const card = code(readFileSync(join(dir, 'forecast-reality.tsx'), 'utf8'));
+
+    // The row is a shell: it draws the name its owner hands it, has no prop
+    // that names or chooses a product, no product's colour, and no figure.
+    const row = code(source('product-row.tsx'));
+    expect(row).toContain('export function ProductRow(');
+    expect(row).not.toMatch(/\b(source|product|lane|kind)\s*[:?]/);
+    expect(row).not.toMatch(/'model'|'founder'|'community'/);
+    expect(row).not.toMatch(/(text|bg|border)-(model|founder|community)/);
+    expect(row).not.toMatch(/Forecast|Consensus|FounderAnalysis|probabilit|percent|Translated/i);
+
+    // The page never draws a row itself: each product's own component
+    // decides, in its own file, under its own name.
+    expect(page).not.toMatch(/<ProductRow|components\/product-row/);
+    expect(source('founder-analysis.tsx')).toMatch(/<FounderVoice[\s\S]{0,400}?\brow=\{/);
+    expect(source('community-consensus.tsx')).toContain('export function CommunityPicksRow(');
+    expect(source('community-consensus.tsx')).toMatch(/<CommunityVoice[\s\S]{0,700}?\brow=\{/);
+    expect(source('community-analysis-panel.tsx')).toContain('<ProductRow');
+    expect(page).toContain('<CommunityPicksRow');
+
+    // The model has no row and no turquoise goes into one: its voice takes
+    // no `row`, and neither of its files reaches for the shell.
+    const voices = source('voices.tsx');
+    const modelVoice = voices.slice(
+      voices.indexOf('export function ModelVoice('),
+      voices.indexOf('export function FounderVoice('),
+    );
+    expect(modelVoice).toContain('data-voice="model"');
+    expect(modelVoice).not.toMatch(/ProductRow|\brow\b/);
+    expect(card).not.toMatch(/ProductRow|product-row/);
+    expect(source('forecast-panel.tsx')).not.toMatch(/ProductRow|product-row/);
+    // Nor do the rows carry a model number: no row's file formats the
+    // model's shares for its row.
+    const picksRow = source('community-consensus.tsx');
+    expect(
+      picksRow.slice(
+        picksRow.indexOf('export function CommunityPicksRow('),
+        picksRow.indexOf('export function CommunityForecastPanel('),
+      ),
+    ).not.toMatch(/formatPercent|sharesToPercentages|model/);
+
+    // The forecast is drawn once, in the Summary's card: the lower section
+    // says why and holds no bar, no shares and no list of the versions' figures.
+    const panel = source('forecast-panel.tsx');
+    const lower = panel.slice(
+      panel.indexOf('export function ForecastPanel('),
+      panel.indexOf('function Evaluation('),
+    );
+    expect(lower).toContain('forecast.how.pointer');
+    expect(lower).not.toMatch(/ForecastBar|OutcomeBar|percentages\(|most_likely_scorelines/);
+    expect(panel).not.toContain('export function ModelVerdict');
+    expect(card).toContain("'forecast.verdict.result'");
+
+    // The three-lane card that repeated all three is gone, and each
+    // product's component is on the page exactly once.
+    expect(page).not.toMatch(/VerdictCard|ModelVerdict|FounderVerdict|CommunityVerdict/);
+    for (const component of [
+      '<ForecastReality',
+      '<ForecastDetails',
+      '<ForecastPanel',
+      '<FounderAnalysisPanel',
+      '<CommunityForecastPanel',
+      '<CommunityPicksRow',
+      '<CommunityAnalysisPanel',
+      '<ThreeProductsNote',
+    ]) {
+      expect(page.split(component).length - 1, component).toBe(1);
+    }
+  });
+
   it('never averages the three into one number', () => {
     // Blueprint 4.2 asks the community forecast to be shown "and comparison
     // with the model". Comparison is a difference; the failure is an average,

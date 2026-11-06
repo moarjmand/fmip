@@ -49,6 +49,28 @@ const GLYPH: Record<CoverageState, ReactNode> = {
   ),
 };
 
+/**
+ * The state's glyph alone: the ring with its tick, half, stroke or clock
+ * hands. For a place that says the state in its own words beside it (the
+ * match centre's "After kick-off" card, T-1745); always `aria-hidden`.
+ */
+export function CoverageGlyph({ state, size = 12 }: { state: CoverageState; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 12 12"
+      aria-hidden="true"
+      focusable="false"
+      data-icon={state}
+      className="shrink-0"
+    >
+      <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      {GLYPH[state]}
+    </svg>
+  );
+}
+
 export function CoverageBadge({
   state,
   label,
@@ -68,18 +90,7 @@ export function CoverageBadge({
         className,
       )}
     >
-      <svg
-        width="12"
-        height="12"
-        viewBox="0 0 12 12"
-        aria-hidden="true"
-        focusable="false"
-        data-icon={state}
-        className="shrink-0"
-      >
-        <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        {GLYPH[state]}
-      </svg>
+      <CoverageGlyph state={state} />
       <span className="inline-block first-letter:uppercase">{label}</span>
     </span>
   );

@@ -23,8 +23,9 @@ import type { MatchWords } from '@/lib/words-server';
 /**
  * The match centre that stays current (T-032, T-034): renders the server's
  * snapshot, then subscribes to the web app's `/api/fixtures/:id/stream` and
- * replaces the whole payload on every `snapshot`. The freshness line is the
- * same one the scores page uses.
+ * replaces the whole payload on every `snapshot`. While a match is in play
+ * the freshness line is the same one the scores page uses; before kick-off
+ * the stream is said only when it has broken (T-1743).
  *
  * The same stream says when the public discussion moved (T-254, D-068): a
  * `panel` event carries nothing to render, and the page asks the server to
@@ -118,36 +119,54 @@ export function LiveMatch({
   // In lite mode the threshold is a missed poll plus the usual slack (T-1387).
   const staleAfter = staleAfterMs(lite);
   const state = liveState(clock, now, staleAfter);
+  const status = centre.fixture.status;
   // The stream's line sits in the score band, under the status (T-1384);
   // none once the match is over (T-1394): a result is not a live connection.
+  // Before kick-off it is no counter either (T-1743, D-364): nothing on the
+  // page is moving, and when its data was last checked is the band's own
+  // line. The stream is only named there when it has broken, since a page
+  // left open would then miss the kick-off (rule 4).
+  const inPlay = status === 'live' || status === 'suspended';
+  const broken = state === 'stale' || state === 'unavailable';
   const live = showsLiveLine(centre.fixture.status) ? (
-    <p
-      className={`text-xs ${
-        state === 'live'
-          ? 'text-muted'
-          : state === 'connecting'
-            ? 'font-medium'
-            : 'font-medium text-warning'
-      }`}
-      data-testid="live-state"
-      data-state={state}
-      role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
-    >
-      {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
-        // "Last checked 8 sec ago", amber with "may be behind" past the
-        // stream's own threshold (T-1388); the other states keep their words.
-        <FreshnessStamp
-          checkedAt={clock.lastEventAt}
-          now={now}
-          staleAfterMs={staleAfter}
-          behind={state === 'stale'}
-          locale={locale}
-          words={words.m}
-        />
-      ) : (
-        liveLabel(state, clock, locale, timeZone, words.m)
-      )}
-    </p>
+    inPlay ? (
+      <p
+        className={`text-xs ${
+          state === 'live'
+            ? 'text-muted'
+            : state === 'connecting'
+              ? 'font-medium'
+              : 'font-medium text-warning'
+        }`}
+        data-testid="live-state"
+        data-state={state}
+        role={broken ? 'status' : undefined}
+      >
+        {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
+          // "Last checked 8 sec ago", amber with "may be behind" past the
+          // stream's own threshold (T-1388); the other states keep their words.
+          <FreshnessStamp
+            checkedAt={clock.lastEventAt}
+            now={now}
+            staleAfterMs={staleAfter}
+            behind={state === 'stale'}
+            locale={locale}
+            words={words.m}
+          />
+        ) : (
+          liveLabel(state, clock, locale, timeZone, words.m)
+        )}
+      </p>
+    ) : broken ? (
+      <p
+        className="text-xs font-medium text-warning"
+        data-testid="live-state"
+        data-state={state}
+        role="status"
+      >
+        {liveLabel(state, clock, locale, timeZone, words.m)}
+      </p>
+    ) : undefined
   ) : undefined;
   return (
     <>
@@ -156,6 +175,8 @@ export function LiveMatch({
         aria-atomic="true"
         className="sr-only"
         data-testid="live-announcements"
+        // The stream's state, for a page that draws no line about it (T-1743).
+        data-stream={state}
       >
         {announcement}
       </div>
@@ -165,7 +186,7 @@ export function LiveMatch({
         locale={locale}
         now={now}
         slots={slots}
-        hero={{ ...hero, live }}
+        hero={{ ...hero, live, streamBroken: inPlay && broken }}
         words={words}
       />
     </>

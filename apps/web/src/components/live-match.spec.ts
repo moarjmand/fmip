@@ -45,3 +45,27 @@ describe('live match: a finished match is not live (T-1394)', () => {
     expect(SOURCE).toMatch(/\) : undefined;/);
   });
 });
+
+describe('live match: no counter before kick-off (T-1743, D-364)', () => {
+  const from = SOURCE.indexOf('const live = showsLiveLine');
+  const line = SOURCE.slice(from, SOURCE.indexOf('return (', from));
+
+  it('ticks "last checked" only while the match is in play', () => {
+    expect(SOURCE).toMatch(/const inPlay = status === 'live' \|\| status === 'suspended';/);
+    expect(line).toMatch(/\? \(\s*inPlay \? \([^]*<FreshnessStamp[^]*\) : broken \? \(/);
+    // The stamp is in the in-play branch and nowhere after it.
+    expect(line.slice(line.indexOf(') : broken ? ('))).not.toContain('FreshnessStamp');
+  });
+
+  it('before kick-off names the stream only when it has broken, as a status in the warning colour', () => {
+    expect(SOURCE).toMatch(/const broken = state === 'stale' \|\| state === 'unavailable';/);
+    expect(line).toMatch(
+      /\) : broken \? \(\s*<p\s+className="text-xs font-medium text-warning"\s+data-testid="live-state"\s+data-state=\{state\}\s+role="status"\s*>\s*\{liveLabel\(state, clock, locale, timeZone, words\.m\)\}/,
+    );
+    expect(line).toMatch(/\) : undefined\s*\) : undefined;/);
+  });
+
+  it('keeps the stream state on the live region, for a page that draws no line about it', () => {
+    expect(SOURCE).toMatch(/data-testid="live-announcements"[^>]*data-stream=\{state\}/);
+  });
+});

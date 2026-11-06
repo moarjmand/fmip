@@ -6851,6 +6851,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "match.follow.short": {
+    "source": "Follow",
+    "text": "",
+    "status": "untranslated"
+  },
   "match.follow.unreachable": {
     "source": "Whether you follow this match cannot be checked right now.",
     "text": "",
@@ -7578,6 +7583,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.freshness.checked": {
+    "source": "Data checked {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.freshness.stale": {
+    "source": "Data may be out of date, last checked {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.freshness.details": {
+    "source": "Details",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.kickoffIn": {
+    "source": "Kick-off {time} {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.onThisPage": {
     "source": "On this page",
     "text": "",
@@ -7963,8 +7988,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.beforeKickoff": {
-    "source": "Before kick-off",
+  "matchCentre.absences.group": {
+    "source": "{status} · {reason} ({count})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absences.groupPlain": {
+    "source": "{status} ({count})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absences.more": {
+    "source": "Show {count} more",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absences.names": {
+    "source": "Show {count} names",
     "text": "",
     "status": "untranslated"
   },
@@ -8326,11 +8366,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.context.record": {
-    "source": "W {won} · D {drawn} · L {lost} · GD {difference}",
-    "text": "",
-    "status": "untranslated"
-  },
   "matchCentre.context.form": {
     "source": "Form in this competition only, latest first:",
     "text": "",
@@ -8343,6 +8378,11 @@
   },
   "matchCentre.context.formScope": {
     "source": "Form here counts only matches in this competition; Recent form counts the last five in every competition.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.gaps": {
+    "source": "Gaps to the places around",
     "text": "",
     "status": "untranslated"
   },
@@ -8696,6 +8736,21 @@
     "text": "",
     "status": "untranslated"
   },
+  "forecast.how.title": {
+    "source": "How the forecast was reached",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.how.pointer": {
+    "source": "The forecast and every version are in {summary}; this section only says why.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.how.summary": {
+    "source": "the summary",
+    "text": "",
+    "status": "untranslated"
+  },
   "forecast.unreachable": {
     "source": "The forecast service could not be reached, so no forecast can be shown.",
     "text": "",
@@ -8708,21 +8763,6 @@
   },
   "forecast.couldNotProduce": {
     "source": "The model could not produce a forecast.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.versionLine": {
-    "source": "Version {version} · {kind} · computed {time}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.meta": {
-    "source": "Version {version} · {kind} · computed {time} · model {model} · data {completeness}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.unknown": {
-    "source": "unknown",
     "text": "",
     "status": "untranslated"
   },
@@ -8753,21 +8793,6 @@
   },
   "forecast.draw": {
     "source": "Draw",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.expectedGoals": {
-    "source": "Expected goals {home} – {away}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.scorelines": {
-    "source": "Most likely scorelines: {list}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.scoreline": {
-    "source": "{score} ({probability})",
     "text": "",
     "status": "untranslated"
   },
@@ -8808,6 +8833,21 @@
   },
   "forecast.evaluation.scores": {
     "source": "Log loss {logLoss}, Brier {brier} (lower is better; knowing nothing scores 1.099 and 0.667).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.plain": {
+    "source": "Both numbers measure how much probability the model put on what really happened.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.worse": {
+    "source": "Here both are worse than knowing nothing.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.better": {
+    "source": "Here both are better than knowing nothing.",
     "text": "",
     "status": "untranslated"
   },
@@ -10425,6 +10465,11 @@
   },
   "analysis.community.title": {
     "source": "Analysis from approved contributors",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.rowTitle": {
+    "source": "Approved contributors",
     "text": "",
     "status": "untranslated"
   },
@@ -13716,6 +13761,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "lanes.others": {
+    "source": "Other predictions of this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.row.none": {
+    "source": "None yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.row.underFloor": {
+    "source": "Under {count}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.row.unreachable": {
+    "source": "Not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
   "pick.make": {
     "source": "Make your pick",
     "text": "",
@@ -13974,18 +14039,18 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.reality.details": {
+    "source": "Forecast details",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.reality.happened": {
     "source": "{outcome} · happened",
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.reality.note": {
-    "source": "The model gave what happened {probability} before kick-off. A forecast is a share, not a promise: what matters is whether calls like this come true at the rate they claim.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "matchCentre.reality.calibration": {
-    "source": "The model's record",
+  "matchCentre.reality.rps": {
+    "source": "Ranked probability score for this match {rps} (0 is perfect).",
     "text": "",
     "status": "untranslated"
   },
@@ -14031,6 +14096,26 @@
   },
   "matchCentre.reality.version": {
     "source": "v{version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.why": {
+    "source": "Why these numbers: leading factors and what changed between versions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForecast.title": {
+    "source": "No model forecast for this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForecast.power": {
+    "source": "There is no Power Index for it either.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForecast.link": {
+    "source": "Which competitions does the model cover?",
     "text": "",
     "status": "untranslated"
   },
@@ -14109,13 +14194,38 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.fromKickoff": {
-    "source": "From kick-off",
+  "matchCentre.fromKickoffWhy": {
+    "source": "Recorded once the match kicks off; nothing is shown before then.",
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.fromKickoffWhy": {
-    "source": "Recorded once the match kicks off; nothing is shown before then.",
+  "matchCentre.coming.title": {
+    "source": "After kick-off you'll see",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.atKickoff": {
+    "source": "Coming at kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.limited": {
+    "source": "Coming, with limited coverage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.limitedWhy": {
+    "source": "Limited: our source supplies only part of this in this competition, so some of it can be missing for this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.notSupplied": {
+    "source": "Not supplied in this competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.notSuppliedWhy": {
+    "source": "We do not receive these for this competition, so they will not appear after kick-off either.",
     "text": "",
     "status": "untranslated"
   },
@@ -14159,11 +14269,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.verdict.title": {
-    "source": "What was forecast, and what happened",
-    "text": "",
-    "status": "untranslated"
-  },
   "forecast.verdict.frozen": {
     "source": "Pre-match forecast, frozen at kick-off. It does not update during the match.",
     "text": "",
@@ -14174,11 +14279,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "forecast.verdict.rps": {
-    "source": "ranked probability score for this match · 0 is perfect",
-    "text": "",
-    "status": "untranslated"
-  },
   "forecast.verdict.unscored": {
     "source": "Not scored yet: the evaluation runs once the result is confirmed.",
     "text": "",
@@ -14186,11 +14286,6 @@
   },
   "forecast.verdict.accuracy": {
     "source": "One match says little: the model's record",
-    "text": "",
-    "status": "untranslated"
-  },
-  "analysis.founder.verdict.pick": {
-    "source": "Pick:",
     "text": "",
     "status": "untranslated"
   },

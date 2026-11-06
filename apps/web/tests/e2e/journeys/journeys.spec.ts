@@ -192,10 +192,13 @@ test.describe('blueprint journeys', () => {
     await expect(control).toHaveAttribute('data-pick', 'saved');
     await expect(control.getByTestId('pick-lock')).toContainText(/^Locks /);
 
-    // 18.2: the match centre is kept current over the stream.
-    await expect(page.getByTestId('live-state')).toHaveAttribute('data-state', 'live', {
+    // 18.2: the match centre is kept current over the stream. Before
+    // kick-off the page draws no line about it (T-1743): the live region
+    // carries the stream's state, and the line appears only when it breaks.
+    await expect(page.getByTestId('live-announcements')).toHaveAttribute('data-stream', 'live', {
       timeout: 15_000,
     });
+    await expect(page.getByTestId('live-state')).toHaveCount(0);
 
     // The prediction is in the member's history, open until kick-off, with no rating yet.
     await page.goto(`/en/u/${USERNAME}`);
