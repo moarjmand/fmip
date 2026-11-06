@@ -7963,11 +7963,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.beforeKickoff": {
-    "source": "Before kick-off",
-    "text": "",
-    "status": "untranslated"
-  },
   "matchCentre.absenceReason.injury": {
     "source": "Injury",
     "text": "",
@@ -14139,13 +14134,38 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.fromKickoff": {
-    "source": "From kick-off",
+  "matchCentre.fromKickoffWhy": {
+    "source": "Recorded once the match kicks off; nothing is shown before then.",
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.fromKickoffWhy": {
-    "source": "Recorded once the match kicks off; nothing is shown before then.",
+  "matchCentre.coming.title": {
+    "source": "After kick-off you'll see",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.atKickoff": {
+    "source": "Coming at kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.limited": {
+    "source": "Coming, with limited coverage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.limitedWhy": {
+    "source": "Limited: our source supplies only part of this in this competition, so some of it can be missing for this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.notSupplied": {
+    "source": "Not supplied in this competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.notSuppliedWhy": {
+    "source": "We do not receive these for this competition, so they will not appear after kick-off either.",
     "text": "",
     "status": "untranslated"
   },

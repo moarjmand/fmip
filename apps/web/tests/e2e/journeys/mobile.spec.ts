@@ -242,7 +242,7 @@ for (const locale of ['en', 'x-rtl'] as const) {
     await page.getByTestId('pick-bar-link').click();
     await expect(page).toHaveURL(/#pick$/);
     await expect(card.getByTestId('pick-control')).toBeInViewport();
-    await expect(page.getByTestId('timeline')).toBeHidden();
+    await expect(page.getByTestId('section-timeline')).toBeHidden();
     // The other predictions follow it (T-1744): the founder's analysis first.
     await expect(page.locator('#predictions')).toBeVisible();
     const first = (await card.boundingBox())!;

@@ -9626,12 +9626,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (T-1626)."
   },
-  "matchCentre.beforeKickoff": {
-    "source": "Before kick-off",
-    "text": "پیش از شروع بازی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (T-1627)."
-  },
   "matchCentre.absenceReason.injury": {
     "source": "Injury",
     "text": "مصدومیت",
@@ -17162,15 +17156,45 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.fromKickoff": {
-    "source": "From kick-off",
-    "text": "از شروع بازی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "matchCentre.fromKickoffWhy": {
     "source": "Recorded once the match kicks off; nothing is shown before then.",
     "text": "از لحظه‌ی شروع بازی ثبت می‌شود؛ پیش از آن چیزی نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.title": {
+    "source": "After kick-off you'll see",
+    "text": "پس از شروع بازی می‌بینید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.atKickoff": {
+    "source": "Coming at kick-off",
+    "text": "از شروع بازی می‌آید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.limited": {
+    "source": "Coming, with limited coverage",
+    "text": "می‌آید، با پوشش ناقص",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.limitedWhy": {
+    "source": "Limited: our source supplies only part of this in this competition, so some of it can be missing for this match.",
+    "text": "ناقص: منبع ما در این رقابت فقط بخشی از این داده‌ها را می‌دهد، پس ممکن است برای این بازی بخشی از آن نباشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.notSupplied": {
+    "source": "Not supplied in this competition",
+    "text": "در این رقابت ارائه نمی‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.coming.notSuppliedWhy": {
+    "source": "We do not receive these for this competition, so they will not appear after kick-off either.",
+    "text": "این‌ها را برای این رقابت دریافت نمی‌کنیم، پس پس از شروع بازی هم نمایش داده نمی‌شوند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

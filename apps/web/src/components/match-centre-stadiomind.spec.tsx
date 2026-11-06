@@ -863,25 +863,25 @@ describe('the match centre review (T-1550)', () => {
   });
 
   it('before kick-off says a covered module starts then, never "not supplied" (rule 3)', () => {
+    // One card for all of them since T-1745 (`match-centre-coming.spec.tsx`
+    // holds its cases): what the season covers is coming, what it does not
+    // is named apart, and no module draws an empty card of its own.
     const html = view(centre({ status: 'scheduled', minute: null }, { timeline: empty }));
-    for (const id of ['timeline', 'statistics']) {
-      const card = section(html, id);
-      expect(card).toContain('data-not-yet="kickoff"');
-      expect(card).toContain(EN['matchCentre.fromKickoff']);
-      expect(card).toContain(EN['matchCentre.fromKickoffWhy']);
-      expect(card).not.toContain(EN['matchCentre.moduleNotSupplied']);
+    const all = html.slice(html.indexOf('data-coming="all"'));
+    const card = all.slice(0, all.indexOf('</section>'));
+    expect(card).toContain(EN['matchCentre.fromKickoffWhy']);
+    expect(card).not.toContain(EN['matchCentre.moduleNotSupplied']);
+    for (const id of ['timeline', 'statistics', 'lineups']) {
+      expect(card).toContain(`data-coverage-chip="coming" data-module="${id}"`);
+      expect(html).not.toContain(`data-testid="${id}"`);
     }
-    // A module the season does not cover stays "not supplied".
-    const players = section(html, 'player-statistics');
-    expect(players).not.toContain('data-not-yet');
-    expect(players).toContain('data-coverage-badge="not_supplied"');
-    // The line-ups keep their own sentence, under their own badge: they come
-    // before kick-off, not from it (T-1627).
-    const lineups = section(html, 'lineups');
-    expect(lineups).toContain('data-not-yet="lineup"');
-    expect(lineups).toContain(EN['matchCentre.beforeKickoff']);
-    expect(lineups).not.toContain(EN['matchCentre.fromKickoff']);
-    expect(lineups).toContain(EN['matchCentre.lineupsNotYet']);
+    // A module the season does not cover stays "not supplied", in its own group.
+    expect(card).toContain('data-coverage-chip="not_supplied" data-module="player_statistics"');
+    expect(card).toContain(EN['matchCentre.coming.notSupplied']);
+    // The line-ups keep their own sentence: they come before kick-off, not
+    // from it (T-1627).
+    expect(card).toContain(EN['matchCentre.lineupsNotYet']);
+    expect(html).not.toContain('data-not-yet');
   });
 
   it('a postponed match says it was not played, in Persian too', () => {

@@ -507,8 +507,12 @@ describe('why the line-ups and the absences are empty (T-1364)', () => {
   };
 
   it('says when the official line-up is usually announced, before kick-off only', () => {
-    const before = section(page({ lineups: empty }, 'scheduled'), 'lineups');
-    expect(before).toContain(EN['matchCentre.lineupsNotYet']);
+    // Before kick-off the line-ups are named in the one card of what will
+    // come (T-1745), which keeps their sentence; there is no empty module.
+    const scheduled = page({ lineups: empty }, 'scheduled');
+    expect(scheduled).not.toContain('data-testid="lineups"');
+    const before = scheduled.slice(scheduled.indexOf('data-testid="coming-lineups"'));
+    expect(before.slice(0, before.indexOf('</p>'))).toContain(EN['matchCentre.lineupsNotYet']);
     expect(before).toContain('about an hour before kick-off');
     const after = section(page({ lineups: empty }, 'finished'), 'lineups');
     expect(after).toContain('Not supplied for this match.');

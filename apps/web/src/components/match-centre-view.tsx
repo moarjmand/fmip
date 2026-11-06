@@ -23,7 +23,7 @@ import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime, localDigits } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
-import { CARD, Module } from '@/components/match-centre-cards';
+import { CARD, ComingCard, type ComingItem, Module } from '@/components/match-centre-cards';
 import { LiveBadge } from '@/components/ui/live-badge';
 import { RatingChip } from '@/components/ui/rating-chip';
 import { StatBar } from '@/components/ui/stat-bar';
@@ -357,6 +357,71 @@ export function MatchCentreView({
   };
   const tabs = TABS.filter(([tab]) => present[tab]);
 
+  // Before kick-off the in-play modules with nothing yet are one card
+  // (T-1745, D-366), not an empty card each: `coming` is what it names.
+  const coming = comingModules(centre);
+  const isComing = (id: ComingItem['id']) => coming.some((item) => item.id === id);
+  const statsComing = coming.filter((item) => item.tab === 'stats');
+  const lineupsComing = isComing('lineups');
+  // A tab whose every module is in that card holds, on a phone, a copy of the
+  // card for its own modules and nothing else. From 768px the copy is not
+  // drawn, so the tab's section is lifted to stand directly above the
+  // Summary's card: its jump link then lands on the card that names it.
+  const statsLifted = statsComing.length === 3;
+
+  const statsRegion = (
+    <Region id="stats" tab="stats">
+      {statsComing.length > 0 && <ComingCard items={statsComing} words={words} phone />}
+      {!isComing('statistics') && <Statistics centre={centre} locale={locale} words={words} />}
+      {!isComing('player_statistics') && (
+        <PlayerStatistics centre={centre} locale={locale} words={words} />
+      )}
+      {!isComing('expected_goals') && (
+        <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
+      )}
+    </Region>
+  );
+  const lineupsRegion = (
+    <Region id="lineups" tab={lineupsComing ? 'lineups' : undefined}>
+      {lineupsComing ? (
+        <ComingCard items={coming.filter((item) => item.tab === 'lineups')} words={words} phone />
+      ) : (
+        <Module
+          title={m['matchCentre.lineups']}
+          module={centre.lineups}
+          testId="lineups"
+          words={words}
+          empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
+          notInYet={f.status === 'live'}
+          before={unplayed(centre)}
+        >
+          {(lineups) => (
+            <MatchLineupsView
+              home={f.home}
+              away={f.away}
+              lineups={lineups}
+              ratings={ratingsOf(centre)}
+              locale={locale}
+              words={words}
+            />
+          )}
+        </Module>
+      )}
+    </Region>
+  );
+  // The match as it went: before kick-off, the one card of what will come.
+  const played = (
+    <Panel tab="summary">
+      <Region id="timeline">
+        {coming.length > 0 && <ComingCard items={coming} words={words} />}
+        {!isComing('timeline') && (
+          <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
+        )}
+      </Region>
+      {slots.summary}
+    </Panel>
+  );
+
   const panels: Record<MatchTab, React.ReactNode> = {
     summary: (
       <>
@@ -381,50 +446,27 @@ export function MatchCentreView({
             <Region id="community">{slots.community}</Region>
           </Region>
         )}
-        <Panel tab="summary">
-          {/* Then the match as it went. */}
-          <Region id="timeline">
-            <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
-          </Region>
-          {slots.summary}
-        </Panel>
+        {statsLifted || lineupsComing ? (
+          // No box on a phone, where the tabs choose; from 768px one block
+          // with no gap, the lifted sections empty above the card.
+          <div className="contents md:flex md:flex-col" data-coming-anchors="">
+            {statsLifted && statsRegion}
+            {lineupsComing && lineupsRegion}
+            {played}
+          </div>
+        ) : (
+          played
+        )}
       </>
     ),
-    stats: (
-      <Region id="stats" tab="stats">
-        <Statistics centre={centre} locale={locale} words={words} />
-        <PlayerStatistics centre={centre} locale={locale} words={words} />
-        <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
-      </Region>
-    ),
-    lineups: (
-      <Panel tab="lineups">
-        <Region id="lineups">
-          <Module
-            title={m['matchCentre.lineups']}
-            module={centre.lineups}
-            testId="lineups"
-            words={words}
-            empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
-            notInYet={f.status === 'live'}
-            // They come about an hour before kick-off, not from it (T-1627).
-            before={((b) => (b === 'kickoff' ? 'lineup' : b))(unplayed(centre, 'lineups'))}
-          >
-            {(lineups) => (
-              <MatchLineupsView
-                home={f.home}
-                away={f.away}
-                lineups={lineups}
-                ratings={ratingsOf(centre)}
-                locale={locale}
-                words={words}
-              />
-            )}
-          </Module>
-        </Region>
-        <Region id="players">{slots.players}</Region>
-      </Panel>
-    ),
+    stats: statsLifted ? null : statsRegion,
+    lineups:
+      !lineupsComing || has('players') ? (
+        <Panel tab="lineups">
+          {!lineupsComing && lineupsRegion}
+          <Region id="players">{slots.players}</Region>
+        </Panel>
+      ) : null,
     // How the model's forecast was reached, and the Power Index (T-1744):
     // the forecast itself is the Summary's card, and the other predictions
     // stand after the pick.
@@ -886,17 +928,64 @@ function Hero({
 }
 
 /**
- * Where a module with nothing in it stands when there has been no play
- * (T-1550): before kick-off it starts then, if the season covers it at all
- * (a module the season does not cover keeps "Not supplied", rule 3); a
- * postponed or cancelled match was not played. `null` once there is play.
+ * A postponed or cancelled match was not played (T-1550): its modules say
+ * so, rather than "Not supplied". `null` for every other match.
  */
-function unplayed(centre: MatchCentre, module: CoverageModule): 'kickoff' | 'unplayed' | null {
+function unplayed(centre: MatchCentre): 'unplayed' | null {
   const status = centre.fixture.status;
-  if (status === 'postponed' || status === 'cancelled') return 'unplayed';
-  // Long past its kick-off with no word from the feed (T-1708): not known.
-  if (status !== 'scheduled' || centre.fixture.freshness === 'awaiting_update') return null;
-  return centre.coverage[module] === 'not_supplied' ? null : 'kickoff';
+  return status === 'postponed' || status === 'cancelled' ? 'unplayed' : null;
+}
+
+/**
+ * The in-play modules: each one's title, the tab that holds it, the season
+ * coverage it falls under, and its data in the match's payload.
+ */
+const IN_PLAY = [
+  ['timeline', 'matchCentre.timeline', 'summary', 'incidents', (c) => c.timeline.data],
+  ['statistics', 'matchCentre.statistics', 'stats', 'statistics', (c) => c.statistics.data],
+  [
+    'player_statistics',
+    'matchCentre.playerStatistics',
+    'stats',
+    'advanced_statistics',
+    (c) => c.player_statistics.data,
+  ],
+  [
+    'expected_goals',
+    'matchCentre.expectedGoals',
+    'stats',
+    'advanced_statistics',
+    (c) => c.player_expected_goals.data,
+  ],
+  ['lineups', 'matchCentre.lineups', 'lineups', 'lineups', (c) => c.lineups.data],
+] as const satisfies readonly (readonly [
+  ComingItem['id'],
+  Key,
+  ComingItem['tab'],
+  CoverageModule,
+  (centre: MatchCentre) => unknown,
+])[];
+
+/**
+ * What the "After kick-off you'll see" card names (T-1745, D-366): before
+ * kick-off, every in-play module with nothing yet, with what the season's
+ * declared coverage says of it -- `coming` where it is covered, `limited`
+ * and `delayed` as declared, `not_supplied` where the season does not cover
+ * it and it will not come (rule 3). None once there is play, for a postponed
+ * or cancelled match, or for one long past its kick-off with no word from
+ * the feed (T-1708): then each module says its own state. A module that
+ * already has data -- line-ups, about an hour before kick-off -- is not in
+ * the list and is drawn as itself. Pure.
+ */
+export function comingModules(centre: MatchCentre): ComingItem[] {
+  const f = centre.fixture;
+  if (f.status !== 'scheduled' || f.freshness === 'awaiting_update') return [];
+  return IN_PLAY.filter(([, , , , data]) => data(centre) === null).map(
+    ([id, title, tab, module]) => {
+      const coverage = centre.coverage[module];
+      return { id, title, tab, state: coverage === 'available' ? 'coming' : coverage };
+    },
+  );
 }
 
 /**
@@ -985,7 +1074,7 @@ function Timeline({
       testId="timeline"
       words={words}
       notInYet={f.status === 'live'}
-      before={unplayed(centre, 'incidents')}
+      before={unplayed(centre)}
     >
       {(incidents) => {
         // A shoot-out is its own block, its kicks in order and numbered, never
@@ -1283,7 +1372,7 @@ function Statistics({
       testId="statistics"
       words={words}
       notInYet={f.status === 'live'}
-      before={unplayed(centre, 'statistics')}
+      before={unplayed(centre)}
     >
       {(rows) => (
         <>
@@ -1361,7 +1450,7 @@ function PlayerStatistics({
       module={centre.player_statistics}
       testId="player-statistics"
       words={words}
-      before={unplayed(centre, 'advanced_statistics')}
+      before={unplayed(centre)}
     >
       {(players) => (
         <div className="flex flex-col gap-3 text-sm">
@@ -1463,7 +1552,7 @@ function PlayerExpectedGoals({
       module={expected}
       testId="player-expected-goals"
       words={words}
-      before={unplayed(centre, 'advanced_statistics')}
+      before={unplayed(centre)}
       empty={expected.last_updated_at === null ? null : 'matchCentre.expectedGoals.none'}
     >
       {(players) => (
