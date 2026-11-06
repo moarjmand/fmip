@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2361), grouped by folder, with one line on
+Every file in the repository (2357), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -207,7 +207,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/highlights`](#appswebsrcapplocalehighlights) — 4
 - [`apps/web/src/app/[locale]/leaderboard`](#appswebsrcapplocaleleaderboard) — 1
 - [`apps/web/src/app/[locale]/login`](#appswebsrcapplocalelogin) — 1
-- [`apps/web/src/app/[locale]/match/[id]`](#appswebsrcapplocalematchid) — 7
+- [`apps/web/src/app/[locale]/match/[id]`](#appswebsrcapplocalematchid) — 5
 - [`apps/web/src/app/[locale]/messages`](#appswebsrcapplocalemessages) — 1
 - [`apps/web/src/app/[locale]/messages/[id]`](#appswebsrcapplocalemessagesid) — 1
 - [`apps/web/src/app/[locale]/model-accuracy`](#appswebsrcapplocalemodel-accuracy) — 1
@@ -255,11 +255,11 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 289
+- [`apps/web/src/components`](#appswebsrccomponents) — 291
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
-- [`apps/web/src/lib`](#appswebsrclib) — 220
+- [`apps/web/src/lib`](#appswebsrclib) — 222
 - [`apps/web/tests/e2e`](#appswebtestse2e) — 25
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
 - [`apps/web/tests/e2e/journeys`](#appswebtestse2ejourneys) — 26
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 38
+- [`docs`](#docs) — 32
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -2448,8 +2448,6 @@ machine, `docs/18-handover.md`.
 | `match-pick.tsx` | The reader's pick on the match page (T-1739, D-360; boards P1-3a and P1-3b), two server components and no script of their own. |
 | `opengraph-image.tsx` | The card a chat app shows for a match link (T-520; A10 "Matchday poster", T-1723): the crests and teams, the score or the kick-off, and the statistical model's forecast from before kick-off. |
 | `page.tsx` | The match centre page (blueprint 4.2, T-034). |
-| `page.tsx` | The match centre page (blueprint 4.2, T-034). |
-| `page.tsx` | The match centre page (blueprint 4.2, T-034). |
 
 ## apps/web/src/app/[locale]/messages
 
@@ -2467,7 +2465,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `page.tsx` | "How accurate is our model?" (T-1369, D-187): the statistical model's published forecasts against the results, by month or (`?period=week`, T-1414) by ISO week, overall and per competition, over `GET /model/accuracy`. |
+| `page.tsx` | "How accurate is our model?" (T-1369, D-187): the statistical model's published forecasts against the results, overall and per competition, over `GET /model/accuracy`. |
 
 ## apps/web/src/app/[locale]/news
 
@@ -2764,6 +2762,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `account-deletion.spec.ts` | Delete my account on the page (T-812, D-094). |
+| `accuracy-verdict.tsx` | The accuracy page's opening card (T-1750, D-370): two plain facts instead of a score nobody outside the trade reads. |
+| `accuracy-weekly-chart.tsx` | "Each week, how much better than a guess" (T-1750, D-370): one bar a week for `(uniform_rps - rps) / uniform_rps`, the same edge the opening card states, so a reader who has never met RPS reads "taller is better". |
 | `achievements.spec.ts` | Achievements on a profile (blueprint 9.2, T-643, D-091) keep three promises. **Every kind has words in the catalogue**, so a new achievement cannot reach the page as a bare identifier. **None, restricted and unreachable… |
 | `achievements.tsx` | The catalogue key naming each achievement; a new kind is a type error here until it has one. |
 | `action-form.spec.tsx` | Two forms on one page naming the same field (T-1363): the match page's desk has three `territory` fields and the Watch console two `note` fields. |
@@ -2930,7 +2930,7 @@ machine, `docs/18-handover.md`.
 | `model-accuracy-report.spec.tsx` | Accuracy over time in the console (T-1369), rendered: each version in its role, overall then per competition, a table with the uniform reference and each row's coverage, and a sparkline only where there is a line to dra… |
 | `model-accuracy-report.tsx` | Accuracy over time, for the console (T-1369, D-187): every model version in each role it was stored under (published and shadow), overall and per competition, by ISO week or month of kick-off (UTC), from the pre-kick-of… |
 | `model-accuracy.spec.tsx` | The public page's figures (T-1369), rendered: never a figure without a match behind it (`not_supplied`), the count beside a figure below the minimum (`limited`), the metrics explained, the model alone (rule 6), in the r… |
-| `model-accuracy.tsx` | "How accurate is our model?" (T-1369, D-187): the statistical model's published pre-kick-off forecasts, scored after the match, by month or by ISO week (T-1414), over every competition and each one. |
+| `model-accuracy.tsx` | "How accurate is our model?" (T-1369, D-187): the statistical model's published pre-kick-off forecasts, scored after the match, over every competition and each one. |
 | `model-box.tsx` | The statistical model's box beside a pick (T-1738, D-359; the board's `ModelBox`): the MODEL tag, the line that says it stands beside the pick and is never mixed with it, and the caller's forecast -- `ForecastBar`, with… |
 | `model-version.spec.tsx` | A model version never reads as an e-mail address in the server's HTML (T-1465), so Cloudflare's Email Obfuscation leaves it and its decoding script off the page; the reader sees the same characters. |
 | `model-version.tsx` | A model version as text (T-1465): `dixon-coles-elo@0.6.0`. |
@@ -3117,6 +3117,8 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `accuracy-edge.spec.ts` | The accuracy page's arithmetic (T-1750, D-370), on the figures the live page showed on 6 November 2026: 727 matches, RPS 0.203 against 0.245 for a guess of one third each, five weeks, 22 competitions of which 13 have 30… |
+| `accuracy-edge.ts` | The accuracy page's arithmetic (T-1750, D-370), pure: how much less error the model's probabilities had than a guess of one third each, the weeks of the weekly chart and its geometry, and the competition list's groups a… |
 | `action-failure.spec.ts` | Tests for `action-failure`. |
 | `action-failure.ts` | What a refused action tells the member (T-907, D-108). |
 | `activity.spec.ts` | Tests for `activity`. |
@@ -3473,19 +3475,13 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
-| `03-project-map.md` | Project map |
-| `03-project-map.md` | Project map |
 | `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
