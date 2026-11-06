@@ -198,6 +198,12 @@ export interface ConsoleModelInputState {
   of: number | null;
   /** How many divisions or competitions it spans, or null where that is not counted. */
   groups: number | null;
+  /**
+   * Of those, how many are in season (a match in the last 120 days) and
+   * have no result newer than ten days: where the input runs behind the
+   * matches played. Null where that is not counted.
+   */
+  late_groups: number | null;
   /** The newest row's own time (a kick-off, a rating date). */
   newest_at: string | null;
 }

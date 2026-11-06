@@ -809,18 +809,27 @@ export class PostgresEvaluationStore {
         matches: number;
         total: number;
         divisions: number | null;
+        late: number;
         newest: string | null;
       }>(
-        `SELECT CASE WHEN division = 'XL' THEN 'cross_league' ELSE 'results' END AS division_key,
-                (COUNT(*) FILTER (WHERE match_date >= $1::date - ${MODEL_HISTORY_DAYS}))::int
-                  AS matches,
-                COUNT(*)::int AS total,
-                (COUNT(DISTINCT division)
-                   FILTER (WHERE match_date >= $1::date - ${MODEL_HISTORY_DAYS}))::int AS divisions,
-                to_char(MAX(match_date), 'YYYY-MM-DD') AS newest
-           FROM training.match
-          WHERE match_date <= $1::date
-          GROUP BY 1`,
+        `SELECT division_key,
+                SUM(matches)::int AS matches, SUM(total)::int AS total,
+                (COUNT(*) FILTER (WHERE matches > 0))::int AS divisions,
+                (COUNT(*) FILTER (WHERE recent > 0 AND newest < $1::date - ${LATE_AFTER_DAYS}))::int
+                  AS late,
+                to_char(MAX(newest), 'YYYY-MM-DD') AS newest
+           FROM (
+             SELECT CASE WHEN division = 'XL' THEN 'cross_league' ELSE 'results' END
+                      AS division_key,
+                    COUNT(*) FILTER (WHERE match_date >= $1::date - ${MODEL_HISTORY_DAYS})
+                      AS matches,
+                    COUNT(*) AS total,
+                    COUNT(*) FILTER (WHERE match_date >= $1::date - ${IN_SEASON_DAYS}) AS recent,
+                    MAX(match_date) AS newest
+               FROM training.match
+              WHERE match_date <= $1::date
+              GROUP BY division) per_division
+          GROUP BY division_key`,
         [day],
       ),
       this.pool.query<{ day: string; club_count: number; computed_at: Date }>(
@@ -880,6 +889,7 @@ export class PostgresEvaluationStore {
         count: row?.matches ?? 0,
         of: row?.total ?? 0,
         groups: key === 'results' ? (row?.divisions ?? 0) : null,
+        lateGroups: key === 'results' ? (row?.late ?? 0) : null,
         newestAt: noon(row?.newest ?? null),
       });
     }
@@ -991,6 +1001,10 @@ function counted(model: string, role: string): string {
  * over on the console's model page.
  */
 export const MODEL_HISTORY_DAYS = 1100;
+/** A division is in season when it has a result this recent... */
+const IN_SEASON_DAYS = 120;
+/** ...and its results run late when the newest is older than this. */
+const LATE_AFTER_DAYS = 10;
 
 /**
  * Each match once for every model version in every role (T-1752): as
@@ -1095,6 +1109,8 @@ export interface ModelInputRow {
   /** What `count` is a part of, or null where it is not a share. */
   of: number | null;
   groups: number | null;
+  /** Divisions in season whose newest result is older than ten days; null where not counted. */
+  lateGroups?: number | null;
   newestAt: Date | null;
 }
 

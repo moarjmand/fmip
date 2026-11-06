@@ -39,6 +39,7 @@ import { ACCURACY_REFERENCE, accuracyCoverage } from './model-accuracy';
  */
 
 const Z = 1.96;
+const DAY_MS = 86_400_000;
 
 const round = (value: number, digits: number): number => {
   const scale = 10 ** digits;
@@ -268,18 +269,20 @@ function pairFigures(row: VersionPairRow, subjectIsA: boolean): ConsoleModelPair
 }
 
 /**
- * Which side a comparison is about: a version in shadow now; else the shadow
- * side of a shadow-against-published pair (the candidate of its day); else
- * the one that started later.
+ * Which side a comparison is about: a version in shadow now; else the one
+ * that started later (the newer version against the one before it); and
+ * where both started within a day, the shadow side, the candidate of its day.
  */
 function subjectIsA(row: VersionPairRow, input: VersionsInput): boolean {
   const aNow = versionState(row.a, input) === 'shadow_now';
   const bNow = versionState(row.b, input) === 'shadow_now';
   if (aNow !== bNow) return aNow;
-  if (row.a.role !== row.b.role) return row.a.role === 'shadow';
   const first = (key: VersionKey) =>
     input.counts.find((count) => same(count, key))?.first?.getTime() ?? 0;
-  return first(row.a) >= first(row.b);
+  const later = first(row.a) - first(row.b);
+  if (Math.abs(later) > DAY_MS) return later > 0;
+  if (row.a.role !== row.b.role) return row.a.role === 'shadow';
+  return later >= 0;
 }
 
 /**
@@ -402,8 +405,6 @@ export function candidateRecord(input: CandidateInput): ConsoleModelCandidate {
 
 // --- The inputs' data (T-1752) -----------------------------------------------------
 
-const DAY_MS = 86_400_000;
-
 /**
  * How old an input's newest row may be before the page calls it delayed
  * (rule 4): results arrive after each round, our Elo is computed nightly,
@@ -430,8 +431,10 @@ const WHOLE_SHARE = 0.9;
 export function inputState(row: ModelInputRow, now: Date): ConsoleModelInputState {
   const age = row.newestAt === null ? null : (now.getTime() - row.newestAt.getTime()) / DAY_MS;
   const partial = row.of !== null && row.of > 0 && row.count / row.of < WHOLE_SHARE;
-  // The fit's window is a part of the whole store by design, not a gap in it.
-  const share = row.key === 'results' || row.key === 'cross_league' ? false : partial;
+  // The fit's window is a part of the whole store by design, not a gap in it;
+  // what is partial about the results is the leagues whose newest one is late.
+  const share =
+    row.key === 'results' || row.key === 'cross_league' ? (row.lateGroups ?? 0) > 0 : partial;
   return {
     key: row.key,
     coverage:
@@ -445,6 +448,7 @@ export function inputState(row: ModelInputRow, now: Date): ConsoleModelInputStat
     count: row.count,
     of: row.of,
     groups: row.groups,
+    late_groups: row.lateGroups ?? null,
     newest_at: row.newestAt?.toISOString() ?? null,
   };
 }

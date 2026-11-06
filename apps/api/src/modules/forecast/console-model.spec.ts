@@ -231,7 +231,7 @@ const versions = (overrides: Partial<VersionsInput> = {}): VersionsInput => ({
   shadow: [V7],
   counts: [
     count('published', V1, '2026-09-01T08:00:00Z', '2026-10-08T08:00:00Z'),
-    count('shadow', V6, '2026-09-20T08:00:00Z', '2026-10-08T08:00:00Z'),
+    count('shadow', V6, '2026-09-01T08:00:01Z', '2026-10-08T08:00:00Z'),
     count('published', V6, '2026-10-08T09:00:00Z', '2026-11-06T08:00:00Z'),
     count('shadow', V7, '2026-10-22T08:00:00Z', '2026-11-06T08:00:00Z'),
   ],
@@ -445,6 +445,28 @@ describe('two versions on the same matches', () => {
     ]);
   });
 
+  it('names the newer of two earlier versions as the subject, whatever its role', () => {
+    // 0.6.0 took over from the stopped shadow version 0.5.0: the pair is about 0.6.0.
+    const [record] = versionComparisons(
+      [
+        pair(['shadow', 'dixon-coles-elo@0.5.0'], ['published', V6], {
+          matches: 170,
+          difference: 0.0032,
+        }),
+      ],
+      versions({
+        shadow: [],
+        counts: [
+          count('shadow', 'dixon-coles-elo@0.5.0', '2026-10-01T12:30:17Z', '2026-10-09T19:00:00Z'),
+          count('published', V6, '2026-10-09T20:15:00Z', '2026-11-06T08:00:00Z'),
+        ],
+      }),
+    );
+    expect(record?.subject).toEqual({ model_version: V6, role: 'published' });
+    expect(record?.reference.model_version).toBe('dixon-coles-elo@0.5.0');
+    expect(record?.figures?.difference.mean).toBe(-0.0032);
+  });
+
   it('shows the record of two earlier versions from 30 matches, the candidate of its day as the subject', () => {
     const [record, thin] = versionComparisons(
       [
@@ -561,13 +583,21 @@ describe("the inputs' data", () => {
   });
 
   it('calls the fit window available: a part of the store by design, not a gap', () => {
-    expect(inputState(input({}), now)).toEqual({
+    expect(inputState(input({ lateGroups: 0 }), now)).toEqual({
       key: 'results',
       coverage: 'available',
       count: 31936,
       of: 56361,
       groups: 27,
+      late_groups: 0,
       newest_at: '2026-11-05T12:00:00.000Z',
+    });
+  });
+
+  it('says limited when some leagues in season have no result of the last ten days', () => {
+    expect(inputState(input({ lateGroups: 14 }), now)).toMatchObject({
+      coverage: 'limited',
+      late_groups: 14,
     });
   });
 
