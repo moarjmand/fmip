@@ -13,7 +13,7 @@ import { optionsState } from '@/lib/viewing';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { forecastBarWords } from '@/lib/words-server';
 import { EntityImage } from '@/components/entity-image';
-import { ForecastBar } from '@/components/forecast-bar';
+import { ForecastBarWithReceipt } from '@/components/forecast-receipt';
 import { MessageText } from '@/components/message-text';
 import { ModelBox } from '@/components/model-box';
 import { PickLink } from '@/components/pick-link';
@@ -134,7 +134,7 @@ export function NextMatchCard({
 
       <div className="flex flex-col gap-3 px-4 pb-4 sm:px-5">
         <ModelBox locale={l} testId="next-match-model">
-          <ForecastBar
+          <ForecastBarWithReceipt
             forecast={forecast}
             home={fixture.home.name}
             away={fixture.away.name}

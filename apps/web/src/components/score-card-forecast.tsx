@@ -1,9 +1,9 @@
 import type { CardForecast } from '@/lib/score-card-products';
 import { formatNumber, formatVersionStamp } from '@/i18n/format';
-import { wholePercentages } from '@/lib/triple';
 import { FORECAST_REASON_KEY, filled, formatPercent } from '@/lib/words';
 import type { ScoresWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
+import { ForecastBar, type Outcome } from '@/components/forecast-bar';
 import { MessageText } from '@/components/message-text';
 import { LtrNumeric } from '@/components/score';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
@@ -95,14 +95,13 @@ export function CardForecastSummary({
   );
 }
 
-/** The Design System's forecast-bar segments (T-1493): home the model's colour, draw and away its own two. */
-const STEPS = { home: 'bg-model', draw: 'bg-prob-draw', away: 'bg-prob-away' } as const;
-
 /**
- * The model's cell on a match row (T-1496, the Design System's compact
- * `ForecastBar`): a thin bar and the three percentages under it, home, draw,
- * away, in the model's colour and nothing else's (rule 6). The version and
- * the computation time are the preview's (`CardForecastSummary`), one press
+ * The model's cell on a match row (T-1496; T-1748, D-368): the one
+ * `ForecastBar` at `row` size -- an 8px bar in the model's three steps and
+ * the three whole percentages, each over its own segment, home, draw, away
+ * (rule 6: the model's and nothing else's). After full time the outcome that
+ * happened is outlined and ticked (T-1749, D-369). The version and the
+ * computation time are the preview's (`CardForecastSummary`), one press
  * away. No forecast is the "Not supplied" badge, never an empty bar (rule 3);
  * a batch that did not answer says it was not loaded. The three whole numbers
  * total 100, as blueprint 6.2 asks of every rounding (T-1545).
@@ -111,6 +110,7 @@ export function RowForecast({
   forecast,
   home,
   away,
+  outcome = null,
   locale,
   words,
   className = '',
@@ -118,6 +118,8 @@ export function RowForecast({
   forecast: CardForecast | undefined;
   home: string;
   away: string;
+  /** What happened in the ninety minutes, once the match is over (`ninetyOutcome` in `forecast-bar.tsx`). */
+  outcome?: Outcome | null;
   locale: string;
   words: ScoresWords;
   /** Where the row places the cell (under the teams on a phone, T-1545). */
@@ -146,49 +148,22 @@ export function RowForecast({
       </span>
     );
   }
-  const whole = wholePercentages(f);
-  const outcomes = [
-    { key: 'home', value: f.home, shown: whole.home },
-    { key: 'draw', value: f.draw, shown: whole.draw },
-    { key: 'away', value: f.away, shown: whole.away },
-  ] as const;
-  const label = filled(m['forecastBar.label'], {
-    home,
-    homePct: formatPercent(locale, f.home),
-    drawPct: formatPercent(locale, f.draw),
-    away,
-    awayPct: formatPercent(locale, f.away),
-  });
   return (
-    <span
-      className={`flex min-w-0 flex-col gap-1 ${className}`}
-      data-testid="row-forecast"
-      data-state="available"
-    >
-      <span
-        role="img"
-        aria-label={label.text}
-        lang={label.status === 'untranslated' ? 'en' : undefined}
-        className="flex h-1.5 gap-px overflow-hidden rounded-full sm:h-2 sm:gap-0.5"
-      >
-        {outcomes.map(({ key, value }) => (
-          <span
-            key={key}
-            data-outcome={key}
-            className={STEPS[key]}
-            // The share is the probability itself; a floor keeps 2% a sliver, not a gap.
-            style={{ flexGrow: Math.max(value, 1.5), flexBasis: 0 }}
-          />
-        ))}
-      </span>
-      <span
-        aria-hidden="true"
-        className="flex justify-between font-mono text-xs text-model tabular-nums [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
-      >
-        {outcomes.map(({ key, shown }) => (
-          <span key={key}>{formatNumber(locale, shown)}</span>
-        ))}
-      </span>
-    </span>
+    <div className={`min-w-0 ${className}`} data-testid="row-forecast" data-state="available">
+      <ForecastBar
+        forecast={f}
+        size="row"
+        home={home}
+        away={away}
+        outcome={outcome}
+        locale={locale}
+        words={{
+          'forecastBar.label': m['forecastBar.label'],
+          'forecastBar.happened': m['forecastBar.happened'],
+          'forecast.draw': m['scores.card.draw'],
+        }}
+        testId="row-bar"
+      />
+    </div>
   );
 }

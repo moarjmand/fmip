@@ -22,6 +22,19 @@ export interface Triple {
 }
 
 /**
+ * Which of the three takes the rounding gap: the largest, and of equal
+ * largest the first of home, away, draw when the gap adds and the last of
+ * them when it takes away. That is the order in which an equal share is
+ * called ahead (`rankSteps` in the forecast bar, D-368), so the outcome drawn
+ * as the likelier of two equals never prints the smaller number.
+ */
+function absorber(exact: readonly number[], gap: number): number {
+  const top = Math.max(...exact);
+  const tied = [0, 2, 1].filter((index) => exact[index] === top);
+  return (gap < 0 ? tied.at(-1) : tied[0]) ?? 0;
+}
+
+/**
  * Three shares of one as percentages totalling exactly 100.0.
  *
  * Blueprint 6.2 requires it of the model ("must always total 100% after
@@ -29,9 +42,10 @@ export interface Triple {
  * adding up to 99.9. The largest share absorbs the rounding gap.
  */
 export function sharesToPercentages(triple: Triple): Triple {
-  const values = [triple.home, triple.draw, triple.away].map((value) => Math.round(value * 1000));
+  const exact = [triple.home, triple.draw, triple.away];
+  const values = exact.map((value) => Math.round(value * 1000));
   const gap = 1000 - values.reduce((sum, value) => sum + value, 0);
-  const largest = values.indexOf(Math.max(...values));
+  const largest = absorber(exact, gap);
   values[largest] = (values[largest] ?? 0) + gap;
   return {
     home: (values[0] ?? 0) / 10,
@@ -49,7 +63,7 @@ export function wholePercentages(percent: Triple): Triple {
   const values = [percent.home, percent.draw, percent.away].map((value) => Math.round(value));
   const gap = 100 - values.reduce((sum, value) => sum + value, 0);
   const exact = [percent.home, percent.draw, percent.away];
-  const largest = exact.indexOf(Math.max(...exact));
+  const largest = absorber(exact, gap);
   values[largest] = (values[largest] ?? 0) + gap;
   return { home: values[0] ?? 0, draw: values[1] ?? 0, away: values[2] ?? 0 };
 }

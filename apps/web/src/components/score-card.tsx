@@ -14,6 +14,7 @@ import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 import { pairIsolate } from '@/components/score';
 import { CardCommunityTotals } from '@/components/score-card-community';
+import { ninetyOutcome } from '@/components/forecast-bar';
 import { CardForecastSummary, RowForecast } from '@/components/score-card-forecast';
 import { Icon } from '@/components/ui/icons';
 
@@ -247,6 +248,7 @@ export function ScoreCard({
         forecast={forecast}
         home={card.home.name}
         away={card.away.name}
+        outcome={ninetyOutcome(card)}
         locale={locale}
         words={words}
         className="max-sm:col-start-2 max-sm:row-start-2 max-sm:pb-2.5"

@@ -1954,11 +1954,89 @@
   "modelAccuracy.kpi.lower": "Lower is better",
   "modelAccuracy.kpi.matchesMeaning": "Each match counted once, by its last forecast before kick-off.",
   "modelAccuracy.kpi.correctMeaning": "How often the outcome it rated most likely happened.",
-  "modelAccuracy.kpi.rpsMeaning": "How far the probabilities were from the result; 0 is perfect.",
-  "modelAccuracy.kpi.brierMeaning": "The squared distance between the probabilities and the result.",
-  "modelAccuracy.kpi.logLossMeaning": "How surprised the model was by the results.",
   "modelAccuracy.competition.months": "Month by month",
   "modelAccuracy.competition.weeks": "Week by week",
+  "modelAccuracy.versionsCombined": "The figures combine these versions; they are not yet shown version by version.",
+  "modelAccuracy.verdict.right": {
+    "one": "Over {count} match, the model picked the right result {share} of the time; a blind guess gets about {guess}.",
+    "other": "Over {count} matches, the model picked the right result {share} of the time; a blind guess gets about {guess}."
+  },
+  "modelAccuracy.verdict.less": "Its probabilities also had {edge} less error than a guess of one third each.",
+  "modelAccuracy.verdict.more": "Its probabilities had {edge} more error than a guess of one third each.",
+  "modelAccuracy.verdict.rightCaption": {
+    "one": "of {count} match called right",
+    "other": "of {count} matches called right"
+  },
+  "modelAccuracy.verdict.lessCaption": "less error than a guess of one third each",
+  "modelAccuracy.verdict.moreCaption": "more error than a guess of one third each",
+  "modelAccuracy.verdict.rightExact": "Exactly {share}. A blind guess gets about {guess}.",
+  "modelAccuracy.verdict.rpsExact": "Ranked probability score (RPS): {model} for the model, {guess} for the guess. Lower is better.",
+  "modelAccuracy.verdict.model": "Model",
+  "modelAccuracy.verdict.guess": "A guess",
+  "modelAccuracy.verdict.arithmetic": "{equation}, so {percent}",
+  "modelAccuracy.verdict.range": {
+    "one": "{count} match, {from} to {to}",
+    "other": "{count} matches, {from} to {to}"
+  },
+  "modelAccuracy.verdict.caveat": "A guess of one third each is the weakest benchmark. It shows the model knows something; it does not show that it beats bookmakers or other models, and this page cannot say.",
+  "modelAccuracy.verdict.early": {
+    "one": "{count} week and {matches} matches are an early record, not a verdict.",
+    "other": "{count} weeks and {matches} matches are an early record, not a verdict."
+  },
+  "modelAccuracy.verdict.limitedNote": "With so few matches the page draws no headline figure and no chart. What has been scored so far is under “Show all measures”, marked limited.",
+  "modelAccuracy.weekly.title": "Each week, how much better than a guess",
+  "modelAccuracy.weekly.lede": "How much lower the model’s RPS error was than a one-third guess on the same matches. Taller is better.",
+  "modelAccuracy.weekly.allBeat": "Every week so far beat a guess; the margin moved between {low} and {high}.",
+  "modelAccuracy.weekly.someWorse": {
+    "one": "{count} week of {weeks} was worse than a guess; its bar is drawn below the line.",
+    "other": "{count} weeks of {weeks} were worse than a guess; their bars are drawn below the line."
+  },
+  "modelAccuracy.weekly.chartLabel": {
+    "one": "Bar chart of how much better than a guess the model was in {count} week: {values}; {overall} over all {matches} matches.",
+    "other": "Bar chart of how much better than a guess the model was in each of {count} weeks: {values}; {overall} over all {matches} matches."
+  },
+  "modelAccuracy.weekly.overall": {
+    "one": "All {count} match: {edge}",
+    "other": "All {count} matches: {edge}"
+  },
+  "modelAccuracy.weekly.partial": "The last week is incomplete (scored to {date}), so its bar is lighter and dashed.",
+  "modelAccuracy.weekly.partialMark": "incomplete",
+  "modelAccuracy.weekly.thin": "Lighter and dashed: fewer than {minimum} matches that week.",
+  "modelAccuracy.weekly.axis": "Each week is named by its Monday (UTC); the number under it is its matches scored.",
+  "modelAccuracy.weekly.latest": "The chart shows the latest {weeks} weeks; every week is in the table.",
+  "modelAccuracy.weekly.table": "The chart as a table",
+  "modelAccuracy.weekly.edge": "Better than a guess",
+  "modelAccuracy.weekly.tooFew": "The weekly chart appears once two complete weeks have been scored.",
+  "modelAccuracy.weekly.soFar": {
+    "one": "So far: {count} week.",
+    "other": "So far: {count} weeks."
+  },
+  "modelAccuracy.weekly.unreachable": "The weekly figures cannot be shown right now.",
+  "modelAccuracy.list.lede": "How much better than a guess, by competition. On the “Better” side of the line: better than a guess; on the other side: worse. Dashed: fewer than {minimum} matches.",
+  "modelAccuracy.list.worse": "Worse than a guess",
+  "modelAccuracy.list.better": "Better",
+  "modelAccuracy.list.competition": "Competition",
+  "modelAccuracy.list.groupFull": {
+    "one": "{minimum} matches or more · {count} competition",
+    "other": "{minimum} matches or more · {count} competitions"
+  },
+  "modelAccuracy.list.groupEarly": {
+    "one": "Early record: fewer than {minimum} matches · {count} competition. An early record, not a verdict.",
+    "other": "Early record: fewer than {minimum} matches · {count} competitions. An early record, not a verdict."
+  },
+  "modelAccuracy.list.sortedByMatches": "Sorted by matches",
+  "modelAccuracy.list.sortByEdge": "Sort by edge over a guess",
+  "modelAccuracy.list.sortedByEdge": "Sorted by edge over a guess",
+  "modelAccuracy.list.sortByMatches": "Sort by matches",
+  "modelAccuracy.list.page": "{name}: the competition’s page",
+  "modelAccuracy.measures.title": "Show all measures",
+  "modelAccuracy.measures.lede": "RPS, Brier, log loss, the month and week tables, what the figures mean",
+  "modelAccuracy.measures.rps": "How far the three probabilities were from what happened, with part credit for a near miss. 0 is perfect.",
+  "modelAccuracy.measures.brier": "The average squared gap between each probability and what happened.",
+  "modelAccuracy.measures.logLoss": "How surprised the model was by the results; being confidently wrong costs the most.",
+  "modelAccuracy.cta.title": "See today’s forecasts",
+  "modelAccuracy.cta.lede": "Every forecast is stored before kick-off and never edited, so this record can be checked against the next match.",
+  "modelAccuracy.cta.button": "See today’s forecasts",
   "forecast.aDraw": "a draw",
   "forecast.kind.early": "Early pre-match",
   "forecast.kind.lineupsPredicted": "Predicted line-ups",
@@ -3043,7 +3121,6 @@
   "matchCentre.reality.title": "What was forecast, what happened",
   "matchCentre.reality.before": "Before kick-off",
   "matchCentre.reality.details": "Forecast details",
-  "matchCentre.reality.happened": "{outcome} · happened",
   "matchCentre.reality.rps": "Ranked probability score for this match {rps} (0 is perfect).",
   "matchCentre.reality.goals": "Goals: expected and scored",
   "matchCentre.reality.modelXg": "Model, before kick-off",

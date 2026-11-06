@@ -23,8 +23,9 @@
  * Fills with text of their own (T-1493): `brand` is the Design System's
  * bright saffron, the same in both themes, for the primary button and the
  * top rating, with ink (`on-brand`) on it; the accent stays the saffron that
- * reads as text. The forecast bar's draw and away segments and the rating
- * chip's low and good bands complete the set; home is the model colour.
+ * reads as text. The rating chip's low and good bands complete the set. The
+ * forecast bar has no token of its own (T-1748, D-368): its three steps are
+ * the model's colour at full, 75% and 50%, by the rank of each share.
  *
  * Three ways to reach dark, one set of values:
  *   - `:root` alone is light;
@@ -115,10 +116,6 @@
   --token-brand: #eba53c;
   /* Text on the brand fill, ink: 8.81 on brand. */
   --token-on-brand: #1a1206;
-  /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
-  --token-prob-draw: #a8b0b7;
-  /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
-  --token-prob-away: #7ccfc8;
   /* A match rating under six, a grey chip. */
   --token-rating-low: #56616b;
   /* Text on the low rating chip: 6.33 on rating-low. */
@@ -180,10 +177,6 @@
   --token-brand: #eba53c;
   /* Text on the brand fill, ink: 8.81 on brand. */
   --token-on-brand: #1a1206;
-  /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
-  --token-prob-draw: #a8b0b7;
-  /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
-  --token-prob-away: #7ccfc8;
   /* A match rating under six, a grey chip. */
   --token-rating-low: #4b555e;
   /* Text on the low rating chip: 7.61 on rating-low. */
@@ -225,8 +218,6 @@
     --token-community: #2b313a;
     --token-brand: #eba53c;
     --token-on-brand: #1a1206;
-    --token-prob-draw: #a8b0b7;
-    --token-prob-away: #7ccfc8;
     --token-rating-low: #4b555e;
     --token-on-rating-low: #ffffff;
     --token-rating-good: #2bb3ad;
@@ -287,10 +278,6 @@
     --token-brand: #eba53c;
     /* Text on the brand fill, ink: 8.81 on brand. */
     --token-on-brand: #1a1206;
-    /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
-    --token-prob-draw: #56616b;
-    /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
-    --token-prob-away: #9edcd7;
     /* A match rating under six, a grey chip. */
     --token-rating-low: #56616b;
     /* Text on the low rating chip: 6.33 on rating-low. */
@@ -335,8 +322,6 @@
   --token-community: #a3acb5;
   --token-brand: #eba53c;
   --token-on-brand: #1a1206;
-  --token-prob-draw: #56616b;
-  --token-prob-away: #9edcd7;
   --token-rating-low: #56616b;
   --token-on-rating-low: #ffffff;
   --token-rating-good: #2bb3ad;
@@ -391,10 +376,6 @@
   --token-brand: #eba53c;
   /* Text on the brand fill, ink: 9.98 on brand. */
   --token-on-brand: #000000;
-  /* The forecast bar's draw segment, neutral and apart from home and away in lightness; never without its percentages in text. */
-  --token-prob-draw: #56616b;
-  /* The forecast bar's away segment, the model's colour lightened; home is the model colour itself. */
-  --token-prob-away: #9edcd7;
   /* A match rating under six, a grey chip. */
   --token-rating-low: #4b555e;
   /* Text on the low rating chip: 7.61 on rating-low. */
@@ -436,8 +417,6 @@
     --token-community: #cad1d8;
     --token-brand: #eba53c;
     --token-on-brand: #000000;
-    --token-prob-draw: #56616b;
-    --token-prob-away: #9edcd7;
     --token-rating-low: #4b555e;
     --token-on-rating-low: #ffffff;
     --token-rating-good: #2bb3ad;
@@ -476,8 +455,6 @@
     --token-community: #cad1d8;
     --token-brand: #eba53c;
     --token-on-brand: #000000;
-    --token-prob-draw: #56616b;
-    --token-prob-away: #9edcd7;
     --token-rating-low: #4b555e;
     --token-on-rating-low: #ffffff;
     --token-rating-good: #2bb3ad;
@@ -516,8 +493,6 @@
     --token-community: #cad1d8;
     --token-brand: #eba53c;
     --token-on-brand: #000000;
-    --token-prob-draw: #56616b;
-    --token-prob-away: #9edcd7;
     --token-rating-low: #4b555e;
     --token-on-rating-low: #ffffff;
     --token-rating-good: #2bb3ad;

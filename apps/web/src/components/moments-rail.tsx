@@ -1,7 +1,8 @@
 import { type Moment, type MomentsResponse, NO_MEDIA, type ScoreCard } from '@fmip/contracts';
 import { CompetitionsMenuTrigger } from '@/components/competitions-menu-view';
 import { EntityImage } from '@/components/entity-image';
-import { FORECAST_BAR_KEYS, ForecastBar, ForecastStrip } from '@/components/forecast-bar';
+import { ForecastBar, ninetyOutcome } from '@/components/forecast-bar';
+import { FORECAST_BAR_KEYS, ForecastBarWithReceipt } from '@/components/forecast-receipt';
 import { MessageText } from '@/components/message-text';
 import { ModelVersion } from '@/components/model-version';
 import {
@@ -311,12 +312,15 @@ function MomentPanel({ moment, d }: { moment: Moment; d: Drawing }) {
           <p className="text-sm text-fg">
             <MessageText message={said} />
           </p>
-          <ForecastStrip
+          {/* The one bar at card size (T-1748); the receipt under it is the panel's own. */}
+          <ForecastBar
             forecast={sharesToPercentages(forecast)}
             home={name.home}
             away={name.away}
+            outcome={ninetyOutcome(card)}
             locale={d.lang}
             words={barWords}
+            testId="moment-panel-bar"
           />
           <Receipt
             testId="moment-panel-receipt"
@@ -333,7 +337,7 @@ function MomentPanel({ moment, d }: { moment: Moment; d: Drawing }) {
         </div>
       ) : (
         // Rule 3: no forecast is a sentence, never an empty bar.
-        <ForecastBar
+        <ForecastBarWithReceipt
           forecast={{ state: 'none' }}
           started={card.status !== 'scheduled' || awaitingUpdate(card)}
           home={name.home}
