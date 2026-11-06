@@ -454,7 +454,7 @@ export function IntervalAxis({ scale, reference }: { scale: IntervalScale; refer
           textAnchor="middle"
           direction="ltr"
           className="fill-caption"
-          fontSize={9}
+          fontSize={10}
         >
           {score(v, digits)}
         </text>
@@ -621,9 +621,9 @@ export function TileStrip({
         opacity={0.09}
       />
       <text
-        x={better === 'lower' ? TILE.left + 2 : TILE.right - 2}
+        x={(start + end) / 2}
         y={52}
-        textAnchor={better === 'lower' ? 'end' : 'start'}
+        textAnchor="middle"
         direction="rtl"
         className="fill-caption"
         fontSize={10}
@@ -689,7 +689,8 @@ export function DifferenceStrip({
   betterWords?: string;
   worseWords?: string;
   label: string;
-  mark?: 'circle' | 'diamond' | 'square';
+  /** `none`: the axis alone, for a column's header. */
+  mark?: 'circle' | 'diamond' | 'square' | 'none';
   /** No interval was recorded: the point alone, drawn hollow. */
   hollow?: boolean;
   ticks?: boolean;

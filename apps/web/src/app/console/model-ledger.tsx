@@ -191,7 +191,10 @@ export function forestRows(entries: readonly ConsoleLabEntry[]): Row[] {
         instead:
           measured.length > 0
             ? null
-            : counted !== undefined && counted.matches !== null && counted.matches_total !== null
+            : entry.verdict === 'insufficient' &&
+                counted !== undefined &&
+                counted.matches !== null &&
+                counted.matches_total !== null
               ? { count: counted.matches, needed: counted.matches_total }
               : 'اختلافی ثبت نشده',
         href: `#${anchor(entry.key)}`,
@@ -258,11 +261,12 @@ export function Forest({ entries }: { entries: readonly ConsoleLabEntry[] }) {
     verdict,
     rows: rows.filter((r) => r.verdict === verdict),
   })).filter((g) => g.rows.length > 0);
-  const axis = (
+  const axis = (width: number) => (
     <DifferenceStrip
       estimate={{ mean: 0, low: null, high: null }}
+      mark="none"
       half={FOREST_HALF}
-      width={410}
+      width={width}
       betterWords="بهتر از مدل پایه"
       worseWords="بدتر"
       label="محور: اختلاف log loss هر مسابقه، با ورودی منهای بدون آن"
@@ -282,7 +286,7 @@ export function Forest({ entries }: { entries: readonly ConsoleLabEntry[] }) {
           <span />
           <span>آزمایش</span>
           <span>حکم</span>
-          <div className="w-[410px]">{axis}</div>
+          <div className="w-[410px]">{axis(410)}</div>
           <span>کجا بدتر بود</span>
         </div>
         {grouped.map((group) => (
@@ -317,7 +321,7 @@ export function Forest({ entries }: { entries: readonly ConsoleLabEntry[] }) {
       </div>
       {/* Narrow: the rows stacked, each verdict's group a disclosure, the first open. */}
       <div className="mt-3 lg:hidden">
-        <div className="mx-auto max-w-[30rem]">{axis}</div>
+        <div className="mx-auto max-w-[30rem]">{axis(290)}</div>
         {grouped.map((group, i) => (
           <details key={group.verdict} open={i === 0} className="mt-2" data-verdict={group.verdict}>
             <summary className="min-h-touch cursor-pointer rounded-tile bg-surface-raised px-2 py-2 text-sm font-bold text-muted">
@@ -342,7 +346,7 @@ export function Forest({ entries }: { entries: readonly ConsoleLabEntry[] }) {
                   <span className="whitespace-nowrap text-xs text-muted">{row.words}</span>
                 </div>
                 <div className="mx-auto mt-1 max-w-[30rem]">
-                  <Lane row={row} width={328} />
+                  <Lane row={row} width={290} />
                 </div>
                 {caption(row) !== '' && <p className="text-xs text-caption">{caption(row)}</p>}
               </div>
@@ -472,14 +476,14 @@ function EntryCard({ entry }: { entry: ConsoleLabEntry }) {
   return (
     <article
       id={anchor(entry.key)}
-      className="scroll-mt-20 rounded-tile border border-default p-4"
+      className="min-w-0 scroll-mt-20 rounded-tile border border-default p-4"
       data-testid="ledger-entry"
       data-verdict={entry.verdict}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h4 className="text-sm font-bold text-fg">
+        <h4 className="min-w-0 text-sm font-bold text-fg">
           {entry.title}{' '}
-          <span className="text-xs font-normal text-caption">
+          <span className="text-xs font-normal break-all text-caption">
             <Ltr>{entry.technical}</Ltr>
           </span>
         </h4>
@@ -489,7 +493,7 @@ function EntryCard({ entry }: { entry: ConsoleLabEntry }) {
         <dt className="text-muted">چرا آزموده شد</dt>
         <dd className="text-fg">{entry.why}</dd>
         <dt className="text-muted">روی چه داده‌ای</dt>
-        <dd className="text-fg">{entry.data === '' ? '—' : entry.data}</dd>
+        <dd className="min-w-0 break-words text-fg">{entry.data === '' ? '—' : entry.data}</dd>
         <dt className="text-muted">اندازه‌گیری</dt>
         <dd className="text-fg">
           {entry.groups.length === 0 ? (
@@ -497,11 +501,12 @@ function EntryCard({ entry }: { entry: ConsoleLabEntry }) {
           ) : (
             <ul className="flex flex-wrap gap-1.5">
               {entry.groups.map((group, i) => (
-                <li key={i}>
-                  <Badge>
-                    {GROUP_WORDS[group.group]}: {differenceWords(group)}
-                    {group.matches !== null && ` · ${fa(group.matches)} مسابقه`}
-                  </Badge>
+                <li
+                  key={i}
+                  className="min-w-0 rounded-pill border border-default px-2 py-0.5 text-xs text-muted"
+                >
+                  {GROUP_WORDS[group.group]}: {differenceWords(group)}
+                  {group.matches !== null && ` · ${fa(group.matches)} مسابقه`}
                 </li>
               ))}
             </ul>
@@ -531,7 +536,7 @@ function FamilyCard({ family }: { family: Family }) {
   return (
     <article
       id={anchor(first.key)}
-      className="scroll-mt-20 rounded-tile border border-default p-4 lg:col-span-2"
+      className="min-w-0 scroll-mt-20 rounded-tile border border-default p-4 lg:col-span-2"
       data-testid="ledger-family"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">

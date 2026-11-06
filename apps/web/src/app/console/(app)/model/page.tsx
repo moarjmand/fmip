@@ -445,7 +445,7 @@ function ModelSection({ report }: { report: ConsoleModelReport }) {
     <Section
       id="model"
       title="مدل چطور ساخته شده"
-      lead="یک خط‌لوله برای همه‌ی نسخه‌ها؛ نسخه‌ها در این فرق دارند که کدام بخش را به‌کار می‌برند. روی هر جزء، یک گل‌میخ برای هر نسخه‌ای که پیش‌بینی ذخیره کرده: پر یعنی به‌کار می‌برد، «+» یعنی از همین نسخه به‌کار رفت."
+      lead="یک خط‌لوله برای همه‌ی نسخه‌ها؛ نسخه‌ها در این فرق دارند که کدام بخش را به‌کار می‌برند. روی هر جزء، یک گل‌میخ برای هر نسخه‌ای که پیش‌بینی ذخیره کرده: پر یعنی به‌کار می‌برد، «+» یعنی نخستین نسخه‌ی ذخیره‌شده‌ای که به‌کارش برد (نسخه‌های 0.2.0 تا 0.4.0 پیش‌بینی ذخیره نکردند؛ جدول زیر همه را دارد)."
     >
       <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm" data-testid="version-key">
         {stored.map((v) => (
@@ -497,11 +497,10 @@ const figureCell = (
       <span className="font-bold text-fg">{format(estimate.mean)}</span>
       {guess !== null && (
         <span className="text-xs text-muted">
-          {signed(
-            (better === 'lower' ? -1 : 1) * (guess - estimate.mean),
-            better === 'higher' ? 3 : 4,
-          )}{' '}
-          {better === 'lower' ? 'کمتر از حدس' : 'بیشتر از حدس'}
+          {better === 'higher'
+            ? `${signed((estimate.mean - guess) * 100, 1)} واحد درصد`
+            : signed(estimate.mean - guess, 4)}{' '}
+          نسبت به حدس
         </span>
       )}
       <span className="text-xs text-caption" dir="ltr">
@@ -770,7 +769,7 @@ function Competitions({
               <th className="p-2 text-start font-normal">رقابت</th>
               <th className="p-2 text-start font-normal">مسابقه</th>
               <th className="p-2 text-start font-normal">log loss و بازه</th>
-              <th className="w-[30%] p-2 font-normal">
+              <th className="w-[30%] min-w-[13rem] p-2 font-normal">
                 <IntervalAxis scale={scale} reference={ref} />
               </th>
               <th className="p-2 text-start font-normal">درصد درست</th>
@@ -992,7 +991,13 @@ function PairCard({
       {judging ? (
         <div className="mt-3 flex flex-col gap-3">
           <div className="mx-auto w-full max-w-[32.5rem]">
-            <WithheldStrip width={520} words="اختلاف این جفت عمداً نشان داده نمی‌شود" />
+            {/* Two widths, so the words stay full size on a phone. */}
+            <div className="hidden sm:block">
+              <WithheldStrip width={520} words="اختلاف این جفت عمداً نشان داده نمی‌شود" />
+            </div>
+            <div className="sm:hidden">
+              <WithheldStrip width={260} words="عمداً نشان داده نمی‌شود" />
+            </div>
           </div>
           <JudgementSlot lab={lab} modelVersion={pair.subject.model_version} />
         </div>
@@ -1041,17 +1046,22 @@ function PairCard({
             </table>
           </div>
           <div>
-            <DifferenceStrip
-              estimate={figures.difference}
-              half={PAIR_HALF}
-              width={520}
-              {...stripWords}
-              label={`اختلاف log loss ${subject} منهای ${reference}: ${signed(figures.difference.mean)} ${interval(figures.difference, (v) => signed(v))}`}
-            />
+            {[520, 260].map((w) => (
+              <div key={w} className={w === 520 ? 'hidden sm:block' : 'sm:hidden'}>
+                <DifferenceStrip
+                  estimate={figures.difference}
+                  half={PAIR_HALF}
+                  width={w}
+                  {...stripWords}
+                  label={`اختلاف log loss ${subject} منهای ${reference}: ${signed(figures.difference.mean)} ${interval(figures.difference, (v) => signed(v))}`}
+                />
+              </div>
+            ))}
             <p className="mt-1 text-sm text-muted" data-testid="pair-difference">
               اختلاف log loss ({subject} منهای {reference}؛ منفی یعنی {subject} بهتر):{' '}
-              <span dir="ltr">{signed(figures.difference.mean)}</span>{' '}
-              {interval(figures.difference, (v) => signed(v))}
+              <span dir="ltr">
+                {signed(figures.difference.mean)} {interval(figures.difference, (v) => signed(v))}
+              </span>
               {figures.difference.low !== null &&
                 figures.difference.high !== null &&
                 figures.difference.low < 0 &&
@@ -1275,14 +1285,19 @@ function CalibrationSection({ report }: { report: ConsoleModelReport }) {
                       · {roleWords(v)} · {fa(v.record.matches)} مسابقه
                     </span>
                   </figcaption>
-                  <TrendPanel
-                    points={v.trend}
-                    domain={domain}
-                    reference={report.reference.uniform_log_loss}
-                    minimum={report.minimum_matches}
-                    width={480}
-                    label={`log loss هفتگی ${v.model_version}`}
-                  />
+                  {/* Two widths, so the axis text stays full size on a phone. */}
+                  {[480, 290].map((w) => (
+                    <TrendPanel
+                      key={w}
+                      points={v.trend}
+                      domain={domain}
+                      reference={report.reference.uniform_log_loss}
+                      minimum={report.minimum_matches}
+                      width={w}
+                      className={w === 480 ? 'hidden w-full sm:block' : 'w-full sm:hidden'}
+                      label={`log loss هفتگی ${v.model_version}`}
+                    />
+                  ))}
                 </figure>
               ))}
             </div>

@@ -369,14 +369,15 @@ function parts(inputs: readonly ConsoleModelInputState[], shown: readonly string
 
 const LEGEND: { kind: 'used' | 'new' | 'not' | 'silent' | 'outside' | 'arrow'; label: string }[] = [
   { kind: 'used', label: 'این نسخه به‌کارش می‌برد' },
-  { kind: 'new', label: 'از این نسخه به‌کار رفت' },
+  { kind: 'new', label: 'نخستین نسخه‌ی ذخیره‌شده که به‌کارش برد' },
   { kind: 'not', label: 'به‌کار نمی‌برد' },
   { kind: 'silent', label: 'نام برده، ولی ساکت بود' },
   { kind: 'outside', label: 'بیرون از مدل' },
   { kind: 'arrow', label: 'جهت کار' },
 ];
 
-function Legend({ id, w, right, top }: { id: string; w: number; right: number; top: number }) {
+/** The legend's entries placed from the inline start, wrapping; and its height. */
+function legendLayout(w: number) {
   const rows: { entry: (typeof LEGEND)[number]; dx: number; dy: number }[] = [];
   let dx = 0;
   let dy = 0;
@@ -389,6 +390,11 @@ function Legend({ id, w, right, top }: { id: string; w: number; right: number; t
     rows.push({ entry, dx, dy });
     dx += ew;
   }
+  return { rows, height: HEAD + dy + 22 };
+}
+
+function Legend({ id, w, right, top }: { id: string; w: number; right: number; top: number }) {
+  const { rows } = legendLayout(w);
   return (
     <g data-section="legend">
       <Title text="راهنما" right={right} y={top + 15} />
@@ -471,7 +477,7 @@ function Drawing({
 }) {
   const id = `model-schematic-${layout}`;
   const wide = layout === 'wide';
-  const W = wide ? 1048 : 360;
+  const W = wide ? 1048 : 300;
   const inner = W - 2 * M;
   const right = W - M;
   const { inputItems, stepItems, outputItems, outsideItems } = parts(inputs, shown);
@@ -608,9 +614,8 @@ function Drawing({
     );
     y += bh + 20;
   }
-  const legendRows = Math.ceil(LEGEND.length / (wide ? 6 : 2));
   nodes.push(<Legend key="g" id={id} w={inner} right={right} top={y} />);
-  y += HEAD + legendRows * 22 + M;
+  y += legendLayout(inner).height + M;
   return (
     <svg
       viewBox={`0 0 ${W} ${Math.ceil(y)}`}
@@ -805,7 +810,7 @@ const METHOD_STEPS: { label: string; detail: string }[] = [
 function MethodDrawing({ layout }: { layout: 'wide' | 'narrow' }) {
   const id = `method-${layout}`;
   const wide = layout === 'wide';
-  const W = wide ? 1048 : 360;
+  const W = wide ? 1048 : 300;
   const inner = W - 2 * M;
   const right = W - M;
   const boxW = wide ? (inner - 4 * 34) / 5 : inner;
