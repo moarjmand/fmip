@@ -9,7 +9,7 @@ import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import { CommunityPicksBrief } from '@/components/community-consensus';
 import { EntityImage } from '@/components/entity-image';
-import { ForecastBar } from '@/components/forecast-bar';
+import { ForecastBarWithReceipt } from '@/components/forecast-receipt';
 import { FounderAnalysisBrief } from '@/components/founder-analysis';
 import { MessageText } from '@/components/message-text';
 import { CommunityVoice, ModelVoice, ThreeProductsNote } from '@/components/voices';
@@ -545,7 +545,7 @@ export function BigMatch({
           <p className="text-sm text-muted">
             <Translated locale={l} message="home.hero.model" />
           </p>
-          <ForecastBar
+          <ForecastBarWithReceipt
             forecast={forecast}
             home={card.home.name}
             away={card.away.name}

@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type {
   AccuracyMetrics,
+  AccuracyPoint,
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
@@ -14,6 +15,8 @@ import { ModelAccuracy, ModelAccuracyBand } from './model-accuracy';
  * match behind it (`not_supplied`), the count beside a figure below the
  * minimum (`limited`), the metrics explained, the model alone (rule 6), in
  * the reader's language and digits, and logical properties only (rule 7).
+ * Since T-1750 (D-370): the opening card and its warning, the weekly chart,
+ * the competition list and the measures under their disclosure.
  */
 const PHYSICAL = /\b(?:m|p|border|rounded)-?[lr]-|\b(?:left|right)-\d|text-(?:left|right)\b/;
 
@@ -48,6 +51,7 @@ const series = (overrides: Partial<PublicAccuracySeries>): PublicAccuracySeries 
   ...overrides,
 });
 
+/** A small record, under the sample rule everywhere: the page's limited state. */
 const report = (overrides: Partial<PublicModelAccuracyResponse>): PublicModelAccuracyResponse => ({
   period: 'month',
   minimum_matches: 30,
@@ -66,15 +70,128 @@ const report = (overrides: Partial<PublicModelAccuracyResponse>): PublicModelAcc
   ...overrides,
 });
 
+// ---------------------------------------------------------------------------
+// The live page's figures of 6 November 2026 (T-1750): 727 matches, five
+// weeks, 22 competitions of which 13 have 30 matches or more.
+// ---------------------------------------------------------------------------
+
+const scored = (
+  matches: number,
+  accuracy: number,
+  rps: number,
+  uniform: number,
+): AccuracyMetrics => ({
+  forecasts: matches + 3,
+  matches,
+  coverage: matches < 30 ? 'limited' : 'available',
+  log_loss: 0.954,
+  brier: 0.564,
+  rps,
+  accuracy,
+  uniform_rps: uniform,
+});
+
+const week = (
+  period: string,
+  start: string,
+  matches: number,
+  accuracy: number,
+  rps: number,
+  uniform: number,
+): AccuracyPoint => ({ period, period_start: start, ...scored(matches, accuracy, rps, uniform) });
+
+const WEEKS: AccuracyPoint[] = [
+  week('2026-W41', '2026-10-05', 104, 0.587, 0.179, 0.233),
+  week('2026-W42', '2026-10-12', 176, 0.563, 0.21, 0.249),
+  week('2026-W43', '2026-10-19', 182, 0.517, 0.217, 0.239),
+  week('2026-W44', '2026-10-26', 171, 0.673, 0.189, 0.252),
+  week('2026-W45', '2026-11-02', 94, 0.532, 0.215, 0.244),
+];
+
+const MONTHS: AccuracyPoint[] = [
+  { period: '2026-10', period_start: '2026-10-01', ...scored(599, 0.573, 0.201, 0.243) },
+  { period: '2026-11', period_start: '2026-11-01', ...scored(128, 0.594, 0.211, 0.25) },
+];
+
+// name, matches, share right, RPS, the guess's RPS; in the API's order, by name.
+const COMPETITIONS: [string, number, number, number, number][] = [
+  ['AFC Champions League Elite', 45, 0.511, 0.21, 0.237],
+  ['AFC Champions League Two', 2, 0.5, 0.118, 0.194],
+  ['Belgian Pro League', 27, 0.63, 0.201, 0.253],
+  ['Bundesliga', 36, 0.444, 0.231, 0.236],
+  ['Championship', 73, 0.521, 0.221, 0.244],
+  ['CONMEBOL Libertadores', 4, 0, 0.266, 0.194],
+  ['Copa del Rey', 19, 0.737, 0.16, 0.251],
+  ['DFB-Pokal', 16, 0.813, 0.187, 0.267],
+  ['Eredivisie', 36, 0.472, 0.227, 0.231],
+  ['FA Cup', 11, 0.273, 0.328, 0.263],
+  ['La Liga', 40, 0.65, 0.174, 0.236],
+  ['Ligue 1', 36, 0.556, 0.188, 0.25],
+  ['Persian Gulf Pro League', 37, 0.568, 0.173, 0.219],
+  ['Premier League', 40, 0.5, 0.227, 0.24],
+  ['Primeira Liga', 28, 0.714, 0.208, 0.272],
+  ['Scottish League Cup', 2, 0.5, 0.219, 0.278],
+  ['Scottish Premiership', 27, 0.482, 0.212, 0.235],
+  ['Serie A', 50, 0.68, 0.192, 0.254],
+  ['Süper Lig', 36, 0.694, 0.179, 0.255],
+  ['UEFA Champions League', 54, 0.685, 0.199, 0.262],
+  ['UEFA Conference League', 54, 0.537, 0.183, 0.231],
+  ['UEFA Europa League', 54, 0.574, 0.208, 0.247],
+];
+
+const VERSIONS = ['dixon-coles-elo@0.1.0', 'dixon-coles-elo@0.6.0'];
+
+const sixNov = (
+  overrides: Partial<PublicModelAccuracyResponse> = {},
+): PublicModelAccuracyResponse => ({
+  period: 'month',
+  minimum_matches: 30,
+  reference: { uniform_log_loss: 1.098612, uniform_brier: 0.666667, uniform_accuracy: 0.333333 },
+  overall: {
+    competition: null,
+    model_versions: VERSIONS,
+    total: scored(727, 0.576, 0.203, 0.245),
+    points: MONTHS,
+  },
+  competitions: COMPETITIONS.map(([name, matches, accuracy, rps, uniform], index) => ({
+    competition: { id: `c${index + 1}`, name },
+    model_versions: VERSIONS,
+    total: scored(matches, accuracy, rps, uniform),
+    points: [
+      { period: '2026-10', period_start: '2026-10-01', ...scored(matches, accuracy, rps, uniform) },
+    ],
+  })),
+  last_updated_at: '2026-11-05T22:10:00Z',
+  ...overrides,
+});
+
+type Props = Omit<Parameters<typeof ModelAccuracy>[0], 'locale' | 'report'>;
+
 // The page as it composes them: the band, then the figures (T-1620).
-const html = (r: PublicModelAccuracyResponse | null, locale = 'en') =>
+const html = (r: PublicModelAccuracyResponse | null, locale = 'en', props: Props = {}) =>
   renderToStaticMarkup(
     <>
-      <ModelAccuracyBand locale={locale} report={r} />
-      <ModelAccuracy locale={locale} report={r} />
+      <ModelAccuracyBand locale={locale} />
+      <ModelAccuracy locale={locale} report={r} {...props} />
     </>,
   );
+/** The page of 6 November as the route renders it: months for the tables, weeks for the chart. */
+const rendered = new Map<string, string>();
+const live = (locale = 'en', props: Props = {}) => {
+  const key = `${locale} ${JSON.stringify(props)}`;
+  const out = rendered.get(key) ?? html(sixNov(), locale, { weekly: WEEKS, ...props });
+  rendered.set(key, out);
+  return out;
+};
 const text = (out: string) => out.replace(/<[^>]+>/g, '');
+/** The element with this test id, to its closing tag (the first one: fine for a leaf or a section of leaves). */
+const part = (out: string, testid: string, tag: string) =>
+  new RegExp(`<${tag}[^>]*data-testid="${testid}"[\\s\\S]*?</${tag}>`).exec(out)?.[0] ?? '';
+const NONE_SCORED = report({
+  overall: series({ total: NONE, points: [], model_versions: [] }),
+  competitions: [],
+  last_updated_at: null,
+});
 
 describe('ModelAccuracy (T-1369)', () => {
   it('shows the figures below the minimum as limited, with the count', () => {
@@ -83,9 +200,9 @@ describe('ModelAccuracy (T-1369)', () => {
     expect(out).toContain('Only 12 matches have been scored so far, fewer than 30');
     expect(out).toContain('October 2026');
     // The text as read: the version's `@` is an element of its own (T-1580).
-    const read = out.replace(/<[^>]+>/g, '');
-    for (const text of ['50.0%', '0.201', '0.249', '0.581', '0.988', 'dixon-coles-elo@0.1.0']) {
-      expect(read).toContain(text);
+    const read = text(out);
+    for (const figure of ['50.0%', '0.201', '0.249', '0.581', '0.988', 'dixon-coles-elo@0.1.0']) {
+      expect(read).toContain(figure);
     }
     expect(out).not.toMatch(PHYSICAL);
   });
@@ -94,6 +211,7 @@ describe('ModelAccuracy (T-1369)', () => {
     const out = html(report({}));
     expect(out).toContain('Serie A');
     expect(out).toContain('data-testid="accuracy-not-supplied"');
+    // Every competition together, and the one competition with a record.
     expect(out.match(/data-testid="accuracy-months"/g)).toHaveLength(2);
   });
 
@@ -110,13 +228,7 @@ describe('ModelAccuracy (T-1369)', () => {
   });
 
   it('says there is no accuracy at all when nothing has been scored', () => {
-    const out = html(
-      report({
-        overall: series({ total: NONE, points: [], model_versions: [] }),
-        competitions: [],
-        last_updated_at: null,
-      }),
-    );
+    const out = html(NONE_SCORED);
     expect(out).toContain('there is no accuracy to show');
     expect(out).not.toContain('data-testid="accuracy-months"');
     expect(out).not.toMatch(/\d+\.\d%/);
@@ -151,18 +263,20 @@ describe('ModelAccuracy (T-1369)', () => {
         points: [{ period: '2026-W42', period_start: '2026-10-12', ...metrics({}) }],
       }),
     });
-    const out = html(weekly);
+    const out = html(weekly, 'en', { chosenPeriod: true });
     expect(out).toContain('data-period="week"');
     expect(out).toContain('Week of 12 Oct 2026');
     expect(out).toContain('<time dateTime="2026-10-12">');
     expect(out).toContain('All weeks');
     expect(out).toContain('By week of kick-off, Monday first (UTC)');
     expect(out).toMatch(
-      /<a(?=[^>]*aria-current="page")(?=[^>]*href="\/en\/model-accuracy\?period=week")/,
+      /<a(?=[^>]*aria-current="page")(?=[^>]*href="\/en\/model-accuracy\?period=week#accuracy-measures")/,
     );
     expect(out).not.toMatch(PHYSICAL);
     const monthly = html(report({}));
-    expect(monthly).toMatch(/<a(?=[^>]*aria-current="page")(?=[^>]*href="\/en\/model-accuracy")/);
+    expect(monthly).toMatch(
+      /<a(?=[^>]*aria-current="page")(?=[^>]*href="\/en\/model-accuracy\?period=month#accuracy-measures")/,
+    );
     expect(monthly).toContain('All months');
     const fa = html(weekly, 'fa');
     expect(fa).toContain('همه‌ی هفته‌ها');
@@ -173,28 +287,54 @@ describe('ModelAccuracy (T-1369)', () => {
     const out = html(report({}));
     // Cloudflare's Email Obfuscation rewrites such a run into "[email protected]".
     expect(out).not.toMatch(/\S+@\d+\.\d+\.\d+/);
-    expect(out.replace(/<[^>]+>/g, '')).toContain('dixon-coles-elo@0.1.0');
+    expect(text(out)).toContain('dixon-coles-elo@0.1.0');
   });
 
-  it('says so when the API cannot be reached, guessing no version, date or switch', () => {
+  it('says so when the API cannot be reached, guessing no version, date or figure', () => {
     const out = html(null);
     expect(out).toContain('data-testid="accuracy-unreachable"');
+    expect(text(out)).toContain('The model’s accuracy cannot be shown right now.');
     expect(out).toContain('data-testid="title"');
     expect(out).not.toContain('data-testid="accuracy-meta"');
     expect(out).not.toContain('data-testid="accuracy-period"');
+    // Today's behaviour, kept (T-1750): the band and the one sentence, nothing drawn.
+    for (const absent of [
+      'accuracy-overall',
+      'accuracy-weekly',
+      'accuracy-competitions',
+      'accuracy-measures',
+      'accuracy-cta',
+    ]) {
+      expect(out).not.toContain(`data-testid="${absent}"`);
+    }
+    expect(out).not.toMatch(/<svg[^>]*role="img"/);
+    expect(out).not.toMatch(/\d%/);
   });
 
   describe('the Stadiomind page (T-1620, D-291)', () => {
-    it('names the model alone in its band, with its versions and the last scoring day', () => {
+    it('names the model alone in its band; its versions and the last scoring day sit under the verdict', () => {
       const out = html(report({}));
       const band = /<header[^>]*data-testid="accuracy-band"[\s\S]*?<\/header>/.exec(out)?.[0] ?? '';
       expect(text(band)).toContain('Statistical model');
       expect(text(band)).toContain('How accurate is our model?');
       // Rule 6: the model only, the other two products named as not counted.
       expect(text(band)).toContain('The statistical model’s published forecasts only');
-      expect(text(band)).toContain('Model versions: dixon-coles-elo@0.1.0.');
-      expect(text(band)).toContain('Last scored on 12 October 2026.');
-      expect(band).toContain('data-testid="accuracy-period"');
+      // Under the verdict, not in the band: a phone's first screen keeps the two figures.
+      expect(band).not.toContain('data-testid="accuracy-meta"');
+      const meta = part(out, 'accuracy-meta', 'ul');
+      expect(text(meta)).toContain('Model versions: dixon-coles-elo@0.1.0.');
+      expect(text(meta)).toContain('Last scored on 12 October 2026.');
+      expect(meta).not.toMatch(PHYSICAL);
+      expect(out.indexOf('data-testid="accuracy-meta"')).toBeGreaterThan(
+        out.indexOf('data-testid="accuracy-verdict-sentence"'),
+      );
+      const page = live();
+      expect(page.indexOf('data-testid="accuracy-meta"')).toBeGreaterThan(
+        page.indexOf('data-testid="accuracy-verdict-sentence"'),
+      );
+      expect(page.indexOf('data-testid="accuracy-meta"')).toBeLessThan(
+        page.indexOf('data-testid="accuracy-weekly-chart"'),
+      );
       expect(band).not.toMatch(PHYSICAL);
       // No serif and no paper: the interface face on the theme's grounds.
       expect(out).not.toMatch(/font-serif|font-article|data-mode/);
@@ -221,64 +361,14 @@ describe('ModelAccuracy (T-1369)', () => {
       expect(text(kpis).match(/Lower is better/g)).toHaveLength(3);
       expect(read).toContain('0 is perfect');
       // The small sample is said beside the tiles, not hidden (rule 3).
-      expect(out).toContain('data-testid="accuracy-limited"');
+      expect(part(out, 'accuracy-measures', 'details')).toContain('data-testid="accuracy-limited"');
     });
 
     it('draws no tile and no table when nothing has been scored', () => {
-      const out = html(
-        report({
-          overall: series({ total: NONE, points: [], model_versions: [] }),
-          competitions: [],
-          last_updated_at: null,
-        }),
-      );
+      const out = html(NONE_SCORED);
       expect(out).not.toContain('data-testid="accuracy-kpis"');
       expect(out).not.toContain('data-testid="accuracy-meta"');
       expect(out).toContain('data-coverage-badge="not_supplied"');
-    });
-
-    it('gives each competition a card with its logo, its link, its coverage and its months', () => {
-      const out = html(
-        report({
-          competitions: [
-            series({
-              competition: {
-                id: 'c1',
-                name: 'Premier League',
-                logo: { coverage: 'available', url: '/api/media/logo/c1.ab12cd34.png' },
-              },
-            }),
-            series({
-              competition: {
-                id: 'c2',
-                name: 'Serie A',
-                logo: { coverage: 'not_supplied', url: null },
-              },
-              model_versions: [],
-              total: NONE,
-              points: [],
-            }),
-          ],
-        }),
-      );
-      const cards = out.split('data-testid="accuracy-competition"').slice(1);
-      expect(cards).toHaveLength(2);
-      expect(cards[0]).toMatch(/<img[^>]*src="\/api\/media\/logo\/c1\.ab12cd34/);
-      expect(cards[0]).toContain('href="/en/competition/c1"');
-      expect(cards[0]).toContain('data-coverage-badge="limited"');
-      // The early-record note under 30 matches, and the months under a disclosure.
-      expect(text(cards[0]!)).toContain('an early record, not a verdict');
-      expect(cards[0]).toMatch(/<details[^>]*>[\s\S]*<summary[^>]*>[\s\S]*Month by month/);
-      // No logo held: the lettered mark, never a stand-in (rule 3); no figure, no table.
-      expect(cards[1]).toContain('data-letters="SA"');
-      expect(cards[1]).not.toContain('<img');
-      expect(cards[1]).toContain('data-coverage-badge="not_supplied"');
-      expect(cards[1]).not.toContain('<details');
-    });
-
-    it('keeps the competitions in the order the API sends them', () => {
-      const out = html(report({}));
-      expect(out.indexOf('Premier League')).toBeLessThan(out.indexOf('Serie A'));
     });
 
     it('says the band, the tiles and the weekly disclosure in Persian on /fa', () => {
@@ -294,10 +384,654 @@ describe('ModelAccuracy (T-1369)', () => {
     });
   });
 
-  it('renders the model alone: no other product in its file (rule 6)', () => {
-    const source = readFileSync(join(__dirname, 'model-accuracy.tsx'), 'utf8');
-    expect(source).not.toMatch(/FounderAnalysis|Consensus|PredictionOutcome/);
-    expect(source).not.toMatch(/from '@\/components\/(founder|community)/);
-    expect(source).not.toMatch(/source\s*[:?]/);
+  it('renders the model alone: no other product in its files (rule 6)', () => {
+    for (const file of [
+      'model-accuracy.tsx',
+      'accuracy-verdict.tsx',
+      'accuracy-weekly-chart.tsx',
+    ]) {
+      const source = readFileSync(join(__dirname, file), 'utf8');
+      expect(source, file).not.toMatch(/FounderAnalysis|Consensus|PredictionOutcome/);
+      expect(source, file).not.toMatch(/from '@\/components\/(founder|community)/);
+      expect(source, file).not.toMatch(/source\s*[:?]/);
+    }
+  });
+});
+
+describe('the accuracy page a reader can read (T-1750, D-370)', () => {
+  describe('the opening card', () => {
+    it('opens with two plain facts computed from the API’s numbers, not with RPS', () => {
+      const out = live();
+      const card = part(out, 'accuracy-overall', 'section');
+      expect(card).toContain('data-verdict="available"');
+      expect(text(part(card, 'accuracy-verdict-sentence', 'p'))).toBe(
+        'Over 727 matches, the model picked the right result 58% of the time; a blind guess gets about 33%. Its probabilities also had 17% less error than a guess of one third each.',
+      );
+      // The card comes before every table and every score's name.
+      expect(out.indexOf('data-testid="accuracy-overall"')).toBeLessThan(
+        out.indexOf('data-testid="accuracy-kpis"'),
+      );
+      const figures = [...card.matchAll(/data-testid="accuracy-big" data-figure="([^"]+)"/g)];
+      expect(figures.map((m) => m[1])).toEqual(['right', 'error']);
+      const read = text(card);
+      expect(read).toContain('of 727 matches called right');
+      expect(read).toContain('Exactly 57.6%. A blind guess gets about 33%.');
+      expect(read).toContain('less error than a guess of one third each');
+      expect(read).toContain(
+        'Ranked probability score (RPS): 0.203 for the model, 0.245 for the guess. Lower is better.',
+      );
+    });
+
+    it('prints the arithmetic with its sample and its dates (D2)', () => {
+      const line = part(live(), 'accuracy-arithmetic', 'p');
+      expect(text(line)).toBe(
+        '(0.245 − 0.203) ÷ 0.245 = 0.17, so 17% · 727 matches, 5 Oct to 5 Nov 2026',
+      );
+      // The sum stays left to right on a right-to-left page.
+      expect(line).toContain('<bdi dir="ltr">(0.245 − 0.203) ÷ 0.245 = 0.17</bdi>');
+    });
+
+    it('never ships the sentence without the weakest-benchmark warning, in the open (D1)', () => {
+      const out = live();
+      const card = part(out, 'accuracy-overall', 'section');
+      const caveat = text(part(card, 'accuracy-caveat', 'p'));
+      expect(caveat).toBe(
+        'A guess of one third each is the weakest benchmark. It shows the model knows something; it does not show that it beats bookmakers or other models, and this page cannot say. 5 weeks and 727 matches are an early record, not a verdict.',
+      );
+      // Not behind a disclosure: the card holds no <details> at all.
+      expect(card).not.toContain('<details');
+      // And in every language the sentence is in, the warning is too.
+      for (const locale of ['fa', 'ar', 'de', 'x-rtl']) {
+        const other = part(live(locale), 'accuracy-overall', 'section');
+        expect(other, locale).toContain('data-testid="accuracy-verdict-sentence"');
+        expect(other, locale).toContain('data-testid="accuracy-caveat"');
+      }
+    });
+
+    it('draws the model against a guess as two named bars, turquoise against grey', () => {
+      const card = part(live(), 'accuracy-overall', 'section');
+      const marks = [...card.matchAll(/<span class="([^"]+)" style="([^"]+)" data-mark="(\w+)"/g)];
+      expect(marks.map((m) => m[3])).toEqual(['model', 'guess', 'model', 'guess']);
+      expect(marks.map((m) => m[2])).toEqual([
+        'inline-size:57.599999999999994%',
+        'inline-size:33.3333%',
+        // The error bars share one scale: the larger of the two is the whole track.
+        `inline-size:${(0.203 / 0.245) * 100}%`,
+        'inline-size:100%',
+      ]);
+      expect(marks[0]![1]).toContain('bg-model');
+      expect(marks[1]![1]).toContain('bg-caption');
+      expect(text(card)).toContain('Model');
+      expect(text(card)).toContain('A guess');
+    });
+
+    it('says more error, not less, when the model was worse than a guess', () => {
+      const out = html(
+        sixNov({
+          overall: {
+            competition: null,
+            model_versions: VERSIONS,
+            total: scored(727, 0.3, 0.26, 0.245),
+            points: MONTHS,
+          },
+        }),
+        'en',
+        { weekly: WEEKS },
+      );
+      const read = text(part(out, 'accuracy-overall', 'section'));
+      expect(read).toContain('Its probabilities had 6% more error than a guess of one third each.');
+      expect(read).toContain('(0.245 − 0.260) ÷ 0.245 = −0.06, so −6%');
+      expect(read).not.toContain('less error');
+    });
+
+    it('claims no percentage from a record under the sample rule', () => {
+      const out = html(report({}), 'en', {
+        weekly: [week('2026-W41', '2026-10-05', 12, 0.5, 0.2011, 0.2489)],
+      });
+      const card = part(out, 'accuracy-overall', 'section');
+      expect(card).toContain('data-verdict="limited"');
+      expect(card).toContain('data-coverage-badge="limited"');
+      expect(text(card)).toContain(
+        'Only 12 matches have been scored so far, fewer than 30: an early record, not a verdict.',
+      );
+      expect(text(card)).toContain('no headline figure and no chart');
+      // (0.249 - 0.201) / 0.249 would be 19%: not said from twelve matches.
+      expect(card).not.toContain('data-testid="accuracy-verdict-sentence"');
+      expect(card).not.toContain('data-testid="accuracy-big"');
+      expect(card).not.toContain('data-mark');
+      expect(text(card)).not.toMatch(/\d%/);
+      // No chart either; the figures stay one click away, marked limited.
+      expect(out).not.toContain('data-testid="accuracy-weekly"');
+      expect(part(out, 'accuracy-measures', 'details')).toContain('data-testid="accuracy-kpis"');
+    });
+
+    it('shows no figure, no chart and no measure with nothing scored', () => {
+      const out = html(NONE_SCORED, 'en', { weekly: [] });
+      const card = part(out, 'accuracy-overall', 'section');
+      expect(card).toContain('data-verdict="empty"');
+      expect(text(card)).toContain(
+        'No forecast made before kick-off has been scored here yet, so there is no accuracy to show.',
+      );
+      expect(text(card)).not.toMatch(/\d/);
+      expect(card).not.toContain('data-mark');
+      expect(out).not.toContain('data-testid="accuracy-weekly"');
+      expect(out).not.toContain('data-testid="accuracy-measures"');
+      expect(out).not.toContain('data-testid="accuracy-competitions"');
+      // What the measures will mean is still said, and the way on is still there.
+      expect(out).toContain('data-testid="accuracy-explained"');
+      expect(out).toContain('data-testid="accuracy-cta"');
+      // Standing alone it is a second-level heading; inside the measures a third.
+      expect(out).toContain('<h2 id="accuracy-explained-heading"');
+      expect(live()).toContain('<h3 id="accuracy-explained-heading"');
+    });
+  });
+
+  describe('the weekly chart', () => {
+    const chartOf = (out: string) => part(out, 'accuracy-weekly-chart', 'svg');
+    const weeksOf = (svg: string) =>
+      [...svg.matchAll(/<g data-testid="accuracy-week"([^>]*)>/g)].map((m) => m[1]!);
+
+    it('draws five weeks of edge over a guess as server-rendered SVG with a spoken sentence', () => {
+      const out = live();
+      const svg = chartOf(out);
+      expect(svg).toMatch(/^<svg role="img" aria-label="/);
+      expect(svg).toContain(
+        'aria-label="Bar chart of how much better than a guess the model was in each of 5 weeks: 23%, 16%, 9%, 25% and 12%; 17% over all 727 matches."',
+      );
+      const weeks = weeksOf(svg);
+      expect(weeks).toHaveLength(5);
+      expect(weeks.map((attrs) => /data-edge="(-?\d+)"/.exec(attrs)?.[1])).toEqual([
+        '23',
+        '16',
+        '9',
+        '25',
+        '12',
+      ]);
+      expect(weeks.every((attrs) => !attrs.includes('data-below'))).toBe(true);
+      // No library and no script: a plain element tree, sized in percent and pixels.
+      expect(svg).not.toContain('viewBox');
+      expect(out).not.toContain('<script');
+      const read = text(svg);
+      for (const label of ['30%', '20%', '10%', '0%', '5 Oct', '2 Nov', '104', '94']) {
+        expect(read).toContain(label);
+      }
+      expect(text(part(out, 'accuracy-weekly', 'section'))).toContain(
+        'Every week so far beat a guess; the margin moved between 9% and 25%.',
+      );
+      expect(text(out)).toContain('All 727 matches: 17%');
+    });
+
+    it('marks the last, still-running week as incomplete, in shape and in words', () => {
+      const out = live();
+      const weeks = weeksOf(chartOf(out));
+      expect(weeks.map((attrs) => attrs.includes('data-partial="true"'))).toEqual([
+        false,
+        false,
+        false,
+        false,
+        true,
+      ]);
+      const bars = [...chartOf(out).matchAll(/<rect[^>]*data-mark="week"[^>]*>/g)].map((m) => m[0]);
+      expect(bars[3]).toContain('class="fill-model"');
+      expect(bars[3]).not.toContain('stroke-dasharray');
+      expect(bars[4]).toContain('fill-model/25');
+      expect(bars[4]).toContain('stroke-dasharray="4 3"');
+      expect(text(part(out, 'accuracy-weekly-partial', 'li'))).toBe(
+        'The last week is incomplete (scored to 5 Nov), so its bar is lighter and dashed.',
+      );
+      // Once the record is scored past the week's Sunday, it is a week like the others.
+      const later = html(sixNov({ last_updated_at: '2026-11-09T06:00:00Z' }), 'en', {
+        weekly: WEEKS,
+      });
+      expect(chartOf(later)).not.toContain('data-partial');
+      expect(later).not.toContain('data-testid="accuracy-weekly-partial"');
+    });
+
+    it('draws a week worse than a guess below the axis and says so', () => {
+      const out = html(sixNov(), 'en', {
+        weekly: [...WEEKS.slice(0, 4), week('2026-W45', '2026-11-02', 94, 0.4, 0.27, 0.244)],
+      });
+      const svg = chartOf(out);
+      const weeks = weeksOf(svg);
+      expect(weeks[4]).toContain('data-edge="-11"');
+      expect(weeks[4]).toContain('data-below="true"');
+      expect(weeks.slice(0, 4).every((attrs) => !attrs.includes('data-below'))).toBe(true);
+      expect(text(svg)).toContain('−11%');
+      expect(text(svg)).toContain('−10%');
+      expect(svg).toContain('23%, 16%, 9%, 25% and −11%');
+      expect(text(part(out, 'accuracy-weekly-reading', 'span'))).toBe(
+        '1 week of 5 was worse than a guess; its bar is drawn below the line.',
+      );
+      expect(text(out)).not.toContain('Every week so far beat a guess');
+    });
+
+    it('says "every week" of the whole record, not of the weeks it draws (rule 3)', () => {
+      // Thirteen weeks: the chart draws the latest twelve, and the one it leaves out lost to a guess.
+      const later = Array.from({ length: 12 }, (_, index) => {
+        const monday = new Date(Date.UTC(2026, 7, 10 + index * 7)).toISOString().slice(0, 10);
+        return week(`2026-W${33 + index}`, monday, 60, 0.5, 0.2, 0.245);
+      });
+      const out = html(sixNov(), 'en', {
+        weekly: [week('2026-W32', '2026-08-03', 60, 0.3, 0.3, 0.245), ...later],
+      });
+      expect(weeksOf(chartOf(out))).toHaveLength(12);
+      expect(text(out)).not.toContain('Every week so far beat a guess');
+      // Nor is a bar that is not drawn said to be drawn below the line.
+      expect(text(part(out, 'accuracy-weekly-reading', 'span'))).toBe('');
+      expect(text(part(out, 'accuracy-weekly-table', 'details'))).toContain('−22%');
+    });
+
+    it('names the table for a screen reader', () => {
+      expect(part(live(), 'accuracy-weekly-table', 'details')).toMatch(
+        /<caption class="sr-only">(<[^>]+>)*The chart as a table/,
+      );
+    });
+
+    it('gives the same numbers as a table, every week of them', () => {
+      const out = live();
+      const table = part(out, 'accuracy-weekly-table', 'details');
+      expect(table).not.toMatch(/<details[^>]* open/);
+      expect(text(table)).toContain('The chart as a table');
+      const rows = table.split('data-testid="accuracy-weekly-row"').slice(1).map(text);
+      expect(rows).toHaveLength(5);
+      expect(rows[0]).toContain('Week of 5 Oct 2026');
+      expect(rows[0]).toContain('104');
+      expect(rows[0]).toContain('0.179');
+      expect(rows[0]).toContain('0.233');
+      expect(rows[0]).toContain('+23%');
+      expect(rows[4]).toContain('Week of 2 Nov 2026');
+      expect(rows[4]).toContain('(incomplete)');
+      expect(rows[4]).toContain('+12%');
+    });
+
+    it('replaces the chart with a sentence under two complete weeks', () => {
+      // One complete week and the running one: a single point is not a trend.
+      const out = html(sixNov(), 'en', { weekly: WEEKS.slice(3) });
+      const section = part(out, 'accuracy-weekly', 'section');
+      expect(section).toContain('data-chart="too-few"');
+      expect(text(section)).toContain(
+        'The weekly chart appears once two complete weeks have been scored. So far: 2 weeks. 265 matches scored.',
+      );
+      expect(section).not.toContain('<svg');
+      expect(section).not.toContain('data-mark');
+      // Two complete weeks are enough.
+      expect(html(sixNov(), 'en', { weekly: WEEKS.slice(2) })).toContain('data-chart="drawn"');
+    });
+
+    it('says so when only the weekly figures did not arrive, and keeps the rest', () => {
+      const out = html(sixNov(), 'en', { weekly: null });
+      const section = part(out, 'accuracy-weekly', 'section');
+      expect(section).toContain('data-chart="unreachable"');
+      expect(text(section)).toContain('The weekly figures cannot be shown right now.');
+      expect(section).not.toContain('<svg');
+      // The card stands on the totals; without the weeks it names no first day.
+      expect(text(part(out, 'accuracy-arithmetic', 'p'))).toBe(
+        '(0.245 − 0.203) ÷ 0.245 = 0.17, so 17% · 727 matches scored.',
+      );
+      expect(text(part(out, 'accuracy-caveat', 'p'))).not.toContain('weeks');
+      expect(out).toContain('data-testid="accuracy-competitions"');
+    });
+
+    it('uses a weekly report as its own chart when the tables are by week', () => {
+      const out = html(
+        sixNov({
+          period: 'week',
+          overall: {
+            competition: null,
+            model_versions: VERSIONS,
+            total: scored(727, 0.576, 0.203, 0.245),
+            points: WEEKS,
+          },
+        }),
+      );
+      expect(weeksOf(chartOf(out))).toHaveLength(5);
+    });
+
+    it('marks a week under the sample rule as an early one', () => {
+      const out = html(sixNov(), 'en', {
+        weekly: [week('2026-W40', '2026-09-28', 9, 0.4, 0.2, 0.25), ...WEEKS],
+      });
+      expect(weeksOf(chartOf(out))[0]).toContain('data-limited="true"');
+      expect(text(part(out, 'accuracy-weekly-thin', 'li'))).toBe(
+        'Lighter and dashed: fewer than 30 matches that week.',
+      );
+      expect(live()).not.toContain('data-testid="accuracy-weekly-thin"');
+    });
+  });
+
+  describe('the competition list', () => {
+    const groupsOf = (out: string) => {
+      const list = out.slice(out.indexOf('data-testid="accuracy-competitions"'));
+      const [, full = '', early = ''] = list.split('data-testid="accuracy-group"');
+      return { full, early };
+    };
+    /** Each row to the end of its list item; a row holds no list of its own. */
+    const rowsOf = (group: string) =>
+      group
+        .split('data-testid="accuracy-competition"')
+        .slice(1)
+        .map((row) => row.slice(0, row.indexOf('</li>')));
+    const nameOf = (row: string) => /font-bold break-words">([^<]+)</.exec(row)?.[1];
+
+    it('is one compact row a competition, in two groups split at 30 matches', () => {
+      const out = live();
+      const { full, early } = groupsOf(out);
+      expect(full).toMatch(/^ data-group="full"/);
+      expect(early).toMatch(/^ data-group="early"/);
+      expect(rowsOf(full)).toHaveLength(13);
+      expect(rowsOf(early)).toHaveLength(9);
+      expect(text(full)).toContain('30 matches or more · 13 competitions');
+      expect(text(early)).toContain(
+        'Early record: fewer than 30 matches · 9 competitions. An early record, not a verdict.',
+      );
+      // Solid over the sample rule, dashed under it: a shape, not only a shade.
+      expect(full).not.toContain('border-dashed');
+      for (const row of rowsOf(early))
+        expect(row).toMatch(/border-dashed[^"]*"[^>]*data-mark="edge"/);
+      expect(out).not.toMatch(PHYSICAL);
+    });
+
+    it('is sorted by matches by default, with a plain link to sort by edge', () => {
+      const out = live();
+      expect(out).toContain('data-sort="matches"');
+      expect(rowsOf(groupsOf(out).full).slice(0, 4).map(nameOf)).toEqual([
+        'Championship',
+        'UEFA Champions League',
+        'UEFA Conference League',
+        'UEFA Europa League',
+      ]);
+      const sort = part(out, 'accuracy-sort', 'p');
+      expect(text(sort)).toBe('Sorted by matches·Sort by edge over a guess');
+      expect(sort).toMatch(
+        /<a[^>]*href="\/en\/model-accuracy\?sort=edge#accuracy-competitions-heading"/,
+      );
+      expect(sort).toMatch(/<a[^>]*class="[^"]*min-h-touch/);
+    });
+
+    it('sorts by edge over a guess on ?sort=edge, each group on its own', () => {
+      const out = live('en', { sort: 'edge' });
+      expect(out).toContain('data-sort="edge"');
+      const { full, early } = groupsOf(out);
+      expect(rowsOf(full).slice(0, 3).map(nameOf)).toEqual(['Süper Lig', 'La Liga', 'Ligue 1']);
+      expect(rowsOf(full).slice(-3).map(nameOf)).toEqual([
+        'Premier League',
+        'Bundesliga',
+        'Eredivisie',
+      ]);
+      expect(rowsOf(early).slice(-2).map(nameOf)).toEqual(['FA Cup', 'CONMEBOL Libertadores']);
+      const sort = part(out, 'accuracy-sort', 'p');
+      expect(text(sort)).toBe('Sorted by edge over a guess·Sort by matches');
+      expect(sort).toMatch(/<a[^>]*href="\/en\/model-accuracy#accuracy-competitions-heading"/);
+      // The reader's period travels with the sort, and the sort with the period.
+      const weekly = live('en', { sort: 'edge', chosenPeriod: true });
+      expect(part(weekly, 'accuracy-sort', 'p')).toContain(
+        'href="/en/model-accuracy?period=month#accuracy-competitions-heading"',
+      );
+      expect(weekly).toContain(
+        'href="/en/model-accuracy?period=week&amp;sort=edge#accuracy-measures"',
+      );
+    });
+
+    it('shows the signed edge beside a bar on the better or the worse side', () => {
+      const rows = rowsOf(live().slice(0));
+      const row = (name: string) => rows.find((r) => nameOf(r) === name) ?? '';
+      const premier = row('Premier League');
+      expect(premier).toMatch(/data-testid="accuracy-edge">.*?<bdi dir="ltr">\+5%<\/bdi>/);
+      expect(premier).toMatch(/style="inline-size:6%" data-mark="edge" data-side="better"/);
+      expect(premier).toMatch(/class="[^"]*start-1\/2[^"]*bg-model"/);
+      const cup = row('FA Cup');
+      expect(cup).toMatch(/data-testid="accuracy-edge">.*?<bdi dir="ltr">−25%<\/bdi>/);
+      expect(cup).toMatch(/data-mark="edge" data-side="worse" data-early="true"/);
+      expect(cup).toMatch(/class="[^"]*end-1\/2[^"]*border-dashed/);
+      // The bar repeats the figure beside it, so a screen reader is told once.
+      expect(premier).toMatch(/<span aria-hidden="true"[^>]*data-testid="accuracy-edge-bar"/);
+      expect(text(premier)).toContain('Matches: 40');
+      expect(text(premier)).toContain('Better than a guess: +5%');
+    });
+
+    it('opens a row, without script, to the five figures and its months', () => {
+      const rows = rowsOf(live());
+      const premier = rows.find((r) => nameOf(r) === 'Premier League') ?? '';
+      expect(premier).toMatch(/<details class="group\/row">\s*<summary/);
+      expect(premier).not.toMatch(/<details[^>]* open/);
+      const read = text(premier);
+      for (const figure of [
+        '40 matches scored.',
+        '50.0%',
+        '0.227',
+        'If guessing: 0.240',
+        '0.564',
+      ]) {
+        expect(read).toContain(figure);
+      }
+      expect(premier).toMatch(/<details class="group\/period[^"]*">[\s\S]*Month by month/);
+      expect(premier).toContain('data-testid="accuracy-months"');
+      expect(premier).toMatch(/<a[^>]*href="\/en\/competition\/c14"/);
+      expect(read).toContain('Premier League: the competition’s page');
+      // Under the sample rule the opened row says so, with the badge and the count.
+      const copa = rows.find((r) => nameOf(r) === 'Copa del Rey') ?? '';
+      expect(copa).toContain('data-coverage-badge="limited"');
+      expect(text(copa)).toContain(
+        'Only 19 matches have been scored so far, fewer than 30: an early record, not a verdict.',
+      );
+      expect(premier).not.toContain('data-testid="accuracy-limited"');
+      expect(premier).not.toContain('data-coverage-badge="limited"');
+      expect(text(live('en', { chosenPeriod: true }))).toContain('Month by month');
+    });
+
+    it('lists a competition with nothing scored with no figure, no bar and no zero', () => {
+      const out = html(
+        sixNov({
+          competitions: [
+            ...sixNov().competitions.slice(0, 3),
+            {
+              competition: {
+                id: 'none',
+                name: 'Coppa Italia',
+                logo: { coverage: 'not_supplied', url: null },
+              },
+              model_versions: [],
+              total: NONE,
+              points: [],
+            },
+          ],
+        }),
+        'en',
+        { weekly: WEEKS, sort: 'edge' },
+      );
+      const rows = rowsOf(groupsOf(out).early);
+      // Last in the early group, whatever the order asked for.
+      const row = rows.at(-1) ?? '';
+      expect(nameOf(row)).toBe('Coppa Italia');
+      expect(row).toMatch(/^ data-coverage="not_supplied"/);
+      expect(row).toContain('data-coverage-badge="not_supplied"');
+      expect(text(row)).toContain('there is no accuracy to show');
+      expect(row).not.toContain('<details');
+      expect(row).not.toContain('data-testid="accuracy-edge-bar"');
+      expect(row).not.toContain('data-testid="accuracy-edge"');
+      expect(row).not.toContain('data-mark');
+      expect(text(row).split('Coppa Italia')[1]).not.toMatch(/\d/);
+      // No logo held: the lettered mark, never a stand-in (rule 3).
+      expect(row).toContain('data-letters="CI"');
+      expect(row).not.toContain('<img');
+    });
+
+    it('shows a competition’s logo when one is held', () => {
+      const out = html(
+        sixNov({
+          competitions: [
+            {
+              ...sixNov().competitions[13]!,
+              competition: {
+                id: 'c14',
+                name: 'Premier League',
+                logo: { coverage: 'available', url: '/api/media/logo/c14.ab12cd34.png' },
+              },
+            },
+          ],
+        }),
+        'en',
+        { weekly: WEEKS },
+      );
+      expect(rowsOf(out)[0]).toMatch(/<img[^>]*src="\/api\/media\/logo\/c14\.ab12cd34/);
+    });
+  });
+
+  describe('the measures', () => {
+    it('keeps RPS, Brier and log loss under one closed disclosure, each with a plain sentence', () => {
+      const out = live();
+      const measures = part(out, 'accuracy-measures', 'details');
+      expect(measures).toMatch(/^<details id="accuracy-measures" class=/);
+      expect(text(measures)).toContain('Show all measures');
+      expect(measures).toContain('data-testid="accuracy-months"');
+      for (const inside of ['accuracy-kpis', 'accuracy-period', 'accuracy-explained']) {
+        expect(measures, inside).toContain(`data-testid="${inside}"`);
+        // Nowhere else on the page: the opening is the sentence, not the scores.
+        expect(out.split(`data-testid="${inside}"`).length - 1, inside).toBe(
+          measures.split(`data-testid="${inside}"`).length - 1,
+        );
+      }
+      const read = text(measures);
+      for (const sentence of [
+        'How far the three probabilities were from what happened, with part credit for a near miss. 0 is perfect.',
+        'The average squared gap between each probability and what happened.',
+        'How surprised the model was by the results; being confidently wrong costs the most.',
+        '727 matches scored.',
+        'October 2026',
+        'All months',
+        'What the figures mean',
+      ]) {
+        expect(read).toContain(sentence);
+      }
+      // What the page opens with, the card and the chart, names no score but RPS in passing.
+      const before = text(out.slice(0, out.indexOf('data-testid="accuracy-competitions"')));
+      expect(before).not.toContain('Brier');
+      expect(before).not.toContain('Log loss');
+    });
+
+    it('opens on the period the reader chose, since the switch reloads the page', () => {
+      const out = live('en', { chosenPeriod: true });
+      expect(part(out, 'accuracy-measures', 'details')).toMatch(
+        /^<details id="accuracy-measures" open=""/,
+      );
+    });
+  });
+
+  it('says plainly that the figures combine the published versions (D9, interim)', () => {
+    const meta = part(live(), 'accuracy-meta', 'ul');
+    expect(text(meta)).toContain(
+      'Model versions: dixon-coles-elo@0.1.0, dixon-coles-elo@0.6.0. The figures combine these versions; they are not yet shown version by version.',
+    );
+    expect(html(report({}))).not.toContain('data-testid="accuracy-versions-combined"');
+  });
+
+  it('ships no calibration chart and no per-version card, not even as a frame (D10)', () => {
+    for (const out of [live(), live('fa'), html(report({})), html(NONE_SCORED)]) {
+      expect(out).not.toMatch(/calibration|per-version|accuracy-version-card/i);
+      for (const words of [
+        'When it says 60%',
+        'Each model version on its own',
+        'Needs data',
+        'وقتی می‌گوید ۶۰٪',
+        'هر نسخه‌ی مدل جدا',
+        'به داده‌ای نیاز دارد',
+      ]) {
+        expect(text(out)).not.toContain(words);
+      }
+    }
+    // One picture on the page: the weekly chart.
+    expect(live().match(/<svg[^>]*role="img"/g)).toHaveLength(1);
+  });
+
+  it('draws the model’s data in turquoise only: no saffron on a data mark', () => {
+    for (const out of [live(), live('fa'), live('en', { sort: 'edge', chosenPeriod: true })]) {
+      const marks = [...out.matchAll(/<(?:span|rect|line)[^>]*data-mark="[^"]+"[^>]*>/g)].map(
+        (m) => m[0],
+      );
+      // Two pairs on the card, five bars and the overall line on the chart, 22 competitions.
+      expect(marks).toHaveLength(4 + 5 + 1 + 22);
+      for (const mark of marks) {
+        expect(mark).not.toMatch(/brand|accent|saffron|warning|danger|live/);
+        if (!mark.includes('data-mark="guess"'))
+          expect(mark).toMatch(/(?:bg|fill|stroke|border)-model/);
+      }
+      const svg = part(out, 'accuracy-weekly-chart', 'svg');
+      expect(svg).not.toMatch(/brand|accent/);
+      // Saffron is the one closing button.
+      expect(out.match(/bg-brand(?![/\w-])/g)).toHaveLength(1);
+      expect(part(out, 'accuracy-cta', 'section')).toMatch(
+        /<a[^>]*class="[^"]*bg-brand [^"]*"[^>]*href="\/en\/scores"|<a[^>]*class="[^"]*bg-brand [^"]*"[^>]*href="\/fa\/scores"/,
+      );
+    }
+  });
+
+  it('ends on the way to today’s forecasts', () => {
+    const cta = part(live(), 'accuracy-cta', 'section');
+    expect(text(cta)).toContain('See today’s forecasts');
+    expect(text(cta)).toContain(
+      'Every forecast is stored before kick-off and never edited, so this record can be checked against the next match.',
+    );
+    expect(cta).toMatch(/<a[^>]*class="[^"]*min-h-touch[^"]*"[^>]*href="\/en\/scores"/);
+  });
+
+  describe('in Persian', () => {
+    it('says the card in Persian digits and the Jalali calendar', () => {
+      const out = live('fa');
+      expect(out).not.toContain('data-translation="untranslated"');
+      const card = part(out, 'accuracy-overall', 'section');
+      expect(text(part(card, 'accuracy-verdict-sentence', 'p'))).toBe(
+        'در ۷۲۷ بازی، مدل نتیجه‌ی درست را ۵۸٪ مواقع انتخاب کرد؛ حدس تصادفی حدود ۳۳٪ درست درمی‌آید. احتمال‌های مدل هم ۱۷٪ خطای کمتر از حدسِ یک‌سوم برای هر نتیجه داشت.',
+      );
+      expect(text(part(card, 'accuracy-arithmetic', 'p'))).toBe(
+        '(۰٫۲۴۵ − ۰٫۲۰۳) ÷ ۰٫۲۴۵ = ۰٫۱۷، یعنی ۱۷٪ · ۷۲۷ بازی، ۱۳ مهر تا ۱۴ آبان ۱۴۰۵',
+      );
+      expect(card).toContain('<bdi dir="ltr">(۰٫۲۴۵ − ۰٫۲۰۳) ÷ ۰٫۲۴۵ = ۰٫۱۷</bdi>');
+      expect(text(part(card, 'accuracy-caveat', 'p'))).toContain('ضعیف‌ترین معیار مقایسه است');
+      expect(text(card)).not.toMatch(/[0-9]/);
+    });
+
+    it('mirrors the chart: the oldest week at the inline start, on the right', () => {
+      const centres = (out: string) =>
+        [
+          ...part(out, 'accuracy-weekly-chart', 'svg').matchAll(
+            /<rect x="([\d.]+)%" width="([\d.]+)%"/g,
+          ),
+        ].map((m) => Number(m[1]) + Number(m[2]) / 2);
+      const en = centres(live());
+      const fa = centres(live('fa'));
+      expect(en).toHaveLength(5);
+      expect(en).toEqual([...en].sort((a, b) => a - b));
+      expect(fa).toEqual([...fa].sort((a, b) => b - a));
+      fa.forEach((centre, index) => expect(centre).toBeCloseTo(100 - en[index]!, 6));
+      const svg = part(live('fa'), 'accuracy-weekly-chart', 'svg');
+      expect(svg).toContain('data-direction="rtl"');
+      // The gridline labels sit at the inline start: the right edge, digits left to right.
+      expect(svg).toMatch(/<text x="100%"[^>]*text-anchor="end" direction="ltr"[^>]*>۳۰٪</);
+      expect(part(live(), 'accuracy-weekly-chart', 'svg')).toMatch(
+        /<text x="0"[^>]*text-anchor="start" direction="ltr"[^>]*>30%</,
+      );
+      expect(text(svg)).toContain('۱۳ مهر');
+      expect(text(svg)).toContain('۱۰۴');
+      // Persian's list separator carries a right-to-left mark.
+      expect(svg.replace(/‏/g, '')).toContain('۲۳٪، ۱۶٪، ۹٪، ۲۵٪، و ۱۲٪');
+      expect(text(svg)).not.toMatch(/[0-9]/);
+    });
+
+    it('keeps a signed percentage left to right inside the right-to-left list', () => {
+      const out = live('fa');
+      expect(out).toContain('<bdi dir="ltr">+۵٪</bdi>');
+      expect(out).toContain('<bdi dir="ltr">−۲۵٪</bdi>');
+      expect(out).toContain('<bdi dir="ltr">−۳۷٪</bdi>');
+      const read = text(out);
+      expect(read).toContain('۳۰ بازی یا بیشتر · ۱۳ رقابت');
+      expect(read).toContain(
+        'سابقه‌ی اولیه: کمتر از ۳۰ بازی · ۹ رقابت. یک سابقه‌ی اولیه است، نه یک داوری.',
+      );
+      expect(read).toContain('نمایش همه‌ی معیارها');
+      expect(read).toContain('پیش‌بینی‌های امروز را ببینید');
+      // The bars mirror by logical properties alone: no class or style names a side.
+      expect(out).not.toMatch(PHYSICAL);
+      expect(out).not.toMatch(/style="[^"]*(?:left|right)/);
+    });
   });
 });

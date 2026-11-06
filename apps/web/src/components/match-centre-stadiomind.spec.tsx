@@ -130,14 +130,31 @@ const card = (
   );
 
 describe('what was forecast, what happened (the Summary card)', () => {
-  it('after full time sets the version from before kick-off against the result, the outcome in saffron', () => {
+  it('after full time sets the version from before kick-off against the result, the outcome outlined, ticked and named', () => {
     const html = card('finished');
     expect(html).toContain('What was forecast, what happened');
-    expect(html).toContain('data-testid="outcome-bar"');
-    // The home win happened: its label says so and its segment is saffron.
-    expect(html).toMatch(/data-happened="" class="text-accent">Aston Villa 21\.1% · happened/);
-    expect(html).toMatch(/<span data-outcome="home" class="bg-accent"/);
-    expect(html).toMatch(/<span data-outcome="away" class="bg-model\/25"/);
+    // The one bar at headline size (T-1748, D-368).
+    const bar = /data-testid="outcome-bar"[^]*?<\/div><\/div>/.exec(html)?.[0] ?? '';
+    expect(bar).toContain('data-size="headline"');
+    expect(bar).toContain('data-outcome-happened="home"');
+    // The home win happened: a tick before its number, the word after its
+    // name, an ink outline round its segment -- and no saffron (T-1749, D-369).
+    expect(bar).toMatch(
+      /data-outcome="home" data-happened=""[^]*?data-icon="check"[^]*?<span dir="ltr"[^>]*>21\.1%<\/span>[^]*?<bdi>Aston Villa<\/bdi><span class="[^"]*" data-happened-word="">· happened<\/span>/,
+    );
+    expect(bar).toMatch(
+      /data-segment="home" data-step="3" data-happened="" class="bg-model\/50 [^"]*outline-2 outline-offset-1 outline-fg/,
+    );
+    // The steps follow rank: Manchester City, the likeliest, is the full
+    // turquoise although it is the away side and did not win.
+    expect(bar).toMatch(/data-segment="away" data-step="1" class="bg-model /);
+    expect(bar).toMatch(/data-segment="draw" data-step="2" class="bg-model\/75 /);
+    expect(bar).not.toMatch(/bg-accent|text-accent|bg-brand/);
+    expect(bar).toContain(
+      'aria-label="Model forecast: Aston Villa 21.1% (happened), draw 24.8%, Manchester City 54.1%"',
+    );
+    // The word is written once on the page: on the headline, not in the version list.
+    expect(html.match(/data-happened-word/g)).toHaveLength(1);
     // What happened against what the model gave it, in the card (T-1744).
     expect(html).toContain('data-testid="forecast-reality-result"');
     expect(html).toContain('The model gave it 21.1%.');
@@ -167,7 +184,24 @@ describe('what was forecast, what happened (the Summary card)', () => {
     expect(rows).toEqual(['1', '2', '3']);
     expect(html).toMatch(/data-version="3" data-current=""/);
     // Each row its own figures: v1 as it was, never re-drawn from v3.
-    expect(html).toMatch(/data-version="1"[^]*22\.4% · 25\.1% · 52\.5%[^]*data-version="2"/);
+    const first = /data-version="1"[^]*?(?=data-version="2")/.exec(html)?.[0] ?? '';
+    expect([...first.matchAll(/<span dir="ltr"[^>]*>([^<]+)<\/span>/g)].map((m) => m[1])).toEqual([
+      '22.4%',
+      '25.1%',
+      '52.5%',
+    ]);
+    // The one bar at row size with a label on each segment (T-1748): the
+    // order no longer has to be known, the names are there where they fit.
+    expect(first).toContain('data-testid="version-bar"');
+    expect(first).toContain('data-size="row"');
+    expect(first).toMatch(
+      /<bdi>Aston Villa<\/bdi>[^]*<span>Draw<\/span>[^]*<bdi>Manchester City<\/bdi>/,
+    );
+    expect(first).toContain('aria-label="Model forecast: Aston Villa 22.4% (happened), draw 25.1%');
+    // What happened is marked on every version that gave figures (T-1749).
+    expect(html.match(/data-testid="version-bar"/g)).toHaveLength(2);
+    expect(html.match(/data-segment="home" data-step="3" data-happened=""/g)).toHaveLength(3);
+    expect(html).not.toMatch(/bg-model\/(55|25)|bg-accent/);
     // A version that gave no figures says why.
     expect(html).toMatch(/data-version="2"[^]*The model service could not be reached/);
     // The card renders the stored rows and never changes them.
@@ -919,7 +953,9 @@ describe('live', () => {
       />,
     );
     expect(awaiting).toContain('Before kick-off');
-    expect(awaiting).not.toContain('Model forecast');
+    // The title a match still to come carries is not on the page (the bar's
+    // accessible name does begin with those words).
+    expect(awaiting.replace(/<[^>]*>/g, '')).not.toContain('Model forecast');
     // The last version computed before kick-off, stored as it was (rule 5).
     expect(awaiting).toMatch(/data-version="3" data-current=""/);
     expect(cardVersion(forecasts, null, 'scheduled', KICKOFF, true)?.version_number).toBe(3);
