@@ -11,6 +11,7 @@ import {
   type ConsoleCommandRequest,
   type ConsoleSnapshot,
 } from '@fmip/contracts';
+import { checkModelLab } from './model-lab-rules';
 
 /**
  * The agents console's rules (T-1696, T-1697, D-340), pure so they are tested
@@ -143,6 +144,8 @@ export function checkSnapshot(
           : { ...report, text: cut(report.text) },
       ),
       brief: snapshot.brief === null || snapshot.brief === undefined ? null : snapshot.brief,
+      // T-1752 (D-371): the model lab's ledger, checked; null when the snapshot has none.
+      model_lab: checkModelLab(raw.model_lab),
     },
   };
 }

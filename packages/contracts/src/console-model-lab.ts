@@ -40,7 +40,12 @@ export type ConsoleLabKind = (typeof CONSOLE_LAB_KINDS)[number];
 export const CONSOLE_LAB_GROUPS = ['football_data', 'our_records', 'cross_league', 'all'] as const;
 export type ConsoleLabGroupKey = (typeof CONSOLE_LAB_GROUPS)[number];
 
-export const CONSOLE_LAB_GROUP_RESULTS = ['passed', 'failed', 'insufficient', 'not_judged'] as const;
+export const CONSOLE_LAB_GROUP_RESULTS = [
+  'passed',
+  'failed',
+  'insufficient',
+  'not_judged',
+] as const;
 export type ConsoleLabGroupResult = (typeof CONSOLE_LAB_GROUP_RESULTS)[number];
 
 export const CONSOLE_LAB_ENTRIES_MAX = 200;
@@ -128,6 +133,11 @@ export interface ConsoleModelLab {
   schema: number;
   /** When the ledger file was last changed. */
   updated_at: string;
+  /**
+   * Entries of the file that failed a check, on the computer or at the
+   * server, and are not in `entries`: said on the page, never shown wrong.
+   */
+  skipped: number;
   entries: ConsoleLabEntry[];
   judgements: ConsoleLabJudgement[];
 }
