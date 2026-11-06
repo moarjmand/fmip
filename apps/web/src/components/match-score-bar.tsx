@@ -72,8 +72,11 @@ export const BLEED =
  *
  * Drawn from the same `BandState` and in the same render as the band, so a
  * live snapshot moves both at once (rule 4); a feed that is behind is amber
- * words here too, never the live badge. No club colour and no link: the bar
- * repeats the band, it is not a second header.
+ * words here too, never the live badge. So is a live stream that has broken
+ * (`stale`): the band says so in its own line, which has scrolled away by
+ * the time this bar shows, so the bar does not go on saying "Live" over a
+ * score nobody is updating. No club colour and no link: the bar repeats the
+ * band, it is not a second header.
  *
  * `aria-hidden`: the band above is the page's heading and already says every
  * word of this, and score changes are announced by the live region; a region
@@ -83,15 +86,20 @@ export const BLEED =
 export function ScoreBar({
   fixture: f,
   state,
+  stale = false,
   locale,
   words,
 }: {
   fixture: Fixture;
   state: BandState;
+  /** In play, and the page's live stream is stale or unreachable (rule 4). */
+  stale?: boolean;
   locale: string;
   words: MatchWords;
 }) {
   const m = words.m;
+  const live = state.live && !stale;
+  const behind = state.behind || (state.live && stale);
   const n = (value: number): string => formatNumber(locale, value);
   const coming = f.status === 'scheduled' && !state.awaiting;
   // A long name gives way before the score or the status does: onto a second
@@ -125,7 +133,7 @@ export function ScoreBar({
         BLEED,
       )}
       data-score-bar=""
-      data-state={coming ? 'scheduled' : state.live ? 'live' : state.behind ? 'behind' : f.status}
+      data-state={coming ? 'scheduled' : live ? 'live' : behind ? 'behind' : f.status}
       data-testid="score-bar"
     >
       {coming ? (
@@ -152,7 +160,7 @@ export function ScoreBar({
               locale={locale}
               className={cx(
                 'shrink-0 text-base font-extrabold tabular-nums',
-                state.live && 'text-live',
+                live && 'text-live',
                 state.disputed && 'text-muted',
               )}
             >
@@ -160,7 +168,7 @@ export function ScoreBar({
             </ScorePair>
           )}
           {side(f.away, false)}
-          {state.live ? (
+          {live ? (
             <LiveBadge
               className="shrink-0"
               label={
@@ -176,7 +184,7 @@ export function ScoreBar({
               className={cx(
                 'shrink-0 text-xs font-bold',
                 // Behind, or the kick-off long past: amber words, as in the band.
-                state.behind || state.awaiting ? 'text-warning' : 'text-muted',
+                behind || state.awaiting ? 'text-warning' : 'text-muted',
               )}
             >
               {state.status}

@@ -66,6 +66,16 @@ export function cardVersion(
   );
 }
 
+/**
+ * Whether the match has a forecast at all: some stored version gave
+ * probabilities. "No model forecast" is said only when none did; a later
+ * version the model could not produce does not unsay an earlier one that
+ * stands in the version list on the same page (rule 3).
+ */
+export function hasForecast(forecasts: ForecastVersionsResponse): boolean {
+  return forecasts.versions.some((v) => v.probabilities !== null);
+}
+
 /** What happened, once there is a full-time score. */
 export function outcomeOf(score: { home: number; away: number }): MatchOutcome {
   return score.home > score.away ? 'home' : score.home < score.away ? 'away' : 'draw';
@@ -231,7 +241,9 @@ export function isUpcoming(fixture: RealityProps['fixture']): boolean {
  * the card is the one place the page says so (T-1746, D-367; board P2-5):
  * "No model forecast for this match", the stored reason, that there is no
  * Power Index either when that is so, and one link to where the model's
- * coverage can be read. Never an empty bar (rule 3).
+ * coverage can be read. Never an empty bar (rule 3). When the card's own
+ * version gave none but another did, the match has a forecast: the card
+ * keeps its title and says only why this version has no numbers.
  */
 export function ForecastReality({
   forecasts,
@@ -257,13 +269,22 @@ export function ForecastReality({
       ? null
       : cardVersion(forecasts, evaluations, status, fixture.kickoff_at, !upcoming);
   const p = version?.probabilities ?? null;
-  // No forecast, as against a forecast service that did not answer.
-  const none = forecasts !== null && p === null;
+  // No forecast, as against a forecast service that did not answer, and as
+  // against one version without numbers among others that have them.
+  const none = forecasts !== null && p === null && !hasForecast(forecasts);
   return (
     <article
       className={CARD_FRAME}
       data-testid="forecast-reality"
-      data-state={forecasts === null ? 'unreachable' : p === null ? 'none' : 'available'}
+      data-state={
+        forecasts === null
+          ? 'unreachable'
+          : none
+            ? 'none'
+            : p === null
+              ? 'unavailable'
+              : 'available'
+      }
       data-part={upcoming ? 'headline' : 'whole'}
     >
       <h2 className={CARD_TITLE}>
@@ -300,24 +321,26 @@ export function ForecastReality({
             ) : (
               <Translated locale={locale} message="forecast.couldNotProduce" />
             )}
-            {noPowerIndex && (
+            {none && noPowerIndex && (
               <span data-testid="forecast-reality-no-power">
                 {' '}
                 <Translated locale={locale} message="matchCentre.noForecast.power" />
               </span>
             )}
           </p>
-          <p className="-mt-2 text-sm">
-            {/* A stopgap the maintainer accepted: there is no page about the
+          {none && (
+            <p className="-mt-2 text-sm">
+              {/* A stopgap the maintainer accepted: there is no page about the
                 model's coverage, and the record lists every competition it has. */}
-            <Link
-              href={`/${locale}/model-accuracy`}
-              className="inline-flex min-h-touch items-center font-bold text-fg underline md:min-h-0"
-              data-testid="forecast-coverage-link"
-            >
-              <Translated locale={locale} message="matchCentre.noForecast.link" />
-            </Link>
-          </p>
+              <Link
+                href={`/${locale}/model-accuracy`}
+                className="inline-flex min-h-touch items-center font-bold text-fg underline md:min-h-0"
+                data-testid="forecast-coverage-link"
+              >
+                <Translated locale={locale} message="matchCentre.noForecast.link" />
+              </Link>
+            </p>
+          )}
         </>
       ) : (
         <>

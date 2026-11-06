@@ -80,6 +80,12 @@ export interface MatchHero {
    */
   zone?: string;
   live?: React.ReactNode;
+  /**
+   * In play, and the page's live stream is stale or unreachable: the compact
+   * score bar then drops its live badge, since the band's own line about it
+   * is out of sight by the time the bar shows (rule 4).
+   */
+  streamBroken?: boolean;
   watch?: React.ReactNode;
   highlights?: React.ReactNode;
   /**
@@ -483,7 +489,13 @@ export function MatchCentreView({
           (`globals.css`). The negative margin closes the column's gap, so
           the tabs sit at the band's foot as before. */}
       <div className="sticky z-10 -mt-5 md:-mt-6" data-match-sticky="">
-        <ScoreBar fixture={f} state={state} locale={locale} words={words} />
+        <ScoreBar
+          fixture={f}
+          state={state}
+          stale={hero?.streamBroken === true}
+          locale={locale}
+          words={words}
+        />
         {/* The section tabs (Design System `Tabs`): plain anchors, the saffron
             edge under the one on show (globals.css), scrolling sideways on a phone. */}
         <nav

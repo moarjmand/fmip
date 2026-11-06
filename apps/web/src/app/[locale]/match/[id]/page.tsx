@@ -4,7 +4,13 @@ import { notFound } from 'next/navigation';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { interpolate, t } from '@/i18n/messages';
 import { ForecastPanel } from '@/components/forecast-panel';
-import { ForecastDetails, ForecastReality, cardVersion, isUpcoming } from './forecast-reality';
+import {
+  ForecastDetails,
+  ForecastReality,
+  cardVersion,
+  hasForecast,
+  isUpcoming,
+} from './forecast-reality';
 import { MatchPickCard, PickBar } from './match-pick';
 import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CompetitionContextPanel } from '@/components/competition-context';
@@ -248,15 +254,17 @@ export default async function MatchPage({
           !isUpcoming(fixture),
         );
   const consensusData = consensus !== null && consensus.ok ? consensus.data : null;
-  // "No forecast" is said once, by the Summary's card (T-1746, D-367). There
-  // is something to explain below only when the card's version gave
-  // probabilities; and when the match has no forecast and no Power Index
-  // either, the card says both and the Power Index block is not drawn to say
-  // it again. An index, or a service that did not answer, keeps its block.
-  const explained = about !== null && about.probabilities !== null;
+  // "No forecast" is said once, by the Summary's card (T-1746, D-367), and
+  // only when no stored version gave probabilities. When the match then has
+  // no Power Index either, the card says both and the Power Index block is
+  // not drawn to say it again. An index, a service that did not answer, or
+  // an earlier version with numbers keeps its block.
   const powerData = power !== null && power.ok ? power.data : null;
   const noPowerIndex =
-    forecastData !== null && !explained && powerData !== null && powerData.index === null;
+    forecastData !== null &&
+    !hasForecast(forecastData) &&
+    powerData !== null &&
+    powerData.index === null;
   const viewingData = viewing !== null && viewing.ok ? viewing.data : null;
   // The match's own expected goals, for the Summary's "expected and scored".
   const xgRow =
@@ -496,12 +504,16 @@ export default async function MatchPage({
                 // says why; one with content is its full card.
                 analysis: (
                   <>
-                    <h2
+                    {/* A label over the group, not a heading: the founder's
+                        analysis, the community and the contributors below
+                        are headings of the same level, and a heading here
+                        would contain none of them. */}
+                    <p
                       className="text-xs font-extrabold tracking-wider text-muted uppercase [:root:is(:lang(fa),:lang(ar))_&]:normal-case"
                       data-testid="other-predictions"
                     >
                       <Translated locale={locale} message="lanes.others" />
-                    </h2>
+                    </p>
                     {/* After full time the analysis also says whether the
                         published call matched the result. */}
                     <FounderAnalysisPanel

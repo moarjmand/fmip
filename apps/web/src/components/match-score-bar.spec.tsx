@@ -95,11 +95,12 @@ function bar(
   locale = 'en',
   now: number | undefined = NOW,
   hero: { awaiting?: unknown; disputed?: unknown } = {},
+  stale = false,
 ): string {
   const words = matchWords(locale);
   const state = bandState(c.fixture, hero, { locale, timeZone: 'Europe/London', now, words });
   return renderToStaticMarkup(
-    <ScoreBar fixture={c.fixture} state={state} locale={locale} words={words} />,
+    <ScoreBar fixture={c.fixture} state={state} stale={stale} locale={locale} words={words} />,
   );
 }
 /** The bar's words in reading order, tags dropped. */
@@ -161,6 +162,19 @@ describe('the compact score bar (T-1742)', () => {
     expect(html).not.toContain('data-live-badge');
     expect(html).not.toContain('text-live');
     expect(html).toMatch(/text-warning[^"]*">Behind/);
+  });
+
+  it('a live stream that has broken is not called live either (rule 4)', () => {
+    // The data is not yet past the live threshold, but the page's stream is
+    // stale or unreachable: the band's line about it has scrolled away, so
+    // the bar drops the live badge and the live colour.
+    const html = bar(centre(), 'en', NOW, {}, true);
+    expect(html).toContain('data-state="behind"');
+    expect(html).not.toContain('data-live-badge');
+    expect(html).not.toContain('text-live');
+    expect(html).toContain('text-warning');
+    // The same match with the stream working is live.
+    expect(bar(centre(), 'en', NOW)).toContain('data-state="live"');
   });
 
   it('a kick-off long past with no word is not shown as a match to come', () => {

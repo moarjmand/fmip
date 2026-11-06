@@ -169,9 +169,17 @@ test('the match centre opens every section from 768px, a main and a side column,
   await page.goto(`/en/match/${PLAYED_MATCH}`);
   // The tabs stay, at the foot of the score band, and jump to their sections (T-1497).
   await expect(page.getByTestId('section-nav')).toBeVisible();
-  for (const id of ['timeline', 'lineups', 'forecast', 'analysis', 'community', 'watch']) {
+  for (const id of ['timeline', 'lineups', 'analysis', 'community', 'watch']) {
     await expect(page.locator(`#${id}`)).toBeVisible();
   }
+  // "No forecast" is said once (T-1746, D-367): when the Summary's card has
+  // said the match has no forecast, and there is no Power Index either, no
+  // lower section says it again; otherwise the section is there.
+  const card = page.getByTestId('forecast-reality');
+  await expect(card).toBeVisible();
+  const none = (await card.getAttribute('data-state')) === 'none';
+  if (!none) await expect(page.locator('#forecast')).toBeVisible();
+  else await expect(page.locator('#forecast')).toHaveCount(0);
   // Two columns at 1280px: the side column (the past meetings, the data
   // footer) beside the main one.
   const main = await page.locator('[data-column="main"]').boundingBox();

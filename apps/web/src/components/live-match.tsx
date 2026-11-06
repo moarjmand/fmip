@@ -186,7 +186,7 @@ export function LiveMatch({
         locale={locale}
         now={now}
         slots={slots}
-        hero={{ ...hero, live }}
+        hero={{ ...hero, live, streamBroken: inPlay && broken }}
         words={words}
       />
     </>

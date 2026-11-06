@@ -225,6 +225,35 @@ describe('what was forecast, what happened (the Summary card)', () => {
     );
   });
 
+  it('a later version without numbers does not unsay an earlier forecast (rule 3)', () => {
+    // v1 gave probabilities; the model could not be reached for v2, which is
+    // the latest. The match has a forecast: the card keeps its title, says why
+    // this version has no numbers, and does not claim "No model forecast".
+    const failed = {
+      ...version(2, '2026-10-18T11:35:00.000Z', null),
+      unavailable_reason: 'model_unreachable' as const,
+    };
+    const later = {
+      ...forecasts,
+      latest: failed,
+      versions: [version(1, '2026-10-17T11:32:00.000Z'), failed],
+    };
+    const html = card('scheduled', { forecasts: later });
+    expect(html).toContain('data-state="unavailable"');
+    expect(html).toContain('Model forecast');
+    expect(html).not.toContain(EN['matchCentre.noForecast.title']);
+    expect(html).not.toContain('data-testid="forecast-coverage-link"');
+    expect(html).not.toContain('data-testid="forecast-reality-no-power"');
+    expect(html).toContain('data-testid="forecast-reality-unavailable"');
+    expect(html).not.toContain('data-testid="outcome-bar"');
+    // With no version that gave numbers, the card does say so, once.
+    const only = { ...forecasts, latest: failed, versions: [failed] };
+    const none = card('scheduled', { forecasts: only });
+    expect(none).toContain('data-state="none"');
+    expect(none).toContain(EN['matchCentre.noForecast.title']);
+    expect(none).toContain('data-testid="forecast-coverage-link"');
+  });
+
   it('picks the scored version, else the last before kick-off, else the latest before it starts', () => {
     const scored: FixtureEvaluationsResponse = {
       fixture_id: 'f1',
@@ -608,7 +637,7 @@ describe('no forecast is said once, in the Summary’s card (T-1746)', () => {
       'utf8',
     );
     expect(page).toMatch(
-      /const noPowerIndex =\s+forecastData !== null && !explained && powerData !== null && powerData\.index === null;/,
+      /const noPowerIndex =\s+forecastData !== null &&\s+!hasForecast\(forecastData\) &&\s+powerData !== null &&\s+powerData\.index === null;/,
     );
     expect(page).toContain('noPowerIndex={noPowerIndex}');
     expect(page).toMatch(/forecast: noPowerIndex \? null : \(/);

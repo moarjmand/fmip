@@ -101,7 +101,13 @@ export function MatchFollow({
       <input type="hidden" name="entity_id" value={fixtureId} />
       {!followed && <FollowIntentMark />}
       <span className="max-md:ms-auto">
-        <Button type="submit" variant={followed ? 'ghost' : 'secondary'} size="sm">
+        {/* In the phone's tools row every control is a 44px target. */}
+        <Button
+          type="submit"
+          variant={followed ? 'ghost' : 'secondary'}
+          size="sm"
+          className="max-md:min-h-touch"
+        >
           {followed ? (
             <Translated locale={locale} message="match.follow.stop" />
           ) : (
