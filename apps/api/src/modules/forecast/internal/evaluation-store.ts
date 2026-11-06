@@ -98,11 +98,15 @@ const toEvaluation = (row: EvaluationRow): ForecastEvaluation => ({
  * probabilities against the result's. `accuracy.http.spec.ts` holds the two
  * definitions to each other.
  */
-const RPS_SQL = `(power(f.p_home - (e.outcome = 'home')::int, 2)
-       + power(f.p_home + f.p_draw - (e.outcome <> 'away')::int, 2)) / 2`;
+const rpsSql = (probabilities: string, result: string): string =>
+  `(power(${probabilities}.p_home - (${result}.outcome = 'home')::int, 2)
+       + power(${probabilities}.p_home + ${probabilities}.p_draw - (${result}.outcome <> 'away')::int, 2)) / 2`;
+const RPS_SQL = rpsSql('f', 'e');
 
 /** What a uniform forecast's RPS is on the same result: 1/9 for a draw, 5/18 otherwise. */
-const UNIFORM_RPS_SQL = `CASE e.outcome WHEN 'draw' THEN 1.0 / 9 ELSE 5.0 / 18 END`;
+const uniformRpsSql = (result: string): string =>
+  `CASE ${result}.outcome WHEN 'draw' THEN 1.0 / 9 ELSE 5.0 / 18 END`;
+const UNIFORM_RPS_SQL = uniformRpsSql('e');
 
 const SELECT = `
   SELECT e.id, e.forecast_id, e.fixture_id, f.version_number, s.kind, m.model_id, f.computed_at,
@@ -605,64 +609,109 @@ export class PostgresEvaluationStore {
     return rows.map((row) => row.model_id);
   }
 
-  /** The first and last available forecast a version stored in a role. */
-  async modelSpan(
-    modelId: string,
-    role: 'published' | 'shadow',
-  ): Promise<{ first: Date | null; last: Date | null }> {
-    const { rows } = await this.pool.query<{ first: Date | null; last: Date | null }>(
-      `SELECT MIN(f.computed_at) AS first, MAX(f.computed_at) AS last
-         FROM forecast f JOIN model_version m ON m.id = f.model_version_id
-        WHERE m.model_id = $1 AND f.role = $2 AND f.status = 'available'`,
-      [modelId, role],
-    );
-    return { first: rows[0]?.first ?? null, last: rows[0]?.last ?? null };
-  }
-
   /**
-   * A version's record in one role, per competition and overall (the row
-   * with a null competition): each match once, by the version's last
-   * pre-kick-off forecast (D-209, as `accuracySums`), with the standard
-   * deviations the page's intervals need.
+   * What every version stored in each role (T-1752, D-371): its first and
+   * last forecast with probabilities, and its forecasts counted by what
+   * became of them -- scored, waiting for a result, made after kick-off
+   * (never counted in a figure), refused.
    */
-  async modelRecords(modelId: string, role: 'published' | 'shadow'): Promise<ModelRecordRow[]> {
-    const { rows } = await this.pool.query<RawRecordRow>(
-      `WITH counted AS (${counted('$1', '$2')})
-       SELECT c.competition_id::text AS competition_id, co.name AS competition_name,
-              ${RECORD_COLUMNS}
-         FROM counted c JOIN competition co ON co.id = c.competition_id
-        GROUP BY GROUPING SETS ((c.competition_id, co.name), ())
-        ORDER BY competition_name NULLS FIRST`,
-      [modelId, role],
-    );
-    return rows.map(toRecordRow);
-  }
-
-  /**
-   * The published version's calibration (T-1729): each outcome's forecast
-   * probability in ten-point bands, how many, the mean said and the share
-   * that happened -- the model watch's query, over each match's own forecast.
-   */
-  async calibration(modelId: string): Promise<CalibrationRow[]> {
+  async versionCounts(): Promise<VersionCountsRow[]> {
     const { rows } = await this.pool.query<{
+      role: 'published' | 'shadow';
+      model_id: string;
+      first: Date | null;
+      last: Date | null;
+      forecasts: number;
+      evaluated: number;
+      awaiting: number;
+      after_kickoff: number;
+      unavailable: number;
+    }>(
+      `SELECT f.role, m.model_id,
+              MIN(f.computed_at) FILTER (WHERE f.status = 'available') AS first,
+              MAX(f.computed_at) FILTER (WHERE f.status = 'available') AS last,
+              (COUNT(*) FILTER (WHERE f.status = 'available'))::int AS forecasts,
+              (COUNT(e.id) FILTER (WHERE e.pre_kickoff))::int AS evaluated,
+              (COUNT(*) FILTER (WHERE e.id IS NULL AND f.status = 'available'
+                                  AND f.computed_at < fx.kickoff_at))::int AS awaiting,
+              (COUNT(*) FILTER (WHERE f.status = 'available'
+                                  AND f.computed_at >= fx.kickoff_at))::int AS after_kickoff,
+              (COUNT(*) FILTER (WHERE f.status = 'unavailable'))::int AS unavailable
+         FROM forecast f
+         JOIN model_version m ON m.id = f.model_version_id
+         JOIN fixture fx ON fx.id = f.fixture_id
+         LEFT JOIN evaluation e ON e.forecast_id = f.id
+        WHERE m.model_id <> 'none@0.0.0'
+        GROUP BY f.role, m.model_id
+        ORDER BY f.role, m.model_id`,
+    );
+    return rows.map((row) => ({
+      role: row.role,
+      modelVersion: row.model_id,
+      first: row.first,
+      last: row.last,
+      forecasts: row.forecasts,
+      evaluated: row.evaluated,
+      awaiting: row.awaiting,
+      afterKickoff: row.after_kickoff,
+      unavailable: row.unavailable,
+    }));
+  }
+
+  /**
+   * Every version's record in each role, per competition and overall (the
+   * row with a null competition): each match once, by the version's last
+   * pre-kick-off forecast in that role (D-209, as `accuracySums`), with the
+   * standard deviations the page's intervals need.
+   */
+  async versionRecords(): Promise<VersionRecordRow[]> {
+    const { rows } = await this.pool.query<
+      RawRecordRow & { role: 'published' | 'shadow'; model_id: string }
+    >(
+      `WITH counted AS (${COUNTED_ALL})
+       SELECT c.role, c.model_id, c.competition_id::text AS competition_id,
+              co.name AS competition_name, ${RECORD_COLUMNS}
+         FROM counted c JOIN competition co ON co.id = c.competition_id
+        GROUP BY GROUPING SETS ((c.role, c.model_id, c.competition_id, co.name),
+                                (c.role, c.model_id))
+        ORDER BY c.role, c.model_id, competition_name NULLS FIRST`,
+    );
+    return rows.map((row) => ({
+      role: row.role,
+      modelVersion: row.model_id,
+      ...toRecordRow(row),
+    }));
+  }
+
+  /**
+   * Every version's calibration in each role (T-1729, T-1752): each
+   * outcome's forecast probability in ten-point bands, how many, the mean
+   * said and the share that happened -- the model watch's query, over each
+   * match's own forecast.
+   */
+  async versionCalibration(): Promise<VersionCalibrationRow[]> {
+    const { rows } = await this.pool.query<{
+      role: 'published' | 'shadow';
+      model_id: string;
       outcome: 'home' | 'draw' | 'away';
       band: number;
       forecasts: number;
       said: string;
       seen: number;
     }>(
-      `WITH counted AS (${counted('$1', "'published'")})
-       SELECT o.outcome, LEAST(floor(o.p * 10), 9)::int AS band, COUNT(*)::int AS forecasts,
-              AVG(o.p)::text AS said,
-              (COUNT(*) FILTER (WHERE c.outcome = o.outcome))::int AS seen
+      `WITH counted AS (${COUNTED_ALL})
+       SELECT c.role, c.model_id, o.outcome, LEAST(floor(o.p * 10), 9)::int AS band,
+              COUNT(*)::int AS forecasts, AVG(o.p)::text AS said,
+              (COUNT(*) FILTER (WHERE c.outcome::text = o.outcome))::int AS seen
          FROM counted c
         CROSS JOIN LATERAL (VALUES ('home', c.p_home::float8), ('draw', c.p_draw::float8),
                                    ('away', c.p_away::float8)) o(outcome, p)
-        GROUP BY 1, 2
-        ORDER BY 1, 2`,
-      [modelId],
+        GROUP BY 1, 2, 3, 4
+        ORDER BY 1, 2, 3, 4`,
     );
     return rows.map((row) => ({
+      role: row.role,
+      modelVersion: row.model_id,
       outcome: row.outcome,
       band: row.band,
       forecasts: row.forecasts,
@@ -672,62 +721,217 @@ export class PostgresEvaluationStore {
   }
 
   /**
-   * A shadow version against a published one on the same matches (the model
-   * watch's paired read): per fixture each side's last pre-kick-off forecast.
+   * Every two versions on the matches both scored before kick-off (the model
+   * watch's paired read, for all of them at once; T-1752): per fixture each
+   * side's last pre-kick-off forecast, overall (a null competition) and per
+   * competition. Each pair comes once, `a` the greater by name then role;
+   * the caller decides which side is the subject.
    */
-  async pairedRecord(candidate: string, published: string): Promise<PairedRow> {
+  async versionPairs(): Promise<VersionPairRow[]> {
     const { rows } = await this.pool.query<{
+      a_role: 'published' | 'shadow';
+      a_model: string;
+      b_role: 'published' | 'shadow';
+      b_model: string;
+      competition_id: string | null;
+      competition_name: string | null;
       matches: number;
       identical: number;
-      published_log_loss: string | null;
-      candidate_log_loss: string | null;
-      published_brier: string | null;
-      candidate_brier: string | null;
-      difference: string | null;
+      a_log_loss: string;
+      b_log_loss: string;
+      a_brier: string;
+      b_brier: string;
+      a_rps: string;
+      b_rps: string;
+      a_correct: number;
+      b_correct: number;
+      difference: string;
       difference_sd: string | null;
     }>(
-      `WITH s AS (${counted('$1', "'shadow'")}),
-            p AS (${counted('$2', "'published'")})
-       SELECT COUNT(*)::int AS matches,
+      `WITH counted AS MATERIALIZED (${COUNTED_ALL})
+       SELECT a.role AS a_role, a.model_id AS a_model, b.role AS b_role, b.model_id AS b_model,
+              a.competition_id::text AS competition_id, co.name AS competition_name,
+              COUNT(*)::int AS matches,
               -- The same three probabilities, not merely the same log loss.
-              (COUNT(*) FILTER (WHERE s.p_home = p.p_home AND s.p_draw = p.p_draw
-                                  AND s.p_away = p.p_away))::int AS identical,
-              AVG(p.log_loss)::text AS published_log_loss, AVG(s.log_loss)::text AS candidate_log_loss,
-              AVG(p.brier)::text AS published_brier, AVG(s.brier)::text AS candidate_brier,
-              AVG(s.log_loss - p.log_loss)::text AS difference,
-              STDDEV_SAMP(s.log_loss - p.log_loss)::text AS difference_sd
-         FROM s JOIN p USING (fixture_id)`,
-      [candidate, published],
+              (COUNT(*) FILTER (WHERE a.p_home = b.p_home AND a.p_draw = b.p_draw
+                                  AND a.p_away = b.p_away))::int AS identical,
+              AVG(a.log_loss)::text AS a_log_loss, AVG(b.log_loss)::text AS b_log_loss,
+              AVG(a.brier)::text AS a_brier, AVG(b.brier)::text AS b_brier,
+              AVG(${rpsSql('a', 'a')})::text AS a_rps, AVG(${rpsSql('b', 'b')})::text AS b_rps,
+              (COUNT(*) FILTER (WHERE a.correct))::int AS a_correct,
+              (COUNT(*) FILTER (WHERE b.correct))::int AS b_correct,
+              AVG(a.log_loss - b.log_loss)::text AS difference,
+              STDDEV_SAMP(a.log_loss - b.log_loss)::text AS difference_sd
+         FROM counted a
+         JOIN counted b ON b.fixture_id = a.fixture_id
+                       AND (a.model_id, a.role::text) > (b.model_id, b.role::text)
+         JOIN competition co ON co.id = a.competition_id
+        GROUP BY GROUPING SETS (
+                   (a.role, a.model_id, b.role, b.model_id, a.competition_id, co.name),
+                   (a.role, a.model_id, b.role, b.model_id))
+        ORDER BY a.model_id, a.role, b.model_id, b.role, competition_name NULLS FIRST`,
     );
-    const row = rows[0];
-    const num = (value: string | null | undefined) => (value == null ? null : Number(value));
-    return {
-      matches: row?.matches ?? 0,
-      identical: row?.identical ?? 0,
-      publishedLogLoss: num(row?.published_log_loss),
-      candidateLogLoss: num(row?.candidate_log_loss),
-      publishedBrier: num(row?.published_brier),
-      candidateBrier: num(row?.candidate_brier),
-      difference: num(row?.difference),
-      differenceSd: num(row?.difference_sd),
-    };
+    return rows.map((row) => ({
+      a: { role: row.a_role, modelVersion: row.a_model },
+      b: { role: row.b_role, modelVersion: row.b_model },
+      competition:
+        row.competition_id === null
+          ? null
+          : { id: row.competition_id, name: row.competition_name ?? '' },
+      matches: row.matches,
+      identical: row.identical,
+      aLogLoss: Number(row.a_log_loss),
+      bLogLoss: Number(row.b_log_loss),
+      aBrier: Number(row.a_brier),
+      bBrier: Number(row.b_brier),
+      aRps: Number(row.a_rps),
+      bRps: Number(row.b_rps),
+      aCorrect: row.a_correct,
+      bCorrect: row.b_correct,
+      difference: Number(row.difference),
+      differenceSd: row.difference_sd === null ? null : Number(row.difference_sd),
+    }));
   }
 
   /**
-   * A shadow version on the matches no published version forecast before
-   * kick-off: its new divisions' own record (D-336's "better than chance").
+   * What the store holds of each input a version reads or was tested with
+   * (T-1752, D-371), counted as of `now`: the results the fit reads and its
+   * cross-league part (`training.match` inside the published version's
+   * window), our own Elo's newest run, and -- read by no version, tested in
+   * the lab -- expected goals, starting line-ups and absences on the
+   * finished matches of the site's own store. A count, never an estimate.
    */
-  async newDivisionsRecord(candidate: string): Promise<ModelRecordRow> {
-    const { rows } = await this.pool.query<RawRecordRow>(
+  async modelInputs(now: Date): Promise<ModelInputRow[]> {
+    const day = now.toISOString().slice(0, 10);
+    const [results, elo, xg, lineups, absences] = await Promise.all([
+      this.pool.query<{
+        division_key: string;
+        matches: number;
+        total: number;
+        divisions: number | null;
+        newest: string | null;
+      }>(
+        `SELECT CASE WHEN division = 'XL' THEN 'cross_league' ELSE 'results' END AS division_key,
+                (COUNT(*) FILTER (WHERE match_date >= $1::date - ${MODEL_HISTORY_DAYS}))::int
+                  AS matches,
+                COUNT(*)::int AS total,
+                (COUNT(DISTINCT division)
+                   FILTER (WHERE match_date >= $1::date - ${MODEL_HISTORY_DAYS}))::int AS divisions,
+                to_char(MAX(match_date), 'YYYY-MM-DD') AS newest
+           FROM training.match
+          WHERE match_date <= $1::date
+          GROUP BY 1`,
+        [day],
+      ),
+      this.pool.query<{ day: string; club_count: number; computed_at: Date }>(
+        `SELECT to_char(day, 'YYYY-MM-DD') AS day, club_count::int AS club_count, computed_at
+           FROM training.own_elo_run
+          ORDER BY computed_at DESC
+          LIMIT 1`,
+      ),
+      this.pool.query<{ finished: number; held: number; newest: Date | null }>(
+        `WITH fin AS (
+           SELECT id, kickoff_at FROM fixture
+            WHERE status = 'finished' AND kickoff_at > $1::timestamptz - interval '90 days'
+              AND kickoff_at <= $1),
+         held AS (
+           SELECT fp.fixture_id
+             FROM fixture_stat st
+             JOIN fixture_participant fp ON fp.id = st.participant_id
+            WHERE st.metric = 'expected_goals' AND st.value IS NOT NULL
+              AND fp.fixture_id IN (SELECT id FROM fin)
+            GROUP BY fp.fixture_id
+           HAVING COUNT(DISTINCT fp.id) >= 2)
+         SELECT (SELECT COUNT(*) FROM fin)::int AS finished,
+                (SELECT COUNT(*) FROM held)::int AS held,
+                (SELECT MAX(fin.kickoff_at) FROM fin JOIN held ON held.fixture_id = fin.id)
+                  AS newest`,
+        [now],
+      ),
+      this.pool.query<{ finished: number; held: number; newest: Date | null }>(
+        `WITH fin AS (
+           SELECT id, kickoff_at FROM fixture
+            WHERE status = 'finished' AND kickoff_at > $1::timestamptz - interval '30 days'
+              AND kickoff_at <= $1),
+         held AS (
+           SELECT fp.fixture_id
+             FROM lineup l
+             JOIN fixture_participant fp ON fp.id = l.participant_id
+            WHERE l.role = 'starter' AND fp.fixture_id IN (SELECT id FROM fin)
+            GROUP BY fp.fixture_id
+           HAVING COUNT(DISTINCT fp.id) >= 2)
+         SELECT (SELECT COUNT(*) FROM fin)::int AS finished,
+                (SELECT COUNT(*) FROM held)::int AS held,
+                (SELECT MAX(fin.kickoff_at) FROM fin JOIN held ON held.fixture_id = fin.id)
+                  AS newest`,
+        [now],
+      ),
+      this.pool.query<{ fixtures: number; newest: Date | null }>(
+        `SELECT COUNT(DISTINCT fixture_id)::int AS fixtures, MAX(reported_at) AS newest
+           FROM fixture_absence`,
+      ),
+    ]);
+    const noon = (date: string | null) => (date === null ? null : new Date(`${date}T12:00:00Z`));
+    const rows: ModelInputRow[] = [];
+    for (const key of ['results', 'cross_league'] as const) {
+      const row = results.rows.find((r) => r.division_key === key);
+      rows.push({
+        key,
+        count: row?.matches ?? 0,
+        of: row?.total ?? 0,
+        groups: key === 'results' ? (row?.divisions ?? 0) : null,
+        newestAt: noon(row?.newest ?? null),
+      });
+    }
+    const run = elo.rows[0];
+    rows.push({
+      key: 'own_elo',
+      count: run?.club_count ?? 0,
+      of: null,
+      groups: null,
+      newestAt: noon(run?.day ?? null),
+    });
+    rows.push({
+      key: 'expected_goals',
+      count: xg.rows[0]?.held ?? 0,
+      of: xg.rows[0]?.finished ?? 0,
+      groups: null,
+      newestAt: xg.rows[0]?.newest ?? null,
+    });
+    rows.push({
+      key: 'lineups',
+      count: lineups.rows[0]?.held ?? 0,
+      of: lineups.rows[0]?.finished ?? 0,
+      groups: null,
+      newestAt: lineups.rows[0]?.newest ?? null,
+    });
+    rows.push({
+      key: 'absences',
+      count: absences.rows[0]?.fixtures ?? 0,
+      of: null,
+      groups: null,
+      newestAt: absences.rows[0]?.newest ?? null,
+    });
+    return rows;
+  }
+
+  /**
+   * How many matches a shadow version scored that no published version
+   * forecast before kick-off: its new divisions' count toward D-336's
+   * "better than chance" (100). The count alone: the figure is the weekly
+   * watch's one look (T-1720, D-371).
+   */
+  async newDivisionsCount(candidate: string): Promise<number> {
+    const { rows } = await this.pool.query<{ matches: number }>(
       `WITH counted AS (${counted('$1', "'shadow'")})
-       SELECT NULL::text AS competition_id, NULL::text AS competition_name, ${RECORD_COLUMNS}
+       SELECT COUNT(*)::int AS matches
          FROM counted c
         WHERE NOT EXISTS (
           SELECT 1 FROM evaluation e2 JOIN forecast f2 ON f2.id = e2.forecast_id
            WHERE e2.fixture_id = c.fixture_id AND e2.pre_kickoff AND f2.role = 'published')`,
       [candidate],
     );
-    return toRecordRow(rows[0] as RawRecordRow);
+    return rows[0]?.matches ?? 0;
   }
 }
 
@@ -750,9 +954,35 @@ function counted(model: string, role: string): string {
            ORDER BY e.fixture_id, f.computed_at DESC, f.id DESC`;
 }
 
+/**
+ * The history window of the published version's fit, in days (`history_days`
+ * in its version file, D-190): what "the results the fit reads" is counted
+ * over on the console's model page.
+ */
+export const MODEL_HISTORY_DAYS = 1100;
+
+/**
+ * Each match once for every model version in every role (T-1752): as
+ * `counted`, for all of them in one pass.
+ */
+const COUNTED_ALL = `SELECT DISTINCT ON (e.fixture_id, f.role, m.model_id)
+                 e.fixture_id, f.role, m.model_id, e.log_loss, e.brier, e.correct,
+                 e.outcome, e.evaluated_at, f.p_home, f.p_draw, f.p_away, fx.kickoff_at,
+                 se.competition_id
+            FROM evaluation e
+            JOIN forecast f ON f.id = e.forecast_id
+            JOIN model_version m ON m.id = f.model_version_id
+            JOIN fixture fx ON fx.id = e.fixture_id
+            JOIN season se ON se.id = fx.season_id
+           WHERE e.pre_kickoff AND m.model_id <> 'none@0.0.0'
+           ORDER BY e.fixture_id, f.role, m.model_id, f.computed_at DESC, f.id DESC`;
+
 const RECORD_COLUMNS = `COUNT(*)::int AS matches,
               AVG(c.log_loss)::text AS log_loss, STDDEV_SAMP(c.log_loss)::text AS log_loss_sd,
               AVG(c.brier)::text AS brier, STDDEV_SAMP(c.brier)::text AS brier_sd,
+              AVG(${rpsSql('c', 'c')})::text AS rps,
+              STDDEV_SAMP(${rpsSql('c', 'c')})::text AS rps_sd,
+              AVG(${uniformRpsSql('c')})::text AS uniform_rps,
               (COUNT(*) FILTER (WHERE c.correct))::int AS correct,
               MIN(c.kickoff_at) AS first_kickoff_at, MAX(c.kickoff_at) AS last_kickoff_at,
               MAX(c.evaluated_at) AS last_evaluated_at`;
@@ -765,6 +995,9 @@ interface RawRecordRow {
   log_loss_sd: string | null;
   brier: string | null;
   brier_sd: string | null;
+  rps: string | null;
+  rps_sd: string | null;
+  uniform_rps: string | null;
   correct: number;
   first_kickoff_at: Date | null;
   last_kickoff_at: Date | null;
@@ -783,6 +1016,9 @@ const toRecordRow = (row: RawRecordRow): ModelRecordRow => {
     logLossSd: num(row.log_loss_sd),
     brier: num(row.brier),
     brierSd: num(row.brier_sd),
+    rps: num(row.rps),
+    rpsSd: num(row.rps_sd),
+    uniformRps: num(row.uniform_rps),
     correct: row.correct,
     firstKickoffAt: row.first_kickoff_at,
     lastKickoffAt: row.last_kickoff_at,
@@ -799,10 +1035,66 @@ export interface ModelRecordRow {
   logLossSd: number | null;
   brier: number | null;
   brierSd: number | null;
+  rps: number | null;
+  rpsSd: number | null;
+  /** A one-third guess's RPS on the same results. */
+  uniformRps: number | null;
   correct: number;
   firstKickoffAt: Date | null;
   lastKickoffAt: Date | null;
   lastEvaluatedAt: Date | null;
+}
+
+/** What the store holds of one model input now (T-1752). */
+export interface ModelInputRow {
+  key: 'results' | 'cross_league' | 'own_elo' | 'expected_goals' | 'lineups' | 'absences';
+  count: number;
+  /** What `count` is a part of, or null where it is not a share. */
+  of: number | null;
+  groups: number | null;
+  newestAt: Date | null;
+}
+
+export interface VersionKey {
+  role: 'published' | 'shadow';
+  modelVersion: string;
+}
+
+/** One version's record in one role (T-1752). */
+export type VersionRecordRow = ModelRecordRow & VersionKey;
+
+export type VersionCalibrationRow = CalibrationRow & VersionKey;
+
+/** What one version stored in one role, as forecasts (T-1752). */
+export interface VersionCountsRow extends VersionKey {
+  first: Date | null;
+  last: Date | null;
+  forecasts: number;
+  evaluated: number;
+  awaiting: number;
+  afterKickoff: number;
+  unavailable: number;
+}
+
+/** Two versions on the matches both scored (T-1752): means over the shared matches. */
+export interface VersionPairRow {
+  a: VersionKey;
+  b: VersionKey;
+  /** Null: every competition together. */
+  competition: { id: string; name: string } | null;
+  matches: number;
+  identical: number;
+  aLogLoss: number;
+  bLogLoss: number;
+  aBrier: number;
+  bBrier: number;
+  aRps: number;
+  bRps: number;
+  aCorrect: number;
+  bCorrect: number;
+  /** `a` minus `b` in log loss, per match. */
+  difference: number;
+  differenceSd: number | null;
 }
 
 export interface CalibrationRow {

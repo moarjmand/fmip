@@ -8,30 +8,14 @@ import type {
   ModelPerformanceResponse,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
-import { type CandidateInput, consoleModelReport } from './internal/console-model';
-import {
-  type CountedRow,
-  type PairedRow,
-  PostgresEvaluationStore,
-} from './internal/evaluation-store';
+import { consoleModelReport, inputState } from './internal/console-model';
+import { type CountedRow, PostgresEvaluationStore } from './internal/evaluation-store';
 import { adminAccuracy, publicAccuracy } from './internal/model-accuracy';
 import { UNIFORM_BRIER, UNIFORM_LOG_LOSS, score } from './internal/scoring';
 
 export type CountedEvaluation = CountedRow;
 
 const DAY_MS = 86_400_000;
-
-/** A candidate paired with nothing: no published version has forecast. */
-const NO_PAIRS: PairedRow = {
-  matches: 0,
-  identical: 0,
-  publishedLogLoss: null,
-  candidateLogLoss: null,
-  publishedBrier: null,
-  candidateBrier: null,
-  difference: null,
-  differenceSd: null,
-};
 
 export type EvaluateOutcome =
   | { kind: 'evaluated'; added: number; evaluations: ForecastEvaluation[] }
@@ -109,9 +93,11 @@ export class EvaluationService {
    * model service says it runs now (its published version and its shadow
    * candidates, null when it named none), or null when it did not answer:
    * then the published version is the newest published forecast's and the
-   * candidates are those that stored a shadow forecast in the last week. The
-   * trend is the console's weekly accuracy series of that version (T-1369),
-   * read, not computed a second time.
+   * candidates are those that stored a shadow forecast in the last week.
+   * T-1752 (D-371): every version that stored a forecast is in the answer,
+   * in each role, with its own record, calibration and trend, and every two
+   * of them on the matches both scored. The trends are the console's weekly
+   * accuracy series (T-1369), read, not computed a second time.
    */
   async consoleModel(
     versions: { published: string; candidates: string[] | null } | null,
@@ -119,46 +105,31 @@ export class EvaluationService {
   ): Promise<ConsoleModelReport> {
     const published = versions?.published ?? (await this.store.newestPublishedModel());
     const listed = versions?.candidates ?? null;
-    const candidateIds =
-      listed ?? (await this.store.recentShadowModels(new Date(now.getTime() - 7 * DAY_MS)));
-    const candidates: CandidateInput[] = await Promise.all(
-      candidateIds
-        .filter((id) => id !== published)
-        .map(async (id) => {
-          const [span, own, paired, newDivisions] = await Promise.all([
-            this.store.modelSpan(id, 'shadow'),
-            this.store.modelRecords(id, 'shadow'),
-            published === null ? Promise.resolve(NO_PAIRS) : this.store.pairedRecord(id, published),
-            this.store.newDivisionsRecord(id),
-          ]);
-          return {
-            modelVersion: id,
-            inService: listed === null ? null : listed.includes(id),
-            span,
-            own: own.find((row) => row.competition === null),
-            paired,
-            newDivisions,
-          };
-        }),
-    );
-    const service = versions === null ? 'unreachable' : 'answered';
-    if (published === null) {
-      return consoleModelReport({ service, published: null, candidates, now });
-    }
-    const [span, records, calibration, weekly] = await Promise.all([
-      this.store.modelSpan(published, 'published'),
-      this.store.modelRecords(published, 'published'),
-      this.store.calibration(published),
+    const shadow = (
+      listed ?? (await this.store.recentShadowModels(new Date(now.getTime() - 7 * DAY_MS)))
+    ).filter((id) => id !== published);
+    const [counts, records, calibration, pairs, weekly, inputs, newDivisions] = await Promise.all([
+      this.store.versionCounts(),
+      this.store.versionRecords(),
+      this.store.versionCalibration(),
+      this.store.versionPairs(),
       this.adminAccuracy('week', now),
+      // A count that cannot be read is said as "not counted", never guessed.
+      this.store.modelInputs(now).catch(() => []),
+      Promise.all(shadow.map(async (id) => [id, await this.store.newDivisionsCount(id)] as const)),
     ]);
-    const trend =
-      weekly.series.find(
-        (s) => s.role === 'published' && s.model_version === published && s.competition === null,
-      )?.points ?? [];
     return consoleModelReport({
-      service,
-      published: { modelVersion: published, since: span.first, records, calibration, trend },
-      candidates,
+      service: versions === null ? 'unreachable' : 'answered',
+      published,
+      shadow,
+      inService: (id) => (listed === null ? null : listed.includes(id)),
+      counts,
+      records,
+      calibration,
+      pairs,
+      trends: weekly.series,
+      inputs: inputs.map((row) => inputState(row, now)),
+      newDivisions: new Map(newDivisions),
       now,
     });
   }
