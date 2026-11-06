@@ -90,6 +90,9 @@ function WeeksTable({ lang, weeks }: { lang: Locale; weeks: readonly WeekBar[] }
         tabIndex={0}
       >
         <table className="w-full min-w-100 border-collapse text-sm tabular-nums">
+          <caption className="sr-only">
+            <Translated locale={lang} message="modelAccuracy.weekly.table" />
+          </caption>
           <thead>
             <tr className="border-t border-default">
               <th scope="col" className={`${th} text-start`}>
@@ -196,8 +199,12 @@ export function WeeklyEdgeChart({
   const chart = weeklyChartGeometry(weeks, direction, overall);
   const bars = chart.bars;
   const percents = bars.map((bar) => bar.edge.percent);
+  // "Every week" is said of the whole record, not of the weeks drawn: an older
+  // week that lost to a guess is off the chart but not out of the claim (rule 3).
+  const record = weeks.map((week) => week.edge.percent);
+  const allBeat = record.every((percent) => percent > 0);
+  // "Its bar is drawn below the line" can only be said of a bar that is drawn.
   const worse = percents.filter((percent) => percent < 0).length;
-  const allBeat = percents.every((percent) => percent > 0);
   const last = bars.at(-1);
   const thin = bars.some((bar) => bar.limited && !bar.partial);
 
@@ -227,8 +234,8 @@ export function WeeklyEdgeChart({
           {allBeat ? (
             <MessageText
               message={filled(message(lang, 'modelAccuracy.weekly.allBeat'), {
-                low: formatEdge(lang, Math.min(...percents), false),
-                high: formatEdge(lang, Math.max(...percents), false),
+                low: formatEdge(lang, Math.min(...record), false),
+                high: formatEdge(lang, Math.max(...record), false),
               })}
             />
           ) : worse > 0 ? (

@@ -605,6 +605,28 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
       expect(text(out)).not.toContain('Every week so far beat a guess');
     });
 
+    it('says "every week" of the whole record, not of the weeks it draws (rule 3)', () => {
+      // Thirteen weeks: the chart draws the latest twelve, and the one it leaves out lost to a guess.
+      const later = Array.from({ length: 12 }, (_, index) => {
+        const monday = new Date(Date.UTC(2026, 7, 10 + index * 7)).toISOString().slice(0, 10);
+        return week(`2026-W${33 + index}`, monday, 60, 0.5, 0.2, 0.245);
+      });
+      const out = html(sixNov(), 'en', {
+        weekly: [week('2026-W32', '2026-08-03', 60, 0.3, 0.3, 0.245), ...later],
+      });
+      expect(weeksOf(chartOf(out))).toHaveLength(12);
+      expect(text(out)).not.toContain('Every week so far beat a guess');
+      // Nor is a bar that is not drawn said to be drawn below the line.
+      expect(text(part(out, 'accuracy-weekly-reading', 'span'))).toBe('');
+      expect(text(part(out, 'accuracy-weekly-table', 'details'))).toContain('−22%');
+    });
+
+    it('names the table for a screen reader', () => {
+      expect(part(live(), 'accuracy-weekly-table', 'details')).toMatch(
+        /<caption class="sr-only">(<[^>]+>)*The chart as a table/,
+      );
+    });
+
     it('gives the same numbers as a table, every week of them', () => {
       const out = live();
       const table = part(out, 'accuracy-weekly-table', 'details');

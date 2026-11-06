@@ -60,7 +60,8 @@ import { formatFixed, formatPercent } from '@/lib/words';
  *
  * The interface face throughout: the serif is the founder's voice (D-263),
  * never the model's. The model's data is drawn in its turquoise only;
- * saffron is the closing button and nothing else. Server components only.
+ * saffron is on controls only (the closing button, the disclosures, the sort
+ * and period links), never on a data mark. Server components only.
  */
 
 const filled = (m: Message, params: Record<string, string>): Message => ({
@@ -1014,7 +1015,7 @@ function MeasuresDisclosure({
 /**
  * The way on (T-1750): the record above is checked by the next match, so the
  * page ends on today's forecasts. The one primary, saffron button of the
- * view; the only saffron on the page.
+ * view.
  */
 function ForecastsCta({ lang }: { lang: Locale }) {
   return (

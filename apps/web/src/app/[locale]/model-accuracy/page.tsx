@@ -42,7 +42,7 @@ export async function generateMetadata({
  *
  * Every figure comes with its sample and coverage state; with nothing scored
  * the page says so rather than showing a number (rule 3). The band names the
- * model, its versions and the last scoring day; the figures follow.
+ * model; the versions and the last scoring day sit under the opening card.
  */
 export default async function ModelAccuracyPage({
   params,

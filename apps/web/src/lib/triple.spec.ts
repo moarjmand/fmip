@@ -41,6 +41,26 @@ describe('whole percentages', () => {
     expect(result.home).toBe(34);
   });
 
+  it('never prints the smaller number on the equal share that is called ahead (D-368)', () => {
+    // Rounding each gives 34 · 34 · 33: the point comes off the draw, not off home.
+    expect(wholePercentages({ home: 33.5, draw: 33.5, away: 33 })).toEqual({
+      home: 34,
+      draw: 33,
+      away: 33,
+    });
+    // Of an equal draw and away, away is called ahead.
+    expect(wholePercentages({ home: 19, draw: 40.5, away: 40.5 })).toEqual({
+      home: 19,
+      draw: 40,
+      away: 41,
+    });
+    expect(sharesToPercentages({ home: 0.3335, draw: 0.3335, away: 0.333 })).toEqual({
+      home: 33.4,
+      draw: 33.3,
+      away: 33.3,
+    });
+  });
+
   it('leaves a triple that already totals 100 alone', () => {
     expect(wholePercentages({ home: 45, draw: 25, away: 30 })).toEqual({
       home: 45,
