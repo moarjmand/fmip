@@ -10982,24 +10982,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "modelAccuracy.kpi.rpsMeaning": {
-    "source": "How far the probabilities were from the result; 0 is perfect.",
-    "text": "فاصله‌ی احتمال‌ها از نتیجه؛ صفر یعنی بی‌نقص.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "modelAccuracy.kpi.brierMeaning": {
-    "source": "The squared distance between the probabilities and the result.",
-    "text": "مجذور فاصله‌ی احتمال‌ها از نتیجه.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "modelAccuracy.kpi.logLossMeaning": {
-    "source": "How surprised the model was by the results.",
-    "text": "میزان غافلگیری مدل از نتیجه‌ها.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "modelAccuracy.competition.months": {
     "source": "Month by month",
     "text": "ماه به ماه",
@@ -11009,6 +10991,372 @@
   "modelAccuracy.competition.weeks": {
     "source": "Week by week",
     "text": "هفته به هفته",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.versionsCombined": {
+    "source": "The figures combine these versions; they are not yet shown version by version.",
+    "text": "این ارقام نسخه‌های بالا را با هم می‌آورد و هنوز به تفکیک نسخه نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.right": {
+    "source": {
+      "one": "Over {count} match, the model picked the right result {share} of the time; a blind guess gets about {guess}.",
+      "other": "Over {count} matches, the model picked the right result {share} of the time; a blind guess gets about {guess}."
+    },
+    "forms": {
+      "one": "در {count} بازی، مدل نتیجه‌ی درست را {share} مواقع انتخاب کرد؛ حدس تصادفی حدود {guess} درست درمی‌آید.",
+      "other": "در {count} بازی، مدل نتیجه‌ی درست را {share} مواقع انتخاب کرد؛ حدس تصادفی حدود {guess} درست درمی‌آید."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.less": {
+    "source": "Its probabilities also had {edge} less error than a guess of one third each.",
+    "text": "احتمال‌های مدل هم {edge} خطای کمتر از حدسِ یک‌سوم برای هر نتیجه داشت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.more": {
+    "source": "Its probabilities had {edge} more error than a guess of one third each.",
+    "text": "احتمال‌های مدل {edge} خطای بیشتر از حدسِ یک‌سوم برای هر نتیجه داشت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.rightCaption": {
+    "source": {
+      "one": "of {count} match called right",
+      "other": "of {count} matches called right"
+    },
+    "forms": {
+      "one": "از {count} بازی را درست پیش‌بینی کرد",
+      "other": "از {count} بازی را درست پیش‌بینی کرد"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.lessCaption": {
+    "source": "less error than a guess of one third each",
+    "text": "خطای کمتر از حدسِ یک‌سوم برای هر نتیجه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.moreCaption": {
+    "source": "more error than a guess of one third each",
+    "text": "خطای بیشتر از حدسِ یک‌سوم برای هر نتیجه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.rightExact": {
+    "source": "Exactly {share}. A blind guess gets about {guess}.",
+    "text": "دقیقاً {share}. حدس تصادفی حدود {guess} درست درمی‌آید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.rpsExact": {
+    "source": "Ranked probability score (RPS): {model} for the model, {guess} for the guess. Lower is better.",
+    "text": "امتیاز احتمال رتبه‌ای (RPS): {model} برای مدل، {guess} برای حدس. کمتر بهتر است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.model": {
+    "source": "Model",
+    "text": "مدل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.guess": {
+    "source": "A guess",
+    "text": "حدس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.arithmetic": {
+    "source": "{equation}, so {percent}",
+    "text": "{equation}، یعنی {percent}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.range": {
+    "source": {
+      "one": "{count} match, {from} to {to}",
+      "other": "{count} matches, {from} to {to}"
+    },
+    "forms": {
+      "one": "{count} بازی، {from} تا {to}",
+      "other": "{count} بازی، {from} تا {to}"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.caveat": {
+    "source": "A guess of one third each is the weakest benchmark. It shows the model knows something; it does not show that it beats bookmakers or other models, and this page cannot say.",
+    "text": "حدسِ یک‌سوم برای هر نتیجه ضعیف‌ترین معیار مقایسه است. نشان می‌دهد مدل چیزی می‌داند؛ نشان نمی‌دهد از شرکت‌های شرط‌بندی یا مدل‌های دیگر بهتر است و این صفحه نمی‌تواند این را بگوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.early": {
+    "source": {
+      "one": "{count} week and {matches} matches are an early record, not a verdict.",
+      "other": "{count} weeks and {matches} matches are an early record, not a verdict."
+    },
+    "forms": {
+      "one": "{count} هفته و {matches} بازی یک سابقه‌ی اولیه است، نه یک داوری.",
+      "other": "{count} هفته و {matches} بازی یک سابقه‌ی اولیه است، نه یک داوری."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.verdict.limitedNote": {
+    "source": "With so few matches the page draws no headline figure and no chart. What has been scored so far is under “Show all measures”, marked limited.",
+    "text": "با این تعداد بازی، صفحه رقم اصلی و نمودار نمی‌کشد. آنچه تا اینجا ارزیابی شده زیر «نمایش همه‌ی معیارها» با برچسب «ناقص» آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.title": {
+    "source": "Each week, how much better than a guess",
+    "text": "هر هفته، چقدر بهتر از حدس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.lede": {
+    "source": "How much lower the model’s RPS error was than a one-third guess on the same matches. Taller is better.",
+    "text": "خطای RPS مدل چند درصد از حدسِ یک‌سوم روی همین بازی‌ها کمتر بود. ستون بلندتر بهتر است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.allBeat": {
+    "source": "Every week so far beat a guess; the margin moved between {low} and {high}.",
+    "text": "تا اینجا هر هفته از حدس بهتر بود؛ فاصله بین {low} و {high} جابه‌جا شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.someWorse": {
+    "source": {
+      "one": "{count} week of {weeks} was worse than a guess; its bar is drawn below the line.",
+      "other": "{count} weeks of {weeks} were worse than a guess; their bars are drawn below the line."
+    },
+    "forms": {
+      "one": "{count} هفته از {weeks} هفته بدتر از حدس بود؛ ستون آن زیر خط کشیده شده است.",
+      "other": "{count} هفته از {weeks} هفته بدتر از حدس بودند؛ ستون‌هایشان زیر خط کشیده شده است."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.chartLabel": {
+    "source": {
+      "one": "Bar chart of how much better than a guess the model was in {count} week: {values}; {overall} over all {matches} matches.",
+      "other": "Bar chart of how much better than a guess the model was in each of {count} weeks: {values}; {overall} over all {matches} matches."
+    },
+    "forms": {
+      "one": "نمودار ستونی: مدل در {count} هفته چقدر از حدس بهتر بود: {values}؛ در کل {matches} بازی {overall}.",
+      "other": "نمودار ستونی: مدل در هر یک از {count} هفته چقدر از حدس بهتر بود: {values}؛ در کل {matches} بازی {overall}."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.overall": {
+    "source": {
+      "one": "All {count} match: {edge}",
+      "other": "All {count} matches: {edge}"
+    },
+    "forms": {
+      "one": "کل {count} بازی: {edge}",
+      "other": "کل {count} بازی: {edge}"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.partial": {
+    "source": "The last week is incomplete (scored to {date}), so its bar is lighter and dashed.",
+    "text": "هفته‌ی آخر کامل نیست (تا {date} ارزیابی شده)، پس ستونش کم‌رنگ و خط‌چین است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.partialMark": {
+    "source": "incomplete",
+    "text": "ناتمام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.thin": {
+    "source": "Lighter and dashed: fewer than {minimum} matches that week.",
+    "text": "کم‌رنگ و خط‌چین: کمتر از {minimum} بازی در آن هفته.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.axis": {
+    "source": "Each week is named by its Monday (UTC); the number under it is its matches scored.",
+    "text": "هر هفته با دوشنبه‌اش (UTC) نام‌گذاری شده؛ عدد زیر آن تعداد بازی‌های ارزیابی‌شده‌ی همان هفته است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.latest": {
+    "source": "The chart shows the latest {weeks} weeks; every week is in the table.",
+    "text": "نمودار {weeks} هفته‌ی اخیر را نشان می‌دهد؛ همه‌ی هفته‌ها در جدول هست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.table": {
+    "source": "The chart as a table",
+    "text": "نمودار به‌صورت جدول",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.edge": {
+    "source": "Better than a guess",
+    "text": "بهتر از حدس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.tooFew": {
+    "source": "The weekly chart appears once two complete weeks have been scored.",
+    "text": "نمودار هفتگی بعد از ارزیابی دو هفته‌ی کامل ظاهر می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.soFar": {
+    "source": {
+      "one": "So far: {count} week.",
+      "other": "So far: {count} weeks."
+    },
+    "forms": {
+      "one": "تا اینجا: {count} هفته.",
+      "other": "تا اینجا: {count} هفته."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.weekly.unreachable": {
+    "source": "The weekly figures cannot be shown right now.",
+    "text": "ارقام هفتگی در حال حاضر قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.lede": {
+    "source": "How much better than a guess, by competition. On the “Better” side of the line: better than a guess; on the other side: worse. Dashed: fewer than {minimum} matches.",
+    "text": "چقدر بهتر از حدس، به تفکیک رقابت. سمت «بهتر»: بهتر از حدس؛ سمت دیگر: بدتر. خط‌چین: کمتر از {minimum} بازی.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.worse": {
+    "source": "Worse than a guess",
+    "text": "بدتر از حدس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.better": {
+    "source": "Better",
+    "text": "بهتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.competition": {
+    "source": "Competition",
+    "text": "رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.groupFull": {
+    "source": {
+      "one": "{minimum} matches or more · {count} competition",
+      "other": "{minimum} matches or more · {count} competitions"
+    },
+    "forms": {
+      "one": "{minimum} بازی یا بیشتر · {count} رقابت",
+      "other": "{minimum} بازی یا بیشتر · {count} رقابت"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.groupEarly": {
+    "source": {
+      "one": "Early record: fewer than {minimum} matches · {count} competition. An early record, not a verdict.",
+      "other": "Early record: fewer than {minimum} matches · {count} competitions. An early record, not a verdict."
+    },
+    "forms": {
+      "one": "سابقه‌ی اولیه: کمتر از {minimum} بازی · {count} رقابت. یک سابقه‌ی اولیه است، نه یک داوری.",
+      "other": "سابقه‌ی اولیه: کمتر از {minimum} بازی · {count} رقابت. یک سابقه‌ی اولیه است، نه یک داوری."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.sortedByMatches": {
+    "source": "Sorted by matches",
+    "text": "مرتب بر اساس تعداد بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.sortByEdge": {
+    "source": "Sort by edge over a guess",
+    "text": "مرتب‌سازی بر اساس برتری بر حدس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.sortedByEdge": {
+    "source": "Sorted by edge over a guess",
+    "text": "مرتب بر اساس برتری بر حدس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.sortByMatches": {
+    "source": "Sort by matches",
+    "text": "مرتب‌سازی بر اساس تعداد بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.list.page": {
+    "source": "{name}: the competition’s page",
+    "text": "{name}: صفحه‌ی رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.measures.title": {
+    "source": "Show all measures",
+    "text": "نمایش همه‌ی معیارها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.measures.lede": {
+    "source": "RPS, Brier, log loss, the month and week tables, what the figures mean",
+    "text": "RPS، بریر، لاگ‌لاس، جدول ماه و هفته، معنای ارقام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.measures.rps": {
+    "source": "How far the three probabilities were from what happened, with part credit for a near miss. 0 is perfect.",
+    "text": "فاصله‌ی سه احتمال از آنچه رخ داد، با امتیاز نسبی برای خطای نزدیک. صفر یعنی بی‌نقص.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.measures.brier": {
+    "source": "The average squared gap between each probability and what happened.",
+    "text": "میانگین مجذور فاصله‌ی هر احتمال از آنچه رخ داد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.measures.logLoss": {
+    "source": "How surprised the model was by the results; being confidently wrong costs the most.",
+    "text": "میزان غافلگیری مدل از نتیجه‌ها؛ اشتباهِ با اطمینان بیشترین هزینه را دارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.cta.title": {
+    "source": "See today’s forecasts",
+    "text": "پیش‌بینی‌های امروز را ببینید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.cta.lede": {
+    "source": "Every forecast is stored before kick-off and never edited, so this record can be checked against the next match.",
+    "text": "هر پیش‌بینی پیش از شروع بازی ذخیره می‌شود و هرگز ویرایش نمی‌شود؛ پس این کارنامه را با بازی بعدی می‌توان سنجید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.cta.button": {
+    "source": "See today’s forecasts",
+    "text": "پیش‌بینی‌های امروز",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
