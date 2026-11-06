@@ -49,6 +49,8 @@ export const CONSOLE_LAB_GROUP_RESULTS = [
 export type ConsoleLabGroupResult = (typeof CONSOLE_LAB_GROUP_RESULTS)[number];
 
 export const CONSOLE_LAB_ENTRIES_MAX = 200;
+export const CONSOLE_LAB_GROUPS_MAX = 12;
+export const CONSOLE_LAB_JUDGEMENTS_MAX = 100;
 export const CONSOLE_LAB_TEXT_MAX = 1200;
 
 /** One group of matches a test was judged on. Every number is the report's, or null. */

@@ -125,6 +125,19 @@ describe('the ledger a snapshot carries', () => {
     expect(only?.phase).toBeNull();
   });
 
+  it('drops the figures of a test still running, keeping its counts', () => {
+    const checked = checkModelLab(
+      lab({ entries: [entry({ key: 'candidate', verdict: 'running', decided_on: null })] }),
+    );
+    expect(checked?.entries[0]?.groups[0]).toMatchObject({
+      matches: 3571,
+      matches_total: 5689,
+      difference: null,
+      low: null,
+      high: null,
+    });
+  });
+
   it('cuts a text at the limit', () => {
     const checked = checkModelLab(lab({ entries: [entry({ reason: 'ب'.repeat(5000) })] }));
     expect(checked?.entries[0]?.reason).toHaveLength(1201);

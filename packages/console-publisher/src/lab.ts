@@ -35,6 +35,9 @@ export const LAB_GROUPS = ['football_data', 'our_records', 'cross_league', 'all'
 export const LAB_GROUP_RESULTS = ['passed', 'failed', 'insufficient', 'not_judged'] as const;
 export const LAB_ENTRIES_MAX = 200;
 export const LAB_TEXT_MAX = 1200;
+export const LAB_GROUPS_MAX = 12;
+export const LAB_JUDGEMENTS_MAX = 100;
+export const LAB_LIST_MAX = 40;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -80,6 +83,10 @@ class Reader {
     if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
       this.wrong(field, 'is not a list of texts');
       return [];
+    }
+    if (value.length > LAB_LIST_MAX) this.wrong(field, `holds more than ${LAB_LIST_MAX} texts`);
+    for (const item of value as string[]) {
+      if (item.length > LAB_TEXT_MAX) this.wrong(field, `has a text longer than ${LAB_TEXT_MAX}`);
     }
     return value as string[];
   }
@@ -236,6 +243,25 @@ function entryOf(raw: unknown, index: number): { entry: ConsoleLabEntry; problem
   if ((verdict === 'running' || verdict === 'scheduled') && entry.due_on === null) {
     reader.note(`is ${verdict} and says no day it is judged (due_on)`);
   }
+  // Until its count is reached and its one look taken, a test gives counts only
+  // (D-336's amendment, D-371): a figure here would be on the page before the verdict.
+  if (verdict === 'running' || verdict === 'scheduled') {
+    for (const group of entry.groups) {
+      if (
+        [
+          group.difference,
+          group.low,
+          group.high,
+          group.reference_log_loss,
+          group.tested_log_loss,
+        ].some((v) => v !== null)
+      ) {
+        reader.note(`is ${verdict} and carries a figure; until its verdict it gives counts only`);
+        break;
+      }
+    }
+  }
+  if (entry.groups.length > LAB_GROUPS_MAX) reader.note(`has more than ${LAB_GROUPS_MAX} groups`);
   if (
     verdict !== null &&
     ['adopted', 'rejected', 'insufficient', 'not_run'].includes(verdict) &&
@@ -295,7 +321,8 @@ export function labFrom(raw: unknown, changedAt: string): LabRead {
   }
   const seen = new Set<string>();
   const entries: ConsoleLabEntry[] = [];
-  let skipped = 0;
+  // Entries past the cap are left out too, and counted as such.
+  let skipped = Math.max(0, raw.entries.length - LAB_ENTRIES_MAX);
   raw.entries.slice(0, LAB_ENTRIES_MAX).forEach((item, index) => {
     const read = entryOf(item, index);
     if (read.problems.length === 0 && seen.has(read.entry.key)) {
@@ -313,10 +340,24 @@ export function labFrom(raw: unknown, changedAt: string): LabRead {
   if (raw.judgements !== undefined && !Array.isArray(raw.judgements)) {
     problems.push('judgements is not a list.');
   }
-  (Array.isArray(raw.judgements) ? raw.judgements : []).forEach((item, index) => {
+  const judgementList = Array.isArray(raw.judgements) ? raw.judgements : [];
+  if (judgementList.length > LAB_JUDGEMENTS_MAX) {
+    problems.push(
+      `The ledger holds ${judgementList.length} judgements; only ${LAB_JUDGEMENTS_MAX} are read.`,
+    );
+  }
+  const judged = new Set<string>();
+  judgementList.slice(0, LAB_JUDGEMENTS_MAX).forEach((item, index) => {
     const read = judgementOf(item, index);
+    const key = `${read.judgement.model_version}|${read.judgement.condition}|${read.judgement.judged_on}`;
+    if (read.problems.length === 0 && judged.has(key)) {
+      read.problems.push(`judgement ${index + 1}: the same look is recorded twice`);
+    }
     if (read.problems.length > 0) problems.push(...read.problems);
-    else judgements.push(read.judgement);
+    else {
+      judged.add(key);
+      judgements.push(read.judgement);
+    }
   });
   const updatedAt =
     typeof raw.updated_at === 'string' && !Number.isNaN(Date.parse(raw.updated_at))

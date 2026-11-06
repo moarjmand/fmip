@@ -144,7 +144,7 @@ describe('the model', () => {
     expect(model).toContain('هرگز اجرا نشد');
     expect(model).toContain('data-testid="version-deltas"');
     expect(model).toContain('۲۳٬۹۰۴ مسابقه');
-    expect(model).toContain('نیامده');
+    expect(model).toContain('هنوز نیامده');
   });
 });
 

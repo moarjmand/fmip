@@ -194,11 +194,32 @@ export interface VersionsInput {
   trends: readonly AdminAccuracySeries[];
 }
 
+/**
+ * What a version is now. A shadow version is being judged when the model
+ * service runs it, and also -- from the stored forecasts alone, so a silent
+ * or forgetful service never turns a candidate into history and lets its
+ * figures out (D-371, review rev-2026-11-07-01) -- when it was never
+ * published and stored a shadow forecast after the version on the site
+ * started: it ran beside it, and its verdict is the weekly watch's.
+ */
 export function versionState(key: VersionKey, input: VersionsInput): ConsoleModelVersionState {
   if (key.role === 'published') {
     return key.modelVersion === input.published ? 'published_now' : 'earlier';
   }
-  return input.shadow.includes(key.modelVersion) ? 'shadow_now' : 'earlier';
+  if (input.shadow.includes(key.modelVersion)) return 'shadow_now';
+  const everPublished = input.counts.some(
+    (row) => row.role === 'published' && row.modelVersion === key.modelVersion,
+  );
+  if (everPublished) return 'earlier';
+  const site =
+    input.published === null
+      ? undefined
+      : input.counts.find(
+          (row) => row.role === 'published' && row.modelVersion === input.published,
+        );
+  const last = input.counts.find((row) => same(row, key))?.last ?? null;
+  if (site === undefined || site.first === null) return last === null ? 'earlier' : 'shadow_now';
+  return last !== null && last.getTime() >= site.first.getTime() ? 'shadow_now' : 'earlier';
 }
 
 /**
@@ -492,18 +513,23 @@ export function consoleModelReport(input: ReportInput): ConsoleModelReport {
     minimum_matches: ACCURACY_MINIMUM_MATCHES,
     versions,
     comparisons: versionComparisons(input.pairs, input),
-    candidates: input.shadow.map((modelVersion) => {
-      const key: VersionKey = { role: 'shadow', modelVersion };
-      const count = input.counts.find((row) => same(row, key));
-      return candidateRecord({
-        modelVersion,
-        inService: input.inService(modelVersion),
-        span: { first: count?.first ?? null, last: count?.last ?? null },
-        own: overall.find((row) => same(row, key)),
-        paired: pairedOf(input.pairs, modelVersion, input.published),
-        newDivisions: { matches: input.newDivisions.get(modelVersion) ?? 0 },
-      });
-    }),
+    // Every version being judged, whether the service named it or the store says so.
+    candidates: versions
+      .filter((v) => v.state === 'shadow_now')
+      .map((v) => v.model_version)
+      .concat(input.shadow.filter((id) => !versions.some((v) => v.model_version === id)))
+      .map((modelVersion) => {
+        const key: VersionKey = { role: 'shadow', modelVersion };
+        const count = input.counts.find((row) => same(row, key));
+        return candidateRecord({
+          modelVersion,
+          inService: input.inService(modelVersion),
+          span: { first: count?.first ?? null, last: count?.last ?? null },
+          own: overall.find((row) => same(row, key)),
+          paired: pairedOf(input.pairs, modelVersion, input.published),
+          newDivisions: { matches: input.newDivisions.get(modelVersion) ?? 0 },
+        });
+      }),
     inputs: [...input.inputs],
     last_updated_at: lastEvaluated?.toISOString() ?? null,
     generated_at: input.now.toISOString(),

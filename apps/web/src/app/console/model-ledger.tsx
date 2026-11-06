@@ -226,7 +226,7 @@ function Lane({ row, width }: { row: Row; width: number }) {
     );
   }
   if (typeof row.instead === 'object' && row.instead !== null) {
-    const share = Math.min(1, row.instead.count / row.instead.needed);
+    const share = row.instead.needed > 0 ? Math.min(1, row.instead.count / row.instead.needed) : 0;
     return (
       <div className="flex items-center gap-2 text-xs text-muted">
         <div

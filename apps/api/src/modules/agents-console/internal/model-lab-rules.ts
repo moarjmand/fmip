@@ -6,6 +6,8 @@ import type {
 } from '@fmip/contracts';
 import {
   CONSOLE_LAB_ENTRIES_MAX,
+  CONSOLE_LAB_GROUPS_MAX,
+  CONSOLE_LAB_JUDGEMENTS_MAX,
   CONSOLE_LAB_GROUP_RESULTS,
   CONSOLE_LAB_GROUPS,
   CONSOLE_LAB_KINDS,
@@ -102,9 +104,22 @@ function entryOf(raw: unknown): ConsoleLabEntry | null {
     data: text(raw.data) ?? '',
     against: text(raw.against),
     groups: Array.isArray(raw.groups)
-      ? raw.groups.flatMap((g) => {
+      ? raw.groups.slice(0, CONSOLE_LAB_GROUPS_MAX).flatMap((g) => {
           const group = groupOf(g);
-          return group === null ? [] : [group];
+          if (group === null) return [];
+          // Until its verdict, a running or scheduled test gives counts only (D-371).
+          return verdict === 'running' || verdict === 'scheduled'
+            ? [
+                {
+                  ...group,
+                  difference: null,
+                  low: null,
+                  high: null,
+                  reference_log_loss: null,
+                  tested_log_loss: null,
+                },
+              ]
+            : [group];
         })
       : [],
     verdict,
@@ -163,7 +178,7 @@ export function checkModelLab(raw: unknown): ConsoleModelLab | null {
     skipped,
     entries,
     judgements: Array.isArray(raw.judgements)
-      ? raw.judgements.flatMap((j) => {
+      ? raw.judgements.slice(0, CONSOLE_LAB_JUDGEMENTS_MAX).flatMap((j) => {
           const judgement = judgementOf(j);
           return judgement === null ? [] : [judgement];
         })

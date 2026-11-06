@@ -145,12 +145,68 @@ describe('the ledger file', () => {
     expect(problems({ decided_on: null })).toEqual([
       'coach_quality: has a verdict and no day it was decided (decided_on)',
     ]);
-    expect(problems({ verdict: 'scheduled', decided_on: null })).toEqual([
+    expect(problems({ verdict: 'scheduled', decided_on: null, groups: [] })).toEqual([
       'coach_quality: is scheduled and says no day it is judged (due_on)',
     ]);
-    expect(problems({ verdict: 'scheduled', decided_on: null, due_on: '2027-01-05' })).toEqual([]);
+    expect(
+      problems({ verdict: 'scheduled', decided_on: null, due_on: '2027-01-05', groups: [] }),
+    ).toEqual([]);
     // A signal seen and not yet formulated has no decision of its own.
     expect(problems({ verdict: 'parked', decisions: [], decided_on: null })).toEqual([]);
+  });
+
+  it('refuses a figure on a test still running: counts only until its verdict', () => {
+    const read = labFrom(
+      ledger([
+        entry({
+          key: 'candidate',
+          verdict: 'running',
+          decided_on: null,
+          due_on: '2026-11-09',
+          groups: [group({ worse_divisions: null, worse_in: [] })],
+        }),
+        entry({
+          key: 'candidate_counts',
+          verdict: 'running',
+          decided_on: null,
+          due_on: '2026-11-09',
+          groups: [
+            group({
+              difference: null,
+              low: null,
+              high: null,
+              worse_divisions: null,
+              worse_in: [],
+            }),
+          ],
+        }),
+      ]),
+      CHANGED,
+    );
+    expect(read.problems).toEqual([
+      'candidate: is running and carries a figure; until its verdict it gives counts only',
+    ]);
+    expect(read.lab?.entries.map((e) => e.key)).toEqual(['candidate_counts']);
+  });
+
+  it('counts entries past the cap as left out, and a judgement recorded twice as a problem', () => {
+    const many = Array.from({ length: 202 }, (_, i) => entry({ key: `e_${i}` }));
+    const read = labFrom(ledger(many), CHANGED);
+    expect(read.lab?.entries).toHaveLength(200);
+    expect(read.lab?.skipped).toBe(2);
+    const judgement = {
+      model_version: 'dixon-coles-elo@0.7.0',
+      rule: 'D-336',
+      condition: 'no_worse',
+      result: 'met',
+      judged_on: '2026-11-09',
+      matches: 352,
+      text: 'بدتر نیست.',
+      report: null,
+    };
+    const twice = labFrom(ledger([entry()], { judgements: [judgement, judgement] }), CHANGED);
+    expect(twice.lab?.judgements).toHaveLength(1);
+    expect(twice.problems).toEqual(['judgement 2: the same look is recorded twice']);
   });
 
   it('keeps a recorded judgement only when it is whole', () => {

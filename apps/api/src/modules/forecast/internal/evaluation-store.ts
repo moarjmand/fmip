@@ -812,24 +812,32 @@ export class PostgresEvaluationStore {
         late: number;
         newest: string | null;
       }>(
-        `SELECT division_key,
-                SUM(matches)::int AS matches, SUM(total)::int AS total,
-                (COUNT(*) FILTER (WHERE matches > 0))::int AS divisions,
-                (COUNT(*) FILTER (WHERE recent > 0 AND newest < $1::date - ${LATE_AFTER_DAYS}))::int
-                  AS late,
-                to_char(MAX(newest), 'YYYY-MM-DD') AS newest
-           FROM (
-             SELECT CASE WHEN division = 'XL' THEN 'cross_league' ELSE 'results' END
-                      AS division_key,
-                    COUNT(*) FILTER (WHERE match_date >= $1::date - ${MODEL_HISTORY_DAYS})
-                      AS matches,
-                    COUNT(*) AS total,
-                    COUNT(*) FILTER (WHERE match_date >= $1::date - ${IN_SEASON_DAYS}) AS recent,
-                    MAX(match_date) AS newest
-               FROM training.match
-              WHERE match_date <= $1::date
-              GROUP BY division) per_division
-          GROUP BY division_key`,
+        // A division runs late when the site has finished matches of its
+        // competition played more than LATE_AFTER_DAYS after the store's newest
+        // result: a break in the calendar is not late, a missing round is.
+        `WITH played AS (
+           SELECT co.football_data_division AS division, MAX(fx.kickoff_at)::date AS newest
+             FROM fixture fx
+             JOIN season se ON se.id = fx.season_id
+             JOIN competition co ON co.id = se.competition_id
+            WHERE fx.status = 'finished' AND fx.kickoff_at <= $1::date + 1
+              AND co.football_data_division IS NOT NULL
+            GROUP BY 1),
+         stored AS (
+           SELECT division,
+                  COUNT(*) FILTER (WHERE match_date >= $1::date - ${MODEL_HISTORY_DAYS}) AS matches,
+                  COUNT(*) AS total,
+                  MAX(match_date) AS newest
+             FROM training.match
+            WHERE match_date <= $1::date
+            GROUP BY division)
+         SELECT CASE WHEN s.division = 'XL' THEN 'cross_league' ELSE 'results' END AS division_key,
+                SUM(s.matches)::int AS matches, SUM(s.total)::int AS total,
+                (COUNT(*) FILTER (WHERE s.matches > 0))::int AS divisions,
+                (COUNT(*) FILTER (WHERE p.newest > s.newest + ${LATE_AFTER_DAYS}))::int AS late,
+                to_char(MAX(s.newest), 'YYYY-MM-DD') AS newest
+           FROM stored s LEFT JOIN played p ON p.division = s.division
+          GROUP BY 1`,
         [day],
       ),
       this.pool.query<{ day: string; club_count: number; computed_at: Date }>(
@@ -1001,10 +1009,11 @@ function counted(model: string, role: string): string {
  * over on the console's model page.
  */
 export const MODEL_HISTORY_DAYS = 1100;
-/** A division is in season when it has a result this recent... */
-const IN_SEASON_DAYS = 120;
-/** ...and its results run late when the newest is older than this. */
-const LATE_AFTER_DAYS = 10;
+/**
+ * A division's results run late when the site has a finished match of its
+ * competition this many days after the store's newest result.
+ */
+const LATE_AFTER_DAYS = 3;
 
 /**
  * Each match once for every model version in every role (T-1752): as

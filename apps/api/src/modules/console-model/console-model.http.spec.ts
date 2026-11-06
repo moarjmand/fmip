@@ -184,7 +184,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console mode
       version(fresh, MONDAY, 'shadow', SHADOW, at('2032-03-07T10:00:00Z'), P_NEW),
     );
     await forecasts.record(
-      version(won, SUNDAY, 'shadow', RETIRED, at('2032-03-06T09:00:00Z'), P_RETIRED),
+      // Before the published version's first forecast: a candidate of an earlier day.
+      version(won, SUNDAY, 'shadow', RETIRED, at('2032-03-05T09:00:00Z'), P_RETIRED),
     );
     // After kick-off: evaluated, never counted (D-031).
     await forecasts.record(

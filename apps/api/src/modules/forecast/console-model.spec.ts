@@ -348,14 +348,50 @@ describe('every version', () => {
     }
   });
 
+  it('keeps a candidate being judged when the service is silent and its last forecast is old', () => {
+    // The service named nothing; 0.7.0 last forecast eight days ago, after 0.6.0 started.
+    const silent = versions({
+      shadow: [],
+      counts: [
+        count('published', V6, '2026-10-09T20:15:00Z', '2026-11-06T08:00:00Z'),
+        count('shadow', V7, '2026-10-21T19:45:00Z', '2026-10-29T08:00:00Z'),
+        count('shadow', 'dixon-coles-elo@0.5.0', '2026-10-01T12:30:00Z', '2026-10-09T19:00:00Z'),
+      ],
+    });
+    const listed = versionRecords(silent);
+    expect(listed.map((v) => `${v.model_version} ${v.state}`)).toEqual([
+      `${V6} published_now`,
+      `${V7} shadow_now`,
+      'dixon-coles-elo@0.5.0 earlier',
+    ]);
+    const [judging] = versionComparisons(
+      [pair(['shadow', V7], ['published', V6], { matches: 352 })],
+      silent,
+    );
+    expect(judging).toMatchObject({ kind: 'judging', figures: null });
+    const report = consoleModelReport({
+      ...silent,
+      service: 'unreachable',
+      inService: () => null,
+      newDivisions: new Map([[V7, 93]]),
+      pairs: [pair(['shadow', V7], ['published', V6], { matches: 352 })],
+      unscored: null,
+      inputs: [],
+      now: new Date('2026-11-06T12:00:00Z'),
+    });
+    expect(report.candidates.map((c) => c.model_version)).toEqual([V7]);
+    expect(report.candidates[0]?.paired).toEqual({ matches: 352, identical: 247 });
+  });
+
   it('says a version that stored forecasts and scored none has no record', () => {
+    // With no published version on record, a shadow version is still being judged.
     const listed = versionRecords(
       versions({
         counts: [count('shadow', 'x@1', '2026-11-05T08:00:00Z', '2026-11-06T08:00:00Z')],
       }),
     );
     expect(listed[0]?.record).toMatchObject({ matches: 0, coverage: 'not_supplied' });
-    expect(listed[0]?.state).toBe('earlier');
+    expect(listed[0]?.state).toBe('shadow_now');
   });
 });
 

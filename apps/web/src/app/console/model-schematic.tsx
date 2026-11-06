@@ -48,7 +48,7 @@ export function inputWords(state: ConsoleModelInputState | undefined): string {
     case 'results':
       return `${fa(state.count)} مسابقه در پنجره‌ی ۱۱۰۰ روزه، ${fa(state.groups ?? 0)} لیگ${
         (state.late_groups ?? 0) > 0
-          ? `؛ در ${fa(state.late_groups ?? 0)} لیگ نتیجه‌ی ده روز اخیر نیامده`
+          ? `؛ در ${fa(state.late_groups ?? 0)} لیگ نتیجه‌ی بازی‌های اخیر هنوز نیامده`
           : ''
       }${newest} — ${word}`;
     case 'cross_league':

@@ -165,7 +165,8 @@ export function readLab(path = LAB_FILE): LabRead {
   if (!existsSync(path)) return { lab: null, problems: [`${path} does not exist.`] };
   let raw: unknown;
   try {
-    raw = JSON.parse(read(path));
+    // A Windows editor may save a byte-order mark; JSON.parse refuses one.
+    raw = JSON.parse(read(path).replace(/^\uFEFF/, ''));
   } catch (error) {
     return { lab: null, problems: [`${path} is not JSON: ${(error as Error).message}`] };
   }
