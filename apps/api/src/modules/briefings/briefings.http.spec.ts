@@ -302,11 +302,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('briefings', 
       version_number: 2,
       rejection: expect.stringContaining('points at nothing in the feed'),
     });
-    script = { ...script, text: `${home} have won 7 of their last games.`, stop: 'end_turn' };
+    // A number no feed can hold: not a day of the month, an hour, a minute or
+    // a year. "7" passed for a number from nowhere until the feed's own dates
+    // reached 7 November, and the briefing was then published (T-1747).
+    script = { ...script, text: `${home} have won 93 of their last games.`, stop: 'end_turn' };
     expect((await write(follower)).body).toMatchObject({
       outcome: 'rejected',
       version_number: 3,
-      rejection: 'number not in the feed: 7',
+      rejection: 'number not in the feed: 93',
     });
     script = { ...script, text: '', stop: 'refusal' };
     expect((await write(follower)).body).toMatchObject({
