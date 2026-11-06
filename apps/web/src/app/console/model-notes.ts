@@ -124,7 +124,7 @@ export type Use = 'used' | 'not' | 'silent';
 const index = (number: string): number => VERSION_ORDER.indexOf(number as VersionNumber);
 
 /** Whether a version has an element; a version this file does not know has none to show. */
-export function useOf(span: Span, number: string): Use {
+export function hasElement(span: Span, number: string): Use {
   const at = index(number);
   if (at < 0 || at < index(span.from)) return 'not';
   if (span.until !== undefined && at >= index(span.until)) return 'not';
@@ -136,7 +136,7 @@ export function useOf(span: Span, number: string): Use {
  * element, when an older shown version did not: what the picture marks "+".
  */
 export function isNewIn(span: Span, number: string, shown: readonly string[]): boolean {
-  const having = shown.filter((v) => useOf(span, v) !== 'not');
+  const having = shown.filter((v) => hasElement(span, v) !== 'not');
   return having[0] === number && shown[0] !== number;
 }
 
@@ -338,7 +338,7 @@ export function matrixCell(
   row: MatrixRow,
   number: VersionNumber,
 ): { use: Use; words: string | null; changed: boolean } {
-  const use = useOf(row.span, number);
+  const use = hasElement(row.span, number);
   const at = index(number);
   let words: string | null = null;
   let changed = false;
@@ -352,7 +352,7 @@ export function matrixCell(
       }
     }
   } else if (at > 0) {
-    changed = use !== useOf(row.span, VERSION_ORDER[at - 1] as VersionNumber);
+    changed = use !== hasElement(row.span, VERSION_ORDER[at - 1] as VersionNumber);
   }
   return { use, words, changed };
 }

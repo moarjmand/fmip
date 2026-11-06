@@ -104,7 +104,7 @@ function CalibrationPanel({
         role="img"
         aria-labelledby={titleId}
         className="w-full"
-        data-testid={`calibration-${outcome}`}
+        data-testid="calibration-draw"
         data-version={id}
       >
         <title>{`calibration ${OUTCOME_WORDS[outcome]}: احتمالی که مدل داد در برابر آنچه رخ داد`}</title>
@@ -490,6 +490,7 @@ export function IntervalStrip({
       className="w-full min-w-32"
       role="img"
       aria-label={label}
+      data-testid="interval-strip"
     >
       {scale.values.map((v) => (
         <line
