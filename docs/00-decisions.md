@@ -14387,6 +14387,13 @@ A narrow surface with no Persian story says so with the empty state it already h
 
 **Consequences.** On a phone at 375x812 the stack takes 92px at the top once the band has gone (44px before); with the pick bar and the tab bar at the bottom 599px remain before kick-off and 659px after. On a desktop 92 of 900px. The first-load JavaScript gains the bar's markup and loses nothing here; the measured figure is with D-364. The words are existing ones ("v", "Live", "FT", …), so nothing new waits on a translator. Extra time and a shoot-out read "AET" and "Pens 6–5" beside the result, which the boards left undrawn. The visual baseline changes and is regenerated from CI. Visible on production only after the maintainer approves real-data screenshots.
 
+Found on the real-data screenshots before the deploy (2026-11-06): a tab's
+jump lands a few pixels past the point where the tabs stick, and a bar that
+was still fading there stood half-drawn over the band's last line. So the bar
+is whole from the moment the tabs stick (3rem short of the band's end); the
+fade, where motion is welcome, runs over the 3rem before that and is over by
+then.
+
 ## D-364 — On a phone the match page opens with one tools row, a short band and one freshness line; the stream's counter stays only while a match is in play
 
 **Status:** Accepted · 2026-11-06 (maintainer, from the mockups: board P2-4, top half) · **Task:** T-1743 · **Follows:** D-363, D-360, D-358, D-209, D-189, D-116
@@ -14412,6 +14419,16 @@ A narrow surface with no Persian story says so with the empty state it already h
 - *Loading the stamp's code only for a match in play:* a second chunk and a loader to save a component a live match needs at once.
 
 **Consequences.** Measured on the same match, same viewport, a guest: 264px from the back row to the end of the tabs, in English and in Persian (556px before); 378px with Details open; a live match 392px (the badge, the minute bar and the stream's stamp), a finished one 312px (its scorers, the half-time line, a competition line that wraps). With D-363's stack and the other half of the board the model's bar and the pick buttons can stand on the first screen; that half is not in this task. A member's block is taller than a guest's by the follow sentence (not measured: no account was used). First-load JavaScript of the match centre: 180.9 of 183 kB gzip (599.6 kB raw); 179.6 (593.7) before the two tasks and 180.2 (596.1) after T-1742, each built and measured on the same machine; no code left the bundle, because the stamp and the clock are still needed by a match in play -- what went is the counter's re-render on pages where nothing moves. Before kick-off no width shows "Last checked … sec ago" any more. The Persian is unreviewed. The visual baseline changes and is regenerated from CI. Visible on production only after the maintainer approves real-data screenshots.
+
+Found on the real-data screenshots before the deploy (2026-11-06): with the
+top block at 264px the pick's three outcomes still ended at 734px on a
+375x812 phone, under the pick bar's edge at 691px. Three things on a phone
+only bring them to 631-675px in English and Persian: the cards stand 0.75rem
+apart (1.25rem before) and the first one 0.75rem under the tabs; the model's
+three shares are set condensed so they stay on one line; and the headline's
+receipt is the model and the version alone (`receipt-brief`), one line, with
+when it was computed left to the full receipt in the details card under the
+pick. From 768px nothing changes.
 
 ## D-365 — The match page says the model's forecast once; the other predictions are one row each when empty; the pick is one locked row from kick-off
 

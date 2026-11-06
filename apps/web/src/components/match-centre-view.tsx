@@ -255,7 +255,7 @@ function Region({
   return (
     <div
       id={id}
-      className="flex min-w-0 scroll-mt-(--match-stack) flex-col gap-5"
+      className="flex min-w-0 scroll-mt-(--match-stack) flex-col gap-3 md:gap-5"
       data-testid={`section-${id}`}
       data-tab={tab}
       data-tab-also={also}
@@ -268,7 +268,11 @@ function Region({
 /** A tab's panel that holds several sections (Summary, Line-ups, Predictions). */
 function Panel({ tab, id, children }: { tab: MatchTab; id?: string; children: React.ReactNode }) {
   return (
-    <div id={id} className="flex min-w-0 scroll-mt-(--match-stack) flex-col gap-5" data-tab={tab}>
+    <div
+      id={id}
+      className="flex min-w-0 scroll-mt-(--match-stack) flex-col gap-3 md:gap-5"
+      data-tab={tab}
+    >
       {children}
     </div>
   );
@@ -503,8 +507,11 @@ export function MatchCentreView({
         </nav>
       </div>
 
+      {/* On a phone the cards stand 0.75rem apart and the first one closer to
+          the tabs, so the model's bar and the pick's three outcomes are both
+          on the first screen before kick-off (T-1743, board P2-4). */}
       <div
-        className="flex flex-col gap-5 md:flex-row md:flex-wrap md:items-start md:gap-6"
+        className="-mt-2 flex flex-col gap-3 md:mt-0 md:flex-row md:flex-wrap md:items-start md:gap-6"
         data-match-tabs=""
       >
         <div className={cx(COLUMN, 'md:grow-999 md:basis-160')} data-column="main">
@@ -518,7 +525,7 @@ export function MatchCentreView({
         <aside className={cx(COLUMN, 'gap-5 md:grow md:basis-85')} data-column="side">
           {/* Beside the Summary: the best rated, who was missing, the past
               meetings; beside the statistics, each side's form. */}
-          <div className="flex min-w-0 flex-col gap-5" data-tab="summary">
+          <div className="flex min-w-0 flex-col gap-3 md:gap-5" data-tab="summary">
             <TopRated centre={centre} locale={locale} words={words} />
             <Availability
               centre={centre}
@@ -533,7 +540,7 @@ export function MatchCentreView({
             <Region id="news">{slots.news}</Region>
           </div>
           {slots.form !== undefined && (
-            <div className="flex min-w-0 flex-col gap-5" data-tab="stats">
+            <div className="flex min-w-0 flex-col gap-3 md:gap-5" data-tab="stats">
               {slots.form}
             </div>
           )}

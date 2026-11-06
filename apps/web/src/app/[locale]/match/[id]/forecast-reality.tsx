@@ -157,6 +157,16 @@ export function receiptShort(locale: Locale, version: ForecastVersion, timeZone:
   ].join(' · ');
 }
 
+/** The model and the version alone: the headline's receipt on a phone. */
+export function receiptBrief(locale: Locale, version: ForecastVersion): string {
+  return [
+    ...(version.model_version === NO_MODEL_VERSION ? [] : [version.model_version]),
+    interpolate(t(locale, 'matchCentre.reality.version'), {
+      version: formatNumber(locale, version.version_number),
+    }),
+  ].join(' · ');
+}
+
 /**
  * The MODEL tag (Design System `model-tag`): the model's colour and nothing
  * else's. An outline rather than the Design System's tint: on Day the
@@ -340,7 +350,15 @@ export function ForecastReality({
               className="font-mono text-xs leading-relaxed text-model [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
               data-testid="receipt-short"
             >
-              <AtApart text={receiptShort(locale, version, timeZone)} />
+              {/* A phone has room for the model and the version on one line;
+                  when it was computed stands in the full receipt, with the
+                  details under the pick (board P2-4). */}
+              <span className="md:hidden" data-testid="receipt-brief">
+                <AtApart text={receiptBrief(locale, version)} />
+              </span>
+              <span className="max-md:hidden">
+                <AtApart text={receiptShort(locale, version, timeZone)} />
+              </span>
             </p>
           ) : (
             <Tiles version={version} final={final} matchXg={matchXg} locale={locale} />
@@ -571,7 +589,7 @@ function OutcomeBar({
   const label = (name: string, value: number) => `${name} ${formatPercent(locale, value)}`;
   return (
     <div className="flex flex-col gap-2" data-testid="outcome-bar">
-      <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm font-bold tabular-nums md:text-base">
+      <div className="flex flex-wrap justify-between gap-x-2 gap-y-1 text-sm font-bold tabular-nums max-md:font-stretch-condensed md:gap-x-4 md:text-base">
         {outcomes.map(({ key, name, value }) => (
           <span
             key={key}

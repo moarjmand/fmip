@@ -353,6 +353,12 @@ describe('the forecast is drawn once: headline, details, and why (T-1744)', () =
     expect(html.replace(/<[^>]+>/g, '')).toContain(
       'dixon-coles-elo@0.6.0 · v3 computed 24 Oct, 12:03 UK time',
     );
+    // A phone's line is the model and the version alone, so it stays one
+    // line and the pick's outcomes fit on the first screen (board P2-4);
+    // each width draws one of the two.
+    expect(html).toMatch(
+      /<span class="md:hidden" data-testid="receipt-brief">dixon-coles-elo<span>@<\/span>0\.6\.0 · v3<\/span><span class="max-md:hidden">/,
+    );
     // The rest follows the pick, in the details card.
     expect(html).not.toContain('data-testid="reality-goals"');
     expect(html).not.toContain('data-testid="reality-scorelines"');

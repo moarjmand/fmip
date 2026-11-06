@@ -254,11 +254,17 @@ describe('the sticky stack’s CSS (T-1742)', () => {
     expect(block).toMatch(/\[data-match-root\] \{[^}]*timeline-scope: --match-band;/);
     expect(block).toMatch(/\[data-match-band\] \{\s*view-timeline: --match-band block;/);
     expect(block).toMatch(/animation-timeline: --match-band;/);
-    expect(block).toMatch(/animation-range: exit calc\(100% - 3rem\) exit 100%;/);
-    expect(block).toMatch(/@keyframes score-bar-show \{\s*to \{\s*visibility: visible;/);
-    // The fade only where motion is welcome.
+    // Whole from the moment the tabs stick, 3rem short of the band's end: a
+    // tab's jump lands just past that point, so the bar is never left
+    // half-drawn over the band's last line.
     expect(block).toMatch(
-      /@media \(prefers-reduced-motion: no-preference\) \{\s*:root:not\(\[data-motion='reduce'\]\) \[data-score-bar\] \{\s*animation-name: score-bar-fade;/,
+      /animation-range: exit calc\(100% - 3rem - 1px\) exit calc\(100% - 3rem\);/,
+    );
+    expect(block).not.toMatch(/animation-range: [^;]*exit 100%;/);
+    expect(block).toMatch(/@keyframes score-bar-show \{\s*to \{\s*visibility: visible;/);
+    // The fade only where motion is welcome, and over before the tabs stick.
+    expect(block).toMatch(
+      /@media \(prefers-reduced-motion: no-preference\) \{[^@]*:root:not\(\[data-motion='reduce'\]\) \[data-score-bar\] \{\s*animation-name: score-bar-fade;[^}]*animation-range: exit calc\(100% - 6rem\) exit calc\(100% - 3rem\);/,
     );
   });
 

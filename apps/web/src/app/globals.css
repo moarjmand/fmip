@@ -1123,8 +1123,8 @@ header:has(#competitions-menu:not([hidden])) {
  *
  * That is a scroll-driven animation and no script: the band is a view
  * timeline, named on the page's root so the bar, its sibling's child, can
- * use it, and the bar turns visible over the last 3rem of the band's exit --
- * exactly while the tabs, stuck 3rem down, uncover that strip. A browser
+ * use it, and the bar is whole from the moment the tabs stick, 3rem short
+ * of the band's end (it fades in over the 3rem before that). A browser
  * without scroll-driven animations (before Chrome 115, Safari 26 and
  * Firefox 159) never shows the bar: the tabs stick at the very top and
  * nothing else changes. `--match-stack` is what a section's top must clear
@@ -1184,14 +1184,23 @@ header:has(#competitions-menu:not([hidden])) {
     animation: score-bar-show 1ms linear both;
     animation-timeline: --match-band;
 
-    /* The second line for a browser that takes a length in a range. */
-    animation-range: exit 85% exit 100%;
-    animation-range: exit calc(100% - 3rem) exit 100%;
+    /*
+     * Shown from the moment the tabs stick, 3rem short of the band's end,
+     * and whole from then on: a tab's jump lands just past that point, and
+     * a bar still fading there stood half-drawn over the band's last line.
+     * The second line of each pair is for a browser that takes a length in
+     * a range.
+     */
+    animation-range: exit 80% exit 81%;
+    animation-range: exit calc(100% - 3rem - 1px) exit calc(100% - 3rem);
   }
 
   @media (prefers-reduced-motion: no-preference) {
+    /* The fade runs over the 3rem before the tabs stick, and is over by then. */
     :root:not([data-motion='reduce']) [data-score-bar] {
       animation-name: score-bar-fade;
+      animation-range: exit 60% exit 80%;
+      animation-range: exit calc(100% - 6rem) exit calc(100% - 3rem);
     }
   }
 }
