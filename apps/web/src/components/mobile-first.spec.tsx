@@ -314,9 +314,14 @@ describe('the match centre', () => {
 
   it('has a tab bar of plain anchors, each to a section that exists (T-1384, T-1497)', () => {
     const nav = html.slice(html.indexOf('<nav'), html.indexOf('</nav>'));
-    // At every width, at the foot of the score band: jump links from 768px.
+    // At every width, directly after the score band: jump links from 768px.
+    // Outside the band and a child of the page column, in the sticky box
+    // (T-1742): a sticky row holds only inside its parent.
     expect(nav).toContain('data-testid="section-nav"');
-    expect(html.indexOf('data-testid="section-nav"')).toBeLessThan(html.indexOf('</header>'));
+    expect(html).toMatch(
+      /<\/header><div class="sticky z-10 [^"]*" data-match-sticky=""><div aria-hidden="true"[^>]*data-score-bar=""[^>]*>.*?<\/div><nav [^>]*data-testid="section-nav"/,
+    );
+    expect(html).toMatch(/<header [^>]*data-match-band=""/);
     for (const [tab, label] of TABS) {
       expect(nav).toContain(`href="#${tab}"`);
       expect(nav).toContain(`data-tab-link="${tab}"`);
@@ -372,7 +377,7 @@ describe('the match centre', () => {
     // Outside the Summary's panel, so the phone's Predictions tab shows it
     // too (`globals.css`), and once on the page.
     expect(html).toMatch(
-      /<p>OUTCOME<\/p><\/div><div id="pick" class="[^"]*scroll-mt-16[^"]*" data-testid="section-pick" data-tab="predictions" data-tab-also="summary"><p>PICK<\/p><\/div>/,
+      /<p>OUTCOME<\/p><\/div><div id="pick" class="[^"]*scroll-mt-\(--match-stack\)[^"]*" data-testid="section-pick" data-tab="predictions" data-tab-also="summary"><p>PICK<\/p><\/div>/,
     );
     expect(html.split('id="pick"').length - 1).toBe(1);
     // The live view says its status, so a page left open past kick-off can

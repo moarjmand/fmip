@@ -15,8 +15,7 @@ import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
 import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, shootoutStart, statValue } from '@/lib/match';
-import { isBehind } from '@/lib/live';
-import { formatKickoff, formatStamp, freshnessStamp, resultLine, statusLabel } from '@/lib/scores';
+import { formatKickoff, formatStamp, freshnessStamp } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { listName } from '@/lib/person-name';
 import type { MatchWords } from '@/lib/words-server';
@@ -28,6 +27,7 @@ import { LiveBadge } from '@/components/ui/live-badge';
 import { RatingChip } from '@/components/ui/rating-chip';
 import { StatBar } from '@/components/ui/stat-bar';
 import { MatchLineupsView } from '@/components/match-lineups';
+import { BLEED, type BandState, ScoreBar, bandState } from '@/components/match-score-bar';
 import { MessageText } from '@/components/message-text';
 import { Score, ScorePair } from '@/components/score';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
@@ -269,7 +269,9 @@ function playerCell(locale: string, player: MatchPlayerStats, metric: PlayerMatc
 
 /**
  * One section of the page, the target of an anchor. Its top clears the
- * sticky tabs when jumped to; with nothing in it, it is not rendered. `tab`
+ * sticky score bar and tabs when jumped to (`--match-stack`, their height
+ * and a little air, set in `globals.css`; T-1742); with nothing in it, it is
+ * not rendered. `tab`
  * makes it a tab's whole panel (Stats, Watch, Discussion); `also` names a
  * second tab that shows it on a phone (the pick card, `globals.css`).
  */
@@ -288,7 +290,7 @@ function Region({
   return (
     <div
       id={id}
-      className="flex min-w-0 scroll-mt-16 flex-col gap-5"
+      className="flex min-w-0 scroll-mt-(--match-stack) flex-col gap-5"
       data-testid={`section-${id}`}
       data-tab={tab}
       data-tab-also={also}
@@ -301,7 +303,7 @@ function Region({
 /** A tab's panel that holds several sections (Summary, Line-ups, Predictions). */
 function Panel({ tab, id, children }: { tab: MatchTab; id?: string; children: React.ReactNode }) {
   return (
-    <div id={id} className="flex min-w-0 scroll-mt-16 flex-col gap-5" data-tab={tab}>
+    <div id={id} className="flex min-w-0 scroll-mt-(--match-stack) flex-col gap-5" data-tab={tab}>
       {children}
     </div>
   );
@@ -435,6 +437,12 @@ export function MatchCentreView({
   // narrow; on a phone the columns are no box at all and the tabs choose.
   const COLUMN = 'flex min-w-0 flex-col gap-6 max-md:contents';
 
+  // The score, the status and whether the feed is behind, read once: the
+  // band and the compact bar are drawn from the same answer (T-1742, rule 4).
+  const state = bandState(f, hero, { locale, timeZone, now, words });
+  // The pick is open: the Predictions tab leads to its card (D-360).
+  const pick = has('pick') && f.status === 'scheduled';
+
   return (
     <div className="flex flex-col gap-5 md:gap-6" data-match-root="" data-status={f.status}>
       <Hero
@@ -444,9 +452,38 @@ export function MatchCentreView({
         now={now}
         hero={hero}
         words={words}
-        tabs={tabs}
-        pick={has('pick') && f.status === 'scheduled'}
+        state={state}
       />
+
+      {/* The sticky stack (T-1742, D-363): the tab row, a child of the page
+          column so it holds for the whole page, and above it the compact
+          score bar, which takes no height and shows once the band has gone
+          (`globals.css`). The negative margin closes the column's gap, so
+          the tabs sit at the band's foot as before. */}
+      <div className="sticky z-10 -mt-5 md:-mt-6" data-match-sticky="">
+        <ScoreBar fixture={f} state={state} locale={locale} words={words} />
+        {/* The section tabs (Design System `Tabs`): plain anchors, the saffron
+            edge under the one on show (globals.css), scrolling sideways on a phone. */}
+        <nav
+          aria-label={m['matchCentre.onThisPage'].text}
+          className={cx('-mx-4 overflow-x-auto bg-surface px-2 md:mx-0 md:px-0', BLEED)}
+          data-testid="section-nav"
+        >
+          <ul className="flex gap-0.5">
+            {tabs.map(([tab, label]) => (
+              <li key={tab} className="shrink-0">
+                <a
+                  href={`#${pick && tab === 'predictions' ? 'pick' : tab}`}
+                  data-tab-link={tab}
+                  className="inline-flex min-h-touch items-center px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg"
+                >
+                  <MessageText message={m[label]} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
 
       <div
         className="flex flex-col gap-5 md:flex-row md:flex-wrap md:items-start md:gap-6"
@@ -497,8 +534,10 @@ export function MatchCentreView({
  * side's goals beside that side in either direction (D-193, `ScorePair`) --
  * and each side's scorers under its name; live, the saffron live badge above
  * the score, the minute along a bar and the stream's freshness stamp under
- * it (rule 4); where to watch; the match's facts; after full time the
- * official highlight; and the section tabs at its foot.
+ * it (rule 4); where to watch; the match's facts; and after full time the
+ * official highlight. The section tabs follow it, outside it, so they can
+ * stick (T-1742); the band is the view timeline the compact score bar waits
+ * on (`data-match-band`, `globals.css`).
  */
 function Hero({
   centre,
@@ -507,8 +546,7 @@ function Hero({
   now,
   hero,
   words,
-  tabs,
-  pick,
+  state,
 }: {
   centre: MatchCentre;
   locale: string;
@@ -516,32 +554,22 @@ function Hero({
   now: number | undefined;
   hero: MatchHero;
   words: MatchWords;
-  tabs: readonly (readonly [MatchTab, Key])[];
-  /** The pick is open: the Predictions tab leads to its card (D-360). */
-  pick: boolean;
+  /** The score and status, shared with the compact bar (T-1742). */
+  state: BandState;
 }) {
   const m = words.m;
   const n = (value: number): string => formatNumber(locale, value);
   const f = centre.fixture;
   const naskh = ARABIC_SCRIPT.has(locale);
-  const headline = f.status === 'finished' ? resultLine(f.scores) : f.scores.current;
+  // Scheduled with the kick-off long past and no word from the feed (T-1708,
+  // D-343), `awaiting`: the band says so, and draws neither the kick-off time
+  // as its figure nor the stream's "last checked", which is our check, not
+  // the match's.
+  const { headline, status, behind, awaiting, live } = state;
   // Goals and result disagree (T-1717, D-347): no number is drawn as final.
-  const disputed = f.status === 'finished' ? hero.disputed : undefined;
+  const disputed = state.disputed ? hero.disputed : undefined;
   // After extra time the band also says the ninety minutes (D-317).
   const ninety = f.scores.extra_time !== null && !disputed ? f.scores.full_time : null;
-  const behind = now !== undefined && isBehind(f, now);
-  // Scheduled, the kick-off long past and no word from the feed (T-1708,
-  // D-343): the band says so, and draws neither the kick-off time as its
-  // figure nor the stream's "last checked", which is our check, not the match's.
-  // Once a snapshot brings another status, the server's notice goes.
-  const awaiting = f.status === 'scheduled' && hero.awaiting != null;
-  // At the half-time interval the feed's minute stays at 45: the band says
-  // "HT" rather than a clock that looks stalled (T-1551). A feed that has
-  // fallen behind keeps its own words (rule 4).
-  const status =
-    f.status === 'live' && f.at_half_time === true && !behind
-      ? m['status.halfTime'].text
-      : statusLabel(f, locale, timeZone, now, m);
   // Every freshness time on the page says its day when it is not today (T-1371).
   const at = (iso: string) => <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time>;
   // The fixture lists re-ask hourly; a check after the last change is the
@@ -563,14 +591,14 @@ function Hero({
     f.status === 'live' && !behind && 'text-live',
     disputed && 'text-muted',
   );
-  const live = f.status === 'live' && !behind;
   const scorers = scorersOf(centre, locale);
   // Each side's name is a 44px target on a phone (T-1553), centred in its
   // column there; from 768px the line's own height, aligned by its row.
   const teamLink = 'flex min-h-touch min-w-0 items-center justify-center md:block md:min-h-0';
   return (
     <header
-      className="flex flex-col gap-4 bg-surface pt-3 [box-shadow:0_0_0_100vmax_var(--token-surface),0_1px_0_100vmax_var(--token-border)] [clip-path:inset(0_-100vmax_-1px)] md:gap-5 md:pt-4"
+      className={cx('flex flex-col gap-4 bg-surface py-3 md:gap-5 md:py-4', BLEED)}
+      data-match-band=""
       data-testid="match-header"
     >
       <p className="flex flex-wrap items-center gap-x-2 text-sm text-caption">
@@ -844,28 +872,6 @@ function Hero({
           )}
         </li>
       </ul>
-
-      {/* The section tabs (Design System `Tabs`): plain anchors, the saffron
-          edge under the one on show (globals.css), scrolling sideways on a phone. */}
-      <nav
-        aria-label={m['matchCentre.onThisPage'].text}
-        className="-mx-4 overflow-x-auto px-2 md:mx-0 md:px-0"
-        data-testid="section-nav"
-      >
-        <ul className="flex gap-0.5">
-          {tabs.map(([tab, label]) => (
-            <li key={tab} className="shrink-0">
-              <a
-                href={`#${pick && tab === 'predictions' ? 'pick' : tab}`}
-                data-tab-link={tab}
-                className="inline-flex min-h-touch items-center px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg"
-              >
-                <MessageText message={m[label]} />
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
     </header>
   );
 }

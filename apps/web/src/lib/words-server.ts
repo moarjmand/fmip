@@ -367,6 +367,8 @@ export const MATCH_KEYS = [
   'matchCentre.subOn',
   'matchCentre.subOff',
   'matchCentre.fixtureTitle',
+  // The compact score bar (T-1742): "Everton v Coventry" before kick-off.
+  'home.versus',
   'matchCentre.shootout',
   'matchCentre.shootoutKick',
   'matchCentre.noEventsYet',

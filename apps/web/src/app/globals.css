@@ -1113,6 +1113,104 @@ header:has(#competitions-menu:not([hidden])) {
 }
 
 /*
+ * The match page's sticky stack (T-1742, D-363; boards P2-1a, P2-1b). The
+ * section tabs stick under the top of the screen for the whole page
+ * (`data-match-sticky`, a child of the page column: a sticky box holds only
+ * inside its parent). Above them the compact score bar (`data-score-bar`,
+ * 3rem) is in the page from the start but not drawn: it takes no height
+ * (absolutely placed on the tabs' upper edge) and stays hidden until the big
+ * score band (`data-match-band`) has left the screen.
+ *
+ * That is a scroll-driven animation and no script: the band is a view
+ * timeline, named on the page's root so the bar, its sibling's child, can
+ * use it, and the bar turns visible over the last 3rem of the band's exit --
+ * exactly while the tabs, stuck 3rem down, uncover that strip. A browser
+ * without scroll-driven animations (before Chrome 115, Safari 26 and
+ * Firefox 159) never shows the bar: the tabs stick at the very top and
+ * nothing else changes. `--match-stack` is what a section's top must clear
+ * when a tab jumps to it (`scroll-mt-(--match-stack)`): the stack and 0.5rem.
+ *
+ * The bar fades in with the scroll where motion is welcome; with reduced
+ * motion (the device's, or the member's `data-motion`) it is simply there.
+ * On a viewport too short to spare them (a phone on its side, as for the
+ * pick bar below) nothing sticks. Layers: 10, under the pick bar (20), the
+ * phone's open Menu (30) and the tab bar and the rail's panel (40).
+ */
+[data-match-root] {
+  --match-stack: 3.25rem;
+}
+
+[data-match-sticky] {
+  inset-block-start: 0;
+}
+
+[data-score-bar] {
+  visibility: hidden;
+}
+
+@keyframes score-bar-show {
+  to {
+    visibility: visible;
+  }
+}
+
+@keyframes score-bar-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@supports (animation-timeline: view()) and (timeline-scope: --match-band) {
+  [data-match-root] {
+    --match-stack: 6.25rem;
+
+    timeline-scope: --match-band;
+  }
+
+  [data-match-band] {
+    view-timeline: --match-band block;
+  }
+
+  [data-match-sticky] {
+    inset-block-start: 3rem;
+  }
+
+  [data-score-bar] {
+    animation: score-bar-show 1ms linear both;
+    animation-timeline: --match-band;
+
+    /* The second line for a browser that takes a length in a range. */
+    animation-range: exit 85% exit 100%;
+    animation-range: exit calc(100% - 3rem) exit 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not([data-motion='reduce']) [data-score-bar] {
+      animation-name: score-bar-fade;
+    }
+  }
+}
+
+@media (height < 28rem) {
+  [data-match-root] {
+    --match-stack: 1rem;
+  }
+
+  [data-match-sticky] {
+    position: static;
+  }
+
+  [data-score-bar] {
+    display: none;
+  }
+}
+
+/*
  * The match page's pick bar on a phone (T-1739, D-360): fixed above the tab
  * bar until kick-off, so the page's end gains its height and the footer's
  * last line clears it. It is not shown on a viewport too short to spare it
