@@ -151,8 +151,7 @@ export function RowForecast({
   return (
     <div className={`min-w-0 ${className}`} data-testid="row-forecast" data-state="available">
       <ForecastBar
-        forecast={{ home: f.home, draw: f.draw, away: f.away }}
-        receipt={false}
+        forecast={f}
         size="row"
         home={home}
         away={away}

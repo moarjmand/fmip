@@ -15,13 +15,15 @@ import {
   ninetyOutcome,
   rankSteps,
 } from './forecast-bar';
+import { ForecastBarWithReceipt } from './forecast-receipt';
 
 /**
  * The model's three probabilities, one component and one language (T-1748,
  * D-368; T-1749, D-369; boards P3-2 and P3-3): the steps by rank, the fixed
  * order, a label on each segment with the name whole or absent, what
- * happened as an outline and a tick, the receipt, and a sentence for every
- * way there can be no forecast.
+ * happened as an outline and a tick; and, around the bar where a page holds
+ * a `CardForecast` (`forecast-receipt.tsx`), the receipt and a sentence for
+ * every way there can be no forecast.
  */
 
 const AVAILABLE: CardForecast = {
@@ -46,7 +48,7 @@ const bar = (
 ) => {
   const locale = extra.locale ?? 'en';
   return renderToStaticMarkup(
-    <ForecastBar
+    <ForecastBarWithReceipt
       forecast={forecast}
       home="Tractor"
       away="Esteghlal"
@@ -69,7 +71,6 @@ const alone = (
   renderToStaticMarkup(
     <ForecastBar
       forecast={shares}
-      receipt={false}
       home="Tractor"
       away="Esteghlal"
       size={extra.size}
@@ -478,11 +479,37 @@ describe('ForecastBar', () => {
     expect(all).not.toMatch(/saffron/i);
     // And writes no colour of its own.
     expect(all).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
+    for (const file of ['forecast-bar.tsx', 'forecast-receipt.tsx']) {
+      const source = readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), file),
+        'utf8',
+      ).replace(/\/\*[\s\S]*?\*\//g, '');
+      expect(source, file).not.toMatch(/-(accent|brand|live|prob-draw|prob-away)\b/);
+    }
+  });
+
+  it('keeps the receipt, the reasons and the sentences out of the bar’s own module', () => {
+    // The scores row is drawn by the page's live view, so whatever this
+    // module imports is in that page's script: it imports the drawing's
+    // needs and nothing of the receipt's.
     const source = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), 'forecast-bar.tsx'),
       'utf8',
-    ).replace(/\/\*[\s\S]*?\*\//g, '');
-    expect(source).not.toMatch(/-(accent|brand|live|prob-draw|prob-away)\b/);
+    );
+    const imports = [...source.matchAll(/^import (type )?.* from '([^']+)';$/gm)]
+      .filter((m) => m[1] === undefined)
+      .map((m) => m[2]);
+    expect(imports.sort()).toEqual([
+      '@/components/message-text',
+      '@/components/ui/cx',
+      '@/components/ui/icons',
+      '@/i18n/locales',
+      '@/lib/triple',
+      '@/lib/words',
+    ]);
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(code).not.toMatch(/FORECAST_REASON_KEY|formatVersionStamp|ModelVersion|<Receipt\b/);
+    expect(source).not.toMatch(/^'use client'/m);
   });
 
   it('says in words when there is no forecast, never an empty bar', () => {
@@ -618,30 +645,52 @@ describe('the ten places the model’s three probabilities are drawn', () => {
     readFileSync(join(here, '..', path), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, '')
       .replace(/(^|[\r\n])\s*\/\/.*/g, '$1');
-  const PLACES: [string, string, number][] = [
-    ['1 the scores row', 'components/score-card-forecast.tsx', 1],
-    ['2 the scores preview', 'app/[locale]/scores/match-preview.tsx', 1],
-    ['3 the home hero', 'components/home-front.tsx', 1],
-    ['4 the next-match card', 'components/next-match-card.tsx', 1],
-    ['5 the story card', 'components/story-predictions.tsx', 1],
-    ['6 the moments panel', 'components/moments-rail.tsx', 2],
+  // [the place, its file, bars drawn directly, bars drawn with the receipt]
+  const PLACES: [string, string, number, number][] = [
+    ['1 the scores row', 'components/score-card-forecast.tsx', 1, 0],
+    ['2 the scores preview', 'app/[locale]/scores/match-preview.tsx', 0, 1],
+    ['3 the home hero', 'components/home-front.tsx', 0, 1],
+    ['4 the next-match card', 'components/next-match-card.tsx', 0, 1],
+    ['5 the story card', 'components/story-predictions.tsx', 0, 1],
+    // The panel's bar, and the sentence when a moment has no forecast.
+    ['6 the moments panel', 'components/moments-rail.tsx', 1, 1],
     [
       '7 and 8 the match headline and the version list',
       'app/[locale]/match/[id]/forecast-reality.tsx',
       2,
+      0,
     ],
-    ['9 the home upset card', 'components/home-rail.tsx', 1],
-    ['10 the match row', 'components/match-row.tsx', 1],
+    ['9 the home upset card', 'components/home-rail.tsx', 1, 0],
+    ['10 the match row', 'components/match-row.tsx', 1, 0],
   ];
 
-  it.each(PLACES)('%s renders the one ForecastBar', (_, path, count) => {
+  it.each(PLACES)('%s renders the one ForecastBar', (_, path, direct, withReceipt) => {
     const code = read(path);
-    expect(code).toMatch(/import \{[^}]*\bForecastBar\b[^}]*\} from '@\/components\/forecast-bar'/);
-    expect(code.match(/<ForecastBar\b/g)).toHaveLength(count);
+    expect(code.match(/<ForecastBar[\s>]/g) ?? []).toHaveLength(direct);
+    expect(code.match(/<ForecastBarWithReceipt[\s>]/g) ?? []).toHaveLength(withReceipt);
+    if (direct > 0) {
+      expect(code).toMatch(
+        /import \{[^}]*\bForecastBar\b[^}]*\} from '@\/components\/forecast-bar'/,
+      );
+    }
+    if (withReceipt > 0) {
+      expect(code).toMatch(
+        /import \{[^}]*\bForecastBarWithReceipt\b[^}]*\} from '@\/components\/forecast-receipt'/,
+      );
+    }
     // And draws no bar of its own: no segment grown by a share, no step, no retired token.
     expect(code).not.toMatch(/flexGrow/);
     expect(code).not.toMatch(/bg-model\/(75|55|50|25)|bg-prob-|data-segment/);
     expect(code).not.toMatch(/<ForecastStrip|<OutcomeBar|function OutcomeBar/);
+  });
+
+  it('draws the bar with its receipt through the same component, and no second drawing', () => {
+    const code = read('components/forecast-receipt.tsx');
+    expect(code).toMatch(/import \{ ForecastBar,[^}]*\} from '@\/components\/forecast-bar'/);
+    expect(code.match(/<ForecastBar[\s>]/g)).toHaveLength(1);
+    expect(code).not.toMatch(/flexGrow|bg-model|data-segment|role="img"/);
+    // The only places a segment is drawn in the whole source tree.
+    expect(read('components/forecast-bar.tsx')).toContain('data-segment={key}');
   });
 
   it('gives each place its size', () => {

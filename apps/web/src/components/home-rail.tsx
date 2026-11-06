@@ -140,7 +140,6 @@ export function UpsetCard({
               the version and its time are the card's own line below. */}
           <ForecastBar
             forecast={sharesToPercentages(upset.probabilities)}
-            receipt={false}
             home={upset.home_team.short_name ?? upset.home_team.name}
             away={upset.away_team.short_name ?? upset.away_team.name}
             outcome={upset.outcome}

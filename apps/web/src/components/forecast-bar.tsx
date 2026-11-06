@@ -1,15 +1,10 @@
 import type { ScoreCard } from '@fmip/contracts';
 import type { CSSProperties, ReactNode } from 'react';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
-import { formatNumber, formatVersionStamp } from '@/i18n/format';
 import type { Message } from '@/i18n/messages';
-import type { CardForecast } from '@/lib/score-card-products';
 import { wholePercentages } from '@/lib/triple';
-import { FORECAST_REASON_KEY, fill, filled, formatPercent } from '@/lib/words';
-import { FilledMessage } from '@/components/filled-message';
+import { fill, formatPercent } from '@/lib/words';
 import { MessageText } from '@/components/message-text';
-import { ModelVersion } from '@/components/model-version';
-import { Receipt } from '@/components/receipt';
 import { cx } from '@/components/ui/cx';
 import { Icon } from '@/components/ui/icons';
 
@@ -48,48 +43,27 @@ import { Icon } from '@/components/ui/icons';
  * `three-products.spec.ts`). The forecast is the stored version's, never
  * adjusted (rule 5).
  *
- * Given a `CardForecast` it **always** carries the model's receipt under the
- * bar (blueprint 6.2: the version and time are always on screen), and no
- * forecast is a sentence, never an empty bar (rule 3): not computed yet, none
- * before kick-off, a version with no probabilities and why, or the service
- * not answering. A caller that prints the receipt itself passes the three
- * shares and `receipt={false}`.
- *
- * The words are resolved on the server (`forecastBarWords`) and no hook is
+ * It draws three shares and nothing else. Where a page holds a
+ * `CardForecast` -- which may be no forecast at all -- it uses
+ * `ForecastBarWithReceipt` (`forecast-receipt.tsx`), which is this bar with
+ * the model's receipt under it, or the sentence that says why there is no
+ * forecast (rule 3). They are two modules on purpose: the scores row is
+ * drawn by the page's live view, and this one brings nothing of the receipt
+ * into that script. The words are resolved on the server and no hook is
  * used, so the bar is safe in a client bundle as well as on a server page.
  */
 
-export const FORECAST_BAR_KEYS = [
-  'forecastBar.label',
-  'forecastBar.computed',
-  'forecastBar.version',
-  'forecastBar.happened',
-  'forecastBar.none',
-  'forecastBar.noneBefore',
-  'forecastBar.unavailable',
-  'forecastBar.unreachable',
-  'forecastBar.noForecast',
-  'forecastBar.notLoaded',
-  'forecast.draw',
-  'scores.card.model.couldNotAnswer',
-  ...Object.values(FORECAST_REASON_KEY),
-] as const;
-
-export type ForecastBarWords = Record<(typeof FORECAST_BAR_KEYS)[number], Message>;
-
-/** The words the bar itself needs, without a receipt or a sentence for no forecast. */
-export type ForecastBarOwnWords = Pick<
-  ForecastBarWords,
-  'forecastBar.label' | 'forecastBar.happened' | 'forecast.draw'
+/** The words the bar itself writes: its accessible name, "happened" and the draw. */
+export type ForecastBarLabels = Record<
+  'forecastBar.label' | 'forecastBar.happened' | 'forecast.draw',
+  Message
 >;
 
 export type Outcome = 'home' | 'draw' | 'away';
 export type ForecastBarSize = 'row' | 'card' | 'headline';
 
-type Available = Extract<CardForecast, { state: 'available' }>;
-
 /** The three shares in percent, all the bar draws. */
-export type ForecastShares = Pick<Available, Outcome>;
+export type ForecastShares = Record<Outcome, number>;
 
 /** The fixed order of the bar and of everything that reads it (D-368). */
 const ORDER = ['home', 'draw', 'away'] as const;
@@ -251,98 +225,21 @@ const SEGMENT_SHAPE: Record<Outcome, string> = {
   away: 'rounded-s-xs rounded-e-pill',
 };
 
-/** The model's receipt for a forecast: its model, its version, when it was computed. */
-export function ForecastReceipt({
-  forecast,
-  locale,
-  timeZone,
-  zone,
-  words,
-  className,
-}: {
-  forecast: Available;
-  locale: string;
-  timeZone: string;
-  zone?: string;
-  words: ForecastBarWords;
-  className?: string;
-}) {
-  return (
-    <Receipt
-      className={className}
-      testId="forecast-bar-meta"
-      items={[
-        <span key="model" dir="ltr">
-          <ModelVersion version={forecast.model_version} />
-        </span>,
-        <MessageText
-          key="version"
-          message={filled(words['forecastBar.version'], {
-            version: formatNumber(locale, forecast.version),
-          })}
-        />,
-        <FilledMessage
-          key="computed"
-          message={words['forecastBar.computed']}
-          params={{
-            time: (
-              <time dateTime={forecast.computed_at}>
-                {formatVersionStamp(locale, forecast.computed_at, timeZone)}
-                {zone !== undefined ? ` ${zone}` : timeZone === 'UTC' ? ' UTC' : ''}
-              </time>
-            ),
-          }}
-        />,
-      ]}
-    />
-  );
-}
-
-/** No forecast is a sentence saying which kind of none, never an empty bar (rule 3). */
-function NoForecast({
-  forecast,
-  started,
+export function ForecastBar({
+  forecast: shares,
+  home,
+  away,
+  size = 'card',
+  labels,
+  outcome,
   locale,
   words,
   className,
-  testId,
+  testId = 'forecast-bar',
+  children,
 }: {
-  forecast: Exclude<CardForecast, Available>;
-  started: boolean;
-  locale: string;
-  words: ForecastBarWords;
-  className?: string;
-  testId: string;
-}) {
-  const sentence: Message =
-    forecast.state === 'unavailable'
-      ? filled(words['forecastBar.unavailable'], {
-          version: formatNumber(locale, forecast.version),
-          reason:
-            words[
-              forecast.reason === null
-                ? 'scores.card.model.couldNotAnswer'
-                : FORECAST_REASON_KEY[forecast.reason]
-            ].text,
-        })
-      : forecast.state === 'unreachable'
-        ? words['forecastBar.unreachable']
-        : words[started ? 'forecastBar.noneBefore' : 'forecastBar.none'];
-  return (
-    <p
-      className={cx(
-        'rounded-control border border-dashed border-caption px-3 py-2 text-sm text-muted',
-        className,
-      )}
-      data-testid={testId}
-      data-state={forecast.state}
-    >
-      <MessageText message={sentence} />
-    </p>
-  );
-}
-
-interface CommonProps {
+  /** The three shares, in percent. */
+  forecast: ForecastShares;
   home: string;
   away: string;
   /** `row` in a list, `card` in a card (the default), `headline` on the match page. */
@@ -355,71 +252,13 @@ interface CommonProps {
   /** After full time: the outcome that happened, outlined and ticked. */
   outcome?: Outcome | null;
   locale: string;
+  words: ForecastBarLabels;
   className?: string;
   testId?: string;
-}
-
-type ForecastBarProps = CommonProps &
-  (
-    | {
-        forecast: CardForecast;
-        receipt?: true;
-        words: ForecastBarWords;
-        timeZone: string;
-        /**
-         * The zone in words (`zoneWords`), said after the time (T-1395): the
-         * page's own zone, so the stamp reads on the same clock as the
-         * kick-off. Without it only UTC is named.
-         */
-        zone?: string;
-        /** The match has kicked off, so "not yet" would be the wrong sentence. */
-        started?: boolean;
-      }
-    | {
-        /** The three shares alone: the caller prints the receipt itself. */
-        forecast: ForecastShares;
-        receipt: false;
-        words: ForecastBarOwnWords;
-        timeZone?: undefined;
-        zone?: undefined;
-        started?: undefined;
-      }
-  );
-
-export function ForecastBar(props: ForecastBarProps) {
-  const { home, away, size = 'card', outcome, locale, className, testId = 'forecast-bar' } = props;
-  let shares: ForecastShares;
-  let receipt: ReactNode = null;
-  if (props.receipt === false) {
-    shares = props.forecast;
-  } else {
-    const { forecast } = props;
-    if (forecast.state !== 'available') {
-      return (
-        <NoForecast
-          forecast={forecast}
-          started={props.started ?? false}
-          locale={locale}
-          words={props.words}
-          className={className}
-          testId={testId}
-        />
-      );
-    }
-    shares = forecast;
-    receipt = (
-      <ForecastReceipt
-        forecast={forecast}
-        locale={locale}
-        timeZone={props.timeZone}
-        zone={props.zone}
-        words={props.words}
-        className="mt-0.5"
-      />
-    );
-  }
-  const words: ForecastBarOwnWords = props.words;
-  const named = (props.labels ?? (size === 'row' ? 'numbers' : 'named')) === 'named';
+  /** What stands under the bar inside its frame: the model's receipt, where the bar carries it. */
+  children?: ReactNode;
+}) {
+  const named = (labels ?? (size === 'row' ? 'numbers' : 'named')) === 'named';
   const happened = outcome ?? null;
   const steps = rankSteps(shares);
   const whole = wholePercentages(shares);
@@ -545,7 +384,7 @@ export function ForecastBar(props: ForecastBarProps) {
           />
         ))}
       </div>
-      {receipt}
+      {children}
     </div>
   );
 }

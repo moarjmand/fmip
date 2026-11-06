@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { formatNumber } from '@/i18n/format';
 import type { CardForecast } from '@/lib/score-card-products';
-import { ForecastBar, ForecastReceipt, type ForecastBarWords } from '@/components/forecast-bar';
+import { ForecastBar } from '@/components/forecast-bar';
+import { ForecastReceipt, type ForecastBarWords } from '@/components/forecast-receipt';
 import { MessageText } from '@/components/message-text';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
@@ -135,7 +136,6 @@ export function MatchRow({
           available !== null ? (
             <ForecastBar
               forecast={available}
-              receipt={false}
               size="row"
               home={home.name}
               away={away.name}

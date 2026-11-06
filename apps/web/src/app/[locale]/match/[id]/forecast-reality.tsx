@@ -355,7 +355,6 @@ export function ForecastReality({
               words (T-1749, D-369). The receipt is the card's own. */}
           <ForecastBar
             forecast={percentages(p)}
-            receipt={false}
             size="headline"
             outcome={final === null ? null : outcomeOf(final)}
             home={fixture.home.name}
@@ -782,7 +781,6 @@ function Versions({
                 // marked on every version (T-1749).
                 <ForecastBar
                   forecast={p}
-                  receipt={false}
                   size="row"
                   labels="named"
                   outcome={outcome}

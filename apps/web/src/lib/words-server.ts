@@ -8,7 +8,7 @@ import {
   type PluralForms,
   type PluralKey,
 } from '@/i18n/messages';
-import { FORECAST_BAR_KEYS, type ForecastBarWords } from '@/components/forecast-bar';
+import { FORECAST_BAR_KEYS, type ForecastBarWords } from '@/components/forecast-receipt';
 import { STAGE_KEYS } from '@/lib/stage-label';
 import type { ClientPlural, ClientWords } from '@/lib/words';
 
