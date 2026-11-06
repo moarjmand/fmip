@@ -7963,6 +7963,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.absences.group": {
+    "source": "{status} · {reason} ({count})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absences.groupPlain": {
+    "source": "{status} ({count})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absences.more": {
+    "source": "Show {count} more",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absences.names": {
+    "source": "Show {count} names",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.absenceReason.injury": {
     "source": "Injury",
     "text": "",
@@ -8321,11 +8341,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.context.record": {
-    "source": "W {won} · D {drawn} · L {lost} · GD {difference}",
-    "text": "",
-    "status": "untranslated"
-  },
   "matchCentre.context.form": {
     "source": "Form in this competition only, latest first:",
     "text": "",
@@ -8338,6 +8353,11 @@
   },
   "matchCentre.context.formScope": {
     "source": "Form here counts only matches in this competition; Recent form counts the last five in every competition.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.gaps": {
+    "source": "Gaps to the places around",
     "text": "",
     "status": "untranslated"
   },
@@ -14056,6 +14076,21 @@
   },
   "matchCentre.reality.why": {
     "source": "Why these numbers: leading factors and what changed between versions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForecast.title": {
+    "source": "No model forecast for this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForecast.power": {
+    "source": "There is no Power Index for it either.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForecast.link": {
+    "source": "Which competitions does the model cover?",
     "text": "",
     "status": "untranslated"
   },

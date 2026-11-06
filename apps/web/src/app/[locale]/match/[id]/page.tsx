@@ -235,18 +235,6 @@ export default async function MatchPage({
     fixture !== null && fixture.status === 'finished'
       ? (fixture.scores.full_time ?? fixture.scores.current)
       : null;
-  const viewingData = viewing !== null && viewing.ok ? viewing.data : null;
-  // The match's own expected goals, for the Summary's "expected and scored".
-  const xgRow =
-    result.ok && result.data.statistics.data !== null
-      ? result.data.statistics.data.find((row) => row.metric === 'expected_goals')
-      : undefined;
-  const matchXg =
-    xgRow !== undefined && xgRow.home !== null && xgRow.away !== null
-      ? { home: xgRow.home, away: xgRow.away }
-      : null;
-  const words = matchWords(locale);
-  const now = new Date().getTime();
   // The model's versions and their evaluations, and the version the Summary's
   // card is about (T-1744): the lower section explains that same version.
   const forecastData = forecasts !== null && forecasts.ok ? forecasts.data : null;
@@ -262,6 +250,27 @@ export default async function MatchPage({
           !isUpcoming(fixture),
         );
   const consensusData = consensus !== null && consensus.ok ? consensus.data : null;
+  // "No forecast" is said once, by the Summary's card (T-1746, D-367). There
+  // is something to explain below only when the card's version gave
+  // probabilities; and when the match has no forecast and no Power Index
+  // either, the card says both and the Power Index block is not drawn to say
+  // it again. An index, or a service that did not answer, keeps its block.
+  const explained = about !== null && about.probabilities !== null;
+  const powerData = power !== null && power.ok ? power.data : null;
+  const noPowerIndex =
+    forecastData !== null && !explained && powerData !== null && powerData.index === null;
+  const viewingData = viewing !== null && viewing.ok ? viewing.data : null;
+  // The match's own expected goals, for the Summary's "expected and scored".
+  const xgRow =
+    result.ok && result.data.statistics.data !== null
+      ? result.data.statistics.data.find((row) => row.metric === 'expected_goals')
+      : undefined;
+  const matchXg =
+    xgRow !== undefined && xgRow.home !== null && xgRow.away !== null
+      ? { home: xgRow.home, away: xgRow.away }
+      : null;
+  const words = matchWords(locale);
+  const now = new Date().getTime();
 
   return (
     // A data page (D-198): the stage, following Day and Night; the header and
@@ -369,6 +378,7 @@ export default async function MatchPage({
                     matchXg={matchXg}
                     timeZone={timeZone}
                     locale={locale}
+                    noPowerIndex={noPowerIndex}
                   />
                 ),
                 // The reader's own pick, directly under the model's headline
@@ -465,8 +475,9 @@ export default async function MatchPage({
                 // model's forecast was reached -- the factors, what moved
                 // between versions, the evaluation -- and the Power Index.
                 // The forecast itself is the Summary's card and is not drawn
-                // a second time here.
-                forecast: (
+                // a second time here. With no forecast and no Power Index
+                // there is no section: the card has said both (T-1746).
+                forecast: noPowerIndex ? null : (
                   <>
                     <ForecastPanel
                       forecasts={forecastData}
@@ -478,11 +489,7 @@ export default async function MatchPage({
                       locale={locale}
                     />
                     <DataCard>
-                      <PowerIndexPanel
-                        power={power !== null && power.ok ? power.data : null}
-                        timeZone={timeZone}
-                        locale={locale}
-                      />
+                      <PowerIndexPanel power={powerData} timeZone={timeZone} locale={locale} />
                     </DataCard>
                   </>
                 ),

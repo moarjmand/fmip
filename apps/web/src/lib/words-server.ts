@@ -393,6 +393,11 @@ export const MATCH_KEYS = [
   'matchCentre.coming.limitedWhy',
   'matchCentre.coming.notSupplied',
   'matchCentre.coming.notSuppliedWhy',
+  // The absences grouped by status and reason, a long group folded (T-1746).
+  'matchCentre.absences.group',
+  'matchCentre.absences.groupPlain',
+  'matchCentre.absences.more',
+  'matchCentre.absences.names',
   'matchCentre.notPlayed',
   'matchCentre.notPlayedWhy',
   'matchCentre.topRated',

@@ -6,6 +6,8 @@ import type {
   MatchIncident,
   MatchLineupPlayer,
 } from '@fmip/contracts';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { EN } from '@/i18n/messages';
@@ -477,6 +479,142 @@ describe('the forecast is drawn once: headline, details, and why (T-1744)', () =
     }
     expect(how(factored, scored, 'fa')).toContain('پیش‌بینی چگونه به دست آمد');
     expect(card('finished', { evaluations: scored, locale: 'fa' })).toContain('۰٫۴۵۸');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// "No forecast", said once (T-1746, D-367)
+// ---------------------------------------------------------------------------
+
+describe('no forecast is said once, in the Summary’s card (T-1746)', () => {
+  const none = { ...forecasts, latest: null, versions: [] };
+  const unmapped = {
+    ...version(1, '2026-10-17T11:32:00.000Z', null),
+    model_version: 'none@0.0.0',
+    inputs: null,
+    unavailable_reason: 'competition_not_mapped' as const,
+  };
+  const unanswered = { ...forecasts, latest: unmapped, versions: [unmapped] };
+  const noForecast = (
+    status: 'scheduled' | 'live' | 'finished',
+    f: ForecastVersionsResponse,
+    noPowerIndex = false,
+    locale = 'en',
+  ) =>
+    renderToStaticMarkup(
+      <ForecastReality
+        forecasts={f}
+        evaluations={null}
+        fixture={fixture(status)}
+        final={status === 'finished' ? { home: 1, away: 1 } : null}
+        matchXg={null}
+        timeZone="Europe/London"
+        locale={locale}
+        noPowerIndex={noPowerIndex}
+      />,
+    );
+
+  it('is one card: the title, the stored reason and one link', () => {
+    const html = noForecast('finished', none);
+    expect(html).toContain('data-state="none"');
+    expect(html).toMatch(/<h2[^>]*>.*Model<\/span>.*No model forecast for this match/);
+    // The state as an icon and a word.
+    expect(html).toMatch(/data-coverage-badge="not_supplied"[^]*<svg[^]*No forecast/);
+    expect(html).toContain(EN['forecastBar.noneBefore']);
+    expect(html).toMatch(
+      /<a [^>]*href="\/en\/model-accuracy"[^>]*>.*Which competitions does the model cover\?/,
+    );
+    expect(html.split('href="/en/model-accuracy"').length - 1).toBe(1);
+    // The old titles are not kept over an empty card.
+    expect(html).not.toContain('What was forecast, what happened');
+    // Nothing that would look like a forecast (rule 3).
+    for (const id of ['outcome-bar', 'receipt', 'forecast-versions-list', 'forecast-why-link']) {
+      expect(html).not.toContain(`data-testid="${id}"`);
+    }
+    expect(html).not.toMatch(/\d%/);
+  });
+
+  it('never says "yet" of a match that has kicked off', () => {
+    expect(noForecast('scheduled', none)).toContain(EN['forecast.none']);
+    for (const status of ['live', 'finished'] as const) {
+      const html = noForecast(status, none);
+      expect(html).not.toContain(EN['forecast.none']);
+      expect(html).toContain(EN['forecastBar.noneBefore']);
+    }
+  });
+
+  it('gives the stored reason when a version says why it could not answer', () => {
+    const html = noForecast('finished', unanswered).replaceAll('&#x27;', "'");
+    expect(html).toContain('data-testid="forecast-reality-unavailable"');
+    expect(html.split(EN['forecast.reason.competitionNotMapped']).length - 1).toBe(1);
+    expect(html).toContain('No model forecast for this match');
+    expect(html).not.toContain('none@');
+  });
+
+  it('says there is no Power Index either only when the page knows there is none', () => {
+    expect(noForecast('finished', none, true)).toMatch(
+      /data-testid="forecast-reality-no-power"> .*There is no Power Index for it either\./,
+    );
+    expect(noForecast('finished', none)).not.toContain('Power Index');
+    // A match with a forecast never says it, whatever it is handed.
+    const withForecast = renderToStaticMarkup(
+      <ForecastReality
+        forecasts={forecasts}
+        evaluations={null}
+        fixture={fixture('finished')}
+        final={{ home: 2, away: 1 }}
+        matchXg={null}
+        timeZone="Europe/London"
+        locale="en"
+        noPowerIndex
+      />,
+    );
+    expect(withForecast).not.toContain('Power Index');
+    expect(withForecast).not.toContain('No model forecast');
+  });
+
+  it('a service that did not answer is not "no forecast"', () => {
+    const html = card('finished', { forecasts: null });
+    expect(html).toContain('data-state="unreachable"');
+    expect(html).not.toContain('No model forecast for this match');
+    expect(html).not.toContain('data-testid="forecast-coverage-link"');
+  });
+
+  it('the page draws no second statement: no lower section and no Power Index block', () => {
+    // The lower section is not rendered with nothing to explain (T-1744) ...
+    expect(
+      renderToStaticMarkup(
+        <ForecastPanel
+          forecasts={none}
+          evaluations={null}
+          about={null}
+          home="Aston Villa"
+          away="Manchester City"
+          timeZone="Europe/London"
+          locale="en"
+        />,
+      ),
+    ).toBe('');
+    // ... and the page leaves the Power Index block out when the card has
+    // said there is none: one rule, in the page, read here from its source.
+    const page = readFileSync(
+      join(__dirname, '..', 'app', '[locale]', 'match', '[id]', 'page.tsx'),
+      'utf8',
+    );
+    expect(page).toMatch(
+      /const noPowerIndex =\s+forecastData !== null && !explained && powerData !== null && powerData\.index === null;/,
+    );
+    expect(page).toContain('noPowerIndex={noPowerIndex}');
+    expect(page).toMatch(/forecast: noPowerIndex \? null : \(/);
+    expect(page.split('<PowerIndexPanel').length - 1).toBe(1);
+  });
+
+  it('says it in Persian', () => {
+    const html = noForecast('finished', none, true, 'fa');
+    expect(html).toContain('این بازی پیش‌بینی مدل آماری ندارد');
+    expect(html).toContain('شاخص قدرت هم برای آن وجود ندارد.');
+    expect(html).toContain('مدل کدام رقابت‌ها را پوشش می‌دهد؟');
+    expect(html).not.toContain('data-translation="untranslated"');
   });
 });
 

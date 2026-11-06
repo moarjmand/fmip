@@ -16,7 +16,7 @@ import { zoneWords } from '@/lib/reader-time-zone';
 import { AtApart } from '@/components/model-version';
 import { nameIsolate, pairIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
-import { Notice } from '@/components/ui';
+import { CoverageBadge, Notice } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
 
 /**
@@ -189,6 +189,16 @@ interface RealityProps {
   locale: string;
 }
 
+/** What the card says when the model has no forecast for the match. */
+interface NoForecastProps {
+  /**
+   * The match has no Power Index either, as the page's own answer says
+   * (T-1746): the card then says so, and the page draws no Power Index block
+   * to say it a second time. Left out when there is one or it is not known.
+   */
+  noPowerIndex?: boolean;
+}
+
 /**
  * Whether the match is still to come, as this card reads it: scheduled and
  * not long past its kick-off with no word from the feed (T-1708, D-343).
@@ -206,6 +216,12 @@ export function isUpcoming(fixture: RealityProps['fixture']): boolean {
  * the pick, holds the rest. From kick-off on it is the whole card: the bar,
  * after full time the result sentence, expected goals and likeliest scores,
  * every version and the receipt, and the way to why.
+ *
+ * With no forecast -- no version at all, or none that gave probabilities --
+ * the card is the one place the page says so (T-1746, D-367; board P2-5):
+ * "No model forecast for this match", the stored reason, that there is no
+ * Power Index either when that is so, and one link to where the model's
+ * coverage can be read. Never an empty bar (rule 3).
  */
 export function ForecastReality({
   forecasts,
@@ -215,7 +231,8 @@ export function ForecastReality({
   matchXg,
   timeZone,
   locale: raw,
-}: RealityProps) {
+  noPowerIndex = false,
+}: RealityProps & NoForecastProps) {
   const locale: Locale = isLocale(raw) ? raw : DEFAULT_LOCALE;
   const status = fixture.status;
   const upcoming = isUpcoming(fixture);
@@ -230,6 +247,8 @@ export function ForecastReality({
       ? null
       : cardVersion(forecasts, evaluations, status, fixture.kickoff_at, !upcoming);
   const p = version?.probabilities ?? null;
+  // No forecast, as against a forecast service that did not answer.
+  const none = forecasts !== null && p === null;
   return (
     <article
       className={CARD_FRAME}
@@ -239,35 +258,57 @@ export function ForecastReality({
     >
       <h2 className={CARD_TITLE}>
         <ModelTag locale={locale} />
-        <Translated locale={locale} message={title} />
+        <Translated locale={locale} message={none ? 'matchCentre.noForecast.title' : title} />
+        {none && (
+          // The state as an icon and a word, as every module says its own.
+          <CoverageBadge
+            state="not_supplied"
+            label={<Translated locale={locale} message="forecastBar.noForecast" />}
+          />
+        )}
       </h2>
       {forecasts === null ? (
         <Notice tone="danger">
           <Translated locale={locale} message="forecast.unreachable" />
         </Notice>
-      ) : version === null ? (
-        <p
-          dir="auto"
-          className="rounded-control border border-dashed border-model px-3 py-2 text-sm text-muted"
-          data-testid="forecast-reality-none"
-        >
-          <Translated
-            locale={locale}
-            message={upcoming ? 'forecast.none' : 'forecastBar.noneBefore'}
-          />
-        </p>
-      ) : p === null ? (
-        <p
-          dir="auto"
-          className="rounded-control border border-dashed border-model px-3 py-2 text-sm text-muted"
-          data-testid="forecast-reality-unavailable"
-        >
-          {version.unavailable_reason !== null ? (
-            unavailableLabel(version.unavailable_reason, locale)
-          ) : (
-            <Translated locale={locale} message="forecast.couldNotProduce" />
-          )}
-        </p>
+      ) : version === null || p === null ? (
+        <>
+          <p
+            dir="auto"
+            className="-mt-2 max-w-190 text-sm text-muted"
+            data-testid={
+              version === null ? 'forecast-reality-none' : 'forecast-reality-unavailable'
+            }
+          >
+            {version === null ? (
+              <Translated
+                locale={locale}
+                message={upcoming ? 'forecast.none' : 'forecastBar.noneBefore'}
+              />
+            ) : version.unavailable_reason !== null ? (
+              unavailableLabel(version.unavailable_reason, locale)
+            ) : (
+              <Translated locale={locale} message="forecast.couldNotProduce" />
+            )}
+            {noPowerIndex && (
+              <span data-testid="forecast-reality-no-power">
+                {' '}
+                <Translated locale={locale} message="matchCentre.noForecast.power" />
+              </span>
+            )}
+          </p>
+          <p className="-mt-2 text-sm">
+            {/* A stopgap the maintainer accepted: there is no page about the
+                model's coverage, and the record lists every competition it has. */}
+            <Link
+              href={`/${locale}/model-accuracy`}
+              className="inline-flex min-h-touch items-center font-bold text-fg underline md:min-h-0"
+              data-testid="forecast-coverage-link"
+            >
+              <Translated locale={locale} message="matchCentre.noForecast.link" />
+            </Link>
+          </p>
+        </>
       ) : (
         <>
           {!upcoming && (

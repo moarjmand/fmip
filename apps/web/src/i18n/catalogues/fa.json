@@ -9626,6 +9626,30 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (T-1626)."
   },
+  "matchCentre.absences.group": {
+    "source": "{status} · {reason} ({count})",
+    "text": "{status} · {reason} ({count})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.absences.groupPlain": {
+    "source": "{status} ({count})",
+    "text": "{status} ({count})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.absences.more": {
+    "source": "Show {count} more",
+    "text": "نمایش {count} نفر دیگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.absences.names": {
+    "source": "Show {count} names",
+    "text": "نمایش {count} نام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.absenceReason.injury": {
     "source": "Injury",
     "text": "مصدومیت",
@@ -10058,12 +10082,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.context.record": {
-    "source": "W {won} · D {drawn} · L {lost} · GD {difference}",
-    "text": "ب {won} · م {drawn} · ش {lost} · تفاضل {difference}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "matchCentre.context.form": {
     "source": "Form in this competition only, latest first:",
     "text": "فرم فقط در این رقابت، تازه‌ترین اول:",
@@ -10079,6 +10097,12 @@
   "matchCentre.context.formScope": {
     "source": "Form here counts only matches in this competition; Recent form counts the last five in every competition.",
     "text": "فرم در این‌جا فقط بازی‌های همین رقابت را می‌شمارد؛ «فرم اخیر» پنج بازی آخر را در همه‌ی رقابت‌ها می‌شمارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.context.gaps": {
+    "source": "Gaps to the places around",
+    "text": "فاصله با رتبه‌های بالا و پایین",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -17063,6 +17087,24 @@
   "matchCentre.reality.why": {
     "source": "Why these numbers: leading factors and what changed between versions",
     "text": "چرا این اعداد: عوامل اصلی و تغییرات میان نسخه‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.noForecast.title": {
+    "source": "No model forecast for this match",
+    "text": "این بازی پیش‌بینی مدل آماری ندارد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.noForecast.power": {
+    "source": "There is no Power Index for it either.",
+    "text": "شاخص قدرت هم برای آن وجود ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.noForecast.link": {
+    "source": "Which competitions does the model cover?",
+    "text": "مدل کدام رقابت‌ها را پوشش می‌دهد؟",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

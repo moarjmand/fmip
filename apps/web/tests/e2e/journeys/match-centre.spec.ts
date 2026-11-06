@@ -46,6 +46,10 @@ for (const locale of ['en', 'fa', 'x-rtl'] as const) {
         const card = page.getByTestId('forecast-reality');
         await expect(card).toBeVisible();
         await expect(card).not.toHaveAttribute('data-state', 'available');
+        // "No forecast" is said once (T-1746): the card and its one link, and
+        // no lower section to say it a second time.
+        await expect(card.getByTestId('forecast-coverage-link')).toHaveCount(1);
+        await expect(page.getByTestId('forecast')).toHaveCount(0);
         // After full time the pick is one locked row under it, then the
         // founder's analysis, the community picks and the contributors, a
         // row or a card each and each once (T-1744); no three-lane card.
