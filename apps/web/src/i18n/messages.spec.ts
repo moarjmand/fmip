@@ -253,7 +253,11 @@ describe('plurals (T-301)', () => {
     // T-1642: six added (the moments rail's live count, what it was picked
     // from, the cards left out and their label, the minutes to go and the
     // minutes to kick-off), one retired (the matchday rail's live count).
-    expect(pluralKeys).toHaveLength(101);
+    // T-1750: ten added on the accuracy page (the opening sentence's matches
+    // and its caption, the sample line, the weeks of an early record, the
+    // weeks worse than a guess, the chart's sentence and its whole-record
+    // line, the weeks so far, the list's two group headings).
+    expect(pluralKeys).toHaveLength(111);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

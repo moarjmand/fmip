@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { formatVersionStamp } from '@/i18n/format';
 import { cardForecast } from '@/lib/score-card-products';
 import { forecastBarWords, matchWords } from '@/lib/words-server';
-import { ForecastBar } from './forecast-bar';
+import { ForecastBarWithReceipt } from './forecast-receipt';
 import { ForecastPanel } from './forecast-panel';
 import { MatchCentreView } from './match-centre-view';
 
@@ -81,7 +81,7 @@ describe('forecast stamps on the page’s clock (T-1395)', () => {
     const bar = (timeZone: string, zone?: string) =>
       text(
         renderToStaticMarkup(
-          <ForecastBar
+          <ForecastBarWithReceipt
             forecast={cardForecast(version(2, LATE))}
             home="Arsenal"
             away="Chelsea"

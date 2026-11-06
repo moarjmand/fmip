@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import Link from '@/components/ui/link';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
-import { ForecastBar } from '@/components/forecast-bar';
+import { ForecastBarWithReceipt } from '@/components/forecast-receipt';
 import { ModelBox } from '@/components/model-box';
 import { PickLink } from '@/components/pick-link';
 import { Translated } from '@/components/translated';
@@ -245,7 +245,7 @@ function Match({
                 className="self-start"
               />
             )}
-            <ForecastBar
+            <ForecastBarWithReceipt
               forecast={forecast}
               home={match.home.name}
               away={match.away.name}

@@ -105,23 +105,85 @@ describe("the row's model cell", () => {
       />,
     );
 
-  it('draws the three percentages, home first, under a bar named in words', () => {
+  /** The three figures the cell writes, in the order it writes them. */
+  const figures = (html: string) =>
+    [...html.matchAll(/<span dir="ltr">([^<]+)<\/span>/g)].map((m) => m[1]);
+
+  it('draws the three percentages, home first, each on its segment of the one bar', () => {
     const html = cell(AVAILABLE);
     expect(html).toContain('data-state="available"');
-    expect(html).toMatch(/<span>59<\/span><span>20<\/span><span>21<\/span>/);
+    // The one `ForecastBar` at row size (T-1748, D-368): 8px at every width.
+    expect(html).toContain('data-testid="row-bar"');
+    expect(html).toContain('data-size="row"');
+    expect(html).toContain('h-2');
+    expect(html).not.toMatch(/h-1\.5|sm:h-2/);
+    expect(figures(html)).toEqual(['59%', '20%', '21%']);
     expect(html).toContain('aria-label="Model forecast: Barcelona 59.1%');
     expect(html.match(/data-outcome=/g)).toHaveLength(3);
+    // Each label cell grows by its segment's share: none is spread evenly.
+    expect(html).not.toContain('justify-between');
+    expect(html.match(/flex-grow:59\.1;flex-basis:0/g)).toHaveLength(2);
+    // Before full time nothing is marked.
+    expect(html).not.toContain('data-happened');
   });
 
   it('writes them in Persian digits on /fa', () => {
-    expect(cell(AVAILABLE, 'fa')).toMatch(/<span>۵۹<\/span><span>۲۰<\/span><span>۲۱<\/span>/);
+    expect(figures(cell(AVAILABLE, 'fa'))).toEqual(['۵۹٪', '۲۰٪', '۲۱٪']);
+  });
+
+  it('marks what happened on a finished row: an outline, a tick, and the word for a screen reader (T-1749)', () => {
+    const html = renderToStaticMarkup(
+      <RowForecast
+        forecast={{ ...AVAILABLE, home: 67, draw: 19, away: 14 }}
+        home="AC Milan"
+        away="Ferencváros"
+        outcome="away"
+        locale="en"
+        words={scoresWords('en')}
+      />,
+    );
+    expect(html).toMatch(
+      /data-segment="away" data-step="3" data-happened="" class="[^"]*outline-2 outline-offset-1 outline-fg/,
+    );
+    expect(html.match(/data-icon="check"/g)).toHaveLength(1);
+    expect(html).toContain(
+      'aria-label="Model forecast: AC Milan 67.0%, draw 19.0%, Ferencváros 14.0% (happened)"',
+    );
+    expect(html).not.toMatch(/bg-accent|bg-brand|text-accent/);
+    // The word is not written on a row.
+    expect(html.replace(/<[^>]*>/g, '')).not.toContain('happened');
+  });
+
+  it('takes the outcome from the ninety minutes of a finished card, and from nothing else', () => {
+    const finished = (scores: Partial<ScoreCardData['scores']>) =>
+      row('en', {}, { status: 'finished', scores: { ...card().scores, ...scores } });
+    const lost = finished({ current: { home: 0, away: 2 }, full_time: { home: 0, away: 2 } });
+    expect(lost).toMatch(/data-segment="away"[^>]*data-happened=""/);
+    expect(lost.match(/data-segment="\w+"[^>]*data-happened=""/g)).toHaveLength(1);
+    // Level after ninety minutes and won in extra time: what the model
+    // forecast is the ninety minutes, so the draw is what happened.
+    const extra = finished({
+      current: { home: 2, away: 1 },
+      full_time: { home: 1, away: 1 },
+      extra_time: { home: 1, away: 0 },
+    });
+    expect(extra).toMatch(/data-segment="draw"[^>]*data-happened=""/);
+    // A match to come and one in play mark nothing.
+    expect(row('en')).not.toContain('data-happened');
+    expect(
+      row(
+        'en',
+        {},
+        { status: 'live', minute: 70, scores: { ...card().scores, current: { home: 1, away: 0 } } },
+      ),
+    ).not.toContain('data-happened');
   });
 
   it('gives three whole numbers totalling 100, as blueprint 6.2 asks (T-1545)', () => {
     // Toulouse v Troyes on 25 Oct 2026 read 67 · 20 · 14 with each rounded alone;
     // the largest share absorbs the gap (`wholePercentages`, T-1555).
     const html = cell({ ...AVAILABLE, home: 66.6, draw: 19.6, away: 13.8 });
-    expect(html).toMatch(/<span>66<\/span><span>20<\/span><span>14<\/span>/);
+    expect(figures(html)).toEqual(['66%', '20%', '14%']);
     // The bar and its name keep the stored shares.
     expect(html).toContain('flex-grow:66.6');
     expect(html).toContain('Barcelona 66.6%');

@@ -9,38 +9,59 @@ import type {
 import type { ReactNode } from 'react';
 import { Fragment, useId } from 'react';
 import Link from '@/components/ui/link';
+import { VerdictCard } from '@/components/accuracy-verdict';
+import { WeeklyEdgeChart } from '@/components/accuracy-weekly-chart';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 import { ModelVersion } from '@/components/model-version';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { Translated } from '@/components/translated';
+import { ButtonLink } from '@/components/ui/button';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
 import { Icon } from '@/components/ui/icons';
 import { formatDate, formatGregorianMonth, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { type Message, type MessageKey, interpolate, message, plural, t } from '@/i18n/messages';
+import {
+  type AccuracySort,
+  type CompetitionRow,
+  accuracyHref,
+  edgeBarWidth,
+  formatEdge,
+  groupCompetitions,
+  verdictState,
+  weeklyEdges,
+} from '@/lib/accuracy-edge';
 import { formatFixed, formatPercent } from '@/lib/words';
 
 /**
  * "How accurate is our model?" (T-1369, D-187): the statistical model's
- * published pre-kick-off forecasts, scored after the match, by month or by
- * ISO week (T-1414), over every competition and each one. Only the model: the founder's analysis
- * and the community's consensus are other products, named here only to say
- * they are not counted (rule 6). A row with no match scored shows no figure
- * and says so; one below the minimum shows its figures marked limited with
- * the count beside them (rule 3). In this file rather than a shared table,
- * like every product's own components.
+ * published pre-kick-off forecasts, scored after the match, over every
+ * competition and each one. Only the model: the founder's analysis and the
+ * community's consensus are other products, named here only to say they are
+ * not counted (rule 6). A row with no match scored shows no figure and says
+ * so; one below the minimum shows its figures marked limited with the count
+ * beside them (rule 3). In this file rather than a shared table, like every
+ * product's own components.
  *
- * The Stadiomind page (T-1620, D-291): it follows the theme like the other
- * data pages. A band on the surface names the model, its versions and the
- * last scoring day, with the month/week switch as a segmented control; the
- * totals are tiles, each with its plain meaning and what a blind guess
- * scores beside it; the table is the design system's; each competition is a
- * card with its logo, its figures, its coverage badge and its months under a
- * disclosure. The interface face throughout: the serif is the founder's
- * voice (D-263), never the model's. Server components only.
+ * The page a football reader can read (T-1750, D-370), top to bottom: a band
+ * naming the model, its versions and the last scoring day; the opening card
+ * (`VerdictCard`: two plain facts and, beside them, the warning that a guess
+ * of one third each is the weakest benchmark); the weekly chart of how much
+ * better than a guess (`WeeklyEdgeChart`); the competitions as one compact
+ * list, each row a native disclosure, those under the sample rule a separate
+ * dashed group; RPS, Brier and log loss, the month or week table and the
+ * long explanation under one closed disclosure; and a link on to today's
+ * forecasts. The calibration chart and the per-version figures are not here,
+ * not even as frames: the public API has no data for them yet (T-1751), and
+ * an empty frame on a live page is an empty module (rule 3).
+ *
+ * The interface face throughout: the serif is the founder's voice (D-263),
+ * never the model's. The model's data is drawn in its turquoise only;
+ * saffron is on controls only (the closing button, the disclosures, the sort
+ * and period links), never on a data mark. Server components only.
  */
 
 const filled = (m: Message, params: Record<string, string>): Message => ({
@@ -73,126 +94,78 @@ const coverageBadge = (lang: Locale, metrics: AccuracyMetrics) => (
   />
 );
 
+/** The disclosure's chevron: down when closed, turned by the caller's `group-open`. */
+function Chevron({ className }: { className?: string }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      aria-hidden="true"
+      focusable="false"
+      className={cx('shrink-0 motion-safe:transition-transform', className)}
+    >
+      <path
+        d="M2.5 4.5 6 8l3.5-3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // The band
 // ---------------------------------------------------------------------------
 
 /**
- * Month or week (T-1414) as the design system's segmented control: two plain
- * links in one framed group, the current one in the selected look (the
- * saffron edge and tint of a chosen toggle) and `aria-current`, so the page
- * needs no script and each view keeps its own address. 44px targets.
+ * The versions in the mono face, left to right, each kept on one line and
+ * each an element of its own, never "name@x.y.z" as one run (T-1580).
  */
-function PeriodSwitch({ lang, period }: { lang: Locale; period: AccuracyPeriod }) {
-  const choices: { value: AccuracyPeriod; href: string; label: MessageKey }[] = [
-    { value: 'month', href: `/${lang}/model-accuracy`, label: 'modelAccuracy.period.month' },
-    {
-      value: 'week',
-      href: `/${lang}/model-accuracy?period=week`,
-      label: 'modelAccuracy.period.week',
-    },
-  ];
+function VersionList({ versions, className }: { versions: readonly string[]; className?: string }) {
   return (
-    <nav
-      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm"
-      aria-label={t(lang, 'modelAccuracy.period.label')}
-      data-testid="accuracy-period"
-    >
-      <span className="text-xs font-semibold text-caption">
-        <Translated locale={lang} message="modelAccuracy.period.label" />
-      </span>
-      <span className="inline-flex gap-1 rounded-control border border-strong bg-canvas p-1">
-        {choices.map((choice) => {
-          const current = choice.value === period;
-          return (
-            <Link
-              key={choice.value}
-              href={choice.href}
-              aria-current={current ? 'page' : undefined}
-              data-testid={`accuracy-period-${choice.value}`}
-              className={cx(
-                'inline-flex min-h-touch min-w-22 items-center justify-center rounded-md border-2 px-4',
-                current
-                  ? 'border-accent bg-brand/14 font-extrabold text-fg'
-                  : 'border-transparent font-semibold text-muted hover:bg-surface-raised hover:text-fg',
-              )}
-            >
-              <Translated locale={lang} message={choice.label} />
-            </Link>
-          );
-        })}
-      </span>
-    </nav>
+    <span dir="ltr" className={cx('font-mono text-xs', className)}>
+      {versions.map((version, i) => (
+        <Fragment key={version}>
+          {i > 0 && ', '}
+          <span className="whitespace-nowrap">
+            <ModelVersion version={version} />
+          </span>
+        </Fragment>
+      ))}
+    </span>
   );
 }
 
 /**
  * The page's band (T-1620): the model's lane and the question on the
- * surface, the one line that this is the statistical model and nothing else
- * (rule 6), the published versions the figures are from and the day they
- * were last scored, and the switch. Without an answer from the API only the
- * name and the line: no version and no date is guessed.
+ * surface, and the one line that this is the statistical model and nothing
+ * else (rule 6). The versions and the last scoring day sit under the verdict
+ * (`AccuracyMeta`).
  */
-export function ModelAccuracyBand({
-  locale,
-  report,
-}: {
-  locale: string;
-  report: PublicModelAccuracyResponse | null;
-}) {
+export function ModelAccuracyBand({ locale }: { locale: string }) {
   const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const versions = report?.overall.model_versions ?? [];
   return (
     <header className="border-b border-default bg-surface" data-testid="accuracy-band">
       <div className="page-frame flex flex-col gap-4 py-6 sm:gap-5 sm:py-9">
-        <div className="flex flex-wrap items-end gap-x-8 gap-y-5">
-          <div className="flex min-w-0 flex-[1_1_24rem] flex-col gap-2.5">
-            <p className="inline-flex items-center gap-2 text-xs font-extrabold tracking-wider text-model uppercase">
-              <Icon name="model" size={16} strokeWidth={2.2} />
-              <Translated locale={lang} message="lanes.model.title" />
-            </p>
-            <h1
-              className="text-2xl leading-tight font-extrabold break-words font-stretch-semi-expanded sm:text-display-3"
-              data-testid="title"
-            >
-              <Translated locale={lang} message="modelAccuracy.meta.title" />
-            </h1>
-            <p className="max-w-measure text-base text-muted" data-testid="accuracy-only">
-              <Translated locale={lang} message="competitionPage.model.only" />
-            </p>
-          </div>
-          {report !== null && <PeriodSwitch lang={lang} period={report.period} />}
-        </div>
-        {report !== null && (versions.length > 0 || report.last_updated_at !== null) && (
-          <ul
-            className="flex flex-wrap gap-x-5 gap-y-2 border-t border-default pt-4 text-sm text-muted"
-            data-testid="accuracy-meta"
+        <div className="flex min-w-0 flex-col gap-2.5">
+          <p className="inline-flex items-center gap-2 text-xs font-extrabold tracking-wider text-model uppercase">
+            <Icon name="model" size={16} strokeWidth={2.2} />
+            <Translated locale={lang} message="lanes.model.title" />
+          </p>
+          <h1
+            className="text-2xl leading-tight font-extrabold break-words font-stretch-semi-expanded sm:text-display-3"
+            data-testid="title"
           >
-            {versions.length > 0 && (
-              <li data-testid="accuracy-versions">
-                <FilledMessage
-                  message={message(lang, 'modelAccuracy.versions')}
-                  params={{
-                    versions: <VersionList versions={versions} className="font-semibold text-fg" />,
-                  }}
-                />
-              </li>
-            )}
-            {report.last_updated_at !== null && (
-              <li data-testid="accuracy-updated">
-                <MessageText
-                  message={filled(message(lang, 'modelAccuracy.updated'), {
-                    date: formatDate(lang, report.last_updated_at, 'UTC', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    }),
-                  })}
-                />
-              </li>
-            )}
-          </ul>
-        )}
+            <Translated locale={lang} message="modelAccuracy.meta.title" />
+          </h1>
+          <p className="max-w-measure text-base text-muted" data-testid="accuracy-only">
+            <Translated locale={lang} message="competitionPage.model.only" />
+          </p>
+        </div>
       </div>
     </header>
   );
@@ -292,7 +265,7 @@ function tilesOf(lang: Locale, total: AccuracyMetrics, ref: AccuracyReference): 
       value: fixed(lang, total.rps),
       ...(total.uniform_rps === null ? {} : { guess: fixed(lang, total.uniform_rps) }),
       lower: true,
-      meaning: 'modelAccuracy.kpi.rpsMeaning',
+      meaning: 'modelAccuracy.measures.rps',
     },
     {
       key: 'brier',
@@ -300,7 +273,7 @@ function tilesOf(lang: Locale, total: AccuracyMetrics, ref: AccuracyReference): 
       value: fixed(lang, total.brier),
       guess: formatFixed(lang, ref.uniform_brier, 3),
       lower: true,
-      meaning: 'modelAccuracy.kpi.brierMeaning',
+      meaning: 'modelAccuracy.measures.brier',
     },
     {
       key: 'log-loss',
@@ -308,16 +281,17 @@ function tilesOf(lang: Locale, total: AccuracyMetrics, ref: AccuracyReference): 
       value: fixed(lang, total.log_loss),
       guess: formatFixed(lang, ref.uniform_log_loss, 3),
       lower: true,
-      meaning: 'modelAccuracy.kpi.logLossMeaning',
+      meaning: 'modelAccuracy.measures.logLoss',
     },
   ];
 }
 
 /**
- * Every competition's totals as five tiles (T-1620): the figure large, what a
- * blind guess scores beside it, "lower is better" on the three error scores
- * and one plain line of what it means. The model's turquoise only as the
- * tiles' top edge, as on the product lanes (D-263).
+ * Every competition's totals as five tiles (T-1620), under "Show all
+ * measures" since T-1750: the figure large, what a blind guess scores beside
+ * it, "lower is better" on the three error scores and one plain sentence of
+ * what it means. The model's turquoise only as the tiles' top edge, as on
+ * the product lanes (D-263).
  */
 function KpiTiles({
   lang,
@@ -497,25 +471,6 @@ function PeriodTable({
   );
 }
 
-/**
- * The versions in the mono face, left to right, each kept on one line and
- * each an element of its own, never "name@x.y.z" as one run (T-1580).
- */
-function VersionList({ versions, className }: { versions: readonly string[]; className?: string }) {
-  return (
-    <span dir="ltr" className={cx('font-mono text-xs', className)}>
-      {versions.map((version, i) => (
-        <Fragment key={version}>
-          {i > 0 && ', '}
-          <span className="whitespace-nowrap">
-            <ModelVersion version={version} />
-          </span>
-        </Fragment>
-      ))}
-    </span>
-  );
-}
-
 /** "Model versions: …" under a series' table. */
 function Versions({ lang, versions }: { lang: Locale; versions: readonly string[] }) {
   return (
@@ -529,7 +484,7 @@ function Versions({ lang, versions }: { lang: Locale; versions: readonly string[
 }
 
 // ---------------------------------------------------------------------------
-// The sections
+// The competitions
 // ---------------------------------------------------------------------------
 
 function SectionHeading({ id, children }: { id: string; children: ReactNode }) {
@@ -540,36 +495,11 @@ function SectionHeading({ id, children }: { id: string; children: ReactNode }) {
   );
 }
 
-/** Every competition together: the standing, the tiles and the table. */
-function Overall({ lang, report }: { lang: Locale; report: PublicModelAccuracyResponse }) {
-  const total = report.overall.total;
-  return (
-    <section
-      aria-labelledby="accuracy-overall-heading"
-      className="flex flex-col gap-4"
-      data-testid="accuracy-overall"
-      data-coverage={total.coverage}
-    >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <SectionHeading id="accuracy-overall-heading">
-          <Translated locale={lang} message="modelAccuracy.overall.title" />
-        </SectionHeading>
-        {coverageBadge(lang, total)}
-      </div>
-      <Standing lang={lang} metrics={total} minimum={report.minimum_matches} />
-      {total.coverage !== 'not_supplied' && (
-        <>
-          <KpiTiles lang={lang} total={total} reference={report.reference} />
-          <div className="overflow-hidden rounded-tile border border-default bg-surface">
-            <PeriodTable lang={lang} series={report.overall} period={report.period} />
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
+/** The list's columns: name, matches, correct, the bar, the edge, the chevron. A phone drops "correct" and puts the bar on a second line. */
+const ROW_GRID =
+  'grid grid-cols-[minmax(0,1fr)_2.75rem_3.5rem_0.75rem] items-center gap-x-3 gap-y-1.5 px-4 sm:grid-cols-[minmax(0,1.5fr)_3.25rem_3.75rem_minmax(0,2fr)_3.75rem_0.75rem] sm:px-4.5';
 
-/** One figure in a competition's card: small, beside the others. */
+/** One figure in an opened row: small, beside the others. */
 function Figure({ label, value, guess }: { label: ReactNode; value: string; guess?: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
@@ -585,46 +515,121 @@ function Figure({ label, value, guess }: { label: ReactNode; value: string; gues
 }
 
 /**
- * One competition (T-1620): its logo on the white tile (D-280; the lettered
- * mark when none is held, rule 3) and its name linking to its page, the
- * coverage badge, its five figures, the early-record note below the
- * minimum, and its months or weeks under a disclosure that works without
- * script. Nothing scored: the sentence and no figure.
+ * Better or worse than a guess as a bar from the centre line: towards the
+ * inline end is better, towards the inline start worse, so it mirrors on a
+ * right-to-left page. Solid at or over the sample rule, dashed under it. The
+ * signed figure beside it says the same in words, so the bar is decoration
+ * to a screen reader. The model's turquoise on both sides: which side is the
+ * sign, not a second colour.
  */
-function CompetitionCard({
+function EdgeBar({ percent: edge, early }: { percent: number | null; early: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="relative order-last col-span-full block h-2.5 sm:order-none sm:col-span-1"
+      data-testid="accuracy-edge-bar"
+    >
+      <span className="absolute -inset-y-1 start-1/2 w-px bg-caption" />
+      {edge !== null && edge !== 0 && (
+        <span
+          className={cx(
+            'absolute inset-y-0 rounded-sm',
+            edge < 0 ? 'end-1/2' : 'start-1/2',
+            early ? 'border border-dashed border-model bg-model/20' : 'bg-model',
+          )}
+          style={{ inlineSize: `${edgeBarWidth(edge)}%` }}
+          data-mark="edge"
+          data-side={edge < 0 ? 'worse' : 'better'}
+          data-early={early ? 'true' : undefined}
+        />
+      )}
+    </span>
+  );
+}
+
+/**
+ * One competition as one row (T-1750): its logo (the lettered mark when none
+ * is held, rule 3), its name, its matches, how often the model was right, a
+ * bar for better or worse than a guess and the signed figure. The row is a
+ * native disclosure: opened, it shows the five figures the cards showed, the
+ * sample sentence, its months or weeks and the way to the competition's
+ * page. Nothing scored: the name, the coverage badge and the sentence; no
+ * figure, no bar, no zero, and nothing to open.
+ */
+function EdgeRow({
   lang,
-  series,
+  row,
   report,
 }: {
   lang: Locale;
-  series: PublicAccuracySeries;
+  row: CompetitionRow;
   report: PublicModelAccuracyResponse;
 }) {
+  const { series, edge } = row;
   const competition = series.competition;
   if (competition === null) return null;
   const total = series.total;
-  const headingId = `accuracy-competition-${competition.id}`;
+  const early = total.coverage !== 'available';
+  const name = (
+    <span className="flex min-w-0 items-center gap-2.5">
+      <EntityImage media={competition.logo} kind="logo" name={competition.name} size={28} />
+      <span className="min-w-0 text-sm font-bold break-words">{competition.name}</span>
+    </span>
+  );
+  const item = {
+    className: 'border-t border-default',
+    'data-testid': 'accuracy-competition',
+    'data-coverage': total.coverage,
+  };
+
+  if (total.coverage === 'not_supplied' || total.matches === 0) {
+    return (
+      <li {...item}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-4.5">
+          {name}
+          {coverageBadge(lang, total)}
+          <Standing lang={lang} metrics={total} minimum={report.minimum_matches} />
+        </div>
+      </li>
+    );
+  }
+
+  const label = (key: MessageKey) => (
+    <span className="sr-only">
+      <Translated locale={lang} message={key} />:{' '}
+    </span>
+  );
   return (
-    <section
-      aria-labelledby={headingId}
-      className="flex min-w-0 flex-col overflow-hidden rounded-tile border border-default bg-surface"
-      data-testid="accuracy-competition"
-      data-coverage={total.coverage}
-    >
-      <div className="flex items-center gap-3 border-b border-default px-4 py-2 sm:px-4.5">
-        <EntityImage media={competition.logo} kind="logo" name={competition.name} size={40} />
-        <h3 id={headingId} className="min-w-0 flex-1 font-extrabold">
-          <Link
-            href={`/${lang}/competition/${encodeURIComponent(competition.id)}`}
-            className="inline-flex min-h-touch items-center break-words hover:underline focus-visible:underline"
-          >
-            {competition.name}
-          </Link>
-        </h3>
-        {coverageBadge(lang, total)}
-      </div>
-      <div className="flex flex-col gap-3 p-4 sm:px-4.5">
-        {total.coverage !== 'not_supplied' && (
+    <li {...item}>
+      <details className="group/row">
+        {/* The grid is a box inside the summary: a summary that is itself a grid loses its marker handling in older Safari. */}
+        <summary className="block cursor-pointer list-none hover:bg-surface-raised [&::-webkit-details-marker]:hidden">
+          <span className={cx(ROW_GRID, 'min-h-touch py-2.5')}>
+            {name}
+            <span className="text-end text-sm tabular-nums">
+              {label('modelAccuracy.table.matches')}
+              {formatNumber(lang, total.matches)}
+            </span>
+            <span className="hidden text-end text-sm tabular-nums sm:block">
+              {label('modelAccuracy.table.correct')}
+              {percent(lang, total.accuracy)}
+            </span>
+            <EdgeBar percent={edge?.percent ?? null} early={early} />
+            <span
+              className="text-end text-sm font-extrabold tabular-nums"
+              data-testid="accuracy-edge"
+            >
+              {label('modelAccuracy.weekly.edge')}
+              {edge === null ? '—' : <bdi dir="ltr">{formatEdge(lang, edge.percent)}</bdi>}
+            </span>
+            <Chevron className="text-muted group-open/row:rotate-180" />
+          </span>
+        </summary>
+        <div className="flex flex-col gap-3 bg-surface-raised px-4 pt-2 pb-4 sm:px-4.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {early && coverageBadge(lang, total)}
+            <Standing lang={lang} metrics={total} minimum={report.minimum_matches} />
+          </div>
           <dl className="grid grid-cols-3 gap-x-3 gap-y-3 sm:grid-cols-5">
             <Figure
               label={<Translated locale={lang} message="modelAccuracy.table.matches" />}
@@ -658,60 +663,260 @@ function CompetitionCard({
               value={fixed(lang, total.log_loss)}
             />
           </dl>
-        )}
-        <Standing lang={lang} metrics={total} minimum={report.minimum_matches} />
-      </div>
-      {total.coverage !== 'not_supplied' && (
-        <details className="group mt-auto border-t border-default">
-          <summary className="flex min-h-touch cursor-pointer list-none items-center gap-2 px-4 text-sm font-bold text-accent hover:underline sm:px-4.5 [&::-webkit-details-marker]:hidden">
-            <Translated
-              locale={lang}
-              message={
-                report.period === 'week'
-                  ? 'modelAccuracy.competition.weeks'
-                  : 'modelAccuracy.competition.months'
-              }
-            />
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 12 12"
-              aria-hidden="true"
-              focusable="false"
-              className="shrink-0 group-open:rotate-180 motion-safe:transition-transform"
-            >
-              <path
-                d="M2.5 4.5 6 8l3.5-3.5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+          <details className="group/period rounded-tile border border-default bg-surface">
+            <summary className="flex min-h-touch cursor-pointer list-none items-center gap-2 px-4 text-sm font-bold text-accent hover:underline sm:px-4.5 [&::-webkit-details-marker]:hidden">
+              <Translated
+                locale={lang}
+                message={
+                  report.period === 'week'
+                    ? 'modelAccuracy.competition.weeks'
+                    : 'modelAccuracy.competition.months'
+                }
               />
-            </svg>
-          </summary>
-          <PeriodTable lang={lang} series={series} period={report.period} />
-          <div className="border-t border-default px-4 py-3 sm:px-4.5">
-            <Versions lang={lang} versions={series.model_versions} />
+              <Chevron className="group-open/period:rotate-180" />
+            </summary>
+            <PeriodTable lang={lang} series={series} period={report.period} />
+            <div className="border-t border-default px-4 py-3 sm:px-4.5">
+              <Versions lang={lang} versions={series.model_versions} />
+            </div>
+          </details>
+          <Link
+            href={`/${lang}/competition/${encodeURIComponent(competition.id)}`}
+            className="inline-flex min-h-touch items-center gap-1.5 self-start text-sm font-bold text-accent hover:underline focus-visible:underline"
+          >
+            <MessageText
+              message={filled(message(lang, 'modelAccuracy.list.page'), {
+                name: competition.name,
+              })}
+            />
+            <Icon name="forward" size={14} />
+          </Link>
+        </div>
+      </details>
+    </li>
+  );
+}
+
+/**
+ * The competitions as one list (T-1750, D-370) in place of a card each: by
+ * matches unless the address says `?sort=edge`, the other order one plain
+ * link away. Two groups, by the coverage state the API gives: at or over the
+ * sample rule, then the early records, whose bars are dashed and whose
+ * heading says an early record is not a verdict; a competition with nothing
+ * scored closes the second group with no figure at all.
+ */
+function EdgeList({
+  lang,
+  report,
+  sort,
+  period,
+}: {
+  lang: Locale;
+  report: PublicModelAccuracyResponse;
+  sort: AccuracySort;
+  /** The period as the address has it, kept by the sort link; undefined when the reader chose none. */
+  period: AccuracyPeriod | undefined;
+}) {
+  const groups = groupCompetitions(report.competitions, sort);
+  const early = [...groups.early, ...groups.none];
+  const minimum = formatNumber(lang, report.minimum_matches);
+  const other: AccuracySort = sort === 'edge' ? 'matches' : 'edge';
+  const scale = (
+    // Each word in its own box: two bare strings would be one flex item, side by side.
+    <span className="flex justify-between gap-3">
+      <span>
+        <Translated locale={lang} message="modelAccuracy.list.worse" />
+      </span>
+      <span>
+        <Translated locale={lang} message="modelAccuracy.list.better" />
+      </span>
+    </span>
+  );
+  const heading = 'px-4 py-2 text-xs font-bold text-muted sm:px-4.5';
+  return (
+    <section
+      aria-labelledby="accuracy-competitions-heading"
+      className="flex flex-col gap-3"
+      data-testid="accuracy-competitions"
+      data-sort={sort}
+    >
+      <SectionHeading id="accuracy-competitions-heading">
+        <Translated locale={lang} message="modelAccuracy.competitions.title" />
+      </SectionHeading>
+      <p className="max-w-measure text-sm text-muted">
+        <MessageText message={filled(message(lang, 'modelAccuracy.list.lede'), { minimum })} />
+      </p>
+      <p
+        className="flex flex-wrap items-center gap-x-2 text-xs text-muted"
+        data-testid="accuracy-sort"
+      >
+        <Translated
+          locale={lang}
+          message={
+            sort === 'edge'
+              ? 'modelAccuracy.list.sortedByEdge'
+              : 'modelAccuracy.list.sortedByMatches'
+          }
+        />
+        <span aria-hidden="true">·</span>
+        <Link
+          href={accuracyHref(lang, { period, sort: other }, 'accuracy-competitions-heading')}
+          className="inline-flex min-h-touch items-center font-bold text-accent hover:underline focus-visible:underline"
+          data-testid="accuracy-sort-link"
+        >
+          <Translated
+            locale={lang}
+            message={
+              sort === 'edge' ? 'modelAccuracy.list.sortByMatches' : 'modelAccuracy.list.sortByEdge'
+            }
+          />
+        </Link>
+      </p>
+      <div className="overflow-hidden rounded-tile border border-default bg-surface">
+        {/* The columns' names for the eye; each row says them again for a screen reader. */}
+        <div
+          aria-hidden="true"
+          className={cx(ROW_GRID, 'hidden py-2 text-xs font-semibold text-caption sm:grid')}
+        >
+          <Translated locale={lang} message="modelAccuracy.list.competition" />
+          <span className="text-end">
+            <Translated locale={lang} message="modelAccuracy.table.matches" />
+          </span>
+          <span className="text-end">
+            <Translated locale={lang} message="modelAccuracy.table.correct" />
+          </span>
+          {scale}
+        </div>
+        <div aria-hidden="true" className="px-4 py-2 text-xs font-semibold text-caption sm:hidden">
+          {scale}
+        </div>
+        {groups.full.length > 0 && (
+          <div data-testid="accuracy-group" data-group="full">
+            <h3 className={cx(heading, 'border-t border-default bg-surface-raised')}>
+              <Translated
+                locale={lang}
+                message="modelAccuracy.list.groupFull"
+                count={groups.full.length}
+                params={{ minimum }}
+              />
+            </h3>
+            <ul>
+              {groups.full.map((row) => (
+                <EdgeRow key={row.series.competition?.id} lang={lang} row={row} report={report} />
+              ))}
+            </ul>
           </div>
-        </details>
-      )}
+        )}
+        {early.length > 0 && (
+          <div data-testid="accuracy-group" data-group="early">
+            <h3
+              className={cx(heading, 'border-t border-dashed border-strong bg-surface-raised')}
+              data-testid="accuracy-early-heading"
+            >
+              <Translated
+                locale={lang}
+                message="modelAccuracy.list.groupEarly"
+                count={early.length}
+                params={{ minimum }}
+              />
+            </h3>
+            <ul>
+              {early.map((row) => (
+                <EdgeRow key={row.series.competition?.id} lang={lang} row={row} report={report} />
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </section>
   );
 }
 
-/** What each figure means, beside the uniform forecast (T-1369). */
-function Explained({ lang, report }: { lang: Locale; report: PublicModelAccuracyResponse }) {
+// ---------------------------------------------------------------------------
+// The measures
+// ---------------------------------------------------------------------------
+
+/**
+ * Month or week (T-1414) as the design system's segmented control: two plain
+ * links in one framed group, the current one in the selected look (the
+ * saffron edge and tint of a chosen toggle) and `aria-current`, so the page
+ * needs no script and each view keeps its own address. 44px targets. Inside
+ * "Show all measures" since T-1750, where the table it changes is: each link
+ * names its period in the address, which is what opens the measures again
+ * after the page reloads, and returns to them.
+ */
+function PeriodSwitch({
+  lang,
+  period,
+  sort,
+}: {
+  lang: Locale;
+  period: AccuracyPeriod;
+  sort: AccuracySort;
+}) {
+  const choices: { value: AccuracyPeriod; label: MessageKey }[] = [
+    { value: 'month', label: 'modelAccuracy.period.month' },
+    { value: 'week', label: 'modelAccuracy.period.week' },
+  ];
+  return (
+    <nav
+      className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm"
+      aria-label={t(lang, 'modelAccuracy.period.label')}
+      data-testid="accuracy-period"
+    >
+      <span className="text-xs font-semibold text-caption">
+        <Translated locale={lang} message="modelAccuracy.period.label" />
+      </span>
+      <span className="inline-flex gap-1 rounded-control border border-strong bg-canvas p-1">
+        {choices.map((choice) => {
+          const current = choice.value === period;
+          return (
+            <Link
+              key={choice.value}
+              href={accuracyHref(lang, { period: choice.value, sort }, 'accuracy-measures')}
+              aria-current={current ? 'page' : undefined}
+              data-testid={`accuracy-period-${choice.value}`}
+              className={cx(
+                'inline-flex min-h-touch min-w-22 items-center justify-center rounded-md border-2 px-4',
+                current
+                  ? 'border-accent bg-brand/14 font-extrabold text-fg'
+                  : 'border-transparent font-semibold text-muted hover:bg-surface-raised hover:text-fg',
+              )}
+            >
+              <Translated locale={lang} message={choice.label} />
+            </Link>
+          );
+        })}
+      </span>
+    </nav>
+  );
+}
+
+/**
+ * What each figure means, beside the uniform forecast (T-1369). A third-level
+ * heading inside the measures; a second-level one when it stands alone on a
+ * page with nothing scored, so the outline skips no level.
+ */
+function Explained({
+  lang,
+  report,
+  alone = false,
+}: {
+  lang: Locale;
+  report: PublicModelAccuracyResponse;
+  alone?: boolean;
+}) {
   const ref = report.reference;
+  const Heading = alone ? 'h2' : 'h3';
   return (
     <section
       aria-labelledby="accuracy-explained-heading"
-      className="flex flex-col gap-4 rounded-tile border border-default bg-surface p-4 sm:p-6"
+      className="flex flex-col gap-4"
       data-testid="accuracy-explained"
     >
-      <SectionHeading id="accuracy-explained-heading">
+      <Heading id="accuracy-explained-heading" className="text-base font-extrabold sm:text-lg">
         <Translated locale={lang} message="modelAccuracy.explain.title" />
-      </SectionHeading>
+      </Heading>
       <p className="max-w-measure text-sm">
         <Translated locale={lang} message="modelAccuracy.intro" />
       </p>
@@ -755,12 +960,161 @@ function Explained({ lang, report }: { lang: Locale; report: PublicModelAccuracy
   );
 }
 
+/**
+ * "Show all measures" (T-1750, D-370): RPS, Brier and log loss, each with
+ * one plain sentence, the month or week table and the long explanation,
+ * under one native disclosure that is closed unless the reader chose a
+ * period (the switch inside it reloads the page; the address then says to
+ * open it again). Nothing here is hidden from a reader who wants it, and
+ * nothing here is what the page opens with.
+ */
+function MeasuresDisclosure({
+  lang,
+  report,
+  sort,
+  open,
+}: {
+  lang: Locale;
+  report: PublicModelAccuracyResponse;
+  sort: AccuracySort;
+  open: boolean;
+}) {
+  const total = report.overall.total;
+  return (
+    <details
+      id="accuracy-measures"
+      open={open}
+      className="group/measures scroll-mt-4 rounded-tile border border-default bg-surface"
+      data-testid="accuracy-measures"
+    >
+      <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 sm:px-6 [&::-webkit-details-marker]:hidden">
+        <Chevron className="group-open/measures:rotate-180" />
+        <span className="text-lg font-extrabold font-stretch-semi-expanded">
+          <Translated locale={lang} message="modelAccuracy.measures.title" />
+        </span>
+        <span className="text-sm text-muted">
+          <Translated locale={lang} message="modelAccuracy.measures.lede" />
+        </span>
+      </summary>
+      <div className="flex flex-col gap-6 border-t border-default p-4 sm:p-6">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          {coverageBadge(lang, total)}
+          <Standing lang={lang} metrics={total} minimum={report.minimum_matches} />
+        </div>
+        <KpiTiles lang={lang} total={total} reference={report.reference} />
+        <PeriodSwitch lang={lang} period={report.period} sort={sort} />
+        <div className="overflow-hidden rounded-tile border border-default bg-surface">
+          <PeriodTable lang={lang} series={report.overall} period={report.period} />
+        </div>
+        <Explained lang={lang} report={report} />
+      </div>
+    </details>
+  );
+}
+
+/**
+ * The way on (T-1750): the record above is checked by the next match, so the
+ * page ends on today's forecasts. The one primary, saffron button of the
+ * view.
+ */
+function ForecastsCta({ lang }: { lang: Locale }) {
+  return (
+    <section
+      aria-labelledby="accuracy-cta-heading"
+      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-tile border border-default bg-surface p-4 sm:p-6"
+      data-testid="accuracy-cta"
+    >
+      <div className="flex min-w-0 flex-[1_1_20rem] flex-col gap-1.5">
+        <SectionHeading id="accuracy-cta-heading">
+          <Translated locale={lang} message="modelAccuracy.cta.title" />
+        </SectionHeading>
+        <p className="max-w-measure text-sm text-muted">
+          <Translated locale={lang} message="modelAccuracy.cta.lede" />
+        </p>
+      </div>
+      <ButtonLink
+        href={`/${lang}/scores`}
+        variant="primary"
+        size="md"
+        data-testid="accuracy-cta-link"
+      >
+        <Translated locale={lang} message="modelAccuracy.cta.button" />
+        <Icon name="forward" size={16} />
+      </ButtonLink>
+    </section>
+  );
+}
+
+/**
+ * The published versions the figures are from and the day they were last
+ * scored. With more than one version it says plainly that the figures combine
+ * them (T-1750, D-370: the split by version needs an API field, T-1751); a
+ * candidate still in testing is never named here. It sits under the verdict,
+ * not in the band: on a phone the band's four extra lines pushed the page's
+ * two figures off the first screen (found on the real-data screenshots).
+ */
+function AccuracyMeta({ lang, report }: { lang: Locale; report: PublicModelAccuracyResponse }) {
+  const versions = report.overall.model_versions;
+  if (versions.length === 0 && report.last_updated_at === null) return null;
+  return (
+    <ul
+      className="flex flex-wrap gap-x-5 gap-y-1.5 px-1 text-sm text-muted"
+      data-testid="accuracy-meta"
+    >
+      {versions.length > 0 && (
+        <li data-testid="accuracy-versions">
+          <FilledMessage
+            message={message(lang, 'modelAccuracy.versions')}
+            params={{
+              versions: <VersionList versions={versions} className="font-semibold text-fg" />,
+            }}
+          />
+          {versions.length > 1 && (
+            <>
+              {' '}
+              <span data-testid="accuracy-versions-combined">
+                <Translated locale={lang} message="modelAccuracy.versionsCombined" />
+              </span>
+            </>
+          )}
+        </li>
+      )}
+      {report.last_updated_at !== null && (
+        <li data-testid="accuracy-updated">
+          <MessageText
+            message={filled(message(lang, 'modelAccuracy.updated'), {
+              date: formatDate(lang, report.last_updated_at, 'UTC', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              }),
+            })}
+          />
+        </li>
+      )}
+    </ul>
+  );
+}
+
 export function ModelAccuracy({
   locale,
   report,
+  weekly,
+  sort = 'matches',
+  chosenPeriod = false,
 }: {
   locale: string;
   report: PublicModelAccuracyResponse | null;
+  /**
+   * Every competition's weekly points, for the chart, whatever period the
+   * tables show; null when they did not arrive. Left out, a weekly report
+   * serves as its own.
+   */
+  weekly?: readonly AccuracyPoint[] | null;
+  /** The competition list's order (`?sort=edge`). */
+  sort?: AccuracySort;
+  /** The reader chose the period in the address: the measures open on it and the links keep it. */
+  chosenPeriod?: boolean;
 }) {
   const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   if (report === null) {
@@ -773,33 +1127,52 @@ export function ModelAccuracy({
       </p>
     );
   }
+  const total = report.overall.total;
+  const state = verdictState(total);
+  const points =
+    weekly === undefined ? (report.period === 'week' ? report.overall.points : null) : weekly;
+  const weeks = points === null ? null : weeklyEdges(points, report.last_updated_at);
   return (
-    <div className="flex flex-col gap-10" data-testid="model-accuracy" data-period={report.period}>
-      <Overall lang={lang} report={report} />
+    <div
+      className="flex flex-col gap-8 sm:gap-10"
+      data-testid="model-accuracy"
+      data-period={report.period}
+    >
+      <div className="flex flex-col gap-3">
+        <VerdictCard lang={lang} report={report} weeks={weeks} />
+        <AccuracyMeta lang={lang} report={report} />
+      </div>
 
-      {report.competitions.length > 0 && (
-        <section
-          aria-labelledby="accuracy-competitions-heading"
-          className="flex flex-col gap-4"
-          data-testid="accuracy-competitions"
-        >
-          <SectionHeading id="accuracy-competitions-heading">
-            <Translated locale={lang} message="modelAccuracy.competitions.title" />
-          </SectionHeading>
-          <div className="grid items-start gap-4 lg:grid-cols-2">
-            {report.competitions.map((series) => (
-              <CompetitionCard
-                key={series.competition?.id}
-                lang={lang}
-                series={series}
-                report={report}
-              />
-            ))}
-          </div>
-        </section>
+      {/* Under the sample rule there is no chart: a few matches a week are not a trend. */}
+      {state === 'available' && (
+        <WeeklyEdgeChart
+          lang={lang}
+          weeks={weeks}
+          total={total}
+          minimum={report.minimum_matches}
+          lastScoredAt={report.last_updated_at}
+        />
       )}
 
-      <Explained lang={lang} report={report} />
+      {report.competitions.length > 0 && (
+        <EdgeList
+          lang={lang}
+          report={report}
+          sort={sort}
+          period={chosenPeriod ? report.period : undefined}
+        />
+      )}
+
+      {state === 'empty' ? (
+        // Nothing scored: no measure to show, only what the measures will mean.
+        <div className="rounded-tile border border-default bg-surface p-4 sm:p-6">
+          <Explained lang={lang} report={report} alone />
+        </div>
+      ) : (
+        <MeasuresDisclosure lang={lang} report={report} sort={sort} open={chosenPeriod} />
+      )}
+
+      <ForecastsCta lang={lang} />
     </div>
   );
 }
