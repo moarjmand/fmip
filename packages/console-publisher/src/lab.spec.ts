@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { labFrom } from './lab.ts';
 
@@ -172,5 +173,23 @@ describe('the ledger file', () => {
       'judgement 2: judged_on is not a day (YYYY-MM-DD)',
       'judgement 2: says no day it was judged (judged_on)',
     ]);
+  });
+});
+
+describe("the ledger's first edition (2026-11-06)", () => {
+  it('passes the check whole: 67 entries, nothing left out, no problem', () => {
+    const raw: unknown = JSON.parse(
+      readFileSync(new URL('../fixtures/model-lab-ledger.json', import.meta.url), 'utf8'),
+    );
+    const read = labFrom(raw, CHANGED);
+    expect(read.problems).toEqual([]);
+    expect(read.lab?.entries).toHaveLength(67);
+    expect(read.lab?.skipped).toBe(0);
+    // A candidate still being judged carries counts only (D-336's one look, D-371).
+    const running = read.lab?.entries.find((e) => e.key === 'version_0_7_0_shadow');
+    expect(running?.verdict).toBe('running');
+    for (const group of running?.groups ?? []) {
+      expect(group).toMatchObject({ difference: null, low: null, high: null });
+    }
   });
 });
