@@ -119,8 +119,13 @@ describe('what each analysis carries', () => {
   });
 
   it('tells unreachable apart from empty', () => {
-    expect(PANEL).toContain('data-testid="community-analysis-unreachable"');
-    expect(PANEL).toContain('data-testid="community-analysis-empty"');
+    // One row for either (T-1744), each with its own sentence and test id.
+    expect(PANEL).toMatch(
+      /unreachable \? 'community-analysis-unreachable' : 'community-analysis-empty'/,
+    );
+    expect(PANEL).toMatch(
+      /unreachable \? 'analysis\.community\.unreachable' : 'analysis\.community\.empty'/,
+    );
   });
 
   it('uses logical properties only (rule 7)', () => {

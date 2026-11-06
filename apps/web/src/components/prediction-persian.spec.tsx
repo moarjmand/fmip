@@ -88,9 +88,47 @@ describe('the prediction surfaces in Persian (T-1307)', () => {
     const html = renderToStaticMarkup(
       <CommunityAnalysisPanel locale="fa" analyses={{ analyses: [] } as never} reachable />,
     );
-    expect(html).toContain('تحلیل تحلیلگران تأییدشده');
-    expect(html).toContain('نه تحلیل بنیان‌گذار است، نه مدل آماری و نه نظر جمعی کاربران');
+    // With nothing published: one row, named and with its sentence (T-1744).
+    expect(html).toContain('data-product-row=""');
+    expect(html).toContain('تحلیلگران تأییدشده');
     expect(html).toContain('هیچ تحلیلگری تحلیلی از این بازی منتشر نکرده است.');
+    expect(html).toContain('هنوز نیست');
+    expect(html).not.toContain('data-translation="untranslated"');
+    // With an analysis: the card, which says whose it is and what it is not.
+    const full = renderToStaticMarkup(
+      <CommunityAnalysisPanel
+        locale="fa"
+        reachable
+        analyses={
+          {
+            analyses: [
+              {
+                id: 'ca1',
+                fixture_id: 'f1',
+                author: { username: 'sara', display_name: 'Sara', rating: null, approved: true },
+                versions: [
+                  {
+                    version_number: 1,
+                    predicted_outcome: 'home',
+                    predicted_home: null,
+                    predicted_away: null,
+                    confidence: 3,
+                    reasoning: 'r',
+                    lineup_impact: null,
+                    key_players: null,
+                    form_and_context: null,
+                    published_at: '2026-09-29T08:00:00.000Z',
+                  },
+                ],
+              },
+            ],
+          } as never
+        }
+      />,
+    );
+    expect(full).not.toContain('data-product-row');
+    expect(full).toContain('تحلیل تحلیلگران تأییدشده');
+    expect(full).toContain('نه تحلیل بنیان‌گذار است، نه مدل آماری و نه نظر جمعی کاربران');
   });
 
   it('says the board and its tiers in Persian, with a Gregorian month', () => {

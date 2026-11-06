@@ -9,6 +9,7 @@ import { formatKickoff } from '@/lib/scores';
 import { FounderVoice } from '@/components/voices';
 import { ScorePair } from '@/components/score';
 import { Translated } from '@/components/translated';
+import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { interpolate, message, t } from '@/i18n/messages';
 import {
   asLocale,
@@ -77,15 +78,26 @@ function Signature({
   );
 }
 
-/** The full analysis, for the match centre. */
+/**
+ * The founder's analysis on the match centre. With one published, the full
+ * analysis in the founder's voice; after full time (`result`) it also says
+ * whether the published call matched the result and whether the score was
+ * exact -- settled on the founder's own record, never with the model's or
+ * the community's (rule 6). With none -- most matches, the blueprint scopes
+ * this to important fixtures -- one compact row that says so (T-1744, D-365),
+ * where a card would have looked like something to read.
+ */
 export function FounderAnalysisPanel({
   analysis,
+  result = null,
   home,
   away,
   timeZone,
   locale,
 }: {
   analysis: FounderAnalysisResponse | null;
+  /** The full-time score, once there is one. */
+  result?: { home: number; away: number } | null;
   home: string;
   away: string;
   timeZone: string;
@@ -97,18 +109,33 @@ export function FounderAnalysisPanel({
     // Most matches have none — the blueprint scopes this to important fixtures —
     // so its absence is stated once and quietly, not as a gap.
     return (
-      <FounderVoice locale={l}>
-        <section className="flex flex-col gap-2" data-testid="founder-analysis" data-state="none">
-          <h2 className="text-lg font-semibold">
-            <Translated locale={l} message="analysis.founder.title" />
-          </h2>
-          <p className="text-sm text-muted">
-            <Translated locale={l} message="analysis.founder.none" />
-          </p>
-        </section>
-      </FounderVoice>
+      <FounderVoice
+        locale={l}
+        testId="founder-analysis"
+        state="none"
+        empty={<Translated locale={l} message="analysis.founder.none" />}
+        row={
+          <CoverageBadge
+            state="not_supplied"
+            label={<Translated locale={l} message="lanes.row.none" />}
+          />
+        }
+      />
     );
   }
+  const actual: FounderOutcome | null =
+    result === null
+      ? null
+      : result.home > result.away
+        ? 'home'
+        : result.home < result.away
+          ? 'away'
+          : 'draw';
+  const exact =
+    result !== null &&
+    current.predicted_score !== null &&
+    current.predicted_score.home === result.home &&
+    current.predicted_score.away === result.away;
 
   const sections: [string, ReactNode, string | null][] = [
     [
@@ -135,6 +162,9 @@ export function FounderAnalysisPanel({
         className="flex flex-col gap-3"
         data-testid="founder-analysis"
         data-state="available"
+        data-settled={
+          actual === null ? undefined : current.predicted_outcome === actual ? 'right' : 'wrong'
+        }
       >
         <h2 className="text-lg font-semibold">
           <Translated locale={l} message="analysis.founder.title" />
@@ -155,6 +185,26 @@ export function FounderAnalysisPanel({
           ) : null}{' '}
           <span className="text-muted">· {confidenceText(l, current.confidence)}</span>
         </p>
+
+        {/* After full time: the published call against the result. */}
+        {actual !== null && (
+          <p className="text-sm font-semibold" data-testid="founder-verdict-settled">
+            <Translated
+              locale={l}
+              message={
+                current.predicted_outcome === actual
+                  ? 'analysis.founder.verdict.right'
+                  : 'analysis.founder.verdict.wrong'
+              }
+            />
+            {exact && (
+              <>
+                {' '}
+                <Translated locale={l} message="analysis.founder.verdict.exact" />
+              </>
+            )}
+          </p>
+        )}
 
         {/* The founder's voice (D-206): the article face, in italic where the
           script has one (Newsreader; Persian has no italic to fake). */}
@@ -278,98 +328,6 @@ export function FounderAnalysisBrief({
         <Link href={href} className="text-sm font-bold text-founder underline">
           <Translated locale={l} message="analysis.founder.read" />
         </Link>
-      </div>
-    </FounderVoice>
-  );
-}
-
-/**
- * The founder's lane in "What was forecast, and what happened" (T-1384,
- * D-202): after full time, the published call (its latest version, which
- * was published before kick-off) against the result -- right or not, and
- * whether the score was exact -- with the opening of the reasoning in the
- * founder's voice and the signature. Settled on the founder's own record,
- * never with the model's or the community's (rule 6). Most matches have no
- * analysis, which is said once.
- */
-export function FounderVerdict({
-  analysis,
-  result,
-  home,
-  away,
-  timeZone,
-  locale,
-}: {
-  analysis: FounderAnalysisResponse | null;
-  /** The full-time score. */
-  result: { home: number; away: number };
-  home: string;
-  away: string;
-  timeZone: string;
-  locale: string;
-}) {
-  const l = asLocale(locale);
-  const current = analysis?.analysis?.versions[0] ?? null;
-  if (analysis === null || analysis.analysis === null || current === null) {
-    return (
-      <FounderVoice locale={l}>
-        <p className="text-sm text-muted" data-testid="founder-verdict" data-state="none">
-          <Translated locale={l} message="analysis.founder.none" />
-        </p>
-      </FounderVoice>
-    );
-  }
-  const actual: FounderOutcome =
-    result.home > result.away ? 'home' : result.home < result.away ? 'away' : 'draw';
-  const right = current.predicted_outcome === actual;
-  const exact =
-    current.predicted_score !== null &&
-    current.predicted_score.home === result.home &&
-    current.predicted_score.away === result.away;
-  return (
-    <FounderVoice locale={l}>
-      <div
-        className="flex flex-col gap-2"
-        data-testid="founder-verdict"
-        data-state={right ? 'right' : 'wrong'}
-      >
-        <p
-          className="line-clamp-4 font-article text-lg whitespace-pre-line italic [:root:is(:lang(fa),:lang(ar))_&]:not-italic"
-          data-testid="founder-voice"
-        >
-          {current.reasoning}
-        </p>
-        <p className="text-sm font-semibold">
-          <Translated locale={l} message="analysis.founder.verdict.pick" />{' '}
-          {outcomeLabel(l, current.predicted_outcome, home, away)}
-          {current.predicted_score !== null ? (
-            <>
-              {' — '}
-              <ScorePair locale={l}>
-                {scoreText(l, current.predicted_score.home, current.predicted_score.away)}
-              </ScorePair>
-            </>
-          ) : null}
-        </p>
-        <p className="text-sm" data-testid="founder-verdict-settled">
-          <Translated
-            locale={l}
-            message={right ? 'analysis.founder.verdict.right' : 'analysis.founder.verdict.wrong'}
-          />
-          {exact && (
-            <>
-              {' '}
-              <Translated locale={l} message="analysis.founder.verdict.exact" />
-            </>
-          )}
-        </p>
-        <Signature
-          author={analysis.analysis.author.display_name}
-          publishedAt={current.published_at}
-          version={current.version_number}
-          timeZone={timeZone}
-          locale={locale}
-        />
       </div>
     </FounderVoice>
   );

@@ -46,6 +46,16 @@ for (const locale of ['en', 'fa', 'x-rtl'] as const) {
         const card = page.getByTestId('forecast-reality');
         await expect(card).toBeVisible();
         await expect(card).not.toHaveAttribute('data-state', 'available');
+        // After full time the pick is one locked row under it, then the
+        // founder's analysis, the community picks and the contributors, a
+        // row or a card each and each once (T-1744); no three-lane card.
+        await expect(page.getByTestId('match-pick')).toHaveAttribute('data-product-row', '');
+        for (const id of ['founder-analysis', 'consensus', 'community-analysis-panel']) {
+          await expect(page.getByTestId(id)).toHaveCount(1);
+          await expect(page.getByTestId(id)).toBeVisible();
+        }
+        await expect(page.getByTestId('three-products-note')).toHaveCount(1);
+        await expect(page.getByTestId('verdict')).toHaveCount(0);
         await expect(page.getByTestId('timeline')).toBeVisible();
         // The section tabs, at every width, inside the band.
         const nav = header.getByTestId('section-nav');

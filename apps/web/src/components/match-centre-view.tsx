@@ -40,9 +40,10 @@ export type MatchSlot =
   | 'outcome'
   // The reader's own pick (T-1739, D-360): the card directly under the model's.
   | 'pick'
+  // The model's details before kick-off (T-1744): expected goals, likeliest
+  // scores and every version, after the pick card. Nothing from kick-off on.
+  | 'details'
   | 'summary'
-  // The three voices against the result, after full time.
-  | 'verdict'
   // What does not move in play, rendered on the server (`match-record.tsx`).
   | 'form'
   | 'headToHead'
@@ -105,6 +106,10 @@ type Key = keyof MatchWords['m'];
  * The pick card (T-1739, D-360) is a Predictions section the Summary also
  * shows: under the model's card there, first on Predictions, one element.
  * While the match is scheduled the Predictions tab opens it (`#pick`).
+ * Since T-1744 (D-365) the founder's analysis, the community picks and the
+ * approved contributors stand directly after it in the same way (`#analysis`
+ * and `#community` inside `#predictions`), each once on the page; the lower
+ * Predictions section (`#forecast`) says how the forecast was reached.
  */
 export const TABS = [
   ['summary', 'matchCentre.tab.summary'],
@@ -124,7 +129,6 @@ export type MatchTab = (typeof TABS)[number][0];
  */
 export const SECTIONS = {
   timeline: 'summary',
-  verdict: 'summary',
   context: 'summary',
   news: 'summary',
   stats: 'stats',
@@ -365,9 +369,20 @@ export function MatchCentreView({
         <Region id="pick" tab="predictions" also="summary">
           {slots.pick}
         </Region>
+        {/* Before kick-off, the model's details after the pick (T-1744). */}
+        {has('details') && <Panel tab="summary">{slots.details}</Panel>}
+        {/* The other predictions of this match, each once on the page and
+            each its own section (rule 6; T-1744, D-365): the founder's
+            analysis, then the community picks and the approved contributors.
+            Predictions sections the Summary also shows, as the pick is. */}
+        {present.predictions && (
+          <Region id="predictions" tab="predictions" also="summary">
+            <Region id="analysis">{slots.analysis}</Region>
+            <Region id="community">{slots.community}</Region>
+          </Region>
+        )}
         <Panel tab="summary">
-          {/* Then the three voices, and the match as it went. */}
-          <Region id="verdict">{slots.verdict}</Region>
+          {/* Then the match as it went. */}
           <Region id="timeline">
             <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
           </Region>
@@ -410,14 +425,14 @@ export function MatchCentreView({
         <Region id="players">{slots.players}</Region>
       </Panel>
     ),
-    predictions: present.predictions ? (
-      // Three sections with three names, never one panel (rule 6, T-605).
-      <Panel tab="predictions" id="predictions">
-        <Region id="forecast">{slots.forecast}</Region>
-        <Region id="analysis">{slots.analysis}</Region>
-        <Region id="community">{slots.community}</Region>
-      </Panel>
-    ) : null,
+    // How the model's forecast was reached, and the Power Index (T-1744):
+    // the forecast itself is the Summary's card, and the other predictions
+    // stand after the pick.
+    predictions: (
+      <Region id="forecast" tab="predictions">
+        {slots.forecast}
+      </Region>
+    ),
     watch: (
       <Region id="watch" tab="watch">
         {slots.watch}

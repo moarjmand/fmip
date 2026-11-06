@@ -16,9 +16,9 @@ import { describe, expect, it } from 'vitest';
 import { EN } from '@/i18n/messages';
 import { gridLines, pitchLines, pitchShape } from '@/lib/formation';
 import { matchWords } from '@/lib/words-server';
-import { CommunityVerdict } from './community-consensus';
-import { ModelVerdict } from './forecast-panel';
-import { FounderVerdict } from './founder-analysis';
+import { ForecastReality } from '@/app/[locale]/match/[id]/forecast-reality';
+import { CommunityForecastPanel, CommunityPicksRow } from './community-consensus';
+import { FounderAnalysisPanel } from './founder-analysis';
 import { MatchCentreView } from './match-centre-view';
 import { MatchLineupsView } from './match-lineups';
 import { HighlightsLink, WatchLine } from './viewing-panel';
@@ -27,7 +27,7 @@ import { HighlightsLink, WatchLine } from './viewing-panel';
  * The Hybrid match centre (T-1384, D-202): the score band before, during and
  * after a match, the line-ups on a pitch only where the feed places every
  * starter, the phone's tabs, where to watch under the score, and after full
- * time the three products against the result, each in its own lane.
+ * time each of the three products against the result, in its own place.
  */
 
 // ---------------------------------------------------------------------------
@@ -805,6 +805,11 @@ const evaluations: FixtureEvaluationsResponse = {
 const KICKOFF = '2026-10-08T13:30:00.000Z';
 const DRAW = { home: 1, away: 1 };
 
+// After full time each product says what it called against the result in its
+// own place, once (T-1744, D-365): the model in the Summary's card, the
+// founder in the analysis, the community in its picks. The three-lane card
+// that repeated them is gone.
+
 describe('the model against the result', () => {
   const model = (
     f: ForecastVersionsResponse | null,
@@ -812,13 +817,17 @@ describe('the model against the result', () => {
     locale = 'en',
   ) =>
     renderToStaticMarkup(
-      <ModelVerdict
+      <ForecastReality
         forecasts={f}
         evaluations={e}
-        kickoffAt={KICKOFF}
-        result={DRAW}
-        home="Tractor"
-        away="Esteghlal"
+        fixture={{
+          status: 'finished',
+          kickoff_at: KICKOFF,
+          home: { id: 'h', name: 'Tractor' } as MatchCentre['fixture']['home'],
+          away: { id: 'a', name: 'Esteghlal' } as MatchCentre['fixture']['away'],
+        }}
+        final={DRAW}
+        matchXg={null}
         timeZone="UTC"
         locale={locale}
       />,
@@ -826,25 +835,42 @@ describe('the model against the result', () => {
 
   it('shows the scored pre-match version, what it gave the result and its RPS', () => {
     const html = model(forecasts, evaluations);
-    expect(html).toContain('data-voice="model"');
+    expect(html).toContain('data-part="whole"');
     expect(html).toContain('Result: a draw. The model gave it 34.0%.');
-    expect(html).toMatch(/data-testid="model-verdict-rps"[^]*0\.126/);
-    expect(html).toContain('ranked probability score for this match · 0 is perfect');
-    // Never the founder's or the community's colour.
+    expect(html).toMatch(/data-testid="forecast-reality-rps"[^]*0\.126/);
+    expect(html).toContain('Ranked probability score for this match 0.126 (0 is perfect).');
+    expect(html).toContain('Pre-match forecast, frozen at kick-off.');
+    // The card is about the version the evaluation scored.
+    expect(html).toMatch(/data-version="1" data-current=""/);
+    // The model's card alone: nothing of the founder's or the community's.
     expect(html).not.toMatch(/founder|community/);
   });
 
   it('without an evaluation shows the last version before kick-off, unscored', () => {
     const html = model(forecasts, null);
     expect(html).toContain('Result: a draw.');
-    expect(html).toContain('data-testid="model-verdict-unscored"');
-    expect(html).not.toContain('data-testid="model-verdict-rps"');
+    expect(html).toContain(EN['forecast.verdict.unscored']);
+    expect(html).toContain('data-scored="false"');
+    expect(html).not.toContain('data-testid="forecast-reality-rps"');
+  });
+
+  it('never shows another version’s score as this one’s (rule 3)', () => {
+    // The evaluation scored a version the list does not hold: the card falls
+    // back to the last version before kick-off, and that one is unscored.
+    const other = {
+      ...evaluations,
+      evaluations: [{ ...evaluation, version_number: 9 }],
+    } as FixtureEvaluationsResponse;
+    const html = model(forecasts, other);
+    expect(html).toContain('Result: a draw.');
+    expect(html).not.toContain('data-testid="forecast-reality-rps"');
+    expect(html).not.toContain('0.126');
   });
 
   it('says so when there was no version before kick-off, or the service did not answer', () => {
     const late = { ...forecasts, versions: [version(3, '2026-10-08T15:00:00.000Z')] };
     expect(model(late, null)).toContain(EN['forecastBar.noneBefore']);
-    expect(model(late, null)).not.toContain('data-testid="model-verdict-result"');
+    expect(model(late, null)).not.toContain('data-testid="forecast-reality-result"');
     expect(model(null, null)).toContain('data-state="unreachable"');
   });
 
@@ -882,11 +908,14 @@ describe('the founder against the result', () => {
       ],
     },
   });
-  const founder = (a: FounderAnalysisResponse | null) =>
+  const founder = (
+    a: FounderAnalysisResponse | null,
+    result: { home: number; away: number } | null = DRAW,
+  ) =>
     renderToStaticMarkup(
-      <FounderVerdict
+      <FounderAnalysisPanel
         analysis={a}
-        result={DRAW}
+        result={result}
         home="Tractor"
         away="Esteghlal"
         timeZone="UTC"
@@ -894,56 +923,111 @@ describe('the founder against the result', () => {
       />,
     );
 
-  it('settles the published pick on the result, signed', () => {
+  it('settles the published pick on the result, in the full analysis, signed', () => {
     const right = founder(analysis('draw', { home: 1, away: 1 }));
     expect(right).toContain('data-voice="founder"');
-    expect(right).toContain('data-state="right"');
+    expect(right).toContain('data-settled="right"');
     expect(right).toContain('The result matched the pick. The score was exact too.');
     expect(right).toContain('data-testid="founder-signature"');
+    // The full card, not a row.
+    expect(right).not.toContain('data-product-row');
+    expect(right).toContain('Tractor at home are hard to beat.');
     const wrong = founder(analysis('home', { home: 2, away: 0 }));
-    expect(wrong).toContain('data-state="wrong"');
+    expect(wrong).toContain('data-settled="wrong"');
     expect(wrong).toContain('The result did not match the pick.');
     expect(wrong).not.toContain('exact');
   });
 
-  it('says once that there is no analysis', () => {
-    expect(founder(null)).toContain(EN['analysis.founder.none']);
-    expect(founder({ fixture_id: 'f1', analysis: null })).toContain('data-state="none"');
+  it('says nothing about a result before there is one', () => {
+    const html = founder(analysis('draw', null), null);
+    expect(html).not.toContain('data-testid="founder-verdict-settled"');
+    expect(html).not.toContain('data-settled');
+  });
+
+  it('with no analysis is one compact row in the founder’s voice, never a card', () => {
+    for (const html of [founder(null), founder({ fixture_id: 'f1', analysis: null })]) {
+      expect(html).toContain('data-product-row=""');
+      expect(html).toContain('data-voice="founder"');
+      expect(html).toContain('data-testid="founder-analysis"');
+      expect(html).toContain('data-state="none"');
+      expect(html).toContain(EN['analysis.founder.none']);
+      // Its status is an icon and a word, not colour alone.
+      expect(html).toMatch(/data-coverage-badge="not_supplied"[^]*<svg[^]*None yet/);
+      // The founder's own name, set in the founder's face.
+      expect(html).toMatch(
+        /class="[^"]*font-serif[^"]*text-founder[^"]*"[^>]*>.*Founder’s analysis/,
+      );
+      // Never the model's colour, never a figure.
+      expect(html).not.toMatch(/(text|bg|border)-model/);
+      expect(html).not.toMatch(/\d%/);
+    }
   });
 });
 
 describe('the community against the result', () => {
-  const community = (c: CommunityConsensusResponse | null) =>
+  const consensus: CommunityConsensusResponse = {
+    coverage: 'available',
+    last_updated_at: '2026-10-08T13:30:00.000Z',
+    data: {
+      fixture_id: 'f1',
+      sample: 40,
+      crowd: {
+        counts: { home: 22, draw: 10, away: 8 },
+        shares: { home: 0.55, draw: 0.25, away: 0.2 },
+      },
+      weighted: null,
+      last_submitted_at: '2026-10-08T13:29:00.000Z',
+      computed_at: '2026-10-08T13:30:00.000Z',
+    },
+  };
+  const community = (result: { home: number; away: number } | null) =>
     renderToStaticMarkup(
-      <CommunityVerdict consensus={c} result={DRAW} home="Tractor" away="Esteghlal" locale="en" />,
+      <CommunityForecastPanel
+        consensus={consensus}
+        result={result}
+        home="Tractor"
+        away="Esteghlal"
+        timeZone="UTC"
+        model={null}
+        locale="en"
+      />,
     );
+  const row = (c: CommunityConsensusResponse | null) =>
+    renderToStaticMarkup(<CommunityPicksRow consensus={c} locale="en" />);
 
   it('says the share that picked what happened, over its spread and sample', () => {
-    const html = community({
-      coverage: 'available',
-      last_updated_at: '2026-10-08T13:30:00.000Z',
-      data: {
-        fixture_id: 'f1',
-        sample: 40,
-        crowd: {
-          counts: { home: 22, draw: 10, away: 8 },
-          shares: { home: 0.55, draw: 0.25, away: 0.2 },
-        },
-        weighted: null,
-        last_submitted_at: '2026-10-08T13:29:00.000Z',
-        computed_at: '2026-10-08T13:30:00.000Z',
-      },
-    });
-    expect(html).toContain('25.0% picked a draw');
-    expect(html).toContain('bg-community');
+    const html = community(DRAW);
+    expect(html).toMatch(/data-testid="community-verdict-share"[^>]*>25\.0% picked a draw/);
+    expect(html).toContain('data-testid="consensus-crowd"');
     expect(html).not.toMatch(/bg-model|bg-founder/);
+    expect(community({ home: 2, away: 0 })).toContain('55.0% picked');
   });
 
-  it('below the floor has no consensus to set against the result', () => {
-    expect(community({ coverage: 'not_supplied', last_updated_at: null, data: null })).toContain(
-      'data-state="not_supplied"',
-    );
-    expect(community(null)).toContain('data-state="unreachable"');
+  it('says no share before there is a result', () => {
+    expect(community(null)).not.toContain('data-testid="community-verdict-share"');
+  });
+
+  it('with no consensus is one compact row in the community’s voice', () => {
+    const below = row({ coverage: 'not_supplied', last_updated_at: null, data: null });
+    expect(below).toContain('data-product-row=""');
+    expect(below).toContain('data-voice="community"');
+    expect(below).toContain('data-testid="consensus"');
+    expect(below).toContain('data-state="not_supplied"');
+    expect(below).toContain('Fewer than 5 members have predicted this match');
+    expect(below).toMatch(/data-coverage-badge="not_supplied"[^]*<svg[^]*Under 5/);
+    const down = row(null);
+    expect(down).toContain('data-state="unreachable"');
+    expect(down).toContain(EN['matchCentre.community.unreachable']);
+    expect(down).toContain('Not loaded');
+    for (const html of [below, down]) {
+      // Never the model's colour, never a figure of anybody's.
+      expect(html).not.toMatch(/(text|bg|border)-(model|founder)/);
+      expect(html).not.toMatch(/\d%/);
+    }
+  });
+
+  it('draws no row when there is a consensus: the page draws the panel', () => {
+    expect(row(consensus)).toBe('');
   });
 });
 

@@ -9,7 +9,7 @@ import type {
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { FounderAnalysisPanel } from './founder-analysis';
-import { ForecastPanel } from './forecast-panel';
+import { ForecastDetails } from '@/app/[locale]/match/[id]/forecast-reality';
 import { GroupComparison } from './group-comparison';
 import { predictionLine } from '@/lib/panel-link';
 import { fixtureLabel, versionLabel } from '@/lib/prediction-history';
@@ -92,13 +92,22 @@ const FORECASTS = {
   versions: [],
 } as unknown as ForecastVersionsResponse;
 
+// The model's likeliest scorelines are in the Summary's card, the one place
+// the forecast is drawn (T-1744); before kick-off, in its details.
 const forecast = (locale: string) =>
   renderToStaticMarkup(
-    <ForecastPanel
-      forecasts={FORECASTS}
+    <ForecastDetails
+      forecasts={{ ...FORECASTS, versions: [FORECASTS.latest] } as ForecastVersionsResponse}
       evaluations={null}
-      home="Sepahan"
-      away="Fajr Sepasi"
+      fixture={
+        {
+          status: 'scheduled',
+          kickoff_at: '2099-10-10T15:00:00.000Z',
+          home: { id: 'h', name: 'Sepahan' },
+          away: { id: 'a', name: 'Fajr Sepasi' },
+        } as never
+      }
+      matchXg={null}
       timeZone="UTC"
       locale={locale}
     />,

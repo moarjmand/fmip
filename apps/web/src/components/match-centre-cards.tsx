@@ -61,32 +61,6 @@ export function DataCard({ children }: { children: React.ReactNode }) {
   return <div className={CARD}>{children}</div>;
 }
 
-/**
- * "What was forecast, and what happened" (board h5, T-1384): after full time,
- * three lanes -- the model's, the founder's and the community's, each its own
- * component from its own file (rule 6) -- passed in as three children and
- * laid side by side where the card is wide, one under another where not.
- */
-export function VerdictCard({
-  title,
-  note,
-  children,
-}: {
-  title: React.ReactNode;
-  note: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex min-w-0 flex-col gap-3" data-testid="verdict">
-      <h2 className="sr-only">{title}</h2>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(15rem,100%),1fr))] gap-4">
-        {children}
-      </div>
-      {note}
-    </section>
-  );
-}
-
 /** A module's title and its coverage badge, a gap between them in either direction. */
 export const MODULE_HEADING = 'flex flex-wrap items-center justify-between gap-x-2 gap-y-1';
 

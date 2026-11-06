@@ -145,13 +145,19 @@ test('the match centre reaches each section through its tabs, without script', a
   // The key players (T-841), their own section beside the line-ups.
   await expect(page.getByTestId('key-players')).toBeVisible();
   await expect(page.getByTestId('timeline')).toBeHidden();
-  // A deep link opens its own tab: a story's "#forecast" shows the model.
-  await page.goto(`/en/match/${PLAYED_MATCH}#forecast`);
-  await expect(page.getByTestId('forecast')).toBeVisible();
-  // The model, the founder and the community stay three sections (rule 6).
-  for (const id of ['forecast', 'analysis', 'community']) {
+  // A deep link opens its own tab: a story's "#analysis" shows the founder's
+  // analysis on Predictions, a row or a card, and not the Summary's timeline.
+  await page.goto(`/en/match/${PLAYED_MATCH}#analysis`);
+  await expect(page.getByTestId('founder-analysis')).toBeVisible();
+  await expect(page.getByTestId('timeline')).toBeHidden();
+  // The founder and the community stay two sections, each once on the page
+  // (rule 6; T-1744): the model's forecast is the Summary's card.
+  for (const id of ['analysis', 'community']) {
     await expect(page.locator(`#${id}`)).toHaveCount(1);
   }
+  await expect(page.getByTestId('founder-analysis')).toHaveCount(1);
+  await expect(page.getByTestId('consensus')).toHaveCount(1);
+  await expect(page.getByTestId('forecast-reality')).toHaveCount(1);
   await context.close();
 });
 
@@ -237,9 +243,10 @@ for (const locale of ['en', 'x-rtl'] as const) {
     await expect(page).toHaveURL(/#pick$/);
     await expect(card.getByTestId('pick-control')).toBeInViewport();
     await expect(page.getByTestId('timeline')).toBeHidden();
-    await expect(page.locator('#forecast')).toBeVisible();
+    // The other predictions follow it (T-1744): the founder's analysis first.
+    await expect(page.locator('#predictions')).toBeVisible();
     const first = (await card.boundingBox())!;
-    const panel = (await page.locator('#forecast').boundingBox())!;
+    const panel = (await page.locator('#predictions').boundingBox())!;
     expect(first.y + first.height).toBeLessThanOrEqual(panel.y);
     // The Predictions tab is the same address while the pick is open.
     await expect(page.locator('[data-tab-link="predictions"]')).toHaveAttribute('href', '#pick');
@@ -255,9 +262,13 @@ test('a match that has kicked off has no pick bar, and its card is locked', asyn
   await page.goto(`/en/match/${PLAYED_MATCH}`);
   await expect(page.getByTestId('match-header')).toBeVisible();
   await expect(page.getByTestId('pick-bar')).toHaveCount(0);
-  const control = page.locator('#pick').getByTestId('pick-control');
-  await expect(control).toHaveAttribute('data-pick', 'locked');
-  await expect(control.getByRole('button', { disabled: true })).toHaveCount(3);
+  // From kick-off on the pick is one locked row, not three inert buttons (T-1744).
+  const row = page.locator('#pick').getByTestId('match-pick');
+  await expect(row).toHaveAttribute('data-product-row', '');
+  await expect(row).toHaveAttribute('data-state', 'locked');
+  await expect(row.getByTestId('pick-lock')).toBeVisible();
+  await expect(row.getByRole('button')).toHaveCount(0);
+  await expect(page.getByTestId('pick-control')).toHaveCount(0);
   // After kick-off the Predictions tab is the panel's again.
   await expect(page.locator('[data-tab-link="predictions"]')).toHaveAttribute(
     'href',

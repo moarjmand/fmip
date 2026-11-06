@@ -11,11 +11,13 @@ import { describe, expect, it } from 'vitest';
 import { EN } from '@/i18n/messages';
 import { matchWords } from '@/lib/words-server';
 import {
+  ForecastDetails,
   ForecastReality,
   cardVersion,
   leadTime,
   receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
+import { ForecastPanel } from './forecast-panel';
 import { MatchCentreView, ratingsOf } from './match-centre-view';
 import { Translated } from './translated';
 import { scoreDisputeHero } from './score-dispute';
@@ -134,7 +136,9 @@ describe('what was forecast, what happened (the Summary card)', () => {
     expect(html).toMatch(/data-happened="" class="text-accent">Aston Villa 21\.1% · happened/);
     expect(html).toMatch(/<span data-outcome="home" class="bg-accent"/);
     expect(html).toMatch(/<span data-outcome="away" class="bg-model\/25"/);
-    expect(html).toContain('The model gave what happened 21.1% before kick-off.');
+    // What happened against what the model gave it, in the card (T-1744).
+    expect(html).toContain('data-testid="forecast-reality-result"');
+    expect(html).toContain('The model gave it 21.1%.');
   });
 
   it('sets the model’s expected goals beside the match’s xG and the goals', () => {
@@ -187,6 +191,7 @@ describe('what was forecast, what happened (the Summary card)', () => {
 
   it('before kick-off shows the latest; with none, or no answer, says so (rule 3)', () => {
     expect(card('scheduled')).toContain('Model forecast');
+    expect(card('scheduled')).toMatch(/v3 computed 24 Oct, 12:03 UK time/);
     const none = { ...forecasts, latest: null, versions: [] };
     expect(card('scheduled', { forecasts: none })).toContain(EN['forecast.none']);
     expect(card('finished', { forecasts: none })).toContain(EN['forecastBar.noneBefore']);
@@ -262,6 +267,216 @@ describe('what was forecast, what happened (the Summary card)', () => {
 
   it('is the model’s card alone: no founder, no community', () => {
     expect(card('finished')).not.toMatch(/founder|community/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The forecast once on the page (T-1744, D-365)
+// ---------------------------------------------------------------------------
+
+describe('the forecast is drawn once: headline, details, and why (T-1744)', () => {
+  const details = (status: 'scheduled' | 'live' | 'finished', f = forecasts, locale = 'en') =>
+    renderToStaticMarkup(
+      <ForecastDetails
+        forecasts={f}
+        evaluations={null}
+        fixture={fixture(status)}
+        matchXg={null}
+        timeZone="Europe/London"
+        locale={locale}
+      />,
+    );
+  const factored: ForecastVersionsResponse = {
+    ...forecasts,
+    versions: versions.map((v) =>
+      v.version_number === 3
+        ? {
+            ...v,
+            leading_factors: [
+              { factor: 'team_strength', favours: 'away', magnitude: 0.4, note: 'n' },
+              { factor: 'home_advantage', favours: 'home', magnitude: 0.2, note: 'n' },
+            ],
+          }
+        : v,
+    ),
+  };
+  const scored: FixtureEvaluationsResponse = {
+    fixture_id: 'f1',
+    coverage: 'available',
+    last_updated_at: '2026-10-24T14:00:00.000Z',
+    evaluations: [
+      {
+        id: 'e1',
+        forecast_id: 'v3',
+        fixture_id: 'f1',
+        version_number: 3,
+        kind: 'lineups_confirmed',
+        model_version: 'dixon-coles-elo@0.6.0',
+        computed_at: '2026-10-24T11:03:00.000Z',
+        evaluated_at: '2026-10-24T14:00:00.000Z',
+        pre_kickoff: true,
+        actual: { home: 2, away: 1 },
+        outcome: 'home',
+        p_outcome: 0.211,
+        log_loss: 1.556,
+        brier: 0.977,
+        rps: 0.4577,
+        correct: false,
+        scoreline_hit: false,
+      },
+    ],
+  };
+  const how = (
+    f: ForecastVersionsResponse | null = factored,
+    e: FixtureEvaluationsResponse | null = scored,
+    locale = 'en',
+  ) =>
+    renderToStaticMarkup(
+      <ForecastPanel
+        forecasts={f}
+        evaluations={e}
+        about={f === null ? null : (f.versions.find((v) => v.version_number === 3) ?? null)}
+        home="Aston Villa"
+        away="Manchester City"
+        timeZone="Europe/London"
+        locale={locale}
+      />,
+    );
+
+  it('before kick-off the card is the headline: title, bar and one receipt line', () => {
+    const html = card('scheduled');
+    expect(html).toContain('data-part="headline"');
+    expect(html).toContain('Model forecast');
+    expect(html).toContain('data-testid="outcome-bar"');
+    expect(html.replace(/<[^>]+>/g, '')).toContain(
+      'dixon-coles-elo@0.6.0 · v3 computed 24 Oct, 12:03 UK time',
+    );
+    // The rest follows the pick, in the details card.
+    expect(html).not.toContain('data-testid="reality-goals"');
+    expect(html).not.toContain('data-testid="reality-scorelines"');
+    expect(html).not.toContain('data-testid="forecast-versions-list"');
+    expect(html).not.toContain('data-testid="receipt"');
+    expect(html).not.toContain('data-testid="forecast-why-link"');
+    expect(html).not.toContain('frozen at kick-off');
+  });
+
+  it('the details card holds the rest: nothing is removed, only reordered', () => {
+    const html = details('scheduled');
+    expect(html).toContain('data-testid="forecast-details"');
+    expect(html).toContain('Forecast details');
+    expect(html).toContain('data-testid="reality-goals"');
+    expect(html).toContain('data-testid="reality-scorelines"');
+    expect([...html.matchAll(/data-version="(\d)"/g)].map((m) => m[1])).toEqual(['1', '2', '3']);
+    expect(html.replace(/<[^>]+>/g, '')).toContain(
+      'dixon-coles-elo@0.6.0 · v3 computed 24 Oct, 12:03 UK time, 27 min before kick-off · Confirmed line-ups',
+    );
+    expect(html).toMatch(/href="#forecast"[^>]*data-testid="forecast-why-link"/);
+    // The bar is the headline's: drawn once.
+    expect(html).not.toContain('data-testid="outcome-bar"');
+    // Headline and details together draw the bar once and each version once.
+    const both = card('scheduled') + html;
+    expect(both.split('data-testid="outcome-bar"').length - 1).toBe(1);
+    expect(both.split('data-version="3"').length - 1).toBe(1);
+  });
+
+  it('there is no details card from kick-off on, nor when no version gave probabilities', () => {
+    expect(details('live')).toBe('');
+    expect(details('finished')).toBe('');
+    const none = { ...forecasts, latest: null, versions: [] };
+    expect(details('scheduled', none)).toBe('');
+    const unanswered = { ...forecasts, versions: [version(1, '2026-10-17T11:32:00.000Z', null)] };
+    expect(details('scheduled', unanswered)).toBe('');
+  });
+
+  it('from kick-off on the card is whole, says it is frozen, and links to why', () => {
+    for (const status of ['live', 'finished'] as const) {
+      const html = card(status);
+      expect(html).toContain('data-part="whole"');
+      expect(html).toContain('Pre-match forecast, frozen at kick-off.');
+      expect(html).toContain('data-testid="reality-goals"');
+      expect(html).toContain('data-testid="forecast-versions-list"');
+      expect(html).toContain('data-testid="receipt"');
+      expect(html).toMatch(/href="#forecast"[^>]*data-testid="forecast-why-link"/);
+    }
+    // The result sentence is full time's alone.
+    expect(card('live')).not.toContain('data-testid="forecast-reality-result"');
+  });
+
+  it('after full time carries the result sentence and the match’s RPS, from the stored evaluation', () => {
+    const html = card('finished', { evaluations: scored });
+    expect(html.replace(/<[^>]+>/g, '')).toContain(
+      'Result: ⁨Aston Villa⁩ win. The model gave it 21.1%. Ranked probability score for this match 0.458 (0 is perfect).',
+    );
+    expect(html).toContain('One match says little: the model&#x27;s record');
+    expect(html).toMatch(/<a [^>]*href="\/en\/model-accuracy"[^>]*>One match says little/);
+    // Not scored yet is said, never a number.
+    const unscored = card('finished');
+    expect(unscored).toContain(EN['forecast.verdict.unscored']);
+    expect(unscored).not.toContain('data-testid="forecast-reality-rps"');
+  });
+
+  it('the lower section says only why: no bar, no percentages, no version list of figures', () => {
+    const html = how();
+    expect(html).toContain('data-voice="model"');
+    expect(html).toContain('How the forecast was reached');
+    // One line points to the summary.
+    expect(html).toMatch(
+      /data-testid="forecast-pointer">The forecast and every version are in <a href="#summary"[^>]*>the summary<\/a>; this section only says why\./,
+    );
+    expect(html).toContain('data-testid="leading-factors"');
+    expect(html).toContain('favours Manchester City');
+    expect(html).toContain('data-testid="forecast-versions"');
+    // Nothing the summary's card draws is drawn again.
+    expect(html).not.toContain('data-testid="outcome-bar"');
+    expect(html).not.toContain('data-testid="probabilities"');
+    expect(html).not.toContain('data-testid="forecast-latest"');
+    expect(html).not.toContain('data-testid="forecast-meta"');
+    expect(html).not.toContain('bg-model');
+    for (const share of ['21.1%', '24.8%', '54.1%', '22.4%', '25.1%', '52.5%']) {
+      // The evaluation states what the scored version gave the outcome, once.
+      expect(html.split(share).length - 1, share).toBe(share === '21.1%' ? 1 : 0);
+    }
+    expect(html).not.toMatch(/Expected goals|Most likely scores/);
+  });
+
+  it('says the evaluation in plain words, and a verdict only where both scores agree', () => {
+    const worse = how();
+    expect(worse).toContain(
+      'Both numbers measure how much probability the model put on what really happened.',
+    );
+    expect(worse).toContain('data-against-uniform="worse"');
+    expect(worse).toContain('Here both are worse than knowing nothing.');
+    const evaluation = scored.evaluations[0];
+    if (evaluation === undefined) throw new Error('fixture');
+    const better = how(factored, {
+      ...scored,
+      evaluations: [{ ...evaluation, log_loss: 0.6, brier: 0.3 }],
+    });
+    expect(better).toContain('Here both are better than knowing nothing.');
+    // Log loss above the uniform line, Brier below it: no verdict is written.
+    const mixed = how(factored, {
+      ...scored,
+      evaluations: [{ ...evaluation, log_loss: 1.2, brier: 0.6 }],
+    });
+    expect(mixed).toContain('data-against-uniform="mixed"');
+    expect(mixed).not.toMatch(/Here both are/);
+  });
+
+  it('is not rendered when there is nothing to explain: the summary has said so once', () => {
+    expect(how(null, null)).toBe('');
+    const unanswered = {
+      ...forecasts,
+      versions: [{ ...version(3, '2026-10-24T11:03:00.000Z', null) }],
+    };
+    expect(how(unanswered, null)).toBe('');
+  });
+
+  it('says all of it in Persian', () => {
+    for (const html of [how(factored, scored, 'fa'), details('scheduled', forecasts, 'fa')]) {
+      expect(html).not.toContain('data-translation="untranslated"');
+    }
+    expect(how(factored, scored, 'fa')).toContain('پیش‌بینی چگونه به دست آمد');
+    expect(card('finished', { evaluations: scored, locale: 'fa' })).toContain('۰٫۴۵۸');
   });
 });
 

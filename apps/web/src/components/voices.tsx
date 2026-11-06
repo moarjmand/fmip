@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import { ProductRow } from '@/components/product-row';
 import { Translated } from '@/components/translated';
 import { cx } from '@/components/ui/cx';
 
@@ -26,6 +27,12 @@ import { cx } from '@/components/ui/cx';
  * little to spare, so its tag is an outline, never a tint. Server-component
  * safe (`useId` is the only hook). `ThreeProductsNote` is the footnote where
  * the three meet on one page.
+ *
+ * `row` (T-1744, D-365), on the founder's and the community's voices only:
+ * with nothing to show, the voice is one compact row (`ProductRow`) -- its
+ * own name line, the `empty` sentence, and the status handed in as `row`
+ * (an icon and a word) -- where its card would stand. The model's voice has
+ * no row: the model's forecast is the Summary's card.
  */
 
 const FRAME = 'flex flex-col gap-3 rounded-xl border border-default bg-surface p-4';
@@ -85,26 +92,57 @@ export function FounderVoice({
   locale,
   children,
   empty,
+  row,
+  testId,
+  state,
   className,
 }: {
   locale: string;
   children?: ReactNode;
   /** Why there is no analysis to show, in place of the content. */
   empty?: ReactNode;
+  /** With `empty`: one compact row, this status (an icon and a word) at its end. */
+  row?: ReactNode;
+  testId?: string;
+  /** The row's `data-state`, for the page's tests and styles. */
+  state?: string;
   className?: string;
 }) {
   const id = useId();
-  return (
-    <section aria-labelledby={id} className={cx(FRAME, className)} data-voice="founder">
-      <p
-        id={id}
-        className={cx(
-          'font-serif text-lg leading-snug text-founder italic',
-          '[:root:is(:lang(fa),:lang(ar))_&]:font-naskh [:root:is(:lang(fa),:lang(ar))_&]:not-italic',
-        )}
+  const name = (
+    <p
+      id={id}
+      className={cx(
+        'font-serif text-lg leading-snug text-founder italic',
+        '[:root:is(:lang(fa),:lang(ar))_&]:font-naskh [:root:is(:lang(fa),:lang(ar))_&]:not-italic',
+      )}
+    >
+      <Translated locale={locale} message="lanes.founder.title" />
+    </p>
+  );
+  if (empty !== undefined && row !== undefined) {
+    return (
+      <ProductRow
+        name={name}
+        status={row}
+        labelledBy={id}
+        voice="founder"
+        testId={testId}
+        state={state}
       >
-        <Translated locale={locale} message="lanes.founder.title" />
-      </p>
+        {empty}
+      </ProductRow>
+    );
+  }
+  return (
+    <section
+      aria-labelledby={id}
+      className={cx(FRAME, className)}
+      data-voice="founder"
+      data-testid={testId}
+      data-state={state}
+    >
+      {name}
       {empty !== undefined ? <Empty>{empty}</Empty> : children}
     </section>
   );
@@ -116,6 +154,9 @@ export function CommunityVoice({
   count,
   children,
   empty,
+  row,
+  testId,
+  state,
   className,
 }: {
   locale: string;
@@ -124,26 +165,54 @@ export function CommunityVoice({
   children?: ReactNode;
   /** Why there is no split to show, in place of the content. */
   empty?: ReactNode;
+  /** With `empty`: one compact row, this status (an icon and a word) at its end. */
+  row?: ReactNode;
+  testId?: string;
+  /** The row's `data-state`, for the page's tests and styles. */
+  state?: string;
   className?: string;
 }) {
   const id = useId();
-  return (
-    <section aria-labelledby={id} className={cx(FRAME, className)} data-voice="community">
-      <p
-        id={id}
-        className={cx(
-          'text-xs font-extrabold tracking-wider text-community uppercase',
-          '[:root:is(:lang(fa),:lang(ar))_&]:normal-case',
-        )}
+  const name = (
+    <p
+      id={id}
+      className={cx(
+        'text-xs font-extrabold tracking-wider text-community uppercase',
+        '[:root:is(:lang(fa),:lang(ar))_&]:normal-case',
+      )}
+    >
+      <Translated locale={locale} message="lanes.community.title" />
+      {count !== undefined && (
+        <>
+          {' · '}
+          <Translated locale={locale} message="lanes.community.picked" count={count} />
+        </>
+      )}
+    </p>
+  );
+  if (empty !== undefined && row !== undefined) {
+    return (
+      <ProductRow
+        name={name}
+        status={row}
+        labelledBy={id}
+        voice="community"
+        testId={testId}
+        state={state}
       >
-        <Translated locale={locale} message="lanes.community.title" />
-        {count !== undefined && (
-          <>
-            {' · '}
-            <Translated locale={locale} message="lanes.community.picked" count={count} />
-          </>
-        )}
-      </p>
+        {empty}
+      </ProductRow>
+    );
+  }
+  return (
+    <section
+      aria-labelledby={id}
+      className={cx(FRAME, className)}
+      data-voice="community"
+      data-testid={testId}
+      data-state={state}
+    >
+      {name}
       {empty !== undefined ? <Empty>{empty}</Empty> : children}
     </section>
   );
