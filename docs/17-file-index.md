@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2362), grouped by folder, with one line on
+Every file in the repository (2368), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -43,7 +43,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/admin`](#appsapisrcmodulesadmin) — 7
 - [`apps/api/src/modules/admin/internal`](#appsapisrcmodulesadmininternal) — 2
 - [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 4
-- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 10
+- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 12
 - [`apps/api/src/modules/analysis`](#appsapisrcmodulesanalysis) — 5
 - [`apps/api/src/modules/analysis/internal`](#appsapisrcmodulesanalysisinternal) — 1
 - [`apps/api/src/modules/ask`](#appsapisrcmodulesask) — 5
@@ -238,7 +238,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 18
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 20
 - [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 3
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
 - [`apps/web/src/app/console/(app)/agents/[name]/chat`](#appswebsrcappconsoleappagentsnamechat) — 1
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 34
+- [`docs`](#docs) — 32
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -275,10 +275,11 @@ machine, `docs/18-handover.md`.
 - [`packages/config/tests`](#packagesconfigtests) — 1
 - [`packages/config/tsconfig`](#packagesconfigtsconfig) — 4
 - [`packages/console-publisher`](#packagesconsole-publisher) — 5
-- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 9
+- [`packages/console-publisher/fixtures`](#packagesconsole-publisherfixtures) — 1
+- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 11
 - [`packages/contracts`](#packagescontracts) — 6
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
-- [`packages/contracts/src`](#packagescontractssrc) — 73
+- [`packages/contracts/src`](#packagescontractssrc) — 74
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
 - [`packages/db/migrations`](#packagesdbmigrations) — 179
@@ -633,6 +634,8 @@ machine, `docs/18-handover.md`.
 | `console-rules.ts` | The agents console's rules (T-1696, T-1697, D-340), pure so they are tested without a database: the session cookie, the lock after wrong passwords, the snapshot's shape and what is withheld from it, and what a command o… |
 | `console-store.ts` | A `console_audit` row, inside the change's own transaction (rule 10). |
 | `image-body.ts` | The raw body of a picture upload (T-1731, D-357). |
+| `model-lab-rules.spec.ts` | The model lab's ledger at the server's edge (T-1752, D-371): a ledger that is not one is dropped whole, an entry the console cannot name is dropped, and nothing is repaired -- a figure that is not a number is null. |
+| `model-lab-rules.ts` | The model lab's ledger as it arrives inside a snapshot (T-1752, D-371), checked at the server's edge, pure. |
 | `request-image-files.ts` | Where the teammate requests' pictures are kept (T-1731, D-357): the media volume (`MEDIA_DIR`, T-1320), under `console-requests/<request>/`, as `<image>.webp` and `<image>-thumb.webp`. |
 | `request-images.spec.ts` | Pictures on the teammate requests (T-1731, D-357): the first bytes decide the type, the decoder must agree, and what is stored is a WebP with no metadata, the long side at most 2400 px, plus a 480 px thumbnail. |
 | `request-images.ts` | Pictures on the teammate requests (T-1731, D-357): what an upload may be, and the re-encoding that makes the stored file. |
@@ -801,7 +804,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `console-model.controller.ts` | The agents console's forecast-model page (T-1729, D-355): read-only, a console session required, the same refusal as the console's own routes. |
-| `console-model.http.spec.ts` | T-1729 against the real schema: `GET /console/model` refuses without a console session, names the versions the model service runs, and computes the published version's record, calibration, trend and competitions, and th… |
+| `console-model.http.spec.ts` | T-1729 and T-1752 against the real schema: `GET /console/model` refuses without a console session, names the versions the model service runs, and computes every version's record, calibration, trend and competitions, the… |
 | `console-model.module.ts` | The agents console's forecast-model page (T-1729, D-355), apart from the console's own module so that the console's command-line tool, which imports that module, does not need the model service. |
 
 ## apps/api/src/modules/conversations
@@ -944,7 +947,7 @@ machine, `docs/18-handover.md`.
 | `candidate-records.spec.ts` | Tests for `candidate-records`. |
 | `candidates.controller.ts` | The candidates' shadow records for the console (T-1103, D-140): read-only, administrators only (a member gets `forbidden`, D-108). |
 | `candidates.store.spec.ts` | T-1103 against the real schema: each candidate's pre-kick-off record and its pairs with the published version, from the stored evaluations. |
-| `console-model.spec.ts` | The console's model page (T-1729, D-355): the intervals are the model watch's, competitions rank best first with the thin ones after, and a candidate's comparison stays a count until D-336's thresholds (T-1720). |
+| `console-model.spec.ts` | The console's model page (T-1729, D-355): the intervals are the model watch's, competitions rank best first with the thin ones after, and a candidate's comparison is a count, whatever it has reached (T-1720, D-371). |
 | `evaluation.controller.ts` | Evaluations are read by anyone; running one is an operator action over HTTP (the result-ingestion job of E2 will call the service directly). |
 | `evaluation.http.spec.ts` | Runs statements in one transaction so trigger toggles never leak to another suite. |
 | `evaluation.service.ts` | Post-match evaluation (T-066): once a fixture has a full-time score, every available forecast version is scored against it, once, immutably. |
@@ -979,7 +982,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `candidate-records.ts` | Every candidate's shadow record (T-1103): each model version with stored shadow forecasts, and each the model service offers now even before its first forecast (a count of zero, never absent). |
-| `console-model.ts` | The console's model page (T-1729, D-355), as pure arithmetic over the rows `PostgresEvaluationStore` reads. |
+| `console-model.ts` | The console's model page (T-1729, D-355; every version, T-1752, D-371), as pure arithmetic over the rows `PostgresEvaluationStore` reads. |
 | `evaluation-store.ts` | SQL for the evaluation side of the forecast boundary (D-025). |
 | `forecast-store.ts` | What the store needs to know about a fixture to ask the model. |
 | `forecast-triggers.ts` | When a forecast version is due (T-120, blueprint 6.4). |
@@ -2647,10 +2650,12 @@ machine, `docs/18-handover.md`.
 | `console-persian.spec.tsx` | The console is Persian only (T-1725, D-352), and each agent page draws how the agent works. |
 | `console.spec.tsx` | The agents console's web side (T-1698, D-340): served on its own host only, its cookie read back from the API's, and an open security finding shown without its detail. |
 | `layout.tsx` | The agents console's root (D-340): its own `<html>`, apart from the site's `[locale]` layout. |
-| `model-charts.tsx` | The console's model charts (T-1729, D-355): server-rendered SVG, no client code and no library, as the schematic (D-352). |
-| `model-notes.ts` | What each forecast-model version is made of, in Persian (T-1729, D-355): the console's model page reads the versions and the figures from the API, and their make-up from here, written from the version files in `apps/mod… |
-| `model-page.spec.tsx` | The console's forecast-model page (T-1729, D-355): each section on a report shaped like the weekly watch's, then the states with too little to show -- nothing published, a version just promoted -- and a candidate whose… |
-| `model-report.fixture.ts` | A stand-in `GET /console/model` answer for the console's model page specs and its local screenshots (T-1729), shaped on the model scientist's weekly report of 2026-11-02: 0.6.0 on 1,831 matches (log loss 0.9538, Brier 0… |
+| `model-charts.tsx` | The console's model charts (T-1729, D-355; every version, T-1752, D-371): server-rendered SVG, no client code and no library, as the schematic (D-352). |
+| `model-ledger.tsx` | The model lab's ledger on the console (T-1752, D-371): everything ever tested, as the snapshot carries it from the model scientist's file. |
+| `model-notes.ts` | What each forecast-model version is made of, in Persian (T-1729, D-355; every version, T-1752, D-371): the console's model page reads the figures from the API and the make-up from here, written from the version files in… |
+| `model-page.spec.tsx` | The console's forecast-model page (T-1729, D-355; every version, T-1752, D-371): each section on the API's real answer of 2026-11-06, then the states with too little to show -- nothing published, a version just promoted… |
+| `model-report.fixture.ts` | Stand-in answers for the console's model page (T-1729; every version, T-1752): `MODEL_REPORT` is `GET /console/model` as the API of this branch answered it on 2026-11-06 over a read-only copy of production's forecasts a… |
+| `model-schematic.tsx` | The forecast model as a drawing (T-1752, D-371), server-rendered SVG as the agent schematic (D-352): what goes in, with what the store holds of it now; the steps of one forecast; what comes out; and, apart in a dashed b… |
 | `not-found.tsx` | A console page that is not there (T-1725, D-352): an agent the snapshot does not have, or a path the console does not know. |
 | `request-images.spec.tsx` | Pictures on the teammate requests (T-1731, D-357), as the console draws them: the attachment zone's ways in and its states, the waiting strip with progress, a card's thumbnails and the lightbox; Persian throughout, side… |
 | `request-images.tsx` | Pictures on the teammate requests (T-1731, D-357), the console's only client code besides its form: an attachment zone with several ways in (choose files, drag and drop onto the zone or the card, paste anywhere in the f… |
@@ -2708,7 +2713,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `page.tsx` | The forecast model, simply and exactly (T-1729, D-355): what the published version is and what it reads, what is in shadow, and how accurate the published version is now -- every figure from `GET /console/model`, with i… |
+| `page.tsx` | The forecast model, in full (T-1729, D-355; rebuilt T-1752, D-371): what is on the site and how good it is now, what the model is made of and what each version changed, every version's record, how versions are compared… |
 
 ## apps/web/src/app/console/(app)/reports
 
@@ -3486,8 +3491,6 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
 | `04-tasks-phase-3.md` | Phase 3 — Community |
@@ -3565,6 +3568,12 @@ machine, `docs/18-handover.md`.
 | `tsconfig.json` | TypeScript compiler settings. |
 | `vitest.config.mts` | Vitest configuration. |
 
+## packages/console-publisher/fixtures
+
+| File | What it is |
+|---|---|
+| `model-lab-ledger.json` | JSON data or settings. |
+
 ## packages/console-publisher/src
 
 | File | What it is |
@@ -3573,6 +3582,8 @@ machine, `docs/18-handover.md`.
 | `chat.ts` | The chat with the agents, on the maintainer's computer (T-1722, D-350): the pure part. |
 | `flow.spec.ts` | The console's schematic data (T-1725, D-352), from an agent's file, its skill and the charter. |
 | `flow.ts` | How each agent works, for the console's schematic (T-1725, D-352): pure functions over the agent's file, its skill and the team charter, so every box the console draws is something those files say. |
+| `lab.spec.ts` | The model lab's ledger file, checked on the computer (T-1752, D-371): an entry with any problem is left out and counted, each problem is named with its entry, and a file that is not a ledger publishes none. |
+| `lab.ts` | The model lab's ledger, read on the maintainer's computer (T-1752, D-371): `E:/FMIP/ops/model/ledger.json`, kept by the model scientist, is checked here and carried to the console inside the snapshot. |
 | `publish.ts` | The agents console's publisher, on the maintainer's computer (T-1699, D-340). |
 | `requests.spec.ts` | Tests for `requests`. |
 | `requests.ts` | Teammate requests on the maintainer's computer (T-1728, D-354): the pure part. |
@@ -3622,9 +3633,10 @@ machine, `docs/18-handover.md`.
 | `confederation.spec.ts` | Tests for `confederation`. |
 | `confederation.ts` | Football's six confederations (T-1643, D-301): which one a competition belongs to, so the header's competitions menu can file it by region. |
 | `consensus.ts` | Community consensus (blueprint 6.6, T-134). |
+| `console-model-lab.ts` | The model lab's ledger (T-1752, D-371): everything ever tested on the forecast model -- an input, a set of constants, a whole version -- with why it was tried, on what data, the measured effect, the verdict and the deci… |
 | `console-model.ts` | The agents console's forecast-model page (T-1729, D-355): what the published model version is, what is in shadow, and how accurate the published version is now -- every figure from the stored pre-kick-off evaluations (T… |
 | `console-requests.ts` | The teammate requests' runtime constants (T-1728, D-354; pictures T-1731, D-357), on the console's entry point only (`./console`). |
-| `console.ts` | The agents console's runtime constants (T-1728, T-1729), on their own entry point `@fmip/contracts/console`: the main barrel is in every public page's first-load bundle, and these are only the console's (the match centr… |
+| `console.ts` | The agents console's runtime constants (T-1728, T-1729, T-1752), on their own entry point `@fmip/contracts/console`: the main barrel is in every public page's first-load bundle, and these are only the console's (the mat… |
 | `contributor.ts` | Approval to post on a public match panel (blueprint 9.4 and 10.2, T-250). |
 | `conversations.ts` | Conversations (blueprint 8.3, T-220). **Order is a sequence, not a time.** Every message carries `seq`, unique and increasing within its conversation, and every question a client asks about order is asked in those terms. |
 | `coverage.spec.ts` | Tests for `coverage`. |

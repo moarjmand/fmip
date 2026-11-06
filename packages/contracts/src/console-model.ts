@@ -36,11 +36,28 @@ export interface ConsoleModelRecord {
   /** Null with no match. */
   log_loss: ConsoleModelEstimate | null;
   brier: ConsoleModelEstimate | null;
+  /** The ranked probability score (D-187): lower is better. */
+  rps: ConsoleModelEstimate | null;
+  /**
+   * What a one-third guess scores in RPS on these same results: it depends
+   * on how many of them were draws, so it is the sample's own, not a constant.
+   */
+  uniform_rps: number | null;
   /** Share of matches whose most probable outcome happened. */
   accuracy: ConsoleModelEstimate | null;
   /** The first and last kick-off counted: the window the figures are over. */
   first_kickoff_at: string | null;
   last_kickoff_at: string | null;
+  /**
+   * How many of `matches` were forecast with `limited` data (rule 3: the
+   * model said so itself); null where it is not counted.
+   */
+  limited: number | null;
+  /**
+   * The median time from the counted forecast to kick-off, in hours: two
+   * records made at very different lead times are not like for like.
+   */
+  median_lead_hours: number | null;
 }
 
 export type ConsoleModelOutcome = 'home' | 'draw' | 'away';
@@ -60,17 +77,145 @@ export interface ConsoleModelCalibrationBand {
   seen: ConsoleModelEstimate;
 }
 
-/** The published version's record in one competition. */
+/** One version's record in one competition. */
 export interface ConsoleModelCompetition {
   competition: { id: string; name: string };
   record: ConsoleModelRecord;
 }
 
 /**
- * A shadow version against the published one (D-082, D-140, D-336). Below
- * a count, only the count is given (D-336's amendment, T-1720: one look per
- * condition, taken by the weekly watch); the figures appear once it is
- * reached, and are never a verdict.
+ * What a version is now (T-1752, D-371): the one on the site, one the model
+ * service runs in shadow (or, the service silent, one that stored a shadow
+ * forecast in the last week), or neither any more.
+ */
+export type ConsoleModelVersionState = 'published_now' | 'shadow_now' | 'earlier';
+
+/** What a version stored in one role, counted as forecasts, not matches. */
+export interface ConsoleModelVersionCounts {
+  /** Forecasts with probabilities. */
+  forecasts: number;
+  /** Computed before kick-off and scored against the result. */
+  evaluated: number;
+  /** Computed before kick-off, not scored yet: the match is not over, or not settled. */
+  awaiting: number;
+  /** Computed after kick-off: stored, never counted in any figure. */
+  after_kickoff: number;
+  /** Refusals: the version said it could not forecast the match. */
+  unavailable: number;
+}
+
+/**
+ * One model version in one role (T-1752, D-371): everything it stored and
+ * what that scored, each match once by its last forecast before kick-off
+ * (D-209). A version that was in shadow and then published is two of these.
+ */
+export interface ConsoleModelVersion {
+  model_version: string;
+  role: 'published' | 'shadow';
+  state: ConsoleModelVersionState;
+  first_forecast_at: string | null;
+  last_forecast_at: string | null;
+  counts: ConsoleModelVersionCounts;
+  record: ConsoleModelRecord;
+  calibration: ConsoleModelCalibrationBand[];
+  /** By ISO week of kick-off (the console's accuracy series, T-1369), oldest first. */
+  trend: AccuracyPoint[];
+  /**
+   * Ordered by log loss, best first; `limited` ones last. For a version in
+   * shadow now each row is its count alone, by name: its new divisions' rows
+   * would add up to the very figure D-336 judges once.
+   */
+  competitions: ConsoleModelCompetition[];
+}
+
+/** One side of a comparison, on the shared matches only. */
+export interface ConsoleModelPairSide {
+  log_loss: number;
+  brier: number;
+  rps: number;
+  accuracy: number;
+}
+
+/** A comparison's figures: each side on the same matches, and the paired difference. */
+export interface ConsoleModelPairFigures {
+  subject: ConsoleModelPairSide;
+  reference: ConsoleModelPairSide;
+  /** Subject minus reference in log loss, per match, with its interval; negative is better. */
+  difference: ConsoleModelEstimate;
+}
+
+/**
+ * Two versions on the same matches (T-1752, D-371): a pair is a fixture both
+ * scored before kick-off, each side by its last such forecast. `judging` is
+ * a pair with a version in shadow now: its figures are never given here,
+ * overall or per competition, only the counts toward its promotion rule's
+ * 300 (D-082, D-139, D-336 and its one look); the verdict is the ledger's.
+ * A `record` pair is history whose verdict was taken long ago; it shows
+ * figures from `minimum_matches` on.
+ */
+export interface ConsoleModelComparison {
+  subject: { model_version: string; role: 'published' | 'shadow' };
+  reference: { model_version: string; role: 'published' | 'shadow' };
+  kind: 'judging' | 'record';
+  matches: number;
+  /** Matches on which both gave exactly the same three probabilities. */
+  identical: number;
+  /** `record`: the count below which `figures` is null. `judging`: the count its verdict needs. */
+  minimum: number;
+  /** Always null for `judging`. */
+  figures: ConsoleModelPairFigures | null;
+  /** By shared matches, most first. Figures only where the pair has them and the competition has `minimum_matches`. */
+  competitions: {
+    competition: { id: string; name: string };
+    matches: number;
+    identical: number;
+    figures: ConsoleModelPairFigures | null;
+  }[];
+}
+
+/** The inputs a version can read, as data in the store (T-1752). */
+export const CONSOLE_MODEL_INPUT_KEYS = [
+  'results',
+  'own_elo',
+  'cross_league',
+  'expected_goals',
+  'lineups',
+  'absences',
+] as const;
+export type ConsoleModelInputKey = (typeof CONSOLE_MODEL_INPUT_KEYS)[number];
+
+/**
+ * How much of one input the store holds now and how fresh it is (rules 3
+ * and 4): counted, never estimated. `share` is the part of `of` that has
+ * the input, where that is the honest way to state its coverage.
+ */
+export interface ConsoleModelInputState {
+  key: ConsoleModelInputKey;
+  coverage: CoverageState;
+  /** Rows of the input: matches with a result, ratings, matches with xG, ... */
+  count: number;
+  /** What `count` is a part of (e.g. finished matches in the fit window), or null. */
+  of: number | null;
+  /** How many divisions or competitions it spans, or null where that is not counted. */
+  groups: number | null;
+  /**
+   * Of those, how many the site has finished matches for played more than
+   * three days after the store's newest result: where the input runs behind
+   * the matches played. Null where that is not counted.
+   */
+  late_groups: number | null;
+  /** The newest row's own time (a kick-off, a rating date). */
+  newest_at: string | null;
+}
+
+/**
+ * A shadow version against the published one (D-082, D-140, D-336): how far
+ * each of its promotion conditions' counts has come, and nothing else.
+ * D-336's amendment (T-1720) gives each condition one look, taken by the
+ * weekly watch; a page that recomputed the figures on every visit would be
+ * a look on every visit, so this answer never carries them (T-1752, D-371).
+ * The verdict, with the figures of the day it was taken, is the model lab
+ * ledger's (`ConsoleModelLab.judgements`).
  */
 export interface ConsoleModelCandidate {
   model_version: string;
@@ -85,22 +230,9 @@ export interface ConsoleModelCandidate {
     matches: number;
     /** Matches on which both forecast exactly the same. */
     identical: number;
-    /** Null below `CONSOLE_MODEL_PAIRED_MINIMUM`. */
-    figures: {
-      published_log_loss: number;
-      candidate_log_loss: number;
-      published_brier: number;
-      candidate_brier: number;
-      /** Candidate minus published; negative is better. */
-      difference: ConsoleModelEstimate;
-    } | null;
   };
   /** Matches it forecast that no published version did (its new divisions). */
-  new_divisions: {
-    matches: number;
-    /** Null below `CONSOLE_MODEL_NEW_DIVISIONS_MINIMUM`. */
-    log_loss: ConsoleModelEstimate | null;
-  };
+  new_divisions: { matches: number };
 }
 
 /** `GET /console/model` (T-1729). */
@@ -113,16 +245,27 @@ export interface ConsoleModelReport {
     /** Its first stored published forecast. */
     since: string | null;
     record: ConsoleModelRecord;
+    /**
+     * Finished matches since then, in the competitions it has forecast, and
+     * how many of them no published forecast was scored for (a refusal, or
+     * none made in time): what the record does not cover. Null when not counted.
+     */
+    unscored: { finished: number; without: number } | null;
   } | null;
   reference: AccuracyReference;
   /** A competition row below this many matches is `limited` and shows its count only. */
   minimum_matches: number;
-  calibration: ConsoleModelCalibrationBand[];
-  /** The published version by ISO week (the console's accuracy series, T-1369), oldest first. */
-  trend: AccuracyPoint[];
-  /** Ordered by log loss, best first; `limited` and empty ones last. */
-  competitions: ConsoleModelCompetition[];
+  /**
+   * Every version that stored a forecast, in each role (T-1752): the one on
+   * the site first, then those in shadow now, then the earlier ones, newest
+   * first. Calibration, trend and competitions are each version's own.
+   */
+  versions: ConsoleModelVersion[];
+  /** Every two of them that scored the same matches, the pair with a shadow version now first. */
+  comparisons: ConsoleModelComparison[];
   candidates: ConsoleModelCandidate[];
+  /** What the store holds of each input now; empty when it could not be counted. */
+  inputs: ConsoleModelInputState[];
   last_updated_at: string | null;
   generated_at: string;
 }
