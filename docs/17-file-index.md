@@ -36,7 +36,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/backtest`](#appsapibacktest) — 22
 - [`apps/api/scripts`](#appsapiscripts) — 3
 - [`apps/api/src`](#appsapisrc) — 4
-- [`apps/api/src/cli`](#appsapisrccli) — 9
+- [`apps/api/src/cli`](#appsapisrccli) — 11
 - [`apps/api/src/database`](#appsapisrcdatabase) — 3
 - [`apps/api/src/modules/activity`](#appsapisrcmodulesactivity) — 4
 - [`apps/api/src/modules/activity/internal`](#appsapisrcmodulesactivityinternal) — 3
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 36
+- [`docs`](#docs) — 34
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -565,6 +565,8 @@ machine, `docs/18-handover.md`.
 | `agents-console.ts` | The agents console's server side that has no route (T-1696, T-1697, D-340), from a terminal on the server or over `ssh fmip-prod`: docker compose exec -T api node dist/cli/agents-console.js invite --name "Mostafa" ... l… |
 | `backfill.spec.ts` | T-502: the season backfill from the server's terminal names an administrator and a reason, exactly as the admin page asks for them, before anything runs. |
 | `backfill.ts` | The season backfill (T-030) from a terminal on the server (T-502). docker compose run --rm -T api node dist/cli/backfill.js \ --by you@your-domain --reason "six new leagues added" `--season 2025/26` reads that season in… |
+| `leave.spec.ts` | A pipe that takes its time: each chunk is handed over a tick later. |
+| `leave.ts` | Leaving a command-line tool once what it printed has been handed over (T-1754). |
 | `person-link-sample.spec.ts` | T-1006: the precision sample's arguments and sheet, and the switch it gates. |
 | `person-link-sample.ts` | The precision sample for linking persons to stories (T-1006, D-126). docker compose run --rm -T api node dist/cli/person-link-sample.js --size 300 Reads a random sample of stored articles that link a team and prints, on… |
 | `review-ended-seasons.spec.ts` | T-1662: ended seasons' findings are reviewed from the server's terminal only with an administrator and a reason, every check or one, and a dry run marks nothing. |
@@ -3475,8 +3477,6 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
 | `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
