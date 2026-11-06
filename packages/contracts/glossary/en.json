@@ -144,11 +144,6 @@
     "source": "score",
     "locked": false
   },
-  "term.scoreline": {
-    "kind": "term",
-    "source": "scoreline",
-    "locked": false
-  },
   "term.scorer": {
     "kind": "term",
     "source": "scorer",
