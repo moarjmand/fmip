@@ -172,14 +172,14 @@ test('the match centre opens every section from 768px, a main and a side column,
   for (const id of ['timeline', 'lineups', 'analysis', 'community', 'watch']) {
     await expect(page.locator(`#${id}`)).toBeVisible();
   }
-  // "No forecast" is said once (T-1746, D-367): when the Summary's card has
-  // said the match has no forecast, and there is no Power Index either, no
-  // lower section says it again; otherwise the section is there.
-  const card = page.getByTestId('forecast-reality');
-  await expect(card).toBeVisible();
-  const none = (await card.getAttribute('data-state')) === 'none';
-  if (!none) await expect(page.locator('#forecast')).toBeVisible();
-  else await expect(page.locator('#forecast')).toHaveCount(0);
+  // "No forecast" is said once (T-1746, D-367): only when the Summary's card
+  // has said the match has no forecast and no Power Index either
+  // (`forecast-reality-no-power`) is there no lower section to say it again;
+  // otherwise the section is there, with the Power Index at least.
+  await expect(page.getByTestId('forecast-reality')).toBeVisible();
+  const saidBoth = (await page.getByTestId('forecast-reality-no-power').count()) > 0;
+  if (saidBoth) await expect(page.locator('#forecast')).toHaveCount(0);
+  else await expect(page.locator('#forecast')).toBeVisible();
   // Two columns at 1280px: the side column (the past meetings, the data
   // footer) beside the main one.
   const main = await page.locator('[data-column="main"]').boundingBox();
