@@ -369,6 +369,11 @@ export const MATCH_KEYS = [
   'matchCentre.fixtureTitle',
   // The compact score bar (T-1742): "Everton v Coventry" before kick-off.
   'home.versus',
+  // The phone's freshness line and its details (T-1743).
+  'matchCentre.freshness.checked',
+  'matchCentre.freshness.stale',
+  'matchCentre.freshness.details',
+  'matchCentre.kickoffIn',
   'matchCentre.shootout',
   'matchCentre.shootoutKick',
   'matchCentre.noEventsYet',

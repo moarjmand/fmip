@@ -8282,6 +8282,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "match.follow.short": {
+    "source": "Follow",
+    "text": "دنبال کردن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
+  },
   "match.follow.unreachable": {
     "source": "Whether you follow this match cannot be checked right now.",
     "text": "اکنون نمی‌توان بررسی کرد که این بازی را دنبال می‌کنید یا نه.",
@@ -9163,6 +9169,30 @@
     "text": "آخرین بررسی داده‌ها {time}؛ بدون تغییر از {changed}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.freshness.checked": {
+    "source": "Data checked {time}",
+    "text": "آخرین بررسی داده‌ها {time}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
+  },
+  "matchCentre.freshness.stale": {
+    "source": "Data may be out of date, last checked {time}",
+    "text": "داده‌ها شاید به‌روز نباشند؛ آخرین بررسی {time}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
+  },
+  "matchCentre.freshness.details": {
+    "source": "Details",
+    "text": "جزئیات",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
+  },
+  "matchCentre.kickoffIn": {
+    "source": "Kick-off {time} {zone}",
+    "text": "شروع بازی {time} {zone}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 2 mockups' proposal (D-364); not yet reviewed by a translator."
   },
   "matchCentre.onThisPage": {
     "source": "On this page",

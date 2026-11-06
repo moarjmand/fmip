@@ -16,6 +16,7 @@ const MAN_UTD = '00000000-0000-4000-8000-000000000601';
 const SALAH = '00000000-0000-4000-8000-000000000701';
 const PREMIER_LEAGUE = '00000000-0000-4000-8000-000000000201';
 const PLAYED_MATCH = '00000000-0000-4000-8000-000000000901';
+const OPEN_MATCH = '00000000-0000-4000-8000-000000000902';
 
 const PAGES = [
   // The Overview opens on the next match card since T-1499; the club's
@@ -57,8 +58,10 @@ for (const width of [1280, 360]) {
 test.describe('the match centre at 360px', () => {
   test.use({ viewport: { width: 360, height: 800 } });
 
-  test('gives Share, the follow line and the sides 44px targets', async ({ page }) => {
-    await page.goto(`/en/match/${PLAYED_MATCH}`);
+  test('gives Share, the follow link and the sides 44px targets', async ({ page }) => {
+    // A match still to come: a guest is offered Follow only while there is
+    // something to follow (T-1743).
+    await page.goto(`/en/match/${OPEN_MATCH}`);
     const header = page.getByTestId('match-header');
     await expect(header).toBeVisible();
     const targets = [
@@ -66,11 +69,24 @@ test.describe('the match centre at 360px', () => {
       page.getByTestId('match-follow-guest').getByRole('link'),
       header.getByTestId('home-team').getByRole('link'),
       header.getByTestId('away-team').getByRole('link'),
+      // The phone's short top block (T-1743): the competition and "Details".
+      header.getByTestId('competition-link'),
+      header.getByTestId('freshness-line'),
     ];
     for (const target of targets) {
       const box = await target.first().boundingBox();
       expect(box).not.toBeNull();
       expect(box!.height).toBeGreaterThanOrEqual(44);
     }
+    // One row for back, the zone, Share and Follow.
+    const tools = await page.getByTestId('match-tools').boundingBox();
+    expect(tools?.height).toBe(44);
+  });
+
+  test('offers a guest no Follow on a match that is over', async ({ page }) => {
+    await page.goto(`/en/match/${PLAYED_MATCH}`);
+    await expect(page.getByTestId('match-header')).toBeVisible();
+    await expect(page.getByTestId('share')).toBeVisible();
+    await expect(page.getByTestId('match-follow-guest')).toHaveCount(0);
   });
 });

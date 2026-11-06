@@ -264,3 +264,44 @@ test('a match that has kicked off has no pick bar, and its card is locked', asyn
     '#predictions',
   );
 });
+
+// T-1743 (D-364, board P2-4): before kick-off the phone's top block -- the
+// tools row, the band and the tabs -- is short enough for the forecast and
+// the pick to start on the first screen. 264px as drawn; the bound leaves
+// room for a competition line that wraps.
+for (const locale of ['en', 'fa'] as const) {
+  test(`/${locale}: the phone’s top block before kick-off is one row, a short band and the tabs`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 375, height: 812 },
+      javaScriptEnabled: false,
+    });
+    const page = await context.newPage();
+    await page.goto(`/${locale}/match/${OPEN_MATCH}`);
+    const tools = (await page.getByTestId('match-tools').boundingBox())!;
+    const nav = (await page.getByTestId('section-nav').boundingBox())!;
+    expect(tools.height).toBe(44);
+    expect(nav.y + nav.height - tools.y).toBeLessThanOrEqual(300);
+    // Follow is the row's last word, and leads to sign-in with the way back.
+    await expect(page.getByTestId('match-follow-guest').getByRole('link')).toHaveAttribute(
+      'href',
+      `/${locale}/login?next=${encodeURIComponent(`/${locale}/match/${OPEN_MATCH}`)}`,
+    );
+    // One freshness line, a reading and no counter; the stream is not named.
+    const line = page.getByTestId('freshness-line');
+    await expect(line).toBeVisible();
+    await expect(line).toHaveAttribute('data-freshness', 'current');
+    await expect(page.getByTestId('live-state')).toHaveCount(0);
+    // The rest is behind a native disclosure, which opens without a script.
+    const facts = page.getByTestId('freshness-facts');
+    await expect(facts).toBeHidden();
+    await line.click();
+    await expect(facts).toBeVisible();
+    await expect(facts.getByRole('listitem').first()).toBeVisible();
+    // From 768px the facts row stands in the band; on a phone it is not drawn.
+    await expect(page.getByTestId('last-update')).toBeHidden();
+    expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+    await context.close();
+  });
+}

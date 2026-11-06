@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import { cache } from 'react';
-import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { interpolate, message, t } from '@/i18n/messages';
+import { interpolate, t } from '@/i18n/messages';
 import { ForecastPanel, ModelVerdict } from '@/components/forecast-panel';
 import { ForecastReality } from './forecast-reality';
 import { MatchPickCard, PickBar } from './match-pick';
@@ -23,11 +22,11 @@ import { LiveMatch } from '@/components/live-match';
 import { DataCard, VerdictCard } from '@/components/match-centre-cards';
 import { Coverage, HeadToHead, MatchForm } from '@/components/match-record';
 import { MatchFollow } from '@/components/match-follow';
+import { MatchToolsRow } from '@/components/match-tools-row';
 import { MatchPanel } from '@/components/match-panel';
 import { linkChoices } from '@/lib/panel-link';
 import { MatchSummaryPanel } from '@/components/match-summary';
 import { PowerIndexPanel } from '@/components/power-index-panel';
-import { ShareLink } from '@/components/share-link';
 import { MatchThreads } from '@/components/match-threads';
 import { RelatedNews } from '@/components/related-news';
 import { VenueCard } from '@/components/venue-card';
@@ -64,7 +63,6 @@ import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery } from '@/lib/viewing';
 import { matchWords } from '@/lib/words-server';
 import { stageAndRoundLabels } from '@/lib/stage-label';
-import { FilledMessage } from '@/components/filled-message';
 import { Translated } from '@/components/translated';
 import { scoreDisputeHero } from '@/components/score-dispute';
 import { Notice } from '@/components/ui';
@@ -247,68 +245,65 @@ export default async function MatchPage({
       : null;
   const words = matchWords(locale);
   const now = new Date().getTime();
+  // "Everton v Coventry": the share sheet's title and the push offer's name.
+  const fixtureTitle =
+    fixture === null
+      ? null
+      : interpolate(t(resolved, 'matchCentre.fixtureTitle'), {
+          home: fixture.home.name,
+          away: fixture.away.name,
+        });
 
   return (
     // A data page (D-198): the stage, following Day and Night; the header and
     // the live strip above it are the layout's and stay as they are (T-1384).
     <main className="min-h-dvh bg-stage pb-8">
-      <div className="page-frame flex flex-col gap-4 pt-2 md:gap-5 md:pt-4">
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <Link href={`/${locale}/scores`} className="inline-flex min-h-11 items-center underline">
-            <Translated locale={locale} message="matchCentre.back" />
-          </Link>
-          <span className="text-muted" data-testid="timezone">
-            <FilledMessage
-              message={message(resolved, 'scores.timesIn')}
-              params={{ zone: timeZone, zoneName: zoneWords(locale, timeZone) }}
+      {/* On a phone the tools row, the band and the tabs follow each other
+          with no gap (T-1743, D-364): the first screen is for the forecast
+          and the pick. */}
+      <div className="page-frame flex flex-col md:gap-5 md:pt-4">
+        {/* One row: back, the zone, Share and Follow (T-1743). */}
+        <MatchToolsRow
+          locale={locale}
+          timeZone={timeZone}
+          share={
+            fixtureTitle === null || fixture === null
+              ? null
+              : { url: canonicalUrl(locale, `/match/${fixture.id}`), title: fixtureTitle }
+          }
+        >
+          {fixture !== null && fixtureTitle !== null && (
+            <MatchFollow
+              locale={locale}
+              fixtureId={fixture.id}
+              name={fixtureTitle}
+              status={fixture.status}
+              signedIn={me !== null}
+              following={following}
             />
-          </span>
-          {result.ok && (
-            <span>
-              <ShareLink
-                url={canonicalUrl(locale, `/match/${result.data.fixture.id}`)}
-                title={interpolate(t(resolved, 'matchCentre.fixtureTitle'), {
-                  home: result.data.fixture.home.name,
-                  away: result.data.fixture.away.name,
-                })}
-                label={<Translated locale={locale} message="share.label" />}
-                messages={{
-                  copied: message(resolved, 'share.copied'),
-                  manual: message(resolved, 'share.manual'),
-                }}
-              />
-            </span>
           )}
-        </p>
+        </MatchToolsRow>
         {!result.ok ? (
-          <>
+          <div className="flex flex-col gap-4 max-md:pt-2 md:gap-5">
             <h1 className="text-2xl font-semibold" data-testid="title">
               <Translated locale={locale} message="matchCentre.title" />
             </h1>
             <Notice tone="danger" data-testid="match-unreachable">
               <Translated locale={locale} message="matchCentre.unreachable" />
             </Notice>
-          </>
+          </div>
         ) : (
           <>
             <JsonLd data={matchJsonLd(locale, result.data.fixture)} />
-            <MatchFollow
-              locale={locale}
-              fixtureId={result.data.fixture.id}
-              name={interpolate(t(resolved, 'matchCentre.fixtureTitle'), {
-                home: result.data.fixture.home.name,
-                away: result.data.fixture.away.name,
-              })}
-              status={result.data.fixture.status}
-              signedIn={me !== null}
-              following={following}
-            />
             <LiveMatch
               initial={result.data}
               timeZone={timeZone}
               locale={locale}
               words={words}
               hero={{
+                // The zone in words, beside the full kick-off in the phone's
+                // details (T-1743): resolved here, off the client.
+                zone: zoneWords(locale, timeZone),
                 stage: stageAndRoundLabels(
                   result.data.fixture.stage?.name,
                   result.data.fixture.round,

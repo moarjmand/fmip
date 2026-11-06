@@ -6851,6 +6851,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "match.follow.short": {
+    "source": "Follow",
+    "text": "",
+    "status": "untranslated"
+  },
   "match.follow.unreachable": {
     "source": "Whether you follow this match cannot be checked right now.",
     "text": "",
@@ -7575,6 +7580,26 @@
   },
   "matchCentre.lastChecked": {
     "source": "Data last checked {time}; unchanged since {changed}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.freshness.checked": {
+    "source": "Data checked {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.freshness.stale": {
+    "source": "Data may be out of date, last checked {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.freshness.details": {
+    "source": "Details",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.kickoffIn": {
+    "source": "Kick-off {time} {zone}",
     "text": "",
     "status": "untranslated"
   },

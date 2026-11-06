@@ -26,6 +26,7 @@ import { CARD, Module } from '@/components/match-centre-cards';
 import { LiveBadge } from '@/components/ui/live-badge';
 import { RatingChip } from '@/components/ui/rating-chip';
 import { StatBar } from '@/components/ui/stat-bar';
+import { FreshnessLine } from '@/components/match-freshness-line';
 import { MatchLineupsView } from '@/components/match-lineups';
 import { BLEED, type BandState, ScoreBar, bandState } from '@/components/match-score-bar';
 import { MessageText } from '@/components/message-text';
@@ -71,6 +72,12 @@ export interface MatchHero {
    * JavaScript (T-1693; a stage does not change while the match is live).
    */
   stage?: React.ReactNode;
+  /**
+   * The reader's zone in words ("UK time"), said after the full kick-off in
+   * the phone's details (T-1743). Resolved by the server: the zone's words
+   * are not in the page's JavaScript.
+   */
+  zone?: string;
   live?: React.ReactNode;
   watch?: React.ReactNode;
   highlights?: React.ReactNode;
@@ -529,7 +536,12 @@ export function MatchCentreView({
 
 /**
  * The score band (the canvas's Match, MatchPhone and LivePhone boards,
- * T-1497): on the surface, across the page. Competition and round; both
+ * T-1497): on the surface, across the page. On a phone it is short (T-1743,
+ * D-364; board P2-4): the competition line, the sides and the figure, one
+ * line for the date and the ground, and one freshness line whose "Details"
+ * hold the rest of the facts and where to watch; nothing between them but
+ * what the match's state adds (the live badge and minute, a feed behind, a
+ * notice). From 768px it is as it was. Competition and round; both
  * sides with their crests, the score large and narrow between them -- each
  * side's goals beside that side in either direction (D-193, `ScorePair`) --
  * and each side's scorers under its name; live, the saffron live badge above
@@ -580,6 +592,65 @@ function Hero({
       : null;
   const venue =
     f.venue === null ? null : `${f.venue.name}${f.venue.city !== null ? `, ${f.venue.city}` : ''}`;
+  // The facts, said once and placed twice: in a row under the band from
+  // 768px, and on a phone on the ground's line or behind "Details" (T-1743).
+  const facts = {
+    venue:
+      venue === null ? null : f.is_neutral_venue ? (
+        <MessageText message={filled(m['matchCentre.neutralVenue'], { venue })} />
+      ) : (
+        venue
+      ),
+    referee: (
+      <MessageText
+        message={filled(m['matchCentre.referee'], {
+          name: f.referee === null ? m['status.coverage.notSupplied'].text : f.referee.name,
+        })}
+      />
+    ),
+    attendance:
+      f.attendance === null ? null : (
+        <MessageText message={filled(m['matchCentre.attendance'], { count: n(f.attendance) })} />
+      ),
+    aggregate:
+      f.scores.aggregate === null ? null : (
+        <>
+          <MessageText message={m['status.aggregate']} />{' '}
+          <Score home={f.scores.aggregate.home} away={f.scores.aggregate.away} locale={locale} />
+        </>
+      ),
+    penalties:
+      f.scores.penalties === null ? null : (
+        <>
+          <MessageText message={m['status.penalties']} />{' '}
+          <Score home={f.scores.penalties.home} away={f.scores.penalties.away} locale={locale} />
+        </>
+      ),
+    lastUpdate:
+      checked === null ? (
+        <FilledMessage
+          message={m['matchCentre.lastUpdate']}
+          params={{ time: at(f.last_updated_at) }}
+        />
+      ) : (
+        <FilledMessage
+          message={m['matchCentre.lastChecked']}
+          params={{ time: at(checked), changed: at(f.last_updated_at) }}
+        />
+      ),
+  };
+  const kickoffFull = (
+    <time dateTime={f.kickoff_at}>{formatDateTime(locale, f.kickoff_at, timeZone)}</time>
+  );
+  const kickoffDay = (
+    <time dateTime={f.kickoff_at}>
+      {formatDate(locale, f.kickoff_at, timeZone, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      })}
+    </time>
+  );
   const name = cx(
     'block max-w-full text-base leading-tight font-extrabold hyphens-auto [overflow-wrap:anywhere] md:text-3xl md:leading-none',
   );
@@ -597,14 +668,16 @@ function Hero({
   const teamLink = 'flex min-h-touch min-w-0 items-center justify-center md:block md:min-h-0';
   return (
     <header
-      className={cx('flex flex-col gap-4 bg-surface py-3 md:gap-5 md:py-4', BLEED)}
+      className={cx('flex flex-col bg-surface md:gap-5 md:py-4', BLEED)}
       data-match-band=""
       data-testid="match-header"
     >
-      <p className="flex flex-wrap items-center gap-x-2 text-sm text-caption">
+      <p className="flex flex-wrap items-center gap-x-2 text-sm text-caption max-md:min-h-7">
+        {/* A 44px target on a phone whose lower 16px lie over the band's top,
+            which holds no control there: the line itself reads as 28px. */}
         <Link
           href={`/${locale}/competition/${f.competition.id}?season=${f.season.id}`}
-          className="inline-flex min-h-touch items-center gap-2 font-semibold text-muted underline md:min-h-0"
+          className="inline-flex min-h-touch items-center gap-2 font-semibold text-muted underline max-md:-mb-4 max-md:items-start max-md:pt-1 md:min-h-0"
           data-testid="competition-link"
         >
           <EntityImage
@@ -635,7 +708,11 @@ function Hero({
         // The live badge (Design System `LiveBadge`, T-1523); when the feed has
         // fallen behind, amber words and no badge: the match is not shown as
         // live while its state may be old (rule 4).
-        <p className="-mb-2 flex justify-center" data-testid="live-badge" data-live={live}>
+        <p
+          className="flex justify-center max-md:my-1 md:-mb-2"
+          data-testid="live-badge"
+          data-live={live}
+        >
           {live ? (
             <LiveBadge
               label={
@@ -655,15 +732,18 @@ function Hero({
       )}
 
       {/* Home, score, away from the inline start: the whole band mirrors on /fa. */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 md:items-center md:gap-8">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 max-md:pt-1 md:items-center md:gap-8">
         <div data-testid="home-team" className="min-w-0">
-          <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-end md:gap-5 md:text-end">
+          <div className="flex flex-col items-center text-center md:flex-row md:justify-end md:gap-5 md:text-end">
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
               <Link href={`/${locale}/team/${f.home.id}`} className={teamLink}>
                 <bdi className={name}>{f.home.name}</bdi>
               </Link>
               {scorers.home !== '' && (
-                <span className="text-xs text-muted md:text-sm" data-testid="scorers-home">
+                <span
+                  className="text-xs text-muted max-md:pb-1.5 md:text-sm"
+                  data-testid="scorers-home"
+                >
                   {scorers.home}
                 </span>
               )}
@@ -671,7 +751,13 @@ function Hero({
             <Crest team={f.home} className="max-md:order-first" />
           </div>
         </div>
-        <div className="flex flex-col items-center gap-2">
+        <div
+          className={cx(
+            'flex flex-col items-center gap-2',
+            // Before kick-off the time stands alone on a phone, level with the sides.
+            f.status === 'scheduled' && !awaiting && 'max-md:self-center',
+          )}
+        >
           {f.status === 'scheduled' && !awaiting ? (
             // Before kick-off the band's figure is the kick-off time, never a 0-0.
             <span className={figure} data-testid="match-status">
@@ -690,15 +776,8 @@ function Hero({
             </ScorePair>
           )}
           {f.status === 'scheduled' ? (
-            <span className="text-sm font-semibold text-muted">
-              <time dateTime={f.kickoff_at}>
-                {formatDate(locale, f.kickoff_at, timeZone, {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                })}
-              </time>
-            </span>
+            // On a phone the day shares the ground's line under the band (T-1743).
+            <span className="text-sm font-semibold text-muted max-md:hidden">{kickoffDay}</span>
           ) : (
             f.status !== 'live' && (
               <span className="text-xs font-bold text-muted md:text-sm">
@@ -737,14 +816,17 @@ function Hero({
           {disputed?.marker}
         </div>
         <div data-testid="away-team" className="min-w-0">
-          <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-start md:gap-5 md:text-start">
+          <div className="flex flex-col items-center text-center md:flex-row md:justify-start md:gap-5 md:text-start">
             <Crest team={f.away} />
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
               <Link href={`/${locale}/team/${f.away.id}`} className={teamLink}>
                 <bdi className={name}>{f.away.name}</bdi>
               </Link>
               {scorers.away !== '' && (
-                <span className="text-xs text-muted md:text-sm" data-testid="scorers-away">
+                <span
+                  className="text-xs text-muted max-md:pb-1.5 md:text-sm"
+                  data-testid="scorers-away"
+                >
                   {scorers.away}
                 </span>
               )}
@@ -755,7 +837,7 @@ function Hero({
 
       {/* Live: the minute along the match, then kick-off and the stream's stamp. */}
       {f.status === 'live' && (
-        <div className="flex flex-col gap-1.5" data-testid="live-progress">
+        <div className="flex flex-col gap-1.5 max-md:my-2" data-testid="live-progress">
           {f.minute !== null && (
             <span aria-hidden="true" className="block h-1 rounded-pill bg-surface-raised">
               <span
@@ -783,93 +865,92 @@ function Hero({
       )}
       {(hero.watch !== undefined ||
         (f.status !== 'live' && !awaiting && hero.live !== undefined)) && (
-        <div className="-mt-1 flex flex-col items-center gap-2 text-center">
+        <div className="flex flex-col items-center gap-2 text-center md:-mt-1">
           {f.status !== 'live' && !awaiting && hero.live}
-          {hero.watch}
+          {/* From 768px the watch line stands here; on a phone it is in the details. */}
+          {hero.watch !== undefined && <div className="max-md:hidden">{hero.watch}</div>}
         </div>
       )}
 
-      {behind && (
-        <p
-          role="status"
-          className="text-center text-sm font-medium text-warning"
-          data-testid="feed-behind"
-        >
-          <FilledMessage
-            message={m['matchCentre.behind']}
-            params={{ time: at(f.last_updated_at) }}
-          />
+      {/* What the match's state adds: one group on a phone, where the band
+          has no gap of its own; from 768px each is the band's own child. */}
+      <div className="flex flex-col gap-2 empty:hidden max-md:my-1 md:contents">
+        {behind && (
+          <p
+            role="status"
+            className="text-center text-sm font-medium text-warning"
+            data-testid="feed-behind"
+          >
+            <FilledMessage
+              message={m['matchCentre.behind']}
+              params={{ time: at(f.last_updated_at) }}
+            />
+          </p>
+        )}
+        {awaiting && hero.awaiting}
+        {disputed?.note}
+
+        {hero.highlights}
+      </div>
+
+      {/* A phone (T-1743): the day and the ground on one line -- with the
+          aggregate, a score a reader should not have to open anything for --
+          then the freshness line, the rest of the facts behind its "Details". */}
+      <div className="flex flex-col md:hidden" data-testid="match-facts-phone">
+        <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-center text-sm text-muted">
+          {kickoffDay}
+          {facts.venue !== null && (
+            <span>
+              · <bdi>{facts.venue}</bdi>
+            </span>
+          )}
+          {facts.aggregate !== null && <span>· {facts.aggregate}</span>}
         </p>
-      )}
-      {awaiting && hero.awaiting}
-      {disputed?.note}
-
-      {hero.highlights}
-
-      <ul className="flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-muted">
-        <li>
-          <FilledMessage
-            message={m['scores.card.kickoff']}
-            params={{
-              time: (
-                <time dateTime={f.kickoff_at}>
-                  {formatDateTime(locale, f.kickoff_at, timeZone)}
-                </time>
-              ),
-            }}
-          />
-        </li>
-        {venue !== null && (
+        <FreshnessLine
+          checkedAt={f.last_checked_at}
+          changedAt={f.last_updated_at}
+          // The data may be old: in play and behind (D-045), or the kick-off
+          // long past with no word (D-343). Said in the line, not behind it.
+          stale={behind || (f.status === 'scheduled' && f.freshness === 'awaiting_update')}
+          locale={locale}
+          timeZone={timeZone}
+          now={now}
+          words={words}
+        >
+          <li>{facts.lastUpdate}</li>
           <li>
-            {f.is_neutral_venue ? (
-              <MessageText message={filled(m['matchCentre.neutralVenue'], { venue })} />
+            {hero.zone === undefined ? (
+              <FilledMessage message={m['scores.card.kickoff']} params={{ time: kickoffFull }} />
             ) : (
-              venue
+              <FilledMessage
+                message={m['matchCentre.kickoffIn']}
+                params={{ time: kickoffFull, zone: hero.zone }}
+              />
             )}
           </li>
-        )}
+          <li>{facts.referee}</li>
+          {facts.attendance !== null && <li>{facts.attendance}</li>}
+          {facts.penalties !== null && <li>{facts.penalties}</li>}
+          {/* Nothing listed and nothing to say: the watch line draws nothing. */}
+          {hero.watch !== undefined && <li className="empty:hidden">{hero.watch}</li>}
+        </FreshnessLine>
+      </div>
+
+      <ul className="flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-muted max-md:hidden">
         <li>
-          <MessageText
-            message={filled(m['matchCentre.referee'], {
-              name: f.referee === null ? m['status.coverage.notSupplied'].text : f.referee.name,
-            })}
-          />
+          <FilledMessage message={m['scores.card.kickoff']} params={{ time: kickoffFull }} />
         </li>
-        {f.attendance !== null && (
-          <li>
-            <MessageText
-              message={filled(m['matchCentre.attendance'], { count: n(f.attendance) })}
-            />
-          </li>
-        )}
-        {f.scores.aggregate !== null && (
-          <li>
-            <MessageText message={m['status.aggregate']} />{' '}
-            <Score home={f.scores.aggregate.home} away={f.scores.aggregate.away} locale={locale} />
-          </li>
-        )}
-        {f.scores.penalties !== null && (
-          <li>
-            <MessageText message={m['status.penalties']} />{' '}
-            <Score home={f.scores.penalties.home} away={f.scores.penalties.away} locale={locale} />
-          </li>
-        )}
+        {facts.venue !== null && <li>{facts.venue}</li>}
+        <li>{facts.referee}</li>
+        {facts.attendance !== null && <li>{facts.attendance}</li>}
+        {facts.aggregate !== null && <li>{facts.aggregate}</li>}
+        {facts.penalties !== null && <li>{facts.penalties}</li>}
         <li
           data-testid="last-update"
           className="font-mono text-xs text-caption [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
         >
           <span aria-hidden="true">● </span>
-          {checked === null ? (
-            <FilledMessage
-              message={m['matchCentre.lastUpdate']}
-              params={{ time: at(f.last_updated_at) }}
-            />
-          ) : (
-            <FilledMessage
-              message={m['matchCentre.lastChecked']}
-              params={{ time: at(checked), changed: at(f.last_updated_at) }}
-            />
-          )}
+          {facts.lastUpdate}
         </li>
       </ul>
     </header>
@@ -927,7 +1008,7 @@ function Crest({ team, className }: { team: MatchCentre['fixture']['home']; clas
   return (
     <span
       className={cx(
-        'inline-grid size-13 shrink-0 place-items-center rounded-tile border border-default bg-surface md:size-21 md:rounded-card',
+        'inline-grid size-12 shrink-0 place-items-center rounded-tile border border-default bg-surface md:size-21 md:rounded-card',
         className,
       )}
     >
