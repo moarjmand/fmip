@@ -4,6 +4,7 @@ import type { MatchViewing, TeamPageFixture } from '@fmip/contracts';
 import {
   AroundThem,
   ComingUp,
+  CompetitionChips,
   RecentResults,
   RecordPanel,
   SquadCard,
@@ -45,7 +46,7 @@ import { pageLocale, say } from '@/lib/competition';
 import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { type TeamTab, guestFollowHref, readTeamTab } from '@/lib/team';
+import { type TeamTab, guestFollowHref, readTeamCompetition, readTeamTab } from '@/lib/team';
 import { readStatsSeason } from '@/lib/team-season-stats';
 import { readTerritoryQuery } from '@/lib/viewing';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
@@ -144,6 +145,9 @@ export default async function TeamPage({
   }
   const page = result.data;
   const t = page.team;
+  // The competition chosen on the chips (T-1764, D-379); an unknown or
+  // another club's id is the default, the club's league.
+  const chosen = readTeamCompetition(query, page.competitions);
   const { timeZone } = await pageTimeZone(locale, me);
   // Where each match can be watched (T-314): in the member's stored territory
   // or the one a guest carried here on the link. The Overview asks for the
@@ -189,6 +193,7 @@ export default async function TeamPage({
         timeZone={timeZone}
         tab={tab}
         territory={guestTerritory}
+        chosen={chosen}
         // A guest's Follow is on the next-match card (T-1741): on a phone the
         // band leaves its own out. A member keeps the band's, which also
         // holds "stop following" and the push offer.
@@ -242,7 +247,14 @@ export default async function TeamPage({
               {/* What the phone's one-row band leaves out (T-1741): under the next match. */}
               <ClubFacts page={page} locale={locale} timeZone={timeZone} />
               <RecentResults page={page} locale={locale} timeZone={timeZone} />
-              <RecordPanel page={page} locale={locale} />
+              {/* The club's competitions (T-1764, D-379): they switch the band, this card and the top scorer. */}
+              <CompetitionChips
+                page={page}
+                locale={locale}
+                chosen={chosen}
+                territory={guestTerritory}
+              />
+              <RecordPanel page={page} locale={locale} chosen={chosen} />
               {founder?.ok === true && founder.data.analyses.length > 0 && (
                 <div className="rounded-card border border-default bg-surface p-4 sm:p-5 [&_h2]:text-sm [&_h2]:font-extrabold">
                   <FounderAnalysisFeed
@@ -272,7 +284,7 @@ export default async function TeamPage({
                   page.next_match === null ? page.fixtures : [page.next_match, ...page.fixtures],
                 )}
               />
-              <TopScorerCard page={page} locale={locale} />
+              <TopScorerCard page={page} locale={locale} chosen={chosen} />
               <SquadCard page={page} locale={locale} />
               <AroundThem page={page} locale={locale} />
             </div>
