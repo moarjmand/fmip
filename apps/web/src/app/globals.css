@@ -1002,7 +1002,11 @@ header:has(#competitions-menu:not([hidden])) {
  */
 :root {
   --site-header-height: 3rem;
+}
 
+/* Jumps land under the header only where there is one: the agents console
+   draws no site header (code review, T-1759). */
+:root:has(.site-header) {
   scroll-padding-block-start: var(--site-header-height);
 }
 
@@ -1698,7 +1702,7 @@ main:has([data-match-root]:not([data-status='scheduled'])) [data-pick-bar] {
  */
 @layer components {
   .match-row {
-    @apply grid min-h-18 scroll-mt-24 grid-cols-[3.5rem_minmax(0,1fr)_6.5rem] grid-rows-[auto_auto] items-center gap-x-2 px-4 py-1.5 data-selected:bg-selected @xl:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] @xl:gap-x-3.5;
+    @apply grid min-h-18 scroll-mt-11 grid-cols-[3.5rem_minmax(0,1fr)_6.5rem] grid-rows-[auto_auto] items-center gap-x-2 px-4 py-1.5 data-selected:bg-selected @xl:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] @xl:gap-x-3.5;
   }
 
   .match-row-pick {

@@ -397,10 +397,11 @@ function MomentPanel({ moment, d }: { moment: Moment; d: Drawing }) {
  * words "Moments that matter" on the surface, in a one-line box that clips,
  * after a zero-width strut, so a match too long for the line wraps out of
  * sight and the words under it show (`.moments-line` in globals.css; no
- * script, nothing measured here). A screen reader hears the match, never
- * both. Rule 4: when the card's data stopped, or the rail's answers did
- * (`data-behind`, by CSS), the minute gives way to "May be behind", beside
- * the match rather than in it, so the words show even when the names do not.
+ * script, nothing measured here). A screen reader hears the words and the
+ * match, so the name always holds the visible label (WCAG 2.5.3). Rule 4:
+ * when the card's data stopped, or the rail's answers did (`data-behind`, by
+ * CSS, with or without a match in play), "May be behind" is said beside the
+ * match rather than in it, so the words show even when the names do not.
  */
 function RailLine({ moments, live, d }: { moments: readonly Moment[]; live: number; d: Drawing }) {
   const named = lineMoment(moments);
@@ -418,11 +419,7 @@ function RailLine({ moments, live, d }: { moments: readonly Moment[]; live: numb
         ·
       </span>
       <span className="moments-line" data-testid="moments-line">
-        <span
-          className="moments-summary-label"
-          aria-hidden={card === null ? undefined : 'true'}
-          data-testid="moments-line-label"
-        >
+        <span className="moments-summary-label" data-testid="moments-line-label">
           <MessageText message={message(d.lang, 'shell.moments.label')} />
         </span>
         {card !== null && (
@@ -463,18 +460,17 @@ function RailLine({ moments, live, d }: { moments: readonly Moment[]; live: numb
           </span>
         )}
       </span>
-      {inPlay && (
-        <span
-          className={
-            stopped
-              ? 'moments-line-behind'
-              : 'moments-line-behind hidden group-data-[behind=true]/moments:inline'
-          }
-          data-testid="moments-line-behind"
-        >
-          <MessageText message={message(d.lang, 'shell.moments.behind')} />
-        </span>
-      )}
+      {/* With nothing in play the count itself can be behind (rule 4): said in words, not by colour alone. */}
+      <span
+        className={
+          stopped
+            ? 'moments-line-behind'
+            : 'moments-line-behind hidden group-data-[behind=true]/moments:inline'
+        }
+        data-testid="moments-line-behind"
+      >
+        <MessageText message={message(d.lang, 'shell.moments.behind')} />
+      </span>
     </>
   );
 }

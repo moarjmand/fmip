@@ -473,7 +473,9 @@ export default async function ScoresPage({
                   0) && (
                 <details
                   name="scores-panel"
-                  open={filtered}
+                  // One panel open at a time: the date's, when the day shown is
+                  // off the strip, wins (code review: both open broke hydration).
+                  open={filtered && strip.some((d) => d.isSelected)}
                   className="group"
                   data-testid="more-filters"
                 >

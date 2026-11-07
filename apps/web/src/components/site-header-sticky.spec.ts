@@ -83,10 +83,11 @@ describe('the header sticks (T-1759, D-376)', () => {
     expect(HEADER).toContain('border-b border-default bg-surface md:border-b-0');
   });
 
-  it('lets a jump land clear of it', () => {
-    expect(rule(':root', BLOCK)).toContain(
+  it('lets a jump land clear of it, only where there is one (not the agents console)', () => {
+    expect(rule(':root:has(.site-header)', BLOCK)).toContain(
       'scroll-padding-block-start: var(--site-header-height);',
     );
+    expect(rule(':root', BLOCK)).not.toContain('scroll-padding');
   });
 
   it('does not stick on the match page, which keeps D-363’s stack and its header’s height', () => {

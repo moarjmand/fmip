@@ -216,7 +216,10 @@ export async function SiteHeader({
                 <path d="M4 7h16M4 12h16M4 17h16" />
               </Icon>
             </summary>
-            <div className="site-menu-panel absolute inset-x-0 top-full z-30 flex max-h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto border-b border-default bg-surface px-4 py-3">
+            {/* Its last item clear of the phone's tab bar: the header (at most
+                4rem) above it no longer scrolls away (D-376), so the panel is
+                as tall as the screen less both bars. */}
+            <div className="site-menu-panel absolute inset-x-0 top-full z-30 flex max-h-[calc(100dvh-8.25rem-env(safe-area-inset-bottom))] flex-col gap-1 overflow-y-auto border-b border-default bg-surface px-4 py-3">
               {/* After the wordmark and before search (`order`: the search
                   link comes first in the source, for the phone). */}
               <PrimaryNav

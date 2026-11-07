@@ -362,11 +362,19 @@ export function PlayerAbout({ page, locale }: { page: PlayerPage; locale: string
       : lineup !== null
         ? `${lineup.team.name} · ${say(locale, 'playerPage.lastLineup', { date: dayText(locale, lineup.day) })}`
         : say(locale, 'playerPage.noCurrentTeam');
-  const rows: { key: string; label: MessageKey; value: string | null; note?: string }[] = [
+  // "No current team on record" is said in words, and it is not a team (rule 3).
+  const noTeam = club === null && lineup === null;
+  const rows: {
+    key: string;
+    label: MessageKey;
+    value: string | null;
+    note?: string;
+    missing?: boolean;
+  }[] = [
     { key: 'age', label: 'playerPage.age', value: f.age, note: f.born },
     { key: 'height', label: 'playerPage.height', value: f.height },
     { key: 'foot', label: 'playerPage.foot', value: f.foot },
-    { key: 'team', label: 'playerPage.currentTeam', value: team },
+    { key: 'team', label: 'playerPage.currentTeam', value: team, missing: noTeam },
   ];
   return (
     <section
@@ -383,7 +391,7 @@ export function PlayerAbout({ page, locale }: { page: PlayerPage; locale: string
             key={row.key}
             className="flex items-center justify-between gap-3 border-b border-default py-2 last:border-b-0"
             data-testid={`about-${row.key}`}
-            data-coverage={row.value === null ? 'not_supplied' : 'available'}
+            data-coverage={row.value === null || row.missing ? 'not_supplied' : 'available'}
           >
             <dt className="shrink-0 text-muted">
               <Translated locale={locale} message={row.label} />

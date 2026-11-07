@@ -495,9 +495,9 @@ describe('one line on a phone, every page but home (T-1693, D-338; T-1755, D-372
     );
     expect(tags(line, 'moments-line-when')[0]).toContain('text-live');
     expect(match).toContain('80′');
-    // The words under it are for the eye when the match does not fit; a
-    // screen reader hears the match.
-    expect(tags(line, 'moments-line-label')[0]).toContain('aria-hidden="true"');
+    // The words under it show when the match does not fit, so they stay in
+    // the accessible name too (WCAG 2.5.3, label in name).
+    expect(tags(line, 'moments-line-label')[0]).not.toContain('aria-hidden');
     expect(line).toContain('Moments that matter');
     // No turquoise on the line (rule 6): the model stays in the cards.
     expect(line).not.toMatch(/text-model|bg-model/);
@@ -515,7 +515,13 @@ describe('one line on a phone, every page but home (T-1693, D-338; T-1755, D-372
     expect(line).toMatch(
       /<bdi>Arsenal<\/bdi> <span class="text-caption">v<\/span> <bdi>Chelsea<\/bdi>/,
     );
-    expect(line).not.toContain('moments-line-behind');
+    // "May be behind" is there for the rail's own lag (rule 4), hidden until
+    // the rail says it is behind: never shown for a kick-off that is merely
+    // in the future.
+    const [behind] = tags(line, 'moments-line-behind');
+    expect(behind).toMatch(
+      /class="moments-line-behind hidden group-data-\[behind=true\]\/moments:inline"/,
+    );
   });
 
   it('says the weekday of a next kick-off that is not today', () => {
