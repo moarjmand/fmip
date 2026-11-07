@@ -27,5 +27,10 @@ watch where its count is reached, and the verdict is recorded in your report and
 count, report the count only. Never look again to wait for a better interval; a second look is
 made only when the maintainer asks, labelled as such, on matches played after the first.
 
-Your final message: the versions table in one line each, the paired verdict, the findings, and
-the report's path.
+Every verdict also goes into the lab's ledger, `E:/FMIP/ops/model/ledger.json` (D-371): a D-336
+look as a `judgements` row, a lab verdict as an entry. Run `publish.ts lab-check` after editing it
+(your skill's step 4). The console's model page shows nothing of a version being judged but its
+counts; your recorded look is what it shows.
+
+Your final message: the versions table in one line each, the paired verdict, the findings, the
+ledger rows you wrote, and the report's path.

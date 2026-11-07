@@ -18,6 +18,7 @@ from ..training.load import (
     Fetch,
     fetch_text,
     load_clubelo,
+    load_football_data,
     load_football_data_extra,
     load_records,
 )
@@ -62,6 +63,12 @@ class PostgresTrainingSource(TrainingSource):
     refreshed through the loader once a day, before the day's first read of it.
     So is a division of football-data.co.uk's extra leagues (T-1442, D-233),
     one file of every season: its newest stored season onwards is read again.
+    The main football-data leagues (E0, SP1, ...; T-1770) are reloaded once a
+    day too, but never on a forecast's path: their downloads are slower than
+    a forecast may wait, so the health check's tick starts them in the
+    background (``refresh_main_leagues``), before the day's own Elo is
+    computed. Before, nothing reloaded them, and they ran a week or more
+    behind.
     A refresh that fails is recorded as a failed load by the loader, logged
     here, and the copy already held is used.
     """
@@ -89,6 +96,10 @@ class PostgresTrainingSource(TrainingSource):
         self._own_elo_lock = threading.Lock()
         self._own_elo_days: set[date] = set()
         self._own_elo_tried: dict[date, datetime] = {}
+        # The main football-data leagues' daily reload (T-1770): its day, and a
+        # lock taken without waiting, so two ticks never download twice.
+        self._main_lock = threading.Lock()
+        self._main_day: date | None = None
         # The continental competitions' placed clubs (D-309), read once a day.
         self._tallies: tuple[date, dict[str, dict[str, int]]] | None = None
 
@@ -149,7 +160,9 @@ class PostgresTrainingSource(TrainingSource):
             self._own_elo_tried[day] = self.clock()
             try:
                 # Our own records first (D-083): the day's results are in them
-                # only once the division's daily reload has run.
+                # only once the division's daily reload has run. The main
+                # football-data leagues are reloaded before this, in the
+                # background (``_daily``), never here on a forecast's path.
                 for division in self._records_divisions():
                     self.refresh(division)
                 with psycopg.connect(self.database_url) as conn:
@@ -175,6 +188,18 @@ class PostgresTrainingSource(TrainingSource):
             )
             scopes = [str(row[0]) for row in cur.fetchall()]
         return [scope for scope in scopes if DIVISION_CODE.fullmatch(scope)]
+
+    def _main_divisions(self) -> list[str]:
+        """The main football-data leagues held (T-1770): a succeeded load scoped ``E0 2026/27``."""
+        with psycopg.connect(self.database_url) as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT DISTINCT split_part(scope, ' ', 1) FROM training.source_load"
+                " WHERE source = %s AND status = 'succeeded' AND scope LIKE '%% %%'"
+                " ORDER BY 1",
+                (FOOTBALL_DATA.id,),
+            )
+            codes = [str(row[0]) for row in cur.fetchall()]
+        return [code for code in codes if DIVISION_CODE.fullmatch(code)]
 
     def every_match(self, since: date, until: date) -> Sequence[tuple[str, MatchObservation]]:
         self.refresh(CROSS_LEAGUE)
@@ -242,8 +267,46 @@ class PostgresTrainingSource(TrainingSource):
         ):
             self._own_elo_tried[yesterday] = self.clock()
             threading.Thread(
-                target=self.ensure_own_elo, args=(yesterday,), name="own-elo", daemon=True
+                target=self._daily, args=(yesterday,), name="own-elo", daemon=True
             ).start()
+        elif self._main_day != self.today() and not self._main_lock.locked():
+            threading.Thread(
+                target=self.refresh_main_leagues, name="main-leagues", daemon=True
+            ).start()
+
+    def _daily(self, day: date) -> None:
+        """The day's background run: the main leagues' reload, then our own Elo for ``day``."""
+        self.refresh_main_leagues()
+        self.ensure_own_elo(day)
+
+    def refresh_main_leagues(self) -> None:
+        """Reload every main football-data league's current season, once a day (T-1770).
+
+        Run in the background only. The lock is taken without waiting and is
+        never the forecasts' (``_lock``), so a slow or silent football-data
+        delays nothing but this; each league's failure is logged and the next
+        one is tried.
+        """
+        if not self._main_lock.acquire(blocking=False):
+            return
+        try:
+            today = self.today()
+            if self._main_day == today:
+                return
+            self._main_day = today
+            store = TrainingStore.connect(self.database_url)
+            try:
+                for division in self._main_divisions():
+                    try:
+                        self._refresh_main(store, division, today)
+                    except Exception:  # noqa: BLE001 - logged; the held copy stands
+                        log.exception("refreshing %s failed", division)
+            finally:
+                store.close()
+        except Exception:  # noqa: BLE001 - no store: tomorrow's tick tries again
+            log.exception("the main leagues' reload did not run")
+        finally:
+            self._main_lock.release()
 
     def _elo_due(self) -> bool:
         if not self.clubelo_refresh:
@@ -298,3 +361,41 @@ class PostgresTrainingSource(TrainingSource):
                 log.exception("refreshing %s failed", division)
             finally:
                 store.close()
+
+    def _refresh_main(self, store: TrainingStore, division: str, today: date) -> None:
+        """A main football-data league's current season again (T-1770), and the next from July.
+
+        Only a division whose newest season was loaded from football-data under
+        its own scope (``E0 2026/27``) is refreshed: its newest season while it
+        is today's (a season starts in July), and once the next one has
+        started, that one's file instead; until the site publishes it, its
+        failed load is recorded by the loader. A league whose newest season is
+        older than the last one is left alone.
+        """
+        newest = store.newest_season(division)
+        if newest is None or not store.loaded_from(f"{division} {newest}", FOOTBALL_DATA.id):
+            return
+        current = today.year if today.month >= 7 else today.year - 1
+        start = int(newest[:4])
+        seasons: list[str] = []
+        if start == current:
+            seasons.append(season_code(newest))
+        elif start == current - 1:
+            # A season has ended and the next has started (from July): its file.
+            seasons.append(season_code(f"{start + 1}/{(start + 2) % 100:02d}"))
+        for season in seasons:
+            try:
+                load_football_data(store, [season], [division], fetch=self.extra_fetch)
+            # The loader recorded the failure; the next season's file may not exist yet.
+            except Exception:  # noqa: BLE001
+                log.warning("refreshing %s %s failed", division, season)
+
+
+def season_code(label: str) -> str:
+    """``"2026/27"`` → ``"2627"``: football-data.co.uk's code for a season.
+
+    The inverse of ``season_label``.
+    """
+    if len(label) != 7 or label[4] != "/":
+        raise ValueError(f"a season label such as 2026/27, received {label!r}")
+    return f"{label[2:4]}{label[5:7]}"

@@ -133,6 +133,12 @@ function SeriesTable({
   const head = 'py-1 pe-3 text-end font-semibold';
   return (
     <div className="flex flex-col gap-2">
+      {series.withheld === true && (
+        <p className="text-sm text-muted" data-testid="accuracy-withheld">
+          Being judged: its figures are withheld until the weekly watch records its verdict (D-336,
+          D-380); the counts are shown.
+        </p>
+      )}
       <Sparkline
         points={series.points}
         label={

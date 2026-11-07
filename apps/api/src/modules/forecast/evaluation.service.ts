@@ -8,7 +8,7 @@ import type {
   ModelPerformanceResponse,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
-import { consoleModelReport, inputState } from './internal/console-model';
+import { beingJudged, consoleModelReport, inputState } from './internal/console-model';
 import { type CountedRow, PostgresEvaluationStore } from './internal/evaluation-store';
 import { adminAccuracy, publicAccuracy } from './internal/model-accuracy';
 import { UNIFORM_BRIER, UNIFORM_LOG_LOSS, score } from './internal/scoring';
@@ -74,9 +74,30 @@ export class EvaluationService {
     return this.store.counted(fixtureIds);
   }
 
-  /** The console's accuracy over time (T-1369): every version, published and shadow. */
-  async adminAccuracy(period: AccuracyPeriod, now: Date): Promise<AdminModelAccuracyResponse> {
-    return adminAccuracy(await this.store.accuracySums(period, 'by_model'), period, now);
+  /**
+   * The console's accuracy over time (T-1369): every version, published and
+   * shadow. A shadow version being judged gives counts only (T-1771, D-380),
+   * by the stored forecasts alone, as the agents console does.
+   */
+  async adminAccuracy(
+    period: AccuracyPeriod,
+    now: Date,
+    judged?: ReadonlySet<string>,
+  ): Promise<AdminModelAccuracyResponse> {
+    const [rows, withheld] = await Promise.all([
+      this.store.accuracySums(period, 'by_model'),
+      judged === undefined ? this.judgedVersions() : Promise.resolve(judged),
+    ]);
+    return adminAccuracy(rows, period, now, withheld);
+  }
+
+  /** The shadow versions being judged, from the stored forecasts alone (D-380). */
+  async judgedVersions(): Promise<Set<string>> {
+    const [counts, published] = await Promise.all([
+      this.store.versionCounts(),
+      this.store.newestPublishedModel(),
+    ]);
+    return beingJudged(counts, published);
   }
 
   /** The public page's figures (T-1369): published forecasts only, by month or ISO week (T-1413). */
@@ -114,7 +135,8 @@ export class EvaluationService {
         this.store.versionRecords(),
         this.store.versionCalibration(),
         this.store.versionPairs(),
-        this.adminAccuracy('week', now),
+        // No withholding here: the console withholds a version being judged itself.
+        this.adminAccuracy('week', now, new Set()),
         // A count that cannot be read is said as "not counted", never guessed.
         this.store.modelInputs(now).catch(() => []),
         Promise.all(

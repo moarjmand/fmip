@@ -121,6 +121,13 @@ export interface ConsoleModelVersion {
   /** By ISO week of kick-off (the console's accuracy series, T-1369), oldest first. */
   trend: AccuracyPoint[];
   /**
+   * Being judged (`shadow_now`): its record's scores and shares, its
+   * calibration and its trend's figures are withheld -- counts, window,
+   * limited share and lead time only -- until the weekly watch's one look
+   * is taken and the version is published or set aside (T-1771, D-380).
+   */
+  withheld: boolean;
+  /**
    * Ordered by log loss, best first; `limited` ones last. For a version in
    * shadow now each row is its count alone, by name: its new divisions' rows
    * would add up to the very figure D-336 judges once.

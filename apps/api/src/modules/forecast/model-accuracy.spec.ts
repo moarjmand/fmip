@@ -128,6 +128,26 @@ describe('adminAccuracy', () => {
   ];
   const out = adminAccuracy(rows, 'week', new Date('2026-10-21T00:00:00Z'));
 
+  it('gives a shadow version being judged counts only, overall and per competition (T-1771)', () => {
+    const judged = adminAccuracy(
+      rows,
+      'week',
+      new Date('2026-10-21T00:00:00Z'),
+      new Set(['dixon-coles-elo@0.5.0']),
+    );
+    const shadow = judged.series.filter((s) => s.role === 'shadow');
+    expect(shadow).toHaveLength(2);
+    for (const s of shadow) {
+      expect(s.withheld).toBe(true);
+      expect(s.total).toMatchObject({ log_loss: null, brier: null, rps: null, accuracy: null });
+      expect(s.total.matches).toBeGreaterThan(0);
+      for (const p of s.points) expect(p.log_loss).toBeNull();
+    }
+    // The published series are untouched.
+    expect(judged.series[0]?.withheld).toBeUndefined();
+    expect(judged.series[0]?.total.log_loss).toBe(1);
+  });
+
   it('puts published first, each version overall and then per competition by name', () => {
     expect(
       out.series.map((s) => [s.role, s.model_version, s.competition?.name ?? 'overall']),

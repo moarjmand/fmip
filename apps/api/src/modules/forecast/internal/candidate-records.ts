@@ -25,6 +25,8 @@ export function candidateRecords(
   offered: readonly string[] | null,
   now: Date,
   shadow: ReadonlyMap<string, CandidateShadowHealth> = new Map(),
+  /** Versions being judged (D-380): counts only. */
+  judged: ReadonlySet<string> = new Set(),
 ): CandidateRecordsResponse {
   const versions = new Set<string>([
     ...counts.map((c) => c.modelVersion),
@@ -33,8 +35,10 @@ export function candidateRecords(
   ]);
   const candidates: CandidateRecord[] = [...versions].sort().map((version) => {
     const count = counts.find((c) => c.modelVersion === version);
+    const withheld = judged.has(version);
     return {
       model_version: version,
+      ...(withheld ? { withheld: true } : {}),
       in_shadow: offered === null ? null : offered.includes(version),
       pre_kickoff_evaluated: count?.evaluated ?? 0,
       pre_kickoff_awaiting: count?.awaiting ?? 0,
@@ -46,8 +50,8 @@ export function candidateRecords(
           competition: p.competition,
           pairs: p.pairs,
           published_versions: p.publishedVersions,
-          candidate: p.candidate,
-          published: p.published,
+          candidate: withheld ? null : p.candidate,
+          published: withheld ? null : p.published,
         })),
       shadow: shadow.get(version) ?? NEVER_ANSWERED,
     };

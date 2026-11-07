@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type CandidateInput,
   type VersionsInput,
+  beingJudged,
   calibrationBands,
   candidateRecord,
   competitionRecords,
@@ -323,8 +324,12 @@ describe('every version', () => {
     expect(site?.calibration).toHaveLength(1);
     expect(site?.trend.map((p) => p.period)).toEqual(['2026-W43']);
     expect(site?.competitions.map((c) => c.competition.name)).toEqual(['Serie A']);
-    expect(candidate?.calibration[0]?.forecasts).toBe(400);
+    // Being judged: counts only (T-1771) -- its record's figures, calibration and trend withheld.
+    expect(candidate?.withheld).toBe(true);
+    expect(candidate?.record).toMatchObject({ matches: 659, log_loss: null, rps: null });
+    expect(candidate?.calibration).toEqual([]);
     expect(candidate?.trend).toEqual([]);
+    expect(site?.withheld).toBe(false);
     expect(first?.record.matches).toBe(210);
   });
 
@@ -338,7 +343,7 @@ describe('every version', () => {
         ],
       }),
     );
-    expect(candidate?.record.log_loss).not.toBeNull();
+    expect(candidate?.record.log_loss).toBeNull();
     expect(candidate?.competitions.map((c) => [c.competition.name, c.record.matches])).toEqual([
       ['Argentina', 16],
       ['Serie A', 40],
@@ -661,6 +666,42 @@ describe("the inputs' data", () => {
     ).toMatchObject({
       coverage: 'not_supplied',
       newest_at: null,
+    });
+  });
+});
+
+describe('a version being judged (T-1771, D-380)', () => {
+  it('is never published and still stores forecasts after the version on the site started', () => {
+    const counts = [
+      count('published', V1, '2026-10-01T12:30:00Z', '2026-10-09T19:00:00Z'),
+      count('shadow', 'dixon-coles-elo@0.5.0', '2026-10-01T12:30:00Z', '2026-10-09T19:00:00Z'),
+      count('published', V6, '2026-10-09T20:15:00Z', '2026-11-06T08:00:00Z'),
+      count('shadow', V7, '2026-10-21T19:45:00Z', '2026-11-06T08:00:00Z'),
+      // In shadow before it was published: history, never judged here.
+      count('shadow', V6, '2026-10-09T20:15:00Z', '2026-10-09T20:15:00Z'),
+    ];
+    expect([...beingJudged(counts, V6)]).toEqual([V7]);
+    // With nothing on the site, every shadow version that stored a forecast is being judged.
+    expect([...beingJudged(counts.slice(1, 2), null)]).toEqual(['dixon-coles-elo@0.5.0']);
+  });
+
+  it("gives a candidate's own record as counts only", () => {
+    const report = consoleModelReport({
+      ...versions(),
+      service: 'answered',
+      inService: () => true,
+      newDivisions: new Map([[V7, 72]]),
+      pairs: [],
+      unscored: null,
+      inputs: [],
+      now: new Date('2026-11-06T12:00:00Z'),
+    });
+    expect(report.candidates[0]?.own).toMatchObject({
+      matches: 659,
+      log_loss: null,
+      brier: null,
+      rps: null,
+      accuracy: null,
     });
   });
 });

@@ -691,6 +691,12 @@ function VersionCell({ v }: { v: ConsoleModelVersion }) {
   const counts = v.counts;
   return (
     <div className="flex flex-col gap-0.5">
+      {v.withheld && (
+        <span className="text-xs text-warning" data-testid="withheld-note">
+          در حال داوری: عددهایش تا حکم پایش هفتگی پنهان است، فقط شمارش می‌آید (
+          <span className="whitespace-nowrap">D-380</span>).
+        </span>
+      )}
       <span className="flex flex-wrap items-baseline gap-2">
         <span className="font-bold text-fg" dir="ltr">
           {v.model_version}
@@ -1144,6 +1150,14 @@ function CalibrationSection({ report }: { report: ConsoleModelReport }) {
     report.reference.uniform_log_loss,
   );
   const weeks = [...new Set(withTrend.flatMap((v) => v.trend.map((p) => p.period_start)))].sort();
+  const withheld = report.versions.filter((v) => v.withheld);
+  const withheldNote =
+    withheld.length === 0 ? null : (
+      <p className="mt-2 text-xs text-caption" data-testid="withheld-versions">
+        {withheld.map((v) => v.model_version).join('، ')} در حال داوری است؛ calibration و روندش تا
+        حکم پایش هفتگی اینجا نمی‌آید (D-380).
+      </p>
+    );
   return (
     <Section
       id="calibration"
@@ -1162,6 +1176,7 @@ function CalibrationSection({ report }: { report: ConsoleModelReport }) {
         }
         testid="calibration"
       >
+        {withheldNote}
         {withBands.length === 0 ? (
           <p className="text-sm text-muted">هنوز هیچ باندی پیش‌بینی کافی ندارد.</p>
         ) : (
@@ -1270,6 +1285,7 @@ function CalibrationSection({ report }: { report: ConsoleModelReport }) {
         }
         testid="trend-section"
       >
+        {withheldNote}
         {domain === null || withTrend.length === 0 ? (
           <p className="text-sm text-muted">برای نمودار دست‌کم دو هفته‌ی ارزیابی‌شده لازم است.</p>
         ) : (

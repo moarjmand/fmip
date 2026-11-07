@@ -102,3 +102,27 @@ describe('CandidateRecordsReport (T-1103)', () => {
     expect(html(report({ candidates: [] }))).toContain('data-testid="candidates-none"');
   });
 });
+
+describe('a candidate being judged (T-1771, D-380)', () => {
+  it('shows the matches counted, a dash for every score, and why', () => {
+    const base = record({});
+    const out = html(
+      report({
+        candidates: [
+          record({
+            withheld: true,
+            competitions: base.competitions.map((c) => ({
+              ...c,
+              candidate: null,
+              published: null,
+            })),
+          }),
+        ],
+      }),
+    );
+    expect(out).toContain('data-testid="candidate-withheld"');
+    expect(out).toContain('>110<');
+    expect(out).not.toContain('0.9877');
+    expect(out).toContain('—');
+  });
+});
