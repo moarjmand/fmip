@@ -296,7 +296,7 @@
 
     /* The fold's mark, drawn here rather than in the markup (the page's JS budget). */
     &::after {
-      content: 'BE' / '';
+      content: '\25BE' / '';
       @apply ms-auto inline-block text-caption motion-safe:transition-transform;
     }
 
@@ -307,6 +307,47 @@
 
   .moments-summary-label {
     @apply min-w-0 truncate font-bold;
+  }
+
+  /*
+   * The line's match (T-1755, D-372; board P4-5), whole or absent, by the
+   * stylesheet alone: the words "Moments that matter" and the match share
+   * one grid cell, the match on top. Its box is one line tall and clips; the
+   * match follows a zero-width strut on a wrapping line and grows to the
+   * cell's end on the surface, so when it fits it covers the words, and
+   * when it does not it wraps under the strut, out of sight, and the words
+   * show. The minute is in the live colour; the next kick-off muted.
+   */
+  .moments-line {
+    @apply grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)];
+
+    & > * {
+      grid-area: 1 / 1;
+    }
+  }
+
+  .moments-line-box {
+    display: flex;
+    flex-wrap: wrap;
+    block-size: 1.25rem;
+    block-size: 1lh;
+    overflow: hidden;
+
+    &::before {
+      content: '\200b';
+    }
+  }
+
+  .moments-line-match {
+    @apply flex-[1_0_auto] bg-surface font-semibold whitespace-nowrap text-fg;
+  }
+
+  .moments-line-when {
+    @apply ms-1.5 font-bold tabular-nums;
+  }
+
+  .moments-line-behind {
+    @apply shrink-0 font-bold whitespace-nowrap text-warning;
   }
 
   [data-folded='true'] > .moments-frame {
@@ -932,6 +973,100 @@ header:has(#competitions-menu:not([hidden])) {
 }
 
 /*
+ * No moments rail on the pages whose one job is a form or a message
+ * (T-1755, D-372; board P4-8): sign-in, register, forgot-password, welcome,
+ * offline and not found mark their `<main>` with `data-no-rail`. By CSS
+ * because the layout draws the rail and does not know the page (and the
+ * not-found page has no address of its own). The header and the tab bar
+ * stay, so the scores are one tap away.
+ */
+:root:has([data-no-rail]) .moments-rail {
+  display: none;
+}
+
+/*
+ * The sticky header (T-1759, D-376; board P4-7), CSS alone: 48px on a phone
+ * (3rem with its hairline), 56px from 768px, on every page but the match
+ * page, at layer 30 (its Menu is inside it; the sticky group headers and the
+ * match page's tabs are 10, the pick bar 20, the tab bar 40).
+ * `--site-header-height` is how much of the top it holds, 0 where it does
+ * not stick, so another sticky element sits under it
+ * (`top: var(--site-header-height, 0px)`) and an in-page jump lands clear
+ * of it (`scroll-padding`).
+ *
+ * The match page keeps D-363's own sticky stack: its header scrolls away and
+ * keeps the height it had (60px and its hairline on a phone, 64px from
+ * 1024px), so the page's first screen is exactly as before (packages 2 and
+ * 3: the pick buttons above the pick bar). Nothing sticks on a viewport
+ * under 28rem high (a phone on its side), as D-363 decided.
+ */
+:root {
+  --site-header-height: 3rem;
+}
+
+/* Jumps land under the header only where there is one: the agents console
+   draws no site header (code review, T-1759). */
+:root:has(.site-header) {
+  scroll-padding-block-start: var(--site-header-height);
+}
+
+.site-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 30;
+}
+
+.site-bar {
+  min-block-size: calc(3rem - 1px);
+}
+
+@media (width >= 48rem) {
+  :root {
+    --site-header-height: 3.5rem;
+  }
+
+  .site-bar {
+    min-block-size: 3.5rem;
+  }
+}
+
+@media (width >= 64rem) {
+  .site-bar {
+    block-size: 3.5rem;
+  }
+}
+
+:root:has([data-match-root]) {
+  --site-header-height: 0px;
+}
+
+:root:has([data-match-root]) .site-header {
+  position: relative;
+  z-index: auto;
+}
+
+:root:has([data-match-root]) .site-bar {
+  min-block-size: 3.75rem;
+}
+
+@media (width >= 64rem) {
+  :root:has([data-match-root]) .site-bar {
+    block-size: 4rem;
+  }
+}
+
+@media (height < 28rem) {
+  :root {
+    --site-header-height: 0px;
+  }
+
+  .site-header {
+    position: relative;
+    z-index: auto;
+  }
+}
+
+/*
  * The header's mark (T-1494, D-267). The header follows the theme, and the
  * mark is never recoloured (D-262): it is drawn in the Day and the Night
  * colours, and the theme shows one, by the same three ways tokens.css turns
@@ -1553,4 +1688,131 @@ main:has([data-match-root]:not([data-status='scheduled'])) [data-pick-bar] {
   descent-override: 39.32%;
   line-gap-override: 0%;
   unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+/*
+ * The matches list on a phone (T-1757, D-374).
+ *
+ * A row (`score-card.tsx`) is at least 72px: three columns on a phone, 56 |
+ * names | 104 (the model's whole bar beside the names), and from 36rem of
+ * the list's own width (a container query; the list is the container) the
+ * four of the desktop, 52 | names | 208 | 72. Its Pick stands under the time
+ * on a phone, at the row's end beyond. Here rather than in the row's markup:
+ * the row is drawn by a client view, and its class lists are script.
+ */
+@layer components {
+  .match-row {
+    @apply grid min-h-18 scroll-mt-11 grid-cols-[3.5rem_minmax(0,1fr)_6.5rem] grid-rows-[auto_auto] items-center gap-x-2 px-4 py-1.5 data-selected:bg-selected @xl:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] @xl:gap-x-3.5;
+  }
+
+  .match-row-pick {
+    @apply col-start-1 row-start-2 min-h-11 min-w-11 items-center justify-center gap-1 self-start justify-self-start rounded-control px-1.5 text-sm font-bold whitespace-nowrap @xl:col-start-4 @xl:row-span-2 @xl:row-start-1 @xl:self-center @xl:justify-self-end @xl:px-2.5;
+  }
+}
+
+/*
+ * A competition's heading sticks under the site header, whose height the
+ * header itself sets (`--site-header-height`, 0 where it does not stick); on
+ * a screen under 28rem tall (a phone on its side) nothing sticks, as D-363
+ * has it for the match page.
+ */
+.match-group-head {
+  position: sticky;
+  inset-block-start: var(--site-header-height, 0px);
+}
+
+@media (height < 28rem) {
+  .match-group-head {
+    position: static;
+  }
+}
+
+/*
+ * A row of chips whose native disclosures open a panel under the whole row
+ * (`fold-row`; the matches page's All · Live · Date · Filters, the player's
+ * Follow and Compare). Where the browser can style a <details>'s content slot,
+ * the <details> is no box: its summary is a chip of the row and its content
+ * slot the row's last line, so the chips never move. Elsewhere an open
+ * <details> takes a line of its own, its panel under its chip. No script.
+ * The row's own box is a component, so a page's utilities may adjust it; a
+ * row gap would also space the closed content slots, so a panel pads itself.
+ */
+@layer components {
+  .fold-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.375rem;
+  }
+}
+
+.fold-row > details[open] {
+  flex-basis: 100%;
+}
+
+@supports selector(::details-content) {
+  .fold-row > details {
+    display: contents;
+  }
+
+  .fold-row > details::details-content {
+    order: 1;
+    flex-basis: 100%;
+  }
+}
+
+/*
+ * Under 1024px the list's "Last checked" stamp stands in the page's title
+ * row: the page's wrappers are no boxes (`scores-flat`), so the stamp, deep in
+ * the live list, is a cell of the page's own grid beside the title. The
+ * desktop keeps it over the list.
+ */
+@media (width < 64rem) {
+  .scores-main {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .scores-main > *,
+  .scores-flat > * {
+    grid-column: 1 / -1;
+  }
+
+  .scores-flat {
+    display: contents;
+  }
+
+  .scores-main > h1 {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .scores-main .scores-stamp {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    text-align: end;
+  }
+}
+
+/*
+ * The player's Compare (T-1758, D-375): on a phone a 44px button beside
+ * Follow that opens the form under both; from 768px the form stands open in
+ * the row, as it did, and the button is gone.
+ */
+@media (width >= 48rem) {
+  @supports selector(::details-content) {
+    .compare-fold,
+    .compare-fold::details-content {
+      display: contents;
+    }
+
+    .compare-fold::details-content {
+      content-visibility: visible;
+    }
+
+    .compare-fold > summary {
+      display: none;
+    }
+  }
 }

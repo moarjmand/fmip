@@ -50,6 +50,25 @@ for (const width of [390, 1440]) {
         const ageText = await page.getByTestId('fact-age').locator('dd > span').first().innerText();
         expect(ageText.trim()).toMatch(age);
         await expect(page.getByTestId('facts').locator('[data-coverage-badge]')).toHaveCount(0);
+        if (width < 768) {
+          // T-1758 (D-375): on a phone the facts are one line, the boxes and
+          // their badges the desktop's; About says every fact, the photo is 64px.
+          await expect(page.getByTestId('facts')).toBeHidden();
+          await expect(page.getByTestId('facts-line')).toContainText(height);
+          await expect(page.getByTestId('player-about')).toBeVisible();
+          await expect(page.getByTestId('about-foot')).toHaveAttribute(
+            'data-coverage',
+            'available',
+          );
+          expect((await page.getByTestId('photo-ring').boundingBox())?.height).toBe(64);
+          await expect(page.getByTestId('compare-with')).toBeHidden();
+          await page.getByTestId('compare-toggle').click();
+          await expect(page.getByTestId('compare-with')).toBeVisible();
+        } else {
+          await expect(page.getByTestId('facts')).toBeVisible();
+          await expect(page.getByTestId('player-about')).toBeHidden();
+          await expect(page.getByTestId('compare-with')).toBeVisible();
+        }
 
         // No line-ups in the seed: the season says so, once; the Overview
         // draws no second, empty career table (T-1569).

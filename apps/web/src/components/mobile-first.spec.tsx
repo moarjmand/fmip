@@ -57,17 +57,19 @@ describe('a match on the scores list', () => {
     </ul>,
   );
 
-  it('is one link to the match with the live minute, both names isolated and wrapped before they are cut', () => {
+  it('is one link to the match with the live minute, both names isolated and wrapped, never cut', () => {
     expect(html).toContain('data-testid="match-link"');
     expect(html).toContain('href="/en/match/00000000-0000-4000-8000-000000000901"');
     expect(html).toMatch(/data-testid="score-status"[^>]*>67′</);
     expect(html).toMatch(/text-live" data-testid="score-status"/);
+    // T-1757 (D-374): a name wraps inside its own line and is never clamped.
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm font-semibold" title="Liverpool">Liverpool<\/bdi>/,
+      /<bdi class="min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base font-semibold">Liverpool<\/bdi>/,
     );
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm font-semibold" title="Manchester United">/,
+      /<bdi class="min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base font-semibold">Manchester United/,
     );
+    expect(html).not.toContain('line-clamp');
     expect(html).toContain('min-h-11');
     expect(html).toContain('aria-label="one red card"');
     // T-1496: the teams stacked, each with its own goals at the line's end.

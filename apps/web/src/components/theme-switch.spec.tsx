@@ -133,7 +133,11 @@ describe('the header at every width (T-1479)', () => {
     // gaps are tighter below 1280px, where six sections share it (D-281), and
     // for a guest at every width, whose bar carries two account buttons
     // (T-1736, D-358).
-    expect(HEADER).toContain('lg:h-16 lg:gap-x-2.5 ${');
+    // The height is `.site-bar`'s in globals.css since T-1759 (D-376): a
+    // fixed `block-size` from 1024px, 56px (64px on the match page).
+    expect(HEADER).toContain('site-bar page-frame flex items-center gap-x-2 lg:gap-x-2.5 ${');
+    const STYLES = readFileSync(join(HERE, '..', 'app', 'globals.css'), 'utf8');
+    expect(STYLES).toMatch(/@media \(width >= 64rem\) \{\s*\.site-bar \{\s*block-size: 3\.5rem;/);
     expect(HEADER).toContain("me === null ? '' : 'xl:gap-x-4'");
     expect(HEADER).toContain("me === null ? 'xl:[&_.nav-entry]:px-1.5' : ''");
     expect(HEADER).not.toContain('lg:flex-wrap');

@@ -44,12 +44,16 @@ import { refreshRail } from '@/lib/rail-actions';
  * On a quiet day with no moment, or with no answer, nothing is drawn, but
  * the asking goes on, so the rail appears once there is something to show.
  *
- * **Folded on a phone's match page** (T-1693, D-338). On the match page only,
- * and only below 768px, the rail is one slim line ("● 12 live · Moments that
- * matter", the server's `summary`), a button with `aria-expanded` that
- * unfolds it in place, so the match header with the score comes first. The
- * fold is the stylesheet's (`[data-folded]` in globals.css, `max-md:`), so
- * from 768px up, and on every other page, the rail is exactly as before.
+ * **Folded on a phone, every page but home** (T-1693, D-338, first on the
+ * match page; T-1755, D-372, everywhere but home). Below 768px the rail is
+ * one 44px line ("● 4 live · Sevilla 0–0 Alavés 86′", the server's
+ * `summary`), a button with `aria-expanded` that unfolds it in place, so
+ * the page's own top comes first. The fold is the stylesheet's
+ * (`[data-folded]` in globals.css, `max-md:`), so from 768px up, and on
+ * home at every width, the rail is the full row. The pages with no rail at
+ * all (sign-in, register, forgot-password, welcome, offline, not found)
+ * say so in their own markup (`data-no-rail`) and the stylesheet hides it:
+ * the not-found page has no address of its own to test.
  */
 
 export interface MomentSlot {
@@ -70,7 +74,7 @@ export interface MomentsRailProps {
   title: ReactNode;
   /** "● 3 live", the caption and Leagues, drawn by the server. */
   lead: ReactNode;
-  /** "● 3 live · Moments that matter": the match page's folded line on a phone (D-338). */
+  /** "● 3 live · Sevilla 0–0 Alavés 86′": the folded line on a phone, every page but home (D-372). */
   summary: ReactNode;
   /** The moments in the answer's order; empty draws nothing. */
   moments: readonly MomentSlot[];
@@ -84,9 +88,13 @@ export interface MomentsRailProps {
   behind: boolean;
 }
 
-/** The match page (`/<locale>/match/<id>`), where a phone folds the rail (D-338). */
-export function isMatchPage(pathname: string | null): boolean {
-  return pathname !== null && /^\/[^/]+\/match\/[^/]+\/?$/.test(pathname);
+/**
+ * Whether a phone folds the rail on this page: every page but home
+ * (`/<locale>`), which keeps the full rail (D-372; the match page alone
+ * before, D-338). An unknown address keeps the full rail.
+ */
+export function foldsRail(pathname: string | null): boolean {
+  return pathname !== null && !/^\/[^/]+\/?$/.test(pathname);
 }
 
 /** A pointer that hovers, a fine one, on a screen wide enough for the desktop row. */
@@ -271,10 +279,10 @@ export function MomentsRailView(props: MomentsRailProps) {
   }
   useRailRefresh(rail, show);
   const behind = useBehind(rail.behindAt, rail.behind);
-  // Folded on the match page (below 768px, by CSS). Unfolding is kept for the
-  // page it happened on, so a new page folds it again.
+  // Folded on every page but home (below 768px, by CSS). Unfolding is kept
+  // for the page it happened on, so a new page folds it again.
   const pathname = usePathname();
-  const onMatch = isMatchPage(pathname);
+  const folds = foldsRail(pathname);
   const [unfoldedOn, setUnfoldedOn] = useState<string | null>(null);
   const unfolded = unfoldedOn === pathname;
 
@@ -354,13 +362,13 @@ export function MomentsRailView(props: MomentsRailProps) {
       aria-labelledby="moments-title"
       data-testid="moments-rail"
       data-behind={behind ? 'true' : undefined}
-      data-folded={onMatch && !unfolded ? 'true' : undefined}
-      className="group/moments border-b border-default bg-surface"
+      data-folded={folds && !unfolded ? 'true' : undefined}
+      className="moments-rail group/moments border-b border-default bg-surface"
     >
       <h2 id="moments-title" className="sr-only">
         {rail.title}
       </h2>
-      {onMatch && (
+      {folds && (
         <div className="page-frame moments-fold">
           <button
             type="button"

@@ -1,12 +1,12 @@
 import Link from '@/components/ui/link';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { PlayerMatch, PlayerPage, PlayerSeasonRecord } from '@fmip/contracts';
 import { Coverage, Panel, When, zoneWords } from '@/components/competition-page';
 import { SectionTabs } from '@/components/ui/section-tabs';
 import { EntityImage } from '@/components/entity-image';
 import { Score } from '@/components/score';
 import { Translated } from '@/components/translated';
-import { Button, controlClasses, inlineTargetClasses } from '@/components/ui';
+import { Button, buttonClasses, controlClasses, inlineTargetClasses } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
 import { formatDate, formatNumber, localDigits } from '@/i18n/format';
 import { formatFixed } from '@/lib/words';
@@ -68,12 +68,16 @@ const CARD_TITLE = 'text-base font-extrabold font-stretch-semi-expanded md:text-
 // ---------------------------------------------------------------------------
 
 /**
- * The player's header (T-1500): the photo in a ring of the current club's
- * colour (the only place the club's colour appears on this page, D-263; a
- * club with no colour on record gets the theme's strong line), "Forward ·
- * No. 9" from the open spell, the name in the wide display face, the club
- * line, the facts with their coverage, follow and compare, then the tabs.
- * On a phone it is centred and the facts sit in three boxes under the name.
+ * The player's header (T-1500): the photo in a neutral ring (the club's
+ * colour framed it until D-375), "Forward · No. 9" from the open spell, the
+ * name in the wide display face, the club line, the facts with their
+ * coverage, follow and compare, then the tabs.
+ *
+ * On a phone (T-1758, D-375) it is one 64px identity row -- the photo beside
+ * the role, the name and the club line -- the facts we hold on one line,
+ * Follow and a "Compare with…" button side by side, then the tabs, so the
+ * season is the first thing under them. A fact we do not hold is said in
+ * About (`PlayerAbout`). From 768px it is as it was.
  */
 export function PlayerHeader({
   page,
@@ -100,25 +104,27 @@ export function PlayerHeader({
       ? [say(locale, 'playerPage.shirt', { number: formatNumber(locale, spell.shirt_number) })]
       : []),
   ];
-  const colour = clubClaim(page)?.team.colour ?? null;
-  const ring: CSSProperties | undefined = colour === null ? undefined : { borderColor: colour };
   return (
     <div className="border-b border-default bg-surface" data-testid="player-header">
       <div className="page-frame">
-        <div className="flex flex-col items-center gap-x-7 gap-y-4 pt-5 pb-4 text-center md:flex-row md:flex-wrap md:pt-8 md:pb-6 md:text-start">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-3 pb-2 md:gap-x-7 md:gap-y-4 md:pt-8 md:pb-6">
+          {/* A neutral ring (D-375): the club's colour no longer frames the
+              photo. 64px on a phone, 96 from 768px. */}
           <span
-            className={cx(
-              'inline-flex shrink-0 rounded-full border-[3px]',
-              colour === null && 'border-strong',
-            )}
-            style={ring}
+            className="inline-flex shrink-0 rounded-full border-[3px] border-strong"
             data-testid="photo-ring"
-            data-ring={colour === null ? 'none' : 'club'}
+            data-ring="neutral"
           >
-            <EntityImage media={p.photo} kind="photo" name={name} size={96} aboveFold />
+            <EntityImage
+              media={p.photo}
+              kind="photo"
+              name={name}
+              size={96}
+              className="max-md:size-14.5"
+              aboveFold
+            />
           </span>
-          {/* The basis is for the desktop row only: in the phone's column it is a height (T-1567). */}
-          <div className="flex min-w-0 flex-col items-center gap-2 md:flex-[1_1_18rem] md:items-start">
+          <div className="flex min-w-0 flex-[1_1_0] flex-col items-start gap-0.5 md:flex-[1_1_18rem] md:gap-2">
             {eyebrow.length > 0 && (
               <p
                 className="text-xs font-bold text-muted uppercase ltr:tracking-wider"
@@ -128,7 +134,7 @@ export function PlayerHeader({
               </p>
             )}
             <h1
-              className="font-sans text-display-1 leading-none font-extrabold font-stretch-semi-expanded break-words md:text-display-3"
+              className="font-sans text-2xl leading-tight font-extrabold font-stretch-semi-expanded break-words md:text-display-3 md:leading-none"
               data-testid="title"
             >
               {name}
@@ -142,10 +148,32 @@ export function PlayerHeader({
             <ClubLine page={page} locale={locale} />
           </div>
           <Facts page={page} locale={locale} />
+          <FactsLine page={page} locale={locale} />
         </div>
-        <div className="flex flex-wrap items-end justify-center gap-x-4 gap-y-3 pb-4 md:justify-start">
-          {follow}
-          <CompareForm locale={locale} personId={p.id} />
+        {/* Follow and Compare side by side on a phone, Compare a 44px button
+            whose form opens under both (`fold-row`, `compare-fold` in
+            globals.css); from 768px the form stands open, as it did. */}
+        <div className="fold-row gap-x-2 pb-3 md:items-end md:gap-x-4 md:gap-y-3 md:pb-4">
+          <div className="flex min-w-0 flex-1 md:flex-none max-md:[&_a]:w-full max-md:[&_button]:w-full max-md:[&_form]:items-stretch">
+            {follow}
+          </div>
+          <details className="compare-fold group flex-1 md:flex-none" data-testid="compare-fold">
+            <summary
+              className={buttonClasses({
+                variant: 'secondary',
+                size: 'md',
+                className:
+                  'w-full min-w-0 flex-1 cursor-pointer list-none whitespace-nowrap [&::-webkit-details-marker]:hidden',
+              })}
+              data-testid="compare-toggle"
+            >
+              <Translated locale={locale} message="playerPage.compareWith" />
+              <span aria-hidden="true" className="text-xs group-open:rotate-180">
+                ▾
+              </span>
+            </summary>
+            <CompareForm locale={locale} personId={p.id} />
+          </details>
         </div>
       </div>
       <div className="page-frame">
@@ -179,7 +207,7 @@ function ClubLine({ page, locale }: { page: PlayerPage; locale: string }) {
   const teamLink = inlineTargetClasses('gap-1.5 align-middle font-bold text-fg hover:underline');
   return (
     <dl
-      className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-muted md:justify-start"
+      className="flex flex-wrap items-center justify-start gap-x-4 gap-y-1 text-sm text-muted"
       data-testid="identity"
     >
       <div data-testid="current-team">
@@ -195,7 +223,12 @@ function ClubLine({ page, locale }: { page: PlayerPage; locale: string }) {
                 {club.team.name}
               </Link>
               {club.on_loan ? ` · ${say(locale, 'teamPage.onLoan')}` : ''}
-              {` · ${clubBasisText(locale, club)}`}
+              {' · '}
+              {club.basis === 'lineup' ? (
+                <PerLineup locale={locale} day={club.since} long={clubBasisText(locale, club)} />
+              ) : (
+                clubBasisText(locale, club)
+              )}
             </span>
           ) : lineup !== null ? (
             // No open spell, but a line-up names him (T-1394, D-209): the
@@ -207,7 +240,12 @@ function ClubLine({ page, locale }: { page: PlayerPage; locale: string }) {
               >
                 {lineup.team.name}
               </Link>
-              {` · ${say(locale, 'playerPage.lastLineup', { date: dayText(locale, lineup.day) })}`}
+              {' · '}
+              <PerLineup
+                locale={locale}
+                day={lineup.day}
+                long={say(locale, 'playerPage.lastLineup', { date: dayText(locale, lineup.day) })}
+              />
             </span>
           ) : (
             <Translated locale={locale} message="playerPage.noCurrentTeam" />
@@ -246,16 +284,147 @@ function ClubLine({ page, locale }: { page: PlayerPage; locale: string }) {
 }
 
 /**
+ * What says a line-up names his club (T-1758, D-375): on a phone the short
+ * "per line-up of 4 Nov 2026", whole on the club line (a tooltip is no use to
+ * a finger), the long sentence being About's; from 768px the long sentence,
+ * as it was.
+ */
+function PerLineup({ locale, day, long }: { locale: string; day: string; long: string }) {
+  const date = formatDate(locale, `${day}T00:00:00Z`, 'UTC', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return (
+    <>
+      <span className="md:hidden" data-testid="per-lineup">
+        {say(locale, 'playerPage.club.perLineup', { date })}
+      </span>
+      <span className="max-md:hidden">{long}</span>
+    </>
+  );
+}
+
+/** A fact in the reader's words, or null when we do not hold it. */
+function factValues(page: PlayerPage, locale: string) {
+  const p = page.person;
+  const age = ageOn(p.date_of_birth, new Date());
+  return {
+    age: age === null ? null : formatNumber(locale, age),
+    born:
+      p.date_of_birth === null || age === null
+        ? undefined
+        : say(locale, 'playerPage.born', { date: dayText(locale, p.date_of_birth) }),
+    height:
+      p.height_cm === null
+        ? null
+        : say(locale, 'playerPage.heightCm', { height: formatNumber(locale, p.height_cm) }),
+    foot: p.preferred_foot === null ? null : say(locale, FOOT_KEY[p.preferred_foot]),
+  };
+}
+
+/**
+ * The facts on one line on a phone (T-1758, D-375): "Age 16 · born 31
+ * December 2009 · Height 183 cm · Left foot". Only what we hold: a fact we
+ * do not hold is said in About (`PlayerAbout`), never dropped from the page
+ * (rule 3). From 768px the three boxes stand as they were (`Facts`).
+ */
+function FactsLine({ page, locale }: { page: PlayerPage; locale: string }) {
+  const f = factValues(page, locale);
+  const items = [
+    f.age === null
+      ? null
+      : `${say(locale, 'playerPage.age')} ${f.age}${f.born === undefined ? '' : ` · ${f.born}`}`,
+    f.height === null ? null : `${say(locale, 'playerPage.height')} ${f.height}`,
+    f.foot,
+  ].filter((item): item is string => item !== null);
+  return items.length === 0 ? null : (
+    <p className="basis-full text-sm text-muted md:hidden" data-testid="facts-line">
+      {items.join(' · ')}
+    </p>
+  );
+}
+
+/**
+ * About (T-1758, D-375), on a phone: every fact with its value or its "not
+ * supplied" badge (rule 3) -- what the one-line facts leave out is said here
+ * -- and what says which club he plays for, in its whole sentence. From
+ * 768px the header's boxes and club line say all of it, so About is the
+ * phone's only.
+ */
+export function PlayerAbout({ page, locale }: { page: PlayerPage; locale: string }) {
+  const f = factValues(page, locale);
+  const club = clubClaim(page);
+  const lineup = page.club === undefined && club === null ? lineupTeam(page) : null;
+  const team =
+    club !== null
+      ? `${club.team.name} · ${clubBasisText(locale, club)}`
+      : lineup !== null
+        ? `${lineup.team.name} · ${say(locale, 'playerPage.lastLineup', { date: dayText(locale, lineup.day) })}`
+        : say(locale, 'playerPage.noCurrentTeam');
+  // "No current team on record" is said in words, and it is not a team (rule 3).
+  const noTeam = club === null && lineup === null;
+  const rows: {
+    key: string;
+    label: MessageKey;
+    value: string | null;
+    note?: string;
+    missing?: boolean;
+  }[] = [
+    { key: 'age', label: 'playerPage.age', value: f.age, note: f.born },
+    { key: 'height', label: 'playerPage.height', value: f.height },
+    { key: 'foot', label: 'playerPage.foot', value: f.foot },
+    { key: 'team', label: 'playerPage.currentTeam', value: team, missing: noTeam },
+  ];
+  return (
+    <section
+      aria-labelledby="player-about-heading"
+      className={cx(CARD, 'flex flex-col p-4 md:hidden')}
+      data-testid="player-about"
+    >
+      <h2 id="player-about-heading" className={CARD_TITLE}>
+        <Translated locale={locale} message="playerPage.about" />
+      </h2>
+      <dl className="flex flex-col text-sm">
+        {rows.map((row) => (
+          <div
+            key={row.key}
+            className="flex items-center justify-between gap-3 border-b border-default py-2 last:border-b-0"
+            data-testid={`about-${row.key}`}
+            data-coverage={row.value === null || row.missing ? 'not_supplied' : 'available'}
+          >
+            <dt className="shrink-0 text-muted">
+              <Translated locale={locale} message={row.label} />
+            </dt>
+            <dd className="min-w-0 text-end">
+              {row.value === null ? (
+                <Coverage locale={locale} state="not_supplied" />
+              ) : (
+                <>
+                  {row.value}
+                  {row.note !== undefined && ` (${row.note})`}
+                </>
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+/**
  * Age, height and foot (T-1500): each one the figure we hold or its
  * "not supplied" badge, never a guess. The age is counted from the stored
- * birth date, which is written under it.
+ * birth date, which is written under it. From 768px only (`FactsLine` and
+ * `PlayerAbout` on a phone, T-1758).
  */
 function Facts({ page, locale }: { page: PlayerPage; locale: string }) {
   const p = page.person;
   const age = ageOn(p.date_of_birth, new Date());
   return (
     <dl
-      className="grid w-full grid-cols-3 gap-2 md:ms-auto md:w-auto md:gap-x-8"
+      className="hidden md:ms-auto md:grid md:w-auto md:grid-cols-3 md:gap-x-8"
       data-testid="facts"
     >
       <Fact
@@ -336,7 +505,7 @@ function CompareForm({ locale, personId }: { locale: string; personId: string })
       action={`/${locale}/player/${personId}/compare`}
       method="get"
       role="search"
-      className="flex w-full max-w-80 flex-wrap items-center gap-2 text-sm"
+      className="flex w-full flex-wrap items-center gap-2 pt-2 text-sm md:max-w-80 md:pt-0"
       data-testid="compare-with"
     >
       <label htmlFor="compare-with-term" className="w-full text-xs font-bold text-muted">

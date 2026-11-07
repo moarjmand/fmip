@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2368), grouped by folder, with one line on
+Every file in the repository (2376), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -255,7 +255,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 292
+- [`apps/web/src/components`](#appswebsrccomponents) — 294
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 38
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -2158,7 +2158,7 @@ machine, `docs/18-handover.md`.
 | `error.tsx` | A page that failed to render, inside the locale (T-809). |
 | `layout.tsx` | Every shipped locale is known at build time, so each one is rendered statically rather than on demand. |
 | `not-found.tsx` | A page that does not exist, inside the locale (T-809): a page's own `notFound()` (a malformed id, an unknown competition) and any unknown path under a locale (`[...missing]/page.tsx`) land here, so the document is the l… |
-| `page.tsx` | The home page in the Stadiomind design (T-1495, D-263, D-270; the canvas boards Home and HomePhone): the day's heading, the matches in play, the big match with the model's forecast and the other two voices kept apart, a… |
+| `page.tsx` | The home page in the Stadiomind design (T-1495, D-263, D-270; the canvas boards Home and HomePhone): the day's heading, the big match with the model's forecast and the other two voices kept apart, the first run's strip,… |
 
 ## apps/web/src/app/[locale]/[...missing]
 
@@ -2841,6 +2841,7 @@ machine, `docs/18-handover.md`.
 | `error-page.spec.tsx` | What the locale layout provides (T-1040). |
 | `error-page.tsx` | What every error page says (T-809): a page that does not exist, and a page that failed to render. |
 | `filled-message.tsx` | A resolved message whose `{placeholders}` are elements -- a `<time>`, a link, an isolated score -- rather than strings (T-1303). |
+| `first-run-offer.spec.tsx` | Home's order and the first run's strip (T-1756, D-373; board P4-2): the main match comes before "Live now", the offer is a 48px strip after the main match (after the "Today" line when there is none), the whole strip is… |
 | `first-run-offer.tsx` | The homepage's offer of the first run (blueprint 2.3, T-620): guests "are encouraged to select a language, territory and favourite teams". |
 | `first-run.spec.ts` | The first run (blueprint 2.3 and 7.1, T-620) keeps these promises. **Offered once, dismissible.** The homepage offers it to a member whose flow is pending and to a guest who neither finished nor dismissed it; "Not now"… |
 | `follow-next-steps.spec.ts` | Following with nothing followed (T-622) keeps three promises. **Never an empty page that looks broken**: a member who follows nothing gets a sentence and concrete next steps, and every way the suggestions can fail is a… |
@@ -2898,7 +2899,7 @@ machine, `docs/18-handover.md`.
 | `live-conversation.tsx` | The chat page's socket (T-237). **It renders no message.** When something happens it asks the page to render itself again, and the server does what it already does — resolve the cards, the reactions, the mentions and th… |
 | `live-match.spec.ts` | The match page listens for the public discussion moving (T-254, D-068). |
 | `live-match.tsx` | The match centre that stays current (T-032, T-034): renders the server's snapshot, then subscribes to the web app's `/api/fixtures/:id/stream` and replaces the whole payload on every `snapshot`. |
-| `live-scores.tsx` | A block's heading stays at the top of the screen while its matches scroll under it (T-605), on the block's own surface so nothing shows through. |
+| `live-scores.tsx` | A block's heading stays at the top of the screen, under the site header (`match-group-head` in globals.css), while its matches scroll under it (T-605), on the block's own surface so nothing shows through. 44px (T-1757,… |
 | `locale-hold-form.tsx` | Hold back a ready language, or release one (T-1163, D-155), with a reason. |
 | `logical-classes.spec.ts` | No physical side in a class name (CLAUDE.md rule 7, T-1501). |
 | `match-alert-settings.spec.tsx` | The match-alert controls (T-831, D-098): a section of their own in Settings → Notifications, one switch per kind with the value the API says is in force, worded through the catalogues, and silenced as a whole or per tea… |
@@ -3025,6 +3026,7 @@ machine, `docs/18-handover.md`.
 | `shell-nav.tsx` | The shell's two navigations (T-1381, D-199; Stadiomind, D-267), the only parts of the header that need the pathname: which entry is current. |
 | `site-footer.spec.tsx` | The site footer (T-1610, D-281): the name and a line on what the site is, every section in three columns with the three prediction products each under its own name (rule 6), What Stadiomind is and the rules (linked from… |
 | `site-footer.tsx` | Each column's heading. "Stadiomind" is the name, the same in every language. |
+| `site-header-sticky.spec.ts` | The sticky header (T-1759, D-376; board P4-7), held to the stylesheet that draws it, since it is CSS alone: 48px on a phone and 56px from 768px, stuck at the top at layer 30 on every page but the match page (which keeps… |
 | `site-header.tsx` | The site shell (T-1381, D-199): the header, the matchday rail under it (T-1624, D-292) and the phone's bottom tab bar, the same on every page. |
 | `stamp.tsx` | A stored moment as a reader reads it (T-1201): "30 Sept 2026, 21:32" in the viewer's zone, with "UTC" said when that is the zone used, and the exact instant kept in `dateTime` for a machine. |
 | `standings-table.spec.tsx` | The competition page's tables (T-1336): a season with group stages shows every group's table, under its stage when there are several, and a group not yet started as a sentence with its teams; a league's page keeps its o… |
@@ -3483,13 +3485,19 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
+| `03-project-map.md` | Project map |
+| `03-project-map.md` | Project map |
 | `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |

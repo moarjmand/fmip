@@ -5,6 +5,8 @@ import type {
   ScoreCard as ScoreCardData,
   ScoresResponse,
 } from '@fmip/contracts';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { CardDetails, ScoreCard, rowPick } from '@/components/score-card';
@@ -30,6 +32,7 @@ import { MatchesAnalysis } from './matches-analysis';
  * only once the reader has picked (D-206).
  */
 
+const HERE = __dirname;
 const NOW = Date.parse('2026-10-25T12:00:00Z');
 const ID = '00000000-0000-4000-8000-000000001496';
 
@@ -232,11 +235,13 @@ describe("the row's Pick", () => {
     expect(html).toContain('>Pick<');
   });
 
-  it('says Picked once there is a pick, and View after kick-off without one', () => {
+  it('says Picked once there is a pick, and View after kick-off without one, on a desktop only', () => {
     expect(row('en', { picked: true })).toContain('>Picked<');
     const live = row('en', {}, { status: 'live', kickoff_at: '2026-10-25T11:00:00.000Z' });
     expect(live).toContain('data-pick="locked"');
     expect(live).toContain('>View<');
+    // T-1757 (D-374): no View on a phone's live or finished row; the row is the link.
+    expect(live).toMatch(/class="[^"]* hidden @xl:inline-flex [^"]*" data-testid="row-pick"/);
   });
 
   it('marks the previewed row, and has no Pick where the page gives none', () => {
@@ -248,7 +253,11 @@ describe("the row's Pick", () => {
     // A 10% wash put the model's percentages under 4.5:1 on Day; the token is
     // checked against every text role in tokens.spec.ts.
     const html = row('en', { selected: true });
-    expect(html).toContain('data-selected:bg-selected');
+    // The row's ground is the `match-row` component's (globals.css, T-1757).
+    expect(html).toMatch(/<li [^>]*class="match-row"[^>]*data-selected=""/);
+    expect(readFileSync(join(HERE, '..', '..', 'globals.css'), 'utf8')).toMatch(
+      /\.match-row \{\s*@apply [^;]*data-selected:bg-selected[^;]*;/,
+    );
     expect(html).not.toMatch(/bg-accent\/\d+/);
   });
 
@@ -259,16 +268,261 @@ describe("the row's Pick", () => {
   });
 });
 
-describe('the row on a phone (T-1545)', () => {
-  it('puts the model under the teams below 640 px, so a name keeps its width', () => {
+describe('the 72px row on a phone (T-1757, D-374)', () => {
+  /** The class list of the element carrying this test id. */
+  const classOf = (html: string, testId: string): string =>
+    new RegExp(`class="([^"]*)"[^>]*data-testid="${testId}"`).exec(html)?.[1] ?? '';
+  const started = { kickoff_at: '2026-10-25T09:00:00.000Z' };
+  const live = (props: Partial<Parameters<typeof ScoreCard>[0]> = {}) =>
+    row('en', props, {
+      ...started,
+      status: 'live',
+      minute: 63,
+      scores: { ...card().scores, current: { home: 2, away: 1 } },
+    });
+  const finished = row(
+    'en',
+    {},
+    {
+      ...started,
+      status: 'finished',
+      scores: { ...card().scores, current: { home: 0, away: 2 }, full_time: { home: 0, away: 2 } },
+    },
+  );
+
+  /** A component class's `@apply` list in globals.css. */
+  const applied = (name: string): string =>
+    new RegExp(`\\.${name} \\{\\s*@apply ([^;]+);`).exec(
+      readFileSync(join(HERE, '..', '..', 'globals.css'), 'utf8'),
+    )?.[1] ?? '';
+
+  it('is three columns, 56 | names | 104, at least 72px; the desktop four columns from 36rem of list', () => {
+    expect(classOf(row('en'), 'score-card')).toBe('match-row');
+    const grid = applied('match-row').split(' ');
+    for (const part of [
+      'grid',
+      'min-h-18',
+      'grid-cols-[3.5rem_minmax(0,1fr)_6.5rem]',
+      'gap-x-2',
+      'px-4',
+      '@xl:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem]',
+    ]) {
+      expect(grid).toContain(part);
+    }
+    // A container query on the list, not the screen: no viewport breakpoints on the row.
+    expect(grid.join(' ')).not.toMatch(/(^| )(max-)?(sm|md|lg):/);
+    // The model's whole bar (D-368 unchanged) beside the names, in the end column.
+    expect(classOf(row('en'), 'row-forecast')).toContain('col-start-3 row-span-2 row-start-1');
+    expect(row('en')).toContain('data-size="row"');
+  });
+
+  it('puts an upcoming match’s Pick under its kick-off time, 44 by 44, keeping its label', () => {
     const html = row('en');
-    expect(html).toContain('grid-cols-[2.75rem_minmax(0,1fr)_auto]');
-    expect(html).toMatch(/max-sm:col-start-2 max-sm:row-start-2[^"]*" data-testid="row-forecast"/);
-    expect(html).toMatch(
-      /max-sm:col-start-3 max-sm:row-span-2 max-sm:row-start-1[^"]*" data-testid="row-pick"/,
+    expect(classOf(html, 'score-status')).toContain('self-end');
+    const pick = classOf(html, 'row-pick').split(' ');
+    expect(pick).toContain('match-row-pick');
+    expect(pick).toContain('inline-flex');
+    const placed = applied('match-row-pick').split(' ');
+    for (const part of ['col-start-1', 'row-start-2', 'min-h-11', 'min-w-11', '@xl:col-start-4']) {
+      expect(placed).toContain(part);
+    }
+    expect(html).toContain('aria-label="Pick: Barcelona v Real Madrid"');
+    // The member's "Picked" in the same place, stacked to fit the column.
+    const mine = classOf(row('en', { picked: true }), 'row-pick');
+    expect(mine).toContain('match-row-pick inline-flex');
+    expect(mine).toContain('@max-xl:flex-col');
+    expect(row('fa', { picked: true })).toContain('>انتخاب شد<');
+  });
+
+  it('gives a live row no View on a phone: the minute stands alone, the row is the link', () => {
+    const html = live();
+    expect(html).toContain('data-status="live"');
+    expect(classOf(html, 'score-status')).toContain('row-span-2');
+    expect(classOf(html, 'score-status')).toContain('text-live');
+    expect(classOf(html, 'row-pick')).toMatch(/(^| )hidden @xl:inline-flex/);
+    expect(classOf(html, 'match-link')).toContain('col-span-2 col-start-1 row-span-2 row-start-1');
+    // A member who picked keeps their "Picked" under the minute.
+    expect(classOf(live({ picked: true }), 'row-pick')).toMatch(/(^| )inline-flex/);
+    expect(classOf(live({ picked: true }), 'row-pick')).not.toMatch(/(^| )hidden/);
+  });
+
+  it('gives a finished row what happened, marked on the bar, and no View on a phone', () => {
+    expect(finished).toMatch(/data-segment="away"[^>]*data-happened=""/);
+    expect(finished).toMatch(/data-testid="score-status"[^>]*>FT</);
+    expect(classOf(finished, 'row-pick')).toMatch(/(^| )hidden @xl:inline-flex/);
+  });
+
+  it('says "Not supplied" on every row without a forecast, in the bar’s column (rule 3)', () => {
+    const html = row('en', { forecast: { state: 'none' } });
+    expect(classOf(html, 'row-forecast')).toContain('col-start-3');
+    expect(html).toContain('data-coverage-badge="not_supplied"');
+    expect(html).not.toContain('data-testid="row-bar"');
+    expect(row('fa', { forecast: { state: 'none' } })).toContain('ارائه نشده');
+  });
+
+  it('says a postponed match in the start column, with no Pick on a phone', () => {
+    const html = row('en', {}, { status: 'postponed' });
+    expect(html).toMatch(/data-testid="score-status"[^>]*>Postponed</);
+    expect(classOf(html, 'score-status')).toContain('row-span-2');
+    expect(classOf(html, 'score-status')).toContain('[overflow-wrap:anywhere]');
+    expect(classOf(html, 'row-pick')).toMatch(/(^| )hidden @xl:inline-flex/);
+  });
+
+  it('never cuts a name: it wraps inside its own line, 14px on a phone, with the score at the line’s end', () => {
+    const html = row(
+      'en',
+      {},
+      {
+        ...started,
+        status: 'live',
+        minute: 63,
+        away: { id: 'a', name: 'Borussia Mönchengladbach', short_name: null, code: 'BMG' },
+        scores: { ...card().scores, current: { home: 2, away: 1 } },
+      },
     );
-    // From 640 px the four columns of the Design System's row stand as they were.
-    expect(html).toContain('sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem]');
+    expect(html).toContain('>Borussia Mönchengladbach</bdi>');
+    expect(html).not.toMatch(/truncate|line-clamp|text-ellipsis/);
+    expect(html).not.toMatch(/<bdi[^>]*title=/);
+    expect(html).toMatch(
+      /<bdi class="min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base/,
+    );
+    expect(html).toMatch(
+      /Mönchengladbach<\/bdi><span class="ms-auto[^"]*" data-testid="away-score">1</,
+    );
+  });
+});
+
+describe('the competition groups (T-1757, D-374)', () => {
+  const group = (fixtures: ScoreCardData[], locale: 'en' | 'fa' = 'en'): string =>
+    renderToStaticMarkup(
+      <LiveScores
+        initial={
+          {
+            date: '2026-10-25',
+            timezone: 'UTC',
+            generated_at: '2026-10-25T11:59:00Z',
+            total: fixtures.length,
+            pinned: [],
+            groups: [
+              {
+                competition: {
+                  id: 'c',
+                  name: 'La Liga',
+                  logo: { coverage: 'not_supplied', url: null },
+                },
+                country: { id: 'es', name: 'Spain' },
+                fixtures,
+              },
+            ],
+          } as unknown as ScoresResponse
+        }
+        streamQuery="date=2026-10-25"
+        timeZone="UTC"
+        locale={locale}
+        filters={NO_FILTERS}
+        clearFiltersHref="/en/scores"
+        forecasts={{}}
+        words={scoresWords(locale)}
+      />,
+    );
+
+  it('has a 44px heading that sticks under the site header, with its stamp kept (rule 4)', () => {
+    const html = group([card({ status: 'live', minute: 10 })]);
+    const heading = /<div class="([^"]*)"><h2/.exec(html)?.[1] ?? '';
+    expect(heading).toContain('match-group-head');
+    expect(heading).toContain('min-h-11');
+    expect(heading).not.toMatch(/(^| )(sticky|top-0|py-1\.5)( |$)/);
+    expect(html).toMatch(/data-testid="block-updated">Updated /);
+    // The rows' columns follow the list's width.
+    expect(html).toMatch(/<ul class="@container /);
+  });
+
+  it('keeps a quiet group’s whole "Unchanged since" sentence, wrapping to a second line', () => {
+    const html = group([card({ last_updated_at: '2026-10-12T05:07:00.000Z' })]);
+    const stamp = /class="([^"]*)" data-testid="block-updated">([^<]*)</.exec(html);
+    expect(stamp?.[2]).toMatch(/^Unchanged since .*12 Oct/);
+    expect(stamp?.[1]).not.toMatch(/truncate|line-clamp|whitespace-nowrap/);
+    expect(group([card()], 'fa')).toContain('data-testid="block-updated"');
+  });
+
+  it('gives the "Last checked" stamp the class that seats it in the title row on a phone', () => {
+    expect(group([card()])).toMatch(
+      /<p class="scores-stamp text-xs[^"]*" data-testid="live-state"/,
+    );
+  });
+
+  it('sticks the heading at the header’s height, and nothing under 28rem tall (globals.css)', () => {
+    const css = readFileSync(join(HERE, '..', '..', 'globals.css'), 'utf8');
+    expect(css).toMatch(
+      /\.match-group-head \{\s*position: sticky;\s*inset-block-start: var\(--site-header-height, 0px\);/,
+    );
+    expect(css).toMatch(/@media \(height < 28rem\) \{\s*\.match-group-head \{\s*position: static;/);
+    // The property is the site header's to define (on :root, D-376), never this page's.
+    const defined = [...css.matchAll(/([^{};]+)\{[^}]*--site-header-height:/g)].map((m) =>
+      m[1]!.trim(),
+    );
+    expect(defined.length).toBeGreaterThan(0);
+    expect(defined.every((selector) => !/match-group|scores-/.test(selector))).toBe(true);
+    // Under 1024px the stamp is a cell of the page's grid, beside the title.
+    expect(css).toMatch(/\.scores-main \.scores-stamp \{\s*grid-row: 1;\s*grid-column: 2;/);
+  });
+
+  it('sticks the desktop preview column 1rem under the site header, that much shorter', () => {
+    const page = readFileSync(join(HERE, 'page.tsx'), 'utf8');
+    const aside = /<aside\s+className=\{`([^`]*)/.exec(page)?.[1] ?? '';
+    expect(aside).toContain('lg:sticky lg:top-[calc(var(--site-header-height,0px)+1rem)]');
+    expect(aside).toContain('lg:max-h-[calc(100dvh-2rem-var(--site-header-height,0px))]');
+    expect(aside).not.toMatch(/lg:top-4|lg:max-h-\[calc\(100dvh-2rem\)\]/);
+  });
+});
+
+describe('the filter row (T-1757, D-374)', () => {
+  const PAGE = readFileSync(join(HERE, 'page.tsx'), 'utf8');
+  const CSS = readFileSync(join(HERE, '..', '..', 'globals.css'), 'utf8');
+  const filterRow = PAGE.slice(
+    PAGE.indexOf('data-testid="filter-row"'),
+    PAGE.indexOf('data-testid="legend"'),
+  );
+
+  it('is one row: the views, then Date and Filters, each a native disclosure', () => {
+    expect(PAGE).toMatch(/className="fold-row text-sm" data-testid="filter-row"/);
+    expect(filterRow.indexOf('data-testid="filters"')).toBeLessThan(
+      filterRow.indexOf('data-testid="date-fold"'),
+    );
+    expect(filterRow.indexOf('data-testid="date-fold"')).toBeLessThan(
+      filterRow.indexOf('data-testid="more-filters"'),
+    );
+    expect(filterRow).toContain('message="scores.date"');
+    expect(filterRow).toContain('message="scores.filter.chip"');
+    // The same panels as before: the picker with its steps, the three selects.
+    for (const id of ['date-input', 'previous-day', 'next-day']) expect(filterRow).toContain(id);
+    for (const name of ['country', 'competition', 'stage']) {
+      expect(filterRow).toContain(`'${name}',`);
+    }
+  });
+
+  it('opens one panel at a time, by a shared name, with no script', () => {
+    expect(filterRow.match(/<details\s+name="scores-panel"/g)).toHaveLength(2);
+    expect(filterRow).not.toMatch(/onClick|onToggle|useState/);
+    // Each panel opens under the whole row; without `::details-content` under its own chip.
+    expect(CSS).toMatch(/\.fold-row > details::details-content \{\s*order: 1;\s*flex-basis: 100%;/);
+    expect(CSS).toMatch(/\.fold-row > details\[open\] \{\s*flex-basis: 100%;/);
+    // 44px chips.
+    expect(PAGE).toMatch(/const chipClass =\s*'inline-flex min-h-11 /);
+  });
+
+  it('has one 12px legend line, turquoise on the model’s words only (rule 6), and no sign-in aside', () => {
+    const legend = PAGE.slice(
+      PAGE.indexOf('data-testid="legend"'),
+      PAGE.indexOf('</p>', PAGE.indexOf('data-testid="legend"')),
+    );
+    expect(PAGE).toMatch(/<p className="text-xs text-caption" data-testid="legend">/);
+    expect(legend.match(/text-model/g)).toHaveLength(1);
+    expect(legend).toMatch(
+      /<span className="text-model" data-testid="model-legend">\s*<Translated locale=\{locale\} message="scores.modelLegend" \/>/,
+    );
+    expect(legend).toContain("'scores.timesIn'");
+    expect(PAGE).not.toContain('timesInGuest');
   });
 });
 

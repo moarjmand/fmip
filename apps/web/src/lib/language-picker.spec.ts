@@ -101,7 +101,12 @@ describe('the component', () => {
     expect(SOURCE).toMatch(/pickerEntriesFor\(pathname, languages, search\)/);
     // The query is read under Suspense (T-1572): Next 16 requires it for
     // `useSearchParams` on a prerendered route.
-    expect(SOURCE).toMatch(/<Suspense fallback=\{<Picker \{\.\.\.props\} search="" \/>\}>/);
+    // The fallback has test ids of its own, so a boundary streamed out of
+    // line never puts two `language-toggle`s in the page.
+    expect(SOURCE).toMatch(
+      /<Suspense fallback=\{<Picker \{\.\.\.props\} testIdPrefix=\{pending\} search="" \/>\}>/,
+    );
+    expect(SOURCE).toContain("const pending = `${props.testIdPrefix ?? ''}pending-`;");
     expect(SOURCE).not.toMatch(/isShippable|LOCALES|coverage\(/);
   });
 

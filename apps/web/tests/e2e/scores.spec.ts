@@ -26,10 +26,9 @@ test.describe('scores page', () => {
       'aria-current',
       'true',
     );
-    // A guest on /en with no zone of their own reads UK time (T-1391, D-207).
-    await expect(page.getByTestId('timezone')).toContainText(
-      'Times: UK time (sign in for your own zone)',
-    );
+    // A guest on /en with no zone of their own reads UK time (T-1391, D-207);
+    // the legend no longer asks them to sign in for one (T-1757, D-374).
+    await expect(page.getByTestId('timezone')).toHaveText('Times: UK time');
 
     await expect(page.getByTestId('scores-unreachable')).toBeVisible();
     await expect(page.getByTestId('score-card')).toHaveCount(0);

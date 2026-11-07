@@ -159,14 +159,17 @@ export async function SiteHeader({
 
   return (
     <>
-      <header className="relative border-b border-default bg-surface md:border-b-0 md:bg-canvas">
+      {/* Sticky, 48px on a phone and 56px from 768px, but on the match page
+        (T-1759, D-376): `.site-header` and `.site-bar` in globals.css, no
+        script. Only the bar is in it; the notices follow it and scroll away. */}
+      <header className="site-header border-b border-default bg-surface md:border-b-0 md:bg-canvas">
         <nav
           aria-label={primary.text}
           lang={primary.lang}
           // A guest's bar carries two account buttons (T-1736, D-358), so from
           // 1280px it keeps the tighter gaps of 1024px to 1279px (D-281) and
           // the search field keeps its room.
-          className={`page-frame flex min-h-15 items-center gap-x-2 lg:h-16 lg:gap-x-2.5 ${
+          className={`site-bar page-frame flex items-center gap-x-2 lg:gap-x-2.5 ${
             me === null ? '' : 'xl:gap-x-4'
           }`}
         >
@@ -213,7 +216,10 @@ export async function SiteHeader({
                 <path d="M4 7h16M4 12h16M4 17h16" />
               </Icon>
             </summary>
-            <div className="site-menu-panel absolute inset-x-0 top-full z-30 flex max-h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto border-b border-default bg-surface px-4 py-3">
+            {/* Its last item clear of the phone's tab bar: the header (at most
+                4rem) above it no longer scrolls away (D-376), so the panel is
+                as tall as the screen less both bars. */}
+            <div className="site-menu-panel absolute inset-x-0 top-full z-30 flex max-h-[calc(100dvh-8.25rem-env(safe-area-inset-bottom))] flex-col gap-1 overflow-y-auto border-b border-default bg-surface px-4 py-3">
               {/* After the wordmark and before search (`order`: the search
                   link comes first in the source, for the phone). */}
               <PrimaryNav
@@ -342,12 +348,12 @@ export async function SiteHeader({
         {/* Competitions' panel from 1024px (T-1643, D-301): every competition by
             region, opened by the nav's Competitions; its list is drawn when asked. */}
         <CompetitionsMenu locale={locale} timeZone={timeZone} />
-        {/* A newer version of the platform rules awaits this member (T-931, D-113). */}
-        {session?.rules.pending === true && <RulesPrompt locale={locale} />}
-        {notice !== null && stored !== null && stored !== undefined && (
-          <HeldLanguageNotice locale={locale} held={stored} value={notice} />
-        )}
       </header>
+      {/* A newer version of the platform rules awaits this member (T-931, D-113). */}
+      {session?.rules.pending === true && <RulesPrompt locale={locale} />}
+      {notice !== null && stored !== null && stored !== undefined && (
+        <HeldLanguageNotice locale={locale} held={stored} value={notice} />
+      )}
       {/* The moments rail, right under the header (T-1642, D-300, in place of
         D-292's matchday rail): today's matches worth a look now, as
         `GET /moments` picks them; nothing at all when there are none. */}

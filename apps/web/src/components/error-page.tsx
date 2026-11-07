@@ -86,7 +86,12 @@ export function ErrorPageBody({
   const title = kind === 'not-found' ? 'error.notFound.title' : 'error.failed.title';
   const body = kind === 'not-found' ? 'error.notFound.body' : 'error.failed.body';
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8" data-testid={`error-${kind}`}>
+    <main
+      className="mx-auto flex max-w-3xl flex-col gap-4 p-8"
+      data-testid={`error-${kind}`}
+      // No moments rail on a page that does not exist (T-1755, D-372; globals.css).
+      data-no-rail={kind === 'not-found' ? '' : undefined}
+    >
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         <MessageText message={messages[title]} />
       </h1>
