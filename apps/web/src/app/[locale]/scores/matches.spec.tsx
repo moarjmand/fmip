@@ -457,8 +457,12 @@ describe('the competition groups (T-1757, D-374)', () => {
       /\.match-group-head \{\s*position: sticky;\s*inset-block-start: var\(--site-header-height, 0px\);/,
     );
     expect(css).toMatch(/@media \(height < 28rem\) \{\s*\.match-group-head \{\s*position: static;/);
-    // The property is the site header's to define, never this page's.
-    expect(css).not.toMatch(/--site-header-height:/);
+    // The property is the site header's to define (on :root, D-376), never this page's.
+    const defined = [...css.matchAll(/([^{};]+)\{[^}]*--site-header-height:/g)].map((m) =>
+      m[1]!.trim(),
+    );
+    expect(defined.length).toBeGreaterThan(0);
+    expect(defined.every((selector) => !/match-group|scores-/.test(selector))).toBe(true);
     // Under 1024px the stamp is a cell of the page's grid, beside the title.
     expect(css).toMatch(/\.scores-main \.scores-stamp \{\s*grid-row: 1;\s*grid-column: 2;/);
   });
