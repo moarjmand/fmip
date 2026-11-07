@@ -15056,5 +15056,35 @@
     "source": "Rounds to come: {rounds}.",
     "text": "",
     "status": "untranslated"
+  },
+  "teamPage.chips.label": {
+    "source": "The club’s competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chip.cupNoTable": {
+    "source": "cup, no table",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chip.friendlyNoTable": {
+    "source": "friendlies, no table",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chips.cupNoTable": {
+    "source": "{competition} is played in knockout rounds, so it has no table.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chips.friendlyNoTable": {
+    "source": "{competition}: single matches, not a league or a cup, so there is no table.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chips.rounds": {
+    "source": "Its matches on the competition’s page",
+    "text": "",
+    "status": "untranslated"
   }
 }

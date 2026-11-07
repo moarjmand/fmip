@@ -1,6 +1,6 @@
 import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
-import type { SquadPlayer, TeamPage, TeamPageFixture } from '@fmip/contracts';
+import type { SquadPlayer, TeamCompetition, TeamPage, TeamPageFixture } from '@fmip/contracts';
 import { stillToPlay } from '@fmip/contracts';
 import { Coverage, MoreLink, When, zoneWords } from '@/components/competition-page';
 import { EntityImage } from '@/components/entity-image';
@@ -25,10 +25,14 @@ import {
   fromTeamSide,
   homeAwayLean,
   mainStanding,
+  noTableTag,
   recordFigures,
+  shownCompetition,
   squadIncomplete,
   squadInOrder,
   splitNotes,
+  tableCompetitions,
+  teamCompetitionHref,
   teamTabHref,
   topScorerEntry,
 } from '@/lib/team';
@@ -140,8 +144,17 @@ function ResultTile({ locale, result }: { locale: string; result: 'W' | 'D' | 'L
  * "Premier League · 1st · 24 pts from 9" -- so the band stays one row; from
  * 768px it is the three stacked lines at the band's end.
  */
-export function BandStanding({ page, locale }: { page: TeamPage; locale: string }) {
-  const standing = mainStanding(page.competitions, page.team.id);
+export function BandStanding({
+  page,
+  locale,
+  chosen = null,
+}: {
+  page: TeamPage;
+  locale: string;
+  /** The competition chosen on the chips (T-1764): the band reads its table when it places the club. */
+  chosen?: TeamCompetition | null;
+}) {
+  const standing = mainStanding(page.competitions, page.team.id, chosen);
   if (standing === null) return null;
   const { entry, context, played } = standing;
   // Between the parts on the phone's one line; the stacked lines need none.
@@ -339,8 +352,17 @@ export function RecentResults({
  * sentence on which side the club does better on a phone (ClubPhone). The
  * figures are the API's, counted from the stored finished matches (T-632).
  */
-export function RecordPanel({ page, locale }: { page: TeamPage; locale: string }) {
-  const figures = recordFigures(page.competitions, page.splits);
+export function RecordPanel({
+  page,
+  locale,
+  chosen = null,
+}: {
+  page: TeamPage;
+  locale: string;
+  /** The competition chosen on the chips (T-1764); none is the club's league. */
+  chosen?: TeamCompetition | null;
+}) {
+  const figures = recordFigures(page.competitions, page.splits, chosen);
   if (figures === null) {
     return (
       <Card testId="record" title={<Translated locale={locale} message="teamPage.splits" />}>
@@ -555,8 +577,17 @@ export function ComingUp({
  * on the most named. With no goal recorded, or no goals sent, a sentence
  * under the badge -- never a scorer on nought.
  */
-export function TopScorerCard({ page, locale }: { page: TeamPage; locale: string }) {
-  const entry = topScorerEntry(page);
+export function TopScorerCard({
+  page,
+  locale,
+  chosen = null,
+}: {
+  page: TeamPage;
+  locale: string;
+  /** The competition chosen on the chips (T-1764); none is the club's league. */
+  chosen?: TeamCompetition | null;
+}) {
+  const entry = topScorerEntry(page, chosen);
   const competition =
     entry === null ? null : (entry.competition.short_name ?? entry.competition.name);
   const scorers = entry?.scorers.data ?? null;
@@ -707,16 +738,111 @@ export function SquadCard({ page, locale }: { page: TeamPage; locale: string }) 
 }
 
 /**
+ * The club's competitions as a row of chips (T-1764, D-379, the P5-4
+ * board): server-rendered links (`?competition=<id>`, none for the default),
+ * 44px tall, in the API's order -- the league first. The chosen one (the
+ * default when none is asked) is `aria-current` and drawn with a thicker
+ * border and heavier type, never by colour alone. A competition without a
+ * table carries "cup, no table" in words, and when it is the chosen one the
+ * sentence under the row says why it has no table. Not drawn for a club in
+ * one competition: there is nothing to choose.
+ */
+export function CompetitionChips({
+  page,
+  locale,
+  chosen = null,
+  territory,
+}: {
+  page: TeamPage;
+  locale: string;
+  chosen?: TeamCompetition | null;
+  /** A guest's territory, kept on the links as the tabs keep it. */
+  territory: string | undefined;
+}) {
+  const competitions = page.competitions;
+  if (competitions.length < 2) return null;
+  const shown = shownCompetition(competitions, chosen)!;
+  const noTable = noTableTag(shown);
+  return (
+    <nav
+      aria-label={say(locale, 'teamPage.chips.label')}
+      className="flex min-w-0 flex-col gap-2"
+      data-testid="competition-chips"
+    >
+      {/* The row scrolls sideways on a phone, as the tab row does. */}
+      <ul className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap">
+        {competitions.map((entry) => {
+          const on = entry.season.id === shown.season.id;
+          const tag = noTableTag(entry);
+          return (
+            <li key={entry.season.id} className="shrink-0">
+              <Link
+                href={withTerritory(
+                  teamCompetitionHref(locale, page.team.id, entry.competition.id, competitions),
+                  territory,
+                )}
+                scroll={false}
+                aria-current={on ? 'true' : undefined}
+                className={cx(
+                  'inline-flex min-h-touch items-center gap-2 rounded-pill ps-3 pe-3 text-sm whitespace-nowrap',
+                  on
+                    ? // The browser opens a scrolled row at the chosen chip.
+                      'border-2 border-accent bg-brand/14 font-extrabold [scroll-initial-target:nearest]'
+                    : 'border border-default bg-surface font-semibold hover:border-strong',
+                )}
+                data-testid="competition-chip"
+                data-competition={entry.competition.id}
+              >
+                <bdi>{entry.competition.short_name ?? entry.competition.name}</bdi>
+                {tag !== null && (
+                  <span
+                    className="rounded-pill bg-surface-raised px-1.5 text-xs font-semibold text-muted"
+                    data-testid="competition-chip-tag"
+                  >
+                    <Translated locale={locale} message={tag} />
+                  </span>
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {noTable !== null && (
+        <p className="text-sm text-muted" data-testid="competition-no-table">
+          {say(
+            locale,
+            shown.competition.kind === 'friendly'
+              ? 'teamPage.chips.friendlyNoTable'
+              : 'teamPage.chips.cupNoTable',
+            { competition: shown.competition.short_name ?? shown.competition.name },
+          )}{' '}
+          <Link
+            href={tabHref(locale, shown.competition.id, shown.season, 'matches')}
+            className={inlineTargetClasses('font-semibold text-accent hover:underline')}
+          >
+            <Translated locale={locale} message="teamPage.chips.rounds" />
+          </Link>
+        </p>
+      )}
+    </nav>
+  );
+}
+
+/**
  * "Around them" (T-1499, from T-036): the club's row on each current table
  * and its neighbours -- place, name, points -- its own row tinted and in
  * bold, the table's coverage on the badge, the whole table a link away. A
- * competition whose table does not place the club says so.
+ * competition whose table does not place the club says so. Since T-1764
+ * (D-379) only a competition with a table gets a card, league first: a cup
+ * played in knockout rounds is a chip, not a "not supplied" card.
  */
 export function AroundThem({ page, locale }: { page: TeamPage; locale: string }) {
   const teamId = page.team.id;
+  const tables = tableCompetitions(page.competitions);
+  if (tables.length === 0) return null;
   return (
     <div className="flex flex-col gap-5" data-testid="competitions">
-      {page.competitions.map((entry) => {
+      {tables.map((entry) => {
         const competition = entry.competition.short_name ?? entry.competition.name;
         const context = entry.context.data;
         const rows = context?.rows ?? [];

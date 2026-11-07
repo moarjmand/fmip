@@ -5,6 +5,7 @@ import {
   CONTEXT_RADIUS,
   directoryOrder,
   groupSuggestions,
+  hasTable,
   mainPhaseTeams,
   orderSubtag,
   pickSeason,
@@ -12,6 +13,7 @@ import {
   type SuggestionRow,
 } from './catalog.service';
 import { seasonMinutes } from './internal/player-store';
+import { orderGroup, type RankedTeamSeason, teamSeasonOrder } from './internal/team-store';
 
 const season = (id: string, is_current: boolean) => ({
   id,
@@ -281,5 +283,112 @@ describe('competitions directory order (T-1433)', () => {
     expect(orderSubtag('FA')).toBe('fa');
     expect(orderSubtag(null)).toBeNull();
     expect(orderSubtag('x-rtl')).toBeNull();
+  });
+});
+
+describe('the team page order of a club’s competitions (T-1764, D-379)', () => {
+  const entry = (
+    name: string,
+    kind: RankedTeamSeason['kind'],
+    scope: RankedTeamSeason['scope'],
+    extra: { tier?: number | null; current?: boolean; label?: string; id?: string } = {},
+  ): RankedTeamSeason => ({
+    competition: { id: extra.id ?? name, name, short_name: null },
+    season: {
+      id: `${name}-${extra.label ?? '2026/27'}`,
+      label: extra.label ?? '2026/27',
+      is_current: extra.current ?? true,
+    },
+    kind,
+    scope,
+    tier: extra.tier ?? null,
+  });
+  const names = (rows: RankedTeamSeason[]) =>
+    [...rows].sort(teamSeasonOrder).map((r) => `${r.competition.name} ${r.season.label}`);
+
+  it('puts the domestic league first, then continental, then cups, whatever the names', () => {
+    // Arsenal on 7 Nov 2026: by name the EFL Cup came first (C-02).
+    expect(
+      names([
+        entry('EFL Cup', 'cup', 'domestic'),
+        entry('UEFA Champions League', 'cup', 'continental'),
+        entry('Premier League', 'league', 'domestic'),
+        entry('FA Cup', 'cup', 'domestic'),
+        entry('Community Shield', 'super_cup', 'domestic'),
+        entry('Club Friendlies', 'friendly', 'international'),
+        entry('UEFA Champions League Qualifying', 'qualifying', 'continental'),
+        entry('FIFA Club World Cup', 'cup', 'international'),
+      ]),
+    ).toEqual([
+      'Premier League 2026/27',
+      'FIFA Club World Cup 2026/27',
+      'UEFA Champions League 2026/27',
+      'EFL Cup 2026/27',
+      'FA Cup 2026/27',
+      'Community Shield 2026/27',
+      'UEFA Champions League Qualifying 2026/27',
+      'Club Friendlies 2026/27',
+    ]);
+  });
+
+  it('names each group by our own kind and scope', () => {
+    expect(orderGroup('league', 'domestic')).toBe(0);
+    expect(orderGroup('league', 'continental')).toBe(1);
+    expect(orderGroup('cup', 'continental')).toBe(1);
+    expect(orderGroup('cup', 'international')).toBe(1);
+    expect(orderGroup('cup', 'domestic')).toBe(2);
+    expect(orderGroup('super_cup', 'continental')).toBe(3);
+    expect(orderGroup('qualifying', 'continental')).toBe(4);
+    expect(orderGroup('friendly', 'domestic')).toBe(5);
+  });
+
+  it('within a group: the current season, then the tier, then the name, then the newest season', () => {
+    expect(
+      names([
+        entry('B League', 'league', 'domestic', { tier: 2 }),
+        entry('Z League', 'league', 'domestic', { tier: 1 }),
+        entry('A League', 'league', 'domestic'),
+        entry('Z League', 'league', 'domestic', { tier: 1, current: false, label: '2025/26' }),
+      ]),
+    ).toEqual(['Z League 2026/27', 'B League 2026/27', 'A League 2026/27', 'Z League 2025/26']);
+    expect(
+      names([
+        entry('Cup', 'cup', 'domestic', { current: false, label: '2024/25' }),
+        entry('Cup', 'cup', 'domestic', { current: false, label: '2025/26' }),
+      ]),
+    ).toEqual(['Cup 2025/26', 'Cup 2024/25']);
+  });
+
+  it('gives the same answer whatever order the rows arrive in', () => {
+    const rows = [
+      entry('Same', 'cup', 'domestic', { id: 'b' }),
+      entry('Same', 'cup', 'domestic', { id: 'a' }),
+      entry('League', 'league', 'domestic'),
+    ];
+    const once = [...rows].sort(teamSeasonOrder).map((r) => r.competition.id);
+    const reversed = [...rows]
+      .reverse()
+      .sort(teamSeasonOrder)
+      .map((r) => r.competition.id);
+    expect(once).toEqual(['League', 'a', 'b']);
+    expect(reversed).toEqual(once);
+  });
+});
+
+describe('hasTable (T-1764, D-379)', () => {
+  it('a league always has a table, even before a match', () => {
+    expect(hasTable('league', table([]))).toBe(true);
+    expect(
+      hasTable('league', { coverage: 'not_supplied', last_updated_at: null, data: null }),
+    ).toBe(true);
+  });
+
+  it('a cup has one only when its table holds rows', () => {
+    expect(hasTable('cup', table([row(1), row(2)]))).toBe(true);
+    expect(hasTable('cup', table([]))).toBe(false);
+    expect(hasTable('cup', { coverage: 'not_supplied', last_updated_at: null, data: null })).toBe(
+      false,
+    );
+    expect(hasTable('friendly', table([]))).toBe(false);
   });
 });

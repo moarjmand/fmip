@@ -90,6 +90,7 @@ export function ClubBand({
   follow,
   followOnCard = false,
   territory,
+  chosen = null,
 }: {
   page: TeamPage;
   locale: string;
@@ -104,6 +105,8 @@ export function ClubBand({
   followOnCard?: boolean;
   /** A guest's territory, kept on the tab links so the Fixtures tab still answers in it. */
   territory: string | undefined;
+  /** The competition chosen on the Overview's chips (T-1764, D-379), for the band's standing. */
+  chosen?: TeamCompetition | null;
 }) {
   const t = page.team;
   const name = t.localised_name ?? t.name;
@@ -119,7 +122,7 @@ export function ClubBand({
           <EntityImage media={t.crest} kind="crest" name={name} size={48} aboveFold />
         </span>
       }
-      aside={<BandStanding page={page} locale={locale} />}
+      aside={<BandStanding page={page} locale={locale} chosen={chosen} />}
       eyebrow={clubEyebrow(page, locale)}
       title={name}
       details={
@@ -589,7 +592,7 @@ export function NoNextMatch({ locale }: { locale: string }) {
 /** "Pro League · 2026/27", the season in the reader's digits. */
 function competitionSeason(
   locale: string,
-  entry: Pick<TeamCompetition, 'competition' | 'season'>,
+  entry: Pick<TeamCompetitionSplits, 'competition' | 'season'>,
 ): string {
   return `${entry.competition.short_name ?? entry.competition.name} · ${localDigits(
     locale,

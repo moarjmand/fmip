@@ -3283,5 +3283,11 @@
   "bracket.winner": "winner",
   "bracket.noneDrawn": "Nothing is drawn yet for {competition} {season}.",
   "bracket.noneDrawnWhen": "A round appears here, with its ties, when it is drawn.",
-  "bracket.roundsToCome": "Rounds to come: {rounds}."
+  "bracket.roundsToCome": "Rounds to come: {rounds}.",
+  "teamPage.chips.label": "The club’s competitions",
+  "teamPage.chip.cupNoTable": "cup, no table",
+  "teamPage.chip.friendlyNoTable": "friendlies, no table",
+  "teamPage.chips.cupNoTable": "{competition} is played in knockout rounds, so it has no table.",
+  "teamPage.chips.friendlyNoTable": "{competition}: single matches, not a league or a cup, so there is no table.",
+  "teamPage.chips.rounds": "Its matches on the competition’s page"
 }

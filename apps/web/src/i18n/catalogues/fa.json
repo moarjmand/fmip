@@ -18301,5 +18301,41 @@
     "text": "دورهای پیش رو: {rounds}.",
     "status": "translated",
     "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "teamPage.chips.label": {
+    "source": "The club’s competitions",
+    "text": "رقابت‌های باشگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "teamPage.chip.cupNoTable": {
+    "source": "cup, no table",
+    "text": "جام، بدون جدول",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "teamPage.chip.friendlyNoTable": {
+    "source": "friendlies, no table",
+    "text": "دوستانه، بدون جدول",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "teamPage.chips.cupNoTable": {
+    "source": "{competition} is played in knockout rounds, so it has no table.",
+    "text": "{competition} در دورهای حذفی برگزار می‌شود و جدول رده‌بندی ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "teamPage.chips.friendlyNoTable": {
+    "source": "{competition}: single matches, not a league or a cup, so there is no table.",
+    "text": "{competition}: دیدارهای جداگانه، نه لیگ یا جام، پس جدولی ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "teamPage.chips.rounds": {
+    "source": "Its matches on the competition’s page",
+    "text": "بازی‌هایش در صفحه‌ی رقابت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
   }
 }

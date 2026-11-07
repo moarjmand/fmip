@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2395), grouped by folder, with one line on
+Every file in the repository (2396), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -51,7 +51,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/briefings/internal`](#appsapisrcmodulesbriefingsinternal) — 2
 - [`apps/api/src/modules/campaigns`](#appsapisrcmodulescampaigns) — 6
 - [`apps/api/src/modules/campaigns/internal`](#appsapisrcmodulescampaignsinternal) — 1
-- [`apps/api/src/modules/catalog`](#appsapisrcmodulescatalog) — 28
+- [`apps/api/src/modules/catalog`](#appsapisrcmodulescatalog) — 29
 - [`apps/api/src/modules/catalog/internal`](#appsapisrcmodulescataloginternal) — 16
 - [`apps/api/src/modules/channel-post`](#appsapisrcmoduleschannel-post) — 5
 - [`apps/api/src/modules/channel-post/internal`](#appsapisrcmoduleschannel-postinternal) — 10
@@ -729,6 +729,7 @@ machine, `docs/18-handover.md`.
 | `player-provider-seasons.http.spec.ts` | `GET /players/:id/provider-seasons` (T-1431, D-223) against the real schema: nothing until the provider was asked, the latest season's lines with the ones our own record counts marked so, the career team by team, and `l… |
 | `player.http.spec.ts` | Tests for `player.http`. |
 | `provider-leaders.spec.ts` | Tests for `provider-leaders`. |
+| `team-order.http.spec.ts` | `GET /teams/:id` lists a club's competitions in the page's order (T-1764, D-379) against the real schema: one club plays a domestic league, a continental competition with a league phase and a domestic cup in knockout ro… |
 | `team-season-stats.http.spec.ts` | `GET /teams/:id/season-stats` (T-1437, D-228) against the real schema: nothing until the provider was asked, then the stored season whole, the seasons to choose from, `?season=` picking one, and `limited` where the prov… |
 | `team-splits.http.spec.ts` | Tests for `team-splits.http`. |
 | `team-splits.spec.ts` | Tests for `team-splits`. |

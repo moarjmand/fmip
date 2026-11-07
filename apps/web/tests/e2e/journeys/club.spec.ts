@@ -130,6 +130,31 @@ for (const width of [390, 1440]) {
   });
 }
 
+test.describe('the club page’s default competition (T-1764, D-379)', () => {
+  test.use({ viewport: { width: 390, height: 900 } });
+  // The seed's FA Cup: a competition, but not one this club plays in.
+  const FA_CUP = '00000000-0000-4000-8000-000000000204';
+
+  for (const locale of ['en', 'x-rtl'] as const) {
+    test(`/${locale}: one competition draws no chips, and a foreign ?competition= is the default`, async ({
+      page,
+    }) => {
+      await page.goto(`/${locale}/team/${MAN_UTD}`);
+      // The seed's club plays the Premier League alone: nothing to choose.
+      await expect(page.getByTestId('competition-chips')).toHaveCount(0);
+      const record = await page.getByTestId('record').getByRole('heading').innerText();
+      const scorer = await page.getByTestId('top-scorer').getByRole('heading').innerText();
+      // Every table drawn is a real one: no card for a competition without one.
+      const tables = await page.getByTestId('competition').count();
+
+      await page.goto(`/${locale}/team/${MAN_UTD}?competition=${FA_CUP}`);
+      await expect(page.getByTestId('record').getByRole('heading')).toHaveText(record);
+      await expect(page.getByTestId('top-scorer').getByRole('heading')).toHaveText(scorer);
+      await expect(page.getByTestId('competition')).toHaveCount(tables);
+    });
+  }
+});
+
 test.describe('the club page’s tabs on a 360px phone (T-1564)', () => {
   test.use({ viewport: { width: 360, height: 800 } });
 

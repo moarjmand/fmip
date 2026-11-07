@@ -290,15 +290,88 @@ export function seasonFigures(
 }
 
 /**
- * The competition whose table the band and "Around them" read (T-1499): the
- * first current competition with a table that places the club, with the
- * matches it has played on that table; null when no table places it.
+ * `?competition=` (T-1764, D-379): the club's competition the reader chose
+ * on the chips, by its id; its first entry when the club has two seasons of
+ * it (the API orders the current one first). Null -- the page's default,
+ * the first competition, the club's league -- when nothing is asked, or the
+ * id is not one of this club's competitions.
+ */
+export function readTeamCompetition(
+  params: SearchParams,
+  competitions: readonly TeamCompetition[],
+): TeamCompetition | null {
+  const raw = Array.isArray(params.competition) ? params.competition[0] : params.competition;
+  if (raw === undefined || raw === '') return null;
+  return competitions.find((c) => c.competition.id === raw) ?? null;
+}
+
+/**
+ * A chip's address (T-1764): the Overview with `?competition=<id>`, the
+ * default competition with none, so the page has one address for its
+ * default; a guest's territory is the caller's to add.
+ */
+export function teamCompetitionHref(
+  locale: string,
+  teamId: string,
+  competitionId: string,
+  competitions: readonly TeamCompetition[],
+): string {
+  const base = teamTabHref(locale, teamId, 'overview');
+  return competitions[0]?.competition.id === competitionId
+    ? base
+    : `${base}?competition=${encodeURIComponent(competitionId)}`;
+}
+
+/**
+ * The competition the Overview's season card and top scorer show (T-1764,
+ * D-379): the chosen one, else the first -- the club's domestic league, by
+ * the API's order -- even when it has nothing yet (the card then says so,
+ * rather than showing a cup's figures under a league's band). Null with no
+ * competition.
+ */
+export function shownCompetition(
+  competitions: readonly TeamCompetition[],
+  chosen: TeamCompetition | null = null,
+): TeamCompetition | null {
+  return chosen ?? competitions[0] ?? null;
+}
+
+/**
+ * The tables "Around them" draws (T-1764, D-379): every competition with a
+ * table, in the API's order (the league first). A cup played in knockout
+ * rounds has none, which is its format, not missing data, so it gets no
+ * card; a table that does not place the club still gets one, saying so.
+ */
+export function tableCompetitions(competitions: readonly TeamCompetition[]): TeamCompetition[] {
+  return competitions.filter((c) => c.has_table);
+}
+
+/**
+ * The words on a chip of a competition without a table (T-1764): "cup, no
+ * table", or "friendlies, no table"; null for one with a table.
+ */
+export function noTableTag(entry: TeamCompetition): MessageKey | null {
+  if (entry.has_table) return null;
+  return entry.competition.kind === 'friendly'
+    ? 'teamPage.chip.friendlyNoTable'
+    : 'teamPage.chip.cupNoTable';
+}
+
+/**
+ * The competition whose table the band reads (T-1499): the chosen one when
+ * its table places the club (T-1764), else the first current competition
+ * with a table that places the club -- the league, by the API's order --
+ * with the matches it has played on that table; null when no table places
+ * it. A chosen cup without a table leaves the band on the league: the band
+ * names its competition, so it never reads as the cup's.
  */
 export function mainStanding(
   competitions: readonly TeamCompetition[],
   teamId: string,
+  chosen: TeamCompetition | null = null,
 ): { entry: TeamCompetition; context: TableContext; played: number | null } | null {
-  for (const entry of competitions) {
+  const order = chosen === null ? competitions : [chosen, ...competitions];
+  for (const entry of order) {
     const context = entry.context.data;
     if (context === null) continue;
     const own = context.rows.find((row) => row.team.id === teamId);
@@ -308,16 +381,20 @@ export function mainStanding(
 }
 
 /**
- * The home and away record the Overview shows (T-1499): the first
- * competition the API counted a finished match in, else the first one, so a
- * club with figures nowhere still gets its sentence; null with no competition.
+ * The home and away record the Overview shows (T-1499; T-1764, D-379): the
+ * shown competition's (`shownCompetition`: the chosen one, else the club's
+ * league) with the figures the API counted for it; null with no
+ * competition. Before T-1764 it was the first competition with a finished
+ * match, which put the EFL Cup's 1-1-0 under a Premier League band.
  */
 export function recordFigures(
   competitions: readonly TeamCompetition[],
   splits: readonly TeamCompetitionSplits[],
+  chosen: TeamCompetition | null = null,
 ): SeasonFigures | null {
-  const figures = seasonFigures(competitions, splits);
-  return figures.find((f) => (f.splits?.total.played ?? 0) > 0) ?? figures[0] ?? null;
+  const entry = shownCompetition(competitions, chosen);
+  if (entry === null) return null;
+  return seasonFigures([entry], splits)[0]!;
 }
 
 const points = (record: TeamSplitRecord) => record.won * 3 + record.drawn;
@@ -347,12 +424,16 @@ export function homeAwayLean(locale: string, splits: TeamCompetitionSplits): str
 }
 
 /**
- * The top scorer the Overview shows (T-1528, D-275): the first competition
- * in which a goal for the club is recorded, else the first one, so its state
- * is still said; null when the API sent none (older than T-1528) or the club
- * has no competition.
+ * The top scorer the Overview shows (T-1528, D-275; T-1764, D-379): the
+ * chosen competition's, else the first's -- the club's league, by the API's
+ * order -- whose state is said even with no goal yet; null when the API sent
+ * none (older than T-1528) or the club has no competition.
  */
-export function topScorerEntry(page: Pick<TeamPage, 'top_scorers'>): TeamTopScorers | null {
+export function topScorerEntry(
+  page: Pick<TeamPage, 'top_scorers'>,
+  chosen: TeamCompetition | null = null,
+): TeamTopScorers | null {
   const entries = page.top_scorers ?? [];
-  return entries.find((e) => (e.scorers.data?.length ?? 0) > 0) ?? entries[0] ?? null;
+  const asked = chosen === null ? undefined : entries.find((e) => e.season.id === chosen.season.id);
+  return asked ?? entries[0] ?? null;
 }

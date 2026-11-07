@@ -584,11 +584,40 @@ export interface TableContext {
   rows: TableRow[];
 }
 
+/**
+ * The kinds of competition, as our catalogue records them (never a
+ * provider's word for it).
+ */
+export type CompetitionKind = 'league' | 'cup' | 'super_cup' | 'qualifying' | 'friendly';
+
+/** Where a competition is played from: one country, one confederation, or the world. */
+export type CompetitionScope = 'domestic' | 'continental' | 'international';
+
 export interface TeamCompetition {
-  /** `logo`: from our own origin (T-1617). */
-  competition: { id: string; name: string; short_name: string | null; logo?: EntityMedia };
+  /**
+   * `logo`: from our own origin (T-1617). `kind` and `scope` (T-1764,
+   * D-379): our catalogue's own fields, the ones `TeamPage.competitions` is
+   * ordered by.
+   */
+  competition: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    kind: CompetitionKind;
+    scope: CompetitionScope;
+    logo?: EntityMedia;
+  };
   season: { id: string; label: string; is_current: boolean };
   context: Covered<TableContext>;
+  /**
+   * Whether this competition's season has a table (T-1764, D-379), by the
+   * competition page's own rule: a league always does, anything else when
+   * the season's table holds rows. False for a cup played in knockout rounds
+   * only -- that is its format, not missing data, so the page names it a cup
+   * with no table rather than "not supplied". True with `context.data` null
+   * is a table that does not place the club yet: that one is missing data.
+   */
+  has_table: boolean;
 }
 
 export type SquadPosition = 'goalkeeper' | 'defender' | 'midfielder' | 'forward';
@@ -732,7 +761,17 @@ export interface TeamPage {
      */
     colour?: string | null;
   };
-  /** Competitions with a current season, or one the team still has matches in. */
+  /**
+   * Competitions with a current season, or one the team still has matches in,
+   * in the page's order (T-1764, D-379), so "the first" is the club's main
+   * competition: the domestic league first (top tier first where tiers are
+   * recorded), then continental and international competitions (league or
+   * cup), then domestic cups, then super cups, then qualifying competitions,
+   * then friendlies. Within a group: a current season before an older one
+   * still being played, then the tier (unrecorded last), then the name, then
+   * the newest season, then the id -- the same answer every time.
+   * `splits` and `top_scorers` follow this order.
+   */
   competitions: TeamCompetition[];
   /** The soonest match still to play (`stillToPlay`, T-1560), and the most recent finished one. */
   next_match: TeamPageFixture | null;

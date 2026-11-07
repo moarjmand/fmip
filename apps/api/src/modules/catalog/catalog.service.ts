@@ -900,10 +900,18 @@ export class CatalogService {
       kind: 'ok',
       page: {
         team,
+        // In the page's order (`teamSeasonOrder`, T-1764, D-379): the domestic
+        // league first, so the page's "first" is the club's league.
         competitions: seasons.map((s, i) => ({
-          competition: { ...s.competition, logo: media.logo(s.competition.id) },
+          competition: {
+            ...s.competition,
+            kind: s.kind,
+            scope: s.scope,
+            logo: media.logo(s.competition.id),
+          },
           season: s.season,
           context: withContextCrests(contexts[i]!, media),
+          has_table: hasTable(s.kind, tables[i]!),
         })),
         next_match: next,
         previous_match: results[0] ?? null,
@@ -1198,6 +1206,20 @@ export function tableContext(table: Covered<TableRow[]>, teamId: string): Covere
       rows: rows.slice(Math.max(0, index - CONTEXT_RADIUS), index + CONTEXT_RADIUS + 1),
     },
   };
+}
+
+/**
+ * Whether a competition's season has a table (T-1764, D-379), by the
+ * competition page's own rule (`hasTable` in the web's
+ * `lib/competition-overview.ts`): a league always does, anything else when
+ * its table holds rows. A cup played in knockout rounds only has none, and
+ * that is its format, not missing data.
+ */
+export function hasTable(
+  kind: TeamPage['competitions'][number]['competition']['kind'],
+  table: Covered<TableRow[]>,
+): boolean {
+  return kind === 'league' || (table.data ?? []).length > 0;
 }
 
 /**
