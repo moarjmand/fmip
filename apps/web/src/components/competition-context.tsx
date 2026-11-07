@@ -25,6 +25,7 @@ import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, message, t } from '@/i18n/messages';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { FilledMessage } from '@/components/filled-message';
+import { FORM_SQUARE } from '@/components/form-squares';
 import { LtrNumeric } from '@/components/score';
 import { COVERAGE_KEY } from '@/components/score-card';
 import { signedGap } from '@/components/standings-table';
@@ -124,13 +125,6 @@ export function CompetitionContextPanel({
     </section>
   );
 }
-
-/** A form square's look: filled, outlined or dashed in ink, never a hue. */
-const FORM_SQUARE = {
-  W: 'bg-fg text-surface',
-  D: 'border border-strong text-fg',
-  L: 'border border-dashed border-caption text-muted',
-} as const;
 
 /**
  * The table context as a compact two-team table (T-1746, D-367; board P2-5):

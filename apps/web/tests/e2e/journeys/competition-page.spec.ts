@@ -83,10 +83,11 @@ for (const width of [390, 1440]) {
             await expect(card.getByTestId(`${id}-empty`)).toBeVisible();
           }
         }
-        // Each match of the day carries the model's figures or the words for why not.
+        // Each match of the day still to be played carries the model's bar or the
+        // words for why not; a finished one has no bar (T-1762, D-378).
         const day = page.getByTestId('match-day');
-        await expect(day.getByTestId('model-figures')).toHaveCount(
-          await day.getByTestId('fixture').count(),
+        await expect(day.getByTestId('row-forecast')).toHaveCount(
+          await day.locator('[data-testid="fixture"]:not([data-status="finished"])').count(),
         );
 
         // The model in this league says its state; a coverage badge unless unreachable.
@@ -118,7 +119,9 @@ for (const width of [390, 1440]) {
       await page.goto(`/en/competition/${PREMIER_LEAGUE}?season=${SEASON_2024}`);
       const results = page.getByTestId('results-day');
       await expect(results.getByTestId('fixture').first()).toBeVisible();
-      await expect(results.getByTestId('fixture-score').first()).toHaveText('2–2');
+      await expect(results.getByTestId('home-score').first()).toHaveText('2');
+      await expect(results.getByTestId('away-score').first()).toHaveText('2');
+      await expect(results.getByTestId('row-forecast')).toHaveCount(0);
       await expect(results).toContainText(/Liverpool.*Man United/);
       // The model card reads only that season's months, never this one's (T-1556).
       const league = page.getByTestId('league-model');
@@ -141,7 +144,7 @@ test.describe('the round picker (T-1636)', () => {
       await page.goto(`/${locale}/competition/${PREMIER_LEAGUE}?season=${SEASON_2024}`);
       const card = page.getByTestId('match-day');
       await expect(card.getByTestId('round-title')).toHaveText(round);
-      await expect(card.getByTestId('fixture-score').first()).toBeVisible();
+      await expect(card.getByTestId('home-score').first()).toBeVisible();
       const picker = card.getByRole('navigation');
       await expect(picker).toBeVisible();
       // One round: nothing before it or after it to step to.
@@ -231,11 +234,18 @@ test.describe('the section tabs', () => {
 
     await page.getByTestId('competition-tab-matches').click();
     await expect(page).toHaveURL(/\?tab=matches$/);
+    // One list at a time (T-1762, D-378): Upcoming first, Results one tap away.
+    await expect(page.getByTestId('matches-view-upcoming')).toHaveAttribute('aria-current', 'true');
     await expect(page.getByTestId('fixtures')).toBeVisible();
+    await expect(page.getByTestId('results')).toHaveCount(0);
+    await page.getByTestId('matches-view-results').click();
+    await expect(page).toHaveURL(/\?tab=matches&view=results$/);
     await expect(page.getByTestId('results')).toBeVisible();
+    await expect(page.getByTestId('fixtures')).toHaveCount(0);
 
     await page.goto(`/en/competition/${PREMIER_LEAGUE}?tab=results`);
     await expect(page.getByTestId('competition-page')).toHaveAttribute('data-tab', 'matches');
+    await expect(page.getByTestId('matches-view-results')).toHaveAttribute('aria-current', 'true');
     await page.goto(`/en/competition/${PREMIER_LEAGUE}?tab=stats`);
     await expect(page.getByTestId('competition-page')).toHaveAttribute('data-tab', 'overview');
   });

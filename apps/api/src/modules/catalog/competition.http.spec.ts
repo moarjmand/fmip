@@ -577,6 +577,57 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
     }
   });
 
+  it("reads a cup's league phase by our own code: the Champions League's three bands (T-1761, D-381)", async () => {
+    const get = async () =>
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/competitions/${COMPETITION}?season=${OLD_SEASON}`,
+        })
+      ).json() as CompetitionPage;
+    // The code is unique: a seeded Champions League gives it up for the test.
+    const { rows: holders } = await pool.query<{ id: string }>(
+      `UPDATE competition SET zone_key = NULL WHERE zone_key = 'UCL' RETURNING id`,
+    );
+    await pool.query(`UPDATE season SET label = '2026/27' WHERE id = $1`, [OLD_SEASON]);
+    await pool.query(
+      `UPDATE competition SET kind = 'cup', country_id = NULL, scope = 'continental', zone_key = 'UCL'
+        WHERE id = $1`,
+      [COMPETITION],
+    );
+    try {
+      const listed = (await get()).zones;
+      expect(listed).toMatchObject({
+        state: 'listed',
+        teams: 36,
+        matches: 8,
+        complete: true,
+        unmarked_cup_places: false,
+        zones: [
+          { kind: 'league_phase_round_of_16', from: 1, to: 8 },
+          { kind: 'league_phase_playoff', from: 9, to: 24 },
+          { kind: 'league_phase_out', from: 25, to: 36 },
+        ],
+      });
+      if (listed.state !== 'listed') throw new Error('unreachable');
+      expect(listed.sources.every((s) => s.startsWith('https://documents.uefa.com/'))).toBe(true);
+      // Another season of the competition is not listed (rule 3); without the code a cup has none.
+      await pool.query(`UPDATE season SET label = '2024/25' WHERE id = $1`, [OLD_SEASON]);
+      expect((await get()).zones).toEqual({ state: 'not_listed', reason: 'season_not_listed' });
+      await pool.query(`UPDATE competition SET zone_key = NULL WHERE id = $1`, [COMPETITION]);
+      expect((await get()).zones).toEqual({ state: 'not_listed', reason: 'not_a_league' });
+    } finally {
+      await pool.query(`UPDATE season SET label = '2024/25' WHERE id = $1`, [OLD_SEASON]);
+      await pool.query(
+        `UPDATE competition SET kind = 'league', country_id = $2, scope = 'domestic', zone_key = NULL
+          WHERE id = $1`,
+        [COMPETITION, ENGLAND],
+      );
+      for (const h of holders)
+        await pool.query(`UPDATE competition SET zone_key = 'UCL' WHERE id = $1`, [h.id]);
+    }
+  });
+
   it('answers 404 for an unknown competition or a season that is not its own', async () => {
     expect(
       (await app.inject({ method: 'GET', url: `/competitions/${randomUUID()}` })).statusCode,

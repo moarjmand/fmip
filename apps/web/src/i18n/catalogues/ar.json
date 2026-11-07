@@ -11534,21 +11534,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.day.noForecast": {
-    "source": "No forecast",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.day.forecastUnreachable": {
-    "source": "Forecast not loaded",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.day.forecastLabel": {
-    "source": "The model: home win {home}%, draw {draw}%, away win {away}%",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.day.receipt": {
     "source": "The model’s percentages, home · draw · away: its latest forecast before kick-off ({versions}); every version and when it was computed are on the match page. {zone}.",
     "text": "",
@@ -11689,11 +11674,6 @@
   },
   "competitionPage.fullTable": {
     "source": "Full table",
-    "text": "",
-    "status": "untranslated"
-  },
-  "competitionPage.noTable": {
-    "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
     "text": "",
     "status": "untranslated"
   },
@@ -14918,6 +14898,202 @@
   },
   "matchCentre.scoreUnclearNote": {
     "source": "The recorded goals ({goals}) and the reported result ({score}) do not agree, so neither is shown as final.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.leaguePhaseRoundOf16": {
+    "source": "Round of 16",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.leaguePhasePlayoff": {
+    "source": "Play-off round",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zone.leaguePhaseOut": {
+    "source": "Out",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.zoneDivider.band": {
+    "source": "{zone} ({places})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.phase.provisional": {
+    "source": "Every club has played {played} of {matches} league-phase matches: the lines show where a club would stand if the league phase ended today.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.phase.provisionalRange": {
+    "source": "Clubs have played {least} to {most} of {matches} league-phase matches: the lines show where a club would stand if the league phase ended today.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.phase.final": {
+    "source": "Final league-phase table: every club has played its {matches} matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tableSwipe": {
+    "source": "Swipe sideways for the form: the last five results, most recent first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.overallTableFold": {
+    "source": "Overall table, {count} clubs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.matches.views": {
+    "source": "Matches to show",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.matches.upcoming": {
+    "source": "Upcoming",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.matches.results": {
+    "source": "Results",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.matches.partialResults": {
+    "source": {
+      "one": "{played} of {total} matches played. The other {count} is under Upcoming.",
+      "other": "{played} of {total} matches played. The other {count} are under Upcoming."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competitionPage.matches.partialUpcoming": {
+    "source": {
+      "one": "{count} match of this round is already played; it is under Results.",
+      "other": "{count} matches of this round are already played; they are under Results."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "competitionPage.matches.noneToCome": {
+    "source": "No match is scheduled to be played. The rounds menu lists the ones postponed, cancelled or awaiting an update.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.rounds.unnamed": {
+    "source": "Round names are not supplied for this competition, so each round is shown by its dates.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.tableMissing": {
+    "source": "This season’s league-phase or group table is not in our records; only its knockout rounds are.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.chip.round_of_32": {
+    "source": "R32",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.chip.knockout_playoff": {
+    "source": "Play-offs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.chip.round_of_16": {
+    "source": "R16",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.chip.quarter_final": {
+    "source": "QF",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.chip.semi_final": {
+    "source": "SF",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.chip.final": {
+    "source": "Final",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.chip.name": {
+    "source": "{chip}, {round}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.bracket.allRounds": {
+    "source": "Every knockout round, side by side",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.head.team": {
+    "source": "Team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.head.aggregate": {
+    "source": "Agg",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.head.aggregateFull": {
+    "source": "Aggregate",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.winner": {
+    "source": "winner",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.noneDrawn": {
+    "source": "Nothing is drawn yet for {competition} {season}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.noneDrawnWhen": {
+    "source": "A round appears here, with its ties, when it is drawn.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.roundsToCome": {
+    "source": "Rounds to come: {rounds}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chips.label": {
+    "source": "The club’s competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chip.cupNoTable": {
+    "source": "cup, no table",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chip.friendlyNoTable": {
+    "source": "friendlies, no table",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chips.cupNoTable": {
+    "source": "{competition} is played in knockout rounds, so it has no table.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chips.friendlyNoTable": {
+    "source": "{competition}: single matches, not a league or a cup, so there is no table.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "teamPage.chips.rounds": {
+    "source": "Its matches on the competition’s page",
     "text": "",
     "status": "untranslated"
   }

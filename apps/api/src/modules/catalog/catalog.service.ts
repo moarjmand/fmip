@@ -552,6 +552,7 @@ export class CatalogService {
       zones,
       lastCheckedAt,
       conferenceTables,
+      competitionCode,
     ] = await Promise.all([
       this.competitions_.stages(selected.id),
       this.competitions_.fixtures(selected.id),
@@ -568,6 +569,8 @@ export class CatalogService {
       listsCheckedAt(this.pool, [selected.id]),
       // A league split into conferences (T-1671, D-319); null for any other.
       this.standings.conferenceStandings(selected.id),
+      // Our code for the competition: the bracket's play-offs rule reads it.
+      knockout ? this.competitions_.competitionCode(selected.id) : Promise.resolve(null),
     ]);
     // Group tables (T-1336) only for a season with a group stage: a league
     // reads nothing more and answers exactly as before (`group_tables: null`).
@@ -798,7 +801,7 @@ export class CatalogService {
         bracket:
           bracketFixtures === null
             ? null
-            : buildBracket(bracketFixtures, seasonIsOpen(selected, new Date())),
+            : buildBracket(bracketFixtures, seasonIsOpen(selected, new Date()), competitionCode),
         coverage,
         last_updated_at: lastUpdatedAt,
         last_checked_at: lastCheckedAt,
@@ -900,10 +903,18 @@ export class CatalogService {
       kind: 'ok',
       page: {
         team,
+        // In the page's order (`teamSeasonOrder`, T-1764, D-379): the domestic
+        // league first, so the page's "first" is the club's league.
         competitions: seasons.map((s, i) => ({
-          competition: { ...s.competition, logo: media.logo(s.competition.id) },
+          competition: {
+            ...s.competition,
+            kind: s.kind,
+            scope: s.scope,
+            logo: media.logo(s.competition.id),
+          },
           season: s.season,
           context: withContextCrests(contexts[i]!, media),
+          has_table: hasTable(s, tables[i]!),
         })),
         next_match: next,
         previous_match: results[0] ?? null,
@@ -995,9 +1006,15 @@ export class CatalogService {
               f.awayId,
             );
     } else if (phase.kind === 'knockout') {
-      const found = tieOf(await this.competitions_.bracketFixtures(f.season.id), f.id, {
-        continental: playsKnockoutBracket(f.competition),
+      const continental = playsKnockoutBracket(f.competition);
+      const [seasonFixtures, competitionCode] = await Promise.all([
+        this.competitions_.bracketFixtures(f.season.id),
+        continental ? this.competitions_.competitionCode(f.season.id) : Promise.resolve(null),
+      ]);
+      const found = tieOf(seasonFixtures, f.id, {
+        continental,
         stageLegs: f.stage?.legs ?? null,
+        competitionCode,
       });
       if (found !== null) {
         knockout = {
@@ -1198,6 +1215,31 @@ export function tableContext(table: Covered<TableRow[]>, teamId: string): Covere
       rows: rows.slice(Math.max(0, index - CONTEXT_RADIUS), index + CONTEXT_RADIUS + 1),
     },
   };
+}
+
+/**
+ * Whether a competition's season has a table (T-1764, D-379), by the
+ * competition page's own rules (`hasTable` and `tableMissing` in the web's
+ * `lib/competition-overview.ts`): a league always does; a season with a
+ * group stage has its group tables; anything else has one when its table
+ * holds rows. A continental cup's knockout rounds follow a league phase or
+ * groups (T-1763, D-378's D13), so one without either in our records lacks
+ * data -- its context says "not supplied" -- rather than having no table.
+ * False only for a cup played in knockout rounds alone, whose format has no
+ * table (code review, 2026-11-07: group tables and a missing league phase
+ * were both read as "knockout").
+ */
+export function hasTable(
+  season: {
+    kind: TeamPage['competitions'][number]['competition']['kind'];
+    scope: TeamPage['competitions'][number]['competition']['scope'];
+    groupStage: boolean;
+  },
+  table: Covered<TableRow[]>,
+): boolean {
+  if (season.kind === 'league' || season.groupStage) return true;
+  if ((table.data ?? []).length > 0) return true;
+  return playsKnockoutBracket(season);
 }
 
 /**

@@ -114,9 +114,12 @@ def test_an_entry_keyed_by_country_is_not_read_by_the_model() -> None:
     by_conference = [
         e for e in raw if "division" in e and any("conference" in z for z in e["zones"])
     ]
+    # A competition's own entry (T-1761, D-381: the UCL league phase) has no training
+    # division, so the model does not read it either.
+    by_competition = [e for e in raw if "competition" in e and "division" not in e]
     parsed = parse(raw)
     # Only the entries with a division and one table reach the model, and none is lost.
-    assert len(parsed) == len(raw) - len(by_country) - len(by_conference)
+    assert len(parsed) == len(raw) - len(by_country) - len(by_conference) - len(by_competition)
     assert all(division and "country" not in division for division, _ in parsed)
 
 

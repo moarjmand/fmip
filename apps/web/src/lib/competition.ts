@@ -245,6 +245,10 @@ export const ZONE_KEY: Record<LeagueZoneKind, MessageKey> = {
   promotion_playoff: 'competitionPage.zone.promotionPlayoff',
   relegation_playoff: 'competitionPage.zone.relegationPlayoff',
   relegation: 'competitionPage.zone.relegation',
+  // A cup's league phase (T-1761, D-381): the round of 16, the play-offs, out.
+  league_phase_round_of_16: 'competitionPage.zone.leaguePhaseRoundOf16',
+  league_phase_playoff: 'competitionPage.zone.leaguePhasePlayoff',
+  league_phase_out: 'competitionPage.zone.leaguePhaseOut',
 };
 
 export const ZONE_MARK: Record<LeagueZoneKind, string> = {
@@ -259,7 +263,31 @@ export const ZONE_MARK: Record<LeagueZoneKind, string> = {
   promotion_playoff: 'border-s-strong',
   relegation_playoff: 'border-s-warning',
   relegation: 'border-s-danger',
+  // A cup's league phase (T-1761, D-381): a prize, the round before it, and
+  // no mark for the places that are out -- the existing marks, no new token.
+  league_phase_round_of_16: 'border-s-accent',
+  league_phase_playoff: 'border-s-strong',
+  league_phase_out: 'border-s-transparent',
 };
+
+/**
+ * The page's zones without any kind this web does not know (code review,
+ * 2026-11-07): an API deployed before the web -- every rollout replaces the
+ * API first -- or a kind added later sends one `ZONE_KEY` has no words for.
+ * Its places then carry no mark and no legend line, and every row is still
+ * drawn, rather than the whole table failing on a missing message.
+ */
+export function knownZones(zones: LeagueZones): LeagueZones {
+  if (zones.state !== 'listed') return zones;
+  const known = zones.zones.filter((z) => Object.hasOwn(ZONE_KEY, z.kind));
+  return known.length === zones.zones.length ? zones : { ...zones, zones: known };
+}
+
+/** The competition page as it draws it: `knownZones` applied once, where it arrives. */
+export function withKnownZones<T extends { zones: LeagueZones }>(page: T): T {
+  const zones = knownZones(page.zones);
+  return zones === page.zones ? page : { ...page, zones };
+}
 
 /** "1-4" or "18": a band of places as the legend reads it. */
 export function zoneBand(locale: string, zone: LeagueZone): string {

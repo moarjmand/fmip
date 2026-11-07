@@ -234,9 +234,11 @@ export class PostgresStandingsStore {
   /**
    * What the committed league list is looked up by for a season (T-1674,
    * D-323; T-1167, D-234): the competition's kind, training division, the
-   * FIFA trigram of a senior men's domestic league, its tier, and the
-   * season's stored label (`2026/27`, which a calendar-year season keeps
-   * although its pages show `2026`). Null for an unknown season.
+   * FIFA trigram of a senior men's domestic league, its tier, our code for
+   * a competition the list keys by it (`zone_key`, T-1761, D-381: the
+   * Champions League's league phase), and the season's stored label
+   * (`2026/27`, which a calendar-year season keeps although its pages show
+   * `2026`). Null for an unknown season.
    */
   async listKey(seasonId: string): Promise<{ competition: ZoneCompetition; label: string } | null> {
     const { rows } = await this.pool.query<{
@@ -244,9 +246,10 @@ export class PostgresStandingsStore {
       division: string | null;
       country: string | null;
       tier: number | null;
+      key: string | null;
       label: string;
     }>(
-      `SELECT c.kind, c.football_data_division AS division, c.tier, se.label,
+      `SELECT c.kind, c.football_data_division AS division, c.tier, c.zone_key AS key, se.label,
               CASE WHEN c.scope = 'domestic' AND c.gender = 'men' AND c.age_group = 'senior'
                    THEN co.code END AS country
          FROM season se
@@ -258,7 +261,13 @@ export class PostgresStandingsStore {
     const r = rows[0];
     if (r === undefined) return null;
     return {
-      competition: { kind: r.kind, division: r.division, country: r.country, tier: r.tier },
+      competition: {
+        kind: r.kind,
+        division: r.division,
+        country: r.country,
+        tier: r.tier,
+        key: r.key,
+      },
       label: r.label,
     };
   }

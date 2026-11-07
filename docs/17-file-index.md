@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2370), grouped by folder, with one line on
+Every file in the repository (2396), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -51,7 +51,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/briefings/internal`](#appsapisrcmodulesbriefingsinternal) — 2
 - [`apps/api/src/modules/campaigns`](#appsapisrcmodulescampaigns) — 6
 - [`apps/api/src/modules/campaigns/internal`](#appsapisrcmodulescampaignsinternal) — 1
-- [`apps/api/src/modules/catalog`](#appsapisrcmodulescatalog) — 28
+- [`apps/api/src/modules/catalog`](#appsapisrcmodulescatalog) — 29
 - [`apps/api/src/modules/catalog/internal`](#appsapisrcmodulescataloginternal) — 16
 - [`apps/api/src/modules/channel-post`](#appsapisrcmoduleschannel-post) — 5
 - [`apps/api/src/modules/channel-post/internal`](#appsapisrcmoduleschannel-postinternal) — 10
@@ -255,10 +255,10 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 294
+- [`apps/web/src/components`](#appswebsrccomponents) — 296
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
-- [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
+- [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 27
 - [`apps/web/src/lib`](#appswebsrclib) — 222
 - [`apps/web/tests/e2e`](#appswebtestse2e) — 25
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 36
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -282,7 +282,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 74
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 179
+- [`packages/db/migrations`](#packagesdbmigrations) — 180
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -729,6 +729,7 @@ machine, `docs/18-handover.md`.
 | `player-provider-seasons.http.spec.ts` | `GET /players/:id/provider-seasons` (T-1431, D-223) against the real schema: nothing until the provider was asked, the latest season's lines with the ones our own record counts marked so, the career team by team, and `l… |
 | `player.http.spec.ts` | Tests for `player.http`. |
 | `provider-leaders.spec.ts` | Tests for `provider-leaders`. |
+| `team-order.http.spec.ts` | `GET /teams/:id` lists a club's competitions in the page's order (T-1764, D-379) against the real schema: one club plays a domestic league, a continental competition with a league phase and a domestic cup in knockout ro… |
 | `team-season-stats.http.spec.ts` | `GET /teams/:id/season-stats` (T-1437, D-228) against the real schema: nothing until the provider was asked, then the stored season whole, the seasons to choose from, `?season=` picking one, and `limited` where the prov… |
 | `team-splits.http.spec.ts` | Tests for `team-splits.http`. |
 | `team-splits.spec.ts` | Tests for `team-splits`. |
@@ -2358,7 +2359,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `competition-cards.spec.tsx` | The competition page in the Stadiomind design (T-1498, D-274): the header and its tabs, the full table whose places carry a zone colour only where the feed lists them, a day of matches with the model's percentages or th… |
-| `competition-cards.tsx` | The competition page's modules in the Stadiomind design (T-1498, D-274): a surface card with its name in the wide cut and a hairline under it, and what goes in it -- the table, a round of matches with the model's three… |
+| `competition-cards.tsx` | The competition page's modules in the Stadiomind design (T-1498, D-274): a surface card with its name in the wide cut and a hairline under it, and what goes in it -- the table, a round of matches in the scores list's ro… |
 | `competition-header.tsx` | The competition page's header in the Stadiomind design (T-1498, D-274): the logo on its own light tile, the name in the wide display cut, one line of facts (country, season, clubs, the round), the season menu and the fo… |
 | `opengraph-image.tsx` | The card a chat app shows for a competition link (T-520): the top of the current season's table, or the page's own sentence when there is none. |
 | `page.tsx` | The model's latest pre-kick-off forecast for each of these matches: one request for all of them (at most `MAX_FORECAST_FIXTURES`), never one per match. |
@@ -2851,6 +2852,7 @@ machine, `docs/18-handover.md`.
 | `forecast-bar.tsx` | The statistical model's three probabilities, drawn one way everywhere (T-1748, D-368; T-1749, D-369; boards P3-2 and P3-3). |
 | `forecast-panel.tsx` | "How the forecast was reached" on the match centre (T-065, blueprint 6.1-6.4; T-1744, D-365). |
 | `forecast-receipt.tsx` | The model's forecast where a page holds a `CardForecast` (the Design System's `ForecastBar`, T-1508, D-263; split from the bar in T-1748): the one `ForecastBar` with the model's receipt under it -- **always** (blueprint… |
+| `form-squares.tsx` | A form square's look (T-1746, D-367): filled, outlined or dashed in ink, never a hue. |
 | `founder-analysis.tsx` | The founder's analysis on the pages a reader meets it (blueprint 6.5, T-132). **Always attributed and signed.** Every rendering here carries the author's name and the publication time, because the blueprint asks that ea… |
 | `freshness-stamp.spec.tsx` | The freshness stamp (rule 4; the Design System's `Freshness`, T-1493): quiet while the surface is within its threshold, the warning saffron and a triangle past it, and nothing at all without a clock. |
 | `freshness-stamp.tsx` | The stamp's words, resolved on the server for the reader's locale (T-1303). |
@@ -2885,7 +2887,8 @@ machine, `docs/18-handover.md`.
 | `key-players.tsx` | The match centre's key players (T-841, blueprint 4.2): each side's most used players in this competition's season before the match, their minutes, goals and assists, and what the provider said about this match. "Key" is… |
 | `kind-section.spec.tsx` | The sections of Settings → Notifications with catalogue words (T-832): friends' predictions, opt-in, with the value the API says is in force. |
 | `kind-section.tsx` | A section of Settings → Notifications for a few kinds, worded through the catalogues (T-832): a heading, a line saying what the kinds are, and one switch per kind with the value the API says is in force -- never a copy… |
-| `knockout-bracket.tsx` | The knockout bracket on the competition page (blueprint 5.1, T-630): the rounds in the order they are played, each tie with its legs and, only once the API has decided it, the aggregate and who went through. |
+| `knockout-bracket.spec.tsx` | The knockout rounds (T-1763, D-378's D10): on a phone, round chips (links) and one round at a time, opening at the latest round with a tie drawn; from 768px a column per round. |
+| `knockout-bracket.tsx` | The knockout rounds on a continental cup's competition page (blueprint 5.1, T-630; D-378's D10, T-1763). |
 | `language-coverage.spec.ts` | The operator's view of the languages (T-302). |
 | `language-coverage.tsx` | The operator's language table (T-302, D-066): the surface behind "how much of `tr` is done is an answer the product gives, not a grep". |
 | `language-picker.spec.tsx` | The language picker drawn (T-1610, D-281): the header's globe with the page's language in short, a disclosure listing every offered language in its own name with the page's own current; the footer's row of the same link… |
@@ -3030,7 +3033,7 @@ machine, `docs/18-handover.md`.
 | `site-header.tsx` | The site shell (T-1381, D-199): the header, the matchday rail under it (T-1624, D-292) and the phone's bottom tab bar, the same on every page. |
 | `stamp.tsx` | A stored moment as a reader reads it (T-1201): "30 Sept 2026, 21:32" in the viewer's zone, with "UTC" said when that is the zone used, and the exact instant kept in `dateTime` for a machine. |
 | `standings-table.spec.tsx` | The competition page's tables (T-1336): a season with group stages shows every group's table, under its stage when there are several, and a group not yet started as a sentence with its teams; a league's page keeps its o… |
-| `standings-table.tsx` | The table's figure columns (T-1203). On a phone the table keeps position, team, played, goal difference and points, the columns a reader ranks by; won, drawn, lost and the goals appear from the tablet width up, the form… |
+| `standings-table.tsx` | The table's figure columns (T-1203). The abbreviations are the catalogue's (T-1304): Persian uses short words that fit a phone column, the whole word in the title. The goals are one column, scored and conceded as "20:9"… |
 | `story-links.spec.tsx` | The story page's share and follow controls (T-941, blueprint 3.3). |
 | `story-links.tsx` | The story page's controls that lead somewhere else (T-941, blueprint 3.3): following what the story is about. |
 | `story-predictions.spec.tsx` | "Predictions for this match" on the story page (T-1741, D-362): the model's bar in its own box with the way to the match page's pick card when the story's match has a forecast and has not kicked off; the missing forecas… |
@@ -3114,13 +3117,31 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `ar.json` | JSON data or settings. |
+| `ar.json` | JSON data or settings. |
+| `ar.json` | JSON data or settings. |
+| `de.json` | JSON data or settings. |
+| `de.json` | JSON data or settings. |
 | `de.json` | JSON data or settings. |
 | `en.json` | JSON data or settings. |
+| `en.json` | JSON data or settings. |
+| `en.json` | JSON data or settings. |
+| `es.json` | JSON data or settings. |
+| `es.json` | JSON data or settings. |
 | `es.json` | JSON data or settings. |
 | `fa.json` | JSON data or settings. |
+| `fa.json` | JSON data or settings. |
+| `fa.json` | JSON data or settings. |
+| `fr.json` | JSON data or settings. |
+| `fr.json` | JSON data or settings. |
 | `fr.json` | JSON data or settings. |
 | `it.json` | JSON data or settings. |
+| `it.json` | JSON data or settings. |
+| `it.json` | JSON data or settings. |
 | `pt.json` | JSON data or settings. |
+| `pt.json` | JSON data or settings. |
+| `pt.json` | JSON data or settings. |
+| `tr.json` | JSON data or settings. |
+| `tr.json` | JSON data or settings. |
 | `tr.json` | JSON data or settings. |
 
 ## apps/web/src/lib
@@ -3485,6 +3506,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
@@ -3492,6 +3515,8 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -3896,6 +3921,7 @@ machine, `docs/18-handover.md`.
 | `1765901100000_console-request.sql` | Teammate requests in the agents console (T-1728, D-354). |
 | `1765901200000_console-request-image.sql` | Pictures on the teammate requests (T-1731, D-357). |
 | `1765901300000_pending-pick.sql` | T-1740 (D-361): a pick made before the member confirmed their e-mail address. |
+| `1765901400000_competition-zone-key.sql` | T-1761 (D-381): our own code for a competition the committed league-zone list (`packages/contracts/zones/league-zones.json`, D-171) keys by competition rather than by training division or country. |
 
 ## packages/db/scripts
 
