@@ -207,7 +207,7 @@ function ClubLine({ page, locale }: { page: PlayerPage; locale: string }) {
   const teamLink = inlineTargetClasses('gap-1.5 align-middle font-bold text-fg hover:underline');
   return (
     <dl
-      className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-muted md:justify-start"
+      className="flex flex-wrap items-center justify-start gap-x-4 gap-y-1 text-sm text-muted"
       data-testid="identity"
     >
       <div data-testid="current-team">
