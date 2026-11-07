@@ -48,7 +48,7 @@ describe('the committed league-zone list', () => {
 
   it('gives every note its Persian, and no Persian without a note (T-1557)', () => {
     for (const e of LIST) {
-      const key = `${e.division ?? e.country} ${e.season}`;
+      const key = `${e.division ?? e.country ?? e.competition} ${e.season}`;
       expect(e.note_fa === undefined, key).toBe(e.note === undefined);
       // Persian letters, not the English note copied over.
       if (e.note_fa !== undefined) expect(e.note_fa, key).toMatch(/[؀-ۿ]/);
@@ -112,14 +112,18 @@ describe('leagueZoneProblems', () => {
     expect(leagueZoneProblems([entry()])).toEqual([]);
   });
 
-  it('needs exactly one of division and country, and a three-letter country', () => {
+  it('needs exactly one of division, country and competition, and a three-letter country', () => {
     const problems = leagueZoneProblems([
       entry({ country: 'BEL' }),
       entry({ division: undefined, season: '2026/27' }),
       entry({ division: undefined, country: 'Belgium', season: '2027/28' }),
     ]);
-    expect(problems).toContain('E0 2025/26: exactly one of division and country is needed');
-    expect(problems).toContain('? 2026/27: exactly one of division and country is needed');
+    expect(problems).toContain(
+      'E0 2025/26: exactly one of division, country and competition is needed',
+    );
+    expect(problems).toContain(
+      '? 2026/27: exactly one of division, country and competition is needed',
+    );
     expect(problems).toContain('Belgium 2027/28: country is not a three-letter code');
   });
 
@@ -387,5 +391,90 @@ describe('whether the legend names unmarked cup places (T-1674)', () => {
     const z = (division: string) => leagueZonesFor(list, { kind: 'league', division }, '2026/27');
     expect(z('X1')).toMatchObject({ unmarked_cup_places: true });
     expect(z('X2')).toMatchObject({ unmarked_cup_places: false });
+  });
+});
+
+describe("a cup's league phase (T-1761, D-381)", () => {
+  const ucl: ZoneCompetition = { kind: 'cup', division: null, country: null, key: 'UCL' };
+  const phase = (over: Partial<LeagueZoneEntry> = {}): LeagueZoneEntry =>
+    entry({
+      division: undefined,
+      competition: 'UCL',
+      season: '2026/27',
+      teams: 36,
+      matches: 8,
+      zones: [
+        { kind: 'league_phase_round_of_16', from: 1, to: 8 },
+        { kind: 'league_phase_playoff', from: 9, to: 24 },
+        { kind: 'league_phase_out', from: 25, to: 36 },
+      ],
+      ...over,
+    });
+
+  it("lists the Champions League's 2026/27 league phase from UEFA's own regulations", () => {
+    const zones = leagueZonesFor(LIST, ucl, '2026/27');
+    expect(zones).toMatchObject({
+      state: 'listed',
+      teams: 36,
+      matches: 8,
+      complete: true,
+      unmarked_cup_places: false,
+      zones: [
+        { kind: 'league_phase_round_of_16', from: 1, to: 8 },
+        { kind: 'league_phase_playoff', from: 9, to: 24 },
+        { kind: 'league_phase_out', from: 25, to: 36 },
+      ],
+    });
+    if (zones.state !== 'listed') throw new Error('listed');
+    for (const s of zones.sources) expect(s).toMatch(/^https:\/\/documents\.uefa\.com\//);
+    expect(zones.note_fa).toMatch(/[؀-ۿ]/);
+  });
+
+  it('finds the entry by the code alone, whatever the kind; another season is not listed', () => {
+    expect(leagueZonesFor(LIST, { ...ucl, kind: 'league' }, '2026/27').state).toBe('listed');
+    expect(leagueZonesFor(LIST, ucl, '2025/26')).toEqual({
+      state: 'not_listed',
+      reason: 'season_not_listed',
+    });
+    // Without the code a cup is still not a league (rule 3), as before.
+    expect(leagueZonesFor(LIST, { ...ucl, key: null }, '2026/27')).toEqual({
+      state: 'not_listed',
+      reason: 'not_a_league',
+    });
+  });
+
+  it('gives a league no matches and keeps its lookup as it was', () => {
+    const e0 = leagueZonesFor(LIST, { kind: 'league', division: 'E0' }, '2025/26');
+    expect(e0).toMatchObject({ state: 'listed', matches: null, unmarked_cup_places: true });
+  });
+
+  it('wants a code, every place in a band, one table and a whole number of matches', () => {
+    expect(leagueZoneProblems([phase()])).toEqual([]);
+    expect(leagueZoneProblems([phase({ competition: 'Champions League' })])).toContain(
+      'Champions League 2026/27: competition is not a code',
+    );
+    expect(
+      leagueZoneProblems([
+        phase({
+          zones: [
+            { kind: 'league_phase_round_of_16', from: 1, to: 8 },
+            { kind: 'league_phase_out', from: 25, to: 36 },
+          ],
+        }),
+      ]),
+    ).toContain('UCL 2026/27: place 9 of the league phase is in no band');
+    expect(leagueZoneProblems([phase({ matches: 0 })])).toContain(
+      'UCL 2026/27: matches must be a whole number of at least 1',
+    );
+    expect(
+      leagueZoneProblems([
+        phase({
+          zones: [{ kind: 'league_phase_out', from: 1, to: 36, conference: 'Eastern Conference' }],
+        }),
+      ]),
+    ).toContain('UCL 2026/27: a league phase is one table, with no conference');
+    expect(leagueZoneProblems([phase({ division: 'E0' })])).toContain(
+      'E0 2026/27: exactly one of division, country and competition is needed',
+    );
   });
 });
