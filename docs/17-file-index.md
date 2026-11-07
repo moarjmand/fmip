@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2376), grouped by folder, with one line on
+Every file in the repository (2371), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -51,7 +51,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/briefings/internal`](#appsapisrcmodulesbriefingsinternal) — 2
 - [`apps/api/src/modules/campaigns`](#appsapisrcmodulescampaigns) — 6
 - [`apps/api/src/modules/campaigns/internal`](#appsapisrcmodulescampaignsinternal) — 1
-- [`apps/api/src/modules/catalog`](#appsapisrcmodulescatalog) — 28
+- [`apps/api/src/modules/catalog`](#appsapisrcmodulescatalog) — 29
 - [`apps/api/src/modules/catalog/internal`](#appsapisrcmodulescataloginternal) — 16
 - [`apps/api/src/modules/channel-post`](#appsapisrcmoduleschannel-post) — 5
 - [`apps/api/src/modules/channel-post/internal`](#appsapisrcmoduleschannel-postinternal) — 10
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 38
+- [`docs`](#docs) — 32
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -729,6 +729,7 @@ machine, `docs/18-handover.md`.
 | `player-provider-seasons.http.spec.ts` | `GET /players/:id/provider-seasons` (T-1431, D-223) against the real schema: nothing until the provider was asked, the latest season's lines with the ones our own record counts marked so, the career team by team, and `l… |
 | `player.http.spec.ts` | Tests for `player.http`. |
 | `provider-leaders.spec.ts` | Tests for `provider-leaders`. |
+| `team-order.http.spec.ts` | `GET /teams/:id` lists a club's competitions in the page's order (T-1764, D-379) against the real schema: one club plays a domestic league, a continental competition with a league phase and a domestic cup in knockout ro… |
 | `team-season-stats.http.spec.ts` | `GET /teams/:id/season-stats` (T-1437, D-228) against the real schema: nothing until the provider was asked, then the stored season whole, the seasons to choose from, `?season=` picking one, and `limited` where the prov… |
 | `team-splits.http.spec.ts` | Tests for `team-splits.http`. |
 | `team-splits.spec.ts` | Tests for `team-splits`. |
@@ -3485,19 +3486,13 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
-| `03-project-map.md` | Project map |
-| `03-project-map.md` | Project map |
 | `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
