@@ -302,6 +302,7 @@ describe('the team page order of a club’s competitions (T-1764, D-379)', () =>
     kind,
     scope,
     tier: extra.tier ?? null,
+    groupStage: false,
   });
   const names = (rows: RankedTeamSeason[]) =>
     [...rows].sort(teamSeasonOrder).map((r) => `${r.competition.name} ${r.season.label}`);
@@ -376,19 +377,35 @@ describe('the team page order of a club’s competitions (T-1764, D-379)', () =>
 });
 
 describe('hasTable (T-1764, D-379)', () => {
+  const season = (
+    kind: 'league' | 'cup' | 'friendly',
+    scope: 'domestic' | 'continental' | 'international',
+    groupStage = false,
+  ) => ({ kind, scope, groupStage });
+  const none = { coverage: 'not_supplied' as const, last_updated_at: null, data: null };
+
   it('a league always has a table, even before a match', () => {
-    expect(hasTable('league', table([]))).toBe(true);
-    expect(
-      hasTable('league', { coverage: 'not_supplied', last_updated_at: null, data: null }),
-    ).toBe(true);
+    expect(hasTable(season('league', 'domestic'), table([]))).toBe(true);
+    expect(hasTable(season('league', 'domestic'), none)).toBe(true);
   });
 
-  it('a cup has one only when its table holds rows', () => {
-    expect(hasTable('cup', table([row(1), row(2)]))).toBe(true);
-    expect(hasTable('cup', table([]))).toBe(false);
-    expect(hasTable('cup', { coverage: 'not_supplied', last_updated_at: null, data: null })).toBe(
-      false,
-    );
-    expect(hasTable('friendly', table([]))).toBe(false);
+  it('a cup with a group stage has its group tables, as its page draws them (code review, 2026-11-07)', () => {
+    // AFC Champions League Two; a national team's Asian Cup or World Cup.
+    expect(hasTable(season('cup', 'continental', true), table([]))).toBe(true);
+    expect(hasTable(season('cup', 'international', true), none)).toBe(true);
+  });
+
+  it('a continental cup without its league phase in our records lacks data, not a table', () => {
+    // UEFA Champions League 2025/26 (D-378's D13): only the knockout rounds stored.
+    expect(hasTable(season('cup', 'continental'), table([]))).toBe(true);
+    expect(hasTable(season('cup', 'continental'), none)).toBe(true);
+  });
+
+  it('a cup played in knockout rounds alone has none: its format', () => {
+    expect(hasTable(season('cup', 'domestic'), table([row(1), row(2)]))).toBe(true);
+    expect(hasTable(season('cup', 'domestic'), table([]))).toBe(false);
+    expect(hasTable(season('cup', 'domestic'), none)).toBe(false);
+    expect(hasTable(season('cup', 'international'), table([]))).toBe(false);
+    expect(hasTable(season('friendly', 'international'), table([]))).toBe(false);
   });
 });

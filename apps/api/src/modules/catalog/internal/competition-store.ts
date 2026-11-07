@@ -234,6 +234,20 @@ export class PostgresCompetitionStore {
   }
 
   /**
+   * Our own code for the season's competition (`competition.zone_key`,
+   * T-1761, D-381), else null: what the bracket reads to know the Champions
+   * League (code review, 2026-11-07), never a name.
+   */
+  async competitionCode(seasonId: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ zone_key: string | null }>(
+      `SELECT c.zone_key FROM season se JOIN competition c ON c.id = se.competition_id
+        WHERE se.id = $1`,
+      [seasonId],
+    );
+    return rows[0]?.zone_key ?? null;
+  }
+
+  /**
    * Every fixture of the season as the knockout bracket reads it (T-630):
    * the latest score rather than the 90-minute one, since extra time decides
    * a tie, plus the shoot-out and the leg when our records hold them.

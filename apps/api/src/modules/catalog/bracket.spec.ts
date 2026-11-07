@@ -217,15 +217,18 @@ describe('buildBracket', () => {
     expect(playoffs.ties.every((t) => t.winner === null)).toBe(true);
   });
 
-  it('reads a "Round of 32" of eight ties since 2021/22 as the knockout play-offs (T-1763, D-378)', () => {
-    // The 2025/26 Champions League: sixteen clubs, eight ties, stored as "Round of 32".
-    const pairs = ['ab', 'cd', 'ef', 'gh', 'ij', 'kl', 'mn', 'op'];
-    const ties = pairs.flatMap(([x, y]) => [
-      fixture('Round of 32', '2026-02-17', x!, y!, [1, 0]),
-      fixture('Round of 32', '2026-02-25', y!, x!, [0, 0]),
+  // The 2025/26 Champions League: sixteen clubs, eight ties, stored as "Round of 32".
+  const roundOf32 = (pairs: string[], first = '2026-02-17', second = '2026-02-25') =>
+    pairs.flatMap(([x, y]) => [
+      fixture('Round of 32', first, x!, y!, [1, 0]),
+      fixture('Round of 32', second, y!, x!, [0, 0]),
     ]);
+  const EIGHT = ['ab', 'cd', 'ef', 'gh', 'ij', 'kl', 'mn', 'op'];
+
+  it('reads the Champions League’s "Round of 32" of eight ties as the knockout play-offs (T-1763, D-378)', () => {
+    const ties = roundOf32(EIGHT);
     const r16 = fixture('Round of 16', '2026-03-10', 'a', 'q', null);
-    const bracket = buildBracket([...ties, r16], false);
+    const bracket = buildBracket([...ties, r16], false, 'UCL');
     expect(bracket.rounds.map((r) => r.key)).toEqual([
       'knockout_playoff',
       'round_of_16',
@@ -241,21 +244,51 @@ describe('buildBracket', () => {
     expect(playoffs.ties[0]!.winner!.id).toBe('a');
     // The match centre's tie reads the same round.
     expect(
-      tieOf([...ties, r16], ties[0]!.id, { continental: true, stageLegs: null })!.roundKey,
+      tieOf([...ties, r16], ties[0]!.id, {
+        continental: true,
+        stageLegs: null,
+        competitionCode: 'UCL',
+      })!.roundKey,
     ).toBe('knockout_playoff');
   });
 
-  it('keeps a real round of 32: before 2021/22, or more than eight ties', () => {
-    const old = buildBracket([fixture('Round of 32', '2021-02-18', 'a', 'b', [1, 0])], false);
-    expect(old.rounds[0]!.key).toBe('round_of_32');
+  it('keeps a real round of 32 of any other competition, decided by our code, not a name (code review, 2026-11-07)', () => {
+    const ties = roundOf32(EIGHT);
+    // Another continental cup -- CONMEBOL's, AFC's -- or one without our code.
+    for (const code of [null, 'UEL']) {
+      expect(buildBracket(ties, false, code).rounds[0]!.key).toBe('round_of_32');
+      expect(
+        tieOf(ties, ties[0]!.id, { continental: true, stageLegs: null, competitionCode: code })!
+          .roundKey,
+      ).toBe('round_of_32');
+    }
+    expect(tieOf(ties, ties[0]!.id, { continental: true, stageLegs: null })!.roundKey).toBe(
+      'round_of_32',
+    );
+  });
+
+  it('keeps the Champions League’s round of 32 of fewer or more than eight ties, or before the league phase', () => {
+    // A real round of 32 partly stored (draw day, thin coverage): seven ties.
+    expect(buildBracket(roundOf32(EIGHT.slice(0, 7)), true, 'UCL').rounds[0]!.key).toBe(
+      'round_of_32',
+    );
     const many = 'abcdefghijklmnopqr'.split('');
     const wide = buildBracket(
       Array.from({ length: 9 }, (_, i) =>
         fixture('Round of 32', '2026-02-17', many[2 * i]!, many[2 * i + 1]!, null),
       ),
       true,
+      'UCL',
     );
     expect(wide.rounds[0]!.key).toBe('round_of_32');
+    // Eight ties before 2024/25, when the format had groups and no play-offs of this kind.
+    expect(
+      buildBracket(roundOf32(EIGHT, '2024-02-13', '2024-02-21'), false, 'UCL').rounds[0]!.key,
+    ).toBe('round_of_32');
+    // The first league-phase season's own play-offs, stored under the same words.
+    expect(
+      buildBracket(roundOf32(EIGHT, '2025-02-11', '2025-02-19'), false, 'UCL').rounds[0]!.key,
+    ).toBe('knockout_playoff');
   });
 
   it('keeps a stated leg number over the kick-off order', () => {

@@ -18,6 +18,11 @@ export interface TeamSeason {
   /** Our catalogue's kind and scope (T-1764, D-379): what the order reads. */
   kind: CompetitionKind;
   scope: CompetitionScope;
+  /**
+   * Whether the season has a group stage (code review, 2026-11-07): the
+   * competition page draws its group tables, so `has_table` counts them.
+   */
+  groupStage: boolean;
 }
 
 /** SQL for the team page (T-036). Reads only. */
@@ -132,10 +137,12 @@ export class PostgresTeamStore {
       season_id: string;
       season_label: string;
       is_current: boolean;
+      group_stage: boolean;
     }>(
       `SELECT DISTINCT c.id AS competition_id, c.name AS competition_name,
               c.short_name AS competition_short_name, c.kind, c.scope, c.tier,
-              se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label, se.is_current
+              se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label, se.is_current,
+              EXISTS (SELECT 1 FROM stage gs WHERE gs.season_id = se.id AND gs.kind = 'group') AS group_stage
          FROM fixture f
          JOIN fixture_participant p ON p.fixture_id = f.id AND p.team_id = $1
          JOIN season se ON se.id = f.season_id
@@ -156,9 +163,16 @@ export class PostgresTeamStore {
         kind: r.kind,
         scope: r.scope,
         tier: r.tier,
+        groupStage: r.group_stage,
       }))
       .sort(teamSeasonOrder)
-      .map((r) => ({ competition: r.competition, season: r.season, kind: r.kind, scope: r.scope }));
+      .map((r) => ({
+        competition: r.competition,
+        season: r.season,
+        kind: r.kind,
+        scope: r.scope,
+        groupStage: r.groupStage,
+      }));
   }
 
   /** Every fixture of the team in the given seasons, oldest first, with the best score we hold. */

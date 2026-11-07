@@ -611,11 +611,15 @@ export interface TeamCompetition {
   context: Covered<TableContext>;
   /**
    * Whether this competition's season has a table (T-1764, D-379), by the
-   * competition page's own rule: a league always does, anything else when
-   * the season's table holds rows. False for a cup played in knockout rounds
-   * only -- that is its format, not missing data, so the page names it a cup
-   * with no table rather than "not supplied". True with `context.data` null
-   * is a table that does not place the club yet: that one is missing data.
+   * competition page's own rules: a league always does; a season with a
+   * group stage has its group tables; a continental cup has a league phase
+   * or groups before its knockout rounds, held or not; anything else when
+   * the season's table holds rows. False only for a cup played in knockout
+   * rounds alone -- that is its format, not missing data, so the page names
+   * it a cup with no table rather than "not supplied". True with
+   * `context.data` null is a table that does not place the club (a group
+   * table, which `context` does not slice, or one we do not hold): that one
+   * is said as missing data.
    */
   has_table: boolean;
 }
