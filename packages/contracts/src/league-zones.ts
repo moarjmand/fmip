@@ -35,6 +35,15 @@
  * An entry may also say how its league ranks clubs level on points
  * (`ranking`, T-1674, D-323), where that differs from the default
  * (`DEFAULT_RANKING`).
+ *
+ * A cup's league phase (T-1761, D-381: the Champions League's 36 clubs in one
+ * table) has neither a division nor a country: its entry is keyed by our code
+ * for the competition (`competition`, stored as `competition.zone_key`), and
+ * says how many matches each club plays in the phase (`matches`). Its bands
+ * cover every place: `league_phase_round_of_16` (straight into the round of
+ * 16), `league_phase_playoff` (the knockout phase play-offs) and
+ * `league_phase_out` (eliminated). The table is provisional until every club
+ * has played its `matches`.
  */
 export const LEAGUE_ZONE_KINDS = [
   'champions_league',
@@ -47,6 +56,9 @@ export const LEAGUE_ZONE_KINDS = [
   'promotion_playoff',
   'relegation_playoff',
   'relegation',
+  'league_phase_round_of_16',
+  'league_phase_playoff',
+  'league_phase_out',
 ] as const;
 export type LeagueZoneKind = (typeof LEAGUE_ZONE_KINDS)[number];
 
@@ -84,9 +96,15 @@ export interface LeagueZoneEntry {
   /**
    * The country's FIFA trigram (`country.code`), for the top-flight league of a
    * country whose league has no training division (D-234). Exactly one of
-   * `division` and `country` is set.
+   * `division`, `country` and `competition` is set.
    */
   country?: string;
+  /**
+   * Our code for a competition with neither (T-1761, D-381), as
+   * `competition.zone_key` stores it: `UCL`. Found whatever the competition's
+   * kind, since a cup's league phase is ranked as one table.
+   */
+  competition?: string;
   season: string;
   /** The clubs in the league that season. */
   teams: number;
@@ -110,6 +128,12 @@ export interface LeagueZoneEntry {
    * the league's table and its conference tables for this season.
    */
   ranking?: TableCriterion[];
+  /**
+   * How many matches each club plays in the phase the table ranks, for a
+   * cup's league phase (T-1761, D-381); its bands then cover every place. The
+   * table is the final one only once every club has played them.
+   */
+  matches?: number;
 }
 
 /** The competition page's zones for the selected season. */
@@ -133,6 +157,12 @@ export type LeagueZones =
        * (Brasileirão, the Gulf, IR1) and for MLS.
        */
       unmarked_cup_places: boolean;
+      /**
+       * The matches each club plays in a cup's league phase (T-1761, D-381),
+       * whose bands cover every place; null (or absent) for a league. The
+       * page reads whether the phase is over from the rows' `played`.
+       */
+      matches?: number | null;
     }
   | {
       state: 'not_listed';
@@ -153,6 +183,8 @@ export interface ZoneCompetition {
   division: string | null;
   country?: string | null;
   tier?: number | null;
+  /** `competition.zone_key` (T-1761, D-381): our code, set for a competition the list keys by it. */
+  key?: string | null;
 }
 
 /**
@@ -177,11 +209,17 @@ export function leagueZonesFor(
     note: e.note ?? null,
     note_fa: e.note_fa ?? null,
     unmarked_cup_places: entries.some(
-      (x) =>
-        (e.division !== undefined ? x.division === e.division : x.country === e.country) &&
-        x.zones.some((z) => z.kind === 'champions_league'),
+      (x) => sameLeague(x, e) && x.zones.some((z) => z.kind === 'champions_league'),
     ),
+    matches: e.matches ?? null,
   };
+}
+
+/** Whether two entries are of one league: the same division, country or competition code. */
+function sameLeague(a: LeagueZoneEntry, b: LeagueZoneEntry): boolean {
+  if (b.division !== undefined) return a.division === b.division;
+  if (b.country !== undefined) return a.country === b.country;
+  return b.competition !== undefined && a.competition === b.competition;
 }
 
 /**
@@ -218,6 +256,11 @@ function entryFor(
   competition: ZoneCompetition,
   season: string,
 ): LeagueZoneEntry | 'not_a_league' | 'no_division' | 'season_not_listed' {
+  // A competition with our own code is found by it alone (T-1761, D-381): the
+  // Champions League is a cup whose league phase is one table.
+  const key = competition.key ?? null;
+  if (key !== null)
+    return entries.find((x) => x.competition === key && x.season === season) ?? 'season_not_listed';
   if (competition.kind !== 'league') return 'not_a_league';
   const country = competition.country ?? null;
   const topFlight =

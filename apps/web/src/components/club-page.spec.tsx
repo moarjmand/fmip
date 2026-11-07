@@ -13,8 +13,10 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   guestFollowHref,
   homeAwayLean,
+  readTeamCompetition,
   readTeamTab,
   squadIncomplete,
+  teamCompetitionHref,
   teamTabHref,
 } from '@/lib/team';
 
@@ -26,8 +28,16 @@ vi.mock('@/lib/auth-actions', () => ({
 
 const { ClubBand, ClubFacts, FixturesPanel, NoNextMatch, SquadPanel, TeamMatchRow } =
   await import('./club-page');
-const { AroundThem, ComingUp, RecentResults, RecordPanel, SquadCard, TopScorerCard } =
-  await import('./club-overview');
+const {
+  AroundThem,
+  BandStanding,
+  ComingUp,
+  CompetitionChips,
+  RecentResults,
+  RecordPanel,
+  SquadCard,
+  TopScorerCard,
+} = await import('./club-overview');
 const { CardFollow, EntityFollow } = await import('./competition-page');
 const { NextMatchCard } = await import('./next-match-card');
 
@@ -126,8 +136,15 @@ function page(over: Partial<TeamPage> = {}): TeamPage {
     },
     competitions: [
       {
-        competition: { id: 'pgpl', name: 'Persian Gulf Pro League', short_name: 'Pro League' },
+        competition: {
+          id: 'pgpl',
+          name: 'Persian Gulf Pro League',
+          short_name: 'Pro League',
+          kind: 'league',
+          scope: 'domestic',
+        },
         season: { id: 's1', label: '2026/27', is_current: true },
+        has_table: true,
         context: {
           coverage: 'limited',
           last_updated_at: null,
@@ -1117,6 +1134,299 @@ describe('crests, logos and photos on the club page (T-1617)', () => {
       '/api/media/crest/tractor/0123456789ab-48.webp',
     ]);
     expect(around).not.toMatch(PHYSICAL);
+  });
+});
+
+describe('the default competition and the chips (T-1764, D-379)', () => {
+  // Arsenal on 7 Nov 2026, in the API's order since T-1764: the league, the
+  // Champions League (a cup with a league phase), the EFL Cup (no table).
+  const ARSENAL = TEAM;
+  const row = (position: number, id: string, name: string, points: number, played = 9) => ({
+    position,
+    team: { id, name, short_name: null },
+    played,
+    won: 0,
+    drawn: 0,
+    lost: 0,
+    goals_for: 0,
+    goals_against: 0,
+    goal_difference: 0,
+    points,
+    form: [],
+  });
+  const league = {
+    competition: {
+      id: 'pl',
+      name: 'Premier League',
+      short_name: null,
+      kind: 'league' as const,
+      scope: 'domestic' as const,
+    },
+    season: { id: 's-pl', label: '2026/27', is_current: true },
+    has_table: true,
+    context: {
+      coverage: 'available' as const,
+      last_updated_at: null,
+      data: {
+        position: 1,
+        total: 20,
+        points: 24,
+        rows: [row(1, ARSENAL, 'Arsenal', 24), row(2, 'mci', 'Manchester City', 21)],
+      },
+    },
+  };
+  const ucl = {
+    competition: {
+      id: 'ucl',
+      name: 'UEFA Champions League',
+      short_name: 'Champions League',
+      kind: 'cup' as const,
+      scope: 'continental' as const,
+    },
+    season: { id: 's-ucl', label: '2026/27', is_current: true },
+    has_table: true,
+    context: {
+      coverage: 'available' as const,
+      last_updated_at: null,
+      data: {
+        position: 3,
+        total: 36,
+        points: 10,
+        rows: [row(2, 'rma', 'Real Madrid', 12, 4), row(3, ARSENAL, 'Arsenal', 10, 4)],
+      },
+    },
+  };
+  const cup = {
+    competition: {
+      id: 'efl',
+      name: 'EFL Cup',
+      short_name: null,
+      kind: 'cup' as const,
+      scope: 'domestic' as const,
+    },
+    season: { id: 's-efl', label: '2026/27', is_current: true },
+    has_table: false,
+    context: { coverage: 'not_supplied' as const, last_updated_at: null, data: null },
+  };
+  const figures = (entry: typeof league | typeof cup | typeof ucl, won: number, drawn: number) =>
+    splits({
+      competition: entry.competition,
+      season: entry.season,
+      total: { ...recordOf(won + drawn), won, drawn, lost: 0 },
+    });
+  const scorers = (
+    entry: typeof league | typeof cup | typeof ucl,
+    name: string,
+    goals: number,
+  ) => ({
+    competition: entry.competition,
+    season: entry.season,
+    scorers: {
+      coverage: 'limited' as const,
+      last_updated_at: null,
+      data: [{ person: { id: `p-${name}`, name }, goals }],
+    },
+  });
+  const arsenal = (over: Partial<TeamPage> = {}) =>
+    page({
+      team: { ...page().team, name: 'Arsenal' },
+      competitions: [league, ucl, cup],
+      splits: [figures(league, 8, 0), figures(ucl, 3, 1), figures(cup, 1, 1)],
+      top_scorers: [
+        scorers(league, 'Saka', 6),
+        scorers(ucl, 'Havertz', 3),
+        scorers(cup, 'Max Dowman', 2),
+      ],
+      ...over,
+    });
+  const chips = (p: TeamPage, chosen: TeamPage['competitions'][number] | null, locale = 'en') =>
+    renderToStaticMarkup(
+      <CompetitionChips page={p} locale={locale} chosen={chosen} territory={undefined} />,
+    );
+
+  it('defaults the band, the season card and the top scorer to the league', () => {
+    const p = arsenal();
+    const band = renderToStaticMarkup(<BandStanding page={p} locale="en" />);
+    expect(band).toMatch(/Premier League.*>1st<.*24 pts from 9/);
+    const record = renderToStaticMarkup(<RecordPanel page={p} locale="en" />);
+    expect(record).toContain('Premier League so far');
+    expect(record).toMatch(/data-testid="record-tiles".*?>8-0-0</);
+    expect(record).not.toContain('EFL Cup');
+    const scorer = renderToStaticMarkup(<TopScorerCard page={p} locale="en" />);
+    expect(scorer).toContain('Top scorer · Premier League');
+    expect(scorer).toContain('Saka');
+    expect(scorer).not.toContain('Max Dowman');
+  });
+
+  it('keeps the league’s card when the league has nothing yet, rather than a cup’s figures', () => {
+    const p = arsenal({
+      splits: [figures(league, 0, 0), figures(ucl, 0, 0), figures(cup, 1, 1)],
+      top_scorers: [
+        { ...scorers(league, 'x', 0), scorers: { ...scorers(league, 'x', 0).scorers, data: [] } },
+        scorers(ucl, 'Havertz', 3),
+        scorers(cup, 'Max Dowman', 2),
+      ],
+    });
+    const record = renderToStaticMarkup(<RecordPanel page={p} locale="en" />);
+    expect(record).toContain('Premier League so far');
+    expect(record).toContain('data-testid="record-empty"');
+    const scorer = renderToStaticMarkup(<TopScorerCard page={p} locale="en" />);
+    expect(scorer).toContain('No goal for the club is recorded in Premier League yet.');
+  });
+
+  it('reads ?competition= for one of the club’s competitions, anything else is the default', () => {
+    const { competitions } = arsenal();
+    expect(readTeamCompetition({ competition: 'efl' }, competitions)).toBe(cup);
+    expect(readTeamCompetition({ competition: ['ucl', 'efl'] }, competitions)).toBe(ucl);
+    // Another club's competition, an unknown id, nothing: the league.
+    expect(readTeamCompetition({ competition: 'laliga' }, competitions)).toBeNull();
+    expect(readTeamCompetition({ competition: '' }, competitions)).toBeNull();
+    expect(readTeamCompetition({}, competitions)).toBeNull();
+    expect(teamCompetitionHref('en', TEAM, 'pl', competitions)).toBe(`/en/team/${TEAM}`);
+    expect(teamCompetitionHref('en', TEAM, 'efl', competitions)).toBe(
+      `/en/team/${TEAM}?competition=efl`,
+    );
+  });
+
+  it('draws a 44px link per competition, the chosen one aria-current and not by colour alone', () => {
+    const html = chips(arsenal(), null);
+    expect(html).toMatch(/<nav aria-label="The club’s competitions"/);
+    expect(html.match(/data-testid="competition-chip"/g)).toHaveLength(3);
+    expect(html.match(/min-h-touch/g)).toHaveLength(3);
+    // The default is the league: its chip is the current one, at the page's own address.
+    expect(html).toMatch(
+      new RegExp(
+        `aria-current="true" class="[^"]*border-2[^"]*font-extrabold[^"]*"[^>]*data-competition="pl" href="/en/team/${TEAM}"`,
+      ),
+    );
+    expect(html.match(/aria-current/g)).toHaveLength(1);
+    expect(html).toContain(`href="/en/team/${TEAM}?competition=ucl"`);
+    expect(html).toContain(`href="/en/team/${TEAM}?competition=efl"`);
+    // A cup without a table says so in words on its chip, and only it.
+    expect(html.match(/data-testid="competition-chip-tag"/g)).toHaveLength(1);
+    expect(html).toMatch(/EFL Cup<\/bdi><span[^>]*>cup, no table</);
+    expect(html).not.toContain('competition-no-table');
+    expect(html).not.toMatch(PHYSICAL);
+    // A guest's territory stays on the links.
+    expect(
+      renderToStaticMarkup(
+        <CompetitionChips page={arsenal()} locale="en" chosen={cup} territory="GB" />,
+      ),
+    ).toContain(`href="/en/team/${TEAM}?competition=efl&amp;territory=GB"`);
+  });
+
+  it('switches the season card, the top scorer and the band to the chosen competition', () => {
+    const p = arsenal();
+    const html = chips(p, cup);
+    expect(html).toMatch(/aria-current="true"[^>]*data-competition="efl"/);
+    expect(html.match(/aria-current/g)).toHaveLength(1);
+    // The cup's format is said once, under the chips, with its matches a link away.
+    expect(html).toContain('EFL Cup is played in knockout rounds, so it has no table.');
+    expect(html).toContain('href="/en/competition/efl?tab=matches"');
+    expect(renderToStaticMarkup(<RecordPanel page={p} locale="en" chosen={cup} />)).toContain(
+      'EFL Cup so far',
+    );
+    expect(renderToStaticMarkup(<TopScorerCard page={p} locale="en" chosen={cup} />)).toContain(
+      'Max Dowman',
+    );
+    // The cup has no table: the band stays on the league, naming it.
+    expect(renderToStaticMarkup(<BandStanding page={p} locale="en" chosen={cup} />)).toMatch(
+      /Premier League.*>1st</,
+    );
+    // The Champions League has one that places the club: the band reads it.
+    expect(renderToStaticMarkup(<BandStanding page={p} locale="en" chosen={ucl} />)).toMatch(
+      /Champions League.*>3rd<.*10 pts from 4/,
+    );
+  });
+
+  it('says it in Persian, and is not drawn for a club in one competition', () => {
+    const fa = chips(arsenal(), cup, 'fa');
+    expect(fa).toContain('رقابت‌های باشگاه');
+    expect(fa).toContain('جام، بدون جدول');
+    expect(fa).toContain('در دورهای حذفی برگزار می‌شود و جدول رده‌بندی ندارد.');
+    expect(chips(page(), null)).toBe('');
+  });
+
+  it('draws "Around them" only for a competition with a table, the league first', () => {
+    const html = renderToStaticMarkup(<AroundThem page={arsenal()} locale="en" />);
+    expect(html.match(/data-testid="competition"/g)).toHaveLength(2);
+    expect(html.indexOf('id="table-s-pl"')).toBeLessThan(html.indexOf('id="table-s-ucl"'));
+    expect(html).not.toContain('table-s-efl');
+    expect(html).not.toContain('No table position to show.');
+    // A table that does not place the club is missing data: still said (rule 3).
+    const unplaced = renderToStaticMarkup(
+      <AroundThem
+        page={arsenal({
+          competitions: [
+            { ...league, context: { coverage: 'not_supplied', last_updated_at: null, data: null } },
+            cup,
+          ],
+        })}
+        locale="en"
+      />,
+    );
+    expect(unplaced).toContain('No table position to show.');
+    // Only cups: no card at all, not an empty one.
+    expect(
+      renderToStaticMarkup(<AroundThem page={arsenal({ competitions: [cup] })} locale="en" />),
+    ).toBe('');
+  });
+
+  // Code review, 2026-11-07: the API counts group tables and a continental
+  // cup's missing league phase as tables (D-379), so neither is "knockout".
+  const notPlaced = { coverage: 'not_supplied' as const, last_updated_at: null, data: null };
+  const groups = {
+    competition: {
+      id: 'acl2',
+      name: 'AFC Champions League Two',
+      short_name: null,
+      kind: 'cup' as const,
+      scope: 'continental' as const,
+    },
+    season: { id: 's-acl2', label: '2026/27', is_current: true },
+    has_table: true,
+    context: notPlaced,
+  };
+  const leaguePhaseMissing = {
+    ...ucl,
+    season: { id: 's-ucl-25', label: '2025/26', is_current: true },
+    context: notPlaced,
+  };
+
+  it('never calls a cup with group tables, or one whose league phase we lack, a knockout cup', () => {
+    for (const entry of [groups, leaguePhaseMissing]) {
+      const p = arsenal({ competitions: [league, entry, cup] });
+      const html = chips(p, entry);
+      // Only the knockout cup carries "cup, no table"; the chosen one has no format sentence.
+      expect(html.match(/data-testid="competition-chip-tag"/g)).toHaveLength(1);
+      expect(html).toMatch(/EFL Cup<\/bdi><span[^>]*>cup, no table</);
+      expect(html).not.toContain('competition-no-table');
+      expect(html).not.toContain('knockout rounds');
+      // Its card is drawn and says the club's place is not supplied (rule 3).
+      const around = renderToStaticMarkup(<AroundThem page={p} locale="en" />);
+      expect(around.match(/data-testid="competition"/g)).toHaveLength(2);
+      expect(around).toContain(`id="table-${entry.season.id}"`);
+      expect(around).toContain('No table position to show.');
+      expect(around).toContain('data-coverage-badge="not_supplied"');
+      expect(around).not.toContain('table-s-efl');
+    }
+    // A cup played in knockout rounds alone still says its format.
+    expect(chips(arsenal({ competitions: [league, groups, cup] }), cup)).toContain(
+      'EFL Cup is played in knockout rounds, so it has no table.',
+    );
+  });
+
+  it('draws one chip per competition, its current season, however many seasons the club is in', () => {
+    // An older Champions League season with a match still awaiting an update.
+    const older = { ...ucl, season: { id: 's-ucl-old', label: '2025/26', is_current: false } };
+    const p = arsenal({ competitions: [league, ucl, cup, older] });
+    const html = chips(p, readTeamCompetition({ competition: 'ucl' }, p.competitions));
+    expect(html.match(/data-testid="competition-chip"/g)).toHaveLength(3);
+    expect(html.match(/data-competition="ucl"/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-current="true"[^>]*data-competition="ucl"/);
+    expect(html.match(/aria-current/g)).toHaveLength(1);
+    // One competition in two seasons: nothing to choose, no chips.
+    expect(chips(arsenal({ competitions: [ucl, older] }), null)).toBe('');
   });
 });
 

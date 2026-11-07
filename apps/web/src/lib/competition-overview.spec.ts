@@ -16,20 +16,25 @@ import {
   leagueModel,
   leagueNumbers,
   mainResults,
+  matchList,
+  matchesHref,
   monthInSeason,
   monthsTotal,
   nextMatchDay,
   perMatch,
   readRoundParam,
   readTabParam,
+  readViewParam,
   resultsBefore,
   roundDays,
-  roundGroups,
   roundHref,
   seasonDigits,
   seasonRounds,
   sharePercent,
+  stageHref,
+  stillToCome,
   tabHref,
+  tableMissing,
 } from './competition-overview';
 
 /**
@@ -210,28 +215,6 @@ describe('the Overview’s round (T-1385)', () => {
 
   it('names the round in Persian, with Persian digits', () => {
     expect(currentMatchweek('fa', { results: [], fixtures: [fx()] })?.label).toBe('هفته‌ی ۸');
-  });
-});
-
-describe('fixtures by round (T-1385)', () => {
-  // English says a round in its own words (T-1391, D-207); Persian is tested below.
-  it('groups each round once, in the list’s order, headed in our words', () => {
-    const a = fx({ round: 'Regular Season - 9' });
-    const b = fx({ round: 'Regular Season - 8' });
-    const c = fx({ round: 'Regular Season - 9' });
-    const groups = roundGroups('en', [a, b, c]);
-    expect(groups.map((g) => g.label)).toEqual(['Matchweek 9', 'Matchweek 8']);
-    expect(groups[0]?.fixtures.map((f) => f.id)).toEqual([a.id, c.id]);
-  });
-
-  it('keeps a stage and its round apart in a cup, and never shows a provider label', () => {
-    const groups = roundGroups('en', [
-      fx({ round: 'League Stage - 2', stage: { id: 'ls', name: 'League Stage' } }),
-      fx({ round: 'Round of 16', stage: { id: 'ko', name: 'Round of 16' } }),
-      fx({ round: 'Something New', stage: { id: 'x', name: 'Something New' } }),
-    ]);
-    expect(groups.map((g) => g.label)).toEqual(['League phase, matchday 2', 'Round of 16', null]);
-    expect(JSON.stringify(groups.map((g) => g.label))).not.toContain('Something New');
   });
 });
 
@@ -666,5 +649,142 @@ describe('the season round by round (T-1636, D-298)', () => {
     expect(roundHref('fa', 'c', { id: 's1', is_current: false }, 2)).toBe(
       '/fa/competition/c?season=s1&round=2#match-day',
     );
+  });
+});
+
+describe('the Matches tab, one round at a time (T-1762, D-378)', () => {
+  const at = (day: string) => `${day}T15:00:00.000Z`;
+  const r9 = [1, 2].map(() =>
+    fx({
+      round: 'Regular Season - 9',
+      kickoff_at: at('2026-10-24'),
+      status: 'finished',
+      score: { home: 1, away: 0 },
+    }),
+  );
+  const r10done = fx({
+    round: 'Regular Season - 10',
+    kickoff_at: at('2026-10-30'),
+    status: 'finished',
+    score: { home: 0, away: 0 },
+  });
+  const r10next = fx({ round: 'Regular Season - 10', kickoff_at: at('2026-10-31') });
+  const r11 = [fx({ round: 'Regular Season - 11', kickoff_at: at('2026-11-07') })];
+  const page = { results: [r10done, ...r9], fixtures: [r10next, ...r11] };
+  const rounds = seasonRounds('en', page, 'UTC');
+
+  it('reads `?view=`: results, else upcoming', () => {
+    expect(readViewParam({ view: 'results' })).toBe('results');
+    expect(readViewParam({ view: 'upcoming' })).toBe('upcoming');
+    expect(readViewParam({ view: ['results', 'x'] })).toBe('results');
+    expect(readViewParam({ view: 'all' })).toBe('upcoming');
+    expect(readViewParam({})).toBe('upcoming');
+    // An old Hybrid address to the results lands on them.
+    expect(readViewParam({ tab: 'results' })).toBe('results');
+    expect(readViewParam({ tab: 'fixtures' })).toBe('upcoming');
+    expect(readViewParam({ tab: 'results', view: 'upcoming' })).toBe('upcoming');
+  });
+
+  it('opens Upcoming at the Overview’s round, holding only that round’s matches to come', () => {
+    const list = matchList('upcoming', rounds, page, null);
+    expect(list.round).toBe(defaultRound(rounds));
+    expect(list.round?.number).toBe(2);
+    expect(list.fixtures).toEqual([r10next]);
+    expect(list.rounds.map((r) => r.number)).toEqual([2, 3]);
+  });
+
+  it('opens Results at the round of the latest result, holding only its results', () => {
+    const list = matchList('results', rounds, page, null);
+    expect(list.round?.number).toBe(2);
+    expect(list.fixtures).toEqual([r10done]);
+    expect(list.rounds.map((r) => r.number)).toEqual([1, 2]);
+  });
+
+  it('opens the round asked for when the list holds it, else its own', () => {
+    expect(matchList('results', rounds, page, 1).round?.number).toBe(1);
+    expect(matchList('results', rounds, page, 3).round?.number).toBe(2);
+    expect(matchList('upcoming', rounds, page, 3).round?.number).toBe(3);
+    expect(matchList('upcoming', rounds, page, 1).round?.number).toBe(2);
+  });
+
+  it('holds no round when its list is empty', () => {
+    expect(matchList('upcoming', [], { results: [] }, null)).toEqual({
+      view: 'upcoming',
+      rounds: [],
+      round: null,
+      fixtures: [],
+    });
+    const notYet = { results: [], fixtures: r11 };
+    expect(matchList('results', seasonRounds('en', notYet, 'UTC'), notYet, null).round).toBeNull();
+  });
+
+  it('never opens Upcoming on a round of void matches alone (code review, 2026-11-07)', () => {
+    // The season is over but for a postponed match of round 3.
+    const late = fx({
+      round: 'Regular Season - 3',
+      kickoff_at: at('2026-09-01'),
+      status: 'postponed',
+    });
+    const done = { results: r9, fixtures: [late] };
+    const seasonEnd = seasonRounds('en', done, 'UTC');
+    const list = matchList('upcoming', seasonEnd, done, null);
+    // No round to open on; the picker still lists round 3, which `?round=` opens.
+    expect(list.round).toBeNull();
+    expect(list.fixtures).toEqual([]);
+    expect(list.rounds.map((r) => r.label)).toEqual(['Matchweek 3']);
+    expect(matchList('upcoming', seasonEnd, done, 1).fixtures).toEqual([late]);
+    // Mid-season, a leftover cancelled or awaiting match never sets the round
+    // either: Upcoming opens on the round of the next match to be played.
+    for (const left of [
+      fx({ round: 'Regular Season - 3', kickoff_at: at('2026-09-01'), status: 'cancelled' }),
+      fx({
+        round: 'Regular Season - 3',
+        kickoff_at: at('2026-09-01'),
+        freshness: 'awaiting_update',
+      }),
+    ]) {
+      const running = { results: r9, fixtures: [left, ...r11] };
+      const opened = matchList('upcoming', seasonRounds('en', running, 'UTC'), running, null);
+      expect(opened.round?.label).toBe('Matchweek 11');
+      expect(opened.rounds.map((r) => r.label)).toEqual(['Matchweek 3', 'Matchweek 11']);
+    }
+  });
+
+  it('asks the model only about a match being played or still to come (T-1710)', () => {
+    expect(stillToCome(fx({ status: 'scheduled' }))).toBe(true);
+    expect(stillToCome(fx({ status: 'live' }))).toBe(true);
+    for (const status of ['postponed', 'cancelled', 'abandoned', 'finished', 'suspended']) {
+      expect(stillToCome(fx({ status }))).toBe(false);
+    }
+    expect(stillToCome(fx({ status: 'scheduled', freshness: 'awaiting_update' }))).toBe(false);
+  });
+
+  it('links a list and its rounds, and a knockout round’s chip, keeping the season', () => {
+    const current = { id: 's2', is_current: true };
+    const old = { id: 's1', is_current: false };
+    expect(matchesHref('en', 'c', current, 'results')).toBe(
+      '/en/competition/c?tab=matches&view=results',
+    );
+    expect(matchesHref('fa', 'c', old, 'upcoming', 10)).toBe(
+      '/fa/competition/c?season=s1&tab=matches&view=upcoming&round=10',
+    );
+    expect(stageHref('en', 'c', old, 'quarter_final')).toBe(
+      '/en/competition/c?season=s1&tab=table&stage=quarter_final#bracket',
+    );
+  });
+
+  it('says a table is missing only for a season with knockout rounds and no table (D13)', () => {
+    const cup = (over: Partial<Shape>): Shape => ({
+      table: covered<TableRow[]>([]),
+      group_tables: null,
+      bracket: { rounds: [] },
+      competition: { kind: 'cup' },
+      ...over,
+    });
+    expect(tableMissing(cup({}))).toBe(true);
+    expect(tableMissing(cup({ table: covered([row('x')]) }))).toBe(false);
+    expect(tableMissing(cup({ group_tables: covered([]) }))).toBe(false);
+    // A domestic cup has no bracket: no table, and nothing missing.
+    expect(tableMissing(cup({ bracket: null }))).toBe(false);
   });
 });

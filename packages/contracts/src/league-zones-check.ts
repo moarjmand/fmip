@@ -9,28 +9,34 @@ import { LEAGUE_ZONE_KINDS, TABLE_CRITERIA, type LeagueZoneEntry } from './leagu
 const SEASON = /^\d{4}\/\d{2}$/;
 const DIVISION = /^[A-Z]{1,2}[0-9C]$/;
 const COUNTRY = /^[A-Z]{3}$/;
+/** Our code for a competition (`competition.zone_key`, T-1761): the migration's format. */
+const COMPETITION = /^[A-Z][A-Z0-9_]{1,15}$/;
 
-/** What identifies an entry in messages: its division or its country. */
-const keyOf = (e: LeagueZoneEntry): string => e.division ?? `${e.country ?? '?'}`;
+/** What identifies an entry in messages: its division, its country or its competition code. */
+const keyOf = (e: LeagueZoneEntry): string => e.division ?? e.country ?? e.competition ?? '?';
 
 /**
  * Every way the list can be wrong, as sentences; empty when it is sound. A
  * place past the table's size, bands that overlap, a band upside down, a
  * repeated key or a source that is not an https address all fail. Bands of
  * different conferences' tables may share places (T-1674, D-323); a ranking
- * starts with points and names each criterion once.
+ * starts with points and names each criterion once; a cup's league phase
+ * (`matches`, T-1761) puts every place in a band.
  */
 export function leagueZoneProblems(entries: readonly LeagueZoneEntry[]): string[] {
   const problems: string[] = [];
   const seen = new Set<string>();
   for (const e of entries) {
     const key = `${keyOf(e)} ${e.season}`;
-    if ((e.division === undefined) === (e.country === undefined))
-      problems.push(`${key}: exactly one of division and country is needed`);
+    const keys = [e.division, e.country, e.competition].filter((k) => k !== undefined);
+    if (keys.length !== 1)
+      problems.push(`${key}: exactly one of division, country and competition is needed`);
     if (e.division !== undefined && !DIVISION.test(e.division))
       problems.push(`${key}: division is not a code`);
     if (e.country !== undefined && !COUNTRY.test(e.country))
       problems.push(`${key}: country is not a three-letter code`);
+    if (e.competition !== undefined && !COMPETITION.test(e.competition))
+      problems.push(`${key}: competition is not a code`);
     if (!SEASON.test(e.season)) problems.push(`${key}: season is not a label like 2025/26`);
     if (seen.has(key)) problems.push(`${key}: listed twice`);
     seen.add(key);
@@ -63,6 +69,16 @@ export function leagueZoneProblems(entries: readonly LeagueZoneEntry[]): string[
         if (taken.has(`${table}:${p}`)) problems.push(`${key}: place ${p}${table} is in two zones`);
         taken.add(`${table}:${p}`);
       }
+    }
+    // A cup's league phase (T-1761, D-381): every place in a band, one table.
+    if (e.matches !== undefined) {
+      if (!Number.isInteger(e.matches) || e.matches < 1)
+        problems.push(`${key}: matches must be a whole number of at least 1`);
+      if (e.zones.some((z) => z.conference !== undefined))
+        problems.push(`${key}: a league phase is one table, with no conference`);
+      for (let p = 1; p <= e.teams; p += 1)
+        if (!taken.has(`:${p}`))
+          problems.push(`${key}: place ${p} of the league phase is in no band`);
     }
   }
   return problems;
