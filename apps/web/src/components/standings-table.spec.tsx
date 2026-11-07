@@ -394,7 +394,11 @@ describe('the phone table: every column in reach (T-1760, D-377)', () => {
     expect(team).toContain('max-sm:w-[90px]');
     expect(team).toContain('max-sm:border-e');
     // A word longer than the column breaks inside it rather than spilling under the figures.
-    expect(html).toContain('<bdi class="min-w-0 max-sm:wrap-anywhere">Team a</bdi>');
+    // Condensed and hyphenated on a phone, so a name such as "Bournemouth" stays whole in the 90px.
+    expect(html).toContain('max-sm:font-stretch-condensed');
+    expect(html).toContain(
+      '<bdi class="min-w-0 max-sm:hyphens-auto max-sm:wrap-anywhere">Team a</bdi>',
+    );
     // Horizontal only: nothing sticks to the top under the site header (D-376).
     expect(html).not.toMatch(/\b(top|inset-block)-/);
     expect(html).not.toMatch(/\b(left|right)\b/);

@@ -320,7 +320,7 @@ export function StandingsTable({
                       {/* The row's height is the link's: a 44px target on a phone (T-1558). */}
                       <Link
                         href={`/${locale}/team/${row.team.id}`}
-                        className="inline-flex min-h-touch items-center gap-2 font-bold break-words hover:underline focus-visible:underline max-sm:text-[13px] max-sm:leading-tight"
+                        className="inline-flex min-h-touch items-center gap-2 font-bold break-words hover:underline focus-visible:underline max-sm:text-[13px] max-sm:leading-tight max-sm:font-stretch-condensed"
                       >
                         {/* On a phone the name has the fixed column's 90px to itself. */}
                         <EntityImage
@@ -330,8 +330,13 @@ export function StandingsTable({
                           size={20}
                           className="max-sm:hidden"
                         />
-                        {/* A word longer than 90px ("Mönchengladbach") breaks rather than spill under the figures. */}
-                        <bdi className="min-w-0 max-sm:wrap-anywhere">{row.team.name}</bdi>
+                        {/* Condensed on a phone, so "Bournemouth" fits the 90px whole (it broke as
+                            "Bournemou / th" on the real-data screenshots); a word longer still
+                            ("Mönchengladbach") is hyphenated, and broken only as a last resort,
+                            rather than spill under the figures. */}
+                        <bdi className="min-w-0 max-sm:hyphens-auto max-sm:wrap-anywhere">
+                          {row.team.name}
+                        </bdi>
                       </Link>
                     </td>
                     {columns.map((c) => (
