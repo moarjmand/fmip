@@ -346,39 +346,21 @@ describe('the table', () => {
       expect(html).toContain('data-testid="form-order"');
     });
 
-    it('lists each band of the conference tables once, without the cup-winners line', () => {
+    it('leaves each band to its own table, keeping the sources and the note once (T-1760, D-377)', () => {
       const html = renderToStaticMarkup(
         <ZoneLegend locale="en" zones={both} tables="conferences" />,
       );
       expect(html).toContain('data-testid="conference-zones"');
-      expect(html.match(/<li /g)).toHaveLength(2);
-      expect(html).toContain('Play-offs: 1');
-      expect(html).toContain('Play-off wild-card round: 8');
+      // The bands are under each conference table now (`ConferenceTables`).
+      expect(html).not.toContain('<li ');
+      expect(html).not.toContain('Play-offs: 1');
+      expect(html).toContain('Places a league position earns by itself');
       expect(html).not.toContain('Europa');
       expect(html).toContain('Clubs level on points are ranked by wins.');
-      expect(html).toContain('border-s-accent');
-      expect(html).toContain('border-s-strong');
-    });
-
-    it('names the conference where the conferences’ bands differ', () => {
-      const html = renderToStaticMarkup(
-        <ZoneLegend
-          locale="en"
-          zones={mls([
-            { kind: 'title_playoffs', from: 1, to: 7, conference: 'Eastern Conference' },
-            { kind: 'title_playoffs', from: 1, to: 6, conference: 'Western Conference' },
-          ])}
-          tables="conferences"
-        />,
-      );
-      expect(html).toContain('Eastern Conference, Play-offs: 1');
-      expect(html).toContain('Western Conference, Play-offs: 1');
     });
 
     it('says it in Persian, and nothing for a league without conference places', () => {
       const fa = renderToStaticMarkup(<ZoneLegend locale="fa" zones={both} tables="conferences" />);
-      expect(fa).toContain('پلی‌آف قهرمانی');
-      expect(fa).toContain('دور وایلدکارت پلی‌آف');
       expect(fa).toContain('تیم‌های هم‌امتیاز');
       expect(
         renderToStaticMarkup(<ZoneLegend locale="en" zones={listed} tables="conferences" />),
@@ -422,10 +404,13 @@ describe('the table', () => {
   it('sets each form letter apart, so Persian letters never join into a word (T-1557)', () => {
     const html = renderToStaticMarkup(<TableCard page={page()} locale="fa" timeZone="UTC" />);
     const form = html.slice(html.indexOf('data-testid="form"'));
+    // D-367's squares since T-1760 (D-377): each letter its own box.
     expect(form).toMatch(
-      /^data-testid="form"><span aria-hidden="true" class="inline-flex gap-\[0.2em\]">/,
+      /^data-testid="form"><span aria-hidden="true" class="inline-flex gap-\[3px\]">/,
     );
-    expect(form).toMatch(/<span data-result="L">ش<\/span><span data-result="W">ب<\/span>/);
+    expect(form).toMatch(
+      /<span data-result="L" class="[^"]*">ش<\/span><span data-result="W" class="[^"]*">ب<\/span>/,
+    );
   });
 });
 

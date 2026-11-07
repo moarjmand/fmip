@@ -245,6 +245,10 @@ export const ZONE_KEY: Record<LeagueZoneKind, MessageKey> = {
   promotion_playoff: 'competitionPage.zone.promotionPlayoff',
   relegation_playoff: 'competitionPage.zone.relegationPlayoff',
   relegation: 'competitionPage.zone.relegation',
+  // A cup's league phase (T-1761, D-381): the round of 16, the play-offs, out.
+  league_phase_round_of_16: 'competitionPage.zone.leaguePhaseRoundOf16',
+  league_phase_playoff: 'competitionPage.zone.leaguePhasePlayoff',
+  league_phase_out: 'competitionPage.zone.leaguePhaseOut',
 };
 
 export const ZONE_MARK: Record<LeagueZoneKind, string> = {
@@ -259,6 +263,11 @@ export const ZONE_MARK: Record<LeagueZoneKind, string> = {
   promotion_playoff: 'border-s-strong',
   relegation_playoff: 'border-s-warning',
   relegation: 'border-s-danger',
+  // A cup's league phase (T-1761, D-381): a prize, the round before it, and
+  // no mark for the places that are out -- the existing marks, no new token.
+  league_phase_round_of_16: 'border-s-accent',
+  league_phase_playoff: 'border-s-strong',
+  league_phase_out: 'border-s-transparent',
 };
 
 /** "1-4" or "18": a band of places as the legend reads it. */

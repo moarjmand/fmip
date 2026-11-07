@@ -21,7 +21,12 @@ import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { KnockoutBracket } from '@/components/knockout-bracket';
 import { EntityNews } from '@/components/related-news';
-import { ConferenceTables, GroupTables, showsLeagueTable } from '@/components/standings-table';
+import {
+  ConferenceTables,
+  GroupTables,
+  OverallFold,
+  showsLeagueTable,
+} from '@/components/standings-table';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 import { formatNumber, localDigits } from '@/i18n/format';
@@ -372,9 +377,15 @@ function TableModules({
           {(data) => <ConferenceTables conferences={data} locale={locale} zones={page.zones} />}
         </CoveredCard>
       )}
-      {showsLeagueTable(page) && (
-        <TableCard page={page} locale={locale} timeZone={timeZone} overall={conferences !== null} />
-      )}
+      {showsLeagueTable(page) &&
+        (conferences === null ? (
+          <TableCard page={page} locale={locale} timeZone={timeZone} />
+        ) : (
+          // Beside the conference tables the overall table folds (T-1760, D-377).
+          <OverallFold locale={locale} clubs={(page.table.data ?? []).length}>
+            <TableCard page={page} locale={locale} timeZone={timeZone} overall />
+          </OverallFold>
+        ))}
       {page.group_tables !== null && (
         <CoveredCard
           testId="group-tables"
