@@ -72,6 +72,9 @@ describe('the knockout bracket in Persian', () => {
       <KnockoutBracket
         locale="fa"
         timeZone="UTC"
+        href={(key) => `/fa/competition/c?tab=table&stage=${key}#bracket`}
+        competition="لیگ قهرمانان"
+        season="۲۰۲۶/۲۷"
         bracket={{
           rounds: [
             { key: 'round_of_16', state: 'drawn', legs: 2, expected_ties: 8, ties: [decided] },

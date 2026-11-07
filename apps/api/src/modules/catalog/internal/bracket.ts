@@ -79,6 +79,44 @@ export function roundKeyOf(
   return null;
 }
 
+/**
+ * From the 2021/22 season no UEFA club competition plays a round of 32: the
+ * Europa League's became the knockout round play-offs, eight ties of the
+ * sixteen clubs between the groups (or league phase) and the round of 16.
+ */
+const ROUND_OF_32_GONE = '2021-07-01';
+
+const pairOf = (f: BracketFixture): string => [f.home.id, f.away.id].sort().join(':');
+
+/**
+ * Each fixture's knockout round (by fixture id), the words read by
+ * `roundKeyOf`. A season since 2021/22 whose records call a round the
+ * "round of 32" while it holds at most the play-offs' eight ties is the
+ * knockout play-offs under another name (T-1763, D-378: the 2025/26 Champions
+ * League's eight ties of sixteen clubs were drawn as "Round of 32").
+ */
+function knockoutKeys(
+  fixtures: readonly BracketFixture[],
+  leagueStageStart: string | null,
+): Map<string, KnockoutRoundKey> {
+  const keys = new Map<string, KnockoutRoundKey>();
+  for (const f of fixtures) {
+    const key = roundKeyOf(f.round ?? f.stage?.name ?? null, f.kickoff_at, leagueStageStart);
+    if (key !== null) keys.set(f.id, key);
+  }
+  const named = fixtures.filter((f) => keys.get(f.id) === 'round_of_32');
+  const playoffs = [...keys.values()].includes('knockout_playoff');
+  if (
+    named.length > 0 &&
+    !playoffs &&
+    new Set(named.map(pairOf)).size <= FORMAT.knockout_playoff.ties &&
+    named.every((f) => f.kickoff_at >= ROUND_OF_32_GONE)
+  ) {
+    for (const f of named) keys.set(f.id, 'knockout_playoff');
+  }
+  return keys;
+}
+
 function isLeagueStage(f: BracketFixture): boolean {
   if (f.stage?.kind === 'league' || f.stage?.kind === 'group') return true;
   const label = (f.round ?? f.stage?.name ?? '').toLowerCase();
@@ -170,12 +208,12 @@ function tiesOf(fixtures: BracketFixture[], expectedLegs: 1 | 2): KnockoutTie[] 
  * round that does exist, it is a round our records do not hold.
  */
 export function buildBracket(fixtures: readonly BracketFixture[], open: boolean): KnockoutBracket {
-  const leagueStageStart = leagueStageStartOf(fixtures);
+  const keys = knockoutKeys(fixtures, leagueStageStartOf(fixtures));
 
   const byRound = new Map<KnockoutRoundKey, BracketFixture[]>();
   for (const f of fixtures) {
-    const key = roundKeyOf(f.round ?? f.stage?.name ?? null, f.kickoff_at, leagueStageStart);
-    if (key === null) continue;
+    const key = keys.get(f.id);
+    if (key === undefined) continue;
     const list = byRound.get(key);
     if (list === undefined) byRound.set(key, [f]);
     else list.push(f);
@@ -242,14 +280,14 @@ export function tieOf(
 ): { roundKey: KnockoutRoundKey | null; legs: 1 | 2 | null; tie: KnockoutTie } | null {
   const own = fixtures.find((f) => f.id === fixtureId);
   if (own === undefined) return null;
-  const leagueStageStart = options.continental ? leagueStageStartOf(fixtures) : null;
+  const keys = options.continental
+    ? knockoutKeys(fixtures, leagueStageStartOf(fixtures))
+    : new Map<string, KnockoutRoundKey>();
   const round = (f: BracketFixture): string | null => {
     const label = f.round ?? f.stage?.name ?? null;
-    return options.continental
-      ? (roundKeyOf(label, f.kickoff_at, leagueStageStart) ?? label)
-      : label;
+    return options.continental ? (keys.get(f.id) ?? label) : label;
   };
-  const pair = (f: BracketFixture): string => [f.home.id, f.away.id].sort().join(':');
+  const pair = pairOf;
   const ownRound = round(own);
   const same = fixtures.filter((f) => round(f) === ownRound && pair(f) === pair(own));
   const roundKey =

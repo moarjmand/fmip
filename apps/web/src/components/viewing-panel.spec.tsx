@@ -98,6 +98,9 @@ describe('KnockoutBracket (T-1304)', () => {
       <KnockoutBracket
         locale="fa"
         timeZone="UTC"
+        href={(key) => `/fa/competition/c?tab=table&stage=${key}#bracket`}
+        competition="لیگ قهرمانان"
+        season="۲۰۲۶/۲۷"
         bracket={{
           rounds: [{ key: 'final', legs: 1, state: 'not_drawn', expected_ties: 1, ties: [] }],
         }}

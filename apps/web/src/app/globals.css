@@ -1816,3 +1816,15 @@ main:has([data-match-root]:not([data-status='scheduled'])) [data-pick-bar] {
     }
   }
 }
+
+/*
+ * The competition page's finished match (T-1762, D-378): D-374's row
+ * (`match-row`, drawn by the server in `competition-cards.tsx`) without the
+ * model's column, 56px, at every list width; the names take the room the bar
+ * leaves.
+ */
+@layer components {
+  .match-row.match-row-done {
+    @apply min-h-14 grid-cols-[3.5rem_minmax(0,1fr)] @xl:grid-cols-[3.25rem_minmax(0,1fr)];
+  }
+}

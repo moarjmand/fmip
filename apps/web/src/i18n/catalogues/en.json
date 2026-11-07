@@ -2517,9 +2517,6 @@
   "competitionPage.day.title": "Next matches",
   "competitionPage.day.modelHead": "model %",
   "competitionPage.day.none": "Nothing is left to play this season.",
-  "competitionPage.day.noForecast": "No forecast",
-  "competitionPage.day.forecastUnreachable": "Forecast not loaded",
-  "competitionPage.day.forecastLabel": "The model: home win {home}%, draw {draw}%, away win {away}%",
   "competitionPage.day.receipt": "The model’s percentages, home · draw · away: its latest forecast before kick-off ({versions}); every version and when it was computed are on the match page. {zone}.",
   "competitionPage.day.results": "Results · {day}",
   "competitionPage.rounds.nav": "Rounds",
@@ -2551,7 +2548,6 @@
   "competitionPage.follow.signIn": "Sign in to follow",
   "competitionPage.follow.unreachable": "Whether you follow this competition cannot be checked right now.",
   "competitionPage.fullTable": "Full table",
-  "competitionPage.noTable": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
   "competitionPage.noTableFriendly": "Friendlies are single matches, not a league or a cup, so there is no table. The matches are under Matches.",
   "competitionPage.boards.mainPhase": {
     "one": "Counted over the main competition, from the league or group stage on; the {count} qualifying match before it is not included.",
@@ -3261,5 +3257,31 @@
   "competitionPage.phase.final": "Final league-phase table: every club has played its {matches} matches.",
   "competitionPage.tableSwipe": "Swipe sideways for the form: the last five results, most recent first.",
   "competitionPage.tableScroll": "{name}, scrolls sideways",
-  "competitionPage.overallTableFold": "Overall table, {count} clubs"
+  "competitionPage.overallTableFold": "Overall table, {count} clubs",
+  "competitionPage.matches.views": "Matches to show",
+  "competitionPage.matches.upcoming": "Upcoming",
+  "competitionPage.matches.results": "Results",
+  "competitionPage.matches.partialResults": {
+    "one": "{played} of {total} matches played. The other {count} is under Upcoming.",
+    "other": "{played} of {total} matches played. The other {count} are under Upcoming."
+  },
+  "competitionPage.matches.partialUpcoming": {
+    "one": "{count} match of this round is already played; it is under Results.",
+    "other": "{count} matches of this round are already played; they are under Results."
+  },
+  "competitionPage.rounds.unnamed": "Round names are not supplied for this competition, so each round is shown by its dates.",
+  "competitionPage.tableMissing": "This season’s league-phase or group table is not in our records; only its knockout rounds are.",
+  "bracket.chip.round_of_32": "R32",
+  "bracket.chip.knockout_playoff": "Play-offs",
+  "bracket.chip.round_of_16": "R16",
+  "bracket.chip.quarter_final": "QF",
+  "bracket.chip.semi_final": "SF",
+  "bracket.chip.final": "Final",
+  "bracket.head.team": "Team",
+  "bracket.head.aggregate": "Agg",
+  "bracket.head.aggregateFull": "Aggregate",
+  "bracket.winner": "winner",
+  "bracket.noneDrawn": "Nothing is drawn yet for {competition} {season}.",
+  "bracket.noneDrawnWhen": "A round appears here, with its ties, when it is drawn.",
+  "bracket.roundsToCome": "Rounds to come: {rounds}."
 }

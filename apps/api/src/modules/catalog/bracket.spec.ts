@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { playsKnockoutBracket, seasonIsOpen } from './catalog.service';
-import { buildBracket, roundKeyOf, type BracketFixture } from './internal/bracket';
+import { buildBracket, roundKeyOf, tieOf, type BracketFixture } from './internal/bracket';
 
 // T-630: the knockout bracket from stored fixtures only. A round nobody has
 // drawn is stated as such; a tie is never invented to fill it.
@@ -215,6 +215,47 @@ describe('buildBracket', () => {
     expect(playoffs.key).toBe('knockout_playoff');
     expect(playoffs.ties.map((t) => t.teams[0].id)).toEqual(['c', 'e']);
     expect(playoffs.ties.every((t) => t.winner === null)).toBe(true);
+  });
+
+  it('reads a "Round of 32" of eight ties since 2021/22 as the knockout play-offs (T-1763, D-378)', () => {
+    // The 2025/26 Champions League: sixteen clubs, eight ties, stored as "Round of 32".
+    const pairs = ['ab', 'cd', 'ef', 'gh', 'ij', 'kl', 'mn', 'op'];
+    const ties = pairs.flatMap(([x, y]) => [
+      fixture('Round of 32', '2026-02-17', x!, y!, [1, 0]),
+      fixture('Round of 32', '2026-02-25', y!, x!, [0, 0]),
+    ]);
+    const r16 = fixture('Round of 16', '2026-03-10', 'a', 'q', null);
+    const bracket = buildBracket([...ties, r16], false);
+    expect(bracket.rounds.map((r) => r.key)).toEqual([
+      'knockout_playoff',
+      'round_of_16',
+      'quarter_final',
+      'semi_final',
+      'final',
+    ]);
+    const playoffs = bracket.rounds[0]!;
+    expect(playoffs.ties).toHaveLength(8);
+    expect(playoffs.expected_ties).toBe(8);
+    // The API still decides the tie: 1-0 over two legs.
+    expect(playoffs.ties[0]!.aggregate).toEqual([1, 0]);
+    expect(playoffs.ties[0]!.winner!.id).toBe('a');
+    // The match centre's tie reads the same round.
+    expect(
+      tieOf([...ties, r16], ties[0]!.id, { continental: true, stageLegs: null })!.roundKey,
+    ).toBe('knockout_playoff');
+  });
+
+  it('keeps a real round of 32: before 2021/22, or more than eight ties', () => {
+    const old = buildBracket([fixture('Round of 32', '2021-02-18', 'a', 'b', [1, 0])], false);
+    expect(old.rounds[0]!.key).toBe('round_of_32');
+    const many = 'abcdefghijklmnopqr'.split('');
+    const wide = buildBracket(
+      Array.from({ length: 9 }, (_, i) =>
+        fixture('Round of 32', '2026-02-17', many[2 * i]!, many[2 * i + 1]!, null),
+      ),
+      true,
+    );
+    expect(wide.rounds[0]!.key).toBe('round_of_32');
   });
 
   it('keeps a stated leg number over the kick-off order', () => {

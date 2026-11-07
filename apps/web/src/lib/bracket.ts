@@ -1,4 +1,10 @@
-import type { KnockoutLeg, KnockoutRound, KnockoutRoundKey, KnockoutTie } from '@fmip/contracts';
+import type {
+  KnockoutBracket,
+  KnockoutLeg,
+  KnockoutRound,
+  KnockoutRoundKey,
+  KnockoutTie,
+} from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, plural, t, type MessageKey } from '@/i18n/messages';
@@ -95,6 +101,53 @@ export function tieOutcome(tie: KnockoutTie, legs: 1 | 2, locale = 'en'): string
   }
   if (aggregate !== '') return `${aggregate} · ${t(l, 'bracket.outcome.notDecided')}`;
   return t(l, 'bracket.outcome.toBeDecided');
+}
+
+/** A round's chip on a phone (T-1763): "QF", "R16"; in Persian «۱/۴», «۱/۸». */
+export function chipLabel(key: KnockoutRoundKey, locale = 'en'): string {
+  const chip: Record<KnockoutRoundKey, MessageKey> = {
+    round_of_32: 'bracket.chip.round_of_32',
+    knockout_playoff: 'bracket.chip.knockout_playoff',
+    round_of_16: 'bracket.chip.round_of_16',
+    quarter_final: 'bracket.chip.quarter_final',
+    semi_final: 'bracket.chip.semi_final',
+    final: 'bracket.chip.final',
+  };
+  return t(asLocale(locale), chip[key]);
+}
+
+/**
+ * The round a phone opens on (T-1763, D-378's D10): the latest round with a
+ * tie drawn, so a finished season lands on its final; null when none is.
+ */
+export function openingStage(bracket: KnockoutBracket): KnockoutRoundKey | null {
+  const drawn = bracket.rounds.filter((r) => r.state === 'drawn' && r.ties.length > 0);
+  return drawn[drawn.length - 1]?.key ?? null;
+}
+
+/** `?stage=`: one of the bracket's rounds; anything else (or nothing) is null, the opening one. */
+export function readStageParam(
+  params: Record<string, string | string[] | undefined>,
+  bracket: KnockoutBracket | null,
+): KnockoutRoundKey | null {
+  const raw = (Array.isArray(params.stage) ? params.stage[0] : params.stage) ?? '';
+  return bracket?.rounds.find((r) => r.key === raw)?.key ?? null;
+}
+
+/**
+ * A team's goals in one leg, read from the leg's score as the API sent it
+ * (the side it played on that night); null before there is a score. Never a
+ * sum: the aggregate is the API's (`KnockoutTie.aggregate`).
+ */
+export function legGoals(leg: KnockoutLeg, teamId: string): number | null {
+  if (leg.score === null) return null;
+  return leg.home.id === teamId ? leg.score.home : leg.score.away;
+}
+
+/** A team's shoot-out kicks in one leg, the same way; null without a shoot-out. */
+export function legPenalties(leg: KnockoutLeg, teamId: string): number | null {
+  if (leg.penalties === null) return null;
+  return leg.home.id === teamId ? leg.penalties.home : leg.penalties.away;
 }
 
 /** What a round says about the ties it does not hold; null when it holds them all. */

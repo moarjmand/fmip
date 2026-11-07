@@ -135,7 +135,7 @@ describe('the bracket on the page', () => {
   it('renders only what the API sends: no placeholder team is written into the view', () => {
     expect(VIEW).not.toMatch(/TBD|TBC|Winner of|placeholder=/i);
     expect(VIEW).toContain('roundNote(round, locale)');
-    expect(VIEW).toContain('tieOutcome(tie, round.legs, locale)');
+    expect(VIEW).toContain('tieOutcome(tie, legs, locale)');
   });
 
   it('uses logical properties only, so it reads right to left', () => {
@@ -149,7 +149,7 @@ describe('the bracket on the page', () => {
   });
 
   it('is shown on the competition page only when the API sends a bracket', () => {
-    expect(PAGE).toContain('page.bracket !== null');
+    expect(PAGE).toContain('bracket !== null');
     expect(PAGE).toContain('<KnockoutBracket');
   });
 });
