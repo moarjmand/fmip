@@ -482,6 +482,12 @@ export interface AccuracyReference {
 export interface AdminAccuracySeries {
   role: 'published' | 'shadow';
   model_version: string;
+  /**
+   * A shadow version being judged (T-1771, D-380): its figures are null and
+   * only the counts are given, as on the agents console, until the weekly
+   * watch's one look is taken.
+   */
+  withheld?: boolean;
   /** Null: every competition together. */
   competition: { id: string; name: string } | null;
   total: AccuracyMetrics;

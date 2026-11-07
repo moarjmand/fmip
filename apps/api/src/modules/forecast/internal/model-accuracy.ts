@@ -170,10 +170,22 @@ function competitionsOf(rows: readonly AccuracySumRow[]) {
  * stored under -- published first, then shadow -- each overall and then per
  * competition.
  */
+/** Counts only: the metrics of a version being judged (T-1771). */
+const countsOnly = (m: AccuracyMetrics): AccuracyMetrics => ({
+  ...m,
+  log_loss: null,
+  brier: null,
+  rps: null,
+  accuracy: null,
+  uniform_rps: null,
+});
+
 export function adminAccuracy(
   rows: readonly AccuracySumRow[],
   period: AccuracyPeriod,
   now: Date,
+  /** Shadow versions being judged: their series give counts only (T-1771, D-380). */
+  withheld: ReadonlySet<string> = new Set(),
 ): AdminModelAccuracyResponse {
   const models = new Map<string, AccuracySumRow[]>();
   for (const row of rows) {
@@ -186,13 +198,27 @@ export function adminAccuracy(
   for (const key of [...models.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b))) {
     const own = models.get(key) ?? [];
     const [role, modelVersion] = key.split('\u0000') as ['published' | 'shadow', string];
-    out.push({ role, model_version: modelVersion, competition: null, ...series(own, period) });
+    const hide = role === 'shadow' && withheld.has(modelVersion);
+    const shown = (s: ReturnType<typeof series>) =>
+      hide
+        ? {
+            total: countsOnly(s.total),
+            points: s.points.map((p) => ({ ...p, ...countsOnly(p) })),
+            withheld: true,
+          }
+        : s;
+    out.push({
+      role,
+      model_version: modelVersion,
+      competition: null,
+      ...shown(series(own, period)),
+    });
     for (const group of competitionsOf(own)) {
       out.push({
         role,
         model_version: modelVersion,
         competition: group.competition,
-        ...series(group.rows, period),
+        ...shown(series(group.rows, period)),
       });
     }
   }

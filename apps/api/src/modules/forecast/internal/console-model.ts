@@ -207,19 +207,44 @@ export function versionState(key: VersionKey, input: VersionsInput): ConsoleMode
     return key.modelVersion === input.published ? 'published_now' : 'earlier';
   }
   if (input.shadow.includes(key.modelVersion)) return 'shadow_now';
-  const everPublished = input.counts.some(
-    (row) => row.role === 'published' && row.modelVersion === key.modelVersion,
-  );
-  if (everPublished) return 'earlier';
+  return beingJudged(input.counts, input.published).has(key.modelVersion)
+    ? 'shadow_now'
+    : 'earlier';
+}
+
+/**
+ * The shadow versions being judged, from the stored forecasts alone
+ * (D-371, T-1771): never published, and storing a shadow forecast after the
+ * version on the site started -- or, with none on the site, storing any.
+ * The console's page and the admin accuracy report both withhold their
+ * figures by it, so neither shows what the weekly watch judges once.
+ */
+export function beingJudged(
+  counts: readonly VersionCountsRow[],
+  published: string | null,
+): Set<string> {
   const site =
-    input.published === null
+    published === null
       ? undefined
-      : input.counts.find(
-          (row) => row.role === 'published' && row.modelVersion === input.published,
-        );
-  const last = input.counts.find((row) => same(row, key))?.last ?? null;
-  if (site === undefined || site.first === null) return last === null ? 'earlier' : 'shadow_now';
-  return last !== null && last.getTime() >= site.first.getTime() ? 'shadow_now' : 'earlier';
+      : counts.find((row) => row.role === 'published' && row.modelVersion === published);
+  const out = new Set<string>();
+  for (const row of counts) {
+    if (row.role !== 'shadow' || row.last === null) continue;
+    if (counts.some((o) => o.role === 'published' && o.modelVersion === row.modelVersion)) continue;
+    if (site === undefined || site.first === null || row.last.getTime() >= site.first.getTime()) {
+      out.add(row.modelVersion);
+    }
+  }
+  return out;
+}
+
+/**
+ * A record with its figures withheld (T-1771): its sample, window, limited
+ * share and lead time stay; every score and share is null until the weekly
+ * watch has judged the version and it is published or set aside.
+ */
+export function withheldRecord(record: ConsoleModelRecord): ConsoleModelRecord {
+  return { ...record, log_loss: null, brier: null, rps: null, uniform_rps: null, accuracy: null };
 }
 
 /**
@@ -244,16 +269,30 @@ export function versionRecords(input: VersionsInput): ConsoleModelVersion[] {
           after_kickoff: count.afterKickoff,
           unavailable: count.unavailable,
         },
-        record: modelRecord(own.find((row) => row.competition === null)),
-        calibration: calibrationBands(input.calibration.filter((row) => same(row, count))),
-        trend: [
-          ...(input.trends.find(
+        // A version being judged gives counts only, everywhere (T-1771): its
+        // own record and trend would let its conditions be read before the
+        // weekly watch's one look.
+        record:
+          state === 'shadow_now'
+            ? withheldRecord(modelRecord(own.find((row) => row.competition === null)))
+            : modelRecord(own.find((row) => row.competition === null)),
+        calibration:
+          state === 'shadow_now'
+            ? []
+            : calibrationBands(input.calibration.filter((row) => same(row, count))),
+        trend: (
+          input.trends.find(
             (s) =>
               s.role === count.role &&
               s.model_version === count.modelVersion &&
               s.competition === null,
-          )?.points ?? []),
-        ],
+          )?.points ?? []
+        ).map((p) =>
+          state === 'shadow_now'
+            ? { ...p, log_loss: null, brier: null, rps: null, accuracy: null, uniform_rps: null }
+            : p,
+        ),
+        withheld: state === 'shadow_now',
         competitions: state === 'shadow_now' ? competitionCounts(own) : competitionRecords(own),
       };
     })
@@ -404,6 +443,8 @@ export interface CandidateInput {
   inService: boolean | null;
   span: { first: Date | null; last: Date | null };
   own: ModelRecordRow | undefined;
+  /** Being judged: its own record is counts only (T-1771). */
+  withheld?: boolean;
   paired: Pick<PairedRow, 'matches' | 'identical'>;
   newDivisions: Pick<ModelRecordRow, 'matches'>;
 }
@@ -418,7 +459,7 @@ export function candidateRecord(input: CandidateInput): ConsoleModelCandidate {
     in_service: input.inService,
     first_forecast_at: input.span.first?.toISOString() ?? null,
     last_forecast_at: input.span.last?.toISOString() ?? null,
-    own: modelRecord(input.own),
+    own: input.withheld === true ? withheldRecord(modelRecord(input.own)) : modelRecord(input.own),
     paired: { matches: input.paired.matches, identical: input.paired.identical },
     new_divisions: { matches: input.newDivisions.matches },
   };
@@ -526,6 +567,7 @@ export function consoleModelReport(input: ReportInput): ConsoleModelReport {
           inService: input.inService(modelVersion),
           span: { first: count?.first ?? null, last: count?.last ?? null },
           own: overall.find((row) => same(row, key)),
+          withheld: true,
           paired: pairedOf(input.pairs, modelVersion, input.published),
           newDivisions: { matches: input.newDivisions.get(modelVersion) ?? 0 },
         });

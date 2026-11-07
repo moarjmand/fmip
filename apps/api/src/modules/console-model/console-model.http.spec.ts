@@ -325,12 +325,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console mode
     expect(site.competitions[0]?.record.matches).toBe(2);
     expect(site.competitions[0]?.record.log_loss).not.toBeNull();
 
-    // The version in shadow now: its own record, calibration and trend, and per
+    // The version in shadow now: its counts, never its figures (T-1771), and per
     // competition its count alone (its new divisions' rows are D-336's figure).
     const shadow = mine[1]!;
     expect(shadow.record.matches).toBe(3);
-    expect(shadow.record.log_loss).not.toBeNull();
-    expect(shadow.calibration.reduce((sum, c) => sum + c.forecasts, 0)).toBe(9);
+    // Being judged: counts only -- no score, no calibration (T-1771, D-380).
+    expect(shadow.withheld).toBe(true);
+    expect(shadow.record.log_loss).toBeNull();
+    expect(shadow.calibration).toEqual([]);
     expect(shadow.competitions).toHaveLength(1);
     expect(shadow.competitions[0]?.record).toMatchObject({
       matches: 3,

@@ -300,7 +300,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     ).toBeDefined();
     const shadow = body.series.find((s) => s.model_version === SHADOW && s.competition === null);
     expect(shadow?.role).toBe('shadow');
-    expect(shadow?.total.rps).toBeCloseTo(rps(P_SHADOW, 'home'), 6);
+    // A shadow version being judged gives counts only (T-1771, D-380). Whether
+    // this one is depends on which published version is newest in the shared
+    // test database, so both answers are held to the contract here; the rule
+    // itself is pinned in console-model.spec.ts.
+    if (shadow?.withheld === true) {
+      expect(shadow.total).toMatchObject({ rps: null, log_loss: null, accuracy: null });
+      expect(shadow.total.matches).toBeGreaterThan(0);
+    } else {
+      expect(shadow?.total.rps).toBeCloseTo(rps(P_SHADOW, 'home'), 6);
+    }
   });
 
   it('serves the public page the published forecasts only, by month', async () => {

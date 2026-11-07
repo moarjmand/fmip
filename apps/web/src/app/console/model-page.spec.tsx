@@ -205,11 +205,13 @@ describe('calibration and the trend', () => {
   it('draws one set of panels and one trend panel per version with enough matches, the published one open', async () => {
     const html = await render(MODEL_REPORT);
     const cal = section(html, 'calibration');
-    expect(count(cal, 'data-testid="version-calibration"')).toBe(4);
+    // The version being judged has no panels: its calibration and trend wait for the verdict.
+    expect(count(cal, 'data-testid="version-calibration"')).toBe(3);
+    expect(cal).toContain('data-testid="withheld-versions"');
     expect(cal).toContain('<details open="" data-testid="version-calibration"');
-    expect(count(cal, 'data-testid="calibration-draw"')).toBe(12);
+    expect(count(cal, 'data-testid="calibration-draw"')).toBe(9);
     expect(cal).toContain('data-testid="calibration-off"');
-    expect(count(cal, 'data-testid="version-trend"')).toBe(4);
+    expect(count(cal, 'data-testid="version-trend"')).toBe(3);
   });
 });
 
@@ -245,7 +247,9 @@ describe('what is not known', () => {
     expect(unknown).toContain('data-testid="unknown-list"');
     expect(unknown).toContain('۳۵۴ مسابقه از ۷۱۵');
     expect(unknown).toContain('۱۰۰ مسابقه از ۸۱۵');
-    expect(unknown).toContain('۱۴ لیگ از ۲۶');
+    const results = MODEL_REPORT.inputs.find((i) => i.key === 'results')!;
+    const fa = (n: number) => new Intl.NumberFormat('fa-IR').format(n);
+    expect(unknown).toContain(`${fa(results.late_groups!)} لیگ از ${fa(results.groups!)}`);
   });
 });
 
@@ -275,5 +279,18 @@ describe('with too little to show', () => {
     expect(await render({ published: null } as unknown as ConsoleModelReport)).toContain(
       'اعداد مدل از API نرسید',
     );
+  });
+});
+
+describe('a version being judged', () => {
+  it('gives its record as counts only, with the note, and no calibration or trend panel', async () => {
+    const html = await render(MODEL_REPORT);
+    const records = section(html, 'records');
+    expect(records).toContain('data-testid="withheld-note"');
+    const judged = MODEL_REPORT.versions.find((v) => v.withheld)!;
+    expect(judged.record.log_loss).toBeNull();
+    expect(judged.record.matches).toBeGreaterThan(0);
+    expect(judged.calibration).toEqual([]);
+    expect(judged.trend.every((p) => p.log_loss === null)).toBe(true);
   });
 });

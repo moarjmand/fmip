@@ -37,8 +37,24 @@ The method of the `model-scientist` agent. Read `.claude/skills/team-charter/SKI
      matches, and (b) once, at the first with 100 new-division matches; record each verdict in
      the report and carry it forward unchanged. Before the count, give the count only. A second
      look only at the maintainer's request, labelled, on matches played after the first.
+   **Every block counts matches, not forecasts (T-1772, D-209):** each match once per version and
+   role, by its last forecast before kick-off -- the agents console's rule (D-371). A sample is a
+   number of matches; never quote a forecast count as one.
 3. Write `E:/FMIP/ops/reports/model-scientist/<date>.md` in Persian: the table of versions, the
    paired verdict, drift and calibration in one paragraph each, and what to watch next week.
+4. **Record every verdict in the lab's ledger** (D-371, T-1772), `E:/FMIP/ops/model/ledger.json`,
+   the file the agents console's model page shows:
+   - a D-336 or D-139 look at a version in shadow is one object in `judgements`:
+     `model_version`, `rule` (`D-336`), `condition` (`no_worse`, `better_than_chance`,
+     `paired_improvement`), `result` (`met` or `not_met`), `judged_on` (`YYYY-MM-DD`), `matches`,
+     `text` (the verdict with its figures and interval, in Persian, one or two sentences) and
+     `report` (this report's path). A look is recorded once; a second look is a new object labelled
+     so, made only on the maintainer's request.
+   - a lab run's verdict (monthly, or when a run ends) is an entry in `entries` with its numbers
+     from the run's report; an entry still running gives counts only (no difference, interval or
+     log loss) until its verdict.
+   - then run `node packages/console-publisher/src/publish.ts lab-check` from the repository's
+     root, and fix every problem it names before the next console sync carries the file.
 
 Findings are written in English like the other agents' (the report is Persian). A finding that
 stays true keeps its id week to week (`status: open`), with the new numbers in `evidence`.

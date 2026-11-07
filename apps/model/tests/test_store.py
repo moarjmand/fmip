@@ -11,6 +11,9 @@ from pathlib import Path
 
 import pytest
 
+from datetime import date
+
+from fmip_model.service.store_source import PostgresTrainingSource, season_code
 from fmip_model.training.load import load_clubelo, load_football_data
 from fmip_model.training.store import TrainingStore
 
@@ -123,3 +126,68 @@ def test_clubelo_load(store: TrainingStore) -> None:
         cur.execute("SELECT count(*) FROM training.elo WHERE country = 'ZZZ'")
         row = cur.fetchone()
     assert row is not None and int(str(row[0])) == 1
+
+
+def test_a_season_code_is_the_label_s_inverse() -> None:
+    assert season_code("2026/27") == "2627"
+    assert season_code("1999/00") == "9900"
+    with pytest.raises(ValueError):
+        season_code("2627")
+
+
+def test_the_service_reloads_a_main_league_s_newest_season_once_a_day(store: TrainingStore) -> None:
+    """T-1770: a main football-data league ran a week or more behind; now it is read daily."""
+    assert DATABASE_URL
+    text = fixture_as_t0()
+    load_football_data(store, ["2425"], ["T0"], fetch=lambda _url: text)
+    asked: list[str] = []
+
+    def fetch(url: str) -> str:
+        asked.append(url)
+        if "/2526/" in url:
+            raise OSError("not published yet")
+        return text
+
+    day = [date(2025, 3, 1)]
+    source = PostgresTrainingSource(
+        DATABASE_URL, today=lambda: day[0], clubelo_refresh=False, extra_fetch=fetch
+    )
+    source.matches("T0", date(2024, 7, 1), date(2025, 2, 28))
+    source.aliases("T0")
+    assert asked == ["https://www.football-data.co.uk/mmz4281/2425/T0.csv"]  # once a day
+
+    # From July of the season's end year the next season is asked too; its
+    # absence is recorded, and the newest season is still read.
+    day[0] = date(2025, 7, 2)
+    assert len(source.matches("T0", date(2024, 7, 1), date(2025, 7, 1))) == count_t0(store)
+    assert asked[1:] == [
+        "https://www.football-data.co.uk/mmz4281/2425/T0.csv",
+        "https://www.football-data.co.uk/mmz4281/2526/T0.csv",
+    ]
+    with store.conn.cursor() as cur:
+        cur.execute(
+            "SELECT scope, status FROM training.source_load WHERE scope LIKE 'T0 %'"
+            " ORDER BY started_at"
+        )
+        rows = cur.fetchall()
+    assert [r[1] for r in rows if r[0] == "T0 2024/25"] == ["succeeded"] * 3
+    assert [r[1] for r in rows if r[0] == "T0 2025/26"] == ["failed"]
+
+    # Two seasons on, a league the store stopped following is left alone.
+    day[0] = date(2026, 9, 1)
+    before = len(asked)
+    source.matches("T0", date(2024, 7, 1), date(2026, 8, 31))
+    assert len(asked) == before
+
+
+def test_the_service_leaves_a_division_it_never_saw_loaded_alone() -> None:
+    assert DATABASE_URL
+    asked: list[str] = []
+    source = PostgresTrainingSource(
+        DATABASE_URL,
+        today=lambda: date(2025, 3, 1),
+        clubelo_refresh=False,
+        extra_fetch=lambda url: asked.append(url) or "",
+    )
+    source.refresh("T7")
+    assert asked == []

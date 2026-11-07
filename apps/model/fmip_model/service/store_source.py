@@ -18,6 +18,7 @@ from ..training.load import (
     Fetch,
     fetch_text,
     load_clubelo,
+    load_football_data,
     load_football_data_extra,
     load_records,
 )
@@ -62,6 +63,10 @@ class PostgresTrainingSource(TrainingSource):
     refreshed through the loader once a day, before the day's first read of it.
     So is a division of football-data.co.uk's extra leagues (T-1442, D-233),
     one file of every season: its newest stored season onwards is read again.
+    And so, since T-1770, is a main football-data league (E0, SP1, ...): its
+    newest stored season's file is read again while that season is current,
+    and from July the next season's too, so a new season starts without a hand.
+    Before, nothing reloaded them, and they ran a week or more behind.
     A refresh that fails is recorded as a failed load by the loader, logged
     here, and the copy already held is used.
     """
@@ -148,9 +153,10 @@ class PostgresTrainingSource(TrainingSource):
                 return
             self._own_elo_tried[day] = self.clock()
             try:
-                # Our own records first (D-083): the day's results are in them
-                # only once the division's daily reload has run.
-                for division in self._records_divisions():
+                # Our own records first (D-083), and the main football-data
+                # leagues (T-1770): the day's results are in them only once
+                # the division's daily reload has run.
+                for division in self._records_divisions() + self._main_divisions():
                     self.refresh(division)
                 with psycopg.connect(self.database_url) as conn:
                     if ratings_on(conn, day) is None:
@@ -175,6 +181,18 @@ class PostgresTrainingSource(TrainingSource):
             )
             scopes = [str(row[0]) for row in cur.fetchall()]
         return [scope for scope in scopes if DIVISION_CODE.fullmatch(scope)]
+
+    def _main_divisions(self) -> list[str]:
+        """The main football-data leagues held (T-1770): a succeeded load scoped ``E0 2026/27``."""
+        with psycopg.connect(self.database_url) as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT DISTINCT split_part(scope, ' ', 1) FROM training.source_load"
+                " WHERE source = %s AND status = 'succeeded' AND scope LIKE '%% %%'"
+                " ORDER BY 1",
+                (FOOTBALL_DATA.id,),
+            )
+            codes = [str(row[0]) for row in cur.fetchall()]
+        return [code for code in codes if DIVISION_CODE.fullmatch(code)]
 
     def every_match(self, since: date, until: date) -> Sequence[tuple[str, MatchObservation]]:
         self.refresh(CROSS_LEAGUE)
@@ -294,7 +312,42 @@ class PostgresTrainingSource(TrainingSource):
                         load_football_data_extra(
                             store, [division], since=newest, fetch=self.extra_fetch
                         )
+                else:
+                    self._refresh_main(store, division, today)
             except Exception:  # noqa: BLE001 - the loader recorded it; the held copy stands
                 log.exception("refreshing %s failed", division)
             finally:
                 store.close()
+
+    def _refresh_main(self, store: TrainingStore, division: str, today: date) -> None:
+        """A main football-data league's current season again (T-1770), and the next from July.
+
+        Only a division whose newest season was loaded from football-data under
+        its own scope (``E0 2026/27``) is refreshed, and only while that season
+        is today's or the one before (a season starts in July): a league the
+        store stopped following is left alone. The next season is asked once
+        it can have started; until the site publishes it its failed load is
+        recorded by the loader, and the newest season is still read.
+        """
+        newest = store.newest_season(division)
+        if newest is None or not store.loaded_from(f"{division} {newest}", FOOTBALL_DATA.id):
+            return
+        current = today.year if today.month >= 7 else today.year - 1
+        start = int(newest[:4])
+        if start < current - 1:
+            return
+        seasons = [season_code(newest)]
+        if start + 1 <= current:
+            seasons.append(season_code(f"{start + 1}/{(start + 2) % 100:02d}"))
+        for season in seasons:
+            try:
+                load_football_data(store, [season], [division], fetch=self.extra_fetch)
+            except Exception:  # noqa: BLE001 - recorded by the loader; the next season may not exist yet
+                log.warning("refreshing %s %s failed", division, season)
+
+
+def season_code(label: str) -> str:
+    """``"2026/27"`` → ``"2627"``, football-data.co.uk's code for a season (``season_label``'s inverse)."""
+    if len(label) != 7 or label[4] != "/":
+        raise ValueError(f"a season label such as 2026/27, received {label!r}")
+    return f"{label[2:4]}{label[5:7]}"
