@@ -159,11 +159,19 @@ export async function SiteHeader({
 
   return (
     <>
-      <header className="relative border-b border-default bg-surface md:border-b-0 md:bg-canvas">
+      {/* Sticky, 48px on a phone and 56px from 768px, but on the match page
+        (T-1759, D-376): `.site-header` and `.site-bar` in globals.css, no
+        script. Only the bar is in it; the notices follow it and scroll away. */}
+      <header className="site-header border-b border-default bg-surface md:border-b-0 md:bg-canvas">
         <nav
           aria-label={primary.text}
           lang={primary.lang}
-          className="page-frame flex min-h-15 items-center gap-x-2 lg:h-16 lg:gap-x-2.5 xl:gap-x-4"
+          // A guest's bar carries two account buttons (T-1736, D-358), so from
+          // 1280px it keeps the tighter gaps of 1024px to 1279px (D-281) and
+          // the search field keeps its room.
+          className={`site-bar page-frame flex items-center gap-x-2 lg:gap-x-2.5 ${
+            me === null ? '' : 'xl:gap-x-4'
+          }`}
         >
           <Link
             href={href('')}
@@ -208,13 +216,19 @@ export async function SiteHeader({
                 <path d="M4 7h16M4 12h16M4 17h16" />
               </Icon>
             </summary>
-            <div className="site-menu-panel absolute inset-x-0 top-full z-30 flex max-h-[calc(100dvh-4rem)] flex-col gap-1 overflow-y-auto border-b border-default bg-surface px-4 py-3">
+            {/* Its last item clear of the phone's tab bar: the header (at most
+                4rem) above it no longer scrolls away (D-376), so the panel is
+                as tall as the screen less both bars. */}
+            <div className="site-menu-panel absolute inset-x-0 top-full z-30 flex max-h-[calc(100dvh-8.25rem-env(safe-area-inset-bottom))] flex-col gap-1 overflow-y-auto border-b border-default bg-surface px-4 py-3">
               {/* After the wordmark and before search (`order`: the search
                   link comes first in the source, for the phone). */}
               <PrimaryNav
                 locale={locale}
                 labels={resolved(lang, NAV_LABELS)}
-                className="flex flex-col lg:-order-1 lg:shrink-0 lg:flex-row lg:items-center lg:gap-1"
+                // For a guest the entries keep their 1024px padding from 1280px too.
+                className={`flex flex-col lg:-order-1 lg:shrink-0 lg:flex-row lg:items-center lg:gap-1 ${
+                  me === null ? 'xl:[&_.nav-entry]:px-1.5' : ''
+                }`}
               />
               {/* The Design System's search field: a plain GET form, so it
                   works before any script, landing on the search page. It is
@@ -255,34 +269,40 @@ export async function SiteHeader({
               </div>
               {me === null ? (
                 <div className="flex flex-col lg:flex-row lg:items-center lg:gap-2">
-                  {/* A guest's Settings is the appearance alone: text size, contrast, motion (T-621). */}
-                  {/* In the desktop bar a 44px gear, its word kept for a screen reader. */}
+                  {/* A guest's Settings is the appearance alone: text size, contrast, motion (T-621).
+                      In the phone's Menu only (T-1736, D-358): the desktop bar gives
+                      its place to Create account, and the footer links Settings on
+                      every page. */}
                   <Link
                     href={href('/settings')}
-                    className={`${item} text-sm text-muted lg:size-touch lg:justify-center lg:px-0`}
+                    className={`${item} text-sm text-muted lg:hidden`}
                     data-testid="nav-settings-guest"
                   >
-                    <span className="hidden lg:block">
-                      <Icon>
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
-                      </Icon>
-                    </span>
-                    <span className="lg:sr-only">
-                      <Translated locale={locale} message="nav.settings" />
-                    </span>
+                    <Translated locale={locale} message="nav.settings" />
                   </Link>
-                  <Link href={href('/register')} className={`${item} lg:hidden`}>
-                    <Translated locale={locale} message="shell.register" />
-                  </Link>
-                  {/* The one saffron button in the header (D-263: the primary action). */}
-                  <Link
-                    href={href('/login')}
-                    className="mt-1 inline-flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-extrabold whitespace-nowrap text-on-accent hover:bg-accent-strong lg:mt-0"
-                    data-testid="nav-sign-in"
-                  >
-                    <Translated locale={locale} message="nav.signIn" />
-                  </Link>
+                  {/* A guest is a new person (T-1736, D-358): Create account is the
+                      header's one saffron button, Sign in the outlined one beside
+                      it; in the phone's Menu both are full width, Create account
+                      first. In the desktop bar Sign in comes first so the filled
+                      button ends the row. On the register page, whose own button
+                      is the view's filled one, globals.css does not draw it
+                      (`header-create-account`, T-1737). */}
+                  <div className="mt-1 flex flex-col gap-2 lg:mt-0 lg:flex-row-reverse lg:items-center">
+                    <Link
+                      href={href('/register')}
+                      className="header-create-account inline-flex h-11 items-center justify-center rounded-control border border-brand bg-brand px-4 text-sm font-extrabold whitespace-nowrap text-on-brand hover:brightness-95 lg:px-3"
+                      data-testid="nav-create-account"
+                    >
+                      <Translated locale={locale} message="shell.register" />
+                    </Link>
+                    <Link
+                      href={href('/login')}
+                      className="inline-flex h-11 items-center justify-center rounded-control border border-strong px-4 text-sm font-bold whitespace-nowrap hover:bg-surface-raised lg:px-3"
+                      data-testid="nav-sign-in"
+                    >
+                      <Translated locale={locale} message="nav.signIn" />
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 <details className="account-menu relative" data-testid="account-menu">
@@ -328,12 +348,12 @@ export async function SiteHeader({
         {/* Competitions' panel from 1024px (T-1643, D-301): every competition by
             region, opened by the nav's Competitions; its list is drawn when asked. */}
         <CompetitionsMenu locale={locale} timeZone={timeZone} />
-        {/* A newer version of the platform rules awaits this member (T-931, D-113). */}
-        {session?.rules.pending === true && <RulesPrompt locale={locale} />}
-        {notice !== null && stored !== null && stored !== undefined && (
-          <HeldLanguageNotice locale={locale} held={stored} value={notice} />
-        )}
       </header>
+      {/* A newer version of the platform rules awaits this member (T-931, D-113). */}
+      {session?.rules.pending === true && <RulesPrompt locale={locale} />}
+      {notice !== null && stored !== null && stored !== undefined && (
+        <HeldLanguageNotice locale={locale} held={stored} value={notice} />
+      )}
       {/* The moments rail, right under the header (T-1642, D-300, in place of
         D-292's matchday rail): today's matches worth a look now, as
         `GET /moments` picks them; nothing at all when there are none. */}

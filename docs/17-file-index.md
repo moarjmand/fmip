@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2315), grouped by folder, with one line on
+Every file in the repository (2376), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -36,14 +36,14 @@ machine, `docs/18-handover.md`.
 - [`apps/api/backtest`](#appsapibacktest) — 22
 - [`apps/api/scripts`](#appsapiscripts) — 3
 - [`apps/api/src`](#appsapisrc) — 4
-- [`apps/api/src/cli`](#appsapisrccli) — 9
+- [`apps/api/src/cli`](#appsapisrccli) — 11
 - [`apps/api/src/database`](#appsapisrcdatabase) — 3
 - [`apps/api/src/modules/activity`](#appsapisrcmodulesactivity) — 4
 - [`apps/api/src/modules/activity/internal`](#appsapisrcmodulesactivityinternal) — 3
 - [`apps/api/src/modules/admin`](#appsapisrcmodulesadmin) — 7
 - [`apps/api/src/modules/admin/internal`](#appsapisrcmodulesadmininternal) — 2
 - [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 4
-- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 10
+- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 12
 - [`apps/api/src/modules/analysis`](#appsapisrcmodulesanalysis) — 5
 - [`apps/api/src/modules/analysis/internal`](#appsapisrcmodulesanalysisinternal) — 1
 - [`apps/api/src/modules/ask`](#appsapisrcmodulesask) — 5
@@ -107,8 +107,8 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/notifications/internal`](#appsapisrcmodulesnotificationsinternal) — 2
 - [`apps/api/src/modules/panel`](#appsapisrcmodulespanel) — 13
 - [`apps/api/src/modules/panel/internal`](#appsapisrcmodulespanelinternal) — 5
-- [`apps/api/src/modules/predictions`](#appsapisrcmodulespredictions) — 21
-- [`apps/api/src/modules/predictions/internal`](#appsapisrcmodulespredictionsinternal) — 8
+- [`apps/api/src/modules/predictions`](#appsapisrcmodulespredictions) — 25
+- [`apps/api/src/modules/predictions/internal`](#appsapisrcmodulespredictionsinternal) — 10
 - [`apps/api/src/modules/profile`](#appsapisrcmodulesprofile) — 9
 - [`apps/api/src/modules/profile/internal`](#appsapisrcmodulesprofileinternal) — 5
 - [`apps/api/src/modules/rate-limits`](#appsapisrcmodulesrate-limits) — 6
@@ -207,7 +207,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/highlights`](#appswebsrcapplocalehighlights) — 4
 - [`apps/web/src/app/[locale]/leaderboard`](#appswebsrcapplocaleleaderboard) — 1
 - [`apps/web/src/app/[locale]/login`](#appswebsrcapplocalelogin) — 1
-- [`apps/web/src/app/[locale]/match/[id]`](#appswebsrcapplocalematchid) — 3
+- [`apps/web/src/app/[locale]/match/[id]`](#appswebsrcapplocalematchid) — 5
 - [`apps/web/src/app/[locale]/messages`](#appswebsrcapplocalemessages) — 1
 - [`apps/web/src/app/[locale]/messages/[id]`](#appswebsrcapplocalemessagesid) — 1
 - [`apps/web/src/app/[locale]/model-accuracy`](#appswebsrcapplocalemodel-accuracy) — 1
@@ -234,10 +234,11 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/verify-email`](#appswebsrcapplocaleverify-email) — 1
 - [`apps/web/src/app/[locale]/watch`](#appswebsrcapplocalewatch) — 1
 - [`apps/web/src/app/[locale]/welcome`](#appswebsrcapplocalewelcome) — 1
+- [`apps/web/src/app/[locale]/you`](#appswebsrcapplocaleyou) — 1
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 18
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 20
 - [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 3
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
 - [`apps/web/src/app/console/(app)/agents/[name]/chat`](#appswebsrcappconsoleappagentsnamechat) — 1
@@ -254,19 +255,19 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 270
+- [`apps/web/src/components`](#appswebsrccomponents) — 294
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
-- [`apps/web/src/lib`](#appswebsrclib) — 213
-- [`apps/web/tests/e2e`](#appswebtestse2e) — 24
+- [`apps/web/src/lib`](#appswebsrclib) — 222
+- [`apps/web/tests/e2e`](#appswebtestse2e) — 25
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
-- [`apps/web/tests/e2e/journeys`](#appswebtestse2ejourneys) — 25
+- [`apps/web/tests/e2e/journeys`](#appswebtestse2ejourneys) — 26
 - [`apps/web/tests/e2e/visual.spec.ts-snapshots`](#appswebtestse2evisualspects-snapshots) — 32
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 38
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -274,13 +275,14 @@ machine, `docs/18-handover.md`.
 - [`packages/config/tests`](#packagesconfigtests) — 1
 - [`packages/config/tsconfig`](#packagesconfigtsconfig) — 4
 - [`packages/console-publisher`](#packagesconsole-publisher) — 5
-- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 9
+- [`packages/console-publisher/fixtures`](#packagesconsole-publisherfixtures) — 1
+- [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 11
 - [`packages/contracts`](#packagescontracts) — 6
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
-- [`packages/contracts/src`](#packagescontractssrc) — 73
+- [`packages/contracts/src`](#packagescontractssrc) — 74
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 178
+- [`packages/db/migrations`](#packagesdbmigrations) — 179
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -564,6 +566,8 @@ machine, `docs/18-handover.md`.
 | `agents-console.ts` | The agents console's server side that has no route (T-1696, T-1697, D-340), from a terminal on the server or over `ssh fmip-prod`: docker compose exec -T api node dist/cli/agents-console.js invite --name "Mostafa" ... l… |
 | `backfill.spec.ts` | T-502: the season backfill from the server's terminal names an administrator and a reason, exactly as the admin page asks for them, before anything runs. |
 | `backfill.ts` | The season backfill (T-030) from a terminal on the server (T-502). docker compose run --rm -T api node dist/cli/backfill.js \ --by you@your-domain --reason "six new leagues added" `--season 2025/26` reads that season in… |
+| `leave.spec.ts` | A pipe that takes its time: each chunk is handed over a tick later. |
+| `leave.ts` | Leaving a command-line tool once what it printed has been handed over (T-1754). |
 | `person-link-sample.spec.ts` | T-1006: the precision sample's arguments and sheet, and the switch it gates. |
 | `person-link-sample.ts` | The precision sample for linking persons to stories (T-1006, D-126). docker compose run --rm -T api node dist/cli/person-link-sample.js --size 300 Reads a random sample of stored articles that link a team and prints, on… |
 | `review-ended-seasons.spec.ts` | T-1662: ended seasons' findings are reviewed from the server's terminal only with an administrator and a reason, every check or one, and a dry run marks nothing. |
@@ -630,6 +634,8 @@ machine, `docs/18-handover.md`.
 | `console-rules.ts` | The agents console's rules (T-1696, T-1697, D-340), pure so they are tested without a database: the session cookie, the lock after wrong passwords, the snapshot's shape and what is withheld from it, and what a command o… |
 | `console-store.ts` | A `console_audit` row, inside the change's own transaction (rule 10). |
 | `image-body.ts` | The raw body of a picture upload (T-1731, D-357). |
+| `model-lab-rules.spec.ts` | The model lab's ledger at the server's edge (T-1752, D-371): a ledger that is not one is dropped whole, an entry the console cannot name is dropped, and nothing is repaired -- a figure that is not a number is null. |
+| `model-lab-rules.ts` | The model lab's ledger as it arrives inside a snapshot (T-1752, D-371), checked at the server's edge, pure. |
 | `request-image-files.ts` | Where the teammate requests' pictures are kept (T-1731, D-357): the media volume (`MEDIA_DIR`, T-1320), under `console-requests/<request>/`, as `<image>.webp` and `<image>-thumb.webp`. |
 | `request-images.spec.ts` | Pictures on the teammate requests (T-1731, D-357): the first bytes decide the type, the decoder must agree, and what is stored is a WebP with no metadata, the long side at most 2400 px, plus a 480 px thumbnail. |
 | `request-images.ts` | Pictures on the teammate requests (T-1731, D-357): what an upload may be, and the re-encoding that makes the stored file. |
@@ -798,7 +804,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `console-model.controller.ts` | The agents console's forecast-model page (T-1729, D-355): read-only, a console session required, the same refusal as the console's own routes. |
-| `console-model.http.spec.ts` | T-1729 against the real schema: `GET /console/model` refuses without a console session, names the versions the model service runs, and computes the published version's record, calibration, trend and competitions, and th… |
+| `console-model.http.spec.ts` | T-1729 and T-1752 against the real schema: `GET /console/model` refuses without a console session, names the versions the model service runs, and computes every version's record, calibration, trend and competitions, the… |
 | `console-model.module.ts` | The agents console's forecast-model page (T-1729, D-355), apart from the console's own module so that the console's command-line tool, which imports that module, does not need the model service. |
 
 ## apps/api/src/modules/conversations
@@ -941,7 +947,7 @@ machine, `docs/18-handover.md`.
 | `candidate-records.spec.ts` | Tests for `candidate-records`. |
 | `candidates.controller.ts` | The candidates' shadow records for the console (T-1103, D-140): read-only, administrators only (a member gets `forbidden`, D-108). |
 | `candidates.store.spec.ts` | T-1103 against the real schema: each candidate's pre-kick-off record and its pairs with the published version, from the stored evaluations. |
-| `console-model.spec.ts` | The console's model page (T-1729, D-355): the intervals are the model watch's, competitions rank best first with the thin ones after, and a candidate's comparison stays a count until D-336's thresholds (T-1720). |
+| `console-model.spec.ts` | The console's model page (T-1729, D-355): the intervals are the model watch's, competitions rank best first with the thin ones after, and a candidate's comparison is a count, whatever it has reached (T-1720, D-371). |
 | `evaluation.controller.ts` | Evaluations are read by anyone; running one is an operator action over HTTP (the result-ingestion job of E2 will call the service directly). |
 | `evaluation.http.spec.ts` | Runs statements in one transaction so trigger toggles never leak to another suite. |
 | `evaluation.service.ts` | Post-match evaluation (T-066): once a fixture has a full-time score, every available forecast version is scored against it, once, immutably. |
@@ -976,7 +982,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `candidate-records.ts` | Every candidate's shadow record (T-1103): each model version with stored shadow forecasts, and each the model service offers now even before its first forecast (a count of zero, never absent). |
-| `console-model.ts` | The console's model page (T-1729, D-355), as pure arithmetic over the rows `PostgresEvaluationStore` reads. |
+| `console-model.ts` | The console's model page (T-1729, D-355; every version, T-1752, D-371), as pure arithmetic over the rows `PostgresEvaluationStore` reads. |
 | `evaluation-store.ts` | SQL for the evaluation side of the forecast boundary (D-025). |
 | `forecast-store.ts` | What the store needs to know about a fixture to ask the model. |
 | `forecast-triggers.ts` | When a forecast version is due (T-120, blueprint 6.4). |
@@ -1495,6 +1501,10 @@ machine, `docs/18-handover.md`.
 | `history.http.spec.ts` | Tests for `history.http`. |
 | `history.spec.ts` | Tests for `history`. |
 | `lock.http.spec.ts` | A two throwaway clubs fixture kicking off at `kickoff` (SQL expression, DB clock). |
+| `pending-pick.controller.ts` | `/fixtures/:fixtureId/pending-pick` (T-1740, D-361): the signed-in member's own pick made before their e-mail address is confirmed. |
+| `pending-pick.http.spec.ts` | Every pending pick of a member on a match, oldest first: outcome and stored status. |
+| `pending-pick.service.ts` | A pick made before the member confirmed their e-mail address (T-1740, D-361): saved as pending, and a prediction only if the address is confirmed before kick-off. **Not a prediction.** It has its own table and this serv… |
+| `pending-pick.spec.ts` | The rules of a pending pick (T-1740, D-361) without a database: the pure ones, and the service over a store kept in memory and a predictions boundary that records what it was asked to write. |
 | `prediction-share.controller.ts` | A public link to one correct prediction's card (T-1723, D-351). |
 | `prediction-share.http.spec.ts` | A public link to one correct prediction's card (T-1723, D-351): made only by its owner, for a correct settled pick only, revocable, and nothing is public without it. |
 | `prediction-share.service.ts` | A public link to one correct prediction's card (T-1723, D-351). **Public only by its owner's action.** A member's predictions are seen by whom their profile says (D-063); this is the one exception, and it is one predict… |
@@ -1515,6 +1525,8 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `friend-alerts.ts` | "A friend predicted a match you follow" (blueprint 8.1, T-832, D-100), as a function over three questions so the rule can be tested without a database: who the predictor's friends are, which of them care about this matc… |
 | `history-query.ts` | Paging for a member's prediction history (T-056). |
+| `pending-pick-store.ts` | SQLSTATE raised by `refuse_pending_pick_not_open()` (migration 1765901300000); the hint says why. |
+| `pending-pick.ts` | The rules of a pending pick that are not SQL (T-1740, D-361), pure, so the spec covers them without a database: what a body must be, what the member is told when they choose, what a choice does to the pick already waiti… |
 | `prediction-store.ts` | SQL for the predictions boundary (D-025). |
 | `settle.ts` | The settlement rules (blueprint 6.6: "a postponed or abandoned match is void until a valid settlement rule is applied"). |
 | `settlement-store.ts` | One settled prediction as the rating engine reads it (T-053). |
@@ -2146,7 +2158,7 @@ machine, `docs/18-handover.md`.
 | `error.tsx` | A page that failed to render, inside the locale (T-809). |
 | `layout.tsx` | Every shipped locale is known at build time, so each one is rendered statically rather than on demand. |
 | `not-found.tsx` | A page that does not exist, inside the locale (T-809): a page's own `notFound()` (a malformed id, an unknown competition) and any unknown path under a locale (`[...missing]/page.tsx`) land here, so the document is the l… |
-| `page.tsx` | The home page in the Stadiomind design (T-1495, D-263, D-270; the canvas boards Home and HomePhone): the day's heading, the matches in play, the big match with the model's forecast and the other two voices kept apart, a… |
+| `page.tsx` | The home page in the Stadiomind design (T-1495, D-263, D-270; the canvas boards Home and HomePhone): the day's heading, the big match with the model's forecast and the other two voices kept apart, the first run's strip,… |
 
 ## apps/web/src/app/[locale]/[...missing]
 
@@ -2437,6 +2449,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `forecast-reality.tsx` | The Summary's opening card (T-1497, D-263 point 4): what the statistical model forecast, and -- after full time -- what happened. |
+| `match-pick.spec.tsx` | The pick on the match page (T-1739, D-360): which state the card shows for a guest and a member, before and after kick-off; what `?pick=` marks; the guest's words; and when the phone's bar is rendered and what it says. |
+| `match-pick.tsx` | The reader's pick on the match page (T-1739, D-360; boards P1-3a and P1-3b), two server components and no script of their own. |
 | `opengraph-image.tsx` | The card a chat app shows for a match link (T-520; A10 "Matchday poster", T-1723): the crests and teams, the score or the kick-off, and the statistical model's forecast from before kick-off. |
 | `page.tsx` | The match centre page (blueprint 4.2, T-034). |
 
@@ -2456,7 +2470,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `page.tsx` | "How accurate is our model?" (T-1369, D-187): the statistical model's published forecasts against the results, by month or (`?period=week`, T-1414) by ISO week, overall and per competition, over `GET /model/accuracy`. |
+| `page.tsx` | "How accurate is our model?" (T-1369, D-187): the statistical model's published forecasts against the results, overall and per competition, over `GET /model/accuracy`. |
 
 ## apps/web/src/app/[locale]/news
 
@@ -2518,7 +2532,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `page.tsx` | Next.js page for the route `/[locale]/register`. |
+| `page.tsx` | What an account gives, in three short points under the title (T-1737, D-358). |
 
 ## apps/web/src/app/[locale]/reset-password
 
@@ -2536,7 +2550,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `match-preview.tsx` | The matches page's preview of one match, with the pick form (T-1496, the canvas's side column): which match, both teams, "Your pick" -- the same form, server action and three states as the match centre's (`InlinePick`),… |
+| `match-preview.tsx` | The matches page's preview of one match, with the pick control (T-1496, the canvas's side column; T-1738, D-359): which match, both teams, "Your pick" -- `PickControl`, the three outcomes at once in its four states -- w… |
 | `matches-analysis.tsx` | The founder's analysis on the matches page (T-1519, D-269), where the header's Analysis leads (`#analysis`): the latest analyses in the founder's own voice, never folded into a row's percentages or the community's split… |
 | `matches.spec.tsx` | Matches and predictions on one page (T-1496, D-268): the row's model cell, its Pick in each state, the "Not picked yet" view, the addresses the page is driven by, and the preview's rule that the community's split appear… |
 | `page.tsx` | Matches and predictions on one page (T-1496, D-268; blueprint 4.1 and 2.1): one day at a time in the viewer's zone, the day strip, four views (All, Live, Not picked yet, My teams), the day's competitions as cards whose… |
@@ -2602,6 +2616,12 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `page.tsx` | The first-run flow (blueprint 2.3 and 7.1, T-620): language, territory, time zone and favourite teams, one step per page, each skippable. |
 
+## apps/web/src/app/[locale]/you
+
+| File | What it is |
+|---|---|
+| `page.tsx` | Where the phone's You tab leads a guest (T-1736, D-358): one sentence on what an account gives, then Create account and Sign in, in that order, in place of a bare sign-in form. |
+
 ## apps/web/src/app/api/fixtures/[id]/stream
 
 | File | What it is |
@@ -2630,10 +2650,12 @@ machine, `docs/18-handover.md`.
 | `console-persian.spec.tsx` | The console is Persian only (T-1725, D-352), and each agent page draws how the agent works. |
 | `console.spec.tsx` | The agents console's web side (T-1698, D-340): served on its own host only, its cookie read back from the API's, and an open security finding shown without its detail. |
 | `layout.tsx` | The agents console's root (D-340): its own `<html>`, apart from the site's `[locale]` layout. |
-| `model-charts.tsx` | The console's model charts (T-1729, D-355): server-rendered SVG, no client code and no library, as the schematic (D-352). |
-| `model-notes.ts` | What each forecast-model version is made of, in Persian (T-1729, D-355): the console's model page reads the versions and the figures from the API, and their make-up from here, written from the version files in `apps/mod… |
-| `model-page.spec.tsx` | The console's forecast-model page (T-1729, D-355): each section on a report shaped like the weekly watch's, then the states with too little to show -- nothing published, a version just promoted -- and a candidate whose… |
-| `model-report.fixture.ts` | A stand-in `GET /console/model` answer for the console's model page specs and its local screenshots (T-1729), shaped on the model scientist's weekly report of 2026-11-02: 0.6.0 on 1,831 matches (log loss 0.9538, Brier 0… |
+| `model-charts.tsx` | The console's model charts (T-1729, D-355; every version, T-1752, D-371): server-rendered SVG, no client code and no library, as the schematic (D-352). |
+| `model-ledger.tsx` | The model lab's ledger on the console (T-1752, D-371): everything ever tested, as the snapshot carries it from the model scientist's file. |
+| `model-notes.ts` | What each forecast-model version is made of, in Persian (T-1729, D-355; every version, T-1752, D-371): the console's model page reads the figures from the API and the make-up from here, written from the version files in… |
+| `model-page.spec.tsx` | The console's forecast-model page (T-1729, D-355; every version, T-1752, D-371): each section on the API's real answer of 2026-11-06, then the states with too little to show -- nothing published, a version just promoted… |
+| `model-report.fixture.ts` | Stand-in answers for the console's model page (T-1729; every version, T-1752): `MODEL_REPORT` is `GET /console/model` as the API of this branch answered it on 2026-11-06 over a read-only copy of production's forecasts a… |
+| `model-schematic.tsx` | The forecast model as a drawing (T-1752, D-371), server-rendered SVG as the agent schematic (D-352): what goes in, with what the store holds of it now; the steps of one forecast; what comes out; and, apart in a dashed b… |
 | `not-found.tsx` | A console page that is not there (T-1725, D-352): an agent the snapshot does not have, or a path the console does not know. |
 | `request-images.spec.tsx` | Pictures on the teammate requests (T-1731, D-357), as the console draws them: the attachment zone's ways in and its states, the waiting strip with progress, a card's thumbnails and the lightbox; Persian throughout, side… |
 | `request-images.tsx` | Pictures on the teammate requests (T-1731, D-357), the console's only client code besides its form: an attachment zone with several ways in (choose files, drag and drop onto the zone or the card, paste anywhere in the f… |
@@ -2691,7 +2713,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `page.tsx` | The forecast model, simply and exactly (T-1729, D-355): what the published version is and what it reads, what is in shadow, and how accurate the published version is now -- every figure from `GET /console/model`, with i… |
+| `page.tsx` | The forecast model, in full (T-1729, D-355; rebuilt T-1752, D-371): what is on the site and how good it is now, what the model is made of and what each version changed, every version's record, how versions are compared… |
 
 ## apps/web/src/app/console/(app)/reports
 
@@ -2747,6 +2769,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `account-deletion.spec.ts` | Delete my account on the page (T-812, D-094). |
+| `accuracy-verdict.tsx` | The accuracy page's opening card (T-1750, D-370): two plain facts instead of a score nobody outside the trade reads. |
+| `accuracy-weekly-chart.tsx` | "Each week, how much better than a guess" (T-1750, D-370): one bar a week for `(uniform_rps - rps) / uniform_rps`, the same edge the opening card states, so a reader who has never met RPS reads "taller is better". |
 | `achievements.spec.ts` | Achievements on a profile (blueprint 9.2, T-643, D-091) keep three promises. **Every kind has words in the catalogue**, so a new achievement cannot reach the page as a bare identifier. **None, restricted and unreachable… |
 | `achievements.tsx` | The catalogue key naming each achievement; a new kind is a type error here until it has one. |
 | `action-form.spec.tsx` | Two forms on one page naming the same field (T-1363): the match page's desk has three `territory` fields and the Watch console two `note` fields. |
@@ -2817,19 +2841,23 @@ machine, `docs/18-handover.md`.
 | `error-page.spec.tsx` | What the locale layout provides (T-1040). |
 | `error-page.tsx` | What every error page says (T-809): a page that does not exist, and a page that failed to render. |
 | `filled-message.tsx` | A resolved message whose `{placeholders}` are elements -- a `<time>`, a link, an isolated score -- rather than strings (T-1303). |
+| `first-run-offer.spec.tsx` | Home's order and the first run's strip (T-1756, D-373; board P4-2): the main match comes before "Live now", the offer is a 48px strip after the main match (after the "Today" line when there is none), the whole strip is… |
 | `first-run-offer.tsx` | The homepage's offer of the first run (blueprint 2.3, T-620): guests "are encouraged to select a language, territory and favourite teams". |
 | `first-run.spec.ts` | The first run (blueprint 2.3 and 7.1, T-620) keeps these promises. **Offered once, dismissible.** The homepage offers it to a member whose flow is pending and to a guest who neither finished nor dismissed it; "Not now"… |
 | `follow-next-steps.spec.ts` | Following with nothing followed (T-622) keeps three promises. **Never an empty page that looks broken**: a member who follows nothing gets a sentence and concrete next steps, and every way the suggestions can fail is a… |
 | `follow-next-steps.tsx` | What a member who follows nothing does next (T-622): never an empty page that looks broken. |
 | `following-section.tsx` | The member's follows and favourites on the settings page (T-042). |
-| `forecast-bar.spec.tsx` | The model's forecast bar (the Design System's `ForecastBar`, T-1508): the labels above the bar, the receipt under it, `outcome` after full time, `compact`, and a sentence for every way there can be no forecast. |
-| `forecast-bar.tsx` | The statistical model's forecast as a bar (the Design System's `ForecastBar`, T-1508, D-263): the three outcomes with their percentages written above one bar -- home in the model's colour, the draw neutral, away the mod… |
-| `forecast-panel.tsx` | The model forecast on the match centre (T-065, blueprint 6.1–6.4): the latest version's probabilities, expected goals and most likely scorelines, its leading factors, data completeness and computation time; what changed… |
+| `forecast-bar.spec.tsx` | The model's three probabilities, one component and one language (T-1748, D-368; T-1749, D-369; boards P3-2 and P3-3): the steps by rank, the fixed order, a label on each segment with the name whole or absent, what happe… |
+| `forecast-bar.tsx` | The statistical model's three probabilities, drawn one way everywhere (T-1748, D-368; T-1749, D-369; boards P3-2 and P3-3). |
+| `forecast-panel.tsx` | "How the forecast was reached" on the match centre (T-065, blueprint 6.1-6.4; T-1744, D-365). |
+| `forecast-receipt.tsx` | The model's forecast where a page holds a `CardForecast` (the Design System's `ForecastBar`, T-1508, D-263; split from the bar in T-1748): the one `ForecastBar` with the model's receipt under it -- **always** (blueprint… |
 | `founder-analysis.tsx` | The founder's analysis on the pages a reader meets it (blueprint 6.5, T-132). **Always attributed and signed.** Every rendering here carries the author's name and the publication time, because the blueprint asks that ea… |
 | `freshness-stamp.spec.tsx` | The freshness stamp (rule 4; the Design System's `Freshness`, T-1493): quiet while the surface is within its threshold, the warning saffron and a triangle past it, and nothing at all without a clock. |
 | `freshness-stamp.tsx` | The stamp's words, resolved on the server for the reader's locale (T-1303). |
 | `friend-controls.spec.ts` | The exits guard (T-202, D-053). D-053 says every conversational surface ships with block, mute, leave and report already built, rather than in a later epic. That is a promise about every surface Phase 3 adds, and a prom… |
 | `friend-controls.tsx` | What the viewer can do about another member (blueprint 8.1, T-202). |
+| `gate-card.spec.tsx` | The gate of the member-only pages (T-1736, D-358): one map from route to copy, one card, and every page that used to answer a guest with a bare sign-in form now answering with it. |
+| `gate-card.tsx` | The gate of a member-only page (T-1736, D-358). |
 | `group-comparison.spec.ts` | The group surfaces for threads and comparisons (T-248). |
 | `group-comparison.tsx` | What the group called (blueprint 8.2, T-246, T-248). **Nothing here is computed.** The verdict beside a call is the settlement that was stored for it; a component that worked out whether somebody was right would be a se… |
 | `group-controls.spec.ts` | The group surfaces' guards (T-242). The acceptance criterion is **a private group is not discoverable, and an invite-only one is not joinable**, and the interesting thing about both halves is that this page does not enf… |
@@ -2850,7 +2878,7 @@ machine, `docs/18-handover.md`.
 | `home-rail.tsx` | The homepage's side column and its news in the Hybrid design (T-1382, D-200; boards h1 and h9): the league table's top five, the model's accuracy, today's broadcasts, the member's teams, the founder's column and the cal… |
 | `homepage-features-admin.spec.ts` | Featured matches on the homepage (T-1161, D-153): feature and clear over the audited API. |
 | `homepage-features-admin.tsx` | Featured matches on the homepage (T-1161, D-153): an editor features a match for a window with a note readers see, and may clear it early with a reason. |
-| `hybrid-atoms.spec.tsx` | The Hybrid design's shared data atoms (T-1388, D-206) not yet rebuilt to the Design System, each in its states: the community spread, the pick before and after, and the next-match card -- in English and in Persian, wher… |
+| `hybrid-atoms.spec.tsx` | The Hybrid design's shared data atoms (T-1388, D-206) not yet rebuilt to the Design System, each in its states: the community spread and the next-match card -- in English and in Persian, where the reading order turns ro… |
 | `invite-link-create.tsx` | Making an invite link (T-1026 over T-1021). |
 | `json-ld.tsx` | One `<script type="application/ld+json">` per structured-data object (T-039). |
 | `key-players.spec.tsx` | The match centre's key players (T-841), rendered: the stated rule under the section, season figures per player, a doubt as a doubt, nothing claimed when the provider was never asked, and a side without figures said in a… |
@@ -2871,27 +2899,34 @@ machine, `docs/18-handover.md`.
 | `live-conversation.tsx` | The chat page's socket (T-237). **It renders no message.** When something happens it asks the page to render itself again, and the server does what it already does — resolve the cards, the reactions, the mentions and th… |
 | `live-match.spec.ts` | The match page listens for the public discussion moving (T-254, D-068). |
 | `live-match.tsx` | The match centre that stays current (T-032, T-034): renders the server's snapshot, then subscribes to the web app's `/api/fixtures/:id/stream` and replaces the whole payload on every `snapshot`. |
-| `live-scores.tsx` | A block's heading stays at the top of the screen while its matches scroll under it (T-605), on the block's own surface so nothing shows through. |
+| `live-scores.tsx` | A block's heading stays at the top of the screen, under the site header (`match-group-head` in globals.css), while its matches scroll under it (T-605), on the block's own surface so nothing shows through. 44px (T-1757,… |
 | `locale-hold-form.tsx` | Hold back a ready language, or release one (T-1163, D-155), with a reason. |
 | `logical-classes.spec.ts` | No physical side in a class name (CLAUDE.md rule 7, T-1501). |
 | `match-alert-settings.spec.tsx` | The match-alert controls (T-831, D-098): a section of their own in Settings → Notifications, one switch per kind with the value the API says is in force, worded through the catalogues, and silenced as a whole or per tea… |
 | `match-alert-settings.tsx` | The match-alert switches (blueprint 12.2, T-831, D-098): one per kind, in the order a match happens, worded through the catalogues. **The values are the API's, not a copy of the defaults.** Each switch shows what is in… |
 | `match-centre-absences.spec.tsx` | Who will miss the match, before kick-off (T-1626): each side's injured, suspended and doubtful players with the reason in the reader's words (T-1601: never the feed's English on /fa) and when the feed was asked (rule 4). |
 | `match-centre-cards.tsx` | A coverage state's words, as catalogue keys. |
+| `match-centre-coming.spec.tsx` | "After kick-off you'll see" (T-1745, D-366; board P2-3): before kick-off the in-play modules with nothing yet -- live timeline, statistics, player statistics, xG, line-ups -- are one card, not an empty card each. |
 | `match-centre-hybrid.spec.tsx` | The Hybrid match centre (T-1384, D-202): the score band before, during and after a match, the line-ups on a pitch only where the feed places every starter, the phone's tabs, where to watch under the score, and after ful… |
 | `match-centre-stadiomind.spec.tsx` | The Stadiomind match centre (T-1497): the Summary's "what was forecast, what happened" card with every version and its receipt, the live states ("Not in yet", the badge, a feed that has fallen behind), the timeline's ax… |
 | `match-centre-view.tsx` | The server-rendered panels the page slots between the live modules (T-605). |
 | `match-follow.spec.tsx` | The follow control in the match centre (T-945, D-116): one form posting the settings page's follow, the window said in words, and every state that is not a button a sentence -- never a guessed one. |
 | `match-follow.tsx` | A match whose follow window is closing or closed: full-time or a result by other means. |
+| `match-freshness-line.spec.tsx` | The phone's short top block (T-1743, D-364; board P2-4): the freshness line and its details -- fresh, stale and in play -- the line for the day and the ground, and that nothing the band said is lost or said as current w… |
+| `match-freshness-line.tsx` | The phone's one freshness line under the score band (T-1743, D-364; board P2-4): "● Data checked 22:07" and, at the line's end, "Details". |
 | `match-lineups.spec.tsx` | Player photos on the line-up pitch (T-1616, D-287): the photo in a ring of the side's tone with the shirt number as a badge, the best rated in saffron as a ring and a badge rather than a fill; without a photo the number… |
 | `match-lineups.tsx` | The line-ups on a pitch (T-1384, D-202; T-1497): on a phone the away side in the top half, its goalkeeper at the top, the home side in the bottom half, its goalkeeper at the bottom, each line a row; from 768px one horiz… |
 | `match-panel.spec.ts` | The public match discussion on the page (T-251). |
 | `match-panel.tsx` | The public match discussion (blueprint 10.2, T-251). **Reading is open, and the reading half renders for everybody including a signed-out visitor.** There is no branch in this file that hides the posts from anybody — th… |
 | `match-record.tsx` | The parts of the match centre that do not move during a match (T-1384, D-202): recent form, head-to-head and the season's coverage. |
 | `match-row.spec.tsx` | The match row (the Design System's `MatchRow`, T-1508): status, the sides stacked home first, and the score or the model's three percentages with the receipt under the row, or a badge when there is no forecast. |
-| `match-row.tsx` | One match in a list (the Design System's `MatchRow`, T-1508, D-263): the status column, both teams stacked with home first, and at the end the score -- or, before kick-off, the model's three percentages over a thin bar,… |
+| `match-row.tsx` | One match in a list (the Design System's `MatchRow`, T-1508, D-263): the status column, both teams stacked with home first, and at the end the score -- or, before kick-off, the model's three whole percentages over the o… |
+| `match-score-bar.spec.tsx` | The compact score bar and the sticky tab row (T-1742, D-363; boards P2-1a and P2-1b): what the bar says in each state, in English and Persian; that it is drawn from the band's own answer in the band's own render; and th… |
+| `match-score-bar.tsx` | The compact score bar (T-1742, D-363; boards P2-1a and P2-1b): 48px, the match in one line once the big band has scrolled away -- "20:00 · Everton v Coventry" before kick-off, "Palmeiras 2–0 Remo · ● Live · 14′" in play… |
 | `match-summary.tsx` | The match summary on the match centre (E41, T-413): what a language model wrote from the record beside it, labelled as a machine's with the model, the version and the time, and never mistaken for the founder's analysis,… |
 | `match-threads.tsx` | Opening a match thread from the match (blueprint 8.2, T-248). **"A thread is opened from the match it is about"** — so the control lives here rather than on the group page, where a member would have had to describe whic… |
+| `match-tools-row.spec.tsx` | The match page's tools row (T-1743, D-364; board P2-4): back, the zone, Share and Follow in one row, for a guest and for a member, in English and Persian, with nothing physical in its layout. |
+| `match-tools-row.tsx` | The match page's tools, one row (T-1743, D-364; board P2-4): back to the scores, the zone the page's times are in, Share, and at the row's end Follow (`children`: `MatchFollow`, whose pieces are this row's items). |
 | `matches-freshness.spec.tsx` | The club and competition pages' footer (T-1633, D-296): what the time is of (the matches), when the provider last answered the list and when a match on it last changed, each saying its day unless it is today (D-189). |
 | `matches-freshness.tsx` | The club and competition pages' footer about their matches (T-1633, D-296), said as D-189 says it on the match header: when the provider last answered the whole list, and when any match on it last changed. |
 | `member-moderation-history.tsx` | Everything about one member's standing, on one page (T-611). |
@@ -2904,7 +2939,8 @@ machine, `docs/18-handover.md`.
 | `model-accuracy-report.spec.tsx` | Accuracy over time in the console (T-1369), rendered: each version in its role, overall then per competition, a table with the uniform reference and each row's coverage, and a sparkline only where there is a line to dra… |
 | `model-accuracy-report.tsx` | Accuracy over time, for the console (T-1369, D-187): every model version in each role it was stored under (published and shadow), overall and per competition, by ISO week or month of kick-off (UTC), from the pre-kick-of… |
 | `model-accuracy.spec.tsx` | The public page's figures (T-1369), rendered: never a figure without a match behind it (`not_supplied`), the count beside a figure below the minimum (`limited`), the metrics explained, the model alone (rule 6), in the r… |
-| `model-accuracy.tsx` | "How accurate is our model?" (T-1369, D-187): the statistical model's published pre-kick-off forecasts, scored after the match, by month or by ISO week (T-1414), over every competition and each one. |
+| `model-accuracy.tsx` | "How accurate is our model?" (T-1369, D-187): the statistical model's published pre-kick-off forecasts, scored after the match, over every competition and each one. |
+| `model-box.tsx` | The statistical model's box beside a pick (T-1738, D-359; the board's `ModelBox`): the MODEL tag, the line that says it stands beside the pick and is never mixed with it, and the caller's forecast -- `ForecastBar`, with… |
 | `model-version.spec.tsx` | A model version never reads as an e-mail address in the server's HTML (T-1465), so Cloudflare's Email Obfuscation leaves it and its decoding script off the page; the reader sees the same characters. |
 | `model-version.tsx` | A model version as text (T-1465): `dixon-coles-elo@0.6.0`. |
 | `moderation-queue.spec.ts` | The moderation queue on the web (T-610). The acceptance criterion is **a moderator decides without `curl`**, and the page tells "nothing waiting", "cannot be shown" and "needs the role" apart. These read the source for… |
@@ -2936,6 +2972,11 @@ machine, `docs/18-handover.md`.
 | `panel-social.tsx` | Reacting to a panel post, and following a contributor (blueprint 10.2, T-252). **Both of these are shown to any signed-in member, and to nobody else.** Not because approval is being checked — it is deliberately not — bu… |
 | `panels-admin.spec.ts` | Featured matches on the web (T-613): open and close a discussion with a reason, over T-253's API. |
 | `panels-admin.tsx` | Featured matches (blueprint 10.2, T-613): which fixtures have a public discussion, who opened it and why, and opening or closing one with a reason. |
+| `pick-control.spec.tsx` | The pick control's four states (T-1738, D-359): nothing chosen, chosen by a guest, saved for a member, locked after kick-off -- each as markup a server renders, with the chosen outcome exposed to assistive technology an… |
+| `pick-control.tsx` | The pick control (T-1738, D-359; the board's `PickControl`): one component for every place a pick starts -- the matches page's panel and sheet, and, wired by their own tasks, the match page, a team's next-match card and… |
+| `pick-form.tsx` | The only client code of the pick control (T-1738, D-359): a `<form>` bound to the prediction's server action, and what the action answered. |
+| `pick-link.spec.tsx` | The way to a pick from a card (T-1741, D-362): an outlined link in the saffron edge and ink, the `md` button's box, kept out of the client bundle. |
+| `pick-link.tsx` | The way to a pick from a card that is not the pick control (T-1741, D-362): one link to the match page's pick card (`pickCardPath`), drawn as a secondary button in the saffron edge and ink (`accent`), 44px tall. |
 | `player-availability.spec.tsx` | The player page's availability and news (T-1007, D-127), rendered: nothing claimed before the feed was asked, "not listed" and never "fit" once it was, the time of the ask with a warning when it is old, and a player's n… |
 | `player-availability.tsx` | The player page's next match and his availability for it (blueprint 5.3, T-1007, D-127; the Stadiomind card, T-1500): the team's next scheduled match, when it kicks off, and what the feed's absence list says about the p… |
 | `player-compare.spec.ts` | The compare page's shape (T-631). It reads the source, the way the other page guards here do: what matters is which branches exist and what each renders, and that survives a change of markup. |
@@ -2945,11 +2986,11 @@ machine, `docs/18-handover.md`.
 | `player-provider-seasons.tsx` | The player page's provider modules (T-1431, D-223): the season in every competition as the provider counts it, and the career it lists. |
 | `power-index-panel.tsx` | The Power Index on the match centre (T-114, blueprint 6.1). |
 | `predicted-score-bidi.spec.tsx` | T-1378: a predicted scoreline reads in the page's direction, like a score (D-193). |
-| `prediction-form.tsx` | The form's words, resolved on the server in the reader's language (T-1307): a client component never reads the catalogues (T-1040). |
 | `prediction-history.tsx` | A member's prediction history (blueprint 7.2, T-056): per match, the version that stands as it was submitted, when, and how it settled. |
 | `prediction-persian.spec.tsx` | The prediction surfaces in Persian (T-1307, D-175): the words come from the catalogue, the digits are Persian, and the three prediction products keep their own names. |
-| `prediction-section.tsx` | "Your prediction" on the match centre (T-050). |
-| `predictions-hybrid.spec.tsx` | The pick and the match report in the Hybrid design (T-1383, D-201): the pick control with the community's spread held back until the reader picks, and "What the model expected" -- in English and in Persian, and with the… |
+| `predictions-hybrid.spec.tsx` | The match report in the Hybrid design (T-1383, D-201): "What the model expected" -- in English and in Persian, and with the data missing. |
+| `product-row.spec.tsx` | The compact row (T-1744, D-365; board P2-2): what stands where a card would have looked like something to read. |
+| `product-row.tsx` | One compact row for something that has nothing to show on this match (T-1744, D-365; board P2-2): its name, the honest sentence that says why there is nothing, and a status that is an icon and a word. |
 | `push-offer-for.tsx` | The push offer's words, resolved on the server for the reader's locale (T-1040), around the client offer (T-1429). |
 | `push-offer-lazy.tsx` | The push offer, fetched only where a follow has just happened (T-1429): it draws nothing until the browser has been asked what it can do, so its code stays out of the page's first load and arrives after hydration. |
 | `push-offer-mark.tsx` | Inside a follow form: as the form submits, leave the mark the next render's push offer takes (T-1429). |
@@ -2961,6 +3002,8 @@ machine, `docs/18-handover.md`.
 | `rating-history.tsx` | A sentence with elements in it: `{name}` placeholders in the locale's own word order, each filled with a node, so a figure or a `<time>` keeps its markup wherever the language puts it. |
 | `receipt.spec.tsx` | The model's receipt (the Design System's `Receipt`, T-1508): facts joined with " · ". |
 | `receipt.tsx` | The model's provenance line (the Design System's `Receipt`, T-1508, D-263): model version, forecast version, when it was computed -- the items joined with " · ", in the machine-fact mono face and the model's colour, on… |
+| `register-controls.spec.tsx` | The register form's two controls with state (T-1737, D-358): what each draws before any script runs, and that they are not part of the form component every page shares. |
+| `register-controls.tsx` | The register form's two controls with state (T-1737, D-358). |
 | `register-defaults.spec.ts` | The register form's defaults (T-1480). The country list opened on its first entry (Afghanistan) and the time zone on UTC, so a reader who did not look registered with both. These read the source, as `account-deletion.sp… |
 | `related-news.tsx` | Related news on the match centre (blueprint 4.2, T-145): the stories the news page would show, filtered to this match and its sides inside the window around kick-off, under the same rights -- headline and link to the pu… |
 | `remember-cookie.tsx` | Sets one cookie once the page it is on has been shown (T-1163): how a notice meant to be read once is not shown again. |
@@ -2983,12 +3026,15 @@ machine, `docs/18-handover.md`.
 | `shell-nav.tsx` | The shell's two navigations (T-1381, D-199; Stadiomind, D-267), the only parts of the header that need the pathname: which entry is current. |
 | `site-footer.spec.tsx` | The site footer (T-1610, D-281): the name and a line on what the site is, every section in three columns with the three prediction products each under its own name (rule 6), What Stadiomind is and the rules (linked from… |
 | `site-footer.tsx` | Each column's heading. "Stadiomind" is the name, the same in every language. |
+| `site-header-sticky.spec.ts` | The sticky header (T-1759, D-376; board P4-7), held to the stylesheet that draws it, since it is CSS alone: 48px on a phone and 56px from 768px, stuck at the top at layer 30 on every page but the match page (which keeps… |
 | `site-header.tsx` | The site shell (T-1381, D-199): the header, the matchday rail under it (T-1624, D-292) and the phone's bottom tab bar, the same on every page. |
 | `stamp.tsx` | A stored moment as a reader reads it (T-1201): "30 Sept 2026, 21:32" in the viewer's zone, with "UTC" said when that is the zone used, and the exact instant kept in `dateTime` for a machine. |
 | `standings-table.spec.tsx` | The competition page's tables (T-1336): a season with group stages shows every group's table, under its stage when there are several, and a group not yet started as a sentence with its teams; a league's page keeps its o… |
 | `standings-table.tsx` | The table's figure columns (T-1203). On a phone the table keeps position, team, played, goal difference and points, the columns a reader ranks by; won, drawn, lost and the goals appear from the tablet width up, the form… |
-| `story-links.spec.tsx` | The story page's share, follow and prediction-product links (T-941, blueprint 3.3). |
-| `story-links.tsx` | The story page's controls that lead somewhere else (T-941, blueprint 3.3): following what the story is about, and the match's three prediction products. |
+| `story-links.spec.tsx` | The story page's share and follow controls (T-941, blueprint 3.3). |
+| `story-links.tsx` | The story page's controls that lead somewhere else (T-941, blueprint 3.3): following what the story is about. |
+| `story-predictions.spec.tsx` | "Predictions for this match" on the story page (T-1741, D-362): the model's bar in its own box with the way to the match page's pick card when the story's match has a forecast and has not kicked off; the missing forecas… |
+| `story-predictions.tsx` | "Predictions for this match" on the story page (T-1741, D-362; it replaces T-941's three links, which showed nothing): when the story is linked to a match that has not kicked off, the two sides, the kick-off in the read… |
 | `story-type.spec.tsx` | A story's type on the card and the story page (T-1001, D-123). |
 | `story-type.tsx` | A story's type and whose word it is (T-1001, D-123): the publisher's own category or an editor's label, named as such. |
 | `system-candidates.spec.tsx` | The candidates in shadow on the System page (T-1165), rendered: each with its newest answer, the last 24 hours and its last failure; a candidate that has never answered says so rather than showing zero; the service's si… |
@@ -3081,6 +3127,8 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `accuracy-edge.spec.ts` | The accuracy page's arithmetic (T-1750, D-370), on the figures the live page showed on 6 November 2026: 727 matches, RPS 0.203 against 0.245 for a guess of one third each, five weeks, 22 competitions of which 13 have 30… |
+| `accuracy-edge.ts` | The accuracy page's arithmetic (T-1750, D-370), pure: how much less error the model's probabilities had than a guess of one third each, the weeks of the weekly chart and its geometry, and the competition list's groups a… |
 | `action-failure.spec.ts` | Tests for `action-failure`. |
 | `action-failure.ts` | What a refused action tells the member (T-907, D-108). |
 | `activity.spec.ts` | Tests for `activity`. |
@@ -3091,7 +3139,7 @@ machine, `docs/18-handover.md`.
 | `announce.spec.ts` | Tests for `announce`. |
 | `announce.ts` | Live-score announcements for assistive technology (T-081, D-041). |
 | `api-locale.spec.ts` | Tests for `api-locale`. |
-| `api.ts` | `GET /admin/overview` (T-070): the operator's view; 401/403 come back as results. |
+| `api.ts` | The API's own reachability, as seen from the web app. |
 | `appearance.ts` | The accessibility preferences (blueprint 2.2, T-621), kept exactly as the theme is (T-602, D-090): a cookie per preference that the locale layout reads and writes on <html> as an attribute, so the first paint already ha… |
 | `auth-actions.ts` | What a form gets back. `null` before the first submit; `ok: true` for an action that stays on the page; field errors come straight from the API's `ApiError.fields`, so the web app never re-implements a validation rule. |
 | `band-colour.spec.ts` | The club band's paint (T-1418, D-204, D-218): every text on it at 4.5:1 or more. |
@@ -3150,6 +3198,7 @@ machine, `docs/18-handover.md`.
 | `formation.ts` | Where a side's starters go on the match centre's pitch (T-1384, D-202; T-1397, D-212), from the line-up data the API returns and nothing else. |
 | `founder-actions.ts` | Publishing the founder's analysis (T-131). |
 | `friend-actions.ts` | Friends, requests and blocks (blueprint 8.1, T-202). |
+| `gate.ts` | The gate's copy (T-1736, D-358): one entry per member-only page, keyed by the page's route. |
 | `group-about.spec.ts` | Tests for `group-about`. |
 | `group-about.ts` | A group's language and favourite as a reader meets them (T-1022, D-133). |
 | `group-actions.ts` | Groups: joining, asking, invitations and who runs one (blueprint 8.2, T-242). |
@@ -3214,6 +3263,8 @@ machine, `docs/18-handover.md`.
 | `panel-social-actions.ts` | Reacting to a panel post, and following a contributor (T-252). **Neither action checks whether the member may post**, and there is nothing to check: reacting and following are open to any member. |
 | `person-name.spec.ts` | Tests for `person-name`. |
 | `person-name.ts` | One name style per match page (T-1395, D-210). |
+| `pick.spec.ts` | Tests for `pick`. |
+| `pick.ts` | The pick control's rules that are not markup (T-1738, D-359): which of its four states it is in, and the address a guest's outcome leads to. |
 | `platform-rules.spec.ts` | Tests for `platform-rules`. |
 | `platform-rules.ts` | The platform rules on a page (T-931, D-113). |
 | `player-compare.spec.ts` | The compare page's alignment and coverage rules (T-631). |
@@ -3243,6 +3294,10 @@ machine, `docs/18-handover.md`.
 | `reader-time-zone-server.ts` | The reader's zone for a page (T-1391, D-207): the member's, else the one a guest chose in the first run, else the locale's default (UK time on `/en`, Tehran time on `/fa` (D-337), UTC elsewhere). |
 | `reader-time-zone.spec.ts` | One reader zone on every page (T-1391, D-207). |
 | `reader-time-zone.ts` | The reader's time zone, the same on every page (T-1391, D-207): the member's zone, else the one a guest chose in the first run (T-620), else the locale's default. |
+| `register.spec.ts` | Tests for `register`. |
+| `register.ts` | What the register form no longer asks (T-1737, D-358) and registration still stores (blueprint 7.1): a display name and a preferred language. |
+| `return-to.spec.ts` | Tests for `return-to`. |
+| `return-to.ts` | The return address (T-1736, D-358): where a guest was going when a page asked them to sign in or create an account, carried as `?next=` through the login and register pages and back out of their actions. |
 | `rules-actions.ts` | Accept the platform rules the member just read (T-931, D-113). |
 | `saved-actions.ts` | Save a story to the member's list (T-842). |
 | `score-card-products.spec.ts` | Tests for `score-card-products`. |
@@ -3306,6 +3361,7 @@ machine, `docs/18-handover.md`.
 | `competitions.spec.ts` | The All competitions page without an API behind it (T-1433). |
 | `error-pages.spec.ts` | Error pages carry `lang` and `dir` (T-809). |
 | `fixed-clock.cjs` | The web server's clock for the visual baseline (T-1502), loaded with `NODE_OPTIONS=--require=./tests/e2e/fixed-clock.cjs`. |
+| `gate.spec.ts` | The gate, the return address and the account buttons (T-1736, D-358), without an API: with no session every reader is a guest, which is exactly who these are for. |
 | `header-row.spec.ts` | The desktop header is one row at every width, whatever the face (T-1534). |
 | `highlights.spec.ts` | The Highlights page without an API behind it (T-1434). |
 | `home-hybrid.spec.ts` | The home page on the production build (T-1382, D-200; rebuilt in T-1495, D-270), at a phone's 390 px and a desktop's 1440 px, in English, Persian and the RTL pseudo-locale. |
@@ -3345,10 +3401,10 @@ machine, `docs/18-handover.md`.
 | `highlights.spec.ts` | The Highlights page with the seed behind it (T-1434, D-226). |
 | `home.spec.ts` | The member's homepage (T-942, D-115), with the API and the seed behind it. |
 | `invite.spec.ts` | T-522: a member's invite link. The new member registers through it, lands on the inviter's profile with its friend-request control and a sentence saying why, and nothing has been sent on their behalf. Runs only in the `… |
-| `journeys.spec.ts` | The blueprint's essential user journeys, the slices of them Phase 1 ships (T-080, D-043), driven through the real web app, API, database and seed: 18.1 a new member predicts a match — sent to sign in, registers, verifie… |
+| `journeys.spec.ts` | The blueprint's essential user journeys, the slices of them Phase 1 ships (T-080, D-043), driven through the real web app, API, database and seed: 18.1 a new member predicts a match — picks an outcome on the match page'… |
 | `localised-names.spec.ts` | A localised entity name is a row against the canonical id, shown in the reader's language beside the name it is a name for (T-303, blueprint 13.1). |
 | `match-centre.spec.ts` | The Stadiomind match centre on the seed's played match (T-1497), in English, Persian and the right-to-left pseudo-locale, on a phone (390px) and a desktop (1440px). |
-| `match-states.spec.ts` | The match centre before kick-off (T-1550), on the seed's scheduled match in English and Persian. |
+| `match-states.spec.ts` | The match centre before kick-off (T-1550, T-1745), on the seed's scheduled match in English and Persian. |
 | `matches.spec.ts` | Matches and predictions on one page (T-1496, D-268), through the whole stack: the seed's open match (Liverpool v Manchester United, 1 January 2099, no forecast stored) and its played day. - The row carries the model's c… |
 | `members.ts` | Making a member, the way a member is actually made. |
 | `mobile.spec.ts` | Scores and the match centre on a phone, with real matches (T-605): the seed's played day and its two matches behind the web app, at 360 x 800, in light and dark, at the default text size and the largest (T-621), left to… |
@@ -3356,6 +3412,7 @@ machine, `docs/18-handover.md`.
 | `news.spec.ts` | The news page through the real web app and API (T-143, blueprint 3.1 and 3.2). |
 | `persian.spec.ts` | The WCAG levels every page is held to, as elsewhere. |
 | `player.spec.ts` | The Stadiomind player page (T-1500, D-271) on the seed, in English, Persian and the right-to-left pseudo-locale, on a 390px phone and a 1440px desktop: the header with the photo's ring, the three facts with their figure… |
+| `register-form.spec.ts` | The register form as a guest meets it (T-1737, D-358, board P1-7), with the API behind the web app: without one the page says registration is unavailable and draws no form. |
 | `rtl-content.spec.ts` | The right-to-left audit on real content (T-153, CLAUDE.md rule 7). |
 | `social.spec.ts` | Blueprint 19's social list, walked with two members (Phase 3 exit criteria). **Why this file exists at all.** The Phase 3 exit criteria were walked on the public preview on 2026-09-16 and four of them were met. |
 | `target-size.spec.ts` | The team, player and competition pages with the seed behind them, at a desktop width and on a 360px phone: axe finds nothing, `target-size` (WCAG 2.2 AA, 24 x 24) included. |
@@ -3428,13 +3485,19 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
+| `03-project-map.md` | Project map |
+| `03-project-map.md` | Project map |
 | `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -3513,6 +3576,12 @@ machine, `docs/18-handover.md`.
 | `tsconfig.json` | TypeScript compiler settings. |
 | `vitest.config.mts` | Vitest configuration. |
 
+## packages/console-publisher/fixtures
+
+| File | What it is |
+|---|---|
+| `model-lab-ledger.json` | JSON data or settings. |
+
 ## packages/console-publisher/src
 
 | File | What it is |
@@ -3521,6 +3590,8 @@ machine, `docs/18-handover.md`.
 | `chat.ts` | The chat with the agents, on the maintainer's computer (T-1722, D-350): the pure part. |
 | `flow.spec.ts` | The console's schematic data (T-1725, D-352), from an agent's file, its skill and the charter. |
 | `flow.ts` | How each agent works, for the console's schematic (T-1725, D-352): pure functions over the agent's file, its skill and the team charter, so every box the console draws is something those files say. |
+| `lab.spec.ts` | The model lab's ledger file, checked on the computer (T-1752, D-371): an entry with any problem is left out and counted, each problem is named with its entry, and a file that is not a ledger publishes none. |
+| `lab.ts` | The model lab's ledger, read on the maintainer's computer (T-1752, D-371): `E:/FMIP/ops/model/ledger.json`, kept by the model scientist, is checked here and carried to the console inside the snapshot. |
 | `publish.ts` | The agents console's publisher, on the maintainer's computer (T-1699, D-340). |
 | `requests.spec.ts` | Tests for `requests`. |
 | `requests.ts` | Teammate requests on the maintainer's computer (T-1728, D-354): the pure part. |
@@ -3570,9 +3641,10 @@ machine, `docs/18-handover.md`.
 | `confederation.spec.ts` | Tests for `confederation`. |
 | `confederation.ts` | Football's six confederations (T-1643, D-301): which one a competition belongs to, so the header's competitions menu can file it by region. |
 | `consensus.ts` | Community consensus (blueprint 6.6, T-134). |
+| `console-model-lab.ts` | The model lab's ledger (T-1752, D-371): everything ever tested on the forecast model -- an input, a set of constants, a whole version -- with why it was tried, on what data, the measured effect, the verdict and the deci… |
 | `console-model.ts` | The agents console's forecast-model page (T-1729, D-355): what the published model version is, what is in shadow, and how accurate the published version is now -- every figure from the stored pre-kick-off evaluations (T… |
 | `console-requests.ts` | The teammate requests' runtime constants (T-1728, D-354; pictures T-1731, D-357), on the console's entry point only (`./console`). |
-| `console.ts` | The agents console's runtime constants (T-1728, T-1729), on their own entry point `@fmip/contracts/console`: the main barrel is in every public page's first-load bundle, and these are only the console's (the match centr… |
+| `console.ts` | The agents console's runtime constants (T-1728, T-1729, T-1752), on their own entry point `@fmip/contracts/console`: the main barrel is in every public page's first-load bundle, and these are only the console's (the mat… |
 | `contributor.ts` | Approval to post on a public match panel (blueprint 9.4 and 10.2, T-250). |
 | `conversations.ts` | Conversations (blueprint 8.3, T-220). **Order is a sequence, not a time.** Every message carries `seq`, unique and increasing within its conversation, and every question a client asks about order is asked in those terms. |
 | `coverage.spec.ts` | Tests for `coverage`. |
@@ -3829,6 +3901,7 @@ machine, `docs/18-handover.md`.
 | `1765901000000_activity-daily.sql` | T-1727 (D-353): the Activity page's sign-ins and active members, kept per day before the retention purge deletes the sessions they are counted from. |
 | `1765901100000_console-request.sql` | Teammate requests in the agents console (T-1728, D-354). |
 | `1765901200000_console-request-image.sql` | Pictures on the teammate requests (T-1731, D-357). |
+| `1765901300000_pending-pick.sql` | T-1740 (D-361): a pick made before the member confirmed their e-mail address. |
 
 ## packages/db/scripts
 

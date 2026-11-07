@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { cx } from '@/components/ui/cx';
 import { bandColours } from '@/lib/band-colour';
 
 /**
@@ -11,6 +12,10 @@ import { bandColours } from '@/lib/band-colour';
  * white or the ink at 4.5:1 or more (`bandColours`, darkened when neither
  * reaches it). The tabs sit under it on the surface with the actions (follow)
  * at their end, saffron under the open tab whatever the club.
+ *
+ * T-1741 (D-362): `compact` makes the identity block one row on a phone, so
+ * the club's next match is on the first screen; the colour still fills this
+ * block and nothing else.
  */
 export function EntityBand({
   testId,
@@ -22,6 +27,8 @@ export function EntityBand({
   actions,
   tabs,
   colour,
+  compact = false,
+  actionsFromTablet = false,
 }: {
   testId: string;
   /** The crest or the photo, in its frame. */
@@ -39,6 +46,17 @@ export function EntityBand({
   tabs: ReactNode;
   /** The club's colour, `#rrggbb`, when one is known (T-1418). */
   colour?: string | null;
+  /**
+   * One row on a phone (T-1741, D-362; below 768px): the media beside the
+   * name with the aside on a line under it, and no eyebrow. The caller moves
+   * what it leaves out of `details` lower on the page; nothing is dropped.
+   */
+  compact?: boolean;
+  /**
+   * Leave the actions out below 768px: the page shows the same control lower
+   * down on a phone (the club's next-match card carries Follow for a guest).
+   */
+  actionsFromTablet?: boolean;
 }) {
   const paint = colour === undefined || colour === null ? null : bandColours(colour);
   // Every text token on the fill is the one text colour that reaches 4.5:1 on it.
@@ -53,13 +71,28 @@ export function EntityBand({
         } as CSSProperties);
   return (
     <div className="border-b border-default bg-surface" data-testid={testId}>
-      <div style={filled} data-band={paint === null ? 'surface' : 'club'}>
+      <div
+        style={filled}
+        data-band={paint === null ? 'surface' : 'club'}
+        data-phone={compact ? 'compact' : undefined}
+      >
         <div className="page-frame">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-4 py-5 text-fg md:py-8">
+          <div
+            className={cx(
+              'items-center text-fg md:py-8',
+              compact
+                ? // One row on a phone: the media beside the name, the aside under the name.
+                  'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 py-4 md:flex md:flex-wrap md:gap-x-6 md:gap-y-4'
+                : 'flex flex-wrap gap-x-6 gap-y-4 py-5',
+            )}
+          >
             {media}
             <div className="min-w-0 flex-[1_1_18rem]">
               <p
-                className="text-xs font-bold text-muted uppercase ltr:tracking-wider"
+                className={cx(
+                  'text-xs font-bold text-muted uppercase ltr:tracking-wider',
+                  compact && 'max-md:hidden',
+                )}
                 data-testid="band-eyebrow"
               >
                 {eyebrow}
@@ -73,7 +106,14 @@ export function EntityBand({
               {details}
             </div>
             {aside !== undefined && aside !== null && (
-              <div className="flex flex-col items-start gap-1 sm:ms-auto sm:items-end sm:text-end">
+              <div
+                className={cx(
+                  'flex flex-col items-start gap-1',
+                  compact
+                    ? 'max-md:col-start-2 md:ms-auto md:items-end md:text-end'
+                    : 'sm:ms-auto sm:items-end sm:text-end',
+                )}
+              >
                 {aside}
               </div>
             )}
@@ -82,7 +122,14 @@ export function EntityBand({
       </div>
       <div className="page-frame flex flex-wrap items-center gap-x-4">
         <div className="min-w-0 flex-[1_1_16rem]">{tabs}</div>
-        <div className="flex shrink-0 flex-col items-start gap-2 py-2">{actions}</div>
+        <div
+          className={cx(
+            'flex shrink-0 flex-col items-start gap-2 py-2',
+            actionsFromTablet && 'max-md:hidden',
+          )}
+        >
+          {actions}
+        </div>
       </div>
     </div>
   );

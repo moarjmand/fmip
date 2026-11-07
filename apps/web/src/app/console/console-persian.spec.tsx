@@ -16,6 +16,7 @@ import {
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MODEL_LAB, MODEL_REPORT } from './model-report.fixture';
 
 /**
  * The console is Persian only (T-1725, D-352), and each agent page draws how
@@ -74,8 +75,8 @@ vi.mock('@/lib/console-api', () => {
   return {
     consoleMe: () => ok({ id: 'u1', username: 'maryam', display_name: 'مریم' }),
     consoleSnapshot: () => ok({ snapshot: fixtures.snapshot, loaded_at: '2026-11-03T05:00:00Z' }),
-    // T-1729: the model page, on the stand-in shaped like the weekly watch's numbers.
-    consoleModel: async () => ok((await import('./model-report.fixture')).MODEL_REPORT),
+    // T-1729, T-1752: the model page, on the API's real answer of 2026-11-06.
+    consoleModel: () => ok(MODEL_REPORT),
     consoleCommands: () =>
       ok({
         commands: [
@@ -549,6 +550,8 @@ const SNAPSHOT: ConsoleSnapshot = {
       decided_at: '2026-11-02',
     },
   ],
+  // T-1752: the lab's ledger, a slice of the real file, so its Persian is scanned too.
+  model_lab: MODEL_LAB,
 };
 
 // --- The scan ------------------------------------------------------------------
@@ -602,6 +605,10 @@ const TECHNICAL_TERMS = new Set([
   'calibration',
   'shadow',
   'Elo',
+  'RPS',
+  'xG',
+  'Club',
+  'Wilson',
   'APPROVE',
   'CHANGES',
   'REQUESTED',

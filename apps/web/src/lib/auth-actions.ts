@@ -15,11 +15,16 @@ import type {
 } from '@fmip/contracts';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { type ApiResult, apiRequest } from './api';
+import { type ApiResult, apiRequest, savePendingPick } from './api';
 import { stepHref } from './first-run';
 import { applyGuestChoices } from './first-run-actions';
 import { afterRegistration, readInviter } from './invite';
+import { offeredNow } from './language-hold';
+import { pickFromReturnPath } from './pick';
+import { registrationDisplayName, registrationLanguage } from './register';
+import { RETURN_PARAM, safeReturnPath } from './return-to';
 import { applyApiSetCookie, readerAddress, sessionCookieHeader } from './session';
+import { SESSION_COOKIE, parseSessionSetCookie } from './set-cookie';
 import { reconcileThemeAtSignIn } from './theme-cookie';
 import { territoryName } from './territory';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
@@ -67,18 +72,50 @@ function failure<T>(locale: string, result: Extract<ApiResult<T>, { ok: false }>
   };
 }
 
+/**
+ * Saves the outcome a guest chose before creating the account, as the new
+ * member's pending pick (T-1740, D-361). `next` is the return address
+ * `safeReturnPath` already accepted; only the exact address the pick control
+ * writes names a match and an outcome (`pickFromReturnPath`), and anything
+ * else saves nothing. The session is the one the registration just made.
+ *
+ * Best effort, like the guest's first-run choices: a pick the API refuses (the
+ * match kicked off while the form was open, the API is unreachable) is not
+ * worth failing a registration over. The member then lands on the match with
+ * the outcome still marked from the address and not saved, and the control
+ * says so.
+ */
+async function keepChosenOutcome(
+  locale: string,
+  next: string | null,
+  setCookie: string | null,
+): Promise<void> {
+  const chosen = pickFromReturnPath(locale, next);
+  const session = parseSessionSetCookie(setCookie);
+  if (chosen === null || session === null || session.value === '') return;
+  await savePendingPick(
+    chosen.fixtureId,
+    chosen.outcome,
+    `${SESSION_COOKIE}=${encodeURIComponent(session.value)}`,
+  );
+}
+
 export async function registerAction(
   locale: string,
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const username = text(formData, 'username');
   const body: RegisterRequest = {
-    username: text(formData, 'username'),
-    display_name: text(formData, 'display_name'),
+    username,
+    // The form asks for neither (T-1737, D-358): the display name is the
+    // username until the member changes it in Settings, and the language is
+    // the page's own when the product offers it.
+    display_name: registrationDisplayName(text(formData, 'display_name'), username),
     email: text(formData, 'email'),
     password: text(formData, 'password'),
     country_id: text(formData, 'country_id'),
-    preferred_language: text(formData, 'preferred_language'),
+    preferred_language: registrationLanguage(locale, await offeredNow()),
     timezone: text(formData, 'timezone'),
     accept_rules: formData.get('accept_rules') === 'on',
   };
@@ -104,7 +141,15 @@ export async function registerAction(
   // Through a member's invite link, the new member lands on the inviter's
   // profile and its friend-request control; nothing is sent for them (T-522).
   const inviter = readInviter(text(formData, 'invited_by') || undefined);
-  const destination = afterRegistration(locale, result.data.user.username, inviter);
+  // The page the guest was on its way to wins (T-1736, D-358): it is what they
+  // asked for. The field is read by the same rule as the query it came from.
+  const next = safeReturnPath(locale, text(formData, RETURN_PARAM));
+  // When that page is a match with an outcome chosen, the outcome is saved
+  // with the new account as a pending pick (T-1740, D-361): the first thing
+  // the guest did is not thrown away, and it counts once they confirm their
+  // email address before kick-off.
+  await keepChosenOutcome(locale, next, result.setCookie);
+  const destination = next ?? afterRegistration(locale, result.data.user.username, inviter);
   // A new member is offered the first run once, and then goes where they were going.
   redirect(firstRunDone ? destination : stepHref(locale, 'language', destination));
 }
@@ -131,7 +176,11 @@ export async function loginAction(
   await applyGuestChoices(result.setCookie, 'sign_in');
   // The account's theme reaches this browser, or this browser's an account that never chose (T-602).
   await reconcileThemeAtSignIn(result.setCookie);
-  redirect(`/${locale}/u/${encodeURIComponent(result.data.user.username)}`);
+  // Back to the page that asked for the sign-in (T-1736, D-358), else the profile.
+  redirect(
+    safeReturnPath(locale, text(formData, RETURN_PARAM)) ??
+      `/${locale}/u/${encodeURIComponent(result.data.user.username)}`,
+  );
 }
 
 export async function logoutAction(locale: string): Promise<void> {

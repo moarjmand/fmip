@@ -25,17 +25,21 @@ import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 
 /**
- * A block's heading stays at the top of the screen while its matches scroll
- * under it (T-605), on the block's own surface so nothing shows through.
+ * A block's heading stays at the top of the screen, under the site header
+ * (`match-group-head` in globals.css), while its matches scroll under it (T-605),
+ * on the block's own surface so nothing shows through. 44px (T-1757,
+ * D-374): the name and the "Updated" stamp on one line, a longer stamp
+ * whole on a second.
  */
 const HEADING =
-  'sticky top-0 z-10 flex min-h-11 min-w-0 flex-wrap items-center gap-x-2.5 border-b border-default bg-surface px-4 py-1.5 text-sm font-extrabold';
+  'match-group-head z-10 flex min-h-11 min-w-0 flex-wrap items-center gap-x-2.5 border-b border-default bg-surface px-4 text-sm font-extrabold';
 /**
  * One card per block (T-1496, the canvas's competition groups), a hairline
  * between rows. `overflow-clip`, not `hidden`, so the sticky heading still sticks.
  */
 const BLOCK = 'flex flex-col overflow-clip rounded-xl border border-default bg-surface';
-const LIST = 'flex flex-col divide-y divide-default';
+/** The rows' columns follow the list's width, not the screen's (T-1757). */
+const LIST = '@container flex flex-col divide-y divide-default';
 
 /** When this block's cards last changed, once for the block (rule 4). */
 function Updated({
@@ -53,7 +57,7 @@ function Updated({
 }) {
   const label = blockUpdatedLabel(cards, locale, timeZone, words.m, now);
   return label === null ? null : (
-    <span className="ms-auto text-xs font-normal text-muted" data-testid="block-updated">
+    <span className="ms-auto py-1 text-xs font-normal text-muted" data-testid="block-updated">
       {label}
     </span>
   );
@@ -176,7 +180,10 @@ export function LiveScores({
   const pickHref = (id: string): string | undefined =>
     pickBase === undefined
       ? undefined
-      : `${pickBase}${pickBase.includes('?') ? '&' : '?'}pick=${id}#pick`;
+      : // The fragment is the row's own anchor (T-1738): the sheet or the panel
+        // opens without the list moving, and without JavaScript the page
+        // comes back at the row that asked.
+        `${pickBase}${pickBase.includes('?') ? '&' : '?'}pick=${id}#m-${id}`;
   const row = (card: (typeof shown.groups)[number]['fixtures'][number], pinned: boolean) => (
     <ScoreCard
       key={card.id}
@@ -196,7 +203,8 @@ export function LiveScores({
   return (
     <>
       <p
-        className={`text-xs ${
+        // `scores-stamp`: on a phone it stands in the title row (globals.css, T-1757).
+        className={`scores-stamp text-xs ${
           state === 'live'
             ? 'text-muted'
             : state === 'connecting'

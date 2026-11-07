@@ -141,6 +141,9 @@ export class PostgresAccountDeletionStore {
     await q(`DELETE FROM saved_article WHERE user_id = $1`);
     // A card made public by the member is public no longer (T-1723, D-351).
     await q(`DELETE FROM prediction_share WHERE user_id = $1`);
+    // Picks saved before the address was confirmed (T-1740, D-361): none is a
+    // prediction, so none is needed by a settlement or a rating.
+    await q(`DELETE FROM pending_pick WHERE user_id = $1`);
 
     // 5. The social graph, both directions.
     await q(`DELETE FROM member_follow WHERE follower_id = $1 OR followed_id = $1`);

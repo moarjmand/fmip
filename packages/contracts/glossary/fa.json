@@ -202,13 +202,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "term.scoreline": {
-    "source": "scoreline",
-    "locked": false,
-    "text": "نتیجه",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "term.scorer": {
     "source": "scorer",
     "locked": false,

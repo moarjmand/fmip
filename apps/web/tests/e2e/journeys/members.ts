@@ -82,18 +82,33 @@ export async function leaveFirstRun(
   await expect(page).toHaveURL(new RegExp(`${escaped(next)}$`));
 }
 
-/** Register through the form, leave the first run, then verify from the message. */
+/**
+ * The display name is the username until the member chooses one (T-1737,
+ * D-358): the register form no longer asks, Settings does.
+ */
+export async function chooseDisplayName(page: Page, name: string): Promise<void> {
+  await page.goto('/en/settings');
+  const form = page.getByTestId('profile-form');
+  await form.getByLabel('Display name').fill(name);
+  await form.getByRole('button', { name: 'Save profile' }).click();
+  await expect(form.getByText('Profile saved.')).toBeVisible();
+}
+
+/**
+ * Register through the form, leave the first run, choose the display name the
+ * journeys read, then verify from the message.
+ */
 export async function registerAndVerify(page: Page, who: Member): Promise<void> {
   await page.goto('/en/register');
   const form = page.getByTestId('register-form');
   await form.getByLabel('Username').fill(who.username);
-  await form.getByLabel('Display name').fill(who.displayName);
   await form.getByLabel('Email').fill(who.email);
-  await form.getByLabel('Password').fill(who.password);
+  await form.getByLabel('Password', { exact: true }).fill(who.password);
   await form.getByLabel('Country or territory').selectOption({ label: 'England' });
-  await form.getByLabel('I accept the platform rules.').check();
+  await form.getByLabel('I accept the platform rules').check();
   await form.getByRole('button', { name: 'Create account' }).click();
   await leaveFirstRun(page, `/en/u/${who.username}`);
+  await chooseDisplayName(page, who.displayName);
 
   await page.goto(verifyLink(who.email));
   await expect(page.getByTestId('verify-result')).toBeVisible();

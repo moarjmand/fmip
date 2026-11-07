@@ -16,6 +16,7 @@ import {
   fetchMe,
   fetchMyPredictions,
   fetchOwnPrediction,
+  fetchPendingPick,
   fetchScores,
   fetchViewingBatch,
 } from '@/lib/api';
@@ -45,6 +46,7 @@ import {
   withSelected,
   type FilterOption,
 } from '@/lib/scores-filters';
+import { isLocked } from '@/lib/prediction-form';
 import { ownPredictions } from '@/lib/predictions-days';
 import {
   cardIds,
@@ -56,6 +58,7 @@ import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { forecastBarWords, scoresWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
+import { GateCard } from '@/components/gate-card';
 import { Translated } from '@/components/translated';
 import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
@@ -193,6 +196,17 @@ export default async function ScoresPage({
       ? ownPredictions(mine.data.items, mine.data.items.length >= MAX_CONSENSUS_FIXTURES, cards)
           .found
       : new Map<string, Prediction>();
+  // The pick the reader saved on the previewed match before their email
+  // address was confirmed (T-1740, D-361), asked beside the read below and
+  // only where one can stand: no prediction on the match, and a member not
+  // confirmed yet or a match that has kicked off. A read; nothing is written.
+  const pendingRead =
+    previewCard !== null &&
+    me !== null &&
+    !own.has(previewCard.id) &&
+    (!me.email_verified || isLocked(previewCard.kickoff_at, now))
+      ? fetchPendingPick(previewCard.id, cookie)
+      : Promise.resolve(null);
   // The previewed match's own pick is read directly when the page could not answer.
   const current: Prediction | null =
     previewCard === null
@@ -200,6 +214,7 @@ export default async function ScoresPage({
       : (own.get(previewCard.id) ??
         (me === null ? null : await fetchOwnPrediction(previewCard.id, cookie)));
   if (previewCard !== null && current !== null) own.set(previewCard.id, current);
+  const pendingPick = await pendingRead;
 
   // A provider outage is named on the page (T-083), never hidden behind old numbers.
   const trouble = feedTrouble(ingestion, locale, q.timezone);
@@ -213,6 +228,10 @@ export default async function ScoresPage({
   const railNav = attribute(resolved, 'scores.competitionsNav');
   // The day steps, each a thumb-sized button.
   const stepClass = 'inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1';
+  // A chip of the filter row (T-1757): a view's link or a panel's summary, 44px tall.
+  const chipClass =
+    'inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-pill border px-3.5 whitespace-nowrap';
+  const summaryClass = 'cursor-pointer list-none [&::-webkit-details-marker]:hidden';
   const filtered = isFiltered(filters);
   const clearFiltersHref = pageHref(locale, q, { filters: NO_FILTERS });
   const options = result.ok ? filterOptions(result.data) : null;
@@ -273,12 +292,19 @@ export default async function ScoresPage({
     }`;
 
   return (
-    <main className="mx-auto flex w-full max-w-[85rem] flex-col gap-4 px-4 py-4 sm:px-6 lg:py-5">
+    // `scores-main` and `scores-flat`: under 1024px the list's "Last checked"
+    // stamp stands in the title row (globals.css, T-1757, D-374).
+    <main className="scores-main mx-auto flex w-full max-w-[85rem] flex-col gap-4 px-4 py-4 sm:px-6 lg:py-5">
       <h1 className="text-2xl font-extrabold font-stretch-semi-expanded" data-testid="title">
         <Translated locale={locale} message="scores.title" />
       </h1>
+      {/* A guest who asks for the picks still to make has none (T-1736, D-358):
+          the gate says what the view is, above every match of the day. */}
+      {me === null && asked.unpicked === true && (
+        <GateCard locale={locale} route="/scores?unpicked=1" heading="h2" compact />
+      )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21.25rem] xl:grid-cols-[13.75rem_minmax(0,1fr)_21.25rem]">
+      <div className="scores-flat grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21.25rem] xl:grid-cols-[13.75rem_minmax(0,1fr)_21.25rem]">
         {result.ok && (
           <nav
             aria-label={railNav.text}
@@ -310,35 +336,42 @@ export default async function ScoresPage({
           </nav>
         )}
 
-        <div className="flex min-w-0 flex-col gap-3 lg:col-start-1 lg:row-start-1 xl:col-start-2">
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* One row that scrolls inside itself on a phone, never the page (T-605). */}
-            <nav
-              aria-label={dayNav.text}
-              lang={dayNav.lang}
-              className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-default bg-surface p-1 text-sm"
-              data-testid="day-strip"
-            >
-              {strip.map((d) => (
-                <Link
-                  key={d.date}
-                  href={pageHref(locale, q, { date: d.date })}
-                  aria-current={d.isSelected ? 'date' : undefined}
-                  className={`flex min-h-11 min-w-14 shrink-0 flex-col items-center justify-center rounded-md px-3 whitespace-nowrap sm:flex-row sm:gap-1 ${
-                    d.isSelected
-                      ? 'bg-brand font-extrabold text-on-brand'
-                      : 'font-semibold text-muted hover:bg-surface-raised'
-                  }`}
-                >
-                  <span className="max-sm:text-xs">{d.weekday}</span>
-                  <span className="max-sm:text-base max-sm:font-bold">{d.day}</span>
-                </Link>
-              ))}
-            </nav>
+        <div className="flex min-w-0 flex-col gap-2 lg:col-start-1 lg:row-start-1 xl:col-start-2">
+          {/* One row that scrolls inside itself on a phone, never the page (T-605). */}
+          <nav
+            aria-label={dayNav.text}
+            lang={dayNav.lang}
+            className="flex max-w-full gap-1 self-start overflow-x-auto rounded-lg border border-default bg-surface p-1 text-sm"
+            data-testid="day-strip"
+          >
+            {strip.map((d) => (
+              <Link
+                key={d.date}
+                href={pageHref(locale, q, { date: d.date })}
+                aria-current={d.isSelected ? 'date' : undefined}
+                className={`flex min-h-11 min-w-14 shrink-0 flex-col items-center justify-center rounded-md px-3 whitespace-nowrap sm:flex-row sm:gap-1 ${
+                  d.isSelected
+                    ? 'bg-brand font-extrabold text-on-brand'
+                    : 'font-semibold text-muted hover:bg-surface-raised'
+                }`}
+              >
+                <span className="max-sm:text-xs">{d.weekday}</span>
+                <span className="max-sm:text-base max-sm:font-bold">{d.day}</span>
+              </Link>
+            ))}
+          </nav>
+
+          {/* One filter row (T-1757, D-374): the views, then Date and Filters,
+              each a native disclosure whose panel opens under the whole row
+              (`fold-row` in globals.css), one open at a time by their shared
+              `name`. A browser without the grouping opens both, one under the
+              other; one without `::details-content` opens a panel under its
+              own chip. No script either way. */}
+          <div className="fold-row text-sm" data-testid="filter-row">
             <nav
               aria-label={viewNav.text}
               lang={viewNav.lang}
-              className="flex max-w-full gap-1.5 overflow-x-auto text-sm"
+              className="flex min-w-0 grow basis-0 gap-1.5 overflow-x-auto"
               data-testid="filters"
             >
               {views
@@ -350,7 +383,7 @@ export default async function ScoresPage({
                       key={v.view}
                       href={pageHref(locale, q, viewFlags(v.view))}
                       aria-current={active ? 'true' : undefined}
-                      className={`inline-flex min-h-11 shrink-0 items-center rounded-pill border px-3.5 whitespace-nowrap ${
+                      className={`${chipClass} ${
                         active
                           ? 'border-fg bg-fg font-bold text-canvas'
                           : 'border-default font-semibold hover:bg-surface-raised'
@@ -362,158 +395,193 @@ export default async function ScoresPage({
                   );
                 })}
             </nav>
-          </div>
-          <p className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-caption">
-            <span data-testid="timezone">
-              <FilledMessage
-                message={message(
-                  resolved,
-                  !zone.chosen && !q.explicitTimezone ? 'scores.timesInGuest' : 'scores.timesIn',
-                )}
-                params={{ zone: q.timezone, zoneName: zoneWords(locale, q.timezone) }}
-              />
-            </span>
-            <span className="text-model">
-              <Translated locale={locale} message="scores.modelLegend" />
-            </span>
-          </p>
 
-          {/* On a phone the picker and the steps fold behind one control (T-1482,
-              the maintainer's choice of 2026-10-23), so the first match is on the
-              first screen; the day strip above covers the week. Open when the day
-              shown is not on the strip. From 640px it is no box at all (globals.css). */}
-          <details
-            className="date-fold group"
-            open={!strip.some((d) => d.isSelected)}
-            data-testid="date-fold"
-          >
-            <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
-              <span
-                aria-hidden="true"
-                className="transition-transform group-open:rotate-90 rtl:-scale-x-100"
+            {/* The picker and the steps (T-1482): open when the day shown is not
+                on the strip. From 640px it is no box at all and stands on its
+                own line under the row (globals.css), as it did. */}
+            <details
+              name="scores-panel"
+              className="date-fold group"
+              open={!strip.some((d) => d.isSelected)}
+              data-testid="date-fold"
+            >
+              <summary
+                className={`${chipClass} ${summaryClass} border-default font-semibold group-open:bg-surface-raised`}
+                data-testid="date-chip"
               >
-                ▸
-              </span>
-              <Translated locale={locale} message="scores.chooseDate" />
-            </summary>
-            {/* The day first, then the steps: on a phone the date and its button take
-              one row and the two steps the next, so neither is squeezed (T-605). */}
-            <div className="flex flex-wrap items-end gap-2 text-sm" data-testid="date-picker">
-              <form
-                method="get"
-                action={`/${locale}/scores`}
-                className="flex min-w-0 basis-full items-end gap-2 sm:basis-auto"
-              >
-                {hidden([zoneField, ...flagFields, ...filterParams(filters)])}
-                <label className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span>
-                    <Translated locale={locale} message="scores.date" />
-                  </span>
-                  <input
-                    type="date"
-                    name="date"
-                    required
-                    defaultValue={q.date}
-                    className={`${inputClass} min-h-11 w-full min-w-0`}
-                    data-testid="date-input"
-                  />
-                </label>
-                <Button type="submit" className="min-h-11 shrink-0 font-medium">
-                  <Translated locale={locale} message="scores.showDay" />
-                </Button>
-              </form>
-              {/* The arrows are bidi-mirrored characters, so they point the right way in RTL. */}
-              <ButtonLink
-                href={pageHref(locale, q, { date: shiftDate(q.date, -1) })}
-                className={stepClass}
-                data-testid="previous-day"
-              >
-                <span aria-hidden="true">‹</span>
-                <span>
-                  <Translated locale={locale} message="scores.previousDay" />
+                <Translated locale={locale} message="scores.date" />
+                <span aria-hidden="true" className="text-xs group-open:rotate-180">
+                  ▾
                 </span>
-              </ButtonLink>
-              <ButtonLink
-                href={pageHref(locale, q, { date: shiftDate(q.date, 1) })}
-                className={stepClass}
-                data-testid="next-day"
+              </summary>
+              {/* The day first, then the steps: on a phone the date and its button take
+                one row and the two steps the next, so neither is squeezed (T-605). */}
+              <div
+                className="order-1 flex basis-full flex-wrap items-end gap-2 pt-2"
+                data-testid="date-picker"
               >
-                <span>
-                  <Translated locale={locale} message="scores.nextDay" />
-                </span>
-                <span aria-hidden="true">›</span>
-              </ButtonLink>
-            </div>
-          </details>
-
-          {options !== null &&
-            (filtered ||
-              options.countries.length + options.competitions.length + options.stages.length >
-                0) && (
-              <details open={filtered} className="group text-sm" data-testid="more-filters">
-                {/* A flex summary loses the browser's triangle, so it draws its own (T-1479):
-                    without one the line read as a heading, not a control. */}
-                <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-medium [&::-webkit-details-marker]:hidden">
-                  <span
-                    aria-hidden="true"
-                    className="transition-transform group-open:rotate-90 rtl:-scale-x-100"
-                  >
-                    ▸
-                  </span>
-                  <Translated
-                    locale={locale}
-                    message={filtered ? 'scores.filter.moreActive' : 'scores.filter.more'}
-                  />
-                </summary>
                 <form
                   method="get"
                   action={`/${locale}/scores`}
-                  className="mt-2 flex flex-wrap items-end gap-3"
+                  className="flex min-w-0 basis-full items-end gap-2 sm:basis-auto"
                 >
-                  {hidden([['date', q.date === q.today ? null : q.date], zoneField, ...flagFields])}
-                  {select(
-                    'country',
-                    say('scores.filter.country'),
-                    say('scores.filter.allCountries'),
-                    options.countries,
-                    filters.country,
-                  )}
-                  {select(
-                    'competition',
-                    say('scores.filter.competition'),
-                    say('scores.filter.allCompetitions'),
-                    options.competitions,
-                    filters.competition,
-                  )}
-                  {select(
-                    'stage',
-                    say('scores.filter.stage'),
-                    say('scores.filter.allStages'),
-                    options.stages,
-                    filters.stage,
-                  )}
-                  <Button type="submit" className="min-h-11 font-medium">
-                    <Translated locale={locale} message="scores.filter.apply" />
+                  {hidden([zoneField, ...flagFields, ...filterParams(filters)])}
+                  <label className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span>
+                      <Translated locale={locale} message="scores.date" />
+                    </span>
+                    <input
+                      type="date"
+                      name="date"
+                      required
+                      defaultValue={q.date}
+                      className={`${inputClass} min-h-11 w-full min-w-0`}
+                      data-testid="date-input"
+                    />
+                  </label>
+                  <Button type="submit" className="min-h-11 shrink-0 font-medium">
+                    <Translated locale={locale} message="scores.showDay" />
                   </Button>
-                  {filtered && (
-                    <Link
-                      href={clearFiltersHref}
-                      className="inline-flex min-h-11 items-center px-2 underline"
-                    >
-                      <Translated locale={locale} message="scores.filter.clear" />
-                    </Link>
-                  )}
                 </form>
-              </details>
-            )}
+                {/* The arrows are bidi-mirrored characters, so they point the right way in RTL. */}
+                <ButtonLink
+                  href={pageHref(locale, q, { date: shiftDate(q.date, -1) })}
+                  className={stepClass}
+                  data-testid="previous-day"
+                >
+                  <span aria-hidden="true">‹</span>
+                  <span>
+                    <Translated locale={locale} message="scores.previousDay" />
+                  </span>
+                </ButtonLink>
+                <ButtonLink
+                  href={pageHref(locale, q, { date: shiftDate(q.date, 1) })}
+                  className={stepClass}
+                  data-testid="next-day"
+                >
+                  <span>
+                    <Translated locale={locale} message="scores.nextDay" />
+                  </span>
+                  <span aria-hidden="true">›</span>
+                </ButtonLink>
+              </div>
+            </details>
+
+            {options !== null &&
+              (filtered ||
+                options.countries.length + options.competitions.length + options.stages.length >
+                  0) && (
+                <details
+                  name="scores-panel"
+                  // One panel open at a time: the date's, when the day shown is
+                  // off the strip, wins (code review: both open broke hydration).
+                  open={filtered && strip.some((d) => d.isSelected)}
+                  className="group"
+                  data-testid="more-filters"
+                >
+                  {/* A summary draws its own mark (T-1479): without one it read as a
+                      heading, not a control. Filtering is said in the count, in
+                      words in the panel's first line, and never by colour alone. */}
+                  <summary
+                    className={`${chipClass} ${summaryClass} ${
+                      filtered ? 'border-fg font-bold' : 'border-default font-semibold'
+                    } group-open:bg-surface-raised`}
+                    data-testid="filters-chip"
+                  >
+                    <Translated locale={locale} message="scores.filter.chip" />
+                    {filtered && (
+                      <span
+                        className="rounded-pill bg-fg px-1.5 text-xs text-canvas tabular-nums"
+                        data-testid="filters-count"
+                      >
+                        {formatNumber(locale, filterParams(filters).length)}
+                      </span>
+                    )}
+                    <span aria-hidden="true" className="text-xs group-open:rotate-180">
+                      ▾
+                    </span>
+                  </summary>
+                  <form
+                    method="get"
+                    action={`/${locale}/scores`}
+                    className="flex flex-wrap items-end gap-3 pt-2"
+                  >
+                    <p className="basis-full text-xs text-muted">
+                      <Translated
+                        locale={locale}
+                        message={filtered ? 'scores.filter.moreActive' : 'scores.filter.more'}
+                      />
+                    </p>
+                    {hidden([
+                      ['date', q.date === q.today ? null : q.date],
+                      zoneField,
+                      ...flagFields,
+                    ])}
+                    {select(
+                      'country',
+                      say('scores.filter.country'),
+                      say('scores.filter.allCountries'),
+                      options.countries,
+                      filters.country,
+                    )}
+                    {select(
+                      'competition',
+                      say('scores.filter.competition'),
+                      say('scores.filter.allCompetitions'),
+                      options.competitions,
+                      filters.competition,
+                    )}
+                    {select(
+                      'stage',
+                      say('scores.filter.stage'),
+                      say('scores.filter.allStages'),
+                      options.stages,
+                      filters.stage,
+                    )}
+                    <Button type="submit" className="min-h-11 font-medium">
+                      <Translated locale={locale} message="scores.filter.apply" />
+                    </Button>
+                    {filtered && (
+                      <Link
+                        href={clearFiltersHref}
+                        className="inline-flex min-h-11 items-center px-2 underline"
+                      >
+                        <Translated locale={locale} message="scores.filter.clear" />
+                      </Link>
+                    )}
+                  </form>
+                </details>
+              )}
+          </div>
+
+          {/* One 12px legend line (D-374): the zone, then the model's words, the
+              only turquoise (rule 6). The zone is set in the welcome steps and
+              settings, so the line no longer asks a guest to sign in for it. */}
+          <p className="text-xs text-caption" data-testid="legend">
+            <span data-testid="timezone">
+              <FilledMessage
+                message={message(resolved, 'scores.timesIn')}
+                params={{ zone: q.timezone, zoneName: zoneWords(locale, q.timezone) }}
+              />
+            </span>
+            {' · '}
+            <span className="text-model" data-testid="model-legend">
+              <Translated locale={locale} message="scores.modelLegend" />
+            </span>
+          </p>
         </div>
 
         {/* The preview: beside the list from 1024px, sticky while the list
-            scrolls; on a phone above the list, and only once a Pick asked for it. */}
+            scrolls; below that a bottom sheet over the list, and only once a
+            Pick asked for it (T-1738). The sheet and its scrim are fixed, so
+            under 1024px this box is `contents`: it takes no row of the grid
+            and the list does not move when the sheet opens or closes. It sticks
+            1rem under the sticky site header, whose height the header sets
+            (`--site-header-height`, T-1755), and is that much shorter (T-1757). */}
         {result.ok && (
           <aside
-            className={`flex min-w-0 flex-col gap-4 lg:sticky lg:top-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100dvh-2rem)] lg:overflow-y-auto xl:col-start-3 ${
-              chosen === null ? 'max-lg:hidden' : ''
+            className={`min-w-0 flex-col gap-4 lg:sticky lg:top-[calc(var(--site-header-height,0px)+1rem)] lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex lg:max-h-[calc(100dvh-2rem-var(--site-header-height,0px))] lg:overflow-y-auto xl:col-start-3 ${
+              chosen === null ? 'max-lg:hidden' : 'max-lg:contents'
             }`}
             data-testid="preview-column"
           >
@@ -527,11 +595,13 @@ export default async function ScoresPage({
                 zone={zoneWords(locale, q.timezone)}
                 me={me}
                 current={current}
+                pending={pendingPick}
                 consensus={consensus}
                 forecast={previewLines.forecast[previewCard.id]}
                 community={previewLines.community[previewCard.id]}
                 viewing={previewLines.viewing[previewCard.id]}
-                closeHref={chosen === null ? undefined : pageHref(locale, q)}
+                // Back to the row that asked, never to the top of the page.
+                closeHref={chosen === null ? undefined : `${pageHref(locale, q)}#m-${chosen.id}`}
                 now={now}
                 words={words}
                 forecastWords={forecastBarWords(locale)}
@@ -540,7 +610,7 @@ export default async function ScoresPage({
           </aside>
         )}
 
-        <div className="flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-2 xl:col-start-2">
+        <div className="scores-flat flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-start-2 xl:col-start-2">
           {!result.ok ? (
             <Notice tone="danger" data-testid="scores-unreachable">
               <Translated

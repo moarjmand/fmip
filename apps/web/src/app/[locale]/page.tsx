@@ -123,8 +123,9 @@ async function loadForecasts(ids: string[]): Promise<Map<string, CardForecast>> 
 
 /**
  * The home page in the Stadiomind design (T-1495, D-263, D-270; the canvas
- * boards Home and HomePhone): the day's heading, the matches in play, the big
- * match with the model's forecast and the other two voices kept apart, and
+ * boards Home and HomePhone): the day's heading, the big match with the
+ * model's forecast and the other two voices kept apart, the first run's
+ * strip, the matches in play (after the big match since T-1756, D-373), and
  * today by competition; beside them the league's table, the model's figures,
  * today's broadcasts and the member's teams; then the member's sections and
  * the news (blueprint 2.3).
@@ -286,21 +287,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <JsonLd data={websiteJsonLd(locale)} />
       <div className="page-frame flex flex-col gap-6 pt-6">
         {marked.length > 0 && <BreakingStrip locale={locale} stories={marked} />}
-        {offerFirstRun && <FirstRunOffer locale={locale} />}
         <HomeDateline locale={lang} timeZone={timeZone} now={now.toISOString()} />
 
         <div className="flex flex-wrap items-start gap-6">
+          {/* T-1756 (D-373; board P4-2): the main match first, then the first
+              run's strip, then "Live now" (it repeats the rail's live cards);
+              with no main match the strip follows the "Today" line. */}
           <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-6">
-            {live.length > 0 && (
-              <LiveNow
-                cards={live.slice(0, LIVE_STRIP)}
-                total={live.length}
-                checkedAt={liveCheckedAt(live)}
-                scoresHref={scoresHref}
-                locale={lang}
-                timeZone={timeZone}
-              />
-            )}
             {hero !== null && (
               <BigMatch
                 hero={hero}
@@ -317,6 +310,17 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   hero.card.status !== 'scheduled' ||
                   isLocked(hero.card.kickoff_at)
                 }
+                locale={lang}
+                timeZone={timeZone}
+              />
+            )}
+            {offerFirstRun && <FirstRunOffer locale={locale} />}
+            {live.length > 0 && (
+              <LiveNow
+                cards={live.slice(0, LIVE_STRIP)}
+                total={live.length}
+                checkedAt={liveCheckedAt(live)}
+                scoresHref={scoresHref}
                 locale={lang}
                 timeZone={timeZone}
               />

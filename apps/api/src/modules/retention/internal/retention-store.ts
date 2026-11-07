@@ -9,7 +9,8 @@ export type PurgeTarget = 'session' | 'console_session' | 'email_token' | 'notif
 /**
  * One bounded batch per table (T-1715, D-345): each method deletes at most
  * `limit` rows older than `cutoff` and says how many it deleted. The rows
- * belong to other boundaries (identity, notifications, the agents console);
+ * belong to other boundaries (identity, notifications, the agents console,
+ * and since T-1740 the predictions boundary's pending picks);
  * this only removes the ones whose period is over, the way the activity
  * report only counts them.
  */
@@ -69,6 +70,28 @@ export class RetentionStore {
       [cutoff, limit],
     );
     return rows[0]?.deleted ?? 0;
+  }
+
+  /**
+   * Picks saved before an e-mail address was confirmed (T-1740, D-361): one
+   * whose match kicked off before `cutoff`, whatever became of it, and one
+   * that became a prediction before `convertedBefore` (the run's own moment:
+   * the next run after it converted) -- the prediction holds the outcome and
+   * the time, and the row here is kept for nothing else. No prediction,
+   * settlement or rating reads this table, so none changes (rule 8).
+   */
+  async deletePendingPicks(cutoff: Date, limit: number, convertedBefore: Date): Promise<number> {
+    const result = await this.pool.query(
+      `DELETE FROM pending_pick
+        WHERE id IN (SELECT pp.id
+                       FROM pending_pick pp
+                       JOIN fixture f ON f.id = pp.fixture_id
+                      WHERE f.kickoff_at < $1
+                         OR (pp.status = 'converted' AND pp.resolved_at < $3)
+                      LIMIT $2)`,
+      [cutoff, limit, convertedBefore],
+    );
+    return result.rowCount ?? 0;
   }
 
   private async deleteExpired(

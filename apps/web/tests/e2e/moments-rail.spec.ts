@@ -392,10 +392,11 @@ test.describe('the moments rail with moments', () => {
   test.describe('on a phone', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
 
-    test('the cards scroll sideways and snap, a tap opens the match, and no hover card', async ({
+    test('on home the cards scroll sideways and snap, a tap opens the match, and no hover card', async ({
       page,
     }) => {
-      await open(page, '/en/scores');
+      // Home keeps the full rail on a phone (T-1755, D-372); every other page folds it.
+      await open(page, '/en');
       await expect(page.getByTestId('moments-live')).toBeVisible();
       await expect(page.getByTestId('moments-picked')).toBeHidden();
       await expect(page.getByTestId('moments-leagues')).toBeHidden();
@@ -420,6 +421,57 @@ test.describe('the moments rail with moments', () => {
       await second.tap();
       await expect(page).toHaveURL(/\/en\/match\/m2$/);
       await expect(page.getByTestId('moment-panel')).toHaveCount(0);
+    });
+
+    test('every other page has one 44px line naming the first match in play, and a tap unfolds it', async ({
+      page,
+    }) => {
+      await open(page, '/en/scores');
+      const toggle = page.getByTestId('moments-toggle');
+      await expect(toggle).toBeVisible();
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(Math.round((await toggle.boundingBox())!.height)).toBe(44);
+      await expect(page.getByTestId('moments-line-live')).toHaveText('3 live');
+      // Brentford 1–0 Liverpool 80′: whole, or the words instead.
+      const match = page.getByTestId('moments-line-match');
+      const label = page.getByTestId('moments-line-label');
+      const [shown, room] = await match.evaluate((el) => [
+        el.getBoundingClientRect().top,
+        el.parentElement!.getBoundingClientRect().top,
+      ]);
+      if (shown === room) await expect(match).toContainText('Brentford 1–0 Liverpool');
+      else await expect(label).toBeVisible();
+      await expect(page.getByTestId('moments-cards')).toBeHidden();
+      await toggle.tap();
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByTestId('moments-cards')).toBeVisible();
+      expect(await noSidewaysScroll(page)).toBe(0);
+    });
+
+    test('is not on sign-in, register, forgot-password, welcome or a page that does not exist', async ({
+      page,
+    }) => {
+      test.skip(server === null, 'a real API is configured, or its address is taken');
+      for (const path of [
+        '/en/login',
+        '/en/register',
+        '/en/forgot-password',
+        '/en/welcome',
+        '/en/no-such-page',
+      ]) {
+        // Drawn by the layout with moments to show, and hidden by the page (D-372).
+        await expect(async () => {
+          answering = true;
+          try {
+            await page.goto(path);
+          } finally {
+            answering = false;
+          }
+          await expect(page.getByTestId('moments-rail')).toHaveCount(1, { timeout: 1_000 });
+        }).toPass({ timeout: 20_000 });
+        await expect(page.locator('header').first(), path).toBeVisible();
+        await expect(page.getByTestId('moments-rail'), path).toBeHidden();
+      }
     });
   });
 });

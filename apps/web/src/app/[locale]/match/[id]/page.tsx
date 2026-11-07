@@ -1,34 +1,39 @@
 import type { Metadata } from 'next';
 import { cache } from 'react';
-import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { interpolate, message, t } from '@/i18n/messages';
-import { ForecastPanel, ModelVerdict } from '@/components/forecast-panel';
-import { ForecastReality } from './forecast-reality';
+import { interpolate, t } from '@/i18n/messages';
+import { ForecastPanel } from '@/components/forecast-panel';
+import {
+  ForecastDetails,
+  ForecastReality,
+  cardVersion,
+  hasForecast,
+  isUpcoming,
+} from './forecast-reality';
+import { MatchPickCard, PickBar } from './match-pick';
 import { CommunityAnalysisPanel } from '@/components/community-analysis-panel';
 import { CompetitionContextPanel } from '@/components/competition-context';
 import {
   CommunityForecastPanel,
+  CommunityPicksRow,
   CommunitySplit,
-  CommunityVerdict,
 } from '@/components/community-consensus';
 import { CommunityVoice, ThreeProductsNote } from '@/components/voices';
 import { isLocked } from '@/lib/prediction-form';
-import { FounderAnalysisPanel, FounderVerdict } from '@/components/founder-analysis';
+import { FounderAnalysisPanel } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
 import { KeyPlayersPanel } from '@/components/key-players';
 import { LiveMatch } from '@/components/live-match';
-import { DataCard, VerdictCard } from '@/components/match-centre-cards';
+import { DataCard } from '@/components/match-centre-cards';
 import { Coverage, HeadToHead, MatchForm } from '@/components/match-record';
 import { MatchFollow } from '@/components/match-follow';
+import { MatchToolsRow } from '@/components/match-tools-row';
 import { MatchPanel } from '@/components/match-panel';
 import { linkChoices } from '@/lib/panel-link';
 import { MatchSummaryPanel } from '@/components/match-summary';
 import { PowerIndexPanel } from '@/components/power-index-panel';
-import { ShareLink } from '@/components/share-link';
 import { MatchThreads } from '@/components/match-threads';
-import { PredictionSection } from '@/components/prediction-section';
 import { RelatedNews } from '@/components/related-news';
 import { VenueCard } from '@/components/venue-card';
 import { ViewingDesk } from '@/components/viewing-desk';
@@ -52,17 +57,18 @@ import {
   fetchConsensus,
   fetchFounderAnalysis,
   fetchOwnPrediction,
+  fetchPendingPick,
   fetchPanelPermission,
   fetchPowerIndex,
   fetchTerritories,
 } from '@/lib/api';
+import { readPick } from '@/lib/pick';
 import { isTimeZone } from '@/lib/scores';
 import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { readTerritoryQuery } from '@/lib/viewing';
 import { matchWords } from '@/lib/words-server';
 import { stageAndRoundLabels } from '@/lib/stage-label';
-import { FilledMessage } from '@/components/filled-message';
 import { Translated } from '@/components/translated';
 import { scoreDisputeHero } from '@/components/score-dispute';
 import { Notice } from '@/components/ui';
@@ -163,6 +169,18 @@ export default async function MatchPage({
   const context = fetchCompetitionContext(id);
 
   const me = await fetchMe(cookie);
+  // The pick the reader saved before their email address was confirmed
+  // (T-1740, D-361), asked beside the rest and only where one can stand: a
+  // member not confirmed yet, or any member once the match has kicked off
+  // ("saved, not counted"). A read; nothing is written on a page load.
+  const pendingRead =
+    me === null
+      ? Promise.resolve(null)
+      : centre.then((r) =>
+          r.ok && (!me.email_verified || isLocked(r.data.fixture.kickoff_at))
+            ? fetchPendingPick(id, cookie)
+            : null,
+        );
   const tzParam = typeof query.tz === 'string' ? query.tz : undefined;
   // The reader's zone (D-207): a `tz` on the link, else the member's or a
   // guest's choice, else the locale's default (UK time on /en).
@@ -213,6 +231,7 @@ export default async function MatchPage({
   ] = result.ok
     ? await Promise.all([reads, me === null ? fetchTerritories() : Promise.resolve(null)])
     : [[null, null, null, null, null, null, null, null, null, null, null, null], null];
+  const pendingPick = result.ok ? await pendingRead : null;
 
   // The final score, once there is one: what the three products are set against.
   const fixture = result.ok ? result.data.fixture : null;
@@ -220,6 +239,32 @@ export default async function MatchPage({
     fixture !== null && fixture.status === 'finished'
       ? (fixture.scores.full_time ?? fixture.scores.current)
       : null;
+  // The model's versions and their evaluations, and the version the Summary's
+  // card is about (T-1744): the lower section explains that same version.
+  const forecastData = forecasts !== null && forecasts.ok ? forecasts.data : null;
+  const evaluationData = evaluations !== null && evaluations.ok ? evaluations.data : null;
+  const about =
+    fixture === null || forecastData === null
+      ? null
+      : cardVersion(
+          forecastData,
+          evaluationData,
+          fixture.status,
+          fixture.kickoff_at,
+          !isUpcoming(fixture),
+        );
+  const consensusData = consensus !== null && consensus.ok ? consensus.data : null;
+  // "No forecast" is said once, by the Summary's card (T-1746, D-367), and
+  // only when no stored version gave probabilities. When the match then has
+  // no Power Index either, the card says both and the Power Index block is
+  // not drawn to say it again. An index, a service that did not answer, or
+  // an earlier version with numbers keeps its block.
+  const powerData = power !== null && power.ok ? power.data : null;
+  const noPowerIndex =
+    forecastData !== null &&
+    !hasForecast(forecastData) &&
+    powerData !== null &&
+    powerData.index === null;
   const viewingData = viewing !== null && viewing.ok ? viewing.data : null;
   // The match's own expected goals, for the Summary's "expected and scored".
   const xgRow =
@@ -232,68 +277,65 @@ export default async function MatchPage({
       : null;
   const words = matchWords(locale);
   const now = new Date().getTime();
+  // "Everton v Coventry": the share sheet's title and the push offer's name.
+  const fixtureTitle =
+    fixture === null
+      ? null
+      : interpolate(t(resolved, 'matchCentre.fixtureTitle'), {
+          home: fixture.home.name,
+          away: fixture.away.name,
+        });
 
   return (
     // A data page (D-198): the stage, following Day and Night; the header and
     // the live strip above it are the layout's and stay as they are (T-1384).
     <main className="min-h-dvh bg-stage pb-8">
-      <div className="page-frame flex flex-col gap-4 pt-2 md:gap-5 md:pt-4">
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <Link href={`/${locale}/scores`} className="inline-flex min-h-11 items-center underline">
-            <Translated locale={locale} message="matchCentre.back" />
-          </Link>
-          <span className="text-muted" data-testid="timezone">
-            <FilledMessage
-              message={message(resolved, 'scores.timesIn')}
-              params={{ zone: timeZone, zoneName: zoneWords(locale, timeZone) }}
+      {/* On a phone the tools row, the band and the tabs follow each other
+          with no gap (T-1743, D-364): the first screen is for the forecast
+          and the pick. */}
+      <div className="page-frame flex flex-col md:gap-5 md:pt-4">
+        {/* One row: back, the zone, Share and Follow (T-1743). */}
+        <MatchToolsRow
+          locale={locale}
+          timeZone={timeZone}
+          share={
+            fixtureTitle === null || fixture === null
+              ? null
+              : { url: canonicalUrl(locale, `/match/${fixture.id}`), title: fixtureTitle }
+          }
+        >
+          {fixture !== null && fixtureTitle !== null && (
+            <MatchFollow
+              locale={locale}
+              fixtureId={fixture.id}
+              name={fixtureTitle}
+              status={fixture.status}
+              signedIn={me !== null}
+              following={following}
             />
-          </span>
-          {result.ok && (
-            <span>
-              <ShareLink
-                url={canonicalUrl(locale, `/match/${result.data.fixture.id}`)}
-                title={interpolate(t(resolved, 'matchCentre.fixtureTitle'), {
-                  home: result.data.fixture.home.name,
-                  away: result.data.fixture.away.name,
-                })}
-                label={<Translated locale={locale} message="share.label" />}
-                messages={{
-                  copied: message(resolved, 'share.copied'),
-                  manual: message(resolved, 'share.manual'),
-                }}
-              />
-            </span>
           )}
-        </p>
+        </MatchToolsRow>
         {!result.ok ? (
-          <>
+          <div className="flex flex-col gap-4 max-md:pt-2 md:gap-5">
             <h1 className="text-2xl font-semibold" data-testid="title">
               <Translated locale={locale} message="matchCentre.title" />
             </h1>
             <Notice tone="danger" data-testid="match-unreachable">
               <Translated locale={locale} message="matchCentre.unreachable" />
             </Notice>
-          </>
+          </div>
         ) : (
           <>
             <JsonLd data={matchJsonLd(locale, result.data.fixture)} />
-            <MatchFollow
-              locale={locale}
-              fixtureId={result.data.fixture.id}
-              name={interpolate(t(resolved, 'matchCentre.fixtureTitle'), {
-                home: result.data.fixture.home.name,
-                away: result.data.fixture.away.name,
-              })}
-              status={result.data.fixture.status}
-              signedIn={me !== null}
-              following={following}
-            />
             <LiveMatch
               initial={result.data}
               timeZone={timeZone}
               locale={locale}
               words={words}
               hero={{
+                // The zone in words, beside the full kick-off in the phone's
+                // details (T-1743): resolved here, off the client.
+                zone: zoneWords(locale, timeZone),
                 stage: stageAndRoundLabels(
                   result.data.fixture.stage?.name,
                   result.data.fixture.round,
@@ -327,18 +369,63 @@ export default async function MatchPage({
               slots={{
                 // The Summary opens with what the model forecast and, after
                 // full time, what happened (T-1497): the model's card alone,
-                // drawn on the server; the three voices follow it.
+                // drawn on the server, and the one place the forecast is
+                // drawn on this page (T-1744, D-365). Before kick-off it is
+                // the headline, so the pick can stand directly under it.
                 outcome: (
                   <ForecastReality
-                    forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
-                    evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
+                    forecasts={forecastData}
+                    evaluations={evaluationData}
                     fixture={result.data.fixture}
                     final={final}
                     matchXg={matchXg}
                     timeZone={timeZone}
                     locale={locale}
+                    noPowerIndex={noPowerIndex}
                   />
                 ),
+                // The reader's own pick, directly under the model's headline
+                // (T-1739, D-360): the pick control in the section `#pick`,
+                // with the outcome a guest's link brought back in `?pick=`
+                // marked and never stored. The community's split opens in it
+                // only once they have picked (D-206), so it cannot anchor a
+                // pick. From kick-off on it is one locked row (T-1744).
+                pick: (
+                  <MatchPickCard
+                    locale={locale}
+                    fixture={result.data.fixture}
+                    timeZone={timeZone}
+                    me={me}
+                    current={prediction}
+                    pending={pendingPick}
+                    chosen={readPick(query.pick)}
+                    split={
+                      <CommunitySplit
+                        consensus={consensusData}
+                        home={result.data.fixture.home.name}
+                        away={result.data.fixture.away.name}
+                        locale={locale}
+                      />
+                    }
+                  />
+                ),
+                // Before kick-off, the rest of the model's card after the
+                // pick (decision 4 of package 2): expected goals, likeliest
+                // scores, every version and the receipt. Only the order
+                // changed; from kick-off on the card above is whole.
+                details:
+                  isUpcoming(result.data.fixture) &&
+                  forecastData !== null &&
+                  forecastData.versions.some((v) => v.probabilities !== null) ? (
+                    <ForecastDetails
+                      forecasts={forecastData}
+                      evaluations={evaluationData}
+                      fixture={result.data.fixture}
+                      matchXg={matchXg}
+                      timeZone={timeZone}
+                      locale={locale}
+                    />
+                  ) : null,
                 // What does not move in play, drawn here so its code stays out
                 // of the page's client bundle (T-1384).
                 form: (
@@ -361,8 +448,6 @@ export default async function MatchPage({
                 venue: (
                   <VenueCard venue={result.data.fixture.venue} locale={locale} words={words} />
                 ),
-                // Each product in its own section with its own name: the model, the
-                // founder and the community are never one panel (rule 6, T-605).
                 // The machine-written summary exists only after full time; no
                 // empty card before it (rule 3).
                 summary:
@@ -378,45 +463,6 @@ export default async function MatchPage({
                       />
                     </DataCard>
                   ) : null,
-                // After full time: what each product said against what happened,
-                // three lanes from three components (rule 6, T-1384).
-                verdict:
-                  final !== null ? (
-                    <VerdictCard
-                      title={<Translated locale={locale} message="matchCentre.verdict.title" />}
-                      note={<ThreeProductsNote locale={locale} />}
-                    >
-                      <ModelVerdict
-                        forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
-                        evaluations={
-                          evaluations !== null && evaluations.ok ? evaluations.data : null
-                        }
-                        kickoffAt={result.data.fixture.kickoff_at}
-                        result={final}
-                        home={result.data.fixture.home.name}
-                        away={result.data.fixture.away.name}
-                        timeZone={timeZone}
-                        locale={locale}
-                      />
-                      <FounderVerdict
-                        analysis={founder !== null && founder.ok ? founder.data : null}
-                        result={final}
-                        home={result.data.fixture.home.name}
-                        away={result.data.fixture.away.name}
-                        timeZone={timeZone}
-                        locale={locale}
-                      />
-                      <CommunityVoice locale={locale}>
-                        <CommunityVerdict
-                          consensus={consensus !== null && consensus.ok ? consensus.data : null}
-                          result={final}
-                          home={result.data.fixture.home.name}
-                          away={result.data.fixture.away.name}
-                          locale={locale}
-                        />
-                      </CommunityVoice>
-                    </VerdictCard>
-                  ) : null,
                 context: (
                   <DataCard>
                     <CompetitionContextPanel
@@ -428,87 +474,99 @@ export default async function MatchPage({
                     />
                   </DataCard>
                 ),
-                forecast: (
+                // The lower Predictions section (T-1744, D-365): how the
+                // model's forecast was reached -- the factors, what moved
+                // between versions, the evaluation -- and the Power Index.
+                // The forecast itself is the Summary's card and is not drawn
+                // a second time here. With no forecast and no Power Index
+                // there is no section: the card has said both (T-1746).
+                forecast: noPowerIndex ? null : (
                   <>
                     <ForecastPanel
-                      forecasts={forecasts !== null && forecasts.ok ? forecasts.data : null}
-                      evaluations={evaluations !== null && evaluations.ok ? evaluations.data : null}
+                      forecasts={forecastData}
+                      evaluations={evaluationData}
+                      about={about}
                       home={result.data.fixture.home.name}
                       away={result.data.fixture.away.name}
                       timeZone={timeZone}
                       locale={locale}
                     />
                     <DataCard>
-                      <PowerIndexPanel
-                        power={power !== null && power.ok ? power.data : null}
-                        timeZone={timeZone}
-                        locale={locale}
-                      />
+                      <PowerIndexPanel power={powerData} timeZone={timeZone} locale={locale} />
                     </DataCard>
                   </>
                 ),
+                // The other predictions of this match, once each, directly
+                // after the pick (T-1744, D-365). Each in its own section
+                // with its own name and its own component: the model, the
+                // founder and the community are never one panel (rule 6,
+                // T-605). One with nothing to show is one compact row that
+                // says why; one with content is its full card.
                 analysis: (
-                  <FounderAnalysisPanel
-                    analysis={founder !== null && founder.ok ? founder.data : null}
-                    home={result.data.fixture.home.name}
-                    away={result.data.fixture.away.name}
-                    timeZone={timeZone}
-                    locale={locale}
-                  />
+                  <>
+                    {/* A label over the group, not a heading: the founder's
+                        analysis, the community and the contributors below
+                        are headings of the same level, and a heading here
+                        would contain none of them. */}
+                    <p
+                      className="text-xs font-extrabold tracking-wider text-muted uppercase [:root:is(:lang(fa),:lang(ar))_&]:normal-case"
+                      data-testid="other-predictions"
+                    >
+                      <Translated locale={locale} message="lanes.others" />
+                    </p>
+                    {/* After full time the analysis also says whether the
+                        published call matched the result. */}
+                    <FounderAnalysisPanel
+                      analysis={founder !== null && founder.ok ? founder.data : null}
+                      result={final}
+                      home={result.data.fixture.home.name}
+                      away={result.data.fixture.away.name}
+                      timeZone={timeZone}
+                      locale={locale}
+                    />
+                  </>
                 ),
                 community: (
                   <>
-                    {/* The community picks lane (T-1388): the reader's own pick and
-                    the members' spread, which opens only once they have picked or
-                    kick-off has locked every pick, so it cannot anchor a pick. */}
-                    <CommunityVoice locale={locale}>
-                      <PredictionSection
-                        locale={locale}
-                        fixture={result.data.fixture}
-                        me={me}
-                        current={prediction}
-                        split={
-                          <CommunitySplit
-                            consensus={consensus !== null && consensus.ok ? consensus.data : null}
-                            home={result.data.fixture.home.name}
-                            away={result.data.fixture.away.name}
-                            locale={locale}
-                          />
-                        }
-                      />
-                      <CommunityForecastPanel
-                        consensus={consensus !== null && consensus.ok ? consensus.data : null}
-                        home={result.data.fixture.home.name}
-                        away={result.data.fixture.away.name}
-                        timeZone={timeZone}
-                        locale={locale}
-                        revealed={prediction !== null || isLocked(result.data.fixture.kickoff_at)}
-                        // Three numbers, pulled out here so the community panel never
-                        // holds a forecast (rule 6). The comparison blueprint 4.2 asks
-                        // for is a difference between two labelled answers, never a
-                        // blend of them.
-                        model={
-                          forecasts !== null && forecasts.ok
-                            ? (forecasts.data.latest?.probabilities ?? null)
-                            : null
-                        }
-                      />
-                    </CommunityVoice>
-                    {/* Where the three meet on one page, said once (T-1388). */}
-                    <ThreeProductsNote locale={locale} />
+                    {/* The community picks (T-1388): the members' spread,
+                    which opens only once the reader has picked or kick-off has
+                    locked every pick, so it cannot anchor a pick; after full
+                    time, the share that picked what happened. With no
+                    consensus, one row that says so. The reader's own pick is
+                    the card under the model's headline (T-1739), once. */}
+                    {consensusData === null || consensusData.data === null ? (
+                      <CommunityPicksRow consensus={consensusData} locale={locale} />
+                    ) : (
+                      <CommunityVoice locale={locale}>
+                        <CommunityForecastPanel
+                          consensus={consensusData}
+                          home={result.data.fixture.home.name}
+                          away={result.data.fixture.away.name}
+                          timeZone={timeZone}
+                          locale={locale}
+                          revealed={prediction !== null || isLocked(result.data.fixture.kickoff_at)}
+                          result={final}
+                          // Three numbers, pulled out here so the community panel never
+                          // holds a forecast (rule 6). The comparison blueprint 4.2 asks
+                          // for is a difference between two labelled answers, never a
+                          // blend of them.
+                          model={forecastData?.latest?.probabilities ?? null}
+                        />
+                      </CommunityVoice>
+                    )}
                     {/* Below the founder's analysis and visibly not it: a fourth
                     signed opinion, named as one (rule 6, T-263). */}
-                    <DataCard>
-                      <CommunityAnalysisPanel
-                        locale={locale}
-                        analyses={
-                          communityAnalyses !== null && communityAnalyses.ok
-                            ? communityAnalyses.data
-                            : null
-                        }
-                        reachable={communityAnalyses !== null && communityAnalyses.ok}
-                      />
-                    </DataCard>
+                    <CommunityAnalysisPanel
+                      locale={locale}
+                      analyses={
+                        communityAnalyses !== null && communityAnalyses.ok
+                          ? communityAnalyses.data
+                          : null
+                      }
+                      reachable={communityAnalyses !== null && communityAnalyses.ok}
+                    />
+                    {/* Where the three meet on one page, said once (T-1388). */}
+                    <ThreeProductsNote locale={locale} />
                   </>
                 ),
                 discussion: (
@@ -609,6 +667,17 @@ export default async function MatchPage({
           </>
         )}
       </div>
+      {/* On a phone, until kick-off: the call to pick, fixed above the tab
+          bar, a link to the card (T-1739, D-360). */}
+      {result.ok && (
+        <PickBar
+          locale={locale}
+          fixture={result.data.fixture}
+          timeZone={timeZone}
+          current={prediction}
+          pending={pendingPick}
+        />
+      )}
     </main>
   );
 }

@@ -175,7 +175,7 @@ describe('the header nav', () => {
 
   it('is in the header, which follows the theme (D-267)', () => {
     expect(HEADER).not.toContain('data-mode="editorial"');
-    expect(HEADER).toContain('<header className="relative border-b border-default bg-surface');
+    expect(HEADER).toContain('<header className="site-header border-b border-default bg-surface');
     expect(HEADER).toMatch(/<PrimaryNav\s/);
     expect(HEADER).toContain(
       '<MomentsRail locale={locale} timeZone={timeZone} signedIn={me !== null} />',
@@ -251,8 +251,8 @@ describe('the bottom tab bar', () => {
     expect(html.match(/aria-current/g)).toHaveLength(1);
   });
 
-  it('sends You to Sign in for a guest and to Settings for a member', () => {
-    expect(tag(render('en', false), 'tab-you')).toContain('href="/en/login"');
+  it('sends You to the account offer for a guest and to Settings for a member', () => {
+    expect(tag(render('en', false), 'tab-you')).toContain('href="/en/you"');
     expect(tag(render('en', true), 'tab-you')).toContain('href="/en/settings"');
   });
 

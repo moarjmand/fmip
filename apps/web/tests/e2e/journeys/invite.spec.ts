@@ -26,11 +26,10 @@ test('a friend who registers through an invite link is offered, not signed up fo
   await expect(guest.getByTestId('invited-by')).toContainText(`@${INVITER.username}`);
   const form = guest.getByTestId('register-form');
   await form.getByLabel('Username').fill(GUEST.username);
-  await form.getByLabel('Display name').fill(GUEST.displayName);
   await form.getByLabel('Email').fill(GUEST.email);
-  await form.getByLabel('Password').fill(GUEST.password);
+  await form.getByLabel('Password', { exact: true }).fill(GUEST.password);
   await form.getByLabel('Country or territory').selectOption({ label: 'England' });
-  await form.getByLabel('I accept the platform rules.').check();
+  await form.getByLabel('I accept the platform rules').check();
   await form.getByRole('button', { name: 'Create account' }).click();
 
   // The first run comes first (T-620), then the inviter's profile it was carrying.
@@ -40,7 +39,8 @@ test('a friend who registers through an invite link is offered, not signed up fo
   // Offered, not done: the control still offers to add, and the inviter has no request.
   await expect(guest.getByTestId('friend-add')).toBeVisible();
   await inviter.goto('/en/friends');
-  await expect(inviter.getByText(GUEST.displayName)).toHaveCount(0);
+  // The guest's display name is their username until they choose one (T-1737).
+  await expect(inviter.getByText(GUEST.username)).toHaveCount(0);
 
   // A link naming nobody plausible is simply a registration page (signed out,
   // since a signed-in member is sent to their own profile from it).

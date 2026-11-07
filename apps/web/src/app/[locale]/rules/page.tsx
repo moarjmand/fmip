@@ -45,6 +45,8 @@ const RETENTION_LINES: MessageKey[] = [
   'rules.retention.sessions',
   'rules.retention.emailLinks',
   'rules.retention.notifications',
+  // A pick saved before the email address was confirmed (T-1740, D-361).
+  'rules.retention.pendingPicks',
   'rules.retention.backups',
 ];
 

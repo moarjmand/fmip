@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
-import { redirect } from 'next/navigation';
+import { GatePage } from '@/components/gate-card';
 import type { SavedArticle } from '@fmip/contracts';
 import { SaveArticle } from '@/components/save-article';
 import { Translated } from '@/components/translated';
@@ -42,7 +42,8 @@ export default async function SavedPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params;
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  if (me === null) redirect(`/${locale}/login?next=/${locale}/following/saved`);
+  // A guest sees what the page is for and the two ways in (T-1736, D-358).
+  if (me === null) return <GatePage locale={locale} route="/following/saved" />;
   const result = await fetchSavedArticles(cookie);
   const when = (iso: string): string => formatDateTime(locale, iso, me.timezone);
 

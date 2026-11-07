@@ -66,7 +66,10 @@ describe('MatchRow', () => {
     expect(html).toContain('data-forecast="available"');
     expect(html).toContain('>20:00<');
     expect(html).toContain('>Sun<');
-    expect(html).toMatch(/<span data-outcome="home">46.0%<\/span>/);
+    // The one bar at row size (T-1748): whole percentages, each on its segment.
+    expect(html).toContain('data-testid="match-row-bar"');
+    expect(html).toContain('data-size="row"');
+    expect(html).toMatch(/data-outcome="home"[^>]*>.*?<span dir="ltr">46%<\/span>/);
     expect(html).toContain('role="img" aria-label="Model forecast: Arsenal 46.0%');
     expect(html).toContain('data-testid="forecast-bar-meta"');
     expect(html).toContain('dixon-coles-elo<span>@</span>0.6.0');

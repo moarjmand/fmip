@@ -302,7 +302,7 @@ Founder analysis appears on the Predictions page, the relevant match centre, the
 
 ## 6.6 Registered-user predictions
 
-Only signed-in users may submit predictions. Browsing scores, news and public discussions can remain available to guests, but a verified account is mandatory for entering a prediction and building a rating.
+Only signed-in users may submit predictions. Browsing scores, news and public discussions can remain available to guests, but a verified account is mandatory for entering a prediction and building a rating. An outcome chosen before the e-mail address is confirmed is kept as a pending pick, which is not a prediction: it becomes one only if the address is confirmed before kick-off, and otherwise is never counted (D-361).
 
 For each eligible match, a member submits:
 
@@ -665,7 +665,7 @@ The product is not ready for public launch if any mandatory workstream is repres
 
 - The visitor opens an important match centre.
 - The visitor selects **Make a prediction** and is required to create or sign in to an account.
-- After verification, the member submits the match outcome, optional score, confidence and reason tags.
+- After verification, the member submits the match outcome, optional score, confidence and reason tags; an outcome they chose before verifying was kept as a pending pick and becomes their prediction at verification, if that is before kick-off (D-361).
 - The prediction appears in the member's history and in permitted friend/group activity.
 - At kick-off, the prediction locks.
 - After the result is settled, the rating, career points, achievements and leaderboards update.

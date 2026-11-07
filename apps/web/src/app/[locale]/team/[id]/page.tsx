@@ -11,13 +11,14 @@ import {
 } from '@/components/club-overview';
 import {
   ClubBand,
+  ClubFacts,
   FixturesPanel,
   NoNextMatch,
   ResultsPanel,
   SplitsPanels,
   SquadPanel,
 } from '@/components/club-page';
-import { EntityFollow, LiveFreshness } from '@/components/competition-page';
+import { CardFollow, EntityFollow, LiveFreshness } from '@/components/competition-page';
 import type { FreshnessWords } from '@/components/freshness-stamp';
 import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { JsonLd } from '@/components/json-ld';
@@ -44,7 +45,7 @@ import { pageLocale, say } from '@/lib/competition';
 import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { pageMetadata, teamJsonLd } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { type TeamTab, readTeamTab } from '@/lib/team';
+import { type TeamTab, guestFollowHref, readTeamTab } from '@/lib/team';
 import { readStatsSeason } from '@/lib/team-season-stats';
 import { readTerritoryQuery } from '@/lib/viewing';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
@@ -96,6 +97,11 @@ async function nextForecast(fixture: TeamPageFixture | null): Promise<CardForeca
  * to watch it, every result, the squad by position with minutes, and home
  * and away. An unreachable API is said out loud. Its words come from the
  * catalogue (T-1304).
+ *
+ * T-1741 (D-362): the next-match card ends in "Make your pick" (to the match
+ * page's pick card, until kick-off) and Follow; on a phone the band is one
+ * row, so that card is on the first screen, and the ground, followers and
+ * coach it leaves out are `ClubFacts` under the card.
  */
 export default async function TeamPage({
   params,
@@ -183,6 +189,10 @@ export default async function TeamPage({
         timeZone={timeZone}
         tab={tab}
         territory={guestTerritory}
+        // A guest's Follow is on the next-match card (T-1741): on a phone the
+        // band leaves its own out. A member keeps the band's, which also
+        // holds "stop following" and the push offer.
+        followOnCard={overview && page.next_match !== null && me === null}
         follow={
           <EntityFollow
             locale={locale}
@@ -215,8 +225,22 @@ export default async function TeamPage({
                   }
                   locale={locale}
                   timeZone={timeZone}
+                  now={now}
+                  follow={
+                    <CardFollow
+                      locale={locale}
+                      entityType="team"
+                      entityId={t.id}
+                      signedIn={me !== null}
+                      following={following}
+                      followingKey="teamPage.follow.following"
+                      guestHref={guestFollowHref(locale, t.id)}
+                    />
+                  }
                 />
               )}
+              {/* What the phone's one-row band leaves out (T-1741): under the next match. */}
+              <ClubFacts page={page} locale={locale} timeZone={timeZone} />
               <RecentResults page={page} locale={locale} timeZone={timeZone} />
               <RecordPanel page={page} locale={locale} />
               {founder?.ok === true && founder.data.analyses.length > 0 && (
@@ -283,6 +307,8 @@ export default async function TeamPage({
             )}
           </>
         )}
+        {/* The other tabs: the phone's facts after the tab's own content. */}
+        {!overview && <ClubFacts page={page} locale={locale} timeZone={timeZone} />}
         {/* What the time is of: the club's matches, checked and changed (T-1633, D-296). */}
         <p className="text-xs text-muted" data-testid="team-updated">
           {page.last_updated_at === null ? (

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
-import { redirect } from 'next/navigation';
+import { GatePage } from '@/components/gate-card';
 import type { GroupSummary } from '@fmip/contracts';
 import { fetchGroupInvites, fetchGroups, fetchMe, fetchMyGroups } from '@/lib/api';
 import { languageName } from '@/lib/group-about';
@@ -91,7 +91,8 @@ export default async function GroupsPage({
   const [{ locale }, query] = await Promise.all([params, searchParams]);
   const cookie = await sessionCookieHeader();
   const me = await fetchMe(cookie);
-  if (me === null) redirect(`/${locale}/login`);
+  // A guest sees what the page is for and the two ways in (T-1736, D-358).
+  if (me === null) return <GatePage locale={locale} route="/groups" />;
 
   const resolved: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const search = attribute(resolved, 'groupsPage.search');

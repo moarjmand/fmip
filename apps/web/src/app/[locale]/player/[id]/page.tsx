@@ -16,6 +16,7 @@ import { ProviderCareerPanel, ProviderSeasonsPanel } from '@/components/player-p
 import { PlayerTransfersPanel } from '@/components/transfers';
 import {
   LastMatchesPanel,
+  PlayerAbout,
   PlayerHeader,
   PlayerMatchesPanel,
   RecordPanel,
@@ -195,6 +196,8 @@ export default async function PlayerPage({
                   news={news?.ok === true ? news.data : null}
                 />
               </div>
+              {/* On a phone, every fact and the club's whole sentence (T-1758, rule 3). */}
+              <PlayerAbout page={page} locale={locale} />
               <Updated page={page} locale={locale} timeZone={timeZone} />
               {/* The dates, the kick-off and the checks above are in this zone (T-1566). */}
               <p className="text-xs text-muted" data-testid="player-zone">
@@ -256,6 +259,7 @@ export default async function PlayerPage({
             )}
           </>
         )}
+        {!overview && <PlayerAbout page={page} locale={locale} />}
         {!overview && <Updated page={page} locale={locale} timeZone={timeZone} />}
       </div>
     </main>

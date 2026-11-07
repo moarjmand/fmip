@@ -180,8 +180,8 @@ made per row, a timeout -- does.
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
 | home `/en` | 150.3 / 158 (2026-10-25, T-1502, after T-1495) | 38 / 50 / 200 |
-| scores `/en/scores` | 167.8 / 170 (lowered 2026-11-03, T-1730, D-356) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 180.3 / 183 (lowered 2026-11-03, T-1730, D-356) | 77 / 76 / 300 |
+| scores `/en/scores` | 165.1 / 170 (2026-11-05, T-1738, D-359: the pick control is server markup, and its one client module is smaller than the form it replaced; was 167.8, budget lowered 2026-11-03, T-1730, D-356) | 21 / 31 / 150 |
+| match centre `/en/match/…0901` | 181.8 / 183 (2026-11-06, T-1742 to T-1746, D-363 to D-367: the compact score bar, the tools row and freshness line, the coming card and the grouped absences sit in the live view's script, +2.2; 1.2 of headroom left, so the next addition to the live view needs something taken out first; was 179.6 after T-1740 and 179.2 after T-1739, budget lowered 2026-11-03, T-1730, D-356) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 151.1 / 158 (2026-10-25, T-1502, after T-1498) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**

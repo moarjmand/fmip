@@ -6,16 +6,20 @@ import type {
   MatchIncident,
   MatchLineupPlayer,
 } from '@fmip/contracts';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { EN } from '@/i18n/messages';
 import { matchWords } from '@/lib/words-server';
 import {
+  ForecastDetails,
   ForecastReality,
   cardVersion,
   leadTime,
   receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
+import { ForecastPanel } from './forecast-panel';
 import { MatchCentreView, ratingsOf } from './match-centre-view';
 import { Translated } from './translated';
 import { scoreDisputeHero } from './score-dispute';
@@ -126,15 +130,34 @@ const card = (
   );
 
 describe('what was forecast, what happened (the Summary card)', () => {
-  it('after full time sets the version from before kick-off against the result, the outcome in saffron', () => {
+  it('after full time sets the version from before kick-off against the result, the outcome outlined, ticked and named', () => {
     const html = card('finished');
     expect(html).toContain('What was forecast, what happened');
-    expect(html).toContain('data-testid="outcome-bar"');
-    // The home win happened: its label says so and its segment is saffron.
-    expect(html).toMatch(/data-happened="" class="text-accent">Aston Villa 21\.1% · happened/);
-    expect(html).toMatch(/<span data-outcome="home" class="bg-accent"/);
-    expect(html).toMatch(/<span data-outcome="away" class="bg-model\/25"/);
-    expect(html).toContain('The model gave what happened 21.1% before kick-off.');
+    // The one bar at headline size (T-1748, D-368).
+    const bar = /data-testid="outcome-bar"[^]*?<\/div><\/div>/.exec(html)?.[0] ?? '';
+    expect(bar).toContain('data-size="headline"');
+    expect(bar).toContain('data-outcome-happened="home"');
+    // The home win happened: a tick before its number, the word after its
+    // name, an ink outline round its segment -- and no saffron (T-1749, D-369).
+    expect(bar).toMatch(
+      /data-outcome="home" data-happened=""[^]*?data-icon="check"[^]*?<span dir="ltr"[^>]*>21\.1%<\/span>[^]*?<bdi>Aston Villa<\/bdi><span class="[^"]*" data-happened-word="">· happened<\/span>/,
+    );
+    expect(bar).toMatch(
+      /data-segment="home" data-step="3" data-happened="" class="bg-model\/50 [^"]*outline-2 outline-offset-1 outline-fg/,
+    );
+    // The steps follow rank: Manchester City, the likeliest, is the full
+    // turquoise although it is the away side and did not win.
+    expect(bar).toMatch(/data-segment="away" data-step="1" class="bg-model /);
+    expect(bar).toMatch(/data-segment="draw" data-step="2" class="bg-model\/75 /);
+    expect(bar).not.toMatch(/bg-accent|text-accent|bg-brand/);
+    expect(bar).toContain(
+      'aria-label="Model forecast: Aston Villa 21.1% (happened), draw 24.8%, Manchester City 54.1%"',
+    );
+    // The word is written once on the page: on the headline, not in the version list.
+    expect(html.match(/data-happened-word/g)).toHaveLength(1);
+    // What happened against what the model gave it, in the card (T-1744).
+    expect(html).toContain('data-testid="forecast-reality-result"');
+    expect(html).toContain('The model gave it 21.1%.');
   });
 
   it('sets the model’s expected goals beside the match’s xG and the goals', () => {
@@ -161,7 +184,24 @@ describe('what was forecast, what happened (the Summary card)', () => {
     expect(rows).toEqual(['1', '2', '3']);
     expect(html).toMatch(/data-version="3" data-current=""/);
     // Each row its own figures: v1 as it was, never re-drawn from v3.
-    expect(html).toMatch(/data-version="1"[^]*22\.4% · 25\.1% · 52\.5%[^]*data-version="2"/);
+    const first = /data-version="1"[^]*?(?=data-version="2")/.exec(html)?.[0] ?? '';
+    expect([...first.matchAll(/<span dir="ltr"[^>]*>([^<]+)<\/span>/g)].map((m) => m[1])).toEqual([
+      '22.4%',
+      '25.1%',
+      '52.5%',
+    ]);
+    // The one bar at row size with a label on each segment (T-1748): the
+    // order no longer has to be known, the names are there where they fit.
+    expect(first).toContain('data-testid="version-bar"');
+    expect(first).toContain('data-size="row"');
+    expect(first).toMatch(
+      /<bdi>Aston Villa<\/bdi>[^]*<span>Draw<\/span>[^]*<bdi>Manchester City<\/bdi>/,
+    );
+    expect(first).toContain('aria-label="Model forecast: Aston Villa 22.4% (happened), draw 25.1%');
+    // What happened is marked on every version that gave figures (T-1749).
+    expect(html.match(/data-testid="version-bar"/g)).toHaveLength(2);
+    expect(html.match(/data-segment="home" data-step="3" data-happened=""/g)).toHaveLength(3);
+    expect(html).not.toMatch(/bg-model\/(55|25)|bg-accent/);
     // A version that gave no figures says why.
     expect(html).toMatch(/data-version="2"[^]*The model service could not be reached/);
     // The card renders the stored rows and never changes them.
@@ -187,6 +227,7 @@ describe('what was forecast, what happened (the Summary card)', () => {
 
   it('before kick-off shows the latest; with none, or no answer, says so (rule 3)', () => {
     expect(card('scheduled')).toContain('Model forecast');
+    expect(card('scheduled')).toMatch(/v3 computed 24 Oct, 12:03 UK time/);
     const none = { ...forecasts, latest: null, versions: [] };
     expect(card('scheduled', { forecasts: none })).toContain(EN['forecast.none']);
     expect(card('finished', { forecasts: none })).toContain(EN['forecastBar.noneBefore']);
@@ -216,6 +257,35 @@ describe('what was forecast, what happened (the Summary card)', () => {
     expect(card('finished', { forecasts: mixed })).toContain(
       'data-testid="forecast-versions-list"',
     );
+  });
+
+  it('a later version without numbers does not unsay an earlier forecast (rule 3)', () => {
+    // v1 gave probabilities; the model could not be reached for v2, which is
+    // the latest. The match has a forecast: the card keeps its title, says why
+    // this version has no numbers, and does not claim "No model forecast".
+    const failed = {
+      ...version(2, '2026-10-18T11:35:00.000Z', null),
+      unavailable_reason: 'model_unreachable' as const,
+    };
+    const later = {
+      ...forecasts,
+      latest: failed,
+      versions: [version(1, '2026-10-17T11:32:00.000Z'), failed],
+    };
+    const html = card('scheduled', { forecasts: later });
+    expect(html).toContain('data-state="unavailable"');
+    expect(html).toContain('Model forecast');
+    expect(html).not.toContain(EN['matchCentre.noForecast.title']);
+    expect(html).not.toContain('data-testid="forecast-coverage-link"');
+    expect(html).not.toContain('data-testid="forecast-reality-no-power"');
+    expect(html).toContain('data-testid="forecast-reality-unavailable"');
+    expect(html).not.toContain('data-testid="outcome-bar"');
+    // With no version that gave numbers, the card does say so, once.
+    const only = { ...forecasts, latest: failed, versions: [failed] };
+    const none = card('scheduled', { forecasts: only });
+    expect(none).toContain('data-state="none"');
+    expect(none).toContain(EN['matchCentre.noForecast.title']);
+    expect(none).toContain('data-testid="forecast-coverage-link"');
   });
 
   it('picks the scored version, else the last before kick-off, else the latest before it starts', () => {
@@ -262,6 +332,358 @@ describe('what was forecast, what happened (the Summary card)', () => {
 
   it('is the model’s card alone: no founder, no community', () => {
     expect(card('finished')).not.toMatch(/founder|community/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The forecast once on the page (T-1744, D-365)
+// ---------------------------------------------------------------------------
+
+describe('the forecast is drawn once: headline, details, and why (T-1744)', () => {
+  const details = (status: 'scheduled' | 'live' | 'finished', f = forecasts, locale = 'en') =>
+    renderToStaticMarkup(
+      <ForecastDetails
+        forecasts={f}
+        evaluations={null}
+        fixture={fixture(status)}
+        matchXg={null}
+        timeZone="Europe/London"
+        locale={locale}
+      />,
+    );
+  const factored: ForecastVersionsResponse = {
+    ...forecasts,
+    versions: versions.map((v) =>
+      v.version_number === 3
+        ? {
+            ...v,
+            leading_factors: [
+              { factor: 'team_strength', favours: 'away', magnitude: 0.4, note: 'n' },
+              { factor: 'home_advantage', favours: 'home', magnitude: 0.2, note: 'n' },
+            ],
+          }
+        : v,
+    ),
+  };
+  const scored: FixtureEvaluationsResponse = {
+    fixture_id: 'f1',
+    coverage: 'available',
+    last_updated_at: '2026-10-24T14:00:00.000Z',
+    evaluations: [
+      {
+        id: 'e1',
+        forecast_id: 'v3',
+        fixture_id: 'f1',
+        version_number: 3,
+        kind: 'lineups_confirmed',
+        model_version: 'dixon-coles-elo@0.6.0',
+        computed_at: '2026-10-24T11:03:00.000Z',
+        evaluated_at: '2026-10-24T14:00:00.000Z',
+        pre_kickoff: true,
+        actual: { home: 2, away: 1 },
+        outcome: 'home',
+        p_outcome: 0.211,
+        log_loss: 1.556,
+        brier: 0.977,
+        rps: 0.4577,
+        correct: false,
+        scoreline_hit: false,
+      },
+    ],
+  };
+  const how = (
+    f: ForecastVersionsResponse | null = factored,
+    e: FixtureEvaluationsResponse | null = scored,
+    locale = 'en',
+  ) =>
+    renderToStaticMarkup(
+      <ForecastPanel
+        forecasts={f}
+        evaluations={e}
+        about={f === null ? null : (f.versions.find((v) => v.version_number === 3) ?? null)}
+        home="Aston Villa"
+        away="Manchester City"
+        timeZone="Europe/London"
+        locale={locale}
+      />,
+    );
+
+  it('before kick-off the card is the headline: title, bar and one receipt line', () => {
+    const html = card('scheduled');
+    expect(html).toContain('data-part="headline"');
+    expect(html).toContain('Model forecast');
+    expect(html).toContain('data-testid="outcome-bar"');
+    expect(html.replace(/<[^>]+>/g, '')).toContain(
+      'dixon-coles-elo@0.6.0 · v3 computed 24 Oct, 12:03 UK time',
+    );
+    // A phone's line is the model and the version alone, so it stays one
+    // line and the pick's outcomes fit on the first screen (board P2-4);
+    // each width draws one of the two.
+    expect(html).toMatch(
+      /<span class="md:hidden" data-testid="receipt-brief">dixon-coles-elo<span>@<\/span>0\.6\.0 · v3<\/span><span class="max-md:hidden">/,
+    );
+    // The rest follows the pick, in the details card.
+    expect(html).not.toContain('data-testid="reality-goals"');
+    expect(html).not.toContain('data-testid="reality-scorelines"');
+    expect(html).not.toContain('data-testid="forecast-versions-list"');
+    expect(html).not.toContain('data-testid="receipt"');
+    expect(html).not.toContain('data-testid="forecast-why-link"');
+    expect(html).not.toContain('frozen at kick-off');
+  });
+
+  it('the details card holds the rest: nothing is removed, only reordered', () => {
+    const html = details('scheduled');
+    expect(html).toContain('data-testid="forecast-details"');
+    expect(html).toContain('Forecast details');
+    expect(html).toContain('data-testid="reality-goals"');
+    expect(html).toContain('data-testid="reality-scorelines"');
+    expect([...html.matchAll(/data-version="(\d)"/g)].map((m) => m[1])).toEqual(['1', '2', '3']);
+    expect(html.replace(/<[^>]+>/g, '')).toContain(
+      'dixon-coles-elo@0.6.0 · v3 computed 24 Oct, 12:03 UK time, 27 min before kick-off · Confirmed line-ups',
+    );
+    expect(html).toMatch(/href="#forecast"[^>]*data-testid="forecast-why-link"/);
+    // The bar is the headline's: drawn once.
+    expect(html).not.toContain('data-testid="outcome-bar"');
+    // Headline and details together draw the bar once and each version once.
+    const both = card('scheduled') + html;
+    expect(both.split('data-testid="outcome-bar"').length - 1).toBe(1);
+    expect(both.split('data-version="3"').length - 1).toBe(1);
+  });
+
+  it('there is no details card from kick-off on, nor when no version gave probabilities', () => {
+    expect(details('live')).toBe('');
+    expect(details('finished')).toBe('');
+    const none = { ...forecasts, latest: null, versions: [] };
+    expect(details('scheduled', none)).toBe('');
+    const unanswered = { ...forecasts, versions: [version(1, '2026-10-17T11:32:00.000Z', null)] };
+    expect(details('scheduled', unanswered)).toBe('');
+  });
+
+  it('from kick-off on the card is whole, says it is frozen, and links to why', () => {
+    for (const status of ['live', 'finished'] as const) {
+      const html = card(status);
+      expect(html).toContain('data-part="whole"');
+      expect(html).toContain('Pre-match forecast, frozen at kick-off.');
+      expect(html).toContain('data-testid="reality-goals"');
+      expect(html).toContain('data-testid="forecast-versions-list"');
+      expect(html).toContain('data-testid="receipt"');
+      expect(html).toMatch(/href="#forecast"[^>]*data-testid="forecast-why-link"/);
+    }
+    // The result sentence is full time's alone.
+    expect(card('live')).not.toContain('data-testid="forecast-reality-result"');
+  });
+
+  it('after full time carries the result sentence and the match’s RPS, from the stored evaluation', () => {
+    const html = card('finished', { evaluations: scored });
+    expect(html.replace(/<[^>]+>/g, '')).toContain(
+      'Result: ⁨Aston Villa⁩ win. The model gave it 21.1%. Ranked probability score for this match 0.458 (0 is perfect).',
+    );
+    expect(html).toContain('One match says little: the model&#x27;s record');
+    expect(html).toMatch(/<a [^>]*href="\/en\/model-accuracy"[^>]*>One match says little/);
+    // Not scored yet is said, never a number.
+    const unscored = card('finished');
+    expect(unscored).toContain(EN['forecast.verdict.unscored']);
+    expect(unscored).not.toContain('data-testid="forecast-reality-rps"');
+  });
+
+  it('the lower section says only why: no bar, no percentages, no version list of figures', () => {
+    const html = how();
+    expect(html).toContain('data-voice="model"');
+    expect(html).toContain('How the forecast was reached');
+    // One line points to the summary.
+    expect(html).toMatch(
+      /data-testid="forecast-pointer">The forecast and every version are in <a href="#summary"[^>]*>the summary<\/a>; this section only says why\./,
+    );
+    expect(html).toContain('data-testid="leading-factors"');
+    expect(html).toContain('favours Manchester City');
+    expect(html).toContain('data-testid="forecast-versions"');
+    // Nothing the summary's card draws is drawn again.
+    expect(html).not.toContain('data-testid="outcome-bar"');
+    expect(html).not.toContain('data-testid="probabilities"');
+    expect(html).not.toContain('data-testid="forecast-latest"');
+    expect(html).not.toContain('data-testid="forecast-meta"');
+    expect(html).not.toContain('bg-model');
+    for (const share of ['21.1%', '24.8%', '54.1%', '22.4%', '25.1%', '52.5%']) {
+      // The evaluation states what the scored version gave the outcome, once.
+      expect(html.split(share).length - 1, share).toBe(share === '21.1%' ? 1 : 0);
+    }
+    expect(html).not.toMatch(/Expected goals|Most likely scores/);
+  });
+
+  it('says the evaluation in plain words, and a verdict only where both scores agree', () => {
+    const worse = how();
+    expect(worse).toContain(
+      'Both numbers measure how much probability the model put on what really happened.',
+    );
+    expect(worse).toContain('data-against-uniform="worse"');
+    expect(worse).toContain('Here both are worse than knowing nothing.');
+    const evaluation = scored.evaluations[0];
+    if (evaluation === undefined) throw new Error('fixture');
+    const better = how(factored, {
+      ...scored,
+      evaluations: [{ ...evaluation, log_loss: 0.6, brier: 0.3 }],
+    });
+    expect(better).toContain('Here both are better than knowing nothing.');
+    // Log loss above the uniform line, Brier below it: no verdict is written.
+    const mixed = how(factored, {
+      ...scored,
+      evaluations: [{ ...evaluation, log_loss: 1.2, brier: 0.6 }],
+    });
+    expect(mixed).toContain('data-against-uniform="mixed"');
+    expect(mixed).not.toMatch(/Here both are/);
+  });
+
+  it('is not rendered when there is nothing to explain: the summary has said so once', () => {
+    expect(how(null, null)).toBe('');
+    const unanswered = {
+      ...forecasts,
+      versions: [{ ...version(3, '2026-10-24T11:03:00.000Z', null) }],
+    };
+    expect(how(unanswered, null)).toBe('');
+  });
+
+  it('says all of it in Persian', () => {
+    for (const html of [how(factored, scored, 'fa'), details('scheduled', forecasts, 'fa')]) {
+      expect(html).not.toContain('data-translation="untranslated"');
+    }
+    expect(how(factored, scored, 'fa')).toContain('پیش‌بینی چگونه به دست آمد');
+    expect(card('finished', { evaluations: scored, locale: 'fa' })).toContain('۰٫۴۵۸');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// "No forecast", said once (T-1746, D-367)
+// ---------------------------------------------------------------------------
+
+describe('no forecast is said once, in the Summary’s card (T-1746)', () => {
+  const none = { ...forecasts, latest: null, versions: [] };
+  const unmapped = {
+    ...version(1, '2026-10-17T11:32:00.000Z', null),
+    model_version: 'none@0.0.0',
+    inputs: null,
+    unavailable_reason: 'competition_not_mapped' as const,
+  };
+  const unanswered = { ...forecasts, latest: unmapped, versions: [unmapped] };
+  const noForecast = (
+    status: 'scheduled' | 'live' | 'finished',
+    f: ForecastVersionsResponse,
+    noPowerIndex = false,
+    locale = 'en',
+  ) =>
+    renderToStaticMarkup(
+      <ForecastReality
+        forecasts={f}
+        evaluations={null}
+        fixture={fixture(status)}
+        final={status === 'finished' ? { home: 1, away: 1 } : null}
+        matchXg={null}
+        timeZone="Europe/London"
+        locale={locale}
+        noPowerIndex={noPowerIndex}
+      />,
+    );
+
+  it('is one card: the title, the stored reason and one link', () => {
+    const html = noForecast('finished', none);
+    expect(html).toContain('data-state="none"');
+    expect(html).toMatch(/<h2[^>]*>.*Model<\/span>.*No model forecast for this match/);
+    // The state as an icon and a word.
+    expect(html).toMatch(/data-coverage-badge="not_supplied"[^]*<svg[^]*No forecast/);
+    expect(html).toContain(EN['forecastBar.noneBefore']);
+    expect(html).toMatch(
+      /<a [^>]*href="\/en\/model-accuracy"[^>]*>.*Which competitions does the model cover\?/,
+    );
+    expect(html.split('href="/en/model-accuracy"').length - 1).toBe(1);
+    // The old titles are not kept over an empty card.
+    expect(html).not.toContain('What was forecast, what happened');
+    // Nothing that would look like a forecast (rule 3).
+    for (const id of ['outcome-bar', 'receipt', 'forecast-versions-list', 'forecast-why-link']) {
+      expect(html).not.toContain(`data-testid="${id}"`);
+    }
+    expect(html).not.toMatch(/\d%/);
+  });
+
+  it('never says "yet" of a match that has kicked off', () => {
+    expect(noForecast('scheduled', none)).toContain(EN['forecast.none']);
+    for (const status of ['live', 'finished'] as const) {
+      const html = noForecast(status, none);
+      expect(html).not.toContain(EN['forecast.none']);
+      expect(html).toContain(EN['forecastBar.noneBefore']);
+    }
+  });
+
+  it('gives the stored reason when a version says why it could not answer', () => {
+    const html = noForecast('finished', unanswered).replaceAll('&#x27;', "'");
+    expect(html).toContain('data-testid="forecast-reality-unavailable"');
+    expect(html.split(EN['forecast.reason.competitionNotMapped']).length - 1).toBe(1);
+    expect(html).toContain('No model forecast for this match');
+    expect(html).not.toContain('none@');
+  });
+
+  it('says there is no Power Index either only when the page knows there is none', () => {
+    expect(noForecast('finished', none, true)).toMatch(
+      /data-testid="forecast-reality-no-power"> .*There is no Power Index for it either\./,
+    );
+    expect(noForecast('finished', none)).not.toContain('Power Index');
+    // A match with a forecast never says it, whatever it is handed.
+    const withForecast = renderToStaticMarkup(
+      <ForecastReality
+        forecasts={forecasts}
+        evaluations={null}
+        fixture={fixture('finished')}
+        final={{ home: 2, away: 1 }}
+        matchXg={null}
+        timeZone="Europe/London"
+        locale="en"
+        noPowerIndex
+      />,
+    );
+    expect(withForecast).not.toContain('Power Index');
+    expect(withForecast).not.toContain('No model forecast');
+  });
+
+  it('a service that did not answer is not "no forecast"', () => {
+    const html = card('finished', { forecasts: null });
+    expect(html).toContain('data-state="unreachable"');
+    expect(html).not.toContain('No model forecast for this match');
+    expect(html).not.toContain('data-testid="forecast-coverage-link"');
+  });
+
+  it('the page draws no second statement: no lower section and no Power Index block', () => {
+    // The lower section is not rendered with nothing to explain (T-1744) ...
+    expect(
+      renderToStaticMarkup(
+        <ForecastPanel
+          forecasts={none}
+          evaluations={null}
+          about={null}
+          home="Aston Villa"
+          away="Manchester City"
+          timeZone="Europe/London"
+          locale="en"
+        />,
+      ),
+    ).toBe('');
+    // ... and the page leaves the Power Index block out when the card has
+    // said there is none: one rule, in the page, read here from its source.
+    const page = readFileSync(
+      join(__dirname, '..', 'app', '[locale]', 'match', '[id]', 'page.tsx'),
+      'utf8',
+    );
+    expect(page).toMatch(
+      /const noPowerIndex =\s+forecastData !== null &&\s+!hasForecast\(forecastData\) &&\s+powerData !== null &&\s+powerData\.index === null;/,
+    );
+    expect(page).toContain('noPowerIndex={noPowerIndex}');
+    expect(page).toMatch(/forecast: noPowerIndex \? null : \(/);
+    expect(page.split('<PowerIndexPanel').length - 1).toBe(1);
+  });
+
+  it('says it in Persian', () => {
+    const html = noForecast('finished', none, true, 'fa');
+    expect(html).toContain('این بازی پیش‌بینی مدل آماری ندارد');
+    expect(html).toContain('شاخص قدرت هم برای آن وجود ندارد.');
+    expect(html).toContain('مدل کدام رقابت‌ها را پوشش می‌دهد؟');
+    expect(html).not.toContain('data-translation="untranslated"');
   });
 });
 
@@ -531,7 +953,9 @@ describe('live', () => {
       />,
     );
     expect(awaiting).toContain('Before kick-off');
-    expect(awaiting).not.toContain('Model forecast');
+    // The title a match still to come carries is not on the page (the bar's
+    // accessible name does begin with those words).
+    expect(awaiting.replace(/<[^>]*>/g, '')).not.toContain('Model forecast');
     // The last version computed before kick-off, stored as it was (rule 5).
     expect(awaiting).toMatch(/data-version="3" data-current=""/);
     expect(cardVersion(forecasts, null, 'scheduled', KICKOFF, true)?.version_number).toBe(3);
@@ -648,25 +1072,25 @@ describe('the match centre review (T-1550)', () => {
   });
 
   it('before kick-off says a covered module starts then, never "not supplied" (rule 3)', () => {
+    // One card for all of them since T-1745 (`match-centre-coming.spec.tsx`
+    // holds its cases): what the season covers is coming, what it does not
+    // is named apart, and no module draws an empty card of its own.
     const html = view(centre({ status: 'scheduled', minute: null }, { timeline: empty }));
-    for (const id of ['timeline', 'statistics']) {
-      const card = section(html, id);
-      expect(card).toContain('data-not-yet="kickoff"');
-      expect(card).toContain(EN['matchCentre.fromKickoff']);
-      expect(card).toContain(EN['matchCentre.fromKickoffWhy']);
-      expect(card).not.toContain(EN['matchCentre.moduleNotSupplied']);
+    const all = html.slice(html.indexOf('data-coming="all"'));
+    const card = all.slice(0, all.indexOf('</section>'));
+    expect(card).toContain(EN['matchCentre.fromKickoffWhy']);
+    expect(card).not.toContain(EN['matchCentre.moduleNotSupplied']);
+    for (const id of ['timeline', 'statistics', 'lineups']) {
+      expect(card).toContain(`data-coverage-chip="coming" data-module="${id}"`);
+      expect(html).not.toContain(`data-testid="${id}"`);
     }
-    // A module the season does not cover stays "not supplied".
-    const players = section(html, 'player-statistics');
-    expect(players).not.toContain('data-not-yet');
-    expect(players).toContain('data-coverage-badge="not_supplied"');
-    // The line-ups keep their own sentence, under their own badge: they come
-    // before kick-off, not from it (T-1627).
-    const lineups = section(html, 'lineups');
-    expect(lineups).toContain('data-not-yet="lineup"');
-    expect(lineups).toContain(EN['matchCentre.beforeKickoff']);
-    expect(lineups).not.toContain(EN['matchCentre.fromKickoff']);
-    expect(lineups).toContain(EN['matchCentre.lineupsNotYet']);
+    // A module the season does not cover stays "not supplied", in its own group.
+    expect(card).toContain('data-coverage-chip="not_supplied" data-module="player_statistics"');
+    expect(card).toContain(EN['matchCentre.coming.notSupplied']);
+    // The line-ups keep their own sentence: they come before kick-off, not
+    // from it (T-1627).
+    expect(card).toContain(EN['matchCentre.lineupsNotYet']);
+    expect(html).not.toContain('data-not-yet');
   });
 
   it('a postponed match says it was not played, in Persian too', () => {

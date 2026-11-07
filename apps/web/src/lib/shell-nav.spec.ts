@@ -112,7 +112,7 @@ describe('the bottom tab bar', () => {
 
   it('sends You to the settings of a member and to Sign in for a guest', () => {
     expect(tabBarLinks(true).find((link) => link.id === 'you')?.path).toBe('/settings');
-    expect(tabBarLinks(false).find((link) => link.id === 'you')?.path).toBe('/login');
+    expect(tabBarLinks(false).find((link) => link.id === 'you')?.path).toBe('/you');
   });
 
   it('marks the tab a page belongs to, Matches on the homepage too', () => {
@@ -133,6 +133,7 @@ describe('the bottom tab bar', () => {
     expect(currentLink('/en/settings', tabs)).toBe('you');
     expect(currentLink('/en/u/someone', tabs)).toBe('you');
     expect(currentLink('/en/login', tabs)).toBe('you');
+    expect(currentLink('/en/you', tabs)).toBe('you');
     expect(currentLink('/en/search', tabs)).toBeNull();
   });
 
@@ -149,7 +150,7 @@ describe('the site footer', () => {
     expect(FOOTER_NAV.map((group) => [group.id, group.links.map((link) => link.id)])).toEqual([
       ['football', ['matches', 'competitions', 'highlights', 'watch', 'news']],
       ['predictions', ['league', 'model', 'analysis']],
-      ['site', ['about', 'rules']],
+      ['site', ['about', 'rules', 'settings']],
     ]);
   });
 

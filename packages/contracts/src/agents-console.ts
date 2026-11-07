@@ -12,6 +12,7 @@ import type {
   CONSOLE_REQUEST_PRIORITIES,
   CONSOLE_REQUEST_STATUSES,
 } from './console-requests';
+import type { ConsoleModelLab } from './console-model-lab';
 
 /** The snapshot shape this API reads; the publisher writes the same number. */
 export const CONSOLE_SNAPSHOT_SCHEMA = 1;
@@ -229,6 +230,13 @@ export interface ConsoleSnapshot {
   reports: ConsoleReport[];
   brief: { date: string; text: string } | null;
   decisions: ConsoleDecision[];
+  /**
+   * The model lab's ledger (T-1752, D-371), from the model scientist's file
+   * on the computer. Absent from a snapshot built before it, null when the
+   * file is missing or unreadable: the model page then says the ledger was
+   * not supplied (rule 3).
+   */
+  model_lab?: ConsoleModelLab | null;
 }
 
 /** `GET /console/snapshot`: the newest snapshot, and when it reached the server. */

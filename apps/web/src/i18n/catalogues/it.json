@@ -115,7 +115,7 @@
     "status": "untranslated"
   },
   "shell.register": {
-    "source": "Register",
+    "source": "Create account",
     "text": "",
     "status": "untranslated"
   },
@@ -1699,6 +1699,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "auth.passwordShow": {
+    "source": "Show",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.passwordHide": {
+    "source": "Hide",
+    "text": "",
+    "status": "untranslated"
+  },
   "auth.needsLink": {
     "source": "This page needs the link from your email.",
     "text": "",
@@ -1725,7 +1735,27 @@
     "status": "untranslated"
   },
   "auth.register.title": {
-    "source": "Register",
+    "source": "Create your account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.lead": {
+    "source": "Join Stadiomind to:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.point.pick": {
+    "source": "Pick the result before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.point.rating": {
+    "source": "Earn a rating anyone can recompute",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.point.follow": {
+    "source": "Follow your teams",
     "text": "",
     "status": "untranslated"
   },
@@ -1759,8 +1789,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "auth.register.language": {
-    "source": "Language",
+  "auth.register.countryWhy": {
+    "source": "Stored with your account, so the platform can send a message to members in one country.",
     "text": "",
     "status": "untranslated"
   },
@@ -1769,8 +1799,28 @@
     "text": "",
     "status": "untranslated"
   },
+  "auth.register.timezoneLine": {
+    "source": "Time zone: {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.timezoneChange": {
+    "source": "Change",
+    "text": "",
+    "status": "untranslated"
+  },
   "auth.register.acceptRules": {
-    "source": "I accept the platform rules.",
+    "source": "I accept the {rules}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.rulesLink": {
+    "source": "platform rules",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.emailUse": {
+    "source": "We use your email only for sign-in, password reset and the notifications you choose.",
     "text": "",
     "status": "untranslated"
   },
@@ -1866,6 +1916,66 @@
   },
   "auth.reset.submit": {
     "source": "Change password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.following": {
+    "source": "Follow teams and competitions; their matches come first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.saved": {
+    "source": "Keep stories to read later.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.friends": {
+    "source": "Add friends and compare your picks.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.notifications": {
+    "source": "Choose which goals, line-ups and results reach you.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.notificationSettings": {
+    "source": "Choose which alerts you get, and when.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.messages": {
+    "source": "Talk in private with members you are friends with.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.groups": {
+    "source": "Pick together and see where you stand.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.picks.title": {
+    "source": "Your picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.picks": {
+    "source": "See the matches still waiting for your pick.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.you.title": {
+    "source": "Your Stadiomind",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.you": {
+    "source": "Follow your teams, pick the result before kick-off and earn a rating anyone can recompute.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "gate.you.settings": {
+    "source": "Theme, text size and contrast are kept in this browser, without an account.",
     "text": "",
     "status": "untranslated"
   },
@@ -4180,18 +4290,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.intro": {
-    "source": "Three separate products, each on the match centre under its own name. None is shown here, and they are never combined.",
+  "story.predictions.pick": {
+    "source": "Make your pick on the match page",
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.model": {
-    "source": "The model's forecast",
+  "story.predictions.noMatch": {
+    "source": "This story is not linked to an upcoming match, so there is no forecast to show here.",
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.modelNote": {
-    "source": "probabilities from the versioned statistical model",
+  "story.predictions.started": {
+    "source": "This match has kicked off, so picks are closed. Its forecasts are on the match page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.matchUnreachable": {
+    "source": "The match could not be loaded right now, so its forecast is not shown here.",
     "text": "",
     "status": "untranslated"
   },
@@ -4200,8 +4315,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.founderNote": {
-    "source": "one person's signed view, not the model",
+  "story.predictions.founderNone": {
+    "source": "{founder}: none published for this match yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderPublished": {
+    "source": "{founder}: published. {link}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderRead": {
+    "source": "Read it on the match page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.founderUnknown": {
+    "source": "{founder}: cannot be checked right now.",
     "text": "",
     "status": "untranslated"
   },
@@ -4210,8 +4340,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "story.predictions.communityNote": {
-    "source": "what members predicted, shown once five have predicted",
+  "story.predictions.communityNotYet": {
+    "source": "{community}: not yet. It is shown once {floor} members have picked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communityIn": {
+    "source": "{community}: published. {link}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communitySee": {
+    "source": "See it on the match page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.predictions.communityUnknown": {
+    "source": "{community}: cannot be checked right now.",
     "text": "",
     "status": "untranslated"
   },
@@ -4612,8 +4757,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "firstRun.offer.text": {
-    "source": "Make Stadiomind yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
+  "firstRun.strip.dismiss": {
+    "source": "Not now",
     "text": "",
     "status": "untranslated"
   },
@@ -6706,6 +6851,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "match.follow.short": {
+    "source": "Follow",
+    "text": "",
+    "status": "untranslated"
+  },
   "match.follow.unreachable": {
     "source": "Whether you follow this match cannot be checked right now.",
     "text": "",
@@ -6831,11 +6981,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "scores.chooseDate": {
-    "source": "Choose a date",
-    "text": "",
-    "status": "untranslated"
-  },
   "scores.showDay": {
     "source": "Show day",
     "text": "",
@@ -6956,11 +7101,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "scores.preview.yourPick": {
-    "source": "Your pick",
-    "text": "",
-    "status": "untranslated"
-  },
   "scores.preview.model": {
     "source": "Model",
     "text": "",
@@ -6991,11 +7131,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "scores.timesInGuest": {
-    "source": "Times: {zoneName} (sign in for your own zone)",
-    "text": "",
-    "status": "untranslated"
-  },
   "scores.filter.more": {
     "source": "Filter by country, competition and stage",
     "text": "",
@@ -7003,6 +7138,11 @@
   },
   "scores.filter.moreActive": {
     "source": "Country, competition and stage (filtered)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.chip": {
+    "source": "Filters",
     "text": "",
     "status": "untranslated"
   },
@@ -7438,6 +7578,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.freshness.checked": {
+    "source": "Data checked {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.freshness.stale": {
+    "source": "Data may be out of date, last checked {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.freshness.details": {
+    "source": "Details",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.kickoffIn": {
+    "source": "Kick-off {time} {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.onThisPage": {
     "source": "On this page",
     "text": "",
@@ -7823,8 +7983,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.beforeKickoff": {
-    "source": "Before kick-off",
+  "matchCentre.absences.group": {
+    "source": "{status} · {reason} ({count})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absences.groupPlain": {
+    "source": "{status} ({count})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absences.more": {
+    "source": "Show {count} more",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.absences.names": {
+    "source": "Show {count} names",
     "text": "",
     "status": "untranslated"
   },
@@ -8186,11 +8361,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.context.record": {
-    "source": "W {won} · D {drawn} · L {lost} · GD {difference}",
-    "text": "",
-    "status": "untranslated"
-  },
   "matchCentre.context.form": {
     "source": "Form in this competition only, latest first:",
     "text": "",
@@ -8203,6 +8373,11 @@
   },
   "matchCentre.context.formScope": {
     "source": "Form here counts only matches in this competition; Recent form counts the last five in every competition.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.context.gaps": {
+    "source": "Gaps to the places around",
     "text": "",
     "status": "untranslated"
   },
@@ -8556,6 +8731,21 @@
     "text": "",
     "status": "untranslated"
   },
+  "forecast.how.title": {
+    "source": "How the forecast was reached",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.how.pointer": {
+    "source": "The forecast and every version are in {summary}; this section only says why.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.how.summary": {
+    "source": "the summary",
+    "text": "",
+    "status": "untranslated"
+  },
   "forecast.unreachable": {
     "source": "The forecast service could not be reached, so no forecast can be shown.",
     "text": "",
@@ -8568,21 +8758,6 @@
   },
   "forecast.couldNotProduce": {
     "source": "The model could not produce a forecast.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.versionLine": {
-    "source": "Version {version} · {kind} · computed {time}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.meta": {
-    "source": "Version {version} · {kind} · computed {time} · model {model} · data {completeness}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.unknown": {
-    "source": "unknown",
     "text": "",
     "status": "untranslated"
   },
@@ -8613,21 +8788,6 @@
   },
   "forecast.draw": {
     "source": "Draw",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.expectedGoals": {
-    "source": "Expected goals {home} – {away}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.scorelines": {
-    "source": "Most likely scorelines: {list}",
-    "text": "",
-    "status": "untranslated"
-  },
-  "forecast.scoreline": {
-    "source": "{score} ({probability})",
     "text": "",
     "status": "untranslated"
   },
@@ -8668,6 +8828,21 @@
   },
   "forecast.evaluation.scores": {
     "source": "Log loss {logLoss}, Brier {brier} (lower is better; knowing nothing scores 1.099 and 0.667).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.plain": {
+    "source": "Both numbers measure how much probability the model put on what really happened.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.worse": {
+    "source": "Here both are worse than knowing nothing.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "forecast.evaluation.better": {
+    "source": "Here both are better than knowing nothing.",
     "text": "",
     "status": "untranslated"
   },
@@ -8887,21 +9062,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "modelAccuracy.kpi.rpsMeaning": {
-    "source": "How far the probabilities were from the result; 0 is perfect.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "modelAccuracy.kpi.brierMeaning": {
-    "source": "The squared distance between the probabilities and the result.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "modelAccuracy.kpi.logLossMeaning": {
-    "source": "How surprised the model was by the results.",
-    "text": "",
-    "status": "untranslated"
-  },
   "modelAccuracy.competition.months": {
     "source": "Month by month",
     "text": "",
@@ -8909,6 +9069,291 @@
   },
   "modelAccuracy.competition.weeks": {
     "source": "Week by week",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.versionsCombined": {
+    "source": "The figures combine these versions; they are not yet shown version by version.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.right": {
+    "source": {
+      "one": "Over {count} match, the model picked the right result {share} of the time; a blind guess gets about {guess}.",
+      "other": "Over {count} matches, the model picked the right result {share} of the time; a blind guess gets about {guess}."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.less": {
+    "source": "Its probabilities also had {edge} less error than a guess of one third each.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.more": {
+    "source": "Its probabilities had {edge} more error than a guess of one third each.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.rightCaption": {
+    "source": {
+      "one": "of {count} match called right",
+      "other": "of {count} matches called right"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.lessCaption": {
+    "source": "less error than a guess of one third each",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.moreCaption": {
+    "source": "more error than a guess of one third each",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.rightExact": {
+    "source": "Exactly {share}. A blind guess gets about {guess}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.rpsExact": {
+    "source": "Ranked probability score (RPS): {model} for the model, {guess} for the guess. Lower is better.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.model": {
+    "source": "Model",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.guess": {
+    "source": "A guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.arithmetic": {
+    "source": "{equation}, so {percent}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.range": {
+    "source": {
+      "one": "{count} match, {from} to {to}",
+      "other": "{count} matches, {from} to {to}"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.caveat": {
+    "source": "A guess of one third each is the weakest benchmark. It shows the model knows something; it does not show that it beats bookmakers or other models, and this page cannot say.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.early": {
+    "source": {
+      "one": "{count} week and {matches} matches are an early record, not a verdict.",
+      "other": "{count} weeks and {matches} matches are an early record, not a verdict."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.verdict.limitedNote": {
+    "source": "With so few matches the page draws no headline figure and no chart. What has been scored so far is under “Show all measures”, marked limited.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.title": {
+    "source": "Each week, how much better than a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.lede": {
+    "source": "How much lower the model’s RPS error was than a one-third guess on the same matches. Taller is better.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.allBeat": {
+    "source": "Every week so far beat a guess; the margin moved between {low} and {high}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.someWorse": {
+    "source": {
+      "one": "{count} week of {weeks} was worse than a guess; its bar is drawn below the line.",
+      "other": "{count} weeks of {weeks} were worse than a guess; their bars are drawn below the line."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.chartLabel": {
+    "source": {
+      "one": "Bar chart of how much better than a guess the model was in {count} week: {values}; {overall} over all {matches} matches.",
+      "other": "Bar chart of how much better than a guess the model was in each of {count} weeks: {values}; {overall} over all {matches} matches."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.overall": {
+    "source": {
+      "one": "All {count} match: {edge}",
+      "other": "All {count} matches: {edge}"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.partial": {
+    "source": "The last week is incomplete (scored to {date}), so its bar is lighter and dashed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.partialMark": {
+    "source": "incomplete",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.thin": {
+    "source": "Lighter and dashed: fewer than {minimum} matches that week.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.axis": {
+    "source": "Each week is named by its Monday (UTC); the number under it is its matches scored.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.latest": {
+    "source": "The chart shows the latest {weeks} weeks; every week is in the table.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.table": {
+    "source": "The chart as a table",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.edge": {
+    "source": "Better than a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.tooFew": {
+    "source": "The weekly chart appears once two complete weeks have been scored.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.soFar": {
+    "source": {
+      "one": "So far: {count} week.",
+      "other": "So far: {count} weeks."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.weekly.unreachable": {
+    "source": "The weekly figures cannot be shown right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.lede": {
+    "source": "How much better than a guess, by competition. On the “Better” side of the line: better than a guess; on the other side: worse. Dashed: fewer than {minimum} matches.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.worse": {
+    "source": "Worse than a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.better": {
+    "source": "Better",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.competition": {
+    "source": "Competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.groupFull": {
+    "source": {
+      "one": "{minimum} matches or more · {count} competition",
+      "other": "{minimum} matches or more · {count} competitions"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.groupEarly": {
+    "source": {
+      "one": "Early record: fewer than {minimum} matches · {count} competition. An early record, not a verdict.",
+      "other": "Early record: fewer than {minimum} matches · {count} competitions. An early record, not a verdict."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.sortedByMatches": {
+    "source": "Sorted by matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.sortByEdge": {
+    "source": "Sort by edge over a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.sortedByEdge": {
+    "source": "Sorted by edge over a guess",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.sortByMatches": {
+    "source": "Sort by matches",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.list.page": {
+    "source": "{name}: the competition’s page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.title": {
+    "source": "Show all measures",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.lede": {
+    "source": "RPS, Brier, log loss, the month and week tables, what the figures mean",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.rps": {
+    "source": "How far the three probabilities were from what happened, with part credit for a near miss. 0 is perfect.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.brier": {
+    "source": "The average squared gap between each probability and what happened.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.measures.logLoss": {
+    "source": "How surprised the model was by the results; being confidently wrong costs the most.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.cta.title": {
+    "source": "See today’s forecasts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.cta.lede": {
+    "source": "Every forecast is stored before kick-off and never edited, so this record can be checked against the next match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "modelAccuracy.cta.button": {
+    "source": "See today’s forecasts",
     "text": "",
     "status": "untranslated"
   },
@@ -9593,23 +10038,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.section.title": {
-    "source": "Your prediction",
-    "text": "",
-    "status": "untranslated"
-  },
   "predictions.section.locked": {
     "source": "Locked at kick-off",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.section.open": {
-    "source": "Open until kick-off",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.section.guest": {
-    "source": "{signIn} to predict this match. Predictions need a verified account and lock at kick-off.",
     "text": "",
     "status": "untranslated"
   },
@@ -9620,11 +10050,6 @@
   },
   "predictions.section.none": {
     "source": "You did not predict this match before kick-off.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.section.verify": {
-    "source": "Verify your email address before predicting; the link is in your inbox.",
     "text": "",
     "status": "untranslated"
   },
@@ -9671,11 +10096,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.form.submit": {
-    "source": "Submit prediction",
-    "text": "",
-    "status": "untranslated"
-  },
   "predictions.form.update": {
     "source": "Update prediction",
     "text": "",
@@ -9686,11 +10106,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "predictions.form.share": {
-    "source": "Share this match",
-    "text": "",
-    "status": "untranslated"
-  },
   "predictions.action.signIn": {
     "source": "Sign in to predict.",
     "text": "",
@@ -9698,11 +10113,6 @@
   },
   "predictions.action.saved": {
     "source": "Saved as version {version}. You can change it until kick-off.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "predictions.page.pickNote": {
-    "source": "“Make your pick” records a community pick only; it never changes the model’s numbers. The community split stays hidden until you pick.",
     "text": "",
     "status": "untranslated"
   },
@@ -10320,6 +10730,11 @@
   },
   "analysis.community.title": {
     "source": "Analysis from approved contributors",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.community.rowTitle": {
+    "source": "Approved contributors",
     "text": "",
     "status": "untranslated"
   },
@@ -11402,6 +11817,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "teamPage.details": {
+    "source": "Team details",
+    "text": "",
+    "status": "untranslated"
+  },
   "teamPage.groundFromFixtures": {
     "source": "{venue} (home matches this season: {matches} of {total}; no home ground recorded)",
     "text": "",
@@ -12129,6 +12549,16 @@
   },
   "playerPage.club.transfer": {
     "source": "joined {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.club.perLineup": {
+    "source": "per line-up of {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.about": {
+    "source": "About",
     "text": "",
     "status": "untranslated"
   },
@@ -13040,11 +13470,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "rules.registerLink": {
-    "source": "Read the platform rules",
-    "text": "",
-    "status": "untranslated"
-  },
   "rules.retention.heading": {
     "source": "How long records are kept",
     "text": "",
@@ -13067,6 +13492,11 @@
   },
   "rules.retention.notifications": {
     "source": "The record of whether each notification reached you by email or push is kept for 90 days. After that only anonymous daily counts remain.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.retention.pendingPicks": {
+    "source": "A pick you saved before confirming your email address is deleted 30 days after the match kicks off. If it became a prediction, the saved pick is deleted at the next daily clean-up and the prediction is kept.",
     "text": "",
     "status": "untranslated"
   },
@@ -13606,6 +14036,26 @@
     "text": "",
     "status": "untranslated"
   },
+  "lanes.others": {
+    "source": "Other predictions of this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.row.none": {
+    "source": "None yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.row.underFloor": {
+    "source": "Under {count}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "lanes.row.unreachable": {
+    "source": "Not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
   "pick.make": {
     "source": "Make your pick",
     "text": "",
@@ -13631,6 +14081,106 @@
   },
   "pick.splitLabel": {
     "source": "Community picks: {home} {homePct}, draw {drawPct}, {away} {awayPct}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.title": {
+    "source": "Your pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.locks": {
+    "source": "Locks {time} {zone}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.guest": {
+    "source": "Tap an outcome. No account is needed to choose; an account is needed to save it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.chosen": {
+    "source": "Your pick: {outcome}. Not saved yet. Create a free account to lock it before {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.member": {
+    "source": "Tap an outcome to save your pick. You can change it until {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.carried": {
+    "source": "Your pick: {outcome}. Not saved yet. Tap it to save it before {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.saved": {
+    "source": "You can change it until {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.locked": {
+    "source": "Picks lock at kick-off. Your pick: {outcome}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.note.lockedNone": {
+    "source": "Picks lock at kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.account": {
+    "source": "Saving a pick needs a free account. It counts once you confirm your email address before kick-off, when picks lock.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.saved": {
+    "source": "Saved",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.saved": {
+    "source": "Saved. It counts once you confirm your email before {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.note": {
+    "source": "You can change it until {time}. The confirmation link is in your inbox.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.confirm": {
+    "source": "A pick is saved when you tap it. It counts once you confirm your email address before {time}; the link is in your inbox.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.short": {
+    "source": "Counts once you confirm your email",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.pending.announce": {
+    "source": "Pick saved. It counts once you confirm your email address before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.uncounted.title": {
+    "source": "Saved, not counted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.uncounted.note": {
+    "source": "Your pick: {outcome}. It was never counted, because your email address was not confirmed before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.create": {
+    "source": "Create account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "pick.detail": {
+    "source": "Add detail: exact score, confidence, reasons",
     "text": "",
     "status": "untranslated"
   },
@@ -13764,18 +14314,13 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.reality.happened": {
-    "source": "{outcome} · happened",
+  "matchCentre.reality.details": {
+    "source": "Forecast details",
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.reality.note": {
-    "source": "The model gave what happened {probability} before kick-off. A forecast is a share, not a promise: what matters is whether calls like this come true at the rate they claim.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "matchCentre.reality.calibration": {
-    "source": "The model's record",
+  "matchCentre.reality.rps": {
+    "source": "Ranked probability score for this match {rps} (0 is perfect).",
     "text": "",
     "status": "untranslated"
   },
@@ -13821,6 +14366,26 @@
   },
   "matchCentre.reality.version": {
     "source": "v{version}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.reality.why": {
+    "source": "Why these numbers: leading factors and what changed between versions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForecast.title": {
+    "source": "No model forecast for this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForecast.power": {
+    "source": "There is no Power Index for it either.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.noForecast.link": {
+    "source": "Which competitions does the model cover?",
     "text": "",
     "status": "untranslated"
   },
@@ -13899,13 +14464,38 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.fromKickoff": {
-    "source": "From kick-off",
+  "matchCentre.fromKickoffWhy": {
+    "source": "Recorded once the match kicks off; nothing is shown before then.",
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.fromKickoffWhy": {
-    "source": "Recorded once the match kicks off; nothing is shown before then.",
+  "matchCentre.coming.title": {
+    "source": "After kick-off you'll see",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.atKickoff": {
+    "source": "Coming at kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.limited": {
+    "source": "Coming, with limited coverage",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.limitedWhy": {
+    "source": "Limited: our source supplies only part of this in this competition, so some of it can be missing for this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.notSupplied": {
+    "source": "Not supplied in this competition",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coming.notSuppliedWhy": {
+    "source": "We do not receive these for this competition, so they will not appear after kick-off either.",
     "text": "",
     "status": "untranslated"
   },
@@ -13949,11 +14539,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.verdict.title": {
-    "source": "What was forecast, and what happened",
-    "text": "",
-    "status": "untranslated"
-  },
   "forecast.verdict.frozen": {
     "source": "Pre-match forecast, frozen at kick-off. It does not update during the match.",
     "text": "",
@@ -13964,11 +14549,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "forecast.verdict.rps": {
-    "source": "ranked probability score for this match · 0 is perfect",
-    "text": "",
-    "status": "untranslated"
-  },
   "forecast.verdict.unscored": {
     "source": "Not scored yet: the evaluation runs once the result is confirmed.",
     "text": "",
@@ -13976,11 +14556,6 @@
   },
   "forecast.verdict.accuracy": {
     "source": "One match says little: the model's record",
-    "text": "",
-    "status": "untranslated"
-  },
-  "analysis.founder.verdict.pick": {
-    "source": "Pick:",
     "text": "",
     "status": "untranslated"
   },

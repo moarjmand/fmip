@@ -34,6 +34,7 @@ import {
   summary,
 } from './requests.ts';
 import { flowsOf, parseCharter } from './flow.ts';
+import { type LabRead, labFrom } from './lab.ts';
 import {
   DEFAULT_SCHEDULES,
   type ConsoleState,
@@ -69,6 +70,16 @@ import {
  * reports each back, publishes, and prints the agents a person asked to run,
  * as JSON, for the scheduled task to start; `finish` reports such a run.
  * The server never reaches this computer.
+ *
+ * The model lab's ledger (T-1752, D-371): `E:/FMIP/ops/model/ledger.json`,
+ * kept by the model scientist, goes into every snapshot as `model_lab` after
+ * `lab.ts` has checked it; an entry with a problem is left out and counted,
+ * and each problem is printed on standard error with its entry.
+ *
+ *     node packages/console-publisher/src/publish.ts lab-check
+ *
+ * prints the problems alone and exits 1 when there is one: run it after
+ * every edit of the ledger, before the next sync carries it.
  *
  * The chat (T-1722, D-350), run by the ten-minute scheduled task:
  *
@@ -109,6 +120,7 @@ const STATE_FILE = join(OPS, 'console', 'state.json');
 const INBOX_FILE = join(OPS, 'console', 'chat-inbox.json');
 const REQUESTS_FILE = join(OPS, 'console', 'requests.json');
 const REQUEST_IMAGES_DIR = join(OPS, 'console', 'requests');
+const LAB_FILE = join(OPS, 'model', 'ledger.json');
 const SSH_HOST = process.env.FMIP_SSH_HOST ?? 'fmip-prod';
 const CLI = 'cd /opt/fmip && docker compose exec -T api node dist/cli/agents-console.js';
 
@@ -143,6 +155,22 @@ function memoryEntries(agent: string): ConsoleMemoryEntry[] {
     updated_at: statSync(join(dir, name)).mtime.toISOString(),
     text: read(join(dir, name)),
   }));
+}
+
+/**
+ * The model lab's ledger as the file has it (T-1752): none when the file is
+ * missing, and then the model page says the ledger was not supplied.
+ */
+export function readLab(path = LAB_FILE): LabRead {
+  if (!existsSync(path)) return { lab: null, problems: [`${path} does not exist.`] };
+  let raw: unknown;
+  try {
+    // A Windows editor may save a byte-order mark; JSON.parse refuses one.
+    raw = JSON.parse(read(path).replace(/^\uFEFF/, ''));
+  } catch (error) {
+    return { lab: null, problems: [`${path} is not JSON: ${(error as Error).message}`] };
+  }
+  return labFrom(raw, statSync(path).mtime.toISOString());
 }
 
 export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
@@ -233,6 +261,8 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
     Object.assign(deskAnswers, readJson(join(OPS, 'desk', 'answers', name), {}));
   }
   const briefName = files(join(OPS, 'brief'), '.md').at(-1);
+  const lab = readLab();
+  for (const problem of lab.problems) process.stderr.write(`model lab ledger: ${problem}\n`);
 
   return snapshotOf({
     generated_at: new Date().toISOString(),
@@ -251,6 +281,7 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
           : '',
       ),
     ],
+    model_lab: lab.lab,
   });
 }
 
@@ -368,6 +399,16 @@ export function main(argv = process.argv.slice(2)): number {
       process.stdout.write(`${JSON.stringify(state.runRequests)}\n`);
       return 0;
     }
+    case 'lab-check': {
+      const lab = readLab();
+      for (const problem of lab.problems) process.stderr.write(`${problem}\n`);
+      process.stdout.write(
+        lab.lab === null
+          ? 'No ledger to publish.\n'
+          : `${lab.lab.entries.length} entries, ${lab.lab.judgements.length} judgements, ${lab.lab.skipped} left out.\n`,
+      );
+      return lab.problems.length === 0 ? 0 : 1;
+    }
     case 'finish': {
       const [id, status, ...words] = rest;
       if (id === undefined || (status !== 'done' && status !== 'failed') || words.length === 0) {
@@ -480,7 +521,7 @@ export function main(argv = process.argv.slice(2)): number {
     }
     default:
       process.stderr.write(
-        'build [--out file] | publish | sync | finish <id> done|failed "outcome" | chat-pull | chat-reply <id> answered|failed [--file f] | requests-pull [--status s] | request-result <id> in_progress|done|cancelled [--file f] | request-ask <id> [--file f]\n',
+        'build [--out file] | publish | sync | lab-check | finish <id> done|failed "outcome" | chat-pull | chat-reply <id> answered|failed [--file f] | requests-pull [--status s] | request-result <id> in_progress|done|cancelled [--file f] | request-ask <id> [--file f]\n',
       );
       return 2;
   }

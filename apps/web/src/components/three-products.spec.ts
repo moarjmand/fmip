@@ -132,14 +132,15 @@ describe('the three products stay three on the page', () => {
     // The preview: the model's bar in its own block, the pick the community's
     // own control with its split, side by side and never one figure.
     expect(preview).toContain('<ForecastBar');
-    expect(preview).toContain('<InlinePick');
+    expect(preview).toContain('<PickControl');
+    expect(preview).toContain('<ModelBox');
     expect(preview).toContain('<CommunitySplit');
-    expect(source('forecast-bar.tsx')).not.toMatch(/CommunitySplit|Consensus|InlinePick/);
+    expect(source('forecast-bar.tsx')).not.toMatch(/CommunitySplit|Consensus|PickControl/);
 
     // The founder's analysis in the founder's voice, and nothing else in it.
     expect(analysis).toContain('<FounderVoice');
     expect(analysis).toContain('<FounderAnalysisFeed');
-    expect(analysis).not.toMatch(/Forecast(Bar|Summary)|Consensus|CommunitySplit|InlinePick/);
+    expect(analysis).not.toMatch(/Forecast(Bar|Summary)|Consensus|CommunitySplit|PickControl/);
     expect(page).toContain('<MatchesAnalysis');
   });
 
@@ -179,12 +180,42 @@ describe('the three products stay three on the page', () => {
     expect(lib).toMatch(/community: Record<string, CardCommunity>/);
   });
 
-  it('links the three from a match story, each under its own name, never as one figure (T-941)', () => {
-    const links = source('story-links.tsx');
-    expect(links).toContain("anchor: 'forecast'");
-    expect(links).toContain("anchor: 'analysis'");
-    expect(links).toContain("anchor: 'community'");
-    expect(links).not.toMatch(/ForecastVersion|ForecastSummary|CommunityConsensus|FounderAnalysis/);
+  it('shows the model alone on a match story and names the other two, never as one figure (T-941, T-1741)', () => {
+    // The story's predictions card (D-362) draws the model's bar. That makes
+    // it the next place a founder's call or the community's split would be
+    // "one more row", so the card cannot be handed either: it takes a state
+    // for each (is there one or not) and nothing they said or counted.
+    const card = source('story-predictions.tsx');
+    const code = card.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[\r\n])\s*\/\/.*/g, '$1');
+    expect(code).toContain('<ModelBox');
+    expect(code).toContain('<ForecastBar');
+    expect(code).toContain("export type StoryFounder = 'published' | 'none' | 'unreachable';");
+    expect(code).toContain(
+      "export type StoryCommunity = 'published' | 'below_floor' | 'unreachable';",
+    );
+    expect(code).not.toMatch(
+      /FounderAnalysis|FounderOutcome|CommunityConsensus|ConsensusResponse|CardCommunity|CommunitySplit/,
+    );
+    expect(code).not.toMatch(/bg-community|text-community|bg-founder|text-founder/);
+    expect(code).not.toMatch(/'model'\s*\|\s*'founder'|'founder'\s*\|\s*'community'/);
+    // Each of the two is a sentence of its own, to its own section of the match page.
+    expect(code).toContain('#analysis');
+    expect(code).toContain('#community');
+    expect(code).toContain('testId="story-model"');
+    // The old links file holds no product any more.
+    expect(source('story-links.tsx')).not.toMatch(
+      /ForecastVersion|ForecastSummary|CommunityConsensus|FounderAnalysis/,
+    );
+    // The page asks each product's own endpoint and hands the card states.
+    const story = readFileSync(
+      join(COMPONENTS, '..', 'app', '[locale]', 'news', 'story', '[id]', 'page.tsx'),
+      'utf8',
+    );
+    expect(story).toContain('fetchForecastSummaries([fixtureId])');
+    expect(story).toContain('fetchFounderAnalysis(fixtureId)');
+    expect(story).toContain('fetchConsensus(fixtureId)');
+    expect(story).toMatch(/founder: !reads\.founder\.ok\s+\? 'unreachable'/);
+    expect(story).toMatch(/community: !reads\.consensus\.ok\s+\? 'unreachable'/);
   });
 
   it('gives the three their own voices and bars, none of which can be handed another product (T-1388, T-1509)', () => {
@@ -214,10 +245,112 @@ describe('the three products stay three on the page', () => {
     expect(bar).not.toMatch(/CardCommunity|Consensus|FounderAnalysis|bg-community|bg-founder/);
     const community = source('community-consensus.tsx');
     expect(community).not.toMatch(/forecast-bar|ForecastBar|bg-model/);
-    // The pick feeds the community product only: its colour, never the brand green.
-    const pick = source('prediction-form.tsx');
-    expect(pick).toContain('has-checked:bg-community');
-    expect(pick).not.toMatch(/has-checked:bg-accent|bg-model|bg-founder/);
+    // The pick control (T-1738, D-359): saffron on the chosen outcome and
+    // nowhere else, and nothing of the model's in it -- no turquoise, no
+    // forecast, no consensus. The model's box is its own file, handed in as a
+    // slot, and holds nothing of the pick's or the community's.
+    const control = source('pick-control.tsx');
+    expect(control).toContain('bg-brand');
+    expect(control).not.toMatch(
+      /(text|bg|border)-model|(text|bg|border)-founder|Forecast|Consensus|CommunitySplit|probabilit/,
+    );
+    const box = source('model-box.tsx');
+    expect(box).toContain('border-model');
+    expect(box).not.toMatch(/bg-brand|PickControl|PickForm|Consensus|CommunitySplit|bg-community/);
+    // The match page's pick card and phone bar (T-1739, D-360): the control
+    // and the words around it, under the model's card and repeating nothing
+    // of it -- no model colour, no forecast, no percentage, not even the
+    // model's box; the community's split arrives as a slot from the page.
+    const matchPick = readFileSync(
+      join(COMPONENTS, '..', 'app', '[locale]', 'match', '[id]', 'match-pick.tsx'),
+      'utf8',
+    );
+    expect(matchPick).toContain('<PickControl');
+    expect(matchPick).not.toMatch(
+      /(text|bg|border)-model|(text|bg|border)-(founder|community)|Forecast|ModelBox|Consensus|CommunitySplit|probabilit/,
+    );
+    // And the pick is on the page once: the old section is not imported.
+    expect(page).not.toMatch(/PredictionSection|components\/prediction-form/);
+    expect(page.split('<MatchPickCard').length - 1).toBe(1);
+  });
+
+  it('draws the forecast once and gives the others their own rows, never one row for all (T-1744, D-365)', () => {
+    // The match page stopped saying each product two or three times. What
+    // makes that tempting to do wrong is the compact row: three empty
+    // products look like three rows of one list, and one `<ProductRow
+    // product="founder">` is the single panel this file exists to refuse.
+    const code = (text: string) =>
+      text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[\r\n])\s*\/\/.*/g, '$1');
+    const dir = join(COMPONENTS, '..', 'app', '[locale]', 'match', '[id]');
+    const page = readFileSync(join(dir, 'page.tsx'), 'utf8');
+    const card = code(readFileSync(join(dir, 'forecast-reality.tsx'), 'utf8'));
+
+    // The row is a shell: it draws the name its owner hands it, has no prop
+    // that names or chooses a product, no product's colour, and no figure.
+    const row = code(source('product-row.tsx'));
+    expect(row).toContain('export function ProductRow(');
+    expect(row).not.toMatch(/\b(source|product|lane|kind)\s*[:?]/);
+    expect(row).not.toMatch(/'model'|'founder'|'community'/);
+    expect(row).not.toMatch(/(text|bg|border)-(model|founder|community)/);
+    expect(row).not.toMatch(/Forecast|Consensus|FounderAnalysis|probabilit|percent|Translated/i);
+
+    // The page never draws a row itself: each product's own component
+    // decides, in its own file, under its own name.
+    expect(page).not.toMatch(/<ProductRow|components\/product-row/);
+    expect(source('founder-analysis.tsx')).toMatch(/<FounderVoice[\s\S]{0,400}?\brow=\{/);
+    expect(source('community-consensus.tsx')).toContain('export function CommunityPicksRow(');
+    expect(source('community-consensus.tsx')).toMatch(/<CommunityVoice[\s\S]{0,700}?\brow=\{/);
+    expect(source('community-analysis-panel.tsx')).toContain('<ProductRow');
+    expect(page).toContain('<CommunityPicksRow');
+
+    // The model has no row and no turquoise goes into one: its voice takes
+    // no `row`, and neither of its files reaches for the shell.
+    const voices = source('voices.tsx');
+    const modelVoice = voices.slice(
+      voices.indexOf('export function ModelVoice('),
+      voices.indexOf('export function FounderVoice('),
+    );
+    expect(modelVoice).toContain('data-voice="model"');
+    expect(modelVoice).not.toMatch(/ProductRow|\brow\b/);
+    expect(card).not.toMatch(/ProductRow|product-row/);
+    expect(source('forecast-panel.tsx')).not.toMatch(/ProductRow|product-row/);
+    // Nor do the rows carry a model number: no row's file formats the
+    // model's shares for its row.
+    const picksRow = source('community-consensus.tsx');
+    expect(
+      picksRow.slice(
+        picksRow.indexOf('export function CommunityPicksRow('),
+        picksRow.indexOf('export function CommunityForecastPanel('),
+      ),
+    ).not.toMatch(/formatPercent|sharesToPercentages|model/);
+
+    // The forecast is drawn once, in the Summary's card: the lower section
+    // says why and holds no bar, no shares and no list of the versions' figures.
+    const panel = source('forecast-panel.tsx');
+    const lower = panel.slice(
+      panel.indexOf('export function ForecastPanel('),
+      panel.indexOf('function Evaluation('),
+    );
+    expect(lower).toContain('forecast.how.pointer');
+    expect(lower).not.toMatch(/ForecastBar|OutcomeBar|percentages\(|most_likely_scorelines/);
+    expect(panel).not.toContain('export function ModelVerdict');
+    expect(card).toContain("'forecast.verdict.result'");
+
+    // The three-lane card that repeated all three is gone, and each
+    // product's component is on the page exactly once.
+    expect(page).not.toMatch(/VerdictCard|ModelVerdict|FounderVerdict|CommunityVerdict/);
+    for (const component of [
+      '<ForecastReality',
+      '<ForecastDetails',
+      '<ForecastPanel',
+      '<FounderAnalysisPanel',
+      '<CommunityForecastPanel',
+      '<CommunityPicksRow',
+      '<CommunityAnalysisPanel',
+      '<ThreeProductsNote',
+    ]) {
+      expect(page.split(component).length - 1, component).toBe(1);
+    }
   });
 
   it('never averages the three into one number', () => {

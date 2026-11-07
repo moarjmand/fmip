@@ -61,6 +61,7 @@ async function row(page: Page): Promise<{ height: number; centres: Record<string
         'theme-switch-compact',
         'nav-settings-guest',
         'nav-sign-in',
+        'nav-create-account',
       ];
       const centres: Record<string, number> = {};
       for (const id of ids) {
@@ -99,14 +100,16 @@ for (const width of WIDTHS) {
               'language-picker',
               'theme-switch-compact',
               'nav-sign-in',
+              'nav-create-account',
             ]),
           );
           const first = centres['nav-home']!;
           for (const [id, centre] of Object.entries(centres)) {
             expect(Math.abs(centre - first), id).toBeLessThanOrEqual(2);
           }
-          // A 64px bar, the same in either face, so a face arriving moves nothing.
-          expect(height).toBe(64);
+          // A 56px bar (64px before the sticky header, T-1759, D-376), the
+          // same in either face, so a face arriving moves nothing.
+          expect(height).toBe(56);
           expect(
             await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
           ).toBeLessThanOrEqual(0);

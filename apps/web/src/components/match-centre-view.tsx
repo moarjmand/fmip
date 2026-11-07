@@ -15,22 +15,23 @@ import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
 import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, shootoutStart, statValue } from '@/lib/match';
-import { isBehind } from '@/lib/live';
-import { formatKickoff, formatStamp, freshnessStamp, resultLine, statusLabel } from '@/lib/scores';
+import { formatKickoff, formatStamp, freshnessStamp } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { listName } from '@/lib/person-name';
 import type { MatchWords } from '@/lib/words-server';
 import { formatDate, formatDateTime, localDigits } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
-import { CARD, Module } from '@/components/match-centre-cards';
+import { CARD, ComingCard, type ComingItem, Module } from '@/components/match-centre-cards';
 import { LiveBadge } from '@/components/ui/live-badge';
 import { RatingChip } from '@/components/ui/rating-chip';
 import { StatBar } from '@/components/ui/stat-bar';
+import { FreshnessLine } from '@/components/match-freshness-line';
 import { MatchLineupsView } from '@/components/match-lineups';
+import { BLEED, type BandState, ScoreBar, bandState } from '@/components/match-score-bar';
 import { MessageText } from '@/components/message-text';
 import { Score, ScorePair } from '@/components/score';
-import { CoverageBadge } from '@/components/ui/coverage-badge';
+import { CoverageBadge, CoverageGlyph } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
 import { Fragment } from 'react';
 
@@ -38,9 +39,12 @@ import { Fragment } from 'react';
 export type MatchSlot =
   // The Summary's opening card (T-1497): what the model forecast, and what happened.
   | 'outcome'
+  // The reader's own pick (T-1739, D-360): the card directly under the model's.
+  | 'pick'
+  // The model's details before kick-off (T-1744): expected goals, likeliest
+  // scores and every version, after the pick card. Nothing from kick-off on.
+  | 'details'
   | 'summary'
-  // The three voices against the result, after full time.
-  | 'verdict'
   // What does not move in play, rendered on the server (`match-record.tsx`).
   | 'form'
   | 'headToHead'
@@ -69,7 +73,19 @@ export interface MatchHero {
    * JavaScript (T-1693; a stage does not change while the match is live).
    */
   stage?: React.ReactNode;
+  /**
+   * The reader's zone in words ("UK time"), said after the full kick-off in
+   * the phone's details (T-1743). Resolved by the server: the zone's words
+   * are not in the page's JavaScript.
+   */
+  zone?: string;
   live?: React.ReactNode;
+  /**
+   * In play, and the page's live stream is stale or unreachable: the compact
+   * score bar then drops its live badge, since the band's own line about it
+   * is out of sight by the time the bar shows (rule 4).
+   */
+  streamBroken?: boolean;
   watch?: React.ReactNode;
   highlights?: React.ReactNode;
   /**
@@ -100,6 +116,13 @@ type Key = keyof MatchWords['m'];
  * when there is none), so a tab, a deep link (`#lineups`, `#forecast`) and a
  * page with no script all work alike. The statistical model, the founder's
  * analysis and the community stay three sections inside Predictions (rule 6).
+ * The pick card (T-1739, D-360) is a Predictions section the Summary also
+ * shows: under the model's card there, first on Predictions, one element.
+ * While the match is scheduled the Predictions tab opens it (`#pick`).
+ * Since T-1744 (D-365) the founder's analysis, the community picks and the
+ * approved contributors stand directly after it in the same way (`#analysis`
+ * and `#community` inside `#predictions`), each once on the page; the lower
+ * Predictions section (`#forecast`) says how the forecast was reached.
  */
 export const TABS = [
   ['summary', 'matchCentre.tab.summary'],
@@ -119,12 +142,12 @@ export type MatchTab = (typeof TABS)[number][0];
  */
 export const SECTIONS = {
   timeline: 'summary',
-  verdict: 'summary',
   context: 'summary',
   news: 'summary',
   stats: 'stats',
   lineups: 'lineups',
   players: 'lineups',
+  pick: 'predictions',
   forecast: 'predictions',
   analysis: 'predictions',
   community: 'predictions',
@@ -160,59 +183,13 @@ const ABSENCE_GAP_KEY = {
   not_asked: 'matchCentre.moduleNotSupplied',
 } as const satisfies Record<MatchAbsenceGap, Key>;
 
-/** An absence's reason in our words (T-1601, T-1626), never the feed's English. */
-const ABSENCE_REASON_KEY = {
-  injury: 'matchCentre.absenceReason.injury',
-  knee: 'matchCentre.absenceReason.knee',
-  muscle: 'matchCentre.absenceReason.muscle',
-  thigh: 'matchCentre.absenceReason.thigh',
-  hamstring: 'matchCentre.absenceReason.hamstring',
-  groin: 'matchCentre.absenceReason.groin',
-  calf: 'matchCentre.absenceReason.calf',
-  ankle: 'matchCentre.absenceReason.ankle',
-  achilles: 'matchCentre.absenceReason.achilles',
-  foot: 'matchCentre.absenceReason.foot',
-  heel: 'matchCentre.absenceReason.heel',
-  toe: 'matchCentre.absenceReason.toe',
-  leg: 'matchCentre.absenceReason.leg',
-  hip: 'matchCentre.absenceReason.hip',
-  pelvis: 'matchCentre.absenceReason.pelvis',
-  back: 'matchCentre.absenceReason.back',
-  abdomen: 'matchCentre.absenceReason.abdomen',
-  chest: 'matchCentre.absenceReason.chest',
-  ribs: 'matchCentre.absenceReason.ribs',
-  shoulder: 'matchCentre.absenceReason.shoulder',
-  collarbone: 'matchCentre.absenceReason.collarbone',
-  arm: 'matchCentre.absenceReason.arm',
-  wrist: 'matchCentre.absenceReason.wrist',
-  hand: 'matchCentre.absenceReason.hand',
-  head: 'matchCentre.absenceReason.head',
-  eye: 'matchCentre.absenceReason.eye',
-  tendon: 'matchCentre.absenceReason.tendon',
-  lower_body: 'matchCentre.absenceReason.lower_body',
-  upper_body: 'matchCentre.absenceReason.upper_body',
-  knock: 'matchCentre.absenceReason.knock',
-  fracture: 'matchCentre.absenceReason.fracture',
-  surgery: 'matchCentre.absenceReason.surgery',
-  concussion: 'matchCentre.absenceReason.concussion',
-  hernia: 'matchCentre.absenceReason.hernia',
-  illness: 'matchCentre.absenceReason.illness',
-  heart: 'matchCentre.absenceReason.heart',
-  health: 'matchCentre.absenceReason.health',
-  red_card: 'matchCentre.absenceReason.red_card',
-  yellow_cards: 'matchCentre.absenceReason.yellow_cards',
-  suspended: 'matchCentre.absenceReason.suspended',
-  doping: 'matchCentre.absenceReason.doping',
-  inactive: 'matchCentre.absenceReason.inactive',
-  off_roster: 'matchCentre.absenceReason.off_roster',
-  lacking_fitness: 'matchCentre.absenceReason.lacking_fitness',
-  coach_decision: 'matchCentre.absenceReason.coach_decision',
-  rest: 'matchCentre.absenceReason.rest',
-  personal: 'matchCentre.absenceReason.personal',
-  overload: 'matchCentre.absenceReason.overload',
-  loan_agreement: 'matchCentre.absenceReason.loan_agreement',
-  international_duty: 'matchCentre.absenceReason.international_duty',
-} as const satisfies Record<AbsenceReasonCode, Key>;
+/**
+ * An absence's reason in our words (T-1601, T-1626), never the feed's
+ * English: the key is the code under one prefix. Written as a template and
+ * not a table of fifty lines, which the page's JavaScript would carry
+ * (T-1746); the type still refuses a code the catalogue has no words for.
+ */
+const absenceReasonWords = (code: AbsenceReasonCode): Key => `matchCentre.absenceReason.${code}`;
 
 /** An absence's broad kind, when its reason is not one we can name. */
 const ABSENCE_KIND_KEY = {
@@ -247,7 +224,7 @@ export function absenceOrder(absences: MatchAbsence[]): MatchAbsence[] {
  */
 export function absenceReasonKey(a: MatchAbsence): Key | null {
   if (a.reason_code !== undefined && a.reason_code !== null)
-    return ABSENCE_REASON_KEY[a.reason_code];
+    return absenceReasonWords(a.reason_code);
   return a.kind === null ? null : ABSENCE_KIND_KEY[a.kind];
 }
 
@@ -263,17 +240,31 @@ function playerCell(locale: string, player: MatchPlayerStats, metric: PlayerMatc
 
 /**
  * One section of the page, the target of an anchor. Its top clears the
- * sticky tabs when jumped to; with nothing in it, it is not rendered. `tab`
- * makes it a tab's whole panel (Stats, Watch, Discussion).
+ * sticky score bar and tabs when jumped to (`--match-stack`, their height
+ * and a little air, set in `globals.css`; T-1742); with nothing in it, it is
+ * not rendered. `tab`
+ * makes it a tab's whole panel (Stats, Watch, Discussion); `also` names a
+ * second tab that shows it on a phone (the pick card, `globals.css`).
  */
-function Region({ id, tab, children }: { id: string; tab?: MatchTab; children?: React.ReactNode }) {
+function Region({
+  id,
+  tab,
+  also,
+  children,
+}: {
+  id: string;
+  tab?: MatchTab;
+  also?: MatchTab;
+  children?: React.ReactNode;
+}) {
   if (children === undefined || children === null || children === false) return null;
   return (
     <div
       id={id}
-      className="flex min-w-0 scroll-mt-16 flex-col gap-5"
+      className="flex min-w-0 scroll-mt-(--match-stack) flex-col gap-3 md:gap-5"
       data-testid={`section-${id}`}
       data-tab={tab}
+      data-tab-also={also}
     >
       {children}
     </div>
@@ -283,7 +274,11 @@ function Region({ id, tab, children }: { id: string; tab?: MatchTab; children?: 
 /** A tab's panel that holds several sections (Summary, Line-ups, Predictions). */
 function Panel({ tab, id, children }: { tab: MatchTab; id?: string; children: React.ReactNode }) {
   return (
-    <div id={id} className="flex min-w-0 scroll-mt-16 flex-col gap-5" data-tab={tab}>
+    <div
+      id={id}
+      className="flex min-w-0 scroll-mt-(--match-stack) flex-col gap-3 md:gap-5"
+      data-tab={tab}
+    >
       {children}
     </div>
   );
@@ -335,61 +330,124 @@ export function MatchCentreView({
   };
   const tabs = TABS.filter(([tab]) => present[tab]);
 
+  // Before kick-off the in-play modules with nothing yet are one card
+  // (T-1745, D-366), not an empty card each: `coming` is what it names.
+  const coming = comingModules(centre);
+  const isComing = (id: ComingItem['id']) => coming.some((item) => item.id === id);
+  const statsComing = coming.filter((item) => item.tab === 'stats');
+  const lineupsComing = isComing('lineups');
+  // A tab whose every module is in that card holds, on a phone, a copy of the
+  // card for its own modules and nothing else. From 768px the copy is not
+  // drawn, so the tab's section is lifted to stand directly above the
+  // Summary's card: its jump link then lands on the card that names it.
+  const statsLifted = statsComing.length === 3;
+
+  const statsRegion = (
+    <Region id="stats" tab="stats">
+      {statsComing.length > 0 && <ComingCard items={statsComing} words={words} phone />}
+      {!isComing('statistics') && <Statistics centre={centre} locale={locale} words={words} />}
+      {!isComing('player_statistics') && (
+        <PlayerStatistics centre={centre} locale={locale} words={words} />
+      )}
+      {!isComing('expected_goals') && (
+        <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
+      )}
+    </Region>
+  );
+  const lineupsRegion = (
+    <Region id="lineups" tab={lineupsComing ? 'lineups' : undefined}>
+      {lineupsComing ? (
+        <ComingCard items={coming.filter((item) => item.tab === 'lineups')} words={words} phone />
+      ) : (
+        <Module
+          title={m['matchCentre.lineups']}
+          module={centre.lineups}
+          testId="lineups"
+          words={words}
+          empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
+          notInYet={f.status === 'live'}
+          before={unplayed(centre)}
+        >
+          {(lineups) => (
+            <MatchLineupsView
+              home={f.home}
+              away={f.away}
+              lineups={lineups}
+              ratings={ratingsOf(centre)}
+              locale={locale}
+              words={words}
+            />
+          )}
+        </Module>
+      )}
+    </Region>
+  );
+  // The match as it went: before kick-off, the one card of what will come.
+  const played = (
+    <Panel tab="summary">
+      <Region id="timeline">
+        {coming.length > 0 && <ComingCard items={coming} words={words} />}
+        {!isComing('timeline') && (
+          <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
+        )}
+      </Region>
+      {slots.summary}
+    </Panel>
+  );
+
   const panels: Record<MatchTab, React.ReactNode> = {
     summary: (
-      <Panel tab="summary" id="summary">
-        {/* What the model forecast and what happened, then the three voices (T-1497). */}
-        {slots.outcome}
-        <Region id="verdict">{slots.verdict}</Region>
-        <Region id="timeline">
-          <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
+      <>
+        <Panel tab="summary" id="summary">
+          {/* What the model forecast and what happened (T-1497). */}
+          {slots.outcome}
+        </Panel>
+        {/* The reader's pick, directly under the model's card (T-1739): a
+            Predictions section, outside the Summary's panel so that tab shows it too. */}
+        <Region id="pick" tab="predictions" also="summary">
+          {slots.pick}
         </Region>
-        {slots.summary}
-      </Panel>
+        {/* Before kick-off, the model's details after the pick (T-1744). */}
+        {has('details') && <Panel tab="summary">{slots.details}</Panel>}
+        {/* The other predictions of this match, each once on the page and
+            each its own section (rule 6; T-1744, D-365): the founder's
+            analysis, then the community picks and the approved contributors.
+            Predictions sections the Summary also shows, as the pick is. */}
+        {present.predictions && (
+          <Region id="predictions" tab="predictions" also="summary">
+            <Region id="analysis">{slots.analysis}</Region>
+            <Region id="community">{slots.community}</Region>
+          </Region>
+        )}
+        {statsLifted || lineupsComing ? (
+          // No box on a phone, where the tabs choose; from 768px one block
+          // with no gap, the lifted sections empty above the card.
+          <div className="contents md:flex md:flex-col" data-coming-anchors="">
+            {statsLifted && statsRegion}
+            {lineupsComing && lineupsRegion}
+            {played}
+          </div>
+        ) : (
+          played
+        )}
+      </>
     ),
-    stats: (
-      <Region id="stats" tab="stats">
-        <Statistics centre={centre} locale={locale} words={words} />
-        <PlayerStatistics centre={centre} locale={locale} words={words} />
-        <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
+    stats: statsLifted ? null : statsRegion,
+    lineups:
+      !lineupsComing || has('players') ? (
+        <Panel tab="lineups">
+          {!lineupsComing && lineupsRegion}
+          <Region id="players">{slots.players}</Region>
+        </Panel>
+      ) : null,
+    // How the model's forecast was reached, and the Power Index (T-1744):
+    // the forecast itself is the Summary's card, and the other predictions
+    // stand after the pick.
+    predictions: (
+      <Region id="forecast" tab="predictions">
+        {slots.forecast}
       </Region>
     ),
-    lineups: (
-      <Panel tab="lineups">
-        <Region id="lineups">
-          <Module
-            title={m['matchCentre.lineups']}
-            module={centre.lineups}
-            testId="lineups"
-            words={words}
-            empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
-            notInYet={f.status === 'live'}
-            // They come about an hour before kick-off, not from it (T-1627).
-            before={((b) => (b === 'kickoff' ? 'lineup' : b))(unplayed(centre, 'lineups'))}
-          >
-            {(lineups) => (
-              <MatchLineupsView
-                home={f.home}
-                away={f.away}
-                lineups={lineups}
-                ratings={ratingsOf(centre)}
-                locale={locale}
-                words={words}
-              />
-            )}
-          </Module>
-        </Region>
-        <Region id="players">{slots.players}</Region>
-      </Panel>
-    ),
-    predictions: present.predictions ? (
-      // Three sections with three names, never one panel (rule 6, T-605).
-      <Panel tab="predictions" id="predictions">
-        <Region id="forecast">{slots.forecast}</Region>
-        <Region id="analysis">{slots.analysis}</Region>
-        <Region id="community">{slots.community}</Region>
-      </Panel>
-    ) : null,
     watch: (
       <Region id="watch" tab="watch">
         {slots.watch}
@@ -407,8 +465,14 @@ export function MatchCentreView({
   // narrow; on a phone the columns are no box at all and the tabs choose.
   const COLUMN = 'flex min-w-0 flex-col gap-6 max-md:contents';
 
+  // The score, the status and whether the feed is behind, read once: the
+  // band and the compact bar are drawn from the same answer (T-1742, rule 4).
+  const state = bandState(f, hero, { locale, timeZone, now, words });
+  // The pick is open: the Predictions tab leads to its card (D-360).
+  const pick = has('pick') && f.status === 'scheduled';
+
   return (
-    <div className="flex flex-col gap-5 md:gap-6" data-match-root="">
+    <div className="flex flex-col gap-5 md:gap-6" data-match-root="" data-status={f.status}>
       <Hero
         centre={centre}
         locale={locale}
@@ -416,11 +480,50 @@ export function MatchCentreView({
         now={now}
         hero={hero}
         words={words}
-        tabs={tabs}
+        state={state}
       />
 
+      {/* The sticky stack (T-1742, D-363): the tab row, a child of the page
+          column so it holds for the whole page, and above it the compact
+          score bar, which takes no height and shows once the band has gone
+          (`globals.css`). The negative margin closes the column's gap, so
+          the tabs sit at the band's foot as before. */}
+      <div className="sticky z-10 -mt-5 md:-mt-6" data-match-sticky="">
+        <ScoreBar
+          fixture={f}
+          state={state}
+          stale={hero?.streamBroken === true}
+          locale={locale}
+          words={words}
+        />
+        {/* The section tabs (Design System `Tabs`): plain anchors, the saffron
+            edge under the one on show (globals.css), scrolling sideways on a phone. */}
+        <nav
+          aria-label={m['matchCentre.onThisPage'].text}
+          className={cx('-mx-4 overflow-x-auto bg-surface px-2 md:mx-0 md:px-0', BLEED)}
+          data-testid="section-nav"
+        >
+          <ul className="flex gap-0.5">
+            {tabs.map(([tab, label]) => (
+              <li key={tab} className="shrink-0">
+                <a
+                  href={`#${pick && tab === 'predictions' ? 'pick' : tab}`}
+                  data-tab-link={tab}
+                  className="inline-flex min-h-touch items-center px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg"
+                >
+                  <MessageText message={m[label]} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+
+      {/* On a phone the cards stand 0.75rem apart and the first one closer to
+          the tabs, so the model's bar and the pick's three outcomes are both
+          on the first screen before kick-off (T-1743, board P2-4). */}
       <div
-        className="flex flex-col gap-5 md:flex-row md:flex-wrap md:items-start md:gap-6"
+        className="-mt-2 flex flex-col gap-3 md:mt-0 md:flex-row md:flex-wrap md:items-start md:gap-6"
         data-match-tabs=""
       >
         <div className={cx(COLUMN, 'md:grow-999 md:basis-160')} data-column="main">
@@ -434,7 +537,7 @@ export function MatchCentreView({
         <aside className={cx(COLUMN, 'gap-5 md:grow md:basis-85')} data-column="side">
           {/* Beside the Summary: the best rated, who was missing, the past
               meetings; beside the statistics, each side's form. */}
-          <div className="flex min-w-0 flex-col gap-5" data-tab="summary">
+          <div className="flex min-w-0 flex-col gap-3 md:gap-5" data-tab="summary">
             <TopRated centre={centre} locale={locale} words={words} />
             <Availability
               centre={centre}
@@ -449,7 +552,7 @@ export function MatchCentreView({
             <Region id="news">{slots.news}</Region>
           </div>
           {slots.form !== undefined && (
-            <div className="flex min-w-0 flex-col gap-5" data-tab="stats">
+            <div className="flex min-w-0 flex-col gap-3 md:gap-5" data-tab="stats">
               {slots.form}
             </div>
           )}
@@ -463,13 +566,20 @@ export function MatchCentreView({
 
 /**
  * The score band (the canvas's Match, MatchPhone and LivePhone boards,
- * T-1497): on the surface, across the page. Competition and round; both
+ * T-1497): on the surface, across the page. On a phone it is short (T-1743,
+ * D-364; board P2-4): the competition line, the sides and the figure, one
+ * line for the date and the ground, and one freshness line whose "Details"
+ * hold the rest of the facts and where to watch; nothing between them but
+ * what the match's state adds (the live badge and minute, a feed behind, a
+ * notice). From 768px it is as it was. Competition and round; both
  * sides with their crests, the score large and narrow between them -- each
  * side's goals beside that side in either direction (D-193, `ScorePair`) --
  * and each side's scorers under its name; live, the saffron live badge above
  * the score, the minute along a bar and the stream's freshness stamp under
- * it (rule 4); where to watch; the match's facts; after full time the
- * official highlight; and the section tabs at its foot.
+ * it (rule 4); where to watch; the match's facts; and after full time the
+ * official highlight. The section tabs follow it, outside it, so they can
+ * stick (T-1742); the band is the view timeline the compact score bar waits
+ * on (`data-match-band`, `globals.css`).
  */
 function Hero({
   centre,
@@ -478,7 +588,7 @@ function Hero({
   now,
   hero,
   words,
-  tabs,
+  state,
 }: {
   centre: MatchCentre;
   locale: string;
@@ -486,30 +596,22 @@ function Hero({
   now: number | undefined;
   hero: MatchHero;
   words: MatchWords;
-  tabs: readonly (readonly [MatchTab, Key])[];
+  /** The score and status, shared with the compact bar (T-1742). */
+  state: BandState;
 }) {
   const m = words.m;
   const n = (value: number): string => formatNumber(locale, value);
   const f = centre.fixture;
   const naskh = ARABIC_SCRIPT.has(locale);
-  const headline = f.status === 'finished' ? resultLine(f.scores) : f.scores.current;
+  // Scheduled with the kick-off long past and no word from the feed (T-1708,
+  // D-343), `awaiting`: the band says so, and draws neither the kick-off time
+  // as its figure nor the stream's "last checked", which is our check, not
+  // the match's.
+  const { headline, status, behind, awaiting, live } = state;
   // Goals and result disagree (T-1717, D-347): no number is drawn as final.
-  const disputed = f.status === 'finished' ? hero.disputed : undefined;
+  const disputed = state.disputed ? hero.disputed : undefined;
   // After extra time the band also says the ninety minutes (D-317).
   const ninety = f.scores.extra_time !== null && !disputed ? f.scores.full_time : null;
-  const behind = now !== undefined && isBehind(f, now);
-  // Scheduled, the kick-off long past and no word from the feed (T-1708,
-  // D-343): the band says so, and draws neither the kick-off time as its
-  // figure nor the stream's "last checked", which is our check, not the match's.
-  // Once a snapshot brings another status, the server's notice goes.
-  const awaiting = f.status === 'scheduled' && hero.awaiting != null;
-  // At the half-time interval the feed's minute stays at 45: the band says
-  // "HT" rather than a clock that looks stalled (T-1551). A feed that has
-  // fallen behind keeps its own words (rule 4).
-  const status =
-    f.status === 'live' && f.at_half_time === true && !behind
-      ? m['status.halfTime'].text
-      : statusLabel(f, locale, timeZone, now, m);
   // Every freshness time on the page says its day when it is not today (T-1371).
   const at = (iso: string) => <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time>;
   // The fixture lists re-ask hourly; a check after the last change is the
@@ -520,6 +622,65 @@ function Hero({
       : null;
   const venue =
     f.venue === null ? null : `${f.venue.name}${f.venue.city !== null ? `, ${f.venue.city}` : ''}`;
+  // The facts, said once and placed twice: in a row under the band from
+  // 768px, and on a phone on the ground's line or behind "Details" (T-1743).
+  const facts = {
+    venue:
+      venue === null ? null : f.is_neutral_venue ? (
+        <MessageText message={filled(m['matchCentre.neutralVenue'], { venue })} />
+      ) : (
+        venue
+      ),
+    referee: (
+      <MessageText
+        message={filled(m['matchCentre.referee'], {
+          name: f.referee === null ? m['status.coverage.notSupplied'].text : f.referee.name,
+        })}
+      />
+    ),
+    attendance:
+      f.attendance === null ? null : (
+        <MessageText message={filled(m['matchCentre.attendance'], { count: n(f.attendance) })} />
+      ),
+    aggregate:
+      f.scores.aggregate === null ? null : (
+        <>
+          <MessageText message={m['status.aggregate']} />{' '}
+          <Score home={f.scores.aggregate.home} away={f.scores.aggregate.away} locale={locale} />
+        </>
+      ),
+    penalties:
+      f.scores.penalties === null ? null : (
+        <>
+          <MessageText message={m['status.penalties']} />{' '}
+          <Score home={f.scores.penalties.home} away={f.scores.penalties.away} locale={locale} />
+        </>
+      ),
+    lastUpdate:
+      checked === null ? (
+        <FilledMessage
+          message={m['matchCentre.lastUpdate']}
+          params={{ time: at(f.last_updated_at) }}
+        />
+      ) : (
+        <FilledMessage
+          message={m['matchCentre.lastChecked']}
+          params={{ time: at(checked), changed: at(f.last_updated_at) }}
+        />
+      ),
+  };
+  const kickoffFull = (
+    <time dateTime={f.kickoff_at}>{formatDateTime(locale, f.kickoff_at, timeZone)}</time>
+  );
+  const kickoffDay = (
+    <time dateTime={f.kickoff_at}>
+      {formatDate(locale, f.kickoff_at, timeZone, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      })}
+    </time>
+  );
   const name = cx(
     'block max-w-full text-base leading-tight font-extrabold hyphens-auto [overflow-wrap:anywhere] md:text-3xl md:leading-none',
   );
@@ -531,20 +692,22 @@ function Hero({
     f.status === 'live' && !behind && 'text-live',
     disputed && 'text-muted',
   );
-  const live = f.status === 'live' && !behind;
   const scorers = scorersOf(centre, locale);
   // Each side's name is a 44px target on a phone (T-1553), centred in its
   // column there; from 768px the line's own height, aligned by its row.
   const teamLink = 'flex min-h-touch min-w-0 items-center justify-center md:block md:min-h-0';
   return (
     <header
-      className="flex flex-col gap-4 bg-surface pt-3 [box-shadow:0_0_0_100vmax_var(--token-surface),0_1px_0_100vmax_var(--token-border)] [clip-path:inset(0_-100vmax_-1px)] md:gap-5 md:pt-4"
+      className={cx('flex flex-col bg-surface md:gap-5 md:py-4', BLEED)}
+      data-match-band=""
       data-testid="match-header"
     >
-      <p className="flex flex-wrap items-center gap-x-2 text-sm text-caption">
+      <p className="flex flex-wrap items-center gap-x-2 text-sm text-caption max-md:min-h-7">
+        {/* A 44px target on a phone whose lower 16px lie over the band's top,
+            which holds no control there: the line itself reads as 28px. */}
         <Link
           href={`/${locale}/competition/${f.competition.id}?season=${f.season.id}`}
-          className="inline-flex min-h-touch items-center gap-2 font-semibold text-muted underline md:min-h-0"
+          className="inline-flex min-h-touch items-center gap-2 font-semibold text-muted underline max-md:-mb-4 max-md:items-start max-md:pt-1 md:min-h-0"
           data-testid="competition-link"
         >
           <EntityImage
@@ -575,7 +738,11 @@ function Hero({
         // The live badge (Design System `LiveBadge`, T-1523); when the feed has
         // fallen behind, amber words and no badge: the match is not shown as
         // live while its state may be old (rule 4).
-        <p className="-mb-2 flex justify-center" data-testid="live-badge" data-live={live}>
+        <p
+          className="flex justify-center max-md:my-1 md:-mb-2"
+          data-testid="live-badge"
+          data-live={live}
+        >
           {live ? (
             <LiveBadge
               label={
@@ -595,15 +762,18 @@ function Hero({
       )}
 
       {/* Home, score, away from the inline start: the whole band mirrors on /fa. */}
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 md:items-center md:gap-8">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 max-md:pt-1 md:items-center md:gap-8">
         <div data-testid="home-team" className="min-w-0">
-          <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-end md:gap-5 md:text-end">
+          <div className="flex flex-col items-center text-center md:flex-row md:justify-end md:gap-5 md:text-end">
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
               <Link href={`/${locale}/team/${f.home.id}`} className={teamLink}>
                 <bdi className={name}>{f.home.name}</bdi>
               </Link>
               {scorers.home !== '' && (
-                <span className="text-xs text-muted md:text-sm" data-testid="scorers-home">
+                <span
+                  className="text-xs text-muted max-md:pb-1.5 md:text-sm"
+                  data-testid="scorers-home"
+                >
                   {scorers.home}
                 </span>
               )}
@@ -611,7 +781,13 @@ function Hero({
             <Crest team={f.home} className="max-md:order-first" />
           </div>
         </div>
-        <div className="flex flex-col items-center gap-2">
+        <div
+          className={cx(
+            'flex flex-col items-center gap-2',
+            // Before kick-off the time stands alone on a phone, level with the sides.
+            f.status === 'scheduled' && !awaiting && 'max-md:self-center',
+          )}
+        >
           {f.status === 'scheduled' && !awaiting ? (
             // Before kick-off the band's figure is the kick-off time, never a 0-0.
             <span className={figure} data-testid="match-status">
@@ -630,15 +806,8 @@ function Hero({
             </ScorePair>
           )}
           {f.status === 'scheduled' ? (
-            <span className="text-sm font-semibold text-muted">
-              <time dateTime={f.kickoff_at}>
-                {formatDate(locale, f.kickoff_at, timeZone, {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                })}
-              </time>
-            </span>
+            // On a phone the day shares the ground's line under the band (T-1743).
+            <span className="text-sm font-semibold text-muted max-md:hidden">{kickoffDay}</span>
           ) : (
             f.status !== 'live' && (
               <span className="text-xs font-bold text-muted md:text-sm">
@@ -677,14 +846,17 @@ function Hero({
           {disputed?.marker}
         </div>
         <div data-testid="away-team" className="min-w-0">
-          <div className="flex flex-col items-center gap-2 text-center md:flex-row md:justify-start md:gap-5 md:text-start">
+          <div className="flex flex-col items-center text-center md:flex-row md:justify-start md:gap-5 md:text-start">
             <Crest team={f.away} />
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
               <Link href={`/${locale}/team/${f.away.id}`} className={teamLink}>
                 <bdi className={name}>{f.away.name}</bdi>
               </Link>
               {scorers.away !== '' && (
-                <span className="text-xs text-muted md:text-sm" data-testid="scorers-away">
+                <span
+                  className="text-xs text-muted max-md:pb-1.5 md:text-sm"
+                  data-testid="scorers-away"
+                >
                   {scorers.away}
                 </span>
               )}
@@ -695,7 +867,7 @@ function Hero({
 
       {/* Live: the minute along the match, then kick-off and the stream's stamp. */}
       {f.status === 'live' && (
-        <div className="flex flex-col gap-1.5" data-testid="live-progress">
+        <div className="flex flex-col gap-1.5 max-md:my-2" data-testid="live-progress">
           {f.minute !== null && (
             <span aria-hidden="true" className="block h-1 rounded-pill bg-surface-raised">
               <span
@@ -723,133 +895,157 @@ function Hero({
       )}
       {(hero.watch !== undefined ||
         (f.status !== 'live' && !awaiting && hero.live !== undefined)) && (
-        <div className="-mt-1 flex flex-col items-center gap-2 text-center">
+        <div className="flex flex-col items-center gap-2 text-center md:-mt-1">
           {f.status !== 'live' && !awaiting && hero.live}
-          {hero.watch}
+          {/* From 768px the watch line stands here; on a phone it is in the details. */}
+          {hero.watch !== undefined && <div className="max-md:hidden">{hero.watch}</div>}
         </div>
       )}
 
-      {behind && (
-        <p
-          role="status"
-          className="text-center text-sm font-medium text-warning"
-          data-testid="feed-behind"
-        >
-          <FilledMessage
-            message={m['matchCentre.behind']}
-            params={{ time: at(f.last_updated_at) }}
-          />
+      {/* What the match's state adds: one group on a phone, where the band
+          has no gap of its own; from 768px each is the band's own child. */}
+      <div className="flex flex-col gap-2 empty:hidden max-md:my-1 md:contents">
+        {behind && (
+          <p
+            role="status"
+            className="text-center text-sm font-medium text-warning"
+            data-testid="feed-behind"
+          >
+            <FilledMessage
+              message={m['matchCentre.behind']}
+              params={{ time: at(f.last_updated_at) }}
+            />
+          </p>
+        )}
+        {awaiting && hero.awaiting}
+        {disputed?.note}
+
+        {hero.highlights}
+      </div>
+
+      {/* A phone (T-1743): the day and the ground on one line -- with the
+          aggregate, a score a reader should not have to open anything for --
+          then the freshness line, the rest of the facts behind its "Details". */}
+      <div className="flex flex-col md:hidden" data-testid="match-facts-phone">
+        <p className="flex flex-wrap items-center justify-center gap-x-1.5 text-center text-sm text-muted">
+          {kickoffDay}
+          {facts.venue !== null && (
+            <span>
+              · <bdi>{facts.venue}</bdi>
+            </span>
+          )}
+          {facts.aggregate !== null && <span>· {facts.aggregate}</span>}
         </p>
-      )}
-      {awaiting && hero.awaiting}
-      {disputed?.note}
-
-      {hero.highlights}
-
-      <ul className="flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-muted">
-        <li>
-          <FilledMessage
-            message={m['scores.card.kickoff']}
-            params={{
-              time: (
-                <time dateTime={f.kickoff_at}>
-                  {formatDateTime(locale, f.kickoff_at, timeZone)}
-                </time>
-              ),
-            }}
-          />
-        </li>
-        {venue !== null && (
+        <FreshnessLine
+          checkedAt={f.last_checked_at}
+          changedAt={f.last_updated_at}
+          // The data may be old: in play and behind (D-045), or the kick-off
+          // long past with no word (D-343). Said in the line, not behind it.
+          stale={behind || (f.status === 'scheduled' && f.freshness === 'awaiting_update')}
+          locale={locale}
+          timeZone={timeZone}
+          now={now}
+          words={words}
+        >
+          <li>{facts.lastUpdate}</li>
           <li>
-            {f.is_neutral_venue ? (
-              <MessageText message={filled(m['matchCentre.neutralVenue'], { venue })} />
+            {hero.zone === undefined ? (
+              <FilledMessage message={m['scores.card.kickoff']} params={{ time: kickoffFull }} />
             ) : (
-              venue
+              <FilledMessage
+                message={m['matchCentre.kickoffIn']}
+                params={{ time: kickoffFull, zone: hero.zone }}
+              />
             )}
           </li>
-        )}
+          <li>{facts.referee}</li>
+          {facts.attendance !== null && <li>{facts.attendance}</li>}
+          {facts.penalties !== null && <li>{facts.penalties}</li>}
+          {/* Nothing listed and nothing to say: the watch line draws nothing. */}
+          {hero.watch !== undefined && <li className="empty:hidden">{hero.watch}</li>}
+        </FreshnessLine>
+      </div>
+
+      <ul className="flex flex-wrap justify-center gap-x-5 gap-y-1 text-sm text-muted max-md:hidden">
         <li>
-          <MessageText
-            message={filled(m['matchCentre.referee'], {
-              name: f.referee === null ? m['status.coverage.notSupplied'].text : f.referee.name,
-            })}
-          />
+          <FilledMessage message={m['scores.card.kickoff']} params={{ time: kickoffFull }} />
         </li>
-        {f.attendance !== null && (
-          <li>
-            <MessageText
-              message={filled(m['matchCentre.attendance'], { count: n(f.attendance) })}
-            />
-          </li>
-        )}
-        {f.scores.aggregate !== null && (
-          <li>
-            <MessageText message={m['status.aggregate']} />{' '}
-            <Score home={f.scores.aggregate.home} away={f.scores.aggregate.away} locale={locale} />
-          </li>
-        )}
-        {f.scores.penalties !== null && (
-          <li>
-            <MessageText message={m['status.penalties']} />{' '}
-            <Score home={f.scores.penalties.home} away={f.scores.penalties.away} locale={locale} />
-          </li>
-        )}
+        {facts.venue !== null && <li>{facts.venue}</li>}
+        <li>{facts.referee}</li>
+        {facts.attendance !== null && <li>{facts.attendance}</li>}
+        {facts.aggregate !== null && <li>{facts.aggregate}</li>}
+        {facts.penalties !== null && <li>{facts.penalties}</li>}
         <li
           data-testid="last-update"
           className="font-mono text-xs text-caption [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
         >
           <span aria-hidden="true">● </span>
-          {checked === null ? (
-            <FilledMessage
-              message={m['matchCentre.lastUpdate']}
-              params={{ time: at(f.last_updated_at) }}
-            />
-          ) : (
-            <FilledMessage
-              message={m['matchCentre.lastChecked']}
-              params={{ time: at(checked), changed: at(f.last_updated_at) }}
-            />
-          )}
+          {facts.lastUpdate}
         </li>
       </ul>
-
-      {/* The section tabs (Design System `Tabs`): plain anchors, the saffron
-          edge under the one on show (globals.css), scrolling sideways on a phone. */}
-      <nav
-        aria-label={m['matchCentre.onThisPage'].text}
-        className="-mx-4 overflow-x-auto px-2 md:mx-0 md:px-0"
-        data-testid="section-nav"
-      >
-        <ul className="flex gap-0.5">
-          {tabs.map(([tab, label]) => (
-            <li key={tab} className="shrink-0">
-              <a
-                href={`#${tab}`}
-                data-tab-link={tab}
-                className="inline-flex min-h-touch items-center px-3 text-sm font-semibold whitespace-nowrap text-muted hover:text-fg"
-              >
-                <MessageText message={m[label]} />
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
     </header>
   );
 }
 
 /**
- * Where a module with nothing in it stands when there has been no play
- * (T-1550): before kick-off it starts then, if the season covers it at all
- * (a module the season does not cover keeps "Not supplied", rule 3); a
- * postponed or cancelled match was not played. `null` once there is play.
+ * A postponed or cancelled match was not played (T-1550): its modules say
+ * so, rather than "Not supplied". `null` for every other match.
  */
-function unplayed(centre: MatchCentre, module: CoverageModule): 'kickoff' | 'unplayed' | null {
+function unplayed(centre: MatchCentre): 'unplayed' | null {
   const status = centre.fixture.status;
-  if (status === 'postponed' || status === 'cancelled') return 'unplayed';
-  // Long past its kick-off with no word from the feed (T-1708): not known.
-  if (status !== 'scheduled' || centre.fixture.freshness === 'awaiting_update') return null;
-  return centre.coverage[module] === 'not_supplied' ? null : 'kickoff';
+  return status === 'postponed' || status === 'cancelled' ? 'unplayed' : null;
+}
+
+/**
+ * The in-play modules: each one's title, the tab that holds it, the season
+ * coverage it falls under, and its data in the match's payload.
+ */
+const IN_PLAY = [
+  ['timeline', 'matchCentre.timeline', 'summary', 'incidents', (c) => c.timeline.data],
+  ['statistics', 'matchCentre.statistics', 'stats', 'statistics', (c) => c.statistics.data],
+  [
+    'player_statistics',
+    'matchCentre.playerStatistics',
+    'stats',
+    'advanced_statistics',
+    (c) => c.player_statistics.data,
+  ],
+  [
+    'expected_goals',
+    'matchCentre.expectedGoals',
+    'stats',
+    'advanced_statistics',
+    (c) => c.player_expected_goals.data,
+  ],
+  ['lineups', 'matchCentre.lineups', 'lineups', 'lineups', (c) => c.lineups.data],
+] as const satisfies readonly (readonly [
+  ComingItem['id'],
+  Key,
+  ComingItem['tab'],
+  CoverageModule,
+  (centre: MatchCentre) => unknown,
+])[];
+
+/**
+ * What the "After kick-off you'll see" card names (T-1745, D-366): before
+ * kick-off, every in-play module with nothing yet, with what the season's
+ * declared coverage says of it -- `coming` where it is covered, `limited`
+ * and `delayed` as declared, `not_supplied` where the season does not cover
+ * it and it will not come (rule 3). None once there is play, for a postponed
+ * or cancelled match, or for one long past its kick-off with no word from
+ * the feed (T-1708): then each module says its own state. A module that
+ * already has data -- line-ups, about an hour before kick-off -- is not in
+ * the list and is drawn as itself. Pure.
+ */
+export function comingModules(centre: MatchCentre): ComingItem[] {
+  const f = centre.fixture;
+  if (f.status !== 'scheduled' || f.freshness === 'awaiting_update') return [];
+  return IN_PLAY.filter(([, , , , data]) => data(centre) === null).map(
+    ([id, title, tab, module]) => {
+      const coverage = centre.coverage[module];
+      return { id, title, tab, state: coverage === 'available' ? 'coming' : coverage };
+    },
+  );
 }
 
 /**
@@ -889,7 +1085,7 @@ function Crest({ team, className }: { team: MatchCentre['fixture']['home']; clas
   return (
     <span
       className={cx(
-        'inline-grid size-13 shrink-0 place-items-center rounded-tile border border-default bg-surface md:size-21 md:rounded-card',
+        'inline-grid size-12 shrink-0 place-items-center rounded-tile border border-default bg-surface md:size-21 md:rounded-card',
         className,
       )}
     >
@@ -938,7 +1134,7 @@ function Timeline({
       testId="timeline"
       words={words}
       notInYet={f.status === 'live'}
-      before={unplayed(centre, 'incidents')}
+      before={unplayed(centre)}
     >
       {(incidents) => {
         // A shoot-out is its own block, its kicks in order and numbered, never
@@ -1236,7 +1432,7 @@ function Statistics({
       testId="statistics"
       words={words}
       notInYet={f.status === 'live'}
-      before={unplayed(centre, 'statistics')}
+      before={unplayed(centre)}
     >
       {(rows) => (
         <>
@@ -1314,7 +1510,7 @@ function PlayerStatistics({
       module={centre.player_statistics}
       testId="player-statistics"
       words={words}
-      before={unplayed(centre, 'advanced_statistics')}
+      before={unplayed(centre)}
     >
       {(players) => (
         <div className="flex flex-col gap-3 text-sm">
@@ -1416,7 +1612,7 @@ function PlayerExpectedGoals({
       module={expected}
       testId="player-expected-goals"
       words={words}
-      before={unplayed(centre, 'advanced_statistics')}
+      before={unplayed(centre)}
       empty={expected.last_updated_at === null ? null : 'matchCentre.expectedGoals.none'}
     >
       {(players) => (
@@ -1492,6 +1688,65 @@ function PlayerExpectedGoals({
   );
 }
 
+/** One group of a side's absences: who, by status and by why (T-1746). */
+export interface AbsenceGroup {
+  status: MatchAbsence['status'];
+  /** The group's reason in our words; `null` when the feed gave none we can name. */
+  reason: Key | null;
+  /** Closed whole behind "Show N names": a selection choice, not an injury. */
+  folded: boolean;
+  absences: MatchAbsence[];
+}
+
+/** How many of a group stand open before "Show N more". */
+export const ABSENCES_SHOWN = 4;
+
+/** A reason code that says no more than its broad kind does. */
+const GENERIC_REASON = new Set<AbsenceReasonCode>(['injury', 'suspended', 'illness']);
+
+/**
+ * One side's absences grouped by status and by why (T-1746, D-367; board
+ * P2-5), in reading order (`absenceOrder`): an injury, a suspension or an
+ * illness by its broad kind, so "Out · Injury (7)" holds the knee and the
+ * calf alike; every other reason by its own code, so "Not in the squad" is
+ * its own group and never weighs like an injury. Pure.
+ */
+export function absenceGroups(absences: MatchAbsence[]): AbsenceGroup[] {
+  const groups = new Map<string, AbsenceGroup>();
+  for (const a of absenceOrder(absences)) {
+    const broad = a.kind !== null && a.kind !== 'other';
+    const by = broad ? a.kind : (a.reason_code ?? a.kind ?? 'none');
+    const key = `${a.status}:${by}`;
+    const group = groups.get(key) ?? {
+      status: a.status,
+      reason: a.kind !== null && broad ? ABSENCE_KIND_KEY[a.kind] : absenceReasonKey(a),
+      folded: !broad && a.reason_code === 'off_roster',
+      absences: [],
+    };
+    group.absences.push(a);
+    groups.set(key, group);
+  }
+  return [...groups.values()];
+}
+
+/**
+ * What a row adds to its group's reason: the specific one ("Knee injury"
+ * under "Injury"), nothing when it says the same.
+ */
+function rowReasonKey(a: MatchAbsence, group: AbsenceGroup): Key | null {
+  const key = absenceReasonKey(a);
+  if (key === null || key === group.reason) return null;
+  return a.reason_code != null && GENERIC_REASON.has(a.reason_code) ? null : key;
+}
+
+/**
+ * Who will or may miss the match (T-103), each side's list grouped by status
+ * and by why with a count -- "Out · Injury (7)", "Out · Not in the squad
+ * (5)" -- the status an icon and a word; a long group shows its first four
+ * and folds the rest behind a native `<details>` ("Show 3 more"), and the
+ * squad-selection group is closed whole ("Show 5 names"). No script. When
+ * the feed was asked stands under the list, as before (rule 4).
+ */
 function Availability({
   centre,
   locale,
@@ -1519,6 +1774,27 @@ function Availability({
           now,
           f.status === 'scheduled' ? AVAILABILITY_STALE_AFTER_MS : undefined,
         );
+  const row = (a: MatchAbsence, group: AbsenceGroup) => {
+    const reason = rowReasonKey(a, group);
+    return (
+      <li
+        key={a.id}
+        className="flex flex-wrap items-baseline justify-between gap-x-3"
+        data-status={a.status}
+        data-kind={a.kind ?? undefined}
+      >
+        <Link href={`/${locale}/player/${a.id}`}>{listName(locale, a.name)}</Link>
+        {reason !== null ? (
+          <span className="text-muted">
+            <MessageText message={m[reason]} />
+          </span>
+        ) : group.reason === null && locale === 'en' && a.reason !== null ? (
+          // A reason we cannot name: the feed's own words, on an English page only (T-1601).
+          <span className="text-muted">{a.reason}</span>
+        ) : null}
+      </li>
+    );
+  };
   return (
     <Module
       title={m['player.availability.title']}
@@ -1547,42 +1823,76 @@ function Availability({
             )}
           </p>
         ) : (
-          <div className="flex flex-col gap-3 text-sm">
+          <div className="flex flex-col gap-4 text-sm">
             {(
               [
                 ['home', f.home.name],
                 ['away', f.away.name],
               ] as const
-            ).map(([side, team]) => (
-              <div key={side} className="flex flex-col gap-1">
-                <h3 className="font-bold">{team}</h3>
-                <ul className="flex flex-col gap-1">
-                  {absenceOrder(absences.filter((a) => a.side === side)).map((a) => {
-                    const reason = absenceReasonKey(a);
+            ).map(([side, team]) => {
+              const groups = absenceGroups(absences.filter((a) => a.side === side));
+              if (groups.length === 0) return null;
+              return (
+                <div key={side} className="flex flex-col gap-2.5" data-absence-side={side}>
+                  <h3 className="font-bold">{team}</h3>
+                  {groups.map((group) => {
+                    const count = formatNumber(locale, group.absences.length);
+                    const status =
+                      m[group.status === 'out' ? 'matchCentre.out' : 'matchCentre.doubtful'].text;
+                    const open = group.folded ? [] : group.absences.slice(0, ABSENCES_SHOWN);
+                    const rest = group.absences.slice(open.length);
                     return (
-                      <li key={a.id} data-status={a.status} data-kind={a.kind ?? undefined}>
-                        <Link href={`/${locale}/player/${a.id}`}>{listName(locale, a.name)}</Link>{' '}
-                        <span className="text-muted">
+                      <div
+                        key={`${group.status}:${group.reason ?? 'none'}`}
+                        className="flex flex-col gap-1"
+                        data-absence-group={group.status}
+                        data-count={group.absences.length}
+                      >
+                        <h4 className="inline-flex items-center gap-1.5 text-xs font-extrabold text-muted">
+                          {/* The status is an icon and a word: struck for out, half for doubtful. */}
+                          <CoverageGlyph
+                            state={group.status === 'out' ? 'not_supplied' : 'limited'}
+                          />
                           <MessageText
                             message={
-                              m[a.status === 'out' ? 'matchCentre.out' : 'matchCentre.doubtful']
+                              group.reason === null
+                                ? filled(m['matchCentre.absences.groupPlain'], { status, count })
+                                : filled(m['matchCentre.absences.group'], {
+                                    status,
+                                    reason: m[group.reason].text,
+                                    count,
+                                  })
                             }
                           />
-                          {reason !== null ? (
-                            <>
-                              {' · '}
-                              <MessageText message={m[reason]} />
-                            </>
-                          ) : locale === 'en' && a.reason !== null ? (
-                            ` · ${a.reason}`
-                          ) : null}
-                        </span>
-                      </li>
+                        </h4>
+                        {open.length > 0 && (
+                          <ul className="flex flex-col gap-1">{open.map((a) => row(a, group))}</ul>
+                        )}
+                        {rest.length > 0 && (
+                          <details data-testid="absences-more">
+                            <summary className="inline-flex min-h-touch cursor-pointer items-center font-semibold underline md:min-h-0">
+                              <MessageText
+                                message={filled(
+                                  m[
+                                    group.folded
+                                      ? 'matchCentre.absences.names'
+                                      : 'matchCentre.absences.more'
+                                  ],
+                                  { count: formatNumber(locale, rest.length) },
+                                )}
+                              />
+                            </summary>
+                            <ul className="mt-1 flex flex-col gap-1">
+                              {rest.map((a) => row(a, group))}
+                            </ul>
+                          </details>
+                        )}
+                      </div>
                     );
                   })}
-                </ul>
-              </div>
-            ))}
+                </div>
+              );
+            })}
             {askedStamp !== null && (
               // When the feed was asked, under the list too (rule 4).
               <p className="text-xs text-muted" data-testid="absences-asked">

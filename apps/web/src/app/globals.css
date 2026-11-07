@@ -296,7 +296,7 @@
 
     /* The fold's mark, drawn here rather than in the markup (the page's JS budget). */
     &::after {
-      content: 'BE' / '';
+      content: '\25BE' / '';
       @apply ms-auto inline-block text-caption motion-safe:transition-transform;
     }
 
@@ -307,6 +307,47 @@
 
   .moments-summary-label {
     @apply min-w-0 truncate font-bold;
+  }
+
+  /*
+   * The line's match (T-1755, D-372; board P4-5), whole or absent, by the
+   * stylesheet alone: the words "Moments that matter" and the match share
+   * one grid cell, the match on top. Its box is one line tall and clips; the
+   * match follows a zero-width strut on a wrapping line and grows to the
+   * cell's end on the surface, so when it fits it covers the words, and
+   * when it does not it wraps under the strut, out of sight, and the words
+   * show. The minute is in the live colour; the next kick-off muted.
+   */
+  .moments-line {
+    @apply grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)];
+
+    & > * {
+      grid-area: 1 / 1;
+    }
+  }
+
+  .moments-line-box {
+    display: flex;
+    flex-wrap: wrap;
+    block-size: 1.25rem;
+    block-size: 1lh;
+    overflow: hidden;
+
+    &::before {
+      content: '\200b';
+    }
+  }
+
+  .moments-line-match {
+    @apply flex-[1_0_auto] bg-surface font-semibold whitespace-nowrap text-fg;
+  }
+
+  .moments-line-when {
+    @apply ms-1.5 font-bold tabular-nums;
+  }
+
+  .moments-line-behind {
+    @apply shrink-0 font-bold whitespace-nowrap text-warning;
   }
 
   [data-folded='true'] > .moments-frame {
@@ -570,6 +611,39 @@
       }
     }
   }
+
+  /*
+   * A side's name beside its share on the model's forecast bar (T-1748,
+   * D-368): whole or absent, never cut and never broken. The box is one line
+   * tall and clips; the name follows a zero-width strut on a wrapping line,
+   * so a name wider than the box wraps under the strut, out of sight. In the
+   * label's cell (a wrapping line too) the box sits beside the number when
+   * both fit and under it when the name alone fits. When the server's
+   * estimate of the name (`--forecast-name`) is wider than the cell (the
+   * query container), the box gives up its line, so a bar whose names do not
+   * fit keeps its numbers directly over the segments.
+   */
+  .forecast-name {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: baseline;
+    max-inline-size: 100%;
+    white-space: nowrap;
+
+    /* Without `lh` or container units: one line, never given up. */
+    block-size: 1.35em;
+    block-size: clamp(0px, (100cqi - var(--forecast-name, 0px)) * 9999, 1lh);
+    overflow: hidden;
+
+    &::before {
+      content: '\200b';
+    }
+
+    & > * {
+      flex: none;
+    }
+  }
 }
 
 /*
@@ -669,8 +743,8 @@
  *   bg-accent  bg-accent-strong  bg-danger  ...
  *   bg-brand  text-on-brand  (the Design System's bright saffron fill: the
  *     primary button, the top rating chip; T-1493)
- *   bg-prob-draw  bg-prob-away  (the forecast bar's draw and away segments;
- *     home is bg-model)
+ *   bg-model  bg-model/75  bg-model/50  (the forecast bar's three steps, by
+ *     the rank of each share; `forecast-bar.tsx`, T-1748)
  *   bg-rating-low  text-on-rating-low  bg-rating-good  text-on-rating-good
  *     (the match rating chip's bands)
  *   bg-logo-tile  ring-logo-edge  (a competition logo's white tile and its
@@ -705,8 +779,6 @@
   --color-community: var(--token-community);
   --color-brand: var(--token-brand);
   --color-on-brand: var(--token-on-brand);
-  --color-prob-draw: var(--token-prob-draw);
-  --color-prob-away: var(--token-prob-away);
   --color-rating-low: var(--token-rating-low);
   --color-on-rating-low: var(--token-on-rating-low);
   --color-rating-good: var(--token-rating-good);
@@ -891,6 +963,110 @@ header:has(#competitions-menu:not([hidden])) {
 }
 
 /*
+ * The register page (T-1737, D-358): its own Create account is the view's one
+ * filled button, so the header's, which would lead to this same page, is not
+ * drawn there. By CSS because the layout draws the header and does not know
+ * the page. A browser without `:has()` keeps the button.
+ */
+:root:has(main[data-page='register']) .header-create-account {
+  display: none;
+}
+
+/*
+ * No moments rail on the pages whose one job is a form or a message
+ * (T-1755, D-372; board P4-8): sign-in, register, forgot-password, welcome,
+ * offline and not found mark their `<main>` with `data-no-rail`. By CSS
+ * because the layout draws the rail and does not know the page (and the
+ * not-found page has no address of its own). The header and the tab bar
+ * stay, so the scores are one tap away.
+ */
+:root:has([data-no-rail]) .moments-rail {
+  display: none;
+}
+
+/*
+ * The sticky header (T-1759, D-376; board P4-7), CSS alone: 48px on a phone
+ * (3rem with its hairline), 56px from 768px, on every page but the match
+ * page, at layer 30 (its Menu is inside it; the sticky group headers and the
+ * match page's tabs are 10, the pick bar 20, the tab bar 40).
+ * `--site-header-height` is how much of the top it holds, 0 where it does
+ * not stick, so another sticky element sits under it
+ * (`top: var(--site-header-height, 0px)`) and an in-page jump lands clear
+ * of it (`scroll-padding`).
+ *
+ * The match page keeps D-363's own sticky stack: its header scrolls away and
+ * keeps the height it had (60px and its hairline on a phone, 64px from
+ * 1024px), so the page's first screen is exactly as before (packages 2 and
+ * 3: the pick buttons above the pick bar). Nothing sticks on a viewport
+ * under 28rem high (a phone on its side), as D-363 decided.
+ */
+:root {
+  --site-header-height: 3rem;
+}
+
+/* Jumps land under the header only where there is one: the agents console
+   draws no site header (code review, T-1759). */
+:root:has(.site-header) {
+  scroll-padding-block-start: var(--site-header-height);
+}
+
+.site-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 30;
+}
+
+.site-bar {
+  min-block-size: calc(3rem - 1px);
+}
+
+@media (width >= 48rem) {
+  :root {
+    --site-header-height: 3.5rem;
+  }
+
+  .site-bar {
+    min-block-size: 3.5rem;
+  }
+}
+
+@media (width >= 64rem) {
+  .site-bar {
+    block-size: 3.5rem;
+  }
+}
+
+:root:has([data-match-root]) {
+  --site-header-height: 0px;
+}
+
+:root:has([data-match-root]) .site-header {
+  position: relative;
+  z-index: auto;
+}
+
+:root:has([data-match-root]) .site-bar {
+  min-block-size: 3.75rem;
+}
+
+@media (width >= 64rem) {
+  :root:has([data-match-root]) .site-bar {
+    block-size: 4rem;
+  }
+}
+
+@media (height < 28rem) {
+  :root {
+    --site-header-height: 0px;
+  }
+
+  .site-header {
+    position: relative;
+    z-index: auto;
+  }
+}
+
+/*
  * The header's mark (T-1494, D-267). The header follows the theme, and the
  * mark is never recoloured (D-262): it is drawn in the Day and the Night
  * colours, and the theme shows one, by the same three ways tokens.css turns
@@ -1057,12 +1233,16 @@ header:has(#competitions-menu:not([hidden])) {
  * this needs no script and a page with none behaves the same. From 768px
  * every section is open, in a main and a side column, and the tabs jump to
  * them. The tab bar marks the tab on show the same way at every width.
+ *
+ * The pick card (T-1739, D-360) is a Predictions section the Summary shows
+ * as well (`data-tab-also`): under the model's card on Summary, first on
+ * Predictions, and `#pick` opens Predictions with it at the top.
  */
 @media (width < 48rem) {
   [data-match-tabs]:not(:has([data-tab]:target, [data-tab] :target))
-    [data-tab]:not([data-tab='summary']),
+    [data-tab]:not([data-tab='summary'], [data-tab-also='summary']),
   [data-match-tabs]:has([data-tab='summary']:target, [data-tab='summary'] :target)
-    [data-tab]:not([data-tab='summary']),
+    [data-tab]:not([data-tab='summary'], [data-tab-also='summary']),
   [data-match-tabs]:has([data-tab='lineups']:target, [data-tab='lineups'] :target)
     [data-tab]:not([data-tab='lineups']),
   [data-match-tabs]:has([data-tab='stats']:target, [data-tab='stats'] :target)
@@ -1096,6 +1276,137 @@ header:has(#competitions-menu:not([hidden])) {
   box-shadow: inset 0 -3px 0 var(--token-accent);
   color: var(--token-text);
   font-weight: 800;
+}
+
+/*
+ * The match page's sticky stack (T-1742, D-363; boards P2-1a, P2-1b). The
+ * section tabs stick under the top of the screen for the whole page
+ * (`data-match-sticky`, a child of the page column: a sticky box holds only
+ * inside its parent). Above them the compact score bar (`data-score-bar`,
+ * 3rem) is in the page from the start but not drawn: it takes no height
+ * (absolutely placed on the tabs' upper edge) and stays hidden until the big
+ * score band (`data-match-band`) has left the screen.
+ *
+ * That is a scroll-driven animation and no script: the band is a view
+ * timeline, named on the page's root so the bar, its sibling's child, can
+ * use it, and the bar is whole from the moment the tabs stick, 3rem short
+ * of the band's end (it fades in over the 3rem before that). A browser
+ * without scroll-driven animations (before Chrome 115, Safari 26 and
+ * Firefox 159) never shows the bar: the tabs stick at the very top and
+ * nothing else changes. `--match-stack` is what a section's top must clear
+ * when a tab jumps to it (`scroll-mt-(--match-stack)`): the stack and 0.5rem.
+ *
+ * The bar fades in with the scroll where motion is welcome; with reduced
+ * motion (the device's, or the member's `data-motion`) it is simply there.
+ * On a viewport too short to spare them (a phone on its side, as for the
+ * pick bar below) nothing sticks. Layers: 10, under the pick bar (20), the
+ * phone's open Menu (30) and the tab bar and the rail's panel (40).
+ */
+[data-match-root] {
+  --match-stack: 3.25rem;
+}
+
+[data-match-sticky] {
+  inset-block-start: 0;
+}
+
+[data-score-bar] {
+  visibility: hidden;
+}
+
+@keyframes score-bar-show {
+  to {
+    visibility: visible;
+  }
+}
+
+@keyframes score-bar-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+@supports (animation-timeline: view()) and (timeline-scope: --match-band) {
+  [data-match-root] {
+    --match-stack: 6.25rem;
+
+    timeline-scope: --match-band;
+  }
+
+  [data-match-band] {
+    view-timeline: --match-band block;
+  }
+
+  [data-match-sticky] {
+    inset-block-start: 3rem;
+  }
+
+  [data-score-bar] {
+    animation: score-bar-show 1ms linear both;
+    animation-timeline: --match-band;
+
+    /*
+     * Shown from the moment the tabs stick, 3rem short of the band's end,
+     * and whole from then on: a tab's jump lands just past that point, and
+     * a bar still fading there stood half-drawn over the band's last line.
+     * The second line of each pair is for a browser that takes a length in
+     * a range.
+     */
+    animation-range: exit 80% exit 81%;
+    animation-range: exit calc(100% - 3rem - 1px) exit calc(100% - 3rem);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    /* The fade runs over the 3rem before the tabs stick, and is over by then. */
+    :root:not([data-motion='reduce']) [data-score-bar] {
+      animation-name: score-bar-fade;
+      animation-range: exit 60% exit 80%;
+      animation-range: exit calc(100% - 6rem) exit calc(100% - 3rem);
+    }
+  }
+}
+
+@media (height < 28rem) {
+  [data-match-root] {
+    --match-stack: 1rem;
+  }
+
+  [data-match-sticky] {
+    position: static;
+  }
+
+  [data-score-bar] {
+    display: none;
+  }
+}
+
+/*
+ * The match page's pick bar on a phone (T-1739, D-360): fixed above the tab
+ * bar until kick-off, so the page's end gains its height and the footer's
+ * last line clears it. It is not shown on a viewport too short to spare it
+ * (a phone on its side), nor once the live view says the match is no longer
+ * scheduled: the server stops rendering it at kick-off, and this rule covers
+ * a page left open across it. No script: the bar is a link to the pick card.
+ */
+@media (width < 48rem) and (height >= 28rem) {
+  body:has([data-pick-bar]) {
+    padding-block-end: 3.75rem;
+  }
+}
+
+@media (height < 28rem) {
+  [data-pick-bar] {
+    display: none;
+  }
+}
+
+main:has([data-match-root]:not([data-status='scheduled'])) [data-pick-bar] {
+  display: none;
 }
 
 /*
@@ -1377,4 +1688,131 @@ header:has(#competitions-menu:not([hidden])) {
   descent-override: 39.32%;
   line-gap-override: 0%;
   unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
+}
+
+/*
+ * The matches list on a phone (T-1757, D-374).
+ *
+ * A row (`score-card.tsx`) is at least 72px: three columns on a phone, 56 |
+ * names | 104 (the model's whole bar beside the names), and from 36rem of
+ * the list's own width (a container query; the list is the container) the
+ * four of the desktop, 52 | names | 208 | 72. Its Pick stands under the time
+ * on a phone, at the row's end beyond. Here rather than in the row's markup:
+ * the row is drawn by a client view, and its class lists are script.
+ */
+@layer components {
+  .match-row {
+    @apply grid min-h-18 scroll-mt-11 grid-cols-[3.5rem_minmax(0,1fr)_6.5rem] grid-rows-[auto_auto] items-center gap-x-2 px-4 py-1.5 data-selected:bg-selected @xl:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] @xl:gap-x-3.5;
+  }
+
+  .match-row-pick {
+    @apply col-start-1 row-start-2 min-h-11 min-w-11 items-center justify-center gap-1 self-start justify-self-start rounded-control px-1.5 text-sm font-bold whitespace-nowrap @xl:col-start-4 @xl:row-span-2 @xl:row-start-1 @xl:self-center @xl:justify-self-end @xl:px-2.5;
+  }
+}
+
+/*
+ * A competition's heading sticks under the site header, whose height the
+ * header itself sets (`--site-header-height`, 0 where it does not stick); on
+ * a screen under 28rem tall (a phone on its side) nothing sticks, as D-363
+ * has it for the match page.
+ */
+.match-group-head {
+  position: sticky;
+  inset-block-start: var(--site-header-height, 0px);
+}
+
+@media (height < 28rem) {
+  .match-group-head {
+    position: static;
+  }
+}
+
+/*
+ * A row of chips whose native disclosures open a panel under the whole row
+ * (`fold-row`; the matches page's All · Live · Date · Filters, the player's
+ * Follow and Compare). Where the browser can style a <details>'s content slot,
+ * the <details> is no box: its summary is a chip of the row and its content
+ * slot the row's last line, so the chips never move. Elsewhere an open
+ * <details> takes a line of its own, its panel under its chip. No script.
+ * The row's own box is a component, so a page's utilities may adjust it; a
+ * row gap would also space the closed content slots, so a panel pads itself.
+ */
+@layer components {
+  .fold-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.375rem;
+  }
+}
+
+.fold-row > details[open] {
+  flex-basis: 100%;
+}
+
+@supports selector(::details-content) {
+  .fold-row > details {
+    display: contents;
+  }
+
+  .fold-row > details::details-content {
+    order: 1;
+    flex-basis: 100%;
+  }
+}
+
+/*
+ * Under 1024px the list's "Last checked" stamp stands in the page's title
+ * row: the page's wrappers are no boxes (`scores-flat`), so the stamp, deep in
+ * the live list, is a cell of the page's own grid beside the title. The
+ * desktop keeps it over the list.
+ */
+@media (width < 64rem) {
+  .scores-main {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .scores-main > *,
+  .scores-flat > * {
+    grid-column: 1 / -1;
+  }
+
+  .scores-flat {
+    display: contents;
+  }
+
+  .scores-main > h1 {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .scores-main .scores-stamp {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    text-align: end;
+  }
+}
+
+/*
+ * The player's Compare (T-1758, D-375): on a phone a 44px button beside
+ * Follow that opens the form under both; from 768px the form stands open in
+ * the row, as it did, and the button is gone.
+ */
+@media (width >= 48rem) {
+  @supports selector(::details-content) {
+    .compare-fold,
+    .compare-fold::details-content {
+      display: contents;
+    }
+
+    .compare-fold::details-content {
+      content-visibility: visible;
+    }
+
+    .compare-fold > summary {
+      display: none;
+    }
+  }
 }

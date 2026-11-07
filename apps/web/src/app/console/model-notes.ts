@@ -1,179 +1,360 @@
+import type { ConsoleModelInputKey } from '@fmip/contracts';
+
 /**
- * What each forecast-model version is made of, in Persian (T-1729, D-355):
- * the console's model page reads the versions and the figures from the API,
- * and their make-up from here, written from the version files in
- * `apps/model/fmip_model/model/{published,candidates}/` and the decisions
- * named beside each line. A version not listed here is shown with its name
- * and figures and the sentence that its make-up is not written yet, never
- * with another version's inputs (rule 3). A new version gets its entry with
- * its promotion or shadow decision.
+ * What each forecast-model version is made of, in Persian (T-1729, D-355;
+ * every version, T-1752, D-371): the console's model page reads the figures
+ * from the API and the make-up from here, written from the version files in
+ * `apps/model/fmip_model/model/{published,candidates,retired}/`, the baseline
+ * in `version.py` and the decisions named beside each line. A version that
+ * is not listed here is shown with its name and figures and the sentence
+ * that its make-up is not written yet, never with another version's (rule
+ * 3); `model-notes.spec.ts` fails when a version file has no entry. What was
+ * tested and left out is not here: that is the lab's ledger, from the
+ * snapshot.
  */
 
-export interface ModelInputNote {
-  /** The input in plain Persian. */
-  title: string;
-  /** The technical name, shown left to right. */
-  technical: string;
-  /** What it does, in one plain sentence. */
-  plain: string;
-  /** The version's own constant or detail, when it adds something. */
-  detail?: string;
-}
+/** Every version that ever existed, oldest first: the order of the matrix's columns. */
+export const VERSION_ORDER = [
+  '0.1.0',
+  '0.2.0',
+  '0.3.0',
+  '0.4.0',
+  '0.5.0',
+  '0.6.0',
+  '0.7.0',
+  '0.8.0',
+] as const;
+export type VersionNumber = (typeof VERSION_ORDER)[number];
+
+export const MODEL_NAME = 'dixon-coles-elo';
+export const versionId = (number: VersionNumber): string => `${MODEL_NAME}@${number}`;
+export const versionNumber = (id: string): string => id.slice(id.indexOf('@') + 1);
+
+/**
+ * What became of a version, by the decisions: on the site at some time, in
+ * shadow with stored forecasts, in shadow for hours and replaced before it
+ * stored one, or never shipped at all.
+ */
+export type VersionFate = 'published' | 'shadow' | 'shadow_unstored' | 'never_shipped';
 
 export interface ModelVersionNote {
-  /** Published: the decision that put it on the site. Shadow: the one that put it in shadow. */
+  number: VersionNumber;
+  fate: VersionFate;
+  /** The decision that published it, put it in shadow, or refused it. */
   decision: string;
-  /** Shadow only: what it adds to the published version, in one sentence. */
-  adds?: string;
-  /** Shadow only: the rule its promotion is judged by. */
+  /** What it changed from the version before it, in one sentence. */
+  delta: string;
+  /** A version in shadow: the rule its promotion is judged by. */
   rule?: 'D-336' | 'D-139';
-  /** Published only: its inputs, in the order the forecast is built. */
-  inputs?: ModelInputNote[];
 }
 
-/** The make-up of `dixon-coles-elo@0.6.0` (T-1372, D-190, D-191), from its file. */
-const INPUTS_0_6_0: ModelInputNote[] = [
-  {
-    title: 'نتیجه‌ی مسابقه‌های گذشته',
-    technical: 'match results (goals for and against)',
-    plain:
-      'از گل‌های زده و خورده‌ی هر تیم در مسابقه‌های ثبت‌شده‌ی خود سکو، یک عدد برای قدرت حمله و یک عدد برای قدرت دفاع هر تیم تخمین زده می‌شود.',
-    detail: 'سه سال اخیر (۱۱۰۰ روز)، هر لیگ جدا',
+export const MODEL_VERSIONS: Record<VersionNumber, ModelVersionNote> = {
+  '0.1.0': {
+    number: '0.1.0',
+    fate: 'published',
+    decision: 'D-029',
+    delta:
+      'نخستین نسخه: یک وزن زمانی و یک مهار برای همه‌ی لیگ‌ها، پنجره‌ی ۴۰۰ روزه و پیشین Club Elo.',
   },
-  {
-    title: 'وزن زمانی',
-    technical: 'time decay (xi)',
-    plain: 'مسابقه‌ی تازه‌تر وزن بیشتری دارد و اثر مسابقه‌ی قدیمی کم‌کم کم می‌شود.',
-    detail:
-      'برای هر لیگ جدا تنظیم شده؛ نیمه‌عمر از حدود ۱۷۰ روز تا حدود ۱۴۰۰ روز، و ۱۰۷ روز برای لیگی که عدد خودش را ندارد',
+  '0.2.0': {
+    number: '0.2.0',
+    fate: 'shadow_unstored',
+    decision: 'D-082',
+    delta: 'وزن زمانی و مهار جدا برای هر لیگ (دور اول تنظیم) و پنجره‌ی ۱۱۰۰ روزه.',
   },
-  {
-    title: 'برتری میزبان',
-    technical: 'home advantage',
-    plain:
-      'تیم میزبان در هر لیگ به اندازه‌ای که داده‌ی همان لیگ نشان می‌دهد گل بیشتری انتظار دارد.',
+  '0.3.0': {
+    number: '0.3.0',
+    fate: 'shadow_unstored',
+    decision: 'D-082',
+    delta: 'دور دوم تنظیم: حافظه‌ی بلندتر و مهار سنگین‌تر برای بیشتر لیگ‌ها.',
   },
-  {
-    title: 'رتبه‌ی Elo خود سکو',
-    technical: 'own Elo prior',
-    plain:
-      'رتبه‌ی Elo که سکو از همان نتیجه‌ها حساب می‌کند، قدرت کلی هر تیم را به سمت جایگاهش می‌کشد؛ برای تیمی که مسابقه‌ی کمی دارد مهم‌تر است.',
-    detail: 'وزن ۰٫۵؛ ضریب تغییر ۲۰ و برتری میزبان ۶۰ امتیاز (D-111، D-162)',
+  '0.4.0': {
+    number: '0.4.0',
+    fate: 'shadow_unstored',
+    decision: 'D-085',
+    delta: 'برازش میان‌لیگی برای جام‌ها و مسابقه‌های قاره‌ای افزوده شد.',
   },
-  {
-    title: 'مهار عددهای افراطی',
-    technical: 'ridge regularisation',
-    plain:
-      'قدرت تیمی که داده‌ی کمی دارد به سمت میانگین نگه داشته می‌شود تا از چند نتیجه‌ی اتفاقی بزرگ نشود.',
+  '0.5.0': {
+    number: '0.5.0',
+    fate: 'shadow',
+    decision: 'D-111',
+    delta: 'پیشین Elo از Club Elo به Elo خود سکو عوض شد.',
   },
-  {
-    title: 'اصلاح نتیجه‌های کم‌گل',
-    technical: 'low-score correction (Dixon–Coles rho)',
-    plain:
-      'احتمال نتیجه‌های ۰–۰، ۱–۰، ۰–۱ و ۱–۱ با یک عدد که از داده تخمین زده می‌شود اصلاح می‌شود.',
+  '0.6.0': {
+    number: '0.6.0',
+    fate: 'published',
+    decision: 'D-191',
+    delta: 'فقط وزن زمانی و مهار ویژه‌ی لیگ برتر خلیج فارس؛ بقیه همان 0.5.0.',
   },
-  {
-    title: 'مسابقه‌های میان دو لیگ',
-    technical: 'cross-league fit (XL)',
-    plain:
-      'برای جام‌ها و مسابقه‌های اروپایی، همه‌ی باشگاه‌ها روی یک مقیاس برازش می‌شوند: قدرت هر باشگاه برابر قدرت لیگش به‌علاوه‌ی قدرت خودش است.',
-    detail: 'D-085',
-  },
-  {
-    title: 'از میانگین گل به سه احتمال',
-    technical: 'Poisson score matrix → home / draw / away',
-    plain:
-      'از میانگین گل هر طرف، احتمال هر نتیجه تا ۱۰ گل حساب می‌شود و جمع آن‌ها احتمال برد میزبان، مساوی و برد میهمان را می‌دهد.',
-  },
-];
-
-export const MODEL_NOTES: Record<string, ModelVersionNote> = {
-  'dixon-coles-elo@0.6.0': { decision: 'D-191', inputs: INPUTS_0_6_0 },
-  'dixon-coles-elo@0.7.0': {
+  '0.7.0': {
+    number: '0.7.0',
+    fate: 'shadow',
     decision: 'D-233',
-    adds: 'همان 0.6.0 با همه‌ی عددهایش، به‌علاوه‌ی یازده لیگ تازه: یونان، سوئیس، دانمارک، آمریکا، برزیل، آرژانتین، چک، کرواسی، صربستان، عربستان و امارات.',
+    delta:
+      'یازده لیگ تازه: یونان، سوئیس، دانمارک، آمریکا، برزیل، آرژانتین، چک، کرواسی، صربستان، عربستان و امارات. ثابت‌های 0.6.0 عوض نشد؛ ولی برازش میان‌لیگی هر نسخه مسابقه‌های همه‌ی لیگ‌های همان نسخه را می‌خواند، پس پیش‌بینی جام‌ها هم می‌تواند فرق کند.',
     rule: 'D-336',
+  },
+  '0.8.0': {
+    number: '0.8.0',
+    fate: 'never_shipped',
+    decision: 'D-329',
+    delta:
+      'همان 0.7.0 با وزن زمانی و مهار تازه برای نُه لیگ؛ روی فصل کنارگذاشته از معیار رد نشد و هرگز به shadow نرفت.',
   },
 };
 
-export interface RejectedFactor {
-  title: string;
-  technical: string;
-  /** Why, in a few words. */
-  why: string;
-  decision: string;
+export const FATE_WORDS: Record<VersionFate, string> = {
+  published: 'روی سایت',
+  shadow: 'shadow',
+  shadow_unstored: 'shadow؛ پیش‌بینی‌ای ذخیره نکرد',
+  never_shipped: 'هرگز اجرا نشد',
+};
+
+/** From which version an element is in the model, and from which it is not any more. */
+interface Span {
+  from: VersionNumber;
+  /** The first version without it. */
+  until?: VersionNumber;
+  /** Versions that name it and got nothing from it. */
+  silent?: VersionNumber[];
 }
 
-/** Factors tested on held-out matches and not adopted (D-121, D-329, D-335). */
-export const REJECTED_FACTORS: RejectedFactor[] = [
+export type Use = 'used' | 'not' | 'silent';
+
+const index = (number: string): number => VERSION_ORDER.indexOf(number as VersionNumber);
+
+/** Whether a version has an element; a version this file does not know has none to show. */
+export function hasElement(span: Span, number: string): Use {
+  const at = index(number);
+  if (at < 0 || at < index(span.from)) return 'not';
+  if (span.until !== undefined && at >= index(span.until)) return 'not';
+  return span.silent?.includes(number as VersionNumber) === true ? 'silent' : 'used';
+}
+
+/**
+ * Whether `number` is the first of `shown` (oldest first) to have the
+ * element, when an older shown version did not: what the picture marks "+".
+ */
+export function isNewIn(span: Span, number: string, shown: readonly string[]): boolean {
+  const having = shown.filter((v) => hasElement(span, v) !== 'not');
+  return having[0] === number && shown[0] !== number;
+}
+
+export interface PipelineInput extends Span {
+  /** The store's count for it, when the API counts one. */
+  input: ConsoleModelInputKey | null;
+  title: string;
+  source: string;
+  /** Said in place of a count where there is none to give. */
+  plain?: string;
+}
+
+export const PIPELINE_INPUTS: PipelineInput[] = [
   {
-    title: 'قدرت ترکیب اصلی',
-    technical: 'lineup strength (xi_strength, lineup_beta)',
-    why: 'پیش‌بینی را بهتر نکرد',
-    decision: 'D-121',
-  },
-  { title: 'روزهای استراحت', technical: 'rest days', why: 'کمی بدتر کرد', decision: 'D-329' },
-  {
-    title: 'برتری میزبان ویژه‌ی هر تیم',
-    technical: 'team home advantage',
-    why: 'در ۶ لیگ از ۱۷ لیگ بدتر کرد',
-    decision: 'D-329',
-  },
-  { title: 'سابقه‌ی رودررو', technical: 'head to head', why: 'بدتر کرد', decision: 'D-329' },
-  { title: 'مربی تازه', technical: 'new coach', why: 'بدتر کرد', decision: 'D-329' },
-  {
-    title: 'انگیزه از جایگاه جدول',
-    technical: 'league stakes (zones)',
-    why: 'مسابقه‌ی کافی نبود',
-    decision: 'D-329',
-  },
-  { title: 'بازی برگشت', technical: 'second leg', why: 'مسابقه‌ی کافی نبود', decision: 'D-329' },
-  {
-    title: 'فرم گل مورد انتظار',
-    technical: 'expected-goals form (xG)',
-    why: 'در لیگ‌های اصلی بهتر و در بسیاری از لیگ‌های دیگر بدتر بود؛ یک آزمون رو‌به‌جلو برای ۵ ژانویه‌ی ۲۰۲۷ ثبت شده (D-334)',
-    decision: 'D-329',
-  },
-  {
-    title: 'غیبت بازیکنان همیشگی',
-    technical: 'regulars missing',
-    why: 'بدتر کرد',
-    decision: 'D-329',
-  },
-  {
-    title: 'استراحت پیش از بازی بزرگ بعدی',
-    technical: 'rest with what comes next',
-    why: 'بدتر کرد',
-    decision: 'D-329',
+    input: 'results',
+    from: '0.1.0',
+    title: 'نتیجه‌ی مسابقه‌های لیگ‌ها',
+    source: 'انبار آموزش: football-data و داده‌ی خود سکو',
   },
   {
-    title: 'بازکالیبره‌ی تساوی',
-    technical: 'draw recalibration',
-    why: 'اثری نداشت',
-    decision: 'D-329',
+    input: null,
+    from: '0.7.0',
+    title: 'نتیجه‌ی یازده لیگ تازه',
+    source: 'همان انبار؛ فقط نسخه‌ای که این لیگ‌ها را نام برده می‌خواند',
+    plain: 'در شمار بالا آمده است',
   },
   {
-    title: 'انگیزه‌ی پایان فصل',
-    technical: 'late-season stakes',
-    why: 'بدتر کرد',
-    decision: 'D-329',
+    input: 'own_elo',
+    from: '0.5.0',
+    title: 'رتبه‌ی Elo خود سکو',
+    source: 'هر شب از همه‌ی نتیجه‌های انبار حساب می‌شود (D-111)',
   },
   {
-    title: 'گزینه‌های مسابقه‌های میان‌لیگی',
-    technical: 'cross-league options',
-    why: 'هیچ‌کدام بهتر نبود',
-    decision: 'D-329',
+    input: null,
+    from: '0.1.0',
+    until: '0.5.0',
+    silent: ['0.1.0', '0.2.0', '0.3.0', '0.4.0'],
+    title: 'رتبه‌ی Club Elo',
+    source: 'منبع بیرونی؛ از ۳ مهر ساکت شد و کنار رفت (D-162)',
+    plain: 'بازنشسته؛ بیشتر برازش‌های 0.1.0 بدون آن بود',
   },
   {
-    title: 'وزن زمانی تازه برای نُه لیگ',
-    technical: 'per-division time decay (0.8.0)',
-    why: 'روی فصل نگه‌داشته‌شده از معیار رد نشد',
-    decision: 'D-329',
-  },
-  {
-    title: 'کیفیت مربی',
-    technical: 'coach quality',
-    why: 'در هر دو گروه لیگ‌ها بدتر کرد',
-    decision: 'D-335',
+    input: 'cross_league',
+    from: '0.4.0',
+    title: 'مسابقه‌های جام و قاره‌ای',
+    source: 'همان انبار، برای مسابقه‌ی دو تیم از دو لیگ',
   },
 ];
+
+export interface PipelineStep extends Span {
+  title: string;
+  detail: string;
+}
+
+export const PIPELINE_STEPS: PipelineStep[] = [
+  {
+    from: '0.1.0',
+    title: 'برازش حمله و دفاع هر تیم',
+    detail: 'از گل‌های زده و خورده در پنجره‌ی نتیجه‌ها؛ مسابقه‌ی تازه‌تر وزن بیشتری دارد',
+  },
+  {
+    from: '0.2.0',
+    title: 'وزن زمانی و مهار، جدا برای هر لیگ',
+    detail: 'نیمه‌عمر از حدود ۱۷۰ تا ۱۴۰۰ روز؛ پنجره‌ی ۱۱۰۰ روزه',
+  },
+  {
+    from: '0.6.0',
+    title: 'ثابت‌های لیگ برتر خلیج فارس',
+    detail: 'وزن زمانی و مهار ویژه‌ی این لیگ (D-190)',
+  },
+  {
+    from: '0.1.0',
+    silent: ['0.1.0', '0.2.0', '0.3.0', '0.4.0'],
+    title: 'پیشین Elo',
+    detail:
+      'قدرت تیمِ کم‌مسابقه را به سمت جایگاهش می‌کشد؛ وزن ۰٫۵. تا 0.4.0 از Club Elo، که بیشتر وقت‌ها ساکت بود',
+  },
+  {
+    from: '0.1.0',
+    title: 'اصلاح نتیجه‌های کم‌گل',
+    detail: 'احتمال ۰–۰، ۱–۰، ۰–۱ و ۱–۱ با یک عدد برازش‌شده اصلاح می‌شود',
+  },
+  {
+    from: '0.4.0',
+    title: 'برازش میان‌لیگی برای جام‌ها',
+    detail: 'قدرت باشگاه = قدرت لیگش + قدرت خودش، روی یک مقیاس (D-085)',
+  },
+  {
+    from: '0.1.0',
+    title: 'جدول پواسون تا ۱۰ گل',
+    detail: 'از میانگین گل هر طرف، احتمال هر نتیجه و جمع آن‌ها',
+  },
+];
+
+export const PIPELINE_OUTPUTS: { title: string; detail: string }[] = [
+  { title: 'سه احتمال', detail: 'برد میزبان، مساوی، برد میهمان؛ جمعشان دقیقاً یک' },
+  { title: 'محتمل‌ترین نتیجه‌ها', detail: 'پنج نتیجه‌ی دقیق با احتمال هر کدام' },
+  {
+    title: 'وضعیت داده',
+    detail: '«کامل» فقط وقتی Elo به‌کار رفته و هر دو تیم ۱۵ مسابقه دارند؛ وگرنه «محدود»',
+  },
+  {
+    title: 'ذخیره، بدون تغییر',
+    detail: 'هر پیش‌بینی با ورودی‌ها، نسخه و زمان محاسبه‌اش می‌ماند؛ نسخه‌ی تازه کنارش می‌نشیند',
+  },
+  {
+    title: 'سنجش پس از بازی',
+    detail: 'آخرین پیش‌بینی پیش از سوت آغاز با نتیجه سنجیده می‌شود؛ پس از شروع شمرده نمی‌شود',
+  },
+];
+
+/** Data the store holds and no version reads: tested in the lab, left out. */
+export const PIPELINE_OUTSIDE: { input: ConsoleModelInputKey; title: string; detail: string }[] = [
+  {
+    input: 'expected_goals',
+    title: 'گل مورد انتظار (xG)',
+    detail: 'آزموده شد و بیرون ماند؛ یک آزمون رو به جلو در راه است',
+  },
+  {
+    input: 'lineups',
+    title: 'ترکیب اصلی',
+    detail: 'به مدل می‌رسد، ولی هیچ نسخه‌ای ضریبی برایش ندارد',
+  },
+  { input: 'absences', title: 'غایب‌ها', detail: 'آزموده شد و بیرون ماند' },
+];
+
+/** One row of the make-up matrix: a mark per version, or words where a mark cannot say it. */
+export interface MatrixRow {
+  title: string;
+  technical: string;
+  span: Span;
+  /** Words in place of the mark, by the version they start at. */
+  values?: Partial<Record<VersionNumber, string>>;
+  /** Read by no version: drawn apart. */
+  outside?: boolean;
+}
+
+export const MODEL_MATRIX: MatrixRow[] = [
+  {
+    title: 'نتیجه‌ی مسابقه‌ها',
+    technical: 'match results',
+    span: { from: '0.1.0' },
+  },
+  {
+    title: 'پنجره‌ی نتیجه‌ها',
+    technical: 'history_days',
+    span: { from: '0.1.0' },
+    values: { '0.1.0': '۴۰۰ روز', '0.2.0': '۱۱۰۰ روز' },
+  },
+  {
+    title: 'وزن زمانی و مهار',
+    technical: 'xi, ridge',
+    span: { from: '0.1.0' },
+    values: {
+      '0.1.0': 'یکی برای همه',
+      '0.2.0': 'هر لیگ، دور اول',
+      '0.3.0': 'هر لیگ، دور دوم',
+      '0.6.0': 'و لیگ ایران',
+      '0.7.0': 'و دو لیگ تازه',
+      '0.8.0': 'و نُه لیگ دیگر',
+    },
+  },
+  {
+    title: 'پیشین Elo',
+    technical: 'elo_prior',
+    span: { from: '0.1.0' },
+    values: { '0.1.0': 'Club Elo، بیشتر ساکت', '0.5.0': 'Elo خود سکو' },
+  },
+  {
+    title: 'برازش میان‌لیگی برای جام‌ها',
+    technical: 'cross_league',
+    span: { from: '0.4.0' },
+  },
+  {
+    title: 'شمار لیگ‌ها و بخش‌ها',
+    technical: 'divisions',
+    span: { from: '0.1.0' },
+    values: { '0.1.0': '۱۲', '0.4.0': '۱۳ با جام‌ها', '0.7.0': '۲۴' },
+  },
+  {
+    title: 'اصلاح کم‌گل و جدول پواسون',
+    technical: 'rho, Poisson',
+    span: { from: '0.1.0' },
+  },
+  {
+    title: 'ترکیب اصلی',
+    technical: 'xi_strength',
+    span: { from: '0.1.0', silent: [...VERSION_ORDER] },
+    outside: true,
+  },
+  {
+    title: 'گل مورد انتظار، غایب‌ها، استراحت و دیگر عامل‌ها',
+    technical: 'tested inputs',
+    span: { from: '0.8.0', until: '0.8.0' },
+    outside: true,
+  },
+];
+
+/** What a matrix cell says for one version: words, or a mark; and whether it changed there. */
+export function matrixCell(
+  row: MatrixRow,
+  number: VersionNumber,
+): { use: Use; words: string | null; changed: boolean } {
+  const use = hasElement(row.span, number);
+  const at = index(number);
+  let words: string | null = null;
+  let changed = false;
+  if (row.values !== undefined && use !== 'not') {
+    for (const candidate of VERSION_ORDER) {
+      if (index(candidate) > at) break;
+      const value = row.values[candidate];
+      if (value !== undefined) {
+        words = value;
+        changed = candidate === number && at > 0;
+      }
+    }
+  } else if (at > 0) {
+    changed = use !== hasElement(row.span, VERSION_ORDER[at - 1] as VersionNumber);
+  }
+  return { use, words, changed };
+}

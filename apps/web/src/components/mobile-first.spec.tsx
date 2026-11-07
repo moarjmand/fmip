@@ -57,17 +57,19 @@ describe('a match on the scores list', () => {
     </ul>,
   );
 
-  it('is one link to the match with the live minute, both names isolated and wrapped before they are cut', () => {
+  it('is one link to the match with the live minute, both names isolated and wrapped, never cut', () => {
     expect(html).toContain('data-testid="match-link"');
     expect(html).toContain('href="/en/match/00000000-0000-4000-8000-000000000901"');
     expect(html).toMatch(/data-testid="score-status"[^>]*>67′</);
     expect(html).toMatch(/text-live" data-testid="score-status"/);
+    // T-1757 (D-374): a name wraps inside its own line and is never clamped.
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm font-semibold" title="Liverpool">Liverpool<\/bdi>/,
+      /<bdi class="min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base font-semibold">Liverpool<\/bdi>/,
     );
     expect(html).toMatch(
-      /<bdi class="line-clamp-2 break-words leading-tight max-sm:text-sm font-semibold" title="Manchester United">/,
+      /<bdi class="min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base font-semibold">Manchester United/,
     );
+    expect(html).not.toContain('line-clamp');
     expect(html).toContain('min-h-11');
     expect(html).toContain('aria-label="one red card"');
     // T-1496: the teams stacked, each with its own goals at the line's end.
@@ -279,6 +281,8 @@ describe('the match centre', () => {
       timeZone="Asia/Tehran"
       locale="en"
       slots={{
+        outcome: <p>OUTCOME</p>,
+        pick: <p>PICK</p>,
         context: <p>TABLE</p>,
         forecast: <p>MODEL</p>,
         analysis: <p>FOUNDER</p>,
@@ -312,9 +316,14 @@ describe('the match centre', () => {
 
   it('has a tab bar of plain anchors, each to a section that exists (T-1384, T-1497)', () => {
     const nav = html.slice(html.indexOf('<nav'), html.indexOf('</nav>'));
-    // At every width, at the foot of the score band: jump links from 768px.
+    // At every width, directly after the score band: jump links from 768px.
+    // Outside the band and a child of the page column, in the sticky box
+    // (T-1742): a sticky row holds only inside its parent.
     expect(nav).toContain('data-testid="section-nav"');
-    expect(html.indexOf('data-testid="section-nav"')).toBeLessThan(html.indexOf('</header>'));
+    expect(html).toMatch(
+      /<\/header><div class="sticky z-10 [^"]*" data-match-sticky=""><div aria-hidden="true"[^>]*data-score-bar=""[^>]*>.*?<\/div><nav [^>]*data-testid="section-nav"/,
+    );
+    expect(html).toMatch(/<header [^>]*data-match-band=""/);
     for (const [tab, label] of TABS) {
       expect(nav).toContain(`href="#${tab}"`);
       expect(nav).toContain(`data-tab-link="${tab}"`);
@@ -324,7 +333,6 @@ describe('the match centre', () => {
     expect(nav).not.toContain('<button');
     // Every anchor another page links to is still on the page, in its tab.
     for (const [id, tab] of Object.entries(SECTIONS)) {
-      if (id === 'verdict') continue; // after full time only
       const at = html.indexOf(`id="${id}"`);
       expect(at).toBeGreaterThan(-1);
       const panel = html.lastIndexOf(`data-tab="${tab}"`, at + `id="${id}"`.length + 200);
@@ -344,19 +352,78 @@ describe('the match centre', () => {
     expect(html).toMatch(/data-column="side"><div class="[^"]*" data-tab="summary">/);
   });
 
-  it('keeps the model, the founder and the community in three sections, in that order', () => {
+  it('keeps the model, the founder and the community in three sections, each once (T-1744)', () => {
     const at = (id: string) => html.indexOf(`id="${id}"`);
-    expect(at('forecast')).toBeLessThan(at('analysis'));
+    // The founder's analysis and the community follow the pick; how the
+    // model's forecast was reached is the lower Predictions section.
+    expect(at('pick')).toBeLessThan(at('predictions'));
+    expect(at('predictions')).toBeLessThan(at('analysis'));
     expect(at('analysis')).toBeLessThan(at('community'));
+    expect(at('community')).toBeLessThan(at('timeline'));
+    expect(at('timeline')).toBeLessThan(at('forecast'));
     const section = (id: string, next: string) => html.slice(at(id), at(next));
-    expect(section('forecast', 'analysis')).toContain('MODEL');
-    expect(section('forecast', 'analysis')).not.toMatch(/FOUNDER|CROWD/);
     expect(section('analysis', 'community')).toContain('FOUNDER');
     expect(section('analysis', 'community')).not.toMatch(/MODEL|CROWD/);
-    expect(section('community', 'watch')).toContain('CROWD');
-    expect(section('community', 'watch')).not.toMatch(/MODEL|FOUNDER/);
-    // All three inside the one Predictions tab, never merged into one section.
-    expect(at('predictions')).toBeLessThan(at('forecast'));
+    expect(section('community', 'timeline')).toContain('CROWD');
+    expect(section('community', 'timeline')).not.toMatch(/MODEL|FOUNDER/);
+    expect(section('forecast', 'watch')).toContain('MODEL');
+    expect(section('forecast', 'watch')).not.toMatch(/FOUNDER|CROWD/);
+    // Each of the three is on the page once.
+    for (const product of ['MODEL', 'FOUNDER', 'CROWD']) {
+      expect(html.split(product).length - 1).toBe(1);
+    }
+    // The founder's and the community's sections are Predictions sections the
+    // Summary also shows, as the pick is: one element each, never a copy.
+    expect(html).toMatch(
+      /id="predictions"[^>]*data-tab="predictions" data-tab-also="summary"><div id="analysis"/,
+    );
+    expect(html).toMatch(/id="forecast"[^>]*data-tab="predictions"/);
+    expect(html).not.toContain('id="verdict"');
+  });
+
+  it('places the pick directly under the model’s card, a Predictions section the Summary also shows (T-1739)', () => {
+    const at = (needle: string) => html.indexOf(needle);
+    // The Summary opens with the model's card; the pick is the next thing,
+    // before the timeline, in its own section `#pick`.
+    expect(at('OUTCOME')).toBeGreaterThan(at('id="summary"'));
+    expect(at('OUTCOME')).toBeLessThan(at('id="pick"'));
+    expect(at('id="pick"')).toBeLessThan(at('id="timeline"'));
+    expect(html.slice(at('OUTCOME'), at('PICK'))).not.toMatch(/MODEL|FOUNDER|CROWD/);
+    // Outside the Summary's panel, so the phone's Predictions tab shows it
+    // too (`globals.css`), and once on the page.
+    expect(html).toMatch(
+      /<p>OUTCOME<\/p><\/div><div id="pick" class="[^"]*scroll-mt-\(--match-stack\)[^"]*" data-testid="section-pick" data-tab="predictions" data-tab-also="summary"><p>PICK<\/p><\/div>/,
+    );
+    expect(html.split('id="pick"').length - 1).toBe(1);
+    // The live view says its status, so a page left open past kick-off can
+    // drop the phone's pick bar without a script.
+    expect(html).toContain('data-match-root="" data-status="live"');
+    // This match is live: the Predictions tab leads to its own panel.
+    expect(html).toContain('href="#predictions"');
+    expect(html).not.toContain('href="#pick"');
+  });
+
+  it('points the Predictions tab at the pick card while the match is scheduled (T-1739)', () => {
+    const view = (slots: Parameters<typeof FullView>[0]['slots']) =>
+      renderToStaticMarkup(
+        <FullView
+          words={MATCH_EN}
+          centre={{ ...centre, fixture: { ...centre.fixture, status: 'scheduled', minute: null } }}
+          timeZone="UTC"
+          locale="en"
+          slots={slots}
+        />,
+      );
+    const open = view({ pick: <p>PICK</p>, forecast: <p>MODEL</p> });
+    expect(open).toMatch(/href="#pick" data-tab-link="predictions"/);
+    expect(open).not.toContain('href="#predictions"');
+    // The panel itself keeps its anchor: other pages link to it.
+    expect(open).toContain('id="predictions"');
+    expect(open).toContain('data-match-root="" data-status="scheduled"');
+    // No pick card on the page: the tab is the panel's, as before.
+    const none = view({ forecast: <p>MODEL</p> });
+    expect(none).toMatch(/href="#predictions" data-tab-link="predictions"/);
+    expect(none).not.toContain('id="pick"');
   });
 
   it('draws each statistic as a split bar, home in ink and away in grey (Design System StatBar)', () => {
@@ -447,8 +514,12 @@ describe('why the line-ups and the absences are empty (T-1364)', () => {
   };
 
   it('says when the official line-up is usually announced, before kick-off only', () => {
-    const before = section(page({ lineups: empty }, 'scheduled'), 'lineups');
-    expect(before).toContain(EN['matchCentre.lineupsNotYet']);
+    // Before kick-off the line-ups are named in the one card of what will
+    // come (T-1745), which keeps their sentence; there is no empty module.
+    const scheduled = page({ lineups: empty }, 'scheduled');
+    expect(scheduled).not.toContain('data-testid="lineups"');
+    const before = scheduled.slice(scheduled.indexOf('data-testid="coming-lineups"'));
+    expect(before.slice(0, before.indexOf('</p>'))).toContain(EN['matchCentre.lineupsNotYet']);
     expect(before).toContain('about an hour before kick-off');
     const after = section(page({ lineups: empty }, 'finished'), 'lineups');
     expect(after).toContain('Not supplied for this match.');

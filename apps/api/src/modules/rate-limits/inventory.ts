@@ -154,6 +154,14 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     what: "Public links made to one of the member's own correct picks (pressing Share again shows the same link and counts nothing).",
     routes: ['POST /me/predictions/:predictionId/share'],
   },
+  {
+    // T-1740 (D-361): a pick left waiting before the e-mail address is confirmed.
+    action: 'pending_pick',
+    subject: 'member',
+    enforced: 'database',
+    what: 'Picks left waiting by a member whose e-mail address is not confirmed yet: each new choice or change of mind is a row (the same outcome again adds none and counts nothing).',
+    routes: ['PUT /fixtures/:fixtureId/pending-pick'],
+  },
 
   // Found by this inventory (T-811, D-103): counted in `rate_window` by the
   // API before the work, because the work is the cost.
@@ -288,6 +296,7 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'PUT /fixtures/:fixtureId/prediction':
     'One prediction per member per match, replaced in place until kick-off; the friends it tells are told once per match (a dedupe key).',
   'DELETE /me/predictions/:predictionId/share': REMOVAL,
+  'DELETE /fixtures/:fixtureId/pending-pick': REMOVAL,
   'PUT /me/analyses/:fixtureId':
     'One draft per member per match, overwritten in place; nobody reads it until it is submitted.',
   'POST /me/analyses/:fixtureId/submit':

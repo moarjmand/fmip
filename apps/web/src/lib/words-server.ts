@@ -8,7 +8,7 @@ import {
   type PluralForms,
   type PluralKey,
 } from '@/i18n/messages';
-import { FORECAST_BAR_KEYS, type ForecastBarWords } from '@/components/forecast-bar';
+import { FORECAST_BAR_KEYS, type ForecastBarWords } from '@/components/forecast-receipt';
 import { STAGE_KEYS } from '@/lib/stage-label';
 import type { ClientPlural, ClientWords } from '@/lib/words';
 
@@ -153,6 +153,8 @@ export const SCORES_KEYS = [
   'scores.card.community.label',
   // The match row and its preview (T-1496).
   'forecastBar.label',
+  // What happened, said in the row bar's accessible name (T-1749).
+  'forecastBar.happened',
   'scores.unpickedEmpty',
   'scores.row.pick',
   'scores.row.picked',
@@ -340,7 +342,6 @@ export const MATCH_KEYS = [
   'matchCentre.absenceReason.overload',
   'matchCentre.absenceReason.loan_agreement',
   'matchCentre.absenceReason.international_duty',
-  'matchCentre.beforeKickoff',
   'matchCentre.coach',
   'matchCentre.captain',
   'matchCentre.bench',
@@ -367,6 +368,13 @@ export const MATCH_KEYS = [
   'matchCentre.subOn',
   'matchCentre.subOff',
   'matchCentre.fixtureTitle',
+  // The compact score bar (T-1742): "Everton v Coventry" before kick-off.
+  'home.versus',
+  // The phone's freshness line and its details (T-1743).
+  'matchCentre.freshness.checked',
+  'matchCentre.freshness.stale',
+  'matchCentre.freshness.details',
+  'matchCentre.kickoffIn',
   'matchCentre.shootout',
   'matchCentre.shootoutKick',
   'matchCentre.noEventsYet',
@@ -386,8 +394,19 @@ export const MATCH_KEYS = [
   'matchCentre.axis',
   'matchCentre.notInYet',
   'matchCentre.notInYetWhy',
-  'matchCentre.fromKickoff',
   'matchCentre.fromKickoffWhy',
+  // Before kick-off, the one card of what will come (T-1745, D-366).
+  'matchCentre.coming.title',
+  'matchCentre.coming.atKickoff',
+  'matchCentre.coming.limited',
+  'matchCentre.coming.limitedWhy',
+  'matchCentre.coming.notSupplied',
+  'matchCentre.coming.notSuppliedWhy',
+  // The absences grouped by status and reason, a long group folded (T-1746).
+  'matchCentre.absences.group',
+  'matchCentre.absences.groupPlain',
+  'matchCentre.absences.more',
+  'matchCentre.absences.names',
   'matchCentre.notPlayed',
   'matchCentre.notPlayedWhy',
   'matchCentre.topRated',

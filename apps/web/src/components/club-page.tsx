@@ -88,6 +88,7 @@ export function ClubBand({
   timeZone,
   tab,
   follow,
+  followOnCard = false,
   territory,
 }: {
   page: TeamPage;
@@ -95,30 +96,31 @@ export function ClubBand({
   timeZone: string;
   tab: TeamTab;
   follow: ReactNode;
+  /**
+   * The next-match card under the tabs carries this viewer's Follow (a
+   * guest's, T-1741): on a phone the band leaves its own out, so the card
+   * is not pushed down by a second one.
+   */
+  followOnCard?: boolean;
   /** A guest's territory, kept on the tab links so the Fixtures tab still answers in it. */
   territory: string | undefined;
 }) {
   const t = page.team;
   const name = t.localised_name ?? t.name;
-  const eyebrow = [
-    ...(t.country !== null ? [t.country.name] : []),
-    say(locale, t.kind === 'national' ? 'teamPage.national' : 'teamPage.club'),
-    ...(t.gender === 'women' ? [say(locale, 'competitionPage.women')] : []),
-    ...(t.founded_year !== null
-      ? [say(locale, 'teamPage.founded', { year: yearText(locale, t.founded_year) })]
-      : []),
-  ];
   return (
     <EntityBand
       testId="team-header"
       colour={t.colour}
+      // One row on a phone (T-1741, D-362): crest, name, where the club stands.
+      compact
+      actionsFromTablet={followOnCard}
       media={
-        <span className="grid size-16 shrink-0 place-items-center rounded-card border border-default bg-canvas md:size-24">
+        <span className="grid size-14 shrink-0 place-items-center rounded-card border border-default bg-canvas max-md:row-span-2 md:size-24">
           <EntityImage media={t.crest} kind="crest" name={name} size={48} aboveFold />
         </span>
       }
       aside={<BandStanding page={page} locale={locale} />}
-      eyebrow={eyebrow.join(' · ')}
+      eyebrow={clubEyebrow(page, locale)}
       title={name}
       details={
         <>
@@ -129,49 +131,11 @@ export function ClubBand({
               {t.name}
             </p>
           )}
-          <p className="mt-2 text-sm font-medium text-muted">
-            {/* Each part isolated (T-1561): a ground named in Latin letters on
-                /fa would otherwise pull the separators and figures into its
-                own direction and scramble the line. */}
-            {t.venue !== null ? (
-              <>
-                <bdi data-testid="team-ground">
-                  {t.venue.city !== null
-                    ? say(locale, 'teamPage.venueCity', { venue: t.venue.name, city: t.venue.city })
-                    : t.venue.name}
-                </bdi>
-                {t.venue.capacity !== null && (
-                  <>
-                    {' · '}
-                    <bdi>{formatNumber(locale, t.venue.capacity)}</bdi>
-                  </>
-                )}
-              </>
-            ) : page.fixture_ground != null ? (
-              // No ground recorded: where this season's home matches were
-              // played, said to come from them (T-1394, D-209).
-              <span data-testid="fixture-ground">
-                {say(locale, 'teamPage.groundFromFixtures', {
-                  venue:
-                    page.fixture_ground.venue.city !== null
-                      ? say(locale, 'teamPage.venueCity', {
-                          venue: page.fixture_ground.venue.name,
-                          city: page.fixture_ground.venue.city,
-                        })
-                      : page.fixture_ground.venue.name,
-                  matches: formatNumber(locale, page.fixture_ground.matches),
-                  total: formatNumber(locale, page.fixture_ground.home_matches),
-                })}
-              </span>
-            ) : (
-              <Translated locale={locale} message="teamPage.noGround" />
-            )}
-            {' · '}
-            <bdi data-testid="followers">
-              <Translated locale={locale} message="team.followerCount" count={page.followers} />
-            </bdi>
-          </p>
-          <Manager page={page} locale={locale} timeZone={timeZone} />
+          {/* On a phone these are `ClubFacts`, under the next match. */}
+          <div className="max-md:hidden">
+            <GroundLine page={page} locale={locale} className="mt-2" />
+            <Manager page={page} locale={locale} timeZone={timeZone} />
+          </div>
         </>
       }
       actions={follow}
@@ -191,6 +155,115 @@ export function ClubBand({
   );
 }
 
+/** The band's line above the name: country, club or national team, women's, the founding year. */
+function clubEyebrow(page: TeamPage, locale: string): string {
+  const t = page.team;
+  return [
+    ...(t.country !== null ? [t.country.name] : []),
+    say(locale, t.kind === 'national' ? 'teamPage.national' : 'teamPage.club'),
+    ...(t.gender === 'women' ? [say(locale, 'competitionPage.women')] : []),
+    ...(t.founded_year !== null
+      ? [say(locale, 'teamPage.founded', { year: yearText(locale, t.founded_year) })]
+      : []),
+  ].join(' · ');
+}
+
+/** The ground with its capacity, or where the home matches were played, and the followers. */
+function GroundLine({
+  page,
+  locale,
+  className,
+  ids = '',
+}: {
+  page: TeamPage;
+  locale: string;
+  className?: string;
+  /** A prefix for the test ids where the line is drawn a second time (`ClubFacts`). */
+  ids?: string;
+}) {
+  const t = page.team;
+  return (
+    <p className={cx('text-sm font-medium text-muted', className)}>
+      {/* Each part isolated (T-1561): a ground named in Latin letters on
+          /fa would otherwise pull the separators and figures into its
+          own direction and scramble the line. */}
+      {t.venue !== null ? (
+        <>
+          <bdi data-testid={`${ids}team-ground`}>
+            {t.venue.city !== null
+              ? say(locale, 'teamPage.venueCity', { venue: t.venue.name, city: t.venue.city })
+              : t.venue.name}
+          </bdi>
+          {t.venue.capacity !== null && (
+            <>
+              {' · '}
+              <bdi>{formatNumber(locale, t.venue.capacity)}</bdi>
+            </>
+          )}
+        </>
+      ) : page.fixture_ground != null ? (
+        // No ground recorded: where this season's home matches were
+        // played, said to come from them (T-1394, D-209).
+        <span data-testid={`${ids}fixture-ground`}>
+          {say(locale, 'teamPage.groundFromFixtures', {
+            venue:
+              page.fixture_ground.venue.city !== null
+                ? say(locale, 'teamPage.venueCity', {
+                    venue: page.fixture_ground.venue.name,
+                    city: page.fixture_ground.venue.city,
+                  })
+                : page.fixture_ground.venue.name,
+            matches: formatNumber(locale, page.fixture_ground.matches),
+            total: formatNumber(locale, page.fixture_ground.home_matches),
+          })}
+        </span>
+      ) : (
+        <Translated locale={locale} message="teamPage.noGround" />
+      )}
+      {' · '}
+      <bdi data-testid={`${ids}followers`}>
+        <Translated locale={locale} message="team.followerCount" count={page.followers} />
+      </bdi>
+    </p>
+  );
+}
+
+/**
+ * The band's small facts on a phone (T-1741, D-362): the kind and founding
+ * year, the ground, the followers and the head coach, as a card under the
+ * next match. Below 768px the band is one row -- crest, name, where the club
+ * stands -- so the next match is on the first screen; what it leaves out is
+ * here, in the same words, and from 768px this card is not drawn because the
+ * band has them. Its test ids carry `facts-`, so the band's stay the only
+ * ones of their name.
+ */
+export function ClubFacts({
+  page,
+  locale,
+  timeZone,
+}: {
+  page: TeamPage;
+  locale: string;
+  timeZone: string;
+}) {
+  return (
+    <section
+      aria-labelledby="club-facts-heading"
+      className="flex min-w-0 flex-col gap-1 rounded-card border border-default bg-surface px-4 py-3 md:hidden"
+      data-testid="club-facts"
+    >
+      <h2 id="club-facts-heading" className="text-base font-extrabold font-stretch-semi-expanded">
+        <Translated locale={locale} message="teamPage.details" />
+      </h2>
+      <p className="text-xs font-bold text-muted uppercase ltr:tracking-wider">
+        {clubEyebrow(page, locale)}
+      </p>
+      <GroundLine page={page} locale={locale} ids="facts-" />
+      <Manager page={page} locale={locale} timeZone={timeZone} ids="facts-" />
+    </section>
+  );
+}
+
 /**
  * The head coach and the manager (T-944, T-1439). The head coach is the
  * provider's coaches list's current one (D-230), linked to his page, with
@@ -198,13 +271,24 @@ export function ClubBand({
  * is no head coach, or when it names someone else -- the list may be behind a
  * change, and the page says so rather than choosing.
  */
-function Manager({ page, locale, timeZone }: { page: TeamPage; locale: string; timeZone: string }) {
+function Manager({
+  page,
+  locale,
+  timeZone,
+  ids = '',
+}: {
+  page: TeamPage;
+  locale: string;
+  timeZone: string;
+  /** A prefix for the test ids where the lines are drawn a second time (`ClubFacts`). */
+  ids?: string;
+}) {
   const head = page.head_coach?.data ?? null;
   const { coach, lineup_fixture: fixture } = page.manager;
   return (
     <>
       {head !== null && (
-        <p className="text-sm" data-testid="head-coach">
+        <p className="text-sm" data-testid={`${ids}head-coach`}>
           <span className="text-muted">
             <Translated locale={locale} message="team.headCoach.label" />
           </span>{' '}
@@ -223,12 +307,12 @@ function Manager({ page, locale, timeZone }: { page: TeamPage; locale: string; t
         </p>
       )}
       {head !== null && head.lineup_disagrees && coach.data !== null && (
-        <p className="text-xs text-muted" data-testid="head-coach-disagrees">
+        <p className="text-xs text-muted" data-testid={`${ids}head-coach-disagrees`}>
           {say(locale, 'team.headCoach.lineupDisagrees', { name: coach.data.name })}
         </p>
       )}
       {head === null && (
-        <p className="text-sm" data-testid="manager">
+        <p className="text-sm" data-testid={`${ids}manager`}>
           {coach.data !== null && fixture !== null ? (
             <>
               <span className="text-muted">
@@ -259,7 +343,7 @@ function Manager({ page, locale, timeZone }: { page: TeamPage; locale: string; t
               </span>
             </>
           ) : (
-            <span className="text-muted" data-testid="manager-none">
+            <span className="text-muted" data-testid={`${ids}manager-none`}>
               <Translated
                 locale={locale}
                 message={fixture === null ? 'team.manager.noLineup' : 'team.manager.noCoach'}

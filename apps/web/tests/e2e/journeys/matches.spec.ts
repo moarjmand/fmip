@@ -12,7 +12,10 @@ import { member, registerAndVerify } from './members';
  * - A pick made from the row is stored, and the community's split appears only
  *   after it (D-206); the row then says "Picked" and "Not picked yet" leaves it out.
  * - en, fa and x-rtl at 390 px and 1440 px: the preview beside the list on a
- *   desktop, above it on a phone once Pick was pressed, mirrored in RTL.
+ *   desktop, mirrored in RTL; on a phone a bottom sheet over the list once
+ *   Pick was pressed, the row where it was, closed by a 44px control (T-1738).
+ * - The pick control (T-1738, D-359): a guest's outcomes are links towards an
+ *   account; a member's one tap is stored and marks the outcome as pressed.
  */
 
 const OPEN_MATCH = '00000000-0000-4000-8000-000000000902';
@@ -63,20 +66,29 @@ test.describe('the matches page', () => {
           await expect(page.getByTestId('day-strip')).toContainText(/[۰-۹]/);
         }
 
-        // The status column at the inline start of the row, the Pick at its end.
+        // The status column at the inline start of the row.
         const status = (await row.getByTestId('score-status').boundingBox())!;
         const pick = (await row.getByTestId('row-pick').boundingBox())!;
-        if (rtl) expect(status.x).toBeGreaterThan(pick.x);
-        else expect(status.x).toBeLessThan(pick.x);
         expect(pick.height).toBeGreaterThanOrEqual(44);
+        expect(pick.width).toBeGreaterThanOrEqual(44);
         const team = (await row.getByTestId('home-team').boundingBox())!;
         const cell = (await model.boundingBox())!;
         if (viewport.width < 640) {
-          // T-1545: on a phone the model's cell stands under the teams, so a
-          // name keeps the row's width (beside them it had 21 to 51 px).
-          expect(cell.y).toBeGreaterThanOrEqual(team.y + team.height - 1);
-          expect(team.width).toBeGreaterThan(160);
+          // T-1757 (D-374): a 72px row, the Pick under the kick-off time in the
+          // start column, the model's cell beside the names at the row's end.
+          expect((await row.boundingBox())!.height).toBeGreaterThanOrEqual(72);
+          expect(pick.y).toBeGreaterThanOrEqual(status.y + status.height - 1);
+          if (rtl) {
+            expect(Math.abs(pick.x + pick.width - (status.x + status.width))).toBeLessThan(4);
+            expect(cell.x + cell.width).toBeLessThanOrEqual(team.x + 1);
+          } else {
+            expect(Math.abs(pick.x - status.x)).toBeLessThan(4);
+            expect(cell.x).toBeGreaterThanOrEqual(team.x + team.width - 1);
+          }
         } else {
+          // The Pick at the row's end.
+          if (rtl) expect(status.x).toBeGreaterThan(pick.x);
+          else expect(status.x).toBeLessThan(pick.x);
           expect(Math.abs(cell.y + cell.height / 2 - (status.y + status.height / 2))).toBeLessThan(
             24,
           );
@@ -91,18 +103,51 @@ test.describe('the matches page', () => {
           if (rtl) expect(side.x + side.width).toBeLessThanOrEqual(list.x + 1);
           else expect(side.x).toBeGreaterThanOrEqual(list.x + list.width - 1);
         } else {
-          // On a phone it waits for a Pick, then stands above the list.
+          // On a phone it waits for a Pick, then opens as a bottom sheet over
+          // the list (T-1738; it used to open above the list, out of sight).
           await expect(preview).toBeHidden();
+          const rowTop = (await row.boundingBox())!.y;
           await row.getByTestId('row-pick').click();
           await expect(page).toHaveURL(new RegExp(`pick=${OPEN_MATCH}`));
           await expect(preview).toBeVisible();
-          const top = (await preview.boundingBox())!.y;
-          expect(top).toBeLessThan((await openRow(page).boundingBox())!.y);
+          const sheet = (await preview.boundingBox())!;
+          // The viewport's full width, against its bottom edge, at most 70% of its height.
+          expect(sheet.width).toBeGreaterThanOrEqual(viewport.width - 1);
+          expect(sheet.y + sheet.height).toBeGreaterThanOrEqual(viewport.height - 1);
+          expect(sheet.y).toBeGreaterThanOrEqual(viewport.height * 0.3 - 1);
+          // The list did not move, and a scrim dims it.
+          expect(Math.abs((await openRow(page).boundingBox())!.y - rowTop)).toBeLessThanOrEqual(1);
+          await expect(page.getByTestId('preview-scrim')).toBeVisible();
+          const close = (await preview.getByTestId('preview-close').boundingBox())!;
+          expect(close.height).toBeGreaterThanOrEqual(44);
+          expect(close.width).toBeGreaterThanOrEqual(44);
+          expect(close.y).toBeGreaterThanOrEqual(sheet.y);
         }
-        // A guest is asked to sign in; nobody's split is on the page.
-        await expect(preview.getByTestId('inline-pick')).toHaveAttribute('data-pick', 'guest');
+        // A guest sees the three outcomes at once, each a link towards an
+        // account with the way back in `next`; nobody's split is on the page.
+        const control = preview.getByTestId('pick-control');
+        await expect(control).toHaveAttribute('data-pick', 'open');
+        for (const outcome of ['home', 'draw', 'away']) {
+          const option = control.locator(`[data-option="${outcome}"] a`);
+          await expect(option).toBeVisible();
+          await expect(option).toHaveAttribute(
+            'href',
+            `/${locale}/register?next=${encodeURIComponent(
+              `/${locale}/match/${OPEN_MATCH}?pick=${outcome}#pick`,
+            )}`,
+          );
+          expect((await option.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+        }
         await expect(page.getByTestId('community-split')).toHaveCount(0);
         expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(1);
+        if (viewport.width < 1024) {
+          // The close control takes the sheet away and leaves the list where it was.
+          const rowTop = (await openRow(page).boundingBox())!.y;
+          await preview.getByTestId('preview-close').click();
+          await expect(preview).toBeHidden();
+          await expect(page).not.toHaveURL(/pick=/);
+          expect(Math.abs((await openRow(page).boundingBox())!.y - rowTop)).toBeLessThanOrEqual(1);
+        }
         await context.close();
       });
     }
@@ -143,27 +188,40 @@ test.describe('a pick made from a row', () => {
       const preview = page.getByTestId('match-preview');
       await expect(preview).toBeVisible();
       await expect(row).toHaveAttribute('aria-current', 'true');
-      const form = preview.getByTestId('prediction-form');
-      // The row's Pick was the first press: the outcomes are open at once.
-      await expect(form).toHaveAttribute('data-pick', 'choosing');
+      const control = preview.getByTestId('pick-control');
+      // The three outcomes are there at once, none pressed (T-1738).
+      await expect(control).toHaveAttribute('data-pick', 'open');
+      const home = control.locator('button[name="outcome"][value="home"]');
+      await expect(home).toHaveAttribute('aria-pressed', 'false');
+      await expect(home).toHaveAccessibleName(/ win$/);
       // Before the pick, the split is not on the page at all (D-206).
       await expect(page.getByTestId('community-split')).toHaveCount(0);
       await expect(preview.getByTestId('card-community')).toHaveAttribute('data-state', 'sealed');
 
-      await form.locator('label[data-outcome="home"]').click();
-      await form.getByRole('button', { name: 'Submit prediction' }).click();
-      await expect(form).toHaveAttribute('data-pick', 'picked');
+      // One tap is the pick: stored, said to be saved, and pressed for a screen reader.
+      await home.click();
+      await expect(control).toHaveAttribute('data-pick', 'saved');
+      await expect(home).toHaveAttribute('aria-pressed', 'true');
+      await expect(control.getByTestId('pick-saved')).toBeVisible();
       await expect(preview.getByTestId('community-split')).toBeVisible();
+      // The optional score, confidence and reasons are one disclosure away.
+      await expect(control.getByTestId('pick-detail')).toBeVisible();
 
       // Stored: a fresh load says so on the row and in the preview.
       await page.goto(`/en/scores?date=${OPEN_DAY}&tz=UTC&pick=${OPEN_MATCH}`);
       await expect(openRow(page).getByTestId('row-pick')).toHaveAttribute('data-pick', 'picked');
-      await expect(
-        page.getByTestId('match-preview').getByTestId('prediction-form'),
-      ).toHaveAttribute('data-pick', 'picked');
+      await expect(page.getByTestId('match-preview').getByTestId('pick-control')).toHaveAttribute(
+        'data-pick',
+        'saved',
+      );
       await expect(page.getByTestId('community-split')).toBeVisible();
 
-      // "Not picked yet" leaves the picked match out.
+      // "Not picked yet" leaves the picked match out. On a phone the sheet
+      // and its scrim are over the views until it is closed.
+      if (viewport.width < 1024) {
+        await page.getByTestId('preview-close').click();
+        await expect(page.getByTestId('match-preview')).toBeHidden();
+      }
       await page.getByTestId('view-unpicked').click();
       await expect(page).toHaveURL(/unpicked=1/);
       await expect(openRow(page)).toHaveCount(0);

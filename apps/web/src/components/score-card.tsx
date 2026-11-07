@@ -14,6 +14,7 @@ import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 import { pairIsolate } from '@/components/score';
 import { CardCommunityTotals } from '@/components/score-card-community';
+import { ninetyOutcome } from '@/components/forecast-bar';
 import { CardForecastSummary, RowForecast } from '@/components/score-card-forecast';
 import { Icon } from '@/components/ui/icons';
 
@@ -41,10 +42,16 @@ export const COVERAGE_KEY = {
  * stacked, home first, each with its crest and, once the match has started,
  * its own goals at the line's end, so a score always sits beside its own
  * team in either direction; then the model's three percentages (or "Not
- * supplied", never an empty bar, rule 3) and the Pick action. Below 640 px
- * the model's cell drops under the teams (T-1545): beside them it left a
- * name 21 to 51 px, so "Paykan" broke in two and "Crystal Palace" read
- * "Cry st…".
+ * supplied", never an empty bar, rule 3) and the Pick action.
+ *
+ * On a phone (T-1757, D-374) the row is 72px: three columns, 56 | names |
+ * 104, the model's whole `ForecastBar` (D-368 unchanged) in the end column
+ * beside the names, and an upcoming match's Pick under its kick-off time in
+ * the start column. A live or finished row has no "View" there: the row is
+ * the link. The columns follow the list's own width (a container query on the
+ * list, `@container` in `live-scores.tsx`), so a desktop list narrowed by its
+ * side columns keeps the four columns it had (52 | names | 208 | 72) from
+ * 36rem. A name wraps inside its own line and is never cut.
  *
  * The status and the teams are one link to the match centre, at least 44px
  * tall. Pick is its own link: it opens the page's preview of this match with
@@ -59,11 +66,11 @@ export const COVERAGE_KEY = {
  * component, so the page resolves the words on the server and hands them down.
  */
 /**
- * A team's name wraps onto a second line before it is cut: at 360 px one line
- * left "Nassaji Maz…" and "Aluminium …" on a real match day (T-1202). On a
- * phone it is a step smaller, so a word fits its column before it breaks.
+ * A team's name wraps inside its own line and is never cut or ellipsised
+ * (T-1757, D-374; at 360 px one line once left "Nassaji Maz…", T-1202). On a
+ * phone it is 14px, so a word fits its column before it breaks.
  */
-const NAME = 'line-clamp-2 break-words leading-tight max-sm:text-sm';
+const NAME = 'min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base';
 
 /** Where the row's Pick stands for this reader (T-1496, D-206's lock at kick-off). */
 export type RowPick = 'open' | 'picked' | 'locked' | 'locked-picked';
@@ -189,11 +196,9 @@ export function ScoreCard({
   const team = (side: 'home' | 'away') => {
     const t = card[side];
     return (
-      <span className="flex min-w-0 items-center gap-2" data-testid={`${side}-team`}>
+      <span className="flex min-h-6 min-w-0 items-center gap-1.5" data-testid={`${side}-team`}>
         <EntityImage media={t.crest} kind="crest" name={t.name} size={20} />
-        <bdi className={`${NAME} ${weight(side)}`} title={t.name}>
-          {t.name}
-        </bdi>
+        <bdi className={`${NAME} ${weight(side)}`}>{t.name}</bdi>
         {sentOff(card.red_cards[side])}
         {line !== null && (
           <span
@@ -208,10 +213,16 @@ export function ScoreCard({
   };
   const pick = rowPick(card, picked, now);
   const mine = pick === 'picked' || pick === 'locked-picked';
+  // On a phone the Pick (or the member's "Picked") stands under the time; a
+  // live or finished row's "View" is the desktop's only (T-1757, D-374).
+  const under = pickHref !== undefined && pick !== 'locked';
 
   return (
     <li
-      className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-x-2.5 px-4 data-selected:bg-selected sm:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] sm:gap-x-3.5"
+      // The anchor its own Pick and the preview's close control return to (T-1738).
+      id={pickHref === undefined ? undefined : `m-${card.id}`}
+      // The 72px grid and its columns (`match-row` in globals.css).
+      className="match-row"
       data-testid="score-card"
       data-fixture-id={card.id}
       data-status={card.status}
@@ -220,21 +231,21 @@ export function ScoreCard({
     >
       <Link
         href={`/${locale}/match/${card.id}`}
-        className="col-span-2 grid min-h-11 grid-cols-subgrid items-center py-2.5 hover:[&_bdi]:underline max-sm:row-start-1 max-sm:pb-1.5"
+        className="col-span-2 col-start-1 row-span-2 row-start-1 grid min-h-11 grid-cols-subgrid grid-rows-subgrid items-center hover:[&_bdi]:underline"
         data-testid="match-link"
       >
         <span
-          className={`text-sm leading-tight font-bold tabular-nums hyphens-auto [overflow-wrap:anywhere] ${live ? 'text-live' : awaiting ? 'text-warning' : ''}`}
+          className={`text-xs leading-tight font-bold tabular-nums font-stretch-semi-condensed hyphens-auto [overflow-wrap:anywhere] @xl:row-span-2 @xl:self-center @xl:text-sm ${under ? 'self-end' : 'row-span-2'} ${live ? 'text-live' : awaiting ? 'text-warning' : ''}`}
           data-testid="score-status"
           data-awaiting-update={awaiting ? '' : undefined}
         >
           {statusLabel(card, locale, timeZone, now, m)}
         </span>
-        <span className="flex min-w-0 flex-col gap-1 sm:font-stretch-semi-condensed">
+        <span className="row-span-2 flex min-w-0 flex-col gap-1 @xl:font-stretch-semi-condensed">
           {team('home')}
           {team('away')}
           {rowBits.length > 0 && (
-            <span className="truncate text-xs text-muted" data-testid="row-meta">
+            <span className="text-xs break-words text-muted" data-testid="row-meta">
               {rowBits.join(' · ')}
             </span>
           )}
@@ -245,21 +256,22 @@ export function ScoreCard({
         forecast={forecast}
         home={card.home.name}
         away={card.away.name}
+        outcome={ninetyOutcome(card)}
         locale={locale}
         words={words}
-        className="max-sm:col-start-2 max-sm:row-start-2 max-sm:pb-2.5"
+        className="col-start-3 row-span-2 row-start-1"
       />
 
-      {pickHref === undefined ? (
-        <span className="max-sm:col-start-3 max-sm:row-span-2 max-sm:row-start-1" />
-      ) : (
+      {pickHref !== undefined && (
         <Link
           href={pickHref}
           scroll={false}
           aria-label={
             filled(m[PICK_LABEL[pick]], { home: card.home.name, away: card.away.name }).text
           }
-          className={`inline-flex min-h-11 items-center justify-center gap-1 justify-self-end rounded-control px-2.5 text-sm font-bold whitespace-nowrap max-sm:col-start-3 max-sm:row-span-2 max-sm:row-start-1 ${
+          className={`match-row-pick ${
+            under ? 'inline-flex' : 'hidden @xl:inline-flex'
+          } ${mine ? '@max-xl:flex-col @max-xl:gap-0 @max-xl:px-0.5 @max-xl:text-xs' : ''} ${
             selected
               ? 'bg-brand text-on-brand'
               : mine

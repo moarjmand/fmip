@@ -111,6 +111,8 @@ import type {
   PowerIndexResponse,
   PredictionHistoryResponse,
   OwnPredictionShareResponse,
+  PendingPick,
+  PendingPickResponse,
   PublicPredictionShareResponse,
   PredictionResponse,
   ProfileView,
@@ -1251,6 +1253,41 @@ export async function fetchOwnPrediction(
     { cookie },
   );
   return result.ok ? result.data.prediction : null;
+}
+
+/**
+ * `GET /fixtures/:id/pending-pick` (T-1740, D-361): the pick the member saved
+ * on the match before their email address was confirmed, as it stands now
+ * (waiting, expired at kick-off, converted, replaced or withdrawn), or null
+ * when they made none. Theirs alone: not a prediction, and in no community
+ * figure. A read; it writes nothing.
+ */
+export async function fetchPendingPick(
+  fixtureId: string,
+  cookie: string | undefined,
+): Promise<PendingPick | null> {
+  if (cookie === undefined) return null;
+  const result = await apiRequest<PendingPickResponse>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/pending-pick`,
+    { cookie },
+  );
+  return result.ok ? result.data.pending_pick : null;
+}
+
+/**
+ * `PUT /fixtures/:id/pending-pick`: leaves the outcome waiting for a member
+ * whose email address is not confirmed yet, in place of one already waiting.
+ * Called from a POST action only (`registerAction`, `savePendingPickAction`).
+ */
+export function savePendingPick(
+  fixtureId: string,
+  outcome: string,
+  cookie: string,
+): Promise<ApiResult<PendingPickResponse>> {
+  return apiRequest<PendingPickResponse>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/pending-pick`,
+    { method: 'PUT', body: { outcome }, cookie },
+  );
 }
 
 // The social graph (blueprint 8.1, T-202). Each of these needs the session: the

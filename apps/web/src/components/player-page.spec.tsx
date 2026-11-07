@@ -25,6 +25,7 @@ vi.mock('@/lib/auth-actions', () => ({
 
 const {
   LastMatchesPanel,
+  PlayerAbout,
   PlayerHeader,
   PlayerMatchesPanel,
   RecordPanel,
@@ -208,18 +209,132 @@ describe('the player header', () => {
     expect(html).toMatch(/aria-current="page"[^>]*data-testid="player-tab-overview"/);
   });
 
-  it('rings the photo in the club’s colour, and in the theme’s line when it has none', () => {
+  it('rings the photo in the theme’s line, never the club’s colour (T-1758, D-375)', () => {
     const none = header(page());
-    expect(none).toMatch(/data-testid="photo-ring" data-ring="none"/);
-    expect(none).toContain('border-strong');
+    expect(none).toMatch(
+      /class="[^"]*border-strong[^"]*" data-testid="photo-ring" data-ring="neutral"/,
+    );
     expect(none).not.toMatch(/style="[^"]*(?:background|color)/);
     const spell = page().current_spell!;
     const villa = header(
       page({ current_spell: { ...spell, team: { ...spell.team, colour: '#88002d' } } }),
     );
-    expect(villa).toMatch(
-      /style="border-color:#88002d"[^>]*data-testid="photo-ring" data-ring="club"/,
-    );
+    expect(villa).toMatch(/data-testid="photo-ring" data-ring="neutral"/);
+    expect(villa).not.toContain('#88002d');
+    // 64px on a phone with its ring (58 + 3 + 3), 96 from 768px.
+    expect(villa).toMatch(/max-md:size-14\.5/);
+  });
+
+  describe('on a phone (T-1758, D-375)', () => {
+    const lineupClub = page({
+      current_spell: null,
+      person: {
+        ...page().person,
+        date_of_birth: '2009-12-31',
+        height_cm: 183,
+        preferred_foot: null,
+      },
+      club: {
+        coverage: 'available',
+        last_updated_at: '2026-11-04T20:00:00.000Z',
+        data: {
+          team: { id: 'arsenal', name: 'Arsenal', short_name: null, colour: '#db0007' },
+          basis: 'lineup',
+          since: '2026-11-04',
+          on_loan: false,
+        },
+      },
+    });
+
+    it('is one identity row: the photo beside the role, the name and the club line', () => {
+      const html = header(page());
+      expect(html).toMatch(/class="flex flex-wrap items-center gap-x-3[^"]*md:pt-8/);
+      // The name a size for a phone's row, the display size from 768px.
+      expect(html).toMatch(/class="[^"]*text-2xl[^"]*md:text-display-3[^"]*" data-testid="title"/);
+      expect(html).not.toMatch(/text-center/);
+    });
+
+    it('puts the facts held on one line, and leaves the boxes to the desktop', () => {
+      const html = header(lineupClub);
+      expect(html).toMatch(
+        /class="basis-full text-sm text-muted md:hidden" data-testid="facts-line"/,
+      );
+      expect(html).toMatch(/class="hidden [^"]*md:grid[^"]*" data-testid="facts"/);
+      const line = /data-testid="facts-line">([^<]*)</.exec(html)?.[1] ?? '';
+      // A fact we do not hold (the foot) is not on the line: About says it.
+      expect(line).toMatch(/^Age \d+ · born 31 December 2009 · Height 183 cm$/);
+      // With nothing held there is no empty line.
+      expect(header(page())).not.toContain('facts-line');
+    });
+
+    it('says "per line-up of" the date whole on the club line, the long sentence from 768px', () => {
+      const html = header(lineupClub);
+      expect(html).toContain(
+        '<span class="md:hidden" data-testid="per-lineup">per line-up of 4 Nov 2026</span>',
+      );
+      expect(html).toContain(
+        '<span class="max-md:hidden">from the latest club line-up that names this player, 4 November 2026</span>',
+      );
+      // Never a tooltip: nothing on the line is said only on hover.
+      expect(html).not.toMatch(/data-testid="current-club"[^>]*title=/);
+      expect(header(lineupClub, 'fa')).toMatch(/data-testid="per-lineup">بر پایه‌ی ترکیب /);
+      // Other bases are short already and stay as they were.
+      const squad = header(
+        page({
+          current_spell: null,
+          club: {
+            ...lineupClub.club!,
+            data: { ...lineupClub.club!.data!, basis: 'squad' },
+          },
+        }),
+      );
+      expect(squad).not.toContain('per-lineup');
+    });
+
+    it('opens the overview on the season, before anything else under the tabs', () => {
+      const overview = PAGE.slice(PAGE.indexOf('{overview && ('));
+      const season = overview.indexOf('<SeasonTilesPanel');
+      expect(season).toBeGreaterThan(0);
+      for (const later of ['<RecordPanel', '<LastMatchesPanel', '<PlayerAbout']) {
+        expect(overview.indexOf(later)).toBeGreaterThan(season);
+      }
+    });
+
+    it('says every fact in About, a missing one as not supplied, and the whole club sentence (rule 3)', () => {
+      const html = renderToStaticMarkup(<PlayerAbout page={lineupClub} locale="en" />);
+      expect(html).toMatch(/class="[^"]*md:hidden[^"]*" data-testid="player-about"/);
+      expect(html).toContain('>About<');
+      expect(html).toMatch(
+        /data-testid="about-foot" data-coverage="not_supplied">.*Preferred foot.*data-coverage-badge="not_supplied"/,
+      );
+      expect(html).toMatch(/data-testid="about-age" data-coverage="available">.*\(born /);
+      expect(html).toContain(
+        'Arsenal · from the latest club line-up that names this player, 4 November 2026',
+      );
+      const fa = renderToStaticMarkup(<PlayerAbout page={lineupClub} locale="fa" />);
+      expect(fa).toContain('>درباره<');
+      expect(fa).toMatch(/data-testid="about-foot" data-coverage="not_supplied"/);
+      // A player with no club on record says so in About too.
+      const clubless = renderToStaticMarkup(
+        <PlayerAbout
+          page={page({
+            current_spell: null,
+            club: { coverage: 'not_supplied', last_updated_at: null, data: null },
+          })}
+          locale="en"
+        />,
+      );
+      expect(clubless).toContain('No current team on record');
+    });
+
+    it('puts Compare behind a 44px button beside Follow, the same form inside', () => {
+      const html = header(page());
+      expect(html).toMatch(/class="fold-row [^"]*"/);
+      expect(html).toMatch(
+        /<details class="compare-fold group flex-1 md:flex-none" data-testid="compare-fold"><summary class="[^"]*min-h-touch[^"]*" data-testid="compare-toggle">Compare with…/,
+      );
+      expect(html).toMatch(/data-testid="compare-toggle">.*<form[^>]*data-testid="compare-with"/);
+    });
   });
 
   it('names the team of his latest line-up, as a line-up, when no spell is open (T-1394)', () => {
@@ -285,7 +400,8 @@ describe('the player header', () => {
     // The position by T-1603's rule, with no spell to name it.
     expect(html).toContain('data-testid="band-eyebrow"');
     expect(html).toMatch(/data-testid="band-eyebrow"[^>]*>Forward</);
-    expect(html).toMatch(/style="border-color:#7a1f2b"/);
+    // The club's colour frames nothing on this page now (D-375).
+    expect(html).not.toContain('#7a1f2b');
     expect(html).not.toContain('current-team-lineup');
     expect(header(p, 'fa')).toContain('در فهرست بازیکنان باشگاه، خوانده‌شده در');
   });

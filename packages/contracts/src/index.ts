@@ -332,13 +332,31 @@ export type {
 export { MAX_FORECAST_FIXTURES } from './forecast';
 // The agents console's forecast-model page (T-1729, D-355); its runtime constants are in './console' (kept out of this barrel so they never reach a public page's bundle).
 export type {
+  ConsoleLabEntry,
+  ConsoleLabGroup,
+  ConsoleLabGroupKey,
+  ConsoleLabGroupResult,
+  ConsoleLabJudgement,
+  ConsoleLabKind,
+  ConsoleLabVerdict,
+  ConsoleModelLab,
+} from './console-model-lab';
+export type {
   ConsoleModelCalibrationBand,
   ConsoleModelCandidate,
+  ConsoleModelComparison,
   ConsoleModelCompetition,
   ConsoleModelEstimate,
+  ConsoleModelInputKey,
+  ConsoleModelInputState,
   ConsoleModelOutcome,
+  ConsoleModelPairFigures,
+  ConsoleModelPairSide,
   ConsoleModelRecord,
   ConsoleModelReport,
+  ConsoleModelVersion,
+  ConsoleModelVersionCounts,
+  ConsoleModelVersionState,
 } from './console-model';
 export type {
   ForecastKind,
@@ -432,6 +450,7 @@ export type {
 export { KEY_PLAYERS_PER_SIDE } from './key-players';
 export type { KeyPlayer, KeyPlayerAvailability, KeyPlayers, KeyPlayersSide } from './key-players';
 export {
+  DEFAULT_PICK_CONFIDENCE,
   FRIEND_PREDICTIONS_DAYS,
   FRIEND_PREDICTIONS_LIMIT,
   MAX_EXPLANATION_LENGTH,
@@ -448,6 +467,9 @@ export type {
   GroupPredictionComparison,
   GroupPredictionComparisonResponse,
   OwnPredictionShareResponse,
+  PendingPick,
+  PendingPickResponse,
+  PendingPickStatus,
   Prediction,
   PredictionHistoryFixture,
   PredictionHistoryItem,
@@ -459,6 +481,7 @@ export type {
   PredictionShareResponse,
   PredictionVersion,
   PublicPredictionShareResponse,
+  SavePendingPickRequest,
   Settlement,
   SettlementRunResponse,
   SettlementVoidReason,

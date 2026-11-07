@@ -1,8 +1,11 @@
 import type { CommunityAnalysesResponse, CommunityAnalysis } from '@fmip/contracts';
+import { useId } from 'react';
+import { CARD } from '@/components/match-centre-cards';
 import { MemberHandle, MemberName } from '@/components/member-name';
+import { ProductRow } from '@/components/product-row';
 import { ScorePair } from '@/components/score';
 import { Translated } from '@/components/translated';
-import { Notice } from '@/components/ui';
+import { CoverageBadge } from '@/components/ui/coverage-badge';
 import type { Locale } from '@/i18n/locales';
 import { interpolate, t } from '@/i18n/messages';
 import {
@@ -125,6 +128,12 @@ function Analysis({ locale, analysis }: { locale: Locale; analysis: CommunityAna
   );
 }
 
+/**
+ * With nothing published (T-1744, D-365) this is one compact row -- its own
+ * name, "Approved contributors", the sentence that says nobody has published
+ * or that the analyses could not be fetched, and its status -- and not a
+ * card. With analyses it is the card it was, on the stage's surface.
+ */
 export function CommunityAnalysisPanel({
   locale,
   analyses,
@@ -136,8 +145,46 @@ export function CommunityAnalysisPanel({
   reachable: boolean;
 }) {
   const l = asLocale(locale);
+  const id = useId();
+  if (!reachable || analyses === null || analyses.analyses.length === 0) {
+    // Stated, not vanished, and two different facts: "could not be fetched"
+    // and "nobody has written one".
+    const unreachable = !reachable || analyses === null;
+    return (
+      <ProductRow
+        labelledBy={id}
+        testId="community-analysis-panel"
+        state={unreachable ? 'unreachable' : 'none'}
+        name={
+          <h2 id={id} className="text-sm font-extrabold">
+            <Translated locale={l} message="analysis.community.rowTitle" />
+          </h2>
+        }
+        status={
+          <CoverageBadge
+            state="not_supplied"
+            label={
+              <Translated
+                locale={l}
+                message={unreachable ? 'lanes.row.unreachable' : 'lanes.row.none'}
+              />
+            }
+          />
+        }
+      >
+        <span
+          data-testid={unreachable ? 'community-analysis-unreachable' : 'community-analysis-empty'}
+        >
+          <Translated
+            locale={l}
+            message={unreachable ? 'analysis.community.unreachable' : 'analysis.community.empty'}
+          />
+        </span>
+      </ProductRow>
+    );
+  }
   return (
-    <section className="flex flex-col gap-3" data-testid="community-analysis-panel">
+    <section className={CARD} data-testid="community-analysis-panel" data-state="available">
       <div className="flex flex-col gap-1">
         <h2 className="text-lg font-semibold">
           <Translated locale={l} message="analysis.community.title" />
@@ -148,24 +195,11 @@ export function CommunityAnalysisPanel({
           <Translated locale={l} message="analysis.community.notOthers" />
         </p>
       </div>
-
-      {!reachable || analyses === null ? (
-        // Stated, not vanished: "could not be fetched" and "nobody has written
-        // one" are different facts.
-        <Notice tone="danger" data-testid="community-analysis-unreachable">
-          <Translated locale={l} message="analysis.community.unreachable" />
-        </Notice>
-      ) : analyses.analyses.length === 0 ? (
-        <p className="text-sm text-muted" data-testid="community-analysis-empty">
-          <Translated locale={l} message="analysis.community.empty" />
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {analyses.analyses.map((analysis) => (
-            <Analysis key={analysis.id} locale={l} analysis={analysis} />
-          ))}
-        </ul>
-      )}
+      <ul className="flex flex-col gap-3">
+        {analyses.analyses.map((analysis) => (
+          <Analysis key={analysis.id} locale={l} analysis={analysis} />
+        ))}
+      </ul>
     </section>
   );
 }

@@ -17,6 +17,12 @@ export const RETENTION_DAYS = {
   expiredEmailToken: 7,
   /** A notification's delivery record, counted from `claimed_at`; then only anonymous counts. */
   notificationDelivery: 90,
+  /**
+   * A pick saved before the e-mail address was confirmed (T-1740, D-361),
+   * counted from its match's kick-off. One that became a prediction goes at
+   * the next run: the prediction is what is kept.
+   */
+  pendingPick: 30,
 } as const;
 
 /**
@@ -38,6 +44,8 @@ export interface PurgeCutoffs {
   sessions: Date;
   emailTokens: Date;
   deliveries: Date;
+  /** Compared with the match's kick-off, not with a column of the pick's own. */
+  pendingPicks: Date;
 }
 
 /** The instant before which each kind of record is purged, for a run at `now`. */
@@ -47,6 +55,7 @@ export function purgeCutoffs(now: Date): PurgeCutoffs {
     sessions: before(RETENTION_DAYS.expiredSession),
     emailTokens: before(RETENTION_DAYS.expiredEmailToken),
     deliveries: before(RETENTION_DAYS.notificationDelivery),
+    pendingPicks: before(RETENTION_DAYS.pendingPick),
   };
 }
 
@@ -86,13 +95,16 @@ export interface PurgeReport {
   console_sessions: BatchedOutcome;
   email_tokens: BatchedOutcome;
   notification_deliveries: BatchedOutcome;
+  pending_picks: BatchedOutcome;
 }
 
 /**
  * The daily retention purge (T-1715, D-345): expired sessions 30 days after
  * they expire, one-time e-mail tokens 7 days after they expire, and
  * notification delivery records after 90 days, reduced to anonymous daily
- * counts. Backups keep what they hold for up to `BACKUP_KEEP_REMOTE_DAYS`
+ * counts; and (T-1740, D-361) picks saved before an e-mail address was
+ * confirmed, 30 days after their match's kick-off, or at once when they
+ * became a prediction. Backups keep what they hold for up to `BACKUP_KEEP_REMOTE_DAYS`
  * (docs/07-backups.md) and are not touched here.
  *
  * First of all it has the Activity report keep the sign-ins and active
@@ -125,12 +137,16 @@ export class RetentionService {
       notification_deliveries: await purgeInBatches((limit) =>
         this.store.rollUpDeliveries(cutoff.deliveries, limit),
       ),
+      pending_picks: await purgeInBatches((limit) =>
+        this.store.deletePendingPicks(cutoff.pendingPicks, limit, now),
+      ),
     };
     const capped = [
       report.sessions,
       report.console_sessions,
       report.email_tokens,
       report.notification_deliveries,
+      report.pending_picks,
     ].some((outcome) => outcome.capped);
     this.log.log('retention purge ran', {
       event: 'retention.purged',
@@ -139,6 +155,7 @@ export class RetentionService {
       console_sessions: report.console_sessions.deleted,
       email_tokens: report.email_tokens.deleted,
       notification_deliveries: report.notification_deliveries.deleted,
+      pending_picks: report.pending_picks.deleted,
       capped,
     });
     return report;

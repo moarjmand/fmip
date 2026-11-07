@@ -210,6 +210,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('A copy of my
       `INSERT INTO report (reporter_id, subject_type, subject_id, reason) VALUES ($1, 'member', $2, 'spam')`,
       [id('me'), id('friend')],
     );
+
+    // Picks saved before an address was confirmed (T-1740, D-361): mine, one
+    // I replaced and the one left waiting when the match kicked off, and one
+    // of the friend's. Written past the insert guard, which refuses a match
+    // that has kicked off; the route's own path is `pending-pick.http.spec.ts`.
+    await withTriggersOff(pool, async (client) => {
+      await client.query(
+        `INSERT INTO pending_pick (user_id, fixture_id, outcome, status, created_at, resolved_at)
+         VALUES ($1, $3, 'home', 'replaced', now() - interval '5 days', now() - interval '4 days'),
+                ($1, $3, 'away', 'pending', now() - interval '4 days', NULL),
+                ($2, $3, 'draw', 'pending', now() - interval '4 days', NULL)`,
+        [id('me'), id('friend'), fixtureId],
+      );
+    });
   });
 
   afterAll(async () => {
@@ -326,6 +340,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('A copy of my
           actual_away: 1,
           outcome_correct: true,
         }),
+      ]);
+    });
+
+    it('holds my pending picks, each with what became of it, and not the other member’s', () => {
+      expect(file.pending_picks).toEqual([
+        {
+          fixture_id: fixtureId,
+          outcome: 'home',
+          status: 'replaced',
+          saved_at: expect.any(String),
+          resolved_at: expect.any(String),
+        },
+        {
+          fixture_id: fixtureId,
+          outcome: 'away',
+          // Still stored as waiting; the match has kicked off, so it reads expired.
+          status: 'expired',
+          saved_at: expect.any(String),
+          resolved_at: null,
+        },
       ]);
     });
 

@@ -1,7 +1,8 @@
 import { type Moment, type MomentsResponse, NO_MEDIA, type ScoreCard } from '@fmip/contracts';
 import { CompetitionsMenuTrigger } from '@/components/competitions-menu-view';
 import { EntityImage } from '@/components/entity-image';
-import { FORECAST_BAR_KEYS, ForecastBar, ForecastStrip } from '@/components/forecast-bar';
+import { ForecastBar, ninetyOutcome } from '@/components/forecast-bar';
+import { FORECAST_BAR_KEYS, ForecastBarWithReceipt } from '@/components/forecast-receipt';
 import { MessageText } from '@/components/message-text';
 import { ModelVersion } from '@/components/model-version';
 import {
@@ -31,6 +32,8 @@ import {
 } from '@/lib/live-strip';
 import {
   isLiveMoment,
+  lineKickoff,
+  lineMoment,
   momentEyebrow,
   momentSentence,
   momentWhen,
@@ -311,12 +314,15 @@ function MomentPanel({ moment, d }: { moment: Moment; d: Drawing }) {
           <p className="text-sm text-fg">
             <MessageText message={said} />
           </p>
-          <ForecastStrip
+          {/* The one bar at card size (T-1748); the receipt under it is the panel's own. */}
+          <ForecastBar
             forecast={sharesToPercentages(forecast)}
             home={name.home}
             away={name.away}
+            outcome={ninetyOutcome(card)}
             locale={d.lang}
             words={barWords}
+            testId="moment-panel-bar"
           />
           <Receipt
             testId="moment-panel-receipt"
@@ -333,7 +339,7 @@ function MomentPanel({ moment, d }: { moment: Moment; d: Drawing }) {
         </div>
       ) : (
         // Rule 3: no forecast is a sentence, never an empty bar.
-        <ForecastBar
+        <ForecastBarWithReceipt
           forecast={{ state: 'none' }}
           started={card.status !== 'scheduled' || awaitingUpdate(card)}
           home={name.home}
@@ -380,6 +386,92 @@ function MomentPanel({ moment, d }: { moment: Moment; d: Drawing }) {
         }}
       />
     </div>
+  );
+}
+
+/**
+ * The folded rail's one line (T-1755, D-372; board P4-5): "● 4 live ·
+ * Sevilla 0–0 Alavés 86′" -- the count, then the first match in play with
+ * its goals and minute, or, with none in play, the next kick-off ("Sparta v
+ * Bournemouth 17:45"). Names are whole or absent: the match sits over the
+ * words "Moments that matter" on the surface, in a one-line box that clips,
+ * after a zero-width strut, so a match too long for the line wraps out of
+ * sight and the words under it show (`.moments-line` in globals.css; no
+ * script, nothing measured here). A screen reader hears the words and the
+ * match, so the name always holds the visible label (WCAG 2.5.3). Rule 4:
+ * when the card's data stopped, or the rail's answers did (`data-behind`, by
+ * CSS, with or without a match in play), "May be behind" is said beside the
+ * match rather than in it, so the words show even when the names do not.
+ */
+function RailLine({ moments, live, d }: { moments: readonly Moment[]; live: number; d: Drawing }) {
+  const named = lineMoment(moments);
+  const card = named?.fixture ?? null;
+  const goals = card === null ? null : shownLine(card);
+  const inPlay = card !== null && isLiveMoment({ fixture: card });
+  const stopped = inPlay && isBehind(card, d.now);
+  return (
+    <>
+      <span className="moments-live" data-count={live} data-testid="moments-line-live">
+        <span aria-hidden="true" className={live > 0 ? 'live-dot moments-dot' : 'moments-dot'} />
+        <MessageText message={plural(d.lang, 'shell.moments.live', live)} />
+      </span>
+      <span aria-hidden="true" className="text-caption">
+        ·
+      </span>
+      <span className="moments-line" data-testid="moments-line">
+        <span className="moments-summary-label" data-testid="moments-line-label">
+          <MessageText message={message(d.lang, 'shell.moments.label')} />
+        </span>
+        {card !== null && (
+          <span className="moments-line-box">
+            <span className="moments-line-match" data-testid="moments-line-match">
+              <bdi>{teamName(card.home)}</bdi>{' '}
+              {inPlay && goals !== null ? (
+                <b className="tabular-nums">
+                  {formatNumber(d.lang, goals.home)}–{formatNumber(d.lang, goals.away)}
+                </b>
+              ) : (
+                <span className="text-caption">
+                  <MessageText message={message(d.lang, 'home.versus')} />
+                </span>
+              )}{' '}
+              <bdi>{teamName(card.away)}</bdi>
+              {inPlay ? (
+                !stopped && (
+                  <span
+                    className="moments-line-when text-live group-data-[behind=true]/moments:hidden"
+                    data-testid="moments-line-when"
+                  >
+                    <LtrNumeric>
+                      {momentWhen(card, d.lang, d.timeZone, d.now, d.words).text}
+                    </LtrNumeric>
+                  </span>
+                )
+              ) : (
+                <time
+                  dateTime={card.kickoff_at}
+                  className="moments-line-when text-muted"
+                  data-testid="moments-line-when"
+                >
+                  {lineKickoff(card, d.lang, d.timeZone, d.now, d.words)}
+                </time>
+              )}
+            </span>
+          </span>
+        )}
+      </span>
+      {/* With nothing in play the count itself can be behind (rule 4): said in words, not by colour alone. */}
+      <span
+        className={
+          stopped
+            ? 'moments-line-behind'
+            : 'moments-line-behind hidden group-data-[behind=true]/moments:inline'
+        }
+        data-testid="moments-line-behind"
+      >
+        <MessageText message={message(d.lang, 'shell.moments.behind')} />
+      </span>
+    </>
   );
 }
 
@@ -457,22 +549,9 @@ export function momentsView({
         </CompetitionsMenuTrigger>
       </div>
     ),
-    // The match page's slim line on a phone (T-1693, D-338): "● 12 live ·
-    // Moments that matter", the button that unfolds the rail in place.
-    summary: (
-      <>
-        <span className="moments-live" data-count={live}>
-          <span aria-hidden="true" className={live > 0 ? 'live-dot moments-dot' : 'moments-dot'} />
-          <MessageText message={plural(lang, 'shell.moments.live', live)} />
-        </span>
-        <span aria-hidden="true" className="text-caption">
-          ·
-        </span>
-        <span className="moments-summary-label">
-          <MessageText message={message(lang, 'shell.moments.label')} />
-        </span>
-      </>
-    ),
+    // The slim line on a phone, every page but home (T-1693, D-338; T-1755,
+    // D-372): the button that unfolds the rail in place.
+    summary: <RailLine moments={moments} live={live} d={d} />,
     moments: slots,
     more: (
       <div className="moments-more-slot">

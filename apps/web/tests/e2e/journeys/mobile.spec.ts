@@ -98,12 +98,14 @@ test('a match row is one thumb-sized row, and its details open in the preview', 
   expect(await middle('away-team')).toBeGreaterThan(status);
   expect(Math.abs((await middle('home-score')) - (await middle('home-team')))).toBeLessThan(6);
 
-  // The labels, the model's and the community's lines are one press away:
-  // the row's own Pick (or View) opens the preview above the list on a phone.
+  // A played match's row has no "View" on a phone (T-1757, D-374): the row,
+  // at least 72px, is the link. Its preview, the bottom sheet over the list
+  // (T-1738), is still the page's at `?pick=`.
+  expect((await row.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(72);
+  await expect(row.getByTestId('row-pick')).toBeHidden();
   await expect(page.getByTestId('match-preview')).toBeHidden();
-  const pick = row.getByTestId('row-pick');
-  expect((await pick.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
-  await pick.click();
+  const id = await row.getAttribute('data-fixture-id');
+  await page.goto(`/en/scores?date=${PLAYED_DAY}&pick=${id}`);
   await expect(page).toHaveURL(/pick=/);
   const preview = page.getByTestId('match-preview');
   await expect(preview).toBeVisible();
@@ -144,13 +146,19 @@ test('the match centre reaches each section through its tabs, without script', a
   // The key players (T-841), their own section beside the line-ups.
   await expect(page.getByTestId('key-players')).toBeVisible();
   await expect(page.getByTestId('timeline')).toBeHidden();
-  // A deep link opens its own tab: a story's "#forecast" shows the model.
-  await page.goto(`/en/match/${PLAYED_MATCH}#forecast`);
-  await expect(page.getByTestId('forecast')).toBeVisible();
-  // The model, the founder and the community stay three sections (rule 6).
-  for (const id of ['forecast', 'analysis', 'community']) {
+  // A deep link opens its own tab: a story's "#analysis" shows the founder's
+  // analysis on Predictions, a row or a card, and not the Summary's timeline.
+  await page.goto(`/en/match/${PLAYED_MATCH}#analysis`);
+  await expect(page.getByTestId('founder-analysis')).toBeVisible();
+  await expect(page.getByTestId('timeline')).toBeHidden();
+  // The founder and the community stay two sections, each once on the page
+  // (rule 6; T-1744): the model's forecast is the Summary's card.
+  for (const id of ['analysis', 'community']) {
     await expect(page.locator(`#${id}`)).toHaveCount(1);
   }
+  await expect(page.getByTestId('founder-analysis')).toHaveCount(1);
+  await expect(page.getByTestId('consensus')).toHaveCount(1);
+  await expect(page.getByTestId('forecast-reality')).toHaveCount(1);
   await context.close();
 });
 
@@ -162,9 +170,17 @@ test('the match centre opens every section from 768px, a main and a side column,
   await page.goto(`/en/match/${PLAYED_MATCH}`);
   // The tabs stay, at the foot of the score band, and jump to their sections (T-1497).
   await expect(page.getByTestId('section-nav')).toBeVisible();
-  for (const id of ['timeline', 'lineups', 'forecast', 'analysis', 'community', 'watch']) {
+  for (const id of ['timeline', 'lineups', 'analysis', 'community', 'watch']) {
     await expect(page.locator(`#${id}`)).toBeVisible();
   }
+  // "No forecast" is said once (T-1746, D-367): only when the Summary's card
+  // has said the match has no forecast and no Power Index either
+  // (`forecast-reality-no-power`) is there no lower section to say it again;
+  // otherwise the section is there, with the Power Index at least.
+  await expect(page.getByTestId('forecast-reality')).toBeVisible();
+  const saidBoth = (await page.getByTestId('forecast-reality-no-power').count()) > 0;
+  if (saidBoth) await expect(page.locator('#forecast')).toHaveCount(0);
+  else await expect(page.locator('#forecast')).toBeVisible();
   // Two columns at 1280px: the side column (the past meetings, the data
   // footer) beside the main one.
   const main = await page.locator('[data-column="main"]').boundingBox();
@@ -172,5 +188,161 @@ test('the match centre opens every section from 768px, a main and a side column,
   expect(main).not.toBeNull();
   expect(side).not.toBeNull();
   if (main !== null && side !== null) expect(side.x).toBeGreaterThan(main.x + main.width - 1);
+  await context.close();
+});
+
+/**
+ * The phone's pick bar (T-1739, D-360): until kick-off a slim bar fixed above
+ * the tab bar repeats the call to pick. It never covers the tab bar, the end
+ * of the page clears it, and it is one link to the pick card -- which the
+ * Predictions tab shows first and the Summary shows under the model's card.
+ * No script decides any of it.
+ */
+for (const locale of ['en', 'x-rtl'] as const) {
+  test(`/${locale}: the pick bar stands above the tab bar until kick-off and leads to the card`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 360, height: 800 },
+      javaScriptEnabled: false,
+    });
+    const page = await context.newPage();
+    await page.goto(`/${locale}/match/${OPEN_MATCH}`);
+    const bar = page.getByTestId('pick-bar');
+    await expect(bar).toBeVisible();
+    await expect(bar).toHaveAttribute('data-pick', 'open');
+    const link = (await page.getByTestId('pick-bar-link').boundingBox())!;
+    const tabs = (await page.getByTestId('tab-bar').boundingBox())!;
+    // Directly above the tab bar: never over it, and no strip of page between.
+    expect(link.y + link.height).toBeLessThanOrEqual(tabs.y + 0.5);
+    expect(tabs.y - (link.y + link.height)).toBeLessThan(8);
+    expect(link.height).toBeGreaterThanOrEqual(44);
+    expect(link.height).toBeLessThanOrEqual(61);
+    expect(link.width).toBeGreaterThan(340);
+    // The tab bar still answers where it stands.
+    const hit = await page.evaluate(
+      ([x, y]) =>
+        document
+          .elementFromPoint(x ?? 0, y ?? 0)
+          ?.closest('[data-testid^="tab-"]')
+          ?.getAttribute('data-testid') ?? null,
+      [tabs.x + tabs.width / 2, tabs.y + tabs.height / 2],
+    );
+    expect(hit).toMatch(/^tab-/);
+    expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+
+    // The end of the page clears the bar: the footer's last line is above it.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const footer = (await page.getByTestId('site-footer').boundingBox())!;
+    const at = (await bar.boundingBox())!;
+    expect(footer.y + footer.height).toBeLessThanOrEqual(at.y + 0.5);
+
+    // On Summary the card is under the model's card and before the timeline.
+    await page.goto(`/${locale}/match/${OPEN_MATCH}`);
+    const card = page.locator('#pick');
+    await expect(card.getByTestId('pick-control')).toHaveAttribute('data-pick', 'open');
+    const model = (await page.getByTestId('forecast-reality').boundingBox())!;
+    const pick = (await card.boundingBox())!;
+    const timeline = (await page.getByTestId('section-timeline').boundingBox())!;
+    expect(pick.y).toBeGreaterThanOrEqual(model.y + model.height);
+    expect(pick.y + pick.height).toBeLessThanOrEqual(timeline.y);
+
+    // One tap on the bar: the card, first on the Predictions tab.
+    await page.getByTestId('pick-bar-link').click();
+    await expect(page).toHaveURL(/#pick$/);
+    await expect(card.getByTestId('pick-control')).toBeInViewport();
+    await expect(page.getByTestId('section-timeline')).toBeHidden();
+    // The other predictions follow it (T-1744): the founder's analysis first.
+    await expect(page.locator('#predictions')).toBeVisible();
+    const first = (await card.boundingBox())!;
+    const panel = (await page.locator('#predictions').boundingBox())!;
+    expect(first.y + first.height).toBeLessThanOrEqual(panel.y);
+    // The Predictions tab is the same address while the pick is open.
+    await expect(page.locator('[data-tab-link="predictions"]')).toHaveAttribute('href', '#pick');
+    // Another tab leaves the card out; the bar stays.
+    await page.locator('[data-tab-link="lineups"]').click();
+    await expect(card).toBeHidden();
+    await expect(bar).toBeVisible();
+    await context.close();
+  });
+}
+
+test('a match that has kicked off has no pick bar, and its card is locked', async ({ page }) => {
+  await page.goto(`/en/match/${PLAYED_MATCH}`);
+  await expect(page.getByTestId('match-header')).toBeVisible();
+  await expect(page.getByTestId('pick-bar')).toHaveCount(0);
+  // From kick-off on the pick is one locked row, not three inert buttons (T-1744).
+  const row = page.locator('#pick').getByTestId('match-pick');
+  await expect(row).toHaveAttribute('data-product-row', '');
+  await expect(row).toHaveAttribute('data-state', 'locked');
+  await expect(row.getByTestId('pick-lock')).toBeVisible();
+  await expect(row.getByRole('button')).toHaveCount(0);
+  await expect(page.getByTestId('pick-control')).toHaveCount(0);
+  // After kick-off the Predictions tab is the panel's again.
+  await expect(page.locator('[data-tab-link="predictions"]')).toHaveAttribute(
+    'href',
+    '#predictions',
+  );
+});
+
+// T-1743 (D-364, board P2-4): before kick-off the phone's top block -- the
+// tools row, the band and the tabs -- is short enough for the forecast and
+// the pick to start on the first screen. 264px as drawn; the bound leaves
+// room for a competition line that wraps.
+for (const locale of ['en', 'fa'] as const) {
+  test(`/${locale}: the phone’s top block before kick-off is one row, a short band and the tabs`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 375, height: 812 },
+      javaScriptEnabled: false,
+    });
+    const page = await context.newPage();
+    await page.goto(`/${locale}/match/${OPEN_MATCH}`);
+    const tools = (await page.getByTestId('match-tools').boundingBox())!;
+    const nav = (await page.getByTestId('section-nav').boundingBox())!;
+    expect(tools.height).toBe(44);
+    expect(nav.y + nav.height - tools.y).toBeLessThanOrEqual(300);
+    // Follow is the row's last word, and leads to sign-in with the way back.
+    await expect(page.getByTestId('match-follow-guest').getByRole('link')).toHaveAttribute(
+      'href',
+      `/${locale}/login?next=${encodeURIComponent(`/${locale}/match/${OPEN_MATCH}`)}`,
+    );
+    // One freshness line, a reading and no counter; the stream is not named.
+    const line = page.getByTestId('freshness-line');
+    await expect(line).toBeVisible();
+    await expect(line).toHaveAttribute('data-freshness', 'current');
+    await expect(page.getByTestId('live-state')).toHaveCount(0);
+    // The rest is behind a native disclosure, which opens without a script.
+    const facts = page.getByTestId('freshness-facts');
+    await expect(facts).toBeHidden();
+    await line.click();
+    await expect(facts).toBeVisible();
+    await expect(facts.getByRole('listitem').first()).toBeVisible();
+    // From 768px the facts row stands in the band; on a phone it is not drawn.
+    await expect(page.getByTestId('last-update')).toBeHidden();
+    expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+    await context.close();
+  });
+}
+
+// T-1759 (D-376): the match page keeps D-363's own sticky stack, so its header
+// does not stick and keeps the height it had (60px and its hairline): the
+// page's first screen is exactly as before (packages 2 and 3).
+test('on the match page the header scrolls away and keeps its height', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const page = await context.newPage();
+  await page.goto(`/en/match/${OPEN_MATCH}`);
+  const header = page.locator('header').first();
+  const before = (await header.boundingBox())!;
+  expect(Math.round(before.height)).toBe(61);
+  expect(
+    await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--site-header-height').trim(),
+    ),
+  ).toBe('0px');
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(400);
+  expect(Math.round((await header.boundingBox())!.y)).toBe(Math.round(before.y) - 400);
   await context.close();
 });

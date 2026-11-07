@@ -4,7 +4,7 @@ import { expect, test } from '@playwright/test';
  * The desktop header with the language picker as production draws it
  * (T-1534; the globe, T-1610, D-281): with the API behind the web app the
  * second language is offered, so the bar carries the globe and the page's
- * language in short ("EN", «فا»), and it stays one 64px row at 1024, 1280
+ * language in short ("EN", «فا»), and it stays one 56px row at 1024, 1280
  * and 1350px. The web-only project checks the same with the picker put in
  * by hand and in both faces (`header-row.spec.ts`).
  */
@@ -26,7 +26,8 @@ for (const width of [1024, 1280, 1350]) {
       // Closed until asked: the other language is in the page, not on it.
       await expect(page.getByTestId(`language-${other}`)).toBeHidden();
       const bar = page.locator('header nav').first();
-      expect((await bar.boundingBox())?.height).toBe(64);
+      // 56px since the header sticks (T-1759, D-376); 64px on the match page.
+      expect((await bar.boundingBox())?.height).toBe(56);
       const centre = async (id: string) => {
         const box = (await page.getByTestId(id).boundingBox())!;
         return box.y + box.height / 2;
@@ -38,6 +39,7 @@ for (const width of [1024, 1280, 1350]) {
         'nav-more',
         'language-toggle',
         'nav-sign-in',
+        'nav-create-account',
       ]) {
         expect(Math.abs((await centre(id)) - home), id).toBeLessThanOrEqual(2);
       }

@@ -1,9 +1,11 @@
+import type { ReactNode } from 'react';
 import type { MatchViewing, TeamFixture } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { formatDate } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, message } from '@/i18n/messages';
 import { stageNames } from '@/lib/competition';
+import { pickCardPath, pickOpen } from '@/lib/pick';
 import type { CardForecast } from '@/lib/score-card-products';
 import { formatKickoff } from '@/lib/scores';
 import { territoryName } from '@/lib/territory';
@@ -11,8 +13,10 @@ import { optionsState } from '@/lib/viewing';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { forecastBarWords } from '@/lib/words-server';
 import { EntityImage } from '@/components/entity-image';
-import { ForecastBar } from '@/components/forecast-bar';
+import { ForecastBarWithReceipt } from '@/components/forecast-receipt';
 import { MessageText } from '@/components/message-text';
+import { ModelBox } from '@/components/model-box';
+import { PickLink } from '@/components/pick-link';
 import { Translated } from '@/components/translated';
 import { Icon, LinkOut, inlineTargetClasses } from '@/components/ui';
 
@@ -30,6 +34,13 @@ import { Icon, LinkOut, inlineTargetClasses } from '@/components/ui';
  * the match's viewing listing (`null` when that did not answer). Only the
  * model's product is on the card; the community and the founder are not
  * summarised here (rule 6). A server component: it reads the catalogues.
+ *
+ * T-1741 (D-362): the model's bar stands in the `ModelBox`, each figure
+ * beside its side's name, so the forecast reads as the model's; under it
+ * "Make your pick", an outlined link (`PickLink`) to the match page's pick
+ * card (`pickCardPath`), only while the match has not kicked off (`pickOpen`),
+ * and beside it the caller's `follow` control. The card holds no pick
+ * buttons: a pick starts on the match page or the matches list.
  */
 export function NextMatchCard({
   fixture,
@@ -37,6 +48,8 @@ export function NextMatchCard({
   viewing,
   locale,
   timeZone,
+  now,
+  follow,
 }: {
   fixture: TeamFixture;
   forecast: CardForecast;
@@ -44,6 +57,10 @@ export function NextMatchCard({
   viewing: MatchViewing | null;
   locale: string;
   timeZone: string;
+  /** The moment the page was rendered: with it, a kick-off already past offers no pick. */
+  now?: number;
+  /** Follow for the club, beside "Make your pick" (`CardFollow`); the page composes it. */
+  follow?: ReactNode;
 }) {
   const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const when = formatDate(l, fixture.kickoff_at, timeZone, {
@@ -57,6 +74,7 @@ export function NextMatchCard({
   const round = stageNames(l, fixture.stage?.name, fixture.round);
   // From the match's own status, not the clock: a render stays pure.
   const started = fixture.status !== 'scheduled';
+  const open = pickOpen(fixture, now);
   return (
     <article
       aria-labelledby="next-match-heading"
@@ -115,17 +133,33 @@ export function NextMatchCard({
       </Link>
 
       <div className="flex flex-col gap-3 px-4 pb-4 sm:px-5">
-        <ForecastBar
-          forecast={forecast}
-          home={fixture.home.name}
-          away={fixture.away.name}
-          started={started}
-          locale={l}
-          timeZone={timeZone}
-          zone={zone}
-          words={forecastBarWords(l)}
-          compact
-        />
+        <ModelBox locale={l} testId="next-match-model">
+          <ForecastBarWithReceipt
+            forecast={forecast}
+            home={fixture.home.name}
+            away={fixture.away.name}
+            started={started}
+            locale={l}
+            timeZone={timeZone}
+            zone={zone}
+            words={forecastBarWords(l)}
+          />
+        </ModelBox>
+
+        {(open || (follow !== undefined && follow !== null)) && (
+          <div className="flex flex-wrap items-center gap-2" data-testid="next-match-actions">
+            {open && (
+              <PickLink
+                href={pickCardPath(locale, fixture.id)}
+                testId="next-match-pick"
+                className="max-sm:flex-1"
+              >
+                <Translated locale={l} message="pick.make" />
+              </PickLink>
+            )}
+            {follow}
+          </div>
+        )}
 
         <Broadcasters viewing={viewing} fixtureId={fixture.id} locale={l} />
       </div>
