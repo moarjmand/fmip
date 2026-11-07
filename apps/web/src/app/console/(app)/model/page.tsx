@@ -693,7 +693,8 @@ function VersionCell({ v }: { v: ConsoleModelVersion }) {
     <div className="flex flex-col gap-0.5">
       {v.withheld && (
         <span className="text-xs text-warning" data-testid="withheld-note">
-          در حال داوری: عددهایش تا حکم پایش هفتگی پنهان است، فقط شمارش می‌آید (D-380).
+          در حال داوری: عددهایش تا حکم پایش هفتگی پنهان است، فقط شمارش می‌آید (
+          <span className="whitespace-nowrap">D-380</span>).
         </span>
       )}
       <span className="flex flex-wrap items-baseline gap-2">
