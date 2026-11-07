@@ -147,8 +147,10 @@ landed after the dump), and `user_account`, `user_prediction`, `settlement`,
 `forecast`, `fixture` and `message` must be within
 `BACKUP_DRILL_TOLERANCE_PCT` (10 %, never under 100 rows) of live. A whole dump
 of the wrong database, or of last spring's, passes the manifest; it does not
-pass this. The throwaway container and the downloaded files are removed
-whatever happens. With no remote set, it drills the newest local dump and the
+pass this. The throwaway container, its data volume (`docker rm -fv`: the
+Postgres image keeps its data in an anonymous volume, which a plain `rm -f`
+left behind until T-1735) and the downloaded files are removed whatever
+happens. With no remote set, it drills the newest local dump and the
 record says so.
 
 ### Where the API reads it (`backup_run`)
@@ -317,7 +319,7 @@ bash scripts/backup/pitr.sh restore --to '2026-10-01 14:06' --keep --name fmip-p
 docker exec fmip-pitr pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --format=custom \
   --no-owner --no-privileges > backups/pitr-20261001T1406.dump
 # ...then "The data is wrong, the server is fine" below, with this file.
-docker rm -f fmip-pitr && docker volume rm fmip-pitr-data
+docker rm -fv fmip-pitr && docker volume rm fmip-pitr-data
 ```
 
 On a new server the same works once `.env` (with `BACKUP_RCLONE_REMOTE`) and

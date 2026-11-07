@@ -434,7 +434,7 @@ EOF
   WORK_DIR=''
   if [ "$keep" -eq 1 ]; then
     echo "    kept: docker exec -it $name psql -U $POSTGRES_USER -d $POSTGRES_DB"
-    echo "    remove: docker rm -f $name && docker volume rm $volume"
+    echo "    remove: docker rm -fv $name && docker volume rm $volume"
     RESTORE_CONTAINER=''
     RESTORE_VOLUME=''
   fi
@@ -444,7 +444,8 @@ WORK_DIR=''
 RESTORE_CONTAINER=''
 RESTORE_VOLUME=''
 cleanup() {
-  if [ -n "$RESTORE_CONTAINER" ]; then docker rm -f "$RESTORE_CONTAINER" > /dev/null 2>&1 || true; fi
+  # -v takes the image's anonymous volume along (T-1735); the named one goes below.
+  if [ -n "$RESTORE_CONTAINER" ]; then docker rm -fv "$RESTORE_CONTAINER" > /dev/null 2>&1 || true; fi
   if [ -n "$RESTORE_VOLUME" ]; then docker volume rm "$RESTORE_VOLUME" > /dev/null 2>&1 || true; fi
   if [ -n "$WORK_DIR" ]; then rm -rf "$WORK_DIR"; fi
   rm -f "$BACKUP_DIR/base-inprogress.tar.gz"

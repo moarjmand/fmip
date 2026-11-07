@@ -145,7 +145,10 @@ fail() {
 # script, or an exit on the way there (set -e, or `die`).
 finish() {
   local status=$?
-  docker rm -f "$CONTAINER" > /dev/null 2>&1 || true
+  # -v: the Postgres image declares an anonymous volume for its data, and a
+  # plain `rm -f` leaves it behind: one whole restored database per drill
+  # (7.5 GB found on 2026-11-05, T-1735).
+  docker rm -fv "$CONTAINER" > /dev/null 2>&1 || true
   docker volume rm "$CONTAINER-data" > /dev/null 2>&1 || true
   if [ -n "$WORKDIR" ]; then rm -rf "$WORKDIR"; fi
   if [ "$FINISHED" -eq 0 ] && [ "$DRY_RUN" -eq 0 ] && [ "$RECORD" -eq 1 ] && [ "$status" -ne 0 ]; then
