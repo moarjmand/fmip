@@ -118,8 +118,12 @@ describe('league zones (T-1167)', () => {
   it('names and marks every kind, with a token colour class', () => {
     for (const kind of LEAGUE_ZONE_KINDS) {
       expect(t('en', ZONE_KEY[kind])).toBeTruthy();
-      expect(ZONE_MARK[kind]).toMatch(/^border-s-(accent|strong|warning|danger)$/);
+      expect(ZONE_MARK[kind]).toMatch(/^border-s-(accent|strong|warning|danger|transparent)$/);
     }
+    // Only the places a league phase puts out go unmarked (T-1761, D-381).
+    expect(LEAGUE_ZONE_KINDS.filter((k) => ZONE_MARK[k] === 'border-s-transparent')).toEqual([
+      'league_phase_out',
+    ]);
   });
   it('reads a band', () => {
     expect(zoneBand('en', { kind: 'relegation', from: 18, to: 20 })).toBe('18–20');

@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2370), grouped by folder, with one line on
+Every file in the repository (2376), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -255,7 +255,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 294
+- [`apps/web/src/components`](#appswebsrccomponents) — 295
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 36
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -282,7 +282,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 74
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 179
+- [`packages/db/migrations`](#packagesdbmigrations) — 180
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -2851,6 +2851,7 @@ machine, `docs/18-handover.md`.
 | `forecast-bar.tsx` | The statistical model's three probabilities, drawn one way everywhere (T-1748, D-368; T-1749, D-369; boards P3-2 and P3-3). |
 | `forecast-panel.tsx` | "How the forecast was reached" on the match centre (T-065, blueprint 6.1-6.4; T-1744, D-365). |
 | `forecast-receipt.tsx` | The model's forecast where a page holds a `CardForecast` (the Design System's `ForecastBar`, T-1508, D-263; split from the bar in T-1748): the one `ForecastBar` with the model's receipt under it -- **always** (blueprint… |
+| `form-squares.tsx` | A form square's look (T-1746, D-367): filled, outlined or dashed in ink, never a hue. |
 | `founder-analysis.tsx` | The founder's analysis on the pages a reader meets it (blueprint 6.5, T-132). **Always attributed and signed.** Every rendering here carries the author's name and the publication time, because the blueprint asks that ea… |
 | `freshness-stamp.spec.tsx` | The freshness stamp (rule 4; the Design System's `Freshness`, T-1493): quiet while the surface is within its threshold, the warning saffron and a triangle past it, and nothing at all without a clock. |
 | `freshness-stamp.tsx` | The stamp's words, resolved on the server for the reader's locale (T-1303). |
@@ -3030,7 +3031,7 @@ machine, `docs/18-handover.md`.
 | `site-header.tsx` | The site shell (T-1381, D-199): the header, the matchday rail under it (T-1624, D-292) and the phone's bottom tab bar, the same on every page. |
 | `stamp.tsx` | A stored moment as a reader reads it (T-1201): "30 Sept 2026, 21:32" in the viewer's zone, with "UTC" said when that is the zone used, and the exact instant kept in `dateTime` for a machine. |
 | `standings-table.spec.tsx` | The competition page's tables (T-1336): a season with group stages shows every group's table, under its stage when there are several, and a group not yet started as a sentence with its teams; a league's page keeps its o… |
-| `standings-table.tsx` | The table's figure columns (T-1203). On a phone the table keeps position, team, played, goal difference and points, the columns a reader ranks by; won, drawn, lost and the goals appear from the tablet width up, the form… |
+| `standings-table.tsx` | The table's figure columns (T-1203). The abbreviations are the catalogue's (T-1304): Persian uses short words that fit a phone column, the whole word in the title. The goals are one column, scored and conceded as "20:9"… |
 | `story-links.spec.tsx` | The story page's share and follow controls (T-941, blueprint 3.3). |
 | `story-links.tsx` | The story page's controls that lead somewhere else (T-941, blueprint 3.3): following what the story is about. |
 | `story-predictions.spec.tsx` | "Predictions for this match" on the story page (T-1741, D-362): the model's bar in its own box with the way to the match page's pick card when the story's match has a forecast and has not kicked off; the missing forecas… |
@@ -3485,6 +3486,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
@@ -3492,6 +3495,8 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -3896,6 +3901,7 @@ machine, `docs/18-handover.md`.
 | `1765901100000_console-request.sql` | Teammate requests in the agents console (T-1728, D-354). |
 | `1765901200000_console-request-image.sql` | Pictures on the teammate requests (T-1731, D-357). |
 | `1765901300000_pending-pick.sql` | T-1740 (D-361): a pick made before the member confirmed their e-mail address. |
+| `1765901400000_competition-zone-key.sql` | T-1761 (D-381): our own code for a competition the committed league-zone list (`packages/contracts/zones/league-zones.json`, D-171) keys by competition rather than by training division or country. |
 
 ## packages/db/scripts
 

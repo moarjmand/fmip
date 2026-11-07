@@ -2077,5 +2077,34 @@
     "ranking": ["points", "wins", "goal_difference", "goals_for"],
     "note": "The 2026/27 label stands for the calendar-year 2026 season. The first seven of each conference go straight into the play-offs' first round; eighth and ninth play the wild-card round. Clubs level on points are ranked by wins, then goal difference, then goals scored, as MLS ranked them in 2025 (no 2026 list was found). MLS then looks at disciplinary points, which count fouls and staff warnings this site does not store, so clubs still level are listed by name and their official order can differ.",
     "note_fa": "برچسب ۲۰۲۶/۲۷ همان فصل سال تقویمی ۲۰۲۶ است. هفت تیم اول هر کنفرانس مستقیم به دور اول پلی‌آف می‌روند؛ تیم‌های هشتم و نهم در دور وایلدکارت بازی می‌کنند. تیم‌های هم‌امتیاز به ترتیبِ تعداد برد، تفاضل گل و گل زده رده‌بندی می‌شوند، همان‌طور که MLS در ۲۰۲۵ رده‌بندی کرد (فهرستی برای ۲۰۲۶ پیدا نشد). پس از آن MLS امتیاز انضباطی را می‌سنجد که خطاها و اخطارهای کادر فنی را هم می‌شمارد و این سایت آن‌ها را ذخیره نمی‌کند؛ پس تیم‌هایی که باز هم برابرند به ترتیب نام آمده‌اند و ترتیب رسمی‌شان ممکن است فرق کند."
+  },
+  {
+    "competition": "UCL",
+    "season": "2026/27",
+    "teams": 36,
+    "matches": 8,
+    "zones": [
+      {
+        "kind": "league_phase_round_of_16",
+        "from": 1,
+        "to": 8
+      },
+      {
+        "kind": "league_phase_playoff",
+        "from": 9,
+        "to": 24
+      },
+      {
+        "kind": "league_phase_out",
+        "from": 25,
+        "to": 36
+      }
+    ],
+    "complete": true,
+    "sources": [
+      "https://documents.uefa.com/r/Regulations-of-the-UEFA-Champions-League-2026/27/Article-17-Match-system-league-phase-Online"
+    ],
+    "note": "The league phase: 36 clubs in one table, each playing eight matches against eight different opponents. First to eighth go straight into the round of 16, ninth to twenty-fourth into the knockout phase play-offs, and twenty-fifth to thirty-sixth are eliminated (Article 17). Clubs level on points are ranked by goal difference, then goals scored; UEFA then counts away goals, wins, away wins and the opponents' results, which this table does not, so clubs still level are listed by name and their official order can differ (Article 18).",
+    "note_fa": "مرحله‌ی لیگ: ۳۶ باشگاه در یک جدول، هر کدام هشت بازی با هشت حریف متفاوت. اول تا هشتم مستقیم به یک‌هشتم نهایی می‌روند، نهم تا بیست‌وچهارم به پلی‌آف مرحله‌ی حذفی، و بیست‌وپنجم تا سی‌وششم حذف می‌شوند (ماده‌ی ۱۷). باشگاه‌های هم‌امتیاز با تفاضل گل و سپس گل زده رده‌بندی می‌شوند؛ یوفا پس از آن گل زده در خانه‌ی حریف، تعداد برد، برد در خانه‌ی حریف و نتایج حریفان را می‌سنجد که این جدول نمی‌سنجد، پس باشگاه‌هایی که باز هم برابرند به ترتیب نام آمده‌اند و ترتیب رسمی‌شان ممکن است فرق کند (ماده‌ی ۱۸)."
   }
 ]

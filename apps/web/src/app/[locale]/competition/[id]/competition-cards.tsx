@@ -224,7 +224,8 @@ export function TableCard({
         rows.length > 0 ? (
           <>
             <ZoneLegend locale={locale} zones={page.zones} />
-            <p data-testid="form-order">
+            {/* On a phone the line under the table says to swipe for the form (T-1760). */}
+            <p data-testid="form-order" className="max-sm:hidden">
               <Translated locale={locale} message="competitionPage.formLatestFirst" />
             </p>
           </>

@@ -551,13 +551,16 @@ export function ZoneLegend({
       className="flex flex-col gap-1 text-xs text-muted"
       data-testid={tables === 'league' ? 'table-zones' : 'conference-zones'}
     >
-      <ul className="flex flex-wrap gap-x-4 gap-y-1">
-        {lines.map(({ key, zone, label }) => (
-          <li key={key} className={`border-s-4 ps-2 ${ZONE_MARK[zone.kind]}`}>
-            {label}: {zoneBand(locale, zone)}
-          </li>
-        ))}
-      </ul>
+      {/* Each conference table lists its own bands under it (T-1760, D-377). */}
+      {tables === 'league' && (
+        <ul className="flex flex-wrap gap-x-4 gap-y-1">
+          {lines.map(({ key, zone, label }) => (
+            <li key={key} className={`border-s-4 ps-2 ${ZONE_MARK[zone.kind]}`}>
+              {label}: {zoneBand(locale, zone)}
+            </li>
+          ))}
+        </ul>
+      )}
       <p>
         <Translated locale={locale} message="competitionPage.zones.lead" />
         {zones.sources.map((url, i) => (

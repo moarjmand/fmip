@@ -18133,5 +18133,65 @@
     "text": "گل‌های ثبت‌شده ({goals}) و نتیجه‌ی اعلام‌شده ({score}) با هم نمی‌خوانند، پس هیچ‌کدام به‌عنوان نتیجه‌ی نهایی نشان داده نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent for a finished match whose recorded goals disagree with its result (T-1717, D-347)."
+  },
+  "competitionPage.zone.leaguePhaseRoundOf16": {
+    "source": "Round of 16",
+    "text": "یک‌هشتم نهایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
+  },
+  "competitionPage.zone.leaguePhasePlayoff": {
+    "source": "Play-off round",
+    "text": "پلی‌آف",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
+  },
+  "competitionPage.zone.leaguePhaseOut": {
+    "source": "Out",
+    "text": "حذف",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
+  },
+  "competitionPage.zoneDivider.band": {
+    "source": "{zone} ({places})",
+    "text": "{zone} ({places})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
+  },
+  "competitionPage.phase.provisional": {
+    "source": "Every club has played {played} of {matches} league-phase matches: the lines show where a club would stand if the league phase ended today.",
+    "text": "هر باشگاه {played} بازی از {matches} بازی مرحله‌ی لیگ را انجام داده است: خط‌ها نشان می‌دهند اگر مرحله‌ی لیگ همین امروز تمام می‌شد هر باشگاه کجا قرار می‌گرفت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
+  },
+  "competitionPage.phase.provisionalRange": {
+    "source": "Clubs have played {least} to {most} of {matches} league-phase matches: the lines show where a club would stand if the league phase ended today.",
+    "text": "باشگاه‌ها {least} تا {most} بازی از {matches} بازی مرحله‌ی لیگ را انجام داده‌اند: خط‌ها نشان می‌دهند اگر مرحله‌ی لیگ همین امروز تمام می‌شد هر باشگاه کجا قرار می‌گرفت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
+  },
+  "competitionPage.phase.final": {
+    "source": "Final league-phase table: every club has played its {matches} matches.",
+    "text": "جدول نهایی مرحله‌ی لیگ: هر باشگاه {matches} بازی‌اش را انجام داده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
+  },
+  "competitionPage.tableSwipe": {
+    "source": "Swipe sideways for the form: the last five results, most recent first.",
+    "text": "برای دیدن فرم (پنج نتیجه‌ی آخر، از تازه‌ترین) به کنار بکشید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
+  },
+  "competitionPage.tableScroll": {
+    "source": "{name}, scrolls sideways",
+    "text": "{name}، به کنار می‌لغزد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
+  },
+  "competitionPage.overallTableFold": {
+    "source": "Overall table, {count} clubs",
+    "text": "جدول کل، {count} باشگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
   }
 }
