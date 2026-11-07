@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
-import type { CompetitionPage as Page, Covered, KnockoutRoundKey } from '@fmip/contracts';
+import type {
+  CompetitionPage as Page,
+  Covered,
+  KnockoutRoundKey,
+  SeasonFixture,
+} from '@fmip/contracts';
 import { MAX_FORECAST_FIXTURES } from '@fmip/contracts';
 import {
   BOARDS,
@@ -46,6 +51,7 @@ import {
   readMinMinutesParam,
   readSeasonParam,
   say,
+  withKnownZones,
 } from '@/lib/competition';
 import { readStageParam } from '@/lib/bracket';
 import {
@@ -66,6 +72,7 @@ import {
   roundHref,
   seasonRounds,
   stageHref,
+  stillToCome,
   tabHref,
   tableMissing,
 } from '@/lib/competition-overview';
@@ -190,7 +197,8 @@ export default async function CompetitionPage({
       </main>
     );
   }
-  const page = result.data;
+  // A zone kind this web has no words for is dropped, never thrown on (code review, 2026-11-07).
+  const page = withKnownZones(result.data);
   const { timeZone } = await pageTimeZone(locale, me);
   const tabs = availableTabs(page);
   const tab: CompetitionTab = tabs.includes(requested) ? requested : 'overview';
@@ -206,11 +214,20 @@ export default async function CompetitionPage({
   const round = asked === null ? opening : (rounds[asked - 1] ?? opening);
   // The Matches tab, one round of one list at a time (T-1762, D-378).
   const list = tab === 'matches' ? matchList(readViewParam(query), rounds, page, asked) : null;
+  // The model is asked only about matches being played or still to come
+  // (`stillToCome`, T-1710): a postponed, cancelled or awaiting one has no slot.
+  const asking = (fixtures: readonly SeasonFixture[]) =>
+    forecastsFor(
+      fixtures
+        .filter(stillToCome)
+        .slice(0, MAX_FORECAST_FIXTURES)
+        .map((f) => f.id),
+    );
   const forecasts =
     tab === 'overview' && round !== null
-      ? await forecastsFor(round.fixtures.slice(0, MAX_FORECAST_FIXTURES).map((f) => f.id))
+      ? await asking(round.fixtures)
       : list !== null && list.view === 'upcoming'
-        ? await forecastsFor(list.fixtures.slice(0, MAX_FORECAST_FIXTURES).map((f) => f.id))
+        ? await asking(list.fixtures)
         : {};
   // Only the months of the season on the page (T-1556, D-278): an older season
   // never shows this month's record.

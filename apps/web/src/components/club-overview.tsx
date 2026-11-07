@@ -22,6 +22,7 @@ import {
   SPLIT_COLUMN_KEY,
   SPLIT_RECORD_ROWS,
   afterTimeNote,
+  chipCompetitions,
   fromTeamSide,
   homeAwayLean,
   mainStanding,
@@ -759,9 +760,10 @@ export function CompetitionChips({
   /** A guest's territory, kept on the links as the tabs keep it. */
   territory: string | undefined;
 }) {
-  const competitions = page.competitions;
+  // One chip per competition, however many of its seasons the club is in.
+  const competitions = chipCompetitions(page.competitions);
   if (competitions.length < 2) return null;
-  const shown = shownCompetition(competitions, chosen)!;
+  const shown = shownCompetition(page.competitions, chosen)!;
   const noTable = noTableTag(shown);
   return (
     <nav
@@ -772,7 +774,7 @@ export function CompetitionChips({
       {/* The row scrolls sideways on a phone, as the tab row does. */}
       <ul className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap">
         {competitions.map((entry) => {
-          const on = entry.season.id === shown.season.id;
+          const on = entry.competition.id === shown.competition.id;
           const tag = noTableTag(entry);
           return (
             <li key={entry.season.id} className="shrink-0">
@@ -834,7 +836,10 @@ export function CompetitionChips({
  * bold, the table's coverage on the badge, the whole table a link away. A
  * competition whose table does not place the club says so. Since T-1764
  * (D-379) only a competition with a table gets a card, league first: a cup
- * played in knockout rounds is a chip, not a "not supplied" card.
+ * played in knockout rounds is a chip, not a "not supplied" card. A cup with
+ * group tables, or a continental cup whose league phase we do not hold, has
+ * a table (code review, 2026-11-07): its card says the club's place is not
+ * supplied, its full table a link away.
  */
 export function AroundThem({ page, locale }: { page: TeamPage; locale: string }) {
   const teamId = page.team.id;

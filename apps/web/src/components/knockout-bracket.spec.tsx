@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { KnockoutBracket as Bracket, KnockoutLeg, KnockoutTie } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { chipLabel, legGoals, openingStage, readStageParam } from '@/lib/bracket';
+import { chipLabel, chipName, legGoals, openingStage, readStageParam } from '@/lib/bracket';
 import { KnockoutBracket } from './knockout-bracket';
 
 /**
@@ -144,8 +144,27 @@ describe('the bracket on a phone: chips and one round', () => {
     );
     expect(tags[2]).toContain('border-dashed');
     expect(tags[2]).toContain('data-state="not_drawn"');
-    expect(tags[2]).toContain('aria-label="Quarter-finals"');
+    // The name holds the shown words first (WCAG 2.5.3), then the round in full.
+    expect(tags[2]).toContain('aria-label="QF, Quarter-finals"');
     expect(tags[0]).not.toContain('border-dashed');
+  });
+
+  it('names each chip with the words it shows, and the landmarks apart (code review, 2026-11-07)', () => {
+    expect(chipName('quarter_final')).toBe('QF, Quarter-finals');
+    expect(chipName('round_of_16')).toBe('R16, Round of 16');
+    // A chip showing the round's whole name is named by it once.
+    expect(chipName('final')).toBe('Final');
+    // Persian: its own comma, the shown «۱/۴» first.
+    expect(chipName('quarter_final', 'fa')).toMatch(/^۱\/۴، /);
+    const html = render(running);
+    const names = [
+      /<section id="bracket" aria-labelledby="bracket-heading"/.test(html) ? 'Knockout rounds' : '',
+      /<nav aria-label="([^"]+)"/.exec(html)?.[1],
+      /role="region" aria-label="([^"]+)"/.exec(html)?.[1],
+    ];
+    expect(names).toEqual(['Knockout rounds', 'Rounds', 'Every knockout round, side by side']);
+    expect(new Set(names).size).toBe(3);
+    expect(html).not.toMatch(/role="region" aria-labelledby="bracket-heading"/);
   });
 
   it('opens at the latest round with a tie drawn, showing that round alone', () => {
@@ -198,7 +217,7 @@ describe('the bracket from 768px: a column per round', () => {
     const { desk } = parts(render(running));
     expect(desk).toMatch(/^data-testid="bracket-columns"/);
     expect(render(running)).toMatch(
-      /class="hidden overflow-x-auto[^"]*md:block" role="region" aria-labelledby="bracket-heading" tabindex="0"/,
+      /class="hidden overflow-x-auto[^"]*md:block" role="region" aria-label="Every knockout round, side by side" tabindex="0"/,
     );
     expect(desk).toContain('grid-flow-col items-start');
     expect(desk.match(/data-testid="bracket-round"/g)).toHaveLength(5);

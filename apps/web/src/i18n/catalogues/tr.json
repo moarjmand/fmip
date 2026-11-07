@@ -14941,11 +14941,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "competitionPage.tableScroll": {
-    "source": "{name}, scrolls sideways",
-    "text": "",
-    "status": "untranslated"
-  },
   "competitionPage.overallTableFold": {
     "source": "Overall table, {count} clubs",
     "text": "",
@@ -14980,6 +14975,11 @@
       "other": "{count} matches of this round are already played; they are under Results."
     },
     "forms": {},
+    "status": "untranslated"
+  },
+  "competitionPage.matches.noneToCome": {
+    "source": "No match is scheduled to be played. The rounds menu lists the ones postponed, cancelled or awaiting an update.",
+    "text": "",
     "status": "untranslated"
   },
   "competitionPage.rounds.unnamed": {
@@ -15019,6 +15019,16 @@
   },
   "bracket.chip.final": {
     "source": "Final",
+    "text": "",
+    "status": "untranslated"
+  },
+  "bracket.chip.name": {
+    "source": "{chip}, {round}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "competitionPage.bracket.allRounds": {
+    "source": "Every knockout round, side by side",
     "text": "",
     "status": "untranslated"
   },

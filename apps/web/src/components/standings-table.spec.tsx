@@ -9,6 +9,7 @@ import { leagueZonesFor } from '@fmip/contracts';
 import LIST from '@fmip/contracts/zones/league-zones.json';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { knownZones, withKnownZones } from '@/lib/competition';
 import { ZoneLegend } from './competition-page';
 import {
   ConferenceTables,
@@ -93,6 +94,39 @@ describe('the league table', () => {
     expect(html).toContain('href="/en/team/a"');
     expect(html).not.toContain('<caption');
     expect(html).not.toMatch(/\b(left|right)\b/);
+  });
+
+  it('draws every row of a zone kind it does not know, unmarked, never failing (code review, 2026-11-07)', () => {
+    // An API rolled out before the web, or a kind added later.
+    const zones = {
+      state: 'listed',
+      teams: 3,
+      zones: [
+        { kind: 'champions_league', from: 1, to: 1 },
+        { kind: 'some_later_zone', from: 2, to: 2 },
+      ],
+      sources: ['https://example.org'],
+      complete: true,
+      note: null,
+      unmarked_cup_places: true,
+    } as unknown as LeagueZones;
+    const known = knownZones(zones);
+    expect(known.state === 'listed' && known.zones.map((z) => z.kind)).toEqual([
+      'champions_league',
+    ]);
+    // Nothing to drop: the same object back, so the page is not copied for nothing.
+    expect(knownZones(known)).toBe(known);
+    const page = { zones, table: null };
+    expect(withKnownZones(page).zones).toEqual(known);
+    const rows = [row('a', 1, 3), row('b', 2, 1), row('c', 3, 0)];
+    const html = renderToStaticMarkup(<StandingsTable rows={rows} locale="en" zones={known} />);
+    expect(html.match(/data-testid="table-row"/g)).toHaveLength(3);
+    expect(html).toContain('data-zone="champions_league"');
+    expect(html).not.toContain('some_later_zone');
+    expect(html).toContain('href="/en/team/b"');
+    const legend = renderToStaticMarkup(<ZoneLegend locale="en" zones={known} />);
+    expect(legend).not.toContain('some_later_zone');
+    expect(legend).not.toContain('undefined');
   });
 });
 
@@ -404,14 +438,25 @@ describe('the phone table: every column in reach (T-1760, D-377)', () => {
     expect(html).not.toMatch(/\b(left|right)\b/);
   });
 
-  it('lets a keyboard reach the sliding box, named for a screen reader', () => {
+  it('adds no Tab stop or landmark per table: its links are the keyboard’s way in (code review, 2026-11-07)', () => {
+    // Eight group tables on a desktop page that scrolls nowhere were eight Tab
+    // stops and eight "scrolls sideways" regions. The box has neither at any
+    // width; each row's team link is focusable, and the arrow keys scroll the
+    // box from it where the box overflows (a phone).
     expect(html).toContain(
-      '<div class="scroll-cue overflow-x-auto @container focus-visible:outline-2 focus-visible:outline-offset-2" tabindex="0" role="region" aria-label="Table, scrolls sideways"',
+      '<div class="scroll-cue overflow-x-auto @container focus-visible:outline-2 focus-visible:outline-offset-2" data-testid="table-scroll">',
     );
-    const named = renderToStaticMarkup(
+    const groups = renderToStaticMarkup(
       <StandingsTable rows={[played('a', 1, 9)]} locale="en" zones={null} caption="Group A" />,
     );
-    expect(named).toContain('aria-label="Group A, scrolls sideways"');
+    for (const out of [html, groups]) {
+      expect(out).not.toContain('tabindex');
+      expect(out).not.toContain('role="region"');
+      expect(out).not.toContain('scrolls sideways');
+    }
+    // The way in: every row's team is a link inside the box.
+    expect(groups).toMatch(/data-testid="table-scroll">[\s\S]*href="\/en\/team\/a"/);
+    expect(groups).toContain('<caption class="sr-only">Group A</caption>');
   });
 
   it('says to swipe for the form on a phone, once, and keeps team names 44px links', () => {

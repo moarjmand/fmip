@@ -306,6 +306,19 @@ export function readTeamCompetition(
 }
 
 /**
+ * The chips' competitions (T-1764; code review, 2026-11-07): one per
+ * competition, its first entry -- the current season, by the API's order --
+ * since `?competition=` names a competition, not a season: a second chip of
+ * an older season (one match still awaiting an update) could never be
+ * chosen.
+ */
+export function chipCompetitions(competitions: readonly TeamCompetition[]): TeamCompetition[] {
+  return competitions.filter(
+    (entry, i) => competitions.findIndex((c) => c.competition.id === entry.competition.id) === i,
+  );
+}
+
+/**
  * A chip's address (T-1764): the Overview with `?competition=<id>`, the
  * default competition with none, so the page has one address for its
  * default; a guest's territory is the caller's to add.

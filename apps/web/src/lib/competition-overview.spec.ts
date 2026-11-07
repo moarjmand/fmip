@@ -27,12 +27,12 @@ import {
   readViewParam,
   resultsBefore,
   roundDays,
-  roundGroups,
   roundHref,
   seasonDigits,
   seasonRounds,
   sharePercent,
   stageHref,
+  stillToCome,
   tabHref,
   tableMissing,
 } from './competition-overview';
@@ -215,28 +215,6 @@ describe('the Overview’s round (T-1385)', () => {
 
   it('names the round in Persian, with Persian digits', () => {
     expect(currentMatchweek('fa', { results: [], fixtures: [fx()] })?.label).toBe('هفته‌ی ۸');
-  });
-});
-
-describe('fixtures by round (T-1385)', () => {
-  // English says a round in its own words (T-1391, D-207); Persian is tested below.
-  it('groups each round once, in the list’s order, headed in our words', () => {
-    const a = fx({ round: 'Regular Season - 9' });
-    const b = fx({ round: 'Regular Season - 8' });
-    const c = fx({ round: 'Regular Season - 9' });
-    const groups = roundGroups('en', [a, b, c]);
-    expect(groups.map((g) => g.label)).toEqual(['Matchweek 9', 'Matchweek 8']);
-    expect(groups[0]?.fixtures.map((f) => f.id)).toEqual([a.id, c.id]);
-  });
-
-  it('keeps a stage and its round apart in a cup, and never shows a provider label', () => {
-    const groups = roundGroups('en', [
-      fx({ round: 'League Stage - 2', stage: { id: 'ls', name: 'League Stage' } }),
-      fx({ round: 'Round of 16', stage: { id: 'ko', name: 'Round of 16' } }),
-      fx({ round: 'Something New', stage: { id: 'x', name: 'Something New' } }),
-    ]);
-    expect(groups.map((g) => g.label)).toEqual(['League phase, matchday 2', 'Round of 16', null]);
-    expect(JSON.stringify(groups.map((g) => g.label))).not.toContain('Something New');
   });
 });
 
@@ -729,7 +707,7 @@ describe('the Matches tab, one round at a time (T-1762, D-378)', () => {
     expect(matchList('upcoming', rounds, page, 1).round?.number).toBe(2);
   });
 
-  it('holds no round when its list is empty; a postponed match alone still opens Upcoming', () => {
+  it('holds no round when its list is empty', () => {
     expect(matchList('upcoming', [], { results: [] }, null)).toEqual({
       view: 'upcoming',
       rounds: [],
@@ -738,15 +716,47 @@ describe('the Matches tab, one round at a time (T-1762, D-378)', () => {
     });
     const notYet = { results: [], fixtures: r11 };
     expect(matchList('results', seasonRounds('en', notYet, 'UTC'), notYet, null).round).toBeNull();
+  });
+
+  it('never opens Upcoming on a round of void matches alone (code review, 2026-11-07)', () => {
+    // The season is over but for a postponed match of round 3.
     const late = fx({
       round: 'Regular Season - 3',
       kickoff_at: at('2026-09-01'),
       status: 'postponed',
     });
     const done = { results: r9, fixtures: [late] };
-    expect(matchList('upcoming', seasonRounds('en', done, 'UTC'), done, null).fixtures).toEqual([
-      late,
-    ]);
+    const seasonEnd = seasonRounds('en', done, 'UTC');
+    const list = matchList('upcoming', seasonEnd, done, null);
+    // No round to open on; the picker still lists round 3, which `?round=` opens.
+    expect(list.round).toBeNull();
+    expect(list.fixtures).toEqual([]);
+    expect(list.rounds.map((r) => r.label)).toEqual(['Matchweek 3']);
+    expect(matchList('upcoming', seasonEnd, done, 1).fixtures).toEqual([late]);
+    // Mid-season, a leftover cancelled or awaiting match never sets the round
+    // either: Upcoming opens on the round of the next match to be played.
+    for (const left of [
+      fx({ round: 'Regular Season - 3', kickoff_at: at('2026-09-01'), status: 'cancelled' }),
+      fx({
+        round: 'Regular Season - 3',
+        kickoff_at: at('2026-09-01'),
+        freshness: 'awaiting_update',
+      }),
+    ]) {
+      const running = { results: r9, fixtures: [left, ...r11] };
+      const opened = matchList('upcoming', seasonRounds('en', running, 'UTC'), running, null);
+      expect(opened.round?.label).toBe('Matchweek 11');
+      expect(opened.rounds.map((r) => r.label)).toEqual(['Matchweek 3', 'Matchweek 11']);
+    }
+  });
+
+  it('asks the model only about a match being played or still to come (T-1710)', () => {
+    expect(stillToCome(fx({ status: 'scheduled' }))).toBe(true);
+    expect(stillToCome(fx({ status: 'live' }))).toBe(true);
+    for (const status of ['postponed', 'cancelled', 'abandoned', 'finished', 'suspended']) {
+      expect(stillToCome(fx({ status }))).toBe(false);
+    }
+    expect(stillToCome(fx({ status: 'scheduled', freshness: 'awaiting_update' }))).toBe(false);
   });
 
   it('links a list and its rounds, and a knockout round’s chip, keeping the season', () => {

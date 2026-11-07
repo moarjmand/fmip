@@ -28,6 +28,7 @@ import {
   dayKey,
   matchesHref,
   roundDays,
+  stillToCome,
 } from '@/lib/competition-overview';
 import { awaitingUpdate } from '@/lib/live';
 import { pickCardPath, pickOpen } from '@/lib/pick';
@@ -548,13 +549,18 @@ export function RoundPicker({
   rounds: readonly SeasonRound[];
   /** The rounds the picker offers, in the season's order; every round by default. */
   listed?: readonly SeasonRound[];
-  shown: SeasonRound;
+  /**
+   * The round on the card; null when none is (Upcoming with only postponed,
+   * cancelled or awaiting matches left): the menu still lists their rounds,
+   * none current, and neither step goes anywhere.
+   */
+  shown: SeasonRound | null;
   /** A round's address (`roundHref`). */
   href: (round: number) => string;
   locale: string;
   timeZone: string;
 }) {
-  const at = listed.findIndex((r) => r.number === shown.number);
+  const at = shown === null ? -1 : listed.findIndex((r) => r.number === shown.number);
   const before = at > 0 ? listed[at - 1]! : null;
   const after = at >= 0 ? (listed[at + 1] ?? null) : null;
   const name = (round: SeasonRound) => roundTitle(locale, round, timeZone);
@@ -573,18 +579,24 @@ export function RoundPicker({
         testId="round-prev"
       />
       {/* Closed again on every step: a new round is a new disclosure. */}
-      <details key={shown.number} className="group/rounds min-w-0 flex-1" data-testid="round-menu">
+      <details
+        key={shown?.number ?? 0}
+        className="group/rounds min-w-0 flex-1"
+        data-testid="round-menu"
+      >
         <summary className="flex min-h-touch cursor-pointer list-none items-center justify-center gap-1.5 rounded-control px-2 text-sm font-semibold hover:bg-surface-raised [&::-webkit-details-marker]:hidden">
           <span>{say(locale, 'competitionPage.rounds.all')}</span>
-          <span
-            className="text-xs font-normal text-muted tabular-nums"
-            data-testid="round-position"
-          >
-            {say(locale, 'competitionPage.rounds.position', {
-              position: formatNumber(locale, shown.number),
-              total: formatNumber(locale, rounds.length),
-            })}
-          </span>
+          {shown !== null && (
+            <span
+              className="text-xs font-normal text-muted tabular-nums"
+              data-testid="round-position"
+            >
+              {say(locale, 'competitionPage.rounds.position', {
+                position: formatNumber(locale, shown.number),
+                total: formatNumber(locale, rounds.length),
+              })}
+            </span>
+          )}
           <svg
             viewBox="0 0 24 24"
             width="16"
@@ -605,7 +617,7 @@ export function RoundPicker({
           data-testid="round-list"
         >
           {listed.map((round) => {
-            const current = round.number === shown.number;
+            const current = round.number === shown?.number;
             return (
               <li key={round.number} className="border-b border-default last:border-b-0">
                 <Link
@@ -682,6 +694,7 @@ export function MatchweekCard({
   intro,
   empty,
   model = true,
+  leftovers = false,
 }: {
   rounds: readonly SeasonRound[];
   /** The rounds the picker offers; every round by default. */
@@ -704,6 +717,11 @@ export function MatchweekCard({
   empty?: ReactNode;
   /** The model's bar on the rows still to be played, its "model %" and its receipt. */
   model?: boolean;
+  /**
+   * With no round shown, still offer `listed` in the picker (Upcoming: rounds
+   * of postponed, cancelled or awaiting matches alone, which never open it).
+   */
+  leftovers?: boolean;
 }) {
   const versions = [
     ...new Set(
@@ -760,9 +778,23 @@ export function MatchweekCard({
       }
     >
       {round === null ? (
-        <Empty testId={testId} locale={locale}>
-          {empty ?? <Translated locale={locale} message="competitionPage.day.none" />}
-        </Empty>
+        <>
+          {/* Rounds of this list with no round to open on (only postponed or
+              awaiting matches left): still a menu away, none shown. */}
+          {leftovers && listed.length > 0 && (
+            <RoundPicker
+              rounds={rounds}
+              listed={listed}
+              shown={null}
+              href={href}
+              locale={locale}
+              timeZone={timeZone}
+            />
+          )}
+          <Empty testId={testId} locale={locale}>
+            {empty ?? <Translated locale={locale} message="competitionPage.day.none" />}
+          </Empty>
+        </>
       ) : (
         <>
           <RoundPicker
@@ -795,7 +827,11 @@ export function MatchweekCard({
                     fixture={f}
                     locale={locale}
                     timeZone={timeZone}
-                    forecast={model ? (forecasts[f.id] ?? { state: 'none' }) : undefined}
+                    forecast={
+                      // Only a match being played or still to come has a model slot
+                      // (T-1710); a postponed or awaiting one shows its status alone.
+                      model && stillToCome(f) ? (forecasts[f.id] ?? { state: 'none' }) : undefined
+                    }
                     now={now}
                   />
                 ))}
@@ -931,7 +967,7 @@ export function MatchesTab({
             )}
           </p>
         )}
-        {upcoming && held > asked && (
+        {upcoming && list.fixtures.filter(stillToCome).length > asked && (
           <p data-testid="matches-model-first">
             {say(locale, 'competitionPage.matches.modelFirst', {
               number: formatNumber(locale, asked),
@@ -993,10 +1029,18 @@ export function MatchesTab({
         empty={
           <Translated
             locale={locale}
-            message={upcoming ? 'competitionPage.noFixtures' : 'competitionPage.noResults'}
+            message={
+              !upcoming
+                ? 'competitionPage.noResults'
+                : list.rounds.length > 0
+                  ? // Only postponed, cancelled or awaiting matches left (code review, 2026-11-07).
+                    'competitionPage.matches.noneToCome'
+                  : 'competitionPage.noFixtures'
+            }
           />
         }
         model={upcoming}
+        leftovers={upcoming}
       />
     </div>
   );

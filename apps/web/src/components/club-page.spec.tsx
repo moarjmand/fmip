@@ -1371,6 +1371,63 @@ describe('the default competition and the chips (T-1764, D-379)', () => {
       renderToStaticMarkup(<AroundThem page={arsenal({ competitions: [cup] })} locale="en" />),
     ).toBe('');
   });
+
+  // Code review, 2026-11-07: the API counts group tables and a continental
+  // cup's missing league phase as tables (D-379), so neither is "knockout".
+  const notPlaced = { coverage: 'not_supplied' as const, last_updated_at: null, data: null };
+  const groups = {
+    competition: {
+      id: 'acl2',
+      name: 'AFC Champions League Two',
+      short_name: null,
+      kind: 'cup' as const,
+      scope: 'continental' as const,
+    },
+    season: { id: 's-acl2', label: '2026/27', is_current: true },
+    has_table: true,
+    context: notPlaced,
+  };
+  const leaguePhaseMissing = {
+    ...ucl,
+    season: { id: 's-ucl-25', label: '2025/26', is_current: true },
+    context: notPlaced,
+  };
+
+  it('never calls a cup with group tables, or one whose league phase we lack, a knockout cup', () => {
+    for (const entry of [groups, leaguePhaseMissing]) {
+      const p = arsenal({ competitions: [league, entry, cup] });
+      const html = chips(p, entry);
+      // Only the knockout cup carries "cup, no table"; the chosen one has no format sentence.
+      expect(html.match(/data-testid="competition-chip-tag"/g)).toHaveLength(1);
+      expect(html).toMatch(/EFL Cup<\/bdi><span[^>]*>cup, no table</);
+      expect(html).not.toContain('competition-no-table');
+      expect(html).not.toContain('knockout rounds');
+      // Its card is drawn and says the club's place is not supplied (rule 3).
+      const around = renderToStaticMarkup(<AroundThem page={p} locale="en" />);
+      expect(around.match(/data-testid="competition"/g)).toHaveLength(2);
+      expect(around).toContain(`id="table-${entry.season.id}"`);
+      expect(around).toContain('No table position to show.');
+      expect(around).toContain('data-coverage-badge="not_supplied"');
+      expect(around).not.toContain('table-s-efl');
+    }
+    // A cup played in knockout rounds alone still says its format.
+    expect(chips(arsenal({ competitions: [league, groups, cup] }), cup)).toContain(
+      'EFL Cup is played in knockout rounds, so it has no table.',
+    );
+  });
+
+  it('draws one chip per competition, its current season, however many seasons the club is in', () => {
+    // An older Champions League season with a match still awaiting an update.
+    const older = { ...ucl, season: { id: 's-ucl-old', label: '2025/26', is_current: false } };
+    const p = arsenal({ competitions: [league, ucl, cup, older] });
+    const html = chips(p, readTeamCompetition({ competition: 'ucl' }, p.competitions));
+    expect(html.match(/data-testid="competition-chip"/g)).toHaveLength(3);
+    expect(html.match(/data-competition="ucl"/g)).toHaveLength(1);
+    expect(html).toMatch(/aria-current="true"[^>]*data-competition="ucl"/);
+    expect(html.match(/aria-current/g)).toHaveLength(1);
+    // One competition in two seasons: nothing to choose, no chips.
+    expect(chips(arsenal({ competitions: [ucl, older] }), null)).toBe('');
+  });
 });
 
 describe('logical properties only (rule 7)', () => {

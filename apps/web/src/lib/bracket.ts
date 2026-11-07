@@ -117,6 +117,20 @@ export function chipLabel(key: KnockoutRoundKey, locale = 'en'): string {
 }
 
 /**
+ * A chip's accessible name (code review, 2026-11-07; WCAG 2.5.3, label in
+ * name): the words it shows, then the round in full -- "QF, Quarter-finals"
+ * -- so a voice command of what is seen finds it; the shown words alone
+ * when they are the round's whole name ("Final").
+ */
+export function chipName(key: KnockoutRoundKey, locale = 'en'): string {
+  const chip = chipLabel(key, locale);
+  const round = roundLabel(key, locale);
+  return chip === round
+    ? round
+    : interpolate(t(asLocale(locale), 'bracket.chip.name'), { chip, round });
+}
+
+/**
  * The round a phone opens on (T-1763, D-378's D10): the latest round with a
  * tie drawn, so a finished season lands on its final; null when none is.
  */

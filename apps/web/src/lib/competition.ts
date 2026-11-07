@@ -270,6 +270,25 @@ export const ZONE_MARK: Record<LeagueZoneKind, string> = {
   league_phase_out: 'border-s-transparent',
 };
 
+/**
+ * The page's zones without any kind this web does not know (code review,
+ * 2026-11-07): an API deployed before the web -- every rollout replaces the
+ * API first -- or a kind added later sends one `ZONE_KEY` has no words for.
+ * Its places then carry no mark and no legend line, and every row is still
+ * drawn, rather than the whole table failing on a missing message.
+ */
+export function knownZones(zones: LeagueZones): LeagueZones {
+  if (zones.state !== 'listed') return zones;
+  const known = zones.zones.filter((z) => Object.hasOwn(ZONE_KEY, z.kind));
+  return known.length === zones.zones.length ? zones : { ...zones, zones: known };
+}
+
+/** The competition page as it draws it: `knownZones` applied once, where it arrives. */
+export function withKnownZones<T extends { zones: LeagueZones }>(page: T): T {
+  const zones = knownZones(page.zones);
+  return zones === page.zones ? page : { ...page, zones };
+}
+
 /** "1-4" or "18": a band of places as the legend reads it. */
 export function zoneBand(locale: string, zone: LeagueZone): string {
   return zone.from === zone.to

@@ -973,6 +973,62 @@ describe('the Matches tab, one round at a time (T-1762, D-378)', () => {
     expect(tab('upcoming')).not.toContain('round-names-absent');
   });
 
+  it('draws no model on a postponed, cancelled or awaiting match, its status shown as before (T-1710)', () => {
+    const void_ = page({
+      ...season,
+      fixtures: [
+        fixture({ ...toCome('r10b', 10, '2026-10-31'), status: 'postponed' }),
+        fixture({ ...toCome('r10c', 10, '2026-11-01'), status: 'cancelled' }),
+        fixture({ ...toCome('r10d', 10, '2026-10-30'), freshness: 'awaiting_update' }),
+        toCome('r10e', 10, '2026-11-01'),
+        toCome('r11a', 11, '2026-11-07'),
+      ],
+    });
+    const html = tab('upcoming', null, { page: void_, forecasts: { r10e: available } });
+    expect(html).toContain('data-testid="round-title">Matchweek 10<');
+    expect(html.match(/data-testid="fixture"/g)).toHaveLength(4);
+    // One model cell: the one match still to come; none on the three others.
+    expect(html.match(/data-testid="row-forecast"/g)).toHaveLength(1);
+    expect(html.match(/data-testid="row-bar"/g)).toHaveLength(1);
+    expect(html).not.toContain('data-coverage-badge="not_supplied"');
+    for (const status of ['postponed', 'cancelled']) {
+      expect(html).toContain(`data-status="${status}"`);
+    }
+    expect(text(html)).toContain('postponed');
+    expect(text(html)).toContain('Awaiting update');
+    // All asked for that are to come: no "the next N" line.
+    expect(html).not.toContain('matches-model-first');
+  });
+
+  it('at the season’s end, a leftover void match never opens Upcoming on its old round', () => {
+    const over = page({
+      ...season,
+      fixtures: [fixture({ ...toCome('r9z', 9, '2026-10-25'), status: 'postponed' })],
+      results: [played('r11a', 11, '2026-11-07'), played('r10a', 10, '2026-10-30')],
+    });
+    const html = tab('upcoming', null, { page: over });
+    expect(html).not.toContain('data-testid="round-title"');
+    expect(html).not.toContain('data-testid="fixture"');
+    expect(text(html)).toContain(
+      'No match is scheduled to be played. The rounds menu lists the ones postponed, cancelled or awaiting an update.',
+    );
+    // The postponed match's round is still a menu away, none current, no steps.
+    expect(html).toContain('data-testid="round-picker"');
+    const options = tags(html, 'round-option');
+    expect(options).toHaveLength(1);
+    expect(options[0]).toContain('view=upcoming&amp;round=1"');
+    expect(options[0]).not.toContain('aria-current');
+    expect(html).not.toContain('round-position');
+    expect(tags(html, 'round-next')[0]).toMatch(/^<span [^>]*aria-hidden="true"/);
+    // Asked for, it opens, with its status and no model.
+    const asked = tab('upcoming', 1, { page: over });
+    expect(asked).toContain('data-status="postponed"');
+    expect(asked).not.toContain('row-forecast');
+    expect(tab('upcoming', null, { page: over, locale: 'fa' })).toContain(
+      'هیچ بازی‌ای در برنامه‌ی برگزاری نیست.',
+    );
+  });
+
   it('says a continental cup’s missing league-phase table in one line, with its coverage (D13)', () => {
     const html = renderToStaticMarkup(<TableMissingCard locale="en" />);
     expect(html).toContain('data-testid="table-missing"');

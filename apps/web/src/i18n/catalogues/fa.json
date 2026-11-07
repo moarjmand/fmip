@@ -18158,12 +18158,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
   },
-  "competitionPage.tableScroll": {
-    "source": "{name}, scrolls sideways",
-    "text": "{name}، به کنار می‌لغزد",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the approved P5 boards (D-377, D-381), not yet reviewed by a translator."
-  },
   "competitionPage.overallTableFold": {
     "source": "Overall table, {count} clubs",
     "text": "جدول کل، {count} باشگاه",
@@ -18212,6 +18206,12 @@
     "status": "translated",
     "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
   },
+  "competitionPage.matches.noneToCome": {
+    "source": "No match is scheduled to be played. The rounds menu lists the ones postponed, cancelled or awaiting an update.",
+    "text": "هیچ بازی‌ای در برنامه‌ی برگزاری نیست. فهرست دورها بازی‌های به تعویق افتاده، لغوشده یا در انتظار به‌روزرسانی را نشان می‌دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), after the code review of package 5 (2026-11-07, D-378); a proposal, not yet reviewed by a translator."
+  },
   "competitionPage.rounds.unnamed": {
     "source": "Round names are not supplied for this competition, so each round is shown by its dates.",
     "text": "نام دورهای این رقابت ارائه نشده است، پس هر دور با تاریخ‌هایش نشان داده می‌شود.",
@@ -18259,6 +18259,18 @@
     "text": "فینال",
     "status": "translated",
     "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.chip.name": {
+    "source": "{chip}, {round}",
+    "text": "{chip}، {round}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), after the code review of package 5 (2026-11-07, D-378): a round chip's name for a screen reader, its shown words first; a proposal, not yet reviewed by a translator."
+  },
+  "competitionPage.bracket.allRounds": {
+    "source": "Every knockout round, side by side",
+    "text": "همه‌ی دورهای حذفی، کنار هم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), after the code review of package 5 (2026-11-07, D-378): the name of the desktop bracket's scrolling box; a proposal, not yet reviewed by a translator."
   },
   "bracket.head.team": {
     "source": "Team",

@@ -259,15 +259,19 @@ export function StandingsTable({
   const formEnd = flush ? EDGE.formEnd : '';
   const span = columns.length + 4;
   const phase = leaguePhase(zones, rows);
-  const name = caption ?? say(locale, 'competitionPage.table');
   return (
     <div className="flex flex-col gap-2">
+      {/*
+        The box scrolls sideways on a phone only. It is no Tab stop and no
+        landmark of its own (code review, 2026-11-07: one per group table at
+        every width, eight on a desktop page that scrolls nowhere): every row's
+        team is a link, so Tab reaches the box's content and the arrow keys then
+        scroll it where it overflows, and a browser that makes a scroller
+        focusable does so only while it overflows. Without a script the page
+        cannot set an attribute by width, so none is set.
+      */}
       <div
         className="scroll-cue overflow-x-auto @container focus-visible:outline-2 focus-visible:outline-offset-2"
-        // The box scrolls sideways on a phone: a keyboard reaches it, a screen reader hears its name.
-        tabIndex={0}
-        role="region"
-        aria-label={say(locale, 'competitionPage.tableScroll', { name })}
         data-testid="table-scroll"
       >
         <table className="w-full max-w-[60rem] border-separate border-spacing-0 text-sm tabular-nums">

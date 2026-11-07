@@ -159,32 +159,6 @@ export function currentMatchweek(
   };
 }
 
-export interface RoundGroup {
-  key: string;
-  /** The stage and round in the reader's words; null for one we cannot name (never the raw text). */
-  label: string | null;
-  fixtures: SeasonFixture[];
-}
-
-/**
- * Fixtures or results by round (T-1385), each round once, in the order the
- * list already has (soonest first for fixtures, latest first for results).
- * A round we cannot name is grouped by its stored text but headed by
- * nothing: the provider's wording never reaches the page (D-193).
- */
-export function roundGroups(locale: string, fixtures: readonly SeasonFixture[]): RoundGroup[] {
-  const groups = new Map<string, RoundGroup>();
-  for (const f of fixtures) {
-    const labels = stageNames(locale, f.stage?.name, f.round);
-    const label = labels.length === 0 ? null : labels.join(' · ');
-    const key = label ?? `?${f.stage?.id ?? ''}|${f.round ?? ''}`;
-    const group = groups.get(key);
-    if (group === undefined) groups.set(key, { key, label, fixtures: [f] });
-    else group.fixtures.push(f);
-  }
-  return [...groups.values()];
-}
-
 export interface LeagueNumbers {
   coverage: CoverageState;
   /** Finished matches with a score: what every figure is counted over. */
@@ -320,6 +294,16 @@ export interface MatchDay {
  */
 function toCome(f: SeasonFixture): boolean {
   return f.status === 'scheduled' && !awaitingUpdate(f);
+}
+
+/**
+ * Being played or still to come (T-1710, D-343): the only matches the page
+ * asks the model about and draws its bar on. A postponed, cancelled or
+ * abandoned match, or one awaiting an update, is neither: it keeps its
+ * status on its row and no model slot (code review, 2026-11-07).
+ */
+export function stillToCome(f: Pick<SeasonFixture, 'status' | 'freshness'>): boolean {
+  return f.status === 'live' || (f.status === 'scheduled' && !awaitingUpdate(f));
 }
 
 function sameDay(
@@ -538,9 +522,14 @@ export interface MatchList {
 /**
  * The Matches tab's list (T-1762, D-378). Upcoming opens at the round the
  * Overview opens on (`defaultRound`: the live round, else the next match's)
- * when it still has a match to play, else at the view's first round; Results
- * at the round of the latest result. `asked` (`?round=`) wins when it names a
- * round of this view; a round the view does not hold falls back to its own.
+ * when it still has a match to play, else at the view's first round with
+ * one; a round holding only postponed, cancelled or abandoned matches, or
+ * ones awaiting an update, never sets it (code review, 2026-11-07: one such
+ * match left at the season's end opened Upcoming on its old round), so with
+ * nothing else to come Upcoming shows no round, its picker still listing
+ * those. Results at the round of the latest result. `asked` (`?round=`) wins
+ * when it names a round of this view; a round the view does not hold falls
+ * back to its own.
  */
 export function matchList(
   view: MatchView,
@@ -554,7 +543,8 @@ export function matchList(
   let round: SeasonRound | null = listed.find((r) => r.number === asked) ?? null;
   if (round === null && view === 'upcoming') {
     const opening = defaultRound(rounds);
-    round = listed.find((r) => r === opening) ?? listed[0] ?? null;
+    const playable = listed.filter((r) => r.fixtures.some((f) => mine(f) && stillToCome(f)));
+    round = playable.find((r) => r === opening) ?? playable[0] ?? null;
   }
   if (round === null && view === 'results') {
     let latest: { round: SeasonRound; at: string } | null = null;

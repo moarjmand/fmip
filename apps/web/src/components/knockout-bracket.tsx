@@ -13,6 +13,7 @@ import { formatDate, formatNumber } from '@/i18n/format';
 import { listText, say, statusSuffix } from '@/lib/competition';
 import {
   chipLabel,
+  chipName,
   legGoals,
   legLabel,
   legLine,
@@ -75,8 +76,9 @@ export function KnockoutBracket({
 
       {/* A phone: the rounds as chips, one round shown. */}
       <div className="flex min-w-0 flex-col gap-3 md:hidden" data-testid="bracket-phone">
+        {/* Named apart from the section it is in: two landmarks never share a name. */}
         <nav
-          aria-label={say(locale, 'competitionPage.bracket.title')}
+          aria-label={say(locale, 'competitionPage.rounds.nav')}
           className="flex gap-1.5 overflow-x-auto"
           data-testid="bracket-chips"
         >
@@ -89,7 +91,7 @@ export function KnockoutBracket({
                 href={href(round.key)}
                 scroll={false}
                 aria-current={current ? 'true' : undefined}
-                aria-label={roundLabel(round.key, locale)}
+                aria-label={chipName(round.key, locale)}
                 className={cx(
                   'inline-flex min-h-touch min-w-touch shrink-0 items-center justify-center rounded-pill border px-3.5 text-sm font-bold whitespace-nowrap',
                   current
@@ -124,7 +126,7 @@ export function KnockoutBracket({
       <div
         className="hidden overflow-x-auto pb-1 focus-visible:outline-2 focus-visible:outline-focus md:block"
         role="region"
-        aria-labelledby="bracket-heading"
+        aria-label={say(locale, 'competitionPage.bracket.allRounds')}
         tabIndex={0}
         data-testid="bracket-columns"
       >
