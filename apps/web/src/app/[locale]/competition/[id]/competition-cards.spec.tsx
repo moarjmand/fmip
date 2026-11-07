@@ -13,16 +13,23 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { ZoneLegend } from '@/components/competition-page';
 import { message } from '@/i18n/messages';
-import { type CompetitionTab, type LeagueModel, seasonRounds } from '@/lib/competition-overview';
+import {
+  type CompetitionTab,
+  type LeagueModel,
+  type MatchView,
+  matchList,
+  seasonRounds,
+} from '@/lib/competition-overview';
 import type { CardForecast } from '@/lib/score-card-products';
 import {
   MatchLine,
+  MatchesTab,
   MatchweekCard,
   ModelCard,
-  ModelFigures,
   ModelMonths,
   ResultsCard,
   TableCard,
+  TableMissingCard,
   roundTitle,
 } from './competition-cards';
 import { CompetitionHeader } from './competition-header';
@@ -439,68 +446,124 @@ const available: CardForecast = {
   computed_at: '2026-10-25T08:00:00.000Z',
 };
 
-describe('a match row', () => {
-  it("puts each side's crest before its name, and the mark where none is held (T-1617)", () => {
-    const html = renderToStaticMarkup(
+describe('a match row (T-1762, D-378: D-374’s row)', () => {
+  /** Two hours before the kick-off of `fixture()`. */
+  const before = Date.parse('2026-10-25T12:00:00.000Z');
+  const line = (
+    f: SeasonFixture,
+    over: { forecast?: CardForecast; now?: number; locale?: string } = {},
+  ) =>
+    renderToStaticMarkup(
       <ul>
         <MatchLine
-          fixture={fixture({
-            status: 'finished',
-            score: { home: 2, away: 1 },
-            home: {
-              ...fixture().home,
-              crest: { coverage: 'available', url: '/api/media/crest/h/0123456789ab.png' },
-            },
-            away: { ...fixture().away, crest: { coverage: 'not_supplied', url: null } },
-          })}
-          locale="en"
+          fixture={f}
+          locale={over.locale ?? 'en'}
           timeZone="UTC"
+          forecast={over.forecast}
+          now={over.now}
         />
       </ul>,
     );
-    // Home crest, home name, score, away mark, away name: in that order.
+
+  it("puts each side's crest before its name, and the mark where none is held (T-1617)", () => {
+    const html = line(
+      fixture({
+        status: 'finished',
+        score: { home: 2, away: 1 },
+        home: {
+          ...fixture().home,
+          crest: { coverage: 'available', url: '/api/media/crest/h/0123456789ab.png' },
+        },
+        away: { ...fixture().away, crest: { coverage: 'not_supplied', url: null } },
+      }),
+    );
+    // Home crest, home name, its goals; away mark, away name, its goals: in that order.
     expect(html).toMatch(
-      /<img[^>]*src="\/api\/media\/crest\/h\/0123456789ab-48\.webp".*Liverpool.*2–1.*data-letters="B".*Brighton/,
+      /<img[^>]*src="\/api\/media\/crest\/h\/0123456789ab-48\.webp".*Liverpool.*data-testid="home-score"[^>]*>2<.*data-letters="B".*Brighton.*data-testid="away-score"[^>]*>1</,
     );
     expect(html).not.toMatch(PHYSICAL);
   });
 
-  it('keeps the score between the sides, home first, in the page’s direction', () => {
-    const done = fixture({ status: 'finished', score: { home: 2, away: 1 } });
-    const en = renderToStaticMarkup(
-      <ul>
-        <MatchLine fixture={done} locale="en" timeZone="UTC" />
-      </ul>,
-    );
-    expect(en).toMatch(/Liverpool.*data-testid="fixture-score">2–1<.*Brighton/);
-    expect(en).toContain('>FT<');
-    expect(en).toContain(`href="/en/match/${done.id}"`);
-    const fa = renderToStaticMarkup(
-      <ul>
-        <MatchLine fixture={done} locale="fa" timeZone="UTC" />
-      </ul>,
-    );
-    expect(fa).toMatch(/Liverpool.*dir="rtl"[^>]*data-testid="fixture-score">۲–۱<.*Brighton/);
+  it('draws a match to come as the 72px row: the one bar in the end column, Pick under the time', () => {
+    const html = line(fixture(), { forecast: available, now: before });
+    expect(html).toMatch(/<li class="match-row" data-testid="fixture" data-status="scheduled"/);
+    expect(html).not.toContain('match-row-done');
+    // The one ForecastBar of D-368, never the old turquoise "48 · 25 · 27".
+    expect(html.match(/data-testid="row-bar"/g)).toHaveLength(1);
+    expect(html).toMatch(/data-testid="row-forecast" data-state="available"/);
+    expect(html).toContain('col-start-3 row-span-2 row-start-1');
+    expect(html).not.toContain('48 · 25 · 27');
+    expect(text(html)).toContain('14:00');
+    // Pick, to the match page's pick card, under the time.
+    const [pick] = html.match(/<a [^>]*data-testid="row-pick"[^>]*>/) ?? [];
+    expect(pick).toContain('class="match-row-pick');
+    expect(pick).toContain(`href="/en/match/${fixture().id}#pick"`);
+    expect(pick).toContain('aria-label="Pick: Liverpool v Brighton"');
+    expect(html).toMatch(/self-end"[^>]*data-testid="fixture-state"/);
+    expect(html).toContain(`href="/en/match/${fixture().id}"`);
   });
 
-  it('lets a long name wrap rather than cutting it short (T-1555)', () => {
+  it('says "not supplied" on a row the model has no forecast for, and "Not loaded" when the answer did not come', () => {
+    const none = line(fixture(), { forecast: { state: 'none' } });
+    expect(none).toMatch(/data-testid="row-forecast" data-state="none"/);
+    expect(none).toContain('data-coverage-badge="not_supplied"');
+    expect(none).not.toContain('row-bar');
+    const unavailable = line(fixture(), {
+      forecast: {
+        state: 'unavailable',
+        reason: null,
+        version: 1,
+        computed_at: available.computed_at,
+      },
+    });
+    expect(unavailable).toContain('data-coverage-badge="not_supplied"');
+    expect(line(fixture(), { forecast: { state: 'unreachable' } })).toContain('Not loaded');
+    // Not asked: no cell, never an empty one.
+    expect(line(fixture())).not.toContain('row-forecast');
+  });
+
+  it('offers no Pick once the match has kicked off, nor without the render’s moment', () => {
+    expect(line(fixture(), { now: Date.parse('2026-10-25T14:05:00.000Z') })).not.toContain(
+      'row-pick',
+    );
+    expect(line(fixture())).not.toContain('row-pick');
+    expect(line(fixture())).toMatch(/row-span-2"[^>]*data-testid="fixture-state"/);
+  });
+
+  it('draws a finished match as the 56px row: no bar, FT and its day, the winner bold, the loser muted', () => {
+    const done = fixture({ status: 'finished', score: { home: 2, away: 1 } });
+    const html = line(done, { forecast: available, now: before });
+    expect(html).toContain('class="match-row match-row-done"');
+    expect(html).not.toContain('row-forecast');
+    expect(html).not.toContain('row-pick');
+    expect(text(html)).toContain('FT25 Oct');
+    expect(html).toMatch(/font-extrabold"><bdi|<bdi class="[^"]*font-extrabold[^"]*">Liverpool/);
+    expect(html).toMatch(/<bdi class="[^"]*font-medium text-muted[^"]*">Brighton/);
+    const fa = line(done, { locale: 'fa' });
+    expect(fa).toMatch(/data-testid="home-score"[^>]*>۲</);
+    expect(fa).toMatch(/data-testid="away-score"[^>]*>۱</);
+    expect(text(fa)).not.toMatch(/[0-9]/);
+  });
+
+  it('keeps both sides in ink after a draw', () => {
+    const html = line(fixture({ status: 'finished', score: { home: 1, away: 1 } }));
+    expect(html).not.toContain('text-muted">Liverpool');
+    expect(html).not.toMatch(/<bdi class="[^"]*text-muted/);
+  });
+
+  it('lets a long name wrap rather than cutting it short (T-1555, D-374)', () => {
     const long = fixture({
       home: { ...fixture().home, name: 'Nottingham Forest', short_name: null },
       away: { ...fixture().away, name: 'Wolverhampton Wanderers', short_name: null },
     });
-    const html = renderToStaticMarkup(
-      <ul>
-        <MatchLine fixture={long} locale="en" timeZone="UTC" forecast={available} />
-      </ul>,
-    );
+    const html = line(long, { forecast: available });
     expect(html).toContain('Nottingham Forest');
     expect(html).toContain('Wolverhampton Wanderers');
     expect(html).not.toContain('truncate');
-    expect(html).toMatch(/data-testid="fixture-teams"/);
-    expect(html).toMatch(/class="[^"]*break-words[^"]*"[^>]*data-testid="fixture-teams"/);
+    expect(html).toMatch(/<bdi class="min-w-0 break-words hyphens-auto/);
   });
 
-  it('says a postponed match is postponed and a live one is live', () => {
+  it('says a postponed match is postponed and a live one is live, with its goals in the live colour', () => {
     const html = renderToStaticMarkup(
       <ul>
         <MatchLine fixture={fixture({ status: 'postponed' })} locale="en" timeZone="UTC" />
@@ -512,58 +575,24 @@ describe('a match row', () => {
       </ul>,
     );
     expect(html).toContain('postponed');
-    expect(html).toMatch(/text-live[^>]*>live</);
+    expect(html).toMatch(/text-live[^>]*data-testid="fixture-status"[^>]*>live</);
+    expect(html).toMatch(/font-bold text-live" data-testid="home-score">1</);
   });
 
   it('says "Awaiting update" for a match still scheduled long after its kick-off, never its time (T-1710, D-343)', () => {
     const stuck = fixture({ kickoff_at: '2026-10-01T16:00:00.000Z', freshness: 'awaiting_update' });
-    const line = (locale: string) =>
-      renderToStaticMarkup(
-        <ul>
-          <MatchLine fixture={stuck} locale={locale} timeZone="UTC" />
-        </ul>,
-      );
-    const en = line('en');
+    const en = line(stuck);
     expect(en).toMatch(/text-warning[^>]*data-testid="fixture-status"[^>]*>Awaiting update</);
     expect(en).not.toContain('16:00');
-    expect(line('fa')).toContain('در انتظار به‌روزرسانی');
+    expect(line(stuck, { locale: 'fa' })).toContain('در انتظار به‌روزرسانی');
   });
 
-  it('gives the model’s three percentages whole, and words when there are none', () => {
-    const html = renderToStaticMarkup(<ModelFigures locale="en" forecast={available} />);
-    expect(html).toContain('48 · 25 · 27');
-    expect(html).toContain('The model: home win 48%, draw 25%, away win 27%');
-    expect(html).toContain('text-model');
-    expect(
-      renderToStaticMarkup(<ModelFigures locale="en" forecast={{ state: 'none' }} />),
-    ).toContain('No forecast');
-    const unavailable = renderToStaticMarkup(
-      <ModelFigures
-        locale="en"
-        forecast={{
-          state: 'unavailable',
-          reason: null,
-          version: 1,
-          computed_at: available.computed_at,
-        }}
-      />,
-    );
-    expect(unavailable).toContain('data-forecast="unavailable"');
-    expect(unavailable).toContain('No forecast');
-    expect(
-      renderToStaticMarkup(<ModelFigures locale="en" forecast={{ state: 'unreachable' }} />),
-    ).toContain('Forecast not loaded');
-    expect(renderToStaticMarkup(<ModelFigures locale="fa" forecast={available} />)).toContain(
-      '۴۸ · ۲۵ · ۲۷',
-    );
-  });
-
-  it('prints whole percentages that total 100, never 101 (blueprint 6.2, T-1555)', () => {
-    const html = renderToStaticMarkup(
-      <ModelFigures locale="en" forecast={{ ...available, home: 40.6, draw: 28.9, away: 30.5 }} />,
-    );
-    expect(html).toContain('40 · 29 · 31');
-    expect(html).toContain('home win 40%, draw 29%, away win 31%');
+  it('shares the scores row’s pieces rather than a copy (D-374)', () => {
+    expect(SOURCE).toContain("import { NAME } from '@/components/score-card';");
+    expect(SOURCE).toContain("import { RowForecast } from '@/components/score-card-forecast';");
+    expect(SOURCE).not.toContain('ModelFigures');
+    const css = readFileSync(join(__dirname, '..', '..', '..', 'globals.css'), 'utf8');
+    expect(css).toMatch(/\.match-row\.match-row-done \{\s*@apply min-h-14/);
   });
 });
 
@@ -634,10 +663,12 @@ describe('a round’s matches (T-1636)', () => {
     expect(text(html)).toContain('Monday 26 October');
     expect(html.match(/data-testid="fixture"/g)).toHaveLength(3);
     // A result with its score, a match to come at its kick-off in the reader's zone.
-    expect(html).toContain('data-testid="fixture-score"');
+    expect(html).toMatch(/data-testid="home-score">3</);
     expect(text(html)).toContain('20:00');
-    expect(html).toContain('data-forecast="available"');
-    expect(html).toContain('data-forecast="none"');
+    // The bar on the two still to come (one with a forecast, one 'not supplied'); none on the result.
+    expect(html.match(/data-testid="row-bar"/g)).toHaveLength(1);
+    expect(html).toContain('data-testid="row-forecast" data-state="none"');
+    expect(html.match(/data-testid="row-forecast"/g)).toHaveLength(2);
     // The version as the reader sees it, never one run an obfuscator reads as an address (T-1580).
     expect(text(html)).toContain('(dixon-coles-elo@0.6.0)');
     expect(html).not.toMatch(ADDRESS);
@@ -765,10 +796,214 @@ describe('a round’s matches (T-1636)', () => {
       <ResultsCard day={{ day: '2026-10-24', fixtures: [done] }} locale="en" timeZone="UTC" />,
     );
     expect(html).toContain('Results · Saturday 24 October');
-    expect(html).toContain('>0–2<');
+    expect(html).toMatch(/data-testid="home-score">0<.*data-testid="away-score">2</);
+    expect(html).toContain('match-row-done');
     expect(renderToStaticMarkup(<ResultsCard day={null} locale="en" timeZone="UTC" />)).toContain(
       'data-testid="results-day-empty"',
     );
+  });
+});
+
+describe('the Matches tab, one round at a time (T-1762, D-378)', () => {
+  const words = {
+    'freshness.checked': message('en', 'freshness.checked'),
+    'freshness.behind': message('en', 'freshness.behind'),
+  };
+  // Saturday 31 October 2026, 12:00 UTC: matchweek 10's Friday game is played.
+  const now = Date.parse('2026-10-31T12:00:00.000Z');
+  const played = (id: string, round: number, day: string, home = 2, away = 1) =>
+    fixture({
+      id,
+      round: `Regular Season - ${round}`,
+      kickoff_at: `${day}T15:00:00.000Z`,
+      status: 'finished',
+      score: { home, away },
+    });
+  const toCome = (id: string, round: number, day: string) =>
+    fixture({ id, round: `Regular Season - ${round}`, kickoff_at: `${day}T15:00:00.000Z` });
+  const season = page({
+    results: [
+      played('r10a', 10, '2026-10-30'),
+      played('r9c', 9, '2026-10-25'),
+      played('r9b', 9, '2026-10-24', 1, 1),
+      played('r9a', 9, '2026-10-24'),
+    ],
+    fixtures: [
+      toCome('r10b', 10, '2026-10-31'),
+      toCome('r10c', 10, '2026-11-01'),
+      toCome('r11a', 11, '2026-11-07'),
+      toCome('r11b', 11, '2026-11-07'),
+    ],
+    last_updated_at: '2026-10-31T11:59:00.000Z',
+  });
+  const rounds = seasonRounds('en', season, 'Europe/London');
+  const tab = (
+    view: MatchView,
+    asked: number | null = null,
+    over: {
+      locale?: string;
+      page?: CompetitionPage;
+      forecasts?: Record<string, CardForecast>;
+    } = {},
+  ) => {
+    const locale = over.locale ?? 'en';
+    const p = over.page ?? season;
+    const all = seasonRounds(locale, p, 'Europe/London');
+    return renderToStaticMarkup(
+      <MatchesTab
+        page={p}
+        locale={locale}
+        timeZone="Europe/London"
+        now={now}
+        freshnessWords={words}
+        rounds={all}
+        list={matchList(view, all, p, asked)}
+        forecasts={over.forecasts ?? {}}
+      />,
+    );
+  };
+  const tags = (html: string, id: string) =>
+    [...html.matchAll(new RegExp(`<(?:a|span) [^>]*data-testid="${id}"[^>]*>`, 'g'))].map(
+      (m) => m[0],
+    );
+
+  it('has the two-way switch as plain links, each with its count, the shown one current', () => {
+    const html = tab('upcoming');
+    const [up] = tags(html, 'matches-view-upcoming');
+    const [res] = tags(html, 'matches-view-results');
+    expect(up).toContain(`href="/en/competition/${ID}?tab=matches&amp;view=upcoming"`);
+    expect(up).toContain('aria-current="true"');
+    expect(up).toContain('min-h-touch');
+    expect(res).toContain(`href="/en/competition/${ID}?tab=matches&amp;view=results"`);
+    expect(res).not.toContain('aria-current');
+    expect(text(html)).toContain('Upcoming4');
+    expect(text(html)).toContain('Results4');
+    expect(html).toContain('<nav aria-label="Matches to show"');
+  });
+
+  it('opens Upcoming at the round of the next match, with only its matches to come', () => {
+    const html = tab('upcoming', null, { forecasts: { r10b: available } });
+    expect(html).toContain('data-testid="round-title">Matchweek 10<');
+    expect(html.match(/data-testid="fixture"/g)).toHaveLength(2);
+    expect(html).not.toContain('/en/match/r10a"');
+    // The rows: D-374's 72px row, the one bar, "not supplied" on the one without.
+    expect(html).not.toContain('match-row-done');
+    expect(html.match(/data-testid="row-bar"/g)).toHaveLength(1);
+    expect(html).toContain('data-coverage-badge="not_supplied"');
+    expect(html).toContain('model %');
+    // A short list says why it is short (rule 3).
+    expect(text(html)).toContain('1 match of this round is already played; it is under Results.');
+    // Its freshness line (rule 4) and the zone.
+    expect(html).toContain('data-testid="matches-freshness"');
+    expect(text(html)).toContain('Matches last changed');
+    expect(text(html)).toContain('UK time');
+  });
+
+  it('lists and steps through only Upcoming’s rounds, the position the season’s own', () => {
+    const html = tab('upcoming');
+    expect(html).toContain('data-testid="round-position">2 of 3<');
+    const options = tags(html, 'round-option');
+    expect(options).toHaveLength(2);
+    expect(options[0]).toContain(`?tab=matches&amp;view=upcoming&amp;round=2"`);
+    expect(options[1]).toContain(`?tab=matches&amp;view=upcoming&amp;round=3"`);
+    // No earlier round has a match to come: the step is inert.
+    expect(tags(html, 'round-prev')[0]).toMatch(/^<span [^>]*aria-hidden="true"/);
+    expect(tags(html, 'round-next')[0]).toContain(
+      `href="/en/competition/${ID}?tab=matches&amp;view=upcoming&amp;round=3"`,
+    );
+  });
+
+  it('opens Results at the latest round with a result and says how much of it is played', () => {
+    const html = tab('results');
+    expect(html).toContain('data-testid="round-title">Matchweek 10<');
+    expect(html.match(/data-testid="fixture"/g)).toHaveLength(1);
+    expect(text(html)).toContain('1 of 3 matches played. The other 2 are under Upcoming.');
+    // A finished row: 56px, no bar, nothing of the model on the card.
+    expect(html).toContain('match-row match-row-done');
+    expect(html).not.toContain('row-forecast');
+    expect(html).not.toContain('model %');
+    // Matchweek 11 has no result: the step is inert; matchweek 9 is one tap back.
+    expect(tags(html, 'round-next')[0]).toMatch(/^<span [^>]*aria-hidden="true"/);
+    expect(tags(html, 'round-prev')[0]).toContain('view=results&amp;round=1"');
+    expect(tags(html, 'round-option')).toHaveLength(2);
+  });
+
+  it('opens the round asked for when the list holds it, and its own otherwise', () => {
+    const full = tab('results', 1);
+    expect(full).toContain('data-testid="round-title">Matchweek 9<');
+    expect(full.match(/data-testid="fixture"/g)).toHaveLength(3);
+    expect(full).not.toContain('matches-partial');
+    expect(tab('results', 3)).toContain('data-testid="round-title">Matchweek 10<');
+    expect(tab('upcoming', 3)).toContain('data-testid="round-title">Matchweek 11<');
+  });
+
+  it('says there is nothing to list rather than drawing an empty round', () => {
+    const none = page({ results: [], fixtures: [] });
+    const up = tab('upcoming', null, { page: none });
+    expect(up).toContain('data-testid="fixtures-empty"');
+    expect(up).toContain('No fixtures scheduled for this season.');
+    expect(up).not.toContain('round-picker');
+    expect(tab('results', null, { page: none })).toContain('No results stored for this season.');
+  });
+
+  it('is in Persian on /fa, mirrored by logical properties alone', () => {
+    const html = tab('results', null, { locale: 'fa' });
+    expect(html).toContain('پیش رو');
+    expect(html).toContain('نتایج');
+    expect(text(html)).toContain('۱ از ۳ بازی انجام شده است. ۲ بازی دیگر در «پیش رو» است.');
+    expect(text(html)).not.toMatch(/[0-9]/);
+    expect(html).not.toContain('data-translation="untranslated"');
+    expect(html).not.toMatch(PHYSICAL);
+    expect(tab('upcoming')).not.toMatch(PHYSICAL);
+  });
+
+  it('heads a round it cannot name by its dates and says once that the names are not supplied (D12)', () => {
+    const cup = page({
+      competition: { ...page().competition, kind: 'cup' },
+      results: [
+        fixture({ id: 'c1', round: null, status: 'finished', score: { home: 1, away: 0 } }),
+      ],
+      fixtures: [fixture({ id: 'c2', round: null, kickoff_at: '2026-11-07T15:00:00.000Z' })],
+    });
+    const html = tab('upcoming', null, { page: cup });
+    expect(html.match(/data-testid="round-names-absent"/g)).toHaveLength(1);
+    expect(text(html)).toContain('Round names are not supplied for this competition');
+    expect(html).toContain('data-testid="round-title">Saturday 7 November<');
+    // The Overview's card says it too; a named round does not.
+    const all = seasonRounds('en', cup, 'UTC');
+    const overview = renderToStaticMarkup(
+      <MatchweekCard
+        rounds={all}
+        round={all[0]!}
+        href={(n) => `/en/competition/${ID}?round=${n}#match-day`}
+        forecasts={{}}
+        page={cup}
+        locale="en"
+        timeZone="UTC"
+        now={now}
+        freshnessWords={words}
+      />,
+    );
+    expect(overview).toContain('data-testid="round-names-absent"');
+    expect(tab('upcoming')).not.toContain('round-names-absent');
+  });
+
+  it('says a continental cup’s missing league-phase table in one line, with its coverage (D13)', () => {
+    const html = renderToStaticMarkup(<TableMissingCard locale="en" />);
+    expect(html).toContain('data-testid="table-missing"');
+    expect(html).toContain('data-coverage-badge="not_supplied"');
+    expect(text(html)).toContain(
+      'This season’s league-phase or group table is not in our records; only its knockout rounds are.',
+    );
+    expect(renderToStaticMarkup(<TableMissingCard locale="fa" />)).toContain(
+      'جدول مرحله‌ی لیگ یا گروهی این فصل',
+    );
+  });
+
+  it('keeps the competition page free of client code (no script added)', () => {
+    expect(SOURCE).not.toContain("'use client'");
+    expect(SOURCE).not.toMatch(/from '@\/components\/live-scores'/);
+    expect(rounds).toHaveLength(3);
   });
 });
 

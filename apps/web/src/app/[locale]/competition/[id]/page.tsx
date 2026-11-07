@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
-import type { CompetitionPage as Page, Covered } from '@fmip/contracts';
+import type { CompetitionPage as Page, Covered, KnockoutRoundKey } from '@fmip/contracts';
 import { MAX_FORECAST_FIXTURES } from '@fmip/contracts';
 import {
   BOARDS,
@@ -9,7 +9,6 @@ import {
   CompetitionFollow,
   CoveragePanel,
   LeagueNumbersPanel,
-  LiveFreshness,
   QualifyingNote,
   ProviderTotalsNote,
   ScorerList,
@@ -24,7 +23,7 @@ import { EntityNews } from '@/components/related-news';
 import { ConferenceTables, GroupTables, showsLeagueTable } from '@/components/standings-table';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
-import { formatNumber, localDigits } from '@/i18n/format';
+import { localDigits } from '@/i18n/format';
 import { message } from '@/i18n/messages';
 import {
   fetchCompetition,
@@ -43,6 +42,7 @@ import {
   readSeasonParam,
   say,
 } from '@/lib/competition';
+import { readStageParam } from '@/lib/bracket';
 import {
   type CompetitionTab,
   type LeagueModel,
@@ -53,15 +53,17 @@ import {
   lastResultDay,
   leagueModel,
   leagueNumbers,
+  matchList,
   readRoundParam,
   readTabParam,
+  readViewParam,
   resultsBefore,
-  roundGroups,
   roundHref,
   seasonRounds,
+  stageHref,
   tabHref,
+  tableMissing,
 } from '@/lib/competition-overview';
-import { awaitingUpdate } from '@/lib/live';
 import { type CardForecast, cardForecast } from '@/lib/score-card-products';
 import { competitionJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -70,12 +72,13 @@ import {
   Card,
   CoveredCard,
   Empty,
+  MatchesTab,
   MatchweekCard,
   ModelCard,
   ModelMonths,
   ResultsCard,
-  RoundsCard,
   TableCard,
+  TableMissingCard,
 } from './competition-cards';
 import { CompetitionHeader } from './competition-header';
 
@@ -135,22 +138,6 @@ async function forecastsFor(ids: string[]): Promise<Record<string, CardForecast>
 }
 
 /**
- * Being played or still to come: not a match the API says is awaiting an
- * update (T-1710, D-343), which is neither and keeps no model slot.
- */
-function stillToCome(f: Page['fixtures'][number]): boolean {
-  return f.status === 'live' || (f.status === 'scheduled' && !awaitingUpdate(f));
-}
-
-/** The fixtures still to come that the Matches tab asks the model about, soonest first. */
-function upcoming(page: Page): string[] {
-  return page.fixtures
-    .filter(stillToCome)
-    .slice(0, MAX_FORECAST_FIXTURES)
-    .map((f) => f.id);
-}
-
-/**
  * The competition page (blueprint 5.1, T-035) in the Stadiomind design
  * (T-1498, D-274): the header with the season menu, follow and the section
  * tabs, then the tab. The Overview is the canvas's: the full table with the
@@ -207,15 +194,18 @@ export default async function CompetitionPage({
   // The Overview's round (T-1636, D-298): the one being played or played
   // next, or the one `?round=` names; the latest results are the day before
   // the round the page opens on while it has a match to play (`resultsBefore`).
-  const rounds = tab === 'overview' ? seasonRounds(locale, page, timeZone) : [];
+  const rounds =
+    tab === 'overview' || tab === 'matches' ? seasonRounds(locale, page, timeZone) : [];
   const opening = defaultRound(rounds);
   const asked = readRoundParam(query, rounds.length);
   const round = asked === null ? opening : (rounds[asked - 1] ?? opening);
+  // The Matches tab, one round of one list at a time (T-1762, D-378).
+  const list = tab === 'matches' ? matchList(readViewParam(query), rounds, page, asked) : null;
   const forecasts =
     tab === 'overview' && round !== null
       ? await forecastsFor(round.fixtures.slice(0, MAX_FORECAST_FIXTURES).map((f) => f.id))
-      : tab === 'matches'
-        ? await forecastsFor(upcoming(page))
+      : list !== null && list.view === 'upcoming'
+        ? await forecastsFor(list.fixtures.slice(0, MAX_FORECAST_FIXTURES).map((f) => f.id))
         : {};
   // Only the months of the season on the page (T-1556, D-278): an older season
   // never shows this month's record.
@@ -230,6 +220,8 @@ export default async function CompetitionPage({
     'freshness.behind': message(l, 'freshness.behind'),
   };
   const ctx = { page, locale, timeZone, now, freshnessWords };
+  // A cup with no table has nothing at the top of its Overview (D-378's D12).
+  const tables = tab === 'overview' ? TableModules({ page, locale, timeZone }) : null;
 
   return (
     <main data-mode="data" className="pb-16" data-testid="competition-page" data-tab={tab}>
@@ -255,9 +247,9 @@ export default async function CompetitionPage({
         {tab === 'overview' && (
           <>
             <div className="flex flex-wrap items-start gap-5 lg:gap-6">
-              <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-5">
-                <TableModules page={page} locale={locale} timeZone={timeZone} />
-              </div>
+              {tables !== null && (
+                <div className="flex min-w-0 flex-[999_1_40rem] flex-col gap-5">{tables}</div>
+              )}
               <div className="flex min-w-0 flex-[1_1_21rem] flex-col gap-5">
                 <MatchweekCard
                   {...ctx}
@@ -286,8 +278,8 @@ export default async function CompetitionPage({
             <CoveragePanel page={page} locale={locale} timeZone={timeZone} now={now} />
           </>
         )}
-        {tab === 'table' && <TableTab {...ctx} />}
-        {tab === 'matches' && <MatchesTab {...ctx} forecasts={forecasts} />}
+        {tab === 'table' && <TableTab {...ctx} stage={readStageParam(query, page.bracket)} />}
+        {list !== null && <MatchesTab {...ctx} rounds={rounds} list={list} forecasts={forecasts} />}
         {tab === 'players' && <PlayersTab page={page} locale={locale} timeZone={timeZone} />}
         {tab === 'model' && (
           <ModelTab
@@ -321,10 +313,12 @@ interface TabProps {
 
 /**
  * The season's tables (T-1336): the league table when it has rows or no
- * group stage, every group's table when there is one, and for a cup played
- * only in knockout rounds the sentence that it has no table. A league split
- * into conferences (T-1672, D-319) shows its conference tables first and the
- * overall table below them.
+ * group stage, every group's table when there is one. A league split into
+ * conferences (T-1672, D-319) shows its conference tables first and the
+ * overall table below them. A cup played only in knockout rounds has no
+ * table and nothing is drawn for one (D-378's D12: no table is not data we
+ * lack); a continental cup whose league-phase or group table we do not hold
+ * says so in a line (D13); friendlies keep their sentence (T-1559).
  */
 function TableModules({
   page,
@@ -336,18 +330,12 @@ function TableModules({
   timeZone: string;
 }) {
   if (!hasTable(page)) {
+    if (tableMissing(page)) return <TableMissingCard locale={locale} />;
+    if (page.competition.kind !== 'friendly') return null;
     return (
       <Card testId="no-table" title={say(locale, 'competitionPage.tab.table')}>
         <Empty testId="no-table" locale={locale}>
-          {/* Friendlies are not played in knockout rounds either (T-1559). */}
-          <Translated
-            locale={locale}
-            message={
-              page.competition.kind === 'friendly'
-                ? 'competitionPage.noTableFriendly'
-                : 'competitionPage.noTable'
-            }
-          />
+          <Translated locale={locale} message="competitionPage.noTableFriendly" />
         </Empty>
       </Card>
     );
@@ -390,75 +378,36 @@ function TableModules({
   );
 }
 
-/** The Table tab: every table, a cup's knockout rounds (T-630), and the season in figures. */
-function TableTab({ page, locale, timeZone }: TabProps) {
+/**
+ * The Table tab: every table (or the line that a cup's is not held), a
+ * continental cup's knockout rounds (T-630; one round at a time on a phone,
+ * `?stage=`, T-1763), and the season in figures.
+ */
+function TableTab({
+  page,
+  locale,
+  timeZone,
+  stage,
+}: TabProps & { stage: KnockoutRoundKey | null }) {
+  const bracket = page.bracket;
   return (
     <>
-      {hasTable(page) && <TableModules page={page} locale={locale} timeZone={timeZone} />}
-      {page.bracket !== null && (
-        <div className="rounded-tile border border-default bg-surface p-4 sm:p-4.5 [&_h2]:text-lg [&_h2]:font-extrabold">
-          <KnockoutBracket bracket={page.bracket} locale={locale} timeZone={timeZone} />
+      <TableModules page={page} locale={locale} timeZone={timeZone} />
+      {bracket !== null && (
+        <div className="min-w-0 rounded-tile border border-default bg-surface p-4 sm:p-4.5 [&_h2]:text-lg [&_h2]:font-extrabold">
+          <KnockoutBracket
+            bracket={bracket}
+            locale={locale}
+            timeZone={timeZone}
+            stage={stage}
+            href={(key) => stageHref(locale, page.competition.id, page.season, key)}
+            competition={page.competition.localised_name ?? page.competition.name}
+            season={localDigits(locale, page.season.label)}
+          />
         </div>
       )}
       <LeagueNumbersPanel numbers={leagueNumbers(page.results)} locale={locale} />
     </>
-  );
-}
-
-/** The Matches tab: the fixtures to come with the model's percentages, then the results, by round. */
-function MatchesTab({
-  page,
-  locale,
-  timeZone,
-  now,
-  freshnessWords,
-  forecasts,
-}: TabProps & { forecasts: Record<string, CardForecast> }) {
-  const asked = Object.keys(forecasts).length;
-  const toCome = page.fixtures.filter(stillToCome);
-  return (
-    <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-2">
-      <RoundsCard
-        testId="fixtures"
-        title={<Translated locale={locale} message="competitionPage.fixtures" />}
-        groups={roundGroups(locale, page.fixtures)}
-        empty={<Translated locale={locale} message="competitionPage.noFixtures" />}
-        locale={locale}
-        timeZone={timeZone}
-        forecasts={forecasts}
-        aside={
-          <>
-            <LiveFreshness
-              fixtures={page.fixtures}
-              checkedAt={page.last_updated_at}
-              now={now}
-              locale={locale}
-              words={freshnessWords}
-            />
-            {asked > 0 && (
-              <span className="text-xs font-semibold text-model">
-                <Translated locale={locale} message="competitionPage.day.modelHead" />
-              </span>
-            )}
-          </>
-        }
-        footer={
-          toCome.length > asked
-            ? say(locale, 'competitionPage.matches.modelFirst', {
-                number: formatNumber(locale, asked),
-              })
-            : undefined
-        }
-      />
-      <RoundsCard
-        testId="results"
-        title={<Translated locale={locale} message="competitionPage.results" />}
-        groups={roundGroups(locale, page.results)}
-        empty={<Translated locale={locale} message="competitionPage.noResults" />}
-        locale={locale}
-        timeZone={timeZone}
-      />
-    </div>
   );
 }
 

@@ -257,7 +257,9 @@ describe('plurals (T-301)', () => {
     // and its caption, the sample line, the weeks of an early record, the
     // weeks worse than a guess, the chart's sentence and its whole-record
     // line, the weeks so far, the list's two group headings).
-    expect(pluralKeys).toHaveLength(111);
+    // T-1762: two added (the Matches tab's results and upcoming lists, each
+    // saying how much of its round the other list holds).
+    expect(pluralKeys).toHaveLength(113);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

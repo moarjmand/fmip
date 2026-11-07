@@ -6,8 +6,11 @@ import { Coverage, LiveFreshness, ZoneLegend, zoneWords } from '@/components/com
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
 import type { FreshnessWords } from '@/components/freshness-stamp';
+import { MatchesFreshness } from '@/components/matches-freshness';
+import { MessageText } from '@/components/message-text';
 import { ModelVersions } from '@/components/model-version';
-import { Score } from '@/components/score';
+import { NAME } from '@/components/score-card';
+import { RowForecast } from '@/components/score-card-forecast';
 import { Stamp } from '@/components/stamp';
 import { StandingsTable } from '@/components/standings-table';
 import { Translated } from '@/components/translated';
@@ -17,23 +20,28 @@ import { type MessageKey, message } from '@/i18n/messages';
 import { STATUS_KEY, pageLocale, say } from '@/lib/competition';
 import {
   type LeagueModel,
+  MATCH_VIEWS,
   type MatchDay,
-  type RoundGroup,
+  type MatchList,
+  type MatchView,
   type SeasonRound,
   dayKey,
+  matchesHref,
   roundDays,
 } from '@/lib/competition-overview';
 import { awaitingUpdate } from '@/lib/live';
+import { pickCardPath, pickOpen } from '@/lib/pick';
 import type { CardForecast } from '@/lib/score-card-products';
-import { wholePercentages } from '@/lib/triple';
-import { formatFixed, formatPercent } from '@/lib/words';
+import { filled, formatFixed, formatPercent } from '@/lib/words';
+import { type ScoresWords, scoresWords } from '@/lib/words-server';
 
 /**
  * The competition page's modules in the Stadiomind design (T-1498, D-274):
  * a surface card with its name in the wide cut and a hairline under it, and
- * what goes in it -- the table, a round of matches with the model's three
- * percentages and a picker for the season's other rounds (T-1636), a day of
- * results, the model in this league. Every module
+ * what goes in it -- the table, a round of matches in the scores list's row
+ * (D-374, with the model's bar on a match to come; T-1762) and a picker for
+ * the season's other rounds (T-1636), the Matches tab's two lists one round
+ * at a time (D-378), a day of results, the model in this league. Every module
  * says its coverage (rule 3); a list with a match in play says how fresh it
  * is (rule 4). Server components only: nothing here reaches the browser's
  * bundle. Beside the page because only this page uses them.
@@ -251,72 +259,38 @@ export function TableCard({
 // ---------------------------------------------------------------------------
 
 /**
- * The model's three percentages for one match, the canvas's "48 · 25 · 27"
- * in the model's turquoise, whole and totalling 100 (blueprint 6.2, T-1555),
- * read out whole for a screen reader. A match
- * the model has no forecast for says so in words; so does an answer that
- * did not come (rule 3). `undefined`: the page did not ask, and the cell is
- * left out rather than drawn empty.
+ * The scores row's words the model's cell reads (`RowForecast`), resolved
+ * once per locale: the catalogues do not change while the server runs.
  */
-export function ModelFigures({ locale, forecast }: { locale: string; forecast: CardForecast }) {
-  if (forecast.state === 'available') {
-    const whole = wholePercentages(forecast);
-    const home = formatNumber(locale, whole.home);
-    const draw = formatNumber(locale, whole.draw);
-    const away = formatNumber(locale, whole.away);
-    return (
-      <span
-        className="font-mono text-xs whitespace-nowrap text-model tabular-nums [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
-        data-testid="model-figures"
-        data-forecast="available"
-      >
-        <span aria-hidden="true">
-          {home} · {draw} · {away}
-        </span>
-        <span className="sr-only">
-          {say(locale, 'competitionPage.day.forecastLabel', { home, draw, away })}
-        </span>
-      </span>
-    );
+const ROW_WORDS = new Map<string, ScoresWords>();
+function rowWords(locale: string): ScoresWords {
+  let words = ROW_WORDS.get(locale);
+  if (words === undefined) {
+    words = scoresWords(locale);
+    ROW_WORDS.set(locale, words);
   }
-  const key: MessageKey =
-    forecast.state === 'unreachable'
-      ? 'competitionPage.day.forecastUnreachable'
-      : 'competitionPage.day.noForecast';
-  return (
-    <span
-      className="inline-flex min-h-6 items-center rounded-md border border-dashed border-caption px-1.5 text-xs whitespace-nowrap text-caption"
-      data-testid="model-figures"
-      data-forecast={forecast.state}
-    >
-      <Translated locale={locale} message={key} />
-    </span>
-  );
+  return words;
 }
 
-/** What stands in the time column: the kick-off, "Live", "FT", or what happened instead. */
+/** What stands in the time column: the kick-off, "FT" and its day, "Live", or what happened instead. */
 function MatchState({
   fixture,
   locale,
   timeZone,
-  withDay,
 }: {
   fixture: SeasonFixture;
   locale: string;
   timeZone: string;
-  withDay: boolean;
 }) {
   const status = fixture.status;
   if (status === 'finished') {
     return (
-      <span className="text-xs font-bold text-muted">
+      <>
         <Translated locale={locale} message="status.fullTime" />
-        {withDay && (
-          <span className="block font-normal">
-            {formatDate(locale, fixture.kickoff_at, timeZone, { day: 'numeric', month: 'short' })}
-          </span>
-        )}
-      </span>
+        <span className="block font-normal text-muted">
+          {formatDate(locale, fixture.kickoff_at, timeZone, { day: 'numeric', month: 'short' })}
+        </span>
+      </>
     );
   }
   // Still scheduled long after its kick-off (T-1710, D-343), as the API
@@ -327,7 +301,7 @@ function MatchState({
   if (word !== undefined) {
     return (
       <span
-        className={cx('text-xs font-extrabold', status === 'live' ? 'text-live' : 'text-warning')}
+        className={cx('font-extrabold', status === 'live' ? 'text-live' : 'text-warning')}
         data-testid="fixture-status"
       >
         {say(locale, word)}
@@ -335,16 +309,7 @@ function MatchState({
     );
   }
   return (
-    <time dateTime={fixture.kickoff_at} className="text-sm font-bold tabular-nums">
-      {withDay && (
-        <span className="block text-xs font-normal text-muted">
-          {formatDate(locale, fixture.kickoff_at, timeZone, {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'short',
-          })}
-        </span>
-      )}
+    <time dateTime={fixture.kickoff_at}>
       {formatDate(locale, fixture.kickoff_at, timeZone, {
         hour: '2-digit',
         minute: '2-digit',
@@ -354,99 +319,120 @@ function MatchState({
   );
 }
 
-/** The row's grid: the state column is wider when it carries the day too. */
-const COLUMNS: Record<string, string> = {
-  'time-plain': 'grid-cols-[3.25rem_minmax(0,1fr)]',
-  'time-model': 'grid-cols-[3.25rem_minmax(0,1fr)_auto]',
-  'day-plain': 'grid-cols-[5.5rem_minmax(0,1fr)]',
-  'day-model': 'grid-cols-[5.5rem_minmax(0,1fr)_auto]',
-};
-
 /**
- * One match as a row (T-1498): when or what state it is in, the two sides
- * -- home first from the inline start, so on `/fa` the home side is on the
- * right (D-193) -- with "v" or the score between them, and the model's
- * percentages at the end when the page asked for them. The row opens the
- * match centre, where every forecast version has its receipt. 44 px tall.
+ * One match as a row (T-1762, D-378): the scores list's 72px row of D-374,
+ * drawn by the server with the same pieces -- the `match-row` grid and
+ * `match-row-pick` in `globals.css`, the names' class (`NAME`) and the
+ * model's cell (`RowForecast`, the one `ForecastBar` of D-368 in the 104px
+ * column, "Not supplied" for a match it has no forecast for) -- so the
+ * competition page adds no script. The status and both teams stacked, home
+ * above away (so on `/fa` each score still sits beside its own side, D-193),
+ * each with its crest and, once the match has started, its own goals at the
+ * line's end; names whole, wrapped, never cut. A match still open for picks
+ * has Pick under its time (to the match page's pick card). A finished match
+ * has no bar and is 56px: "FT" and its day, the winner bold, the loser muted.
+ * The row is the link to the match centre, where every forecast version has
+ * its receipt. `forecast` absent: the page did not ask, and no cell is drawn.
  */
 export function MatchLine({
   fixture,
   locale,
   timeZone,
   forecast,
-  withDay = false,
+  now,
 }: {
   fixture: SeasonFixture;
   locale: string;
   timeZone: string;
   forecast?: CardForecast;
-  withDay?: boolean;
+  /** The moment of the render: with it, a match still open for picks offers Pick. */
+  now?: number;
 }) {
+  const done = fixture.status === 'finished';
+  const live = fixture.status === 'live';
+  const score = fixture.score;
+  const words = rowWords(locale);
   const home = fixture.home.short_name ?? fixture.home.name;
   const away = fixture.away.short_name ?? fixture.away.name;
-  const winner =
-    fixture.status === 'finished' && fixture.score !== null
-      ? fixture.score.home > fixture.score.away
-        ? 'home'
-        : fixture.score.away > fixture.score.home
-          ? 'away'
-          : null
-      : null;
+  // At full time the winner is bold and the loser muted; a draw keeps both in ink.
+  const weight = (side: 'home' | 'away'): string => {
+    if (!done || score === null || score.home === score.away) return 'font-semibold';
+    const won = side === 'home' ? score.home > score.away : score.away > score.home;
+    return won ? 'font-extrabold' : 'font-medium text-muted';
+  };
+  const team = (side: 'home' | 'away') => {
+    const t = fixture[side];
+    const name = side === 'home' ? home : away;
+    return (
+      <span className="flex min-h-6 min-w-0 items-center gap-1.5" data-testid={`${side}-team`}>
+        <EntityImage media={t.crest} kind="crest" name={name} size={20} />
+        <bdi className={cx(NAME, weight(side))}>{name}</bdi>
+        {score !== null && (
+          <span
+            className={cx(
+              'ms-auto shrink-0 ps-2 tabular-nums',
+              done ? weight(side) : 'font-bold',
+              live && 'text-live',
+            )}
+            data-testid={`${side}-score`}
+          >
+            {formatNumber(locale, score[side])}
+          </span>
+        )}
+      </span>
+    );
+  };
+  const pick = !done && now !== undefined && pickOpen(fixture, now);
   return (
-    <li className="border-b border-default last:border-b-0" data-testid="fixture">
+    <li
+      className={cx('match-row', done && 'match-row-done')}
+      data-testid="fixture"
+      data-status={fixture.status}
+    >
       <Link
         href={`/${locale}/match/${fixture.id}`}
-        className={cx(
-          'grid min-h-touch items-center gap-x-2.5 px-4 py-1.5 text-sm hover:bg-surface-raised sm:px-4.5',
-          COLUMNS[`${withDay ? 'day' : 'time'}-${forecast === undefined ? 'plain' : 'model'}`],
-        )}
+        className="col-span-2 col-start-1 row-span-2 row-start-1 grid min-h-11 grid-cols-subgrid grid-rows-subgrid items-center hover:[&_bdi]:underline"
         data-testid="fixture-link"
       >
-        <MatchState fixture={fixture} locale={locale} timeZone={timeZone} withDay={withDay} />
-        {/* Running text, not a flex row: a long name wraps to a second line
-            rather than being cut to "Bren…" in a narrow column (T-1555). */}
         <span
-          className="min-w-0 font-semibold break-words font-stretch-semi-condensed"
-          data-testid="fixture-teams"
-        >
-          {/* Each side's crest before its name (T-1617), in the running text. */}
-          <span className="hidden sm:contents">
-            <EntityImage
-              media={fixture.home.crest}
-              kind="crest"
-              name={home}
-              size={20}
-              className="me-1.5 inline-block align-middle"
-            />
-          </span>
-          <bdi className={cx(winner === 'away' && 'text-muted')}>{home}</bdi>
-          {fixture.score === null ? (
-            <span className="mx-2 font-medium text-caption">
-              {say(locale, 'competitionPage.v')}
-            </span>
-          ) : (
-            <Score
-              home={fixture.score.home}
-              away={fixture.score.away}
-              locale={locale}
-              separator="–"
-              className="mx-2 font-extrabold whitespace-nowrap font-stretch-condensed tabular-nums"
-              testId="fixture-score"
-            />
+          className={cx(
+            'text-xs leading-tight font-bold tabular-nums font-stretch-semi-condensed hyphens-auto [overflow-wrap:anywhere] @xl:row-span-2 @xl:self-center @xl:text-sm',
+            pick ? 'self-end' : 'row-span-2',
           )}
-          <span className="hidden sm:contents">
-            <EntityImage
-              media={fixture.away.crest}
-              kind="crest"
-              name={away}
-              size={20}
-              className="me-1.5 inline-block align-middle"
-            />
-          </span>
-          <bdi className={cx(winner === 'home' && 'text-muted')}>{away}</bdi>
+          data-testid="fixture-state"
+        >
+          <MatchState fixture={fixture} locale={locale} timeZone={timeZone} />
         </span>
-        {forecast !== undefined && <ModelFigures locale={locale} forecast={forecast} />}
+        <span className="row-span-2 flex min-w-0 flex-col gap-1" data-testid="fixture-teams">
+          {team('home')}
+          {team('away')}
+        </span>
       </Link>
+      {!done && forecast !== undefined && (
+        <RowForecast
+          forecast={forecast}
+          home={home}
+          away={away}
+          locale={locale}
+          words={words}
+          className="col-start-3 row-span-2 row-start-1"
+        />
+      )}
+      {pick && (
+        <Link
+          href={pickCardPath(locale, fixture.id)}
+          aria-label={
+            filled(words.m['scores.row.pickLabel'], {
+              home: fixture.home.name,
+              away: fixture.away.name,
+            }).text
+          }
+          className="match-row-pick inline-flex border border-default hover:bg-surface-raised"
+          data-testid="row-pick"
+        >
+          <MessageText message={words.m['scores.row.pick']} />
+        </Link>
+      )}
     </li>
   );
 }
@@ -546,23 +532,30 @@ function StepLink({
  * its scroll on a step. The disclosure is `<details>`: Enter or Space opens
  * it, Tab walks its rounds, the shown one is `aria-current`. It opens in the
  * card's flow, as tall as its list allows, so the card's edge never cuts it.
+ * On the Matches tab (T-1762) it lists and steps through only the rounds of
+ * the list shown (`listed`), while the position stays the season's ("10 of
+ * 38"); a step with no round of that list beyond it is inert.
  */
 export function RoundPicker({
   rounds,
+  listed = rounds,
   shown,
   href,
   locale,
   timeZone,
 }: {
   rounds: readonly SeasonRound[];
+  /** The rounds the picker offers, in the season's order; every round by default. */
+  listed?: readonly SeasonRound[];
   shown: SeasonRound;
   /** A round's address (`roundHref`). */
   href: (round: number) => string;
   locale: string;
   timeZone: string;
 }) {
-  const before = rounds[shown.number - 2] ?? null;
-  const after = rounds[shown.number] ?? null;
+  const at = listed.findIndex((r) => r.number === shown.number);
+  const before = at > 0 ? listed[at - 1]! : null;
+  const after = at >= 0 ? (listed[at + 1] ?? null) : null;
   const name = (round: SeasonRound) => roundTitle(locale, round, timeZone);
   return (
     <nav
@@ -610,7 +603,7 @@ export function RoundPicker({
           className="mt-2 flex max-h-72 flex-col overflow-y-auto rounded-control border border-default"
           data-testid="round-list"
         >
-          {rounds.map((round) => {
+          {listed.map((round) => {
             const current = round.number === shown.number;
             return (
               <li key={round.number} className="border-b border-default last:border-b-0">
@@ -650,17 +643,33 @@ export function RoundPicker({
 }
 
 /**
- * The matches of a round with the model's percentages (T-1498; a round
- * rather than a day since T-1636, D-298): the round the page opens on is the
- * one being played or played next (`defaultRound`), and the picker steps to
- * any other. Every match of the round under its day, with its state -- the
- * kick-off in the reader's zone, the minute, the result -- and the model's
- * last pre-kick-off forecast. With a match in play the card says how fresh
- * its list is; with no match stored for the season it says so.
+ * A list of `MatchLine` rows: the container its rows' columns follow (the
+ * scores list's `@container`, D-374), a hairline between rows.
+ */
+const ROWS = '@container flex flex-col divide-y divide-default';
+
+/**
+ * The matches of a round with the model's bar (T-1498; a round rather than a
+ * day since T-1636, D-298; D-374's row since T-1762, D-378): the round the
+ * page opens on is the one being played or played next (`defaultRound`), and
+ * the picker steps to any other. Every match of the round under its day, with
+ * its state -- the kick-off in the reader's zone, the minute, the result --
+ * and, for a match still to be played, the model's last pre-kick-off
+ * forecast. With a match in play the card says how fresh its list is; with
+ * no match stored for the season it says so. A round we cannot name is
+ * headed by its dates and says once, under the picker, that the names are
+ * not supplied (D-378's D12; never a made-up "First Round", D-193).
+ *
+ * The Matches tab (T-1762) draws each of its two lists with it: `listed` the
+ * rounds of that list, `fixtures` the shown round's matches of that list,
+ * `intro` its lines under the picker (its freshness, how much of the round it
+ * holds), `model` off for Results, which shows no bar.
  */
 export function MatchweekCard({
   rounds,
+  listed = rounds,
   round,
+  fixtures,
   href,
   forecasts,
   page,
@@ -668,10 +677,18 @@ export function MatchweekCard({
   timeZone,
   now,
   freshnessWords,
+  testId = 'match-day',
+  intro,
+  empty,
+  model = true,
 }: {
   rounds: readonly SeasonRound[];
-  /** The round shown, one of `rounds`; null when the season has none. */
+  /** The rounds the picker offers; every round by default. */
+  listed?: readonly SeasonRound[];
+  /** The round shown, one of `listed`; null when there is none. */
   round: SeasonRound | null;
+  /** The shown round's matches to list; all of them by default. */
+  fixtures?: readonly SeasonFixture[];
   href: (round: number) => string;
   forecasts: Record<string, CardForecast>;
   page: CompetitionPage;
@@ -679,15 +696,23 @@ export function MatchweekCard({
   timeZone: string;
   now: number;
   freshnessWords: FreshnessWords;
+  testId?: string;
+  /** Lines under the picker. */
+  intro?: ReactNode;
+  /** The sentence for no round at all; "Nothing is left to play" by default. */
+  empty?: ReactNode;
+  /** The model's bar on the rows still to be played, its "model %" and its receipt. */
+  model?: boolean;
 }) {
   const versions = [
     ...new Set(
       Object.values(forecasts).flatMap((f) => (f.state === 'available' ? [f.model_version] : [])),
     ),
   ];
+  const shown = round === null ? [] : (fixtures ?? round.fixtures);
   return (
     <Card
-      testId="match-day"
+      testId={testId}
       title={
         round === null ? (
           <Translated locale={locale} message="competitionPage.day.title" />
@@ -700,22 +725,24 @@ export function MatchweekCard({
         round === null ? undefined : (
           <>
             <LiveFreshness
-              fixtures={round.fixtures}
+              fixtures={shown}
               checkedAt={page.last_updated_at}
               now={now}
               locale={locale}
               words={freshnessWords}
             />
-            <span className="text-xs font-semibold text-model">
-              <Translated locale={locale} message="competitionPage.day.modelHead" />
-            </span>
+            {model && (
+              <span className="text-xs font-semibold text-model">
+                <Translated locale={locale} message="competitionPage.day.modelHead" />
+              </span>
+            )}
           </>
         )
       }
       footer={
         round === null ? undefined : (
-          <p data-testid="match-day-receipt">
-            {versions.length > 0 ? (
+          <p data-testid={`${testId}-receipt`}>
+            {model && versions.length > 0 ? (
               // Each version an element, never "name@x.y.z" as one run (T-1580).
               <FilledMessage
                 message={message(pageLocale(locale), 'competitionPage.day.receipt')}
@@ -732,31 +759,43 @@ export function MatchweekCard({
       }
     >
       {round === null ? (
-        <Empty testId="match-day" locale={locale}>
-          <Translated locale={locale} message="competitionPage.day.none" />
+        <Empty testId={testId} locale={locale}>
+          {empty ?? <Translated locale={locale} message="competitionPage.day.none" />}
         </Empty>
       ) : (
         <>
           <RoundPicker
             rounds={rounds}
+            listed={listed}
             shown={round}
             href={href}
             locale={locale}
             timeZone={timeZone}
           />
-          {roundDays(round, timeZone).map((day) => (
+          {(round.label === null || intro !== undefined) && (
+            <div className="flex flex-col gap-1 border-b border-default px-4 py-2 text-xs text-muted sm:px-4.5">
+              {round.label === null && (
+                <p data-testid="round-names-absent">
+                  <Translated locale={locale} message="competitionPage.rounds.unnamed" />
+                </p>
+              )}
+              {intro}
+            </div>
+          )}
+          {roundDays({ fixtures: [...shown] }, timeZone).map((day) => (
             <div key={day.day} className="flex flex-col" data-testid="round-day">
               <h3 className="border-b border-default bg-surface-raised px-4 py-2 text-xs font-bold text-muted sm:px-4.5">
                 {dayName(locale, day.day, timeZone)}
               </h3>
-              <ul className="flex flex-col">
+              <ul className={ROWS}>
                 {day.fixtures.map((f) => (
                   <MatchLine
                     key={f.id}
                     fixture={f}
                     locale={locale}
                     timeZone={timeZone}
-                    forecast={forecasts[f.id] ?? { state: 'none' }}
+                    forecast={model ? (forecasts[f.id] ?? { state: 'none' }) : undefined}
+                    now={now}
                   />
                 ))}
               </ul>
@@ -795,7 +834,7 @@ export function ResultsCard({
           <Translated locale={locale} message="competitionPage.noResults" />
         </Empty>
       ) : (
-        <ul className="flex flex-col">
+        <ul className={ROWS}>
           {day.fixtures.map((f) => (
             <MatchLine key={f.id} fixture={f} locale={locale} timeZone={timeZone} />
           ))}
@@ -806,67 +845,159 @@ export function ResultsCard({
 }
 
 /**
- * Fixtures or results by round for the Matches tab (T-1498), each round
- * headed in our words or not at all (D-193), each row with its day; the
- * fixtures the page asked the model about carry its percentages.
+ * A continental cup's season whose league-phase or group table we do not
+ * hold (D-378's D13): one line with its coverage, never a page that silently
+ * opens on the knockout rounds (rule 3).
  */
-export function RoundsCard({
-  testId,
-  title,
-  groups,
-  empty,
-  locale,
-  timeZone,
-  forecasts,
-  aside,
-  footer,
-}: {
-  testId: string;
-  title: ReactNode;
-  groups: RoundGroup[];
-  empty: ReactNode;
-  locale: string;
-  timeZone: string;
-  forecasts?: Record<string, CardForecast>;
-  aside?: ReactNode;
-  footer?: ReactNode;
-}) {
+export function TableMissingCard({ locale }: { locale: string }) {
   return (
     <Card
-      testId={testId}
-      title={title}
-      aside={aside}
-      flush={groups.length > 0}
-      footer={groups.length > 0 ? (footer ?? zoneWords(locale, timeZone)) : undefined}
+      testId="table-missing"
+      title={say(locale, 'competitionPage.tab.table')}
+      aside={<Coverage locale={locale} state="not_supplied" />}
     >
-      {groups.length === 0 ? (
-        <Empty testId={testId} locale={locale}>
-          {empty}
-        </Empty>
-      ) : (
-        groups.map((group) => (
-          <div key={group.key} className="flex flex-col" data-testid="round">
-            {group.label !== null && (
-              <h3 className="border-b border-default bg-surface-raised px-4 py-2 text-xs font-bold text-muted sm:px-4.5">
-                {group.label}
-              </h3>
-            )}
-            <ul className="flex flex-col">
-              {group.fixtures.map((f) => (
-                <MatchLine
-                  key={f.id}
-                  fixture={f}
-                  locale={locale}
-                  timeZone={timeZone}
-                  withDay
-                  forecast={forecasts?.[f.id]}
-                />
-              ))}
-            </ul>
-          </div>
-        ))
-      )}
+      <Empty testId="table-missing" locale={locale}>
+        <Translated locale={locale} message="competitionPage.tableMissing" />
+      </Empty>
     </Card>
+  );
+}
+
+/**
+ * The Matches tab (T-1762, D-378's D4-D6): one round of one list at a time.
+ * A two-way switch, Upcoming and Results, each with its count (links:
+ * `?tab=matches&view=`), then the round picker of the Overview listing only
+ * that list's rounds, its freshness line (rule 4) and how much of the round
+ * it holds when it is not all of it (rule 3: a short list says why), then the
+ * round by day in D-374's row. Upcoming opens at the Overview's round,
+ * Results at the round of the latest result. No script: server markup and
+ * links.
+ */
+export function MatchesTab({
+  page,
+  locale,
+  timeZone,
+  now,
+  freshnessWords,
+  rounds,
+  list,
+  forecasts,
+}: {
+  page: CompetitionPage;
+  locale: string;
+  timeZone: string;
+  now: number;
+  freshnessWords: FreshnessWords;
+  rounds: readonly SeasonRound[];
+  list: MatchList;
+  forecasts: Record<string, CardForecast>;
+}) {
+  const href = (view: MatchView, n: number | null) =>
+    matchesHref(locale, page.competition.id, page.season, view, n);
+  const total = list.round?.fixtures.length ?? 0;
+  const held = list.fixtures.length;
+  const asked = Object.keys(forecasts).length;
+  const upcoming = list.view === 'upcoming';
+  const intro =
+    list.round === null ? undefined : (
+      <>
+        {page.last_updated_at !== null && (
+          <p data-testid="matches-freshness">
+            <MatchesFreshness
+              changedAt={page.last_updated_at}
+              checkedAt={page.last_checked_at}
+              locale={locale}
+              timeZone={timeZone}
+              now={now}
+            />
+          </p>
+        )}
+        {held < total && (
+          <p data-testid="matches-partial">
+            {upcoming ? (
+              <Translated
+                locale={locale}
+                message="competitionPage.matches.partialUpcoming"
+                count={total - held}
+              />
+            ) : (
+              <Translated
+                locale={locale}
+                message="competitionPage.matches.partialResults"
+                count={total - held}
+                params={{ played: formatNumber(locale, held), total: formatNumber(locale, total) }}
+              />
+            )}
+          </p>
+        )}
+        {upcoming && held > asked && (
+          <p data-testid="matches-model-first">
+            {say(locale, 'competitionPage.matches.modelFirst', {
+              number: formatNumber(locale, asked),
+            })}
+          </p>
+        )}
+      </>
+    );
+  return (
+    <div className="flex w-full max-w-4xl flex-col gap-3">
+      <nav
+        aria-label={say(locale, 'competitionPage.matches.views')}
+        className="flex gap-1 self-start rounded-control border border-default bg-surface p-1"
+        data-testid="matches-views"
+      >
+        {MATCH_VIEWS.map((view) => {
+          const current = view === list.view;
+          const count = view === 'upcoming' ? page.fixtures.length : page.results.length;
+          return (
+            <Link
+              key={view}
+              href={href(view, null)}
+              aria-current={current ? 'true' : undefined}
+              className={cx(
+                'inline-flex min-h-touch items-center gap-1.5 rounded-control px-3.5 text-sm font-bold',
+                current ? 'bg-fg text-canvas' : 'text-muted hover:text-fg',
+              )}
+              data-testid={`matches-view-${view}`}
+            >
+              <Translated
+                locale={locale}
+                message={
+                  view === 'upcoming'
+                    ? 'competitionPage.matches.upcoming'
+                    : 'competitionPage.matches.results'
+                }
+              />
+              <span className="text-xs font-semibold tabular-nums">
+                {formatNumber(locale, count)}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+      <MatchweekCard
+        testId={upcoming ? 'fixtures' : 'results'}
+        rounds={rounds}
+        listed={list.rounds}
+        round={list.round}
+        fixtures={list.fixtures}
+        href={(n) => href(list.view, n)}
+        forecasts={forecasts}
+        page={page}
+        locale={locale}
+        timeZone={timeZone}
+        now={now}
+        freshnessWords={freshnessWords}
+        intro={intro}
+        empty={
+          <Translated
+            locale={locale}
+            message={upcoming ? 'competitionPage.noFixtures' : 'competitionPage.noResults'}
+          />
+        }
+        model={upcoming}
+      />
+    </div>
   );
 }
 

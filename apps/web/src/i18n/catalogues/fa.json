@@ -14012,24 +14012,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "competitionPage.day.noForecast": {
-    "source": "No forecast",
-    "text": "بدون پیش‌بینی",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.day.forecastUnreachable": {
-    "source": "Forecast not loaded",
-    "text": "پیش‌بینی بارگیری نشد",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.day.forecastLabel": {
-    "source": "The model: home win {home}%, draw {draw}%, away win {away}%",
-    "text": "مدل آماری: برد میزبان {home}٪، مساوی {draw}٪، برد مهمان {away}٪",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "competitionPage.day.receipt": {
     "source": "The model’s percentages, home · draw · away: its latest forecast before kick-off ({versions}); every version and when it was computed are on the match page. {zone}.",
     "text": "درصدهای مدل آماری، میزبان · مساوی · مهمان: آخرین پیش‌بینی آن پیش از شروع بازی ({versions})؛ همه‌ی نسخه‌ها و زمان محاسبه‌شان در صفحه‌ی بازی آمده است. {zone}.",
@@ -14201,12 +14183,6 @@
   "competitionPage.fullTable": {
     "source": "Full table",
     "text": "جدول کامل",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "competitionPage.noTable": {
-    "source": "This competition is played in knockout rounds, so it has no table. Its rounds are under Matches.",
-    "text": "این رقابت در دورهای حذفی برگزار می‌شود و جدول رده‌بندی ندارد. دورهای آن در بخش بازی‌ها آمده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -18133,5 +18109,137 @@
     "text": "گل‌های ثبت‌شده ({goals}) و نتیجه‌ی اعلام‌شده ({score}) با هم نمی‌خوانند، پس هیچ‌کدام به‌عنوان نتیجه‌ی نهایی نشان داده نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent for a finished match whose recorded goals disagree with its result (T-1717, D-347)."
+  },
+  "competitionPage.matches.views": {
+    "source": "Matches to show",
+    "text": "بازی‌های نمایش‌داده‌شده",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "competitionPage.matches.upcoming": {
+    "source": "Upcoming",
+    "text": "پیش رو",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "competitionPage.matches.results": {
+    "source": "Results",
+    "text": "نتایج",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "competitionPage.matches.partialResults": {
+    "source": {
+      "one": "{played} of {total} matches played. The other {count} is under Upcoming.",
+      "other": "{played} of {total} matches played. The other {count} are under Upcoming."
+    },
+    "forms": {
+      "one": "{played} از {total} بازی انجام شده است. {count} بازی دیگر در «پیش رو» است.",
+      "other": "{played} از {total} بازی انجام شده است. {count} بازی دیگر در «پیش رو» است."
+    },
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "competitionPage.matches.partialUpcoming": {
+    "source": {
+      "one": "{count} match of this round is already played; it is under Results.",
+      "other": "{count} matches of this round are already played; they are under Results."
+    },
+    "forms": {
+      "one": "{count} بازی این دور انجام شده و در «نتایج» است.",
+      "other": "{count} بازی این دور انجام شده و در «نتایج» است."
+    },
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "competitionPage.rounds.unnamed": {
+    "source": "Round names are not supplied for this competition, so each round is shown by its dates.",
+    "text": "نام دورهای این رقابت ارائه نشده است، پس هر دور با تاریخ‌هایش نشان داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "competitionPage.tableMissing": {
+    "source": "This season’s league-phase or group table is not in our records; only its knockout rounds are.",
+    "text": "جدول مرحله‌ی لیگ یا گروهی این فصل در داده‌های ما نیست؛ فقط مرحله‌ی حذفی آن هست.",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.chip.round_of_32": {
+    "source": "R32",
+    "text": "۱/۱۶",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.chip.knockout_playoff": {
+    "source": "Play-offs",
+    "text": "پلی‌آف",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.chip.round_of_16": {
+    "source": "R16",
+    "text": "۱/۸",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.chip.quarter_final": {
+    "source": "QF",
+    "text": "۱/۴",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.chip.semi_final": {
+    "source": "SF",
+    "text": "نیمه",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.chip.final": {
+    "source": "Final",
+    "text": "فینال",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.head.team": {
+    "source": "Team",
+    "text": "تیم",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.head.aggregate": {
+    "source": "Agg",
+    "text": "جمع",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.head.aggregateFull": {
+    "source": "Aggregate",
+    "text": "مجموع دو بازی",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.winner": {
+    "source": "winner",
+    "text": "برنده",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.noneDrawn": {
+    "source": "Nothing is drawn yet for {competition} {season}.",
+    "text": "هنوز قرعه‌ی هیچ دوری از {competition} {season} کشیده نشده است.",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.noneDrawnWhen": {
+    "source": "A round appears here, with its ties, when it is drawn.",
+    "text": "هر دور وقتی قرعه‌کشی شود، با مسابقه‌هایش این‌جا می‌آید.",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
+  },
+  "bracket.roundsToCome": {
+    "source": "Rounds to come: {rounds}.",
+    "text": "دورهای پیش رو: {rounds}.",
+    "status": "translated",
+    "note": "Written by the agent from the designer's proposal for the competition's Matches tab and knockout rounds (T-1762, T-1763, D-378); for the translator."
   }
 }

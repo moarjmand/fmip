@@ -70,7 +70,7 @@ export const COVERAGE_KEY = {
  * (T-1757, D-374; at 360 px one line once left "Nassaji Maz…", T-1202). On a
  * phone it is 14px, so a word fits its column before it breaks.
  */
-const NAME = 'min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base';
+export const NAME = 'min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base';
 
 /** Where the row's Pick stands for this reader (T-1496, D-206's lock at kick-off). */
 export type RowPick = 'open' | 'picked' | 'locked' | 'locked-picked';

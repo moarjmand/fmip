@@ -497,8 +497,129 @@ export function roundHref(
   return `${base}${base.includes('?') ? '&' : '?'}round=${round}#match-day`;
 }
 
+// ---------------------------------------------------------------------------
+// The Matches tab, one round at a time (T-1762, D-378)
+// ---------------------------------------------------------------------------
+
+/** The Matches tab's two lists: what is still to be played, and what has been. */
+export const MATCH_VIEWS = ['upcoming', 'results'] as const;
+export type MatchView = (typeof MATCH_VIEWS)[number];
+
+/**
+ * `?view=`: `results`, or anything else is `upcoming`; with no view, the
+ * Hybrid page's old `?tab=results` (`RETIRED_TABS`) opens Results.
+ */
+export function readViewParam(params: SearchParams): MatchView {
+  const first = (value: string | string[] | undefined) =>
+    (Array.isArray(value) ? value[0] : value) ?? '';
+  const raw = first(params.view);
+  if (raw === '') return first(params.tab) === 'results' ? 'results' : 'upcoming';
+  return raw === 'results' ? 'results' : 'upcoming';
+}
+
+/**
+ * A list of the Matches tab: the season's rounds that hold a match of this
+ * view, and the round it shows. A round belongs to Upcoming while one of its
+ * matches is not in the season's results (to come, live, postponed), and to
+ * Results once one of them is: a half-played round is in both, each list
+ * holding only its own matches. `number` stays the season's own (the
+ * Overview's `?round=`), so a round has one address on both tabs.
+ */
+export interface MatchList {
+  view: MatchView;
+  /** The rounds the picker lists and steps through, in the season's order. */
+  rounds: SeasonRound[];
+  /** The round shown, one of `rounds`; null when the view holds none. */
+  round: SeasonRound | null;
+  /** The shown round's matches that belong to this view, by kick-off. */
+  fixtures: SeasonFixture[];
+}
+
+/**
+ * The Matches tab's list (T-1762, D-378). Upcoming opens at the round the
+ * Overview opens on (`defaultRound`: the live round, else the next match's)
+ * when it still has a match to play, else at the view's first round; Results
+ * at the round of the latest result. `asked` (`?round=`) wins when it names a
+ * round of this view; a round the view does not hold falls back to its own.
+ */
+export function matchList(
+  view: MatchView,
+  rounds: readonly SeasonRound[],
+  page: Pick<CompetitionPage, 'results'>,
+  asked: number | null,
+): MatchList {
+  const played = new Set(page.results.map((f) => f.id));
+  const mine = (f: SeasonFixture): boolean => (view === 'results') === played.has(f.id);
+  const listed = rounds.filter((r) => r.fixtures.some(mine));
+  let round: SeasonRound | null = listed.find((r) => r.number === asked) ?? null;
+  if (round === null && view === 'upcoming') {
+    const opening = defaultRound(rounds);
+    round = listed.find((r) => r === opening) ?? listed[0] ?? null;
+  }
+  if (round === null && view === 'results') {
+    let latest: { round: SeasonRound; at: string } | null = null;
+    for (const r of listed) {
+      for (const f of r.fixtures) {
+        if (played.has(f.id) && (latest === null || f.kickoff_at > latest.at)) {
+          latest = { round: r, at: f.kickoff_at };
+        }
+      }
+    }
+    round = latest?.round ?? null;
+  }
+  return {
+    view,
+    rounds: listed,
+    round,
+    fixtures: round === null ? [] : round.fixtures.filter(mine),
+  };
+}
+
+/**
+ * A list's address on the Matches tab, keeping the season:
+ * `?tab=matches&view=upcoming|results`, and `&round=<n>` for one round (no
+ * round: the view opens on its own).
+ */
+export function matchesHref(
+  locale: string,
+  competitionId: string,
+  season: Pick<SeasonSummary, 'id' | 'is_current'>,
+  view: MatchView,
+  round: number | null = null,
+): string {
+  const base = tabHref(locale, competitionId, season, 'matches');
+  const tail = round === null ? `view=${view}` : `view=${view}&round=${round}`;
+  return `${base}${base.includes('?') ? '&' : '?'}${tail}`;
+}
+
+/** A knockout round's chip on the Table tab (T-1763): `?tab=table&stage=<key>#bracket`, keeping the season. */
+export function stageHref(
+  locale: string,
+  competitionId: string,
+  season: Pick<SeasonSummary, 'id' | 'is_current'>,
+  stage: string,
+): string {
+  const base = tabHref(locale, competitionId, season, 'table');
+  return `${base}${base.includes('?') ? '&' : '?'}stage=${encodeURIComponent(stage)}#bracket`;
+}
+
+/**
+ * A season with knockout rounds but no league-phase or group table in our
+ * records (T-1763, D-378's D13; UEFA Champions League 2025/26): every
+ * continental cup we hold plays one before its knockout rounds, so its
+ * absence is data we lack, said in a line, never a page that silently opens
+ * on the bracket.
+ */
+export function tableMissing(
+  page: Pick<CompetitionPage, 'table' | 'group_tables' | 'bracket'> & {
+    competition: Pick<CompetitionPage['competition'], 'kind'>;
+  },
+): boolean {
+  return page.bracket !== null && !hasTable(page);
+}
+
 /** A round's matches by day in the reader's zone, each day once, in kick-off order. */
-export function roundDays(round: SeasonRound, timeZone: string): MatchDay[] {
+export function roundDays(round: Pick<SeasonRound, 'fixtures'>, timeZone: string): MatchDay[] {
   const days: MatchDay[] = [];
   for (const f of round.fixtures) {
     const day = dayKey(f.kickoff_at, timeZone);
