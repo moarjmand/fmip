@@ -43,7 +43,8 @@ export default async function LoginPage({
       : [{ name: RETURN_PARAM, label: 'Return to', type: 'hidden', defaultValue: next }];
 
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-6 p-8">
+    // `data-no-rail`: no moments rail on this page (T-1755, D-372; globals.css).
+    <main data-no-rail="" className="mx-auto flex max-w-md flex-col gap-6 p-8">
       <h1 className="text-2xl font-semibold">
         <Translated locale={locale} message="nav.signIn" />
       </h1>

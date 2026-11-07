@@ -18,8 +18,8 @@ import {
   HOVER_QUERY,
   MomentsRailView,
   OPEN_DELAY_MS,
+  foldsRail,
   hoverAfter,
-  isMatchPage,
   panelAlign,
 } from './moments-rail-view';
 
@@ -429,67 +429,198 @@ describe('in Persian', () => {
   });
 });
 
-describe('folded on a phone’s match page (T-1693, D-338)', () => {
-  const on = (pathname: string | null, locale = 'en') => {
+describe('one line on a phone, every page but home (T-1693, D-338; T-1755, D-372)', () => {
+  const on = (pathname: string | null, a: MomentsResponse = answer(MOMENTS), locale = 'en') => {
     nav.pathname = pathname;
     try {
-      return draw(view(locale, answer(MOMENTS)));
+      return draw(view(locale, a));
     } finally {
       nav.pathname = '/en';
     }
   };
+  /** The folded line: the toggle's markup, up to its end. */
+  const lineOf = (out: string) =>
+    out.slice(out.indexOf('data-testid="moments-toggle"'), out.indexOf('</button>'));
   const STYLES = readFileSync(join(__dirname, '../app/globals.css'), 'utf8');
 
-  it('knows the match page by its address, and nothing else', () => {
-    expect(isMatchPage('/en/match/3f2a')).toBe(true);
-    expect(isMatchPage('/fa/match/3f2a/')).toBe(true);
-    expect(isMatchPage('/x-rtl/match/3f2a')).toBe(true);
-    expect(isMatchPage('/en')).toBe(false);
-    expect(isMatchPage('/en/scores')).toBe(false);
-    expect(isMatchPage('/en/match')).toBe(false);
-    expect(isMatchPage('/en/founder/3f2a')).toBe(false);
-    expect(isMatchPage('/en/competition/c/match/x')).toBe(false);
-    expect(isMatchPage(null)).toBe(false);
+  it('folds on every page but home, which keeps the full rail', () => {
+    for (const path of [
+      '/en/match/3f2a',
+      '/fa/match/3f2a/',
+      '/en/scores',
+      '/en/competition/c-epl',
+      '/x-rtl/team/t1',
+      '/en/player/p1',
+      '/en/news',
+    ]) {
+      expect(foldsRail(path), path).toBe(true);
+    }
+    for (const path of ['/en', '/fa/', '/x-rtl', null]) {
+      expect(foldsRail(path), String(path)).toBe(false);
+    }
   });
 
-  it('draws one slim line on the match page, a closed button that unfolds the rail in place', () => {
-    const out = on('/en/match/3f2a');
-    expect(tags(out, 'moments-rail')[0]).toContain('data-folded="true"');
-    const [toggle] = tags(out, 'moments-toggle');
-    expect(toggle).toMatch(/^<button/);
-    expect(toggle).toContain('type="button"');
-    expect(toggle).toContain('aria-expanded="false"');
-    expect(toggle).toContain('aria-controls="moments-body"');
-    const line = out.slice(out.indexOf('data-testid="moments-toggle"'), out.indexOf('</button>'));
+  it('draws one 44px button that unfolds the rail in place, the rail all still there', () => {
+    for (const path of ['/en/match/3f2a', '/en/scores', '/en/competition/c-epl']) {
+      const out = on(path);
+      expect(tags(out, 'moments-rail')[0], path).toContain('data-folded="true"');
+      const [toggle] = tags(out, 'moments-toggle');
+      expect(toggle).toMatch(/^<button/);
+      expect(toggle).toContain('type="button"');
+      expect(toggle).toContain('aria-expanded="false"');
+      expect(toggle).toContain('aria-controls="moments-body"');
+      // The line comes before the rail it folds, and the rail is all still there.
+      expect(out.indexOf('moments-toggle')).toBeLessThan(out.indexOf('id="moments-body"'));
+      expect(tags(out, 'moment')).toHaveLength(MOMENTS.length);
+      expect(out).toContain('data-testid="moments-lead"');
+    }
+    expect(STYLES).toMatch(/\.moments-toggle \{\s*@apply flex min-h-11 /);
+  });
+
+  it('keeps the full rail on home, with no line at all', () => {
+    for (const path of ['/en', null]) {
+      const out = on(path);
+      expect(out, String(path)).not.toContain('moments-toggle');
+      expect(out, String(path)).not.toContain('data-folded');
+      expect(out, String(path)).toBe(on('/en'));
+    }
+  });
+
+  it('names the first match in play: the count, both teams whole, the goals and the minute', () => {
+    const line = lineOf(on('/en/scores'));
     expect(line).toContain('3 live');
+    const match = line.slice(line.indexOf('data-testid="moments-line-match"'));
+    expect(match).toMatch(
+      /<bdi>Arsenal<\/bdi> <b class="tabular-nums">1–0<\/b> <bdi>Chelsea<\/bdi>/,
+    );
+    expect(tags(line, 'moments-line-when')[0]).toContain('text-live');
+    expect(match).toContain('80′');
+    // The words under it are for the eye when the match does not fit; a
+    // screen reader hears the match.
+    expect(tags(line, 'moments-line-label')[0]).toContain('aria-hidden="true"');
     expect(line).toContain('Moments that matter');
-    // The line comes before the rail it folds, and the rail is all still there.
-    expect(out.indexOf('moments-toggle')).toBeLessThan(out.indexOf('id="moments-body"'));
-    expect(tags(out, 'moment')).toHaveLength(MOMENTS.length);
-    expect(out).toContain('data-testid="moments-lead"');
+    // No turquoise on the line (rule 6): the model stays in the cards.
+    expect(line).not.toMatch(/text-model|bg-model/);
   });
 
-  it('says the line in Persian on /fa', () => {
-    const out = on('/fa/match/3f2a', 'fa');
-    const line = out.slice(out.indexOf('data-testid="moments-toggle"'), out.indexOf('</button>'));
+  it('names the next kick-off when nothing is in play, never an empty line (rule 3)', () => {
+    const later = m('big_one', card('n2', { kickoff_at: minutes(200) }));
+    const soon = m('starting_soon', card('n1', { kickoff_at: minutes(18) }), { forecast: null });
+    const done = m('upset', card('n0', { status: 'finished', scores: score(0, 2, true) }));
+    const line = lineOf(on('/en/scores', answer([done, later, soon], { live_count: 0 })));
+    expect(line).toContain('0 live');
+    expect(tags(line, 'moments-line-live')[0]).toContain('data-count="0"');
+    const [when] = tags(line, 'moments-line-when');
+    expect(when).toContain(`dateTime="${minutes(18)}"`);
+    expect(line).toMatch(
+      /<bdi>Arsenal<\/bdi> <span class="text-caption">v<\/span> <bdi>Chelsea<\/bdi>/,
+    );
+    expect(line).not.toContain('moments-line-behind');
+  });
+
+  it('says the weekday of a next kick-off that is not today', () => {
+    const tomorrow = m('coming_up', card('t1', { kickoff_at: '2026-10-25T14:00:00.000Z' }));
+    const line = lineOf(on('/en/scores', answer([tomorrow], { live_count: 0 })));
+    expect(line).toMatch(/>Sun 1[45]:00<\/time>/);
+  });
+
+  it('keeps its words alone when it has no match to name', () => {
+    const done = m('upset', card('n0', { status: 'finished', scores: score(0, 2, true) }));
+    const line = lineOf(on('/en/scores', answer([done], { live_count: 0 })));
+    expect(line).toContain('Moments that matter');
+    expect(tags(line, 'moments-line-label')[0]).not.toContain('aria-hidden');
+    expect(line).not.toContain('moments-line-match');
+  });
+
+  it('says it may be behind instead of a stale minute (rule 4)', () => {
+    // The card's own data stopped: the server says so, and draws no minute.
+    const stale = live('s1', 70, 2, 1, { freshness: 'stale' });
+    const behind = lineOf(on('/en/scores', answer([m('big_one', stale)])));
+    expect(tags(behind, 'moments-line-behind')[0]).not.toMatch(/\bhidden\b/);
+    expect(behind).toContain('May be behind');
+    expect(behind).not.toContain('moments-line-when');
+    // A fresh card: the minute, and the words ready for when the rail's
+    // answers stop coming (`data-behind`, by CSS), outside the match so they
+    // show even when the names do not fit.
+    const fresh = lineOf(on('/en/scores'));
+    const [words] = tags(fresh, 'moments-line-behind');
+    expect(words).toMatch(/\bhidden\b/);
+    expect(words).toContain('group-data-[behind=true]/moments:inline');
+    expect(tags(fresh, 'moments-line-when')[0]).toContain(
+      'group-data-[behind=true]/moments:hidden',
+    );
+    expect(fresh.indexOf('moments-line-behind')).toBeGreaterThan(
+      fresh.indexOf('moments-line-match'),
+    );
+  });
+
+  it('says the line in Persian on /fa, with Persian digits', () => {
+    const line = lineOf(on('/fa/match/3f2a', answer(MOMENTS), 'fa'));
     expect(line).toContain('۳ زنده');
     expect(line).toContain('لحظه‌های مهم');
+    expect(line).toContain('۱–۰');
+    expect(line).toContain('۸۰');
     expect(line).not.toContain('data-translation="untranslated"');
-  });
-
-  it('leaves every other page exactly as it was', () => {
-    for (const pathname of ['/en', '/en/scores', '/en/competition/c-epl', null]) {
-      const out = on(pathname);
-      expect(out, String(pathname)).not.toContain('moments-toggle');
-      expect(out, String(pathname)).not.toContain('data-folded');
-      expect(out, String(pathname)).toBe(on('/en'));
-    }
   });
 
   it('folds only below 768px, by the stylesheet, so from md up the rail is unchanged', () => {
     expect(STYLES).toMatch(/\.moments-fold \{\s*@apply md:hidden;/);
     expect(STYLES).toMatch(/\[data-folded='true'\] > \.moments-frame \{\s*@apply max-md:hidden;/);
     expect(STYLES).not.toMatch(/\[data-folded[^\]]*\][^{]*\{\s*@apply (?!max-md:)/);
+  });
+
+  it('shows the match whole or not at all, by the stylesheet: a one-line box after a strut', () => {
+    const box = STYLES.slice(STYLES.indexOf('.moments-line-box {'));
+    expect(box).toMatch(/^\.moments-line-box \{\s*display: flex;\s*flex-wrap: wrap;/);
+    expect(box).toMatch(/block-size: 1lh;\s*overflow: hidden;/);
+    expect(box).toMatch(/&::before \{\s*content: '\\200b';/);
+    expect(STYLES).toMatch(
+      /\.moments-line-match \{\s*@apply flex-\[1_0_auto\] bg-surface [^;]*whitespace-nowrap/,
+    );
+  });
+});
+
+describe('no rail on the pages for a form or a message (T-1755, D-372)', () => {
+  const APP = join(__dirname, '../app/[locale]');
+  const STYLES = readFileSync(join(__dirname, '../app/globals.css'), 'utf8');
+
+  it('is hidden wherever the page marks its main', () => {
+    expect(STYLES).toMatch(/:root:has\(\[data-no-rail\]\) \.moments-rail \{\s*display: none;/);
+    nav.pathname = '/en/login';
+    try {
+      expect(tags(draw(view('en', answer(MOMENTS))), 'moments-rail')[0]).toMatch(
+        /class="moments-rail /,
+      );
+    } finally {
+      nav.pathname = '/en';
+    }
+  });
+
+  it('is marked on sign-in, register (each state), forgot-password, welcome and offline', () => {
+    for (const [page, mains] of [
+      ['login', 1],
+      ['register', 3],
+      ['forgot-password', 1],
+      ['welcome', 1],
+      ['offline', 1],
+    ] as const) {
+      const source = readFileSync(join(APP, page, 'page.tsx'), 'utf8');
+      expect(source.match(/<main\b/g), page).toHaveLength(mains);
+      expect(source.match(/<main\b[^>]*data-no-rail=""/g), page).toHaveLength(mains);
+    }
+  });
+
+  it('is marked on the not-found page, and only there among the error pages', () => {
+    const ERROR = readFileSync(join(__dirname, 'error-page.tsx'), 'utf8');
+    expect(ERROR).toContain("data-no-rail={kind === 'not-found' ? '' : undefined}");
+    const NOT_FOUND = readFileSync(join(APP, 'not-found.tsx'), 'utf8');
+    expect(NOT_FOUND).toContain('kind="not-found"');
+  });
+
+  it('is never marked on the pages that keep it', () => {
+    for (const page of ['page.tsx', 'scores/page.tsx', 'match/[id]/page.tsx']) {
+      expect(readFileSync(join(APP, page), 'utf8'), page).not.toContain('data-no-rail');
+    }
   });
 });
 

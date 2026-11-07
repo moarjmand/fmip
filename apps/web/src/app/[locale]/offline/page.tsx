@@ -24,7 +24,8 @@ export async function generateMetadata({
 export default async function OfflinePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
+    // `data-no-rail`: no moments rail on this page (T-1755, D-372; globals.css).
+    <main data-no-rail="" className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         <Translated locale={locale} message="offline.title" />
       </h1>

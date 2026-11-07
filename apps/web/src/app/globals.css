@@ -309,6 +309,47 @@
     @apply min-w-0 truncate font-bold;
   }
 
+  /*
+   * The line's match (T-1755, D-372; board P4-5), whole or absent, by the
+   * stylesheet alone: the words "Moments that matter" and the match share
+   * one grid cell, the match on top. Its box is one line tall and clips; the
+   * match follows a zero-width strut on a wrapping line and grows to the
+   * cell's end on the surface, so when it fits it covers the words, and
+   * when it does not it wraps under the strut, out of sight, and the words
+   * show. The minute is in the live colour; the next kick-off muted.
+   */
+  .moments-line {
+    @apply grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)];
+
+    & > * {
+      grid-area: 1 / 1;
+    }
+  }
+
+  .moments-line-box {
+    display: flex;
+    flex-wrap: wrap;
+    block-size: 1.25rem;
+    block-size: 1lh;
+    overflow: hidden;
+
+    &::before {
+      content: '\200b';
+    }
+  }
+
+  .moments-line-match {
+    @apply flex-[1_0_auto] bg-surface font-semibold whitespace-nowrap text-fg;
+  }
+
+  .moments-line-when {
+    @apply ms-1.5 font-bold tabular-nums;
+  }
+
+  .moments-line-behind {
+    @apply shrink-0 font-bold whitespace-nowrap text-warning;
+  }
+
   [data-folded='true'] > .moments-frame {
     @apply max-md:hidden;
   }
@@ -929,6 +970,96 @@ header:has(#competitions-menu:not([hidden])) {
  */
 :root:has(main[data-page='register']) .header-create-account {
   display: none;
+}
+
+/*
+ * No moments rail on the pages whose one job is a form or a message
+ * (T-1755, D-372; board P4-8): sign-in, register, forgot-password, welcome,
+ * offline and not found mark their `<main>` with `data-no-rail`. By CSS
+ * because the layout draws the rail and does not know the page (and the
+ * not-found page has no address of its own). The header and the tab bar
+ * stay, so the scores are one tap away.
+ */
+:root:has([data-no-rail]) .moments-rail {
+  display: none;
+}
+
+/*
+ * The sticky header (T-1759, D-376; board P4-7), CSS alone: 48px on a phone
+ * (3rem with its hairline), 56px from 768px, on every page but the match
+ * page, at layer 30 (its Menu is inside it; the sticky group headers and the
+ * match page's tabs are 10, the pick bar 20, the tab bar 40).
+ * `--site-header-height` is how much of the top it holds, 0 where it does
+ * not stick, so another sticky element sits under it
+ * (`top: var(--site-header-height, 0px)`) and an in-page jump lands clear
+ * of it (`scroll-padding`).
+ *
+ * The match page keeps D-363's own sticky stack: its header scrolls away and
+ * keeps the height it had (60px and its hairline on a phone, 64px from
+ * 1024px), so the page's first screen is exactly as before (packages 2 and
+ * 3: the pick buttons above the pick bar). Nothing sticks on a viewport
+ * under 28rem high (a phone on its side), as D-363 decided.
+ */
+:root {
+  --site-header-height: 3rem;
+
+  scroll-padding-block-start: var(--site-header-height);
+}
+
+.site-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 30;
+}
+
+.site-bar {
+  min-block-size: calc(3rem - 1px);
+}
+
+@media (width >= 48rem) {
+  :root {
+    --site-header-height: 3.5rem;
+  }
+
+  .site-bar {
+    min-block-size: 3.5rem;
+  }
+}
+
+@media (width >= 64rem) {
+  .site-bar {
+    block-size: 3.5rem;
+  }
+}
+
+:root:has([data-match-root]) {
+  --site-header-height: 0px;
+}
+
+:root:has([data-match-root]) .site-header {
+  position: relative;
+  z-index: auto;
+}
+
+:root:has([data-match-root]) .site-bar {
+  min-block-size: 3.75rem;
+}
+
+@media (width >= 64rem) {
+  :root:has([data-match-root]) .site-bar {
+    block-size: 4rem;
+  }
+}
+
+@media (height < 28rem) {
+  :root {
+    --site-header-height: 0px;
+  }
+
+  .site-header {
+    position: relative;
+    z-index: auto;
+  }
 }
 
 /*

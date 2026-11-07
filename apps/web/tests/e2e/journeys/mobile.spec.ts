@@ -324,3 +324,24 @@ for (const locale of ['en', 'fa'] as const) {
     await context.close();
   });
 }
+
+// T-1759 (D-376): the match page keeps D-363's own sticky stack, so its header
+// does not stick and keeps the height it had (60px and its hairline): the
+// page's first screen is exactly as before (packages 2 and 3).
+test('on the match page the header scrolls away and keeps its height', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 } });
+  const page = await context.newPage();
+  await page.goto(`/en/match/${OPEN_MATCH}`);
+  const header = page.locator('header').first();
+  const before = (await header.boundingBox())!;
+  expect(Math.round(before.height)).toBe(61);
+  expect(
+    await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--site-header-height').trim(),
+    ),
+  ).toBe('0px');
+  await page.evaluate(() => window.scrollTo(0, 400));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(400);
+  expect(Math.round((await header.boundingBox())!.y)).toBe(Math.round(before.y) - 400);
+  await context.close();
+});

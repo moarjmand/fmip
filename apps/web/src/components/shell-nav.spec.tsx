@@ -175,7 +175,7 @@ describe('the header nav', () => {
 
   it('is in the header, which follows the theme (D-267)', () => {
     expect(HEADER).not.toContain('data-mode="editorial"');
-    expect(HEADER).toContain('<header className="relative border-b border-default bg-surface');
+    expect(HEADER).toContain('<header className="site-header border-b border-default bg-surface');
     expect(HEADER).toMatch(/<PrimaryNav\s/);
     expect(HEADER).toContain(
       '<MomentsRail locale={locale} timeZone={timeZone} signedIn={me !== null} />',

@@ -10,6 +10,8 @@ import {
   cardsThatFit,
   fitThreshold,
   isLiveMoment,
+  lineKickoff,
+  lineMoment,
   modelPick,
   momentEyebrow,
   momentSentence,
@@ -201,6 +203,40 @@ describe('the time at the eyebrow’s end', () => {
       scores: { ...line(2, 1), full_time: { home: 2, away: 1 } },
     });
     expect(momentWhen(over, 'en', LONDON, NOW, words).text).toBe('FT');
+  });
+});
+
+describe('the folded line’s match (T-1755, D-372)', () => {
+  const words = scoresWords('en').m;
+  const at = (id: string, over: Partial<ScoreCard>) => moment({ fixture: card({ id, ...over }) });
+
+  it('is the first card in play, in the rail’s own order', () => {
+    const first = at('a', { ...live(30, 0, 0) });
+    const second = at('b', { ...live(80, 2, 1) });
+    const soon = at('c', { kickoff_at: minutes(5) });
+    expect(lineMoment([soon, first, second])).toBe(first);
+  });
+
+  it('is the next kick-off with nothing in play, else none', () => {
+    const late = at('a', { kickoff_at: minutes(200) });
+    const soon = at('b', { kickoff_at: minutes(18) });
+    const over = at('c', {
+      status: 'finished',
+      scores: { ...line(0, 2), full_time: line(0, 2).current },
+    });
+    const off = at('d', { status: 'postponed' });
+    expect(lineMoment([over, late, soon, off])).toBe(soon);
+    expect(lineMoment([over, off])).toBeNull();
+    expect(lineMoment([])).toBeNull();
+  });
+
+  it('says a kick-off today as its time, another day with its weekday', () => {
+    expect(lineKickoff(card({ kickoff_at: minutes(60) }), 'en', LONDON, NOW, words)).toBe('20:00');
+    const sunday = card({ kickoff_at: '2026-10-25T14:00:00.000Z' });
+    expect(lineKickoff(sunday, 'en', LONDON, NOW, words)).toBe('Sun 14:00');
+    expect(lineKickoff(sunday, 'fa', 'Asia/Tehran', NOW, scoresWords('fa').m)).toBe(
+      `${new Intl.DateTimeFormat('fa-IR', { weekday: 'short', timeZone: 'Asia/Tehran' }).format(new Date('2026-10-25T14:00:00.000Z'))} ۱۷:۳۰`,
+    );
   });
 });
 

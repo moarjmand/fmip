@@ -122,6 +122,34 @@ test('the header is one row on a phone: the wordmark, search and the Menu, with 
   await expect(page.getByTestId('nav-matches')).toBeHidden();
 });
 
+// T-1759 (D-376): the header sticks, 48px on a phone and 56px from 768px, and
+// nothing sticks on a viewport under 28rem high (a phone on its side).
+for (const [width, height, sticks, tall] of [
+  [390, 844, true, 48],
+  [1280, 800, true, 56],
+  [844, 390, false, 56],
+] as const) {
+  test(`at ${width} x ${height} the header ${sticks ? 'sticks' : 'scrolls away'}, ${tall}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height });
+    await page.goto('/en/about');
+    const header = page.locator('header').first();
+    const before = (await header.boundingBox())!;
+    expect(Math.round(before.height)).toBe(tall);
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(600);
+    expect(Math.round((await header.boundingBox())!.y)).toBe(
+      sticks ? 0 : Math.round(before.y) - 600,
+    );
+    expect(
+      await page.evaluate(() =>
+        getComputedStyle(document.documentElement).getPropertyValue('--site-header-height').trim(),
+      ),
+    ).toBe(sticks ? `${tall / 16}rem` : '0px');
+  });
+}
+
 test('on a tablet the header keeps its Menu, since the nav does not fit one row (T-1390)', async ({
   page,
 }) => {

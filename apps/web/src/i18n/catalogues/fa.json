@@ -5762,11 +5762,11 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "firstRun.offer.text": {
-    "source": "Make Stadiomind yours: choose a language, where you watch from, your time zone and your favourite teams. Every step can be skipped.",
-    "text": "Stadiomind را به سلیقه‌ی خودتان تنظیم کنید: زبان، کشور محل تماشا، منطقه‌ی زمانی و تیم‌های محبوبتان را انتخاب کنید. از هر مرحله می‌توانید بگذرید.",
+  "firstRun.strip.dismiss": {
+    "source": "Not now",
+    "text": "حالا نه",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 4 mockups' proposal (D-373); not yet reviewed by a translator."
   },
   "achievements.title": {
     "source": "Achievements",
