@@ -142,8 +142,10 @@ test.describe('the club page’s default competition (T-1764, D-379)', () => {
       await page.goto(`/${locale}/team/${MAN_UTD}`);
       // The seed's club plays the Premier League alone: nothing to choose.
       await expect(page.getByTestId('competition-chips')).toHaveCount(0);
-      const record = await page.getByTestId('record').getByRole('heading').innerText();
-      const scorer = await page.getByTestId('top-scorer').getByRole('heading').innerText();
+      // textContent, not innerText: the headings are uppercased by CSS, and toHaveText reads the text.
+      const record = (await page.getByTestId('record').getByRole('heading').textContent()) ?? '';
+      const scorer =
+        (await page.getByTestId('top-scorer').getByRole('heading').textContent()) ?? '';
       // Every table drawn is a real one: no card for a competition without one.
       const tables = await page.getByTestId('competition').count();
 
