@@ -55,7 +55,8 @@ test('the scores controls are thumb-sized and the day strip scrolls inside itsel
   page,
 }) => {
   await page.goto('/en/scores');
-  // The picker folds behind "Choose a date" on a phone (T-1482); the control itself is a target.
+  // The picker folds behind the filter row's "Date" chip on a phone (T-1482,
+  // T-1757); the chip itself is a target.
   const fold = page.getByTestId('date-fold').locator('summary');
   await fold.click();
   const targets = [

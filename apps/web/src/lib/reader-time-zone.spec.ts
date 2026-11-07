@@ -54,7 +54,6 @@ describe('the reader’s time zone', () => {
     const params = { zone: fa, zoneName: zoneWords('fa', fa) };
     expect(interpolate(t('fa', 'scores.timesIn'), params)).toBe('ساعت‌ها به وقت تهران');
     expect(interpolate(t('fa', 'watch.timesIn'), params)).toBe('ساعت‌ها به وقت تهران');
-    expect(interpolate(t('fa', 'scores.timesInGuest'), params)).toMatch(/^ساعت‌ها به وقت تهران \(/);
   });
 
   it('leaves /en on UK time, with its summer hour, and its words unchanged', () => {

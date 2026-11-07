@@ -8438,12 +8438,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "scores.chooseDate": {
-    "source": "Choose a date",
-    "text": "انتخاب تاریخ",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "scores.showDay": {
     "source": "Show day",
     "text": "نمایش روز",
@@ -8624,12 +8618,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "scores.timesInGuest": {
-    "source": "Times: {zoneName} (sign in for your own zone)",
-    "text": "ساعت‌ها {zoneName} (برای منطقه‌ی زمانی خودتان وارد شوید)",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "scores.filter.more": {
     "source": "Filter by country, competition and stage",
     "text": "فیلتر بر اساس کشور، رقابت و مرحله",
@@ -8641,6 +8629,12 @@
     "text": "کشور، رقابت و مرحله (فیلترشده)",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "scores.filter.chip": {
+    "source": "Filters",
+    "text": "فیلتر",
+    "status": "translated",
+    "note": "The designer's proposed wording for the matches page's filter chip (T-1757, D-374); for the translator's review."
   },
   "scores.filter.country": {
     "source": "Country",
@@ -15265,6 +15259,18 @@
     "text": "پیوسته در {date}",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "playerPage.club.perLineup": {
+    "source": "per line-up of {date}",
+    "text": "بر پایه‌ی ترکیب {date}",
+    "status": "translated",
+    "note": "The designer's proposed wording for the player's club line on a phone (T-1758, D-375); for the translator's review."
+  },
+  "playerPage.about": {
+    "source": "About",
+    "text": "درباره",
+    "status": "translated",
+    "note": "The designer's proposed wording for the player page's About card (T-1758, D-375); for the translator's review."
   },
   "playerPage.nationalTeam": {
     "source": "National team",

@@ -6981,11 +6981,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "scores.chooseDate": {
-    "source": "Choose a date",
-    "text": "",
-    "status": "untranslated"
-  },
   "scores.showDay": {
     "source": "Show day",
     "text": "",
@@ -7136,11 +7131,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "scores.timesInGuest": {
-    "source": "Times: {zoneName} (sign in for your own zone)",
-    "text": "",
-    "status": "untranslated"
-  },
   "scores.filter.more": {
     "source": "Filter by country, competition and stage",
     "text": "",
@@ -7148,6 +7138,11 @@
   },
   "scores.filter.moreActive": {
     "source": "Country, competition and stage (filtered)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.filter.chip": {
+    "source": "Filters",
     "text": "",
     "status": "untranslated"
   },
@@ -12554,6 +12549,16 @@
   },
   "playerPage.club.transfer": {
     "source": "joined {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.club.perLineup": {
+    "source": "per line-up of {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "playerPage.about": {
+    "source": "About",
     "text": "",
     "status": "untranslated"
   },
