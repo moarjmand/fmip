@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2376), grouped by folder, with one line on
+Every file in the repository (2371), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -255,7 +255,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 294
+- [`apps/web/src/components`](#appswebsrccomponents) — 295
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 38
+- [`docs`](#docs) — 32
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -2358,7 +2358,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `competition-cards.spec.tsx` | The competition page in the Stadiomind design (T-1498, D-274): the header and its tabs, the full table whose places carry a zone colour only where the feed lists them, a day of matches with the model's percentages or th… |
-| `competition-cards.tsx` | The competition page's modules in the Stadiomind design (T-1498, D-274): a surface card with its name in the wide cut and a hairline under it, and what goes in it -- the table, a round of matches with the model's three… |
+| `competition-cards.tsx` | The competition page's modules in the Stadiomind design (T-1498, D-274): a surface card with its name in the wide cut and a hairline under it, and what goes in it -- the table, a round of matches in the scores list's ro… |
 | `competition-header.tsx` | The competition page's header in the Stadiomind design (T-1498, D-274): the logo on its own light tile, the name in the wide display cut, one line of facts (country, season, clubs, the round), the season menu and the fo… |
 | `opengraph-image.tsx` | The card a chat app shows for a competition link (T-520): the top of the current season's table, or the page's own sentence when there is none. |
 | `page.tsx` | The model's latest pre-kick-off forecast for each of these matches: one request for all of them (at most `MAX_FORECAST_FIXTURES`), never one per match. |
@@ -2885,7 +2885,8 @@ machine, `docs/18-handover.md`.
 | `key-players.tsx` | The match centre's key players (T-841, blueprint 4.2): each side's most used players in this competition's season before the match, their minutes, goals and assists, and what the provider said about this match. "Key" is… |
 | `kind-section.spec.tsx` | The sections of Settings → Notifications with catalogue words (T-832): friends' predictions, opt-in, with the value the API says is in force. |
 | `kind-section.tsx` | A section of Settings → Notifications for a few kinds, worded through the catalogues (T-832): a heading, a line saying what the kinds are, and one switch per kind with the value the API says is in force -- never a copy… |
-| `knockout-bracket.tsx` | The knockout bracket on the competition page (blueprint 5.1, T-630): the rounds in the order they are played, each tie with its legs and, only once the API has decided it, the aggregate and who went through. |
+| `knockout-bracket.spec.tsx` | The knockout rounds (T-1763, D-378's D10): on a phone, round chips (links) and one round at a time, opening at the latest round with a tie drawn; from 768px a column per round. |
+| `knockout-bracket.tsx` | The knockout rounds on a continental cup's competition page (blueprint 5.1, T-630; D-378's D10, T-1763). |
 | `language-coverage.spec.ts` | The operator's view of the languages (T-302). |
 | `language-coverage.tsx` | The operator's language table (T-302, D-066): the surface behind "how much of `tr` is done is an answer the product gives, not a grep". |
 | `language-picker.spec.tsx` | The language picker drawn (T-1610, D-281): the header's globe with the page's language in short, a disclosure listing every offered language in its own name with the page's own current; the footer's row of the same link… |
@@ -3485,19 +3486,13 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
-| `03-project-map.md` | Project map |
-| `03-project-map.md` | Project map |
 | `03-project-map.md` | Project map |
 | `04-tasks-phase-1.md` | Phase 0 + Phase 1 task backlog |
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
