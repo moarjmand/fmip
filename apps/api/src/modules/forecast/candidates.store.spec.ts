@@ -130,8 +130,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('candidate re
     expect(pair?.pairs).toBe(1);
     expect(pair?.published_versions).toEqual([PUBLISHED]);
     // Home won: -ln(0.6) for the paired candidate version, -ln(0.5) for the published.
-    expect(pair?.candidate.log_loss).toBeCloseTo(-Math.log(0.6), 5);
-    expect(pair?.published.log_loss).toBeCloseTo(-Math.log(0.5), 5);
+    expect(pair?.candidate?.log_loss).toBeCloseTo(-Math.log(0.6), 5);
+    expect(pair?.published?.log_loss).toBeCloseTo(-Math.log(0.5), 5);
   });
 
   it('counts the forecasts a candidate stored nothing for, from its first answer on (T-1165)', async () => {

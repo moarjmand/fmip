@@ -12,7 +12,8 @@ import { ModelVersion, ModelVersions } from '@/components/model-version';
  * and at the minimum promotion is a decision entry with these numbers (D-082).
  */
 
-const score = (value: number): string => value.toFixed(4);
+const score = (value: number | null | undefined): string =>
+  value === null || value === undefined ? '—' : value.toFixed(4);
 
 function shadowLine(record: CandidateRecord): string {
   if (record.in_shadow === null) {
@@ -71,6 +72,12 @@ function CandidateSection({
                 Against the published version on the same matches: for each match and forecast kind,
                 the latest pre-kick-off version of each. For both scores, lower is closer to what
                 happened.
+                {record.withheld === true && (
+                  <span className="block" data-testid="candidate-withheld">
+                    Being judged: the scores are withheld and only the matches are counted, until
+                    the weekly watch records its verdict (D-336, D-380).
+                  </span>
+                )}
               </caption>
               <thead>
                 <tr className="border-b border-default">
@@ -114,16 +121,16 @@ function CandidateSection({
                     </td>
                     <td className="py-2 pe-4 text-end tabular-nums">{row.pairs}</td>
                     <td className="py-2 pe-4 text-end tabular-nums">
-                      {score(row.candidate.log_loss)}
+                      {score(row.candidate?.log_loss)}
                     </td>
                     <td className="py-2 pe-4 text-end tabular-nums">
-                      {score(row.published.log_loss)}
+                      {score(row.published?.log_loss)}
                     </td>
                     <td className="py-2 pe-4 text-end tabular-nums">
-                      {score(row.candidate.brier)}
+                      {score(row.candidate?.brier)}
                     </td>
                     <td className="py-2 pe-4 text-end tabular-nums">
-                      {score(row.published.brier)}
+                      {score(row.published?.brier)}
                     </td>
                     <td className="py-2">
                       <ModelVersions versions={row.published_versions} />

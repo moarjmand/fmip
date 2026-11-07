@@ -75,4 +75,32 @@ describe('candidateRecords (T-1103)', () => {
     expect(report.candidates[1]?.shadow).toEqual(NEVER_ANSWERED);
     expect(NEVER_ANSWERED.first_answered_at).toBeNull();
   });
+
+  it('gives a version being judged its pairs counted and no score (T-1771, D-380)', () => {
+    const pair = {
+      modelVersion: 'dixon-coles-elo@0.5.0',
+      competition: { id: 'c1', name: 'Premier League' },
+      pairs: 110,
+      publishedVersions: ['dixon-coles-elo@0.1.0'],
+      candidate: { log_loss: 0.98, brier: 0.58 },
+      published: { log_loss: 1.0, brier: 0.59 },
+    };
+    const judged = candidateRecords(
+      [COUNT],
+      [pair],
+      null,
+      NOW,
+      new Map(),
+      new Set([pair.modelVersion]),
+    );
+    expect(judged.candidates[0]).toMatchObject({ withheld: true });
+    expect(judged.candidates[0]?.competitions[0]).toMatchObject({
+      pairs: 110,
+      candidate: null,
+      published: null,
+    });
+    const open = candidateRecords([COUNT], [pair], null, NOW);
+    expect(open.candidates[0]?.withheld).toBeUndefined();
+    expect(open.candidates[0]?.competitions[0]?.candidate).toEqual({ log_loss: 0.98, brier: 0.58 });
+  });
 });

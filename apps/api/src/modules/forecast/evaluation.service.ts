@@ -79,13 +79,25 @@ export class EvaluationService {
    * shadow. A shadow version being judged gives counts only (T-1771, D-380),
    * by the stored forecasts alone, as the agents console does.
    */
-  async adminAccuracy(period: AccuracyPeriod, now: Date): Promise<AdminModelAccuracyResponse> {
-    const [rows, counts, published] = await Promise.all([
+  async adminAccuracy(
+    period: AccuracyPeriod,
+    now: Date,
+    judged?: ReadonlySet<string>,
+  ): Promise<AdminModelAccuracyResponse> {
+    const [rows, withheld] = await Promise.all([
       this.store.accuracySums(period, 'by_model'),
+      judged === undefined ? this.judgedVersions() : Promise.resolve(judged),
+    ]);
+    return adminAccuracy(rows, period, now, withheld);
+  }
+
+  /** The shadow versions being judged, from the stored forecasts alone (D-380). */
+  async judgedVersions(): Promise<Set<string>> {
+    const [counts, published] = await Promise.all([
       this.store.versionCounts(),
       this.store.newestPublishedModel(),
     ]);
-    return adminAccuracy(rows, period, now, beingJudged(counts, published));
+    return beingJudged(counts, published);
   }
 
   /** The public page's figures (T-1369): published forecasts only, by month or ISO week (T-1413). */
@@ -123,7 +135,8 @@ export class EvaluationService {
         this.store.versionRecords(),
         this.store.versionCalibration(),
         this.store.versionPairs(),
-        this.adminAccuracy('week', now),
+        // No withholding here: the console withholds a version being judged itself.
+        this.adminAccuracy('week', now, new Set()),
         // A count that cannot be read is said as "not counted", never guessed.
         this.store.modelInputs(now).catch(() => []),
         Promise.all(

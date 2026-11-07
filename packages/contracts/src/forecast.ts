@@ -351,8 +351,9 @@ export interface CandidateCompetitionRecord {
   pairs: number;
   /** The published version(s) the pairs were scored against. */
   published_versions: string[];
-  candidate: { log_loss: number; brier: number };
-  published: { log_loss: number; brier: number };
+  /** Null for a version being judged: its pairs are counted, never scored here (T-1771, D-380). */
+  candidate: { log_loss: number; brier: number } | null;
+  published: { log_loss: number; brier: number } | null;
 }
 
 /** One candidate's shadow record (T-1103), from the stored evaluations (T-066). */
@@ -369,6 +370,11 @@ export interface CandidateRecord {
   pre_kickoff_awaiting: number;
   /** Available forecasts computed after kick-off: never counted (D-031). */
   after_kickoff: number;
+  /**
+   * Being judged (T-1771, D-380): its competitions give the pairs' counts
+   * only, until the weekly watch's one look is recorded.
+   */
+  withheld?: boolean;
   /** The candidate's own refusals (`unavailable`), which are never scored. */
   unavailable: number;
   competitions: CandidateCompetitionRecord[];

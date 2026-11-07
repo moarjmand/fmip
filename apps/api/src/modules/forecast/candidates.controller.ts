@@ -52,13 +52,14 @@ export class CandidatesController {
       throw new ForbiddenException(ROLE_REFUSALS.administrator);
     }
     const now = new Date();
-    const [counts, pairs, offered, shadow] = await Promise.all([
+    const [counts, pairs, offered, shadow, judged] = await Promise.all([
       this.evaluations.candidateCounts(),
       this.evaluations.candidatePairs(),
       this.offered(),
       this.forecasts.candidateShadow(now),
+      this.accuracyService.judgedVersions(),
     ]);
-    return candidateRecords(counts, pairs, offered, now, shadow);
+    return candidateRecords(counts, pairs, offered, now, shadow, judged);
   }
 
   /**

@@ -126,3 +126,28 @@ describe('sparkline', () => {
     ).toBeNull();
   });
 });
+
+describe('a series being judged (T-1771, D-380)', () => {
+  it('says why its figures are withheld and shows a dash for each', () => {
+    const out = html(
+      report({
+        series: [
+          series({
+            role: 'shadow',
+            withheld: true,
+            total: metrics({
+              log_loss: null,
+              brier: null,
+              rps: null,
+              accuracy: null,
+              uniform_rps: null,
+            }),
+            points: [],
+          }),
+        ],
+      }),
+    );
+    expect(out).toContain('data-testid="accuracy-withheld"');
+    expect(out).toContain('—');
+  });
+});

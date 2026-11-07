@@ -7,11 +7,10 @@ real loads, and are removed afterwards.
 
 import os
 from collections.abc import Iterator
+from datetime import date
 from pathlib import Path
 
 import pytest
-
-from datetime import date
 
 from fmip_model.service.store_source import PostgresTrainingSource, season_code
 from fmip_model.training.load import load_clubelo, load_football_data
@@ -135,7 +134,9 @@ def test_a_season_code_is_the_label_s_inverse() -> None:
         season_code("2627")
 
 
-def test_the_service_reloads_a_main_league_s_newest_season_once_a_day(store: TrainingStore) -> None:
+def test_the_service_reloads_a_main_league_s_season_once_a_day_in_the_background(
+    store: TrainingStore,
+) -> None:
     """T-1770: a main football-data league ran a week or more behind; now it is read daily."""
     assert DATABASE_URL
     text = fixture_as_t0()
@@ -152,35 +153,37 @@ def test_the_service_reloads_a_main_league_s_newest_season_once_a_day(store: Tra
     source = PostgresTrainingSource(
         DATABASE_URL, today=lambda: day[0], clubelo_refresh=False, extra_fetch=fetch
     )
+    # A forecast's read never downloads a main league (a slow site would stall it).
     source.matches("T0", date(2024, 7, 1), date(2025, 2, 28))
     source.aliases("T0")
-    assert asked == ["https://www.football-data.co.uk/mmz4281/2425/T0.csv"]  # once a day
+    assert asked == []
+    source.refresh_main_leagues()
+    source.refresh_main_leagues()
+    assert asked.count("https://www.football-data.co.uk/mmz4281/2425/T0.csv") == 1  # once a day
 
-    # From July of the season's end year the next season is asked too; its
-    # absence is recorded, and the newest season is still read.
+    # From July the season has ended and the next has started: its file is
+    # asked instead, and its absence is recorded.
     day[0] = date(2025, 7, 2)
-    assert len(source.matches("T0", date(2024, 7, 1), date(2025, 7, 1))) == count_t0(store)
-    assert asked[1:] == [
-        "https://www.football-data.co.uk/mmz4281/2425/T0.csv",
-        "https://www.football-data.co.uk/mmz4281/2526/T0.csv",
-    ]
+    before = len(asked)
+    source.refresh_main_leagues()
+    assert asked[before:] == ["https://www.football-data.co.uk/mmz4281/2526/T0.csv"]
     with store.conn.cursor() as cur:
         cur.execute(
             "SELECT scope, status FROM training.source_load WHERE scope LIKE 'T0 %'"
             " ORDER BY started_at"
         )
         rows = cur.fetchall()
-    assert [r[1] for r in rows if r[0] == "T0 2024/25"] == ["succeeded"] * 3
+    assert [r[1] for r in rows if r[0] == "T0 2024/25"] == ["succeeded"] * 2
     assert [r[1] for r in rows if r[0] == "T0 2025/26"] == ["failed"]
 
-    # Two seasons on, a league the store stopped following is left alone.
+    # A season later, a league the store stopped following is left alone.
     day[0] = date(2026, 9, 1)
     before = len(asked)
-    source.matches("T0", date(2024, 7, 1), date(2026, 8, 31))
+    source.refresh_main_leagues()
     assert len(asked) == before
 
 
-def test_the_service_leaves_a_division_it_never_saw_loaded_alone() -> None:
+def test_a_forecast_never_downloads_a_division_it_never_saw_loaded() -> None:
     assert DATABASE_URL
     asked: list[str] = []
 
