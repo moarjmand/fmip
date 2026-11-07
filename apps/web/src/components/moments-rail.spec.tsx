@@ -563,6 +563,12 @@ describe('one line on a phone, every page but home (T-1693, D-338; T-1755, D-372
     expect(line).not.toContain('data-translation="untranslated"');
   });
 
+  it('marks the fold with ▾, an escape and not a control character', () => {
+    expect(STYLES).toMatch(/\.moments-toggle \{[^}]*&::after \{\s*content: '\\25BE' \/ '';/);
+    // eslint-disable-next-line no-control-regex
+    expect(STYLES).not.toMatch(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/);
+  });
+
   it('folds only below 768px, by the stylesheet, so from md up the rail is unchanged', () => {
     expect(STYLES).toMatch(/\.moments-fold \{\s*@apply md:hidden;/);
     expect(STYLES).toMatch(/\[data-folded='true'\] > \.moments-frame \{\s*@apply max-md:hidden;/);

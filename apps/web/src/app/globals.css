@@ -296,7 +296,7 @@
 
     /* The fold's mark, drawn here rather than in the markup (the page's JS budget). */
     &::after {
-      content: 'BE' / '';
+      content: '\25BE' / '';
       @apply ms-auto inline-block text-caption motion-safe:transition-transform;
     }
 
