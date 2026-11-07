@@ -63,7 +63,7 @@ export default async function RegisterPage({
 
   if (countries === null) {
     return (
-      <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
+      <main data-no-rail="" className="mx-auto flex max-w-md flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">
           <Translated locale={locale} message="auth.register.title" />
         </h1>
@@ -77,7 +77,7 @@ export default async function RegisterPage({
 
   if (countries.length === 0) {
     return (
-      <main className="mx-auto flex max-w-md flex-col gap-4 p-8">
+      <main data-no-rail="" className="mx-auto flex max-w-md flex-col gap-4 p-8">
         <h1 className="text-2xl font-semibold">
           <Translated locale={locale} message="auth.register.title" />
         </h1>
@@ -211,8 +211,10 @@ export default async function RegisterPage({
 
   return (
     // `data-page`: the header does not draw its own Create account here (globals.css).
+    // `data-no-rail`, on each of this page's states: no moments rail (T-1755, D-372).
     <main
       data-page="register"
+      data-no-rail=""
       className="mx-auto grid w-full max-w-5xl gap-6 p-4 sm:p-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,31rem)] lg:justify-center lg:gap-16 lg:py-12"
     >
       <div className="flex flex-col gap-3 lg:pt-4">

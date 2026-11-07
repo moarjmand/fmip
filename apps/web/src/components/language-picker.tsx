@@ -40,8 +40,14 @@ import { type OfferedLanguage, pickerEntriesFor, shortName } from '@/lib/languag
  *   "Language", nothing to open.
  */
 export function LanguagePicker(props: PickerProps) {
+  // The fallback's test ids are its own (`pending-`): React may stream this
+  // boundary out of line (the fallback in place, the picker in a hidden
+  // `<div hidden id="S:…">` after the header, swapped in by `$RC`), and until
+  // the swap both were in the page under one id, so `language-toggle`
+  // matched two elements, one outside the Menu.
+  const pending = `${props.testIdPrefix ?? ''}pending-`;
   return (
-    <Suspense fallback={<Picker {...props} search="" />}>
+    <Suspense fallback={<Picker {...props} testIdPrefix={pending} search="" />}>
       <PickerWithQuery {...props} />
     </Suspense>
   );

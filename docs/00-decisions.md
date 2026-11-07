@@ -14607,3 +14607,60 @@ pick. From 768px nothing changes.
 - *Reconciling `lab_tests.json` with the ledger here:* the dashboard's file stays the dashboard's; the ledger says, where they disagree, what the decision says.
 
 **Consequences.** `ConsoleModelReport` has `versions`, `comparisons`, `inputs`, `published.unscored`, and `candidates` without figures; `ConsoleModelRecord` has `rps`, `uniform_rps`, `limited` and `median_lead_hours`; `ConsoleSnapshot` has `model_lab`. A new lab verdict is a row in `E:/FMIP/ops/model/ledger.json` (then `publish.ts lab-check`) and a decision entry, as before. A version's recorded D-336 look is a `judgements` row. A new model version needs its entry in `model-notes.ts` or the page says its make-up is not written. The weekly watch's SQL (mod-2026-11-06-02) and which rule 0.7.0 falls under now that its cup forecasts differ (mod-2026-11-06-01) are open findings, not settled here.
+
+## D-372 — On a phone the moments rail is one line on every page but home, and no rail at all on the pages for a form or a message
+
+**Status:** Accepted · 2026-11-07 (maintainer, from the mockups: decisions D1 and D11 of package 4 of the 2026-11-05 UI review, boards P4-5 and P4-8, with all the designer's recommendations) · **Task:** T-1755 · **Follows:** D-300, D-338, D-299, D-045
+
+**Context.** The moments rail (D-300) is the one bar under the header on every page. On a 375px phone it is 185px on every page, measured on 7 November 2026: a quarter of the 751px above the tab bar. D-338 folded it to one line on the match page only. On a team page the next-match card started at 406px, on a competition page the table at 432px, and on sign-in, register and the 404 page a live count and a row of cards stood above a form or a message (finding C-11, D-07).
+
+**Decision.**
+1. **Below 768px every page but home folds the rail to one 44px line** -- D-338's fold, generalised: the toggle (`moments-toggle`, `aria-expanded`, `aria-controls="moments-body"`), `data-folded` and `.moments-fold` stay; only the address test changed, from "the match page" to "not home" (`foldsRail` in `moments-rail-view.tsx`, `usePathname`, about a hundred bytes). A tap unfolds the rail in place; another page folds it again. From 768px, and on home at every width, the rail is the full row as before.
+2. **The line says something:** the live count, then the first card whose match is in play, in the rail's own order (D-299), with its goals and minute ("● 4 live · Sevilla 0–0 Alavés 86′", the minute in the live colour); with nothing in play, the card with the next kick-off ("● 0 live · Sparta v Bournemouth 17:45", the time muted, the weekday added when it is not today); with neither, the existing words ("Moments that matter"). It is drawn by the server as the rail's `summary`, so `refreshRail` keeps it as fresh as the cards. Nothing is picked that the rail does not show.
+3. **Names are whole or absent (as D-368):** the match sits over the words "Moments that matter" in the same grid cell, in a one-line box that clips, after a zero-width strut; the match grows to the cell's end on the surface. When it fits it covers the words; when it does not it wraps out of sight and the words show. CSS alone, nothing measured; a screen reader hears the match (the words under it are `aria-hidden` while a match is named).
+4. **Rule 4:** when the named match's own data has stopped (`isBehind`), the line says "May be behind" in amber and draws no minute; when the rail's answers stop coming (`data-behind`), the stylesheet hides the minute and shows the same words. They stand beside the match, not in it, so they show even when the names do not fit. The count turns amber as before.
+5. **No rail on sign-in, register (each of its states), forgot-password, welcome, offline and the not-found page.** Each marks its `<main>` with `data-no-rail`, and `:root:has([data-no-rail]) .moments-rail` is `display: none`. The header and the tab bar stay. By CSS because the layout draws the rail without knowing the page, and the not-found page has no address of its own.
+
+**Rejected.**
+- *A 40px line (the review's):* it is a button, and the touch rule is 44px; D-338's line is 44 already.
+- *Cutting long names with an ellipsis:* D-368's rule is whole or absent.
+- *The address test for the six pages (the board's build note "the server already knows the address"):* the layout does not know the page, and a 404 can be any address; a marker on the page is exact and needs no script.
+- *Showing the words and the match together:* the line is one line at 320px.
+
+**Consequences.** `MomentsRailProps.summary` is the line; `lineMoment` and `lineKickoff` (`lib/moments-rail.ts`) choose and time its match. A new page whose only job is a form or a message adds `data-no-rail` to its `<main>`. The home-page rail, the desktop rail and the match page's fold height are unchanged.
+
+## D-373 — Home: the main match before "Live now", and the first run's offer a 48px strip after it
+
+**Status:** Accepted · 2026-11-07 (maintainer, from the mockups: decisions D2 and D3 of package 4 of the 2026-11-05 UI review, board P4-2, with all the designer's recommendations) · **Task:** T-1756 · **Follows:** D-270, T-620, T-1541
+
+**Context.** On a 375px phone, measured on 7 November 2026, home opened with the header (61), the rail (185), the first-run banner (186; 242 in Persian), the "Today" line and a 262px "Live now" list; the main match started at 818px, below the 751px that show. The banner was half the first screen, and "Live now" repeats the rail's live cards (finding A-03).
+
+**Decision.**
+1. **The main match comes before "Live now"** in the main column, at every width: the "Today" line, the main match, the first run's strip, "Live now", then the rest as before (the upset card after "Live now" on a phone).
+2. **The first run's offer is a 48px strip after the main match**; with no main match it is the first thing after the "Today" line. The whole strip is the link to the welcome page ("Make Stadiomind yours", the brand's star in the accent, an arrow at the inline end); beside it a 44 x 44 close, the same dismissal form (`dismissFirstRunAction`, no script), named "Not now" (`firstRun.strip.dismiss`; Persian «حالا نه», the designer's proposal, awaiting the translator). Neutral: no turquoise (rule 6).
+3. **The long sentence leaves the strip** (`firstRun.offer.text` is removed): the welcome page itself says "Four short questions, each one skippable" (`firstRun.intro`) and offers "Skip this step" on every step.
+
+**Rejected.**
+- *Keeping the banner before the main match:* the first screen would still be a settings offer, not football.
+- *Removing "Live now" from home:* it is the list with every live match; the rail's cards are a handful.
+
+**Consequences.** The test ids stay (`first-run-offer`, `first-run-start`, `first-run-dismiss`). In Persian the strip's title takes two lines at 375px and the strip stays 48px (measured on a local production build); it wraps whole rather than being cut.
+
+## D-376 — The header sticks, by CSS alone, everywhere but the match page; `--site-header-height` says how much of the top it holds
+
+**Status:** Accepted · 2026-11-07 (maintainer, from the mockups: decision D10 and the smaller decisions of package 4 of the 2026-11-05 UI review, board P4-7, with all the designer's recommendations) · **Task:** T-1759 · **Follows:** D-199, D-267, D-281, D-363
+
+**Context.** The header was `position: relative`: after one scroll the logo, search and the Menu were gone, and the phone's tab bar has no search (finding A-08). The header is a direct child of the body, so `position: sticky` needs no wrapper and no script.
+
+**Decision.**
+1. **The header sticks at the top** (`.site-header`: `position: sticky`, `inset-block-start: 0`, layer 30) and is **48px on a phone** (3rem with its hairline) and **56px from 768px** (`.site-bar`, from 64 and 60). Only the bar is in it: the platform-rules prompt and the held-language notice now follow the header and scroll away.
+2. **Layers** (existing, kept): the sticky group headers and the match page's tabs 10, the pick bar 20, the header 30 (its Menu inside it), the tab bar 40; the open competitions menu still lifts the header to 40 over its scrim.
+3. **`--site-header-height`** on `:root` is how much of the top the header holds: 3rem on a phone, 3.5rem from 768px, **0 where it does not stick**. Another sticky element sits under it with `top: var(--site-header-height, 0px)` (the matches page's competition group header, T-1757), and `scroll-padding-block-start` uses it so in-page jumps and focus land clear of it.
+4. **Not on the match page**, which keeps D-363's own sticky stack: there the header scrolls away and keeps the height it had (60px and its hairline on a phone, 64px from 1024px), so the page's first screen is exactly as before (packages 2 and 3: the pick buttons at 611-675px above the pick bar's edge at 691px on a 375 x 812 phone). By `:root:has([data-match-root])`, no script (the board's build note used `isMatchPage`, a client test the server-drawn header does not have). The board's one header height would have moved the match page up 13px; it stays 61px there so that page does not move.
+5. **Nothing sticks under 28rem of height** (a phone on its side), as D-363 decided; the variable is 0 there.
+
+**Rejected.**
+- *A header that hides while scrolling down and returns on scrolling up:* it needs a scroll listener (A-08 itself advises against it), and the JS budgets are nearly full.
+- *Sticking on the match page too:* 48 + D-363's 92 would hold 140px before the tab bar and the pick bar.
+
+**Consequences.** It costs 48px of every phone screen (from 7.5% to 13.4% of 812 with the tab bar). Any element sticky at `top: 0` on a page other than the match page now sits under the header and should use the variable: the scores page's desktop preview (`lg:sticky lg:top-4` and its `max-h`) is one, owned by the matches-density task. Not verified here: Safari's collapsing address bar, and the unfolded rail or the Menu panel under a stuck header.

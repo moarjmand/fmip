@@ -155,6 +155,49 @@ export interface MomentWhen {
   behind?: string;
 }
 
+/**
+ * The match the folded rail's one line names (T-1755, D-372): the first card
+ * whose match is being played, in the rail's own order (D-299); with none,
+ * the card with the next kick-off; else `null`, and the line keeps its words
+ * alone ("Moments that matter"). Nothing is picked that the rail does not
+ * already show.
+ */
+export function lineMoment<T extends Pick<Moment, 'fixture'>>(moments: readonly T[]): T | null {
+  const live = moments.find((moment) => isLiveMoment(moment));
+  if (live !== undefined) return live;
+  let next: T | null = null;
+  for (const moment of moments) {
+    if (moment.fixture.status !== 'scheduled') continue;
+    if (
+      next === null ||
+      Date.parse(moment.fixture.kickoff_at) < Date.parse(next.fixture.kickoff_at)
+    ) {
+      next = moment;
+    }
+  }
+  return next;
+}
+
+/**
+ * The line's time for a match to come: the kick-off in the reader's zone,
+ * with the weekday when it is not today (so "17:45" never reads as tonight's
+ * when it is Saturday's), or the words for a kick-off long past and unheard.
+ */
+export function lineKickoff(
+  card: ScoreCard,
+  lang: Locale,
+  timeZone: string,
+  now: number,
+  words: Record<StatusKey, Message>,
+): string {
+  const text = statusLabel(card, lang, timeZone, now, words);
+  const kickoff = new Date(card.kickoff_at);
+  if (kickoff.getTime() <= now || dateIn(timeZone, kickoff) === dateIn(timeZone, new Date(now))) {
+    return text;
+  }
+  return `${formatDate(lang, card.kickoff_at, timeZone, { weekday: 'short' })} ${text}`;
+}
+
 /** The time at the eyebrow's inline end: the minute, the kick-off or the result's word. */
 export function momentWhen(
   card: ScoreCard,

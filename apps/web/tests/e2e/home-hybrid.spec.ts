@@ -366,6 +366,9 @@ test.describe('the home page with the scores', () => {
           const today = await box(page, '[data-testid="home-matches"]');
           expect(card.y).toBeGreaterThan(hero.y);
           expect(today.y).toBeGreaterThan(card.y);
+          // T-1756 (D-373): the main match comes before "Live now".
+          const live = await box(page, '[data-testid="home-live"]');
+          expect(live.y).toBeGreaterThan(hero.y);
         }
         // T-1540: the league on a full sample first; the limited one after
         // it, with its count.

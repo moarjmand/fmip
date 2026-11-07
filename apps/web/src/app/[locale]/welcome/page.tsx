@@ -99,7 +99,8 @@ export default async function WelcomePage({
   const following = STEPS[index + 1];
 
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 p-8">
+    // `data-no-rail`: no moments rail on this page (T-1755, D-372; globals.css).
+    <main data-no-rail="" className="mx-auto flex max-w-xl flex-col gap-6 p-8">
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold">
         <Translated locale={locale} message="firstRun.title" />
       </h1>

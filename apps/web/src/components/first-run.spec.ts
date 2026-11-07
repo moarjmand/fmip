@@ -78,7 +78,10 @@ describe('the first run', () => {
 
   it('shows every word through the catalogue', () => {
     for (const source of [PAGE, OFFER]) {
-      const keys = [...source.matchAll(/message="([^"]+)"/g)].map((m) => m[1]);
+      // A label in JSX (`message="…"`) or an attribute's words (`'firstRun.…'`, T-1756).
+      const keys = [...source.matchAll(/message="([^"]+)"|'(firstRun\.[\w.]+)'/g)].map(
+        (m) => m[1] ?? m[2],
+      );
       expect(keys.length).toBeGreaterThan(1);
       for (const key of keys) expect(Object.keys(EN), key).toContain(key);
     }
