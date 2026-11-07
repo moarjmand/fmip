@@ -14646,6 +14646,49 @@ pick. From 768px nothing changes.
 
 **Consequences.** The test ids stay (`first-run-offer`, `first-run-start`, `first-run-dismiss`). In Persian the strip's title takes two lines at 375px and the strip stays 48px (measured on a local production build); it wraps whole rather than being cut.
 
+## D-374 — The matches list on a phone: a 72px row with D-368's bar beside the names, "Not supplied" on every row, a 44px group heading, and one filter row
+
+**Status:** Accepted · 2026-11-07 (maintainer, from the mockups: package 4 of the 2026-11-05 UI review, "the phone: the first screen and density", decisions D4 to D8 with all the designer's recommendations; `E:/FMIP/ops/reports/ui-review-2026-11-05/P4-mockups-fa.md`, boards P4-3 and P4-4) · **Task:** T-1757 · **Follows:** D-206, D-263, D-268, D-363, D-368, D-369
+
+**Context.** On a 375px phone the matches page's first row started at 692px: title, the day strip, All and Live, two legend lines, two closed folds ("Choose a date", "Filter by country, competition and stage"), the "Last checked" line and a 57px competition heading; rows were 95 to 117px, because the model's bar (labels above it since D-368) sat under the names and a "View" or "Pick" button took the row's end. The review asked for "percentages beside the bar, not under it", which reads against D-368.
+
+**Decision.**
+1. **D-368 stands unchanged (D4).** "Beside" is read as the whole `ForecastBar`, row size, labels above an 8px bar, in a side column beside the names, as the desktop row already had it: 104px on a phone, 208px beyond. Only the cell changes, never the bar's drawing.
+2. **The row is at least 72px (D5):** three columns, 56 | names | 104, on a phone; the desktop's four (52 | names | 208 | 72) from 36rem of the list's own width, a container query on the list (`@container` in `live-scores.tsx`, `match-row` in globals.css). Names are 14px on a phone, the crest 20, the score at the end of each name's line; a name wraps inside its own line and is never cut, clamped or ellipsised (the tooltip that stood for a cut name goes). An upcoming match's Pick stands under its kick-off time in the start column, 44 by 44, with its "Pick: home v away" name; a member's "Picked" stands in the same place. A live or finished row has no "View" on a phone: the status and the names are one link to the match centre, the row's full height. From 36rem the Pick (or View) keeps the row's end, as before.
+3. **"Not supplied" stays on every row without a forecast (D6, rule 3).** A group heading does not take it over; a heading may say it as well in a later change, never instead.
+4. **The competition heading is 44px (D7)**, its "Updated hh:mm" stamp beside the name (rule 4) and a longer stamp ("Unchanged since …", "Updated between …") whole on a second line. It sticks under the site header at `var(--site-header-height, 0px)` (the property is the header's, T-1755), and not at all on a screen under 28rem tall, as D-363 has it for the match page. The desktop's preview column sticks 1rem under the same header (`top: calc(var(--site-header-height, 0px) + 1rem)`) and is that much shorter, so it never slides under it.
+5. **One filter row (D8):** All · Live (and a member's two views) · Date · Filters. Date and Filters are native `<details name="scores-panel">`, one open at a time, holding the same panels as before (the date picker with its steps; country, competition and stage). Where the browser can style a `<details>`'s content slot (`::details-content`) the panel opens under the whole row and the chips never move (`fold-row` in globals.css); a browser without it opens the panel under its own chip on a line of its own; one without the `name` grouping can open both, one under the other. No script either way. From 640px the date picker stands open under the row, as T-1482 had it. While filters apply, the Filters chip carries their count and the panel's first line says "(filtered)". The legend is one 12px line, "Times: UK time · Model chances: home · draw · away", turquoise on the model's words only (rule 6); the guest's "(sign in for your own zone)" goes, since the welcome steps set the zone. Under 1024px the list's "Last checked" stamp stands in the title row (`scores-main`, `scores-flat`, `scores-stamp` in globals.css), still the live list's own stamp; the desktop keeps it over the list.
+6. **No client script is added.** The rows are drawn by the live list, a client view, so the new grid lives in two component classes in globals.css rather than in the row's class lists.
+
+**Rejected.**
+- *Option B of board P4-3, the three numbers beside a narrower bar:* the 11% segment becomes 8px with nothing joining its number to it, D-368's one-number-per-segment is lost, and the row is no shorter.
+- *The Pick at the row's end at 375px (time 40 | names | bar 104 | Pick 44):* the names column falls to 97px and a name wraps on 73% of a Saturday's rows (51% in Persian).
+- *The breakpoint at 640px of list width:* with the preview column (from 1024px) and the competition rail (from 1280px) the list is 590 to 630px wide up to about 1300px, and the desktop row would have fallen back to the phone's; 36rem is where the screen breakpoint of 640px put the switch before (a 592px list).
+- *Moving "Not supplied" to the group heading:* rule 3 is per module; a row that looks like any other row must say it has no forecast.
+- *A single "Filters" `<details>` holding both panels:* kept as the fallback the designer named, not needed where `name` grouping is supported (Chromium 120, Safari 17.2, Firefox 130).
+
+**Consequences.** `score-card.tsx` draws `match-row` and `match-row-pick`; `live-scores.tsx`'s lists are containers and its heading is `match-group-head`; `scores.chooseDate` and `scores.timesInGuest` leave the catalogues; `scores.filter.chip` ("Filters") is new and "Date" reuses `scores.date`. The competition page's `match-row.tsx` is a different component and does not change. Single-match groups still pay a 44px heading each; a competition label inside the row for a group of one is a later question (P4-4).
+
+## D-375 — The player's first screen on a phone: a 64px identity row, the facts on one line, the season first, Compare behind a button, About for the rest
+
+**Status:** Accepted · 2026-11-07 (maintainer, from the mockups: package 4 of the 2026-11-05 UI review, decision D9 with the designer's recommendation; board P4-6) · **Task:** T-1758 · **Follows:** D-209, D-263, D-271, D-295
+
+**Context.** On a 375px phone the player's identity block was 579px (a 96px photo in a ring of the club's colour, the role, the name in the display size, a club line whose provenance sentence ran to two lines, three equal fact boxes of which "Preferred foot: Not supplied" took one, Follow, the compare form) and the season's first number stood at about 920px, below the first screen.
+
+**Decision.**
+1. **One identity row on a phone:** the photo, 64px with its ring, beside the role, the name (24px) and the club line; from 768px the header is as it was.
+2. **The ring is neutral** (the theme's strong line) at every width: the club's colour no longer frames the photo (C-20).
+3. **The facts we hold on one line** ("Age 16 · born 31 December 2009 · Height 183 cm · Left foot"); a fact we do not hold leaves the line and is said in **About**, a card at the end of every tab on a phone, which lists age, height, preferred foot and the current team, each with its value or the "not supplied" badge (rule 3), and the club's whole sentence. From 768px the three boxes with their badges stand as before and About is not drawn.
+4. **"per line-up of <date>"** stands whole on the club line when a club line-up names the club (or, from an older API, the latest line-up's team), the date with the short month; the long sentence is About's on a phone and stays on the club line from 768px. Nothing on the line is said only in a tooltip.
+5. **Follow and "Compare with…" side by side, 50/50, 44px:** Compare is a native `<details>` whose form (the same GET form) opens under both (`fold-row`, `compare-fold`); from 768px the form stands open in the row as before.
+6. **The season comes first** under the tabs, as the Overview already had it: with the header shorter, its first number is on the first screen.
+
+**Rejected.**
+- *About on the desktop too:* the desktop's header already says every fact with its badge, and the review found the desktop good; a second copy would repeat each one.
+- *The nationality in the facts line, as the board drew it:* the national team (or the nationality) stays in the identity line where T-1629 put it, so a national team keeps its link.
+
+**Consequences.** `player-page.tsx` gains `PerLineup`, `FactsLine` and `PlayerAbout`; `playerPage.club.perLineup` and `playerPage.about` are new catalogue keys (Persian proposed by the designer, for the translator). The "1 start" figure the review mentioned is not shown, since the page does not count starts.
+
 ## D-376 — The header sticks, by CSS alone, everywhere but the match page; `--site-header-height` says how much of the top it holds
 
 **Status:** Accepted · 2026-11-07 (maintainer, from the mockups: decision D10 and the smaller decisions of package 4 of the 2026-11-05 UI review, board P4-7, with all the designer's recommendations) · **Task:** T-1759 · **Follows:** D-199, D-267, D-281, D-363

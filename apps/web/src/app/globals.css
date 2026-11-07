@@ -1685,3 +1685,130 @@ main:has([data-match-root]:not([data-status='scheduled'])) [data-pick-bar] {
   line-gap-override: 0%;
   unicode-range: U+0600-06FF, U+0750-077F, U+08A0-08FF, U+200C-200F, U+FB50-FDFF, U+FE70-FEFF;
 }
+
+/*
+ * The matches list on a phone (T-1757, D-374).
+ *
+ * A row (`score-card.tsx`) is at least 72px: three columns on a phone, 56 |
+ * names | 104 (the model's whole bar beside the names), and from 36rem of
+ * the list's own width (a container query; the list is the container) the
+ * four of the desktop, 52 | names | 208 | 72. Its Pick stands under the time
+ * on a phone, at the row's end beyond. Here rather than in the row's markup:
+ * the row is drawn by a client view, and its class lists are script.
+ */
+@layer components {
+  .match-row {
+    @apply grid min-h-18 scroll-mt-24 grid-cols-[3.5rem_minmax(0,1fr)_6.5rem] grid-rows-[auto_auto] items-center gap-x-2 px-4 py-1.5 data-selected:bg-selected @xl:grid-cols-[3.25rem_minmax(0,1fr)_13rem_4.5rem] @xl:gap-x-3.5;
+  }
+
+  .match-row-pick {
+    @apply col-start-1 row-start-2 min-h-11 min-w-11 items-center justify-center gap-1 self-start justify-self-start rounded-control px-1.5 text-sm font-bold whitespace-nowrap @xl:col-start-4 @xl:row-span-2 @xl:row-start-1 @xl:self-center @xl:justify-self-end @xl:px-2.5;
+  }
+}
+
+/*
+ * A competition's heading sticks under the site header, whose height the
+ * header itself sets (`--site-header-height`, 0 where it does not stick); on
+ * a screen under 28rem tall (a phone on its side) nothing sticks, as D-363
+ * has it for the match page.
+ */
+.match-group-head {
+  position: sticky;
+  inset-block-start: var(--site-header-height, 0px);
+}
+
+@media (height < 28rem) {
+  .match-group-head {
+    position: static;
+  }
+}
+
+/*
+ * A row of chips whose native disclosures open a panel under the whole row
+ * (`fold-row`; the matches page's All · Live · Date · Filters, the player's
+ * Follow and Compare). Where the browser can style a <details>'s content slot,
+ * the <details> is no box: its summary is a chip of the row and its content
+ * slot the row's last line, so the chips never move. Elsewhere an open
+ * <details> takes a line of its own, its panel under its chip. No script.
+ * The row's own box is a component, so a page's utilities may adjust it; a
+ * row gap would also space the closed content slots, so a panel pads itself.
+ */
+@layer components {
+  .fold-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.375rem;
+  }
+}
+
+.fold-row > details[open] {
+  flex-basis: 100%;
+}
+
+@supports selector(::details-content) {
+  .fold-row > details {
+    display: contents;
+  }
+
+  .fold-row > details::details-content {
+    order: 1;
+    flex-basis: 100%;
+  }
+}
+
+/*
+ * Under 1024px the list's "Last checked" stamp stands in the page's title
+ * row: the page's wrappers are no boxes (`scores-flat`), so the stamp, deep in
+ * the live list, is a cell of the page's own grid beside the title. The
+ * desktop keeps it over the list.
+ */
+@media (width < 64rem) {
+  .scores-main {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .scores-main > *,
+  .scores-flat > * {
+    grid-column: 1 / -1;
+  }
+
+  .scores-flat {
+    display: contents;
+  }
+
+  .scores-main > h1 {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .scores-main .scores-stamp {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    text-align: end;
+  }
+}
+
+/*
+ * The player's Compare (T-1758, D-375): on a phone a 44px button beside
+ * Follow that opens the form under both; from 768px the form stands open in
+ * the row, as it did, and the button is gone.
+ */
+@media (width >= 48rem) {
+  @supports selector(::details-content) {
+    .compare-fold,
+    .compare-fold::details-content {
+      display: contents;
+    }
+
+    .compare-fold::details-content {
+      content-visibility: visible;
+    }
+
+    .compare-fold > summary {
+      display: none;
+    }
+  }
+}

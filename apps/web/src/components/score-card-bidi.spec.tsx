@@ -69,10 +69,8 @@ describe('a score row in Persian (T-1375)', () => {
   it('puts the home goals on the home team’s line, so they can never sit beside the away team', () => {
     // T-1496: the pair the row once isolated as one run is now two numbers,
     // each on its own team's line, in Persian digits: Sepahan's six, Fajr Sepasi's one.
-    expect(html).toMatch(/title="سپاهان">سپاهان<\/bdi><span[^>]*data-testid="home-score">۶</);
-    expect(html).toMatch(
-      /title="Fajr Sepasi">Fajr Sepasi<\/bdi><span[^>]*data-testid="away-score">۱</,
-    );
+    expect(html).toMatch(/>سپاهان<\/bdi><span[^>]*data-testid="home-score">۶</);
+    expect(html).toMatch(/>Fajr Sepasi<\/bdi><span[^>]*data-testid="away-score">۱</);
   });
 
   it('isolates an aggregate on the row the same way', () => {
@@ -107,8 +105,8 @@ describe('a row whose recorded goals disagree with its result (T-1717, D-347)', 
     expect(html).toContain('Score unclear in the source');
     expect(html).toMatch(/class="[^"]*text-muted[^"]*" data-testid="home-score"/);
     // Without the dispute the home side is drawn as the winner, in bold.
-    expect(render('en')).toMatch(/font-bold" title="سپاهان"/);
-    expect(html).not.toMatch(/font-bold" title="سپاهان"/);
+    expect(render('en')).toMatch(/font-bold">سپاهان</);
+    expect(html).not.toMatch(/font-bold">سپاهان</);
     expect(render('en')).not.toContain('Score unclear in the source');
   });
 

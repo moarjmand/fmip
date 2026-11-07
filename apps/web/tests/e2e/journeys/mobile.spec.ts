@@ -98,13 +98,14 @@ test('a match row is one thumb-sized row, and its details open in the preview', 
   expect(await middle('away-team')).toBeGreaterThan(status);
   expect(Math.abs((await middle('home-score')) - (await middle('home-team')))).toBeLessThan(6);
 
-  // The labels, the model's and the community's lines are one press away:
-  // the row's own Pick (or View) opens the preview as a bottom sheet over the
-  // list on a phone (T-1738).
+  // A played match's row has no "View" on a phone (T-1757, D-374): the row,
+  // at least 72px, is the link. Its preview, the bottom sheet over the list
+  // (T-1738), is still the page's at `?pick=`.
+  expect((await row.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(72);
+  await expect(row.getByTestId('row-pick')).toBeHidden();
   await expect(page.getByTestId('match-preview')).toBeHidden();
-  const pick = row.getByTestId('row-pick');
-  expect((await pick.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
-  await pick.click();
+  const id = await row.getAttribute('data-fixture-id');
+  await page.goto(`/en/scores?date=${PLAYED_DAY}&pick=${id}`);
   await expect(page).toHaveURL(/pick=/);
   const preview = page.getByTestId('match-preview');
   await expect(preview).toBeVisible();
