@@ -245,6 +245,8 @@ export type {
   TableRow,
   TeamAverageMetric,
   TeamCompetition,
+  CompetitionKind,
+  CompetitionScope,
   TeamCompetitionSplits,
   TeamFixture,
   TeamPage,

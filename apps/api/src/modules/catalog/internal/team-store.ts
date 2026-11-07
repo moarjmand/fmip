@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
   TEAM_AVERAGE_METRICS,
+  type CompetitionKind,
+  type CompetitionScope,
   type SquadPlayer,
   type TeamAverageMetric,
   type TeamPageFixture,
@@ -13,6 +15,9 @@ import type { SplitFixture } from './team-splits';
 export interface TeamSeason {
   competition: { id: string; name: string; short_name: string | null };
   season: { id: string; label: string; is_current: boolean };
+  /** Our catalogue's kind and scope (T-1764, D-379): what the order reads. */
+  kind: CompetitionKind;
+  scope: CompetitionScope;
 }
 
 /** SQL for the team page (T-036). Reads only. */
@@ -113,19 +118,23 @@ export class PostgresTeamStore {
 
   /**
    * The seasons the team is active in: the current season of each competition
-   * it has a fixture in, plus any season it still has an unfinished match in.
+   * it has a fixture in, plus any season it still has an unfinished match in,
+   * in the team page's order (`teamSeasonOrder`, T-1764, D-379).
    */
   async seasons(teamId: string): Promise<TeamSeason[]> {
     const { rows } = await this.pool.query<{
       competition_id: string;
       competition_name: string;
       competition_short_name: string | null;
+      kind: CompetitionKind;
+      scope: CompetitionScope;
+      tier: number | null;
       season_id: string;
       season_label: string;
       is_current: boolean;
     }>(
       `SELECT DISTINCT c.id AS competition_id, c.name AS competition_name,
-              c.short_name AS competition_short_name,
+              c.short_name AS competition_short_name, c.kind, c.scope, c.tier,
               se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label, se.is_current
          FROM fixture f
          JOIN fixture_participant p ON p.fixture_id = f.id AND p.team_id = $1
@@ -133,18 +142,23 @@ export class PostgresTeamStore {
          JOIN competition c ON c.id = se.competition_id
         -- Not 'postponed' (T-1578): a postponed match the provider never
         -- closed held a finished season's table on the page for good.
-        WHERE se.is_current OR f.status IN ('scheduled', 'live', 'suspended')
-        ORDER BY c.name, season_label DESC`,
+        WHERE se.is_current OR f.status IN ('scheduled', 'live', 'suspended')`,
       [teamId],
     );
-    return rows.map((r) => ({
-      competition: {
-        id: r.competition_id,
-        name: r.competition_name,
-        short_name: r.competition_short_name,
-      },
-      season: { id: r.season_id, label: r.season_label, is_current: r.is_current },
-    }));
+    return rows
+      .map((r): RankedTeamSeason => ({
+        competition: {
+          id: r.competition_id,
+          name: r.competition_name,
+          short_name: r.competition_short_name,
+        },
+        season: { id: r.season_id, label: r.season_label, is_current: r.is_current },
+        kind: r.kind,
+        scope: r.scope,
+        tier: r.tier,
+      }))
+      .sort(teamSeasonOrder)
+      .map((r) => ({ competition: r.competition, season: r.season, kind: r.kind, scope: r.scope }));
   }
 
   /** Every fixture of the team in the given seasons, oldest first, with the best score we hold. */
@@ -413,4 +427,52 @@ export class PostgresTeamStore {
       updatedAt: r.updated_at.toISOString(),
     };
   }
+}
+
+/** A team's competition season as `teamSeasonOrder` reads it. */
+export interface RankedTeamSeason extends TeamSeason {
+  /** 1 = top flight; null where tiers are not recorded. */
+  tier: number | null;
+}
+
+/**
+ * The groups of the team page's order (T-1764, D-379), first to last: the
+ * domestic league, then continental and international competitions (a
+ * league or a cup), then domestic cups, super cups, qualifying competitions
+ * and friendlies.
+ */
+export function orderGroup(kind: CompetitionKind, scope: CompetitionScope): number {
+  if (kind === 'league' && scope === 'domestic') return 0;
+  if ((kind === 'league' || kind === 'cup') && scope !== 'domestic') return 1;
+  if (kind === 'cup') return 2;
+  if (kind === 'super_cup') return 3;
+  if (kind === 'qualifying') return 4;
+  return 5;
+}
+
+/**
+ * The team page's order of a club's competitions (T-1764, D-379), set once
+ * here because the page reads "the first" for its band, its season card and
+ * its top scorer: by `orderGroup`; within a group a current season before an
+ * older one still being played, then the tier (1 first, unrecorded last),
+ * then the name, then the newest season label, then the competition and
+ * season ids, so the same rows always come back in the same order. Before
+ * T-1764 the rows were by name alone, and "EFL Cup" came before "Premier
+ * League".
+ */
+export function teamSeasonOrder(a: RankedTeamSeason, b: RankedTeamSeason): number {
+  return (
+    orderGroup(a.kind, a.scope) - orderGroup(b.kind, b.scope) ||
+    Number(b.season.is_current) - Number(a.season.is_current) ||
+    (a.tier ?? Number.MAX_SAFE_INTEGER) - (b.tier ?? Number.MAX_SAFE_INTEGER) ||
+    compareText(a.competition.name, b.competition.name) ||
+    compareText(b.season.label, a.season.label) ||
+    compareText(a.competition.id, b.competition.id) ||
+    compareText(a.season.id, b.season.id)
+  );
+}
+
+/** A locale-free, code-point comparison: the same order on every machine. */
+function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }

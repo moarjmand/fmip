@@ -10,10 +10,14 @@ import type { TeamSeason } from './internal/team-store';
 const LEAGUE: TeamSeason = {
   competition: { id: 'league', name: 'League', short_name: null },
   season: { id: 's-league', label: '2025/26', is_current: true },
+  kind: 'league',
+  scope: 'domestic',
 };
 const CUP: TeamSeason = {
   competition: { id: 'cup', name: 'Cup', short_name: null },
   season: { id: 's-cup', label: '2025/26', is_current: true },
+  kind: 'cup',
+  scope: 'domestic',
 };
 
 let seq = 0;
