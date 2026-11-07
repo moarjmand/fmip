@@ -342,12 +342,16 @@ class PostgresTrainingSource(TrainingSource):
         for season in seasons:
             try:
                 load_football_data(store, [season], [division], fetch=self.extra_fetch)
-            except Exception:  # noqa: BLE001 - recorded by the loader; the next season may not exist yet
+            # The loader recorded the failure; the next season's file may not exist yet.
+            except Exception:  # noqa: BLE001
                 log.warning("refreshing %s %s failed", division, season)
 
 
 def season_code(label: str) -> str:
-    """``"2026/27"`` → ``"2627"``, football-data.co.uk's code for a season (``season_label``'s inverse)."""
+    """``"2026/27"`` → ``"2627"``: football-data.co.uk's code for a season.
+
+    The inverse of ``season_label``.
+    """
     if len(label) != 7 or label[4] != "/":
         raise ValueError(f"a season label such as 2026/27, received {label!r}")
     return f"{label[2:4]}{label[5:7]}"

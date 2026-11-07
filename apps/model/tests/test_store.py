@@ -183,11 +183,16 @@ def test_the_service_reloads_a_main_league_s_newest_season_once_a_day(store: Tra
 def test_the_service_leaves_a_division_it_never_saw_loaded_alone() -> None:
     assert DATABASE_URL
     asked: list[str] = []
+
+    def fetch(url: str) -> str:
+        asked.append(url)
+        return ""
+
     source = PostgresTrainingSource(
         DATABASE_URL,
         today=lambda: date(2025, 3, 1),
         clubelo_refresh=False,
-        extra_fetch=lambda url: asked.append(url) or "",
+        extra_fetch=fetch,
     )
     source.refresh("T7")
     assert asked == []
