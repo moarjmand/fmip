@@ -16,18 +16,18 @@ import {
  */
 
 describe('the header nav', () => {
-  it('is Matches, Competitions, Predictions, The model, News, Highlights, in that order (D-281)', () => {
+  it('is Matches, Competitions, Leaderboard, The model, News, Highlights, in that order (D-281)', () => {
     expect(HEADER_NAV.map((link) => link.id)).toEqual([
       'matches',
       'competitions',
-      'predictions',
+      'leaderboard',
       'model',
       'news',
       'highlights',
     ]);
   });
 
-  it('leads each entry to a page of its own: Predictions to the prediction league', () => {
+  it('leads each entry to a page of its own: Leaderboard to the prediction league', () => {
     expect(HEADER_NAV.map((link) => link.path)).toEqual([
       '/scores',
       '/competitions',
@@ -60,17 +60,17 @@ describe('the header nav', () => {
     expect(currentLink('/en/competition/abc', HEADER_NAV)).toBe('competitions');
     expect(currentLink('/en/team/abc', HEADER_NAV)).toBe('competitions');
     expect(currentLink('/en/player/abc', HEADER_NAV)).toBe('competitions');
-    expect(currentLink('/en/leaderboard', HEADER_NAV, 'min=10')).toBe('predictions');
+    expect(currentLink('/en/leaderboard', HEADER_NAV, 'min=10')).toBe('leaderboard');
     expect(currentLink('/en/model-accuracy', HEADER_NAV)).toBe('model');
     expect(currentLink('/en/news/story/1', HEADER_NAV)).toBe('news');
     expect(currentLink('/fa/highlights', HEADER_NAV, 'page=2')).toBe('highlights');
   });
 
-  it('gives the picks to make to Predictions, and the rest of the matches page to Matches', () => {
+  it('gives the picks to make to the Leaderboard entry, and the rest of the matches page to Matches', () => {
     expect(PICKS_PATH).toBe('/scores?unpicked=1');
-    expect(currentLink('/en/scores', HEADER_NAV, 'unpicked=1')).toBe('predictions');
+    expect(currentLink('/en/scores', HEADER_NAV, 'unpicked=1')).toBe('leaderboard');
     expect(currentLink('/fa/scores', HEADER_NAV, '?date=2026-10-26&unpicked=1')).toBe(
-      'predictions',
+      'leaderboard',
     );
     expect(currentLink('/en/scores', HEADER_NAV, 'unpicked=0')).toBe('matches');
     expect(currentLink('/en/scores', HEADER_NAV, 'live=1')).toBe('matches');

@@ -4,6 +4,8 @@ import type {
   LeaderboardPeriodKind,
   LeaderboardResponse,
   LeaderboardScope,
+  Rating,
+  RatingResponse,
   RatingTier,
 } from '@fmip/contracts';
 import { formatNumber, intlLocale } from '@/i18n/format';
@@ -222,7 +224,7 @@ export function boardExplainer(
     among: after(among),
     inPeriod: after(inPeriod),
   }).text;
-  const floor = interpolate(t(l, 'leaderboardPage.provisionalBelow'), {
+  const floor = interpolate(t(l, 'leaderboardPage.floorRule'), {
     floor: formatNumber(l, board.floor),
   });
   return `${ranked} ${floor}${privacy}`;
@@ -303,4 +305,113 @@ export function statusLabel(
   if (entry.established) return t(l, 'leaderboardPage.status.established');
   if (entry.provisional) return t(l, 'leaderboardPage.status.provisional');
   return t(l, 'leaderboardPage.status.building');
+}
+
+/**
+ * How many of the board's filters narrow it (T-1783, D-388), for the folded
+ * line "Filters · 2 applied": friends, a month or season, a competition, a
+ * language, and a minimum other than the floor. `floor` is null when the API
+ * did not answer, and then any `?min=` counts.
+ */
+export function activeFilterCount(q: LeaderboardPageQuery, floor: number | null): number {
+  return [
+    q.scope !== 'everyone',
+    q.period !== 'all',
+    q.competition !== null,
+    q.language !== null,
+    q.min !== null && q.min !== floor,
+  ].filter(Boolean).length;
+}
+
+/** Whether the board is narrowed, so its explainer stays outside the folded filters (D-388). */
+export function boardNarrowed(
+  board: Pick<LeaderboardResponse, 'scope' | 'period' | 'competition' | 'language'>,
+): boolean {
+  return (
+    board.scope !== 'everyone' ||
+    board.period.kind !== 'all' ||
+    board.competition !== null ||
+    board.language !== null
+  );
+}
+
+/**
+ * The id of the About page's rating step (D-388, D7), where "How ratings
+ * work" leads; the member profile links to the same id.
+ */
+export const ABOUT_RATING_ANCHOR = 'about-rating';
+
+/** A step of "How a rating is earned": marked by fill and a tick, never by colour alone. */
+export type RatingStepState = 'done' | 'current' | 'todo';
+
+/**
+ * Who is looking at the card "How a rating is earned" (T-1784, D-388), and
+ * only what is true of them:
+ *
+ * - `guest`: nothing about the viewer is read, so no count -- the bar is a
+ *   picture of the rule (also a member whose own rating could not be read);
+ * - `unconfirmed`: a member whose e-mail is not confirmed, told the D-361
+ *   rule; their settled count, never a count of pending picks;
+ * - `member`: their own settled count from `GET /me/rating` (0 while the
+ *   rating is null);
+ * - `rated`: rated and at or above the floor, so on the board.
+ *
+ * No "N picks are waiting for their results": `settled_count` is the
+ * formula's window (the last 100) and the history's `total` counts every
+ * stored pick, voided ones included, so their difference is not a true count.
+ */
+export type RatingCardViewer =
+  | { kind: 'guest' }
+  | { kind: 'unconfirmed'; settled: number }
+  | { kind: 'member'; settled: number }
+  | { kind: 'rated'; username: string; rating: Rating };
+
+export function ratingCardViewer(
+  me: { email_verified: boolean } | null,
+  mine: RatingResponse | null,
+  floor: number,
+): RatingCardViewer {
+  if (me === null || mine === null) return { kind: 'guest' };
+  const settled = mine.rating?.settled_count ?? 0;
+  if (!me.email_verified) return { kind: 'unconfirmed', settled };
+  if (mine.rating !== null && settled >= floor) {
+    return { kind: 'rated', username: mine.username, rating: mine.rating };
+  }
+  return { kind: 'member', settled };
+}
+
+/**
+ * The three steps' states: the first is where everyone starts; from the
+ * first settled pick the results have scored and reaching the floor is what
+ * is left; on the board, all three are done.
+ */
+export function ratingSteps(
+  viewer: RatingCardViewer,
+): readonly [RatingStepState, RatingStepState, RatingStepState] {
+  if (viewer.kind === 'rated') return ['done', 'done', 'done'];
+  if (viewer.kind !== 'guest' && viewer.settled > 0) return ['done', 'done', 'current'];
+  return ['current', 'todo', 'todo'];
+}
+
+/** How far a member is towards the floor: the leaderboard card's bar and the profile's. */
+export interface FloorProgress {
+  count: number;
+  floor: number;
+  /** The bar's fill from the start edge, 0 to 99: below the floor it is never full. */
+  percent: number;
+}
+
+/**
+ * The bar to the floor (D-388, D-390), or null where none is drawn: at or
+ * above the floor (the member is on the board), and when the floor is not a
+ * positive number (an API that does not send it yet). Only below the floor is
+ * "N of floor" true: `settled_count` is the formula's window (the last 100),
+ * which equals every settled pick only while it is under the window -- and
+ * the floor is under the window (`formula.spec.ts` holds it). So a member
+ * with 34, or 250, settled picks gets no "34 of 30" or "100 of 30".
+ */
+export function floorProgress(settled: number, floor: number): FloorProgress | null {
+  if (!(floor > 0) || settled >= floor) return null;
+  const count = Math.max(0, settled);
+  return { count, floor, percent: Math.floor((count / floor) * 100) };
 }

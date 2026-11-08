@@ -2169,11 +2169,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "profile.noBio": {
-    "source": "No biography yet.",
-    "text": "",
-    "status": "untranslated"
-  },
   "profile.favourites": {
     "source": "Favourite teams",
     "text": "",
@@ -2195,7 +2190,7 @@
     "status": "untranslated"
   },
   "profile.rating.none": {
-    "source": "No rating yet: a rating starts with the first settled prediction.",
+    "source": "Not rated yet: a rating starts with the first settled prediction.",
     "text": "",
     "status": "untranslated"
   },
@@ -2221,6 +2216,81 @@
   },
   "profile.rating.computed": {
     "source": "computed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.state.notRated": {
+    "source": "Not rated yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.state.none": {
+    "source": "None yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.heading": {
+    "source": "Your first steps",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.pick": {
+    "source": "Make your first pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.follow": {
+    "source": "Follow a team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.followLink": {
+    "source": "Find a team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.bio": {
+    "source": "Add a short bio",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.done": {
+    "source": "Done",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.settled": {
+    "source": "Settled picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.own": {
+    "source": "Your settled picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.count": {
+    "source": "{count} of {floor}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.howRatingsWork": {
+    "source": "How ratings work",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.ownNote": {
+    "source": "Your rating starts with your first settled pick. A rating can always be recomputed from your picks and the results alone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.belowFloor": {
+    "source": "Not on the leaderboard yet: it joins from {floor}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.unrated": {
+    "source": "No settled picks yet. A rating starts with the first.",
     "text": "",
     "status": "untranslated"
   },
@@ -10232,6 +10302,120 @@
     "text": "",
     "status": "untranslated"
   },
+  "leaderboardPage.how.title": {
+    "source": "How a rating is earned",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step1": {
+    "source": "Pick before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step1Note": {
+    "source": "Your pick locks when the match starts.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step2": {
+    "source": "Results score it; hard calls count more",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step2Short": {
+    "source": "Results score it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step2Note": {
+    "source": "Being right when it was hard counts most.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step3": {
+    "source": {
+      "one": "Reach {count} settled pick and you join the board",
+      "other": "Reach {count} settled picks and you join the board"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step3Short": {
+    "source": {
+      "one": "Reach {count} settled pick",
+      "other": "Reach {count} settled picks"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step3Note": {
+    "source": "Until then you are not ranked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.done": {
+    "source": "done",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.guest": {
+    "source": "Below {floor} a rating is not ranked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.recompute": {
+    "source": "It can always be recomputed from your picks and the results alone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.nothingSettled": {
+    "source": "Nothing settled yet. The count starts with your first settled pick.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.rankedFrom": {
+    "source": "Your rating joins the board at {floor}; until then it shows on your profile.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.unconfirmed": {
+    "source": "Picks made before you confirm your e-mail count only if you confirm it before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.yours": {
+    "source": "Your rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.ratedMeta": {
+    "source": "{tier} · {settled} settled · {status}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.profile": {
+    "source": "Profile",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.filters.title": {
+    "source": "Filters",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.filters.none": {
+    "source": "none applied",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.filters.applied": {
+    "source": {
+      "one": "{count} applied",
+      "other": "{count} applied"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "leaderboardPage.who": {
     "source": "Who:",
     "text": "",
@@ -10463,8 +10647,8 @@
     "forms": {},
     "status": "untranslated"
   },
-  "leaderboardPage.provisionalBelow": {
-    "source": "Ratings are provisional below {floor}, so no smaller sample is ranked.",
+  "leaderboardPage.floorRule": {
+    "source": "The board never goes below {floor}, so no smaller sample is ranked.",
     "text": "",
     "status": "untranslated"
   },

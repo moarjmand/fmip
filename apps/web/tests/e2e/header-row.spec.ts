@@ -18,7 +18,9 @@ import { type Page, expect, test } from '@playwright/test';
  * the same both ways.
  */
 
-const WIDTHS = [1024, 1280, 1350];
+// 1100 and 1440 since T-1786 (D-389): "Leaderboard" is wider than the
+// "Predictions" it replaced, and the row is measured across the whole range.
+const WIDTHS = [1024, 1100, 1280, 1350, 1440];
 
 /**
  * The language picker as `LanguagePicker` draws it in the bar (T-1610,
@@ -72,6 +74,27 @@ async function row(page: Page): Promise<{ height: number; centres: Record<string
     });
 }
 
+/** How far the bar's controls reach past its content box at either inline edge, in px. */
+async function spill(page: Page): Promise<number> {
+  return page
+    .locator('header nav')
+    .first()
+    .evaluate((bar) => {
+      const box = bar.getBoundingClientRect();
+      const style = getComputedStyle(bar);
+      const start = box.left + parseFloat(style.paddingLeft);
+      const end = box.right - parseFloat(style.paddingRight);
+      let worst = 0;
+      for (const el of bar.querySelectorAll('[data-testid]')) {
+        if (el.closest('.more-panel, .lang-panel')) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        worst = Math.max(worst, start - r.left, r.right - end);
+      }
+      return worst;
+    });
+}
+
 for (const width of WIDTHS) {
   for (const locale of ['en', 'fa'] as const) {
     test.describe(`at ${width}px on /${locale}`, () => {
@@ -110,6 +133,9 @@ for (const width of WIDTHS) {
           // A 56px bar (64px before the sticky header, T-1759, D-376), the
           // same in either face, so a face arriving moves nothing.
           expect(height).toBe(56);
+          // Inside the page's frame (T-1786, D-389): the row's controls end
+          // within the bar's content box, never in the page's gutter.
+          expect(await spill(page)).toBeLessThanOrEqual(1);
           expect(
             await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
           ).toBeLessThanOrEqual(0);

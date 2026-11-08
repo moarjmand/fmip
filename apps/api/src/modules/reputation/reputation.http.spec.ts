@@ -12,6 +12,7 @@ import { MODEL_CLIENT, ModelClient } from '../forecast/forecast.service';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { ReputationModule } from './reputation.module';
 import { ReputationService } from './reputation.service';
+import { LEADERBOARD_RULES_V1 } from './internal/leaderboard';
 import { RatingThresholdsService } from '../rating-thresholds/rating-thresholds.service';
 import { deleteRatedAccounts, withTriggersOff } from '../../testing/cleanup';
 
@@ -208,7 +209,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
   it('has no rating before anything is settled, and needs a session', async () => {
     expect((await inject('GET', '/me/rating')).statusCode).toBe(401);
     const mine = (await inject('GET', '/me/rating', users[0]!.cookie)).json() as RatingResponse;
-    expect(mine).toEqual({ username: users[0]!.username, rating: null });
+    // The leaderboard's floor rides along (T-1787, D-390): the profile's way to it.
+    expect(mine).toEqual({
+      username: users[0]!.username,
+      rating: null,
+      floor: LEADERBOARD_RULES_V1.floor,
+    });
     const recomputed = (
       await inject('POST', '/me/rating/recompute', users[0]!.cookie)
     ).json() as RatingResponse;
@@ -281,6 +287,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('Performance 
       await inject('GET', `/users/${fav!.username}/rating`)
     ).json() as RatingResponse;
     expect(publicView.rating).toEqual(favRating.rating);
+    expect(publicView.floor).toBe(LEADERBOARD_RULES_V1.floor);
+    // The same number the board sends as its floor, read from the same rules.
+    const board = (await inject('GET', '/leaderboard')).json() as { floor: number };
+    expect(publicView.floor).toBe(board.floor);
   });
 
   it('is recomputable from stored records alone: the same rows give the same number and no new snapshot', async () => {
