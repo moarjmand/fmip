@@ -309,13 +309,14 @@ export class IngestStore implements SquadStore {
     competitionId: string,
     fromIso: string,
     toIso: string,
-  ): Promise<{ externalId: string; fixtureId: string; status: string }[]> {
+  ): Promise<{ externalId: string; fixtureId: string; status: string; kickoffAt: string }[]> {
     const { rows } = await this.pool.query<{
       external_id: string;
       fixture_id: string;
       status: string;
+      kickoff_at: Date;
     }>(
-      `SELECT pm.external_id, f.id AS fixture_id, f.status
+      `SELECT pm.external_id, f.id AS fixture_id, f.status, f.kickoff_at
          FROM fixture f
          JOIN season s ON s.id = f.season_id
          JOIN provider_mapping pm
@@ -328,6 +329,7 @@ export class IngestStore implements SquadStore {
       externalId: r.external_id,
       fixtureId: r.fixture_id,
       status: r.status,
+      kickoffAt: r.kickoff_at.toISOString(),
     }));
   }
 

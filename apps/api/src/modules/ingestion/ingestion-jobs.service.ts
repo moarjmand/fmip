@@ -21,6 +21,12 @@ import { DEFAULT_TIER_SHARES, parseTierShares, withBudgetTier } from './internal
 import { groupMembers, groupPlayed } from './internal/groups';
 import { lineupAsks, lineupWindow } from './internal/lineup-asks';
 import {
+  forgetOldAsks,
+  type InPlayMatch,
+  liveDetailAsks,
+  liveDetailMinutes,
+} from './internal/live-detail-asks';
+import {
   IngestStore,
   type PollTarget,
   type SeasonFeedCoverage,
@@ -333,6 +339,10 @@ export class IngestionJobsService {
   private readonly transferStore: TransferStore;
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
+  /** Minutes between two detail asks about a match in play; 0 is off (T-1782, D-382). */
+  private readonly liveDetailMinutes = liveDetailMinutes(process.env.INGESTION_LIVE_DETAIL_MINUTES);
+  /** When the live job last asked for a match in play's detail, by fixture id. */
+  private readonly liveDetailAskedAt = new Map<string, number>();
 
   constructor(
     @Inject(PG_POOL) pool: Pool,
@@ -903,6 +913,8 @@ export class IngestionJobsService {
       }
       const question = liveQuestion(known);
       const raised = new Set<string>();
+      // The matches the list answered as in play, for their detail (T-1782).
+      const inPlay: (InPlayMatch & { target: PollTarget })[] = [];
 
       if (question.externalIds.length > 0) {
         const result = await source.adapter.getLive({ fixtureExternalIds: question.externalIds });
@@ -924,6 +936,14 @@ export class IngestionJobsService {
             for (const id of write.unresolved) unresolved.add(id);
             if (write.changed === 0 && write.fixtureId !== undefined && clockStopped(fixture)) {
               unchanged.push(write.fixtureId);
+            }
+            if (fixture.status === 'live' && write.fixtureId !== undefined) {
+              inPlay.push({
+                fixtureId: write.fixtureId,
+                externalId: fixture.externalId,
+                kickoffAt: fixture.kickoffAt,
+                target,
+              });
             }
             // The live list's own events, where it carries them (T-830): a
             // scorer or a red card within the minute, not the half hour.
@@ -967,6 +987,32 @@ export class IngestionJobsService {
               continue;
             }
             seen += 1;
+            written += detail.written;
+            seasons.add(match.target.seasonId);
+            for (const id of detail.unresolved) unresolved.add(id);
+            if (before !== null) for (const id of await this.alerts.after(before)) raised.add(id);
+          }
+
+          // The statistics of the matches in play (T-1782, D-382): the list
+          // carries none, so each is asked for its detail every few minutes,
+          // the longest-waiting first. On the standard tier (D-183), so a day
+          // that runs long stops these before the live scores.
+          forgetOldAsks(this.liveDetailAskedAt, now);
+          for (const match of liveDetailAsks(
+            inPlay,
+            this.liveDetailAskedAt,
+            now,
+            this.liveDetailMinutes,
+          )) {
+            this.liveDetailAskedAt.set(match.fixtureId, now.getTime());
+            // Read before the write, so a goal or a red card the detail carries
+            // before the list does still raises its alert.
+            const before = await this.alerts.before(match.fixtureId);
+            const detail = await withBudgetTier('standard', () => this.ingestDetail(source, match));
+            if (detail.refused !== undefined) {
+              refused.push(detail.refused);
+              continue;
+            }
             written += detail.written;
             seasons.add(match.target.seasonId);
             for (const id of detail.unresolved) unresolved.add(id);
@@ -1089,10 +1135,14 @@ export class IngestionJobsService {
    */
   postMatch(now: Date = new Date()): Promise<JobReport> {
     return this.track('post_match', async (source, targets) => {
-      const recent = await this.detailCandidates(source.provider, targets, now, [
-        'finished',
-        'live',
-      ]);
+      // A match in play is the live job's to ask while it asks for details
+      // (T-1782); the ten asks here go to the matches just finished.
+      const recent = await this.detailCandidates(
+        source.provider,
+        targets,
+        now,
+        this.liveDetailMinutes > 0 ? ['finished'] : ['finished', 'live'],
+      );
       const owed = [...recent, ...(await this.detailBacklog(source, targets, now, recent))];
       // What an administrator asked the feed again for (T-913), within its share.
       const refetches = await this.refetchesDue(source, targets, owed);
@@ -1425,16 +1475,28 @@ export class IngestionJobsService {
   ): Promise<{ externalId: string; fixtureId: string; target: PollTarget }[]> {
     const from = new Date(now.getTime() - LIVE_WINDOW_AFTER_MINUTES * 60 * 1000).toISOString();
     const to = new Date(now.getTime() + LIVE_WINDOW_BEFORE_MINUTES * 60 * 1000).toISOString();
-    const out: { externalId: string; fixtureId: string; target: PollTarget }[] = [];
+    const out: { externalId: string; fixtureId: string; kickoffAt: string; target: PollTarget }[] =
+      [];
 
     for (const target of targets) {
       const known = await this.store.fixtureExternalIds(provider, target.competitionId, from, to);
       for (const fixture of known) {
         if (!statuses.includes(fixture.status)) continue;
-        out.push({ externalId: fixture.externalId, fixtureId: fixture.fixtureId, target });
+        out.push({
+          externalId: fixture.externalId,
+          fixtureId: fixture.fixtureId,
+          kickoffAt: fixture.kickoffAt,
+          target,
+        });
       }
     }
-    return out.slice(0, DETAIL_BATCH);
+    // Newest kick-off first, whatever the competition (T-1782): the polled
+    // competitions come in alphabetical order, and taking the first ten of
+    // that order left the Premier League's matches out on a busy Saturday.
+    out.sort((a, b) => Date.parse(b.kickoffAt) - Date.parse(a.kickoffAt));
+    return out
+      .slice(0, DETAIL_BATCH)
+      .map(({ externalId, fixtureId, target }) => ({ externalId, fixtureId, target }));
   }
 
   /**

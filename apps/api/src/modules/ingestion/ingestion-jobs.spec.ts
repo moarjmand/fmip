@@ -819,6 +819,83 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     expect(report.itemsWritten).toBe(0);
   });
 
+  /**
+   * T-1782 (D-382). The live list carries no statistics, so the live job asks
+   * a match the list says is in play for its detail, at most once every
+   * `LIVE_DETAIL_MINUTES`. The list here is the recorded Burnley v City
+   * answer marked live; the detail is its recording.
+   */
+  it('asks a match in play for its statistics every few minutes, not every tick', async () => {
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT f.id FROM fixture f
+         JOIN provider_mapping pm
+           ON pm.internal_id = f.id AND pm.provider = 'api_football' AND pm.entity_type = 'fixture'
+        WHERE f.season_id = $1 AND pm.external_id = '1035037'`,
+      [SEASON],
+    );
+    const fixtureId = rows[0]?.id ?? '';
+    expect(fixtureId).not.toBe('');
+    await pool.query(`UPDATE fixture SET status = 'live', minute = 60 WHERE id = $1`, [fixtureId]);
+    await pool.query(
+      `DELETE FROM fixture_stat WHERE participant_id IN
+         (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
+      [fixtureId],
+    );
+    const statRows = (): Promise<number> =>
+      count(
+        `SELECT count(*) AS n FROM fixture_stat s
+           JOIN fixture_participant p ON p.id = s.participant_id WHERE p.fixture_id = $1`,
+        [fixtureId],
+      );
+
+    const forJob = sources.forJob;
+    const asked: string[] = [];
+    sources.forJob = (job) => {
+      const source = forJob.call(sources, job);
+      if (source === null) return null;
+      const adapter = Object.create(source.adapter) as typeof source.adapter;
+      adapter.getLive = async () => {
+        const recorded = await source.adapter.getFixtureDetail('1035037');
+        if (!recorded.ok) return recorded;
+        const fixture = { ...recorded.data.fixture, status: 'live' as const, minute: 60 };
+        return {
+          ok: true,
+          data: [{ ...fixture, halfTimeBreak: false }],
+          requests: 1,
+          fetchedAt: recorded.fetchedAt,
+        };
+      };
+      adapter.getFixtureDetail = (id: string) => {
+        asked.push(id);
+        return source.adapter.getFixtureDetail(id);
+      };
+      return { ...source, adapter };
+    };
+    try {
+      const tick = (minutes: number) =>
+        jobs.live(new Date(AFTER_KICKOFF.getTime() + minutes * 60_000));
+      await tick(0);
+      expect(asked).toEqual(['1035037']);
+      expect(await statRows()).toBeGreaterThan(0);
+
+      // The next tick, a minute on: the list is read, the detail is not.
+      await pool.query(`UPDATE fixture SET status = 'live', minute = 61 WHERE id = $1`, [
+        fixtureId,
+      ]);
+      await tick(1);
+      expect(asked).toHaveLength(1);
+
+      // Three minutes after the first ask it is asked again.
+      await tick(3);
+      expect(asked).toEqual(['1035037', '1035037']);
+    } finally {
+      sources.forJob = forJob;
+      await pool.query(`UPDATE fixture SET status = 'finished', minute = NULL WHERE id = $1`, [
+        fixtureId,
+      ]);
+    }
+  });
+
   it('reads the provider table as a check on ours and names what is behind', async () => {
     const report = await jobs.run('standings');
     expect(report.itemsWritten).toBe(0);
