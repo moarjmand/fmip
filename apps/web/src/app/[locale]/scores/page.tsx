@@ -361,7 +361,7 @@ export default async function ScoresPage({
         <GateCard locale={locale} route="/scores?unpicked=1" heading="h2" compact />
       )}
 
-      <div className="scores-flat grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21.25rem] xl:grid-cols-[13.75rem_minmax(0,1fr)_21.25rem]">
+      <div className="scores-flat grid items-start gap-6 lg:grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1fr)_21.25rem] xl:grid-cols-[13.75rem_minmax(0,1fr)_21.25rem]">
         {result.ok && (
           <nav
             aria-label={railNav.text}
