@@ -5,6 +5,12 @@ import { AchievementsSection } from '@/components/achievements';
 import { StartConversation } from '@/components/conversation-controls';
 import { Pictured } from '@/components/lite-mode';
 import { isDeletedMember } from '@fmip/contracts';
+import {
+  FirstStepsCard,
+  HowRatingsWork,
+  ProfileStateRow,
+  SettledProgressBar,
+} from '@/components/first-steps';
 import { FriendControls } from '@/components/friend-controls';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import { memberName } from '@/lib/member-name';
@@ -17,6 +23,7 @@ import { DEFAULT_LOCALE, directionOf, isLocale, type Locale } from '@/i18n/local
 import { interpolate, message, t } from '@/i18n/messages';
 import {
   fetchAchievements,
+  fetchFollowing,
   fetchFriendStatus,
   fetchMe,
   fetchPredictionHistory,
@@ -24,6 +31,9 @@ import {
   fetchRating,
   fetchRatingHistory,
 } from '@/lib/api';
+import { firstSteps, settledProgress, showsProgress } from '@/lib/first-steps';
+import { stepHref } from '@/lib/first-run';
+import { PICKS_PATH } from '@/lib/shell-nav';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { inviteUrl } from '@/lib/invite';
 import { historyQuery, readHistoryPage } from '@/lib/prediction-history';
@@ -132,13 +142,16 @@ export default async function ProfilePage({
   }
 
   const { profile } = view;
+  const own = view.is_self;
   const page = readHistoryPage(query);
-  const [me, rating, history, ratingHistory, achievements] = await Promise.all([
+  const [me, rating, history, ratingHistory, achievements, following] = await Promise.all([
     fetchMe(cookie),
     fetchRating(profile.username),
     fetchPredictionHistory(profile.username, historyQuery(page), cookie),
     fetchRatingHistory(profile.username, cookie),
     fetchAchievements(profile.username, cookie),
+    // Only for "Your first steps" (T-1787): whether the member follows a team.
+    own ? fetchFollowing(cookie) : Promise.resolve(null),
   ]);
   const { timeZone } = await pageTimeZone(locale, me);
   // English has always shown these instants as the API gives them; every
@@ -149,8 +162,39 @@ export default async function ProfilePage({
       : formatDate(lang, iso, 'UTC', { day: 'numeric', month: 'short', year: 'numeric' });
   const shownInstant = (iso: string): string =>
     lang === DEFAULT_LOCALE ? iso : formatDateTime(lang, iso, timeZone);
-  const pageHref = (p: number): string =>
-    `/${locale}/u/${encodeURIComponent(profile.username)}${p > 1 ? `?page=${p}` : ''}`;
+  const profileHref = `/${locale}/u/${encodeURIComponent(profile.username)}`;
+  const pageHref = (p: number): string => `${profileHref}${p > 1 ? `?page=${p}` : ''}`;
+
+  // A new member's profile (T-1787, D-390; board P7-6). The count is the
+  // rating's own (0 while it is null), the floor the one the rating response
+  // carries -- the leaderboard's -- never a typed number (rule 3).
+  const rated = rating.ok ? rating.data.rating : null;
+  const progress = rating.ok ? settledProgress(rated?.settled_count ?? 0, rating.data.floor) : null;
+  const visibleHistory = history.ok && history.data.kind !== 'restricted' ? history.data : null;
+  const steps = own
+    ? firstSteps({
+        settled: rating.ok ? (rated?.settled_count ?? 0) : null,
+        predictions: visibleHistory === null ? null : visibleHistory.total,
+        followsTeam:
+          following === null ? null : following.some((entity) => entity.entity_type === 'team'),
+        favouriteTeams: profile.favourite_teams.length,
+        bio: profile.bio,
+      })
+    : null;
+  const stepsShown = steps?.shown === true;
+  // The bar under a rating: a visitor's, or the member's own once the card has gone.
+  const ratingBar =
+    progress !== null && showsProgress(progress.count, progress.floor) && !stepsShown;
+  // An empty section is one 48px line with its state word (D-383's row).
+  const ratingOverTimeEmpty =
+    ratingHistory.ok &&
+    ratingHistory.data.kind === 'visible' &&
+    ratingHistory.data.history === null;
+  const achievementsEmpty =
+    achievements.ok &&
+    achievements.data.kind === 'visible' &&
+    achievements.data.achievements.earned.length === 0;
+  const historyEmpty = visibleHistory !== null && visibleHistory.items.length === 0 && page === 1;
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
@@ -172,9 +216,13 @@ export default async function ProfilePage({
         )}
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold" data-testid="profile-name">
-            <MemberName locale={locale} member={profile} />
+            <bdi>
+              <MemberName locale={locale} member={profile} />
+            </bdi>
           </h1>
-          <MemberHandle username={profile.username} className="text-muted" />
+          <bdi>
+            <MemberHandle username={profile.username} className="text-muted" />
+          </bdi>
           <p className="text-sm text-muted">
             <Translated locale={locale} message="profile.memberSince" />{' '}
             <time dateTime={profile.member_since}>{shownDay(profile.member_since)}</time>
@@ -188,6 +236,18 @@ export default async function ProfilePage({
       </header>
 
       {invited}
+      {steps !== null && stepsShown && (
+        <FirstStepsCard
+          locale={locale}
+          steps={steps.steps}
+          progress={progress}
+          hrefs={{
+            pick: `/${locale}${PICKS_PATH}`,
+            follow: stepHref(locale, 'teams', profileHref),
+            bio: `/${locale}/settings`,
+          }}
+        />
+      )}
       {view.is_self && (
         <p className="text-sm" data-testid="invite-link">
           <ShareLink
@@ -217,137 +277,213 @@ export default async function ProfilePage({
         )}
       </div>
 
-      {profile.bio !== null ? (
+      {/* No bio is not drawn (T-1787, D-390): to a visitor it says nothing,
+          and the member's own page asks for one in its first steps. */}
+      {profile.bio !== null && (
         <p className="whitespace-pre-line" data-testid="profile-bio">
           {profile.bio}
         </p>
-      ) : (
-        <p className="text-sm text-muted">
-          <Translated locale={locale} message="profile.noBio" />
-        </p>
       )}
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">
-          <Translated locale={locale} message="profile.favourites" />
-        </h2>
-        {profile.favourite_teams.length === 0 ? (
-          <p className="text-sm text-muted">
-            <Translated locale={locale} message="profile.noFavourites" />
-          </p>
-        ) : (
+      {profile.favourite_teams.length > 0 ? (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="profile.favourites" />
+          </h2>
           <ul className="flex flex-wrap gap-2" data-testid="favourite-teams">
             {profile.favourite_teams.map((team) => (
               <li key={team} className="rounded border border-default px-2 py-1 text-sm">
-                {team}
+                <bdi>{team}</bdi>
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        </section>
+      ) : (
+        // None is drawn for a visitor; the member sees the line that will fill in.
+        own && (
+          <ProfileStateRow
+            locale={locale}
+            id="profile-favourites"
+            heading="profile.favourites"
+            word="profile.state.none"
+            testId="favourites-none"
+          >
+            <Translated locale={locale} message="profile.noFavourites" />
+          </ProfileStateRow>
+        )
+      )}
 
-      <section className="flex flex-col gap-2" data-testid="rating">
-        <h2 className="text-lg font-semibold">
-          <Translated locale={locale} message="profile.rating.heading" />
-        </h2>
-        {!rating.ok ? (
-          <Notice tone="danger">
-            <Translated locale={locale} message="profile.rating.unreachable" />
-          </Notice>
-        ) : rating.data.rating === null ? (
-          <p className="text-sm text-muted" data-testid="rating-none">
+      {own && rated === null && rating.ok ? (
+        // The member's own: the count and the floor are on the first steps' card.
+        <div data-testid="rating">
+          <ProfileStateRow
+            locale={locale}
+            id="profile-rating"
+            heading="profile.rating.heading"
+            word="profile.state.notRated"
+            testId="rating-none"
+          >
             <Translated locale={locale} message="profile.rating.none" />
-          </p>
-        ) : (
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
-            <div>
-              <dt className="text-xs uppercase text-muted">
-                <Translated locale={locale} message="profile.rating.rating" />
-              </dt>
-              <dd className="text-2xl font-semibold tabular-nums" data-testid="rating-value">
-                {ratingLabel(rating.data.rating, locale)}
+          </ProfileStateRow>
+        </div>
+      ) : (
+        <section className="flex flex-col gap-2" data-testid="rating">
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="profile.rating.heading" />
+          </h2>
+          {!rating.ok ? (
+            <Notice tone="danger">
+              <Translated locale={locale} message="profile.rating.unreachable" />
+            </Notice>
+          ) : rating.data.rating === null ? (
+            <p className="text-sm text-muted" data-testid="rating-none">
+              <Translated locale={locale} message="profile.rating.none" />
+            </p>
+          ) : (
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-xs uppercase text-muted">
+                  <Translated locale={locale} message="profile.rating.rating" />
+                </dt>
+                <dd className="text-2xl font-semibold tabular-nums" data-testid="rating-value">
+                  {ratingLabel(rating.data.rating, locale)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-muted">
+                  <Translated locale={locale} message="profile.rating.tier" />
+                </dt>
+                <dd>{tierLabel(rating.data.rating.tier, locale)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-muted">
+                  <Translated locale={locale} message="profile.rating.status" />
+                </dt>
+                <dd>{statusLabel(rating.data.rating, locale)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs uppercase text-muted">
+                  <Translated locale={locale} message="profile.rating.settled" />
+                </dt>
+                <dd className="tabular-nums">
+                  {formatNumber(lang, rating.data.rating.settled_count)}
+                </dd>
+              </div>
+              <dd className="col-span-full text-xs text-muted">
+                {rating.data.rating.formula_version} ·{' '}
+                <Translated locale={locale} message="profile.rating.computed" />{' '}
+                <time dateTime={rating.data.rating.computed_at}>
+                  {shownInstant(rating.data.rating.computed_at)}
+                </time>
               </dd>
+            </dl>
+          )}
+          {/* Under a missing or provisional rating, the way to the floor (T-1787, D-390). */}
+          {ratingBar && progress !== null && (
+            <div className="flex flex-col gap-1">
+              <SettledProgressBar
+                locale={locale}
+                progress={progress}
+                label={own ? 'profile.progress.own' : 'profile.progress.visitor'}
+                note={rated === null ? 'profile.progress.unrated' : 'profile.progress.provisional'}
+              />
+              <div>
+                <HowRatingsWork locale={locale} />
+              </div>
             </div>
-            <div>
-              <dt className="text-xs uppercase text-muted">
-                <Translated locale={locale} message="profile.rating.tier" />
-              </dt>
-              <dd>{tierLabel(rating.data.rating.tier, locale)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase text-muted">
-                <Translated locale={locale} message="profile.rating.status" />
-              </dt>
-              <dd>{statusLabel(rating.data.rating, locale)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs uppercase text-muted">
-                <Translated locale={locale} message="profile.rating.settled" />
-              </dt>
-              <dd className="tabular-nums">
-                {formatNumber(lang, rating.data.rating.settled_count)}
-              </dd>
-            </div>
-            <dd className="col-span-full text-xs text-muted">
-              {rating.data.rating.formula_version} ·{' '}
-              <Translated locale={locale} message="profile.rating.computed" />{' '}
-              <time dateTime={rating.data.rating.computed_at}>
-                {shownInstant(rating.data.rating.computed_at)}
-              </time>
-            </dd>
-          </dl>
-        )}
-      </section>
+          )}
+        </section>
+      )}
 
-      <section className="flex flex-col gap-2" data-testid="rating-over-time">
-        <h2 className="text-lg font-semibold">
-          <Translated locale={locale} message="profile.ratingOverTime" />
-        </h2>
-        <RatingHistorySection
-          locale={locale}
-          direction={directionOf(locale)}
-          result={ratingHistory}
-        />
-      </section>
+      {ratingOverTimeEmpty ? (
+        <div data-testid="rating-over-time">
+          <ProfileStateRow
+            locale={locale}
+            id="profile-rating-over-time"
+            heading="profile.ratingOverTime"
+            word="profile.state.none"
+            testId="rating-history-none"
+          >
+            <Translated locale={locale} message="profile.ratingHistory.none" />
+          </ProfileStateRow>
+        </div>
+      ) : (
+        <section className="flex flex-col gap-2" data-testid="rating-over-time">
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="profile.ratingOverTime" />
+          </h2>
+          <RatingHistorySection
+            locale={locale}
+            direction={directionOf(locale)}
+            result={ratingHistory}
+          />
+        </section>
+      )}
 
       {/* The anchor an achievement notification opens (T-946). */}
-      <section id="achievements" className="flex flex-col gap-2" data-testid="achievements">
-        <h2 className="text-lg font-semibold">
-          <Translated locale={locale} message="achievements.title" />
-        </h2>
-        <AchievementsSection locale={locale} result={achievements} />
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">
-          <Translated locale={locale} message="nav.predictions" />
-        </h2>
-        {!history.ok ? (
-          <Notice tone="danger" data-testid="history-unreachable">
-            <Translated locale={locale} message="profile.history.unreachable" />
-          </Notice>
-        ) : history.data.kind === 'restricted' ? (
-          <p className="text-sm text-muted" data-testid="history-restricted">
-            <Translated
-              locale={locale}
-              message={
-                history.data.visibility === 'friends'
-                  ? 'profile.history.restrictedFriends'
-                  : 'profile.history.restrictedPrivate'
-              }
-            />
-          </p>
-        ) : (
-          <PredictionHistory
+      {achievementsEmpty ? (
+        <div id="achievements" data-testid="achievements">
+          <ProfileStateRow
             locale={locale}
-            timeZone={timeZone}
-            items={history.data.items}
-            total={history.data.total}
-            page={page}
-            pageHref={pageHref}
-          />
-        )}
-      </section>
+            id="profile-achievements"
+            heading="achievements.title"
+            word="profile.state.none"
+            testId="achievements-none"
+          >
+            <Translated locale={locale} message="achievements.none" />
+          </ProfileStateRow>
+        </div>
+      ) : (
+        <section id="achievements" className="flex flex-col gap-2" data-testid="achievements">
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="achievements.title" />
+          </h2>
+          <AchievementsSection locale={locale} result={achievements} />
+        </section>
+      )}
+
+      {historyEmpty ? (
+        <ProfileStateRow
+          locale={locale}
+          id="profile-predictions"
+          heading="nav.predictions"
+          word="profile.state.none"
+          testId="history-empty"
+        >
+          <Translated locale={locale} message="history.empty" />
+        </ProfileStateRow>
+      ) : (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">
+            <Translated locale={locale} message="nav.predictions" />
+          </h2>
+          {!history.ok ? (
+            <Notice tone="danger" data-testid="history-unreachable">
+              <Translated locale={locale} message="profile.history.unreachable" />
+            </Notice>
+          ) : history.data.kind === 'restricted' ? (
+            <p className="text-sm text-muted" data-testid="history-restricted">
+              <Translated
+                locale={locale}
+                message={
+                  history.data.visibility === 'friends'
+                    ? 'profile.history.restrictedFriends'
+                    : 'profile.history.restrictedPrivate'
+                }
+              />
+            </p>
+          ) : (
+            <PredictionHistory
+              locale={locale}
+              timeZone={timeZone}
+              items={history.data.items}
+              total={history.data.total}
+              page={page}
+              pageHref={pageHref}
+            />
+          )}
+        </section>
+      )}
     </main>
   );
 }

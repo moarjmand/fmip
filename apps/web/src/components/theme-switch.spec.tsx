@@ -132,10 +132,13 @@ describe('the header at every width (T-1479)', () => {
     // A fixed height and no wrap: a face arriving late cannot add a row. The
     // gaps are tighter below 1280px, where six sections share it (D-281), and
     // for a guest at every width, whose bar carries two account buttons
-    // (T-1736, D-358).
+    // (T-1736, D-358). 8px between the bar's tools and 2px between the
+    // nav's entries from 1024px since T-1786 (D-389): "Leaderboard" is wider
+    // than "Predictions" was.
     // The height is `.site-bar`'s in globals.css since T-1759 (D-376): a
     // fixed `block-size` from 1024px, 56px (64px on the match page).
-    expect(HEADER).toContain('site-bar page-frame flex items-center gap-x-2 lg:gap-x-2.5 ${');
+    expect(HEADER).toContain('site-bar page-frame flex items-center gap-x-2 ${');
+    expect(HEADER).toContain('lg:flex-row lg:items-center lg:gap-0.5');
     const STYLES = readFileSync(join(HERE, '..', 'app', 'globals.css'), 'utf8');
     expect(STYLES).toMatch(/@media \(width >= 64rem\) \{\s*\.site-bar \{\s*block-size: 3\.5rem;/);
     expect(HEADER).toContain("me === null ? '' : 'xl:gap-x-4'");

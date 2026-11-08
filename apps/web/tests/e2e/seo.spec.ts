@@ -15,7 +15,7 @@ test.describe('SEO surface without JavaScript', () => {
 
     await expect(page.getByTestId('title')).toHaveText('Matches');
     await expect(page.getByTestId('nav-matches')).toBeVisible();
-    await expect(page.getByTestId('nav-predictions')).toBeVisible();
+    await expect(page.getByTestId('nav-leaderboard')).toBeVisible();
     await expect(page.getByTestId('nav-search-form')).toBeVisible();
     // The honest state is rendered server-side, not filled in by a script.
     await expect(page.getByRole('alert')).toBeVisible();
