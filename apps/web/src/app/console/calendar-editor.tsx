@@ -230,7 +230,7 @@ export function EventEditor({
                   name="color"
                   value={color}
                   defaultChecked={draft.color === color}
-                  className="peer absolute inset-0 cursor-pointer opacity-0"
+                  className="peer absolute inset-0 cursor-pointer appearance-none"
                 />
                 <span
                   aria-hidden="true"

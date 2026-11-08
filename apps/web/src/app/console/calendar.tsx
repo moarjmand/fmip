@@ -98,16 +98,16 @@ export const COLOR_WORDS: Record<ConsoleEventColor, string> = {
   teal: 'سبزآبی',
   violet: 'ارغوانی',
 };
-/** Mid tones, mixed with the page's text colour where they are text, so they read in both themes. */
+/** The tokens' event colours (`--event-*` in `tokens.css`), mixed there into the surface and the text so they read in both themes. */
 const COLOR_VALUES: Record<ConsoleEventColor, string> = {
-  blue: '#2f6fdb',
-  green: '#2f9e44',
-  amber: '#d9a400',
-  orange: '#e8590c',
-  pink: '#d6336c',
-  purple: '#ae3ec9',
-  teal: '#0c8599',
-  violet: '#7048e8',
+  blue: 'var(--event-blue)',
+  green: 'var(--event-green)',
+  amber: 'var(--event-amber)',
+  orange: 'var(--event-orange)',
+  pink: 'var(--event-pink)',
+  purple: 'var(--event-purple)',
+  teal: 'var(--event-teal)',
+  violet: 'var(--event-violet)',
 };
 export const SUBSCRIPTION_STATUS_WORDS: Record<ConsoleSubscriptionStatus, string> = {
   failing: 'فوری، از کار افتاده',
@@ -128,8 +128,7 @@ export const SUBSCRIPTION_STATUS_TONE: Record<ConsoleSubscriptionStatus, string>
 
 export const colorStyle = (color: ConsoleEventColor): CSSProperties =>
   ({ '--ev': COLOR_VALUES[color] ?? COLOR_VALUES.blue }) as CSSProperties;
-const TINT =
-  'bg-[color-mix(in_srgb,var(--ev)_15%,transparent)] text-[color-mix(in_srgb,var(--ev)_72%,var(--color-fg))]';
+const TINT = 'event-tint';
 export const isColor = (value: unknown): value is ConsoleEventColor =>
   (CONSOLE_EVENT_COLORS as readonly unknown[]).includes(value);
 
@@ -374,9 +373,11 @@ export function MonthGrid({
                 href={hrefWith(query, { day: dayToIso(day), event: null, new: null })}
                 className={`flex min-h-14 min-w-0 flex-col gap-1 rounded-tile border p-1 text-start sm:min-h-24 sm:p-1.5 focus-visible:outline-2 focus-visible:outline-focus ${
                   selected
-                    ? 'border-brand bg-[color-mix(in_srgb,var(--color-brand)_8%,var(--color-surface))]'
-                    : 'border-default bg-surface hover:border-strong'
-                } ${outside ? 'opacity-50' : ''}`}
+                    ? 'border-brand bg-selected'
+                    : outside
+                      ? 'border-default bg-canvas hover:border-strong'
+                      : 'border-default bg-surface hover:border-strong'
+                }`}
               >
                 <span className="flex min-w-0 flex-col items-start gap-0 sm:flex-row sm:items-center sm:justify-between sm:gap-1">
                   <b

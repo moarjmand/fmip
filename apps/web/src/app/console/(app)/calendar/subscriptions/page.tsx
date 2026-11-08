@@ -158,7 +158,7 @@ export default async function ConsoleSubscriptionsPage() {
                 {subscriptions.map((s) => (
                   <tr
                     key={s.key}
-                    className={`border-t border-default align-top ${s.status === 'failing' ? 'bg-[color-mix(in_srgb,var(--color-danger)_7%,var(--color-surface))]' : ''}`}
+                    className={`border-t border-default align-top ${s.status === 'failing' ? 'event-row-failing' : 'bg-surface'}`}
                   >
                     <th
                       scope="row"
