@@ -34,6 +34,7 @@ const RATING: Rating = {
 };
 const withCount = (settled_count: number): RatingResponse => ({
   username: 'ana',
+  floor: 30,
   rating: { ...RATING, settled_count, provisional: settled_count < 30 },
 });
 const VERIFIED = { email_verified: true };
@@ -59,7 +60,7 @@ describe('who is looking (T-1784)', () => {
   });
 
   it("counts a member's own settled picks, 0 while the rating is null", () => {
-    expect(ratingCardViewer(VERIFIED, { username: 'ana', rating: null }, 30)).toEqual({
+    expect(ratingCardViewer(VERIFIED, { username: 'ana', floor: 30, rating: null }, 30)).toEqual({
       kind: 'member',
       settled: 0,
     });
