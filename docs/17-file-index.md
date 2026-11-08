@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2383), grouped by folder, with one line on
+Every file in the repository (2385), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -205,7 +205,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/groups/[slug]`](#appswebsrcapplocalegroupsslug) — 1
 - [`apps/web/src/app/[locale]/groups/[slug]/history`](#appswebsrcapplocalegroupsslughistory) — 1
 - [`apps/web/src/app/[locale]/highlights`](#appswebsrcapplocalehighlights) — 4
-- [`apps/web/src/app/[locale]/leaderboard`](#appswebsrcapplocaleleaderboard) — 1
+- [`apps/web/src/app/[locale]/leaderboard`](#appswebsrcapplocaleleaderboard) — 3
 - [`apps/web/src/app/[locale]/login`](#appswebsrcapplocalelogin) — 1
 - [`apps/web/src/app/[locale]/match/[id]`](#appswebsrcapplocalematchid) — 5
 - [`apps/web/src/app/[locale]/messages`](#appswebsrcapplocalemessages) — 1
@@ -2440,6 +2440,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | The languages a board can be drawn by (T-844): the ones the site is offered in. |
+| `rating-card.spec.tsx` | "How a rating is earned" and the folded filters (T-1783, T-1784, D-388; boards P7-2 and P7-3): the card says only what is true of whoever looks, its threshold is the API's floor, and the filters fold into one line. |
+| `rating-card.tsx` | "How a rating is earned" (T-1783, T-1784, D-388): the card that opens the leaderboard, in place of the old picks card. |
 
 ## apps/web/src/app/[locale]/login
 
