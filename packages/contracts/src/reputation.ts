@@ -273,7 +273,11 @@ export interface LeaderboardResponse {
   rules_version: string;
   /** The filter applied: at least this many settled predictions to be ranked. */
   min_settled: number;
-  /** The lowest `min_settled` the board accepts; the rating is provisional below it. */
+  /**
+   * The lowest `min_settled` the board accepts: a constant of the rules
+   * version (D-152), not the console's provisional count, though version 1
+   * set both to 30.
+   */
   floor: number;
   /** Suggested filter values for the UI. */
   presets: number[];
