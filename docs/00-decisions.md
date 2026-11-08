@@ -14981,7 +14981,6 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 
 **Consequences.** `RatingResponse` gains `floor` (contract, controller, the reputation HTTP spec). One more read on the member's own page (`GET /me/following`). New strings in every catalogue; `profile.noBio` is gone (nothing draws it), and `profile.rating.none` now reads "Not rated yet: …" in English (the Persian was already that). No client JavaScript.
 
-
 ## D-391 — The calendar and its reminders move into the agents console; a reminder is a Web Push to each browser a console person switched on
 
 **Status:** Accepted · 2026-11-08 (maintainer: «صفحه تقویم و یادآوری … را هم به صفحه https://traveltohormuz.ir/agents به صورت حرفه ای و عاملی اضافه کن») · **Task:** T-1788 · **Follows:** D-340, D-341, D-074, D-103, rule 10
