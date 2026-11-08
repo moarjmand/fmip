@@ -88,8 +88,18 @@ export function CompetitionContextPanel({
         <span>
           <Translated locale={locale} message="matchCentre.context.title" />
         </span>
+        {/* A table that is available and drawn says so for a screen reader
+            only (D-384): the table says it, and the coverage line once. */}
         {table !== null && (
-          <span dir="auto" className="text-xs font-normal uppercase text-muted">
+          <span
+            dir="auto"
+            className={
+              table.coverage === 'available' && data !== null
+                ? 'sr-only'
+                : 'text-xs font-normal uppercase text-muted'
+            }
+          >
+            {' '}
             <Translated locale={locale} message={COVERAGE_KEY[table.coverage]} />
           </span>
         )}

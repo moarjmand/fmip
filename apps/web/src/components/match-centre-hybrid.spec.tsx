@@ -960,6 +960,12 @@ describe('the founder against the result', () => {
       // Never the model's colour, never a figure.
       expect(html).not.toMatch(/(text|bg|border)-model/);
       expect(html).not.toMatch(/\d%/);
+      // One 48px line (T-1775, D-383): name and word on the summary, the
+      // sentence behind it in a native details.
+      expect(html).toContain('data-folded=""');
+      const summary = /<summary[^>]*>([^]*)<\/summary>/.exec(html)?.[1] ?? '';
+      expect(summary).toContain('None yet');
+      expect(summary).not.toContain(EN['analysis.founder.none']);
     }
   });
 });

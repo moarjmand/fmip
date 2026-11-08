@@ -268,7 +268,8 @@ export function FounderAnalysisPanel({
  * the call, the score and the confidence, the start of the reasoning in the
  * founder's voice, the signature, and the way to the whole analysis on the
  * match centre. Published before kick-off and shown as published (blueprint
- * 6.5): nothing here is sealed. With none written, it says so.
+ * 6.5): nothing here is sealed. With none written, it says so in one folded
+ * row (D-383).
  */
 export function FounderAnalysisBrief({
   analysis,
@@ -289,12 +290,21 @@ export function FounderAnalysisBrief({
   const l = asLocale(locale);
   const current = analysis?.analysis?.versions[0] ?? null;
   if (analysis === null || analysis.analysis === null || current === null) {
+    // One 48px line, the word on it and the sentence behind it (T-1773,
+    // D-383), where a 111px card said only that there is none.
     return (
-      <FounderVoice locale={l}>
-        <p className="text-sm text-muted" data-testid="founder-brief" data-state="none">
-          <Translated locale={l} message="analysis.founder.none" />
-        </p>
-      </FounderVoice>
+      <FounderVoice
+        locale={l}
+        testId="founder-brief"
+        state="none"
+        empty={<Translated locale={l} message="analysis.founder.none" />}
+        row={
+          <CoverageBadge
+            state="not_supplied"
+            label={<Translated locale={l} message="lanes.row.none" />}
+          />
+        }
+      />
     );
   }
   return (

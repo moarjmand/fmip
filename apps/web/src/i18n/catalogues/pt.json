@@ -928,6 +928,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.panels.row": {
+    "source": "Match discussions",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.panels.theMatch": {
     "source": "The match",
     "text": "",
@@ -7668,6 +7673,21 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.coverage.all": {
+    "source": "All {count} available this season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coverage.some": {
+    "source": "{available} of {count} available",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coverage.notSuppliedWhy": {
+    "source": "We do not receive this for this competition.",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.moduleCoverage": {
     "source": "{module}: {state}",
     "text": "",
@@ -13993,6 +14013,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "lanes.founder.coming": {
+    "source": "Founder’s analysis of coming matches",
+    "text": "",
+    "status": "untranslated"
+  },
   "lanes.community.title": {
     "source": "Community picks",
     "text": "",
@@ -14012,7 +14037,7 @@
     "status": "untranslated"
   },
   "lanes.note": {
-    "source": "Three separate products. Each has its own source, method and record; none is blended with or relabelled as another.",
+    "source": "Three separate products, never blended.",
     "text": "",
     "status": "untranslated"
   },

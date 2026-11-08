@@ -152,6 +152,7 @@ export function CommunityAnalysisPanel({
     const unreachable = !reachable || analyses === null;
     return (
       <ProductRow
+        folded
         labelledBy={id}
         testId="community-analysis-panel"
         state={unreachable ? 'unreachable' : 'none'}

@@ -279,6 +279,54 @@ describe('the big match', () => {
     expect(html.match(/data-testid="three-products-note"/g)).toHaveLength(1);
   });
 
+  it('folds an empty founder and an empty community into two 48px rows, the word on each (T-1773, D-383)', () => {
+    const html = big({ consensus: consensus(null) });
+    const rows = [...html.matchAll(/<section[^>]*data-product-row="" data-folded=""[^>]*>/g)].map(
+      (m) => m[0],
+    );
+    // Two rows, two names, never one merged line (rule 6).
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toContain('data-testid="founder-brief"');
+    expect(rows[0]).toContain('data-voice="founder"');
+    expect(rows[1]).toContain('data-testid="community-brief"');
+    expect(rows[1]).toContain('data-voice="community"');
+    // The state word is on the line, the reason behind the tap (rule 3).
+    const summaries = [...html.matchAll(/<summary[^>]*>([^]*?)<\/summary>/g)].map((m) => m[1]);
+    expect(summaries[0]).toContain('Founder’s analysis');
+    expect(summaries[0]).toContain('None yet');
+    expect(summaries[0]).not.toContain('has not written');
+    expect(summaries[1]).toContain('Community picks');
+    expect(summaries[1]).toContain('Under 5');
+    expect(html).toMatch(
+      /data-row-sentence=""><span>Fewer than 5 members[^]*?<a [^>]*class="[^"]*min-h-touch[^"]*"[^>]*>Make your pick<\/a>/,
+    );
+    // Never the model's colour on a row.
+    for (const row of html.split('data-product-row').slice(1)) {
+      expect(row.split('</section>')[0]).not.toMatch(/(text|bg|border)-model/);
+    }
+    // The note is one 12px line.
+    expect(html).toMatch(
+      /<p class="text-xs text-caption" data-testid="three-products-note">Three separate products, never blended\.<\/p>/,
+    );
+    // After kick-off there is no pick to make, and the row says so without the link.
+    expect(big({ consensus: consensus(null), revealed: true })).not.toContain('Make your pick');
+  });
+
+  it('keeps the full cards when the founder and the community have something to show', () => {
+    const html = big();
+    // The community has 20 picks: its card, not a row.
+    expect(html).toContain('data-spread="hidden"');
+    expect(html).not.toContain('data-testid="community-brief" data-state');
+  });
+
+  it('is Persian on /fa: the two rows and the one-line note', () => {
+    const html = big({ consensus: consensus(null), locale: 'fa' });
+    expect(html).toContain('هنوز نیست');
+    expect(html).toContain('کمتر از ۵');
+    expect(html).toContain('سه محصول جداگانه، هرگز آمیخته نمی‌شوند.');
+    expect(html).not.toContain('data-translation="untranslated"');
+  });
+
   it('says how many have picked and nothing about what, until the reader picks', () => {
     const hidden = big();
     expect(hidden).toContain('data-spread="hidden"');
@@ -650,7 +698,27 @@ describe('the side column', () => {
     const down = upsetCard(null);
     expect(down).toContain('data-state="unreachable"');
     expect(down).toContain('could not be loaded');
-    expect(down).not.toContain('data-coverage-badge');
+    // The state is a word on the line (D-383): "Not loaded", not "not supplied".
+    expect(down).toMatch(/data-row-status="">[^]*Not loaded/);
+    expect(down).not.toContain('data-coverage-badge="available"');
+  });
+
+  it('is one folded 48px line when there is nothing to show, the word on it and the sentence behind it (T-1774, D-383)', () => {
+    const none = upsetCard({
+      ...upset(),
+      coverage: 'not_supplied',
+      reason: 'no_covered_forecast',
+      upset: null,
+    });
+    expect(none).toContain('data-product-row="" data-folded=""');
+    expect(none).toMatch(
+      /<summary[^>]*min-h-\[2\.875rem\][^>]*>[^]*Forecast against reality[^]*not supplied[^]*<\/summary>/,
+    );
+    expect(none).toMatch(/<\/summary><div[^>]*data-row-sentence="">None of today/);
+    expect(none).toContain('data-placement="side"');
+    expect(none).not.toMatch(/(text|bg|border)-model/);
+    // With data the card returns whole.
+    expect(upsetCard(upset())).not.toContain('data-product-row');
   });
 
   it('in Persian keeps the score beside its own team, in Persian digits', () => {
