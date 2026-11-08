@@ -26,9 +26,9 @@ import {
 import { groupMembers, groupPlayed } from './internal/groups';
 import { lineupAsks, lineupWindow } from './internal/lineup-asks';
 import {
+  askUntilDeadline,
   forgetOldAsks,
   type InPlayMatch,
-  LIVE_DETAIL_DEADLINE_MS,
   LIVE_DETAIL_PER_TICK,
   liveDetailAsks,
   liveDetailBudgetLeft,
@@ -354,8 +354,6 @@ export class IngestionJobsService {
   private readonly liveDetailAskedAt = new Map<string, number>();
   /** At most this many detail asks a live tick. */
   private readonly liveDetailPerTick = LIVE_DETAIL_PER_TICK;
-  /** No new detail ask once this much of a live tick has gone (T-1782; a test may shorten it). */
-  liveDetailDeadlineMs = LIVE_DETAIL_DEADLINE_MS;
   /** The UTC day the budget pause of the live statistics was last logged. */
   private liveDetailBudgetDay: string | null = null;
 
@@ -1136,7 +1134,7 @@ export class IngestionJobsService {
    * `LIVE_DETAIL_PER_TICK` a tick.
    *
    * It runs inside the live tick on the one ingestion worker, so it must not
-   * hold the next tick: no new ask starts once `liveDetailDeadlineMs` of the
+   * hold the next tick: no new ask starts once `LIVE_DETAIL_DEADLINE_MS` of the
    * tick have gone (the matches left over are the longest-waiting next tick).
    * Each ask's alerts leave as soon as it is written. On the standard tier
    * (D-183); past that tier's share of the day nothing is asked, which is a
@@ -1198,23 +1196,26 @@ export class IngestionJobsService {
       due = due.slice(0, left);
     }
 
-    for (const match of due) {
-      if (Date.now() - tickStarted >= this.liveDetailDeadlineMs) break;
-      this.liveDetailAskedAt.set(match.fixtureId, now.getTime());
-      const before = await this.alerts.before(match.fixtureId);
-      const detail = await withBudgetTier('standard', () =>
-        this.ingestDetail(source, match, { inPlay: true, incidents: !match.listIncidents }),
-      );
-      if (detail.refused !== undefined) {
-        out.refused.push(detail.refused);
-        continue;
-      }
-      out.seen += 1;
-      out.written += detail.written;
-      out.seasons.push(match.target.seasonId);
-      out.unresolved.push(...detail.unresolved);
-      if (before !== null) await this.alerts.dispatch(await this.alerts.after(before));
-    }
+    await askUntilDeadline(
+      due,
+      async (match) => {
+        this.liveDetailAskedAt.set(match.fixtureId, now.getTime());
+        const before = await this.alerts.before(match.fixtureId);
+        const detail = await withBudgetTier('standard', () =>
+          this.ingestDetail(source, match, { inPlay: true, incidents: !match.listIncidents }),
+        );
+        if (detail.refused !== undefined) {
+          out.refused.push(detail.refused);
+          return;
+        }
+        out.seen += 1;
+        out.written += detail.written;
+        out.seasons.push(match.target.seasonId);
+        out.unresolved.push(...detail.unresolved);
+        if (before !== null) await this.alerts.dispatch(await this.alerts.after(before));
+      },
+      { startedAt: tickStarted },
+    );
     return out;
   }
 
@@ -1293,7 +1294,14 @@ export class IngestionJobsService {
    * three pushes). So the fixture row is not written from it, and its
    * incidents only where the list carries none (`incidents`); a shorter,
    * older list would delete the newest goal. The statistics, periods,
-   * line-up and player statistics are written as for any detail.
+   * line-up and player statistics are written as for any detail. Nor does an
+   * ask in play mark the detail fetched (`fixture_detail_fetch`): that mark
+   * says the after-the-whistle detail was asked, which the backlog (T-102)
+   * and the modules' `delayed` state read.
+   *
+   * Any answer that carried team statistics moves `fixture_stat_check`, the
+   * page's "Stats updated" time; one without them leaves it, so frozen
+   * figures go on to read as "may be behind" (rule 4).
    */
   private async ingestDetail(
     source: JobSource,
@@ -1308,7 +1316,7 @@ export class IngestionJobsService {
         unresolved: [],
       };
     }
-    await this.store.markDetailFetched(source.provider, candidate.fixtureId);
+    if (inPlay === null) await this.store.markDetailFetched(source.provider, candidate.fixtureId);
     const detail = result.data;
     const fixtureWrite =
       inPlay === null
@@ -1327,6 +1335,7 @@ export class IngestionJobsService {
         : []),
       await this.store.saveStatistics(candidate.fixtureId, detail.statistics),
     ];
+    if (detail.statistics.length > 0) await this.store.markStatisticsAnswered(candidate.fixtureId);
     if (detail.lineup !== null) {
       writes.push(await this.store.saveLineup(source.provider, candidate.fixtureId, detail.lineup));
     }

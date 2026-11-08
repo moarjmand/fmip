@@ -838,8 +838,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       restore: () => void;
     }
 
-    /** The live list answers `externalIds` as in play; each detail is the recording, after `delayMs`. */
-    function stubLive(externalIds: string[], delayMs = 0): Stub {
+    /**
+     * The live list answers `externalIds` as in play, carrying an empty
+     * incident list unless `listIncidents` is false (then none at all); each
+     * detail is the recording, without its statistics when `detailStats` is false.
+     */
+    function stubLive(
+      externalIds: string[],
+      { listIncidents = true, detailStats = true } = {},
+    ): Stub {
       const forJob = sources.forJob;
       const stub: Stub = { details: [], listTier: [], calls: [], restore: () => {} };
       const dispatch = vi.spyOn(alerts, 'dispatch').mockImplementation(async () => {
@@ -869,7 +876,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
               ...live,
               externalId,
               halfTimeBreak: false,
-              incidents: [],
+              ...(listIncidents ? { incidents: [] } : {}),
             })),
             requests: 1,
             fetchedAt: recorded.fetchedAt,
@@ -878,8 +885,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
         adapter.getFixtureDetail = async (id: string) => {
           stub.calls.push('detail');
           stub.details.push({ id, tier: currentBudgetTier() });
-          if (delayMs > 0) await new Promise((resolve) => setTimeout(resolve, delayMs));
-          return source.adapter.getFixtureDetail('1035037');
+          const recorded = await source.adapter.getFixtureDetail('1035037');
+          return detailStats || !recorded.ok
+            ? recorded
+            : { ...recorded, data: { ...recorded.data, statistics: [] } };
         };
         return { ...source, adapter };
       };
@@ -907,10 +916,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     }
 
     /** `n` more matches of the same pairing in play, mapped to `91782nn`; removed by `drop`. */
-    async function inPlayMatches(n: number): Promise<{ ids: string[]; drop: () => Promise<void> }> {
+    async function inPlayMatches(
+      n: number,
+      from = 0,
+    ): Promise<{ ids: string[]; drop: () => Promise<void> }> {
       const ids: string[] = [];
       const fixtures: string[] = [];
-      for (let i = 0; i < n; i += 1) {
+      for (let i = from; i < from + n; i += 1) {
         const fixtureId = randomUUID();
         const externalId = `91782${String(i).padStart(2, '0')}`;
         await pool.query(
@@ -1020,25 +1032,85 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
       }
     });
 
-    it('starts no ask after the tick’s deadline; the rest wait for the next tick', async () => {
-      const more = await inPlayMatches(6);
-      const stub = stubLive(more.ids, 1_000);
-      const deadline = jobs.liveDetailDeadlineMs;
-      jobs.liveDetailDeadlineMs = 1_500;
+    /** R3: the incidents of a match in play are the list's whenever it carries any. */
+    it('writes a match in play’s incidents from its detail only when the list carries none', async () => {
+      const more = await inPlayMatches(1, 20);
+      const [match] = more.ids as [string];
+      const incidents = () =>
+        count(
+          `SELECT count(*) AS n FROM incident i
+             JOIN provider_mapping pm
+               ON pm.internal_id = i.fixture_id AND pm.provider = 'api_football'
+              AND pm.entity_type = 'fixture'
+            WHERE pm.external_id = $1`,
+          [match],
+        );
+      let stub = stubLive([match]);
       try {
-        const report = await tick(20);
-        // The list takes a few hundred ms; asks then start a second apart, and
-        // none starts once 1.5 s of the tick have gone: one or two, never six.
-        expect(stub.details.length).toBeGreaterThanOrEqual(1);
-        expect(stub.details.length).toBeLessThanOrEqual(2);
-        expect(report.partial ?? '').not.toContain('budget');
-        // The next tick carries on with the ones left, longest-waiting first.
-        const asked = stub.details.length;
-        await tick(21);
-        expect(stub.details.length).toBeGreaterThan(asked);
-        expect(new Set(stub.details.map((d) => d.id)).size).toBe(stub.details.length);
+        // The list carries an (empty) incident list: the detail's are not written.
+        await tick(40);
+        expect(stub.details.map((d) => d.id)).toEqual([match]);
+        expect(await incidents()).toBe(0);
+        stub.restore();
+        // Three minutes on, the list carries none: the detail's are.
+        stub = stubLive([match], { listIncidents: false });
+        await tick(43);
+        expect(stub.details.map((d) => d.id)).toEqual([match]);
+        expect(await incidents()).toBeGreaterThan(0);
       } finally {
-        jobs.liveDetailDeadlineMs = deadline;
+        stub.restore();
+        await more.drop();
+      }
+    });
+
+    /**
+     * R1 and R2: an ask in play moves the statistics' time only when its
+     * answer carried statistics, and never marks the after-the-whistle detail
+     * asked, so a match whose ask at full time failed is still owed it.
+     */
+    it('moves the stats time only for an answer with statistics, and leaves the match owed its detail', async () => {
+      const more = await inPlayMatches(1, 30);
+      const [match] = more.ids as [string];
+      const { rows } = await pool.query<{ internal_id: string }>(
+        `SELECT internal_id FROM provider_mapping
+          WHERE provider = 'api_football' AND entity_type = 'fixture' AND external_id = $1`,
+        [match],
+      );
+      const fixtureId = rows[0]?.internal_id;
+      const checkedAt = async () =>
+        (
+          await pool.query<{ checked_at: Date }>(
+            `SELECT checked_at FROM fixture_stat_check WHERE fixture_id = $1`,
+            [fixtureId],
+          )
+        ).rows[0]?.checked_at.toISOString() ?? null;
+      const fetched = () =>
+        count(`SELECT count(*) AS n FROM fixture_detail_fetch WHERE fixture_id = $1`, [fixtureId]);
+      let stub = stubLive([match]);
+      try {
+        await tick(50);
+        const first = await checkedAt();
+        expect(first).not.toBeNull();
+        expect(await fetched()).toBe(0);
+        stub.restore();
+
+        // Three minutes on, the answer has no statistics: the time stays.
+        stub = stubLive([match], { detailStats: false });
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        await tick(53);
+        expect(stub.details).toHaveLength(1);
+        expect(await checkedAt()).toBe(first);
+        stub.restore();
+
+        // At full time, its after-the-whistle ask never made, the backlog owes it.
+        stub = stubLive([]);
+        await pool.query(`UPDATE fixture SET status = 'finished', minute = NULL WHERE id = $1`, [
+          fixtureId,
+        ]);
+        await jobs.postMatch(new Date(AFTER_KICKOFF.getTime() + 2 * 24 * 60 * 60_000));
+        expect(stub.details.map((d) => d.id)).toContain(match);
+        expect(await fetched()).toBe(1);
+      } finally {
         stub.restore();
         await more.drop();
       }

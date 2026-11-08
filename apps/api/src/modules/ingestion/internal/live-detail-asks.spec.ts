@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  LIVE_DETAIL_DEADLINE_MS,
   LIVE_DETAIL_MINUTES,
+  askUntilDeadline,
   LIVE_DETAIL_PER_TICK,
   forgetOldAsks,
   liveDetailAsks,
@@ -80,6 +82,37 @@ describe('liveDetailAsks (T-1782)', () => {
   it('counts a match the list carried twice once', () => {
     const a = match(1);
     expect(liveDetailAsks([a, a], new Map(), NOW, 3)).toEqual([a]);
+  });
+});
+
+describe('askUntilDeadline (T-1782, B1)', () => {
+  /** A clock that moves `perAsk` ms with every ask. */
+  function run(startedAt: number, perAsk: number, n = 6) {
+    let t = 0;
+    const asked: number[] = [];
+    return askUntilDeadline(
+      Array.from({ length: n }, (_, i) => i),
+      async (i) => {
+        asked.push(i);
+        t += perAsk;
+      },
+      { startedAt, clock: () => t },
+    ).then((started) => ({ started, asked }));
+  }
+
+  it('starts no ask once 20 s of the tick have gone; one under way is not cut', async () => {
+    // Asks start at 0, 8 and 16 s; at 24 s none starts.
+    expect(await run(0, 8_000)).toEqual({ started: 3, asked: [0, 1, 2] });
+    // The third starts at 19.5 s and is let finish.
+    expect((await run(0, 6_500)).asked).toEqual([0, 1, 2, 3]);
+  });
+
+  it('asks nothing when the list itself took the tick’s 20 s', async () => {
+    expect(await run(-LIVE_DETAIL_DEADLINE_MS, 1)).toEqual({ started: 0, asked: [] });
+  });
+
+  it('asks them all when they fit', async () => {
+    expect((await run(0, 100)).started).toBe(6);
   });
 });
 

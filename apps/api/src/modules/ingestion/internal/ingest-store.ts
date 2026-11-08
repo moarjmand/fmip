@@ -419,6 +419,19 @@ export class IngestStore implements SquadStore {
    * Records that the provider was asked for this fixture's detail. Not a change
    * to the match, so it is not counted as one and touches nothing else.
    */
+  /**
+   * An answer carried this fixture's team statistics (T-1782): the time the
+   * match page's "Stats updated" reads. Only such an answer moves it, so a
+   * provider that stops sending them leaves the line to say "may be behind".
+   */
+  async markStatisticsAnswered(fixtureId: string): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO fixture_stat_check (fixture_id) VALUES ($1)
+       ON CONFLICT (fixture_id) DO UPDATE SET checked_at = now()`,
+      [fixtureId],
+    );
+  }
+
   async markDetailFetched(provider: Provider, fixtureId: string): Promise<void> {
     await this.pool.query(
       `INSERT INTO fixture_detail_fetch (fixture_id, provider) VALUES ($1, $2)

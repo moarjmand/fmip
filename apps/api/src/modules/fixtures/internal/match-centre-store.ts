@@ -387,12 +387,13 @@ export class PostgresMatchCentreStore {
     }
     if (rows.length === 0) return { rows: [], lastUpdatedAt: null };
     // When the figures were last confirmed, not only last changed (T-1782):
-    // the detail ask that answered them, every few minutes in play, moves the
-    // time even when no figure moved (the half-time interval), so the page's
-    // "Stats updated" says how current they are (rule 4).
-    const asked = await this.pool.query<{ fetched_at: Date }>(
-      `SELECT d.fetched_at FROM fixture_detail_fetch d
-         JOIN fixture_participant p ON p.fixture_id = d.fixture_id
+    // an answer that carried them, every few minutes in play, moves the time
+    // even when no figure moved (the half-time interval); an answer without
+    // them does not (`fixture_stat_check`), so frozen figures are not shown
+    // as current (rule 4).
+    const checked = await this.pool.query<{ checked_at: Date }>(
+      `SELECT c.checked_at FROM fixture_stat_check c
+         JOIN fixture_participant p ON p.fixture_id = c.fixture_id
         WHERE p.id = $1`,
       [homeParticipantId],
     );
@@ -400,7 +401,7 @@ export class PostgresMatchCentreStore {
       rows: [...byMetric.values()],
       lastUpdatedAt: newest([
         ...rows.map((r) => r.updated_at),
-        ...asked.rows.map((r) => r.fetched_at),
+        ...checked.rows.map((r) => r.checked_at),
       ]),
     };
   }

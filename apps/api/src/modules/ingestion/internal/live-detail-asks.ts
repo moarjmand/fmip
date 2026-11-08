@@ -100,6 +100,28 @@ export function liveDetailAsks<T extends InPlayMatch>(
 }
 
 /**
+ * Sends `ask` for each match in turn and starts none once `deadlineMs` have
+ * gone since `startedAt` (an ask under way is not cut). Returns how many were
+ * started; the rest are the longest-waiting on the next tick. `clock` is
+ * injected so a test can run it.
+ */
+export async function askUntilDeadline<T>(
+  due: T[],
+  ask: (match: T) => Promise<void>,
+  options: { startedAt: number; deadlineMs?: number; clock?: () => number },
+): Promise<number> {
+  const clock = options.clock ?? Date.now;
+  const deadlineMs = options.deadlineMs ?? LIVE_DETAIL_DEADLINE_MS;
+  let started = 0;
+  for (const match of due) {
+    if (clock() - options.startedAt >= deadlineMs) break;
+    started += 1;
+    await ask(match);
+  }
+  return started;
+}
+
+/**
  * How many detail asks the standard tier still allows today: its ceiling
  * (`tierCeiling`) less the requests the day's runs recorded. `null` is no
  * budget of our own (the replay source, a test): no limit here.
