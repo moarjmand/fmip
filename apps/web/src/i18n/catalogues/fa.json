@@ -8528,6 +8528,72 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "scores.liveNow": {
+    "source": "Nothing is in play right now.",
+    "text": "همین حالا هیچ بازی‌ای در جریان نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 6 boards (D-386); not yet reviewed by a translator."
+  },
+  "scores.liveNext": {
+    "source": "Next kick-off · today",
+    "text": "بازی بعدی · امروز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 6 boards (D-386); not yet reviewed by a translator."
+  },
+  "scores.liveNoneLeft": {
+    "source": "No match is left to kick off today.",
+    "text": "امروز هیچ بازی دیگری شروع نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175) for D-386's case the boards describe but do not draw; not yet reviewed by a translator."
+  },
+  "scores.liveShowToday": {
+    "source": {
+      "one": "Show today’s {count} match",
+      "other": "Show today’s {count} matches"
+    },
+    "forms": {
+      "one": "نمایش {count} بازی امروز",
+      "other": "نمایش {count} بازی امروز"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 6 boards (D-386); not yet reviewed by a translator."
+  },
+  "scores.liveShowDay": {
+    "source": {
+      "one": "Show this day’s {count} match",
+      "other": "Show this day’s {count} matches"
+    },
+    "forms": {
+      "one": "نمایش {count} بازی این روز",
+      "other": "نمایش {count} بازی این روز"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), after the package 6 boards (D-386); not yet reviewed by a translator."
+  },
+  "scores.checkedAt": {
+    "source": "Checked {time}",
+    "text": "بررسی {time}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 6 boards (D-385); not yet reviewed by a translator."
+  },
+  "scores.about.title": {
+    "source": "About these times",
+    "text": "درباره‌ی این ساعت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 6 boards (D-385); not yet reviewed by a translator."
+  },
+  "scores.about.checked": {
+    "source": "“Checked” and its time: the last time this list asked for scores. Beside each competition: when its data last changed.",
+    "text": "«بررسی» و ساعت آن: آخرین باری که این فهرست نتیجه‌ها را پرسید. کنار هر رقابت: آخرین زمانی که داده‌ی آن تغییر کرده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 6 boards (D-385); not yet reviewed by a translator."
+  },
+  "scores.about.unchanged": {
+    "source": "“Unchanged since” on a match still to come means nothing about it has moved, not that it is behind. A competition that is behind says so in amber.",
+    "text": "«بدون تغییر از» برای بازیِ پیشِ رو یعنی چیزی درباره‌ی آن عوض نشده، نه اینکه عقب باشد. رقابتی که عقب است با رنگ کهربایی می‌گوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 6 boards (D-385); not yet reviewed by a translator."
+  },
   "scores.row.pick": {
     "source": "Pick",
     "text": "انتخاب",
@@ -8781,10 +8847,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "scores.updatedBetween": {
-    "source": "Updated between {oldest} and {newest}",
-    "text": "به‌روزشده بین {oldest} و {newest}",
+    "source": "Updated {oldest} – {newest}",
+    "text": "به‌روزشده {oldest} تا {newest}",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); shortened with the stamps (D-385), not yet reviewed by a translator."
   },
   "scores.unchangedSince": {
     "source": "Unchanged since {time}",

@@ -14848,3 +14848,48 @@ No client JavaScript: CSS, `details` and container queries only.
 **Rejected.** *Dropping the block when all is available*: the absence of a badge would then read as "unknown"; the one line says it. *Dropping a limited or not-supplied badge from its module header*: rule 3. *A colour for the exception*: the badge's glyph and word carry it, never hue (D-263's badge).
 
 **Consequences.** The block is 48px for 334 on a phone (measured on the same harness, English and Persian) and four badges fewer on a match with full coverage. The exception frame was invented on the board (no match on 2026-11-08 had a limited season); its wording is the agent's, for the translator's review.
+
+## D-385 — The matches list's freshness: short group stamps, said once what they mean, and a clock time in the title row while nothing listed is in play
+
+**Status:** Accepted · 2026-11-08 (maintainer, package 6 decisions D5-D9: here D5 and D6, option 1, boards P6-4 and P6-1) · **Tasks:** T-1777, T-1778 · **Follows:** T-605, T-1371, T-1482, D-364, D-374, rule 4
+
+**Context.** Measured on 8 November 2026 at 375px: the list's 24 group stamps took 624px, all on a second line, 20 of them "Unchanged since 2 days ago (6 Nov 2026, 21:07)" (46 characters, one moment said twice) and 4 "Updated between 2 days ago (6 Nov 2026, 09:07) and yesterday (7 Nov 2026, 21:07)" (80 characters, two lines). The title row's "● Last checked 9 sec ago" ticked on a day with nothing in play, the failure D-364 removed from the match page. Nothing on the page said what "Unchanged since" means over a match later today.
+
+**Decision.**
+1. **The group stamp keeps its words and loses the repetition** (`shortStamp` in `lib/scores.ts`, used by `blockUpdatedLabel`): the clock alone today in the viewer's zone, else the day and month with the time ("Unchanged since 6 Nov, 21:07"), the year only when it is not this year in the reader's own calendar (Persian, in Tehran time: «بدون تغییر از ۱۶ آبان، ۰۰:۳۷»). A spread is "Updated 6 Nov, 09:07 – 7 Nov, 21:07" (Persian «به‌روزشده … تا …»): still the oldest and the newest, never the newest alone (T-605); T-1482's "Unchanged since" for a block still to come is kept. It stands beside the competition's name when the heading has room (the heading already wraps it; no script), else on its own line as before.
+2. **A group with a match behind says so in the warning colour** on its stamp too (`isBehind`, T-083), besides the row's own words; the feed's amber lines (`scores.feed.*`) and the row's "Behind" are unchanged.
+3. **One native `<details>`, "About these times"**, at the end of the legend line under the filter row (`fold-row`, a 44px summary, its panel under the line), says once what "Checked" and "Unchanged since" mean: nothing about a competition has moved, not that it is behind; a competition that is behind says so in amber. Server text, no script.
+4. **The title row says "Checked 03:55"** (Persian «بررسی ۰۷:۲۵», the locale's digits; `scores.checkedAt`) while no listed match is live or suspended (`anyInPlay`): a clock reading in the machine-fact face, no dot, no ticking age. The time is the stream's last event (heartbeat or snapshot), or until the stream first answers, the time the server made the list, so "Connecting to live updates…" is never shown over a list with nothing in play. While a listed match is in play the line is as before: "Connecting…", then the ticking "Last checked N sec ago" with its dot (T-1388). **Stale or unavailable is said in the warning colour in either case** (`liveState`, D-364 point 6): the stale stamp "may be behind", "Live updates unavailable", and the feed notice above the list.
+
+**What the title row's counter is fed.** The client's `/api/scores/stream` (SSE, or a minute's poll in lite mode): `lastEventAt` is the last heartbeat (every 15 s) or snapshot; a 5 s client clock re-renders the age and judges the stream stale after 45 s (lite: a missed poll plus 45 s). The clock and the stream stay: they also judge each live row "behind" and keep the list current, so no client code could be removed; the change adds about 0.3 kB to the scores page (166.7 of 170 kB).
+
+**Rejected.** *Option 2, a group stamp only where it says something (changed in the last day, a spread, older than 7 days):* saves up to about 560px but removes the per-competition stamp T-605 and T-1482 chose; not approved. *The stamp as the disclosure's summary in the title row (the board's drawing):* on a phone the stamp is the narrow second cell of the title row's grid (D-374), so its panel would open in that column, and a warning state would sit inside a control; the legend line already speaks about the times. *A relative age only ("2 days ago"):* T-1371 asks for the date.
+
+**Consequences.** About 144px of 624 saved on that Saturday (6 of 24 groups fit beside their name); the gain is mostly legibility. The legend line is now 44px tall where its summary sits (one line on a desktop, a second line on a phone). New strings in every catalogue; the Persian is the agent's, for the translator.
+
+## D-386 — The Live view with nothing in play shows the day's next kick-off; "Not supplied" on a row loses its pill
+
+**Status:** Accepted · 2026-11-08 (maintainer, package 6 decisions D5-D9: here D7 and D8, boards P6-5 and P6-6, option B) · **Tasks:** T-1779, T-1780 · **Follows:** T-1545, T-1331, D-374 (D6), D-378, rules 3 and 6
+
+**Context.** `/scores?live=1` with nothing in play said "No match on this day is in play." and then the founder's analysis card and two links (the leaderboard, the model's record) that have nothing to do with live, and on a desktop the dashed "Choose Pick…" box; the rail above named a match the page did not. On the list, 43 of 92 rows carried "Not supplied" in a bordered capsule, a column of pills in 12 competitions where every row has one.
+
+**Decision.**
+1. **Live, nothing in play, today** (`LiveNext` in `app/[locale]/scores/live-next.tsx`, handed to the live list, which shows it while the stream's answer is empty): "Nothing is in play right now.", then "Next kick-off · today" with the competition (and its country when the group names one) and the **list's own 72px row** (`ScoreCard`, its model cell, its Pick opening the preview on this page), then a 44px button "Show today's N matches" to the All view with the page's filters (N counted from the day under them). **"Next" is the earliest kick-off still to come** (`nextKickoff`: scheduled, not awaiting an update, earliest kick-off), never the rail's pick of the day, so the page and the rail may name different matches. A time, never a countdown. With nothing left to start today: "No match is left to kick off today." and the same button; a day with no match at all also points at the next match day (T-1331). Another day than today keeps "No match on this day is in play." and "Show this day's N matches". The page asks the API for the whole day once more only in this state; if that answer fails the old sentence is shown alone.
+2. **The founder's analysis card and the two links are not drawn in that state** (`MatchesAnalysis` is the All view's and the other views'); on a desktop the preview column shows the next match, open for a pick, as it shows the first open match of any list, instead of the dashed box. The Filters chip is unchanged: it appears when the day holds something to filter by or a filter is set.
+3. **"Not supplied" stays on every row without a forecast** (D-374 D6 and D-378 not reopened), **drawn as option B**: the same words and glyph, no border and no pill, medium weight, at the end of the model's cell (`CoverageBadge`'s `plain`, used by `RowForecast` on the matches list and the competition page's rows alike). Every other badge is unchanged.
+
+**Rejected.** *The rail's chosen match as "next":* not the next kick-off. *A countdown:* the page is server text and says a time (D-372). *Option C, the words once in the group heading and an icon per row:* revisits D-374 D6. *Keeping the founder's card:* it belongs to a match and to the All view.
+
+**Consequences.** The rail's line and the Live view can name two different matches on the same morning; making the rail take the earliest kick-off too is outside this package. New strings in every catalogue (two plurals).
+
+## D-387 — A team's follower count is printed from one
+
+**Status:** Accepted · 2026-11-08 (maintainer, package 6 decisions D5-D9: here D9, board P6-7) · **Task:** T-1781 · **Follows:** T-1741 (D-362), rule 3
+
+**Context.** "Anfield, Liverpool · 61,276 · 0 followers" (Persian «۰ دنبال‌کننده») in the team page's details: true, and the least useful thing a visitor can learn about a club.
+
+**Decision.** The count is not printed while it is 0 and is printed from 1, with the catalogue's plural ("1 follower", "2 followers"), computed on the server where the count is read: the team page's ground line, in the band and in the phone's "Team details" card (`GroundLine` in `club-page.tsx`), and the Following page's suggested teams (`follow-next-steps.tsx`), the only other place `team.followerCount` prints. The Follow control is unchanged; no "Be the first to follow" sentence.
+
+**Rejected.** *A threshold of 100 (the review's idea):* it hides true small counts and invites a number to tune. *"Followers: not supplied":* a zero is data we hold, not data we lack; rule 3 is about missing data.
+
+**Consequences.** None for the API. The club E2E journey checks the ground instead of the followers, since the seed's clubs have none.

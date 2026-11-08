@@ -86,13 +86,16 @@ export function FollowNextSteps({
                         <Link href={`/${locale}/team/${team.id}`} className="underline">
                           {team.name}
                         </Link>
-                        <span className="text-xs text-muted">
-                          <Translated
-                            locale={locale}
-                            message="team.followerCount"
-                            count={team.followers}
-                          />
-                        </span>
+                        {/* From one follower (T-1781, D-387), as on the team page. */}
+                        {team.followers > 0 && (
+                          <span className="text-xs text-muted">
+                            <Translated
+                              locale={locale}
+                              message="team.followerCount"
+                              count={team.followers}
+                            />
+                          </span>
+                        )}
                         <FollowButton
                           action={follow}
                           locale={locale}

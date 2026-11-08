@@ -2,17 +2,24 @@
 
 import type { ScoresResponse } from '@fmip/contracts';
 import Link from '@/components/ui/link';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { EntityImage } from '@/components/entity-image';
 import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
 import { FreshnessStamp } from '@/components/freshness-stamp';
 import { useLite } from '@/components/lite-mode';
-import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState, staleAfterMs } from '@/lib/live';
+import {
+  INITIAL_CLOCK,
+  type LiveClock,
+  isBehind,
+  liveLabel,
+  liveState,
+  staleAfterMs,
+} from '@/lib/live';
 import { openLiveSource } from '@/lib/live-source';
 import { signalLiveMoved } from '@/lib/live-signal';
 import type { CardForecast } from '@/lib/score-card-products';
-import { blockUpdatedLabel, formatKickoff } from '@/lib/scores';
+import { anyInPlay, blockUpdatedLabel, formatKickoff, formatStamp } from '@/lib/scores';
 import {
   applyFilters,
   isFiltered,
@@ -41,7 +48,12 @@ const BLOCK = 'flex flex-col overflow-clip rounded-xl border border-default bg-s
 /** The rows' columns follow the list's width, not the screen's (T-1757). */
 const LIST = '@container flex flex-col divide-y divide-default';
 
-/** When this block's cards last changed, once for the block (rule 4). */
+/**
+ * When this block's cards last changed, once for the block (rule 4), beside
+ * the competition's name when the heading has room (T-1777, D-385). A block
+ * with a match behind (T-083) says so in the warning colour as well as on
+ * the row, so the stamp over it never reads as current.
+ */
 function Updated({
   cards,
   locale,
@@ -49,16 +61,55 @@ function Updated({
   now,
   words,
 }: {
-  cards: Parameters<typeof blockUpdatedLabel>[0];
+  cards: ScoresResponse['pinned'];
   locale: string;
   timeZone: string;
   now: number;
   words: ScoresWords;
 }) {
   const label = blockUpdatedLabel(cards, locale, timeZone, words.m, now);
+  const behind = cards.some((card) => isBehind(card, now));
   return label === null ? null : (
-    <span className="ms-auto py-1 text-xs font-normal text-muted" data-testid="block-updated">
+    <span
+      className={`ms-auto py-1 text-xs ${behind ? 'font-medium text-warning' : 'font-normal text-muted'}`}
+      data-testid="block-updated"
+      data-behind={behind ? '' : undefined}
+    >
       {label}
+    </span>
+  );
+}
+
+/**
+ * "Checked 03:55" (T-1778, D-385): the title row's stamp while nothing listed
+ * is in play -- a clock reading in the machine-fact face, no dot and no
+ * ticking age, as the match page says it before kick-off (D-364). It says
+ * its day when that is not today (`formatStamp`, T-1371).
+ */
+function CheckedAt({
+  at,
+  locale,
+  timeZone,
+  now,
+  words,
+}: {
+  at: number;
+  locale: string;
+  timeZone: string;
+  now: number;
+  words: ScoresWords;
+}) {
+  if (Number.isNaN(at)) return null;
+  const iso = new Date(at).toISOString();
+  return (
+    <span
+      className="font-mono [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
+      data-testid="checked-at"
+    >
+      <FilledMessage
+        message={words.m['scores.checkedAt']}
+        params={{ time: <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time> }}
+      />
     </span>
   );
 }
@@ -86,6 +137,7 @@ export function LiveScores({
   picked = [],
   selected = null,
   pickBase,
+  liveEmpty,
   words,
 }: {
   initial: ScoresResponse;
@@ -115,6 +167,12 @@ export function LiveScores({
    * with `pick=`. Absent: the rows have no Pick.
    */
   pickBase?: string;
+  /**
+   * What the Live view says when nothing is in play (T-1779, D-386): the
+   * page's server-drawn next kick-off and the way back to the day. Shown
+   * while the stream's answer is empty; a match that starts replaces it.
+   */
+  liveEmpty?: ReactNode;
   /** The reader's words, resolved by the page on the server (T-1303). */
   words: ScoresWords;
 }) {
@@ -177,6 +235,10 @@ export function LiveScores({
   const pickedSet = new Set(picked);
   const filtered = applyFilters(scores, filters);
   const shown = unpicked ? onlyUnpicked(filtered, pickedSet, now) : filtered;
+  // The ticking age and its dot only while a listed match is in play (T-1778,
+  // D-385, D-364's rule for the match page); otherwise a clock reading.
+  const inPlay = anyInPlay([...shown.pinned, ...shown.groups.flatMap((g) => g.fixtures)]);
+  const calm = !inPlay && (state === 'live' || state === 'connecting');
   const pickHref = (id: string): string | undefined =>
     pickBase === undefined
       ? undefined
@@ -205,7 +267,7 @@ export function LiveScores({
       <p
         // `scores-stamp`: on a phone it stands in the title row (globals.css, T-1757).
         className={`scores-stamp text-xs ${
-          state === 'live'
+          calm || state === 'live'
             ? 'text-muted'
             : state === 'connecting'
               ? 'font-medium'
@@ -213,9 +275,21 @@ export function LiveScores({
         }`}
         data-testid="live-state"
         data-state={state}
+        data-in-play={inPlay ? '' : undefined}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
       >
-        {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
+        {calm ? (
+          // Nothing in play: when the list last heard from the feed, or until
+          // the stream answers, when the page's own list was made. A broken
+          // or stale stream still says so below, in the warning colour.
+          <CheckedAt
+            at={clock.lastEventAt ?? Date.parse(scores.generated_at)}
+            locale={locale}
+            timeZone={timeZone}
+            now={now}
+            words={words}
+          />
+        ) : (state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
           // The freshness stamp (T-1388), the same one the match centre shows.
           <FreshnessStamp
             checkedAt={clock.lastEventAt}
@@ -239,10 +313,15 @@ export function LiveScores({
       </div>
 
       {scores.total === 0 ? (
-        // The Live view says nothing is in play, not that the day has no match (T-1545).
-        <p className="text-muted" data-testid="scores-empty" data-view={live ? 'live' : 'all'}>
-          <MessageText message={words.m[live ? 'scores.liveEmpty' : 'scores.empty']} />
-        </p>
+        live && liveEmpty !== undefined ? (
+          // The next kick-off and the way back to the day (T-1779, D-386).
+          liveEmpty
+        ) : (
+          // The Live view says nothing is in play, not that the day has no match (T-1545).
+          <p className="text-muted" data-testid="scores-empty" data-view={live ? 'live' : 'all'}>
+            <MessageText message={words.m[live ? 'scores.liveEmpty' : 'scores.empty']} />
+          </p>
+        )
       ) : shown.total === 0 && unpicked ? (
         <p data-testid="scores-unpicked-empty">
           <MessageText message={words.m['scores.unpickedEmpty']} />
