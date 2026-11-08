@@ -399,6 +399,35 @@ export function scoreLabel(card: ScoreCard, locale = 'en'): string {
 }
 
 /**
+ * A block stamp's time, the shortest that is still true (T-1777, D-385): the
+ * clock reading alone today in the viewer's zone, else the day and month
+ * with the time ("6 Nov, 21:07"), and the year only when it is not this
+ * year in the reader's own calendar. No "2 days ago" beside the date: the
+ * group heading has no room for one moment said twice, and a date can never
+ * be read as today (T-1371's point). With no clock the full date and time
+ * is said, as `freshnessStamp` does.
+ */
+export function shortStamp(
+  locale: string,
+  iso: string,
+  timeZone: string,
+  now: Date | number | undefined,
+): string {
+  const stamp = freshnessStamp(locale, iso, timeZone, now);
+  if (now === undefined || stamp.days === 0) return stamp.text;
+  const year = (at: Date | number | string): string =>
+    formatDate(locale, new Date(at).toISOString(), timeZone, { year: 'numeric' });
+  return formatDate(locale, iso, timeZone, {
+    day: 'numeric',
+    month: 'short',
+    ...(year(iso) === year(now) ? {} : { year: 'numeric' }),
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+}
+
+/**
  * The freshness line of one block of cards (T-605). A phone has no room for
  * "Updated 20:31" on every row, so the list says it once per competition --
  * and it must stay true for every row it covers (rule 4): one time when the
@@ -411,6 +440,10 @@ export function scoreLabel(card: ScoreCard, locale = 'en'): string {
  * over today's kick-offs read as data gone stale, when nothing about those
  * fixtures had changed. The newest change is true of every row: none changed
  * after it. Once a match in the block has started, it is "Updated" again.
+ *
+ * Each time is `shortStamp`'s (T-1777, D-385): "Unchanged since 6 Nov,
+ * 21:07", "Updated 6 Nov, 09:07 – 7 Nov, 21:07", short enough to stand
+ * beside the competition's name on a phone more often.
  */
 export function blockUpdatedLabel(
   cards: readonly Pick<ScoreCard, 'last_updated_at' | 'status'>[],
@@ -422,7 +455,7 @@ export function blockUpdatedLabel(
   const times = cards.map((c) => Date.parse(c.last_updated_at)).filter((t) => !Number.isNaN(t));
   if (times.length === 0) return null;
   const stamp = (ms: number): string =>
-    formatStamp(locale, new Date(ms).toISOString(), timeZone, now);
+    shortStamp(locale, new Date(ms).toISOString(), timeZone, now);
   if (cards.every((c) => c.status === 'scheduled')) {
     return fill(words['scores.unchangedSince'].text, { time: stamp(Math.max(...times)) });
   }
@@ -454,4 +487,26 @@ export function firstMatchDay(
   if (kickoffs.length === 0) return null;
   const first = kickoffs.reduce((a, b) => (Date.parse(a) <= Date.parse(b) ? a : b));
   return dateIn(timeZone, new Date(first));
+}
+
+/**
+ * The day's next kick-off (T-1779, D-386): of the matches still to come, the
+ * one that starts first -- the earliest, never a pick of the day, so "next"
+ * stays true. A match whose kick-off is long past with no word from the feed
+ * (T-1708) is not to come. `null` when nothing is left to start.
+ */
+export function nextKickoff<C extends Pick<ScoreCard, 'status' | 'kickoff_at' | 'freshness'>>(
+  cards: readonly C[],
+): C | null {
+  let next: C | null = null;
+  for (const card of cards) {
+    if (card.status !== 'scheduled' || awaitingUpdate(card)) continue;
+    if (next === null || Date.parse(card.kickoff_at) < Date.parse(next.kickoff_at)) next = card;
+  }
+  return next;
+}
+
+/** Whether a match of the list is in play (T-1778, D-385): live or suspended. */
+export function anyInPlay(cards: readonly Pick<ScoreCard, 'status'>[]): boolean {
+  return cards.some((card) => card.status === 'live' || card.status === 'suspended');
 }

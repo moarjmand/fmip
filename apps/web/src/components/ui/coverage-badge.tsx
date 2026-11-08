@@ -74,19 +74,31 @@ export function CoverageGlyph({ state, size = 12 }: { state: CoverageState; size
 export function CoverageBadge({
   state,
   label,
+  plain = false,
   className,
 }: {
   state: CoverageState;
   label: ReactNode;
+  /**
+   * The same glyph and words without the pill (T-1780, D-386): for a label
+   * repeated on every row of a list, where a column of capsules is noise.
+   */
+  plain?: boolean;
   className?: string;
 }) {
   return (
     <span
       dir="auto"
       data-coverage-badge={state}
+      data-plain={plain ? '' : undefined}
       className={cx(
-        'inline-flex min-h-6 items-center gap-1.5 rounded-pill border px-2.5 text-xs font-semibold whitespace-nowrap text-muted',
-        state === 'delayed' ? 'border-dashed border-caption' : 'border-default',
+        'inline-flex min-h-6 items-center gap-1.5 text-xs whitespace-nowrap text-muted',
+        plain
+          ? 'font-medium'
+          : cx(
+              'rounded-pill border px-2.5 font-semibold',
+              state === 'delayed' ? 'border-dashed border-caption' : 'border-default',
+            ),
         className,
       )}
     >

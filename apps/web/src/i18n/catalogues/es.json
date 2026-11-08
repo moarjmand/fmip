@@ -7051,6 +7051,57 @@
     "text": "",
     "status": "untranslated"
   },
+  "scores.liveNow": {
+    "source": "Nothing is in play right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.liveNext": {
+    "source": "Next kick-off · today",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.liveNoneLeft": {
+    "source": "No match is left to kick off today.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.liveShowToday": {
+    "source": {
+      "one": "Show today’s {count} match",
+      "other": "Show today’s {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "scores.liveShowDay": {
+    "source": {
+      "one": "Show this day’s {count} match",
+      "other": "Show this day’s {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "scores.checkedAt": {
+    "source": "Checked {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.about.title": {
+    "source": "About these times",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.about.checked": {
+    "source": "“Checked” and its time: the last time this list asked for scores. Beside each competition: when its data last changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.about.unchanged": {
+    "source": "“Unchanged since” on a match still to come means nothing about it has moved, not that it is behind. A competition that is behind says so in amber.",
+    "text": "",
+    "status": "untranslated"
+  },
   "scores.row.pick": {
     "source": "Pick",
     "text": "",
@@ -7262,7 +7313,7 @@
     "status": "untranslated"
   },
   "scores.updatedBetween": {
-    "source": "Updated between {oldest} and {newest}",
+    "source": "Updated {oldest} – {newest}",
     "text": "",
     "status": "untranslated"
   },

@@ -1510,6 +1510,21 @@
   "scores.allCompetitions": "All competitions",
   "scores.unpickedEmpty": "Nothing left to pick on this day: every match still open has your pick, or none is open.",
   "scores.liveEmpty": "No match on this day is in play.",
+  "scores.liveNow": "Nothing is in play right now.",
+  "scores.liveNext": "Next kick-off · today",
+  "scores.liveNoneLeft": "No match is left to kick off today.",
+  "scores.liveShowToday": {
+    "one": "Show today’s {count} match",
+    "other": "Show today’s {count} matches"
+  },
+  "scores.liveShowDay": {
+    "one": "Show this day’s {count} match",
+    "other": "Show this day’s {count} matches"
+  },
+  "scores.checkedAt": "Checked {time}",
+  "scores.about.title": "About these times",
+  "scores.about.checked": "“Checked” and its time: the last time this list asked for scores. Beside each competition: when its data last changed.",
+  "scores.about.unchanged": "“Unchanged since” on a match still to come means nothing about it has moved, not that it is behind. A competition that is behind says so in amber.",
   "scores.row.pick": "Pick",
   "scores.row.picked": "Picked",
   "scores.row.view": "View",
@@ -1552,7 +1567,7 @@
   "scores.favourites": "Your favourites",
   "scores.loadedAt": "List loaded at {time}.",
   "scores.updated": "Updated {time}",
-  "scores.updatedBetween": "Updated between {oldest} and {newest}",
+  "scores.updatedBetween": "Updated {oldest} – {newest}",
   "scores.unchangedSince": "Unchanged since {time}",
   "scores.announce.kickOff": "Kick-off",
   "scores.announce.fullTime": "Full time",

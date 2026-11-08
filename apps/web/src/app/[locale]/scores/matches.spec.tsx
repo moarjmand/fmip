@@ -22,6 +22,7 @@ import {
 } from '@/lib/scores';
 import { isOpenForPick, NO_FILTERS, onlyUnpicked } from '@/lib/scores-filters';
 import { forecastBarWords, scoresWords } from '@/lib/words-server';
+import { LiveNext } from './live-next';
 import { MatchPreview } from './match-preview';
 import { MatchesAnalysis } from './matches-analysis';
 
@@ -203,6 +204,19 @@ describe("the row's model cell", () => {
       expect(html).not.toContain('data-outcome');
     }
     expect(cell({ state: 'none' }, 'fa')).toContain('data-coverage-badge="not_supplied"');
+  });
+
+  it('draws it quietly: the same glyph and words, no pill, at the cell’s end (T-1780, D-386)', () => {
+    const html = cell({ state: 'none' });
+    const badge =
+      /<span dir="auto" data-coverage-badge="not_supplied" data-plain="" class="([^"]*)"/.exec(
+        html,
+      );
+    expect(badge?.[1]).toBeDefined();
+    expect(badge?.[1]).not.toMatch(/rounded-pill|(^| )border( |$)|px-2\.5/);
+    expect(html).toContain('data-icon="not_supplied"');
+    expect(html).toMatch(/data-testid="row-forecast"/);
+    expect(html).toMatch(/class="min-w-0 text-end /);
   });
 
   it('says a batch that did not answer was not loaded, not that nothing exists', () => {
@@ -432,7 +446,7 @@ describe('the competition groups (T-1757, D-374)', () => {
     expect(heading).toContain('match-group-head');
     expect(heading).toContain('min-h-11');
     expect(heading).not.toMatch(/(^| )(sticky|top-0|py-1\.5)( |$)/);
-    expect(html).toMatch(/data-testid="block-updated">Updated /);
+    expect(html).toMatch(/data-testid="block-updated"[^>]*>Updated /);
     // The rows' columns follow the list's width.
     expect(html).toMatch(/<ul class="@container /);
   });
@@ -445,10 +459,40 @@ describe('the competition groups (T-1757, D-374)', () => {
     expect(group([card()], 'fa')).toContain('data-testid="block-updated"');
   });
 
+  it('says the date briefly: no "days ago", no year in this year (T-1777, D-385)', () => {
+    const html = group([card({ last_updated_at: '2026-10-12T05:07:00.000Z' })]);
+    const stamp = /data-testid="block-updated">([^<]*)</.exec(html)?.[1] ?? '';
+    expect(stamp).toBe('Unchanged since 12 Oct, 05:07');
+    expect(stamp).not.toMatch(/ago|2026/);
+  });
+
+  it('turns a group’s stamp amber when a match in it is behind (rule 4)', () => {
+    // Live, unchanged since 11:59 on 25 October: long past the live threshold.
+    const behind = /class="([^"]*)" data-testid="block-updated" data-behind=""/.exec(
+      group([card({ status: 'live', minute: 10 })]),
+    );
+    expect(behind?.[1]).toContain('text-warning');
+    expect(group([card()])).not.toContain('data-behind');
+  });
+
   it('gives the "Last checked" stamp the class that seats it in the title row on a phone', () => {
     expect(group([card()])).toMatch(
       /<p class="scores-stamp text-xs[^"]*" data-testid="live-state"/,
     );
+  });
+
+  it('says a clock time, no dot and no age, while nothing listed is in play (T-1778, D-385)', () => {
+    const calm = group([card()]);
+    expect(calm).toContain('data-testid="checked-at"');
+    expect(calm).toMatch(/Checked [^<]*<time dateTime="2026-10-25T11:59:00.000Z">/);
+    expect(calm).not.toContain('Connecting to live updates');
+    expect(calm).not.toContain('data-in-play');
+    expect(group([card()], 'fa')).toContain('بررسی ');
+    // A match in play: the stream's own words and, once it answers, the ticking stamp.
+    const playing = group([card({ status: 'live', minute: 10 })]);
+    expect(playing).toContain('data-in-play=""');
+    expect(playing).not.toContain('data-testid="checked-at"');
+    expect(playing).toContain('Connecting to live updates');
   });
 
   it('sticks the heading at the header’s height, and nothing under 28rem tall (globals.css)', () => {
@@ -516,13 +560,28 @@ describe('the filter row (T-1757, D-374)', () => {
       PAGE.indexOf('data-testid="legend"'),
       PAGE.indexOf('</p>', PAGE.indexOf('data-testid="legend"')),
     );
-    expect(PAGE).toMatch(/<p className="text-xs text-caption" data-testid="legend">/);
+    expect(PAGE).toMatch(
+      /<div className="fold-row text-xs text-caption" data-testid="legend-row">\s*<p data-testid="legend">/,
+    );
     expect(legend.match(/text-model/g)).toHaveLength(1);
     expect(legend).toMatch(
       /<span className="text-model" data-testid="model-legend">\s*<Translated locale=\{locale\} message="scores.modelLegend" \/>/,
     );
     expect(legend).toContain("'scores.timesIn'");
     expect(PAGE).not.toContain('timesInGuest');
+  });
+
+  it('says once what the stamps mean, in one native disclosure with a 44px summary (T-1777, D-385)', () => {
+    const about = PAGE.slice(
+      PAGE.indexOf('data-testid="times-about"'),
+      PAGE.indexOf('</details>', PAGE.indexOf('data-testid="times-about"')),
+    );
+    expect(PAGE.match(/data-testid="times-about"/g)).toHaveLength(1);
+    expect(about).toMatch(/inline-flex min-h-11 /);
+    for (const key of ['scores.about.title', 'scores.about.checked', 'scores.about.unchanged']) {
+      expect(about).toContain(`message="${key}"`);
+    }
+    expect(about).not.toMatch(/onClick|onToggle|useState/);
   });
 });
 
@@ -903,5 +962,99 @@ describe('the Live view with nothing in play (T-1545)', () => {
     expect(list(true)).not.toContain('No fixtures on this day.');
     expect(list(false)).toContain('No fixtures on this day.');
     expect(list(true, 'fa')).toContain('در این روز هیچ مسابقه‌ای در جریان نیست.');
+  });
+
+  it('shows the page’s next kick-off in place of its sentence, on the Live view only (T-1779)', () => {
+    const slot = <p data-testid="slot">next</p>;
+    const render = (live: boolean): string =>
+      renderToStaticMarkup(
+        <LiveScores
+          initial={{ ...empty, generated_at: '2026-10-25T21:37:00Z' } as ScoresResponse}
+          streamQuery="date=2026-10-25"
+          timeZone="UTC"
+          locale="en"
+          filters={NO_FILTERS}
+          clearFiltersHref="/en/scores"
+          forecasts={{}}
+          live={live}
+          liveEmpty={slot}
+          words={scoresWords('en')}
+        />,
+      );
+    expect(render(true)).toContain('data-testid="slot"');
+    expect(render(true)).not.toContain('No match on this day is in play.');
+    expect(render(false)).not.toContain('data-testid="slot"');
+    expect(render(false)).toContain('No fixtures on this day.');
+  });
+});
+
+describe('the next kick-off on the Live view (T-1779, D-386)', () => {
+  const next = (
+    over: Partial<Parameters<typeof LiveNext>[0]> = {},
+    locale: 'en' | 'fa' = 'en',
+  ): string =>
+    renderToStaticMarkup(
+      <LiveNext
+        locale={locale}
+        timeZone="UTC"
+        today
+        next={card({
+          competition: { id: 'c', name: 'Süper Lig', short_name: null, country_id: 'tr' },
+        })}
+        country="Türkiye"
+        count={92}
+        showHref={`/${locale}/scores`}
+        pickHref={`/${locale}/scores?live=1&pick=${ID}#m-${ID}`}
+        forecast={AVAILABLE}
+        picked={false}
+        selected={false}
+        now={NOW}
+        words={scoresWords(locale)}
+        {...over}
+      />,
+    );
+
+  it('says nothing is in play, then the earliest kick-off as the list’s own row with Pick', () => {
+    const html = next();
+    expect(html).toContain('Nothing is in play right now.');
+    expect(html).toContain('Next kick-off · today');
+    expect(html).toMatch(/<bdi>Süper Lig<\/bdi> · <bdi>Türkiye<\/bdi>/);
+    expect(html.match(/data-testid="score-card"/g)).toHaveLength(1);
+    expect(html).toContain('class="match-row"');
+    expect(html).toContain(`href="/en/scores?live=1&amp;pick=${ID}#m-${ID}"`);
+    expect(html).toContain('data-testid="row-bar"');
+    // A time, not a countdown.
+    expect(html).toContain('19:00');
+    expect(html).not.toMatch(/in \d+ (min|hour)|starts in/i);
+  });
+
+  it('leads back to the whole day with its count, in a 44px button', () => {
+    const html = next();
+    expect(html).toMatch(/data-testid="live-show-day"/);
+    expect(html).toContain('min-h-touch');
+    expect(html).toContain('href="/en/scores"');
+    expect(html).toContain('Show today’s 92 matches');
+    expect(next({ count: 1 })).toContain('Show today’s 1 match');
+    expect(next({}, 'fa')).toContain('نمایش ۹۲ بازی امروز');
+    expect(next({}, 'fa')).toContain('همین حالا هیچ بازی‌ای در جریان نیست.');
+    expect(next({ count: 0 })).not.toContain('live-show-day');
+  });
+
+  it('says when nothing is left to start today, and keeps another day’s own sentence', () => {
+    const none = next({ next: null, count: 40 });
+    expect(none).toContain('No match is left to kick off today.');
+    expect(none).not.toContain('data-testid="score-card"');
+    expect(none).toContain('Show today’s 40 matches');
+    const other = next({ today: false, next: null, count: 12 });
+    expect(other).toContain('No match on this day is in play.');
+    expect(other).not.toContain('No match is left');
+    expect(other).toContain('Show this day’s 12 matches');
+  });
+
+  it('is drawn by the page instead of the founder’s card and the two links (page.tsx)', () => {
+    const PAGE = readFileSync(join(HERE, 'page.tsx'), 'utf8');
+    expect(PAGE).toMatch(/\{!liveNone && \(\s*<MatchesAnalysis/);
+    expect(PAGE).toContain('nextKickoff(dayCards)');
+    expect(PAGE).toContain('liveEmpty={');
   });
 });

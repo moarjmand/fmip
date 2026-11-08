@@ -57,14 +57,16 @@ for (const width of [390, 1440]) {
 
         // T-1741 (D-362): on a phone the band is one row and the ground,
         // followers and coach are a card under the next match; from 768px
-        // the band has them and that card is not drawn.
+        // the band has them and that card is not drawn. The ground stands for
+        // the line: the seed's club has no follower, and a count of zero is
+        // not printed (T-1781, D-387).
         if (width < 768) {
           await expect(band.getByTestId('band-eyebrow')).toBeHidden();
-          await expect(band.getByTestId('followers')).toBeHidden();
+          await expect(band.getByTestId('team-ground')).toBeHidden();
           await expect(page.getByTestId('club-facts')).toBeVisible();
-          await expect(page.getByTestId('facts-followers')).toBeVisible();
+          await expect(page.getByTestId('facts-team-ground')).toBeVisible();
         } else {
-          await expect(band.getByTestId('followers')).toBeVisible();
+          await expect(band.getByTestId('team-ground')).toBeVisible();
           await expect(page.getByTestId('club-facts')).toBeHidden();
         }
         // The next match leads to the match page's pick card until kick-off,

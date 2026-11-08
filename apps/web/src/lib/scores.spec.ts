@@ -1,6 +1,7 @@
 import type { ScoreCard } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  anyInPlay,
   apiQuery,
   blockUpdatedLabel,
   dayStrip,
@@ -9,11 +10,13 @@ import {
   formatStamp,
   freshnessStamp,
   NEXT_DAY_WINDOWS,
+  nextKickoff,
   pageHref,
   readScoresQuery,
   resultLine,
   scoreLabel,
   shiftDate,
+  shortStamp,
   statusLabel,
 } from './scores';
 import { scoresWords } from './words-server';
@@ -239,17 +242,29 @@ describe('blockUpdatedLabel', () => {
       played({ last_updated_at: '2025-01-05T14:05:00.000Z' }),
     ];
     expect(blockUpdatedLabel(cards, 'en', 'Asia/Tehran', EN_WORDS, SAME_DAY)).toBe(
-      'Updated between 13:30 and 20:01',
+      'Updated 13:30 – 20:01',
     );
   });
 
-  it('dates a block whose oldest card is from another day (T-1371)', () => {
+  it('dates a block whose oldest card is from another day, briefly (T-1371, T-1777)', () => {
     const cards = [
       played({ last_updated_at: '2025-01-05T16:31:00.000Z' }),
       played({ last_updated_at: '2025-01-03T10:00:00.000Z' }),
     ];
+    // The date alone, no "2 days ago" beside it and no year in this year.
     expect(blockUpdatedLabel(cards, 'en', 'UTC', EN_WORDS, SAME_DAY)).toBe(
-      'Updated between 2 days ago (3 Jan 2025, 10:00) and 16:31',
+      'Updated 3 Jan, 10:00 – 16:31',
+    );
+  });
+
+  it('says the year only when the stamp is from another year (T-1777)', () => {
+    const cards = [card({ status: 'scheduled', last_updated_at: '2024-12-30T21:07:00.000Z' })];
+    expect(blockUpdatedLabel(cards, 'en', 'UTC', EN_WORDS, SAME_DAY)).toBe(
+      'Unchanged since 30 Dec 2024, 21:07',
+    );
+    // The Persian calendar's year: 30 Dec 2024 and 5 Jan 2025 are both 1403.
+    expect(blockUpdatedLabel(cards, 'fa', 'UTC', scoresWords('fa').m, SAME_DAY)).toBe(
+      'بدون تغییر از ۱۰ دی، ۲۱:۰۷',
     );
   });
 
@@ -271,7 +286,42 @@ describe('blockUpdatedLabel', () => {
       ...cards,
       card({ status: 'live', last_updated_at: '2025-01-05T17:00:00.000Z' }),
     ];
-    expect(blockUpdatedLabel(started, 'en', 'UTC', EN_WORDS, SAME_DAY)).toMatch(/^Updated between/);
+    expect(blockUpdatedLabel(started, 'en', 'UTC', EN_WORDS, SAME_DAY)).toBe(
+      'Updated 3 Jan, 10:00 – 17:00',
+    );
+  });
+});
+
+describe('shortStamp (T-1777, D-385)', () => {
+  it('is the clock today, the day and month otherwise, the full date with no clock', () => {
+    expect(shortStamp('en', '2025-01-05T09:07:00.000Z', 'UTC', SAME_DAY)).toBe('09:07');
+    expect(shortStamp('en', '2025-01-04T21:07:00.000Z', 'UTC', SAME_DAY)).toBe('4 Jan, 21:07');
+    expect(shortStamp('en', '2025-01-04T21:07:00.000Z', 'UTC', undefined)).toBe(
+      '4 Jan 2025, 21:07',
+    );
+  });
+});
+
+describe('nextKickoff (T-1779, D-386)', () => {
+  it('is the earliest match still to come, never one that started or one long past', () => {
+    const later = card({ id: 'later', kickoff_at: '2025-01-05T14:00:00.000Z' });
+    const earliest = card({ id: 'earliest', kickoff_at: '2025-01-05T10:30:00.000Z' });
+    const played = card({ id: 'played', status: 'finished', kickoff_at: '2025-01-05T08:00:00Z' });
+    const stuck = card({
+      id: 'stuck',
+      kickoff_at: '2025-01-05T07:00:00.000Z',
+      freshness: 'awaiting_update',
+    });
+    expect(nextKickoff([later, played, stuck, earliest])?.id).toBe('earliest');
+    expect(nextKickoff([played, stuck])).toBeNull();
+  });
+});
+
+describe('anyInPlay (T-1778)', () => {
+  it('is a live or suspended match, nothing else', () => {
+    expect(anyInPlay([card({}), card({ status: 'finished' })])).toBe(false);
+    expect(anyInPlay([card({}), card({ status: 'live', minute: 10 })])).toBe(true);
+    expect(anyInPlay([card({ status: 'suspended' })])).toBe(true);
   });
 });
 

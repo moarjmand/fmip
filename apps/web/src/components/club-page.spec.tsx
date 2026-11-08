@@ -307,6 +307,22 @@ describe('the club band', () => {
     expect(band(page({ followers: 1243 }))).toContain('1,243 followers');
   });
 
+  it('prints the followers from one, never "0 followers" (T-1781, D-387)', () => {
+    for (const locale of ['en', 'fa']) {
+      const none = band(page({ followers: 0 }), locale);
+      expect(none).not.toContain('data-testid="followers"');
+      // The ground line still ends cleanly, with no separator left dangling.
+      expect(none).not.toMatch(/ · <\/p>/);
+      const facts = renderToStaticMarkup(
+        <ClubFacts page={page({ followers: 0 })} locale={locale} timeZone="UTC" />,
+      );
+      expect(facts).not.toContain('data-testid="facts-followers"');
+    }
+    expect(band(page({ followers: 0 }))).not.toContain('0 followers');
+    expect(band(page({ followers: 1 }))).toContain('1 follower');
+    expect(band(page({ followers: 1 }), 'fa')).toContain('۱ دنبال‌کننده');
+  });
+
   it('writes the founding year and the capacity in Persian digits on /fa', () => {
     const html = band(page({ team: { ...page().team, localised_name: 'تراکتور' } }), 'fa');
     expect(html).toContain('۱۹۷۰');
