@@ -5,6 +5,8 @@ import type {
   ApiError,
   ConsoleAuditEntry,
   ConsoleBoardCard,
+  ConsoleCalendar,
+  ConsoleCalendarPush,
   ConsoleCommand,
   ConsoleConversation,
   ConsoleInvitationView,
@@ -163,3 +165,7 @@ export const consoleRequests = (status?: ConsoleRequestStatus) =>
 export const consoleRequestCounts = () => consoleCall<ConsoleRequestCounts>('requests/counts');
 export const consoleInvitation = (token: string) =>
   consoleCall<ConsoleInvitationView>(`invitations/${encodeURIComponent(token)}`);
+/** The calendar (T-1788, D-391): every event, the subscriptions, the reminders sent, today by the team's clock. */
+export const consoleCalendar = () => consoleCall<ConsoleCalendar>('calendar');
+/** Whether reminders can reach a browser here, and how many of this person's are on. */
+export const consoleCalendarPush = () => consoleCall<ConsoleCalendarPush>('calendar/push');

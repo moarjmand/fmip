@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2378), grouped by folder, with one line on
+Every file in the repository (2400), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -42,8 +42,8 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/activity/internal`](#appsapisrcmodulesactivityinternal) — 3
 - [`apps/api/src/modules/admin`](#appsapisrcmodulesadmin) — 7
 - [`apps/api/src/modules/admin/internal`](#appsapisrcmodulesadmininternal) — 2
-- [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 4
-- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 12
+- [`apps/api/src/modules/agents-console`](#appsapisrcmodulesagents-console) — 6
+- [`apps/api/src/modules/agents-console/internal`](#appsapisrcmodulesagents-consoleinternal) — 15
 - [`apps/api/src/modules/analysis`](#appsapisrcmodulesanalysis) — 5
 - [`apps/api/src/modules/analysis/internal`](#appsapisrcmodulesanalysisinternal) — 1
 - [`apps/api/src/modules/ask`](#appsapisrcmodulesask) — 5
@@ -58,6 +58,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/consensus`](#appsapisrcmodulesconsensus) — 6
 - [`apps/api/src/modules/consensus/internal`](#appsapisrcmodulesconsensusinternal) — 2
 - [`apps/api/src/modules/console-model`](#appsapisrcmodulesconsole-model) — 3
+- [`apps/api/src/modules/console-reminders`](#appsapisrcmodulesconsole-reminders) — 5
 - [`apps/api/src/modules/conversations`](#appsapisrcmodulesconversations) — 11
 - [`apps/api/src/modules/conversations/internal`](#appsapisrcmodulesconversationsinternal) — 2
 - [`apps/api/src/modules/data-quality`](#appsapisrcmodulesdata-quality) — 6
@@ -238,12 +239,14 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
 - [`apps/web/src/app/api/media/[kind]/[id]/[version]`](#appswebsrcappapimediakindidversion) — 1
 - [`apps/web/src/app/api/scores/stream`](#appswebsrcappapiscoresstream) — 1
-- [`apps/web/src/app/console`](#appswebsrcappconsole) — 20
+- [`apps/web/src/app/console`](#appswebsrcappconsole) — 26
 - [`apps/web/src/app/console/(app)`](#appswebsrcappconsoleapp) — 3
 - [`apps/web/src/app/console/(app)/agents/[name]`](#appswebsrcappconsoleappagentsname) — 1
 - [`apps/web/src/app/console/(app)/agents/[name]/chat`](#appswebsrcappconsoleappagentsnamechat) — 1
 - [`apps/web/src/app/console/(app)/audit`](#appswebsrcappconsoleappaudit) — 1
 - [`apps/web/src/app/console/(app)/board`](#appswebsrcappconsoleappboard) — 1
+- [`apps/web/src/app/console/(app)/calendar`](#appswebsrcappconsoleappcalendar) — 1
+- [`apps/web/src/app/console/(app)/calendar/subscriptions`](#appswebsrcappconsoleappcalendarsubscriptions) — 1
 - [`apps/web/src/app/console/(app)/decisions`](#appswebsrcappconsoleappdecisions) — 1
 - [`apps/web/src/app/console/(app)/findings`](#appswebsrcappconsoleappfindings) — 1
 - [`apps/web/src/app/console/(app)/model`](#appswebsrcappconsoleappmodel) — 1
@@ -251,6 +254,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/(app)/requests`](#appswebsrcappconsoleapprequests) — 1
 - [`apps/web/src/app/console/(open)/invite/[token]`](#appswebsrcappconsoleopeninvitetoken) — 1
 - [`apps/web/src/app/console/(open)/login`](#appswebsrcappconsoleopenlogin) — 1
+- [`apps/web/src/app/console/reminders-worker`](#appswebsrcappconsolereminders-worker) — 1
 - [`apps/web/src/app/console/request-images`](#appswebsrcappconsolerequest-images) — 1
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
@@ -279,10 +283,10 @@ machine, `docs/18-handover.md`.
 - [`packages/console-publisher/src`](#packagesconsole-publishersrc) — 11
 - [`packages/contracts`](#packagescontracts) — 6
 - [`packages/contracts/glossary`](#packagescontractsglossary) — 9
-- [`packages/contracts/src`](#packagescontractssrc) — 74
+- [`packages/contracts/src`](#packagescontractssrc) — 76
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 181
+- [`packages/db/migrations`](#packagesdbmigrations) — 182
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -624,12 +628,17 @@ machine, `docs/18-handover.md`.
 | `agents-console.controller.ts` | The agents console (T-1696, T-1697, D-340), under `/console/`. |
 | `agents-console.http.spec.ts` | The agents console (T-1696, T-1697, D-340): an account opens only from a one-time invitation; a session is the console's own cookie; wrong passwords lock a name; nothing but signing in answers without a session; the sna… |
 | `agents-console.module.ts` | The agents console (T-1696, T-1697, D-340): owns the `console_*` tables. |
+| `console-calendar.controller.ts` | The console's calendar and reminders (T-1788, D-391), under `/console/calendar`: the shared notes and reminders, and the subscriptions list they remind of. |
+| `console-calendar.service.ts` | The calendar's public face (T-1788, D-391) for the `console-reminders` module, which sends the reminders and keeps the browsers that take them: which reminders are due, the claim that sends each once, and the push devic… |
 | `console-sessions.service.ts` | The console's session, for a read-only console page another module serves (T-1729: the forecast model's page): the person behind the request's `fmip_console` cookie, or null. |
 
 ## apps/api/src/modules/agents-console/internal
 
 | File | What it is |
 |---|---|
+| `calendar-rules.spec.ts` | Tests for `calendar-rules`. |
+| `calendar-rules.ts` | The calendar's pure part (T-1788, D-391): what a person may write as an event, what the computer may load as a subscription, and which reminders are due at an instant. |
+| `calendar-store.ts` | The calendar's Postgres store (T-1788, D-391): events, subscriptions, push devices and the reminders sent, each change a person makes with its `console_audit` row. |
 | `console-rules.spec.ts` | Tests for `console-rules`. |
 | `console-rules.ts` | The agents console's rules (T-1696, T-1697, D-340), pure so they are tested without a database: the session cookie, the lock after wrong passwords, the snapshot's shape and what is withheld from it, and what a command o… |
 | `console-store.ts` | A `console_audit` row, inside the change's own transaction (rule 10). |
@@ -807,6 +816,16 @@ machine, `docs/18-handover.md`.
 | `console-model.controller.ts` | The agents console's forecast-model page (T-1729, D-355): read-only, a console session required, the same refusal as the console's own routes. |
 | `console-model.http.spec.ts` | T-1729 and T-1752 against the real schema: `GET /console/model` refuses without a console session, names the versions the model service runs, and computes every version's record, calibration, trend and competitions, the… |
 | `console-model.module.ts` | The agents console's forecast-model page (T-1729, D-355), apart from the console's own module so that the console's command-line tool, which imports that module, does not need the model service. |
+
+## apps/api/src/modules/console-reminders
+
+| File | What it is |
+|---|---|
+| `console-calendar.http.spec.ts` | T-1788 (D-391) against the real schema: the calendar's routes refuse without a console session, write each change with its audit row and the previous value, keep a removed event out of the page; the import adds an event… |
+| `console-reminders-scheduler.service.ts` | The calendar reminders' BullMQ queue and worker (T-1788, D-391). |
+| `console-reminders.controller.ts` | `/console/calendar/push` (T-1788, D-391): a console person's browsers for the calendar's reminders, and a test message. |
+| `console-reminders.module.ts` | The agents console calendar's reminders (T-1788, D-391): the minute run that sends them by Web Push and the routes that switch a browser on. |
+| `console-reminders.service.ts` | The calendar's reminder run (T-1788, D-391): each due reminder claimed once and sent by Web Push to every console browser switched on. |
 
 ## apps/api/src/modules/conversations
 
@@ -2648,6 +2667,12 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `calendar-editor.tsx` | The calendar event's form in the console's side panel (T-1788, D-391): add, edit, and a guarded delete. |
+| `calendar-push.tsx` | Reminders on this browser (T-1788, D-391): the console's own service worker, scoped to the console (`reminders-worker` under its base), subscribes with the site's VAPID key and the subscription is kept for this person. |
+| `calendar-tabs.tsx` | The calendar's two pages (T-1788, D-391): the calendar, and the subscriptions it reminds of. |
+| `calendar.fixture.ts` | The calendar's answer for the console's specs (T-1788): the board page's real renewals as they were moved (titles made Persian for the Persian scan), a weekly meeting, a subscription of each state the page colours, and… |
+| `calendar.spec.tsx` | Tests for `calendar`. |
+| `calendar.tsx` | The console's calendar (T-1788, D-391), drawn on the server: the month, the week and the list, the selected day, and the words and colours they share. |
 | `chat.tsx` | The chat with an agent (T-1722, D-350), drawn on the server: no model answers here. |
 | `console-form.tsx` | A console form whose action answers with what happened (D-340): the outcome is said under the button, in a live region, and the button waits while the action runs. |
 | `console-link.tsx` | The site's link with a console path put under the request's base (D-341). |
@@ -2701,6 +2726,18 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `page.tsx` | The project board, moved here from its claude.ai page (T-1698, T-1700, D-340). |
 
+## apps/web/src/app/console/(app)/calendar
+
+| File | What it is |
+|---|---|
+| `page.tsx` | The console's calendar and reminders (T-1788, D-391), moved from the team board's claude.ai page: the month, the week or a 30-day list in the Solar Hijri or the Gregorian calendar; the selected day and its events; an ev… |
+
+## apps/web/src/app/console/(app)/calendar/subscriptions
+
+| File | What it is |
+|---|---|
+| `page.tsx` | «خریدها و اشتراک‌ها» (T-1788, D-391): the services the project depends on and their renewals, each one put on the calendar. |
+
 ## apps/web/src/app/console/(app)/decisions
 
 | File | What it is |
@@ -2742,6 +2779,12 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | Signing in to the console (T-1696, D-340): the console's own name and password. |
+
+## apps/web/src/app/console/reminders-worker
+
+| File | What it is |
+|---|---|
+| `route.ts` | The console's service worker for calendar reminders (T-1788, D-391), at `<console base>/reminders-worker`: no file extension, because the proxy leaves a path with one to the site's static files. |
 
 ## apps/web/src/app/console/request-images
 
@@ -3641,6 +3684,8 @@ machine, `docs/18-handover.md`.
 | `confederation.spec.ts` | Tests for `confederation`. |
 | `confederation.ts` | Football's six confederations (T-1643, D-301): which one a competition belongs to, so the header's competitions menu can file it by region. |
 | `consensus.ts` | Community consensus (blueprint 6.6, T-134). |
+| `console-calendar.spec.ts` | Tests for `console-calendar`. |
+| `console-calendar.ts` | The agents console's calendar and reminders (T-1788, D-391), moved from the team board's claude.ai page: notes and reminders on a shared calendar, read in the Solar Hijri or the Gregorian calendar, repeated daily, weekl… |
 | `console-model-lab.ts` | The model lab's ledger (T-1752, D-371): everything ever tested on the forecast model -- an input, a set of constants, a whole version -- with why it was tried, on what data, the measured effect, the verdict and the deci… |
 | `console-model.ts` | The agents console's forecast-model page (T-1729, D-355): what the published model version is, what is in shadow, and how accurate the published version is now -- every figure from the stored pre-kick-off evaluations (T… |
 | `console-requests.ts` | The teammate requests' runtime constants (T-1728, D-354; pictures T-1731, D-357), on the console's entry point only (`./console`). |
@@ -3904,6 +3949,7 @@ machine, `docs/18-handover.md`.
 | `1765901300000_pending-pick.sql` | T-1740 (D-361): a pick made before the member confirmed their e-mail address. |
 | `1765901400000_competition-zone-key.sql` | T-1761 (D-381): our own code for a competition the committed league-zone list (`packages/contracts/zones/league-zones.json`, D-171) keys by competition rather than by training division or country. |
 | `1765901782000_fixture-stat-check.sql` | T-1782 (D-382): when a fixture's team statistics were last confirmed by an answer that carried them. |
+| `1765901788000_console-calendar.sql` | The agents console's calendar and reminders (T-1788, D-391), moved from the team board's claude.ai page, where only a page left open could show a reminder. |
 
 ## packages/db/scripts
 

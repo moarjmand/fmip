@@ -332,6 +332,23 @@ export type {
   ModelUnavailableReason,
 } from './forecast';
 export { MAX_FORECAST_FIXTURES } from './forecast';
+// The agents console's calendar and reminders (T-1788, D-391); its runtime values and day arithmetic are in './console'.
+export type {
+  CalendarDate,
+  ConsoleCalendar,
+  ConsoleCalendarEvent,
+  ConsoleCalendarEventInput,
+  ConsoleCalendarImport,
+  ConsoleCalendarPush,
+  ConsoleEventBasis,
+  ConsoleEventColor,
+  ConsoleEventRepeat,
+  ConsoleReminderSent,
+  ConsoleSubscription,
+  ConsoleSubscriptionInput,
+  ConsoleSubscriptionStatus,
+  Recurring,
+} from './console-calendar';
 // The agents console's forecast-model page (T-1729, D-355); its runtime constants are in './console' (kept out of this barrel so they never reach a public page's bundle).
 export type {
   ConsoleLabEntry,

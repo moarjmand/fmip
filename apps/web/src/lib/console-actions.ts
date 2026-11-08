@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { dayToIso, isoToDay, jalaliMonthLength, jalaliToDay } from '@fmip/contracts/console';
 import { apiErrorWords } from '@/app/console/words';
 import { applyConsoleCookie, consoleCall } from './console-api';
 import { consoleUrl } from './console-base';
@@ -247,4 +248,98 @@ export async function moveCard(form: FormData): Promise<void> {
 export async function archiveCard(form: FormData): Promise<void> {
   await consoleCall(`board/${encodeURIComponent(field(form, 'id'))}`, { method: 'DELETE' });
   revalidatePath('/console/board');
+}
+
+// --- The calendar and its reminders (T-1788, D-391) ---------------------------
+
+const calendarChanged = () => revalidatePath('/console', 'layout');
+
+/** The page's own query the editor came from, kept so a save returns to the same month and view. */
+function calendarBack(form: FormData, day: string | null): string {
+  const back = field(form, 'back');
+  const params = new URLSearchParams(/^\?[\w=&%.-]*$/.test(back) ? back.slice(1) : '');
+  params.delete('event');
+  params.delete('new');
+  params.delete('sub');
+  if (day !== null) params.set('day', day);
+  const query = params.toString();
+  return `/calendar${query === '' ? '' : `?${query}`}`;
+}
+
+/** The event's day: Solar Hijri day, month and year from three fields, or the Gregorian date field. */
+function eventDate(form: FormData): string | null | 'missing-day' {
+  if (field(form, 'calendar') !== 'j') {
+    const iso = field(form, 'date');
+    return isoToDay(iso) === null ? null : iso;
+  }
+  const [y, m, d] = ['jy', 'jm', 'jd'].map((name) => Number(field(form, name)));
+  if (![y, m, d].every((n) => Number.isInteger(n)) || y! < 1300 || y! > 1500 || m! < 1 || m! > 12)
+    return null;
+  if (d! < 1 || d! > jalaliMonthLength(y!, m!)) return 'missing-day';
+  return dayToIso(jalaliToDay(y!, m!, d!));
+}
+
+/** Adds an event, or changes one when the form carries its id; back to the calendar on that day. */
+export async function saveEvent(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {
+  const date = eventDate(form);
+  if (date === null) return { error: 'تاریخ درست نیست.', done: null };
+  if (date === 'missing-day') return { error: 'این ماه چنین روزی ندارد.', done: null };
+  const remind = field(form, 'remind_minutes');
+  const id = field(form, 'id');
+  const body = {
+    title: field(form, 'title'),
+    date,
+    time: field(form, 'time') || null,
+    repeat: field(form, 'repeat') || 'none',
+    basis: field(form, 'basis') || 'j',
+    repeat_until: field(form, 'repeat') === 'none' ? null : field(form, 'repeat_until') || null,
+    remind_minutes: remind === '' ? null : Number(remind),
+    note: field(form, 'note'),
+    color: field(form, 'color') || 'blue',
+    subscription_key: field(form, 'subscription_key') || null,
+  };
+  const result = await consoleCall(
+    id === '' ? 'calendar/events' : `calendar/events/${encodeURIComponent(id)}`,
+    { method: id === '' ? 'POST' : 'PATCH', body },
+  );
+  if (!result.ok) return failed(result.error?.message, 'رویداد ذخیره نشد.');
+  calendarChanged();
+  redirect(await consoleUrl(calendarBack(form, date)));
+}
+
+export async function deleteEvent(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {
+  const result = await consoleCall(`calendar/events/${encodeURIComponent(field(form, 'id'))}`, {
+    method: 'DELETE',
+  });
+  if (!result.ok) return failed(result.error?.message, 'رویداد حذف نشد.');
+  calendarChanged();
+  redirect(await consoleUrl(calendarBack(form, null)));
+}
+
+/** A browser's push subscription, as `PushSubscription.toJSON()` gives it, for this person's reminders. */
+export async function registerReminderDevice(subscription: {
+  endpoint?: string;
+  keys?: { p256dh?: string; auth?: string };
+}): Promise<{ ok: boolean; error: string | null }> {
+  const result = await consoleCall('calendar/push', {
+    method: 'POST',
+    body: { endpoint: subscription.endpoint, keys: subscription.keys },
+  });
+  calendarChanged();
+  return result.ok
+    ? { ok: true, error: null }
+    : { ok: false, error: apiErrorWords(result.error?.message, 'یادآور روی این مرورگر روشن نشد.') };
+}
+
+export async function removeReminderDevice(endpoint: string): Promise<{ ok: boolean }> {
+  const result = await consoleCall('calendar/push', { method: 'DELETE', body: { endpoint } });
+  calendarChanged();
+  return { ok: result.ok || result.status === 404 };
+}
+
+export async function testReminder(): Promise<{ devices: number; delivered: number } | null> {
+  const result = await consoleCall<{ devices: number; delivered: number }>('calendar/push/test', {
+    method: 'POST',
+  });
+  return result.ok ? result.data : null;
 }

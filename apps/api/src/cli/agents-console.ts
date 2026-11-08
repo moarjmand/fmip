@@ -13,6 +13,8 @@ import {
   consoleTokenText,
   replyText,
 } from '../modules/agents-console/internal/console-rules';
+import { checkImport } from '../modules/agents-console/internal/calendar-rules';
+import { PostgresCalendarStore } from '../modules/agents-console/internal/calendar-store';
 import { PostgresConsoleStore } from '../modules/agents-console/internal/console-store';
 import {
   REQUEST_ID,
@@ -43,6 +45,7 @@ import { leaveWhenWritten } from './leave';
  *     ... take-commands
  *     ... finish-command --id <uuid> --status done|failed --outcome "what happened"
  *     ... import-board --as <username> < cards.json
+ *     ... import-calendar --as <username> < calendar.json
  *     ... take-messages
  *     ... post-reply --message <uuid> --status answered|failed < reply.txt
  *     ... list-requests [--status <status>]
@@ -58,7 +61,11 @@ import { leaveWhenWritten } from './leave';
  * queued commands as JSON and marks them taken; `finish-command` writes one's
  * outcome back. `import-board` moves the project board's cards from its
  * claude.ai page once (T-1700): a JSON list of cards, each with its old id as
- * `source_ref`, so running it again adds none twice.
+ * `source_ref`, so running it again adds none twice. `import-calendar`
+ * (T-1788, D-391) moves the calendar's events from the same page once (each
+ * by its old id, `source_ref`, never added twice or overwritten) and writes
+ * the subscriptions list by key, which is also how a later change to a
+ * renewal reaches the console: `{ events: [...], subscriptions: [...] }`.
  *
  * The chat with the agents (T-1722, D-350): `take-messages` prints the queued
  * messages, each with its conversation, as JSON and marks them answering;
@@ -89,6 +96,7 @@ export type ConsoleCliArgs =
   | { kind: 'take-commands' }
   | { kind: 'finish-command'; id: string; status: 'done' | 'failed'; outcome: string }
   | { kind: 'import-board'; as: string }
+  | { kind: 'import-calendar'; as: string }
   | { kind: 'take-messages' }
   | { kind: 'post-reply'; id: string; status: 'answered' | 'failed' }
   | { kind: 'list-requests'; status: ConsoleRequestStatus | null }
@@ -129,6 +137,12 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
       if (as === '')
         return { kind: 'error', message: '--as: the console account the cards are moved as.' };
       return { kind: 'import-board', as };
+    }
+    case 'import-calendar': {
+      const as = flags.get('as')?.trim().toLowerCase() ?? '';
+      if (as === '')
+        return { kind: 'error', message: '--as: the console account the events are filed under.' };
+      return { kind: 'import-calendar', as };
     }
     case 'finish-command': {
       const id = flags.get('id') ?? '';
@@ -182,7 +196,7 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
       return {
         kind: 'error',
         message:
-          'invite | load-snapshot | take-commands | finish-command | import-board | take-messages | post-reply | list-requests | request-result | request-ask | request-image',
+          'invite | load-snapshot | take-commands | finish-command | import-board | import-calendar | take-messages | post-reply | list-requests | request-result | request-ask | request-image',
       };
   }
 }
@@ -303,6 +317,31 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
           [`${added} card(s) added, ${refused.length} refused`, ...refused].join('\n') + '\n',
         );
         return refused.length === 0 ? 0 : 1;
+      }
+      case 'import-calendar': {
+        const user = await store.userByName(args.as);
+        if (user === null) {
+          console.error(`No console account ${args.as}.`);
+          return 1;
+        }
+        const checked = checkImport(JSON.parse(await readStdin()) as unknown);
+        if (!checked.ok) {
+          console.error(checked.reason);
+          return 1;
+        }
+        const counts = await app
+          .get(PostgresCalendarStore)
+          .importCalendar(checked.value.subscriptions, checked.value.events, {
+            id: user.id,
+            username: user.username,
+            display_name: user.display_name,
+          });
+        process.stdout.write(
+          `subscriptions: ${counts.subscriptions.added} added, ${counts.subscriptions.changed} changed, ${counts.subscriptions.same} unchanged; ` +
+            `events: ${counts.events.added} added, ${counts.events.skipped} already there
+`,
+        );
+        return 0;
       }
       case 'take-commands':
         process.stdout.write(`${JSON.stringify(await store.takeCommands())}\n`);

@@ -384,6 +384,15 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'POST /console/board': CONSOLE_PERSON,
   'PATCH /console/board/:id': CONSOLE_PERSON,
   'DELETE /console/board/:id': CONSOLE_PERSON,
+  // T-1788 (D-391): the calendar and its reminders, the same two people.
+  'POST /console/calendar/events': CONSOLE_PERSON,
+  'PATCH /console/calendar/events/:id': CONSOLE_PERSON,
+  'DELETE /console/calendar/events/:id': CONSOLE_PERSON,
+  'POST /console/calendar/push':
+    "Switches reminders on in the caller's own browser: one row per browser (the endpoint is unique), audited; a repeat replaces it.",
+  'DELETE /console/calendar/push': REMOVAL,
+  'POST /console/calendar/push/test':
+    "Sends one test message to the caller's own browsers only; reaches no one else, and the push services hold their own limits.",
 };
 
 /** Every write under this prefix is the console's: role-gated and audited, never rate limited. */
