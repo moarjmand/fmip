@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2375), grouped by folder, with one line on
+Every file in the repository (2378), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -82,7 +82,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/identity`](#appsapisrcmodulesidentity) — 9
 - [`apps/api/src/modules/identity/internal`](#appsapisrcmodulesidentityinternal) — 12
 - [`apps/api/src/modules/ingestion`](#appsapisrcmodulesingestion) — 23
-- [`apps/api/src/modules/ingestion/internal`](#appsapisrcmodulesingestioninternal) — 68
+- [`apps/api/src/modules/ingestion/internal`](#appsapisrcmodulesingestioninternal) — 70
 - [`apps/api/src/modules/intelligence`](#appsapisrcmodulesintelligence) — 4
 - [`apps/api/src/modules/intelligence/internal`](#appsapisrcmodulesintelligenceinternal) — 4
 - [`apps/api/src/modules/locale-holds`](#appsapisrcmoduleslocale-holds) — 3
@@ -282,7 +282,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 74
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 180
+- [`packages/db/migrations`](#packagesdbmigrations) — 181
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -1166,6 +1166,8 @@ machine, `docs/18-handover.md`.
 | `lineup-asks.spec.ts` | T-1625, D-293: who the line-ups job asks, from 75 minutes before kick-off. |
 | `lineup-asks.ts` | Which matches the line-ups job asks for their line-up, and in what order (T-1625, D-293). |
 | `lineup-sides.spec.ts` | Line-ups filed under the other team (T-1628, D-294). |
+| `live-detail-asks.spec.ts` | A clock that moves `perAsk` ms with every ask. |
+| `live-detail-asks.ts` | Which matches in play the live job asks for their whole detail -- team statistics, incidents, line-ups, player statistics -- and when (T-1782, D-382). |
 | `participant-swap.spec.ts` | A match the provider turns round (T-1410): the daily sweep of 2026-10-14 failed whole on `fixture_participant_team_once` because fixture 1552933 came back with home and away the other way about. |
 | `person-bio-store.spec.ts` | The bio pass's SQL against the real schema (T-1428, D-220): who is owed an ask (players only, with an empty field, squad members first), the ask record, and the write, which fills only the empty fields. |
 | `person-bio-store.ts` | The bio pass's SQL (T-1428, D-220): who is owed an ask, the ask record, and the one write, which fills only the fields still empty. |
@@ -3901,6 +3903,7 @@ machine, `docs/18-handover.md`.
 | `1765901200000_console-request-image.sql` | Pictures on the teammate requests (T-1731, D-357). |
 | `1765901300000_pending-pick.sql` | T-1740 (D-361): a pick made before the member confirmed their e-mail address. |
 | `1765901400000_competition-zone-key.sql` | T-1761 (D-381): our own code for a competition the committed league-zone list (`packages/contracts/zones/league-zones.json`, D-171) keys by competition rather than by training division or country. |
+| `1765901782000_fixture-stat-check.sql` | T-1782 (D-382): when a fixture's team statistics were last confirmed by an answer that carried them. |
 
 ## packages/db/scripts
 
