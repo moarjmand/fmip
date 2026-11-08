@@ -1143,6 +1143,31 @@ header:has(#competitions-menu:not([hidden])) {
 }
 
 /*
+ * The leaderboard's filters (T-1783, D-388): one closed line, "Filters · none
+ * applied", on a phone and while the board is empty. From 640px, once the
+ * board has rows (`board-filters--stand`), the line and its panel are no box
+ * at all and the filters stand in the page's column as they did. A browser
+ * that cannot style the content slot keeps the closed line.
+ */
+@media (width >= 40rem) {
+  @supports selector(::details-content) {
+    .board-filters--stand,
+    .board-filters--stand::details-content,
+    .board-filters--stand > .board-filters-panel {
+      display: contents;
+    }
+
+    .board-filters--stand::details-content {
+      content-visibility: visible;
+    }
+
+    .board-filters--stand > summary {
+      display: none;
+    }
+  }
+}
+
+/*
  * Text size (T-621, blueprint 2.2). Every size above, and Tailwind's spacing,
  * is in rem, so the root's font size scales the whole page as one: a
  * percentage of the browser's own setting, which a reader may already have

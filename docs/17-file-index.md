@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2378), grouped by folder, with one line on
+Every file in the repository (2387), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -205,7 +205,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/groups/[slug]`](#appswebsrcapplocalegroupsslug) — 1
 - [`apps/web/src/app/[locale]/groups/[slug]/history`](#appswebsrcapplocalegroupsslughistory) — 1
 - [`apps/web/src/app/[locale]/highlights`](#appswebsrcapplocalehighlights) — 4
-- [`apps/web/src/app/[locale]/leaderboard`](#appswebsrcapplocaleleaderboard) — 1
+- [`apps/web/src/app/[locale]/leaderboard`](#appswebsrcapplocaleleaderboard) — 3
 - [`apps/web/src/app/[locale]/login`](#appswebsrcapplocalelogin) — 1
 - [`apps/web/src/app/[locale]/match/[id]`](#appswebsrcapplocalematchid) — 5
 - [`apps/web/src/app/[locale]/messages`](#appswebsrcapplocalemessages) — 1
@@ -229,7 +229,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/settings/data-export`](#appswebsrcapplocalesettingsdata-export) — 1
 - [`apps/web/src/app/[locale]/settings/notifications`](#appswebsrcapplocalesettingsnotifications) — 1
 - [`apps/web/src/app/[locale]/team/[id]`](#appswebsrcapplocaleteamid) — 1
-- [`apps/web/src/app/[locale]/u/[username]`](#appswebsrcapplocaleuusername) — 2
+- [`apps/web/src/app/[locale]/u/[username]`](#appswebsrcapplocaleuusername) — 3
 - [`apps/web/src/app/[locale]/u/[username]/compare`](#appswebsrcapplocaleuusernamecompare) — 1
 - [`apps/web/src/app/[locale]/verify-email`](#appswebsrcapplocaleverify-email) — 1
 - [`apps/web/src/app/[locale]/watch`](#appswebsrcapplocalewatch) — 1
@@ -255,11 +255,11 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 296
+- [`apps/web/src/components`](#appswebsrccomponents) — 300
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
-- [`apps/web/src/lib`](#appswebsrclib) — 222
+- [`apps/web/src/lib`](#appswebsrclib) — 224
 - [`apps/web/tests/e2e`](#appswebtestse2e) — 25
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
 - [`apps/web/tests/e2e/journeys`](#appswebtestse2ejourneys) — 26
@@ -2440,6 +2440,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | The languages a board can be drawn by (T-844): the ones the site is offered in. |
+| `rating-card.spec.tsx` | "How a rating is earned" and the folded filters (T-1783, T-1784, D-388; boards P7-2 and P7-3): the card says only what is true of whoever looks, its threshold is the API's floor, and the filters fold into one line. |
+| `rating-card.tsx` | "How a rating is earned" (T-1783, T-1784, D-388): the card that opens the leaderboard, in place of the old picks card. |
 
 ## apps/web/src/app/[locale]/login
 
@@ -2595,6 +2597,7 @@ machine, `docs/18-handover.md`.
 |---|---|
 | `opengraph-image.tsx` | The card a chat app shows for a member's profile link (T-520): their name, their rating and their latest settled predictions, exactly as a signed-out visitor would see them -- every request here is made without a sessio… |
 | `page.tsx` | A member's public profile (blueprint 7.2). |
+| `profile-page.spec.tsx` | A new member's profile (T-1787, D-390; board P7-6), rendered whole with the API mocked: the member's own "Your first steps" until there is a settled pick and the three steps are done, the empty sections as one-line stat… |
 
 ## apps/web/src/app/[locale]/u/[username]/compare
 
@@ -2848,6 +2851,8 @@ machine, `docs/18-handover.md`.
 | `first-run-offer.spec.tsx` | Home's order and the first run's strip (T-1756, D-373; board P4-2): the main match comes before "Live now", the offer is a 48px strip after the main match (after the "Today" line when there is none), the whole strip is… |
 | `first-run-offer.tsx` | The homepage's offer of the first run (blueprint 2.3, T-620): guests "are encouraged to select a language, territory and favourite teams". |
 | `first-run.spec.ts` | The first run (blueprint 2.3 and 7.1, T-620) keeps these promises. **Offered once, dismissible.** The homepage offers it to a member whose flow is pending and to a guest who neither finished nor dismissed it; "Not now"… |
+| `first-steps.spec.tsx` | A new member's profile (T-1787, D-390; board P7-6): the card, the bar and the state rows. |
+| `first-steps.tsx` | A new member's profile (T-1787, D-390; board P7-6): the member's own "Your first steps" card and the profile's empty rows. |
 | `follow-next-steps.spec.ts` | Following with nothing followed (T-622) keeps three promises. **Never an empty page that looks broken**: a member who follows nothing gets a sentence and concrete next steps, and every way the suggestions can fail is a… |
 | `follow-next-steps.tsx` | What a member who follows nothing does next (T-622): never an empty page that looks broken. |
 | `following-section.tsx` | The member's follows and favourites on the settings page (T-042). |
@@ -3024,6 +3029,8 @@ machine, `docs/18-handover.md`.
 | `score-dispute.tsx` | What the match header says of a finished match whose recorded goals do not add up to its result (T-1717, D-347): a "limited" marker beside the score and one line under the band naming both numbers, neither as final. |
 | `score.tsx` | A score, rendered so it cannot be read backwards (T-153, T-1375, rule 7). **The rule.** A score is a pair, home first, read in the page's own direction: on an English page the home goals sit on the left, on a Persian or… |
 | `service-worker.tsx` | Registers the service worker (T-082) once the page has loaded, so the shell is cached for the next visit and the app can be installed. |
+| `settled-progress.spec.tsx` | The bar to the floor (D-388, D-390): one helper and one component for the leaderboard's card and the member profile. |
+| `settled-progress.tsx` | The bar to the leaderboard's floor (D-388, D-390): one component for the leaderboard's card "How a rating is earned" and the member profile, so one look, one computation (`floorProgress`) and one set of strings. |
 | `share-card-button.tsx` | The one control on a card's page that needs JavaScript (T-1723, B06): the phone's own share sheet with the card's picture attached, where the browser can share files; else the link alone, or a copied link. |
 | `share-card-image.tsx` | The pictures behind the share cards (T-520), for `next/og`'s `ImageResponse`. |
 | `share-link.tsx` | A share control (T-521): the share sheet, or a copied link. |
@@ -3196,6 +3203,8 @@ machine, `docs/18-handover.md`.
 | `first-run-cookie.ts` | A guest's first-run choices (T-620), from this browser's cookie; `{}` when none. |
 | `first-run.spec.ts` | Tests for `first-run`. |
 | `first-run.ts` | The first-run flow (blueprint 2.3 and 7.1, T-620): language, territory, time zone and favourite teams, each skippable, offered once. |
+| `first-steps.spec.ts` | A member who has just registered: nothing read is anything yet. |
+| `first-steps.ts` | A new member's profile (T-1787, D-390; board P7-6): the member's own "Your first steps", as data. |
 | `fold-name.ts` | The filters' one way of comparing names (T-1433; its own module since T-1643, D-301): the competitions menu folds the words typed in the reader's browser, and this file is all it carries there for that. |
 | `forecast-diff.spec.ts` | Tests for `forecast-diff`. |
 | `forecast-diff.ts` | What changed between two forecast versions, and what can honestly be blamed for it (T-121, blueprint 6.4). |

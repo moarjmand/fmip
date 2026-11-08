@@ -29,6 +29,14 @@ describe('"How Stadiomind works" (T-1615, D-286)', () => {
     expect(en).toContain('Never blended into one number.');
   });
 
+  it('gives the rating step the id "How ratings work" leads to (D-388)', () => {
+    expect(en).toMatch(
+      /<li class="how-step how-outcomes" id="about-rating" data-testid="how-outcomes">/,
+    );
+    expect(fa).toContain('id="about-rating"');
+    expect(en.match(/id="about-rating"/g)).toHaveLength(1);
+  });
+
   it('puts the three products in separate lanes, and each builds its own record', () => {
     const lanes = [...en.matchAll(/class="how-lane how-tone--(\w+)/g)].map((m) => m[1]);
     const outcomes = [...en.matchAll(/class="how-outcome how-tone--(\w+)/g)].map((m) => m[1]);

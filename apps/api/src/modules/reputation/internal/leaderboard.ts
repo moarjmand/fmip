@@ -5,8 +5,10 @@ import { RATING_FORMULA_V1 } from './formula';
  * Leaderboard rules (blueprint 9.3), version 1. The board ranks members by
  * their current rating; the minimum-sample filter is what keeps a member with
  * one lucky result from ranking above established performers, so it has a
- * floor the request cannot go under. The floor is the formula's provisional
- * threshold: a provisional rating is not a ranking.
+ * floor the request cannot go under. The floor is the formula's version-1
+ * provisional threshold, a constant: the console's provisional count
+ * (`rating_threshold_version`, D-152) can later move apart from it, so the
+ * site words the floor as "ranked from", never as "provisional until".
  */
 export interface LeaderboardRules {
   version: string;

@@ -1,14 +1,17 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
-import { fetchLeaderboard } from '@/lib/api';
+import { fetchLeaderboard, fetchMe, fetchMyRating } from '@/lib/api';
 import {
+  activeFilterCount,
   apiQuery,
+  boardNarrowed,
   emptyBoardSentence,
   languageLabel,
   monthLabel,
   pageCount,
   pageHref,
   boardExplainer,
+  ratingCardViewer,
   ratingLabel,
   readLeaderboardQuery,
   statusLabel,
@@ -25,6 +28,7 @@ import { Stamp } from '@/components/stamp';
 import { ModelVersion } from '@/components/model-version';
 import { attribute, message, t } from '@/i18n/messages';
 import { asLocale, plainNumber, richMessage } from '@/lib/prediction-text';
+import { RatingCard } from './rating-card';
 
 /** The languages a board can be drawn by (T-844): the ones the site is offered in. */
 const BOARD_LANGUAGES: readonly string[] = ['en', ...UNFINISHED_LOCALES];
@@ -58,6 +62,10 @@ export async function generateMetadata({
  * no JavaScript. The month and season pickers list what the API says has
  * settled predictions. A friends board without a session is a sentence
  * asking the visitor to sign in, not an empty table.
+ *
+ * T-1783, T-1784 (D-388): the page opens with "How a rating is earned"
+ * (`rating-card.tsx`), true per viewer, and the filters fold into one native
+ * <details> line while the board is empty and always on a phone.
  */
 export default async function LeaderboardPage({
   params,
@@ -70,7 +78,25 @@ export default async function LeaderboardPage({
   const l = asLocale(locale);
   const q = readLeaderboardQuery(query);
   const cookie = await sessionCookieHeader();
-  const result = await fetchLeaderboard(apiQuery(q), cookie);
+  // The member's own count for the card (T-1784, D-388), read beside the board.
+  const [result, me, mine] = await Promise.all([
+    fetchLeaderboard(apiQuery(q), cookie),
+    fetchMe(cookie),
+    cookie === undefined ? Promise.resolve(null) : fetchMyRating(cookie),
+  ]);
+  const viewer = result.ok
+    ? ratingCardViewer(me, mine !== null && mine.ok ? mine.data : null, result.data.floor)
+    : null;
+  // The filters fold into one closed line while the board is empty, and always
+  // on a phone; from 640px they stand open, as before, once it has rows (D-388).
+  const standOpen = result.ok && result.data.entries.length > 0;
+  const applied = activeFilterCount(q, result.ok ? result.data.floor : null);
+  const explainerOutside = result.ok && boardNarrowed(result.data);
+  const explainer = result.ok ? (
+    <p className="text-sm text-muted" data-testid="board-explainer">
+      {boardExplainer(result.data, locale)}
+    </p>
+  ) : null;
   const linkClass = (active: boolean): string =>
     // A 44px target on a phone, the old compact chip from 768px (T-1574).
     `inline-flex min-h-touch items-center rounded px-2 md:min-h-0 md:py-1 ${
@@ -95,58 +121,250 @@ export default async function LeaderboardPage({
         <Translated locale={l} message="nav.leaderboard" />
       </h1>
 
-      {/* The way to make picks (T-1610, D-281): the header's Predictions
-        leads here, and picks are made on the matches page, in its "Not
-        picked yet" view. The page's one primary button. */}
-      <Card
-        className="flex-row flex-wrap items-center justify-between"
-        data-testid="leaderboard-picks"
-      >
-        <p className="max-w-md text-sm text-muted">
-          <Translated locale={l} message="leaderboardPage.picksLead" />
-        </p>
-        <ButtonLink
-          href={`/${locale}${PICKS_PATH}`}
-          variant="primary"
-          size="md"
-          data-testid="leaderboard-picks-cta"
+      {/* How a rating is earned (T-1783, T-1784, D-388), with the page's one
+        primary button to the picks (T-1610, D-281). Its threshold is the
+        API's floor, so without an answer the old card stands in. */}
+      {viewer !== null && result.ok ? (
+        <RatingCard locale={locale} floor={result.data.floor} viewer={viewer} />
+      ) : (
+        <Card
+          className="flex-row flex-wrap items-center justify-between"
+          data-testid="leaderboard-picks"
         >
-          <Translated locale={l} message="leaderboardPage.picksCta" />
-        </ButtonLink>
-      </Card>
+          <p className="max-w-md text-sm text-muted">
+            <Translated locale={l} message="leaderboardPage.picksLead" />
+          </p>
+          <ButtonLink
+            href={`/${locale}${PICKS_PATH}`}
+            variant="primary"
+            size="md"
+            data-testid="leaderboard-picks-cta"
+          >
+            <Translated locale={l} message="leaderboardPage.picksCta" />
+          </ButtonLink>
+        </Card>
+      )}
 
-      <nav aria-label={boardNav.text} lang={boardNav.lang} className="flex flex-col gap-2 text-sm">
-        <div className="flex flex-wrap items-center gap-2" data-testid="scope-switcher">
+      {/* The filters as one line (D-388): a native <details>, closed on a
+        phone and while the board is empty; `board-filters--stand` (globals.css)
+        makes it no box at all from 640px once the board has rows. Open when
+        the board could not be read (a refused filter, the friends board signed
+        out), so the way back to "Everyone" is not behind the fold. */}
+      <details
+        className={`board-filters group${standOpen ? ' board-filters--stand' : ''}`}
+        data-testid="leaderboard-filters"
+        open={!result.ok}
+      >
+        <summary
+          className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded border border-default bg-surface px-4 text-sm [&::-webkit-details-marker]:hidden"
+          data-testid="leaderboard-filters-toggle"
+        >
+          <b>
+            <Translated locale={l} message="leaderboardPage.filters.title" />
+          </b>
           <span className="text-muted">
-            <Translated locale={l} message="leaderboardPage.who" />
+            ·{' '}
+            {applied === 0 ? (
+              <Translated locale={l} message="leaderboardPage.filters.none" />
+            ) : (
+              <Translated locale={l} message="leaderboardPage.filters.applied" count={applied} />
+            )}
           </span>
-          {scopes.map(({ scope, label }) => (
-            <Link
-              key={scope}
-              href={pageHref(locale, q, { scope, page: 1 })}
-              aria-current={q.scope === scope ? 'true' : undefined}
-              className={linkClass(q.scope === scope)}
-            >
-              <Translated locale={l} message={label} />
-            </Link>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2" data-testid="period-switcher">
-          <span className="text-muted">
-            <Translated locale={l} message="leaderboardPage.when" />
+          <span aria-hidden="true" className="ms-auto text-xs text-muted group-open:rotate-180">
+            ▾
           </span>
-          {periods.map(({ period, label }) => (
-            <Link
-              key={period}
-              href={pageHref(locale, q, { period, month: null, season: null, page: 1 })}
-              aria-current={q.period === period ? 'true' : undefined}
-              className={linkClass(q.period === period)}
-            >
-              <Translated locale={l} message={label} />
-            </Link>
-          ))}
+        </summary>
+        <div className="board-filters-panel mt-2 flex flex-col gap-4 rounded border border-default bg-surface p-4">
+          <nav
+            aria-label={boardNav.text}
+            lang={boardNav.lang}
+            className="flex flex-col gap-2 text-sm"
+          >
+            <div className="flex flex-wrap items-center gap-2" data-testid="scope-switcher">
+              <span className="text-muted">
+                <Translated locale={l} message="leaderboardPage.who" />
+              </span>
+              {scopes.map(({ scope, label }) => (
+                <Link
+                  key={scope}
+                  href={pageHref(locale, q, { scope, page: 1 })}
+                  aria-current={q.scope === scope ? 'true' : undefined}
+                  className={linkClass(q.scope === scope)}
+                >
+                  <Translated locale={l} message={label} />
+                </Link>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2" data-testid="period-switcher">
+              <span className="text-muted">
+                <Translated locale={l} message="leaderboardPage.when" />
+              </span>
+              {periods.map(({ period, label }) => (
+                <Link
+                  key={period}
+                  href={pageHref(locale, q, { period, month: null, season: null, page: 1 })}
+                  aria-current={q.period === period ? 'true' : undefined}
+                  className={linkClass(q.period === period)}
+                >
+                  <Translated locale={l} message={label} />
+                </Link>
+              ))}
+            </div>
+          </nav>
+          {result.ok && (
+            <>
+              {result.data.period.kind === 'month' && (
+                <div
+                  className="flex flex-wrap items-center gap-2 text-sm"
+                  data-testid="month-picker"
+                >
+                  <span className="text-muted">
+                    <Translated locale={l} message="leaderboardPage.month" />
+                  </span>
+                  {pickerChoices(
+                    result.data.available_periods.months,
+                    result.data.period.month,
+                  ).map((month) => (
+                    <Link
+                      key={month}
+                      href={pageHref(locale, q, { month, page: 1 })}
+                      aria-current={
+                        result.data.period.kind === 'month' && result.data.period.month === month
+                          ? 'true'
+                          : undefined
+                      }
+                      className={linkClass(
+                        result.data.period.kind === 'month' && result.data.period.month === month,
+                      )}
+                    >
+                      {monthLabel(month, locale)}
+                    </Link>
+                  ))}
+                </div>
+              )}
+              {result.data.period.kind === 'season' && result.data.period.label !== null && (
+                <div
+                  className="flex flex-wrap items-center gap-2 text-sm"
+                  data-testid="season-picker"
+                >
+                  <span className="text-muted">
+                    <Translated locale={l} message="leaderboardPage.season" />
+                  </span>
+                  {pickerChoices(
+                    result.data.available_periods.seasons,
+                    result.data.period.label,
+                  ).map((season) => (
+                    <Link
+                      key={season}
+                      href={pageHref(locale, q, { season, page: 1 })}
+                      aria-current={
+                        result.data.period.kind === 'season' && result.data.period.label === season
+                          ? 'true'
+                          : undefined
+                      }
+                      className={linkClass(
+                        result.data.period.kind === 'season' && result.data.period.label === season,
+                      )}
+                    >
+                      {season}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              {(result.data.available_competitions.length > 0 ||
+                result.data.competition !== null) && (
+                <div
+                  className="flex flex-wrap items-center gap-2 text-sm"
+                  data-testid="competition-picker"
+                >
+                  <span className="text-muted">
+                    <Translated locale={locale} message="leaderboard.competition.label" />
+                  </span>
+                  <Link
+                    href={pageHref(locale, q, { competition: null, page: 1 })}
+                    aria-current={result.data.competition === null ? 'true' : undefined}
+                    className={linkClass(result.data.competition === null)}
+                  >
+                    <Translated locale={locale} message="leaderboard.competition.all" />
+                  </Link>
+                  {competitionChoices(
+                    result.data.available_competitions,
+                    result.data.competition,
+                  ).map((competition) => (
+                    <Link
+                      key={competition.id}
+                      href={pageHref(locale, q, { competition: competition.id, page: 1 })}
+                      aria-current={
+                        result.data.competition?.id === competition.id ? 'true' : undefined
+                      }
+                      className={linkClass(result.data.competition?.id === competition.id)}
+                    >
+                      {competition.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1 text-sm" data-testid="language-picker">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-muted">
+                    <Translated locale={locale} message="leaderboard.language.label" />
+                  </span>
+                  <Link
+                    href={pageHref(locale, q, { language: null, page: 1 })}
+                    aria-current={result.data.language === null ? 'true' : undefined}
+                    className={linkClass(result.data.language === null)}
+                  >
+                    <Translated locale={locale} message="leaderboard.language.all" />
+                  </Link>
+                  {BOARD_LANGUAGES.map((language) => (
+                    <Link
+                      key={language}
+                      href={pageHref(locale, q, { language, page: 1 })}
+                      aria-current={result.data.language === language ? 'true' : undefined}
+                      className={linkClass(result.data.language === language)}
+                    >
+                      {languageLabel(language, locale)}
+                    </Link>
+                  ))}
+                </div>
+                {result.data.language !== null && (
+                  <p className="text-muted" data-testid="language-note">
+                    <Translated locale={locale} message="leaderboard.language.note" />
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="min-sample">
+                <span className="text-muted">
+                  <Translated locale={l} message="leaderboardPage.minSample" />
+                </span>
+                {result.data.presets.map((preset) => (
+                  <Link
+                    key={preset}
+                    href={pageHref(locale, q, {
+                      min: preset === result.data.floor ? null : preset,
+                      page: 1,
+                    })}
+                    aria-current={preset === result.data.min_settled ? 'true' : undefined}
+                    className={linkClass(preset === result.data.min_settled)}
+                  >
+                    {plainNumber(l, preset)}
+                  </Link>
+                ))}
+                {!result.data.presets.includes(result.data.min_settled) && (
+                  <span className={linkClass(true)} aria-current="true">
+                    {plainNumber(l, result.data.min_settled)}
+                  </span>
+                )}
+              </div>
+
+              {!explainerOutside && explainer}
+            </>
+          )}
         </div>
-      </nav>
+      </details>
 
       {!result.ok ? (
         result.status === 401 && q.scope === 'friends' ? (
@@ -187,147 +405,7 @@ export default async function LeaderboardPage({
         )
       ) : (
         <>
-          {result.data.period.kind === 'month' && (
-            <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="month-picker">
-              <span className="text-muted">
-                <Translated locale={l} message="leaderboardPage.month" />
-              </span>
-              {pickerChoices(result.data.available_periods.months, result.data.period.month).map(
-                (month) => (
-                  <Link
-                    key={month}
-                    href={pageHref(locale, q, { month, page: 1 })}
-                    aria-current={
-                      result.data.period.kind === 'month' && result.data.period.month === month
-                        ? 'true'
-                        : undefined
-                    }
-                    className={linkClass(
-                      result.data.period.kind === 'month' && result.data.period.month === month,
-                    )}
-                  >
-                    {monthLabel(month, locale)}
-                  </Link>
-                ),
-              )}
-            </div>
-          )}
-          {result.data.period.kind === 'season' && result.data.period.label !== null && (
-            <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="season-picker">
-              <span className="text-muted">
-                <Translated locale={l} message="leaderboardPage.season" />
-              </span>
-              {pickerChoices(result.data.available_periods.seasons, result.data.period.label).map(
-                (season) => (
-                  <Link
-                    key={season}
-                    href={pageHref(locale, q, { season, page: 1 })}
-                    aria-current={
-                      result.data.period.kind === 'season' && result.data.period.label === season
-                        ? 'true'
-                        : undefined
-                    }
-                    className={linkClass(
-                      result.data.period.kind === 'season' && result.data.period.label === season,
-                    )}
-                  >
-                    {season}
-                  </Link>
-                ),
-              )}
-            </div>
-          )}
-
-          {(result.data.available_competitions.length > 0 || result.data.competition !== null) && (
-            <div
-              className="flex flex-wrap items-center gap-2 text-sm"
-              data-testid="competition-picker"
-            >
-              <span className="text-muted">
-                <Translated locale={locale} message="leaderboard.competition.label" />
-              </span>
-              <Link
-                href={pageHref(locale, q, { competition: null, page: 1 })}
-                aria-current={result.data.competition === null ? 'true' : undefined}
-                className={linkClass(result.data.competition === null)}
-              >
-                <Translated locale={locale} message="leaderboard.competition.all" />
-              </Link>
-              {competitionChoices(result.data.available_competitions, result.data.competition).map(
-                (competition) => (
-                  <Link
-                    key={competition.id}
-                    href={pageHref(locale, q, { competition: competition.id, page: 1 })}
-                    aria-current={
-                      result.data.competition?.id === competition.id ? 'true' : undefined
-                    }
-                    className={linkClass(result.data.competition?.id === competition.id)}
-                  >
-                    {competition.name}
-                  </Link>
-                ),
-              )}
-            </div>
-          )}
-
-          <div className="flex flex-col gap-1 text-sm" data-testid="language-picker">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-muted">
-                <Translated locale={locale} message="leaderboard.language.label" />
-              </span>
-              <Link
-                href={pageHref(locale, q, { language: null, page: 1 })}
-                aria-current={result.data.language === null ? 'true' : undefined}
-                className={linkClass(result.data.language === null)}
-              >
-                <Translated locale={locale} message="leaderboard.language.all" />
-              </Link>
-              {BOARD_LANGUAGES.map((language) => (
-                <Link
-                  key={language}
-                  href={pageHref(locale, q, { language, page: 1 })}
-                  aria-current={result.data.language === language ? 'true' : undefined}
-                  className={linkClass(result.data.language === language)}
-                >
-                  {languageLabel(language, locale)}
-                </Link>
-              ))}
-            </div>
-            {result.data.language !== null && (
-              <p className="text-muted" data-testid="language-note">
-                <Translated locale={locale} message="leaderboard.language.note" />
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="min-sample">
-            <span className="text-muted">
-              <Translated locale={l} message="leaderboardPage.minSample" />
-            </span>
-            {result.data.presets.map((preset) => (
-              <Link
-                key={preset}
-                href={pageHref(locale, q, {
-                  min: preset === result.data.floor ? null : preset,
-                  page: 1,
-                })}
-                aria-current={preset === result.data.min_settled ? 'true' : undefined}
-                className={linkClass(preset === result.data.min_settled)}
-              >
-                {plainNumber(l, preset)}
-              </Link>
-            ))}
-            {!result.data.presets.includes(result.data.min_settled) && (
-              <span className={linkClass(true)} aria-current="true">
-                {plainNumber(l, result.data.min_settled)}
-              </span>
-            )}
-          </div>
-
-          <p className="text-sm text-muted" data-testid="board-explainer">
-            {boardExplainer(result.data, locale)}
-          </p>
-
+          {explainerOutside && explainer}
           {result.data.entries.length === 0 ? (
             <p data-testid="leaderboard-empty">
               {emptyBoardSentence(
@@ -387,33 +465,36 @@ export default async function LeaderboardPage({
             </div>
           )}
 
-          <nav
-            aria-label={pagesNav.text}
-            lang={pagesNav.lang}
-            className="flex flex-wrap items-center gap-3 text-sm"
-          >
-            {q.page > 1 && (
-              <Link href={pageHref(locale, q, { page: q.page - 1 })} className="underline">
-                <Translated locale={l} message="leaderboardPage.previous" />
-              </Link>
-            )}
-            <span className="text-muted">
-              <Translated
-                locale={l}
-                message="leaderboardPage.pageOf"
-                count={result.data.total}
-                params={{
-                  page: plainNumber(l, q.page),
-                  pages: plainNumber(l, pageCount(result.data.total)),
-                }}
-              />
-            </span>
-            {q.page < pageCount(result.data.total) && (
-              <Link href={pageHref(locale, q, { page: q.page + 1 })} className="underline">
-                <Translated locale={l} message="leaderboardPage.next" />
-              </Link>
-            )}
-          </nav>
+          {/* No "Page 1 of 1 · 0 ranked" under an empty board: the sentence says it (D-388). */}
+          {(result.data.entries.length > 0 || q.page > 1) && (
+            <nav
+              aria-label={pagesNav.text}
+              lang={pagesNav.lang}
+              className="flex flex-wrap items-center gap-3 text-sm"
+            >
+              {q.page > 1 && (
+                <Link href={pageHref(locale, q, { page: q.page - 1 })} className="underline">
+                  <Translated locale={l} message="leaderboardPage.previous" />
+                </Link>
+              )}
+              <span className="text-muted">
+                <Translated
+                  locale={l}
+                  message="leaderboardPage.pageOf"
+                  count={result.data.total}
+                  params={{
+                    page: plainNumber(l, q.page),
+                    pages: plainNumber(l, pageCount(result.data.total)),
+                  }}
+                />
+              </span>
+              {q.page < pageCount(result.data.total) && (
+                <Link href={pageHref(locale, q, { page: q.page + 1 })} className="underline">
+                  <Translated locale={l} message="leaderboardPage.next" />
+                </Link>
+              )}
+            </nav>
+          )}
 
           <p className="text-xs text-muted">
             {/* Each version an element, its `@` set apart: no address in the HTML (T-1606). */}

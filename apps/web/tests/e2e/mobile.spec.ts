@@ -179,7 +179,7 @@ for (const width of [1280, 1440]) {
       'nav-home',
       'nav-matches',
       'nav-competitions',
-      'nav-predictions',
+      'nav-leaderboard',
       'nav-model',
       'nav-news',
       'nav-highlights',

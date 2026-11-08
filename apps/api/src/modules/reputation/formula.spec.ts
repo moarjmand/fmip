@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RATING_FORMULA_V1, computeRating, tierOf, type RatingInput } from './internal/formula';
+import { LEADERBOARD_RULES_V1 } from './internal/leaderboard';
 
 let counter = 0;
 const input = (over: Partial<RatingInput> = {}): RatingInput => {
@@ -93,5 +94,20 @@ describe('computeRating', () => {
     expect(tierOf(40, RATING_FORMULA_V1)).toBe('silver');
     expect(tierOf(69.9, RATING_FORMULA_V1)).toBe('gold');
     expect(tierOf(85, RATING_FORMULA_V1)).toBe('elite');
+  });
+});
+
+describe('the window and the floor (D-388, D-390)', () => {
+  it('keeps the formula window at or above the leaderboard floor', () => {
+    // `settled_count` is the window's count (the last `window` settled
+    // picks). The web draws "N of floor" only below the floor, which is true
+    // only while every count under the floor is every settled pick -- that
+    // is, while the window is not smaller than the floor.
+    expect(RATING_FORMULA_V1.window).toBeGreaterThanOrEqual(LEADERBOARD_RULES_V1.floor);
+    const settled = computeRating(many(LEADERBOARD_RULES_V1.floor - 1));
+    expect(settled?.settledCount).toBe(LEADERBOARD_RULES_V1.floor - 1);
+    expect(computeRating(many(RATING_FORMULA_V1.window + 20))?.settledCount).toBe(
+      RATING_FORMULA_V1.window,
+    );
   });
 });
