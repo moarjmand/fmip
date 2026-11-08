@@ -291,17 +291,29 @@ export function FounderAnalysisBrief({
   const current = analysis?.analysis?.versions[0] ?? null;
   if (analysis === null || analysis.analysis === null || current === null) {
     // One 48px line, the word on it and the sentence behind it (T-1773,
-    // D-383), where a 111px card said only that there is none.
+    // D-383), where a 111px card said only that there is none. A request
+    // that failed says it was not loaded, never that none exists (rule 3).
+    const unreachable = analysis === null;
     return (
       <FounderVoice
         locale={l}
         testId="founder-brief"
-        state="none"
-        empty={<Translated locale={l} message="analysis.founder.none" />}
+        state={unreachable ? 'unreachable' : 'none'}
+        empty={
+          <Translated
+            locale={l}
+            message={unreachable ? 'predictions.page.founderUnreachable' : 'analysis.founder.none'}
+          />
+        }
         row={
           <CoverageBadge
             state="not_supplied"
-            label={<Translated locale={l} message="lanes.row.none" />}
+            label={
+              <Translated
+                locale={l}
+                message={unreachable ? 'lanes.row.unreachable' : 'lanes.row.none'}
+              />
+            }
           />
         }
       />

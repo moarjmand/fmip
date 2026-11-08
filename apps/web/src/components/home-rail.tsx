@@ -819,16 +819,29 @@ export function ColumnAndPicks({
         // None published is one folded line in the founder's own voice
         // (T-1774, D-383), named for the coming matches so it is not read
         // as the main match's analysis.
+        // A feed that did not answer says so (rule 3), as the upset card does.
         <FounderVoice
           locale={l}
           coming
           testId="home-founder-none"
-          state="none"
-          empty={<Translated locale={l} message="home.founder.none" />}
+          state={analyses === null ? 'unreachable' : 'none'}
+          empty={
+            <Translated
+              locale={l}
+              message={
+                analyses === null ? 'predictions.page.founderUnreachable' : 'home.founder.none'
+              }
+            />
+          }
           row={
             <CoverageBadge
               state="not_supplied"
-              label={<Translated locale={l} message="lanes.row.none" />}
+              label={
+                <Translated
+                  locale={l}
+                  message={analyses === null ? 'lanes.row.unreachable' : 'lanes.row.none'}
+                />
+              }
             />
           }
         />

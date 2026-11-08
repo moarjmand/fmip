@@ -15,7 +15,14 @@ import { describe, expect, it } from 'vitest';
 import type { AccuracyFigure, HeroMatch, KeyGroup } from '@/lib/home';
 import type { CardForecast } from '@/lib/score-card-products';
 import { BigMatch, HomeDateline, LiveNow, TodayByCompetition } from './home-front';
-import { Broadcasts, MonthFigures, MyTeams, TableExcerpt, UpsetCard } from './home-rail';
+import {
+  Broadcasts,
+  ColumnAndPicks,
+  MonthFigures,
+  MyTeams,
+  TableExcerpt,
+  UpsetCard,
+} from './home-rail';
 
 /**
  * The home page's blocks (T-1382, D-200; rebuilt in T-1495, D-270), in their
@@ -310,6 +317,18 @@ describe('the big match', () => {
     );
     // After kick-off there is no pick to make, and the row says so without the link.
     expect(big({ consensus: consensus(null), revealed: true })).not.toContain('Make your pick');
+  });
+
+  it('says the founder’s row was not loaded when the request failed, never "None yet" (rule 3)', () => {
+    const html = big({ founder: null });
+    expect(html).toContain('data-testid="founder-brief" data-state="unreachable"');
+    const summary = /data-testid="founder-brief"[^]*?<summary[^>]*>([^]*?)<\/summary>/.exec(
+      html,
+    )?.[1];
+    expect(summary).toContain('Not loaded');
+    expect(summary).not.toContain('None yet');
+    expect(html).toContain('The analysis service is unreachable right now.');
+    expect(html).not.toContain('The founder has not written an analysis of this match.');
   });
 
   it('keeps the full cards when the founder and the community have something to show', () => {
@@ -830,5 +849,23 @@ describe('the table excerpt links each club (T-1479)', () => {
     } as unknown as CompetitionTable;
     const html = renderToStaticMarkup(<TableExcerpt page={page} locale="en" timeZone="UTC" />);
     expect(html).toMatch(/href="\/en\/team\/t-city"[^>]*><bdi>Manchester City<\/bdi>/);
+  });
+});
+
+describe('the founder’s column (T-1774, D-383)', () => {
+  const column = (analyses: Parameters<typeof ColumnAndPicks>[0]['analyses']): string =>
+    renderToStaticMarkup(<ColumnAndPicks analyses={analyses} locale="en" timeZone="UTC" />);
+
+  it('says "None yet" when nothing is published, and "Not loaded" when the feed failed (rule 3)', () => {
+    const none = column([]);
+    expect(none).toContain('data-testid="home-founder-none" data-state="none"');
+    expect(none).toContain('None yet');
+    expect(none).toContain('no analysis of a coming match published yet');
+    const down = column(null);
+    expect(down).toContain('data-testid="home-founder-none" data-state="unreachable"');
+    expect(down).toContain('Not loaded');
+    expect(down).not.toContain('None yet');
+    expect(down).toContain('The analysis service is unreachable right now.');
+    expect(down).not.toContain('published yet');
   });
 });
