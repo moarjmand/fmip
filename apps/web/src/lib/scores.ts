@@ -489,23 +489,6 @@ export function firstMatchDay(
   return dateIn(timeZone, new Date(first));
 }
 
-/**
- * The day's next kick-off (T-1779, D-386): of the matches still to come, the
- * one that starts first -- the earliest, never a pick of the day, so "next"
- * stays true. A match whose kick-off is long past with no word from the feed
- * (T-1708) is not to come. `null` when nothing is left to start.
- */
-export function nextKickoff<C extends Pick<ScoreCard, 'status' | 'kickoff_at' | 'freshness'>>(
-  cards: readonly C[],
-): C | null {
-  let next: C | null = null;
-  for (const card of cards) {
-    if (card.status !== 'scheduled' || awaitingUpdate(card)) continue;
-    if (next === null || Date.parse(card.kickoff_at) < Date.parse(next.kickoff_at)) next = card;
-  }
-  return next;
-}
-
 /** Whether a match of the list is in play (T-1778, D-385): live or suspended. */
 export function anyInPlay(cards: readonly Pick<ScoreCard, 'status'>[]): boolean {
   return cards.some((card) => card.status === 'live' || card.status === 'suspended');

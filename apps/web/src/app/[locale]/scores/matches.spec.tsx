@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { CardDetails, ScoreCard, rowPick } from '@/components/score-card';
-import { LiveScores } from '@/components/live-scores';
+import { carriesStarted, liveNextHolds, LiveScores } from '@/components/live-scores';
 import { RowForecast } from '@/components/score-card-forecast';
 import type { CardForecast } from '@/lib/score-card-products';
 import {
@@ -22,7 +22,7 @@ import {
 } from '@/lib/scores';
 import { isOpenForPick, NO_FILTERS, onlyUnpicked } from '@/lib/scores-filters';
 import { forecastBarWords, scoresWords } from '@/lib/words-server';
-import { LiveNext } from './live-next';
+import { LiveNext, nextKickoff } from './live-next';
 import { MatchPreview } from './match-preview';
 import { MatchesAnalysis } from './matches-analysis';
 
@@ -1051,10 +1051,145 @@ describe('the next kick-off on the Live view (T-1779, D-386)', () => {
     expect(other).toContain('Show this day’s 12 matches');
   });
 
+  it('draws plain: the sentence and the way back, no next row and no "none left"', () => {
+    const plain = next({ plain: true });
+    expect(plain).toContain('Nothing is in play right now.');
+    expect(plain).toContain('Show today’s 92 matches');
+    expect(plain).not.toContain('data-testid="live-next"');
+    expect(plain).not.toContain('data-testid="score-card"');
+    expect(plain).not.toContain('No match is left to kick off today.');
+  });
+
   it('is drawn by the page instead of the founder’s card and the two links (page.tsx)', () => {
     const PAGE = readFileSync(join(HERE, 'page.tsx'), 'utf8');
     expect(PAGE).toMatch(/\{!liveNone && \(\s*<MatchesAnalysis/);
-    expect(PAGE).toContain('nextKickoff(dayCards)');
-    expect(PAGE).toContain('liveEmpty={');
+    expect(PAGE).toContain('nextKickoff(dayCards, now)');
+    expect(PAGE).toContain('liveEmpty={liveNext(false)}');
+    expect(PAGE).toContain('liveEmptyPlain={');
+    expect(PAGE).toContain('liveEmptyNext={');
+  });
+});
+
+describe('nextKickoff (T-1779, D-386)', () => {
+  const at = (id: string, kickoff_at: string, over: Partial<ScoreCardData> = {}) =>
+    card({ id, kickoff_at, ...over });
+
+  it('is the earliest match still to come, never one that started, ended or was called off', () => {
+    const later = at('later', '2026-10-25T19:00:00.000Z');
+    const earliest = at('earliest', '2026-10-25T14:30:00.000Z');
+    const played = at('played', '2026-10-25T08:00:00.000Z', { status: 'finished' });
+    const postponed = at('postponed', '2026-10-25T13:00:00.000Z', { status: 'postponed' });
+    const cancelled = at('cancelled', '2026-10-25T13:30:00.000Z', { status: 'cancelled' });
+    const stuck = at('stuck', '2026-10-25T07:00:00.000Z', { freshness: 'awaiting_update' });
+    expect(nextKickoff([later, played, postponed, cancelled, stuck, earliest], NOW)?.id).toBe(
+      'earliest',
+    );
+  });
+
+  it('skips a match whose kick-off has passed though the feed still says scheduled', () => {
+    // Kicked off two hours ago: the API calls it awaiting an update only three hours on.
+    const started = at('started', '2026-10-25T10:00:00.000Z');
+    const coming = at('coming', '2026-10-25T15:00:00.000Z');
+    expect(nextKickoff([started, coming], NOW)?.id).toBe('coming');
+  });
+
+  it('does not count a kick-off exactly now as still to come', () => {
+    const now = at('now', new Date(NOW).toISOString());
+    const soon = at('soon', new Date(NOW + 60_000).toISOString());
+    expect(nextKickoff([now, soon], NOW)?.id).toBe('soon');
+    expect(nextKickoff([now], NOW)).toBeNull();
+  });
+
+  it('is null when nothing is left, so the view says no match is left to kick off today', () => {
+    const left = nextKickoff(
+      [
+        at('a', '2026-10-25T09:00:00.000Z'),
+        at('b', '2026-10-25T11:00:00.000Z', { status: 'finished' }),
+      ],
+      NOW,
+    );
+    expect(left).toBeNull();
+    const html = renderToStaticMarkup(
+      <LiveNext
+        locale="en"
+        timeZone="UTC"
+        today
+        next={left}
+        country={null}
+        count={2}
+        showHref="/en/scores"
+        pickHref={undefined}
+        forecast={undefined}
+        picked={false}
+        selected={false}
+        now={NOW}
+        words={scoresWords('en')}
+      />,
+    );
+    expect(html).toContain('No match is left to kick off today.');
+    expect(html).not.toContain('data-testid="live-next"');
+  });
+});
+
+describe('the Live view’s next kick-off on a page left open (T-1779, rule 4)', () => {
+  const mark = { id: ID, kickoff_at: '2026-10-25T19:00:00.000Z' };
+  const snapshot = (fixtures: ScoreCardData[]): ScoresResponse =>
+    ({
+      date: '2026-10-25',
+      timezone: 'UTC',
+      generated_at: '2026-10-25T11:59:00Z',
+      total: fixtures.length,
+      pinned: [],
+      groups: [
+        {
+          competition: { id: 'c', name: 'La Liga', logo: { coverage: 'not_supplied', url: null } },
+          country: { id: 'es', name: 'Spain' },
+          fixtures,
+        },
+      ],
+    }) as unknown as ScoresResponse;
+
+  it('holds until its kick-off, and not at it or after', () => {
+    const kickoff = Date.parse(mark.kickoff_at);
+    expect(liveNextHolds(mark, kickoff - 1, null)).toBe(true);
+    expect(liveNextHolds(mark, kickoff, null)).toBe(false);
+    expect(liveNextHolds(mark, kickoff + 2 * 3_600_000, null)).toBe(false);
+  });
+
+  it('stops holding once the stream has carried that match started, even before its time', () => {
+    expect(carriesStarted(snapshot([card({ status: 'live', minute: 3 })]), ID)).toBe(true);
+    expect(carriesStarted(snapshot([card({ status: 'scheduled' })]), ID)).toBe(false);
+    expect(carriesStarted(snapshot([card({ id: 'other', status: 'live', minute: 3 })]), ID)).toBe(
+      false,
+    );
+    expect(liveNextHolds(mark, NOW, ID)).toBe(false);
+    expect(liveNextHolds(mark, NOW, 'another-match')).toBe(true);
+  });
+
+  it('falls back to the plain frame once the next kick-off has passed, never the stale row', () => {
+    const render = (kickoff_at: string): string =>
+      renderToStaticMarkup(
+        <LiveScores
+          initial={snapshot([])}
+          streamQuery="date=2026-10-25&live=1"
+          timeZone="UTC"
+          locale="en"
+          filters={NO_FILTERS}
+          clearFiltersHref="/en/scores"
+          forecasts={{}}
+          live
+          liveEmpty={<p data-testid="whole">next row</p>}
+          liveEmptyPlain={<p data-testid="plain">plain</p>}
+          liveEmptyNext={{ id: ID, kickoff_at }}
+          words={scoresWords('en')}
+        />,
+      );
+    // The list reads the real clock: a kick-off long past, and one far ahead.
+    const past = render('2020-01-01T12:00:00.000Z');
+    expect(past).toContain('data-testid="plain"');
+    expect(past).not.toContain('data-testid="whole"');
+    const ahead = render('2999-01-01T12:00:00.000Z');
+    expect(ahead).toContain('data-testid="whole"');
+    expect(ahead).not.toContain('data-testid="plain"');
   });
 });

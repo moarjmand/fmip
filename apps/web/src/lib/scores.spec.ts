@@ -10,7 +10,6 @@ import {
   formatStamp,
   freshnessStamp,
   NEXT_DAY_WINDOWS,
-  nextKickoff,
   pageHref,
   readScoresQuery,
   resultLine,
@@ -299,21 +298,6 @@ describe('shortStamp (T-1777, D-385)', () => {
     expect(shortStamp('en', '2025-01-04T21:07:00.000Z', 'UTC', undefined)).toBe(
       '4 Jan 2025, 21:07',
     );
-  });
-});
-
-describe('nextKickoff (T-1779, D-386)', () => {
-  it('is the earliest match still to come, never one that started or one long past', () => {
-    const later = card({ id: 'later', kickoff_at: '2025-01-05T14:00:00.000Z' });
-    const earliest = card({ id: 'earliest', kickoff_at: '2025-01-05T10:30:00.000Z' });
-    const played = card({ id: 'played', status: 'finished', kickoff_at: '2025-01-05T08:00:00Z' });
-    const stuck = card({
-      id: 'stuck',
-      kickoff_at: '2025-01-05T07:00:00.000Z',
-      freshness: 'awaiting_update',
-    });
-    expect(nextKickoff([later, played, stuck, earliest])?.id).toBe('earliest');
-    expect(nextKickoff([played, stuck])).toBeNull();
   });
 });
 

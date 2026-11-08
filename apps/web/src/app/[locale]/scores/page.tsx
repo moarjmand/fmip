@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import {
   MAX_CONSENSUS_FIXTURES,
   type CommunityConsensusResponse,
@@ -28,7 +29,6 @@ import {
   dayStrip,
   firstMatchDay,
   NEXT_DAY_WINDOWS,
-  nextKickoff,
   pageHref,
   readScoresQuery,
   scoresView,
@@ -64,7 +64,7 @@ import { Translated } from '@/components/translated';
 import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
 import { zoneWords } from '@/lib/reader-time-zone';
-import { LiveNext } from './live-next';
+import { LiveNext, nextKickoff } from './live-next';
 import { MatchPreview, NoPreview } from './match-preview';
 import { MatchesAnalysis } from './matches-analysis';
 
@@ -145,7 +145,9 @@ export default async function ScoresPage({
   const dayListed = wholeDay?.ok === true ? applyFilters(wholeDay.data, filters) : null;
   const dayCards = dayListed === null ? [] : allCards(dayListed);
   const isToday = q.date === q.today;
-  const next = isToday ? nextKickoff(dayCards) : null;
+  // One clock for the page: what is "next" and how each row reads.
+  const now = Date.now();
+  const next = isToday ? nextKickoff(dayCards, now) : null;
   // An empty day (an international break, a winter pause) points at the next
   // day with a match rather than leaving the reader to step through blanks (T-1331).
   let nextDay: string | null = null;
@@ -166,7 +168,6 @@ export default async function ScoresPage({
 
   const listed = result.ok ? applyFilters(result.data, filters) : null;
   const cards = listed === null ? [] : allCards(listed);
-  const now = Date.now();
   const words = scoresWords(locale);
   // The preview: the match whose Pick was pressed, else on a desktop the
   // first match still open for a pick, so the side column is never blank.
@@ -318,6 +319,34 @@ export default async function ScoresPage({
     `flex min-h-11 items-center justify-between gap-3 rounded-md px-2.5 ${
       active ? 'bg-surface-raised font-bold' : 'hover:bg-surface-raised'
     }`;
+  // The Live view with nothing in play (T-1779, D-386): whole, and plain for
+  // the list to fall back to once the next match has kicked off (rule 4).
+  const liveNext = (plain: boolean): ReactNode =>
+    dayListed === null ? undefined : (
+      <LiveNext
+        locale={locale}
+        timeZone={q.timezone}
+        today={isToday}
+        next={next}
+        country={
+          next === null
+            ? null
+            : (dayListed.groups.find((g) => g.fixtures.some((f) => f.id === next.id))?.country
+                ?.name ?? null)
+        }
+        count={dayCards.length}
+        showHref={pageHref(locale, q, viewFlags('all'))}
+        pickHref={
+          next === null ? undefined : `${pageHref(locale, q, { pick: next.id })}#m-${next.id}`
+        }
+        forecast={next === null ? undefined : forecasts[next.id]}
+        picked={next !== null && own.has(next.id)}
+        selected={next !== null && next.id === previewCard?.id}
+        now={now}
+        words={words}
+        plain={plain}
+      />
+    );
 
   return (
     // `scores-main` and `scores-flat`: under 1024px the list's "Last checked"
@@ -696,33 +725,10 @@ export default async function ScoresPage({
                 picked={[...own.keys()]}
                 selected={previewCard?.id ?? null}
                 pickBase={pageHref(locale, q)}
-                liveEmpty={
-                  dayListed === null ? undefined : (
-                    <LiveNext
-                      locale={locale}
-                      timeZone={q.timezone}
-                      today={isToday}
-                      next={next}
-                      country={
-                        next === null
-                          ? null
-                          : (dayListed.groups.find((g) => g.fixtures.some((f) => f.id === next.id))
-                              ?.country?.name ?? null)
-                      }
-                      count={dayCards.length}
-                      showHref={pageHref(locale, q, viewFlags('all'))}
-                      pickHref={
-                        next === null
-                          ? undefined
-                          : `${pageHref(locale, q, { pick: next.id })}#m-${next.id}`
-                      }
-                      forecast={next === null ? undefined : forecasts[next.id]}
-                      picked={next !== null && own.has(next.id)}
-                      selected={next !== null && next.id === previewCard?.id}
-                      now={now}
-                      words={words}
-                    />
-                  )
+                liveEmpty={liveNext(false)}
+                liveEmptyPlain={next === null ? undefined : liveNext(true)}
+                liveEmptyNext={
+                  next === null ? undefined : { id: next.id, kickoff_at: next.kickoff_at }
                 }
                 words={words}
               />

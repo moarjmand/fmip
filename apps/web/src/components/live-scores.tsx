@@ -114,6 +114,27 @@ function CheckedAt({
   );
 }
 
+/** The page's next kick-off, as the list needs it to know when its frame stops holding. */
+export type LiveNextMark = { id: string; kickoff_at: string };
+
+/**
+ * Whether the page's server-drawn next kick-off still holds (T-1779, D-386,
+ * rule 4): its kick-off is still to come and the stream has not carried the
+ * match. The frame is never redrawn, so on a page left open it would
+ * otherwise come back, hours on, offering a match that started (or ended)
+ * as next, Pick open.
+ */
+export function liveNextHolds(mark: LiveNextMark, now: number, carried: string | null): boolean {
+  return carried !== mark.id && now < Date.parse(mark.kickoff_at);
+}
+
+/** Whether a snapshot carries this match in any state but scheduled. */
+export function carriesStarted(snapshot: ScoresResponse, id: string): boolean {
+  return [...snapshot.pinned, ...snapshot.groups.flatMap((g) => g.fixtures)].some(
+    (card) => card.id === id && card.status !== 'scheduled',
+  );
+}
+
 /**
  * The scores list that stays current (T-032). Renders the server's snapshot
  * first, then subscribes to the web app's own `/api/scores/stream` (the
@@ -138,6 +159,8 @@ export function LiveScores({
   selected = null,
   pickBase,
   liveEmpty,
+  liveEmptyPlain,
+  liveEmptyNext,
   words,
 }: {
   initial: ScoresResponse;
@@ -173,12 +196,22 @@ export function LiveScores({
    * while the stream's answer is empty; a match that starts replaces it.
    */
   liveEmpty?: ReactNode;
+  /**
+   * The same without the next row (the sentence and the way back to the
+   * day), shown instead once `liveEmptyNext` no longer holds.
+   */
+  liveEmptyPlain?: ReactNode;
+  /** The match `liveEmpty` names as next, if it names one. */
+  liveEmptyNext?: LiveNextMark;
   /** The reader's words, resolved by the page on the server (T-1303). */
   words: ScoresWords;
 }) {
   const [scores, setScores] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
   const [now, setNow] = useState(() => Date.now());
+  // The next kick-off the stream has carried as started, if any (T-1779).
+  const [carried, setCarried] = useState<string | null>(null);
+  const nextId = liveEmptyNext?.id;
   // What the last snapshot changed, in words, for the polite live region (T-081).
   const [announcement, setAnnouncement] = useState('');
   const filterKey = JSON.stringify(filters);
@@ -202,6 +235,7 @@ export function LiveScores({
       (source) => {
         source.addEventListener('snapshot', (event) => {
           const next = JSON.parse((event as MessageEvent<string>).data) as ScoresResponse;
+          if (nextId !== undefined && carriesStarted(next, nextId)) setCarried(nextId);
           setScores((previous) => {
             const said = scoresAnnouncements(
               applyFilters(previous, selection),
@@ -228,7 +262,7 @@ export function LiveScores({
       clearInterval(tick);
       stop();
     };
-  }, [streamQuery, filterKey, words, locale, lite]);
+  }, [streamQuery, filterKey, words, locale, lite, nextId]);
 
   const staleAfter = staleAfterMs(lite);
   const state = liveState(clock, now, staleAfter);
@@ -239,6 +273,12 @@ export function LiveScores({
   // D-385, D-364's rule for the match page); otherwise a clock reading.
   const inPlay = anyInPlay([...shown.pinned, ...shown.groups.flatMap((g) => g.fixtures)]);
   const calm = !inPlay && (state === 'live' || state === 'connecting');
+  // The Live view's frame while nothing is in play, plain once its next
+  // kick-off has passed or started (rule 4).
+  const emptyFrame =
+    liveEmptyNext === undefined || liveNextHolds(liveEmptyNext, now, carried)
+      ? liveEmpty
+      : liveEmptyPlain;
   const pickHref = (id: string): string | undefined =>
     pickBase === undefined
       ? undefined
@@ -313,9 +353,9 @@ export function LiveScores({
       </div>
 
       {scores.total === 0 ? (
-        live && liveEmpty !== undefined ? (
+        live && emptyFrame !== undefined ? (
           // The next kick-off and the way back to the day (T-1779, D-386).
-          liveEmpty
+          emptyFrame
         ) : (
           // The Live view says nothing is in play, not that the day has no match (T-1545).
           <p className="text-muted" data-testid="scores-empty" data-view={live ? 'live' : 'all'}>
