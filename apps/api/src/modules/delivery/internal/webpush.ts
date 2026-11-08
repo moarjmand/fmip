@@ -116,6 +116,28 @@ export class WebPushChannel implements PushChannel {
     });
   }
 
+  /**
+   * One message to one subscription that is not a member's (T-1788, D-391:
+   * the agents console's reminders, whose devices the console keeps).
+   * `gone` when the push service says the subscription no longer exists.
+   */
+  async sendTo(
+    subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+    payload: PushPayload,
+  ): Promise<'sent' | 'gone'> {
+    try {
+      await this.sender(subscription, JSON.stringify(payload));
+      return 'sent';
+    } catch (error) {
+      if (
+        error instanceof PushServiceError &&
+        (error.statusCode === 404 || error.statusCode === 410)
+      )
+        return 'gone';
+      throw error;
+    }
+  }
+
   async send(push: OutboundPush): Promise<void> {
     const devices = await this.subscriptions.forMember(push.userId);
     if (devices.length === 0) throw new NoRecipient('no device');

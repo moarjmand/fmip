@@ -40,6 +40,10 @@ const FIELDS: Record<string, Rule> = {
   // The console user who added a teammate request (T-1728): shown only inside
   // the agents console, to its invited users.
   'agents-console.ts:ConsoleRequest.created_by': { exempt: CONSOLE },
+  // Where a subscription's renewal date came from (T-1788): text the computer
+  // writes, such as a dashboard's name, never a member; shown only in the
+  // agents console.
+  'console-calendar.ts:ConsoleSubscription.source': { exempt: CONSOLE },
   'campaigns.ts:Audience.created_by': { exempt: STAFF },
   'campaigns.ts:Campaign.created_by': { exempt: STAFF },
   // The administrator who dismissed a contributor flag (T-1031): shown only on
