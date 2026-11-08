@@ -14817,3 +14817,35 @@ No client JavaScript: CSS, `details` and container queries only.
 **Consequences.** The model's loader skips the entry (no division), as it does a country's. A 2025/26 league phase is not listed: our data holds no league-phase table for that season (D13, package 5 part B). The Europa and Conference League phases have the same shape and could be listed the same way, each with its own code and source. Production: the migration sets the code on deploy; nothing else to run. The bracket also reads the code (D-378, point 7).
 
 **Rollout and rollback (code review, 2026-11-07).** A rollout migrates, then replaces the API, then the web. For the minutes between the API and web steps of *this* rollout, the web already deployed meets the three new kinds, has no words for them (`ZONE_KEY[kind]` is undefined) and throws, so the 2026/27 Champions League table page fails until the new web is up; that web cannot be changed now. The new web drops any zone kind it has no words for where the page arrives (`withKnownZones` in `lib/competition.ts`): its places get no mark and no legend line and every row is drawn, so a kind added later cannot break a table this way again. A rollback must roll the code back **before** `migrate down`: the API selects `competition.zone_key` (`standings-store.ts`), and without the column every competition's table query fails. Rolling back the web alone brings back the failure above for as long as the new API serves.
+
+## D-382 — A match in play is asked for its whole detail every three minutes by the live job; the post-match run's ten asks go to the newest finished matches
+
+**Status:** Accepted · 2026-11-08 (agent, on the teammate's request `e4951983` of 2026-11-07 that the maintainer marked to run: "live statistics -- shots, corners, shots on target, possession, xG -- should be shown live"; within the plan's budget, so no money or licence question) · **Task:** T-1782 · **Follows:** D-014, D-183, D-197, D-293, rules 3 and 4
+
+**Context.** Production, Saturday 2026-11-07. The provider sends the full team statistics for the Premier League and La Liga, xG included: Valencia v Real Madrid holds 14 metrics a side (possession 32/68, shots 4/19, on target 2/11, corners 2/5, xG 0.24/2.32), and both seasons' `advanced_statistics` coverage is `available`. What we stored, and when, by each match's first and last `fixture_stat` write:
+
+| Kick-off (UTC) | Match | First statistic | Last |
+|---|---|---|---|
+| 12:30 | Leeds v Tottenham | 13:00 | 14:28 |
+| 13:00 | Malaga v Racing Santander | 13:30 | 14:58 |
+| 15:00 | Arsenal v Hull City | 16:56 | 16:56 |
+| 15:00 | Fulham v Newcastle | 16:58 | 16:58 |
+| 15:15 | Espanyol v Deportivo | 17:10 | 17:16 |
+| 17:30 | Osasuna v Athletic Club | 19:26 | 19:26 |
+| 17:30 | Nottingham Forest v Manchester City | 19:27 | 19:27 |
+| 20:00 | Valencia v Real Madrid | 21:00 | 22:30 |
+
+The live list (`/fixtures?live=all`, one request a minute) carries the score, the clock and the events, never the statistics. The only ask that brought statistics during play was the post-match run (`*/30`): ten matches a run (`DETAIL_BATCH`), live or kicked off within 210 minutes, taken in the polled competitions' alphabetical order (`pollTargets` orders by name) though its comment said "newest kick-off first". At 15:30, 16:00 and 18:00 about sixty matches qualified; the ten were the Austrian and Belgian leagues, the Bundesliga and the Championship, and the Premier League and La Liga sat 54th to 62nd. So the 15:00 and 17:30 matches got no statistic until the whistle (the live job's ask about a match that left the live list, T-830, wrote them), and the 12:30, 13:00 and 20:00 matches, on quieter slots, moved every half hour at best. The web was not the limit: `fixture_stat` notifies the match stream (migration `1758700000000`), the page replaces its payload on each snapshot, and a live match with no statistic yet says "Not in yet ... nothing is estimated in the meantime" (rule 3).
+
+The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,000 to 26,000 a day (post-match about 9,700, people names 7,300 to 11,400).
+
+**Decision.**
+
+1. **The live job asks the matches in play (T-1782).** After the live list, each match the list answered as `live` is asked for its detail (`/fixtures?id=`, the one detail writer `ingestDetail`: fixture, periods, incidents, team and player statistics, line-up) at most once every `INGESTION_LIVE_DETAIL_MINUTES` (3 unless set, 1 to 30, 0 off), never-asked first, then the longest ago, then the earlier kick-off, at most `LIVE_DETAIL_PER_TICK` (15) a tick (`internal/live-detail-asks.ts`). The match's alerts are read before and after each ask, so a goal the detail carries before the list still raises its alert. The asks remember their time in the process (six hours); a restart asks each match once more.
+2. **On the standard tier (D-183).** They stop at `API_FOOTBALL_BUDGET_STANDARD_PERCENT` (90) of the day's budget, so a day that runs long loses the live statistics before the live scores.
+3. **The post-match run's ten go to finished matches, newest kick-off first.** While (1) is on, its recent asks are `finished` only, and the candidates are sorted by kick-off across the competitions before the ten are taken. Off, it asks live matches as before.
+4. **The cost.** One request per match in play per three minutes: last week's live match-minutes (kick-off to 115 minutes) were 3,100 to 7,700 a weekday and 14,400 on the Saturday, so about 1,000 to 2,600 a weekday and 4,800 on a Saturday; the busiest minute had 62 matches in play, which the cap spreads to every four to five minutes. A Saturday would come to about 31,000 of 75,000.
+
+**Rejected.** *Asking `/fixtures?ids=` with up to 20 matches a request*: about a twentieth of the requests, but the adapter's port has no batch detail, the free plan refused the parameter when it was tried (the adapter's note), and it was not verified on the paid plan; it is the next step if the budget tightens (a smaller plan after 2026-11-21). *Running the post-match run every five minutes*: its 200-match backlog would run six times as often. *Raising `DETAIL_BATCH`*: still half-hourly, still alphabetical. *`/fixtures/statistics?fixture=`*: the same request count as the whole detail, and the incidents and player statistics would still wait.
+
+**Consequences.** A big-league match's statistics, xG included, reach the match page within about three minutes of the provider's, through the existing stream, however many matches are playing; the page's "Not in yet" state is unchanged and is now seen for the first few minutes only. The statistics module carries `last_updated_at` in the contract but the page does not print it (a possible follow-up, a visible change). On a smaller plan, `INGESTION_LIVE_DETAIL_MINUTES` is the lever (5 cuts the cost by two fifths, 0 restores the old behaviour).
