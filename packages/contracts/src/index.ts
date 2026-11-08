@@ -405,7 +405,7 @@ export {
   liveFreshnessFrom,
   stillToPlay,
 } from './scores';
-export { AVAILABILITY_STALE_AFTER_MS } from './match-centre';
+export { AVAILABILITY_STALE_AFTER_MS, LIVE_STATS_STALE_AFTER_MS } from './match-centre';
 export type {
   FixtureStatus,
   Freshness,

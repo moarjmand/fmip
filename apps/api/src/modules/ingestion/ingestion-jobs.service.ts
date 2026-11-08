@@ -17,14 +17,23 @@ import { CoverageService } from './coverage.service';
 import { IngestRunsService } from './ingest-runs.service';
 import { EntityResolverService } from './ingestion.service';
 import { AskPacer } from './internal/ask-pacer';
-import { DEFAULT_TIER_SHARES, parseTierShares, withBudgetTier } from './internal/budget-tier';
+import {
+  DEFAULT_TIER_SHARES,
+  parseTierShares,
+  tierCeiling,
+  withBudgetTier,
+} from './internal/budget-tier';
 import { groupMembers, groupPlayed } from './internal/groups';
 import { lineupAsks, lineupWindow } from './internal/lineup-asks';
 import {
   forgetOldAsks,
   type InPlayMatch,
+  LIVE_DETAIL_DEADLINE_MS,
+  LIVE_DETAIL_PER_TICK,
   liveDetailAsks,
+  liveDetailBudgetLeft,
   liveDetailMinutes,
+  recentDetailCandidates,
 } from './internal/live-detail-asks';
 import {
   IngestStore,
@@ -343,6 +352,12 @@ export class IngestionJobsService {
   private readonly liveDetailMinutes = liveDetailMinutes(process.env.INGESTION_LIVE_DETAIL_MINUTES);
   /** When the live job last asked for a match in play's detail, by fixture id. */
   private readonly liveDetailAskedAt = new Map<string, number>();
+  /** At most this many detail asks a live tick. */
+  private readonly liveDetailPerTick = LIVE_DETAIL_PER_TICK;
+  /** No new detail ask once this much of a live tick has gone (T-1782; a test may shorten it). */
+  liveDetailDeadlineMs = LIVE_DETAIL_DEADLINE_MS;
+  /** The UTC day the budget pause of the live statistics was last logged. */
+  private liveDetailBudgetDay: string | null = null;
 
   constructor(
     @Inject(PG_POOL) pool: Pool,
@@ -889,6 +904,8 @@ export class IngestionJobsService {
     // the row: told to the open pages once the run is recorded (T-1394).
     const unchanged: string[] = [];
     const report = await this.track('live', async (source, targets) => {
+      // The wall clock, not `now`: the statistics asks stop on real time (T-1782).
+      const tickStarted = Date.now();
       const from = new Date(now.getTime() - LIVE_WINDOW_AFTER_MINUTES * 60 * 1000).toISOString();
       const to = new Date(now.getTime() + LIVE_WINDOW_BEFORE_MINUTES * 60 * 1000).toISOString();
       let seen = 0;
@@ -914,7 +931,7 @@ export class IngestionJobsService {
       const question = liveQuestion(known);
       const raised = new Set<string>();
       // The matches the list answered as in play, for their detail (T-1782).
-      const inPlay: (InPlayMatch & { target: PollTarget })[] = [];
+      const inPlay: (InPlayMatch & { target: PollTarget; listIncidents: boolean })[] = [];
 
       if (question.externalIds.length > 0) {
         const result = await source.adapter.getLive({ fixtureExternalIds: question.externalIds });
@@ -943,6 +960,7 @@ export class IngestionJobsService {
                 externalId: fixture.externalId,
                 kickoffAt: fixture.kickoffAt,
                 target,
+                listIncidents: fixture.incidents !== undefined,
               });
             }
             // The live list's own events, where it carries them (T-830): a
@@ -992,38 +1010,22 @@ export class IngestionJobsService {
             for (const id of detail.unresolved) unresolved.add(id);
             if (before !== null) for (const id of await this.alerts.after(before)) raised.add(id);
           }
-
-          // The statistics of the matches in play (T-1782, D-382): the list
-          // carries none, so each is asked for its detail every few minutes,
-          // the longest-waiting first. On the standard tier (D-183), so a day
-          // that runs long stops these before the live scores.
-          forgetOldAsks(this.liveDetailAskedAt, now);
-          for (const match of liveDetailAsks(
-            inPlay,
-            this.liveDetailAskedAt,
-            now,
-            this.liveDetailMinutes,
-          )) {
-            this.liveDetailAskedAt.set(match.fixtureId, now.getTime());
-            // Read before the write, so a goal or a red card the detail carries
-            // before the list does still raises its alert.
-            const before = await this.alerts.before(match.fixtureId);
-            const detail = await withBudgetTier('standard', () => this.ingestDetail(source, match));
-            if (detail.refused !== undefined) {
-              refused.push(detail.refused);
-              continue;
-            }
-            written += detail.written;
-            seasons.add(match.target.seasonId);
-            for (const id of detail.unresolved) unresolved.add(id);
-            if (before !== null) for (const id of await this.alerts.after(before)) raised.add(id);
-          }
         }
       }
-      written += await this.coverage.recomputeMany([...seasons]);
-      // What this tick recorded goes to the alerts queue: the tick ends now,
-      // whatever the audience (T-835). One push per member (T-830).
+      // What the list recorded goes to the alerts queue now, before the
+      // statistics asks below (T-1782, as T-1419 did for post-match): a goal
+      // is not held behind fifteen detail requests. One push per member (T-830).
       await this.alerts.dispatch([...raised]);
+
+      // The statistics of the matches in play (T-1782, D-382).
+      const details = await this.inPlayDetails(source, inPlay, now, tickStarted);
+      seen += details.seen;
+      written += details.written;
+      refused.push(...details.refused);
+      for (const id of details.unresolved) unresolved.add(id);
+      for (const id of details.seasons) seasons.add(id);
+
+      written += await this.coverage.recomputeMany([...seasons]);
       return this.report('live', source.provider, seen, written, refused, unresolved);
     });
     // After `track` has recorded the run: the snapshot each page is sent
@@ -1128,6 +1130,95 @@ export class IngestionJobsService {
   }
 
   /**
+   * The statistics of the matches in play (T-1782, D-382): the live list
+   * carries none, so each match it answered as live is asked for its detail
+   * every `INGESTION_LIVE_DETAIL_MINUTES`, the longest-waiting first, at most
+   * `LIVE_DETAIL_PER_TICK` a tick.
+   *
+   * It runs inside the live tick on the one ingestion worker, so it must not
+   * hold the next tick: no new ask starts once `liveDetailDeadlineMs` of the
+   * tick have gone (the matches left over are the longest-waiting next tick).
+   * Each ask's alerts leave as soon as it is written. On the standard tier
+   * (D-183); past that tier's share of the day nothing is asked, which is a
+   * decision, not a failure: logged once a day, the run not made partial.
+   */
+  private async inPlayDetails(
+    source: JobSource,
+    inPlay: (InPlayMatch & { target: PollTarget; listIncidents: boolean })[],
+    now: Date,
+    tickStarted: number,
+  ): Promise<{
+    seen: number;
+    written: number;
+    refused: string[];
+    unresolved: string[];
+    seasons: string[];
+  }> {
+    const out = {
+      seen: 0,
+      written: 0,
+      refused: [] as string[],
+      unresolved: [] as string[],
+      seasons: [] as string[],
+    };
+    forgetOldAsks(this.liveDetailAskedAt, now);
+    let due = liveDetailAsks(
+      inPlay,
+      this.liveDetailAskedAt,
+      now,
+      this.liveDetailMinutes,
+      this.liveDetailPerTick,
+    );
+    if (due.length === 0) return out;
+
+    const budget = this.sources.dailyBudget;
+    if (budget !== undefined) {
+      const shares = parseTierShares(process.env);
+      const ceiling = tierCeiling(
+        budget,
+        'standard',
+        'error' in shares ? DEFAULT_TIER_SHARES : shares,
+      );
+      const left = liveDetailBudgetLeft(
+        ceiling,
+        await this.runs.requestsToday(source.provider, now),
+      );
+      if (left === 0) {
+        const day = now.toISOString().slice(0, 10);
+        if (this.liveDetailBudgetDay !== day) {
+          this.liveDetailBudgetDay = day;
+          this.log.log('live statistics paused: the standard share of the budget is spent', {
+            event: 'ingest.live_detail_budget',
+            ceiling,
+            budget,
+          });
+        }
+        return out;
+      }
+      due = due.slice(0, left);
+    }
+
+    for (const match of due) {
+      if (Date.now() - tickStarted >= this.liveDetailDeadlineMs) break;
+      this.liveDetailAskedAt.set(match.fixtureId, now.getTime());
+      const before = await this.alerts.before(match.fixtureId);
+      const detail = await withBudgetTier('standard', () =>
+        this.ingestDetail(source, match, { inPlay: true, incidents: !match.listIncidents }),
+      );
+      if (detail.refused !== undefined) {
+        out.refused.push(detail.refused);
+        continue;
+      }
+      out.seen += 1;
+      out.written += detail.written;
+      out.seasons.push(match.target.seasonId);
+      out.unresolved.push(...detail.unresolved);
+      if (before !== null) await this.alerts.dispatch(await this.alerts.after(before));
+    }
+    return out;
+  }
+
+  /**
    * Everything after the whistle: incidents, team statistics, the periods and
    * the closing scores. Runs against matches that have finished recently, and
    * then against finished matches whose detail was never asked for (T-102) --
@@ -1136,13 +1227,8 @@ export class IngestionJobsService {
   postMatch(now: Date = new Date()): Promise<JobReport> {
     return this.track('post_match', async (source, targets) => {
       // A match in play is the live job's to ask while it asks for details
-      // (T-1782); the ten asks here go to the matches just finished.
-      const recent = await this.detailCandidates(
-        source.provider,
-        targets,
-        now,
-        this.liveDetailMinutes > 0 ? ['finished'] : ['finished', 'live'],
-      );
+      // (T-1782); the ten asks here then go to the matches just finished.
+      const recent = await this.detailCandidates(source.provider, targets, now);
       const owed = [...recent, ...(await this.detailBacklog(source, targets, now, recent))];
       // What an administrator asked the feed again for (T-913), within its share.
       const refetches = await this.refetchesDue(source, targets, owed);
@@ -1197,12 +1283,22 @@ export class IngestionJobsService {
   /**
    * One fixture's detail, asked for by id and written: the fixture, its
    * periods, incidents, statistics, line-up and player statistics. Shared by
-   * the post-match run and the live job's ask about a match that left the
-   * live list (T-830), so there is one writer for a detail.
+   * the post-match run, the live job's ask about a match that left the live
+   * list (T-830) and its asks about the matches in play (T-1782), so there is
+   * one writer for a detail.
+   *
+   * A match in play (`inPlay`) is the live list's to score, clock and state:
+   * the list wrote them seconds before, and a detail answer cached a little
+   * behind would move them back (a goal, "Goal disallowed", the goal again:
+   * three pushes). So the fixture row is not written from it, and its
+   * incidents only where the list carries none (`incidents`); a shorter,
+   * older list would delete the newest goal. The statistics, periods,
+   * line-up and player statistics are written as for any detail.
    */
   private async ingestDetail(
     source: JobSource,
     candidate: { externalId: string; fixtureId: string; target: PollTarget },
+    inPlay: { inPlay: true; incidents: boolean } | null = null,
   ): Promise<{ refused?: string; written: number; unresolved: string[] }> {
     const result = await source.adapter.getFixtureDetail(candidate.externalId);
     if (!result.ok) {
@@ -1214,10 +1310,21 @@ export class IngestionJobsService {
     }
     await this.store.markDetailFetched(source.provider, candidate.fixtureId);
     const detail = result.data;
+    const fixtureWrite =
+      inPlay === null
+        ? await this.store.saveFixture(
+            source.provider,
+            candidate.target,
+            detail.fixture,
+            'post_match',
+          )
+        : null;
     const writes: WriteResult[] = [
-      await this.store.saveFixture(source.provider, candidate.target, detail.fixture, 'post_match'),
+      ...(fixtureWrite === null ? [] : [fixtureWrite]),
       await this.store.savePeriods(candidate.fixtureId, detail.periods),
-      await this.store.saveIncidents(source.provider, candidate.fixtureId, detail.incidents),
+      ...(inPlay === null || inPlay.incidents
+        ? [await this.store.saveIncidents(source.provider, candidate.fixtureId, detail.incidents)]
+        : []),
       await this.store.saveStatistics(candidate.fixtureId, detail.statistics),
     ];
     if (detail.lineup !== null) {
@@ -1238,7 +1345,7 @@ export class IngestionJobsService {
       written += write.changed;
       unresolved.push(...write.unresolved);
     }
-    const refused = writes[0]?.refused;
+    const refused = fixtureWrite?.refused;
     return { written, unresolved, ...(refused === undefined ? {} : { refused }) };
   }
 
@@ -1466,37 +1573,39 @@ export class IngestionJobsService {
     }
   }
 
-  /** The fixtures a detail job should spend requests on, newest kick-off first. */
+  /**
+   * The fixtures the post-match run spends its ten recent asks on
+   * (`recentDetailCandidates`, T-1782): while the live job asks the matches in
+   * play, finished ones only, newest kick-off first across the competitions;
+   * with it off, live and finished in the competitions' order, as before.
+   */
   private async detailCandidates(
     provider: Provider,
     targets: PollTarget[],
     now: Date,
-    statuses: string[],
   ): Promise<{ externalId: string; fixtureId: string; target: PollTarget }[]> {
     const from = new Date(now.getTime() - LIVE_WINDOW_AFTER_MINUTES * 60 * 1000).toISOString();
     const to = new Date(now.getTime() + LIVE_WINDOW_BEFORE_MINUTES * 60 * 1000).toISOString();
-    const out: { externalId: string; fixtureId: string; kickoffAt: string; target: PollTarget }[] =
-      [];
-
+    const known: {
+      externalId: string;
+      fixtureId: string;
+      status: string;
+      kickoffAt: string;
+      target: PollTarget;
+    }[] = [];
     for (const target of targets) {
-      const known = await this.store.fixtureExternalIds(provider, target.competitionId, from, to);
-      for (const fixture of known) {
-        if (!statuses.includes(fixture.status)) continue;
-        out.push({
-          externalId: fixture.externalId,
-          fixtureId: fixture.fixtureId,
-          kickoffAt: fixture.kickoffAt,
-          target,
-        });
+      for (const fixture of await this.store.fixtureExternalIds(
+        provider,
+        target.competitionId,
+        from,
+        to,
+      )) {
+        known.push({ ...fixture, target });
       }
     }
-    // Newest kick-off first, whatever the competition (T-1782): the polled
-    // competitions come in alphabetical order, and taking the first ten of
-    // that order left the Premier League's matches out on a busy Saturday.
-    out.sort((a, b) => Date.parse(b.kickoffAt) - Date.parse(a.kickoffAt));
-    return out
-      .slice(0, DETAIL_BATCH)
-      .map(({ externalId, fixtureId, target }) => ({ externalId, fixtureId, target }));
+    return recentDetailCandidates(known, this.liveDetailMinutes > 0, DETAIL_BATCH).map(
+      ({ externalId, fixtureId, target }) => ({ externalId, fixtureId, target }),
+    );
   }
 
   /**

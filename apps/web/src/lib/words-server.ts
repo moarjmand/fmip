@@ -262,6 +262,8 @@ export const MATCH_KEYS = [
   'matchCentre.stat.saves',
   'matchCentre.stat.expectedGoals',
   'matchCentre.xgNotSupplied',
+  // "Stats updated 2 min ago" under a live match's statistics (T-1782).
+  'matchCentre.statsUpdated',
   'matchCentre.playerColumn',
   'matchCentre.playerStatistics.scroll',
   'matchCentre.playerStatistics.region',

@@ -18,7 +18,11 @@
  * play for its detail at most once every `minutes` (`INGESTION_LIVE_DETAIL_MINUTES`,
  * 3 unless set, 0 off), a match never asked first, then the one asked longest
  * ago, at most `LIVE_DETAIL_PER_TICK` a tick, so a crowded Saturday spreads
- * its asks instead of dropping a league.
+ * its asks instead of dropping a league. The tick sends the list's alerts
+ * first, starts no ask after `LIVE_DETAIL_DEADLINE_MS`, and stops asking at
+ * the standard tier's share of the day (`liveDetailBudgetLeft`). An answer
+ * about a match in play writes its statistics, periods, line-up and player
+ * statistics, never its score, clock or state, which are the list's.
  */
 
 /** The default minutes between two asks about the same match in play. */
@@ -32,6 +36,13 @@ export const MAX_LIVE_DETAIL_MINUTES = 30;
  * minute (an ask and its writes took about 0.7 s in the post-match runs).
  */
 export const LIVE_DETAIL_PER_TICK = 15;
+/**
+ * No new detail ask starts once this much of a live tick has gone. The tick
+ * runs on the one ingestion worker, and the jobs that share it are held to
+ * 30 seconds so the next live tick waits that long at most; the asks left over
+ * are the longest-waiting on the next tick.
+ */
+export const LIVE_DETAIL_DEADLINE_MS = 20_000;
 /** How long an ask is remembered; a match is over well within it. */
 const FORGET_AFTER_MS = 6 * 60 * 60 * 1000;
 
@@ -86,6 +97,48 @@ export function liveDetailAsks<T extends InPlayMatch>(
       a.match.fixtureId.localeCompare(b.match.fixtureId),
   );
   return out.slice(0, perTick).map((o) => o.match);
+}
+
+/**
+ * How many detail asks the standard tier still allows today: its ceiling
+ * (`tierCeiling`) less the requests the day's runs recorded. `null` is no
+ * budget of our own (the replay source, a test): no limit here.
+ */
+export function liveDetailBudgetLeft(ceiling: number | null, requestsToday: number): number {
+  if (ceiling === null) return Number.POSITIVE_INFINITY;
+  return Math.max(0, ceiling - requestsToday);
+}
+
+/** A polled match near now, as the store reads it. */
+export interface RecentFixture {
+  externalId: string;
+  fixtureId: string;
+  status: string;
+  kickoffAt: string;
+}
+
+/**
+ * The post-match run's recent asks, at most `batch` (T-1782). While the live
+ * job asks the matches in play (`liveDetailOn`), the finished ones only, the
+ * newest kick-off first whatever the competition: the competitions come in
+ * alphabetical order, and the first ten of that order left the Premier
+ * League out on a busy Saturday. With it off, live and finished matches in
+ * the order given, exactly as before T-1782.
+ */
+export function recentDetailCandidates<T extends RecentFixture>(
+  known: T[],
+  liveDetailOn: boolean,
+  batch: number,
+): T[] {
+  if (!liveDetailOn) {
+    return known.filter((f) => f.status === 'finished' || f.status === 'live').slice(0, batch);
+  }
+  return known
+    .filter((f) => f.status === 'finished')
+    .map((f, i) => ({ f, i }))
+    .sort((a, b) => Date.parse(b.f.kickoffAt) - Date.parse(a.f.kickoffAt) || a.i - b.i)
+    .slice(0, batch)
+    .map(({ f }) => f);
 }
 
 /** Drops the asks old enough that their match is over; the map is the job's memory. */

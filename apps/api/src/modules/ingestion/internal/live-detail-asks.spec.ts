@@ -4,7 +4,9 @@ import {
   LIVE_DETAIL_PER_TICK,
   forgetOldAsks,
   liveDetailAsks,
+  liveDetailBudgetLeft,
   liveDetailMinutes,
+  recentDetailCandidates,
 } from './live-detail-asks';
 
 const NOW = new Date('2026-11-07T16:00:00Z');
@@ -78,6 +80,74 @@ describe('liveDetailAsks (T-1782)', () => {
   it('counts a match the list carried twice once', () => {
     const a = match(1);
     expect(liveDetailAsks([a, a], new Map(), NOW, 3)).toEqual([a]);
+  });
+});
+
+describe('liveDetailBudgetLeft (T-1782, N5)', () => {
+  it('is the standard ceiling less the day so far, never below zero, unlimited without a budget', () => {
+    expect(liveDetailBudgetLeft(63_000, 62_990)).toBe(10);
+    expect(liveDetailBudgetLeft(63_000, 63_000)).toBe(0);
+    expect(liveDetailBudgetLeft(63_000, 64_000)).toBe(0);
+    expect(liveDetailBudgetLeft(null, 1_000_000)).toBe(Number.POSITIVE_INFINITY);
+  });
+});
+
+describe('recentDetailCandidates (T-1782)', () => {
+  // The competitions in the store's alphabetical order, as `pollTargets` gives them.
+  const known = [
+    {
+      externalId: 'a1',
+      fixtureId: 'a1',
+      status: 'finished',
+      kickoffAt: '2026-11-07T12:30:00Z',
+      c: 'Austrian Bundesliga',
+    },
+    {
+      externalId: 'b1',
+      fixtureId: 'b1',
+      status: 'live',
+      kickoffAt: '2026-11-07T15:00:00Z',
+      c: 'Bundesliga',
+    },
+    {
+      externalId: 'b2',
+      fixtureId: 'b2',
+      status: 'finished',
+      kickoffAt: '2026-11-07T13:30:00Z',
+      c: 'Bundesliga',
+    },
+    {
+      externalId: 'l1',
+      fixtureId: 'l1',
+      status: 'finished',
+      kickoffAt: '2026-11-07T14:00:00Z',
+      c: 'La Liga',
+    },
+    {
+      externalId: 'p1',
+      fixtureId: 'p1',
+      status: 'finished',
+      kickoffAt: '2026-11-07T14:15:00Z',
+      c: 'Premier League',
+    },
+    {
+      externalId: 'p2',
+      fixtureId: 'p2',
+      status: 'scheduled',
+      kickoffAt: '2026-11-07T16:30:00Z',
+      c: 'Premier League',
+    },
+  ];
+  const ids = (rows: { externalId: string }[]): string[] => rows.map((r) => r.externalId);
+
+  it('with live details on: finished only, newest kick-off first across the competitions', () => {
+    expect(ids(recentDetailCandidates(known, true, 10))).toEqual(['p1', 'l1', 'b2', 'a1']);
+    expect(ids(recentDetailCandidates(known, true, 2))).toEqual(['p1', 'l1']);
+  });
+
+  it('with live details off: live and finished in the competitions’ order, as before', () => {
+    expect(ids(recentDetailCandidates(known, false, 10))).toEqual(['a1', 'b1', 'b2', 'l1', 'p1']);
+    expect(ids(recentDetailCandidates(known, false, 2))).toEqual(['a1', 'b1']);
   });
 });
 

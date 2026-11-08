@@ -385,7 +385,24 @@ export class PostgresMatchCentreStore {
       else row.away = Number(r.value);
       byMetric.set(r.metric, row);
     }
-    return { rows: [...byMetric.values()], lastUpdatedAt: newest(rows.map((r) => r.updated_at)) };
+    if (rows.length === 0) return { rows: [], lastUpdatedAt: null };
+    // When the figures were last confirmed, not only last changed (T-1782):
+    // the detail ask that answered them, every few minutes in play, moves the
+    // time even when no figure moved (the half-time interval), so the page's
+    // "Stats updated" says how current they are (rule 4).
+    const asked = await this.pool.query<{ fetched_at: Date }>(
+      `SELECT d.fetched_at FROM fixture_detail_fetch d
+         JOIN fixture_participant p ON p.fixture_id = d.fixture_id
+        WHERE p.id = $1`,
+      [homeParticipantId],
+    );
+    return {
+      rows: [...byMetric.values()],
+      lastUpdatedAt: newest([
+        ...rows.map((r) => r.updated_at),
+        ...asked.rows.map((r) => r.fetched_at),
+      ]),
+    };
   }
 
   /**

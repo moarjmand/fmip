@@ -324,6 +324,29 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
   });
 
   /**
+   * T-1782: in play the statistics are asked for every few minutes, and an
+   * answer that moves no figure (the half-time interval) still confirms them.
+   * Their time is the later of the newest figure and that ask.
+   */
+  it('times the statistics by their last ask as well as their last change', async () => {
+    const stamp = async () => ((await get(MATCH)).json() as MatchCentre).statistics.last_updated_at;
+    const changed = await stamp();
+    expect(changed).not.toBeNull();
+    const asked = new Date(Date.parse(changed ?? '') + 60_000).toISOString();
+    await pool.query(
+      `INSERT INTO fixture_detail_fetch (fixture_id, provider, fetched_at)
+       VALUES ($1, 'api_football', $2)
+       ON CONFLICT (fixture_id) DO UPDATE SET fetched_at = EXCLUDED.fetched_at`,
+      [MATCH, asked],
+    );
+    try {
+      expect(await stamp()).toBe(asked);
+    } finally {
+      await pool.query(`DELETE FROM fixture_detail_fetch WHERE fixture_id = $1`, [MATCH]);
+    }
+  });
+
+  /**
    * A season backfill writes finished matches with nothing after the whistle,
    * and the post-match job asks about each of them in turn (T-102). Until it
    * has, an empty module is late, not the provider declining; once it has, an

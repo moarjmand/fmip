@@ -796,6 +796,42 @@ describe('live', () => {
     expect(done).toContain('data-coverage-badge="not_supplied"');
   });
 
+  it('says when a live match’s statistics were last updated, and that they may be behind past ten minutes (T-1782)', () => {
+    const statistics = {
+      coverage: 'available' as const,
+      last_updated_at: '2026-10-24T11:38:00.000Z',
+      data: [{ metric: 'shots' as const, home: 6, away: 3 }],
+    };
+    const live = centre({}, { statistics });
+    const current = section(view(live, Date.parse('2026-10-24T11:41:00.000Z')), 'statistics');
+    expect(current).toContain('data-testid="stats-freshness"');
+    expect(current).toContain('data-freshness="current"');
+    expect(current).toContain('Stats updated');
+    expect(current).toContain('2026-10-24T11:38:00.000Z');
+    expect(current).not.toContain('may be behind');
+
+    const behind = section(view(live, Date.parse('2026-10-24T11:48:01.000Z')), 'statistics');
+    expect(behind).toContain('data-freshness="behind"');
+    expect(behind).toContain('may be behind');
+
+    // In Persian, from the catalogue.
+    const fa = section(view(live, Date.parse('2026-10-24T11:41:00.000Z'), 'fa'), 'statistics');
+    expect(fa).toContain('به‌روزرسانی آمار');
+
+    // A finished match's statistics are final: no line.
+    const done = centre(
+      {
+        status: 'finished',
+        minute: null,
+        scores: { ...centre().fixture.scores, full_time: { home: 0, away: 0 } },
+      },
+      { statistics },
+    );
+    expect(section(view(done, Date.parse('2026-10-24T13:41:00.000Z')), 'statistics')).not.toContain(
+      'stats-freshness',
+    );
+  });
+
   it('carries the live badge, the minute along the match and the freshness stamp', () => {
     const html = view(centre(), Date.parse('2026-10-24T11:41:10.000Z'));
     expect(html).toMatch(/data-testid="live-badge" data-live="true"><span data-live-badge=""/);

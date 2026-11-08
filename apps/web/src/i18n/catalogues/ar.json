@@ -7858,6 +7858,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.statsUpdated": {
+    "source": "Stats updated {ago}",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.playerColumn": {
     "source": "Player",
     "text": "",
