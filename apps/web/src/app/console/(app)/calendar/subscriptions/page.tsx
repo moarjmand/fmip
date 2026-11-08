@@ -129,7 +129,7 @@ export default async function ConsoleSubscriptionsPage() {
           </ul>
 
           <div className="hidden overflow-x-auto rounded-card border border-default bg-surface lg:block">
-            <table className="w-full min-w-[1400px] border-collapse text-sm">
+            <table className="w-full min-w-[2000px] border-collapse text-sm">
               <thead className="bg-surface-raised text-xs text-muted">
                 <tr>
                   <th
@@ -167,15 +167,15 @@ export default async function ConsoleSubscriptionsPage() {
                     >
                       {s.name}
                     </th>
-                    <td className="px-3 py-2.5">
+                    <td className="min-w-48 px-3 py-2.5">
                       <SubscriptionStatus subscription={s} />
                     </td>
                     {COLUMNS.map(([key]) => (
-                      <td key={key} className="px-3 py-2.5 leading-6" dir="auto">
+                      <td key={key} className="min-w-44 px-3 py-2.5 leading-6" dir="auto">
                         {s[key] || '—'}
                       </td>
                     ))}
-                    <td className="px-3 py-2.5">
+                    <td className="min-w-52 px-3 py-2.5">
                       <ManageLink subscription={s} />
                     </td>
                     <td className="px-3 py-2.5">
