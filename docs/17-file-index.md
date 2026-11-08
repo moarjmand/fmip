@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2396), grouped by folder, with one line on
+Every file in the repository (2375), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -223,7 +223,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/register`](#appswebsrcapplocaleregister) — 1
 - [`apps/web/src/app/[locale]/reset-password`](#appswebsrcapplocalereset-password) — 1
 - [`apps/web/src/app/[locale]/rules`](#appswebsrcapplocalerules) — 1
-- [`apps/web/src/app/[locale]/scores`](#appswebsrcapplocalescores) — 4
+- [`apps/web/src/app/[locale]/scores`](#appswebsrcapplocalescores) — 5
 - [`apps/web/src/app/[locale]/search`](#appswebsrcapplocalesearch) — 1
 - [`apps/web/src/app/[locale]/settings`](#appswebsrcapplocalesettings) — 1
 - [`apps/web/src/app/[locale]/settings/data-export`](#appswebsrcapplocalesettingsdata-export) — 1
@@ -258,7 +258,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/components`](#appswebsrccomponents) — 296
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
-- [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 27
+- [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
 - [`apps/web/src/lib`](#appswebsrclib) — 222
 - [`apps/web/tests/e2e`](#appswebtestse2e) — 25
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
@@ -267,7 +267,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 36
+- [`docs`](#docs) — 32
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -2551,6 +2551,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `live-next.tsx` | The Live view when nothing is in play (T-1779, D-386; board P6-5): the sentence, then today's next kick-off as the list's own 72px row, Pick included, and one way back to the whole day. "Next" is the earliest kick-off s… |
 | `match-preview.tsx` | The matches page's preview of one match, with the pick control (T-1496, the canvas's side column; T-1738, D-359): which match, both teams, "Your pick" -- `PickControl`, the three outcomes at once in its four states -- w… |
 | `matches-analysis.tsx` | The founder's analysis on the matches page (T-1519, D-269), where the header's Analysis leads (`#analysis`): the latest analyses in the founder's own voice, never folded into a row's percentages or the community's split… |
 | `matches.spec.tsx` | Matches and predictions on one page (T-1496, D-268): the row's model cell, its Pick in each state, the "Not picked yet" view, the addresses the page is driven by, and the preview's rule that the community's split appear… |
@@ -2993,7 +2994,7 @@ machine, `docs/18-handover.md`.
 | `prediction-persian.spec.tsx` | The prediction surfaces in Persian (T-1307, D-175): the words come from the catalogue, the digits are Persian, and the three prediction products keep their own names. |
 | `predictions-hybrid.spec.tsx` | The match report in the Hybrid design (T-1383, D-201): "What the model expected" -- in English and in Persian, and with the data missing. |
 | `product-row.spec.tsx` | The compact row (T-1744, D-365; board P2-2): what stands where a card would have looked like something to read. |
-| `product-row.tsx` | One compact row for something that has nothing to show on this match (T-1744, D-365; board P2-2): its name, the honest sentence that says why there is nothing, and a status that is an icon and a word. |
+| `product-row.tsx` | One compact row for something that has nothing to show (T-1744, D-365; board P2-2): its name, the honest sentence that says why there is nothing, and a status that is an icon and a word. |
 | `push-offer-for.tsx` | The push offer's words, resolved on the server for the reader's locale (T-1040), around the client offer (T-1429). |
 | `push-offer-lazy.tsx` | The push offer, fetched only where a follow has just happened (T-1429): it draws nothing until the browser has been asked what it can do, so its code stays out of the page's first load and arrives after hydration. |
 | `push-offer-mark.tsx` | Inside a follow form: as the form submits, leave the mark the next render's push offer takes (T-1429). |
@@ -3117,31 +3118,13 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `ar.json` | JSON data or settings. |
-| `ar.json` | JSON data or settings. |
-| `ar.json` | JSON data or settings. |
-| `de.json` | JSON data or settings. |
-| `de.json` | JSON data or settings. |
 | `de.json` | JSON data or settings. |
 | `en.json` | JSON data or settings. |
-| `en.json` | JSON data or settings. |
-| `en.json` | JSON data or settings. |
-| `es.json` | JSON data or settings. |
-| `es.json` | JSON data or settings. |
 | `es.json` | JSON data or settings. |
 | `fa.json` | JSON data or settings. |
-| `fa.json` | JSON data or settings. |
-| `fa.json` | JSON data or settings. |
-| `fr.json` | JSON data or settings. |
-| `fr.json` | JSON data or settings. |
 | `fr.json` | JSON data or settings. |
 | `it.json` | JSON data or settings. |
-| `it.json` | JSON data or settings. |
-| `it.json` | JSON data or settings. |
 | `pt.json` | JSON data or settings. |
-| `pt.json` | JSON data or settings. |
-| `pt.json` | JSON data or settings. |
-| `tr.json` | JSON data or settings. |
-| `tr.json` | JSON data or settings. |
 | `tr.json` | JSON data or settings. |
 
 ## apps/web/src/lib
@@ -3506,8 +3489,6 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
@@ -3515,8 +3496,6 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
