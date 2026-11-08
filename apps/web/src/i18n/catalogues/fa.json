@@ -2604,12 +2604,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "profile.noBio": {
-    "source": "No biography yet.",
-    "text": "هنوز زندگی‌نامه‌ای نوشته نشده است.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "profile.favourites": {
     "source": "Favourite teams",
     "text": "تیم‌های محبوب",
@@ -2635,7 +2629,7 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "profile.rating.none": {
-    "source": "No rating yet: a rating starts with the first settled prediction.",
+    "source": "Not rated yet: a rating starts with the first settled prediction.",
     "text": "هنوز امتیازی نیست: امتیاز با نخستین پیش‌بینی تسویه‌شده آغاز می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
@@ -2669,6 +2663,96 @@
     "text": "محاسبه در",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "profile.state.notRated": {
+    "source": "Not rated yet",
+    "text": "هنوز نیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.state.none": {
+    "source": "None yet",
+    "text": "هنوز نیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.steps.heading": {
+    "source": "Your first steps",
+    "text": "گام‌های نخست شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.steps.pick": {
+    "source": "Make your first pick",
+    "text": "نخستین انتخاب خود را ثبت کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.steps.follow": {
+    "source": "Follow a team",
+    "text": "تیمی را دنبال کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.steps.followLink": {
+    "source": "Find a team",
+    "text": "یافتن تیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.steps.bio": {
+    "source": "Add a short bio",
+    "text": "یک زندگی‌نامه‌ی کوتاه بنویسید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.steps.done": {
+    "source": "Done",
+    "text": "انجام شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.progress.own": {
+    "source": "Your settled picks",
+    "text": "پیش‌بینی‌های تسویه‌شده‌ی شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.progress.visitor": {
+    "source": "Settled picks",
+    "text": "پیش‌بینی‌های تسویه‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.progress.count": {
+    "source": "{count} of {floor}",
+    "text": "{count} از {floor}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.progress.ownNote": {
+    "source": "Your rating starts with your first settled pick. A rating can always be recomputed from your picks and the results alone.",
+    "text": "امتیاز شما با نخستین پیش‌بینی تسویه‌شده آغاز می‌شود. امتیاز را همیشه می‌توان فقط از پیش‌بینی‌ها و نتیجه‌ها دوباره حساب کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.progress.provisional": {
+    "source": "Provisional until {floor} settled picks. It joins the leaderboard from {floor}.",
+    "text": "تا {floor} پیش‌بینی تسویه‌شده موقت است. از {floor} وارد جدول برترین‌ها می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.progress.unrated": {
+    "source": "No settled picks yet. A rating starts with the first.",
+    "text": "هنوز پیش‌بینی تسویه‌شده‌ای ندارد. امتیاز با نخستین آن آغاز می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
+  },
+  "profile.howRatingsWork": {
+    "source": "How ratings work",
+    "text": "امتیاز چگونه کار می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 7 mockups (board P7-6, D-390); not yet reviewed by a translator."
   },
   "profile.ratingOverTime": {
     "source": "Rating over time",

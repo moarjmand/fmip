@@ -2169,11 +2169,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "profile.noBio": {
-    "source": "No biography yet.",
-    "text": "",
-    "status": "untranslated"
-  },
   "profile.favourites": {
     "source": "Favourite teams",
     "text": "",
@@ -2195,7 +2190,7 @@
     "status": "untranslated"
   },
   "profile.rating.none": {
-    "source": "No rating yet: a rating starts with the first settled prediction.",
+    "source": "Not rated yet: a rating starts with the first settled prediction.",
     "text": "",
     "status": "untranslated"
   },
@@ -2221,6 +2216,81 @@
   },
   "profile.rating.computed": {
     "source": "computed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.state.notRated": {
+    "source": "Not rated yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.state.none": {
+    "source": "None yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.heading": {
+    "source": "Your first steps",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.pick": {
+    "source": "Make your first pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.follow": {
+    "source": "Follow a team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.followLink": {
+    "source": "Find a team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.bio": {
+    "source": "Add a short bio",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.done": {
+    "source": "Done",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.own": {
+    "source": "Your settled picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.visitor": {
+    "source": "Settled picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.count": {
+    "source": "{count} of {floor}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.ownNote": {
+    "source": "Your rating starts with your first settled pick. A rating can always be recomputed from your picks and the results alone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.provisional": {
+    "source": "Provisional until {floor} settled picks. It joins the leaderboard from {floor}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.unrated": {
+    "source": "No settled picks yet. A rating starts with the first.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.howRatingsWork": {
+    "source": "How ratings work",
     "text": "",
     "status": "untranslated"
   },

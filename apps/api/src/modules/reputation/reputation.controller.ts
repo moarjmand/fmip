@@ -59,7 +59,11 @@ export class ReputationController {
   @Get('me/rating')
   async mine(@Req() request: FastifyRequest): Promise<RatingResponse> {
     const user = await this.viewer(request);
-    return { username: user.username, rating: await this.reputation.current(user.id) };
+    return {
+      username: user.username,
+      rating: await this.reputation.current(user.id),
+      floor: this.reputation.leaderboardRules.floor,
+    };
   }
 
   @Post('me/rating/recompute')
@@ -70,6 +74,7 @@ export class ReputationController {
     return {
       username: user.username,
       rating: outcome.kind === 'snapshot' || outcome.kind === 'unchanged' ? outcome.rating : null,
+      floor: this.reputation.leaderboardRules.floor,
     };
   }
 
@@ -77,7 +82,11 @@ export class ReputationController {
   async theirs(@Param('username') username: string): Promise<RatingResponse> {
     const user = await this.identity.userByUsername(username.toLowerCase());
     if (user === null) throw new NotFoundException(NO_USER);
-    return { username: user.username, rating: await this.reputation.current(user.id) };
+    return {
+      username: user.username,
+      rating: await this.reputation.current(user.id),
+      floor: this.reputation.leaderboardRules.floor,
+    };
   }
 
   @Get('me/rating/history')

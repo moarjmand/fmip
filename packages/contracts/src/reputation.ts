@@ -40,6 +40,13 @@ export interface Rating {
 export interface RatingResponse {
   username: string;
   rating: Rating | null;
+  /**
+   * The settled predictions a member needs to be ranked: the leaderboard's
+   * own `floor` (`LeaderboardResponse.floor`, the same rules version), so a
+   * profile can show the way to it without a second request or a typed
+   * number (T-1787, D-390).
+   */
+  floor: number;
 }
 
 // ---------------------------------------------------------------------------
