@@ -1,25 +1,19 @@
 import type { ReactNode } from 'react';
 import Link from '@/components/ui/link';
-import { Said } from '@/components/community-text';
 import { ProductRow } from '@/components/product-row';
+import { HowRatingsWork, SettledProgressBar } from '@/components/settled-progress';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { Translated } from '@/components/translated';
-import { formatNumber } from '@/i18n/format';
-import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import type { MessageKey } from '@/i18n/messages';
-import type { FirstStep, FirstStepId, SettledProgress } from '@/lib/first-steps';
+import type { FirstStep, FirstStepId } from '@/lib/first-steps';
+import type { FloorProgress } from '@/lib/leaderboard';
 
 /**
  * A new member's profile (T-1787, D-390; board P7-6): the member's own
- * "Your first steps" card and the bar to the leaderboard's floor, which a
- * visitor sees too under a provisional or missing rating. Server components,
- * no client JavaScript.
- *
- * The community's rating only (rule 6): the bar is the brand's amber, never
- * the model's turquoise. The count is the rating's own, the floor the one the
- * API sends (rule 3), and the sentence under the member's own bar is rule 8's.
- * Logical properties only (rule 7): the bar fills from the inline start, so
- * from the right in Persian.
+ * "Your first steps" card and the profile's empty rows. Server components,
+ * no client JavaScript. The bar to the floor is the leaderboard card's own
+ * (`components/settled-progress.tsx`); the sentence under the member's own
+ * bar is rule 8's.
  */
 
 /**
@@ -66,71 +60,6 @@ export function ProfileStateRow({
   );
 }
 
-/** "How ratings work": the About page's rating step (D-388 puts the anchor there). */
-export function HowRatingsWork({ locale }: { locale: string }) {
-  return (
-    <Link
-      href={`/${locale}/about#about-rating`}
-      className="inline-flex min-h-touch items-center text-sm underline"
-      data-testid="how-ratings-work"
-    >
-      <Translated locale={locale} message="profile.howRatingsWork" />
-    </Link>
-  );
-}
-
-/**
- * The count of settled picks against the floor, a bar and one sentence under
- * it. The words carry the number; the bar repeats it as a picture, so it is
- * hidden from a screen reader.
- */
-export function SettledProgressBar({
-  locale,
-  progress,
-  label,
-  note,
-}: {
-  locale: string;
-  progress: SettledProgress;
-  label: MessageKey;
-  note: MessageKey;
-}) {
-  const lang: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const floor = formatNumber(lang, progress.floor);
-  return (
-    <div
-      className="flex flex-col gap-2"
-      data-testid="settled-progress"
-      data-count={progress.count}
-      data-floor={progress.floor}
-    >
-      <p className="flex items-baseline justify-between gap-3 text-sm">
-        <Translated locale={locale} message={label} />
-        <b className="font-semibold tabular-nums" data-testid="settled-progress-count">
-          <Said
-            locale={locale}
-            message="profile.progress.count"
-            params={{ count: formatNumber(lang, progress.count), floor }}
-          />
-        </b>
-      </p>
-      <span
-        aria-hidden="true"
-        className="block h-2 overflow-hidden rounded-full border border-default bg-surface-raised"
-      >
-        <span
-          className="block h-full rounded-full bg-brand"
-          style={{ inlineSize: `${progress.percent}%` }}
-          data-testid="settled-progress-fill"
-        />
-      </span>
-      <p className="text-xs leading-normal text-muted">
-        <Said locale={locale} message={note} params={{ floor }} />
-      </p>
-    </div>
-  );
-}
-
 /** Each step's words and where its link leads. */
 const STEP_WORDS: Record<FirstStepId, { says: MessageKey; link: MessageKey }> = {
   pick: { says: 'profile.steps.pick', link: 'shell.nav.matches' },
@@ -167,8 +96,11 @@ function StepBox({ done }: { done: boolean }) {
  * "Your first steps", on the member's own profile only, until they have a
  * settled pick and the three steps are done (`firstSteps`): three 48px rows
  * (a box, the step, a 44px link), then the bar to the floor with rule 8's
- * sentence and "How ratings work". Without a readable rating there is no
- * count to show, so the bar is left out rather than drawn at an invented 0.
+ * sentence and "How ratings work". The bar is drawn only below the floor
+ * (`floorProgress`): from it on the card shows the steps alone, because the
+ * count is the formula's window and "34 of 30" or "100 of 30" would not be
+ * true. Without a readable rating there is no count to show either, so the
+ * bar is left out rather than drawn at an invented 0.
  */
 export function FirstStepsCard({
   locale,
@@ -178,7 +110,7 @@ export function FirstStepsCard({
 }: {
   locale: string;
   steps: readonly FirstStep[];
-  progress: SettledProgress | null;
+  progress: FloorProgress | null;
   hrefs: Record<FirstStepId, string>;
 }) {
   return (
@@ -222,13 +154,13 @@ export function FirstStepsCard({
           {progress !== null && (
             <SettledProgressBar
               locale={locale}
+              own
               progress={progress}
-              label="profile.progress.own"
-              note="profile.progress.ownNote"
+              note={<Translated locale={locale} message="profile.progress.ownNote" />}
             />
           )}
           <div>
-            <HowRatingsWork locale={locale} />
+            <HowRatingsWork locale={locale} testId="how-ratings-work" />
           </div>
         </div>
       </div>

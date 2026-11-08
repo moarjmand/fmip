@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
 import Link from '@/components/ui/link';
+import { HowRatingsWork, SettledProgressBar } from '@/components/settled-progress';
 import { ButtonLink, Icon } from '@/components/ui';
 import { Translated } from '@/components/translated';
 import { message } from '@/i18n/messages';
 import {
-  ABOUT_RATING_ANCHOR,
   type RatingCardViewer,
   type RatingStepState,
+  floorProgress,
   ratingLabel,
-  ratingProgress,
   ratingSteps,
   statusLabel,
   tierLabel,
@@ -42,15 +42,7 @@ export function RatingCard({
   const l = asLocale(locale);
   const floorText = plainNumber(l, floor);
   const steps = <RatingSteps locale={locale} floor={floor} states={ratingSteps(viewer)} />;
-  const howLink = (
-    <Link
-      href={`/${locale}/about#${ABOUT_RATING_ANCHOR}`}
-      className="inline-flex min-h-touch items-center text-sm font-semibold underline"
-      data-testid="rating-card-how"
-    >
-      <Translated locale={l} message="leaderboardPage.how.link" />
-    </Link>
-  );
+  const howLink = <HowRatingsWork locale={l} testId="rating-card-how" />;
   const button = (
     <ButtonLink
       href={`/${locale}${PICKS_PATH}`}
@@ -117,6 +109,8 @@ export function RatingCard({
 
   const guest = viewer.kind === 'guest';
   const settled = guest ? 0 : viewer.settled;
+  // Below the floor only; null for a count at or above it, which "N of floor" would misstate.
+  const progress = guest ? null : floorProgress(settled, floor);
   const caption: ReactNode =
     viewer.kind === 'guest' ? (
       <>
@@ -127,7 +121,7 @@ export function RatingCard({
       <Translated locale={l} message="leaderboardPage.how.nothingSettled" />
     ) : (
       <>
-        {richMessage(message(l, 'leaderboardPage.how.provisionalUntil'), { floor: floorText })}{' '}
+        {richMessage(message(l, 'leaderboardPage.how.rankedFrom'), { floor: floorText })}{' '}
         <Translated locale={l} message="leaderboardPage.how.recompute" />
       </>
     );
@@ -144,46 +138,13 @@ export function RatingCard({
       </h2>
       {steps}
       <div className="flex flex-col gap-2" data-testid="rating-progress">
-        <div className="flex items-baseline justify-between gap-3 text-sm">
-          <span className="text-muted">
-            <Translated
-              locale={l}
-              message={guest ? 'leaderboardPage.how.goal' : 'leaderboardPage.how.yourGoal'}
-            />
-          </span>
-          <b className="tabular-nums" data-testid="rating-count">
-            {guest
-              ? floorText
-              : richMessage(message(l, 'leaderboardPage.how.countOf'), {
-                  count: plainNumber(l, settled),
-                  floor: floorText,
-                })}
-          </b>
-        </div>
-        {/* The bar repeats the words above it; it fills from the start edge. */}
+        {/* The shared bar (D-388): a guest the goal alone, a member their count below the floor. */}
         {guest ? (
-          <div
-            aria-hidden="true"
-            className="h-2 rounded-pill border border-dashed border-strong"
-            data-testid="rating-bar"
-            data-goal=""
-          />
+          <SettledProgressBar locale={l} own={false} goal={floor} note={caption} />
         ) : (
-          <div
-            aria-hidden="true"
-            className="h-2 overflow-hidden rounded-pill bg-surface-raised"
-            data-testid="rating-bar"
-          >
-            <div
-              className="h-full rounded-pill bg-accent"
-              style={{ inlineSize: `${String(ratingProgress(settled, floor))}%` }}
-            />
-          </div>
-        )}
-        {caption !== null && (
-          <p className="text-sm text-muted" data-testid="rating-caption">
-            {caption}
-          </p>
+          progress !== null && (
+            <SettledProgressBar locale={l} own progress={progress} note={caption} />
+          )
         )}
         {viewer.kind === 'unconfirmed' && (
           <p className="text-sm" data-testid="rating-unconfirmed">

@@ -1,14 +1,13 @@
 /**
  * A new member's profile (T-1787, D-390; board P7-6): the member's own
- * "Your first steps" and the way to the leaderboard's floor, as data. Pure,
- * so what is done, whether the card still shows and how far the bar is
- * filled are unit-tested (`first-steps.spec.ts`); the page and
+ * "Your first steps", as data. Pure, so what is done and whether the card
+ * still shows are unit-tested (`first-steps.spec.ts`); the page and
  * `components/first-steps.tsx` only draw it.
  *
  * Every number here is read, never typed (rule 3): the count is the rating's
  * `settled_count` (0 while `rating` is null: a rating starts with the first
- * settled prediction), the floor is the one the rating response carries --
- * the leaderboard's own `floor` (D-152).
+ * settled prediction). The bar to the floor is `floorProgress` in
+ * `lib/leaderboard.ts`, shared with the leaderboard's card.
  */
 
 /** The three steps, in the order the card lists them. */
@@ -52,28 +51,4 @@ export function firstSteps(input: FirstStepsInput): FirstSteps {
     { id: 'bio', done: input.bio !== null && input.bio.trim() !== '' },
   ];
   return { steps, shown: !(settled > 0 && steps.every((step) => step.done)) };
-}
-
-/** How far a member is towards the floor. */
-export interface SettledProgress {
-  count: number;
-  floor: number;
-  /** The bar's fill, 0 to 100, never past the end. */
-  percent: number;
-}
-
-/** The bar to the floor: the count as it stands, the fill capped at the floor. */
-export function settledProgress(settled: number, floor: number): SettledProgress {
-  const count = Math.max(0, settled);
-  const percent = floor > 0 ? Math.min(100, Math.round((count / floor) * 100)) : 100;
-  return { count, floor, percent };
-}
-
-/**
- * Whether a rating section draws the bar: a member with no rating yet
- * (`settled` 0, the bar at 0) and a provisional one (under the floor) do;
- * one who has reached the floor is on the leaderboard and does not.
- */
-export function showsProgress(settled: number, floor: number): boolean {
-  return settled < floor;
 }

@@ -2259,18 +2259,23 @@
     "text": "",
     "status": "untranslated"
   },
-  "profile.progress.own": {
-    "source": "Your settled picks",
-    "text": "",
-    "status": "untranslated"
-  },
-  "profile.progress.visitor": {
+  "ratingProgress.settled": {
     "source": "Settled picks",
     "text": "",
     "status": "untranslated"
   },
-  "profile.progress.count": {
+  "ratingProgress.own": {
+    "source": "Your settled picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.count": {
     "source": "{count} of {floor}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.howRatingsWork": {
+    "source": "How ratings work",
     "text": "",
     "status": "untranslated"
   },
@@ -2279,18 +2284,13 @@
     "text": "",
     "status": "untranslated"
   },
-  "profile.progress.provisional": {
-    "source": "Provisional until {floor} settled picks. It joins the leaderboard from {floor}.",
+  "profile.progress.belowFloor": {
+    "source": "Not on the leaderboard yet: it joins from {floor}.",
     "text": "",
     "status": "untranslated"
   },
   "profile.progress.unrated": {
     "source": "No settled picks yet. A rating starts with the first.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "profile.howRatingsWork": {
-    "source": "How ratings work",
     "text": "",
     "status": "untranslated"
   },
@@ -10349,7 +10349,7 @@
     "status": "untranslated"
   },
   "leaderboardPage.how.step3Note": {
-    "source": "Until then your rating is provisional and you are not ranked.",
+    "source": "Until then you are not ranked.",
     "text": "",
     "status": "untranslated"
   },
@@ -10358,23 +10358,8 @@
     "text": "",
     "status": "untranslated"
   },
-  "leaderboardPage.how.goal": {
-    "source": "Settled picks",
-    "text": "",
-    "status": "untranslated"
-  },
-  "leaderboardPage.how.yourGoal": {
-    "source": "Your settled picks",
-    "text": "",
-    "status": "untranslated"
-  },
-  "leaderboardPage.how.countOf": {
-    "source": "{count} of {floor}",
-    "text": "",
-    "status": "untranslated"
-  },
   "leaderboardPage.how.guest": {
-    "source": "Below {floor} your rating is provisional.",
+    "source": "Below {floor} a rating is not ranked.",
     "text": "",
     "status": "untranslated"
   },
@@ -10388,18 +10373,13 @@
     "text": "",
     "status": "untranslated"
   },
-  "leaderboardPage.how.provisionalUntil": {
-    "source": "Your rating is provisional until {floor}, and shows on your profile.",
+  "leaderboardPage.how.rankedFrom": {
+    "source": "Your rating joins the board at {floor}; until then it shows on your profile.",
     "text": "",
     "status": "untranslated"
   },
   "leaderboardPage.how.unconfirmed": {
     "source": "Picks made before you confirm your e-mail count only if you confirm it before kick-off.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "leaderboardPage.how.link": {
-    "source": "How ratings work",
     "text": "",
     "status": "untranslated"
   },
@@ -10667,8 +10647,8 @@
     "forms": {},
     "status": "untranslated"
   },
-  "leaderboardPage.provisionalBelow": {
-    "source": "Ratings are provisional below {floor}, so no smaller sample is ranked.",
+  "leaderboardPage.floorRule": {
+    "source": "The board never goes below {floor}, so no smaller sample is ranked.",
     "text": "",
     "status": "untranslated"
   },

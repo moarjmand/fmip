@@ -5,12 +5,9 @@ import { AchievementsSection } from '@/components/achievements';
 import { StartConversation } from '@/components/conversation-controls';
 import { Pictured } from '@/components/lite-mode';
 import { isDeletedMember } from '@fmip/contracts';
-import {
-  FirstStepsCard,
-  HowRatingsWork,
-  ProfileStateRow,
-  SettledProgressBar,
-} from '@/components/first-steps';
+import { FirstStepsCard, ProfileStateRow } from '@/components/first-steps';
+import { HowRatingsWork, SettledProgressBar } from '@/components/settled-progress';
+import { Said } from '@/components/community-text';
 import { FriendControls } from '@/components/friend-controls';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import { memberName } from '@/lib/member-name';
@@ -31,10 +28,11 @@ import {
   fetchRating,
   fetchRatingHistory,
 } from '@/lib/api';
-import { firstSteps, settledProgress, showsProgress } from '@/lib/first-steps';
+import { firstSteps } from '@/lib/first-steps';
+import { plainNumber } from '@/lib/prediction-text';
 import { stepHref } from '@/lib/first-run';
 import { PICKS_PATH } from '@/lib/shell-nav';
-import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
+import { floorProgress, ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
 import { inviteUrl } from '@/lib/invite';
 import { historyQuery, readHistoryPage } from '@/lib/prediction-history';
 import { pageMetadata } from '@/lib/seo';
@@ -167,9 +165,11 @@ export default async function ProfilePage({
 
   // A new member's profile (T-1787, D-390; board P7-6). The count is the
   // rating's own (0 while it is null), the floor the one the rating response
-  // carries -- the leaderboard's -- never a typed number (rule 3).
+  // carries -- the leaderboard's -- never a typed number (rule 3). The bar is
+  // drawn only below the floor (null from it on), on the card and under the
+  // rating alike: from the floor `settled_count` is no longer "N of floor".
   const rated = rating.ok ? rating.data.rating : null;
-  const progress = rating.ok ? settledProgress(rated?.settled_count ?? 0, rating.data.floor) : null;
+  const progress = rating.ok ? floorProgress(rated?.settled_count ?? 0, rating.data.floor) : null;
   const visibleHistory = history.ok && history.data.kind !== 'restricted' ? history.data : null;
   const steps = own
     ? firstSteps({
@@ -183,8 +183,7 @@ export default async function ProfilePage({
     : null;
   const stepsShown = steps?.shown === true;
   // The bar under a rating: a visitor's, or the member's own once the card has gone.
-  const ratingBar =
-    progress !== null && showsProgress(progress.count, progress.floor) && !stepsShown;
+  const ratingBar = progress !== null && !stepsShown;
   // An empty section is one 48px line with its state word (D-383's row).
   const ratingOverTimeEmpty =
     ratingHistory.ok &&
@@ -383,12 +382,22 @@ export default async function ProfilePage({
             <div className="flex flex-col gap-1">
               <SettledProgressBar
                 locale={locale}
+                own={own}
                 progress={progress}
-                label={own ? 'profile.progress.own' : 'profile.progress.visitor'}
-                note={rated === null ? 'profile.progress.unrated' : 'profile.progress.provisional'}
+                note={
+                  rated === null ? (
+                    <Translated locale={locale} message="profile.progress.unrated" />
+                  ) : (
+                    <Said
+                      locale={locale}
+                      message="profile.progress.belowFloor"
+                      params={{ floor: plainNumber(locale, progress.floor) }}
+                    />
+                  )
+                }
               />
               <div>
-                <HowRatingsWork locale={locale} />
+                <HowRatingsWork locale={locale} testId="how-ratings-work" />
               </div>
             </div>
           )}

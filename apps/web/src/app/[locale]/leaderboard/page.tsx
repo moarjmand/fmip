@@ -147,10 +147,13 @@ export default async function LeaderboardPage({
 
       {/* The filters as one line (D-388): a native <details>, closed on a
         phone and while the board is empty; `board-filters--stand` (globals.css)
-        makes it no box at all from 640px once the board has rows. */}
+        makes it no box at all from 640px once the board has rows. Open when
+        the board could not be read (a refused filter, the friends board signed
+        out), so the way back to "Everyone" is not behind the fold. */}
       <details
         className={`board-filters group${standOpen ? ' board-filters--stand' : ''}`}
         data-testid="leaderboard-filters"
+        open={!result.ok}
       >
         <summary
           className="flex min-h-12 cursor-pointer list-none items-center gap-2 rounded border border-default bg-surface px-4 text-sm [&::-webkit-details-marker]:hidden"

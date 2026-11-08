@@ -2,8 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { type FirstStep, settledProgress } from '@/lib/first-steps';
-import { FirstStepsCard, ProfileStateRow, SettledProgressBar } from './first-steps';
+import type { FirstStep } from '@/lib/first-steps';
+import { floorProgress } from '@/lib/leaderboard';
+import { FirstStepsCard, ProfileStateRow } from './first-steps';
 
 /** A new member's profile (T-1787, D-390; board P7-6): the card, the bar and the state rows. */
 
@@ -18,7 +19,7 @@ const NONE_DONE: readonly FirstStep[] = [
   { id: 'bio', done: false },
 ];
 
-const card = (locale: 'en' | 'fa', steps = NONE_DONE, progress = settledProgress(0, 30)) =>
+const card = (locale: 'en' | 'fa', steps = NONE_DONE, progress = floorProgress(0, 30)) =>
   renderToStaticMarkup(
     <FirstStepsCard locale={locale} steps={steps} progress={progress} hrefs={HREFS} />,
   );
@@ -78,7 +79,7 @@ describe('Your first steps', () => {
   });
 
   it('is in Persian on /fa, with the reader’s digits', () => {
-    const html = card('fa', NONE_DONE, settledProgress(7, 30));
+    const html = card('fa', NONE_DONE, floorProgress(7, 30));
     for (const words of [
       'گام‌های نخست شما',
       'نخستین انتخاب خود را ثبت کنید',
@@ -91,45 +92,6 @@ describe('Your first steps', () => {
     ]) {
       expect(html).toContain(words);
     }
-  });
-});
-
-describe('the bar to the floor', () => {
-  const bar = (count: number, floor: number, locale: 'en' | 'fa' = 'en') =>
-    renderToStaticMarkup(
-      <SettledProgressBar
-        locale={locale}
-        progress={settledProgress(count, floor)}
-        label="profile.progress.visitor"
-        note="profile.progress.provisional"
-      />,
-    );
-
-  it('says the count and the floor it was given in words, and fills from the inline start', () => {
-    const html = bar(7, 30);
-    expect(html).toContain('>Settled picks<');
-    expect(html).toContain('>7 of 30<');
-    expect(html).toContain('style="inline-size:23%"');
-    expect(html).toContain('Provisional until 30 settled picks. It joins the leaderboard from 30.');
-    // Another floor is another number: nothing here is typed.
-    expect(bar(12, 40)).toContain('>12 of 40<');
-    expect(bar(12, 40)).toContain('Provisional until 40 settled picks.');
-  });
-
-  it('hides the picture from a screen reader: the words carry the number', () => {
-    expect(bar(7, 30)).toMatch(/<span aria-hidden="true" class="block h-2 /);
-  });
-
-  it('is the community’s amber, never the model’s colour (rule 6)', () => {
-    const html = bar(7, 30);
-    expect(html).toContain('bg-brand');
-    expect(html).not.toMatch(/\b(?:bg|text|border)-model\b/);
-  });
-
-  it('is in Persian with Persian digits', () => {
-    const html = bar(7, 30, 'fa');
-    expect(html).toContain('۷ از ۳۰');
-    expect(html).toContain('تا ۳۰ پیش‌بینی تسویه‌شده موقت است.');
   });
 });
 

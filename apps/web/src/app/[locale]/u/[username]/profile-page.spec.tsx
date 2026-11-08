@@ -189,6 +189,25 @@ describe('the member’s own page', () => {
     expect(html).toContain('>1 of 30<');
   });
 
+  it('keeps the card for a rated member with a step to do, but no "34 of 30" (B1)', async () => {
+    // At or past the floor the card shows the steps alone: the count is the
+    // formula's window, so "N of 30" is no longer true there.
+    api.fetchRating.mockResolvedValue(ok(rating(34)));
+    let html = await render();
+    expect(html).toContain('data-testid="first-steps"');
+    expect(html).not.toContain('data-testid="first-step-bio" data-done');
+    expect(html).not.toContain('settled-progress');
+    expect(html).not.toContain(' of 30<');
+    expect(html).toContain('How ratings work');
+    expect(html).toContain('data-testid="rating-value"');
+    // 120 settled: `settled_count` is the window, 100 -- never "100 of 30".
+    api.fetchRating.mockResolvedValue(ok(rating(100)));
+    html = await render();
+    expect(html).toContain('data-testid="first-steps"');
+    expect(html).not.toContain('settled-progress');
+    expect(html).not.toMatch(/>\d+ of 30</);
+  });
+
   it('has no bar when the rating could not be read', async () => {
     api.fetchRating.mockResolvedValue({ ok: false, status: 503 });
     const html = await render();
@@ -238,9 +257,9 @@ describe('a visitor', () => {
     expect(section).toContain('data-testid="rating-value"');
     expect(section.indexOf('rating-value')).toBeLessThan(section.indexOf('settled-progress'));
     expect(section).toContain('>7 of 30<');
-    expect(section).toContain(
-      'Provisional until 30 settled picks. It joins the leaderboard from 30.',
-    );
+    expect(section).toContain('Not on the leaderboard yet: it joins from 30.');
+    // The floor is the board's rule, not the console's provisional count.
+    expect(section).not.toMatch(/provisional until/i);
   });
 
   it('sees no bar from the floor on', async () => {

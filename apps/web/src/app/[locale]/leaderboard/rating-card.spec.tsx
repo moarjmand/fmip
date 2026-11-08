@@ -10,7 +10,6 @@ import {
   activeFilterCount,
   boardNarrowed,
   ratingCardViewer,
-  ratingProgress,
   ratingSteps,
 } from '@/lib/leaderboard';
 import { RatingCard } from './rating-card';
@@ -80,7 +79,7 @@ describe('who is looking (T-1784)', () => {
     expect(ratingCardViewer(VERIFIED, withCount(30), 50).kind).toBe('member');
   });
 
-  it('marks the steps from what is known, and fills the bar to the floor', () => {
+  it('marks the steps from what is known', () => {
     expect(ratingSteps({ kind: 'guest' })).toEqual(['current', 'todo', 'todo']);
     expect(ratingSteps({ kind: 'member', settled: 0 })).toEqual(['current', 'todo', 'todo']);
     expect(ratingSteps({ kind: 'member', settled: 7 })).toEqual(['done', 'done', 'current']);
@@ -89,9 +88,6 @@ describe('who is looking (T-1784)', () => {
       'done',
       'done',
     ]);
-    expect(ratingProgress(0, 30)).toBe(0);
-    expect(ratingProgress(7, 30)).toBe(23);
-    expect(ratingProgress(45, 30)).toBe(100);
   });
 });
 
@@ -103,12 +99,12 @@ describe('the card', () => {
     expect(html).toContain('Pick before kick-off');
     expect(html).toContain('Reach 30 settled picks and you join the board');
     expect(html).toContain('Settled picks');
-    expect(html).toMatch(/data-testid="rating-count">30</);
+    expect(html).toMatch(/data-testid="settled-progress-count">30</);
     expect(html).not.toContain(' of 30');
     expect(html).toContain('data-goal=""');
     expect(html).toContain('border-dashed');
     expect(html).toContain(
-      'Below 30 your rating is provisional. It can always be recomputed from your picks and the results alone.',
+      'Below 30 a rating is not ranked. It can always be recomputed from your picks and the results alone.',
     );
     expect(html).toContain('data-testid="leaderboard-picks-cta"');
     expect(html).toContain(`href="/en/about#${ABOUT_RATING_ANCHOR}"`);
@@ -119,7 +115,7 @@ describe('the card', () => {
     const html = render({ kind: 'member', settled: 4 }, 'en', 25);
     expect(html).toContain('Reach 25 settled picks and you join the board');
     expect(html).toContain('4 of 25');
-    expect(html).toContain('Your rating is provisional until 25');
+    expect(html).toContain('Your rating joins the board at 25');
     expect(html).not.toContain('30');
   });
 
@@ -145,6 +141,23 @@ describe('the card', () => {
     expect(html).not.toContain('leaderboard-picks-cta');
     expect(html).not.toMatch(/pending/i);
     expect(html).toContain('How ratings work');
+    // D-388 (N7): the settled count stays, "0 of 30"; only a pending count is barred.
+    expect(html).toContain('0 of 30');
+    // At or above the floor "N of 30" is not drawn for anyone: the count is the formula's window.
+    const past = render({ kind: 'unconfirmed', settled: 40 });
+    expect(past).not.toContain('settled-progress');
+    expect(past).not.toContain(' of 30');
+    expect(past).toContain('data-testid="rating-unconfirmed"');
+  });
+
+  it("never says the console's provisional count: the floor is the board's own rule (D-152)", () => {
+    for (const viewer of [
+      { kind: 'guest' },
+      { kind: 'member', settled: 0 },
+      { kind: 'member', settled: 7 },
+    ] as RatingCardViewer[]) {
+      expect(render(viewer)).not.toMatch(/provisional/i);
+    }
   });
 
   it('gives a member on the board a one-line result and folds the card', () => {
@@ -190,7 +203,7 @@ describe('the card', () => {
     expect(html).toContain('href="/fa/about#about-rating"');
     expect(html).not.toContain('lang="en"');
     const guest = render({ kind: 'guest' }, 'fa');
-    expect(guest).toContain('زیر ۳۰ پیش‌بینی، امتیاز موقت است.');
+    expect(guest).toContain('زیر ۳۰ پیش‌بینی، امتیاز رتبه نمی‌گیرد.');
     expect(guest).not.toContain('lang="en"');
   });
 });
@@ -227,7 +240,10 @@ describe('the folded filters (T-1783)', () => {
 
   it('is one native details, standing open only from 640px once the board has rows', () => {
     expect(page).toContain('data-testid="leaderboard-filters"');
-    expect(page).not.toMatch(/<details[^>]*\bopen\b/);
+    // Open only when the board could not be read, so "Everyone" is in reach.
+    expect(page.match(/<details[^>]*\bopen\b[^>]*>/g)).toEqual([
+      expect.stringContaining('open={!result.ok}'),
+    ]);
     expect(page).toContain('const standOpen = result.ok && result.data.entries.length > 0;');
     expect(page).toContain("board-filters group${standOpen ? ' board-filters--stand' : ''}");
     expect(page).toContain('min-h-12');

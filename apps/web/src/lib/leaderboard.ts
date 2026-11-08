@@ -224,7 +224,7 @@ export function boardExplainer(
     among: after(among),
     inPeriod: after(inPeriod),
   }).text;
-  const floor = interpolate(t(l, 'leaderboardPage.provisionalBelow'), {
+  const floor = interpolate(t(l, 'leaderboardPage.floorRule'), {
     floor: formatNumber(l, board.floor),
   });
   return `${ranked} ${floor}${privacy}`;
@@ -393,7 +393,25 @@ export function ratingSteps(
   return ['current', 'todo', 'todo'];
 }
 
-/** How far the bar is filled, 0 to 100, from the start edge. */
-export function ratingProgress(settled: number, floor: number): number {
-  return floor <= 0 ? 100 : Math.round(Math.min(1, Math.max(0, settled / floor)) * 100);
+/** How far a member is towards the floor: the leaderboard card's bar and the profile's. */
+export interface FloorProgress {
+  count: number;
+  floor: number;
+  /** The bar's fill from the start edge, 0 to 99: below the floor it is never full. */
+  percent: number;
+}
+
+/**
+ * The bar to the floor (D-388, D-390), or null where none is drawn: at or
+ * above the floor (the member is on the board), and when the floor is not a
+ * positive number (an API that does not send it yet). Only below the floor is
+ * "N of floor" true: `settled_count` is the formula's window (the last 100),
+ * which equals every settled pick only while it is under the window -- and
+ * the floor is under the window (`formula.spec.ts` holds it). So a member
+ * with 34, or 250, settled picks gets no "34 of 30" or "100 of 30".
+ */
+export function floorProgress(settled: number, floor: number): FloorProgress | null {
+  if (!(floor > 0) || settled >= floor) return null;
+  const count = Math.max(0, settled);
+  return { count, floor, percent: Math.floor((count / floor) * 100) };
 }
