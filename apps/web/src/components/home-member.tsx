@@ -9,6 +9,8 @@ import {
   type ScoreCard,
 } from '@fmip/contracts';
 import { MemberName } from '@/components/member-name';
+import { ProductRow } from '@/components/product-row';
+import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { MessageText } from '@/components/message-text';
 import { ScorePair } from '@/components/score';
 import { Translated } from '@/components/translated';
@@ -248,14 +250,36 @@ export function PanelsSection({
       <h2 className="text-lg font-semibold">
         <Translated locale={lang} message="home.panels.title" />
       </h2>
-      {panels === null ? (
-        <p className="text-sm text-muted" data-testid="home-panels-unreachable">
-          <Translated locale={lang} message="home.panels.unreachable" />
-        </p>
-      ) : panels.length === 0 ? (
-        <p className="text-sm text-muted" data-testid="home-panels-empty">
-          <Translated locale={lang} message="home.panels.empty" />
-        </p>
+      {panels === null || panels.length === 0 ? (
+        // One folded line under the heading (T-1774, D-383): the
+        // discussions' own name and word, the sentence behind it.
+        <ProductRow
+          folded
+          labelledBy="home-panels-row"
+          testId={panels === null ? 'home-panels-unreachable' : 'home-panels-empty'}
+          state={panels === null ? 'unreachable' : 'none'}
+          name={
+            <p id="home-panels-row" className="text-sm font-extrabold">
+              <Translated locale={lang} message="home.panels.row" />
+            </p>
+          }
+          status={
+            <CoverageBadge
+              state="not_supplied"
+              label={
+                <Translated
+                  locale={lang}
+                  message={panels === null ? 'lanes.row.unreachable' : 'lanes.row.none'}
+                />
+              }
+            />
+          }
+        >
+          <Translated
+            locale={lang}
+            message={panels === null ? 'home.panels.unreachable' : 'home.panels.empty'}
+          />
+        </ProductRow>
       ) : (
         <ul className="flex flex-col gap-2">
           {panels.map((panel) => {

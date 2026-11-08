@@ -123,6 +123,8 @@ export const SCORES_KEYS = [
   'scores.updated',
   'scores.updatedBetween',
   'scores.unchangedSince',
+  // The title row's clock when nothing listed is in play (T-1778, D-385).
+  'scores.checkedAt',
   'scores.card.leg',
   'scores.card.aggregate',
   'scores.card.penalties',

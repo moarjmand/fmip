@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import {
   MAX_CONSENSUS_FIXTURES,
   type CommunityConsensusResponse,
@@ -63,6 +64,7 @@ import { Translated } from '@/components/translated';
 import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
 import { zoneWords } from '@/lib/reader-time-zone';
+import { LiveNext, nextKickoff } from './live-next';
 import { MatchPreview, NoPreview } from './match-preview';
 import { MatchesAnalysis } from './matches-analysis';
 
@@ -134,10 +136,26 @@ export default async function ScoresPage({
     fetchFounderFeed({ limit: ANALYSES }),
   ]);
   const filters = q.filters ?? NO_FILTERS;
+  // The Live view with nothing in play (T-1779, D-386) asks for the whole
+  // day once more: its next kick-off and how many matches it holds.
+  const liveNone = view === 'live' && result.ok && result.data.total === 0;
+  const wholeDay = liveNone
+    ? await fetchScores(apiQuery({ ...q, ...viewFlags('all') }), cookie)
+    : null;
+  const dayListed = wholeDay?.ok === true ? applyFilters(wholeDay.data, filters) : null;
+  const dayCards = dayListed === null ? [] : allCards(dayListed);
+  const isToday = q.date === q.today;
+  // One clock for the page: what is "next" and how each row reads.
+  const now = Date.now();
+  const next = isToday ? nextKickoff(dayCards, now) : null;
   // An empty day (an international break, a winter pause) points at the next
   // day with a match rather than leaving the reader to step through blanks (T-1331).
   let nextDay: string | null = null;
-  if (result.ok && result.data.total === 0 && view === 'all') {
+  if (
+    result.ok &&
+    ((result.data.total === 0 && view === 'all') ||
+      (liveNone && wholeDay?.ok === true && wholeDay.data.total === 0))
+  ) {
     for (const [start, end] of NEXT_DAY_WINDOWS) {
       const ahead = await fetchScores(
         apiQuery({ ...q, date: shiftDate(q.date, start) }, shiftDate(q.date, end)),
@@ -150,14 +168,22 @@ export default async function ScoresPage({
 
   const listed = result.ok ? applyFilters(result.data, filters) : null;
   const cards = listed === null ? [] : allCards(listed);
-  const now = Date.now();
   const words = scoresWords(locale);
   // The preview: the match whose Pick was pressed, else on a desktop the
   // first match still open for a pick, so the side column is never blank.
   const day = result.ok ? allCards(result.data) : [];
+  // The Live view's next kick-off is a row of this page too (T-1779): its Pick opens it.
+  const pickable = next === null ? day : [...day, next];
   const chosen =
-    q.pick === null || q.pick === undefined ? null : (day.find((c) => c.id === q.pick) ?? null);
-  const previewCard = chosen ?? cards.find((card) => isOpenForPick(card, now)) ?? null;
+    q.pick === null || q.pick === undefined
+      ? null
+      : (pickable.find((c) => c.id === q.pick) ?? null);
+  const previewCard =
+    chosen ??
+    cards.find((card) => isOpenForPick(card, now)) ??
+    (next !== null && isOpenForPick(next, now) ? next : null);
+  // The rows whose model line and picks the page loads.
+  const rowCards = next === null ? cards : [...cards, next];
 
   // T-940 (D-114): the model's line for every row, one request per 50
   // matches; the member's picks from one page of their own history (D-201's
@@ -165,9 +191,12 @@ export default async function ScoresPage({
   let consensus: CommunityConsensusResponse | null = null;
   const [forecasts, mine, previewLines] = await Promise.all([
     listed === null
-      ? Promise.resolve({})
-      : loadCardForecasts(cardIds(listed), fetchForecastSummaries),
-    me === null || cookie === undefined || cards.length === 0
+      ? Promise.resolve<Awaited<ReturnType<typeof loadCardForecasts>>>({})
+      : loadCardForecasts(
+          next === null ? cardIds(listed) : [...cardIds(listed), next.id],
+          fetchForecastSummaries,
+        ),
+    me === null || cookie === undefined || rowCards.length === 0
       ? Promise.resolve(null)
       : fetchMyPredictions(cookie, MAX_CONSENSUS_FIXTURES),
     previewCard === null
@@ -193,7 +222,7 @@ export default async function ScoresPage({
   ]);
   const own =
     mine !== null && mine.ok && mine.data.kind === 'visible'
-      ? ownPredictions(mine.data.items, mine.data.items.length >= MAX_CONSENSUS_FIXTURES, cards)
+      ? ownPredictions(mine.data.items, mine.data.items.length >= MAX_CONSENSUS_FIXTURES, rowCards)
           .found
       : new Map<string, Prediction>();
   // The pick the reader saved on the previewed match before their email
@@ -290,6 +319,34 @@ export default async function ScoresPage({
     `flex min-h-11 items-center justify-between gap-3 rounded-md px-2.5 ${
       active ? 'bg-surface-raised font-bold' : 'hover:bg-surface-raised'
     }`;
+  // The Live view with nothing in play (T-1779, D-386): whole, and plain for
+  // the list to fall back to once the next match has kicked off (rule 4).
+  const liveNext = (plain: boolean): ReactNode =>
+    dayListed === null ? undefined : (
+      <LiveNext
+        locale={locale}
+        timeZone={q.timezone}
+        today={isToday}
+        next={next}
+        country={
+          next === null
+            ? null
+            : (dayListed.groups.find((g) => g.fixtures.some((f) => f.id === next.id))?.country
+                ?.name ?? null)
+        }
+        count={dayCards.length}
+        showHref={pageHref(locale, q, viewFlags('all'))}
+        pickHref={
+          next === null ? undefined : `${pageHref(locale, q, { pick: next.id })}#m-${next.id}`
+        }
+        forecast={next === null ? undefined : forecasts[next.id]}
+        picked={next !== null && own.has(next.id)}
+        selected={next !== null && next.id === previewCard?.id}
+        now={now}
+        words={words}
+        plain={plain}
+      />
+    );
 
   return (
     // `scores-main` and `scores-flat`: under 1024px the list's "Last checked"
@@ -304,7 +361,7 @@ export default async function ScoresPage({
         <GateCard locale={locale} route="/scores?unpicked=1" heading="h2" compact />
       )}
 
-      <div className="scores-flat grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21.25rem] xl:grid-cols-[13.75rem_minmax(0,1fr)_21.25rem]">
+      <div className="scores-flat grid items-start gap-6 lg:grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1fr)_21.25rem] xl:grid-cols-[13.75rem_minmax(0,1fr)_21.25rem]">
         {result.ok && (
           <nav
             aria-label={railNav.text}
@@ -557,18 +614,41 @@ export default async function ScoresPage({
           {/* One 12px legend line (D-374): the zone, then the model's words, the
               only turquoise (rule 6). The zone is set in the welcome steps and
               settings, so the line no longer asks a guest to sign in for it. */}
-          <p className="text-xs text-caption" data-testid="legend">
-            <span data-testid="timezone">
-              <FilledMessage
-                message={message(resolved, 'scores.timesIn')}
-                params={{ zone: q.timezone, zoneName: zoneWords(locale, q.timezone) }}
-              />
-            </span>
-            {' · '}
-            <span className="text-model" data-testid="model-legend">
-              <Translated locale={locale} message="scores.modelLegend" />
-            </span>
-          </p>
+          {/* Then one native disclosure that says once what the stamps mean
+              (T-1777, D-385): its panel opens under the line (`fold-row`). */}
+          <div className="fold-row text-xs text-caption" data-testid="legend-row">
+            <p data-testid="legend">
+              <span data-testid="timezone">
+                <FilledMessage
+                  message={message(resolved, 'scores.timesIn')}
+                  params={{ zone: q.timezone, zoneName: zoneWords(locale, q.timezone) }}
+                />
+              </span>
+              {' · '}
+              <span className="text-model" data-testid="model-legend">
+                <Translated locale={locale} message="scores.modelLegend" />
+              </span>
+            </p>
+            <details className="group" data-testid="times-about">
+              <summary
+                className={`${summaryClass} inline-flex min-h-11 items-center gap-1 font-semibold text-muted underline`}
+                data-testid="times-about-summary"
+              >
+                <Translated locale={locale} message="scores.about.title" />
+                <span aria-hidden="true" className="group-open:rotate-180">
+                  ▾
+                </span>
+              </summary>
+              <div className="flex flex-col gap-1 pb-2 text-muted" data-testid="times-about-panel">
+                <p>
+                  <Translated locale={locale} message="scores.about.checked" />
+                </p>
+                <p>
+                  <Translated locale={locale} message="scores.about.unchanged" />
+                </p>
+              </div>
+            </details>
+          </div>
         </div>
 
         {/* The preview: beside the list from 1024px, sticky while the list
@@ -645,6 +725,11 @@ export default async function ScoresPage({
                 picked={[...own.keys()]}
                 selected={previewCard?.id ?? null}
                 pickBase={pageHref(locale, q)}
+                liveEmpty={liveNext(false)}
+                liveEmptyPlain={next === null ? undefined : liveNext(true)}
+                liveEmptyNext={
+                  next === null ? undefined : { id: next.id, kickoff_at: next.kickoff_at }
+                }
                 words={words}
               />
               {nextDay !== null && (
@@ -661,11 +746,15 @@ export default async function ScoresPage({
               )}
             </>
           )}
-          <MatchesAnalysis
-            locale={locale}
-            timeZone={q.timezone}
-            analyses={founder.ok ? founder.data.analyses : null}
-          />
+          {/* Not on the Live view with nothing in play (T-1779, D-386): the
+              founder's analysis and the two links are not about live. */}
+          {!liveNone && (
+            <MatchesAnalysis
+              locale={locale}
+              timeZone={q.timezone}
+              analyses={founder.ok ? founder.data.analyses : null}
+            />
+          )}
         </div>
       </div>
     </main>
