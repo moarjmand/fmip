@@ -1700,6 +1700,7 @@
   "matchCentre.stat.saves": "Saves",
   "matchCentre.stat.expectedGoals": "Expected goals (xG)",
   "matchCentre.xgNotSupplied": "Expected goals (xG): not available for this match.",
+  "matchCentre.statsUpdated": "Stats updated {ago}",
   "matchCentre.playerColumn": "Player",
   "matchCentre.playerStatistics.scroll": "Scroll sideways to see every column.",
   "matchCentre.playerStatistics.region": "{team}: player statistics, scrolls sideways",

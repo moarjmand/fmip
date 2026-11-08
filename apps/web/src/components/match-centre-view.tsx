@@ -11,7 +11,7 @@ import type {
   MatchStatRow,
   PlayerMatchMetric,
 } from '@fmip/contracts';
-import { AVAILABILITY_STALE_AFTER_MS } from '@fmip/contracts';
+import { AVAILABILITY_STALE_AFTER_MS, LIVE_STATS_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
 import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, shootoutStart, statValue } from '@/lib/match';
@@ -27,6 +27,7 @@ import { LiveBadge } from '@/components/ui/live-badge';
 import { RatingChip } from '@/components/ui/rating-chip';
 import { StatBar } from '@/components/ui/stat-bar';
 import { FreshnessLine } from '@/components/match-freshness-line';
+import { FreshnessStamp } from '@/components/freshness-stamp';
 import { MatchLineupsView } from '@/components/match-lineups';
 import { BLEED, type BandState, ScoreBar, bandState } from '@/components/match-score-bar';
 import { MessageText } from '@/components/message-text';
@@ -345,7 +346,9 @@ export function MatchCentreView({
   const statsRegion = (
     <Region id="stats" tab="stats">
       {statsComing.length > 0 && <ComingCard items={statsComing} words={words} phone />}
-      {!isComing('statistics') && <Statistics centre={centre} locale={locale} words={words} />}
+      {!isComing('statistics') && (
+        <Statistics centre={centre} locale={locale} now={now} words={words} />
+      )}
       {!isComing('player_statistics') && (
         <PlayerStatistics centre={centre} locale={locale} words={words} />
       )}
@@ -1413,14 +1416,20 @@ function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
  * side's share in ink from the inline start, the away side's grey; never a
  * club colour. A side the provider left out is "–" and there is no bar for
  * that row. While the match is on and nothing has come, "Not in yet".
+ * While it is on and they have come, "Stats updated 2 min ago" under them
+ * (T-1782, rule 4): asked every few minutes in play, they can stop while the
+ * score moves (the budget's standard share spent, the provider refusing),
+ * so past `LIVE_STATS_STALE_AFTER_MS` the line turns to "may be behind".
  */
 function Statistics({
   centre,
   locale,
+  now,
   words,
 }: {
   centre: MatchCentre;
   locale: string;
+  now: number | undefined;
   words: MatchWords;
 }) {
   const m = words.m;
@@ -1464,6 +1473,19 @@ function Statistics({
                 label={<MessageText message={m['status.coverage.notSupplied']} />}
               />
             </p>
+          )}
+          {f.status === 'live' && centre.statistics.last_updated_at !== null && (
+            <FreshnessStamp
+              checkedAt={centre.statistics.last_updated_at}
+              now={now}
+              staleAfterMs={LIVE_STATS_STALE_AFTER_MS}
+              locale={locale}
+              words={{
+                'freshness.checked': m['matchCentre.statsUpdated'],
+                'freshness.behind': m['freshness.behind'],
+              }}
+              testId="stats-freshness"
+            />
           )}
         </>
       )}

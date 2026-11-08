@@ -9590,6 +9590,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
   },
+  "matchCentre.statsUpdated": {
+    "source": "Stats updated {ago}",
+    "text": "به‌روزرسانی آمار {ago}",
+    "status": "translated",
+    "note": "Proposed by the agent (T-1782, D-382), for the translator's review."
+  },
   "matchCentre.playerColumn": {
     "source": "Player",
     "text": "بازیکن",

@@ -324,6 +324,38 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
   });
 
   /**
+   * T-1782: in play the statistics are asked for every few minutes, and an
+   * answer that carried them but moved no figure (the half-time interval)
+   * still confirms them. An answer without them -- a detail fetch alone --
+   * does not, so frozen figures are not shown as current (rule 4).
+   */
+  it('times the statistics by the last answer that carried them, not by any fetch', async () => {
+    const stamp = async () => ((await get(MATCH)).json() as MatchCentre).statistics.last_updated_at;
+    const changed = await stamp();
+    expect(changed).not.toBeNull();
+    const later = (minutes: number) =>
+      new Date(Date.parse(changed ?? '') + minutes * 60_000).toISOString();
+    try {
+      // A fetch whose answer had no statistics: the time stays.
+      await pool.query(
+        `INSERT INTO fixture_detail_fetch (fixture_id, provider, fetched_at)
+         VALUES ($1, 'api_football', $2)`,
+        [MATCH, later(5)],
+      );
+      expect(await stamp()).toBe(changed);
+      // An answer that carried them, no figure moved: the time moves.
+      await pool.query(`INSERT INTO fixture_stat_check (fixture_id, checked_at) VALUES ($1, $2)`, [
+        MATCH,
+        later(1),
+      ]);
+      expect(await stamp()).toBe(later(1));
+    } finally {
+      await pool.query(`DELETE FROM fixture_detail_fetch WHERE fixture_id = $1`, [MATCH]);
+      await pool.query(`DELETE FROM fixture_stat_check WHERE fixture_id = $1`, [MATCH]);
+    }
+  });
+
+  /**
    * A season backfill writes finished matches with nothing after the whistle,
    * and the post-match job asks about each of them in turn (T-102). Until it
    * has, an empty module is late, not the provider declining; once it has, an
