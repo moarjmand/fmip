@@ -134,8 +134,9 @@ export function Module<T>({
             <MessageText message={m['matchCentre.notInYet']} />
           </span>
         ) : (
-          <CoverageBadge
+          <HeaderCoverage
             state={module.coverage}
+            content={module.data !== null}
             label={<MessageText message={m[COVERAGE_KEY[module.coverage]]} />}
           />
         )}
@@ -149,6 +150,37 @@ export function Module<T>({
       )}
     </section>
   );
+}
+
+/**
+ * A module's coverage beside its title (T-1776, D-384; board P6-3): a module
+ * that is available and shows its content needs no badge to say so -- the
+ * content says it, and the page's coverage line says it once -- so its word
+ * is visually hidden and a screen reader still hears it with the title. A
+ * module that is limited, delayed or not supplied, or available with nothing
+ * to show, keeps its visible badge (rule 3). Used by the module cards, the
+ * venue and the competition context.
+ */
+export function HeaderCoverage({
+  state,
+  content,
+  label,
+}: {
+  state: CoverageState;
+  /** The module draws its content under the title. */
+  content: boolean;
+  label: React.ReactNode;
+}) {
+  if (state === 'available' && content) {
+    return (
+      // The space keeps the word apart from the title in the heading's name.
+      <span className="sr-only" data-coverage-hidden={state}>
+        {' '}
+        {label}
+      </span>
+    );
+  }
+  return <CoverageBadge state={state} label={label} />;
 }
 
 /**

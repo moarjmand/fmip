@@ -238,32 +238,29 @@ export function CommunityPicksBrief({
  * fewer than D-052's floor have picked, which is no consensus rather than a
  * small one (rule 3) -- where a card stood. `null` when there is a consensus:
  * the page then draws `CommunityForecastPanel` in the community's voice.
+ * Folded since D-383: the word on the line, the sentence behind it. On the
+ * homepage's main match (T-1773) the sentence is followed by "Make your
+ * pick" while the pick is open (`pickHref`), the card's own link.
  */
 export function CommunityPicksRow({
   consensus,
   locale,
+  pickHref,
+  testId = 'consensus',
 }: {
   consensus: CommunityConsensusResponse | null;
   locale: string;
+  /** Where the reader makes their pick, while picks are open; none after. */
+  pickHref?: string;
+  testId?: string;
 }) {
   const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   if (consensus !== null && consensus.data !== null) return null;
   return (
     <CommunityVoice
       locale={l}
-      testId="consensus"
+      testId={testId}
       state={consensus === null ? 'unreachable' : 'not_supplied'}
-      empty={
-        consensus === null ? (
-          <Translated locale={l} message="matchCentre.community.unreachable" />
-        ) : (
-          <Translated
-            locale={l}
-            message="matchCentre.community.belowFloor"
-            count={MIN_CONSENSUS_SAMPLE}
-          />
-        )
-      }
       row={
         <CoverageBadge
           state="not_supplied"
@@ -278,6 +275,29 @@ export function CommunityPicksRow({
             )
           }
         />
+      }
+      empty={
+        <>
+          <span>
+            {consensus === null ? (
+              <Translated locale={l} message="matchCentre.community.unreachable" />
+            ) : (
+              <Translated
+                locale={l}
+                message="matchCentre.community.belowFloor"
+                count={MIN_CONSENSUS_SAMPLE}
+              />
+            )}
+          </span>
+          {pickHref !== undefined && (
+            <Link
+              href={pickHref}
+              className="inline-flex min-h-touch items-center text-sm font-bold text-community underline"
+            >
+              <Translated locale={l} message="pick.make" />
+            </Link>
+          )}
+        </>
       }
     />
   );

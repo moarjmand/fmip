@@ -31,8 +31,10 @@ import { cx } from '@/components/ui/cx';
  * `row` (T-1744, D-365), on the founder's and the community's voices only:
  * with nothing to show, the voice is one compact row (`ProductRow`) -- its
  * own name line, the `empty` sentence, and the status handed in as `row`
- * (an icon and a word) -- where its card would stand. The model's voice has
- * no row: the model's forecast is the Summary's card.
+ * (an icon and a word) -- where its card would stand. Since D-383 the row is
+ * folded: one 48px line with the name and the word, the sentence behind a
+ * native `<details>`. The model's voice has no row: the model's forecast is
+ * the Summary's card.
  */
 
 const FRAME = 'flex flex-col gap-3 rounded-xl border border-default bg-surface p-4';
@@ -95,6 +97,7 @@ export function FounderVoice({
   row,
   testId,
   state,
+  coming = false,
   className,
 }: {
   locale: string;
@@ -106,6 +109,11 @@ export function FounderVoice({
   testId?: string;
   /** The row's `data-state`, for the page's tests and styles. */
   state?: string;
+  /**
+   * The founder's analyses of the coming matches as a whole (the homepage's
+   * column, D-383), named so beside the main match's own analysis.
+   */
+  coming?: boolean;
   className?: string;
 }) {
   const id = useId();
@@ -113,11 +121,17 @@ export function FounderVoice({
     <p
       id={id}
       className={cx(
-        'font-serif text-lg leading-snug text-founder italic',
+        'font-serif leading-snug text-founder italic',
+        // The longer name a step smaller, so that on a phone its two lines
+        // still fit the 48px row (D-383).
+        coming ? 'text-base' : 'text-lg',
         '[:root:is(:lang(fa),:lang(ar))_&]:font-naskh [:root:is(:lang(fa),:lang(ar))_&]:not-italic',
       )}
     >
-      <Translated locale={locale} message="lanes.founder.title" />
+      <Translated
+        locale={locale}
+        message={coming ? 'lanes.founder.coming' : 'lanes.founder.title'}
+      />
     </p>
   );
   if (empty !== undefined && row !== undefined) {
@@ -129,6 +143,8 @@ export function FounderVoice({
         voice="founder"
         testId={testId}
         state={state}
+        folded
+        className={className}
       >
         {empty}
       </ProductRow>
@@ -199,6 +215,8 @@ export function CommunityVoice({
         voice="community"
         testId={testId}
         state={state}
+        folded
+        className={className}
       >
         {empty}
       </ProductRow>
@@ -218,10 +236,13 @@ export function CommunityVoice({
   );
 }
 
-/** "Three separate products…": said once where the three appear together. */
+/**
+ * "Three separate products, never blended.": said once where the three
+ * appear together, one 12px line (D-383; it was a 60px paragraph).
+ */
 export function ThreeProductsNote({ locale, className }: { locale: string; className?: string }) {
   return (
-    <p className={cx('text-sm text-caption', className)} data-testid="three-products-note">
+    <p className={cx('text-xs text-caption', className)} data-testid="three-products-note">
       <Translated locale={locale} message="lanes.note" />
     </p>
   );

@@ -91,9 +91,9 @@ describe('the three voices', () => {
     expect(html).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
   });
 
-  it('meet once on a page with the note that they stay separate', () => {
-    expect(renderToStaticMarkup(<ThreeProductsNote locale="en" />)).toContain(
-      'Three separate products.',
+  it('meet once on a page with the note that they stay separate, one 12px line (D-383)', () => {
+    expect(renderToStaticMarkup(<ThreeProductsNote locale="en" />)).toBe(
+      '<p class="text-xs text-caption" data-testid="three-products-note">Three separate products, never blended.</p>',
     );
   });
 });

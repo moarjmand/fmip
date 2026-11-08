@@ -444,7 +444,7 @@ export default async function MatchPage({
                     words={words}
                   />
                 ),
-                coverage: <Coverage centre={result.data} words={words} />,
+                coverage: <Coverage centre={result.data} words={words} locale={locale} />,
                 venue: (
                   <VenueCard venue={result.data.fixture.venue} locale={locale} words={words} />
                 ),
