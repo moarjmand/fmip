@@ -12428,6 +12428,174 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "leaderboardPage.how.title": {
+    "source": "How a rating is earned",
+    "text": "امتیاز چگونه به دست می‌آید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.step1": {
+    "source": "Pick before kick-off",
+    "text": "پیش از شروع بازی پیش‌بینی کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.step1Note": {
+    "source": "Your pick locks when the match starts.",
+    "text": "انتخاب شما با شروع بازی قفل می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.step2": {
+    "source": "Results score it; hard calls count more",
+    "text": "نتیجه‌ها امتیاز را می‌سازند؛ حدس سخت، امتیاز بیشتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.step2Short": {
+    "source": "Results score it",
+    "text": "نتیجه‌ها امتیاز را می‌سازند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.step2Note": {
+    "source": "Being right when it was hard counts most.",
+    "text": "درست گفتن در جایی که سخت بود بیشترین امتیاز را دارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.step3": {
+    "source": {
+      "one": "Reach {count} settled pick and you join the board",
+      "other": "Reach {count} settled picks and you join the board"
+    },
+    "forms": {
+      "one": "به {count} پیش‌بینی تسویه‌شده برسید تا وارد جدول شوید",
+      "other": "به {count} پیش‌بینی تسویه‌شده برسید تا وارد جدول شوید"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.step3Short": {
+    "source": {
+      "one": "Reach {count} settled pick",
+      "other": "Reach {count} settled picks"
+    },
+    "forms": {
+      "one": "به {count} پیش‌بینی تسویه‌شده برسید",
+      "other": "به {count} پیش‌بینی تسویه‌شده برسید"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.step3Note": {
+    "source": "Until then your rating is provisional and you are not ranked.",
+    "text": "تا آن زمان امتیاز شما موقت است و رتبه نمی‌گیرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.done": {
+    "source": "done",
+    "text": "انجام شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.goal": {
+    "source": "Settled picks",
+    "text": "پیش‌بینی‌های تسویه‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.yourGoal": {
+    "source": "Your settled picks",
+    "text": "پیش‌بینی‌های تسویه‌شده‌ی شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.countOf": {
+    "source": "{count} of {floor}",
+    "text": "{count} از {floor}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.guest": {
+    "source": "Below {floor} your rating is provisional.",
+    "text": "زیر {floor} پیش‌بینی، امتیاز موقت است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.recompute": {
+    "source": "It can always be recomputed from your picks and the results alone.",
+    "text": "امتیاز را همیشه می‌توان فقط از پیش‌بینی‌ها و نتیجه‌ها دوباره حساب کرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.nothingSettled": {
+    "source": "Nothing settled yet. The count starts with your first settled pick.",
+    "text": "هنوز چیزی تسویه نشده است. شمارش با نخستین پیش‌بینی تسویه‌شده‌ی شما آغاز می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.provisionalUntil": {
+    "source": "Your rating is provisional until {floor}, and shows on your profile.",
+    "text": "تا {floor} پیش‌بینی، امتیاز شما موقت است و در نمایه‌تان دیده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.unconfirmed": {
+    "source": "Picks made before you confirm your e-mail count only if you confirm it before kick-off.",
+    "text": "انتخاب‌هایی که پیش از تأیید ایمیل ثبت می‌کنید فقط اگر پیش از شروع بازی ایمیل را تأیید کنید حساب می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.link": {
+    "source": "How ratings work",
+    "text": "امتیاز چگونه کار می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.yours": {
+    "source": "Your rating",
+    "text": "امتیاز شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.ratedMeta": {
+    "source": "{tier} · {settled} settled · {status}",
+    "text": "{tier} · {settled} پیش‌بینی تسویه‌شده · {status}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.how.profile": {
+    "source": "Profile",
+    "text": "نمایه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.filters.title": {
+    "source": "Filters",
+    "text": "فیلترها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.filters.none": {
+    "source": "none applied",
+    "text": "هیچ‌کدام اعمال نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
+  "leaderboardPage.filters.applied": {
+    "source": {
+      "one": "{count} applied",
+      "other": "{count} applied"
+    },
+    "forms": {
+      "one": "{count} فیلتر اعمال شده",
+      "other": "{count} فیلتر اعمال شده"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the wording of the approved P7 boards (D-388), not yet reviewed by a translator."
+  },
   "leaderboardPage.who": {
     "source": "Who:",
     "text": "چه کسانی:",

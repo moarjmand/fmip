@@ -4,6 +4,8 @@ import type {
   LeaderboardPeriodKind,
   LeaderboardResponse,
   LeaderboardScope,
+  Rating,
+  RatingResponse,
   RatingTier,
 } from '@fmip/contracts';
 import { formatNumber, intlLocale } from '@/i18n/format';
@@ -303,4 +305,95 @@ export function statusLabel(
   if (entry.established) return t(l, 'leaderboardPage.status.established');
   if (entry.provisional) return t(l, 'leaderboardPage.status.provisional');
   return t(l, 'leaderboardPage.status.building');
+}
+
+/**
+ * How many of the board's filters narrow it (T-1783, D-388), for the folded
+ * line "Filters · 2 applied": friends, a month or season, a competition, a
+ * language, and a minimum other than the floor. `floor` is null when the API
+ * did not answer, and then any `?min=` counts.
+ */
+export function activeFilterCount(q: LeaderboardPageQuery, floor: number | null): number {
+  return [
+    q.scope !== 'everyone',
+    q.period !== 'all',
+    q.competition !== null,
+    q.language !== null,
+    q.min !== null && q.min !== floor,
+  ].filter(Boolean).length;
+}
+
+/** Whether the board is narrowed, so its explainer stays outside the folded filters (D-388). */
+export function boardNarrowed(
+  board: Pick<LeaderboardResponse, 'scope' | 'period' | 'competition' | 'language'>,
+): boolean {
+  return (
+    board.scope !== 'everyone' ||
+    board.period.kind !== 'all' ||
+    board.competition !== null ||
+    board.language !== null
+  );
+}
+
+/**
+ * The id of the About page's rating step (D-388, D7), where "How ratings
+ * work" leads; the member profile links to the same id.
+ */
+export const ABOUT_RATING_ANCHOR = 'about-rating';
+
+/** A step of "How a rating is earned": marked by fill and a tick, never by colour alone. */
+export type RatingStepState = 'done' | 'current' | 'todo';
+
+/**
+ * Who is looking at the card "How a rating is earned" (T-1784, D-388), and
+ * only what is true of them:
+ *
+ * - `guest`: nothing about the viewer is read, so no count -- the bar is a
+ *   picture of the rule (also a member whose own rating could not be read);
+ * - `unconfirmed`: a member whose e-mail is not confirmed, told the D-361
+ *   rule; their settled count, never a count of pending picks;
+ * - `member`: their own settled count from `GET /me/rating` (0 while the
+ *   rating is null);
+ * - `rated`: rated and at or above the floor, so on the board.
+ *
+ * No "N picks are waiting for their results": `settled_count` is the
+ * formula's window (the last 100) and the history's `total` counts every
+ * stored pick, voided ones included, so their difference is not a true count.
+ */
+export type RatingCardViewer =
+  | { kind: 'guest' }
+  | { kind: 'unconfirmed'; settled: number }
+  | { kind: 'member'; settled: number }
+  | { kind: 'rated'; username: string; rating: Rating };
+
+export function ratingCardViewer(
+  me: { email_verified: boolean } | null,
+  mine: RatingResponse | null,
+  floor: number,
+): RatingCardViewer {
+  if (me === null || mine === null) return { kind: 'guest' };
+  const settled = mine.rating?.settled_count ?? 0;
+  if (!me.email_verified) return { kind: 'unconfirmed', settled };
+  if (mine.rating !== null && settled >= floor) {
+    return { kind: 'rated', username: mine.username, rating: mine.rating };
+  }
+  return { kind: 'member', settled };
+}
+
+/**
+ * The three steps' states: the first is where everyone starts; from the
+ * first settled pick the results have scored and reaching the floor is what
+ * is left; on the board, all three are done.
+ */
+export function ratingSteps(
+  viewer: RatingCardViewer,
+): readonly [RatingStepState, RatingStepState, RatingStepState] {
+  if (viewer.kind === 'rated') return ['done', 'done', 'done'];
+  if (viewer.kind !== 'guest' && viewer.settled > 0) return ['done', 'done', 'current'];
+  return ['current', 'todo', 'todo'];
+}
+
+/** How far the bar is filled, 0 to 100, from the start edge. */
+export function ratingProgress(settled: number, floor: number): number {
+  return floor <= 0 ? 100 : Math.round(Math.min(1, Math.max(0, settled / floor)) * 100);
 }

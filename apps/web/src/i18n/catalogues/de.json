@@ -10232,6 +10232,140 @@
     "text": "",
     "status": "untranslated"
   },
+  "leaderboardPage.how.title": {
+    "source": "How a rating is earned",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step1": {
+    "source": "Pick before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step1Note": {
+    "source": "Your pick locks when the match starts.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step2": {
+    "source": "Results score it; hard calls count more",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step2Short": {
+    "source": "Results score it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step2Note": {
+    "source": "Being right when it was hard counts most.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step3": {
+    "source": {
+      "one": "Reach {count} settled pick and you join the board",
+      "other": "Reach {count} settled picks and you join the board"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step3Short": {
+    "source": {
+      "one": "Reach {count} settled pick",
+      "other": "Reach {count} settled picks"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step3Note": {
+    "source": "Until then your rating is provisional and you are not ranked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.done": {
+    "source": "done",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.goal": {
+    "source": "Settled picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.yourGoal": {
+    "source": "Your settled picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.countOf": {
+    "source": "{count} of {floor}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.guest": {
+    "source": "Below {floor} your rating is provisional.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.recompute": {
+    "source": "It can always be recomputed from your picks and the results alone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.nothingSettled": {
+    "source": "Nothing settled yet. The count starts with your first settled pick.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.provisionalUntil": {
+    "source": "Your rating is provisional until {floor}, and shows on your profile.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.unconfirmed": {
+    "source": "Picks made before you confirm your e-mail count only if you confirm it before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.link": {
+    "source": "How ratings work",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.yours": {
+    "source": "Your rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.ratedMeta": {
+    "source": "{tier} · {settled} settled · {status}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.profile": {
+    "source": "Profile",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.filters.title": {
+    "source": "Filters",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.filters.none": {
+    "source": "none applied",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.filters.applied": {
+    "source": {
+      "one": "{count} applied",
+      "other": "{count} applied"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "leaderboardPage.who": {
     "source": "Who:",
     "text": "",

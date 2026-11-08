@@ -2,6 +2,7 @@ import { Translated } from '@/components/translated';
 import { localDigits } from '@/i18n/format';
 import type { Locale } from '@/i18n/locales';
 import type { MessageKey } from '@/i18n/messages';
+import { ABOUT_RATING_ANCHOR } from '@/lib/leaderboard';
 import { AboutIcon, type AboutIconName } from './about-icons';
 import { LANES, type Product, RECORD_SURFACES, type Tone } from './about-content';
 
@@ -245,7 +246,8 @@ export function HowItWorks({ locale }: { locale: Locale }) {
             mark="check"
           />
 
-          <li className="how-step how-outcomes" data-testid="how-outcomes">
+          {/* The rating step: "How ratings work" on the leaderboard leads here (D-388). */}
+          <li className="how-step how-outcomes" id={ABOUT_RATING_ANCHOR} data-testid="how-outcomes">
             <StepLabel locale={locale} step={6} name="about.how.outcomes.title" />
             <ul className="how-trio">
               {LANES.map((lane) => (

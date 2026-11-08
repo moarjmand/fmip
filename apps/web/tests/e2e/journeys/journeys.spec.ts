@@ -281,6 +281,10 @@ test.describe('blueprint journeys', () => {
     expect(((await points.json()) as { points: { total: number } }).points.total).toBe(0);
 
     await page.goto('/en/leaderboard');
+    // The card counts the member's own settled picks, none yet (T-1784, D-388).
+    await expect(page.getByTestId('rating-card')).toContainText('of 30');
+    // The filters fold into one line while the board is empty (D-388).
+    await expect(page.getByTestId('leaderboard-filters-toggle')).toContainText('none applied');
     await expect(page.getByTestId('min-sample')).toContainText('30');
     await expect(
       page.getByTestId('leaderboard-empty').or(page.getByTestId('leaderboard')),

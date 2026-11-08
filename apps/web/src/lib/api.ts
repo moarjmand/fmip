@@ -961,6 +961,15 @@ export function fetchRating(username: string): Promise<ApiResult<RatingResponse>
 }
 
 /**
+ * `GET /me/rating` (T-053): the signed-in member's own current rating, null
+ * before the first settlement; the leaderboard's card reads its count from it
+ * (T-1784, D-388). 401 without a session.
+ */
+export function fetchMyRating(cookie: string): Promise<ApiResult<RatingResponse>> {
+  return apiRequest<RatingResponse>('/me/rating', { cookie });
+}
+
+/**
  * `GET /users/:username/rating/history` (T-640): the rating over time, by
  * competition, and the highest. Follows prediction-history visibility, so the
  * viewer's session goes with it.

@@ -261,7 +261,9 @@ describe('plurals (T-301)', () => {
     // saying how much of its round the other list holds).
     // T-1779: two added (the Live view's way back to today's matches, or to
     // another day's).
-    expect(pluralKeys).toHaveLength(115);
+    // T-1783: three added (the leaderboard card's third step, long and short,
+    // and the folded filters' "N applied").
+    expect(pluralKeys).toHaveLength(118);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);
