@@ -129,22 +129,7 @@ export default async function RulesPage({
     <main
       className={`mx-auto max-w-3xl p-8 ${sections === null ? '' : 'lg:grid lg:max-w-5xl lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-x-8'}`}
     >
-      {sections !== null && (
-        // Beside the text from 1024px, under the header as the page scrolls;
-        // no "you are here" marker, which would need a script.
-        <nav
-          aria-label={onThisPage.text}
-          lang={onThisPage.lang}
-          className="hidden lg:sticky lg:top-[calc(var(--site-header-height)+2rem)] lg:block lg:self-start"
-          data-testid="rules-index"
-        >
-          <h2 className="pb-1 text-xs font-bold tracking-wide text-caption uppercase">
-            <Translated locale={locale} message="matchCentre.onThisPage" />
-          </h2>
-          <SectionLinks sections={sections} />
-        </nav>
-      )}
-      <div className="flex min-w-0 flex-col gap-6">
+      <div className="flex min-w-0 flex-col gap-6 lg:col-start-2 lg:row-start-1">
         <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
           <Translated locale={locale} message="rules.title" />
         </h1>
@@ -271,6 +256,22 @@ export default async function RulesPage({
           </ul>
         </section>
       </div>
+      {sections !== null && (
+        // Beside the text from 1024px, under the header as the page scrolls;
+        // after the text in reading order, so the page's h1 is read first;
+        // no "you are here" marker, which would need a script.
+        <nav
+          aria-label={onThisPage.text}
+          lang={onThisPage.lang}
+          className="hidden lg:col-start-1 lg:row-start-1 lg:sticky lg:top-[calc(var(--site-header-height)+2rem)] lg:block lg:self-start"
+          data-testid="rules-index"
+        >
+          <h2 className="pb-1 text-xs font-bold tracking-wide text-caption uppercase">
+            <Translated locale={locale} message="matchCentre.onThisPage" />
+          </h2>
+          <SectionLinks sections={sections} />
+        </nav>
+      )}
     </main>
   );
 }

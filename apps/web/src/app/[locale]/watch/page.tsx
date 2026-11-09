@@ -127,9 +127,11 @@ export default async function WatchPage({
   const words = scoresWords(locale);
   // The oldest confirmation among the listings shown, so no older listing
   // sits under a newer time (rule 4).
+  // Each listing's own time, not the module's: the module carries the newest
+  // fetch among its rows, which would put an older listing under it.
   const confirmed = [...answers.values()]
-    .map((v) => v.options.last_updated_at)
-    .filter((at): at is string => at !== null)
+    .flatMap((v) => (v.options.data ?? []).map((o) => o.last_updated_at))
+    .filter((at): at is string => typeof at === 'string' && at !== '')
     .sort()[0];
   const stamp = (iso: string) => (
     <time dateTime={iso}>{formatStamp(locale, iso, q.timezone, now)}</time>

@@ -84,7 +84,9 @@ const scores = (): ScoresResponse =>
     ],
   }) as unknown as ScoresResponse;
 
-const option = (id: string, name: string): ViewingOption =>
+const OLDER = '2026-11-08T21:00:00.000Z';
+
+const option = (id: string, name: string, at: string = CONFIRMED): ViewingOption =>
   ({
     id,
     broadcaster: { id: name, name, homepage_url: null, kind: 'tv' },
@@ -93,7 +95,7 @@ const option = (id: string, name: string): ViewingOption =>
     territory: 'GB',
     source: { id: 'desk', name: 'Editorial desk', rights: 'link' },
     from_default: false,
-    last_updated_at: CONFIRMED,
+    last_updated_at: at,
   }) as unknown as ViewingOption;
 
 const none = { coverage: 'not_supplied', last_updated_at: null, data: null } as const;
@@ -109,7 +111,11 @@ function answer(fixture: string, chosen: boolean): MatchViewing {
           coverage: 'available' as const,
           last_updated_at: CONFIRMED,
           // One service listed twice (two kinds of access) is one name.
-          data: [option('o1', 'Sky Sports'), option('o2', 'Sky Sports'), option('o3', 'TNT')],
+          data: [
+            option('o1', 'Sky Sports'),
+            option('o2', 'Sky Sports'),
+            option('o3', 'TNT', OLDER),
+          ],
         }
       : fixture === NOTHING
         ? { coverage: 'available' as const, last_updated_at: '2026-11-09T10:00:00.000Z', data: [] }
@@ -240,7 +246,9 @@ describe('freshness (rule 4)', () => {
     expect(html).toContain('dateTime="2026-11-09T12:00:00.000Z"');
     // The oldest confirmation shown, so no older listing sits under a newer time.
     expect(html).toContain('Every listing here confirmed since');
-    expect(html).toContain('dateTime="2026-11-09T08:15:00.000Z"');
+    // A listing older than its module's time (the module carries the newest
+    // fetch among its rows): the line takes the listing's own time.
+    expect(html).toContain(`dateTime="${OLDER}"`);
   });
 
   it('claims no confirmation before a territory is chosen', async () => {
