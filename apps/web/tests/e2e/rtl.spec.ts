@@ -126,10 +126,9 @@ test.describe('layout mirrors under rtl', () => {
       };
     });
     expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
-    // The numbered sections (T-1789, D-392) are inside the English text, so
-    // they stay left to right too.
-    await expect(page.getByTestId('rules-body')).toHaveAttribute('dir', 'ltr');
-    await expect(page.getByTestId('rules-section-joining')).toBeVisible();
+    // The numbered sections (T-1789, D-392) stay left to right inside the
+    // English text; this suite runs without the API, so the page shows the
+    // unreachable notice here and `rules-page.spec.tsx` checks the sections.
   });
 
   // T-1369: the model accuracy page mirrors, its figures' table included.
