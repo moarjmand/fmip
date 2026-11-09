@@ -239,6 +239,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "shell.footer.dataSources": {
+    "source": "Data sources",
+    "text": "منبع داده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-392)."
+  },
   "shell.moments.label": {
     "source": "Moments that matter",
     "text": "لحظه‌های مهم",
@@ -1211,6 +1217,12 @@
     "text": "نتایج زنده و صفحه‌ای برای هر بازی: روند بازی، ترکیب‌ها، آمار، بازیکنانی که بازی را از دست می‌دهند و فرم هر تیم، همراه با جدول رده‌بندی هر رقابت. وقتی چیزی برای بازی‌ای موجود نیست، صفحه‌ی آن به‌جای نشان دادن کادری خالی همین را می‌گوید، و هر عدد زنده نشان می‌دهد آخرین بار کی تغییر کرده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.data.title": {
+    "source": "Where the data comes from",
+    "text": "داده‌ها از کجا می‌آیند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-392)."
   },
   "about.competitions": {
     "source": "Covered now: {names}.",

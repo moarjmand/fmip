@@ -199,6 +199,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "shell.footer.dataSources": {
+    "source": "Data sources",
+    "text": "",
+    "status": "untranslated"
+  },
   "shell.moments.label": {
     "source": "Moments that matter",
     "text": "",
@@ -1008,6 +1013,11 @@
   },
   "about.football.body": {
     "source": "Live scores and a page for every match: the timeline, line-ups, statistics, who will miss it and each side’s form, with every competition’s table beside them. When something is missing for a match, its page says so rather than showing an empty box, and every live number says when it last changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.data.title": {
+    "source": "Where the data comes from",
     "text": "",
     "status": "untranslated"
   },

@@ -39,6 +39,7 @@
   "shell.footer.nav": "Site links",
   "shell.footer.football": "Football",
   "shell.footer.tagline": "Live football, a statistical model, the founder’s analysis and members’ predictions: side by side, never blended.",
+  "shell.footer.dataSources": "Data sources",
   "shell.moments.label": "Moments that matter",
   "shell.moments.live": {
     "one": "{count} live",
@@ -235,6 +236,7 @@
   "about.meta.description": "Live scores and match centres, a statistical forecast, the founder’s analysis and members’ predictions, kept apart, and a rating earned by predicting.",
   "about.football.title": "Football, match by match",
   "about.football.body": "Live scores and a page for every match: the timeline, line-ups, statistics, who will miss it and each side’s form, with every competition’s table beside them. When something is missing for a match, its page says so rather than showing an empty box, and every live number says when it last changed.",
+  "about.data.title": "Where the data comes from",
   "about.competitions": "Covered now: {names}.",
   "about.competitions.unreachable": "The list of competitions could not be read just now.",
   "about.three.title": "Three kinds of prediction, never mixed",
