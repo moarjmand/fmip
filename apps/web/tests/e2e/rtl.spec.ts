@@ -126,6 +126,10 @@ test.describe('layout mirrors under rtl', () => {
       };
     });
     expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
+    // The numbered sections (T-1789, D-392) are inside the English text, so
+    // they stay left to right too.
+    await expect(page.getByTestId('rules-body')).toHaveAttribute('dir', 'ltr');
+    await expect(page.getByTestId('rules-section-joining')).toBeVisible();
   });
 
   // T-1369: the model accuracy page mirrors, its figures' table included.
