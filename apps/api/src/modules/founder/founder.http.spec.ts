@@ -187,6 +187,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect((asMember.json() as ApiError).message).toContain('founder role');
     });
 
+    it("answers the desk's question with the publish's own gate (T-1791, D-393)", async () => {
+      const desk = `/fixtures/${FIXTURE}/founder-analysis/desk`;
+      expect((await inject('GET', desk)).statusCode).toBe(401);
+      const asMember = await inject('GET', desk, member.cookie);
+      expect(asMember.statusCode).toBe(403);
+      expect((asMember.json() as ApiError).message).toContain('founder role');
+      const asFounder = await inject('GET', desk, founder.cookie);
+      expect(asFounder.statusCode).toBe(204);
+      expect(asFounder.body).toBe('');
+    });
+
     it('publishes, signs it, and records an update as a second version', async () => {
       const first = await inject(
         'POST',

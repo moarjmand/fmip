@@ -5,7 +5,7 @@ import { ActionForm, type Field } from '@/components/action-form';
 import { Translated } from '@/components/translated';
 import { type Locale } from '@/i18n/locales';
 import { interpolate, message, t } from '@/i18n/messages';
-import { fetchFounderAnalysis, fetchMatchCentre, fetchMe } from '@/lib/api';
+import { fetchFounderAnalysis, fetchFounderDesk, fetchMatchCentre } from '@/lib/api';
 import { publishAnalysisAction } from '@/lib/founder-actions';
 import { isLocked } from '@/lib/prediction-form';
 import {
@@ -18,11 +18,12 @@ import {
 } from '@/lib/prediction-text';
 import { formatKickoff } from '@/lib/scores';
 import { sessionCookieHeader } from '@/lib/session';
-import { Notice } from '@/components/ui';
+import { ButtonLink, Notice } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
-// The founder's own desk: never indexed.
+// The founder's own desk, and the short page anyone else gets there: never
+// indexed, never in the sitemap (T-1791, D-393).
 export async function generateMetadata({
   params,
 }: {
@@ -53,9 +54,14 @@ function utcMoment(locale: Locale, iso: string): string {
  * told, which is why the kick-off wall reaches the reader as the API's own
  * sentence rather than a second implementation that could disagree with it.
  *
- * The API decides who may publish. This page renders the form for anyone who
- * asks; a member who submits it gets the API's refusal, which is the honest
- * outcome and one fewer place for the role list to live.
+ * The API decides who may publish, and since T-1791 (D-393) the page asks it
+ * before drawing anything: `fetchFounderDesk` is the publish's own gate (the
+ * `founder` role, not `admin`), so the form is drawn for exactly whom the API
+ * would let publish and the role list still lives in one place. Everyone
+ * else -- a guest, a member, an administrator -- gets `DeskGate`, a short
+ * page with a 200 and `noindex`: what the founder's analysis is and where
+ * the published ones are read. No sign-in prompt, because signing in would
+ * not let them write, and no redirect, so a signed-out founder sees why.
  */
 export default async function FounderAnalysisPage({
   params,
@@ -67,14 +73,15 @@ export default async function FounderAnalysisPage({
   const l = asLocale(locale);
 
   const cookie = await sessionCookieHeader();
-  const me = await fetchMe(cookie);
-  const [match, existing] = await Promise.all([
+  const [match, writer] = await Promise.all([
     fetchMatchCentre(fixtureId),
-    fetchFounderAnalysis(fixtureId),
+    fetchFounderDesk(fixtureId, cookie),
   ]);
   if (!match.ok && match.status === 404) notFound();
 
   const fixture = match.ok ? match.data.fixture : null;
+  if (!writer) return <DeskGate locale={l} fixtureId={fixtureId} fixture={fixture} />;
+  const existing = await fetchFounderAnalysis(fixtureId);
   const analysis = existing.ok ? existing.data.analysis : null;
   const latest = analysis?.versions[0] ?? null;
   // By the clock as well as the status (T-1713): the database locks at
@@ -171,35 +178,7 @@ export default async function FounderAnalysisPage({
         </Link>
       </p>
 
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold" data-testid="founder-title">
-          {fixture === null ? (
-            <Translated locale={l} message="analysis.founder.title" />
-          ) : (
-            matchTitle(l, fixture.home.name, fixture.away.name)
-          )}
-        </h1>
-        {fixture !== null && (
-          <p className="text-sm text-muted">
-            {richMessage(
-              {
-                ...message(l, 'analysis.desk.kickoff'),
-                text: interpolate(t(l, 'analysis.desk.kickoff'), {
-                  competition: fixture.competition.name,
-                }),
-              },
-              {
-                time: <time dateTime={fixture.kickoff_at}>{utcMoment(l, fixture.kickoff_at)}</time>,
-              },
-            )}
-          </p>
-        )}
-        {me === null && (
-          <Notice tone="warning" data-testid="founder-signed-out">
-            <Translated locale={l} message="analysis.desk.signedOut" />
-          </Notice>
-        )}
-      </div>
+      <DeskHeading locale={l} fixture={fixture} />
 
       {kickedOff ? (
         // The database refuses it anyway; saying so here saves the founder
@@ -244,6 +223,83 @@ export default async function FounderAnalysisPage({
           </ol>
         </section>
       )}
+    </main>
+  );
+}
+
+type DeskFixture = {
+  home: { name: string };
+  away: { name: string };
+  competition: { name: string };
+  kickoff_at: string;
+} | null;
+
+/** The match and its kick-off, the same on the desk and on its short page. */
+function DeskHeading({ locale: l, fixture }: { locale: Locale; fixture: DeskFixture }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <h1 className="text-2xl font-semibold" data-testid="founder-title">
+        {fixture === null ? (
+          <Translated locale={l} message="analysis.founder.title" />
+        ) : (
+          matchTitle(l, fixture.home.name, fixture.away.name)
+        )}
+      </h1>
+      {fixture !== null && (
+        <p className="text-sm text-muted">
+          {richMessage(
+            {
+              ...message(l, 'analysis.desk.kickoff'),
+              text: interpolate(t(l, 'analysis.desk.kickoff'), {
+                competition: fixture.competition.name,
+              }),
+            },
+            {
+              time: <time dateTime={fixture.kickoff_at}>{utcMoment(l, fixture.kickoff_at)}</time>,
+            },
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The desk's address to anyone without the founder role (T-1791, D-393;
+ * board P8-6): the match, one paragraph on what the founder's analysis is --
+ * one of the three products, apart from the model and the members (rule 6)
+ * -- and two ways on: back to the match, and to where the published
+ * analyses are read today (the matches page's `#analysis`). No form, no
+ * sign-in prompt.
+ */
+function DeskGate({
+  locale: l,
+  fixtureId,
+  fixture,
+}: {
+  locale: Locale;
+  fixtureId: string;
+  fixture: DeskFixture;
+}) {
+  return (
+    <main className="mx-auto flex max-w-2xl flex-col gap-4 p-4 sm:p-8" data-testid="founder-gate">
+      <DeskHeading locale={l} fixture={fixture} />
+      <div className="flex flex-col gap-2 border-s-4 border-s-founder ps-4">
+        <p className="font-semibold">
+          <Translated locale={l} message="analysis.desk.gate" />
+        </p>
+        <p className="text-sm text-muted">
+          <Translated locale={l} message="analysis.desk.gateWhat" />
+        </p>
+      </div>
+      <p className="flex flex-wrap gap-2">
+        <ButtonLink href={`/${l}/match/${fixtureId}`} size="md" data-testid="founder-gate-match">
+          <Translated locale={l} message="analysis.desk.toMatch" />
+        </ButtonLink>
+        <ButtonLink href={`/${l}/scores#analysis`} size="md" data-testid="founder-gate-analyses">
+          <Translated locale={l} message="analysis.desk.toAnalyses" />
+        </ButtonLink>
+      </p>
     </main>
   );
 }
