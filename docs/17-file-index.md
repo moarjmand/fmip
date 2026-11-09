@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2414), grouped by folder, with one line on
+Every file in the repository (2415), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -223,7 +223,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/predictions/[id]/share/preview`](#appswebsrcapplocalepredictionsidsharepreview) — 1
 - [`apps/web/src/app/[locale]/register`](#appswebsrcapplocaleregister) — 1
 - [`apps/web/src/app/[locale]/reset-password`](#appswebsrcapplocalereset-password) — 1
-- [`apps/web/src/app/[locale]/rules`](#appswebsrcapplocalerules) — 1
+- [`apps/web/src/app/[locale]/rules`](#appswebsrcapplocalerules) — 2
 - [`apps/web/src/app/[locale]/scores`](#appswebsrcapplocalescores) — 5
 - [`apps/web/src/app/[locale]/search`](#appswebsrcapplocalesearch) — 1
 - [`apps/web/src/app/[locale]/settings`](#appswebsrcapplocalesettings) — 1
@@ -2570,6 +2570,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | The platform rules in force (T-931, D-113), for anybody. |
+| `rules-page.spec.tsx` | The rules page in numbered sections (T-1789, D-392): the 1.0.0 text from its migration, under eight headings with anchors and an "On this page" index, English and left to right on every page; a version nobody checked is… |
 
 ## apps/web/src/app/[locale]/scores
 
@@ -3328,7 +3329,7 @@ machine, `docs/18-handover.md`.
 | `person-name.ts` | One name style per match page (T-1395, D-210). |
 | `pick.spec.ts` | Tests for `pick`. |
 | `pick.ts` | The pick control's rules that are not markup (T-1738, D-359): which of its four states it is in, and the address a guest's outcome leads to. |
-| `platform-rules.spec.ts` | Tests for `platform-rules`. |
+| `platform-rules.spec.ts` | The text of 1.0.0 as the migration stores it, so the sections are checked against it. |
 | `platform-rules.ts` | The platform rules on a page (T-931, D-113). |
 | `player-compare.spec.ts` | The compare page's alignment and coverage rules (T-631). |
 | `player-compare.ts` | Two players compared (blueprint 5.3, T-631): the pure half of the compare page. |
