@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2409), grouped by folder, with one line on
+Every file in the repository (2415), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -199,7 +199,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/following`](#appswebsrcapplocalefollowing) — 1
 - [`apps/web/src/app/[locale]/following/saved`](#appswebsrcapplocalefollowingsaved) — 1
 - [`apps/web/src/app/[locale]/forgot-password`](#appswebsrcapplocaleforgot-password) — 1
-- [`apps/web/src/app/[locale]/founder/[fixtureId]`](#appswebsrcapplocalefounderfixtureid) — 1
+- [`apps/web/src/app/[locale]/founder/[fixtureId]`](#appswebsrcapplocalefounderfixtureid) — 2
 - [`apps/web/src/app/[locale]/friends`](#appswebsrcapplocalefriends) — 1
 - [`apps/web/src/app/[locale]/group-invite/[token]`](#appswebsrcapplocalegroup-invitetoken) — 1
 - [`apps/web/src/app/[locale]/groups`](#appswebsrcapplocalegroups) — 1
@@ -223,7 +223,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/predictions/[id]/share/preview`](#appswebsrcapplocalepredictionsidsharepreview) — 1
 - [`apps/web/src/app/[locale]/register`](#appswebsrcapplocaleregister) — 1
 - [`apps/web/src/app/[locale]/reset-password`](#appswebsrcapplocalereset-password) — 1
-- [`apps/web/src/app/[locale]/rules`](#appswebsrcapplocalerules) — 1
+- [`apps/web/src/app/[locale]/rules`](#appswebsrcapplocalerules) — 2
 - [`apps/web/src/app/[locale]/scores`](#appswebsrcapplocalescores) — 5
 - [`apps/web/src/app/[locale]/search`](#appswebsrcapplocalesearch) — 1
 - [`apps/web/src/app/[locale]/settings`](#appswebsrcapplocalesettings) — 1
@@ -233,7 +233,7 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/[locale]/u/[username]`](#appswebsrcapplocaleuusername) — 3
 - [`apps/web/src/app/[locale]/u/[username]/compare`](#appswebsrcapplocaleuusernamecompare) — 1
 - [`apps/web/src/app/[locale]/verify-email`](#appswebsrcapplocaleverify-email) — 1
-- [`apps/web/src/app/[locale]/watch`](#appswebsrcapplocalewatch) — 1
+- [`apps/web/src/app/[locale]/watch`](#appswebsrcapplocalewatch) — 2
 - [`apps/web/src/app/[locale]/welcome`](#appswebsrcapplocalewelcome) — 1
 - [`apps/web/src/app/[locale]/you`](#appswebsrcapplocaleyou) — 1
 - [`apps/web/src/app/api/fixtures/[id]/stream`](#appswebsrcappapifixturesidstream) — 1
@@ -259,11 +259,11 @@ machine, `docs/18-handover.md`.
 - [`apps/web/src/app/console/request-images/[requestId]`](#appswebsrcappconsolerequest-imagesrequestid) — 1
 - [`apps/web/src/app/console/request-images/[requestId]/[imageId]`](#appswebsrcappconsolerequest-imagesrequestidimageid) — 1
 - [`apps/web/src/app/health`](#appswebsrcapphealth) — 2
-- [`apps/web/src/components`](#appswebsrccomponents) — 300
+- [`apps/web/src/components`](#appswebsrccomponents) — 302
 - [`apps/web/src/components/ui`](#appswebsrccomponentsui) — 27
 - [`apps/web/src/i18n`](#appswebsrci18n) — 9
 - [`apps/web/src/i18n/catalogues`](#appswebsrci18ncatalogues) — 9
-- [`apps/web/src/lib`](#appswebsrclib) — 224
+- [`apps/web/src/lib`](#appswebsrclib) — 225
 - [`apps/web/tests/e2e`](#appswebtestse2e) — 25
 - [`apps/web/tests/e2e/budgets`](#appswebtestse2ebudgets) — 1
 - [`apps/web/tests/e2e/journeys`](#appswebtestse2ejourneys) — 26
@@ -2413,6 +2413,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
+| `desk-page.spec.tsx` | The founder's desk at its direct address (T-1791, D-393; board P8-6): the writing form only for a session the API would let publish -- the publish's own gate, asked through `fetchFounderDesk` -- and for a guest or a mem… |
 | `page.tsx` | Writing the founder's analysis (blueprint 6.5, T-131). |
 
 ## apps/web/src/app/[locale]/friends
@@ -2569,6 +2570,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | The platform rules in force (T-931, D-113), for anybody. |
+| `rules-page.spec.tsx` | The rules page in numbered sections (T-1789, D-392): the 1.0.0 text from its migration, under eight headings with anchors and an "On this page" index, English and left to right on every page; a version nobody checked is… |
 
 ## apps/web/src/app/[locale]/scores
 
@@ -2634,7 +2636,8 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `page.tsx` | The Watch page (blueprint 11, T-314): the day's matches, each with where it can be watched in the viewer's territory -- the member's stored one (T-312) or the one a guest picks here, which then travels with every link o… |
+| `page.tsx` | The Watch page (blueprint 11, T-314; rebuilt in T-1792, D-394, board P8-7): the day's matches, each with where it can be watched in the viewer's territory -- the member's stored one (T-312) or the one a guest picks here… |
+| `watch-page.spec.tsx` | The Watch page rebuilt with the matches page's pieces (T-1792, D-394; board P8-7): the day strip, the competition blocks and the rows are the matches page's own; the territory is asked once at the top; each row's end ce… |
 
 ## apps/web/src/app/[locale]/welcome
 
@@ -2877,6 +2880,7 @@ machine, `docs/18-handover.md`.
 | `data-export.spec.ts` | Download my data on the page (T-846, D-158). |
 | `data-quality-admin.spec.tsx` | The data-quality page (T-821): open findings by check and competition, linked, reviewable. |
 | `data-quality-admin.tsx` | Data-quality findings over the stored feed (T-820, T-821): when each check last ran, open findings per competition and check, and each open finding with links to the match or team it names. |
+| `day-strip.tsx` | The day strip (T-1496; shared since T-1792, D-394): yesterday, today and the next days as 44px chips, the day's name over its date on a phone and on one line from 640px, the chosen day filled. |
 | `deleted-member-rtl.spec.tsx` | A deleted member under the right-to-left pseudo-locale (T-908, rule 7). |
 | `demonstration-banner.tsx` | The band that says the football on this site did not happen (T-087). **Why `connection()` is the first line.** `DEMONSTRATION_DATA` reaches the container as a runtime variable; Render does not pass it into `docker build… |
 | `device-time-zone.tsx` | Selects this device's own time zone in a form's zone list (T-1480), once, after load: the register form otherwise opened on UTC, and a reader who did not look registered in it. |
@@ -2953,7 +2957,7 @@ machine, `docs/18-handover.md`.
 | `live-conversation.tsx` | The chat page's socket (T-237). **It renders no message.** When something happens it asks the page to render itself again, and the server does what it already does — resolve the cards, the reactions, the mentions and th… |
 | `live-match.spec.ts` | The match page listens for the public discussion moving (T-254, D-068). |
 | `live-match.tsx` | The match centre that stays current (T-032, T-034): renders the server's snapshot, then subscribes to the web app's `/api/fixtures/:id/stream` and replaces the whole payload on every `snapshot`. |
-| `live-scores.tsx` | A block's heading stays at the top of the screen, under the site header (`match-group-head` in globals.css), while its matches scroll under it (T-605), on the block's own surface so nothing shows through. 44px (T-1757,… |
+| `live-scores.tsx` | When this block's cards last changed, once for the block (rule 4), beside the competition's name when the heading has room (T-1777, D-385). |
 | `locale-hold-form.tsx` | Hold back a ready language, or release one (T-1163, D-155), with a reason. |
 | `logical-classes.spec.ts` | No physical side in a class name (CLAUDE.md rule 7, T-1501). |
 | `match-alert-settings.spec.tsx` | The match-alert controls (T-831, D-098): a section of their own in Settings → Notifications, one switch per kind with the value the API says is in force, worded through the catalogues, and silenced as a whole or per tea… |
@@ -2968,6 +2972,7 @@ machine, `docs/18-handover.md`.
 | `match-follow.tsx` | A match whose follow window is closing or closed: full-time or a result by other means. |
 | `match-freshness-line.spec.tsx` | The phone's short top block (T-1743, D-364; board P2-4): the freshness line and its details -- fresh, stale and in play -- the line for the day and the ground, and that nothing the band said is lost or said as current w… |
 | `match-freshness-line.tsx` | The phone's one freshness line under the score band (T-1743, D-364; board P2-4): "● Data checked 22:07" and, at the line's end, "Details". |
+| `match-group.tsx` | A day's competition block, as the matches page draws it (T-1496, T-1757; shared since T-1792, D-394, so the Watch page draws the same block): one card per competition, its heading sticking under the site header while th… |
 | `match-lineups.spec.tsx` | Player photos on the line-up pitch (T-1616, D-287): the photo in a ring of the side's tone with the shirt number as a badge, the best rated in saffron as a ring and a badge rather than a fill; without a photo the number… |
 | `match-lineups.tsx` | The line-ups on a pitch (T-1384, D-202; T-1497): on a phone the away side in the top half, its goalkeeper at the top, the home side in the bottom half, its goalkeeper at the bottom, each line a row; from 768px one horiz… |
 | `match-panel.spec.ts` | The public match discussion on the page (T-251). |
@@ -3255,6 +3260,7 @@ machine, `docs/18-handover.md`.
 | `forecast.ts` | The page's locale as the catalogue takes it. |
 | `formation.ts` | Where a side's starters go on the match centre's pitch (T-1384, D-202; T-1397, D-212), from the line-up data the API returns and nothing else. |
 | `founder-actions.ts` | Publishing the founder's analysis (T-131). |
+| `founder-desk.spec.ts` | `fetchFounderDesk` (T-1791, D-393): the desk draws its form only on the API's 204, which is the publish's own gate; a guest is not asked, and a refusal or an unreachable API is "no". |
 | `friend-actions.ts` | Friends, requests and blocks (blueprint 8.1, T-202). |
 | `gate.ts` | The gate's copy (T-1736, D-358): one entry per member-only page, keyed by the page's route. |
 | `group-about.spec.ts` | Tests for `group-about`. |
@@ -3323,7 +3329,7 @@ machine, `docs/18-handover.md`.
 | `person-name.ts` | One name style per match page (T-1395, D-210). |
 | `pick.spec.ts` | Tests for `pick`. |
 | `pick.ts` | The pick control's rules that are not markup (T-1738, D-359): which of its four states it is in, and the address a guest's outcome leads to. |
-| `platform-rules.spec.ts` | Tests for `platform-rules`. |
+| `platform-rules.spec.ts` | The text of 1.0.0 as the migration stores it, so the sections are checked against it. |
 | `platform-rules.ts` | The platform rules on a page (T-931, D-113). |
 | `player-compare.spec.ts` | The compare page's alignment and coverage rules (T-631). |
 | `player-compare.ts` | Two players compared (blueprint 5.3, T-631): the pure half of the compare page. |

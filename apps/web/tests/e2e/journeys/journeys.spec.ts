@@ -333,11 +333,20 @@ test.describe('blueprint journeys', () => {
     await expect(guest.getByTestId('viewing')).toHaveAttribute('data-state', 'not_supplied');
     await expect(guest.getByTestId('viewing-not-supplied')).toContainText('Iran');
 
-    // The Watch page: the same chooser, the day's matches, and the pick kept on its links.
+    // The Watch page (T-1792, D-394): the territory asked once at the top, the
+    // same chooser behind it, and the pick kept on the day's links.
     await guest.goto('/en/watch?territory=IR');
     await expect(guest.getByTestId('title')).toContainText('Watch');
+    const bar = guest.getByTestId('watch-territory');
+    await expect(bar).toHaveAttribute('data-state', 'chosen');
+    await expect(bar.getByTestId('watch-territory-name')).toContainText('Iran');
+    await bar.getByTestId('watch-territory-choose').locator('summary').click();
     await expect(guest.getByTestId('viewing-territory-form').getByLabel('Territory')).toHaveValue(
       'IR',
+    );
+    await expect(guest.getByTestId('day-strip').locator('a').first()).toHaveAttribute(
+      'href',
+      /territory=IR/,
     );
     await guest.close();
 

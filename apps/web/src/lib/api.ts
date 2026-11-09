@@ -1158,6 +1158,25 @@ export function fetchFounderAnalysis(
   );
 }
 
+/**
+ * `GET /fixtures/:id/founder-analysis/desk` (T-1791, D-393): whether this
+ * session may write the founder's analysis -- the publish's own gate, so the
+ * desk draws its form for exactly whom the API would let publish. The
+ * session carries no roles. A guest is not asked; any answer but 204 (a
+ * refusal, an unreachable API) is "no", so the form is never drawn on doubt.
+ */
+export async function fetchFounderDesk(
+  fixtureId: string,
+  cookie: string | undefined,
+): Promise<boolean> {
+  if (cookie === undefined) return false;
+  const result = await apiRequest<null>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/founder-analysis/desk`,
+    { cookie },
+  );
+  return result.ok;
+}
+
 /** `GET /founder-analyses` (T-132): the feed for the homepage, team and competition pages. */
 export function fetchFounderFeed(
   query: { limit?: number; team?: string; competition?: string } = {},
