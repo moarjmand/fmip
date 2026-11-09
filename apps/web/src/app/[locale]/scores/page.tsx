@@ -8,6 +8,7 @@ import {
   type ScoresResponse,
 } from '@fmip/contracts';
 import Link from '@/components/ui/link';
+import { DayStrip } from '@/components/day-strip';
 import { LiveScores } from '@/components/live-scores';
 import {
   fetchConsensusList,
@@ -394,29 +395,7 @@ export default async function ScoresPage({
         )}
 
         <div className="flex min-w-0 flex-col gap-2 lg:col-start-1 lg:row-start-1 xl:col-start-2">
-          {/* One row that scrolls inside itself on a phone, never the page (T-605). */}
-          <nav
-            aria-label={dayNav.text}
-            lang={dayNav.lang}
-            className="flex max-w-full gap-1 self-start overflow-x-auto rounded-lg border border-default bg-surface p-1 text-sm"
-            data-testid="day-strip"
-          >
-            {strip.map((d) => (
-              <Link
-                key={d.date}
-                href={pageHref(locale, q, { date: d.date })}
-                aria-current={d.isSelected ? 'date' : undefined}
-                className={`flex min-h-11 min-w-14 shrink-0 flex-col items-center justify-center rounded-md px-3 whitespace-nowrap sm:flex-row sm:gap-1 ${
-                  d.isSelected
-                    ? 'bg-brand font-extrabold text-on-brand'
-                    : 'font-semibold text-muted hover:bg-surface-raised'
-                }`}
-              >
-                <span className="max-sm:text-xs">{d.weekday}</span>
-                <span className="max-sm:text-base max-sm:font-bold">{d.day}</span>
-              </Link>
-            ))}
-          </nav>
+          <DayStrip days={strip} href={(date) => pageHref(locale, q, { date })} label={dayNav} />
 
           {/* One filter row (T-1757, D-374): the views, then Date and Filters,
               each a native disclosure whose panel opens under the whole row

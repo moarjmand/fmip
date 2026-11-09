@@ -10913,11 +10913,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "analysis.desk.signedOut": {
-    "source": "You are not signed in, so publishing will be refused.",
-    "text": "",
-    "status": "untranslated"
-  },
   "analysis.desk.locked": {
     "source": "This match has started. An analysis cannot be published or updated after kick-off — the record of what was said, and when, is the point of it.",
     "text": "",
@@ -10990,6 +10985,26 @@
   },
   "analysis.desk.versionsNote": {
     "source": "An update is a new version. Earlier ones stay readable, because the record of what was said when is what makes this worth anything.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.gate": {
+    "source": "This desk is for the founder. Analyses are written here before kick-off and read on the match’s page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.gateWhat": {
+    "source": "The founder’s analysis is one person’s call on selected matches, signed and published before kick-off. It is one of three separate things on the site: the statistical model’s forecast and the members’ predictions are the other two, and they are never mixed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.toMatch": {
+    "source": "Back to the match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.toAnalyses": {
+    "source": "Read the founder’s analyses",
     "text": "",
     "status": "untranslated"
   },
@@ -13647,6 +13662,46 @@
   },
   "watch.highlightsNone": {
     "source": "No official highlight listed for {territory}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.from": {
+    "source": "Watching from",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.need": {
+    "source": "Pick a territory to see which official service shows each match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.needChosen": {
+    "source": "Official services in your territory, from the editors’ list.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.row.official": {
+    "source": "Official: {services}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.row.notCovered": {
+    "source": "Not covered in your territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.row.nothingListed": {
+    "source": "No official service listed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.row.notLoaded": {
+    "source": "Viewing not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.confirmedSince": {
+    "source": "Every listing here confirmed since {time}.",
     "text": "",
     "status": "untranslated"
   },

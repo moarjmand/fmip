@@ -108,6 +108,8 @@ export function ScoreCard({
   picked = false,
   selected = false,
   pickHref,
+  href,
+  aside,
   words,
 }: {
   card: ScoreCardData;
@@ -129,6 +131,13 @@ export function ScoreCard({
   selected?: boolean;
   /** Where Pick leads: this page with this match's preview open. Absent: no Pick. */
   pickHref?: string;
+  /** The match link, when it must carry more than the match (Watch: a guest's territory, T-1792). */
+  href?: string;
+  /**
+   * The end cell in place of the model's (T-1792, D-394): a list that is not
+   * a forecast surface (Watch) puts its own answer there. Absent: the model's.
+   */
+  aside?: React.ReactNode;
   /** The reader's words, resolved on the server (T-1303). */
   words: ScoresWords;
 }) {
@@ -230,7 +239,7 @@ export function ScoreCard({
       aria-current={selected ? 'true' : undefined}
     >
       <Link
-        href={`/${locale}/match/${card.id}`}
+        href={href ?? `/${locale}/match/${card.id}`}
         className="col-span-2 col-start-1 row-span-2 row-start-1 grid min-h-11 grid-cols-subgrid grid-rows-subgrid items-center hover:[&_bdi]:underline"
         data-testid="match-link"
       >
@@ -252,15 +261,17 @@ export function ScoreCard({
         </span>
       </Link>
 
-      <RowForecast
-        forecast={forecast}
-        home={card.home.name}
-        away={card.away.name}
-        outcome={ninetyOutcome(card)}
-        locale={locale}
-        words={words}
-        className="col-start-3 row-span-2 row-start-1"
-      />
+      {aside ?? (
+        <RowForecast
+          forecast={forecast}
+          home={card.home.name}
+          away={card.away.name}
+          outcome={ninetyOutcome(card)}
+          locale={locale}
+          words={words}
+          className="col-start-3 row-span-2 row-start-1"
+        />
+      )}
 
       {pickHref !== undefined && (
         <Link

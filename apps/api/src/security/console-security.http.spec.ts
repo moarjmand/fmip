@@ -362,6 +362,8 @@ const GATED_ELSEWHERE: Record<string, { roles: readonly Role[] }> = {
   'POST /settlements/run': { roles: ADMIN },
   'POST /ratings/recompute': { roles: ADMIN },
   'POST /fixtures/:fixtureId/founder-analysis': { roles: ['founder'] },
+  // The desk's question (T-1791, D-393): the publish's gate, asked before the form is drawn.
+  'GET /fixtures/:fixtureId/founder-analysis/desk': { roles: ['founder'] },
 };
 
 /** The only writes a guest may make: getting into, and out of, an account (a member's or a console person's). */

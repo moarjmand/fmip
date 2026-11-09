@@ -51,6 +51,19 @@ export class FounderAnalysisController {
     return response;
   }
 
+  /**
+   * Whether this session may write here (T-1791, D-393): 204 for the
+   * `founder` role, else the publish's own refusal (401, 403). The web's
+   * desk asks this before it draws the form, so the page and the publish
+   * share one predicate and the role list lives only here. Nothing is read
+   * or written; the fixture is the publish's to check.
+   */
+  @Get('desk')
+  @HttpCode(204)
+  async desk(@Req() request: FastifyRequest): Promise<void> {
+    await this.requireFounder(request);
+  }
+
   @Post()
   @HttpCode(201)
   async publish(
