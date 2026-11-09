@@ -43,7 +43,7 @@ export type ComputeOutcome =
 /**
  * The model's name for a match between clubs of different leagues (D-085):
  * not a competition's division but the scale a version with `cross_league`
- * puts them on (the published 0.6.0 since D-191).
+ * puts them on (the published 0.6.0 since D-191, 0.7.0 since D-392).
  */
 export const CROSS_LEAGUE_DIVISION = 'XL';
 

@@ -29,9 +29,15 @@ from fmip_model.model.version import (
     CANDIDATES_DIR,
     LEGACY_DIVISIONS,
     PUBLISHED,
+    PUBLISHED_DIR,
+    RETIRED_DIR,
     CrossLeague,
     load_candidate,
 )
+
+#: The version 0.7.0 replaced on the site (D-392), kept in retired/ (rule 5).
+PREVIOUS = load_candidate(RETIRED_DIR / "dixon-coles-elo-0.6.0.json")
+assert PREVIOUS is not None
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster, TrainingSource
 from fmip_model.training import sources
@@ -186,24 +192,25 @@ def test_a_name_whose_results_rarely_agree_is_not_proposed() -> None:
 
 
 def test_a_version_without_a_list_forecasts_what_versions_did_before_t1442() -> None:
-    assert BASELINE.divisions is None and PUBLISHED.divisions is None
-    assert all(PUBLISHED.forecasts(d) for d in LEGACY_DIVISIONS)
-    assert not PUBLISHED.forecasts("AT1") and not PUBLISHED.forecasts("G1")
+    assert BASELINE.divisions is None and PREVIOUS.divisions is None
+    assert all(PREVIOUS.forecasts(d) for d in LEGACY_DIVISIONS)
+    assert not PREVIOUS.forecasts("AT1") and not PREVIOUS.forecasts("G1")
 
 
 def test_0_7_0_is_0_6_0_plus_eleven_divisions_and_nothing_else() -> None:
-    candidate = load_candidate(CANDIDATES_DIR / "dixon-coles-elo-0.7.0.json")
+    candidate = load_candidate(PUBLISHED_DIR / "dixon-coles-elo-0.7.0.json")
     assert candidate is not None and candidate.id == "dixon-coles-elo@0.7.0"
-    assert new_divisions(candidate) == sorted(
+    assert candidate == PUBLISHED  # D-392: promoted
+    assert new_divisions(candidate, PREVIOUS) == sorted(
         ["G1", "CH1", "DK1", "US1", "BR1", "AR1", "CZ1", "HR1", "RS1", "SA1", "AE1"]
     )
     assert candidate.divisions is not None and LEGACY_DIVISIONS <= candidate.divisions
     # Every constant 0.6.0 has, unchanged; the others are the new divisions' own.
-    old = {d: c for d, c in candidate.per_division.items() if d in PUBLISHED.per_division}
-    assert old == dict(PUBLISHED.per_division)
-    assert not any(PUBLISHED.forecasts(d) for d in set(candidate.per_division) - set(old))
-    same = replace(candidate, version=PUBLISHED.version, divisions=None, per_division=old)
-    assert same.as_dict() == PUBLISHED.as_dict()
+    old = {d: c for d, c in candidate.per_division.items() if d in PREVIOUS.per_division}
+    assert old == dict(PREVIOUS.per_division)
+    assert not any(PREVIOUS.forecasts(d) for d in set(candidate.per_division) - set(old))
+    same = replace(candidate, version=PREVIOUS.version, divisions=None, per_division=old)
+    assert same.as_dict() == PREVIOUS.as_dict()
 
 
 REPORTS_DIR = Path(__file__).parent.parent / "reports"
