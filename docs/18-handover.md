@@ -2,7 +2,7 @@
 
 **Purpose.** Everything needed to carry on with FMIP (brand: Stadiomind) from a
 different Claude account, a different computer, or both, without losing work
-or re-deciding anything. Written 2026-11-01 (T-1701); refreshed 2026-11-04 (T-1734).
+or re-deciding anything. Written 2026-11-01 (T-1701); refreshed 2026-11-04 (T-1734) and 2026-11-11 (after the nine-package UI review).
 
 **How to use it.** Read §1 to see where each piece lives. Then follow §2
 (another account on the same computer) or §3 (another computer). Then give
@@ -26,7 +26,7 @@ how to bring that across.
 | **Production server** (Hetzner VPS, alias `fmip-prod`) | The live site `https://traveltohormuz.ir`, the agents console (D-340; served at `traveltohormuz.ir/agents` until `agents.traveltohormuz.ir` has DNS, D-341), checkout `/opt/fmip`, `.env` with every secret, Postgres, Redis, backups to Backblaze B2 | An SSH key on the maintainer's computer | Yes, given the SSH key (§3.4) |
 | **Maintainer's computer, outside the repo**: `E:\FMIP\` | `ops\` (agent team folders: findings, reports, brief, desk, console state, invitations, `licences.md`, `raid.md`, `tech-debt.md`), `data-audit\runs`, `dashboard\` (dashboard snapshot pipeline), `lab-local\` (model lab copy), `server-backups\`, `archive\` | The disk (the external SSD `E:`) | Same computer: yes. New computer: copy `E:\FMIP` |
 | **Claude Code's local folder** `%USERPROFILE%\.claude\` | `projects\<project key>\memory\` (the agent's long-term memory, `MEMORY.md` index), `scheduled-tasks\<task>\SKILL.md` (recurring and one-time tasks), `settings.json`, session transcripts | The computer and the Windows user, **not** the Claude account | Same computer: yes. New computer: copy (§3.3) |
-| **claude.ai account** | Artifacts (decision desk, old project board, dashboard, design canvases, reports), the Persian setup guide in Claude Docs, the connectors (Claude Docs, Google Drive), desktop-app session history | The Claude account | **No.** Share each one as Editor to the new account, or rebuild (§2.2) |
+| **claude.ai account** | Artifacts (decision desk, old project board, dashboard, design canvases incl. the nine UI-review canvases, reports), the Persian setup guide in Claude Docs, the connectors (Claude Docs, Google Drive), desktop-app session history | The Claude account | **No.** Share each one as Editor to the new account, or rebuild (§2.2) |
 | **Third-party accounts** | API-Football (Ultra), Highlightly (Pro), GNews, Backblaze B2, Cloudflare (DNS and proxy), Hetzner (server), the domain registrar, Mistral (free), GitHub | The maintainer's e-mail | Nothing to move. Their keys are already in the server's `.env`. The register is `E:\FMIP\ops\licences.md` |
 
 **Never in the repo** (it is public): server addresses, keys, passwords,
@@ -186,37 +186,91 @@ Refresh it with the same steps whenever a move is planned. It is a snapshot.
   - The computer pushes a snapshot to it and pulls its commands back through `packages/console-publisher` and the hourly task `stadiomind-console-sync`.
   - Teammate requests: `node packages/console-publisher/src/publish.ts requests-pull` (text and images to `E:\FMIP\ops\console\`), `request-result`, `request-ask`; Claude acts on a request only when the maintainer says so in chat (skill `teammate-requests`).
   - Chat: `chat-pull` / `chat-reply`, run when the maintainer asks (or "Run now" on `stadiomind-console-chat`).
+  - «تقویم و یادآورها» (D-391, T-1788, since 2026-11-08): the calendar and its reminders moved from the old board artifact; a reminder is a Web Push to each browser a console person switched on. «خریدها و اشتراک‌ها» sits beside it (the board's subscriptions, imported). The old board artifact's calendar is read-only.
 
 ### 6.4 Scheduled tasks (Claude desktop app, on the maintainer's computer)
+
+Checked and refreshed on 2026-11-08 (three prompts updated). Enabled:
 
 | Task | When | What |
 |---|---|---|
 | `stadiomind-daily-team` | daily 09:00 Tehran | Agent team's read-only checks and the Persian morning brief |
 | `stadiomind-console-sync` | hourly | Console commands in, snapshot out |
-| `stadiomind-console-chat` | on demand (paused) | Answers the console chats when the maintainer runs it |
 | `stadiomind-dashboard-refresh` | every 3 h | Dashboard snapshot from the server and the lab |
 | `fmip-server-followup` | every 6 h | Server health, backlog, adoption, weekly training reload |
-| `fmip-promotion-watch` | Mondays | The shadow model candidate against the published version |
+| `fmip-promotion-watch` | Mondays | The shadow model candidate (0.7.0) against the published version (0.6.0) |
 | `fmip-iran-watch-channels` | daily 10:30 Tehran | Iran league matches' TV channels |
-| `fmip-hsts-raise-2026-11-08` | once, 2026-11-08 | Raise HSTS if the week was clean |
 | `fmip-xg-forward-test-2027-01` | once, 2027-01-05 | D-334's forward test of xG form |
 
+`stadiomind-console-chat` is on demand (disabled; "Run now", or ask in chat).
 The other tasks in the folder are one-time tasks that already ran and are
-disabled. They are kept as a record.
+disabled (the HSTS raise of 2026-11-08 ran and opened PR #868). They are kept
+as a record.
+
+### 6.5 The 2026-11-05 UI review (nine packages)
+
+The review's findings are in `E:\FMIP\ops\reports\ui-review-2026-11-05\`
+(`A-…`, `B-…`, `C-…`, `D-…` per page group; `P1-mockups-fa.md` … `P9-mockups-fa.md`
+the Persian spec of each package with its canvas URL; `p*-boards\` the canvases'
+board sources). Each package went: designer mockups on real data → the
+maintainer's approval → builders in worktrees (local commits) → one integration
+branch → code-reviewer in a fresh context → real-data screenshots → the
+maintainer's approval → merge when CI is green (visual baselines replaced from
+the CI artifact `visual-baseline` when the change moves them) → deploy → a live
+check as a guest → a docs PR ticking the task rows.
+
+| Package | Decisions | Tasks | State |
+|---|---|---|---|
+| 1 Guest to first prediction | D-361.. | T-1736.. | live |
+| 2 Match page, shorter and navigable | D-363..D-367 | T-1742..T-1746 | live |
+| 3 Model language, accuracy page | D-368..D-370 | T-1748..T-1751 | live (T-1751 step two open) |
+| 4 Phone density, sticky header | D-372..D-376 | T-1755..T-1759 | live |
+| 5 Competition and team | D-377..D-381 | T-1760..T-1764 | live |
+| 6 Empty cards, repeated labels | D-383..D-387 | T-1773..T-1781 | live |
+| 7 Rating and community | D-388..D-390 | T-1783..T-1787 | live (D4, the guest group directory, deferred: T-1785) |
+| 8 Trust: rules, About, footer, desk, Watch | D-392..D-394 | T-1789..T-1794 | the parts without the maintainer's text live; T-1793 and T-1794 wait for him |
+| 9 Single fixes (23 findings) | from D-395 | from T-1795 | mockups ready, waiting for his approval |
+
+Also live in this period: live match statistics every three minutes (T-1782,
+D-382) and the console calendar (T-1788, D-391).
 
 ---
 
-## 7. Open at the time of writing (2026-11-04)
+## 7. Open at the time of writing (2026-11-11)
 
-Status lives in the task files and the memory. This is only a pointer for the
-first hour. Server, `main` and GitHub were all at `7028ba2a` with no open pull
-request; `check-setup.sh` passed (backups included).
+Status lives in the task files and the memory (`next-session-start.md`, newest
+entry on top). This is only a pointer for the first hour. The server ran
+`d2915a04` (package 8) with only docs merged after it; `check-setup.sh`
+passed; disk 50%.
 
-- **The maintainer's own steps (purchases and keys, never the agent's):**
-  - the 14-day Sportmonks Starter trial, then `SPORTMONKS_API_TOKEN=` in the server's `.env` (forwarded since T-1732); then the agent builds the adapter (a decision entry, rule 2) and measures line-up lead time, TV stations and cup line-ups over the 14 days;
-  - a YouTube Data API v3 key from a Google account other than the locked one, then `YOUTUBE_API_KEY=`; then the agent builds D-261 phase A and shows the privacy-text change for approval.
-- **Cloudflare record** for `agents.` (CNAME `agents` → `traveltohormuz.ir`, proxied) waits for the maintainer's Google recovery (about 2026-12-01); then set `CONSOLE_PATH=` empty and roll out `web`.
-- **Match page budget** after T-1730: 180.3 of 183 kB; scores 167.9 of 170. Ideas for more room are in `08-load-test.md` ("The slimming of 2026-11-03").
-- **Activity charts** read their old days from `activity_daily` (T-1727), which fills as the daily purge keeps each day; days before about 2026-09-20 were lost to the first purge.
-- **Backups outside the repo.** `backup/` and `emails/` in the checkout are kept out of git by `.git/info/exclude`: a repository bundle, memory, scheduled tasks, claude.ai pages and their data, and recovery letters to every provider.
-- **Dated checks.** The ones listed in §6.4 (HSTS 2026-11-08, xG forward test 2027-01-05).
+- **Package 9 (single fixes)** waits for the maintainer's approval of its
+  canvas (https://claude.ai/artifact/3qyoWehhMr5y2aBXLVc84r; spec
+  `E:\FMIP\ops\reports\ui-review-2026-11-05\P9-mockups-fa.md`). Bug fixes F1-F10
+  need no decision; decisions D1-D13, of which D8 (the news headline face)
+  reverses D-284/D-291 and D12's staleness figure is his. Then build it as
+  packages 1-8 were built.
+- **Package 8's remainder waits for the maintainer's texts:** T-1793 (the
+  rules' "In short" and Persian summary, the contact address, the Privacy page
+  from the business adviser's 2026-11-02 draft after legal review, About's "who"
+  section) and T-1794 (the public founder's page: his floor, the meaning of
+  "Right" after extra time and penalties, a new API list).
+- **Open pull requests:** #868 (HSTS to six months, T-1690; merge when the
+  maintainer agrees) and #874 (calendar docs, from its own session).
+- **Budgets:** match centre 182.3 of 183 kB (0.7 kB left), scores 166.9 of 170,
+  home 156.4 of 158, competition 157.2 of 158.
+- **A flake to watch:** the journeys test `competitions-menu.spec.ts:104` (Esc
+  hands focus back) failed once on a docs-only PR and passed on rerun.
+- **The maintainer's own steps (purchases, keys, sign-ins; never the agent's):**
+  the Sportmonks Starter trial and token; a YouTube Data API key from a Google
+  account other than the locked one; the Cloudflare record for `agents.` after
+  the Google recovery (about 2026-12-01). Translator reviews of the Persian
+  strings are his; never remind him.
+- **Local leftovers (harmless):** test databases `fmip_t1760`, `fmip_t1764`,
+  `fmip_p5review` in the local compose Postgres (the guard blocks DROP
+  DATABASE); about 25 agent worktrees under `.claude\worktrees\` and the old
+  `E:\FMIP\fmip-*` checkouts (removable with the maintainer's yes).
+- **Backups outside the repo.** `backup/` and `emails/` in the checkout are
+  kept out of git by `.git/info/exclude`. A full copy of `E:\FMIP` and of the
+  Claude folders was made on 2026-11-11 in `E:\Claude Backup\` (its
+  `README.txt` says what is where).
+- **Dated checks:** the xG forward test on 2027-01-05.
