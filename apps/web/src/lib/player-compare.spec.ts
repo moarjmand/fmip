@@ -9,7 +9,9 @@ import {
   readCompareWith,
   readScope,
   resolveScope,
+  rowBars,
   rowNote,
+  scopesBySeason,
   scopesOf,
   sideTotals,
 } from './player-compare';
@@ -252,5 +254,57 @@ describe('links and queries', () => {
   it('searches people only, and not at all below the minimum length', () => {
     expect(pickerQuery('Ronaldo')).toBe('q=Ronaldo&limit=10&types=person');
     expect(pickerQuery('R')).toBeNull();
+  });
+});
+
+describe('the folded filter and the bars (T-1804, D-402)', () => {
+  it('groups the scopes under their season, newest first, keeping the order', () => {
+    const a = record([row(S25, LEAGUE), row(S24, LEAGUE)]);
+    const b = record([row(S25, CUP), row(S25, LEAGUE)]);
+    const grouped = scopesBySeason(scopesOf(a, b));
+    expect(grouped.map((g) => g.season.label)).toEqual(['2025/26', '2024/25']);
+    expect(grouped[0]?.scopes.map((s) => [s.competition.name, s.shared])).toEqual([
+      ['Cup', false],
+      ['League', true],
+    ]);
+    expect(grouped[1]?.scopes).toHaveLength(1);
+    expect(scopesBySeason([])).toEqual([]);
+  });
+
+  const a = record([row(S25, LEAGUE, { goals: 9, assists: 0, yellow_cards: 3 })]);
+  const b = record([row(S25, LEAGUE, { goals: 3, assists: 0, yellow_cards: 0 })]);
+  const rows = compareRows(a, b, resolveScope(null, scopesOf(a, b)));
+  const of = (key: string) => rows.find((r) => r.key === key)!;
+
+  it('draws each side as a share of the larger figure and marks the larger one', () => {
+    expect(rowBars(of('goals'))).toEqual({ a: 1, b: 1 / 3, ahead: 'a' });
+  });
+
+  it('marks no side on a tie, and draws no bar for nothing', () => {
+    expect(rowBars(of('assists'))).toEqual({ a: 0, b: 0, ahead: null });
+    expect(rowBars(of('appearances'))).toEqual({ a: 1, b: 1, ahead: null });
+  });
+
+  it('marks nobody on the cards, where more is not better', () => {
+    expect(rowBars(of('yellow_cards'))).toBeNull();
+    expect(rowBars(of('red_cards'))).toBeNull();
+  });
+
+  it('compares nothing a side lacks, nor a partial "at least" total', () => {
+    const lacking = compareRows(a, record(null), null).find((r) => r.key === 'goals')!;
+    expect(rowBars(lacking)).toBeNull();
+    const partial = record([
+      row(S25, LEAGUE, {
+        minutes: {
+          coverage: 'limited',
+          total: null,
+          matches: 4,
+          matches_with_minutes: 3,
+          supplied_minutes: 200,
+        },
+      }),
+    ]);
+    const minutes = compareRows(partial, a, null).find((r) => r.key === 'minutes')!;
+    expect(rowBars(minutes)).toBeNull();
   });
 });
