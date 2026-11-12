@@ -1,6 +1,6 @@
 import type { MatchViewing, ScoreCard, ScoresResponse, ViewingOption } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * The Watch page rebuilt with the matches page's pieces (T-1792, D-394;
@@ -150,8 +150,16 @@ async function render(
 
 const count = (html: string, needle: string) => html.split(needle).length - 1;
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 beforeEach(() => {
   vi.clearAllMocks();
+  // The day strip is built around today; pin the clock to the fixtures' day
+  // (T-1808). Only Date is faked, so promises and timers run as usual.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-11-09T12:00:00.000Z'));
   api.fetchScores.mockResolvedValue(ok(scores()));
   api.fetchTerritories.mockResolvedValue([GB, { code: 'IR', name: 'Iran' }]);
   api.fetchViewingTerritory.mockResolvedValue(null);
