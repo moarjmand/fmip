@@ -19,7 +19,7 @@ import { cx } from '@/components/ui/cx';
 import { formatNumber } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
 import { listText, say, stageName, ZONE_KEY, ZONE_MARK, zoneBand } from '@/lib/competition';
-import { NAME_WRAP } from '@/lib/word-fit';
+import { NAME_WRAP, longestWord } from '@/lib/word-fit';
 
 /**
  * The table's figure columns (T-1203). The abbreviations are the catalogue's
@@ -349,10 +349,12 @@ export function StandingsTable({
                         {/* Condensed on a phone, so "Bournemouth" fits the 90px whole (it broke as
                             "Bournemou / th" on the real-data screenshots). A name wraps between
                             its words and never inside one (T-1796, D-395); a word longer than the
-                            column ("Mönchengladbach", about 89px at 13px and 75%) is broken only
-                            as a last resort, never hyphenated, rather than spill under the
-                            figures. */}
-                        <bdi className={`min-w-0 ${NAME_WRAP}`}>{row.team.name}</bdi>
+                            column steps to 12px and 62.5% ("Mönchengladbach": 105px at 13px and
+                            75%, measured, in the 92px column), so it is neither broken nor spilt
+                            under the figures. */}
+                        <bdi className={cx('min-w-0', NAME_WRAP, tableNameFit(row.team.name))}>
+                          {row.team.name}
+                        </bdi>
                       </Link>
                     </td>
                     {columns.map((c) => (
@@ -779,4 +781,13 @@ export function ConferenceTables({
  */
 export function showsLeagueTable(page: Pick<CompetitionPage, 'table' | 'group_tables'>): boolean {
   return page.group_tables === null || (page.table.data ?? []).length > 0;
+}
+
+/**
+ * A phone table's team name (T-1796, D-395): the fixed column is 92px and a
+ * bold 13px letter at 75% about 7px, so a word of thirteen letters or more
+ * steps to 12px and 62.5% ("Mönchengladbach", 105px as it was, about 80px).
+ */
+export function tableNameFit(name: string): string {
+  return longestWord(name) >= 13 ? 'max-sm:text-xs max-sm:font-stretch-extra-condensed' : '';
 }

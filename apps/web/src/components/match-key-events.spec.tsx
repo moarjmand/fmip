@@ -3,7 +3,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { matchWords } from '@/lib/words-server';
 import { MatchCentreView } from './match-centre-view';
-import { KeyEvents, shootoutHero } from './match-key-events';
+import {
+  KeyEvents,
+  extraTimePlayed,
+  kickName,
+  kickNameFit,
+  shootoutHero,
+} from './match-key-events';
 import { ScoreBar, bandState } from './match-score-bar';
 
 /**
@@ -252,11 +258,38 @@ describe('a finished match’s key events, from the server (T-1798, T-1799; D-39
     expect(html).toContain('Substitutions (3)');
   });
 
-  it('wraps a taker’s surname between words only, never inside one (D-395)', () => {
-    const card = keyEvents(page(cup()));
-    const circles = card.slice(card.indexOf('data-testid="shootout"'));
-    expect(circles).toContain('break-words hyphens-manual');
-    expect(circles).not.toContain('overflow-wrap:anywhere');
+  it('writes each taker’s surname on one line, never broken, in English and Persian (D-395)', () => {
+    // The stored names are mostly full (D-213): the Persian page draws them whole elsewhere.
+    const full = kicks.map((k) =>
+      k.player?.name === 'A. Mac Allister'
+        ? { ...k, player: { id: 'p-mac', name: 'Alexis Mac Allister' } }
+        : k.player?.name === 'R. Gravenberch'
+          ? { ...k, player: { id: 'p-grav', name: 'Ryan Gravenberch' } }
+          : k,
+    );
+    for (const locale of ['en', 'fa']) {
+      const card = keyEvents(page(cup(scores.penalties, [...play, ...full]), locale));
+      const circles = card.slice(card.indexOf('data-testid="shootout"'));
+      const names = [...circles.matchAll(/<bdi aria-hidden="true" class="([^"]*)"[^>]*>([^<]*)</g)];
+      expect(names).toHaveLength(16);
+      for (const [, cls] of names) expect(cls).toContain('whitespace-nowrap');
+      const surname = (text: string) => names.find(([, , name]) => name === text)?.[1];
+      // The surname alone, the same short form on both pages, narrowed to fit.
+      expect(surname('Mac Allister')).toContain('font-stretch-extra-condensed');
+      expect(surname('Gravenberch')).toContain('text-[9px]');
+      expect(surname('Isak')).toBe('whitespace-nowrap');
+      // The whole name is kept for a screen reader.
+      expect(circles).toMatch(/class="sr-only">[^]*?, <bdi>Alexis Mac Allister<\/bdi>/);
+      // Each kick's column is at least 56px and the row wraps onto a second line.
+      expect(circles).toContain('min-w-14');
+      expect(circles).toContain('flex flex-wrap');
+      expect(circles).not.toMatch(/overflow-wrap:anywhere|line-clamp/);
+    }
+    expect(kickName('Alexis Mac Allister')).toBe('Mac Allister');
+    expect(kickName('Pedro Neto')).toBe('Pedro Neto');
+    expect(kickNameFit('Henderson')).toBe('');
+    expect(kickNameFit('Gravenberch')).toBe('text-[9px]');
+    expect(kickNameFit('Mac Allister')).toBe('text-[9px] font-stretch-extra-condensed');
   });
 
   it('draws the shoot-out as two rows of circles, scored and missed said in words', () => {
@@ -272,8 +305,10 @@ describe('a finished match’s key events, from the server (T-1798, T-1799; D-39
     expect(row('Chelsea').match(/data-kick="scored"/g)).toHaveLength(5);
     expect(row('Chelsea').match(/data-kick="missed"/g)).toHaveLength(3);
     // The order recorded, each kick's word for a screen reader, the taker's surname.
-    expect(words(row('Liverpool'))).toMatch(/^>Liverpool6✓ScoredMac Allister✓ScoredIsak✓/);
-    expect(words(row('Liverpool'))).toContain('✕MissedTsimikas');
+    expect(words(row('Liverpool'))).toMatch(
+      /^>Liverpool6✓Scored, A\. Mac AllisterMac Allister✓Scored, A\. IsakIsak✓/,
+    );
+    expect(words(row('Liverpool'))).toContain('✕Missed, K. TsimikasTsimikas');
     expect(card).toMatch(/<span aria-hidden="true" class="[^"]*border-dashed/);
     expect(words(card)).toContain('Penalty shoot-out6–5');
     expect(words(card)).toContain('Dashed circle with a cross: missed.');
@@ -345,6 +380,62 @@ describe('a finished match’s key events, from the server (T-1798, T-1799; D-39
     expect(axis).toMatch(/class="invisible">62′</);
     expect(axis).not.toMatch(/class="invisible">59′</);
     expect(html.slice(html.indexOf('<ol'))).toContain('62′');
+  });
+
+  it('runs to 90 after a shoot-out with no extra time, and to 120 only when it was played', () => {
+    const scale = (c: MatchCentre) => {
+      const html = keyEvents(page(c));
+      const axis = html.slice(html.indexOf('role="img"'), html.indexOf('<ol'));
+      return [...axis.matchAll(/inset-inline-start:[\d.]+%">(\d+)</g)].map(([, t]) => t);
+    };
+    // The League Cup goes straight to penalties; the feed still sends an
+    // extra-time score of 0-0 (Liverpool v Chelsea, 28 Oct 2026).
+    const none = { ...scores, extra_time: { home: 0, away: 0 } };
+    expect(scale(centre({ scores: none }, [...play, ...kicks]))).toEqual(['0', '45', '90']);
+    expect(scale(centre({ scores: { ...scores, extra_time: null } }, play))).toEqual([
+      '0',
+      '45',
+      '90',
+    ]);
+    // An extra-time period, or goals in extra time: to 120.
+    const period = {
+      kind: 'extra_time_first' as const,
+      sequence: 3,
+      started_at: KICKOFF,
+      ended_at: null,
+      added_minutes: null,
+    };
+    expect(scale(centre({ scores: none, periods: [period] }, [...play, ...kicks]))).toEqual([
+      '0',
+      '45',
+      '90',
+      '105',
+      '120',
+    ]);
+    expect(
+      scale(
+        centre({ scores: { ...scores, extra_time: { home: 1, away: 0 }, penalties: null } }, play),
+      ),
+    ).toEqual(['0', '45', '90', '105', '120']);
+    expect(extraTimePlayed({ scores: none, periods: [] })).toBe(false);
+  });
+
+  it('puts each lane’s name on its own line, and labels two cards ten minutes apart', () => {
+    const html = keyEvents(page(cup()));
+    const axis = html.slice(html.indexOf('role="img"'), html.indexOf('<ol'));
+    // The name is a line of its own above the lane's marks, never placed over them.
+    expect(axis).toMatch(
+      /data-lane="home"><span class="font-semibold"><bdi>Liverpool<\/bdi><\/span><div class="relative/,
+    );
+    expect(axis).not.toMatch(/absolute start-0 top-0/);
+    const both = centre({}, [
+      incident(11, 'yellow_card', 'home', 'L. Koumas'),
+      incident(21, 'yellow_card', 'home', 'J. McConnell'),
+    ]);
+    const lane = keyEvents(page(both));
+    expect(lane).toMatch(/>11′</);
+    expect(lane).toMatch(/>21′</);
+    expect(lane).not.toMatch(/class="invisible">21′</);
   });
 
   it('says nothing recorded in words, never an empty card (rule 3)', () => {

@@ -379,7 +379,7 @@ export function MatchLine({
     return (
       <span className="flex min-h-6 min-w-0 items-center gap-1.5" data-testid={`${side}-team`}>
         <EntityImage media={t.crest} kind="crest" name={name} size={20} />
-        <bdi className={cx(NAME, rowNameFit(name), weight(side))}>{name}</bdi>
+        <bdi className={cx(NAME, rowNameFit(name, score !== null), weight(side))}>{name}</bdi>
         {score !== null && (
           <span
             className={cx(

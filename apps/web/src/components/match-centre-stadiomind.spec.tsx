@@ -20,7 +20,7 @@ import {
   receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { ForecastPanel } from './forecast-panel';
-import { MatchCentreView, ratingsOf } from './match-centre-view';
+import { MatchCentreView, ratingsOf, scorerFit } from './match-centre-view';
 import { Translated } from './translated';
 import { scoreDisputeHero } from './score-dispute';
 import { matchJsonLd } from '@/lib/seo';
@@ -1051,6 +1051,26 @@ describe('live', () => {
     expect(axis).toContain('inset-inline-start:6.666');
   });
 
+  it('writes a Persian page’s scorers in the short form, each one unit that never wraps inside', () => {
+    const goals = [
+      incident(40, 'goal', 'home', 'Alexis Mac Allister'),
+      incident(54, 'goal', 'home', 'Florian Wirtz'),
+    ];
+    const html = view(
+      centre({}, { timeline: { coverage: 'available', last_updated_at: null, data: goals } }),
+      undefined,
+      'fa',
+    );
+    const band = html.slice(html.indexOf('data-testid="scorers-home"'));
+    expect(band).toMatch(
+      /^data-testid="scorers-home"><span class="whitespace-nowrap"><bdi>A\. Mac Allister<\/bdi>\u00a0۴۰′<\/span>\u00a0· <span class="whitespace-nowrap"><bdi>F\. Wirtz<\/bdi>\u00a0۵۴′<\/span><\/span>/,
+    );
+    expect(scorerFit('A. Mac Allister 40′')).toBe('');
+    expect(scorerFit('D. Calvert-Lewin 12′, 45+2′')).toBe(
+      'max-md:text-[10px] max-md:font-stretch-condensed',
+    );
+  });
+
   it('writes each side’s scorers under its name, and none when an own goal is in the list', () => {
     const goals = [
       incident(6, 'goal', 'home', 'N. Jackson'),
@@ -1060,13 +1080,13 @@ describe('live', () => {
     const html = view(
       centre({}, { timeline: { coverage: 'available', last_updated_at: null, data: goals } }),
     );
-    // Each scorer one unit (T-1796, D-395): the name isolated, held to its
-    // minutes by a no-break space, the minutes never split.
+    // Each scorer one unit that never wraps inside (T-1796, D-395): the name
+    // isolated, then its minutes; lines break only between scorers.
     expect(html).toContain(
-      'data-testid="scorers-home"><bdi>N. Jackson</bdi>\u00a0<span class="whitespace-nowrap">6′, 60′</span><',
+      'data-testid="scorers-home"><span class="whitespace-nowrap"><bdi>N. Jackson</bdi>\u00a06′, 60′</span><',
     );
     expect(html).toContain(
-      'data-testid="scorers-away"><bdi>E. Haaland</bdi>\u00a0<span class="whitespace-nowrap">52′</span><',
+      'data-testid="scorers-away"><span class="whitespace-nowrap"><bdi>E. Haaland</bdi>\u00a052′</span><',
     );
     const own = view(
       centre(
@@ -1109,7 +1129,7 @@ describe('the match centre review (T-1550)', () => {
       ),
     );
     expect(html).toContain(
-      'data-testid="scorers-home"><bdi>Mauricio</bdi>\u00a0<span class="whitespace-nowrap">30′</span><',
+      'data-testid="scorers-home"><span class="whitespace-nowrap"><bdi>Mauricio</bdi>\u00a030′</span><',
     );
     expect(html).not.toContain('G. Gómez 91′');
     expect(html).not.toContain('data-testid="scorers-away"');

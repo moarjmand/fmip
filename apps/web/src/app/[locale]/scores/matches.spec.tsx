@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { CardDetails, ScoreCard, rowPick } from '@/components/score-card';
+import { CardDetails, ScoreCard, rowNameFit, rowPick } from '@/components/score-card';
 import { carriesStarted, liveNextHolds, LiveScores } from '@/components/live-scores';
 import { RowForecast } from '@/components/score-card-forecast';
 import type { CardForecast } from '@/lib/score-card-products';
@@ -402,14 +402,52 @@ describe('the 72px row on a phone (T-1757, D-374)', () => {
     expect(html).toContain('>Borussia Mönchengladbach</bdi>');
     expect(html).not.toMatch(/truncate|line-clamp|text-ellipsis/);
     expect(html).not.toMatch(/<bdi[^>]*title=/);
-    // Between words only (T-1796, D-395); the 15-letter word steps to 75% width on a phone.
+    // Between words only (T-1796, D-395); beside a score the 15-letter word
+    // steps to 12px and 62.5% width on a phone (83px of cell, measured at 375).
     expect(html).toMatch(
-      /<bdi class="min-w-0 break-words hyphens-manual leading-tight text-sm @xl:text-base @max-xl:font-stretch-condensed/,
+      /<bdi class="min-w-0 break-words hyphens-manual leading-tight text-sm @xl:text-base @max-xl:font-stretch-extra-condensed @max-xl:text-xs/,
     );
     expect(html).not.toMatch(/hyphens-auto|overflow-wrap:anywhere/);
     expect(html).toMatch(
-      /Mönchengladbach<\/bdi><span class="ms-auto[^"]*" data-testid="away-score">1</,
+      /Mönchengladbach<\/bdi><\/span><span class="ms-auto[^"]*" data-testid="away-score">1</,
     );
+  });
+});
+
+describe('a long name beside a red card on a phone (T-1796, D-395)', () => {
+  it('keeps "Mönchengladbach" whole: smaller steps, and the mark under it when the line is full', () => {
+    const html = row(
+      'en',
+      {},
+      {
+        kickoff_at: '2026-10-25T09:00:00.000Z',
+        status: 'finished',
+        away: { id: 'a', name: 'Mönchengladbach', short_name: null, code: 'BMG' },
+        scores: {
+          ...card().scores,
+          current: { home: 3, away: 1 },
+          full_time: { home: 3, away: 1 },
+        },
+        red_cards: { home: 0, away: 1 },
+      },
+    );
+    // The name and its mark are one line of text, so the mark wraps under
+    // the name instead of narrowing it; the score stays at the line's end.
+    expect(html).toMatch(
+      /<span class="min-w-0"><bdi class="[^"]*@max-xl:font-stretch-extra-condensed @max-xl:text-xs[^"]*">Mönchengladbach<\/bdi> <span role="img" aria-label="one red card" class="whitespace-nowrap">🟥<\/span><\/span><span class="ms-auto/,
+    );
+  });
+
+  it('steps a long word by the room its cell has, a score taking some of it', () => {
+    // Twelve letters fit without a score, ten beside one (83px at 375).
+    expect(rowNameFit('Bournemouth')).toBe('');
+    expect(rowNameFit('Bournemouth', true)).toBe('@max-xl:font-stretch-semi-condensed');
+    expect(rowNameFit('Mönchengladbach')).toBe('@max-xl:font-stretch-condensed');
+    expect(rowNameFit('Mönchengladbach', true)).toBe(
+      '@max-xl:font-stretch-extra-condensed @max-xl:text-xs',
+    );
+    // Thirteen letters beside a score: 75% is enough (about 81px of 83).
+    expect(rowNameFit('Wolverhampton', true)).toBe('@max-xl:font-stretch-condensed');
   });
 });
 

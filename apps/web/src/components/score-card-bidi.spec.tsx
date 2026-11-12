@@ -69,8 +69,8 @@ describe('a score row in Persian (T-1375)', () => {
   it('puts the home goals on the home team’s line, so they can never sit beside the away team', () => {
     // T-1496: the pair the row once isolated as one run is now two numbers,
     // each on its own team's line, in Persian digits: Sepahan's six, Fajr Sepasi's one.
-    expect(html).toMatch(/>سپاهان<\/bdi><span[^>]*data-testid="home-score">۶</);
-    expect(html).toMatch(/>Fajr Sepasi<\/bdi><span[^>]*data-testid="away-score">۱</);
+    expect(html).toMatch(/>سپاهان<\/bdi><\/span><span[^>]*data-testid="home-score">۶</);
+    expect(html).toMatch(/>Fajr Sepasi<\/bdi><\/span><span[^>]*data-testid="away-score">۱</);
   });
 
   it('isolates an aggregate on the row the same way', () => {

@@ -39,7 +39,17 @@ const GENERATIONAL = new Set([
 ]);
 
 export function listName(locale: string, name: string): string {
-  if (locale === 'fa') return name;
+  return locale === 'fa' ? name : shortName(name);
+}
+
+/**
+ * The short form "A. Mac Allister" on every page, the Persian one included,
+ * for the few places too tight for a full name (T-1796, D-395: the band's
+ * scorers, the shoot-out's circles). The same conservative rule as
+ * `listName`: a name in another script, or one it cannot shorten safely, is
+ * returned as stored.
+ */
+export function shortName(name: string): string {
   const words = name.trim().split(/\s+/);
   if (words.length < 2) return name;
   const [first, ...rest] = words;

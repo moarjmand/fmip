@@ -17,7 +17,7 @@ import Link from '@/components/ui/link';
 import { STAT_KEY, incidentDetailKey, incidentKey, shootoutStart, statValue } from '@/lib/match';
 import { formatKickoff, formatStamp, freshnessStamp } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
-import { listName } from '@/lib/person-name';
+import { listName, shortName } from '@/lib/person-name';
 import type { MatchWords } from '@/lib/words-server';
 import { NAME_WRAP, NARROW_STEPS, nameFit } from '@/lib/word-fit';
 import { formatDate, formatDateTime, localDigits } from '@/i18n/format';
@@ -1115,7 +1115,9 @@ function scorersOf(
   for (const i of incidents) {
     if ((i.kind !== 'goal' && i.kind !== 'penalty_goal') || i.side === null || i.player === null)
       continue;
-    const name = listName(locale, i.player.name);
+    // The short form on every page, the Persian one too: the band's column
+    // is about 115px on a phone (T-1796, D-395).
+    const name = shortName(i.player.name);
     const minutes = by[i.side].get(name) ?? [];
     minutes.push(formatMinute(locale, i.minute, i.added_time));
     by[i.side].set(name, minutes);
@@ -1126,19 +1128,34 @@ function scorersOf(
 }
 
 /**
- * A side's scorers as one line that breaks only between scorers (T-1796,
- * D-395): each name isolated (a Latin name inside Persian), held to its
- * minutes by a no-break space, the minutes never split.
+ * A side's scorers, broken into lines only between scorers (T-1796, D-395):
+ * each scorer is one unbreakable unit, his name isolated (a Latin name
+ * inside Persian) and his minutes, the separator held to the unit before it.
  */
 function scorerLine(list: [string, string][]) {
   return list.map(([who, at], i) => (
     <Fragment key={who}>
-      {i > 0 && ' · '}
-      <bdi>{who}</bdi>
-      {'\u00a0'}
-      <span className="whitespace-nowrap">{at}</span>
+      {i > 0 && '\u00a0· '}
+      <span className={cx('whitespace-nowrap', scorerFit(`${who} ${at}`))}>
+        <bdi>{who}</bdi>
+        {'\u00a0'}
+        {at}
+      </span>
     </Fragment>
   ));
+}
+
+/**
+ * A scorer's unit on a phone (D-395): measured at 375, the band's column is
+ * 113-116px and "A. Mac Allister 40′" 94-95px at 12px in both fonts, so up
+ * to 22 characters stay as drawn; a longer one steps the size down, which
+ * Vazirmatn needs too (it has no width axis), Archivo also narrowing.
+ */
+export function scorerFit(unit: string): string {
+  const letters = Array.from(unit).length;
+  if (letters <= 22) return '';
+  if (letters <= 26) return 'max-md:text-[11px] max-md:font-stretch-semi-condensed';
+  return 'max-md:text-[10px] max-md:font-stretch-condensed';
 }
 
 /** A side's crest on a white tile, so a dark crest reads on the Night ground. */

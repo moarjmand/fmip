@@ -19,6 +19,7 @@ import {
   conferenceName,
   leaguePhase,
   showsLeagueTable,
+  tableNameFit,
   zoneDivider,
 } from './standings-table';
 
@@ -435,6 +436,16 @@ describe('the phone table: every column in reach (T-1760, D-377)', () => {
     // Horizontal only: nothing sticks to the top under the site header (D-376).
     expect(html).not.toMatch(/\b(top|inset-block)-/);
     expect(html).not.toMatch(/\b(left|right)\b/);
+  });
+
+  it('steps a word too long for the phone’s 92px column down, so it neither breaks nor spills (D-395)', () => {
+    // Real-data screenshot, Bundesliga, 12 Nov 2026: "Mönchengladbach" ran
+    // under the figures at 13px and 75% (105px).
+    expect(tableNameFit('Mönchengladbach')).toBe(
+      'max-sm:text-xs max-sm:font-stretch-extra-condensed',
+    );
+    expect(tableNameFit('Bournemouth')).toBe('');
+    expect(tableNameFit('Borussia Dortmund')).toBe('');
   });
 
   it('adds no Tab stop or landmark per table: its links are the keyboard’s way in (code review, 2026-11-07)', () => {

@@ -7,7 +7,7 @@ import { formatKickoff, formatStamp, scoreLine, statusLabel } from '@/lib/scores
 import { isOpenForPick } from '@/lib/scores-filters';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
 import { stageAndRoundLabels } from '@/lib/stage-label';
-import { NAME_WRAP, ROW_STEPS, nameFit, statusFit } from '@/lib/word-fit';
+import { NAME_WRAP, ROW_STEPS, longestWord, nameFit, statusFit } from '@/lib/word-fit';
 import { fill, filled, formatMinute, pickPlural } from '@/lib/words';
 import type { ScoresWords } from '@/lib/words-server';
 import { EntityImage } from '@/components/entity-image';
@@ -76,14 +76,26 @@ export const COVERAGE_KEY = {
 export const NAME = `min-w-0 ${NAME_WRAP} leading-tight text-sm @xl:text-base`;
 
 /**
- * The phone cell holds about twelve letters of a 14px name at normal width
- * (107px at 375); a longer word steps to 87.5%, then 75% ("Mönchengladbach",
- * 96px at 75%). From the list's 36rem the cell is wide enough as drawn.
+ * How a phone row's name fits its cell (T-1796, D-395). Measured at 375 on
+ * the matches page: the name has 107px beside its crest, 83px when the score
+ * stands at the end of the line; a 14px semi-bold letter is about 8px, so
+ * twelve letters fit, or ten beside a score (`scored`). A longer word steps
+ * the width to 87.5%, then 75% (`nameFit`); one too long even then also
+ * steps to 12px, and past that to 62.5% ("Mönchengladbach" beside a score:
+ * 96px at 75%, 69px at 12px and 62.5%). A red-card mark is not counted: it
+ * follows the name in the line and goes under it when the line is full.
+ * From the list's 36rem the cell is wide enough as drawn.
  */
 export const ROW_NAME_LETTERS = 12;
+export const ROW_NAME_LETTERS_SCORED = 10;
 
-export function rowNameFit(name: string): string {
-  return nameFit(name, ROW_NAME_LETTERS, ROW_STEPS);
+export function rowNameFit(name: string, scored = false): string {
+  const fits = scored ? ROW_NAME_LETTERS_SCORED : ROW_NAME_LETTERS;
+  const letters = longestWord(name);
+  if (letters <= fits / 0.75) return nameFit(name, fits, ROW_STEPS);
+  return letters <= fits * 1.45
+    ? '@max-xl:font-stretch-condensed @max-xl:text-xs'
+    : '@max-xl:font-stretch-extra-condensed @max-xl:text-xs';
 }
 
 /** Where the row's Pick stands for this reader (T-1496, D-206's lock at kick-off). */
@@ -177,7 +189,7 @@ export function ScoreCard({
             ? m['scores.card.redCard'].text
             : pickPlural(p['scores.card.redCards'], locale, count).text
         }
-        className="shrink-0"
+        className="whitespace-nowrap"
       >
         {count === 1 ? '🟥' : `🟥×${n(count)}`}
       </span>
@@ -233,8 +245,13 @@ export function ScoreCard({
         data-testid={`${side}-team`}
       >
         <EntityImage media={t.crest} kind="crest" name={t.name} size={20} />
-        <bdi className={cx(NAME, rowNameFit(t.name), weight(side))}>{t.name}</bdi>
-        {sentOff(card.red_cards[side])}
+        {/* The name and its red-card mark in one line of text: the mark goes
+            under the name when they do not fit side by side, never into it. */}
+        <span className="min-w-0">
+          <bdi className={cx(NAME, rowNameFit(t.name, line !== null), weight(side))}>{t.name}</bdi>
+          {card.red_cards[side] > 0 && ' '}
+          {sentOff(card.red_cards[side])}
+        </span>
         {line !== null && (
           <span
             className={`ms-auto shrink-0 ps-2 font-bold tabular-nums ${live ? 'text-live' : disputed ? 'text-muted' : ''}`}

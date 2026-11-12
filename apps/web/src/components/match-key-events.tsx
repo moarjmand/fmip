@@ -3,8 +3,7 @@ import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, message } from '@/i18n/messages';
 import { shootoutStart } from '@/lib/match';
-import { listName } from '@/lib/person-name';
-import { NAME_WRAP } from '@/lib/word-fit';
+import { shortName } from '@/lib/person-name';
 import { formatKickoff } from '@/lib/scores';
 import { fill, formatMinute } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
@@ -192,6 +191,31 @@ export function KeyEvents({
 }
 
 /**
+ * The taker's name under a circle (T-1798, D-395): his surname alone, the
+ * short form's initial dropped ("Mac Allister", "Gravenberch"), on the
+ * Persian page too, where a Latin name would otherwise be written whole.
+ */
+export function kickName(name: string): string {
+  return shortName(name).replace(/^\p{Lu}\. /u, '');
+}
+
+/**
+ * One line under a circle, never broken inside a word (D-395). A kick's
+ * column is at least 56px (`min-w-14`); measured at 375 in the page's own
+ * fonts, a name of nine letters fits at 10px (Archivo at 75% width,
+ * Vazirmatn as drawn), "Gravenberch" needs 9px in Vazirmatn (50px) and
+ * "Mac Allister" 9px with Archivo at 62.5% (33px; Vazirmatn 48px), which has
+ * no width axis, so the size steps too. A longer name widens its column
+ * rather than break.
+ */
+export function kickNameFit(name: string): string {
+  const letters = Array.from(name).length;
+  if (letters <= 9) return '';
+  if (letters <= 11) return 'text-[9px]';
+  return 'text-[9px] font-stretch-extra-condensed';
+}
+
+/**
  * The shoot-out (D-396): its score, then each side's kicks in the order
  * recorded as a row of circles -- filled with a tick for a goal, dashed with
  * a cross for a miss -- each with its word for a screen reader and the
@@ -223,15 +247,16 @@ function Shootout({
             <bdi>{f[side].name}</bdi>
             {p !== null && formatNumber(locale, p[side])}
           </p>
-          <ol className="flex flex-wrap gap-0.5">
+          <ol className="flex flex-wrap gap-x-0.5 gap-y-2">
             {kicks
               .filter((k) => k.side === side)
               .map((k) => {
                 const scored = k.kind === 'penalty_goal';
+                const surname = k.player === null ? null : kickName(k.player.name);
                 return (
                   <li
                     key={k.id}
-                    className="flex w-8.5 flex-col items-center gap-0.5 text-center text-[10px] leading-tight text-muted font-stretch-condensed"
+                    className="flex min-w-14 flex-col items-center gap-0.5 text-center text-[10px] leading-tight text-muted font-stretch-condensed"
                     data-kick={scored ? 'scored' : 'missed'}
                   >
                     <span
@@ -250,11 +275,21 @@ function Shootout({
                           scored ? 'matchCentre.kickScored' : 'matchCentre.kickMissed',
                         )}
                       />
+                      {/* The taker's whole name for a screen reader. */}
+                      {k.player !== null && (
+                        <>
+                          {', '}
+                          <bdi>{k.player.name}</bdi>
+                        </>
+                      )}
                     </span>
-                    {k.player !== null && (
-                      <bdi className={`line-clamp-2 max-w-full ${NAME_WRAP}`}>
-                        {/* The surname under the circle, as the board draws it. */}
-                        {listName(locale, k.player.name).replace(/^\p{Lu}\. /u, '')}
+                    {surname !== null && (
+                      <bdi
+                        aria-hidden="true"
+                        className={cx('whitespace-nowrap', kickNameFit(surname))}
+                        data-testid="kick-name"
+                      >
+                        {surname}
                       </bdi>
                     )}
                   </li>
@@ -267,6 +302,24 @@ function Shootout({
         <MessageText message={say(locale, 'matchCentre.shootoutKey')} />
       </p>
     </section>
+  );
+}
+
+/**
+ * Whether extra time was played (D-397), so the axis runs to 120: an
+ * extra-time period, or goals in extra time. A shoot-out alone is not extra
+ * time: a cup that goes straight to penalties (the League Cup) comes from
+ * the feed with an extra-time score of 0-0, so 0-0 and no period is read as
+ * none played. A goal or card later than 90 still stretches the scale to its
+ * minute.
+ */
+export function extraTimePlayed(
+  fixture: Pick<MatchCentre['fixture'], 'scores' | 'periods'>,
+): boolean {
+  const extra = fixture.scores.extra_time;
+  return (
+    fixture.periods.some((p) => p.kind === 'extra_time_first' || p.kind === 'extra_time_second') ||
+    (extra !== null && extra.home + extra.away > 0)
   );
 }
 
@@ -295,7 +348,7 @@ function Axis({
   // No goal and no card: no empty lanes that look like a drawn module (rule 3).
   if (marked.length === 0) return null;
   const at = (i: MatchIncident) => i.minute + (i.added_time ?? 0) * (i.minute <= 45 ? 0.15 : 1);
-  const end = Math.max(centre.fixture.scores.extra_time === null ? 90 : 120, ...marked.map(at));
+  const end = Math.max(extraTimePlayed(centre.fixture) ? 120 : 90, ...marked.map(at));
   const pos = (minute: number) => `${(minute / end) * 100}%`;
   const goals = marked.filter((i) => GOAL_KINDS.has(i.kind)).length;
   const centred = 'absolute -translate-x-1/2 rtl:translate-x-1/2';
@@ -314,36 +367,44 @@ function Axis({
       data-testid="timeline-axis"
     >
       {(['home', 'away'] as const).map((side) => {
-        let labelled = -100;
+        // The last labelled minute: where it stands (%) and its length.
+        let labelled = { x: -100, letters: 0 };
         return (
-          <div key={side} className="relative h-11 border-b border-default" data-lane={side}>
-            {/* Placed by the page's direction, the name isolated inside it. */}
-            <span className="absolute start-0 top-0 font-semibold">
+          <div key={side} className="flex flex-col" data-lane={side}>
+            {/* The lane's name on its own line, never over a mark; placed by the page's direction. */}
+            <span className="font-semibold">
               <bdi>{centre.fixture[side].name}</bdi>
             </span>
-            {marked
-              .filter((i) => i.side === side)
-              .map((i) => {
-                const x = (at(i) / end) * 100;
-                const label = x - labelled > 9;
-                if (label) labelled = x;
-                return (
-                  <span
-                    key={i.id}
-                    data-kind={i.kind}
-                    className={cx(
-                      centred,
-                      'bottom-1 flex flex-col items-center gap-0.5 text-muted',
-                    )}
-                    style={{ insetInlineStart: `${x}%` }}
-                  >
-                    <span className={mark(i.kind)} />
-                    <span dir="ltr" className={label ? undefined : 'invisible'}>
-                      {formatMinute(locale, i.minute, i.added_time)}
+            <div className="relative h-9 border-b border-default">
+              {marked
+                .filter((i) => i.side === side)
+                .map((i) => {
+                  const x = (at(i) / end) * 100;
+                  const minute = formatMinute(locale, i.minute, i.added_time);
+                  const letters = Array.from(minute).length;
+                  // A label only where it clears the last one: half of each
+                  // label's width (a 10px mono letter is about 1% of the lane
+                  // at 375) and a gap of 2%.
+                  const label = x - labelled.x >= labelled.letters + letters + 2;
+                  if (label) labelled = { x, letters };
+                  return (
+                    <span
+                      key={i.id}
+                      data-kind={i.kind}
+                      className={cx(
+                        centred,
+                        'bottom-1 flex flex-col items-center gap-0.5 text-muted',
+                      )}
+                      style={{ insetInlineStart: `${x}%` }}
+                    >
+                      <span className={mark(i.kind)} />
+                      <span dir="ltr" className={label ? undefined : 'invisible'}>
+                        {minute}
+                      </span>
                     </span>
-                  </span>
-                );
-              })}
+                  );
+                })}
+            </div>
           </div>
         );
       })}
