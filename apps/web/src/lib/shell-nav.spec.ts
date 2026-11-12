@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  FOOTER_LEGAL,
   FOOTER_NAV,
   HEADER_NAV,
   MORE_NAV,
@@ -150,12 +151,21 @@ describe('the site footer', () => {
     expect(FOOTER_NAV.map((group) => [group.id, group.links.map((link) => link.id)])).toEqual([
       ['football', ['matches', 'competitions', 'highlights', 'watch', 'news']],
       ['predictions', ['league', 'model', 'analysis']],
-      ['site', ['about', 'rules', 'settings']],
+      ['site', ['about', 'settings']],
+    ]);
+  });
+
+  it('has a legal strip of the rules and the data sources, and nothing that does not exist yet (D-392)', () => {
+    expect(FOOTER_LEGAL).toEqual([
+      { id: 'rules', path: '/rules' },
+      { id: 'data', path: '/about#data' },
     ]);
   });
 
   it('keeps What Stadiomind is and the rules reachable, now that More does not carry them', () => {
-    const paths = FOOTER_NAV.flatMap((group) => group.links.map((link) => link.path));
+    const paths = [...FOOTER_NAV.flatMap((group) => group.links), ...FOOTER_LEGAL].map(
+      (link) => link.path,
+    );
     expect(paths).toEqual(expect.arrayContaining(['/about', '/rules']));
     for (const link of [...HEADER_NAV, ...MORE_NAV]) expect(paths).toContain(link.path);
   });

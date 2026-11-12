@@ -239,6 +239,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "shell.footer.dataSources": {
+    "source": "Data sources",
+    "text": "منبع داده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-392)."
+  },
   "shell.moments.label": {
     "source": "Moments that matter",
     "text": "لحظه‌های مهم",
@@ -1211,6 +1217,12 @@
     "text": "نتایج زنده و صفحه‌ای برای هر بازی: روند بازی، ترکیب‌ها، آمار، بازیکنانی که بازی را از دست می‌دهند و فرم هر تیم، همراه با جدول رده‌بندی هر رقابت. وقتی چیزی برای بازی‌ای موجود نیست، صفحه‌ی آن به‌جای نشان دادن کادری خالی همین را می‌گوید، و هر عدد زنده نشان می‌دهد آخرین بار کی تغییر کرده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.data.title": {
+    "source": "Where the data comes from",
+    "text": "داده‌ها از کجا می‌آیند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-392)."
   },
   "about.competitions": {
     "source": "Covered now: {names}.",
@@ -13262,12 +13274,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "analysis.desk.signedOut": {
-    "source": "You are not signed in, so publishing will be refused.",
-    "text": "شما وارد نشده‌اید، بنابراین انتشار پذیرفته نمی‌شود.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "analysis.desk.locked": {
     "source": "This match has started. An analysis cannot be published or updated after kick-off — the record of what was said, and when, is the point of it.",
     "text": "این بازی شروع شده است. پس از شروع بازی نمی‌توان تحلیلی منتشر یا به‌روز کرد؛ ارزش آن در ثبت این است که چه گفته شد و چه زمانی.",
@@ -13357,6 +13363,30 @@
     "text": "هر به‌روزرسانی نسخه‌ای تازه است. نسخه‌های پیشین خواندنی می‌مانند، چون ارزش این کار در ثبت این است که چه چیزی و چه زمانی گفته شد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "analysis.desk.gate": {
+    "source": "This desk is for the founder. Analyses are written here before kick-off and read on the match’s page.",
+    "text": "این میز مخصوص بنیان‌گذار است. تحلیل‌ها پیش از شروع بازی اینجا نوشته می‌شوند و در صفحه‌ی بازی خوانده می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "analysis.desk.gateWhat": {
+    "source": "The founder’s analysis is one person’s call on selected matches, signed and published before kick-off. It is one of three separate things on the site: the statistical model’s forecast and the members’ predictions are the other two, and they are never mixed.",
+    "text": "تحلیل بنیان‌گذار نظر یک نفر درباره‌ی بازی‌های منتخب است که پیش از شروع بازی امضا و منتشر می‌شود. این یکی از سه چیز جدا در این سایت است: پیش‌بینی مدل آماری و پیش‌بینی‌های اعضا دو چیز دیگرند و هرگز با هم آمیخته نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "analysis.desk.toMatch": {
+    "source": "Back to the match",
+    "text": "بازگشت به بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "analysis.desk.toAnalyses": {
+    "source": "Read the founder’s analyses",
+    "text": "خواندن تحلیل‌های بنیان‌گذار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
   },
   "analysis.action.published": {
     "source": "Published as version {version}. The previous versions stay readable.",
@@ -16591,6 +16621,54 @@
     "text": "هیچ خلاصه‌ی رسمی‌ای برای {territory} ثبت نشده است",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "watch.from": {
+    "source": "Watching from",
+    "text": "تماشا از",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.need": {
+    "source": "Pick a territory to see which official service shows each match.",
+    "text": "یک قلمرو انتخاب کنید تا ببینید هر بازی در کدام سرویس رسمی پخش می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.needChosen": {
+    "source": "Official services in your territory, from the editors’ list.",
+    "text": "سرویس‌های رسمی در قلمرو شما، از فهرست ویراستاران.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.row.official": {
+    "source": "Official: {services}",
+    "text": "رسمی: {services}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.row.notCovered": {
+    "source": "Not covered in your territory",
+    "text": "در قلمرو شما پوشش داده نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.row.nothingListed": {
+    "source": "No official service listed",
+    "text": "هیچ سرویس رسمی‌ای فهرست نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.row.notLoaded": {
+    "source": "Viewing not loaded",
+    "text": "اطلاعات تماشا بارگیری نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.confirmedSince": {
+    "source": "Every listing here confirmed since {time}.",
+    "text": "همه‌ی فهرست‌های اینجا از {time} به بعد تأیید شده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
   },
   "rules.title": {
     "source": "Platform rules",

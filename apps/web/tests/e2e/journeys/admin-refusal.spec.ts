@@ -48,6 +48,8 @@ const REFUSING: Record<string, string> = {
 };
 /** Pages that do not admit the area exists to a member without the role. */
 const HIDDEN = ['/en/admin', '/en/admin/campaigns'];
+/** The seed's match still to be played, for the founder's desk (T-1791). */
+const OPEN_MATCH = '00000000-0000-4000-8000-000000000902';
 
 test.describe('the admin console to someone without the role', () => {
   let session = '';
@@ -106,6 +108,33 @@ test.describe('the admin console to someone without the role', () => {
       const response = await page.goto(path);
       expect(response?.status()).toBe(404);
       await expect(page.locator('main table, main form')).toHaveCount(0);
+    });
+  }
+
+  // The founder's desk (T-1791, D-393) is not a console page: nobody is sent
+  // to sign in, because signing in would not let them write. A guest and a
+  // member get the same short page with a 200 and noindex, and no form.
+  for (const who of ['guest', 'member'] as const) {
+    test(`/en/founder/<match>: a ${who} gets the short page, never the form`, async ({
+      page,
+      context,
+      baseURL,
+    }) => {
+      if (who === 'member') {
+        await context.addCookies([{ name: 'fmip_session', value: session, url: baseURL }]);
+      }
+      const url = `/en/founder/${OPEN_MATCH}`;
+      const response = await page.goto(url);
+      expect(response?.status()).toBe(200);
+      expect(new URL(page.url()).pathname).toBe(url);
+      await expect(page.getByTestId('founder-gate')).toBeVisible();
+      await expect(page.locator('main form')).toHaveCount(0);
+      await expect(page.getByTestId('founder-form')).toHaveCount(0);
+      await expect(page.getByTestId('founder-gate-analyses')).toHaveAttribute(
+        'href',
+        '/en/scores#analysis',
+      );
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
     });
   }
 });

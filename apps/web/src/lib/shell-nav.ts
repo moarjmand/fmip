@@ -123,7 +123,8 @@ export interface FooterLink {
     | 'analysis'
     | 'about'
     | 'rules'
-    | 'settings';
+    | 'settings'
+    | 'data';
   path: string;
 }
 
@@ -139,7 +140,7 @@ export interface FooterGroup {
  * competitions, highlights, where to watch, news. Predictions: the
  * prediction league, the model's record and the founder's analysis, each
  * under its own name and never as one (rule 6). Stadiomind: what it is and
- * its rules, which are linked from nowhere else (T-1572), and Settings.
+ * Settings. The rules moved to `FOOTER_LEGAL` (T-1790, D-392).
  */
 export const FOOTER_NAV: readonly FooterGroup[] = [
   {
@@ -164,12 +165,22 @@ export const FOOTER_NAV: readonly FooterGroup[] = [
     id: 'site',
     links: [
       { id: 'about', path: '/about' },
-      { id: 'rules', path: '/rules' },
       // Appearance needs no account (T-621). A guest's desktop bar no longer
       // carries its gear (T-1736, D-358), so every page ends with the link.
       { id: 'settings', path: '/settings' },
     ],
   },
+];
+
+/**
+ * The footer's legal strip beside the copyright (T-1790, D-392): the rules,
+ * linked from nowhere else (T-1572), and where the data comes from. Only
+ * pages that exist: Privacy and Contact join when the maintainer's texts do
+ * (T-1793), never as a link to nothing (rule 3).
+ */
+export const FOOTER_LEGAL: readonly FooterLink[] = [
+  { id: 'rules', path: '/rules' },
+  { id: 'data', path: '/about#data' },
 ];
 
 /** `/fa/scores?d=1` → `/scores`; `/fa` → `''`. The first segment is the locale. */
