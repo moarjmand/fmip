@@ -54,6 +54,11 @@ export type MatchSlot =
   | 'context'
   // The ground's card (T-1438), from the server: a ground does not change in play.
   | 'venue'
+  // A finished match's statistics, player tables and xG, and its line-ups, drawn
+  // on the server (T-1800..T-1802, `match-stats-panels.tsx`); in play the
+  // modules below draw them from the stream.
+  | 'matchStats'
+  | 'matchLineups'
   | 'players'
   | 'forecast'
   | 'analysis'
@@ -158,7 +163,7 @@ export const SECTIONS = {
 } as const satisfies Record<string, MatchTab>;
 
 /** The per-player columns the match centre shows (T-101), in reading order. */
-const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
+export const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
   ['minutes', 'matchCentre.player.minutes'],
   ['rating', 'matchCentre.player.rating'],
   ['goals', 'matchCentre.player.goals'],
@@ -172,7 +177,7 @@ const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
  * The expected-goals columns (T-1432), from their own source: a keeper's xGOT
  * conceded and goals prevented are stored, not shown here.
  */
-const EXPECTED_COLUMNS: readonly [ExpectedGoalsMetric, Key][] = [
+export const EXPECTED_COLUMNS: readonly [ExpectedGoalsMetric, Key][] = [
   ['xg', 'matchCentre.expectedGoals.xg'],
   ['xa', 'matchCentre.expectedGoals.xa'],
   ['xgot', 'matchCentre.expectedGoals.xgot'],
@@ -234,7 +239,11 @@ export function absenceReasonKey(a: MatchAbsence): Key | null {
 const ARABIC_SCRIPT = new Set(['fa', 'ar']);
 
 /** One player cell: the provider's rating to one decimal, a count as it is, `–` when not supplied. */
-function playerCell(locale: string, player: MatchPlayerStats, metric: PlayerMatchMetric): string {
+export function playerCell(
+  locale: string,
+  player: MatchPlayerStats,
+  metric: PlayerMatchMetric,
+): string {
   const value = player.stats[metric];
   if (value === undefined) return '–';
   return metric === 'rating' ? formatFixed(locale, value, 1) : formatNumber(locale, value);
@@ -347,14 +356,18 @@ export function MatchCentreView({
   const statsRegion = (
     <Region id="stats" tab="stats">
       {statsComing.length > 0 && <ComingCard items={statsComing} words={words} phone />}
-      {!isComing('statistics') && (
-        <Statistics centre={centre} locale={locale} now={now} words={words} />
-      )}
-      {!isComing('player_statistics') && (
-        <PlayerStatistics centre={centre} locale={locale} words={words} />
-      )}
-      {!isComing('expected_goals') && (
-        <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
+      {slots.matchStats ?? (
+        <>
+          {!isComing('statistics') && (
+            <Statistics centre={centre} locale={locale} now={now} words={words} />
+          )}
+          {!isComing('player_statistics') && (
+            <PlayerStatistics centre={centre} locale={locale} words={words} />
+          )}
+          {!isComing('expected_goals') && (
+            <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
+          )}
+        </>
       )}
     </Region>
   );
@@ -363,26 +376,28 @@ export function MatchCentreView({
       {lineupsComing ? (
         <ComingCard items={coming.filter((item) => item.tab === 'lineups')} words={words} phone />
       ) : (
-        <Module
-          title={m['matchCentre.lineups']}
-          module={centre.lineups}
-          testId="lineups"
-          words={words}
-          empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
-          notInYet={f.status === 'live'}
-          before={unplayed(centre)}
-        >
-          {(lineups) => (
-            <MatchLineupsView
-              home={f.home}
-              away={f.away}
-              lineups={lineups}
-              ratings={ratingsOf(centre)}
-              locale={locale}
-              words={words}
-            />
-          )}
-        </Module>
+        (slots.matchLineups ?? (
+          <Module
+            title={m['matchCentre.lineups']}
+            module={centre.lineups}
+            testId="lineups"
+            words={words}
+            empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
+            notInYet={f.status === 'live'}
+            before={unplayed(centre)}
+          >
+            {(lineups) => (
+              <MatchLineupsView
+                home={f.home}
+                away={f.away}
+                lineups={lineups}
+                ratings={ratingsOf(centre)}
+                locale={locale}
+                words={words}
+              />
+            )}
+          </Module>
+        ))
       )}
     </Region>
   );
@@ -1637,9 +1652,11 @@ function PlayerStatistics({
 
 /**
  * Per-player expected goals from their one source (T-1432, D-224), a card of
- * its own under the player statistics: labelled "Expected goals (xG)" (no provider in a heading, T-1797), never a
+ * its own under the player statistics: "Expected goals by player", from
+ * licensed match data, never named by its provider (D-014, T-1802), never a
  * column of the table above, `–` for a figure the source did not supply, and
- * an explicit state when it supplied none (rule 3).
+ * an explicit state when it supplied none (rule 3). In play only: a finished
+ * match's card is the server's (`match-stats-panels.tsx`, F9).
  */
 function PlayerExpectedGoals({
   centre,

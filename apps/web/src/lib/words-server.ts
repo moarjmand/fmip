@@ -417,6 +417,22 @@ export const MATCH_KEYS = [
   'matchCentre.bestSix',
   'matchCentre.minutesPlayed',
   'matchCentre.ratingsNote',
+  // Stats groups, the tables' legend, xG by player, line-up marks (T-1800..T-1802).
+  'matchCentre.statGroup.match',
+  'matchCentre.statGroup.attack',
+  'matchCentre.statGroup.passing',
+  'matchCentre.statGroup.discipline',
+  'matchCentre.table.legend',
+  'matchCentre.expectedGoals.teamOnly',
+  'matchCentre.lineups.mark.goal',
+  'matchCentre.lineups.mark.penaltyGoal',
+  'matchCentre.lineups.mark.ownGoal',
+  'matchCentre.lineups.mark.booked',
+  'matchCentre.lineups.mark.sentOff',
+  'matchCentre.lineups.mark.off',
+  'matchCentre.lineups.mark.on',
+  'matchCentre.lineups.mark.onAlone',
+  'matchCentre.lineups.marksNone',
 ] as const;
 
 export type MatchWords = ClientWords<(typeof MATCH_KEYS)[number]>;

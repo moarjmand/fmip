@@ -7955,7 +7955,7 @@
     "status": "untranslated"
   },
   "matchCentre.xgNotSupplied": {
-    "source": "Expected goals (xG): not available for this match.",
+    "source": "Team expected goals (xG): not supplied for this match.",
     "text": "",
     "status": "untranslated"
   },
@@ -8015,27 +8015,27 @@
     "status": "untranslated"
   },
   "matchCentre.expectedGoals": {
-    "source": "Expected goals (xG)",
+    "source": "Expected goals by player",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.note": {
-    "source": "Expected goals from the match data supplier's own model: kept apart from the player statistics above and never combined with them.",
+    "source": "Licensed match data, from a source of its own: kept apart from the player statistics above and never combined with them.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.none": {
-    "source": "No expected goals are supplied for this match.",
+    "source": "No expected goals by player are supplied for this match.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.unplaced": {
-    "source": "Not shown: {count} players the expected-goals data lists who are not yet matched to ours.",
+    "source": "Not shown: {count} players the source listed who are not yet matched to ours.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.region": {
-    "source": "{team}: expected goals (xG), scrolls sideways",
+    "source": "{team}: expected goals by player, scrolls sideways",
     "text": "",
     "status": "untranslated"
   },
@@ -15354,6 +15354,81 @@
   },
   "teamPage.chips.rounds": {
     "source": "Its matches on the competition’s page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statGroup.match": {
+    "source": "Match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statGroup.attack": {
+    "source": "Attack",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statGroup.passing": {
+    "source": "Passing",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statGroup.discipline": {
+    "source": "Discipline",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.table.legend": {
+    "source": "– no figure supplied for this player; a 0 is a supplied zero.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.expectedGoals.teamOnly": {
+    "source": "Per-player xG: not supplied for this match. The team figure in the statistics above is supplied; the player breakdown is not.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.goal": {
+    "source": "Goal {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.penaltyGoal": {
+    "source": "Goal {minute} (pen.)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.ownGoal": {
+    "source": "Own goal {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.booked": {
+    "source": "Booked {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.sentOff": {
+    "source": "Sent off {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.off": {
+    "source": "Off {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.on": {
+    "source": "On {minute} for {player}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.marksNone": {
+    "source": "The match events are not supplied, so the pitch marks no goals, cards or substitutions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.onAlone": {
+    "source": "On {minute}",
     "text": "",
     "status": "untranslated"
   },

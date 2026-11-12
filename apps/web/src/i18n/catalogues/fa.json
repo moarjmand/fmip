@@ -9621,10 +9621,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.xgNotSupplied": {
-    "source": "Expected goals (xG): not available for this match.",
-    "text": "گل مورد انتظار (xG): برای این بازی در دسترس نیست.",
+    "source": "Team expected goals (xG): not supplied for this match.",
+    "text": "گل مورد انتظار تیمی: برای این بازی ارائه نشده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.statsUpdated": {
     "source": "Stats updated {ago}",
@@ -9693,34 +9693,34 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.expectedGoals": {
-    "source": "Expected goals (xG)",
-    "text": "گل مورد انتظار (xG)",
+    "source": "Expected goals by player",
+    "text": "گل مورد انتظار به تفکیک بازیکن",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.note": {
-    "source": "Expected goals from the match data supplier's own model: kept apart from the player statistics above and never combined with them.",
-    "text": "گل مورد انتظار از مدل خود تأمین‌کننده‌ی داده‌ی بازی: جدا از آمار بازیکنان در بالا نگه داشته می‌شود و هرگز با آن ترکیب نمی‌شود.",
+    "source": "Licensed match data, from a source of its own: kept apart from the player statistics above and never combined with them.",
+    "text": "داده‌ی دارای مجوز مسابقه، از منبعی جداگانه: جدا از آمار بازیکنان در بالا نگه داشته می‌شود و هرگز با آن ترکیب نمی‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.none": {
-    "source": "No expected goals are supplied for this match.",
-    "text": "برای این بازی گل مورد انتظار ارائه نشده است.",
+    "source": "No expected goals by player are supplied for this match.",
+    "text": "برای این بازی گل مورد انتظار به تفکیک بازیکن ارائه نشده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.unplaced": {
-    "source": "Not shown: {count} players the expected-goals data lists who are not yet matched to ours.",
-    "text": "نمایش داده نشده: {count} بازیکنی که داده‌ی گل مورد انتظار فهرست کرده و هنوز با بازیکنان ما تطبیق داده نشده‌اند.",
+    "source": "Not shown: {count} players the source listed who are not yet matched to ours.",
+    "text": "نمایش داده نشده: {count} بازیکنی که منبع فهرست کرده و هنوز با بازیکنان ما تطبیق داده نشده‌اند.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.region": {
-    "source": "{team}: expected goals (xG), scrolls sideways",
-    "text": "{team}: گل مورد انتظار (xG)، به پهلو پیمایش می‌شود",
+    "source": "{team}: expected goals by player, scrolls sideways",
+    "text": "{team}: گل مورد انتظار به تفکیک بازیکن، به پهلو پیمایش می‌شود",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.xg": {
     "source": "xG",
@@ -18673,6 +18673,96 @@
     "text": "بازی‌هایش در صفحه‌ی رقابت",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "matchCentre.statGroup.match": {
+    "source": "Match",
+    "text": "کلیات",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.statGroup.attack": {
+    "source": "Attack",
+    "text": "حمله",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.statGroup.passing": {
+    "source": "Passing",
+    "text": "پاس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.statGroup.discipline": {
+    "source": "Discipline",
+    "text": "انضباط",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.table.legend": {
+    "source": "– no figure supplied for this player; a 0 is a supplied zero.",
+    "text": "– برای این بازیکن رقمی ارائه نشده است؛ ۰ صفرِ ارائه‌شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.expectedGoals.teamOnly": {
+    "source": "Per-player xG: not supplied for this match. The team figure in the statistics above is supplied; the player breakdown is not.",
+    "text": "گل مورد انتظار بازیکنان: برای این بازی ارائه نشده است. رقم تیمی در آمار بالا ارائه شده است؛ تفکیک بازیکنان نه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.goal": {
+    "source": "Goal {minute}",
+    "text": "گل {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.penaltyGoal": {
+    "source": "Goal {minute} (pen.)",
+    "text": "گل {minute} (پنالتی)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.ownGoal": {
+    "source": "Own goal {minute}",
+    "text": "گل به خودی {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.booked": {
+    "source": "Booked {minute}",
+    "text": "کارت زرد {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.sentOff": {
+    "source": "Sent off {minute}",
+    "text": "اخراج {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.off": {
+    "source": "Off {minute}",
+    "text": "خروج {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.on": {
+    "source": "On {minute} for {player}",
+    "text": "ورود {minute} به جای {player}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.marksNone": {
+    "source": "The match events are not supplied, so the pitch marks no goals, cards or substitutions.",
+    "text": "رویدادهای بازی ارائه نشده‌اند، پس زمین هیچ گل، کارت یا تعویضی را نشان نمی‌دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.onAlone": {
+    "source": "On {minute}",
+    "text": "ورود {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "highlights.need": {
     "source": "Until you pick one, every highlight is listed; some may not play where you are.",

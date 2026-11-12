@@ -173,7 +173,13 @@ describe('before kick-off, standard coverage', () => {
       ['expected_goals', 'coming'],
       ['lineups', 'coming'],
     ]);
-    for (const name of ['Live timeline', 'Statistics', 'Player statistics', 'xG', 'Line-ups']) {
+    for (const name of [
+      'Live timeline',
+      'Statistics',
+      'Player statistics',
+      'Expected goals by player',
+      'Line-ups',
+    ]) {
       expect(summary).toContain(name);
     }
     // The line-ups keep their own sentence: they come before kick-off (T-1627).
