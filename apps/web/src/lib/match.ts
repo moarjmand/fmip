@@ -14,13 +14,16 @@ import { formatFixed, formatMinute } from '@/lib/words';
  * words with `t`, a client one with the words its page resolved.
  */
 
-/** An incident's name, as a catalogue key. */
+/**
+ * An incident's name, as a catalogue key. A `penalty_goal` here is the plain
+ * "Penalty", which is true of a shoot-out's kick and of a penalty in play
+ * alike; where the caller knows the incident is in play, `incidentKey` names
+ * it "Goal (penalty)" (D-396). A kick is never called a goal (D-322).
+ */
 export const INCIDENT_KEY = {
   goal: 'matchCentre.incident.goal',
   own_goal: 'matchCentre.incident.ownGoal',
-  // A penalty scored in play is a goal (T-1798, D-396): "Goal (penalty)",
-  // never the bare "Penalty" a shoot-out's kick is called.
-  penalty_goal: 'matchCentre.incident.penaltyGoalInPlay',
+  penalty_goal: 'matchCentre.incident.penaltyGoal',
   penalty_missed: 'matchCentre.incident.penaltyMissed',
   yellow_card: 'matchCentre.incident.yellowCard',
   second_yellow_card: 'matchCentre.incident.secondYellow',
@@ -28,6 +31,21 @@ export const INCIDENT_KEY = {
   substitution: 'matchCentre.incident.substitution',
   var: 'matchCentre.incident.var',
 } as const satisfies Record<MatchIncident['kind'], MessageKey>;
+
+/**
+ * An incident's name where the caller knows its place (T-1798, D-396,
+ * D-322): a penalty scored in play is "Goal (penalty)"; a shoot-out's kick
+ * keeps the plain "Penalty". `inPlay` is true only for an incident before
+ * `shootoutStart`; a caller that cannot tell uses `INCIDENT_KEY` instead.
+ */
+export function incidentKey(
+  kind: MatchIncident['kind'],
+  inPlay: boolean,
+): (typeof INCIDENT_KEY)[keyof typeof INCIDENT_KEY] | 'matchCentre.incident.penaltyGoalInPlay' {
+  return kind === 'penalty_goal' && inPlay
+    ? 'matchCentre.incident.penaltyGoalInPlay'
+    : INCIDENT_KEY[kind];
+}
 
 /**
  * What an incident adds to its kind, as a catalogue key (T-1378). The API

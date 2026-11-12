@@ -14,7 +14,7 @@ import type {
 import { AVAILABILITY_STALE_AFTER_MS, LIVE_STATS_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
-import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, shootoutStart, statValue } from '@/lib/match';
+import { STAT_KEY, incidentDetailKey, incidentKey, shootoutStart, statValue } from '@/lib/match';
 import { formatKickoff, formatStamp, freshnessStamp } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { listName } from '@/lib/person-name';
@@ -1267,7 +1267,13 @@ function Timeline({
                       )}
                     >
                       <IncidentMark kind={i.kind} />
-                      <IncidentText incident={i} centre={centre} locale={locale} words={words} />
+                      <IncidentText
+                        incident={i}
+                        inPlay={kick === null}
+                        centre={centre}
+                        locale={locale}
+                        words={words}
+                      />
                     </span>
                   </li>
                 </Fragment>
@@ -1308,11 +1314,14 @@ function Shootout({
 /** One incident's words: its kind and side, then who (T-1478: who came on, who went off). */
 export function IncidentText({
   incident: i,
+  inPlay,
   centre,
   locale,
   words,
 }: {
   incident: MatchIncident;
+  /** False for a shoot-out's kick, which is never called a goal (D-322, D-396). */
+  inPlay: boolean;
   centre: MatchCentre;
   locale: string;
   words: MatchWords;
@@ -1327,7 +1336,7 @@ export function IncidentText({
   return (
     <span className="min-w-0 [overflow-wrap:anywhere]">
       <b className="block font-bold text-fg">
-        <MessageText message={m[INCIDENT_KEY[i.kind]]} />
+        <MessageText message={m[incidentKey(i.kind, inPlay)]} />
         {i.side !== null ? (
           <>
             {' · '}

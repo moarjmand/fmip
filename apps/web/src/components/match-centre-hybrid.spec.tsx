@@ -1285,6 +1285,32 @@ describe('a finished match’s line-ups and player table (D-399, D-400)', () => 
     expect(bench(html)).toContain('>↑</span>');
   });
 
+  it('finds the kicks the feed did not flag as the key events do: never a goal (D-322)', () => {
+    const home = eleven(4, 4, 2);
+    const c = finished(home, [
+      incident('penalty_goal', 40, home[9]!),
+      // A shoot-out with no `in_shootout` (another adapter, or no label from
+      // the feed): read back from its 2-0 score, as `shootoutStart` does.
+      incident('penalty_goal', 120, home[2]!),
+      incident('penalty_missed', 120, null, { side: 'away' }),
+      incident('penalty_goal', 120, home[3]!),
+    ]);
+    const html = lineupsOf({
+      ...c,
+      fixture: {
+        ...c.fixture,
+        scores: {
+          ...c.fixture.scores,
+          current: { home: 1, away: 0 },
+          penalties: { home: 2, away: 0 },
+        },
+      },
+    });
+    expect(text(pitch(html))).toContain('Goal 40′ (pen.)');
+    expect(text(pitch(html))).not.toContain('120′');
+    expect(pitch(html).match(/data-testid="lineup-marks"/g)).toHaveLength(1);
+  });
+
   it('never writes "for" with nobody after it when the feed left out who went off', () => {
     const home = [...eleven(4, 4, 2), player('forward', { role: 'bench', name: 'Emanuel Emegha' })];
     const sub = home[11]!;

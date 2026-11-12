@@ -142,4 +142,20 @@ describe('a score card says how a shoot-out ended (T-1477)', () => {
     expect(html).toContain('ضربه‌ی ۱');
     expect(html).toContain('پنالتی');
   });
+
+  it('calls a penalty in play "Goal (penalty)" and a kick "Penalty", as the match page does (D-396)', () => {
+    const html = render('en', {
+      ...finished,
+      scores: { ...finished.scores!, current: { home: 1, away: 0 } },
+      incidents: [
+        { kind: 'penalty_goal', minute: 30, added_time: null, side: 'home', player: 'H. Spot' },
+        ...finished.incidents!,
+      ],
+    });
+    const text = html.replace(/<[^>]+>/g, '');
+    expect(text.match(/Goal \(penalty\)/g)).toHaveLength(1);
+    expect(text).toContain('30′ Goal (penalty) · H. Spot');
+    expect(text).toContain('Kick 1 Penalty · H. One');
+    expect(render('fa', finished)).not.toContain('گل (پنالتی)');
+  });
 });

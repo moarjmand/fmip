@@ -231,6 +231,34 @@ describe('a finished match’s key events, from the server (T-1798, T-1799; D-39
     expect(words(keyEvents(page(cup(), 'fa')))).toContain('گل (پنالتی)');
   });
 
+  it('never calls a shoot-out’s kick "Goal (penalty)": only the two in play are (D-322)', () => {
+    const list = keyEvents(page(cup()));
+    expect(words(list).match(/Goal \(penalty\)/g)).toHaveLength(2);
+    const card = list.slice(list.indexOf('data-testid="shootout"'));
+    expect(words(card)).not.toContain('Goal (penalty)');
+  });
+
+  it('draws no axis when play has no goal and no card (rule 3)', () => {
+    const html = keyEvents(
+      page(
+        cup(
+          null,
+          play.filter((i) => i.kind === 'substitution'),
+        ),
+      ),
+    );
+    expect(html).not.toContain('data-lane=');
+    expect(html).not.toContain('role="img"');
+    expect(html).toContain('Substitutions (3)');
+  });
+
+  it('wraps a taker’s surname between words only, never inside one (D-395)', () => {
+    const card = keyEvents(page(cup()));
+    const circles = card.slice(card.indexOf('data-testid="shootout"'));
+    expect(circles).toContain('break-words hyphens-manual');
+    expect(circles).not.toContain('overflow-wrap:anywhere');
+  });
+
   it('draws the shoot-out as two rows of circles, scored and missed said in words', () => {
     const timeline = keyEvents(page(cup()));
     const card = timeline.slice(timeline.indexOf('data-testid="shootout"'));
@@ -332,5 +360,27 @@ describe('a finished match’s key events, from the server (T-1798, T-1799; D-39
     expect(html).toContain('Kick 1');
     expect(html).not.toContain('data-lane=');
     expect(html).not.toContain('shootout-winner');
+  });
+
+  it('while the shoot-out is on, a kick row says "Penalty", never "Goal (penalty)" (D-322)', () => {
+    for (const flagged of [true, false]) {
+      // Flagged by the feed, or read back from the shoot-out's 1-1 score.
+      const two = kicks.slice(0, 2).map((k) => ({ ...k, in_shootout: flagged }));
+      const live = centre(
+        { status: 'live', minute: 120, scores: { ...scores, penalties: { home: 1, away: 1 } } },
+        [...play, ...two],
+      );
+      for (const locale of ['en', 'fa']) {
+        const html = page(live, locale);
+        const rows = [...html.matchAll(/<li[^>]*data-kick="(\d+)"[^]*?<\/li>/g)];
+        expect(rows).toHaveLength(2);
+        for (const [row] of rows) {
+          expect(words(row)).not.toContain(locale === 'en' ? 'Goal (penalty)' : 'گل (پنالتی)');
+          expect(words(row)).toContain(locale === 'en' ? 'Penalty · ' : 'پنالتی');
+        }
+      }
+      // The penalties scored in play, above the kicks, are goals.
+      expect(words(page(live)).match(/Goal \(penalty\)/g)).toHaveLength(2);
+    }
   });
 });

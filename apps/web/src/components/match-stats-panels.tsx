@@ -21,7 +21,9 @@ import { MessageText } from '@/components/message-text';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
 import { RatingChip } from '@/components/ui/rating-chip';
-import { STAT_KEY, statValue } from '@/lib/match';
+import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
+import { type ResolvedMessages, resolveMessages } from '@/i18n/messages';
+import { STAT_KEY, shootoutStart, statValue } from '@/lib/match';
 import { listName } from '@/lib/person-name';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
@@ -36,8 +38,40 @@ import type { MatchWords } from '@/lib/words-server';
  * as before, with the live "Stats updated" line (T-1782).
  */
 
-type Words = MatchWords['m'];
+/**
+ * The words only these server cards say, resolved here rather than carried
+ * in `MATCH_KEYS`, which the live client view receives (the match centre's
+ * payload): the stats groups, the tables' legend, the team-only xG sentence
+ * and the line-up marks (T-1800..T-1802).
+ */
+const SERVER_KEYS = [
+  'matchCentre.statGroup.match',
+  'matchCentre.statGroup.attack',
+  'matchCentre.statGroup.passing',
+  'matchCentre.statGroup.discipline',
+  'matchCentre.table.legend',
+  'matchCentre.expectedGoals.teamOnly',
+  'matchCentre.lineups.mark.goal',
+  'matchCentre.lineups.mark.penaltyGoal',
+  'matchCentre.lineups.mark.ownGoal',
+  'matchCentre.lineups.mark.booked',
+  'matchCentre.lineups.mark.sentOff',
+  'matchCentre.lineups.mark.off',
+  'matchCentre.lineups.mark.on',
+  'matchCentre.lineups.mark.onAlone',
+  'matchCentre.lineups.marksNone',
+] as const;
+
+type Words = MatchWords['m'] & ResolvedMessages<(typeof SERVER_KEYS)[number]>;
 type Side = 'home' | 'away';
+
+/** The page's words and this module's own, in the page's locale. */
+function wordsOf(locale: string, words: MatchWords): Words {
+  return {
+    ...words.m,
+    ...resolveMessages(isLocale(locale) ? locale : DEFAULT_LOCALE, SERVER_KEYS),
+  };
+}
 
 // ---------------------------------------------------------------- statistics
 
@@ -141,7 +175,7 @@ function LeadBar({ row, label, locale }: { row: MatchStatRow; label: ReactNode; 
 }
 
 function Statistics({ centre, locale, words }: Props) {
-  const m = words.m;
+  const m = wordsOf(locale, words);
   const f = centre.fixture;
   return (
     <Module
@@ -274,7 +308,7 @@ function headCells(columns: readonly (readonly [string, keyof Words])[], m: Word
 const SIDES = ['home', 'away'] as const;
 
 function PlayerStatistics({ centre, locale, words }: Props) {
-  const m = words.m;
+  const m = wordsOf(locale, words);
   const f = centre.fixture;
   return (
     <Module
@@ -348,7 +382,7 @@ function PlayerStatistics({ centre, locale, words }: Props) {
  * It never repeats or sums the team figure: the two sources stay apart.
  */
 function PlayerExpectedGoals({ centre, locale, words }: Props) {
-  const m = words.m;
+  const m = wordsOf(locale, words);
   const f = centre.fixture;
   const expected = centre.player_expected_goals;
   const teamXg = (centre.statistics.data ?? []).some((row) => row.metric === 'expected_goals');
@@ -360,7 +394,7 @@ function PlayerExpectedGoals({ centre, locale, words }: Props) {
       words={words}
       empty={
         teamXg
-          ? 'matchCentre.expectedGoals.teamOnly'
+          ? m['matchCentre.expectedGoals.teamOnly']
           : expected.last_updated_at === null
             ? null
             : 'matchCentre.expectedGoals.none'
@@ -462,18 +496,21 @@ export type Mark = readonly [MarkKind, string, string];
 /**
  * Each player's marks from the match's events, in their order; a shoot-out
  * kick is never a goal of the match (D-322), and a VAR review or a missed
- * penalty marks nobody.
+ * penalty marks nobody. The kicks are found as the key events find them
+ * (`shootoutStart`: the feed's flag, or the shoot-out's score read back), so
+ * a kick the feed did not flag is not a goal under the taker's name either.
  */
 export function lineupMarks(
   incidents: readonly MatchIncident[],
   locale: string,
+  scores: Pick<MatchCentre['fixture']['scores'], 'penalties' | 'current'>,
 ): Map<string, Mark[]> {
   const marks = new Map<string, Mark[]>();
   const add = (id: string | undefined, mark: Mark) => {
     if (id !== undefined) marks.set(id, [...(marks.get(id) ?? []), mark]);
   };
-  for (const i of incidents) {
-    if (i.in_shootout === true) continue;
+  const kicksFrom = shootoutStart(incidents, scores.penalties, scores.current);
+  for (const i of kicksFrom === null ? incidents : incidents.slice(0, kicksFrom)) {
     const minute = formatMinute(locale, i.minute, i.added_time);
     if (i.kind === 'substitution') {
       add(i.player?.id, ['off', minute, '']);
@@ -547,10 +584,10 @@ function MarkGlyphs({ marks }: { marks: readonly Mark[] }) {
  * carries no marks (rule 3).
  */
 export function FinishedLineups({ centre, locale, words }: Props) {
-  const m = words.m;
+  const m = wordsOf(locale, words);
   const f = centre.fixture;
   const events = centre.timeline.data;
-  const marks = lineupMarks(events ?? [], locale);
+  const marks = lineupMarks(events ?? [], locale, f.scores);
   return (
     <Module title={m['matchCentre.lineups']} module={centre.lineups} testId="lineups" words={words}>
       {(lineups) => {

@@ -4,6 +4,7 @@ import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, message } from '@/i18n/messages';
 import { shootoutStart } from '@/lib/match';
 import { listName } from '@/lib/person-name';
+import { NAME_WRAP } from '@/lib/word-fit';
 import { formatKickoff } from '@/lib/scores';
 import { fill, formatMinute } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
@@ -140,7 +141,7 @@ export function KeyEvents({
               )}
             >
               <IncidentMark kind={i.kind} />
-              <IncidentText incident={i} centre={centre} locale={locale} words={words} />
+              <IncidentText incident={i} inPlay centre={centre} locale={locale} words={words} />
             </span>
           </li>
         );
@@ -251,7 +252,7 @@ function Shootout({
                       />
                     </span>
                     {k.player !== null && (
-                      <bdi className="line-clamp-2 max-w-full [overflow-wrap:anywhere]">
+                      <bdi className={`line-clamp-2 max-w-full ${NAME_WRAP}`}>
                         {/* The surname under the circle, as the board draws it. */}
                         {listName(locale, k.player.name).replace(/^\p{Lu}\. /u, '')}
                       </bdi>
@@ -291,6 +292,8 @@ function Axis({
 }) {
   const m = words.m;
   const marked = incidents.filter((i) => AXIS_KINDS.has(i.kind) && i.side !== null);
+  // No goal and no card: no empty lanes that look like a drawn module (rule 3).
+  if (marked.length === 0) return null;
   const at = (i: MatchIncident) => i.minute + (i.added_time ?? 0) * (i.minute <= 45 ? 0.15 : 1);
   const end = Math.max(centre.fixture.scores.extra_time === null ? 90 : 120, ...marked.map(at));
   const pos = (minute: number) => `${(minute / end) * 100}%`;

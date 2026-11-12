@@ -430,7 +430,16 @@ export function CardDetails({
               ) : (
                 <span dir="ltr">{formatMinute(locale, incident.minute, incident.added_time)}</span>
               )}{' '}
-              <MessageText message={m[INCIDENT_KEY[incident.kind]]} />
+              <MessageText
+                message={
+                  m[
+                    // A penalty in play is a goal; a kick keeps "Penalty" (D-322, D-396).
+                    incident.kind === 'penalty_goal' && (kicksFrom === null || index < kicksFrom)
+                      ? 'matchCentre.incident.penaltyGoalInPlay'
+                      : INCIDENT_KEY[incident.kind]
+                  ]
+                }
+              />
               {incident.player !== null ? ` · ${incident.player}` : ''}
               {incident.side !== null
                 ? ` (${incident.side === 'home' ? card.home.name : card.away.name})`

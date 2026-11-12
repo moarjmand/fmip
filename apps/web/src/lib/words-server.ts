@@ -101,6 +101,8 @@ const INCIDENT_KEYS = [
   'matchCentre.incident.goal',
   'matchCentre.incident.ownGoal',
   'matchCentre.incident.penaltyGoal',
+  // A penalty scored in play; a shoot-out's kick keeps "Penalty" (D-322, D-396).
+  'matchCentre.incident.penaltyGoalInPlay',
   'matchCentre.incident.penaltyMissed',
   'matchCentre.incident.yellowCard',
   'matchCentre.incident.secondYellow',
@@ -417,25 +419,8 @@ export const MATCH_KEYS = [
   'matchCentre.bestSix',
   'matchCentre.minutesPlayed',
   'matchCentre.ratingsNote',
-  // Stats groups, the tables' legend, xG by player, line-up marks (T-1800..T-1802).
-  'matchCentre.statGroup.match',
-  'matchCentre.statGroup.attack',
-  'matchCentre.statGroup.passing',
-  'matchCentre.statGroup.discipline',
-  'matchCentre.table.legend',
-  'matchCentre.expectedGoals.teamOnly',
-  'matchCentre.lineups.mark.goal',
-  'matchCentre.lineups.mark.penaltyGoal',
-  'matchCentre.lineups.mark.ownGoal',
-  'matchCentre.lineups.mark.booked',
-  'matchCentre.lineups.mark.sentOff',
-  'matchCentre.lineups.mark.off',
-  'matchCentre.lineups.mark.on',
-  'matchCentre.lineups.mark.onAlone',
-  'matchCentre.lineups.marksNone',
-  // A penalty scored in play (T-1798, D-396); the shoot-out's and the folded
-  // substitutions' words are said on the server (`match-key-events.tsx`).
-  'matchCentre.incident.penaltyGoalInPlay',
+  // The stats groups, the tables' legend, the team-only xG sentence and the
+  // line-up marks are said on the server only (`match-stats-panels.tsx`).
 ] as const;
 
 export type MatchWords = ClientWords<(typeof MATCH_KEYS)[number]>;
