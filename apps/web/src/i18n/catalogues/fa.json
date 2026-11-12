@@ -3728,42 +3728,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "search.readAs": {
-    "source": "Read as",
-    "text": "برداشت از پرسش",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.kinds": {
-    "source": "kinds",
-    "text": "دسته‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.reason.noModel": {
-    "source": "No language model is configured, so this is a keyword search.",
-    "text": "هیچ مدل زبانی پیکربندی نشده است، پس این یک جست‌وجوی کلیدواژه‌ای است.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.reason.unreadable": {
-    "source": "The question could not be read as one, so it was searched as keywords.",
-    "text": "پرسش را نمی‌شد به‌صورت یک پرسش فهمید، پس با کلیدواژه‌ها جست‌وجو شد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.reason.nothingNamed": {
-    "source": "The question names nothing the search could look for, so it was searched as keywords.",
-    "text": "پرسش به چیزی اشاره نمی‌کند که جست‌وجو بتواند دنبالش بگردد، پس با کلیدواژه‌ها جست‌وجو شد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.reason.failed": {
-    "source": "The language model could not be reached, so this is a keyword search.",
-    "text": "دسترسی به مدل زبانی ممکن نشد، پس این یک جست‌وجوی کلیدواژه‌ای است.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "search.section.team": {
     "source": "Teams",
     "text": "تیم‌ها",
@@ -3797,42 +3761,6 @@
   "search.section.member": {
     "source": "Members",
     "text": "اعضا",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.team": {
-    "source": "No team matches.",
-    "text": "هیچ تیمی پیدا نشد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.competition": {
-    "source": "No competition matches.",
-    "text": "هیچ رقابتی پیدا نشد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.person": {
-    "source": "No player matches.",
-    "text": "هیچ بازیکنی پیدا نشد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.story": {
-    "source": "No story's headline matches.",
-    "text": "تیتر هیچ خبری با جست‌وجو مطابقت ندارد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.group": {
-    "source": "No group that can be found matches. Invite-only groups are never listed.",
-    "text": "هیچ گروه قابل‌جست‌وجویی پیدا نشد. گروه‌هایی که فقط با دعوت می‌شود عضوشان شد، هرگز فهرست نمی‌شوند.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.member": {
-    "source": "No member with a public profile matches. Private and friends-only profiles are never listed.",
-    "text": "هیچ عضوی با نمایه‌ی عمومی پیدا نشد. نمایه‌های خصوصی و مخصوص دوستان هرگز فهرست نمی‌شوند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -16532,24 +16460,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "searchPage.type.team": {
-    "source": "Team",
-    "text": "تیم",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "searchPage.type.competition": {
-    "source": "Competition",
-    "text": "رقابت",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "searchPage.type.person": {
-    "source": "Player",
-    "text": "بازیکن",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "searchPage.limited": {
     "source": "Too many questions have been asked in the last hour.",
     "text": "در یک ساعت گذشته پرسش‌های بسیاری پرسیده شده است.",
@@ -18769,5 +18679,95 @@
     "text": "بازی‌هایش در صفحه‌ی رقابت",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "search.none": {
+    "source": "No {kinds} match.",
+    "text": "{kinds} پیدا نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.team": {
+    "source": "teams",
+    "text": "تیمی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.competition": {
+    "source": "competitions",
+    "text": "رقابتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.person": {
+    "source": "players",
+    "text": "بازیکنی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.story": {
+    "source": "stories",
+    "text": "خبری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.group": {
+    "source": "groups",
+    "text": "گروهی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.member": {
+    "source": "members",
+    "text": "عضوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.noLeagueOrGround": {
+    "source": "No league or ground on record",
+    "text": "لیگ یا ورزشگاهی ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.playingToday": {
+    "source": "Playing today",
+    "text": "امروز بازی دارند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.allCompetitions": {
+    "source": "All competitions",
+    "text": "همه‌ی رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.nothing": {
+    "source": "Nothing matches “{term}”",
+    "text": "چیزی با «{term}» پیدا نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.tryThese": {
+    "source": "Try a team or competition name, or one of these.",
+    "text": "نام یک تیم یا رقابت را بنویسید، یا یکی از این‌ها را بزنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.neverListed": {
+    "source": "Invite-only groups and private or friends-only profiles are never listed.",
+    "text": "گروه‌هایی که فقط با دعوت می‌شود عضوشان شد و نمایه‌های خصوصی یا مخصوص دوستان هرگز فهرست نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "compare.season": {
+    "source": "Season",
+    "text": "فصل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "compare.higher": {
+    "source": "higher",
+    "text": "بیشتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
   }
 }

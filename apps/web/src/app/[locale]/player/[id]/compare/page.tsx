@@ -20,8 +20,10 @@ import {
   readCompareWith,
   readScope,
   resolveScope,
+  rowBars,
   rowNote,
   scopeLabel,
+  scopesBySeason,
   scopesOf,
 } from '@/lib/player-compare';
 import { MIN_QUERY_LENGTH, readSearchTerm } from '@/lib/search';
@@ -213,6 +215,14 @@ export default async function ComparePlayersPage({
   if (b === null) {
     const hits =
       search?.ok === true ? search.data.results.filter((h) => h.id !== pageA.person.id) : [];
+    // Each candidate's position and club as his own page reads them (T-1804,
+    // D-402): the same claim the comparison's header makes, so a namesake is
+    // told apart by what the page will show once chosen. One read per
+    // candidate (at most `pickerQuery`'s ten); one that fails keeps the
+    // search's own line.
+    const candidates = await Promise.all(
+      hits.map((hit) => fetchPlayer(hit.id, locale).then((page) => (page.ok ? page.data : null))),
+    );
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
         <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
@@ -247,19 +257,41 @@ export default async function ComparePlayersPage({
           <p data-testid="compare-search-empty">{say(locale, 'compare.noMatch', { term })}</p>
         ) : (
           <ol className="flex flex-col divide-y divide-default" data-testid="compare-candidates">
-            {hits.map((hit) => (
-              <li key={hit.id} className="flex flex-wrap items-baseline gap-x-3 py-2">
-                <Link
-                  href={compareHref(locale, pageA.person.id, hit.id)}
-                  className="font-medium underline"
+            {hits.map((hit, i) => {
+              const page = candidates[i] ?? null;
+              const club = page === null ? null : clubClaim(page);
+              return (
+                <li
+                  key={hit.id}
+                  className="flex flex-wrap items-baseline gap-x-3 py-2"
+                  data-testid="compare-candidate"
                 >
-                  {hit.name}
-                </Link>
-                {hit.secondary !== null && (
-                  <span className="text-sm text-muted">{hit.secondary}</span>
-                )}
-              </li>
-            ))}
+                  <Link
+                    href={compareHref(locale, pageA.person.id, hit.id)}
+                    className="inline-flex min-h-touch items-center font-medium underline md:min-h-0"
+                  >
+                    {hit.name}
+                  </Link>
+                  {page !== null ? (
+                    <span className="text-sm text-muted" data-testid="compare-candidate-line">
+                      {positionOf(locale, page)}
+                      {' · '}
+                      {club === null ? (
+                        <Translated locale={locale} message="compare.noTeam" />
+                      ) : (
+                        <bdi>{club.team.name}</bdi>
+                      )}
+                    </span>
+                  ) : (
+                    hit.secondary !== null && (
+                      <span className="text-sm text-muted">
+                        <bdi>{hit.secondary}</bdi>
+                      </span>
+                    )
+                  )}
+                </li>
+              );
+            })}
           </ol>
         )}
       </main>
@@ -271,64 +303,102 @@ export default async function ComparePlayersPage({
   const scopes = scopesOf(pageA.record, pageB.record);
   const scope = resolveScope(readScope(query), scopes);
   const rows = compareRows(pageA.record, pageB.record, scope);
-  const linkClass = (active: boolean): string =>
-    `rounded px-2 py-1 ${active ? 'bg-surface-raised font-semibold' : 'underline'}`;
+  const seasons = scopesBySeason(scopes);
+  const scopeRow = (active: boolean): string =>
+    `flex min-h-touch items-center gap-2 rounded-control px-3 ${
+      active ? 'bg-surface-raised font-bold' : 'hover:bg-surface-raised'
+    }`;
+  const heads = [pageA, pageB].map((page) => {
+    const club = clubClaim(page);
+    return { page, club };
+  });
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 p-4 sm:p-8">
+    <main className="mx-auto flex max-w-3xl flex-col gap-4 p-4 sm:gap-6 sm:p-8">
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
         <bdi>{nameA}</bdi> {say(locale, 'competitionPage.v')} <bdi>{nameB}</bdi>
       </h1>
 
-      <dl className="grid grid-cols-2 gap-3 text-sm" data-testid="compare-players">
-        {[pageA, pageB].map((page) => (
-          <Identity key={page.person.id} page={page} locale={locale} />
-        ))}
-      </dl>
-
-      <p className="flex flex-wrap gap-x-4 text-sm">
-        <Link
-          href={compareHref(locale, pageB.person.id, pageA.person.id, scope)}
-          className="underline"
+      {/*
+       * The season and competition (T-1804, D-402): one 48px row naming the
+       * choice, and every scope under its season in a native details -- the
+       * same links as before, no script. Closed, the table starts under it.
+       */}
+      <details className="group rounded-card border border-default bg-surface text-sm">
+        <summary
+          className="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 [&::-webkit-details-marker]:hidden"
+          data-testid="compare-scope-toggle"
         >
-          <Translated locale={locale} message="compare.swap" />
-        </Link>
-        <Link href={pickerAction} className="underline" data-testid="compare-change">
-          {say(locale, 'compare.another', { name: nameA })}
-        </Link>
-      </p>
-
-      <nav
-        aria-label={say(locale, 'compare.scopes')}
-        className="flex flex-wrap gap-1 text-sm"
-        data-testid="compare-scopes"
-      >
-        <Link
-          href={compareHref(locale, pageA.person.id, pageB.person.id)}
-          aria-current={scope === null ? 'true' : undefined}
-          className={linkClass(scope === null)}
-        >
-          <Translated locale={locale} message="compare.everything" />
-        </Link>
-        {scopes.map((s) => (
-          <Link
-            key={s.key}
-            href={compareHref(locale, pageA.person.id, pageB.person.id, s)}
-            aria-current={scope?.key === s.key ? 'true' : undefined}
-            className={linkClass(scope?.key === s.key)}
-          >
-            {scopeLabel(s)}
-            {!s.shared && (
-              <span className="ms-1 text-xs text-muted">
-                <Translated locale={locale} message="compare.onePlayer" />
-              </span>
+          <span className="text-xs text-muted">
+            <Translated locale={locale} message="compare.season" />
+          </span>
+          <span className="min-w-0 flex-1 truncate font-semibold">
+            {scope === null ? (
+              <Translated locale={locale} message="compare.everything" />
+            ) : (
+              <bdi>{scopeLabel(scope)}</bdi>
             )}
+          </span>
+          <svg
+            viewBox="0 0 24 24"
+            width={16}
+            height={16}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            focusable="false"
+            className="shrink-0 text-muted transition-transform group-open:rotate-180"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </summary>
+        <nav
+          aria-label={say(locale, 'compare.scopes')}
+          className="flex flex-col gap-1 border-t border-default p-2"
+          data-testid="compare-scopes"
+        >
+          <Link
+            href={compareHref(locale, pageA.person.id, pageB.person.id)}
+            aria-current={scope === null ? 'true' : undefined}
+            className={scopeRow(scope === null)}
+          >
+            <Translated locale={locale} message="compare.everything" />
           </Link>
-        ))}
-      </nav>
+          {seasons.map((group) => (
+            <section key={group.season.id} data-testid="compare-season">
+              <h3 className="px-3 pt-2 text-xs font-bold text-muted">
+                <bdi>{group.season.label}</bdi>
+              </h3>
+              <ul>
+                {group.scopes.map((s) => (
+                  <li key={s.key}>
+                    <Link
+                      href={compareHref(locale, pageA.person.id, pageB.person.id, s)}
+                      aria-current={scope?.key === s.key ? 'true' : undefined}
+                      className={scopeRow(scope?.key === s.key)}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <bdi>{s.competition.short_name ?? s.competition.name}</bdi>
+                      </span>
+                      {!s.shared && (
+                        <span className="shrink-0 text-xs font-normal text-muted">
+                          <Translated locale={locale} message="compare.onePlayer" />
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </nav>
+      </details>
 
       <section className="flex flex-col gap-2" data-testid="compare-figures">
-        <h2 className="text-lg font-semibold">
+        <h2 className="sr-only">
           {scope === null ? (
             <Translated locale={locale} message="compare.everything" />
           ) : (
@@ -354,23 +424,38 @@ export default async function ComparePlayersPage({
                   <Translated locale={locale} message="teamPage.figure" />
                 </span>
               </th>
-              <th scope="col" className="py-1 pe-2 text-end break-words">
-                {nameA}
-              </th>
-              <th scope="col" className="py-1 text-end break-words">
-                {nameB}
-              </th>
+              {heads.map(({ page, club }, i) => (
+                <th
+                  key={page.person.id}
+                  scope="col"
+                  className={`py-1 text-end align-bottom break-words ${i === 0 ? 'pe-2' : ''}`}
+                  data-testid="compare-head"
+                >
+                  <bdi>{i === 0 ? nameA : nameB}</bdi>
+                  <span className="block text-xs font-normal text-muted">
+                    {club === null ? (
+                      <Translated locale={locale} message="compare.noTeam" />
+                    ) : (
+                      <bdi>{club.team.short_name ?? club.team.name}</bdi>
+                    )}
+                    {' · '}
+                    {positionOf(locale, page)}
+                  </span>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => {
               const note = rowNote(locale, row, nameA, nameB);
+              const bars = rowBars(row);
               return (
                 <tr
                   key={row.key}
                   className="border-b border-default align-top"
                   data-testid="compare-row"
                   data-lacking={row.lacking ?? 'none'}
+                  data-ahead={bars?.ahead ?? 'none'}
                 >
                   <th scope="row" className="py-1 pe-2 text-start font-normal">
                     <Translated locale={locale} message={row.label} />
@@ -380,17 +465,42 @@ export default async function ComparePlayersPage({
                       </span>
                     )}
                   </th>
-                  {[row.a, row.b].map((c, i) => (
-                    <td
-                      key={i}
-                      className={`py-1 text-end ${i === 0 ? 'pe-2' : ''} ${
-                        c.value === null ? 'text-xs italic text-muted' : 'tabular-nums'
-                      }`}
-                      data-coverage={c.coverage}
-                    >
-                      {cellText(locale, c)}
-                    </td>
-                  ))}
+                  {[row.a, row.b].map((c, i) => {
+                    const side = i === 0 ? 'a' : 'b';
+                    const ahead = bars !== null && bars.ahead === side;
+                    const share = bars === null ? null : side === 'a' ? bars.a : bars.b;
+                    return (
+                      <td
+                        key={i}
+                        className={`py-1 text-end ${i === 0 ? 'pe-2' : ''} ${
+                          c.value === null ? 'text-xs italic text-muted' : 'tabular-nums'
+                        } ${ahead ? 'font-bold' : ''}`}
+                        data-coverage={c.coverage}
+                      >
+                        {cellText(locale, c)}
+                        {ahead && (
+                          <span className="sr-only">
+                            {' '}
+                            <Translated locale={locale} message="compare.higher" />
+                          </span>
+                        )}
+                        {/* A short bar, as long as the figure is against the row's larger one. */}
+                        {share !== null && share > 0 && (
+                          <span
+                            aria-hidden="true"
+                            className="ms-auto mt-1 block h-1 w-16 max-w-full"
+                          >
+                            <span
+                              className={`ms-auto block h-full rounded-full ${
+                                ahead ? 'bg-fg' : 'bg-caption'
+                              }`}
+                              style={{ inlineSize: `${Math.round(share * 100)}%` }}
+                            />
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               );
             })}
@@ -400,6 +510,28 @@ export default async function ComparePlayersPage({
           <Translated locale={locale} message="compare.footnote" />
         </p>
       </section>
+
+      <p className="flex flex-wrap gap-x-4 text-sm">
+        <Link
+          href={compareHref(locale, pageB.person.id, pageA.person.id, scope)}
+          className="inline-flex min-h-touch items-center underline md:min-h-0"
+        >
+          <Translated locale={locale} message="compare.swap" />
+        </Link>
+        <Link
+          href={pickerAction}
+          className="inline-flex min-h-touch items-center underline md:min-h-0"
+          data-testid="compare-change"
+        >
+          {say(locale, 'compare.another', { name: nameA })}
+        </Link>
+      </p>
+
+      <dl className="grid grid-cols-2 gap-3 text-sm" data-testid="compare-players">
+        {[pageA, pageB].map((page) => (
+          <Identity key={page.person.id} page={page} locale={locale} />
+        ))}
+      </dl>
 
       <p className="text-xs text-muted">
         {[pageA, pageB].map((page, i) => (

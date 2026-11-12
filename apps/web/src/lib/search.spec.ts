@@ -1,10 +1,18 @@
-import { SEARCH_TYPES, type SearchEntityType, type SearchResult } from '@fmip/contracts';
+import {
+  type CompetitionDirectoryEntry,
+  NO_MEDIA,
+  SEARCH_TYPES,
+  type ScoresResponse,
+  type SearchEntityType,
+  type SearchResult,
+} from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import { imageClasses } from '@/components/entity-image';
 import {
   RESULT_IMAGE_KIND,
-  SECTION_EMPTY_KEY,
+  SECTION_NONE_KEY,
   SECTION_TITLE_KEY,
+  TODAY_CHIPS,
   apiQuery,
   communityQuery,
   entityQuery,
@@ -13,9 +21,13 @@ import {
   keywordsAsAsked,
   matchNote,
   memberHref,
+  noneLine,
   ofType,
   readSearchTerm,
   resultHref,
+  resultLine,
+  searchChips,
+  splitSections,
 } from './search';
 
 describe("a result's image (T-1617)", () => {
@@ -73,12 +85,12 @@ describe('search helpers', () => {
     expect(ofType(results, 'competition')).toEqual([]);
   });
 
-  it('gives every kind a heading and its own empty sentence', () => {
+  it('gives every kind a heading and its own word for the line of kinds with none', () => {
     for (const type of SEARCH_TYPES) {
       expect(SECTION_TITLE_KEY[type]).toBe(`search.section.${type}`);
-      expect(SECTION_EMPTY_KEY[type]).toBe(`search.empty.${type}`);
+      expect(SECTION_NONE_KEY[type]).toBe(`search.none.${type}`);
     }
-    expect(new Set(Object.values(SECTION_EMPTY_KEY)).size).toBe(SEARCH_TYPES.length);
+    expect(new Set(Object.values(SECTION_NONE_KEY)).size).toBe(SEARCH_TYPES.length);
   });
 
   it('sends a group to its page by slug and a member to their profile', () => {
@@ -116,5 +128,120 @@ describe('keywords instead of a refused question (T-838)', () => {
       reason: null,
       results: [hit],
     });
+  });
+});
+
+describe('telling results apart and saying less when nothing matches (T-1803, D-401)', () => {
+  const team = (over: Partial<SearchResult> = {}): SearchResult => ({
+    type: 'team',
+    id: 't',
+    name: 'Arsenal',
+    secondary: null,
+    matched_on: 'name',
+    alias: null,
+    score: 1,
+    ...over,
+  });
+  const ground = { id: 'g', name: 'Emirates Stadium', city: 'London' };
+  const league = { id: 'l', name: 'Premier League' };
+
+  it("names a team's league, else its ground's town, else says it holds neither", () => {
+    expect(resultLine('en', team({ team_context: { league, ground } }))).toEqual([
+      'Premier League',
+    ]);
+    expect(
+      resultLine('en', team({ team_context: { league: null, ground: { ...ground, city: null } } })),
+    ).toEqual(['Emirates Stadium']);
+    expect(resultLine('en', team({ team_context: { league: null, ground } }))).toEqual(['London']);
+    expect(resultLine('en', team({ team_context: { league: null, ground: null } }))).toEqual([
+      'No league or ground on record',
+    ]);
+    expect(resultLine('fa', team({ team_context: { league: null, ground: null } }))).toEqual([
+      'لیگ یا ورزشگاهی ثبت نشده',
+    ]);
+  });
+
+  it('keeps the country first, and says nothing it was not told by an older answer', () => {
+    expect(
+      resultLine('en', team({ secondary: 'England', team_context: { league, ground: null } })),
+    ).toEqual(['England', 'Premier League']);
+    // No `team_context` at all: an API older than T-1803, so no claim either way.
+    expect(resultLine('en', team())).toEqual([]);
+    expect(resultLine('en', team({ secondary: 'England' }))).toEqual(['England']);
+    expect(
+      resultLine('en', team({ type: 'person', secondary: 'Arsenal', name: 'Bukayo Saka' })),
+    ).toEqual(['Arsenal']);
+  });
+
+  it('keeps a section only for a kind that found something', () => {
+    expect(
+      splitSections([
+        { type: 'team', count: 4 },
+        { type: 'competition', count: 0 },
+        { type: 'person', count: 0 },
+        { type: 'story', count: 10 },
+        { type: 'group', count: 0 },
+        { type: 'member', count: 0 },
+      ]),
+    ).toEqual({ shown: ['team', 'story'], none: ['competition', 'person', 'group', 'member'] });
+  });
+
+  it('names every kind with no hit in one line, in the reader’s language', () => {
+    expect(noneLine('en', [])).toBeNull();
+    expect(noneLine('en', ['competition', 'person', 'group', 'member'])).toBe(
+      'No competitions, players, groups, or members match.',
+    );
+    expect(noneLine('en', ['member'])).toBe('No members match.');
+    const fa = noneLine('fa', ['competition', 'person']);
+    expect(fa).toContain('رقابتی');
+    expect(fa).toContain('بازیکنی');
+    expect(fa).toMatch(/پیدا نشد\.$/);
+  });
+
+  it('offers the big five and the competitions playing today, from our own lists only', () => {
+    const entry = (
+      id: string,
+      code: string | null,
+      kind: CompetitionDirectoryEntry['kind'] = 'league',
+      order: number | null = null,
+    ): CompetitionDirectoryEntry => ({
+      id,
+      name: id,
+      short_name: null,
+      scope: 'domestic',
+      kind,
+      country: code === null ? null : { id: code, name: code, code },
+      order,
+      logo: NO_MEDIA,
+      season: null,
+      next_kickoff_at: null,
+    });
+    const directory = [
+      entry('Premier League', 'ENG', 'league', 1),
+      entry('Championship', 'ENG', 'league', 2),
+      entry('La Liga', 'ESP', 'league', 3),
+      entry('Copa del Rey', 'ESP', 'cup'),
+    ];
+    const scores = {
+      groups: [
+        { competition: { id: 'Copa del Rey' }, fixtures: [{}] },
+        { competition: { id: 'Championship' }, fixtures: [] },
+      ],
+    } as unknown as ScoresResponse;
+    const chips = searchChips(directory, scores, 'en');
+    expect(chips.bigFive.map((c) => c.id)).toEqual(['Premier League', 'La Liga']);
+    expect(chips.today?.map((c) => c.id)).toEqual(['Copa del Rey']);
+    expect(chips.more).toBe(false);
+    // No scores: no "Playing today" at all rather than an empty one (rule 3).
+    expect(searchChips(directory, null, 'en').today).toBeNull();
+    expect(searchChips(null, scores, 'en')).toEqual({ bigFive: [], today: null, more: false });
+    // A long day is cut short, and says so.
+    const many = Array.from({ length: TODAY_CHIPS + 3 }, (_, i) => entry(`Cup ${i}`, 'BRA', 'cup'));
+    const busy = {
+      groups: many.map((c) => ({ competition: { id: c.id }, fixtures: [{}] })),
+    } as unknown as ScoresResponse;
+    const cut = searchChips(many, busy, 'en');
+    expect(cut.today).toHaveLength(TODAY_CHIPS);
+    expect(cut.more).toBe(true);
   });
 });

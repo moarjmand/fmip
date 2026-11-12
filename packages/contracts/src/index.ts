@@ -650,6 +650,7 @@ export type {
   SearchEntityType,
   SearchResponse,
   SearchResult,
+  SearchTeamContext,
   SearchType,
   StorySearchResult,
 } from './search';

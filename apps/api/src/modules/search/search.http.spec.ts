@@ -161,6 +161,56 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
     }
   });
 
+  it("names each team's domestic league and ground, and says when it holds neither (T-1803)", async () => {
+    const season = randomUUID();
+    const stage = randomUUID();
+    const venue = randomUUID();
+    const match = randomUUID();
+    await pool.query(
+      `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+       VALUES ($1, $2, '2026/27', DATE '2026-08-01', DATE '2027-05-31', true)`,
+      [season, COMPETITION],
+    );
+    await pool.query(
+      `INSERT INTO stage (id, season_id, name, kind, sort_order) VALUES ($1, $2, 'Regular season', 'league', 1)`,
+      [stage, season],
+    );
+    await pool.query(`INSERT INTO venue (id, name, city) VALUES ($1, $2, 'Zebraton')`, [
+      venue,
+      `Zebra Park ${RUN}`,
+    ]);
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, stage_id, kickoff_at, status, venue_id)
+       VALUES ($1, $2, $3, TIMESTAMPTZ '2026-09-01T15:00:00Z', 'finished', $4)`,
+      [match, season, stage, venue],
+    );
+    await pool.query(
+      `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+      [match, TEAM, OTHER_TEAM],
+    );
+    try {
+      const found = ours(await search('q=zeb&types=team,person&limit=25'));
+      const league = { id: COMPETITION, name: `Zebra Quarterly League ${RUN}` };
+      // No ground recorded for the team: the one its home match names (D-209).
+      expect(found.find((r) => r.id === TEAM)?.team_context).toEqual({
+        league,
+        ground: { id: venue, name: `Zebra Park ${RUN}`, city: 'Zebraton' },
+      });
+      // Its only match is away: a league, and no ground on record.
+      expect(found.find((r) => r.id === OTHER_TEAM)?.team_context).toEqual({
+        league,
+        ground: null,
+      });
+      expect(found.find((r) => r.id === PERSON)).not.toHaveProperty('team_context');
+    } finally {
+      await pool.query(`DELETE FROM fixture_participant WHERE fixture_id = $1`, [match]);
+      await pool.query(`DELETE FROM fixture WHERE id = $1`, [match]);
+      await pool.query(`DELETE FROM venue WHERE id = $1`, [venue]);
+      await pool.query(`DELETE FROM stage WHERE id = $1`, [stage]);
+      await pool.query(`DELETE FROM season WHERE id = $1`, [season]);
+    }
+  });
+
   it('finds a person stored in full by the short form the feed printed, kept as an alias (T-1398)', async () => {
     const results = ours(await search(`q=${encodeURIComponent(`Q. Ravensworth${RUN}`)}`));
     expect(results[0]).toMatchObject({

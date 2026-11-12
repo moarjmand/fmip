@@ -1,6 +1,8 @@
 import type {
   AskResponse,
+  CompetitionDirectoryEntry,
   GroupSearchResult,
+  ScoresResponse,
   SearchResponse,
   SearchEntityType,
   SearchResult,
@@ -8,8 +10,9 @@ import type {
 } from '@fmip/contracts';
 import { SEARCH_COMMUNITY_TYPES, SEARCH_ENTITY_TYPES } from '@fmip/contracts';
 import type { EntityImageKind } from '@/components/entity-image';
-import type { MessageKey } from '@/i18n/messages';
-import { say } from '@/lib/competition';
+import { type MessageKey, interpolate, message } from '@/i18n/messages';
+import { pageLocale, say } from '@/lib/competition';
+import { menuGroups, todayGroups } from '@/lib/competitions-menu';
 
 /** Which image a result of each kind carries (T-1617): a team's crest, a competition's logo, a person's photo. */
 export const RESULT_IMAGE_KIND: Record<SearchEntityType, EntityImageKind> = {
@@ -48,12 +51,6 @@ export function resultHref(locale: string, result: Pick<SearchResult, 'type' | '
   };
   return `/${locale}/${path[result.type]}/${encodeURIComponent(result.id)}`;
 }
-
-export const TYPE_KEY: Record<SearchEntityType, MessageKey> = {
-  team: 'searchPage.type.team',
-  competition: 'searchPage.type.competition',
-  person: 'searchPage.type.person',
-};
 
 /** "also known as The Zebras" when an alias matched, else null. */
 export function matchNote(
@@ -134,15 +131,96 @@ export const SECTION_TITLE_KEY: Record<SearchType, MessageKey> = {
   member: 'search.section.member',
 };
 
-/** Each section's own sentence for nothing found; the community ones say who is never listed. */
-export const SECTION_EMPTY_KEY: Record<SearchType, MessageKey> = {
-  team: 'search.empty.team',
-  competition: 'search.empty.competition',
-  person: 'search.empty.person',
-  story: 'search.empty.story',
-  group: 'search.empty.group',
-  member: 'search.empty.member',
+/**
+ * Each kind as a word in the one line that names every kind with no hit
+ * (T-1803, D-401): "No competitions, players, groups or members match."
+ */
+export const SECTION_NONE_KEY: Record<SearchType, MessageKey> = {
+  team: 'search.none.team',
+  competition: 'search.none.competition',
+  person: 'search.none.person',
+  story: 'search.none.story',
+  group: 'search.none.group',
+  member: 'search.none.member',
 };
+
+/**
+ * The page's sections split by whether anything was found (T-1803, D-401):
+ * the kinds with hits keep their section, in the page's order; the kinds
+ * with none are named together in one line instead of a heading each.
+ */
+export function splitSections(counts: readonly { type: SearchType; count: number }[]): {
+  shown: SearchType[];
+  none: SearchType[];
+} {
+  return {
+    shown: counts.filter((c) => c.count > 0).map((c) => c.type),
+    none: counts.filter((c) => c.count === 0).map((c) => c.type),
+  };
+}
+
+/**
+ * "No competitions, players, groups or members match.": the kinds' words in
+ * the line's own language, joined as that language joins a list of
+ * alternatives. Null when every kind found something.
+ */
+export function noneLine(locale: string, none: readonly SearchType[]): string | null {
+  if (none.length === 0) return null;
+  const lang = pageLocale(locale);
+  const template = message(lang, 'search.none');
+  const kinds = none.map((type) => message(lang, SECTION_NONE_KEY[type]));
+  // The list is joined in the words' language, so an untranslated line reads
+  // as English throughout rather than English words joined in Persian.
+  const listLang = [template, ...kinds].every((m) => m.status === 'translated') ? lang : 'en';
+  const list = new Intl.ListFormat(listLang, { type: 'disjunction' }).format(
+    kinds.map((k) => k.text),
+  );
+  return interpolate(template.text, { kinds: list });
+}
+
+/**
+ * The second line under a team result (T-1803, D-401), as parts joined with
+ * " · ": its country when the API names one, then its domestic league, else
+ * its ground's town (the ground's name when no town is recorded), else
+ * "No league or ground on record" -- said only because the API says it holds
+ * neither. A competition or a person keeps the API's `secondary` as it is,
+ * and so does a team from an answer older than T-1803.
+ */
+export function resultLine(
+  locale: string,
+  hit: Pick<SearchResult, 'type' | 'secondary' | 'team_context'>,
+): string[] {
+  const country = hit.secondary === null ? [] : [hit.secondary];
+  if (hit.type !== 'team' || hit.team_context === undefined) return country;
+  const { league, ground } = hit.team_context;
+  const place =
+    league?.name ?? ground?.city ?? ground?.name ?? say(locale, 'searchPage.noLeagueOrGround');
+  return [...country, place];
+}
+
+/** How many chips "Playing today" shows before it hands over to the competitions page. */
+export const TODAY_CHIPS = 12;
+
+/**
+ * The empty page's two chip lists (T-1803, D-401), from the site's own
+ * lists only: the competitions menu's big five, and the competitions with a
+ * match today in the reader's zone, in the menu's order. A list we cannot
+ * read is absent, never drawn empty (rule 3); `more` says "Playing today" was
+ * cut short.
+ */
+export function searchChips<T extends CompetitionDirectoryEntry>(
+  directory: readonly T[] | null,
+  scores: ScoresResponse | null,
+  locale: string,
+): { bigFive: T[]; today: T[] | null; more: boolean } {
+  if (directory === null) return { bigFive: [], today: null, more: false };
+  const groups = menuGroups(directory, locale);
+  const bigFive = groups.find((g) => g.region === 'big-five')?.competitions ?? [];
+  if (scores === null) return { bigFive, today: null, more: false };
+  const playing = todayGroups(scores);
+  const today = groups.flatMap((g) => g.competitions).filter((c) => playing.has(c.id));
+  return { bigFive, today: today.slice(0, TODAY_CHIPS), more: today.length > TODAY_CHIPS };
+}
 
 export const GROUP_VISIBILITY_KEY: Record<GroupSearchResult['visibility'], MessageKey> = {
   public: 'search.group.public',
