@@ -13,6 +13,7 @@ import { MatchAlertsService } from '../match-alerts/match-alerts.service';
 import { CoverageService } from './coverage.service';
 import { IngestionJobsService } from './ingestion-jobs.service';
 import { IngestionModule } from './ingestion.module';
+import { currentBudgetTier } from './internal/budget-tier';
 import { IngestStore, type RefResolver } from './internal/ingest-store';
 import { INGESTION_SOURCES, type IngestionSources } from './internal/sources';
 
@@ -817,6 +818,368 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
     const report = await jobs.live(AFTER_KICKOFF);
     expect(report.itemsSeen).toBe(0);
     expect(report.itemsWritten).toBe(0);
+  });
+
+  /**
+   * T-1782 (D-382). The live list carries no statistics, so the live job asks
+   * a match the list says is in play for its detail, at most once every
+   * `LIVE_DETAIL_MINUTES`. The list here is the recorded Burnley v City
+   * answer marked live, at 1-4 in the 60th minute; the detail is its
+   * recording (finished, 0-3).
+   */
+  describe('the statistics of the matches in play (T-1782)', () => {
+    type Adapter = NonNullable<ReturnType<IngestionSources['forJob']>>['adapter'];
+    interface Stub {
+      /** Each detail ask: the provider id and its budget tier. */
+      details: { id: string; tier: string }[];
+      listTier: string[];
+      /** The order of the calls the tick made: `detail` and `dispatch`. */
+      calls: string[];
+      restore: () => void;
+    }
+
+    /**
+     * The live list answers `externalIds` as in play, carrying an empty
+     * incident list unless `listIncidents` is false (then none at all); each
+     * detail is the recording, without its statistics when `detailStats` is false.
+     */
+    function stubLive(
+      externalIds: string[],
+      { listIncidents = true, detailStats = true } = {},
+    ): Stub {
+      const forJob = sources.forJob;
+      const stub: Stub = { details: [], listTier: [], calls: [], restore: () => {} };
+      const dispatch = vi.spyOn(alerts, 'dispatch').mockImplementation(async () => {
+        stub.calls.push('dispatch');
+      });
+      sources.forJob = (job) => {
+        const source = forJob.call(sources, job);
+        if (source === null) return null;
+        const adapter = Object.create(source.adapter) as Adapter;
+        adapter.getLive = async () => {
+          stub.listTier.push(currentBudgetTier());
+          const recorded = await source.adapter.getFixtureDetail('1035037');
+          if (!recorded.ok) return recorded;
+          const live = {
+            ...recorded.data.fixture,
+            status: 'live' as const,
+            minute: 60,
+            scores: {
+              ...recorded.data.fixture.scores,
+              current: { home: 1, away: 4 },
+              fullTime: null,
+            },
+          };
+          return {
+            ok: true,
+            data: externalIds.map((externalId) => ({
+              ...live,
+              externalId,
+              halfTimeBreak: false,
+              ...(listIncidents ? { incidents: [] } : {}),
+            })),
+            requests: 1,
+            fetchedAt: recorded.fetchedAt,
+          };
+        };
+        adapter.getFixtureDetail = async (id: string) => {
+          stub.calls.push('detail');
+          stub.details.push({ id, tier: currentBudgetTier() });
+          const recorded = await source.adapter.getFixtureDetail('1035037');
+          return detailStats || !recorded.ok
+            ? recorded
+            : { ...recorded, data: { ...recorded.data, statistics: [] } };
+        };
+        return { ...source, adapter };
+      };
+      stub.restore = () => {
+        sources.forJob = forJob;
+        dispatch.mockRestore();
+      };
+      return stub;
+    }
+
+    const tick = (minutes: number) =>
+      jobs.live(new Date(AFTER_KICKOFF.getTime() + minutes * 60_000));
+
+    async function burnleyCity(): Promise<string> {
+      const { rows } = await pool.query<{ id: string }>(
+        `SELECT f.id FROM fixture f
+           JOIN provider_mapping pm
+             ON pm.internal_id = f.id AND pm.provider = 'api_football' AND pm.entity_type = 'fixture'
+          WHERE f.season_id = $1 AND pm.external_id = '1035037'`,
+        [SEASON],
+      );
+      const id = rows[0]?.id ?? '';
+      expect(id).not.toBe('');
+      return id;
+    }
+
+    /** `n` more matches of the same pairing in play, mapped to `91782nn`; removed by `drop`. */
+    async function inPlayMatches(
+      n: number,
+      from = 0,
+    ): Promise<{ ids: string[]; drop: () => Promise<void> }> {
+      const ids: string[] = [];
+      const fixtures: string[] = [];
+      for (let i = from; i < from + n; i += 1) {
+        const fixtureId = randomUUID();
+        const externalId = `91782${String(i).padStart(2, '0')}`;
+        await pool.query(
+          `INSERT INTO fixture (id, season_id, stage_id, round, kickoff_at, status, minute)
+           VALUES ($1, $2, $3, 'Regular Season - 1', $4, 'live', 60)`,
+          [fixtureId, SEASON, STAGE, KICKOFF],
+        );
+        await pool.query(
+          `INSERT INTO fixture_participant (fixture_id, team_id, side)
+           VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+          [fixtureId, BURNLEY, CITY],
+        );
+        await pool.query(
+          `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+           VALUES ('api_football', 'fixture', $1, $2)`,
+          [externalId, fixtureId],
+        );
+        ids.push(externalId);
+        fixtures.push(fixtureId);
+      }
+      return {
+        ids,
+        drop: async () => {
+          await pool.query(
+            `DELETE FROM provider_mapping
+              WHERE provider = 'api_football' AND internal_id = ANY($1::uuid[])`,
+            [fixtures],
+          );
+          await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+        },
+      };
+    }
+
+    it('asks a match in play every few minutes on the standard tier, and leaves its score, clock and state to the list', async () => {
+      const fixtureId = await burnleyCity();
+      await pool.query(`UPDATE fixture SET status = 'live', minute = 60 WHERE id = $1`, [
+        fixtureId,
+      ]);
+      await pool.query(
+        `DELETE FROM fixture_stat WHERE participant_id IN
+           (SELECT id FROM fixture_participant WHERE fixture_id = $1)`,
+        [fixtureId],
+      );
+      const statRows = (): Promise<number> =>
+        count(
+          `SELECT count(*) AS n FROM fixture_stat s
+             JOIN fixture_participant p ON p.id = s.participant_id WHERE p.fixture_id = $1`,
+          [fixtureId],
+        );
+      const held = async () =>
+        (
+          await pool.query<{ status: string; minute: number | null; home: number; away: number }>(
+            `SELECT f.status, f.minute, sc.home, sc.away FROM fixture f
+               JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'current'
+              WHERE f.id = $1`,
+            [fixtureId],
+          )
+        ).rows[0];
+      const stub = stubLive(['1035037']);
+      try {
+        const first = await tick(0);
+        expect(stub.details.map((d) => d.id)).toEqual(['1035037']);
+        // The detail on its own tier, the list on the live job's.
+        expect(stub.details[0]?.tier).toBe('standard');
+        expect(stub.listTier).toEqual(['critical']);
+        // The list's match and the detail asked about it.
+        expect(first.itemsSeen).toBe(2);
+        expect(await statRows()).toBeGreaterThan(0);
+        // The detail says finished at 0-3; the list said live, 60th minute, 1-4.
+        expect(await held()).toEqual({ status: 'live', minute: 60, home: 1, away: 4 });
+
+        // A minute on: the list is read, the detail is not.
+        await tick(1);
+        expect(stub.details).toHaveLength(1);
+
+        // Three minutes after the first ask it is asked again.
+        await tick(3);
+        expect(stub.details.map((d) => d.id)).toEqual(['1035037', '1035037']);
+      } finally {
+        stub.restore();
+        await pool.query(`UPDATE fixture SET status = 'finished', minute = NULL WHERE id = $1`, [
+          fixtureId,
+        ]);
+      }
+    });
+
+    it('sends the list’s alerts before the first ask and each ask’s right after it, at most 15 a tick', async () => {
+      const more = await inPlayMatches(16);
+      const stub = stubLive(more.ids);
+      try {
+        await tick(10);
+        expect(stub.details).toHaveLength(15);
+        // dispatch (the list's), then detail, dispatch, detail, dispatch ...
+        expect(stub.calls[0]).toBe('dispatch');
+        expect(stub.calls.slice(1, 31)).toEqual(
+          Array.from({ length: 15 }, () => ['detail', 'dispatch']).flat(),
+        );
+        // The one left over is first on the next tick, and the rest are not due.
+        const left = more.ids.filter((id) => !stub.details.some((d) => d.id === id));
+        expect(left).toHaveLength(1);
+        stub.details.length = 0;
+        await tick(11);
+        expect(stub.details.map((d) => d.id)).toEqual(left);
+      } finally {
+        stub.restore();
+        await more.drop();
+      }
+    });
+
+    /** R3: the incidents of a match in play are the list's whenever it carries any. */
+    it('writes a match in play’s incidents from its detail only when the list carries none', async () => {
+      const more = await inPlayMatches(1, 20);
+      const [match] = more.ids as [string];
+      const incidents = () =>
+        count(
+          `SELECT count(*) AS n FROM incident i
+             JOIN provider_mapping pm
+               ON pm.internal_id = i.fixture_id AND pm.provider = 'api_football'
+              AND pm.entity_type = 'fixture'
+            WHERE pm.external_id = $1`,
+          [match],
+        );
+      let stub = stubLive([match]);
+      try {
+        // The list carries an (empty) incident list: the detail's are not written.
+        await tick(40);
+        expect(stub.details.map((d) => d.id)).toEqual([match]);
+        expect(await incidents()).toBe(0);
+        stub.restore();
+        // Three minutes on, the list carries none: the detail's are.
+        stub = stubLive([match], { listIncidents: false });
+        await tick(43);
+        expect(stub.details.map((d) => d.id)).toEqual([match]);
+        expect(await incidents()).toBeGreaterThan(0);
+      } finally {
+        stub.restore();
+        await more.drop();
+      }
+    });
+
+    /**
+     * R1 and R2: an ask in play moves the statistics' time only when its
+     * answer carried statistics, and never marks the after-the-whistle detail
+     * asked, so a match whose ask at full time failed is still owed it.
+     */
+    it('moves the stats time only for an answer with statistics, and leaves the match owed its detail', async () => {
+      const more = await inPlayMatches(1, 30);
+      const [match] = more.ids as [string];
+      const { rows } = await pool.query<{ internal_id: string }>(
+        `SELECT internal_id FROM provider_mapping
+          WHERE provider = 'api_football' AND entity_type = 'fixture' AND external_id = $1`,
+        [match],
+      );
+      const fixtureId = rows[0]?.internal_id;
+      const checkedAt = async () =>
+        (
+          await pool.query<{ checked_at: Date }>(
+            `SELECT checked_at FROM fixture_stat_check WHERE fixture_id = $1`,
+            [fixtureId],
+          )
+        ).rows[0]?.checked_at.toISOString() ?? null;
+      const fetched = () =>
+        count(`SELECT count(*) AS n FROM fixture_detail_fetch WHERE fixture_id = $1`, [fixtureId]);
+      let stub = stubLive([match]);
+      try {
+        await tick(50);
+        const first = await checkedAt();
+        expect(first).not.toBeNull();
+        expect(await fetched()).toBe(0);
+        stub.restore();
+
+        // Three minutes on, the answer has no statistics: the time stays.
+        stub = stubLive([match], { detailStats: false });
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        await tick(53);
+        expect(stub.details).toHaveLength(1);
+        expect(await checkedAt()).toBe(first);
+        stub.restore();
+
+        // At full time, its after-the-whistle ask never made, the backlog owes it.
+        stub = stubLive([]);
+        await pool.query(`UPDATE fixture SET status = 'finished', minute = NULL WHERE id = $1`, [
+          fixtureId,
+        ]);
+        await jobs.postMatch(new Date(AFTER_KICKOFF.getTime() + 2 * 24 * 60 * 60_000));
+        expect(stub.details.map((d) => d.id)).toContain(match);
+        expect(await fetched()).toBe(1);
+      } finally {
+        stub.restore();
+        await more.drop();
+      }
+    });
+
+    it('asks nothing past the standard tier’s share of the day, and does not call the run partial for it', async () => {
+      const more = await inPlayMatches(2);
+      const stub = stubLive(more.ids);
+      const budget = sources.dailyBudget;
+      sources.dailyBudget = 100;
+      const run = randomUUID();
+      // 95 requests today: the standard tier stops at 90 of 100.
+      await pool.query(
+        `INSERT INTO ingest_run (id, provider, job, status, started_at, finished_at, requests)
+         VALUES ($1, 'api_football', 'fixtures', 'succeeded', now(), now(), 95)`,
+        [run],
+      );
+      try {
+        const report = await tick(30);
+        expect(stub.details).toEqual([]);
+        // The list was still read and written.
+        expect(stub.listTier).toEqual(['critical']);
+        expect(report.itemsSeen).toBe(2);
+        expect(report.partial).toBeUndefined();
+      } finally {
+        sources.dailyBudget = budget;
+        stub.restore();
+        await pool.query(`DELETE FROM ingest_run WHERE id = $1`, [run]);
+        await more.drop();
+      }
+    });
+
+    it('leaves a match in play to the live job while it asks, and asks it as before when off', async () => {
+      const fixtureId = await burnleyCity();
+      const forJob = sources.forJob;
+      const asked: string[] = [];
+      sources.forJob = (job) => {
+        const source = forJob.call(sources, job);
+        if (source === null) return null;
+        const adapter = Object.create(source.adapter) as Adapter;
+        adapter.getFixtureDetail = (id: string) => {
+          asked.push(id);
+          return source.adapter.getFixtureDetail(id);
+        };
+        return { ...source, adapter };
+      };
+      const switchable = jobs as unknown as { liveDetailMinutes: number };
+      const minutes = switchable.liveDetailMinutes;
+      try {
+        await pool.query(`UPDATE fixture SET status = 'live', minute = 60 WHERE id = $1`, [
+          fixtureId,
+        ]);
+        await jobs.postMatch(AFTER_KICKOFF);
+        expect(asked).not.toContain('1035037');
+
+        switchable.liveDetailMinutes = 0;
+        await pool.query(`UPDATE fixture SET status = 'live', minute = 60 WHERE id = $1`, [
+          fixtureId,
+        ]);
+        await jobs.postMatch(AFTER_KICKOFF);
+        expect(asked).toContain('1035037');
+      } finally {
+        switchable.liveDetailMinutes = minutes;
+        sources.forJob = forJob;
+        await pool.query(`UPDATE fixture SET status = 'finished', minute = NULL WHERE id = $1`, [
+          fixtureId,
+        ]);
+      }
+    });
   });
 
   it('reads the provider table as a check on ours and names what is behind', async () => {

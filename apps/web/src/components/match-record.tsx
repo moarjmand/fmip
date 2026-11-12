@@ -5,16 +5,20 @@ import type {
   FormEntry,
   MatchCentre,
 } from '@fmip/contracts';
-import { formatDate } from '@/i18n/format';
-import type { Message } from '@/i18n/messages';
+import { Fragment } from 'react';
+import { formatDate, formatNumber } from '@/i18n/format';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
+import { type Message, type MessageKey, message, t } from '@/i18n/messages';
 import { NOT_YET } from '@/lib/match';
 import { filled } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
 import { COVERAGE_KEY, Card, Module } from '@/components/match-centre-cards';
 import { MessageText } from '@/components/message-text';
+import { ProductRow } from '@/components/product-row';
 import { Score } from '@/components/score';
-import { CoverageBadge } from '@/components/ui/coverage-badge';
+import { Translated } from '@/components/translated';
+import { CoverageBadge, CoverageGlyph } from '@/components/ui/coverage-badge';
 
 /**
  * The parts of the match centre that do not move during a match (T-1384,
@@ -105,48 +109,124 @@ function winner(score: { home: number; away: number }, side: 'home' | 'away'): s
 
 /**
  * The data footer (the canvas's "Data on this page", T-1497): the season's
- * declared coverage per module, each with its badge, on a dashed card in the
- * receipts' type, at the foot of every tab.
+ * declared coverage per module, said once (T-1776, D-384; board P6-3). When
+ * every module is available it is one folded 48px line, "All 7 available
+ * this season", the count from the data, and opened it names them. When any
+ * is limited, delayed or not supplied the line is the exception instead:
+ * each such state as its badge (a glyph and a word, rule 3), "6 of 7
+ * available", and behind the tap each such module with its state and why,
+ * then the available ones. The repetition of the good news is what goes,
+ * never a state: the API still sends one per module, and a module header
+ * keeps its badge whenever its state is not "available". A native
+ * `<details>` (`ProductRow` folded), so no client JavaScript.
  */
-export function Coverage({ centre, words }: { centre: MatchCentre; words: MatchWords }) {
+export function Coverage({
+  centre,
+  words,
+  locale,
+}: {
+  centre: MatchCentre;
+  words: MatchWords;
+  locale: string;
+}) {
   const m = words.m;
+  const l = asLocale(locale);
   const moduleState = (coverage: CoverageState): Message => m[COVERAGE_KEY[coverage]];
+  const entries = Object.entries(centre.coverage) as [CoverageModule, CoverageState][];
+  const available = entries.filter(([, state]) => state === 'available');
+  const exceptions = entries.filter(
+    (entry): entry is [CoverageModule, Exclude<CoverageState, 'available'>] =>
+      entry[1] !== 'available',
+  );
+  const states = [...new Set(exceptions.map(([, state]) => state))];
+  const count = formatNumber(l, entries.length);
+  const separator = t(l, 'shared.listSeparator');
   return (
-    <section
-      className="flex min-w-0 flex-col gap-2.5 rounded-card border border-dashed border-default p-4"
-      data-testid="coverage"
-    >
-      <h2 className="font-mono text-xs font-semibold text-muted uppercase [:root:is(:lang(fa),:lang(ar))_&]:font-sans">
-        <MessageText message={m['matchCentre.coverage']} />
-      </h2>
-      <ul className="flex flex-wrap gap-1.5 text-xs">
-        {(Object.entries(centre.coverage) as [CoverageModule, CoverageState][]).map(
-          ([module, state]) => (
-            <li
-              key={module}
-              dir="auto"
-              className="inline-flex items-center gap-2 rounded-control border border-default px-2 py-1"
-              data-coverage={state}
-            >
-              {/* The sentence for a screen reader and a search; the badge for the eye (T-1388). */}
-              <span className="sr-only">
-                <MessageText
-                  message={filled(m['matchCentre.moduleCoverage'], {
-                    module: m[MODULE_KEY[module]].text,
-                    state: moduleState(state).text,
-                  })}
+    <>
+      <ProductRow
+        folded
+        labelledBy="match-coverage-title"
+        testId="coverage"
+        state={exceptions.length === 0 ? 'available' : 'exception'}
+        name={
+          <h2
+            id="match-coverage-title"
+            className="flex min-w-0 items-center gap-2 text-sm font-semibold text-fg"
+          >
+            {exceptions.length === 0 && (
+              <span className="text-caption">
+                <CoverageGlyph state="available" />
+              </span>
+            )}
+            {/* The block's name for a screen reader; the line says the rest. */}
+            <span className="sr-only">
+              <MessageText message={m['matchCentre.coverage']} />
+              {': '}
+            </span>
+            <span dir="auto">
+              {exceptions.length === 0 ? (
+                <FilledMessage
+                  message={message(l, 'matchCentre.coverage.all')}
+                  params={{ count }}
                 />
-              </span>
-              <span aria-hidden="true">
-                <MessageText message={m[MODULE_KEY[module]]} />
-              </span>
-              <span aria-hidden="true">
-                <CoverageBadge state={state} label={<MessageText message={moduleState(state)} />} />
-              </span>
-            </li>
-          ),
+              ) : (
+                <FilledMessage
+                  message={message(l, 'matchCentre.coverage.some')}
+                  params={{ available: formatNumber(l, available.length), count }}
+                />
+              )}
+            </span>
+          </h2>
+        }
+        status={
+          states.length === 0 ? undefined : (
+            <span className="flex flex-wrap justify-end gap-1">
+              {states.map((state) => (
+                <CoverageBadge
+                  key={state}
+                  state={state}
+                  label={<MessageText message={moduleState(state)} />}
+                />
+              ))}
+            </span>
+          )
+        }
+      >
+        {exceptions.length > 0 && (
+          <ul className="flex flex-col gap-1" data-testid="coverage-exceptions">
+            {exceptions.map(([module, state]) => (
+              <li key={module} dir="auto" data-coverage={state}>
+                <b className="font-semibold text-fg">
+                  <MessageText
+                    message={filled(m['matchCentre.moduleCoverage'], {
+                      module: m[MODULE_KEY[module]].text,
+                      state: moduleState(state).text,
+                    })}
+                  />
+                </b>
+                {' · '}
+                <Translated locale={l} message={WHY[state]} />
+              </li>
+            ))}
+          </ul>
         )}
-      </ul>
+        {available.length > 0 && (
+          <p dir="auto" data-testid="coverage-available">
+            {exceptions.length > 0 && (
+              <>
+                <MessageText message={moduleState('available')} />
+                {': '}
+              </>
+            )}
+            {available.map(([module], index) => (
+              <Fragment key={module}>
+                {index > 0 && separator}
+                <MessageText message={m[MODULE_KEY[module]]} />
+              </Fragment>
+            ))}
+          </p>
+        )}
+      </ProductRow>
       {/* Blueprint 4.2 modules not built yet, named rather than hidden (empty now). */}
       {NOT_YET.length > 0 && (
         <ul className="flex flex-wrap gap-2 text-xs text-muted" data-testid="not-yet">
@@ -157,8 +237,19 @@ export function Coverage({ centre, words }: { centre: MatchCentre; words: MatchW
           ))}
         </ul>
       )}
-    </section>
+    </>
   );
+}
+
+/** Why a module of the season is not available, behind the coverage line (D-384). */
+const WHY = {
+  limited: 'matchCentre.coming.limitedWhy',
+  delayed: 'matchCentre.moduleDelayed',
+  not_supplied: 'matchCentre.coverage.notSuppliedWhy',
+} as const satisfies Record<Exclude<CoverageState, 'available'>, MessageKey>;
+
+function asLocale(locale: string): Locale {
+  return isLocale(locale) ? locale : DEFAULT_LOCALE;
 }
 
 /** "13 Sept 2026" in the viewer's zone. */

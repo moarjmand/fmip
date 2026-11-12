@@ -365,6 +365,15 @@ export type MatchAbsenceGap = 'not_covered' | 'not_yet' | 'not_asked';
 export const AVAILABILITY_STALE_AFTER_MS = 6 * 60 * 60 * 1000;
 
 /**
+ * How old a live match's team statistics may be before the match page says
+ * they may be behind (rule 4, T-1782, D-382): in play they are asked every
+ * three minutes, four or five on the busiest minutes, and a page hears of
+ * them within a minute, so ten minutes means two asks or more were missed
+ * (the budget's standard share spent, or the provider refusing).
+ */
+export const LIVE_STATS_STALE_AFTER_MS = 10 * 60 * 1000;
+
+/**
  * A starter's place in the side's shape (T-1397, D-212): `row` counts the
  * lines from the goalkeeper's (1) towards the halfway line, `col` counts
  * across a line from the side's own left as it attacks (1). Whole numbers

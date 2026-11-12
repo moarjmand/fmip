@@ -188,7 +188,7 @@ function FullView(props: React.ComponentProps<typeof MatchCentreView>) {
         headToHead: (
           <HeadToHead centre={centre} timeZone={timeZone} locale={locale} words={words} />
         ),
-        coverage: <Coverage centre={centre} words={words} />,
+        coverage: <Coverage centre={centre} words={words} locale={locale} />,
         ...slots,
       }}
     />
@@ -494,6 +494,81 @@ describe('the scores card and the match centre in Persian (T-1303)', () => {
     expect(view).toContain('موجود');
     expect(view).not.toContain('Live timeline');
     expect(view).not.toContain('data-translation="untranslated"');
+  });
+});
+
+describe('coverage said once (T-1776, D-384; board P6-3)', () => {
+  const allAvailable: MatchCentre = {
+    ...centre,
+    coverage: {
+      scores: 'available',
+      incidents: 'available',
+      lineups: 'available',
+      statistics: 'available',
+      standings: 'available',
+      availability: 'available',
+      advanced_statistics: 'available',
+    },
+  };
+  const line = (c: MatchCentre, locale = 'en') =>
+    renderToStaticMarkup(<Coverage centre={c} words={matchWords(locale)} locale={locale} />);
+
+  it('is one folded line when every module is available, the count from the data', () => {
+    const html = line(allAvailable);
+    expect(html).toContain('data-testid="coverage" data-state="available"');
+    expect(html).toContain('<details class="group"><summary');
+    const summary = /<summary[^>]*>([^]*)<\/summary>/.exec(html)?.[1] ?? '';
+    expect(summary).toContain('All 7 available this season');
+    // The block's name for a screen reader, the line for the eye.
+    expect(summary).toContain('<span class="sr-only">Coverage for this season: </span>');
+    // No badge, no chip: the good news said once.
+    expect(html).not.toContain('data-coverage-badge');
+    // Opened, it names the seven.
+    expect(html).toMatch(
+      /data-testid="coverage-available">scores, incidents, lineups, statistics, standings, availability, advanced statistics<\/p>/,
+    );
+  });
+
+  it('turns into the exception when a module is limited or not supplied: the words on the line', () => {
+    const html = line(centre);
+    expect(html).toContain('data-state="exception"');
+    const summary = /<summary[^>]*>([^]*)<\/summary>/.exec(html)?.[1] ?? '';
+    expect(summary).toContain('4 of 7 available');
+    // Each exception's state is a word on the line (rule 3), never only behind the tap.
+    expect(summary).toContain('data-coverage-badge="limited"');
+    expect(summary).toContain('data-coverage-badge="not_supplied"');
+    // Behind the tap: each module with its state and why, then the available ones.
+    expect(html).toContain('standings: limited');
+    expect(html).toContain('advanced statistics: not supplied');
+    expect(html).toContain('We do not receive this for this competition.');
+    expect(html).toContain('Limited: our source supplies only part of this');
+    expect(html).toContain('available: scores, incidents, lineups, statistics');
+  });
+
+  it('is Persian on /fa with Persian digits', () => {
+    const html = line(allAvailable, 'fa');
+    expect(html).toContain('هر ۷ مورد در این فصل موجود است');
+    expect(html).toContain('نتایج، رویدادها');
+    expect(line(centre, 'fa')).toContain('۴ از ۷ مورد موجود');
+    expect(html).not.toContain('data-translation="untranslated"');
+  });
+
+  it('a module that shows its content drops its visible "available" badge, never the word for a screen reader', () => {
+    const page = renderToStaticMarkup(
+      <FullView words={MATCH_EN} centre={centre} timeZone="UTC" locale="en" />,
+    );
+    // Statistics is available and drawn: no badge, a hidden word in its heading.
+    const stats = page.slice(page.indexOf('data-testid="statistics"'));
+    const heading = stats.slice(0, stats.indexOf('</h2>'));
+    expect(heading).not.toContain('data-coverage-badge');
+    expect(heading).toContain(
+      '<span class="sr-only" data-coverage-hidden="available"> available</span>',
+    );
+    // Player statistics is not supplied: its badge stays visible.
+    const players = page.slice(page.indexOf('data-testid="player-statistics"'));
+    expect(players.slice(0, players.indexOf('</h2>'))).toContain(
+      'data-coverage-badge="not_supplied"',
+    );
   });
 });
 

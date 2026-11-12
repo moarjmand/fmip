@@ -385,7 +385,25 @@ export class PostgresMatchCentreStore {
       else row.away = Number(r.value);
       byMetric.set(r.metric, row);
     }
-    return { rows: [...byMetric.values()], lastUpdatedAt: newest(rows.map((r) => r.updated_at)) };
+    if (rows.length === 0) return { rows: [], lastUpdatedAt: null };
+    // When the figures were last confirmed, not only last changed (T-1782):
+    // an answer that carried them, every few minutes in play, moves the time
+    // even when no figure moved (the half-time interval); an answer without
+    // them does not (`fixture_stat_check`), so frozen figures are not shown
+    // as current (rule 4).
+    const checked = await this.pool.query<{ checked_at: Date }>(
+      `SELECT c.checked_at FROM fixture_stat_check c
+         JOIN fixture_participant p ON p.fixture_id = c.fixture_id
+        WHERE p.id = $1`,
+      [homeParticipantId],
+    );
+    return {
+      rows: [...byMetric.values()],
+      lastUpdatedAt: newest([
+        ...rows.map((r) => r.updated_at),
+        ...checked.rows.map((r) => r.checked_at),
+      ]),
+    };
   }
 
   /**

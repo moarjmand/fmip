@@ -36,7 +36,7 @@ const words = (locale: 'en' | 'fa', keys: Record<string, Parameters<typeof messa
 const NAV = {
   matches: 'shell.nav.matches',
   competitions: 'shell.nav.competitions',
-  predictions: 'nav.predictions',
+  leaderboard: 'nav.leaderboard',
   model: 'shell.nav.model',
   news: 'shell.nav.news',
   highlights: 'nav.highlights',
@@ -70,7 +70,7 @@ describe('the header nav', () => {
   const ORDER = [
     'matches',
     'competitions',
-    'predictions',
+    'leaderboard',
     'model',
     'news',
     'highlights',
@@ -81,7 +81,7 @@ describe('the header nav', () => {
   const nav = (locale: 'en' | 'fa' = 'en') =>
     renderToStaticMarkup(<PrimaryNav locale={locale} labels={words(locale, NAV)} />);
 
-  it('reads Matches, Competitions, Predictions, The model, News, Highlights, then More, each to its page', () => {
+  it('reads Matches, Competitions, Leaderboard, The model, News, Highlights, then More, each to its page', () => {
     const html = nav();
     expect(ids(html, 'nav')).toEqual(ORDER);
     expect([...html.matchAll(/href="([^"]+)"/g)].map((m) => m[1])).toEqual([
@@ -94,20 +94,22 @@ describe('the header nav', () => {
       '/en/scores#analysis',
       '/en/watch',
     ]);
-    for (const word of ['Matches', 'Predictions', 'The model', 'Highlights', 'More']) {
+    for (const word of ['Matches', 'Leaderboard', 'The model', 'Highlights', 'More']) {
       expect(html).toContain(`>${word}<`);
     }
+    // Named for what it opens (T-1786, D-389): the footer's column heading is not an entry.
+    expect(html).not.toContain('>Predictions<');
     // The founder's analysis by name (rule 6): "Analysis" alone could be the model's.
     expect(html).toContain('>Founder’s analysis<');
   });
 
-  it('marks Predictions on the league and on the picks to make, Matches on the rest of the matches page', () => {
+  it('marks Leaderboard on the league and on the picks to make, Matches on the rest of the matches page', () => {
     pathname = '/en/leaderboard';
-    expect(tag(nav(), 'nav-predictions')).toContain('aria-current="page"');
+    expect(tag(nav(), 'nav-leaderboard')).toContain('aria-current="page"');
     pathname = '/en/scores';
     search = 'unpicked=1';
     let html = nav();
-    expect(tag(html, 'nav-predictions')).toContain('aria-current="page"');
+    expect(tag(html, 'nav-leaderboard')).toContain('aria-current="page"');
     expect(html.match(/aria-current/g)).toHaveLength(1);
     search = 'live=1';
     html = nav();
@@ -130,7 +132,7 @@ describe('the header nav', () => {
     expect(ids(html, 'nav')).toEqual(ORDER);
     for (const word of [
       'بازی‌ها',
-      'پیش‌بینی‌ها',
+      'جدول برترین‌ها',
       'رقابت‌ها',
       'مدل',
       'هایلایت‌ها',

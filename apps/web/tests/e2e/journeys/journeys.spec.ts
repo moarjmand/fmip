@@ -281,6 +281,10 @@ test.describe('blueprint journeys', () => {
     expect(((await points.json()) as { points: { total: number } }).points.total).toBe(0);
 
     await page.goto('/en/leaderboard');
+    // The card counts the member's own settled picks, none yet (T-1784, D-388).
+    await expect(page.getByTestId('rating-card')).toContainText('of 30');
+    // The filters fold into one line while the board is empty (D-388).
+    await expect(page.getByTestId('leaderboard-filters-toggle')).toContainText('none applied');
     await expect(page.getByTestId('min-sample')).toContainText('30');
     await expect(
       page.getByTestId('leaderboard-empty').or(page.getByTestId('leaderboard')),
@@ -329,11 +333,20 @@ test.describe('blueprint journeys', () => {
     await expect(guest.getByTestId('viewing')).toHaveAttribute('data-state', 'not_supplied');
     await expect(guest.getByTestId('viewing-not-supplied')).toContainText('Iran');
 
-    // The Watch page: the same chooser, the day's matches, and the pick kept on its links.
+    // The Watch page (T-1792, D-394): the territory asked once at the top, the
+    // same chooser behind it, and the pick kept on the day's links.
     await guest.goto('/en/watch?territory=IR');
     await expect(guest.getByTestId('title')).toContainText('Watch');
+    const bar = guest.getByTestId('watch-territory');
+    await expect(bar).toHaveAttribute('data-state', 'chosen');
+    await expect(bar.getByTestId('watch-territory-name')).toContainText('Iran');
+    await bar.getByTestId('watch-territory-choose').locator('summary').click();
     await expect(guest.getByTestId('viewing-territory-form').getByLabel('Territory')).toHaveValue(
       'IR',
+    );
+    await expect(guest.getByTestId('day-strip').locator('a').first()).toHaveAttribute(
+      'href',
+      /territory=IR/,
     );
     await guest.close();
 

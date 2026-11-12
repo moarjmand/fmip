@@ -40,7 +40,7 @@ export const shellReader = cache(async () => {
 const NAV_LABELS: Record<string, MessageKey> = {
   matches: 'shell.nav.matches',
   competitions: 'shell.nav.competitions',
-  predictions: 'nav.predictions',
+  leaderboard: 'nav.leaderboard',
   model: 'shell.nav.model',
   news: 'shell.nav.news',
   highlights: 'nav.highlights',
@@ -168,8 +168,10 @@ export async function SiteHeader({
           lang={primary.lang}
           // A guest's bar carries two account buttons (T-1736, D-358), so from
           // 1280px it keeps the tighter gaps of 1024px to 1279px (D-281) and
-          // the search field keeps its room.
-          className={`site-bar page-frame flex items-center gap-x-2 lg:gap-x-2.5 ${
+          // the search field keeps its room. 8px from 1024px (T-1786, D-389):
+          // "Leaderboard" is wider than "Predictions" was, and a guest's
+          // English row at 1024px already ran into the page's gutter.
+          className={`site-bar page-frame flex items-center gap-x-2 ${
             me === null ? '' : 'xl:gap-x-4'
           }`}
         >
@@ -226,7 +228,8 @@ export async function SiteHeader({
                 locale={locale}
                 labels={resolved(lang, NAV_LABELS)}
                 // For a guest the entries keep their 1024px padding from 1280px too.
-                className={`flex flex-col lg:-order-1 lg:shrink-0 lg:flex-row lg:items-center lg:gap-1 ${
+                // 2px between entries in the bar (T-1786, D-389): each has its own padding.
+                className={`flex flex-col lg:-order-1 lg:shrink-0 lg:flex-row lg:items-center lg:gap-0.5 ${
                   me === null ? 'xl:[&_.nav-entry]:px-1.5' : ''
                 }`}
               />
@@ -286,18 +289,19 @@ export async function SiteHeader({
                       first. In the desktop bar Sign in comes first so the filled
                       button ends the row. On the register page, whose own button
                       is the view's filled one, globals.css does not draw it
-                      (`header-create-account`, T-1737). */}
+                      (`header-create-account`, T-1737). 10px of padding in the
+                      bar (T-1786, D-389), so a guest's English row fits at 1024px. */}
                   <div className="mt-1 flex flex-col gap-2 lg:mt-0 lg:flex-row-reverse lg:items-center">
                     <Link
                       href={href('/register')}
-                      className="header-create-account inline-flex h-11 items-center justify-center rounded-control border border-brand bg-brand px-4 text-sm font-extrabold whitespace-nowrap text-on-brand hover:brightness-95 lg:px-3"
+                      className="header-create-account inline-flex h-11 items-center justify-center rounded-control border border-brand bg-brand px-4 text-sm font-extrabold whitespace-nowrap text-on-brand hover:brightness-95 lg:px-2.5"
                       data-testid="nav-create-account"
                     >
                       <Translated locale={locale} message="shell.register" />
                     </Link>
                     <Link
                       href={href('/login')}
-                      className="inline-flex h-11 items-center justify-center rounded-control border border-strong px-4 text-sm font-bold whitespace-nowrap hover:bg-surface-raised lg:px-3"
+                      className="inline-flex h-11 items-center justify-center rounded-control border border-strong px-4 text-sm font-bold whitespace-nowrap hover:bg-surface-raised lg:px-2.5"
                       data-testid="nav-sign-in"
                     >
                       <Translated locale={locale} message="nav.signIn" />

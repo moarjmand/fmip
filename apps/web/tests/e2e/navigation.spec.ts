@@ -165,7 +165,7 @@ test.describe('on a 1440px screen', () => {
         'nav-home',
         'nav-matches',
         'nav-competitions',
-        'nav-predictions',
+        'nav-leaderboard',
         'nav-model',
         'nav-news',
         'nav-highlights',
@@ -185,12 +185,12 @@ test.describe('on a 1440px screen', () => {
     page,
   }) => {
     await page.goto('/en');
-    // Predictions is the prediction league (D-281), no longer a second way
-    // to the matches page.
+    // Leaderboard is the prediction league (D-281), no longer a second way
+    // to the matches page, and named for it (T-1786, D-389).
     for (const [id, url] of [
       ['nav-matches', /\/en\/scores$/],
       ['nav-competitions', /\/en\/competitions$/],
-      ['nav-predictions', /\/en\/leaderboard$/],
+      ['nav-leaderboard', /\/en\/leaderboard$/],
       ['nav-model', /\/en\/model-accuracy$/],
       ['nav-news', /\/en\/news$/],
       ['nav-highlights', /\/en\/highlights$/],
@@ -205,9 +205,10 @@ test.describe('on a 1440px screen', () => {
         1,
       );
     }
-    // The picks to make are Predictions' view of the matches page.
+    // The picks to make are the league's view of the matches page.
     await page.goto('/en/scores?unpicked=1');
-    await expect(page.getByTestId('nav-predictions')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('nav-leaderboard')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('nav-leaderboard')).toHaveText('Leaderboard');
     await expect(page.getByTestId('nav-matches')).not.toHaveAttribute('aria-current', 'page');
     const more = page.getByTestId('nav-more');
     await more.locator('summary').click();
@@ -228,7 +229,7 @@ test.describe('on a 1440px screen', () => {
     await expect(cta).toHaveText('Make your picks');
     await cta.click();
     await expect(page).toHaveURL(/\/en\/scores\?unpicked=1$/);
-    await expect(page.getByTestId('nav-predictions')).toHaveAttribute('aria-current', 'page');
+    await expect(page.getByTestId('nav-leaderboard')).toHaveAttribute('aria-current', 'page');
   });
 
   test('the footer leads to what Stadiomind is, its rules and every section (D-281)', async ({
@@ -237,6 +238,8 @@ test.describe('on a 1440px screen', () => {
     for (const [id, url] of [
       ['footer-about', /\/en\/about$/],
       ['footer-rules', /\/en\/rules$/],
+      // The legal strip's data sources: About's own section (T-1790, D-392).
+      ['footer-data', /\/en\/about#data$/],
       ['footer-league', /\/en\/leaderboard$/],
       ['footer-highlights', /\/en\/highlights$/],
       // A guest's Settings: the desktop bar no longer carries its gear (T-1736).
@@ -247,7 +250,7 @@ test.describe('on a 1440px screen', () => {
       await expect(page).toHaveURL(url);
     }
     const footer = page.getByTestId('site-footer');
-    await expect(footer.getByRole('link')).toHaveCount(12);
+    await expect(footer.getByRole('link')).toHaveCount(13);
     await expect(footer).toContainText('© 2');
   });
 
@@ -262,7 +265,7 @@ test.describe('on a 1440px screen', () => {
 
   test('shows keyboard focus on the nav, More, the search field and Sign in', async ({ page }) => {
     await page.goto('/en/scores');
-    for (const id of ['nav-predictions', 'nav-sign-in']) {
+    for (const id of ['nav-leaderboard', 'nav-sign-in']) {
       const link = page.getByTestId(id);
       await keyboardFocus(page, link);
       expect(await focusRing(link), id).toEqual({ style: 'solid', width: '2px' });

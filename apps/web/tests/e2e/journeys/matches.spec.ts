@@ -157,7 +157,8 @@ test.describe('the matches page', () => {
     await page.goto(`/en/scores?date=${PLAYED_DAY}&tz=UTC`);
     const state = page.getByTestId('live-state');
     await expect(state).toHaveAttribute('data-state', 'live', { timeout: 15_000 });
-    await expect(state).toContainText(/Last checked/);
+    // Nothing in play on a played day: a clock time, no ticking age (T-1778, D-385).
+    await expect(state.getByTestId('checked-at')).toContainText(/^Checked \d\d:\d\d$/);
     // Each competition still says once when its matches last changed (rule 4).
     await expect(
       page.getByTestId('competition-group').first().getByTestId('block-updated'),

@@ -223,10 +223,16 @@ function GroundLine({
       ) : (
         <Translated locale={locale} message="teamPage.noGround" />
       )}
-      {' · '}
-      <bdi data-testid={`${ids}followers`}>
-        <Translated locale={locale} message="team.followerCount" count={page.followers} />
-      </bdi>
+      {/* The followers from one (T-1781, D-387): a zero is held, not
+          missing, and says nothing worth a reader's time. */}
+      {page.followers > 0 && (
+        <>
+          {' · '}
+          <bdi data-testid={`${ids}followers`}>
+            <Translated locale={locale} message="team.followerCount" count={page.followers} />
+          </bdi>
+        </>
+      )}
     </p>
   );
 }

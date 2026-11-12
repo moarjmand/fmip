@@ -11,7 +11,7 @@
  * `/match/<id>`); `''` matches the homepage alone. A section may carry a
  * query (`/scores?unpicked=1`): it is that page in that view alone, and it
  * wins over a section without one, so the picks to make belong to
- * Predictions while the rest of the matches page belongs to Matches.
+ * the Leaderboard entry while the rest of the matches page belongs to Matches.
  */
 
 export interface ShellLink {
@@ -36,19 +36,22 @@ const LEAGUES = ['/competitions', '/competition', '/team', '/player', '/coach'];
 
 /**
  * The header's nav (D-281, amending D-267 and D-269): Matches, Competitions,
- * Predictions, The model, News, Highlights -- football first, then the
- * members' predictions and the model, then what to read and watch. The
+ * Leaderboard, The model, News, Highlights -- football first, then the
+ * members' prediction league and the model, then what to read and watch. The
  * wordmark leads home, so the homepage has no entry of its own.
  *
- * Each entry leads to a page of its own, and is current there: Predictions
+ * Each entry leads to a page of its own, and is current there: Leaderboard
  * is the prediction league (it led to the matches page, where Matches was
  * then the current entry), and the picks to make are its view of the
  * matches page. Highlights, a full page of clips, is no longer under More.
+ * The entry is named for what it opens (T-1786, D-389): it was
+ * "Predictions", the footer's column heading, while the footer, the page's
+ * title and the entry's destination all said "Leaderboard".
  */
 export const HEADER_NAV: readonly ShellLink[] = [
   { id: 'matches', path: '/scores', match: ['/scores', '/match'] },
   { id: 'competitions', path: '/competitions', match: LEAGUES },
-  { id: 'predictions', path: '/leaderboard', match: ['/leaderboard', PICKS_PATH] },
+  { id: 'leaderboard', path: '/leaderboard', match: ['/leaderboard', PICKS_PATH] },
   { id: 'model', path: '/model-accuracy', match: ['/model-accuracy'] },
   { id: 'news', path: '/news', match: ['/news'] },
   { id: 'highlights', path: '/highlights', match: ['/highlights'] },
@@ -120,7 +123,8 @@ export interface FooterLink {
     | 'analysis'
     | 'about'
     | 'rules'
-    | 'settings';
+    | 'settings'
+    | 'data';
   path: string;
 }
 
@@ -136,7 +140,7 @@ export interface FooterGroup {
  * competitions, highlights, where to watch, news. Predictions: the
  * prediction league, the model's record and the founder's analysis, each
  * under its own name and never as one (rule 6). Stadiomind: what it is and
- * its rules, which are linked from nowhere else (T-1572), and Settings.
+ * Settings. The rules moved to `FOOTER_LEGAL` (T-1790, D-392).
  */
 export const FOOTER_NAV: readonly FooterGroup[] = [
   {
@@ -161,12 +165,22 @@ export const FOOTER_NAV: readonly FooterGroup[] = [
     id: 'site',
     links: [
       { id: 'about', path: '/about' },
-      { id: 'rules', path: '/rules' },
       // Appearance needs no account (T-621). A guest's desktop bar no longer
       // carries its gear (T-1736, D-358), so every page ends with the link.
       { id: 'settings', path: '/settings' },
     ],
   },
+];
+
+/**
+ * The footer's legal strip beside the copyright (T-1790, D-392): the rules,
+ * linked from nowhere else (T-1572), and where the data comes from. Only
+ * pages that exist: Privacy and Contact join when the maintainer's texts do
+ * (T-1793), never as a link to nothing (rule 3).
+ */
+export const FOOTER_LEGAL: readonly FooterLink[] = [
+  { id: 'rules', path: '/rules' },
+  { id: 'data', path: '/about#data' },
 ];
 
 /** `/fa/scores?d=1` → `/scores`; `/fa` → `''`. The first segment is the locale. */

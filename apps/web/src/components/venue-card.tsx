@@ -4,9 +4,14 @@ import { filled } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 import { drawable } from '@/components/entity-image';
 import { Pictured } from '@/components/lite-mode';
-import { CARD, COVERAGE_KEY, MODULE_HEADING, TITLE } from '@/components/match-centre-cards';
+import {
+  CARD,
+  COVERAGE_KEY,
+  HeaderCoverage,
+  MODULE_HEADING,
+  TITLE,
+} from '@/components/match-centre-cards';
 import { MessageText } from '@/components/message-text';
-import { CoverageBadge } from '@/components/ui/coverage-badge';
 
 const SURFACE_KEY = {
   grass: 'matchCentre.venue.surface.grass',
@@ -46,8 +51,11 @@ export function VenueCard({
         <span className={TITLE}>
           <MessageText message={m['matchCentre.venue.title']} />
         </span>
-        <CoverageBadge
+        {/* The venue always shows its name, so "available" is said for a
+            screen reader only (D-384); any other state keeps its badge. */}
+        <HeaderCoverage
           state={d.coverage}
+          content
           label={<MessageText message={m[COVERAGE_KEY[d.coverage]]} />}
         />
       </h2>

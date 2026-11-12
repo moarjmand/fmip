@@ -128,9 +128,16 @@ export function RowForecast({
   const f = forecast ?? { state: 'not_loaded' as const };
   const m = words.m;
   if (f.state === 'none' || f.state === 'unavailable') {
+    // On every row without a forecast (D-374 D6), drawn quietly: the words and
+    // the glyph, no pill, at the cell's end (T-1780, D-386, board P6-6 B).
     return (
-      <span className={`min-w-0 ${className}`} data-testid="row-forecast" data-state={f.state}>
+      <span
+        className={`min-w-0 text-end ${className}`}
+        data-testid="row-forecast"
+        data-state={f.state}
+      >
         <CoverageBadge
+          plain
           state="not_supplied"
           label={<MessageText message={m['status.coverage.notSupplied']} />}
         />

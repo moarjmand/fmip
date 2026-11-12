@@ -13,6 +13,7 @@ import { FounderAnalysisFeed } from '@/components/founder-analysis';
 import { LinkedSentence } from '@/components/linked-sentence';
 import { RuleHeading, zoneName } from '@/components/home-front';
 import { MessageText } from '@/components/message-text';
+import { ProductRow } from '@/components/product-row';
 import { CommunityVoice, FounderVoice } from '@/components/voices';
 import { Score } from '@/components/score';
 import { COVERAGE_KEY } from '@/components/score-card';
@@ -93,6 +94,47 @@ export function UpsetCard({
   const upset = answer?.upset ?? null;
   const state = answer === null ? 'unreachable' : answer.coverage;
   const finished = answer?.finished_matches ?? 0;
+  const where = placement === 'main' ? 'lg:hidden' : 'hidden lg:block';
+  if (answer === null || upset === null) {
+    // Nothing to show is one folded line (T-1774, D-383): the name and the
+    // word ("Not supplied", or "Not loaded" with no answer), the sentence
+    // behind it, where a 138px card said only that.
+    return (
+      <div className={where} data-testid="home-upset" data-placement={placement} data-state={state}>
+        <ProductRow
+          folded
+          labelledBy={`home-upset-${placement}`}
+          name={
+            <h2 id={`home-upset-${placement}`} className="text-sm font-extrabold">
+              <Translated locale={l} message="home.upset.title" />
+            </h2>
+          }
+          status={
+            <CoverageBadge
+              state="not_supplied"
+              label={
+                <Translated
+                  locale={l}
+                  message={answer === null ? 'lanes.row.unreachable' : COVERAGE_KEY.not_supplied}
+                />
+              }
+            />
+          }
+        >
+          <Translated
+            locale={l}
+            message={
+              answer === null
+                ? 'home.upset.unreachable'
+                : answer.reason === 'no_covered_forecast'
+                  ? 'home.upset.noForecast'
+                  : 'home.upset.noFinished'
+            }
+          />
+        </ProductRow>
+      </div>
+    );
+  }
   return (
     <section
       aria-labelledby={`home-upset-${placement}`}
@@ -104,85 +146,62 @@ export function UpsetCard({
       <h2 id={`home-upset-${placement}`} className={KICKER}>
         <Translated locale={l} message="home.upset.title" />
       </h2>
-      {answer === null || upset === null ? (
-        <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
-          {answer !== null && (
-            <CoverageBadge
-              state="not_supplied"
-              label={<Translated locale={l} message={COVERAGE_KEY.not_supplied} />}
-            />
-          )}
-          <Translated
-            locale={l}
-            message={
-              answer === null
-                ? 'home.upset.unreachable'
-                : answer.reason === 'no_covered_forecast'
-                  ? 'home.upset.noForecast'
-                  : 'home.upset.noFinished'
-            }
-          />
-        </p>
-      ) : (
-        <>
-          <p className="flex flex-wrap items-center gap-x-2.5 text-lg font-bold font-stretch-semi-condensed">
-            <bdi>{upset.home_team.short_name ?? upset.home_team.name}</bdi>
-            <Score
-              home={upset.score.home}
-              away={upset.score.away}
-              locale={l}
-              className="text-2xl font-extrabold font-stretch-condensed"
-              testId="home-upset-score"
-            />
-            <bdi>{upset.away_team.short_name ?? upset.away_team.name}</bdi>
-          </p>
-          {/* The one bar (T-1748), what happened outlined and ticked (T-1749);
+      <p className="flex flex-wrap items-center gap-x-2.5 text-lg font-bold font-stretch-semi-condensed">
+        <bdi>{upset.home_team.short_name ?? upset.home_team.name}</bdi>
+        <Score
+          home={upset.score.home}
+          away={upset.score.away}
+          locale={l}
+          className="text-2xl font-extrabold font-stretch-condensed"
+          testId="home-upset-score"
+        />
+        <bdi>{upset.away_team.short_name ?? upset.away_team.name}</bdi>
+      </p>
+      {/* The one bar (T-1748), what happened outlined and ticked (T-1749);
               the version and its time are the card's own line below. */}
-          <ForecastBar
-            forecast={sharesToPercentages(upset.probabilities)}
-            home={upset.home_team.short_name ?? upset.home_team.name}
-            away={upset.away_team.short_name ?? upset.away_team.name}
-            outcome={upset.outcome}
-            locale={l}
-            words={forecastBarWords(l)}
-            testId="home-upset-bar"
-          />
-          <p className="text-sm leading-relaxed text-muted" data-testid="home-upset-gave">
-            <MessageText
-              message={{
-                ...message(l, upset.outcome === 'draw' ? 'home.upset.gaveDraw' : 'home.upset.gave'),
-                text: interpolate(
-                  t(l, upset.outcome === 'draw' ? 'home.upset.gaveDraw' : 'home.upset.gave'),
-                  {
-                    team:
-                      upset.outcome === 'away'
-                        ? (upset.away_team.short_name ?? upset.away_team.name)
-                        : (upset.home_team.short_name ?? upset.home_team.name),
-                    pct: formatPercent(l, upset.probability * 100, 0),
-                  },
-                ),
-              }}
-            />{' '}
-            <Translated locale={l} message="home.upset.among" count={finished} />
-          </p>
-          <p className="flex flex-wrap gap-x-2 font-mono text-xs text-model [:root:is(:lang(fa),:lang(ar))_&]:font-sans">
-            <span dir="ltr">
-              <ModelVersion version={upset.forecast.model_version} />
-            </span>
-            <span>
-              {interpolate(t(l, 'home.upset.version'), {
-                version: formatNumber(l, upset.forecast.version_number),
-                kind: kindLabel(upset.forecast.kind, l),
-                time: `${formatVersionStamp(l, upset.forecast.computed_at, timeZone)} ${zoneName(l, timeZone)}`,
-              })}
-            </span>
-          </p>
-          <Link href={`/${locale}/match/${upset.fixture_id}`} className={MORE}>
-            <Translated locale={l} message="home.upset.link" />
-            <Icon name="forward" />
-          </Link>
-        </>
-      )}
+      <ForecastBar
+        forecast={sharesToPercentages(upset.probabilities)}
+        home={upset.home_team.short_name ?? upset.home_team.name}
+        away={upset.away_team.short_name ?? upset.away_team.name}
+        outcome={upset.outcome}
+        locale={l}
+        words={forecastBarWords(l)}
+        testId="home-upset-bar"
+      />
+      <p className="text-sm leading-relaxed text-muted" data-testid="home-upset-gave">
+        <MessageText
+          message={{
+            ...message(l, upset.outcome === 'draw' ? 'home.upset.gaveDraw' : 'home.upset.gave'),
+            text: interpolate(
+              t(l, upset.outcome === 'draw' ? 'home.upset.gaveDraw' : 'home.upset.gave'),
+              {
+                team:
+                  upset.outcome === 'away'
+                    ? (upset.away_team.short_name ?? upset.away_team.name)
+                    : (upset.home_team.short_name ?? upset.home_team.name),
+                pct: formatPercent(l, upset.probability * 100, 0),
+              },
+            ),
+          }}
+        />{' '}
+        <Translated locale={l} message="home.upset.among" count={finished} />
+      </p>
+      <p className="flex flex-wrap gap-x-2 font-mono text-xs text-model [:root:is(:lang(fa),:lang(ar))_&]:font-sans">
+        <span dir="ltr">
+          <ModelVersion version={upset.forecast.model_version} />
+        </span>
+        <span>
+          {interpolate(t(l, 'home.upset.version'), {
+            version: formatNumber(l, upset.forecast.version_number),
+            kind: kindLabel(upset.forecast.kind, l),
+            time: `${formatVersionStamp(l, upset.forecast.computed_at, timeZone)} ${zoneName(l, timeZone)}`,
+          })}
+        </span>
+      </p>
+      <Link href={`/${locale}/match/${upset.fixture_id}`} className={MORE}>
+        <Translated locale={l} message="home.upset.link" />
+        <Icon name="forward" />
+      </Link>
     </section>
   );
 }
@@ -793,22 +812,49 @@ export function ColumnAndPicks({
   timeZone: string;
 }) {
   const l = asLocale(locale);
+  const none = analyses === null || analyses.length === 0;
   return (
-    <div className="grid gap-3.5 md:grid-cols-2">
-      <FounderVoice locale={l}>
-        {analyses === null || analyses.length === 0 ? (
-          <p className="text-sm text-muted" data-testid="home-founder-none">
-            <Translated locale={l} message="home.founder.none" />
-          </p>
-        ) : (
+    <div className={cx('grid gap-3.5 md:grid-cols-2', none && 'items-start')}>
+      {none ? (
+        // None published is one folded line in the founder's own voice
+        // (T-1774, D-383), named for the coming matches so it is not read
+        // as the main match's analysis.
+        // A feed that did not answer says so (rule 3), as the upset card does.
+        <FounderVoice
+          locale={l}
+          coming
+          testId="home-founder-none"
+          state={analyses === null ? 'unreachable' : 'none'}
+          empty={
+            <Translated
+              locale={l}
+              message={
+                analyses === null ? 'predictions.page.founderUnreachable' : 'home.founder.none'
+              }
+            />
+          }
+          row={
+            <CoverageBadge
+              state="not_supplied"
+              label={
+                <Translated
+                  locale={l}
+                  message={analyses === null ? 'lanes.row.unreachable' : 'lanes.row.none'}
+                />
+              }
+            />
+          }
+        />
+      ) : (
+        <FounderVoice locale={l}>
           <FounderAnalysisFeed
             analyses={analyses}
             locale={locale}
             timeZone={timeZone}
             heading={<Translated locale={l} message="home.founder.heading" />}
           />
-        )}
-      </FounderVoice>
+        </FounderVoice>
+      )}
       <CommunityVoice locale={l}>
         <p className="text-sm text-muted">
           <Translated locale={l} message="home.community.body" />

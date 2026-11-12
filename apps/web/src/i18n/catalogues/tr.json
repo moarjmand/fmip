@@ -199,6 +199,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "shell.footer.dataSources": {
+    "source": "Data sources",
+    "text": "",
+    "status": "untranslated"
+  },
   "shell.moments.label": {
     "source": "Moments that matter",
     "text": "",
@@ -928,6 +933,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "home.panels.row": {
+    "source": "Match discussions",
+    "text": "",
+    "status": "untranslated"
+  },
   "home.panels.theMatch": {
     "source": "The match",
     "text": "",
@@ -1003,6 +1013,11 @@
   },
   "about.football.body": {
     "source": "Live scores and a page for every match: the timeline, line-ups, statistics, who will miss it and each side’s form, with every competition’s table beside them. When something is missing for a match, its page says so rather than showing an empty box, and every live number says when it last changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "about.data.title": {
+    "source": "Where the data comes from",
     "text": "",
     "status": "untranslated"
   },
@@ -2164,11 +2179,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "profile.noBio": {
-    "source": "No biography yet.",
-    "text": "",
-    "status": "untranslated"
-  },
   "profile.favourites": {
     "source": "Favourite teams",
     "text": "",
@@ -2190,7 +2200,7 @@
     "status": "untranslated"
   },
   "profile.rating.none": {
-    "source": "No rating yet: a rating starts with the first settled prediction.",
+    "source": "Not rated yet: a rating starts with the first settled prediction.",
     "text": "",
     "status": "untranslated"
   },
@@ -2216,6 +2226,81 @@
   },
   "profile.rating.computed": {
     "source": "computed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.state.notRated": {
+    "source": "Not rated yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.state.none": {
+    "source": "None yet",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.heading": {
+    "source": "Your first steps",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.pick": {
+    "source": "Make your first pick",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.follow": {
+    "source": "Follow a team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.followLink": {
+    "source": "Find a team",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.bio": {
+    "source": "Add a short bio",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.steps.done": {
+    "source": "Done",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.settled": {
+    "source": "Settled picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.own": {
+    "source": "Your settled picks",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.count": {
+    "source": "{count} of {floor}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "ratingProgress.howRatingsWork": {
+    "source": "How ratings work",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.ownNote": {
+    "source": "Your rating starts with your first settled pick. A rating can always be recomputed from your picks and the results alone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.belowFloor": {
+    "source": "Not on the leaderboard yet: it joins from {floor}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "profile.progress.unrated": {
+    "source": "No settled picks yet. A rating starts with the first.",
     "text": "",
     "status": "untranslated"
   },
@@ -7051,6 +7136,57 @@
     "text": "",
     "status": "untranslated"
   },
+  "scores.liveNow": {
+    "source": "Nothing is in play right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.liveNext": {
+    "source": "Next kick-off · today",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.liveNoneLeft": {
+    "source": "No match is left to kick off today.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.liveShowToday": {
+    "source": {
+      "one": "Show today’s {count} match",
+      "other": "Show today’s {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "scores.liveShowDay": {
+    "source": {
+      "one": "Show this day’s {count} match",
+      "other": "Show this day’s {count} matches"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "scores.checkedAt": {
+    "source": "Checked {time}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.about.title": {
+    "source": "About these times",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.about.checked": {
+    "source": "“Checked” and its time: the last time this list asked for scores. Beside each competition: when its data last changed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.about.unchanged": {
+    "source": "“Unchanged since” on a match still to come means nothing about it has moved, not that it is behind. A competition that is behind says so in amber.",
+    "text": "",
+    "status": "untranslated"
+  },
   "scores.row.pick": {
     "source": "Pick",
     "text": "",
@@ -7262,7 +7398,7 @@
     "status": "untranslated"
   },
   "scores.updatedBetween": {
-    "source": "Updated between {oldest} and {newest}",
+    "source": "Updated {oldest} – {newest}",
     "text": "",
     "status": "untranslated"
   },
@@ -7668,6 +7804,21 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.coverage.all": {
+    "source": "All {count} available this season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coverage.some": {
+    "source": "{available} of {count} available",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.coverage.notSuppliedWhy": {
+    "source": "We do not receive this for this competition.",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.moduleCoverage": {
     "source": "{module}: {state}",
     "text": "",
@@ -7855,6 +8006,11 @@
   },
   "matchCentre.xgNotSupplied": {
     "source": "Expected goals (xG): not available for this match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statsUpdated": {
+    "source": "Stats updated {ago}",
     "text": "",
     "status": "untranslated"
   },
@@ -10156,6 +10312,120 @@
     "text": "",
     "status": "untranslated"
   },
+  "leaderboardPage.how.title": {
+    "source": "How a rating is earned",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step1": {
+    "source": "Pick before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step1Note": {
+    "source": "Your pick locks when the match starts.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step2": {
+    "source": "Results score it; hard calls count more",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step2Short": {
+    "source": "Results score it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step2Note": {
+    "source": "Being right when it was hard counts most.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step3": {
+    "source": {
+      "one": "Reach {count} settled pick and you join the board",
+      "other": "Reach {count} settled picks and you join the board"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step3Short": {
+    "source": {
+      "one": "Reach {count} settled pick",
+      "other": "Reach {count} settled picks"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.step3Note": {
+    "source": "Until then you are not ranked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.done": {
+    "source": "done",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.guest": {
+    "source": "Below {floor} a rating is not ranked.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.recompute": {
+    "source": "It can always be recomputed from your picks and the results alone.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.nothingSettled": {
+    "source": "Nothing settled yet. The count starts with your first settled pick.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.rankedFrom": {
+    "source": "Your rating joins the board at {floor}; until then it shows on your profile.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.unconfirmed": {
+    "source": "Picks made before you confirm your e-mail count only if you confirm it before kick-off.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.yours": {
+    "source": "Your rating",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.ratedMeta": {
+    "source": "{tier} · {settled} settled · {status}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.how.profile": {
+    "source": "Profile",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.filters.title": {
+    "source": "Filters",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.filters.none": {
+    "source": "none applied",
+    "text": "",
+    "status": "untranslated"
+  },
+  "leaderboardPage.filters.applied": {
+    "source": {
+      "one": "{count} applied",
+      "other": "{count} applied"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
   "leaderboardPage.who": {
     "source": "Who:",
     "text": "",
@@ -10387,8 +10657,8 @@
     "forms": {},
     "status": "untranslated"
   },
-  "leaderboardPage.provisionalBelow": {
-    "source": "Ratings are provisional below {floor}, so no smaller sample is ranked.",
+  "leaderboardPage.floorRule": {
+    "source": "The board never goes below {floor}, so no smaller sample is ranked.",
     "text": "",
     "status": "untranslated"
   },
@@ -10643,11 +10913,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "analysis.desk.signedOut": {
-    "source": "You are not signed in, so publishing will be refused.",
-    "text": "",
-    "status": "untranslated"
-  },
   "analysis.desk.locked": {
     "source": "This match has started. An analysis cannot be published or updated after kick-off — the record of what was said, and when, is the point of it.",
     "text": "",
@@ -10720,6 +10985,26 @@
   },
   "analysis.desk.versionsNote": {
     "source": "An update is a new version. Earlier ones stay readable, because the record of what was said when is what makes this worth anything.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.gate": {
+    "source": "This desk is for the founder. Analyses are written here before kick-off and read on the match’s page.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.gateWhat": {
+    "source": "The founder’s analysis is one person’s call on selected matches, signed and published before kick-off. It is one of three separate things on the site: the statistical model’s forecast and the members’ predictions are the other two, and they are never mixed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.toMatch": {
+    "source": "Back to the match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "analysis.desk.toAnalyses": {
+    "source": "Read the founder’s analyses",
     "text": "",
     "status": "untranslated"
   },
@@ -13380,6 +13665,46 @@
     "text": "",
     "status": "untranslated"
   },
+  "watch.from": {
+    "source": "Watching from",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.need": {
+    "source": "Pick a territory to see which official service shows each match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.needChosen": {
+    "source": "Official services in your territory, from the editors’ list.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.row.official": {
+    "source": "Official: {services}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.row.notCovered": {
+    "source": "Not covered in your territory",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.row.nothingListed": {
+    "source": "No official service listed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.row.notLoaded": {
+    "source": "Viewing not loaded",
+    "text": "",
+    "status": "untranslated"
+  },
+  "watch.confirmedSince": {
+    "source": "Every listing here confirmed since {time}.",
+    "text": "",
+    "status": "untranslated"
+  },
   "rules.title": {
     "source": "Platform rules",
     "text": "",
@@ -13993,6 +14318,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "lanes.founder.coming": {
+    "source": "Founder’s analysis of coming matches",
+    "text": "",
+    "status": "untranslated"
+  },
   "lanes.community.title": {
     "source": "Community picks",
     "text": "",
@@ -14012,7 +14342,7 @@
     "status": "untranslated"
   },
   "lanes.note": {
-    "source": "Three separate products. Each has its own source, method and record; none is blended with or relabelled as another.",
+    "source": "Three separate products, never blended.",
     "text": "",
     "status": "untranslated"
   },

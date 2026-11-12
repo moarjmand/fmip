@@ -62,6 +62,10 @@ describe('the Following page when nothing is followed', () => {
     expect(EN['feed.nextSteps.ranked']).toMatch(/most followed first/);
   });
 
+  it('prints a team’s followers from one, never "0 followers" (T-1781, D-387)', () => {
+    expect(STEPS).toMatch(/\{team\.followers > 0 && \(\s*<span[^>]*>\s*<Translated/);
+  });
+
   it('uses no physical sides', () => {
     expect(STEPS).not.toMatch(/\b(?:ml|mr|pl|pr|left|right)-\S/);
     expect(STEPS).not.toMatch(/text-(?:left|right)\b/);

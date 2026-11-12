@@ -502,3 +502,27 @@
     --token-crest-halo: #a3acb5;
   }
 }
+
+/*
+ * The agents console calendar's eight event colours (T-1788, D-391), mid tones
+ * that read in both themes: a chip mixes its colour into the surface for its
+ * fill and into the text colour for its words (`.event-tint`), so the same
+ * value serves light and dark. Set on an element as `--ev` by the calendar.
+ */
+:root {
+  --event-blue: #2f6fdb;
+  --event-green: #2f9e44;
+  --event-amber: #d9a400;
+  --event-orange: #e8590c;
+  --event-pink: #d6336c;
+  --event-purple: #ae3ec9;
+  --event-teal: #0c8599;
+  --event-violet: #7048e8;
+}
+.event-tint {
+  background-color: color-mix(in srgb, var(--ev) 15%, transparent);
+  color: color-mix(in srgb, var(--ev) 72%, var(--token-text));
+}
+.event-row-failing {
+  background-color: color-mix(in srgb, var(--token-danger) 7%, var(--token-surface));
+}

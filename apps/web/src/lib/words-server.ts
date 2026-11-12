@@ -123,6 +123,8 @@ export const SCORES_KEYS = [
   'scores.updated',
   'scores.updatedBetween',
   'scores.unchangedSince',
+  // The title row's clock when nothing listed is in play (T-1778, D-385).
+  'scores.checkedAt',
   'scores.card.leg',
   'scores.card.aggregate',
   'scores.card.penalties',
@@ -262,6 +264,8 @@ export const MATCH_KEYS = [
   'matchCentre.stat.saves',
   'matchCentre.stat.expectedGoals',
   'matchCentre.xgNotSupplied',
+  // "Stats updated 2 min ago" under a live match's statistics (T-1782).
+  'matchCentre.statsUpdated',
   'matchCentre.playerColumn',
   'matchCentre.playerStatistics.scroll',
   'matchCentre.playerStatistics.region',

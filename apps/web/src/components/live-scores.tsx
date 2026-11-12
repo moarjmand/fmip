@@ -2,17 +2,24 @@
 
 import type { ScoresResponse } from '@fmip/contracts';
 import Link from '@/components/ui/link';
-import { useEffect, useState } from 'react';
-import { EntityImage } from '@/components/entity-image';
+import { type ReactNode, useEffect, useState } from 'react';
+import { GROUP_BLOCK, GROUP_HEADING, GROUP_LIST, GroupTitle } from '@/components/match-group';
 import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
 import { FreshnessStamp } from '@/components/freshness-stamp';
 import { useLite } from '@/components/lite-mode';
-import { INITIAL_CLOCK, type LiveClock, liveLabel, liveState, staleAfterMs } from '@/lib/live';
+import {
+  INITIAL_CLOCK,
+  type LiveClock,
+  isBehind,
+  liveLabel,
+  liveState,
+  staleAfterMs,
+} from '@/lib/live';
 import { openLiveSource } from '@/lib/live-source';
 import { signalLiveMoved } from '@/lib/live-signal';
 import type { CardForecast } from '@/lib/score-card-products';
-import { blockUpdatedLabel, formatKickoff } from '@/lib/scores';
+import { anyInPlay, blockUpdatedLabel, formatKickoff, formatStamp } from '@/lib/scores';
 import {
   applyFilters,
   isFiltered,
@@ -25,23 +32,11 @@ import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 
 /**
- * A block's heading stays at the top of the screen, under the site header
- * (`match-group-head` in globals.css), while its matches scroll under it (T-605),
- * on the block's own surface so nothing shows through. 44px (T-1757,
- * D-374): the name and the "Updated" stamp on one line, a longer stamp
- * whole on a second.
+ * When this block's cards last changed, once for the block (rule 4), beside
+ * the competition's name when the heading has room (T-1777, D-385). A block
+ * with a match behind (T-083) says so in the warning colour as well as on
+ * the row, so the stamp over it never reads as current.
  */
-const HEADING =
-  'match-group-head z-10 flex min-h-11 min-w-0 flex-wrap items-center gap-x-2.5 border-b border-default bg-surface px-4 text-sm font-extrabold';
-/**
- * One card per block (T-1496, the canvas's competition groups), a hairline
- * between rows. `overflow-clip`, not `hidden`, so the sticky heading still sticks.
- */
-const BLOCK = 'flex flex-col overflow-clip rounded-xl border border-default bg-surface';
-/** The rows' columns follow the list's width, not the screen's (T-1757). */
-const LIST = '@container flex flex-col divide-y divide-default';
-
-/** When this block's cards last changed, once for the block (rule 4). */
 function Updated({
   cards,
   locale,
@@ -49,17 +44,77 @@ function Updated({
   now,
   words,
 }: {
-  cards: Parameters<typeof blockUpdatedLabel>[0];
+  cards: ScoresResponse['pinned'];
   locale: string;
   timeZone: string;
   now: number;
   words: ScoresWords;
 }) {
   const label = blockUpdatedLabel(cards, locale, timeZone, words.m, now);
+  const behind = cards.some((card) => isBehind(card, now));
   return label === null ? null : (
-    <span className="ms-auto py-1 text-xs font-normal text-muted" data-testid="block-updated">
+    <span
+      className={`ms-auto py-1 text-xs ${behind ? 'font-medium text-warning' : 'font-normal text-muted'}`}
+      data-testid="block-updated"
+      data-behind={behind ? '' : undefined}
+    >
       {label}
     </span>
+  );
+}
+
+/**
+ * "Checked 03:55" (T-1778, D-385): the title row's stamp while nothing listed
+ * is in play -- a clock reading in the machine-fact face, no dot and no
+ * ticking age, as the match page says it before kick-off (D-364). It says
+ * its day when that is not today (`formatStamp`, T-1371).
+ */
+function CheckedAt({
+  at,
+  locale,
+  timeZone,
+  now,
+  words,
+}: {
+  at: number;
+  locale: string;
+  timeZone: string;
+  now: number;
+  words: ScoresWords;
+}) {
+  if (Number.isNaN(at)) return null;
+  const iso = new Date(at).toISOString();
+  return (
+    <span
+      className="font-mono [:root:is(:lang(fa),:lang(ar))_&]:font-sans"
+      data-testid="checked-at"
+    >
+      <FilledMessage
+        message={words.m['scores.checkedAt']}
+        params={{ time: <time dateTime={iso}>{formatStamp(locale, iso, timeZone, now)}</time> }}
+      />
+    </span>
+  );
+}
+
+/** The page's next kick-off, as the list needs it to know when its frame stops holding. */
+export type LiveNextMark = { id: string; kickoff_at: string };
+
+/**
+ * Whether the page's server-drawn next kick-off still holds (T-1779, D-386,
+ * rule 4): its kick-off is still to come and the stream has not carried the
+ * match. The frame is never redrawn, so on a page left open it would
+ * otherwise come back, hours on, offering a match that started (or ended)
+ * as next, Pick open.
+ */
+export function liveNextHolds(mark: LiveNextMark, now: number, carried: string | null): boolean {
+  return carried !== mark.id && now < Date.parse(mark.kickoff_at);
+}
+
+/** Whether a snapshot carries this match in any state but scheduled. */
+export function carriesStarted(snapshot: ScoresResponse, id: string): boolean {
+  return [...snapshot.pinned, ...snapshot.groups.flatMap((g) => g.fixtures)].some(
+    (card) => card.id === id && card.status !== 'scheduled',
   );
 }
 
@@ -86,6 +141,9 @@ export function LiveScores({
   picked = [],
   selected = null,
   pickBase,
+  liveEmpty,
+  liveEmptyPlain,
+  liveEmptyNext,
   words,
 }: {
   initial: ScoresResponse;
@@ -115,12 +173,28 @@ export function LiveScores({
    * with `pick=`. Absent: the rows have no Pick.
    */
   pickBase?: string;
+  /**
+   * What the Live view says when nothing is in play (T-1779, D-386): the
+   * page's server-drawn next kick-off and the way back to the day. Shown
+   * while the stream's answer is empty; a match that starts replaces it.
+   */
+  liveEmpty?: ReactNode;
+  /**
+   * The same without the next row (the sentence and the way back to the
+   * day), shown instead once `liveEmptyNext` no longer holds.
+   */
+  liveEmptyPlain?: ReactNode;
+  /** The match `liveEmpty` names as next, if it names one. */
+  liveEmptyNext?: LiveNextMark;
   /** The reader's words, resolved by the page on the server (T-1303). */
   words: ScoresWords;
 }) {
   const [scores, setScores] = useState(initial);
   const [clock, setClock] = useState<LiveClock>(INITIAL_CLOCK);
   const [now, setNow] = useState(() => Date.now());
+  // The next kick-off the stream has carried as started, if any (T-1779).
+  const [carried, setCarried] = useState<string | null>(null);
+  const nextId = liveEmptyNext?.id;
   // What the last snapshot changed, in words, for the polite live region (T-081).
   const [announcement, setAnnouncement] = useState('');
   const filterKey = JSON.stringify(filters);
@@ -144,6 +218,7 @@ export function LiveScores({
       (source) => {
         source.addEventListener('snapshot', (event) => {
           const next = JSON.parse((event as MessageEvent<string>).data) as ScoresResponse;
+          if (nextId !== undefined && carriesStarted(next, nextId)) setCarried(nextId);
           setScores((previous) => {
             const said = scoresAnnouncements(
               applyFilters(previous, selection),
@@ -170,13 +245,23 @@ export function LiveScores({
       clearInterval(tick);
       stop();
     };
-  }, [streamQuery, filterKey, words, locale, lite]);
+  }, [streamQuery, filterKey, words, locale, lite, nextId]);
 
   const staleAfter = staleAfterMs(lite);
   const state = liveState(clock, now, staleAfter);
   const pickedSet = new Set(picked);
   const filtered = applyFilters(scores, filters);
   const shown = unpicked ? onlyUnpicked(filtered, pickedSet, now) : filtered;
+  // The ticking age and its dot only while a listed match is in play (T-1778,
+  // D-385, D-364's rule for the match page); otherwise a clock reading.
+  const inPlay = anyInPlay([...shown.pinned, ...shown.groups.flatMap((g) => g.fixtures)]);
+  const calm = !inPlay && (state === 'live' || state === 'connecting');
+  // The Live view's frame while nothing is in play, plain once its next
+  // kick-off has passed or started (rule 4).
+  const emptyFrame =
+    liveEmptyNext === undefined || liveNextHolds(liveEmptyNext, now, carried)
+      ? liveEmpty
+      : liveEmptyPlain;
   const pickHref = (id: string): string | undefined =>
     pickBase === undefined
       ? undefined
@@ -205,7 +290,7 @@ export function LiveScores({
       <p
         // `scores-stamp`: on a phone it stands in the title row (globals.css, T-1757).
         className={`scores-stamp text-xs ${
-          state === 'live'
+          calm || state === 'live'
             ? 'text-muted'
             : state === 'connecting'
               ? 'font-medium'
@@ -213,9 +298,21 @@ export function LiveScores({
         }`}
         data-testid="live-state"
         data-state={state}
+        data-in-play={inPlay ? '' : undefined}
         role={state === 'stale' || state === 'unavailable' ? 'status' : undefined}
       >
-        {(state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
+        {calm ? (
+          // Nothing in play: when the list last heard from the feed, or until
+          // the stream answers, when the page's own list was made. A broken
+          // or stale stream still says so below, in the warning colour.
+          <CheckedAt
+            at={clock.lastEventAt ?? Date.parse(scores.generated_at)}
+            locale={locale}
+            timeZone={timeZone}
+            now={now}
+            words={words}
+          />
+        ) : (state === 'live' || state === 'stale') && clock.lastEventAt !== null ? (
           // The freshness stamp (T-1388), the same one the match centre shows.
           <FreshnessStamp
             checkedAt={clock.lastEventAt}
@@ -239,10 +336,15 @@ export function LiveScores({
       </div>
 
       {scores.total === 0 ? (
-        // The Live view says nothing is in play, not that the day has no match (T-1545).
-        <p className="text-muted" data-testid="scores-empty" data-view={live ? 'live' : 'all'}>
-          <MessageText message={words.m[live ? 'scores.liveEmpty' : 'scores.empty']} />
-        </p>
+        live && emptyFrame !== undefined ? (
+          // The next kick-off and the way back to the day (T-1779, D-386).
+          emptyFrame
+        ) : (
+          // The Live view says nothing is in play, not that the day has no match (T-1545).
+          <p className="text-muted" data-testid="scores-empty" data-view={live ? 'live' : 'all'}>
+            <MessageText message={words.m[live ? 'scores.liveEmpty' : 'scores.empty']} />
+          </p>
+        )
       ) : shown.total === 0 && unpicked ? (
         <p data-testid="scores-unpicked-empty">
           <MessageText message={words.m['scores.unpickedEmpty']} />
@@ -257,8 +359,8 @@ export function LiveScores({
       ) : (
         <div className="flex flex-col gap-4">
           {shown.pinned.length > 0 && (
-            <section className={BLOCK} data-testid="pinned">
-              <div className={HEADING}>
+            <section className={GROUP_BLOCK} data-testid="pinned">
+              <div className={GROUP_HEADING}>
                 <h2>
                   <MessageText message={words.m['scores.favourites']} />
                 </h2>
@@ -270,32 +372,21 @@ export function LiveScores({
                   words={words}
                 />
               </div>
-              <ul className={LIST}>{shown.pinned.map((card) => row(card, true))}</ul>
+              <ul className={GROUP_LIST}>{shown.pinned.map((card) => row(card, true))}</ul>
             </section>
           )}
           {shown.groups.map((group) => (
-            <section key={group.competition.id} className={BLOCK} data-testid="competition-group">
-              <div className={HEADING}>
-                <h2 className="flex min-w-0 flex-wrap items-center gap-x-2.5">
-                  <Link
-                    href={`/${locale}/competition/${group.competition.id}`}
-                    className="flex min-h-11 min-w-0 items-center gap-2.5 hover:underline"
-                    data-testid="competition-link"
-                  >
-                    <EntityImage
-                      media={group.competition.logo}
-                      kind="logo"
-                      name={group.competition.name}
-                      size={20}
-                    />
-                    <bdi className="truncate">{group.competition.name}</bdi>
-                  </Link>
-                  {group.country !== null && (
-                    <span className="shrink-0 text-xs font-medium text-muted">
-                      {group.country.name}
-                    </span>
-                  )}
-                </h2>
+            <section
+              key={group.competition.id}
+              className={GROUP_BLOCK}
+              data-testid="competition-group"
+            >
+              <div className={GROUP_HEADING}>
+                <GroupTitle
+                  locale={locale}
+                  competition={group.competition}
+                  country={group.country}
+                />
                 <Updated
                   cards={group.fixtures}
                   locale={locale}
@@ -304,7 +395,7 @@ export function LiveScores({
                   words={words}
                 />
               </div>
-              <ul className={LIST}>{group.fixtures.map((card) => row(card, false))}</ul>
+              <ul className={GROUP_LIST}>{group.fixtures.map((card) => row(card, false))}</ul>
             </section>
           ))}
           <p dir="auto" className="text-xs text-muted">

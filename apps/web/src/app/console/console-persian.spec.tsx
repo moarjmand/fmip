@@ -16,6 +16,7 @@ import {
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CALENDAR, CALENDAR_PUSH } from './calendar.fixture';
 import { MODEL_LAB, MODEL_REPORT } from './model-report.fixture';
 
 /**
@@ -67,6 +68,11 @@ vi.mock('@/lib/console-actions', () => {
     removeRequestImage: action,
     captionRequestImage: action,
     refreshRequests: async () => undefined,
+    saveEvent: action,
+    deleteEvent: action,
+    registerReminderDevice: async () => ({ ok: true, error: null }),
+    removeReminderDevice: async () => ({ ok: true }),
+    testReminder: async () => null,
   };
 });
 vi.mock('@/lib/console-api', () => {
@@ -187,6 +193,9 @@ vi.mock('@/lib/console-api', () => {
     // API really sends (statuses, kinds, choices) and Persian free text.
     consoleRequests: () => ok({ requests: REQUESTS, counts: REQUEST_COUNTS }),
     consoleRequestCounts: () => ok(REQUEST_COUNTS),
+    // T-1788: the calendar and the subscriptions, Persian free text.
+    consoleCalendar: () => ok(CALENDAR),
+    consoleCalendarPush: () => ok(CALENDAR_PUSH),
     consoleInvitation: () =>
       fixtures.invitationOk
         ? ok({ display_name: 'مریم', expires_at: '2026-11-05T08:00:00Z' })
@@ -787,6 +796,33 @@ describe('the Persian-only scan', () => {
         ),
     ],
     ['the audit trail', async () => render((await import('./(app)/audit/page')).default())],
+    [
+      'the calendar',
+      async () =>
+        render((await import('./(app)/calendar/page')).default({ searchParams: params({}) })),
+    ],
+    [
+      'the calendar week with an event open',
+      async () =>
+        render(
+          (await import('./(app)/calendar/page')).default({
+            searchParams: params({ view: 'week', event: '22222222-2222-4222-8222-222222222222' }),
+          }),
+        ),
+    ],
+    [
+      'the calendar list, Gregorian, with a renewal being added',
+      async () =>
+        render(
+          (await import('./(app)/calendar/page')).default({
+            searchParams: params({ view: 'agenda', cal: 'g', new: '2026-11-21', sub: 'data-feed' }),
+          }),
+        ),
+    ],
+    [
+      'the subscriptions',
+      async () => render((await import('./(app)/calendar/subscriptions/page')).default()),
+    ],
     ['the forecast model', async () => render((await import('./(app)/model/page')).default())],
     [
       'the header',
@@ -857,6 +893,8 @@ describe('the Persian-only scan', () => {
     for (const path of [
       './(app)/audit/page',
       './(app)/board/page',
+      './(app)/calendar/page',
+      './(app)/calendar/subscriptions/page',
       './(app)/decisions/page',
       './(app)/findings/page',
       './(app)/model/page',

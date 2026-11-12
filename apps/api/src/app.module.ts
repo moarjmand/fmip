@@ -43,6 +43,7 @@ import { ModelUpsetModule } from './modules/model-upset/model-upset.module';
 import { MomentsModule } from './modules/moments/moments.module';
 import { AgentsConsoleModule } from './modules/agents-console/agents-console.module';
 import { ConsoleModelModule } from './modules/console-model/console-model.module';
+import { ConsoleRemindersModule } from './modules/console-reminders/console-reminders.module';
 import { LocaleHoldsModule } from './modules/locale-holds/locale-holds.module';
 import { LocalisedNamesModule } from './modules/localised-names/localised-names.module';
 import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thresholds.module';
@@ -99,6 +100,7 @@ import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thres
     LocaleHoldsModule,
     AgentsConsoleModule,
     ConsoleModelModule,
+    ConsoleRemindersModule,
     LocalisedNamesModule,
     RatingThresholdsModule,
     AdminModule,

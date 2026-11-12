@@ -961,6 +961,15 @@ export function fetchRating(username: string): Promise<ApiResult<RatingResponse>
 }
 
 /**
+ * `GET /me/rating` (T-053): the signed-in member's own current rating, null
+ * before the first settlement; the leaderboard's card reads its count from it
+ * (T-1784, D-388). 401 without a session.
+ */
+export function fetchMyRating(cookie: string): Promise<ApiResult<RatingResponse>> {
+  return apiRequest<RatingResponse>('/me/rating', { cookie });
+}
+
+/**
  * `GET /users/:username/rating/history` (T-640): the rating over time, by
  * competition, and the highest. Follows prediction-history visibility, so the
  * viewer's session goes with it.
@@ -1147,6 +1156,25 @@ export function fetchFounderAnalysis(
   return apiRequest<FounderAnalysisResponse>(
     `/fixtures/${encodeURIComponent(fixtureId)}/founder-analysis`,
   );
+}
+
+/**
+ * `GET /fixtures/:id/founder-analysis/desk` (T-1791, D-393): whether this
+ * session may write the founder's analysis -- the publish's own gate, so the
+ * desk draws its form for exactly whom the API would let publish. The
+ * session carries no roles. A guest is not asked; any answer but 204 (a
+ * refusal, an unreachable API) is "no", so the form is never drawn on doubt.
+ */
+export async function fetchFounderDesk(
+  fixtureId: string,
+  cookie: string | undefined,
+): Promise<boolean> {
+  if (cookie === undefined) return false;
+  const result = await apiRequest<null>(
+    `/fixtures/${encodeURIComponent(fixtureId)}/founder-analysis/desk`,
+    { cookie },
+  );
+  return result.ok;
 }
 
 /** `GET /founder-analyses` (T-132): the feed for the homepage, team and competition pages. */

@@ -10,7 +10,7 @@ import {
   describeDelivery,
 } from './delivery.port';
 import { PostgresPushSubscriptionStore } from './internal/push-subscriptions';
-import { WebPushChannel } from './internal/webpush';
+import { type PushPayload, WebPushChannel } from './internal/webpush';
 
 /** What happened on one channel: absent, sent, failed, or skipped because this member has nowhere to receive on it. */
 export type ChannelOutcome = 'absent' | 'sent' | 'failed' | 'skipped';
@@ -65,6 +65,36 @@ export class DeliveryService implements OnModuleInit {
   async removeDevice(userId: string, endpoint: string): Promise<boolean> {
     if (this.subscriptions === null) return false;
     return this.subscriptions.remove(userId, endpoint);
+  }
+
+  // --- a device that is not a member's (T-1788, D-391) -------------------
+
+  /** The key a browser subscribes with, or null when push is not configured here. */
+  pushKey(): string | null {
+    const channel = this.outbound.push;
+    return channel instanceof WebPushChannel ? channel.publicKey : null;
+  }
+
+  /**
+   * One message to one subscription the caller keeps (the agents console's
+   * reminders): `absent` when push is not configured, `gone` when the
+   * device no longer exists (the caller removes it), `failed` otherwise.
+   */
+  async pushTo(
+    subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+    message: PushPayload,
+  ): Promise<'sent' | 'gone' | 'failed' | 'absent'> {
+    const channel = this.outbound.push;
+    if (!(channel instanceof WebPushChannel)) return 'absent';
+    try {
+      return await channel.sendTo(subscription, message);
+    } catch (error) {
+      this.log.error(
+        `delivery.push_failed provider=${channel.provider} to=console`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return 'failed';
+    }
   }
 
   onModuleInit(): void {

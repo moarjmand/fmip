@@ -7,7 +7,7 @@ import type {
 } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
-import { CommunityPicksBrief } from '@/components/community-consensus';
+import { CommunityPicksBrief, CommunityPicksRow } from '@/components/community-consensus';
 import { EntityImage } from '@/components/entity-image';
 import { ForecastBarWithReceipt } from '@/components/forecast-receipt';
 import { FounderAnalysisBrief } from '@/components/founder-analysis';
@@ -574,16 +574,27 @@ export function BigMatch({
             timeZone={timeZone}
             locale={l}
           />
-          <CommunityVoice locale={l}>
-            <CommunityPicksBrief
+          {/* No consensus is one folded row (T-1773, D-383): "Under 5" on
+              the line, the sentence and "Make your pick" behind it. */}
+          {consensus === null || consensus.data === null ? (
+            <CommunityPicksRow
               consensus={consensus}
-              revealed={revealed}
-              home={card.home.name}
-              away={card.away.name}
-              href={match}
               locale={l}
+              pickHref={revealed ? undefined : match}
+              testId="community-brief"
             />
-          </CommunityVoice>
+          ) : (
+            <CommunityVoice locale={l}>
+              <CommunityPicksBrief
+                consensus={consensus}
+                revealed={revealed}
+                home={card.home.name}
+                away={card.away.name}
+                href={match}
+                locale={l}
+              />
+            </CommunityVoice>
+          )}
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 pb-4 md:px-6 md:pb-6">

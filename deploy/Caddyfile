@@ -25,7 +25,7 @@ import cloudflare-ranges.caddy
 
 	# Security headers on every response (T-1685, D-332), in stages: the
 	# safe ones now, HSTS at six months (one day first; raised after a clean
-	# week, T-1690, D-382), and the content policy in report-only mode,
+	# week, T-1690, D-407), and the content policy in report-only mode,
 	# so a wrong source shows in the browser console instead of breaking a
 	# page. `defer` sets them after the upstream answers, so they win over
 	# the same header from `web`. Frames from other sites are allowed for

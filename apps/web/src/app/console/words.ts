@@ -208,6 +208,13 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'request.image_added': 'افزودن تصویر به درخواست',
   'request.image_removed': 'حذف تصویر درخواست',
   'request.image_captioned': 'توضیح تصویر درخواست',
+  'calendar.event_created': 'رویداد تازه در تقویم',
+  'calendar.event_changed': 'ویرایش رویداد تقویم',
+  'calendar.event_deleted': 'حذف رویداد تقویم',
+  'calendar.subscription_added': 'اشتراک تازه',
+  'calendar.subscription_changed': 'تغییر اشتراک',
+  'calendar.reminders_on': 'روشن کردن یادآور در مرورگر',
+  'calendar.reminders_off': 'خاموش کردن یادآور در مرورگر',
 };
 
 /** An audit row's action in Persian (`command.agent_pause` from `COMMAND_WORDS`); an unknown one keeps its id. */
@@ -227,6 +234,7 @@ export function auditReasonWords(reason: string): string {
     [/^locked until (.+)$/, () => 'قفل تا مدتی پس از چند تلاش ناموفق'],
     [/^account opened for (.+)$/, (m) => `حساب برای ${m[1]} باز شد`],
     [/^card added$/, () => 'کارت اضافه شد'],
+    [/^moved from (\S+), filed for (.+)$/, (m) => `آورده‌شده از ${m[1]} به نام ${m[2]}`],
     [/^moved from (.+)$/, (m) => `آورده‌شده از ${m[1]}`],
     [/^card changed$/, () => 'کارت تغییر کرد'],
     [/^card archived$/, () => 'کارت بایگانی شد'],
@@ -243,6 +251,12 @@ export function auditReasonWords(reason: string): string {
     [/^picture added$/, () => 'تصویر اضافه شد'],
     [/^picture removed$/, () => 'تصویر حذف شد'],
     [/^picture caption changed$/, () => 'توضیح تصویر تغییر کرد'],
+    [/^event added$/, () => 'رویداد اضافه شد'],
+    [/^event edited$/, () => 'رویداد ویرایش شد'],
+    [/^event deleted$/, () => 'رویداد حذف شد'],
+    [/^import-calendar, filed for (.+)$/, (m) => `بارگذاری فهرست اشتراک‌ها به نام ${m[1]}`],
+    [/^reminders switched on in a browser$/, () => 'یادآور در یک مرورگر روشن شد'],
+    [/^reminders switched off in a browser$/, () => 'یادآور در یک مرورگر خاموش شد'],
   ];
   for (const [pattern, words] of system) {
     const match = pattern.exec(reason);
