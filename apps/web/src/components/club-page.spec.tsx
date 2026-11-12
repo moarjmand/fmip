@@ -252,7 +252,18 @@ describe('the club band', () => {
       },
     });
     const fa = band(latin, 'fa');
-    expect(fa).toMatch(/<bdi data-testid="team-ground">Anfield، Liverpool<\/bdi>/);
+    // Two Latin names are one Latin run with a Latin comma, never a Persian one between them (T-1796).
+    expect(fa).toMatch(/<bdi data-testid="team-ground">Anfield, Liverpool<\/bdi>/);
+    // A ground written in Persian keeps the Persian separator.
+    const persian = page({
+      team: {
+        ...page().team,
+        venue: { id: 'v', name: 'ورزشگاه آزادی', city: 'تهران', capacity: 78116 },
+      },
+    });
+    expect(band(persian, 'fa')).toMatch(
+      /<bdi data-testid="team-ground">ورزشگاه آزادی، تهران<\/bdi>/,
+    );
     expect(fa).toContain('<bdi>۶۱٬۲۷۶</bdi>');
     expect(fa).toMatch(/<bdi data-testid="followers">[^<]*۱۲/);
   });
@@ -271,7 +282,10 @@ describe('the club band', () => {
         },
       }),
     );
-    expect(html).toMatch(/data-testid="fixture-ground"[^>]*>Anfield, Liverpool \(home matches/);
+    // The ground isolated inside the sentence (T-1796): U+2068 ... U+2069.
+    expect(html).toMatch(
+      /data-testid="fixture-ground"[^>]*>\u2068Anfield, Liverpool\u2069 \(home matches/,
+    );
     expect(html).toContain('home matches this season: 3 of 3; no home ground recorded');
     expect(html).not.toContain('Home ground not recorded');
     const fa = band(
@@ -894,7 +908,7 @@ describe("the band's head coach (T-1439, D-230)", () => {
     expect(html).toContain('Head coach');
     expect(html).toContain('href="/en/coach/p-maresca"');
     expect(html).toContain('since 1 August 2026');
-    expect(html).toContain('The latest line-up names Pep Guardiola as coach');
+    expect(html).toContain('The latest line-up names \u2068Pep Guardiola\u2069 as coach');
     expect(html).not.toContain('data-testid="manager"');
     expect(
       band(

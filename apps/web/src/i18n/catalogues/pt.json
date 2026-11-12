@@ -180,7 +180,7 @@
     "status": "untranslated"
   },
   "shell.search.placeholder": {
-    "source": "Teams, players, competitions",
+    "source": "Search",
     "text": "",
     "status": "untranslated"
   },
@@ -4265,6 +4265,16 @@
     "text": "",
     "status": "untranslated"
   },
+  "story.noCorrectionsShort": {
+    "source": "No corrections noted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.versionLine": {
+    "source": "{language}, {status}",
+    "text": "",
+    "status": "untranslated"
+  },
   "story.about": {
     "source": "About",
     "text": "",
@@ -8065,27 +8075,27 @@
     "status": "untranslated"
   },
   "matchCentre.expectedGoals": {
-    "source": "xG (Highlightly)",
+    "source": "Expected goals (xG)",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.note": {
-    "source": "Expected goals from Highlightly's own model: kept apart from the player statistics above and never combined with them.",
+    "source": "Expected goals from the match data supplier's own model: kept apart from the player statistics above and never combined with them.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.none": {
-    "source": "Highlightly supplies no expected goals for this match.",
+    "source": "No expected goals are supplied for this match.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.unplaced": {
-    "source": "Not shown: {count} players Highlightly listed who are not yet matched to ours.",
+    "source": "Not shown: {count} players the expected-goals data lists who are not yet matched to ours.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.region": {
-    "source": "{team}: xG (Highlightly), scrolls sideways",
+    "source": "{team}: expected goals (xG), scrolls sideways",
     "text": "",
     "status": "untranslated"
   },
@@ -12470,7 +12480,7 @@
     "status": "untranslated"
   },
   "teamPage.seasonStats.title": {
-    "source": "Season statistics, as {source} counts them",
+    "source": "Season statistics",
     "text": "",
     "status": "untranslated"
   },
@@ -12997,7 +13007,7 @@
     "status": "untranslated"
   },
   "playerPage.expectedGoals": {
-    "source": "xG (Highlightly)",
+    "source": "Expected goals (xG)",
     "text": "",
     "status": "untranslated"
   },

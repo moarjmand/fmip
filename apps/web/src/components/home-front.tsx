@@ -30,6 +30,7 @@ import { formatKickoff, statusLabel } from '@/lib/scores';
 import { formatFixed, formatPercent, formatSigned } from '@/lib/words';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { forecastBarWords, scoresWords } from '@/lib/words-server';
+import { NAME_WRAP, NARROW_STEPS, nameFit } from '@/lib/word-fit';
 
 /**
  * The home page's main column in the Stadiomind design (T-1495, D-263, D-270;
@@ -445,7 +446,9 @@ export function BigMatch({
     >
       <EntityImage media={team.crest} kind="crest" name={team.name} size={48} aboveFold />
       <span className="flex min-w-0 flex-col gap-1">
-        <b className="text-lg leading-none font-extrabold [overflow-wrap:anywhere] md:text-display-1">
+        <b
+          className={`text-lg leading-none font-extrabold md:text-display-1 ${NAME_WRAP} ${nameFit(team.name, 12, NARROW_STEPS)}`}
+        >
           <bdi>{team.name}</bdi>
         </b>
         {line !== null && <span className="text-xs text-muted md:text-sm">{line}</span>}

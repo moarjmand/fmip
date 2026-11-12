@@ -19,6 +19,7 @@ import { cx } from '@/components/ui/cx';
 import { formatNumber } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
 import { listText, say, stageName, ZONE_KEY, ZONE_MARK, zoneBand } from '@/lib/competition';
+import { NAME_WRAP } from '@/lib/word-fit';
 
 /**
  * The table's figure columns (T-1203). The abbreviations are the catalogue's
@@ -229,6 +230,13 @@ export function signedGap(locale: string, value: number): string {
  * under the table whether the phase is over (`leaguePhase`). Every number
  * comes from the entry and the rows; none is written here (rule 2).
  */
+/**
+ * The first rows' crests load with the page (T-1797, C-21): a table's top is
+ * on screen at once, and a lazy crest there arrived after the names. The rest
+ * stay lazy.
+ */
+export const EAGER_ROWS = 6;
+
 export function StandingsTable({
   rows,
   locale,
@@ -237,6 +245,7 @@ export function StandingsTable({
   caption,
   summary = false,
   flush = false,
+  eagerRows = EAGER_ROWS,
 }: {
   rows: TableRow[];
   locale: string;
@@ -247,6 +256,8 @@ export function StandingsTable({
   caption?: string;
   summary?: boolean;
   flush?: boolean;
+  /** How many rows' crests load eagerly; a second group or conference table takes none. */
+  eagerRows?: number;
 }) {
   const columns = summary
     ? TABLE_COLUMNS.filter((c) => SUMMARY_LABELS.includes(c.label))
@@ -333,14 +344,15 @@ export function StandingsTable({
                           name={row.team.name}
                           size={20}
                           className="max-sm:hidden"
+                          aboveFold={i < eagerRows}
                         />
                         {/* Condensed on a phone, so "Bournemouth" fits the 90px whole (it broke as
-                            "Bournemou / th" on the real-data screenshots); a word longer still
-                            ("Mönchengladbach") is hyphenated, and broken only as a last resort,
-                            rather than spill under the figures. */}
-                        <bdi className="min-w-0 max-sm:hyphens-auto max-sm:wrap-anywhere">
-                          {row.team.name}
-                        </bdi>
+                            "Bournemou / th" on the real-data screenshots). A name wraps between
+                            its words and never inside one (T-1796, D-395); a word longer than the
+                            column ("Mönchengladbach", about 89px at 13px and 75%) is broken only
+                            as a last resort, never hyphenated, rather than spill under the
+                            figures. */}
+                        <bdi className={`min-w-0 ${NAME_WRAP}`}>{row.team.name}</bdi>
                       </Link>
                     </td>
                     {columns.map((c) => (
@@ -607,7 +619,7 @@ export function GroupTables({
   const earlier = stages.filter((s) => s.superseded).reverse();
   const grid = (stage: StageGroups) => (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      {stage.groups.map((g) => {
+      {stage.groups.map((g, gi) => {
         const name = say(locale, 'matchCentre.group', { group: g.group });
         const Heading = several ? 'h4' : 'h3';
         return (
@@ -633,6 +645,7 @@ export function GroupTables({
                 zones={null}
                 caption={several ? `${stage.name}, ${name}` : name}
                 summary={summary}
+                eagerRows={gi === 0 && !stage.superseded ? EAGER_ROWS : 0}
               />
             )}
           </div>
@@ -719,7 +732,7 @@ export function ConferenceTables({
   return (
     <div className="@container" data-testid="conference-grid">
       <div className="grid grid-cols-1 gap-4 @min-[68.75rem]:grid-cols-2">
-        {conferences.map((c) => {
+        {conferences.map((c, ci) => {
           const name = conferenceName(locale, c.name);
           return (
             <div
@@ -745,6 +758,7 @@ export function ConferenceTables({
                     zones={zones}
                     conference={c.name}
                     caption={name}
+                    eagerRows={ci === 0 ? EAGER_ROWS : 0}
                   />
                   <TableZoneKey locale={locale} zones={zones} conference={c.name} />
                 </>

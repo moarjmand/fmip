@@ -19,12 +19,15 @@ describe('ModelVersion', () => {
     );
     expect('dixon-coles-elo@0.6.0').toMatch(EMAIL);
     expect(html).not.toMatch(EMAIL);
-    expect(html).toBe('<span>dixon-coles-elo<span>@</span>0.6.0</span>');
+    expect(html).toBe('<span><bdi dir="ltr">dixon-coles-elo<span>@</span>0.6.0</bdi></span>');
     expect(html.replace(/<[^>]+>/g, '')).toBe('dixon-coles-elo@0.6.0');
   });
 
   it('writes a version without an @ as it is', () => {
-    expect(renderToStaticMarkup(<ModelVersion version="poisson-v1" />)).toBe('poisson-v1');
+    // An isolated left-to-right run inside a Persian sentence (T-1796, D-395).
+    expect(renderToStaticMarkup(<ModelVersion version="poisson-v1" />)).toBe(
+      '<bdi dir="ltr">poisson-v1</bdi>',
+    );
   });
 });
 

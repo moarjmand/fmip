@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
 import type { PlayerPage } from '@fmip/contracts';
-import { fetchPlayer, fetchSearch } from '@/lib/api';
+import { fetchMe, fetchPlayer, fetchSearch } from '@/lib/api';
+import { pageTimeZone } from '@/lib/reader-time-zone-server';
+import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
 import { attribute } from '@/i18n/messages';
 import { coverageText, pageLocale, say } from '@/lib/competition';
@@ -155,11 +157,14 @@ export default async function ComparePlayersPage({
   const term = readSearchTerm(query);
   const ask = otherId === null ? pickerQuery(term) : null;
 
-  const [a, b, search] = await Promise.all([
+  const [a, b, search, me] = await Promise.all([
     fetchPlayer(id, locale),
     otherId === null ? Promise.resolve(null) : fetchPlayer(otherId, locale),
     ask === null ? Promise.resolve(null) : fetchSearch(ask),
+    sessionCookieHeader().then(fetchMe),
   ]);
+  // The stamps in the reader's zone, as every other page has them (T-1797, D-207, D-337).
+  const { timeZone } = await pageTimeZone(locale, me);
   if ((!a.ok && a.status === 404) || (b !== null && !b.ok && b.status === 404)) notFound();
   if (!a.ok || (b !== null && !b.ok)) {
     return (
@@ -405,7 +410,7 @@ export default async function ComparePlayersPage({
             ) : (
               <>
                 <Translated locale={locale} message="compare.lastUpdate" />{' '}
-                <Stamp iso={page.last_updated_at} locale={locale} />
+                <Stamp iso={page.last_updated_at} locale={locale} timeZone={timeZone} />
               </>
             )}
           </span>

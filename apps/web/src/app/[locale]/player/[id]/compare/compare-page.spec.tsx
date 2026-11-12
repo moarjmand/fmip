@@ -11,8 +11,16 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
  * with the API mocked.
  */
 
-const api = vi.hoisted(() => ({ fetchPlayer: vi.fn(), fetchSearch: vi.fn() }));
+const api = vi.hoisted(() => ({
+  fetchPlayer: vi.fn(),
+  fetchSearch: vi.fn(),
+  fetchMe: vi.fn(async () => null),
+}));
 vi.mock('@/lib/api', () => api);
+vi.mock('@/lib/session', () => ({ sessionCookieHeader: async () => undefined }));
+vi.mock('@/lib/reader-time-zone-server', () => ({
+  pageTimeZone: async () => ({ timeZone: 'Europe/London', chosen: false }),
+}));
 vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('not found');
@@ -152,6 +160,18 @@ describe('the compare page names who each player is (T-1630)', () => {
     expect(a).toContain('تیم ملی');
     expect(a).toContain('بر پایه‌ی آخرین ترکیب باشگاهی که نام این بازیکن در آن آمده');
     expect(identity(html, 1)).toContain('سن ارائه نشده');
+  });
+
+  it('stamps the last data update in the reader’s zone, never in UTC (T-1797)', async () => {
+    api.fetchPlayer.mockImplementation(async (id: string) => ({
+      ok: true,
+      data: { ...(id === MBAPPE ? mbappe : unknown), last_updated_at: '2026-10-28T09:15:00Z' },
+    }));
+    const html = await render('en');
+    expect(html).toContain('<time dateTime="2026-10-28T09:15:00Z">');
+    // Europe/London keeps GMT after 25 October; the stamp is the zone's, with no "UTC" said.
+    expect(html).toContain('09:15</time>');
+    expect(html).not.toContain(' UTC</time>');
   });
 
   it('lays the blocks out with logical properties only', () => {

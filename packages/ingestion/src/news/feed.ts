@@ -20,6 +20,7 @@
  */
 import type { AdapterError, AdapterResult, Transport } from '../adapters/_contract';
 import type { NormalisedNewsItem } from '../normalised';
+import { stripPhotoCredit } from './photo-credit';
 
 export interface ParsedFeed {
   kind: 'rss' | 'atom';
@@ -259,7 +260,7 @@ function rssItem(
     externalId: guid ?? url,
     url,
     headline,
-    summary: textOf(firstElement(item, 'description')),
+    summary: stripPhotoCredit(textOf(firstElement(item, 'description'))),
     byline: textOf(firstElement(item, 'creator')) ?? textOf(firstElement(item, 'author')),
     publishedAt: isoDate(firstElement(item, 'pubDate')),
     language: feedLanguage,
@@ -283,7 +284,7 @@ function atomEntry(
     externalId: id ?? url,
     url,
     headline,
-    summary: textOf(firstElement(entry, 'summary')),
+    summary: stripPhotoCredit(textOf(firstElement(entry, 'summary'))),
     byline: author === null ? null : textOf(firstElement(author, 'name')),
     publishedAt:
       isoDate(firstElement(entry, 'published')) ?? isoDate(firstElement(entry, 'updated')),

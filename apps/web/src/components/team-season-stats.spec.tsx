@@ -118,7 +118,8 @@ describe('the helpers (T-1437)', () => {
 describe('TeamSeasonStatsPanel (T-1437)', () => {
   it('names the source, the season, the figures and when they were fetched', () => {
     const html = render(data());
-    expect(html).toContain('Season statistics, as API-Football counts them');
+    // A neutral heading (T-1797, D-014): the provider is named in the fetched line only.
+    expect(html).toContain('>Season statistics<');
     expect(html).toContain('PL 2026/27');
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('href="/en/team/t-1?tab=stats&amp;season=s-cup"');
@@ -193,7 +194,7 @@ describe('TeamSeasonStatsPanel (T-1437)', () => {
 
   it('reads in Persian, digits and all', () => {
     const html = render(data(), 'fa');
-    expect(html).toContain('آمار فصل، به شمارش API-Football');
+    expect(html).toContain('>آمار فصل<');
     expect(html).toContain('۴–۲');
   });
 

@@ -502,7 +502,7 @@ describe('per-player expected goals (T-1432)', () => {
       }),
     );
     expect(html).toContain('data-coverage="limited"');
-    expect(html).toContain('xG (Highlightly)');
+    expect(html).toContain('Expected goals (xG)');
     expect(html).toContain('0.38');
     expect(html).toContain('0.00');
     expect(html).toContain('–');
@@ -520,7 +520,7 @@ describe('per-player expected goals (T-1432)', () => {
         data: null,
       }),
     );
-    expect(answered).toContain('Highlightly supplies no expected goals for this match.');
+    expect(answered).toContain('No expected goals are supplied for this match.');
     expect(answered).not.toContain('<table');
     const owed = card(
       view({

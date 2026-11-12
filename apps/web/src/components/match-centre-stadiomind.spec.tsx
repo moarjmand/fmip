@@ -1060,8 +1060,14 @@ describe('live', () => {
     const html = view(
       centre({}, { timeline: { coverage: 'available', last_updated_at: null, data: goals } }),
     );
-    expect(html).toContain('data-testid="scorers-home">N. Jackson 6′, 60′<');
-    expect(html).toContain('data-testid="scorers-away">E. Haaland 52′<');
+    // Each scorer one unit (T-1796, D-395): the name isolated, held to its
+    // minutes by a no-break space, the minutes never split.
+    expect(html).toContain(
+      'data-testid="scorers-home"><bdi>N. Jackson</bdi>\u00a0<span class="whitespace-nowrap">6′, 60′</span><',
+    );
+    expect(html).toContain(
+      'data-testid="scorers-away"><bdi>E. Haaland</bdi>\u00a0<span class="whitespace-nowrap">52′</span><',
+    );
     const own = view(
       centre(
         {},
@@ -1102,7 +1108,9 @@ describe('the match centre review (T-1550)', () => {
         { timeline: { coverage: 'available', last_updated_at: null, data: kicks } },
       ),
     );
-    expect(html).toContain('data-testid="scorers-home">Mauricio 30′<');
+    expect(html).toContain(
+      'data-testid="scorers-home"><bdi>Mauricio</bdi>\u00a0<span class="whitespace-nowrap">30′</span><',
+    );
     expect(html).not.toContain('G. Gómez 91′');
     expect(html).not.toContain('data-testid="scorers-away"');
   });

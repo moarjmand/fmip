@@ -7,6 +7,7 @@ import { formatKickoff, formatStamp, scoreLine, statusLabel } from '@/lib/scores
 import { isOpenForPick } from '@/lib/scores-filters';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
 import { stageAndRoundLabels } from '@/lib/stage-label';
+import { NAME_WRAP, ROW_STEPS, nameFit, statusFit } from '@/lib/word-fit';
 import { fill, filled, formatMinute, pickPlural } from '@/lib/words';
 import type { ScoresWords } from '@/lib/words-server';
 import { EntityImage } from '@/components/entity-image';
@@ -17,6 +18,7 @@ import { CardCommunityTotals } from '@/components/score-card-community';
 import { ninetyOutcome } from '@/components/forecast-bar';
 import { CardForecastSummary, RowForecast } from '@/components/score-card-forecast';
 import { Icon } from '@/components/ui/icons';
+import { cx } from '@/components/ui/cx';
 
 const INCIDENT_KEY = {
   goal: 'matchCentre.incident.goal',
@@ -68,9 +70,21 @@ export const COVERAGE_KEY = {
 /**
  * A team's name wraps inside its own line and is never cut or ellipsised
  * (T-1757, D-374; at 360 px one line once left "Nassaji Maz…", T-1202). On a
- * phone it is 14px, so a word fits its column before it breaks.
+ * phone it is 14px. It wraps between words and never inside one (T-1796,
+ * D-395): a single long word steps the width axis down instead (`rowNameFit`).
  */
-export const NAME = 'min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base';
+export const NAME = `min-w-0 ${NAME_WRAP} leading-tight text-sm @xl:text-base`;
+
+/**
+ * The phone cell holds about twelve letters of a 14px name at normal width
+ * (107px at 375); a longer word steps to 87.5%, then 75% ("Mönchengladbach",
+ * 96px at 75%). From the list's 36rem the cell is wide enough as drawn.
+ */
+export const ROW_NAME_LETTERS = 12;
+
+export function rowNameFit(name: string): string {
+  return nameFit(name, ROW_NAME_LETTERS, ROW_STEPS);
+}
 
 /** Where the row's Pick stands for this reader (T-1496, D-206's lock at kick-off). */
 export type RowPick = 'open' | 'picked' | 'locked' | 'locked-picked';
@@ -207,7 +221,7 @@ export function ScoreCard({
     return (
       <span className="flex min-h-6 min-w-0 items-center gap-1.5" data-testid={`${side}-team`}>
         <EntityImage media={t.crest} kind="crest" name={t.name} size={20} />
-        <bdi className={`${NAME} ${weight(side)}`}>{t.name}</bdi>
+        <bdi className={cx(NAME, rowNameFit(t.name), weight(side))}>{t.name}</bdi>
         {sentOff(card.red_cards[side])}
         {line !== null && (
           <span
@@ -225,6 +239,8 @@ export function ScoreCard({
   // On a phone the Pick (or the member's "Picked") stands under the time; a
   // live or finished row's "View" is the desktop's only (T-1757, D-374).
   const under = pickHref !== undefined && pick !== 'locked';
+
+  const status = statusLabel(card, locale, timeZone, now, m);
 
   return (
     <li
@@ -244,11 +260,11 @@ export function ScoreCard({
         data-testid="match-link"
       >
         <span
-          className={`text-xs leading-tight font-bold tabular-nums font-stretch-semi-condensed hyphens-auto [overflow-wrap:anywhere] @xl:row-span-2 @xl:self-center @xl:text-sm ${under ? 'self-end' : 'row-span-2'} ${live ? 'text-live' : awaiting ? 'text-warning' : ''}`}
+          className={`${statusFit(status)} font-bold tabular-nums @xl:row-span-2 @xl:self-center ${under ? 'self-end' : 'row-span-2'} ${live ? 'text-live' : awaiting ? 'text-warning' : ''}`}
           data-testid="score-status"
           data-awaiting-update={awaiting ? '' : undefined}
         >
-          {statusLabel(card, locale, timeZone, now, m)}
+          {status}
         </span>
         <span className="row-span-2 flex min-w-0 flex-col gap-1 @xl:font-stretch-semi-condensed">
           {team('home')}
@@ -382,9 +398,9 @@ export function CardDetails({
           />
         </span>
         {card.venue !== null && (
-          <span>
+          <bdi>
             {card.venue.city === null ? card.venue.name : `${card.venue.name}, ${card.venue.city}`}
-          </span>
+          </bdi>
         )}
       </p>
 
