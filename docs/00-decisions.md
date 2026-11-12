@@ -15246,3 +15246,13 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 
 **Consequences.** Five new strings in every catalogue (Persian from the agent, D-175). No API change, no client JavaScript.
 
+## D-407 — HSTS raised to six months after a clean week
+
+**Status:** Accepted · 2026-11-08 (the step D-332 already set; prepared by a scheduled check, merged and deployed only by the maintainer) · **Task:** T-1690 · **Follows:** D-332
+
+**Context.** D-332 sent `Strict-Transport-Security: max-age=86400` from 2026-11-01 and said it goes to six months once a week passes without a problem. The week to 2026-11-08 was clean: every daily ops report (2026-11-01..08) had all site probes at 200 and no HTTP 5xx; the team's findings named no broken page, frame, embed or HTTPS problem; the one header finding still open (sec-2026-11-02-01, the report-only content policy has nowhere to send its violations) is about the content policy, not HSTS; production still answered `max-age=86400`.
+
+**Decision.** `max-age=15552000` (180 days) in both site blocks of `deploy/Caddyfile` (the site and the agents console). Still no `includeSubDomains` and no preload: those wait for a further decision, as D-332 said. The content policy stays report-only.
+
+**Consequences.** A browser that has seen the header will refuse plain HTTP to the host for six months; going back to HTTP-only would need `max-age=0` served over HTTPS and visitors returning to pick it up. The rollout recreates Caddy. The security agent's weekly check now expects `max-age=15552000`.
+
