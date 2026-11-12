@@ -15103,3 +15103,64 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 
 **Consequences.** Two strings ("Season", "higher") in every catalogue, Persian proposed by the agent. The picker costs up to ten player-page reads per search on a low-traffic page.
 
+## D-403 — A news headline is set in the interface face: the serif keeps the founder's voice and the publisher's prose, never a headline someone else wrote
+
+**Status:** Accepted · 2026-11-12 (maintainer, package 9 decision D8 = option A of the 2026-11-05 UI review, with the designer's recommendation; board P9-6) · **Task:** T-1805 · **Supersedes:** D-284 item 1's "the headline in the editorial face" and the part of D-291's T-1621 paragraph that sets the story page's headline in the editorial face · **Follows:** D-263, D-284, D-291, rule 6
+
+**Context.** D-284 set the news front page's lead headline (30px) and its four top stories (20px) in Newsreader, and D-291 (T-1621) kept the story page's headline in the same face, on the argument that the news page is a reading page and that "the serif here is the publisher's words, not a prediction product". D-263 made the serif the founder's mark. On the live page (finding C-15, 2026-11-10) a Yahoo Sports headline and the founder's call looked alike in type: rule 6's spirit, two voices in one face. The maintainer chose option A of two (B: leave the decisions as they stood).
+
+**Decision.**
+1. **Headlines in Archivo.** The news front page's lead (`text-[1.375rem]` on a phone, display-1 from 640px, display-2 from 1024px, bold), its top-story cards (`text-lg`, bold) and the list rows (already Archivo) in `NewsStory`; the home page's news lead and cards in `HomeNews` the same way; the designed panel's source name (`NewsPanel`) in Archivo extra-bold; and the story page's `h1` (display-1 to display-3, bold).
+2. **The publisher's prose stays in the article face.** The story page's summary and body keep `font-article` (Newsreader on a Latin page, Vazirmatn on /fa) at the 680px measure: D-291's argument was about prose, and it holds there.
+3. **What the serif marks now.** The founder's analysis (D-263) and a publisher's own running words on the story page, never a headline.
+
+**Rejected.** *Option B (as decided):* the review's rule-6 worry stays. *Archivo for the summary too:* a long run of a publisher's prose reads better in the book face (D-291), and the worry was the headline.
+
+**Consequences.** One class change per headline; no new strings, no API change, no client JavaScript. `news-story.spec.tsx` and `news-home.spec.tsx` refuse `font-serif` in the headlines; `story-page.spec.tsx` checks the `h1` is not serif and the body is still the article face.
+
+## D-404 — The news front page: an empty Trending or Debate is one 48px line; the story-page link only when a second report exists; the lead fits a phone's first screen
+
+**Status:** Accepted · 2026-11-12 (maintainer, package 9 decision D9 of the 2026-11-05 UI review, with the designer's recommendation; board P9-6) · **Task:** T-1805 · **Amends:** D-284 items 1 and 6 · **Follows:** D-383, rules 3 and 7
+
+**Context.** Measured on 2026-11-10 (finding C-15, guest, 375px): "Trending" and "Debate" were empty panels with a sentence each; "Story, languages and other reports" was printed under 36 of the page's items, whether or not the story held anything beyond its one report; the lead card was 624px tall.
+
+**Decision.**
+1. **An empty rail block is D-383's folded line.** When Trending or Debate holds no story, its block is `ProductRow` folded: the section's name and the state word ("None yet", or "Not loaded" when the section could not be read) on one 48px line, the API's reason sentence (rule 3) and the link to the whole section behind the native `<details>`. With stories the full panel is drawn as before. The blocks keep their place beside the list.
+2. **The story page is linked when it says more.** `NewsStory` draws "N more report(s) on this story", a link to the story's page, only when `other_reports > 0`, in every shape (lead, card, row); "Story, languages and other reports" is no longer under every story. The headline still opens the original (D-061). `news.storyPage` stays where it is used (saved stories, related news).
+3. **The lead on a phone.** Under 640px the lead's summary is three lines (`line-clamp-3`, 14px) and its designed panel (decorative, `aria-hidden`, already absent in lite mode) is not drawn; a licensed photo is always drawn with its credit (D-177). From 640px the lead is as before. Measured at 375px on a harness of the built CSS (fallback fonts, the 10 November lead's words, no photo, no second report): 274px where 624 stood.
+4. **Publishers' words untouched.** Emoji and wording in headlines are the publisher's and stay (a licensing question, not a styling one).
+
+**Rejected.** *Hiding an empty block:* it would hide that the section is empty (rule 3). *Moving the empty lines above the lead* (the board's frame drew them there): a layout change beyond the decision, and on a desktop the blocks are the list's side column. *A shorter panel instead of none on a phone:* the lead's three crests at 64px do not fit a band short enough to matter.
+
+**Consequences.** No new strings (the line reuses `lanes.row.none` and `lanes.row.unreachable`), no API change, no client JavaScript. The rail block lives in the news page route and is not unit-tested (the page fetches); the shared `ProductRow` has its own spec. Heights: see T-1805.
+
+## D-405 — The home page's matches are the matches page's row; Highlights asks the territory in the Watch page's one line
+
+**Status:** Accepted · 2026-11-12 (maintainer, package 9 decisions D10 and D11 of the 2026-11-05 UI review, with the designer's recommendations; board P9-8) · **Task:** T-1806 · **Amends:** D-270 (the home's "Matches by competition" rows), D-285 item 4 (the territory panel) · **Follows:** D-368, D-374, D-378, D-394, rules 3, 4 and 7
+
+**Context.** Finding A-09: the home's "Matches by competition" had its own row (`TodayRow`, 74px, names cut with an ellipsis, no model cell and no Pick) beside a matches page whose row has both. Finding A-16: on a phone `/highlights` opened on a 410px territory panel, so the first highlight sat at y 806 of an 812px screen (page 8,703px), although D-394 had already built a one-line territory bar for Watch.
+
+**Decision.**
+1. **One row.** `TodayRow` is gone; each match of the home's competition cards is the matches page's `ScoreCard`, drawn on the server inside the shared `GROUP_LIST` (a container, so the row takes its phone columns in a card of any width). Names whole and wrapped (D-374). `ScoreCard` gains `bareWhenFinished`: a finished match is D-378's 56px row (`match-row-done`), the winner bold and the loser muted, no model cell; its two team lines are 20px with a 2px gap (scores included), because at the row's usual 24px lines and 4px gap the row measured 64px, not 56. A match still to come or in play has the model's cell (D-368's one bar, or its state in words, rule 3) from the pre-kick-off summaries the home page now asks for every unfinished row of its cards (the same batch call as the hero's, `loadForecasts`), and, while picks are open, Pick under its time, linking to the match page's pick card (`pickCardPath`, as the competition page's D-378 row does). A row whose feed fell behind by the page's clock says so (rule 4).
+2. **The territory line is shared.** D-394's bar moves to `components/territory-bar.tsx` (`TerritoryBar`), drawn by Watch (same output) and by Highlights: "Watching from · Not chosen · Choose your territory" in one 48px line; a member's action goes to Settings, a guest's line is the summary of a native `<details>` whose panel is the existing chooser. Under it one sentence: before a choice "Until you pick one, every highlight is listed; some may not play where you are." (still saying what a visitor gets without choosing, rule 3); after it "Only the highlights offered in your territory are listed." The block is named "Where are you watching?" for a screen reader.
+3. **Highlights on a phone.** The competition chips stay one scrolling row and the "N more competitions" disclosure closes that row at its end (opened, it takes its own line); the header's competition logos (decorative) are not drawn under 640px; the lead is 14px and the page's gaps 16px under 640px. From 640px the filter and the header are as before.
+
+**Rejected.** *Copying the row's or the bar's markup:* two copies drift (D-394). *Reading each member's picks on the home page to say "Picked":* one more read per view for a glance block; Pick leads to the match's pick card, which shows the member's own pick, as on the competition page. *Dropping the highlights lead on a phone:* it says the links open on the publisher's site and nothing is hosted (D-069).
+
+**Consequences.** Measured at 375px on a harness of the built CSS (the components rendered on the server, fallback fonts, not the live page): a finished home row 56px (74 before, live), a live row 76px and an upcoming one with a two-line name and Pick 93px, as on the matches page; on Highlights the territory line and its sentence 106px where the panel was about 410 (the line wraps to 64px on a phone, as on Watch, because "Choose your territory" does not fit beside "Watching from · Not chosen"), the chip row 48px, and the first highlight 349px below the top of `main`, so about y 470 on the live page (taking the site's chrome as about 121px from the live panel's y 316) against 806: short of the board's estimated 330, because the lead and the count stay. Two new strings in every catalogue (Persian from the agent, D-175); `highlights.allListed` removed. No API change. No client JavaScript of its own: `ScoreCard` and `TerritoryBar` render on the server; budgets after `next build` unchanged (home 156.4 of 158, scores 166.9 of 170, match centre 182.3 of 183, competition 157.2 of 158 kB gzip).
+
+## D-406 — The coach page: "Coaching now" carries the record's age after seven days, and the record card is a labelled gap
+
+**Status:** Accepted · 2026-11-12 (maintainer, package 9 decision D12 of the 2026-11-05 UI review: seven days; board P9-8) · **Task:** T-1807 · **Follows:** D-230, rules 3 and 4
+
+**Context.** Finding C-24, measured on 2026-11-10: Mikel Arteta's page said "Coaching now · Arsenal" and "Current" beside a career updated on 22 October, 19 days earlier, with nothing to say it might be old. The board also drew a record card (played, won, drawn, lost) that no API supplies.
+
+**Decision.**
+1. **The threshold is a named constant**, `COACH_RECORD_STALE_DAYS = 7` in `lib/coach.ts`; `staleRecordDays(lastUpdatedAt, now)` gives the whole days since the record's update when there are more than seven, else `null` (also `null` with no time given: the coverage says that, not a guess).
+2. **The age in words where the present tense is.** The record's time is the career module's `last_updated_at`, else the page's. Days are whole elapsed days, rounded down, so the page never says older than it is (22 Oct 19:52 read on 10 Nov 19:00 is "18 days"). Past the threshold the band's current team gets a mark after it -- a clock icon and "record updated 19 days ago" in the warning colour, never colour alone -- and the Career panel opens with a line on the warning tint: "This record was last updated 19 days ago, so “Current” is as of then." Within seven days neither is drawn. A band with no current team gets no mark.
+3. **The record card is a gap.** A panel "Record with {team}" ("Record" without a current team) under Line-ups, with the not-supplied badge and "Played, won, drawn and lost under him are not shown: no list of a coach’s matches with their results is kept yet." No number is drawn (rule 3) until an API for it exists.
+
+**Rejected.** *Replacing "Coaching now" with the latest line-up's club* (the board's after frame): a change of what the band claims, beyond the decision. *Dropping the "Current" badge when stale:* the line above qualifies it in words; the badge still says which spell the record calls current.
+
+**Consequences.** Five new strings in every catalogue (Persian from the agent, D-175). No API change, no client JavaScript.
+

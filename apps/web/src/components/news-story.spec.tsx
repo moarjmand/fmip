@@ -178,3 +178,35 @@ describe('the three shapes (T-1613, D-284)', () => {
     expect(out).toMatch(/data-testid="story-type" data-type="transfer"/);
   });
 });
+
+describe('the headline face and the story-page link (T-1805, D-403, D-404)', () => {
+  it('sets every headline in the interface face, never the serif', () => {
+    for (const variant of VARIANTS) {
+      const out = render(variant, {}, 'en');
+      expect(out).not.toContain('font-serif');
+      expect(out).toMatch(/<h[23] dir="auto" class="[^"]*font-(?:bold|semibold)[^"]*"/);
+    }
+  });
+
+  it('links the story page only when a second report exists, in every shape', () => {
+    for (const variant of VARIANTS) {
+      const two = render(variant, {}, 'en');
+      expect(two).toMatch(/<a [^>]*data-testid="story-others"[^>]*>2 more reports on this story/);
+      const one = render(variant, { other_reports: 0 }, 'en');
+      expect(one).not.toContain('data-testid="story-more"');
+      expect(one).not.toContain('Story, languages and other reports');
+    }
+  });
+
+  it('leaves the lead’s designed panel out on a phone, never its licensed photo', () => {
+    expect(render('lead')).toMatch(
+      /<a [^>]*class="[^"]*max-sm:hidden[^"]*"[^>]*>.*data-testid="news-panel"/,
+    );
+    expect(render('card')).not.toContain('max-sm:hidden"');
+    expect(render('lead', { image: PHOTO })).toContain('data-testid="news-image"');
+    // Three lines of the summary on a phone, all of it from 640px.
+    expect(render('lead')).toMatch(
+      /class="[^"]*line-clamp-3[^"]*sm:line-clamp-none[^"]*"[^>]*data-testid="story-summary"/,
+    );
+  });
+});

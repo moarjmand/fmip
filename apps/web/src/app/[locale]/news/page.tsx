@@ -35,7 +35,8 @@ import {
 } from '@/lib/news';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
+import { Button, ButtonLink, CoverageBadge, Notice, controlClasses } from '@/components/ui';
+import { ProductRow } from '@/components/product-row';
 import { SectionTabs } from '@/components/ui/section-tabs';
 import { NewsStory } from '@/components/news-story';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
@@ -388,6 +389,46 @@ function RailBlock({
     : answer.data.reason !== null
       ? REASON_KEY[answer.data.reason]
       : 'news.reason.noMatch';
+  if (stories.length === 0) {
+    // Nothing in it is one folded 48px line (T-1805, D-404; D-383's row): the
+    // section's name and the state word on the line, the API's reason and
+    // the way to the section behind it. The full panel returns with content.
+    return (
+      <ProductRow
+        folded
+        labelledBy={id}
+        testId={id}
+        state={answer.ok ? 'empty' : 'unreachable'}
+        name={
+          <h2 id={id} className="text-sm font-extrabold tracking-widest uppercase">
+            {label(SECTION_KEY[section as NewsSection])}
+          </h2>
+        }
+        status={
+          <CoverageBadge
+            plain
+            state="not_supplied"
+            label={
+              <Translated
+                locale={locale}
+                message={answer.ok ? 'lanes.row.none' : 'lanes.row.unreachable'}
+              />
+            }
+          />
+        }
+      >
+        <p data-testid="news-rail-empty">
+          <Translated locale={locale} message={empty} />
+        </p>
+        <Link
+          href={href}
+          className="inline-flex min-h-touch items-center font-semibold text-fg underline md:min-h-6"
+        >
+          {label(RAIL_ALL[section])}
+        </Link>
+      </ProductRow>
+    );
+  }
   return (
     <section
       aria-labelledby={id}
@@ -401,47 +442,41 @@ function RailBlock({
         <span aria-hidden="true" className="h-3.5 w-1 bg-brand" />
         {label(SECTION_KEY[section as NewsSection])}
       </h2>
-      {stories.length > 0 ? (
-        <ol className="mt-2 divide-y">
-          {stories.map((card, index) => (
-            <li key={card.story_id} className="flex gap-3 py-3">
-              <span
-                aria-hidden="true"
-                className="w-6 shrink-0 text-2xl leading-none font-extrabold text-accent tabular-nums"
+      <ol className="mt-2 divide-y">
+        {stories.map((card, index) => (
+          <li key={card.story_id} className="flex gap-3 py-3">
+            <span
+              aria-hidden="true"
+              className="w-6 shrink-0 text-2xl leading-none font-extrabold text-accent tabular-nums"
+            >
+              {formatNumber(locale, index + 1)}
+            </span>
+            <div className="flex min-w-0 flex-col gap-1">
+              <a
+                href={card.url}
+                rel="noopener"
+                lang={card.language}
+                dir="auto"
+                className="leading-snug font-semibold hover:underline"
+                data-testid="rail-story"
               >
-                {formatNumber(locale, index + 1)}
-              </span>
-              <div className="flex min-w-0 flex-col gap-1">
-                <a
-                  href={card.url}
-                  rel="noopener"
-                  lang={card.language}
-                  dir="auto"
-                  className="leading-snug font-semibold hover:underline"
-                  data-testid="rail-story"
-                >
-                  {card.headline}
-                </a>
-                <p className="text-xs text-muted">
-                  <bdi className="font-semibold text-fg">{card.source.name}</bdi>
-                  {card.published_at !== null && (
-                    <>
-                      {' · '}
-                      <time dateTime={card.published_at}>
-                        {shortTime(locale, card.published_at, timeZone, now)}
-                      </time>
-                    </>
-                  )}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <p className="mt-2 text-sm text-muted" data-testid="news-rail-empty">
-          <Translated locale={locale} message={empty} />
-        </p>
-      )}
+                {card.headline}
+              </a>
+              <p className="text-xs text-muted">
+                <bdi className="font-semibold text-fg">{card.source.name}</bdi>
+                {card.published_at !== null && (
+                  <>
+                    {' · '}
+                    <time dateTime={card.published_at}>
+                      {shortTime(locale, card.published_at, timeZone, now)}
+                    </time>
+                  </>
+                )}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
       <Link
         href={href}
         className="mt-2 inline-flex min-h-touch items-center text-sm font-semibold underline md:min-h-6"

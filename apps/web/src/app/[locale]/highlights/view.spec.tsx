@@ -252,3 +252,65 @@ describe('the header and the states', () => {
     expect(html).toContain('href="/fa/match/fx-a"');
   });
 });
+
+describe('the territory line and the filter row (T-1806, D-405)', () => {
+  it('asks the territory in the Watch page’s one line, the chooser behind it for a guest', () => {
+    const html = render();
+    expect(html).toMatch(
+      /<section aria-label="Where are you watching\?"[^>]*data-testid="highlights-territory" data-state="not_chosen"/,
+    );
+    expect(html).toMatch(/Watching from.*Not chosen.*Choose your territory/);
+    expect(html).toContain('data-testid="highlights-territory-choose"');
+    expect(html).toMatch(
+      /<details data-testid="highlights-territory-choose"><summary class="[^"]*min-h-12/,
+    );
+    expect(html).toMatch(
+      /data-testid="highlights-territory-need"><span data-testid="highlights-all">/,
+    );
+    // The old 410px panel and its globe are gone.
+    expect(html).not.toContain('<h2 id="highlights-territory"');
+  });
+
+  it('links a member to Settings and says only offered clips are listed once one is chosen', () => {
+    const html = render(
+      {
+        offered: 'territory',
+        territory: { state: 'chosen', territory: { code: 'IR', name: 'Iran' } },
+      },
+      { signedIn: true },
+    );
+    expect(html).toContain('href="/en/settings#territory"');
+    expect(html).toContain('Change territory');
+    expect(html).toContain('Only the highlights offered in your territory are listed.');
+    expect(html).not.toContain('data-testid="highlights-territory-choose"');
+  });
+
+  it('keeps the chips in one row on a phone, the "more" disclosure at its end', () => {
+    const many = Array.from({ length: 14 }, (_, i) => ({
+      id: `c${i}`,
+      name: `Competition ${i}`,
+      short_name: null,
+      count: 20 - i,
+      logo: logo(`c${i}`),
+    }));
+    const html = render({ competitions: many });
+    expect(html).toMatch(
+      /<nav [^>]*class="flex flex-wrap items-center gap-2[^"]*"[^>]*data-testid="highlights-filter"/,
+    );
+    expect(html).toMatch(/<ul class="[^"]*flex-1 gap-2 overflow-x-auto[^"]*"/);
+    expect(html).toMatch(
+      /<details class="[^"]*open:basis-full[^"]*" data-testid="highlights-filter-more"/,
+    );
+    // The header's logos are decorative and stay off a phone's first screen.
+    const logos = render({
+      competitions: ['x', 'y', 'z'].map((id) => ({
+        id,
+        name: id,
+        short_name: null,
+        count: 1,
+        logo: logo(id),
+      })),
+    });
+    expect(logos).toMatch(/class="[^"]*max-sm:hidden[^"]*" data-testid="highlights-logos"/);
+  });
+});

@@ -89,6 +89,10 @@ describe("the home page's news", () => {
     ).toBe(true);
   });
 
+  it('sets the headlines in the interface face, never the serif (T-1805, D-403)', () => {
+    expect(html).not.toContain('font-serif');
+  });
+
   it('loads every picture lazily, its size said', () => {
     expect(html).not.toContain('loading="eager"');
     for (const img of html.match(/<img [^>]*>/g) ?? []) {

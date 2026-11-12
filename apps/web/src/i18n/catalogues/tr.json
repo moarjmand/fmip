@@ -15032,11 +15032,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "highlights.allListed": {
-    "source": "Every highlight we hold is listed. Some are limited to certain countries and may not play where you are: choose your territory to see only the ones offered there.",
-    "text": "",
-    "status": "untranslated"
-  },
   "highlights.restricted": {
     "source": "May not play in your country",
     "text": "",
@@ -15359,6 +15354,47 @@
   },
   "teamPage.chips.rounds": {
     "source": "Its matches on the competition’s page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.need": {
+    "source": "Until you pick one, every highlight is listed; some may not play where you are.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.needChosen": {
+    "source": "Only the highlights offered in your territory are listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.recordAge": {
+    "source": {
+      "one": "record updated {count} day ago",
+      "other": "record updated {count} days ago"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "coachPage.careerAge": {
+    "source": {
+      "one": "This record was last updated {count} day ago, so “Current” is as of then.",
+      "other": "This record was last updated {count} days ago, so “Current” is as of then."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "coachPage.record": {
+    "source": "Record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.recordWith": {
+    "source": "Record with {team}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.recordNotSupplied": {
+    "source": "Played, won, drawn and lost under him are not shown: no list of a coach’s matches with their results is kept yet.",
     "text": "",
     "status": "untranslated"
   },

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from '@/components/ui/link';
 import type {
   MatchViewing,
   ScoreCard as ScoreCardData,
@@ -12,7 +11,7 @@ import { GROUP_BLOCK, GROUP_HEADING, GROUP_LIST, GroupTitle } from '@/components
 import { MessageText } from '@/components/message-text';
 import { ScoreCard } from '@/components/score-card';
 import { Translated } from '@/components/translated';
-import { TerritoryChooser } from '@/components/viewing-panel';
+import { TerritoryBar } from '@/components/territory-bar';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { attribute, interpolate, message } from '@/i18n/messages';
 import {
@@ -26,7 +25,6 @@ import { apiQuery, dayStrip, formatStamp, readScoresQuery } from '@/lib/scores';
 import { say } from '@/lib/competition';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
-import { territoryName } from '@/lib/territory';
 import {
   highlightsState,
   optionsState,
@@ -157,7 +155,15 @@ export default async function WatchPage({
         chosen={chosen}
         signedIn={me !== null}
         territories={territories}
+        href={`/${locale}/watch`}
         hidden={{ date: q.date, ...(q.explicitTimezone ? { tz: q.timezone } : {}) }}
+        testId="watch-territory"
+        need={
+          <Translated
+            locale={l}
+            message={chosen.state === 'chosen' ? 'watch.needChosen' : 'watch.need'}
+          />
+        }
       />
 
       <p className="text-xs text-caption" data-testid="timezone">
@@ -242,90 +248,6 @@ export default async function WatchPage({
 }
 
 /**
- * Who the answers are for, asked once (D-394): "Watching from · Iran ·
- * Change territory" in one 48px line. A member's territory lives in settings
- * (T-312), so the line links there; a guest's line is the summary of a
- * native disclosure whose panel is the existing chooser (`TerritoryChooser`,
- * a GET form), so the pick goes into the address. Under it, one sentence:
- * what the page needs, or where its answers come from.
- */
-function TerritoryBar({
-  locale,
-  chosen,
-  signedIn,
-  territories,
-  hidden,
-}: {
-  locale: Locale;
-  chosen: ViewingTerritory;
-  signedIn: boolean;
-  territories: Territory[] | null;
-  hidden: Record<string, string>;
-}) {
-  const isChosen = chosen.state === 'chosen';
-  const action = isChosen ? 'viewing.change' : 'viewing.choose';
-  const line = (
-    <>
-      <span className="text-muted">
-        <Translated locale={locale} message="watch.from" />
-      </span>
-      <span aria-hidden="true" className="text-caption">
-        ·
-      </span>
-      <span className="font-semibold" data-testid="watch-territory-name">
-        {isChosen ? (
-          <bdi>{territoryName(locale, chosen.territory)}</bdi>
-        ) : (
-          <Translated locale={locale} message="viewing.notChosen" />
-        )}
-      </span>
-    </>
-  );
-  const row = 'flex min-h-12 flex-wrap items-center gap-x-2 text-sm';
-  const act = 'ms-auto inline-flex min-h-11 items-center font-semibold underline';
-  return (
-    <section
-      className="flex flex-col rounded-lg border border-default bg-surface px-4 pb-2"
-      data-testid="watch-territory"
-      data-state={chosen.state}
-    >
-      {signedIn ? (
-        <div className={row}>
-          {line}
-          <Link href={`/${locale}/settings#territory`} className={act}>
-            <Translated locale={locale} message={action} />
-          </Link>
-        </div>
-      ) : territories === null ? (
-        <div className={row}>{line}</div>
-      ) : (
-        <details data-testid="watch-territory-choose">
-          <summary className={`${row} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-            {line}
-            <span className={act}>
-              <Translated locale={locale} message={action} />
-            </span>
-          </summary>
-          <div className="pb-2">
-            <TerritoryChooser
-              locale={locale}
-              viewing={{ fixture_id: '', territory: chosen, options: NONE, highlights: NONE }}
-              signedIn={false}
-              href={`/${locale}/watch`}
-              territories={territories}
-              hidden={hidden}
-            />
-          </div>
-        </details>
-      )}
-      <p className="text-xs text-muted" data-testid="watch-need">
-        <Translated locale={locale} message={isChosen ? 'watch.needChosen' : 'watch.need'} />
-      </p>
-    </section>
-  );
-}
-
-/**
  * The row's end cell (D-394): one answer in words, never an empty cell that
  * reads as one (rule 3). No territory: nothing, because the bar above says
  * what is needed. Not loaded, not covered, nothing listed, or "Official:"
@@ -389,8 +311,6 @@ function WatchAnswer({
     </span>
   );
 }
-
-const NONE = { coverage: 'not_supplied', last_updated_at: null, data: null } as const;
 
 /** A guest's carried code as a territory, when the list they chose from has it. */
 function guestChoice(code: string | undefined, territories: Territory[] | null): ViewingTerritory {

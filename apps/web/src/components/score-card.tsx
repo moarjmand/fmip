@@ -124,6 +124,7 @@ export function ScoreCard({
   pickHref,
   href,
   aside,
+  bareWhenFinished = false,
   words,
 }: {
   card: ScoreCardData;
@@ -152,6 +153,12 @@ export function ScoreCard({
    * a forecast surface (Watch) puts its own answer there. Absent: the model's.
    */
   aside?: React.ReactNode;
+  /**
+   * A finished match drawn without the model's cell, 56px (T-1806, D-405;
+   * D-378's finished row): for a list that is a glance at the day, the home
+   * page's, not the matches page's record of what the model said.
+   */
+  bareWhenFinished?: boolean;
   /** The reader's words, resolved on the server (T-1303). */
   words: ScoresWords;
 }) {
@@ -207,6 +214,8 @@ export function ScoreCard({
     disputed ? m['matchCentre.scoreUnclear'].text : null,
   ].filter((bit): bit is string => bit !== null);
   const live = card.status === 'live';
+  // A bare finished row is 56px (D-405): two 20px lines, scores included, and a 2px gap in its 12px padding.
+  const bare = bareWhenFinished && card.status === 'finished';
   const line = scoreLine(card);
   // At full time the winner is bold and the loser muted; a draw keeps both in ink.
   const weight = (side: 'home' | 'away'): string => {
@@ -219,7 +228,10 @@ export function ScoreCard({
   const team = (side: 'home' | 'away') => {
     const t = card[side];
     return (
-      <span className="flex min-h-6 min-w-0 items-center gap-1.5" data-testid={`${side}-team`}>
+      <span
+        className={`flex min-w-0 items-center gap-1.5 ${bare ? 'min-h-5 leading-5' : 'min-h-6'}`}
+        data-testid={`${side}-team`}
+      >
         <EntityImage media={t.crest} kind="crest" name={t.name} size={20} />
         <bdi className={cx(NAME, rowNameFit(t.name), weight(side))}>{t.name}</bdi>
         {sentOff(card.red_cards[side])}
@@ -246,8 +258,8 @@ export function ScoreCard({
     <li
       // The anchor its own Pick and the preview's close control return to (T-1738).
       id={pickHref === undefined ? undefined : `m-${card.id}`}
-      // The 72px grid and its columns (`match-row` in globals.css).
-      className="match-row"
+      // The 72px grid and its columns (`match-row` in globals.css); 56px finished and bare.
+      className={bare ? 'match-row match-row-done' : 'match-row'}
       data-testid="score-card"
       data-fixture-id={card.id}
       data-status={card.status}
@@ -266,7 +278,9 @@ export function ScoreCard({
         >
           {status}
         </span>
-        <span className="row-span-2 flex min-w-0 flex-col gap-1 @xl:font-stretch-semi-condensed">
+        <span
+          className={`row-span-2 flex min-w-0 flex-col @xl:font-stretch-semi-condensed ${bare ? 'gap-0.5' : 'gap-1'}`}
+        >
           {team('home')}
           {team('away')}
           {rowBits.length > 0 && (
@@ -277,17 +291,19 @@ export function ScoreCard({
         </span>
       </Link>
 
-      {aside ?? (
-        <RowForecast
-          forecast={forecast}
-          home={card.home.name}
-          away={card.away.name}
-          outcome={ninetyOutcome(card)}
-          locale={locale}
-          words={words}
-          className="col-start-3 row-span-2 row-start-1"
-        />
-      )}
+      {bare
+        ? null
+        : (aside ?? (
+            <RowForecast
+              forecast={forecast}
+              home={card.home.name}
+              away={card.away.name}
+              outcome={ninetyOutcome(card)}
+              locale={locale}
+              words={words}
+              className="col-start-3 row-span-2 row-start-1"
+            />
+          ))}
 
       {pickHref !== undefined && (
         <Link

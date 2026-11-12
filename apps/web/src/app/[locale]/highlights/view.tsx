@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import type {
   HighlightCompetition,
   HighlightsResponse,
-  MatchViewing,
   Territory,
   ViewingTerritory,
 } from '@fmip/contracts';
@@ -11,7 +10,7 @@ import { Translated } from '@/components/translated';
 import { Icon, Notice } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
 import Link from '@/components/ui/link';
-import { TerritoryChooser } from '@/components/viewing-panel';
+import { TerritoryBar } from '@/components/territory-bar';
 import { formatDate, formatDateTime, formatNumber } from '@/i18n/format';
 import { say } from '@/lib/competition';
 import { dayKey } from '@/lib/competition-overview';
@@ -27,8 +26,6 @@ import {
 import { zoneWords } from '@/lib/reader-time-zone';
 import { HighlightPoster } from './poster';
 
-const NONE = { coverage: 'not_supplied', last_updated_at: null, data: null } as const;
-
 /**
  * Highlights (T-1434, D-226; redesigned as match posters by T-1614, D-285):
  * every official highlight link we hold -- the licensed feed's verified clips
@@ -40,8 +37,9 @@ const NONE = { coverage: 'not_supplied', last_updated_at: null, data: null } as 
  * every clip is listed (T-1488, D-260), each one limited to some countries
  * saying it may not play there, and the page says how to narrow the list.
  *
- * The page: a header with the count and the competitions' logos, the
- * territory panel, the competition filter as logo chips (links, so it works
+ * The page: a header with the count and the competitions' logos (not on a
+ * phone), the territory as the Watch page's one line (`TerritoryBar`, T-1806,
+ * D-405), the competition filter as logo chips (links, so it works
  * without script, and the address keeps the choice), then page 1's newest
  * clip as a large poster and the rest as a grid of posters by the reader's
  * day, and newer/older pages of twenty. An empty list and an unreachable API
@@ -70,46 +68,35 @@ export function HighlightsView({
   // A guest's territory travels on the links; a member's is stored.
   const carried = signedIn ? undefined : q.territory;
   const territory: ViewingTerritory = data?.territory ?? { state: 'not_chosen' };
-  const territoryState: MatchViewing = {
-    fixture_id: '',
-    territory,
-    options: NONE,
-    highlights: NONE,
-  };
 
   return (
-    <main className="page-frame flex flex-col gap-6 py-8">
+    <main className="page-frame flex flex-col gap-4 py-5 sm:gap-6 sm:py-8">
       <PageHeader locale={locale} data={data} />
 
-      <section
-        aria-labelledby="highlights-territory"
-        className="flex flex-col gap-4 rounded-tile border border-default bg-surface p-4 md:flex-row md:items-center md:justify-between md:gap-8"
-        data-testid="highlights-territory"
-      >
-        <div className="flex min-w-0 items-start gap-3">
-          <Globe />
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2 id="highlights-territory" className="font-bold">
-              <Translated locale={locale} message="highlights.territory" />
-            </h2>
-            {data?.offered === 'all' && (
-              <p className="max-w-measure text-sm text-muted" data-testid="highlights-all">
-                <Translated locale={locale} message="highlights.allListed" />
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="shrink-0">
-          <TerritoryChooser
-            locale={locale}
-            viewing={territoryState}
-            signedIn={signedIn}
-            href={`/${locale}/highlights`}
-            territories={territories}
-            hidden={q.competition === undefined ? {} : { competition: q.competition }}
-          />
-        </div>
-      </section>
+      {/*
+        The territory as one 48px line (T-1806, D-405): the Watch page's own
+        line (D-394), where a 410px panel stood on a phone; the chooser opens
+        under it for a guest, a member's goes to Settings.
+      */}
+      <TerritoryBar
+        locale={locale}
+        chosen={territory}
+        signedIn={signedIn}
+        territories={territories}
+        href={`/${locale}/highlights`}
+        hidden={q.competition === undefined ? {} : { competition: q.competition }}
+        testId="highlights-territory"
+        label={say(locale, 'highlights.territory')}
+        need={
+          territory.state === 'chosen' && data?.offered !== 'all' ? (
+            <Translated locale={locale} message="highlights.needChosen" />
+          ) : (
+            <span data-testid="highlights-all">
+              <Translated locale={locale} message="highlights.need" />
+            </span>
+          )
+        }
+      />
 
       {data === null ? (
         <Notice tone="danger" data-testid="highlights-unreachable">
@@ -175,7 +162,7 @@ function PageHeader({ locale, data }: { locale: string; data: HighlightsResponse
         >
           <Translated locale={locale} message="highlights.title" />
         </h1>
-        <p className="max-w-measure text-muted">
+        <p className="max-w-measure text-sm text-muted sm:text-base">
           <Translated locale={locale} message="highlights.lead" />
         </p>
         {data !== null && data.total > 0 && (
@@ -197,7 +184,7 @@ function PageHeader({ locale, data }: { locale: string; data: HighlightsResponse
       {logos.length >= 3 && (
         <div
           aria-hidden="true"
-          className="flex shrink-0 flex-wrap gap-2"
+          className="flex shrink-0 flex-wrap gap-2 max-sm:hidden"
           data-testid="highlights-logos"
         >
           {logos.map((c) => (
@@ -227,12 +214,15 @@ function Filter({
 }) {
   const { shown, more } = splitFilter(data.competitions, data.competition);
   return (
+    // On a phone one row (T-1806, D-405): the chips scroll sideways and the
+    // "more" disclosure closes the row at its end; opened, it takes a line
+    // of its own under the row.
     <nav
       aria-label={say(locale, 'highlights.filter')}
-      className="flex flex-col gap-2"
+      className="flex flex-wrap items-center gap-2 sm:flex-col sm:flex-nowrap sm:items-stretch"
       data-testid="highlights-filter"
     >
-      <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+      <ul className="-ms-4 flex min-w-0 flex-1 gap-2 overflow-x-auto ps-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
         <li className="shrink-0">
           <Chip
             href={highlightsHref(locale, q, { competition: null })}
@@ -250,7 +240,10 @@ function Filter({
         ))}
       </ul>
       {more.length > 0 && (
-        <details className="group/more" data-testid="highlights-filter-more">
+        <details
+          className="group/more shrink-0 open:basis-full sm:basis-auto"
+          data-testid="highlights-filter-more"
+        >
           <summary className="inline-flex min-h-touch cursor-pointer list-none items-center gap-1.5 rounded-control px-1 text-sm font-semibold text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
             <Translated locale={locale} message="highlights.moreCompetitions" count={more.length} />
             <Chevron to="down" />
@@ -469,25 +462,6 @@ function Pages({
         <span />
       )}
     </nav>
-  );
-}
-
-/** The territory panel's mark: a globe, in the accent. Decorative. */
-function Globe() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-      className="mt-0.5 size-8 shrink-0 text-accent"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z" />
-    </svg>
   );
 }
 
