@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { TRENDING_WEIGHTS } from '@fmip/contracts';
-import { nonArticleKind, otherCodeOf } from '@fmip/ingestion';
+import { nonArticleKind, otherCodeOf, stripPhotoCredit } from '@fmip/ingestion';
 import type {
   NewsEntity,
   NewsFilters,
@@ -493,7 +493,7 @@ export class PostgresNewsReadStore {
       reports: reports.rows.map((p): NewsReport => ({
         article_id: p.article_id,
         headline: p.headline,
-        summary: p.summary,
+        summary: stripPhotoCredit(p.summary),
         byline: p.byline,
         language: p.language,
         published_at: p.published_at?.toISOString() ?? null,
@@ -720,7 +720,7 @@ export class PostgresNewsReadStore {
       story_id: r.story_id,
       article_id: r.article_id,
       headline: r.headline,
-      summary: r.summary,
+      summary: stripPhotoCredit(r.summary), // stored before T-1797 too: cleaned as read, no rewrite
       byline: r.byline,
       language: r.language,
       origin: r.origin,

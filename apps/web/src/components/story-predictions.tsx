@@ -18,6 +18,7 @@ import { zoneWords } from '@/lib/reader-time-zone';
 import type { CardForecast } from '@/lib/score-card-products';
 import { formatKickoff } from '@/lib/scores';
 import { forecastBarWords } from '@/lib/words-server';
+import { NAME_WRAP } from '@/lib/word-fit';
 
 /**
  * "Predictions for this match" on the story page (T-1741, D-362; it replaces
@@ -303,7 +304,7 @@ function Side({ team }: { team: StoryMatch['home'] }) {
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5">
       <EntityImage media={team.crest} kind="crest" name={team.name} size={22} />
-      <bdi className="[overflow-wrap:anywhere]">{team.name}</bdi>
+      <bdi className={NAME_WRAP}>{team.name}</bdi>
     </span>
   );
 }

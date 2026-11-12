@@ -19,6 +19,7 @@ import { formatKickoff, formatStamp, freshnessStamp } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { listName } from '@/lib/person-name';
 import type { MatchWords } from '@/lib/words-server';
+import { NAME_WRAP, NARROW_STEPS, nameFit } from '@/lib/word-fit';
 import { formatDate, formatDateTime, localDigits } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
@@ -684,9 +685,14 @@ function Hero({
       })}
     </time>
   );
-  const name = cx(
-    'block max-w-full text-base leading-tight font-extrabold hyphens-auto [overflow-wrap:anywhere] md:text-3xl md:leading-none',
-  );
+  // Whole words only (T-1796, D-395): a single long word steps its width
+  // down on a phone, where the cell holds about ten letters (96px at 375).
+  const name = (team: string) =>
+    cx(
+      'block max-w-full text-base leading-tight font-extrabold md:text-3xl md:leading-none',
+      NAME_WRAP,
+      nameFit(team, 10, NARROW_STEPS),
+    );
   const figure = cx(
     'font-sans font-extrabold tabular-nums whitespace-nowrap',
     naskh
@@ -770,14 +776,14 @@ function Hero({
           <div className="flex flex-col items-center text-center md:flex-row md:justify-end md:gap-5 md:text-end">
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
               <Link href={`/${locale}/team/${f.home.id}`} className={teamLink}>
-                <bdi className={name}>{f.home.name}</bdi>
+                <bdi className={name(f.home.name)}>{f.home.name}</bdi>
               </Link>
-              {scorers.home !== '' && (
+              {scorers.home.length > 0 && (
                 <span
                   className="text-xs text-muted max-md:pb-1.5 md:text-sm"
                   data-testid="scorers-home"
                 >
-                  {scorers.home}
+                  {scorerLine(scorers.home)}
                 </span>
               )}
             </span>
@@ -853,14 +859,14 @@ function Hero({
             <Crest team={f.away} />
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
               <Link href={`/${locale}/team/${f.away.id}`} className={teamLink}>
-                <bdi className={name}>{f.away.name}</bdi>
+                <bdi className={name(f.away.name)}>{f.away.name}</bdi>
               </Link>
-              {scorers.away !== '' && (
+              {scorers.away.length > 0 && (
                 <span
                   className="text-xs text-muted max-md:pb-1.5 md:text-sm"
                   data-testid="scorers-away"
                 >
-                  {scorers.away}
+                  {scorerLine(scorers.away)}
                 </span>
               )}
             </span>
@@ -973,7 +979,11 @@ function Hero({
         <li>
           <FilledMessage message={m['scores.card.kickoff']} params={{ time: kickoffFull }} />
         </li>
-        {facts.venue !== null && <li>{facts.venue}</li>}
+        {facts.venue !== null && (
+          <li>
+            <bdi>{facts.venue}</bdi>
+          </li>
+        )}
         <li>{facts.referee}</li>
         {facts.attendance !== null && <li>{facts.attendance}</li>}
         {facts.aggregate !== null && <li>{facts.aggregate}</li>}
@@ -1053,12 +1063,15 @@ export function comingModules(centre: MatchCentre): ComingItem[] {
 
 /**
  * Each side's scorers for the band, "Jackson 6′, 60′", in the order they
- * scored. None at all when the timeline holds an own goal: which side it
+ * scored, as [name, minutes] pairs. None at all when the timeline holds an own goal: which side it
  * counts for is not certain from the feed, and a scorer under the wrong
  * name would be invented (rule 3; the alerts make the same choice).
  */
-function scorersOf(centre: MatchCentre, locale: string): Record<'home' | 'away', string> {
-  const none = { home: '', away: '' };
+function scorersOf(
+  centre: MatchCentre,
+  locale: string,
+): Record<'home' | 'away', [string, string][]> {
+  const none = { home: [], away: [] };
   const recorded = centre.timeline.data;
   if (recorded === null || recorded.some((i) => i.kind === 'own_goal')) return none;
   // A shoot-out's kicks are not goals of the match (T-1550): the band names
@@ -1079,8 +1092,24 @@ function scorersOf(centre: MatchCentre, locale: string): Record<'home' | 'away',
     by[i.side].set(name, minutes);
   }
   const line = (side: 'home' | 'away') =>
-    [...by[side]].map(([name, minutes]) => `${name} ${minutes.join(', ')}`).join(' · ');
+    [...by[side]].map(([name, minutes]): [string, string] => [name, minutes.join(', ')]);
   return { home: line('home'), away: line('away') };
+}
+
+/**
+ * A side's scorers as one line that breaks only between scorers (T-1796,
+ * D-395): each name isolated (a Latin name inside Persian), held to its
+ * minutes by a no-break space, the minutes never split.
+ */
+function scorerLine(list: [string, string][]) {
+  return list.map(([who, at], i) => (
+    <Fragment key={who}>
+      {i > 0 && ' · '}
+      <bdi>{who}</bdi>
+      {'\u00a0'}
+      <span className="whitespace-nowrap">{at}</span>
+    </Fragment>
+  ));
 }
 
 /** A side's crest on a white tile, so a dark crest reads on the Night ground. */
@@ -1608,7 +1637,7 @@ function PlayerStatistics({
 
 /**
  * Per-player expected goals from their one source (T-1432, D-224), a card of
- * its own under the player statistics: labelled "xG (Highlightly)", never a
+ * its own under the player statistics: labelled "Expected goals (xG)" (no provider in a heading, T-1797), never a
  * column of the table above, `–` for a figure the source did not supply, and
  * an explicit state when it supplied none (rule 3).
  */

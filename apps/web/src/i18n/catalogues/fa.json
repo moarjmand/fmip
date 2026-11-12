@@ -216,10 +216,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "shell.search.placeholder": {
-    "source": "Teams, players, competitions",
-    "text": "تیم، بازیکن، رقابت",
+    "source": "Search",
+    "text": "جستجو",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "shell.footer.nav": {
     "source": "Site links",
@@ -5162,6 +5162,18 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "story.noCorrectionsShort": {
+    "source": "No corrections noted",
+    "text": "اصلاحیه‌ای ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
+  },
+  "story.versionLine": {
+    "source": "{language}, {status}",
+    "text": "{language}، {status}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
+  },
   "story.about": {
     "source": "About",
     "text": "مرتبط با",
@@ -9753,34 +9765,34 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.expectedGoals": {
-    "source": "xG (Highlightly)",
-    "text": "xG (Highlightly)",
+    "source": "Expected goals (xG)",
+    "text": "گل مورد انتظار (xG)",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "matchCentre.expectedGoals.note": {
-    "source": "Expected goals from Highlightly's own model: kept apart from the player statistics above and never combined with them.",
-    "text": "گل مورد انتظار از مدل خود Highlightly: جدا از آمار بازیکنان در بالا نگه داشته می‌شود و هرگز با آن ترکیب نمی‌شود.",
+    "source": "Expected goals from the match data supplier's own model: kept apart from the player statistics above and never combined with them.",
+    "text": "گل مورد انتظار از مدل خود تأمین‌کننده‌ی داده‌ی بازی: جدا از آمار بازیکنان در بالا نگه داشته می‌شود و هرگز با آن ترکیب نمی‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "matchCentre.expectedGoals.none": {
-    "source": "Highlightly supplies no expected goals for this match.",
-    "text": "Highlightly برای این بازی گل مورد انتظار ارائه نمی‌کند.",
+    "source": "No expected goals are supplied for this match.",
+    "text": "برای این بازی گل مورد انتظار ارائه نشده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "matchCentre.expectedGoals.unplaced": {
-    "source": "Not shown: {count} players Highlightly listed who are not yet matched to ours.",
-    "text": "نمایش داده نشده: {count} بازیکنی که Highlightly فهرست کرده و هنوز با بازیکنان ما تطبیق داده نشده‌اند.",
+    "source": "Not shown: {count} players the expected-goals data lists who are not yet matched to ours.",
+    "text": "نمایش داده نشده: {count} بازیکنی که داده‌ی گل مورد انتظار فهرست کرده و هنوز با بازیکنان ما تطبیق داده نشده‌اند.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "matchCentre.expectedGoals.region": {
-    "source": "{team}: xG (Highlightly), scrolls sideways",
-    "text": "{team}: xG (Highlightly)، به پهلو پیمایش می‌شود",
+    "source": "{team}: expected goals (xG), scrolls sideways",
+    "text": "{team}: گل مورد انتظار (xG)، به پهلو پیمایش می‌شود",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "matchCentre.expectedGoals.xg": {
     "source": "xG",
@@ -15171,10 +15183,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "teamPage.seasonStats.title": {
-    "source": "Season statistics, as {source} counts them",
-    "text": "آمار فصل، به شمارش {source}",
+    "source": "Season statistics",
+    "text": "آمار فصل",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "teamPage.seasonStats.note": {
     "source": "{source}'s figures for one competition's season, beside our own table and home-and-away figures, never added to them.",
@@ -15813,10 +15825,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "playerPage.expectedGoals": {
-    "source": "xG (Highlightly)",
-    "text": "xG (Highlightly)",
+    "source": "Expected goals (xG)",
+    "text": "گل مورد انتظار (xG)",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "playerPage.noData": {
     "source": "No match data stored for this player yet.",

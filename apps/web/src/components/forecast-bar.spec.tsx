@@ -239,7 +239,9 @@ describe('ForecastBar', () => {
     expect(html).toContain('محاسبه‌شده');
     expect(html).toContain('نسخه ۳');
     // The model id stays a left-to-right island inside Persian.
-    expect(html).toContain('<span dir="ltr">dixon-coles-elo<span>@</span>0.6.0</span>');
+    expect(html).toContain(
+      '<span dir="ltr"><bdi dir="ltr">dixon-coles-elo<span>@</span>0.6.0</bdi></span>',
+    );
     // Nothing physical: the ends of the bar are logical radii (rule 7).
     expect(html).toContain('rounded-s-pill');
     expect(html).toContain('rounded-e-pill');

@@ -545,7 +545,13 @@ describe('a match row (T-1762, D-378: D-374’s row)', () => {
     expect(html).toContain('Nottingham Forest');
     expect(html).toContain('Wolverhampton Wanderers');
     expect(html).not.toContain('truncate');
-    expect(html).toMatch(/<bdi class="min-w-0 break-words hyphens-auto/);
+    // Between words only, never hyphenated; a 13-letter word steps to 87.5% on a phone (T-1796, D-395).
+    expect(html).toMatch(/<bdi class="min-w-0 break-words hyphens-manual/);
+    expect(html).toMatch(
+      /<bdi class="[^"]*@max-xl:font-stretch-semi-condensed[^"]*">Wolverhampton Wanderers</,
+    );
+    expect(html).toMatch(/<bdi class="[^"]*hyphens-manual[^"]*font-semibold">Nottingham Forest</);
+    expect(html).not.toMatch(/hyphens-auto|overflow-wrap:anywhere/);
   });
 
   it('says a postponed match is postponed and a live one is live, with its goals in the live colour', () => {
@@ -573,7 +579,7 @@ describe('a match row (T-1762, D-378: D-374’s row)', () => {
   });
 
   it('shares the scores row’s pieces rather than a copy (D-374)', () => {
-    expect(SOURCE).toContain("import { NAME } from '@/components/score-card';");
+    expect(SOURCE).toContain("import { NAME, rowNameFit } from '@/components/score-card';");
     expect(SOURCE).toContain("import { RowForecast } from '@/components/score-card-forecast';");
     expect(SOURCE).not.toContain('ModelFigures');
     const css = readFileSync(join(__dirname, '..', '..', '..', 'globals.css'), 'utf8');

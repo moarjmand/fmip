@@ -378,7 +378,12 @@ describe('the 72px row on a phone (T-1757, D-374)', () => {
     const html = row('en', {}, { status: 'postponed' });
     expect(html).toMatch(/data-testid="score-status"[^>]*>Postponed</);
     expect(classOf(html, 'score-status')).toContain('row-span-2');
-    expect(classOf(html, 'score-status')).toContain('[overflow-wrap:anywhere]');
+    // A status word stays a word (T-1796, D-395): 11px at 75% width, never broken inside.
+    expect(classOf(html, 'score-status')).toContain('text-[11px]');
+    expect(classOf(html, 'score-status')).toContain('font-stretch-condensed');
+    expect(classOf(html, 'score-status')).toContain('hyphens-manual');
+    expect(classOf(html, 'score-status')).not.toContain('anywhere');
+    expect(classOf(html, 'score-status')).not.toContain('@xl:text-sm');
     expect(classOf(html, 'row-pick')).toMatch(/(^| )hidden @xl:inline-flex/);
   });
 
@@ -397,9 +402,11 @@ describe('the 72px row on a phone (T-1757, D-374)', () => {
     expect(html).toContain('>Borussia Mönchengladbach</bdi>');
     expect(html).not.toMatch(/truncate|line-clamp|text-ellipsis/);
     expect(html).not.toMatch(/<bdi[^>]*title=/);
+    // Between words only (T-1796, D-395); the 15-letter word steps to 75% width on a phone.
     expect(html).toMatch(
-      /<bdi class="min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base/,
+      /<bdi class="min-w-0 break-words hyphens-manual leading-tight text-sm @xl:text-base @max-xl:font-stretch-condensed/,
     );
+    expect(html).not.toMatch(/hyphens-auto|overflow-wrap:anywhere/);
     expect(html).toMatch(
       /Mönchengladbach<\/bdi><span class="ms-auto[^"]*" data-testid="away-score">1</,
     );
