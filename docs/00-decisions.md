@@ -15051,3 +15051,13 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 **Rejected.** *Rendering `LiveScores` on Watch:* its stream and its client code for a page whose answers do not change by the minute. *Copying the strip and the row markup:* two copies drift, which is how Watch came to look unstyled. *Links to each service inside the row:* a second link in a row that is already one link, and several 44px targets in a 104px cell on a phone; the match's Watch section has them. *A badge for every row before a territory is chosen:* 24 copies of the same sentence, which is the finding.
 
 **Consequences.** `scores/page.tsx` and `live-scores.tsx` now draw the shared strip and block pieces (no change in output); `ScoreCard` has `href` and `aside`. Eight new strings in every catalogue, Persian from the board where it had them. The Watch page's per-row `ViewingPanel` line is no longer drawn there (it stays on the club page's fixtures). The E2E journey opens the territory line before checking the guest's pick.
+
+## D-407 — HSTS raised to six months after a clean week
+
+**Status:** Accepted · 2026-11-08 (the step D-332 already set; prepared by a scheduled check, merged and deployed only by the maintainer) · **Task:** T-1690 · **Follows:** D-332
+
+**Context.** D-332 sent `Strict-Transport-Security: max-age=86400` from 2026-11-01 and said it goes to six months once a week passes without a problem. The week to 2026-11-08 was clean: every daily ops report (2026-11-01..08) had all site probes at 200 and no HTTP 5xx; the team's findings named no broken page, frame, embed or HTTPS problem; the one header finding still open (sec-2026-11-02-01, the report-only content policy has nowhere to send its violations) is about the content policy, not HSTS; production still answered `max-age=86400`.
+
+**Decision.** `max-age=15552000` (180 days) in both site blocks of `deploy/Caddyfile` (the site and the agents console). Still no `includeSubDomains` and no preload: those wait for a further decision, as D-332 said. The content policy stays report-only.
+
+**Consequences.** A browser that has seen the header will refuse plain HTTP to the host for six months; going back to HTTP-only would need `max-age=0` served over HTTPS and visitors returning to pick it up. The rollout recreates Caddy. The security agent's weekly check now expects `max-age=15552000`.
