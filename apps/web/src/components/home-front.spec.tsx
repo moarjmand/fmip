@@ -452,6 +452,9 @@ describe('today by competition', () => {
       more: 2,
     },
   ];
+  // Before the first kick-off (13:30 UTC), so picks are open.
+  const NOW_MS = Date.parse('2026-10-08T10:00:00Z');
+  const forecasts = new Map<string, CardForecast>([['f1', { state: 'none' }]]);
   const today = (locale: string, isToday = true) =>
     renderToStaticMarkup(
       <TodayByCompetition
@@ -462,6 +465,8 @@ describe('today by competition', () => {
         scoresHref={`/${locale}/scores`}
         locale={locale}
         timeZone="Asia/Tehran"
+        forecasts={forecasts}
+        now={NOW_MS}
       />,
     );
 
@@ -486,8 +491,52 @@ describe('today by competition', () => {
     expect(html).toContain('data-status="finished"');
     expect(html).toContain('FT');
     const row = html.slice(html.indexOf('href="/en/match/f2"'));
-    expect(row).toMatch(/flex min-w-0 items-center gap-2 font-bold">.*Zob Ahan/);
-    expect(row).toMatch(/flex min-w-0 items-center gap-2 text-muted">.*Nassaji/);
+    expect(row).toMatch(/<bdi class="[^"]*font-bold">Zob Ahan<\/bdi>/);
+    expect(row).toMatch(/<bdi class="[^"]*font-medium text-muted">Nassaji<\/bdi>/);
+  });
+
+  it('draws the matches page’s row: finished 56px and bare, the model and Pick before kick-off (T-1806, D-405)', () => {
+    const html = today('en');
+    const rows = [
+      ...html.matchAll(
+        /<li [^>]*class="(match-row[^"]*)"[^>]*data-testid="score-card"[^>]*data-fixture-id="(\w+)"/g,
+      ),
+    ];
+    const cls = new Map(rows.map((m) => [m[2], m[1]]));
+    expect(cls.get('f2')).toBe('match-row match-row-done');
+    expect(cls.get('f1')).toBe('match-row');
+    // The rows' columns follow the card's width, as on the matches page.
+    expect(html).toContain('class="@container flex flex-col divide-y divide-default"');
+    const finished = html.slice(html.indexOf('data-fixture-id="f2"'));
+    expect(finished.slice(0, finished.indexOf('</li>'))).not.toContain(
+      'data-testid="row-forecast"',
+    );
+    const open = html.slice(html.indexOf('data-fixture-id="f1"'));
+    const first = open.slice(0, open.indexOf('</li>'));
+    // No forecast for it: said in words, never an empty bar (rule 3).
+    expect(first).toMatch(/data-testid="row-forecast" data-state="none"/);
+    expect(first).toContain('not supplied');
+    expect(first).toMatch(
+      /href="\/en\/match\/f1#pick"[^>]*data-testid="row-pick"|data-testid="row-pick"[^>]*href="\/en\/match\/f1#pick"/,
+    );
+    // Names whole: no ellipsis class on the home's rows any more.
+    expect(html).not.toContain('truncate">Tractor');
+  });
+
+  it('offers no Pick once the match has kicked off', () => {
+    const html = renderToStaticMarkup(
+      <TodayByCompetition
+        groups={groups}
+        isToday
+        day="2026-10-08"
+        total={88}
+        scoresHref="/en/scores"
+        locale="en"
+        timeZone="Asia/Tehran"
+        now={Date.parse('2026-10-08T14:00:00Z')}
+      />,
+    );
+    expect(html).not.toContain('data-testid="row-pick"');
   });
 
   it('says "Awaiting update" for a match still scheduled long after its kick-off (T-1710, D-343)', () => {

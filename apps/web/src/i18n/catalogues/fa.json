@@ -18350,12 +18350,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "highlights.allListed": {
-    "source": "Every highlight we hold is listed. Some are limited to certain countries and may not play where you are: choose your territory to see only the ones offered there.",
-    "text": "همهٔ هایلایت‌هایی که داریم فهرست شده‌اند. برخی فقط در کشورهای خاصی در دسترس‌اند و ممکن است جایی که هستید پخش نشوند: کشور خود را انتخاب کنید تا فقط آن‌هایی را ببینید که آنجا در دسترس است.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "highlights.restricted": {
     "source": "May not play in your country",
     "text": "ممکن است در کشور شما پخش نشود",
@@ -18757,5 +18751,59 @@
     "text": "بازی‌هایش در صفحه‌ی رقابت",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "highlights.need": {
+    "source": "Pick a territory to see only the highlights offered there. Until then every highlight we hold is listed, and some may not play where you are.",
+    "text": "کشوری را انتخاب کنید تا فقط هایلایت‌هایی را ببینید که آنجا در دسترس‌اند. تا آن موقع همه‌ی هایلایت‌هایی که داریم فهرست می‌شوند و برخی ممکن است جایی که هستید پخش نشوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "highlights.needChosen": {
+    "source": "Only the highlights offered in your territory are listed.",
+    "text": "فقط هایلایت‌هایی فهرست شده‌اند که در کشور شما در دسترس‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.recordAge": {
+    "source": {
+      "one": "record updated {count} day ago",
+      "other": "record updated {count} days ago"
+    },
+    "forms": {
+      "one": "داده‌ها {count} روز پیش به‌روز شده‌اند",
+      "other": "داده‌ها {count} روز پیش به‌روز شده‌اند"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.careerAge": {
+    "source": {
+      "one": "This record was last updated {count} day ago, so “Current” is as of then.",
+      "other": "This record was last updated {count} days ago, so “Current” is as of then."
+    },
+    "forms": {
+      "one": "این داده‌ها آخرین بار {count} روز پیش به‌روز شده‌اند؛ پس «فعلی» مربوط به همان زمان است.",
+      "other": "این داده‌ها آخرین بار {count} روز پیش به‌روز شده‌اند؛ پس «فعلی» مربوط به همان زمان است."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.record": {
+    "source": "Record",
+    "text": "کارنامه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.recordWith": {
+    "source": "Record with {team}",
+    "text": "کارنامه با {team}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.recordNotSupplied": {
+    "source": "Played, won, drawn and lost under him are not shown: no list of a coach’s matches with their results is kept yet.",
+    "text": "بازی، برد، مساوی و باخت با او نشان داده نمی‌شود: هنوز فهرستی از بازی‌های یک مربی با نتیجه‌هایشان نگه داشته نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
   }
 }

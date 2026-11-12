@@ -110,6 +110,7 @@ export function ScoreCard({
   pickHref,
   href,
   aside,
+  bareWhenFinished = false,
   words,
 }: {
   card: ScoreCardData;
@@ -138,6 +139,12 @@ export function ScoreCard({
    * a forecast surface (Watch) puts its own answer there. Absent: the model's.
    */
   aside?: React.ReactNode;
+  /**
+   * A finished match drawn without the model's cell, 56px (T-1806, D-405;
+   * D-378's finished row): for a list that is a glance at the day, the home
+   * page's, not the matches page's record of what the model said.
+   */
+  bareWhenFinished?: boolean;
   /** The reader's words, resolved on the server (T-1303). */
   words: ScoresWords;
 }) {
@@ -225,13 +232,14 @@ export function ScoreCard({
   // On a phone the Pick (or the member's "Picked") stands under the time; a
   // live or finished row's "View" is the desktop's only (T-1757, D-374).
   const under = pickHref !== undefined && pick !== 'locked';
+  const bare = bareWhenFinished && card.status === 'finished';
 
   return (
     <li
       // The anchor its own Pick and the preview's close control return to (T-1738).
       id={pickHref === undefined ? undefined : `m-${card.id}`}
-      // The 72px grid and its columns (`match-row` in globals.css).
-      className="match-row"
+      // The 72px grid and its columns (`match-row` in globals.css); 56px finished and bare.
+      className={bare ? 'match-row match-row-done' : 'match-row'}
       data-testid="score-card"
       data-fixture-id={card.id}
       data-status={card.status}
@@ -261,17 +269,19 @@ export function ScoreCard({
         </span>
       </Link>
 
-      {aside ?? (
-        <RowForecast
-          forecast={forecast}
-          home={card.home.name}
-          away={card.away.name}
-          outcome={ninetyOutcome(card)}
-          locale={locale}
-          words={words}
-          className="col-start-3 row-span-2 row-start-1"
-        />
-      )}
+      {bare
+        ? null
+        : (aside ?? (
+            <RowForecast
+              forecast={forecast}
+              home={card.home.name}
+              away={card.away.name}
+              outcome={ninetyOutcome(card)}
+              locale={locale}
+              words={words}
+              className="col-start-3 row-span-2 row-start-1"
+            />
+          ))}
 
       {pickHref !== undefined && (
         <Link

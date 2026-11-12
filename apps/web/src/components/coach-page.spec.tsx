@@ -1,8 +1,13 @@
 import type { CoachCareerSpell, CoachPage } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { coachSpellPeriod, currentSpells } from '@/lib/coach';
-import { CoachBand, CoachCareerPanel, CoachLineupsPanel } from './coach-page';
+import {
+  COACH_RECORD_STALE_DAYS,
+  coachSpellPeriod,
+  currentSpells,
+  staleRecordDays,
+} from '@/lib/coach';
+import { CoachBand, CoachCareerPanel, CoachLineupsPanel, CoachRecordPanel } from './coach-page';
 
 /**
  * The coach page (T-1439, D-230): an open
@@ -177,5 +182,75 @@ describe('the coach page', () => {
     );
     expect(html).toContain('کارنامه');
     expect(html).toContain('فعلی');
+  });
+});
+
+describe('the record’s age and the record card (T-1807, D-406)', () => {
+  // The fixture's career was updated on 21 Oct, 10:00 UTC.
+  const FRESH = new Date('2026-10-28T09:00:00.000Z');
+  const OLD = new Date('2026-11-09T12:00:00.000Z');
+
+  it('calls a record stale only past the named seven days, and says how many days', () => {
+    expect(COACH_RECORD_STALE_DAYS).toBe(7);
+    expect(staleRecordDays('2026-10-21T10:00:00.000Z', FRESH)).toBeNull();
+    expect(
+      staleRecordDays('2026-10-21T10:00:00.000Z', new Date('2026-10-28T10:00:00.000Z')),
+    ).toBeNull();
+    expect(staleRecordDays('2026-10-21T10:00:00.000Z', new Date('2026-10-29T10:00:00.000Z'))).toBe(
+      8,
+    );
+    expect(staleRecordDays('2026-10-21T10:00:00.000Z', OLD)).toBe(19);
+    expect(staleRecordDays(null, OLD)).toBeNull();
+    expect(staleRecordDays('not a date', OLD)).toBeNull();
+  });
+
+  it('marks "Coaching now" and the career with the age in words once stale, and not before', () => {
+    const fresh = renderToStaticMarkup(
+      <>
+        <CoachBand page={page()} locale="en" now={FRESH} />
+        <CoachCareerPanel page={page()} locale="en" timeZone="UTC" now={FRESH} />
+      </>,
+    );
+    expect(fresh).not.toContain('data-testid="coach-stale"');
+    expect(fresh).not.toContain('data-testid="coach-career-stale"');
+
+    const old = renderToStaticMarkup(
+      <>
+        <CoachBand page={page()} locale="en" now={OLD} />
+        <CoachCareerPanel page={page()} locale="en" timeZone="UTC" now={OLD} />
+      </>,
+    );
+    expect(old).toMatch(/data-testid="coach-stale"[^>]*>.*record updated 19 days ago/);
+    expect(old).toMatch(
+      /data-testid="coach-career-stale"[^>]*>.*last updated 19 days ago, so “Current” is as of then\./,
+    );
+    // An icon and words, never colour alone.
+    expect(old).toMatch(/data-testid="coach-stale"[^>]*><svg/);
+    expect(old).not.toMatch(PHYSICAL);
+    const fa = renderToStaticMarkup(<CoachBand page={page()} locale="fa" now={OLD} />);
+    expect(fa).toContain('۱۹ روز پیش');
+  });
+
+  it('puts no age beside a band that names no current team', () => {
+    const none = page({
+      career: {
+        coverage: 'available',
+        last_updated_at: '2026-10-21T10:00:00.000Z',
+        data: [spell({ current: false, end_date: '2025-01-01' })],
+      },
+    });
+    expect(renderToStaticMarkup(<CoachBand page={none} locale="en" now={OLD} />)).not.toContain(
+      'data-testid="coach-stale"',
+    );
+  });
+
+  it('draws the record as a labelled gap with its coverage, never numbers', () => {
+    const html = renderToStaticMarkup(<CoachRecordPanel page={page()} locale="en" />);
+    expect(html).toContain('Record with Manchester City');
+    expect(html).toMatch(/[Nn]ot supplied/);
+    expect(html).toContain('data-testid="coach-record-gap"');
+    expect(html.replace(/<[^>]+>/g, '')).not.toMatch(/\d/);
+    const none = page({ career: { coverage: 'not_supplied', last_updated_at: null, data: null } });
+    expect(renderToStaticMarkup(<CoachRecordPanel page={none} locale="en" />)).toMatch(/>Record</);
   });
 });

@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { fetchCoach, fetchMe } from '@/lib/api';
-import { CoachBand, CoachCareerPanel, CoachLineupsPanel } from '@/components/coach-page';
+import {
+  CoachBand,
+  CoachCareerPanel,
+  CoachLineupsPanel,
+  CoachRecordPanel,
+} from '@/components/coach-page';
 import { Stamp } from '@/components/stamp';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
@@ -64,13 +69,17 @@ export default async function CoachPageRoute({
   }
   const page = result.data;
   const { timeZone } = await pageTimeZone(locale, me);
+  const now = new Date();
   return (
     <main data-mode="data" className="pb-16" data-testid="coach-page">
-      <CoachBand page={page} locale={locale} />
+      <CoachBand page={page} locale={locale} now={now} />
       <div className="page-frame flex flex-col gap-5 pt-6">
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-          <CoachCareerPanel page={page} locale={locale} timeZone={timeZone} />
-          <CoachLineupsPanel page={page} locale={locale} timeZone={timeZone} />
+          <CoachCareerPanel page={page} locale={locale} timeZone={timeZone} now={now} />
+          <div className="flex min-w-0 flex-col gap-5">
+            <CoachLineupsPanel page={page} locale={locale} timeZone={timeZone} />
+            <CoachRecordPanel page={page} locale={locale} />
+          </div>
         </div>
         <p className="text-xs text-muted" data-testid="coach-updated">
           {page.last_updated_at === null ? (

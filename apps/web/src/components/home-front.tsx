@@ -14,7 +14,8 @@ import { FounderAnalysisBrief } from '@/components/founder-analysis';
 import { MessageText } from '@/components/message-text';
 import { CommunityVoice, ModelVoice, ThreeProductsNote } from '@/components/voices';
 import { Score, ScorePair } from '@/components/score';
-import { COVERAGE_KEY } from '@/components/score-card';
+import { GROUP_LIST } from '@/components/match-group';
+import { COVERAGE_KEY, ScoreCard as ScoreRow } from '@/components/score-card';
 import { Translated } from '@/components/translated';
 import { ButtonLink, CoverageBadge, Icon } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
@@ -24,7 +25,7 @@ import { type MessageKey, interpolate, message, plural, t } from '@/i18n/message
 import { factorLabel, kindLabel } from '@/lib/forecast';
 import { type HeroMatch, type HeroSlot, type KeyGroup, sharedRound, topFactors } from '@/lib/home';
 import { stageName } from '@/lib/competition';
-import { awaitingUpdate } from '@/lib/live';
+import { pickCardPath, pickOpen } from '@/lib/pick';
 import type { CardForecast } from '@/lib/score-card-products';
 import { formatKickoff, statusLabel } from '@/lib/scores';
 import { formatFixed, formatPercent, formatSigned } from '@/lib/words';
@@ -608,87 +609,18 @@ export function BigMatch({
   );
 }
 
-/** One match of a competition's card: status, the two teams stacked, each one's goals beside it. */
-function TodayRow({
-  card,
-  locale,
-  timeZone,
-}: {
-  card: ScoreCard;
-  locale: Locale;
-  timeZone: string;
-}) {
-  const score = card.scores.current;
-  const finished = card.status === 'finished' && score !== null;
-  const won = (side: 'home' | 'away') =>
-    finished && score[side] > score[side === 'home' ? 'away' : 'home'];
-  const lost = (side: 'home' | 'away') =>
-    finished && score[side] < score[side === 'home' ? 'away' : 'home'];
-  const team = (side: 'home' | 'away') => (
-    <span
-      className={cx(
-        'flex min-w-0 items-center gap-2',
-        won(side) && 'font-bold',
-        lost(side) && 'text-muted',
-      )}
-    >
-      <EntityImage media={card[side].crest} kind="crest" name={card[side].name} size={20} />
-      <bdi className="truncate">{card[side].name}</bdi>
-    </span>
-  );
-  const goals = (side: 'home' | 'away') =>
-    score === null ? null : (
-      <span className={cx(lost(side) && 'text-muted')}>{formatNumber(locale, score[side])}</span>
-    );
-  return (
-    <li className="border-b border-default last:border-b-0">
-      <Link
-        href={`/${locale}/match/${card.id}`}
-        className="grid min-h-touch grid-cols-[2.75rem_minmax(0,1fr)_1.75rem] items-center gap-3 px-4 py-2.5 hover:bg-surface-raised"
-        data-testid="home-today-row"
-        data-status={card.status}
-      >
-        <span
-          className={cx(
-            'text-sm font-bold tabular-nums',
-            card.status === 'live' ? 'font-extrabold text-live' : 'text-muted',
-          )}
-        >
-          {/* "Awaiting update" from the status words for one still scheduled long after its kick-off (T-1710). */}
-          {card.status === 'scheduled' && !awaitingUpdate(card)
-            ? formatKickoff(locale, card.kickoff_at, timeZone)
-            : status(card, locale, timeZone)}
-        </span>
-        <span className="flex min-w-0 flex-col gap-1.5 text-[0.9375rem] font-semibold font-stretch-semi-condensed">
-          {team('home')}
-          {team('away')}
-        </span>
-        <span
-          aria-hidden="true"
-          className={cx(
-            'flex flex-col items-end gap-1.5 text-base font-extrabold font-stretch-condensed tabular-nums',
-            card.status === 'live' && 'text-live',
-          )}
-        >
-          {goals('home')}
-          {goals('away')}
-        </span>
-        {score !== null && (
-          <span className="sr-only">
-            <Score home={score.home} away={score.away} locale={locale} />
-          </span>
-        )}
-      </Link>
-    </li>
-  );
-}
-
 /**
  * Today by competition (D-270): each competition of the day as a card, in the
  * competitions' order (D-154), a member's own teams first in a card of their
- * own; per match the status, both teams and the goals beside each, winners in
- * bold; the round when the whole card shares one; what is left out is counted
+ * own; the round when the whole card shares one; what is left out is counted
  * and the scores page has it.
+ *
+ * Each match is the matches page's row (`ScoreCard`, T-1806, D-405), drawn
+ * here on the server: names whole and wrapped, never cut; a finished match
+ * 56px with the winner bold and no model cell (D-378's row); a match still to
+ * come, or in play, with the model's one bar (D-368) or its state in words
+ * (rule 3), and Pick under its time while picks are open, to the match
+ * page's pick card. A feed that fell behind says so on its row (rule 4).
  */
 export function TodayByCompetition({
   groups,
@@ -698,6 +630,8 @@ export function TodayByCompetition({
   scoresHref,
   locale,
   timeZone,
+  forecasts,
+  now,
 }: {
   groups: KeyGroup[];
   isToday: boolean;
@@ -708,8 +642,13 @@ export function TodayByCompetition({
   scoresHref: string;
   locale: string;
   timeZone: string;
+  /** The model's pre-kick-off line per match still to finish; absent ones say "not loaded". */
+  forecasts?: ReadonlyMap<string, CardForecast>;
+  /** The page's clock (ms): a row offers Pick only before kick-off, and says when its feed is behind. */
+  now?: number;
 }) {
   const l = asLocale(locale);
+  const words = scoresWords(l);
   const title = isToday ? (
     <Translated locale={l} message="home.today.title" />
   ) : (
@@ -783,9 +722,19 @@ export function TodayByCompetition({
                   )}
                 </span>
               </h3>
-              <ul>
+              <ul className={GROUP_LIST}>
                 {group.cards.map((card) => (
-                  <TodayRow key={card.id} card={card} locale={l} timeZone={timeZone} />
+                  <ScoreRow
+                    key={card.id}
+                    card={card}
+                    timeZone={timeZone}
+                    locale={l}
+                    now={now}
+                    forecast={forecasts?.get(card.id)}
+                    bareWhenFinished
+                    pickHref={pickOpen(card, now) ? pickCardPath(l, card.id) : undefined}
+                    words={words}
+                  />
                 ))}
               </ul>
               {group.more > 0 && (

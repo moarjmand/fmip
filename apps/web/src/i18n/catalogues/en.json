@@ -3292,7 +3292,6 @@
   "highlights.metaDescription": "Official highlight links for the matches Stadiomind follows, newest first, filtered by competition. Each opens on the publisher's own site.",
   "highlights.lead": "Official highlights of the matches we follow, newest first. Each link opens on the publisher's own site; we don't host or play video.",
   "highlights.unreachable": "The highlights could not be loaded just now. Please try again in a moment.",
-  "highlights.allListed": "Every highlight we hold is listed. Some are limited to certain countries and may not play where you are: choose your territory to see only the ones offered there.",
   "highlights.restricted": "May not play in your country",
   "highlights.filter": "Filter by competition",
   "highlights.allCompetitions": "All competitions",
@@ -3369,5 +3368,18 @@
   "teamPage.chip.friendlyNoTable": "friendlies, no table",
   "teamPage.chips.cupNoTable": "{competition} is played in knockout rounds, so it has no table.",
   "teamPage.chips.friendlyNoTable": "{competition}: single matches, not a league or a cup, so there is no table.",
-  "teamPage.chips.rounds": "Its matches on the competition’s page"
+  "teamPage.chips.rounds": "Its matches on the competition’s page",
+  "highlights.need": "Pick a territory to see only the highlights offered there. Until then every highlight we hold is listed, and some may not play where you are.",
+  "highlights.needChosen": "Only the highlights offered in your territory are listed.",
+  "coachPage.recordAge": {
+    "one": "record updated {count} day ago",
+    "other": "record updated {count} days ago"
+  },
+  "coachPage.careerAge": {
+    "one": "This record was last updated {count} day ago, so “Current” is as of then.",
+    "other": "This record was last updated {count} days ago, so “Current” is as of then."
+  },
+  "coachPage.record": "Record",
+  "coachPage.recordWith": "Record with {team}",
+  "coachPage.recordNotSupplied": "Played, won, drawn and lost under him are not shown: no list of a coach’s matches with their results is kept yet."
 }
