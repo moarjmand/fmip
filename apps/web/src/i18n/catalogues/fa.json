@@ -18841,5 +18841,11 @@
     "text": "رویدادهای بازی ارائه نشده‌اند، پس زمین هیچ گل، کارت یا تعویضی را نشان نمی‌دهد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.onAlone": {
+    "source": "On {minute}",
+    "text": "ورود {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   }
 }

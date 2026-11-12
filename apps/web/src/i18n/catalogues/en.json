@@ -3383,5 +3383,6 @@
   "matchCentre.lineups.mark.sentOff": "Sent off {minute}",
   "matchCentre.lineups.mark.off": "Off {minute}",
   "matchCentre.lineups.mark.on": "On {minute} for {player}",
-  "matchCentre.lineups.marksNone": "The match events are not supplied, so the pitch marks no goals, cards or substitutions."
+  "matchCentre.lineups.marksNone": "The match events are not supplied, so the pitch marks no goals, cards or substitutions.",
+  "matchCentre.lineups.mark.onAlone": "On {minute}"
 }

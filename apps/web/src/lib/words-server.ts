@@ -431,6 +431,7 @@ export const MATCH_KEYS = [
   'matchCentre.lineups.mark.sentOff',
   'matchCentre.lineups.mark.off',
   'matchCentre.lineups.mark.on',
+  'matchCentre.lineups.mark.onAlone',
   'matchCentre.lineups.marksNone',
 ] as const;
 

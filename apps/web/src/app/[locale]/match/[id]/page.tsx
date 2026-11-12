@@ -27,6 +27,7 @@ import { KeyPlayersPanel } from '@/components/key-players';
 import { LiveMatch } from '@/components/live-match';
 import { DataCard } from '@/components/match-centre-cards';
 import { Coverage, HeadToHead, MatchForm } from '@/components/match-record';
+import { FinishedLineups, FinishedStats } from '@/components/match-stats-panels';
 import { MatchFollow } from '@/components/match-follow';
 import { MatchToolsRow } from '@/components/match-tools-row';
 import { MatchPanel } from '@/components/match-panel';
@@ -445,6 +446,15 @@ export default async function MatchPage({
                   />
                 ),
                 coverage: <Coverage centre={result.data} words={words} locale={locale} />,
+                // A finished match's statistics, tables, xG and line-ups (T-1800..T-1802):
+                // it no longer moves, so drawn here and off the client; in play
+                // the view draws them from the stream.
+                ...(result.data.fixture.status === 'finished' && {
+                  matchStats: <FinishedStats centre={result.data} locale={locale} words={words} />,
+                  matchLineups: (
+                    <FinishedLineups centre={result.data} locale={locale} words={words} />
+                  ),
+                }),
                 venue: (
                   <VenueCard venue={result.data.fixture.venue} locale={locale} words={words} />
                 ),

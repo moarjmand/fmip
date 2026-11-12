@@ -6,6 +6,7 @@ import type {
   ForecastVersionsResponse,
   FounderAnalysisResponse,
   MatchCentre,
+  MatchIncident,
   MatchLineupPlayer,
   MatchStatRow,
   MatchViewing,
@@ -20,7 +21,8 @@ import { matchWords } from '@/lib/words-server';
 import { ForecastReality } from '@/app/[locale]/match/[id]/forecast-reality';
 import { CommunityForecastPanel, CommunityPicksRow } from './community-consensus';
 import { FounderAnalysisPanel } from './founder-analysis';
-import { MatchCentreView, STAT_GROUPS, statGroups } from './match-centre-view';
+import { MatchCentreView } from './match-centre-view';
+import { FinishedLineups, FinishedStats, STAT_GROUPS, statGroups } from './match-stats-panels';
 import { STAT_KEY } from '@/lib/match';
 import { MatchLineupsView } from './match-lineups';
 import { HighlightsLink, WatchLine } from './viewing-panel';
@@ -476,19 +478,25 @@ const band = (c: MatchCentre, locale = 'en', hero = {}) => {
 };
 
 describe('per-player expected goals (T-1432)', () => {
+  // As the page draws a finished match: its Stats cards are the server's,
+  // through the view's `matchStats` slot (T-1800..T-1802).
   const view = (
     expected: MatchCentre['player_expected_goals'],
     locale = 'en',
     statistics: MatchCentre['statistics'] = centre({}).statistics,
-  ) =>
-    renderToStaticMarkup(
+  ) => {
+    const c = { ...centre({ status: 'finished' }), player_expected_goals: expected, statistics };
+    const words = matchWords(locale);
+    return renderToStaticMarkup(
       <MatchCentreView
-        words={matchWords(locale)}
-        centre={{ ...centre({ status: 'finished' }), player_expected_goals: expected, statistics }}
+        words={words}
+        centre={c}
         timeZone="UTC"
         locale={locale}
+        slots={{ matchStats: <FinishedStats centre={c} locale={locale} words={words} /> }}
       />,
     );
+  };
   const card = (html: string) => {
     const at = html.indexOf('data-testid="player-expected-goals"');
     return at < 0 ? '' : html.slice(at, html.indexOf('</section>', at));
@@ -611,6 +619,16 @@ describe('per-player expected goals (T-1432)', () => {
       'Per-player xG: not supplied for this match. The team figure in the statistics above is supplied',
     );
     expect(card(html)).not.toContain('No expected goals by player are supplied');
+  });
+
+  it('in play, without the slot, keeps the view’s own card under the same neutral heading', () => {
+    const live = renderToStaticMarkup(
+      <MatchCentreView words={matchWords('en')} centre={centre({})} timeZone="UTC" locale="en" />,
+    );
+    const own = card(live);
+    expect(own).toContain('Expected goals by player');
+    expect(own).not.toContain('Highlightly');
+    expect(live).not.toContain('data-group="match"');
   });
 });
 
@@ -1174,5 +1192,159 @@ describe('the match centre says what happened in words (T-1478)', () => {
     });
     expect(html).toContain('Starter');
     expect(html).not.toContain('Bench<');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A finished match's line-ups and player table, from the server (T-1801, T-1802)
+// ---------------------------------------------------------------------------
+
+describe('a finished match’s line-ups and player table (D-399, D-400)', () => {
+  let seq = 0;
+  const incident = (
+    kind: MatchIncident['kind'],
+    minute: number,
+    who: MatchLineupPlayer | null,
+    over: Partial<MatchIncident> = {},
+  ): MatchIncident => {
+    seq += 1;
+    return {
+      id: `i${seq}`,
+      sequence: seq,
+      minute,
+      added_time: null,
+      kind,
+      side: 'home',
+      player: who === null ? null : { id: who.id, name: who.name },
+      related_player: null,
+      detail: null,
+      ...over,
+    };
+  };
+  const finished = (
+    home: MatchLineupPlayer[],
+    events: MatchIncident[] | null,
+    over: Partial<MatchCentre> = {},
+  ): MatchCentre => ({
+    ...centre({
+      status: 'finished',
+      home: team('h', 'Chelsea', '4-4-2'),
+      away: team('a', 'Liverpool', '4-4-2'),
+    }),
+    lineups: {
+      coverage: 'available',
+      last_updated_at: '2026-10-08T16:00:00.000Z',
+      data: { home, away: eleven(4, 4, 2) },
+    },
+    timeline:
+      events === null
+        ? empty
+        : { coverage: 'available', last_updated_at: '2026-10-08T16:00:00.000Z', data: events },
+    ...over,
+  });
+  const lineupsOf = (c: MatchCentre, locale = 'en') =>
+    renderToStaticMarkup(<FinishedLineups centre={c} locale={locale} words={matchWords(locale)} />);
+  const pitch = (html: string) =>
+    html.slice(
+      html.indexOf('data-testid="pitch-home"'),
+      html.indexOf('data-testid="lineup-pitch-note"'),
+    );
+  const bench = (html: string) => html.slice(html.indexOf('data-testid="lineup-benches"'));
+  const text = (html: string) => html.replace(/<[^>]+>/g, '');
+
+  it('says what happened to each player in words with the minute, and marks his disc', () => {
+    const home = [...eleven(4, 4, 2), player('defender', { role: 'bench', name: 'Levi Colwill' })];
+    home[9] = { ...home[9]!, name: 'Morgan Rogers' };
+    home[1] = { ...home[1]!, name: 'Marc Lacroix' };
+    const [rogers, lacroix, colwill] = [home[9]!, home[1]!, home[11]!];
+    const html = lineupsOf(
+      finished(home, [
+        incident('penalty_goal', 40, rogers),
+        incident('yellow_card', 45, lacroix, { added_time: 1 }),
+        incident('substitution', 45, lacroix, {
+          added_time: 1,
+          related_player: { id: colwill.id, name: colwill.name },
+        }),
+        // A shoot-out kick is never a goal of the match (D-322).
+        incident('penalty_goal', 120, home[2]!, { in_shootout: true }),
+      ]),
+    );
+    const onPitch = pitch(html);
+    expect(text(onPitch)).toContain('Goal 40′ (pen.)');
+    expect(text(onPitch)).toContain('Booked 45+1′ · Off 45+1′');
+    expect(text(onPitch)).not.toContain('120′');
+    expect(onPitch.match(/data-testid="lineup-marks"/g)).toHaveLength(2);
+    // The glyph on the disc is decoration beside the words.
+    expect(onPitch).toMatch(
+      /aria-hidden="true" class="absolute -start-1 -top-0\.5[^"]*" data-testid="lineup-disc-marks"/,
+    );
+    expect(onPitch).toContain('bg-warning');
+    expect(onPitch).toContain('>↓</span>');
+    // The bench says who came on, when and for whom.
+    expect(text(bench(html))).toContain('On 45+1′ for M. Lacroix');
+    expect(bench(html)).toContain('>↑</span>');
+  });
+
+  it('never writes "for" with nobody after it when the feed left out who went off', () => {
+    const home = [...eleven(4, 4, 2), player('forward', { role: 'bench', name: 'Emanuel Emegha' })];
+    const sub = home[11]!;
+    const html = lineupsOf(
+      finished(home, [
+        incident('substitution', 68, null, { related_player: { id: sub.id, name: sub.name } }),
+      ]),
+    );
+    expect(text(bench(html))).toContain('On 68′');
+    expect(text(bench(html))).not.toMatch(/On 68′ for/);
+  });
+
+  it('writes the surname whole, with the initial only where two players share it', () => {
+    const home = eleven(4, 4, 2);
+    home[0] = { ...home[0]!, name: 'Jorrel Acheampong' };
+    home[5] = { ...home[5]!, name: 'Reece James' };
+    home[6] = { ...home[6]!, name: 'Daniel James' };
+    const onPitch = pitch(lineupsOf(finished(home, [])));
+    expect(onPitch).toMatch(/>Acheampong<\/span>/);
+    expect(onPitch).not.toContain('J. Acheampong');
+    expect(onPitch).toContain('>R. James</span>');
+    expect(onPitch).toContain('>D. James</span>');
+    expect(onPitch).toContain('title="Jorrel Acheampong"');
+  });
+
+  it('says the pitch carries no marks when the events are not supplied, and nothing when none happened', () => {
+    const none = lineupsOf(finished(eleven(4, 4, 2), null));
+    expect(none).toContain('data-testid="lineup-marks-none"');
+    expect(none).toContain('The match events are not supplied');
+    expect(lineupsOf(finished(eleven(4, 4, 2), []))).not.toContain('lineup-marks');
+  });
+
+  it('writes the marks in the reader’s language and digits', () => {
+    const home = eleven(4, 4, 2);
+    const html = lineupsOf(finished(home, [incident('goal', 67, home[9]!)]), 'fa');
+    expect(html).toContain('گل ۶۷′');
+  });
+
+  it('keeps the player table’s names in view, quiets its zeros, rates in the neutral chip', () => {
+    const c = finished(eleven(4, 4, 2), [], {
+      player_statistics: {
+        coverage: 'available',
+        last_updated_at: null,
+        data: [
+          {
+            id: 'x1',
+            name: 'Cody Gakpo',
+            side: 'home',
+            stats: { minutes: 90, rating: 7.2, goals: 1, assists: 0 },
+          },
+        ],
+      },
+    });
+    const html = renderToStaticMarkup(
+      <FinishedStats centre={c} locale="en" words={matchWords('en')} />,
+    );
+    const table = html.slice(html.indexOf('data-testid="player-statistics"'));
+    expect(table).toMatch(/<th scope="row" class="sticky start-0[^"]*bg-surface/);
+    expect(table).toMatch(/text-caption">0</);
+    expect(table).toMatch(/data-rating-band="high"[^>]*>7\.2</);
+    expect(table).toContain('– no figure supplied for this player');
   });
 });
