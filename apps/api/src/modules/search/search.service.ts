@@ -10,6 +10,7 @@ import { PostgresCommunitySearchStore } from './internal/community-search-store'
 import { imageRequest, withImages } from './internal/result-images';
 import { type SearchQuery } from './internal/search-query';
 import { PostgresSearchStore } from './internal/search-store';
+import { teamIds, withTeamContexts } from './internal/team-context';
 
 // The module's public surface. Other modules import from this file only.
 export {
@@ -57,12 +58,16 @@ export class SearchService {
         ? Promise.resolve([])
         : this.store
             .search(query.q, entityTypes, query.limit)
-            // Each entity's crest, logo or photo, in one read (T-1617).
-            .then(async (found) =>
-              found.length === 0
-                ? found
-                : withImages(found, await this.media.index(imageRequest(found))),
-            ),
+            // Each entity's crest, logo or photo, in one read (T-1617), and
+            // each team's league and ground, in one more (T-1803).
+            .then(async (found) => {
+              if (found.length === 0) return found;
+              const [media, contexts] = await Promise.all([
+                this.media.index(imageRequest(found)),
+                this.store.teamContexts(teamIds(found)),
+              ]);
+              return withTeamContexts(withImages(found, media), contexts);
+            }),
       wants('story') ? this.community.stories(query.q, query.limit, locale) : null,
       wants('group') ? this.community.groups(query.q, query.limit) : null,
       wants('member') ? this.community.members(query.q, viewerId, query.limit) : null,

@@ -46,6 +46,30 @@ export interface SearchResult {
    * an answer older than T-1617.
    */
   image?: EntityMedia;
+  /**
+   * For a team only: what tells it apart from a namesake (T-1803, D-401).
+   * Absent for a competition or a person, and from an answer older than
+   * T-1803.
+   */
+  team_context?: SearchTeamContext;
+}
+
+/**
+ * A team's place in our records, beside its name in a search result (T-1803,
+ * D-401). Each part is `null` when our records hold none -- never guessed.
+ */
+export interface SearchTeamContext {
+  /**
+   * The domestic league it has a match in this season (a current season of a
+   * domestic league in our catalogue), top tier first.
+   */
+  league: { id: string; name: string } | null;
+  /**
+   * Its home ground: the one recorded for the team, else the ground most of
+   * its home matches in a current season name (D-209's rule; neutral and
+   * cancelled matches left out).
+   */
+  ground: { id: string; name: string; city: string | null } | null;
 }
 
 /**
