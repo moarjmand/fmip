@@ -15051,3 +15051,51 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 **Rejected.** *Rendering `LiveScores` on Watch:* its stream and its client code for a page whose answers do not change by the minute. *Copying the strip and the row markup:* two copies drift, which is how Watch came to look unstyled. *Links to each service inside the row:* a second link in a row that is already one link, and several 44px targets in a 104px cell on a phone; the match's Watch section has them. *A badge for every row before a territory is chosen:* 24 copies of the same sentence, which is the finding.
 
 **Consequences.** `scores/page.tsx` and `live-scores.tsx` now draw the shared strip and block pieces (no change in output); `ScoreCard` has `href` and `aside`. Eight new strings in every catalogue, Persian from the board where it had them. The Watch page's per-row `ViewingPanel` line is no longer drawn there (it stays on the club page's fixtures). The E2E journey opens the territory line before checking the guest's pick.
+
+## D-398 — Match statistics in four fixed groups; the larger figure of a row is marked, never a side's colour
+
+**Status:** Accepted · 2026-11-12 (maintainer, package 9 decision D3, board P9-4) · **Task:** T-1800 · **Follows:** D-263, T-1782's freshness line, rules 3, 4 and 6
+
+**Context.** The statistics card listed the feed's rows alphabetically (Possession 8th, Shots 11th of 14) and drew the home side in ink and the away side in grey whoever led, so the colour said "home" and nothing about the match (finding B-18).
+
+**Decision.**
+1. **Order.** Four groups in a fixed order: Match (possession, xG); Attack (shots, on target, off target, blocked, corners, offsides, saves); Passing (passes, accurate passes, pass accuracy); Discipline (fouls, yellow cards, red cards). Every metric is in exactly one group (a spec checks it against `STAT_KEY`); a group the feed sent nothing for is not drawn. Saves and offsides sit under Attack because the board named four groups only.
+2. **Emphasis.** The larger figure of a row is heavier and in ink, its share of the bar in ink; the other figure lighter and grey, its share grey. A tie or a missing side marks nothing. Discipline rows never mark a side: a larger number of fouls or cards is not better.
+3. **Colour.** Ink and grey only: no teal (the model's), no amber, no club colour. The home name stays at the inline start and the away name at the end, so the legend of colours goes.
+4. **Live.** The "Stats updated N min ago" line and its "may be behind" (T-1782) are unchanged.
+
+**Rejected.** *Bold for the "better" side:* the page does not know which side a saves or offsides count favours. *Keeping home ink, away grey:* the finding.
+
+**Consequences.** `StatBar` has `emphasis` and `statLead`; four new strings in every catalogue. No API change.
+
+## D-399 — The pitch marks what happened to each player, writes his surname whole, and rates him in neutral chips
+
+**Status:** Accepted · 2026-11-12 (maintainer, package 9 decision D4, board P9-4) · **Task:** T-1801 · **Follows:** D-202, D-287, D-322, rules 3 and 6
+
+**Context.** Surnames were cut with an ellipsis, shirt numbers were 9 and 10px, a goal, card or substitution left no trace on the pitch, and the rating chips used teal (the model's colour) and saffron (finding B-20).
+
+**Decision.**
+1. **Marks.** From the match's own events (shoot-out kicks excluded): a goal, an own goal, a booking, a sending-off and a substitution are a line of words under the player's name with the minute ("Goal 40′ (pen.)", "Booked 50′", "Off 68′"), which is the mark and its own text equivalent. A decorative glyph on the disc (ball, card, arrow) was built and taken out again: it put the match centre 0.2 kB over its first-load budget, and the words carry the whole of it. A substitute who came on reads "On 68′ for M. Lacroix" on the bench. When the events are not supplied one sentence says the pitch carries no marks; before kick-off there are none to draw.
+2. **Names.** The pitch writes the surname whole, wrapping to a second line rather than cutting it; the initial stays only when two players of the match share the surname. The full stored name stays the link's title. Persian pages keep their names as they are (D-175).
+3. **Numbers** on the disc's badge are 11px.
+4. **Ratings.** `RatingChip` has three neutral bands: ink from 7.0, an outline from 6.0 to 6.9, grey below 6.0. The thresholds are the designer's, approved with D4, not the provider's. The best-rated player's saffron ring and badge go. No rating colour echoes a prediction product's (rule 6). The Top-rated card uses the same chip.
+
+**Rejected.** *A line clamp at two lines:* it puts back the ellipsis. *Marks as colour or icon only:* every mark is words. *A glyph on the disc as well:* the page's script budget (above).
+
+**Consequences.** `MatchLineupsView` takes `incidents` (the timeline's data, `null` when not supplied, `[]` before kick-off). Nine new strings. The `rating-good` token is no longer drawn; it is left in `tokens.css` for the coordinator to retire. No API change.
+
+## D-400 — One statement about expected goals per page; the player tables keep their names in view and quiet their zeros
+
+**Status:** Accepted · 2026-11-12 (maintainer, package 9 decision D5 and fix F9, board P9-4) · **Task:** T-1802 · **Follows:** D-014, D-224, D-392, rules 3 and 6
+
+**Context.** The player table was mostly zeros in full ink and its name column scrolled away on a phone (a 477px table in a 309px box); the xG card's heading named its provider; and on Liverpool v Chelsea the statistics said xG 2.19 and 1.88 while the xG card under it said "Not supplied" (findings B-21, F9).
+
+**Cause of F9.** Two sources on two paths. The team xG row is the match feed's own team statistic (`fixture_stat`, metric `expected_goals`, in `statistics`); the per-player figures are a second licensed source's (`fixture_player_expected`, in `player_expected_goals`, D-224). That match had the first and not the second, and the card's title ("xG (…)") with its "Not supplied" badge read as a statement about xG as a whole.
+
+**Decision.**
+1. **One statement.** The card is "Expected goals by player". When the team figure is in the statistics and the breakdown is not, the card says so: "Per-player xG: not supplied for this match. The team figure in the statistics above is supplied; the player breakdown is not." The statistics' line for a missing team figure reads "Team expected goals (xG): …". The two sources stay apart: the card never repeats or sums the team figure (D-224).
+2. **No provider in the heading (D-014).** The card carries "Licensed match data, from a source of its own …" under its title; no string of the card names the provider.
+3. **Tables.** The name column is sticky at the inline start; a supplied zero is in the caption grey and the real figures in ink; `–` only ever means "not supplied", which a legend under each table says. The board's rating chip inside the table's Rating column is not drawn: the match centre's first-load script was at its 183 kB budget, and the column's figure already says the rating (the chips are on the pitch and in Top rated).
+4. **xGOT.** No definition was shown before and none is written here: that text is the maintainer's.
+
+**Consequences.** Six strings reworded and two new in every catalogue. No API or contract change.

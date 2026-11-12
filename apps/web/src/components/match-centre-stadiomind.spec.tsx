@@ -1182,11 +1182,11 @@ describe('ratings', () => {
           words={matchWords(locale)}
         />,
       );
-    expect(html('en')).toMatch(/data-rating-band="good" class="[^"]*">7\.0</);
-    expect(html('fa')).toMatch(/data-rating-band="good" class="[^"]*">۷٫۰</);
+    expect(html('en')).toMatch(/data-rating-band="high" class="[^"]*">7\.0</);
+    expect(html('fa')).toMatch(/data-rating-band="high" class="[^"]*">۷٫۰</);
   });
 
-  it('puts the ratings on the pitch, the best rated in saffron, and turns it from 768px', () => {
+  it('puts the ratings on the pitch in neutral chips, no rating colour on a disc, and turns it from 768px', () => {
     const home = eleven();
     const away = eleven();
     const ratings = new Map([
@@ -1208,10 +1208,12 @@ describe('ratings', () => {
     expect(html).toMatch(
       /class="relative flex flex-col[^"]*md:flex-row-reverse[^"]*" data-testid="lineup-pitch"/,
     );
-    expect(html).toMatch(/data-rating-band="top" class="[^"]*">8\.9</);
+    expect(html).toMatch(/data-rating-band="high" class="[^"]*">8\.9</);
     expect(html).toMatch(/data-rating-band="low" class="[^"]*">5\.7</);
     expect(html.match(/data-rating-band=/g)).toHaveLength(2);
-    expect(html).toContain(`bg-accent text-on-accent">${home[10]!.shirt_number}<`);
+    // Rule 6 (T-1801): the best rated's disc is his side's tone, never saffron or teal.
+    expect(html).toContain(`bg-fg text-canvas">${home[10]!.shirt_number}<`);
+    expect(html).not.toMatch(/bg-accent|bg-brand|rating-good/);
   });
 
   it('names the best rated with the best six, from the feed’s ratings only', () => {
@@ -1229,7 +1231,7 @@ describe('ratings', () => {
     expect([...ratingsOf(c).keys()]).not.toContain('s7');
     const html = section(view(c), 'top-rated');
     expect(html).toContain('Top rated');
-    expect(html).toMatch(/Rated 1<\/a>[^]*data-rating-band="top"/);
+    expect(html).toMatch(/Rated 1<\/a>[^]*data-rating-band="high"/);
     const best = [...html.matchAll(/data-rating-band="\w+" class="[^"]*">([\d.]+)</g)].map(
       (m) => m[1],
     );

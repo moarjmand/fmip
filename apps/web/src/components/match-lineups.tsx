@@ -1,4 +1,4 @@
-import type { MatchLineupPlayer, MatchLineups, MatchTeam } from '@fmip/contracts';
+import type { MatchIncident, MatchLineupPlayer, MatchLineups, MatchTeam } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { formatNumber } from '@/i18n/format';
 import { EntityImage, drawable } from '@/components/entity-image';
@@ -8,7 +8,7 @@ import { MessageText } from '@/components/message-text';
 import { ltrIsolate, nameIsolate } from '@/components/score';
 import { type PitchLines, pitchShape } from '@/lib/formation';
 import { listName } from '@/lib/person-name';
-import { fill, filled, formatFixed } from '@/lib/words';
+import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 
 /**
@@ -18,13 +18,18 @@ import type { MatchWords } from '@/lib/words-server';
  * horizontal pitch, the home side from the inline start and the away side
  * from the end, each line a column (D-263 point 4). The same markup turns
  * with the width, so the page carries one pitch, not two. Each player is his
- * photo, his name and his rating where the feed gave one; then each side's
- * bench and coach, each player with a smaller photo.
+ * photo, his surname whole (up to two lines, never cut; the initial too only
+ * when two players of the match share the surname), what happened to him and
+ * when -- a goal, a card, going off -- in words with the minute under his
+ * name, and his rating where the feed gave one; then each side's bench and
+ * coach, each player with a smaller photo and, for one who came on, "On 68′
+ * for …" (T-1801, D-399). The marks come from the match's own events; when
+ * those are not supplied a sentence says the pitch carries none (rule 3).
  *
  * The photo (T-1616, D-287) is our own copy at a sized variant, round, in a
  * ring of the side's tone (the home side's text colour, the away side's muted
- * one), the shirt number a badge on its edge; the best rated of the match has
- * the ring and the badge in saffron. A player without a photo is his shirt
+ * one), the shirt number a badge on its edge. No rating colour reaches the
+ * disc (T-1801: rule 6, teal is the model's). A player without a photo is his shirt
  * number in a circle of the side's tone, as before -- never a silhouette
  * (rule 3) -- and so is every player in lite mode, where nothing is fetched.
  *
@@ -57,6 +62,7 @@ export function MatchLineupsView({
   away,
   lineups,
   ratings = new Map(),
+  incidents = [],
   locale,
   words,
 }: {
@@ -65,6 +71,8 @@ export function MatchLineupsView({
   lineups: MatchLineups;
   /** The feed's ratings by player id (`ratingsOf`); a player without one has no chip. */
   ratings?: ReadonlyMap<string, number>;
+  /** The match's events, for the marks; `null` when they are not supplied. */
+  incidents?: readonly MatchIncident[] | null;
   locale: string;
   words: MatchWords;
 }) {
@@ -86,10 +94,30 @@ export function MatchLineupsView({
   // the player stays where the feed put him on each side, marked as unclear (rule 3).
   const awayIds = new Set(lineups.away.map((p) => p.id));
   const unclear = new Set(lineups.home.filter((p) => awayIds.has(p.id)).map((p) => p.id));
-  const top = Math.max(...ratings.values());
+  // What happened to each player and when (T-1801), in the events' order.
+  const marks = new Map<string, Mark[]>();
+  const mark = (id: string | undefined, kind: MarkKind, i: MatchIncident, other?: string) =>
+    id !== undefined &&
+    marks.set(id, [
+      ...(marks.get(id) ?? []),
+      [kind, formatMinute(locale, i.minute, i.added_time), other ?? ''],
+    ]);
+  for (const i of incidents ?? []) {
+    if (i.in_shootout === true) continue;
+    if (i.kind === 'substitution') {
+      mark(i.player?.id, 'off', i);
+      mark(i.related_player?.id, 'on', i, i.player ? listName(locale, i.player.name) : undefined);
+    } else if (i.kind in MARK) mark(i.player?.id, i.kind as MarkKind, i);
+  }
+  // A surname alone, unless two players of the match share it (T-1801).
+  const surname = (name: string) => listName(locale, name).replace(/^\p{Lu}\. /u, '');
+  const all = [...lineups.home, ...lineups.away].map((p) => surname(p.name));
+  const pitchName = (name: string) =>
+    all.filter((n) => n === surname(name)).length > 1 ? listName(locale, name) : surname(name);
   const chip = (p: MatchLineupPlayer) => ({
     rating: ratings.get(p.id),
-    best: ratings.get(p.id) === top,
+    marks: marks.get(p.id),
+    name: pitchName(p.name),
   });
   const placed = (['away', 'home'] as const).filter((side) => teams[side].shape.state === 'pitch');
   const listed = (['home', 'away'] as const).filter((side) => teams[side].shape.state !== 'pitch');
@@ -243,6 +271,7 @@ export function MatchLineupsView({
                     <ListPlayer
                       player={p}
                       side={side}
+                      marks={marks.get(p.id)}
                       unclear={unclear.has(p.id)}
                       locale={locale}
                       words={words}
@@ -254,6 +283,11 @@ export function MatchLineupsView({
         );
       })}
 
+      {incidents === null && (
+        <p dir="auto" className="text-xs text-caption" data-testid="lineup-marks-none">
+          <MessageText message={m['matchCentre.lineups.marksNone']} />
+        </p>
+      )}
       {unclear.size > 0 && (
         <p dir="auto" className="text-xs text-caption" data-testid="lineup-both-sides">
           <MessageText message={m['matchCentre.lineups.bothSidesNote']} />
@@ -275,6 +309,7 @@ export function MatchLineupsView({
                       <ListPlayer
                         player={p}
                         side={side}
+                        marks={marks.get(p.id)}
                         unclear={unclear.has(p.id)}
                         locale={locale}
                         words={words}
@@ -316,45 +351,74 @@ const LINEUP_ROW = 'flex items-center gap-2 py-0.5';
 /**
  * The side's tone (T-1616, D-287): the fill of the number circle and of the
  * shirt-number badge, and the ring around a photo. The home side in the text
- * colour, the away side in the muted one, the best rated in saffron.
+ * colour, the away side in the muted one; never a rating's colour (T-1801).
  */
 const TONE = {
   home: { fill: 'bg-fg text-canvas', ring: 'border-fg' },
   away: { fill: 'bg-muted text-canvas', ring: 'border-muted' },
-  best: { fill: 'bg-accent text-on-accent', ring: 'border-accent' },
 } as const;
 
 /** The disc's two sizes: on the pitch, and in the bench and list rows. */
 const DISC = {
-  40: { slot: 'size-10', badge: 'h-4.5 min-w-4.5 text-[10px]' },
-  32: { slot: 'size-8', badge: 'h-4 min-w-4 text-[9px]' },
+  40: 'size-10',
+  32: 'size-8',
 } as const;
+
+/**
+ * What happened to a player (T-1801, D-399), in words with the minute (and,
+ * for one who came on, whom he replaced): the line under his name is the mark
+ * and its own text equivalent, so it never rests on a colour or an icon.
+ */
+const MARK = {
+  goal: 'matchCentre.lineups.mark.goal',
+  penalty_goal: 'matchCentre.lineups.mark.penaltyGoal',
+  own_goal: 'matchCentre.lineups.mark.ownGoal',
+  yellow_card: 'matchCentre.lineups.mark.booked',
+  second_yellow_card: 'matchCentre.lineups.mark.sentOff',
+  red_card: 'matchCentre.lineups.mark.sentOff',
+  off: 'matchCentre.lineups.mark.off',
+  on: 'matchCentre.lineups.mark.on',
+} as const satisfies Record<string, keyof MatchWords['m']>;
+
+type MarkKind = keyof typeof MARK;
+/** A mark: its kind, the minute as read, and the player he replaced ("" when none). */
+type Mark = [MarkKind, string, string];
+
+/** A player's marks in words, one line under his name: the marks' text equivalent. */
+function Marks({ marks, words }: { marks: Mark[] | undefined; words: MatchWords }) {
+  if (marks === undefined) return null;
+  return (
+    <span className="block text-[11px] leading-tight text-muted" data-testid="lineup-marks">
+      {marks.flatMap(([kind, minute, player], index) => [
+        index > 0 && ' · ',
+        <MessageText key={index} message={filled(words.m[MARK[kind]], { minute, player })} />,
+      ])}
+    </span>
+  );
+}
 
 /**
  * A player's disc (T-1616, D-287): his photo, round and cropped from the top
  * (the photos are head and shoulders), in a ring of the side's tone with a
- * gap of the ground between, and his shirt number as a badge on its edge.
- * Without a photo -- `not_supplied`, no field, or lite mode -- his shirt
- * number in a circle of the side's tone, exactly the circle the pitch drew
- * before; never a silhouette (rule 3). Without either, the lettered mark.
- * The slot is the same size either way, so a row of photos and numbers keeps
- * its names on one line and nothing moves when a photo arrives.
+ * gap of the ground between, and his shirt number (11px, T-1801) as a badge
+ * on its edge. Without a photo -- `not_supplied`, no field, or lite mode --
+ * his shirt number in a circle of the side's tone, exactly the circle the
+ * pitch drew before; never a silhouette (rule 3). Without either, the
+ * lettered mark. The slot is the same size either way, so nothing moves when
+ * a photo arrives.
  */
 function PlayerDisc({
   player: p,
   side,
-  best,
   size,
   locale,
 }: {
   player: MatchLineupPlayer;
   side: Side;
-  /** The best rated of the match: the ring and the badge in saffron. */
-  best: boolean;
   size: keyof typeof DISC;
   locale: string;
 }) {
-  const tone = TONE[best ? 'best' : side];
+  const tone = TONE[side];
   const number = p.shirt_number === null ? null : formatNumber(locale, p.shirt_number);
   const photo = drawable(p.photo);
   const circle =
@@ -378,7 +442,7 @@ function PlayerDisc({
       {photo && number !== null && (
         <span
           data-testid="lineup-shirt"
-          className={`absolute -end-1 bottom-0 grid place-items-center rounded-full px-0.5 leading-none font-extrabold tabular-nums ring-2 ring-surface-raised ${DISC[size].badge} ${tone.fill}`}
+          className={`absolute -end-1 bottom-0 grid h-4.5 min-w-4.5 place-items-center rounded-full px-0.5 text-[11px] leading-none font-extrabold tabular-nums ring-2 ring-surface-raised ${tone.fill}`}
         >
           {number}
         </span>
@@ -387,10 +451,9 @@ function PlayerDisc({
   );
   return (
     <span
-      className={`relative grid shrink-0 place-items-center ${DISC[size].slot}`}
+      className={`relative grid shrink-0 place-items-center ${DISC[size]}`}
       data-testid="lineup-disc"
       data-photo={photo ? 'available' : 'none'}
-      data-best={best ? 'true' : undefined}
     >
       {circle === null ? (
         pictured
@@ -407,12 +470,14 @@ function PlayerDisc({
 function ListPlayer({
   player: p,
   side,
+  marks,
   unclear = false,
   locale,
   words,
 }: {
   player: MatchLineupPlayer;
   side: Side;
+  marks: Mark[] | undefined;
   /** Listed on both sides by the feed (T-1687). */
   unclear?: boolean;
   locale: string;
@@ -420,7 +485,7 @@ function ListPlayer({
 }) {
   return (
     <>
-      <PlayerDisc player={p} side={side} best={false} size={32} locale={locale} />
+      <PlayerDisc player={p} side={side} size={32} locale={locale} />
       <span className="min-w-0">
         {/* Every line-up name links to the player page (blueprint 5.3, T-037). */}
         <Link href={`/${locale}/player/${p.id}`} className="underline">
@@ -433,6 +498,7 @@ function ListPlayer({
             <MessageText message={words.m['matchCentre.lineups.bothSides']} />
           </span>
         )}
+        <Marks marks={marks} words={words} />
       </span>
     </>
   );
@@ -441,23 +507,26 @@ function ListPlayer({
 function PitchPlayer({
   player: p,
   side,
+  name,
   rating,
-  best,
+  marks,
   unclear = false,
   locale,
   words,
 }: {
   player: MatchLineupPlayer;
   side: Side;
+  /** His name on the pitch: the surname whole (T-1801). */
+  name: string;
   rating: number | undefined;
-  best: boolean;
+  marks: Mark[] | undefined;
   /** Listed on both sides by the feed (T-1687). */
   unclear?: boolean;
   locale: string;
   words: MatchWords;
 }) {
-  // The name is cut to the player's own share of the row, so five across a
-  // 360px phone never run into each other (T-1616).
+  // The name wraps to a second line rather than being cut (T-1801): a whole
+  // surname, never an ellipsis; a word longer than the slot breaks only then.
   return (
     <li className="flex w-18 min-w-0 flex-col items-center gap-0.5 px-0.5 text-center md:w-auto">
       <Link
@@ -465,19 +534,17 @@ function PitchPlayer({
         className="flex w-full min-w-0 flex-col items-center gap-0.5"
         title={p.name}
       >
-        <PlayerDisc
-          player={p}
-          side={side}
-          best={best && rating !== undefined}
-          size={40}
-          locale={locale}
-        />
-        <span dir="auto" className="block max-w-full truncate text-xs font-semibold text-fg">
-          {listName(locale, p.name)}
+        <PlayerDisc player={p} side={side} size={40} locale={locale} />
+        <span
+          dir="auto"
+          className="block max-w-full text-xs leading-tight font-semibold break-words text-fg"
+        >
+          {name}
           {p.is_captain ? ` ${words.m['matchCentre.captain'].text}` : ''}
           {unclear ? ` ${words.m['matchCentre.lineups.bothSides'].text}` : ''}
         </span>
       </Link>
+      <Marks marks={marks} words={words} />
       {rating !== undefined && <RatingChip value={rating} text={formatFixed(locale, rating, 1)} />}
     </li>
   );

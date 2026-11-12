@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { StatBar } from './stat-bar';
+import { StatBar, statLead } from './stat-bar';
 
 /** One statistic between the two sides (the Design System's `StatBar`, T-1510). */
 
@@ -21,13 +21,35 @@ describe('StatBar', () => {
     expect(html).toMatch(/<span dir="ltr">10<\/span>.*Shots.*<span dir="ltr">4<\/span>/);
   });
 
-  it('splits the bar by share: home in ink from the inline start, away in grey', () => {
+  it('splits the bar by share from the inline start, the larger side in ink and bolder (T-1800)', () => {
     const html = bar(10, 4);
+    expect(html).toContain('data-lead="home"');
     expect(html).toMatch(/bg-fg" style="inline-size:71\.42\d*%" data-side="home"/);
     expect(html).toMatch(/bg-caption" style="inline-size:28\.57\d*%" data-side="away"/);
     expect(html.indexOf('data-side="home"')).toBeLessThan(html.indexOf('data-side="away"'));
+    expect(html).toMatch(/font-black text-fg"><span dir="ltr">10</);
+    expect(html).toMatch(/font-semibold text-muted text-end"><span dir="ltr">4</);
+    // Whichever side it is: the away side ahead takes the ink.
+    const away = bar(3, 9);
+    expect(away).toContain('data-lead="away"');
+    expect(away).toMatch(/bg-caption" style="inline-size:25%" data-side="home"/);
+    expect(away).toMatch(/bg-fg" style="inline-size:75%" data-side="away"/);
     // Decoration: the figures say it.
-    expect(html).toMatch(/<div aria-hidden="true" class="flex h-2/);
+    expect(html).toMatch(/<div aria-hidden="true" class="flex h-1\.5/);
+  });
+
+  it('marks no side on a tie, or where more is not better (fouls, cards)', () => {
+    const plain = renderToStaticMarkup(
+      <StatBar label="Fouls" home={18} away={10} homeText="18" awayText="10" emphasis="none" />,
+    );
+    for (const html of [plain, bar(5, 5)]) {
+      expect(html).toContain('data-lead="none"');
+      expect(html).not.toContain('bg-fg');
+      expect(html).not.toContain('font-black');
+    }
+    expect(statLead(18, 10, 'none')).toBeNull();
+    expect(statLead(null, 3)).toBeNull();
+    expect(statLead(1, 2)).toBe('away');
   });
 
   it('draws only the side that has any share at all', () => {

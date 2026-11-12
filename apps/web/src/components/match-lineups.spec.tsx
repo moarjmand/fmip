@@ -1,4 +1,4 @@
-import type { EntityMedia, MatchLineupPlayer } from '@fmip/contracts';
+import type { EntityMedia, MatchIncident, MatchLineupPlayer } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { matchWords } from '@/lib/words-server';
@@ -7,10 +7,10 @@ import { MatchLineupsView } from './match-lineups';
 
 /**
  * Player photos on the line-up pitch (T-1616, D-287): the photo in a ring of
- * the side's tone with the shirt number as a badge, the best rated in saffron
- * as a ring and a badge rather than a fill; without a photo the number circle
- * exactly as before, never a silhouette (rule 3); the bench with smaller
- * photos and the same fallback.
+ * the side's tone with the shirt number as a badge, no rating colour on any
+ * disc (T-1801); without a photo the number circle exactly as before, never a
+ * silhouette (rule 3); the bench with smaller photos and the same fallback.
+ * The marks, surnames and bench lines of T-1801 (D-399) at the end.
  */
 
 const PHOTO = (id: string): EntityMedia => ({
@@ -100,7 +100,7 @@ describe('player photos on the pitch (T-1616)', () => {
     );
     // The shirt number as a badge in the side's tone, not the old circle.
     expect(pitch).toContain(
-      `data-testid="lineup-shirt" class="absolute -end-1 bottom-0 grid place-items-center rounded-full px-0.5 leading-none font-extrabold tabular-nums ring-2 ring-surface-raised h-4.5 min-w-4.5 text-[10px] bg-fg text-canvas">${home[0]!.shirt_number}<`,
+      `data-testid="lineup-shirt" class="absolute -end-1 bottom-0 grid h-4.5 min-w-4.5 place-items-center rounded-full px-0.5 text-[11px] leading-none font-extrabold tabular-nums ring-2 ring-surface-raised bg-fg text-canvas">${home[0]!.shirt_number}<`,
     );
     expect(pitch).not.toContain('data-testid="lineup-number"');
     // The away side in its own, muted tone.
@@ -142,7 +142,7 @@ describe('player photos on the pitch (T-1616)', () => {
     expect(out.match(/data-testid="lineup-shirt"/g)).toHaveLength(10);
   });
 
-  it('marks the best rated with a saffron ring and badge, not a fill, and keeps the captain', () => {
+  it('gives the best rated no colour of his own (rule 6, T-1801), and keeps the captain', () => {
     const home = eleven((i) => (i === 10 ? { is_captain: true } : {}));
     const away = eleven((i) => (i === 2 ? { photo: NONE } : {}));
     const ratings = new Map([
@@ -151,20 +151,15 @@ describe('player photos on the pitch (T-1616)', () => {
       [away[0]!.id, 6.2],
     ]);
     const html = render(home, away, { ratings });
-    // The best has no photo: the old saffron circle.
+    // The best has no photo: his side's circle, like everyone else's.
     expect(pitchOf(html, 'away')).toContain(
-      `data-best="true"><span data-testid="lineup-number" class="grid size-8 place-items-center rounded-full text-sm font-extrabold tabular-nums bg-accent text-on-accent">${away[2]!.shirt_number}</span>`,
+      `<span data-testid="lineup-number" class="grid size-8 place-items-center rounded-full text-sm font-extrabold tabular-nums bg-muted text-canvas">${away[2]!.shirt_number}</span>`,
     );
-    // With a photo, the ring and the badge turn saffron and the photo stays.
-    const best = new Map([[home[10]!.id, 9.4]]);
-    const withPhoto = pitchOf(render(home, away, { ratings: best }), 'home');
-    expect(withPhoto.match(/data-best="true"/g)).toHaveLength(1);
-    expect(withPhoto).toContain('border-2 p-px object-top border-accent"');
-    expect(withPhoto).toContain(`bg-accent text-on-accent">${home[10]!.shirt_number}<`);
-    expect(withPhoto).not.toContain('bg-accent text-on-accent" data-testid');
-    expect(withPhoto.match(/border-fg"/g)).toHaveLength(10);
+    expect(html).not.toMatch(/data-best|bg-accent|border-accent|rating-good|bg-brand/);
+    const pitch = pitchOf(html, 'home');
+    expect(pitch.match(/border-fg"/g)).toHaveLength(11);
     // The captain mark is kept beside the name.
-    expect(withPhoto).toMatch(/Player \d+ \(c\)<\/span>/);
+    expect(pitch).toMatch(/Player \d+ \(c\)<\/span>/);
   });
 
   it('keeps the left and right of the badge logical, and the photo on a right-to-left page', () => {
@@ -175,13 +170,16 @@ describe('player photos on the pitch (T-1616)', () => {
     expect(html).toMatch(/data-testid="lineup-shirt" class="[^"]*">[۰-۹]+</);
   });
 
-  it('cuts each name to its own share of a row of five, so names never run into each other', () => {
+  it('keeps each name to its own share of a row of five, wrapping it rather than cutting it (T-1801)', () => {
     const html = render(eleven(), eleven());
     expect(html).toContain(
       'class="flex w-18 min-w-0 flex-col items-center gap-0.5 px-0.5 text-center md:w-auto"',
     );
     expect(html).toContain('class="flex w-full min-w-0 flex-col items-center gap-0.5"');
-    expect(html).toContain('class="block max-w-full truncate text-xs font-semibold text-fg"');
+    expect(html).toContain(
+      'class="block max-w-full text-xs leading-tight font-semibold break-words text-fg"',
+    );
+    expect(html).not.toMatch(/truncate|text-ellipsis|line-clamp/);
     // Room for a column of five with a photo, a name and a chip from 768px.
     expect(html).toContain('md:h-124');
     // From 768px the columns share the pitch and cut names rather than push
@@ -224,7 +222,7 @@ describe('player photos on the bench (T-1616)', () => {
     expect(bench.match(/data-photo="none"/g)).toHaveLength(1);
     // A 32px disc asks for the 96px WebP, its box said.
     expect(bench).toMatch(/<img src="[^"]*-96\.webp" width="32" height="32" alt="" loading="lazy"/);
-    expect(bench).toContain('h-4 min-w-4 text-[9px] bg-fg text-canvas">');
+    expect(bench).toContain('h-4.5 min-w-4.5 place-items-center rounded-full px-0.5 text-[11px]');
     expect(bench).toContain(
       `data-testid="lineup-number" class="grid size-8 place-items-center rounded-full text-sm font-extrabold tabular-nums bg-fg text-canvas">${home[12]!.shirt_number}</span>`,
     );
@@ -270,5 +268,108 @@ describe('one player on both line-ups (T-1687, D-333)', () => {
     const html = render(eleven(), eleven());
     expect(html).not.toContain('unclear in the source');
     expect(html).not.toContain('lineup-both-sides');
+  });
+});
+
+describe('what happened to each player, on the pitch and the bench (T-1801, D-399)', () => {
+  let seq = 0;
+  const incident = (
+    kind: MatchIncident['kind'],
+    minute: number,
+    who: MatchLineupPlayer,
+    over: Partial<MatchIncident> = {},
+  ): MatchIncident => {
+    seq += 1;
+    return {
+      id: `i${seq}`,
+      sequence: seq,
+      minute,
+      added_time: null,
+      kind,
+      side: 'home',
+      player: { id: who.id, name: who.name },
+      related_player: null,
+      detail: null,
+      ...over,
+    };
+  };
+  const view = (
+    home: MatchLineupPlayer[],
+    incidents: readonly MatchIncident[] | null,
+    locale = 'en',
+  ) =>
+    renderToStaticMarkup(
+      <MatchLineupsView
+        home={team('h', 'Chelsea')}
+        away={team('a', 'Liverpool')}
+        lineups={{ home, away: eleven() }}
+        incidents={incidents}
+        locale={locale}
+        words={matchWords(locale)}
+      />,
+    );
+
+  it('marks a goal, a card and a substitution on the disc and says each in words with its minute', () => {
+    const home = [
+      ...eleven((i) =>
+        i === 9 ? { name: 'Morgan Rogers' } : i === 1 ? { name: 'Marc Lacroix' } : {},
+      ),
+      player('defender', { role: 'bench', name: 'Levi Colwill' }),
+    ];
+    const rogers = home[9]!;
+    const lacroix = home[1]!;
+    const colwill = home[11]!;
+    const html = view(home, [
+      incident('penalty_goal', 40, rogers),
+      incident('yellow_card', 45, lacroix, { added_time: 1 }),
+      incident('substitution', 45, lacroix, {
+        added_time: 1,
+        related_player: { id: colwill.id, name: colwill.name },
+      }),
+      // A shoot-out kick is never a goal of the match (D-322).
+      incident('penalty_goal', 120, home[2]!, { in_shootout: true }),
+    ]);
+    const pitch = pitchOf(html, 'home');
+    expect(pitch).toContain('Goal 40′ (pen.)');
+    expect(pitch.replace(/<[^>]+>/g, '')).toContain('Booked 45+1′ · Off 45+1′');
+    expect(pitch.match(/data-testid="lineup-marks"/g)).toHaveLength(2);
+    // The shoot-out kick is no mark.
+    expect(pitch).not.toContain('Goal 120′');
+    // The bench says who came on, when and for whom.
+    expect(benchOf(html)).toContain('On 45+1′ for M. Lacroix');
+  });
+
+  it('writes the surname whole, with the initial only where two players share it', () => {
+    const home = eleven((i) =>
+      i === 0
+        ? { name: 'Jorrel Acheampong' }
+        : i === 5
+          ? { name: 'Reece James' }
+          : i === 6
+            ? { name: 'Daniel James' }
+            : {},
+    );
+    const pitch = pitchOf(view(home, []), 'home');
+    expect(pitch).toMatch(/>Acheampong<\/span>/);
+    expect(pitch).not.toContain('J. Acheampong');
+    expect(pitch).toContain('>R. James</span>');
+    expect(pitch).toContain('>D. James</span>');
+    // The full name stays the link's title.
+    expect(pitch).toContain('title="Jorrel Acheampong"');
+  });
+
+  it('says the pitch carries no marks when the match events are not supplied, rather than marking none', () => {
+    const none = view(eleven(), null);
+    expect(none).toContain('data-testid="lineup-marks-none"');
+    expect(none).toContain('The match events are not supplied');
+    expect(none).not.toContain('data-testid="lineup-marks"');
+    // Supplied and empty: nothing happened to anyone, and nothing is said.
+    expect(view(eleven(), [])).not.toContain('lineup-marks');
+  });
+
+  it('writes the marks in the reader’s language and digits', () => {
+    const home = eleven();
+    const html = view(home, [incident('goal', 67, home[9]!)], 'fa');
+    expect(html).toContain('گل ۶۷′');
   });
 });

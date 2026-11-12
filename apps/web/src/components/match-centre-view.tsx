@@ -6,8 +6,8 @@ import type {
   MatchAbsenceGap,
   MatchCentre,
   MatchIncident,
-  MatchPlayerExpected,
   MatchPlayerStats,
+  MatchStatMetric,
   MatchStatRow,
   PlayerMatchMetric,
 } from '@fmip/contracts';
@@ -377,6 +377,7 @@ export function MatchCentreView({
               away={f.away}
               lineups={lineups}
               ratings={ratingsOf(centre)}
+              incidents={f.status === 'scheduled' ? [] : centre.timeline.data}
               locale={locale}
               words={words}
             />
@@ -1445,21 +1446,24 @@ function Statistics({
     >
       {(rows) => (
         <>
-          <p aria-hidden="true" className="-mt-1 flex gap-3.5 text-xs text-muted">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-xs bg-fg" />
-              <bdi>{f.home.name}</bdi>
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-xs bg-caption" />
-              <bdi>{f.away.name}</bdi>
-            </span>
+          <p aria-hidden="true" className="-mt-1 flex justify-between gap-3.5 text-xs text-muted">
+            <bdi>{f.home.name}</bdi>
+            <bdi>{f.away.name}</bdi>
           </p>
-          <ul className="flex flex-col gap-3.5" data-testid="stat-grid">
-            {rows.map((row) => (
-              <StatTile key={row.metric} row={row} locale={locale} words={words} />
+          <div className="flex flex-col gap-4" data-testid="stat-grid">
+            {statGroups(rows).map(([group, list]) => (
+              <div key={group} className="flex flex-col gap-2.5" data-group={group}>
+                <h3 className="text-xs font-extrabold text-caption">
+                  <MessageText message={m[`matchCentre.statGroup.${group}`]} />
+                </h3>
+                <ul className="flex flex-col gap-2.5">
+                  {list.map((row) => (
+                    <StatTile key={row.metric} row={row} locale={locale} words={words} />
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
           {rows.some((row) => row.metric === 'expected_goals') ? null : (
             <p
               className="flex flex-wrap items-center justify-between gap-2 border-t border-default pt-3 text-sm text-muted"
@@ -1510,9 +1514,41 @@ function StatTile({
         away={row.away}
         homeText={statValue(row.metric, row.home, locale)}
         awayText={statValue(row.metric, row.away, locale)}
+        emphasis={(STAT_GROUPS[3][1] as readonly string[]).includes(row.metric) ? 'none' : 'larger'}
       />
     </li>
   );
+}
+
+/**
+ * The team statistics in a fixed order, in four groups (T-1800, D-398): the
+ * match, attack, passing, discipline. Discipline is last and plain: more
+ * fouls or cards is not "more" in the sense the bold figure means.
+ */
+export const STAT_GROUPS = [
+  ['match', ['possession_pct', 'expected_goals']],
+  [
+    'attack',
+    [
+      'shots',
+      'shots_on_target',
+      'shots_off_target',
+      'blocked_shots',
+      'corners',
+      'offsides',
+      'saves',
+    ],
+  ],
+  ['passing', ['passes', 'passes_accurate', 'pass_accuracy_pct']],
+  ['discipline', ['fouls', 'yellow_cards', 'red_cards']],
+] as const satisfies readonly (readonly [string, readonly MatchStatMetric[]])[];
+
+/** The rows the feed sent, each group in its order; a group with none is left out. */
+export function statGroups(rows: readonly MatchStatRow[]) {
+  return STAT_GROUPS.map(
+    ([group, metrics]) =>
+      [group, metrics.flatMap((metric) => rows.filter((row) => row.metric === metric))] as const,
+  ).filter(([, list]) => list.length > 0);
 }
 
 function PlayerStatistics({
@@ -1566,7 +1602,7 @@ function PlayerStatistics({
                   <caption className="text-start font-bold">{team}</caption>
                   <thead>
                     <tr>
-                      <th scope="col" className="py-1 text-start font-normal text-muted">
+                      <th scope="col" className={cx(NAME_CELL, 'font-normal text-muted')}>
                         <MessageText message={m['matchCentre.playerColumn']} />
                       </th>
                       {PLAYER_COLUMNS.map(([metric, label]) => (
@@ -1583,15 +1619,15 @@ function PlayerStatistics({
                   <tbody>
                     {rows.map((player) => (
                       <tr key={player.id} className="border-t border-default">
-                        <th scope="row" className="py-1 text-start font-normal">
+                        <th scope="row" className={cx(NAME_CELL, 'font-normal')}>
                           <Link href={`/${locale}/player/${player.id}`}>
                             {listName(locale, player.name)}
                           </Link>
                         </th>
                         {PLAYER_COLUMNS.map(([metric]) => (
-                          <td key={metric} className="px-2 py-1 text-end tabular-nums">
+                          <Cell key={metric} value={player.stats[metric]}>
                             {playerCell(locale, player, metric)}
-                          </td>
+                          </Cell>
                         ))}
                       </tr>
                     ))}
@@ -1600,6 +1636,7 @@ function PlayerStatistics({
               </div>
             );
           })}
+          <Legend m={m} />
         </div>
       )}
     </Module>
@@ -1607,10 +1644,44 @@ function PlayerStatistics({
 }
 
 /**
+ * The name column of a player table (T-1802, D-400): it stays at the inline
+ * start while the figures scroll under it on a phone.
+ */
+const NAME_CELL = 'sticky start-0 z-1 bg-surface py-1 pe-2 text-start';
+
+/**
+ * A figure of a player table (T-1802, D-400): a supplied zero quiet in the
+ * caption grey, so the figures that are something stand out; `–` only for a
+ * figure not supplied, which the legend under the table says.
+ */
+function Cell({ value, children }: { value: number | undefined; children: React.ReactNode }) {
+  return (
+    <td className={cx('px-2 py-1 text-end tabular-nums', value === 0 && 'text-caption')}>
+      {children}
+    </td>
+  );
+}
+
+/** What `–` means in a player table (T-1802): not supplied, never a zero. */
+function Legend({ m }: { m: MatchWords['m'] }) {
+  return (
+    <p className="text-xs text-muted" data-testid="table-legend">
+      <MessageText message={m['matchCentre.table.legend']} />
+    </p>
+  );
+}
+
+/**
  * Per-player expected goals from their one source (T-1432, D-224), a card of
- * its own under the player statistics: labelled "xG (Highlightly)", never a
- * column of the table above, `–` for a figure the source did not supply, and
- * an explicit state when it supplied none (rule 3).
+ * its own under the player statistics: "Expected goals by player", from
+ * licensed match data and never named by its provider in the heading (D-014,
+ * T-1802), never a column of the table above, `–` for a figure the source did
+ * not supply, and an explicit state when it supplied none (rule 3).
+ *
+ * The team's xG in the statistics comes from the match feed, these from a
+ * source of their own (F9): so when this card has none it says the player
+ * breakdown is what is missing, and that the team figure stands, rather than
+ * an "xG: not supplied" that contradicts the statistics above it.
  */
 function PlayerExpectedGoals({
   centre,
@@ -1624,10 +1695,7 @@ function PlayerExpectedGoals({
   const m = words.m;
   const f = centre.fixture;
   const expected = centre.player_expected_goals;
-  const cell = (player: MatchPlayerExpected, metric: ExpectedGoalsMetric): string => {
-    const value = player.figures[metric];
-    return value === undefined ? '–' : formatFixed(locale, value, 2);
-  };
+  const teamXg = (centre.statistics.data ?? []).some((row) => row.metric === 'expected_goals');
   return (
     <Module
       title={m['matchCentre.expectedGoals']}
@@ -1635,10 +1703,19 @@ function PlayerExpectedGoals({
       testId="player-expected-goals"
       words={words}
       before={unplayed(centre)}
-      empty={expected.last_updated_at === null ? null : 'matchCentre.expectedGoals.none'}
+      empty={
+        teamXg
+          ? 'matchCentre.expectedGoals.teamOnly'
+          : expected.last_updated_at === null
+            ? null
+            : 'matchCentre.expectedGoals.none'
+      }
     >
       {(players) => (
         <div className="flex flex-col gap-3 text-sm">
+          <p className="-mt-2 text-xs text-muted" data-testid="player-expected-goals-note">
+            <MessageText message={m['matchCentre.expectedGoals.note']} />
+          </p>
           {(
             [
               ['home', f.home.name],
@@ -1659,7 +1736,7 @@ function PlayerExpectedGoals({
                   <caption className="text-start font-bold">{team}</caption>
                   <thead>
                     <tr>
-                      <th scope="col" className="py-1 text-start font-normal text-muted">
+                      <th scope="col" className={cx(NAME_CELL, 'font-normal text-muted')}>
                         <MessageText message={m['matchCentre.playerColumn']} />
                       </th>
                       {EXPECTED_COLUMNS.map(([metric, label]) => (
@@ -1676,16 +1753,19 @@ function PlayerExpectedGoals({
                   <tbody>
                     {rows.map((player) => (
                       <tr key={player.id} className="border-t border-default">
-                        <th scope="row" className="py-1 text-start font-normal">
+                        <th scope="row" className={cx(NAME_CELL, 'font-normal')}>
                           <Link href={`/${locale}/player/${player.id}`}>
                             {listName(locale, player.name)}
                           </Link>
                         </th>
-                        {EXPECTED_COLUMNS.map(([metric]) => (
-                          <td key={metric} className="px-2 py-1 text-end tabular-nums">
-                            {cell(player, metric)}
-                          </td>
-                        ))}
+                        {EXPECTED_COLUMNS.map(([metric]) => {
+                          const value = player.figures[metric];
+                          return (
+                            <Cell key={metric} value={value}>
+                              {value === undefined ? '–' : formatFixed(locale, value, 2)}
+                            </Cell>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
@@ -1693,9 +1773,7 @@ function PlayerExpectedGoals({
               </div>
             );
           })}
-          <p className="text-xs text-muted" data-testid="player-expected-goals-note">
-            <MessageText message={m['matchCentre.expectedGoals.note']} />
-          </p>
+          <Legend m={m} />
           {expected.unplaced > 0 && (
             <p className="text-xs text-muted" data-testid="player-expected-goals-unplaced">
               <FilledMessage

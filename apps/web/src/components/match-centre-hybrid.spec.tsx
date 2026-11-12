@@ -7,6 +7,7 @@ import type {
   FounderAnalysisResponse,
   MatchCentre,
   MatchLineupPlayer,
+  MatchStatRow,
   MatchViewing,
 } from '@fmip/contracts';
 import { readFileSync } from 'node:fs';
@@ -19,7 +20,8 @@ import { matchWords } from '@/lib/words-server';
 import { ForecastReality } from '@/app/[locale]/match/[id]/forecast-reality';
 import { CommunityForecastPanel, CommunityPicksRow } from './community-consensus';
 import { FounderAnalysisPanel } from './founder-analysis';
-import { MatchCentreView } from './match-centre-view';
+import { MatchCentreView, STAT_GROUPS, statGroups } from './match-centre-view';
+import { STAT_KEY } from '@/lib/match';
 import { MatchLineupsView } from './match-lineups';
 import { HighlightsLink, WatchLine } from './viewing-panel';
 
@@ -474,11 +476,15 @@ const band = (c: MatchCentre, locale = 'en', hero = {}) => {
 };
 
 describe('per-player expected goals (T-1432)', () => {
-  const view = (expected: MatchCentre['player_expected_goals'], locale = 'en') =>
+  const view = (
+    expected: MatchCentre['player_expected_goals'],
+    locale = 'en',
+    statistics: MatchCentre['statistics'] = centre({}).statistics,
+  ) =>
     renderToStaticMarkup(
       <MatchCentreView
         words={matchWords(locale)}
-        centre={{ ...centre({ status: 'finished' }), player_expected_goals: expected }}
+        centre={{ ...centre({ status: 'finished' }), player_expected_goals: expected, statistics }}
         timeZone="UTC"
         locale={locale}
       />,
@@ -488,7 +494,7 @@ describe('per-player expected goals (T-1432)', () => {
     return at < 0 ? '' : html.slice(at, html.indexOf('</section>', at));
   };
 
-  it('shows a card of its own, labelled with the source, a dash for what was not supplied', () => {
+  it('shows a card of its own, licensed data and no provider name, a dash only for what was not supplied', () => {
     const html = card(
       view({
         source: 'highlightly',
@@ -502,10 +508,18 @@ describe('per-player expected goals (T-1432)', () => {
       }),
     );
     expect(html).toContain('data-coverage="limited"');
-    expect(html).toContain('xG (Highlightly)');
+    // D-014 (T-1802): the heading says what it is, never whose it is.
+    expect(html).toContain('Expected goals by player');
+    expect(html).toContain('Licensed match data');
+    expect(html).not.toContain('Highlightly');
     expect(html).toContain('0.38');
-    expect(html).toContain('0.00');
+    // A supplied zero is written, quiet; a missing figure is a dash the legend explains.
+    expect(html).toMatch(/text-caption">0\.00</);
     expect(html).toContain('–');
+    expect(html).toContain('data-testid="table-legend"');
+    expect(html).toContain('– no figure supplied for this player');
+    // The name column stays put while the figures scroll.
+    expect(html).toMatch(/<th scope="row" class="sticky start-0[^"]*bg-surface/);
     expect(html).toContain('data-testid="player-expected-goals-unplaced"');
     expect(html).toContain('Not shown: 3 players');
   });
@@ -520,7 +534,7 @@ describe('per-player expected goals (T-1432)', () => {
         data: null,
       }),
     );
-    expect(answered).toContain('Highlightly supplies no expected goals for this match.');
+    expect(answered).toContain('No expected goals by player are supplied for this match.');
     expect(answered).not.toContain('<table');
     const owed = card(
       view({
@@ -532,6 +546,71 @@ describe('per-player expected goals (T-1432)', () => {
       }),
     );
     expect(owed).toContain('data-coverage="delayed"');
+  });
+
+  it('orders the statistics in four fixed groups, every metric in exactly one (T-1800)', () => {
+    const grouped = STAT_GROUPS.flatMap(([, metrics]) => [...metrics]);
+    expect([...grouped].sort()).toEqual(Object.keys(STAT_KEY).sort());
+    expect(new Set(grouped).size).toBe(grouped.length);
+    // The feed's alphabetical order, as it came; a group with nothing is left out.
+    const rows: MatchStatRow[] = (
+      ['blocked_shots', 'corners', 'fouls', 'possession_pct', 'shots'] as const
+    ).map((metric) => ({ metric, home: 5, away: 4 }));
+    const groups = statGroups(rows);
+    expect(groups.map(([g, list]) => [g, list.map((r) => r.metric)])).toEqual([
+      ['match', ['possession_pct']],
+      ['attack', ['shots', 'blocked_shots', 'corners']],
+      ['discipline', ['fouls']],
+    ]);
+    const html = view(
+      {
+        source: 'highlightly',
+        unplaced: 0,
+        coverage: 'not_supplied',
+        last_updated_at: null,
+        data: null,
+      },
+      'en',
+      { coverage: 'available', last_updated_at: null, data: rows },
+    );
+    const stats = html.slice(html.indexOf('data-testid="stat-grid"'));
+    expect(stats.indexOf('data-metric="possession_pct"')).toBeLessThan(
+      stats.indexOf('data-metric="shots"'),
+    );
+    expect(stats).toContain('>Attack</');
+    // Fouls: more is not better, so neither side is marked.
+    expect(stats).toMatch(
+      /data-metric="fouls"><div class="flex flex-col gap-1\.5" data-stat-bar="" data-lead="none"/,
+    );
+    expect(stats).toMatch(
+      /data-metric="shots"><div class="flex flex-col gap-1\.5" data-stat-bar="" data-lead="home"/,
+    );
+  });
+
+  it('agrees with the statistics when the team xG is supplied and the player breakdown is not (F9)', () => {
+    const html = view(
+      {
+        source: 'highlightly',
+        unplaced: 0,
+        coverage: 'not_supplied',
+        last_updated_at: '2026-10-08T16:00:00.000Z',
+        data: null,
+      },
+      'en',
+      {
+        coverage: 'available',
+        last_updated_at: '2026-10-08T16:00:00.000Z',
+        data: [{ metric: 'expected_goals', home: 2.19, away: 1.88 }],
+      },
+    );
+    // The statistics carry the team figure ...
+    expect(html).toContain('data-metric="expected_goals"');
+    expect(html).not.toContain('data-testid="xg-not-supplied"');
+    // ... and the card says only the player breakdown is missing.
+    expect(card(html)).toContain(
+      'Per-player xG: not supplied for this match. The team figure in the statistics above is supplied',
+    );
+    expect(card(html)).not.toContain('No expected goals by player are supplied');
   });
 });
 
