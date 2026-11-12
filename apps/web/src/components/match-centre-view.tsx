@@ -65,7 +65,12 @@ export type MatchSlot =
   | 'community'
   | 'discussion'
   | 'watch'
-  | 'news';
+  | 'news'
+  // A finished match's key events (T-1799, D-397): the two-lane axis, the
+  // folded substitutions and the shoot-out's circles, drawn on the server
+  // (`match-key-events.tsx`), so none of it is in the page's JavaScript.
+  // While the match is on the client's timeline below stays.
+  | 'keyEvents';
 export type MatchSlots = Partial<Record<MatchSlot, React.ReactNode>>;
 
 /**
@@ -110,6 +115,12 @@ export interface MatchHero {
    * no number is shown as final.
    */
   disputed?: { marker: React.ReactNode; note: React.ReactNode };
+  /**
+   * A finished match decided on penalties (T-1798, D-396): the sentence under
+   * the result ("Liverpool win 6–5 on penalties") and the compact bar's mark
+   * beside the winner, drawn by the server (`shootoutHero`).
+   */
+  penalties?: { line: React.ReactNode; home?: React.ReactNode; away?: React.ReactNode };
 }
 
 type Key = keyof MatchWords['m'];
@@ -406,9 +417,10 @@ export function MatchCentreView({
     <Panel tab="summary">
       <Region id="timeline">
         {coming.length > 0 && <ComingCard items={coming} words={words} />}
-        {!isComing('timeline') && (
-          <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
-        )}
+        {slots.keyEvents ??
+          (!isComing('timeline') && (
+            <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
+          ))}
       </Region>
       {slots.summary}
     </Panel>
@@ -514,6 +526,7 @@ export function MatchCentreView({
           stale={hero?.streamBroken === true}
           locale={locale}
           words={words}
+          marks={hero.penalties}
         />
         {/* The section tabs (Design System `Tabs`): plain anchors, the saffron
             edge under the one on show (globals.css), scrolling sideways on a phone. */}
@@ -888,6 +901,7 @@ function Hero({
           </div>
         </div>
       </div>
+      {hero.penalties?.line}
 
       {/* Live: the minute along the match, then kick-off and the stream's stamp. */}
       {f.status === 'live' && (
@@ -1292,7 +1306,7 @@ function Shootout({
 }
 
 /** One incident's words: its kind and side, then who (T-1478: who came on, who went off). */
-function IncidentText({
+export function IncidentText({
   incident: i,
   centre,
   locale,
@@ -1427,7 +1441,7 @@ function Axis({
 const GOAL_KINDS = new Set<MatchIncident['kind']>(['goal', 'penalty_goal', 'own_goal']);
 
 /** A small mark for an incident's kind, in tokens: a ball, a card's colour, an arrow. */
-function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
+export function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
   const shape =
     kind === 'yellow_card' ? (
       <span className="h-4 w-3 rounded-xs bg-warning" />

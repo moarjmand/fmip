@@ -18,7 +18,9 @@ import { formatFixed, formatMinute } from '@/lib/words';
 export const INCIDENT_KEY = {
   goal: 'matchCentre.incident.goal',
   own_goal: 'matchCentre.incident.ownGoal',
-  penalty_goal: 'matchCentre.incident.penaltyGoal',
+  // A penalty scored in play is a goal (T-1798, D-396): "Goal (penalty)",
+  // never the bare "Penalty" a shoot-out's kick is called.
+  penalty_goal: 'matchCentre.incident.penaltyGoalInPlay',
   penalty_missed: 'matchCentre.incident.penaltyMissed',
   yellow_card: 'matchCentre.incident.yellowCard',
   second_yellow_card: 'matchCentre.incident.secondYellow',

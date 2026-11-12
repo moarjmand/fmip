@@ -15357,6 +15357,51 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.incident.penaltyGoalInPlay": {
+    "source": "Goal (penalty)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.shootoutWin": {
+    "source": "{team} win {score} on penalties",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.shootoutWinnerUnknown": {
+    "source": "The shoot-out’s winner is not in the record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.wonOnPenalties": {
+    "source": "Won on penalties",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.kickScored": {
+    "source": "Scored",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.kickMissed": {
+    "source": "Missed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.substitutions": {
+    "source": "Substitutions ({count})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.reason.held": {
+    "source": "No written summary for this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.shootoutKey": {
+    "source": "Filled circle with a tick: scored. Dashed circle with a cross: missed.",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.statGroup.match": {
     "source": "Match",
     "text": "",

@@ -433,6 +433,9 @@ export const MATCH_KEYS = [
   'matchCentre.lineups.mark.on',
   'matchCentre.lineups.mark.onAlone',
   'matchCentre.lineups.marksNone',
+  // A penalty scored in play (T-1798, D-396); the shoot-out's and the folded
+  // substitutions' words are said on the server (`match-key-events.tsx`).
+  'matchCentre.incident.penaltyGoalInPlay',
 ] as const;
 
 export type MatchWords = ClientWords<(typeof MATCH_KEYS)[number]>;
