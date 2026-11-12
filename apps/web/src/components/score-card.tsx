@@ -200,6 +200,8 @@ export function ScoreCard({
     disputed ? m['matchCentre.scoreUnclear'].text : null,
   ].filter((bit): bit is string => bit !== null);
   const live = card.status === 'live';
+  // A bare finished row is 56px (D-405): two 20px lines, scores included, and a 2px gap in its 12px padding.
+  const bare = bareWhenFinished && card.status === 'finished';
   const line = scoreLine(card);
   // At full time the winner is bold and the loser muted; a draw keeps both in ink.
   const weight = (side: 'home' | 'away'): string => {
@@ -212,7 +214,10 @@ export function ScoreCard({
   const team = (side: 'home' | 'away') => {
     const t = card[side];
     return (
-      <span className="flex min-h-6 min-w-0 items-center gap-1.5" data-testid={`${side}-team`}>
+      <span
+        className={`flex min-w-0 items-center gap-1.5 ${bare ? 'min-h-5 leading-5' : 'min-h-6'}`}
+        data-testid={`${side}-team`}
+      >
         <EntityImage media={t.crest} kind="crest" name={t.name} size={20} />
         <bdi className={`${NAME} ${weight(side)}`}>{t.name}</bdi>
         {sentOff(card.red_cards[side])}
@@ -232,7 +237,6 @@ export function ScoreCard({
   // On a phone the Pick (or the member's "Picked") stands under the time; a
   // live or finished row's "View" is the desktop's only (T-1757, D-374).
   const under = pickHref !== undefined && pick !== 'locked';
-  const bare = bareWhenFinished && card.status === 'finished';
 
   return (
     <li
@@ -258,7 +262,9 @@ export function ScoreCard({
         >
           {statusLabel(card, locale, timeZone, now, m)}
         </span>
-        <span className="row-span-2 flex min-w-0 flex-col gap-1 @xl:font-stretch-semi-condensed">
+        <span
+          className={`row-span-2 flex min-w-0 flex-col @xl:font-stretch-semi-condensed ${bare ? 'gap-0.5' : 'gap-1'}`}
+        >
           {team('home')}
           {team('away')}
           {rowBits.length > 0 && (

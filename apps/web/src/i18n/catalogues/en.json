@@ -3369,7 +3369,7 @@
   "teamPage.chips.cupNoTable": "{competition} is played in knockout rounds, so it has no table.",
   "teamPage.chips.friendlyNoTable": "{competition}: single matches, not a league or a cup, so there is no table.",
   "teamPage.chips.rounds": "Its matches on the competition’s page",
-  "highlights.need": "Pick a territory to see only the highlights offered there. Until then every highlight we hold is listed, and some may not play where you are.",
+  "highlights.need": "Until you pick one, every highlight is listed; some may not play where you are.",
   "highlights.needChosen": "Only the highlights offered in your territory are listed.",
   "coachPage.recordAge": {
     "one": "record updated {count} day ago",

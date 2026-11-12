@@ -18753,8 +18753,8 @@
     "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
   },
   "highlights.need": {
-    "source": "Pick a territory to see only the highlights offered there. Until then every highlight we hold is listed, and some may not play where you are.",
-    "text": "کشوری را انتخاب کنید تا فقط هایلایت‌هایی را ببینید که آنجا در دسترس‌اند. تا آن موقع همه‌ی هایلایت‌هایی که داریم فهرست می‌شوند و برخی ممکن است جایی که هستید پخش نشوند.",
+    "source": "Until you pick one, every highlight is listed; some may not play where you are.",
+    "text": "تا کشوری انتخاب نکنید، همه‌ی هایلایت‌ها فهرست می‌شوند؛ برخی ممکن است جایی که هستید پخش نشوند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
   },

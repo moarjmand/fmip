@@ -511,6 +511,10 @@ describe('today by competition', () => {
     expect(finished.slice(0, finished.indexOf('</li>'))).not.toContain(
       'data-testid="row-forecast"',
     );
+    // 56px: two 20px lines, the scores included, and a 2px gap.
+    expect(finished.slice(0, finished.indexOf('</li>'))).toMatch(
+      /class="flex min-w-0 items-center gap-1\.5 min-h-5 leading-5" data-testid="home-team"/,
+    );
     const open = html.slice(html.indexOf('data-fixture-id="f1"'));
     const first = open.slice(0, open.indexOf('</li>'));
     // No forecast for it: said in words, never an empty bar (rule 3).
