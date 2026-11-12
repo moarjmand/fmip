@@ -380,7 +380,6 @@ export const MATCH_KEYS = [
   'matchCentre.freshness.details',
   'matchCentre.kickoffIn',
   'matchCentre.shootout',
-  'matchCentre.shootoutKick',
   'matchCentre.noEventsYet',
   'matchCentre.lineups.pitchLabel',
   'matchCentre.lineups.pitchNote',
@@ -417,6 +416,15 @@ export const MATCH_KEYS = [
   'matchCentre.bestSix',
   'matchCentre.minutesPlayed',
   'matchCentre.ratingsNote',
+  // The shoot-out's winner, its kicks as circles and the folded substitutions
+  // (T-1798, T-1799; D-396, D-397).
+  'matchCentre.incident.penaltyGoalInPlay',
+  'matchCentre.shootoutWin',
+  'matchCentre.shootoutWinnerUnknown',
+  'matchCentre.wonOnPenalties',
+  'matchCentre.kickScored',
+  'matchCentre.kickMissed',
+  'matchCentre.substitutions',
 ] as const;
 
 export type MatchWords = ClientWords<(typeof MATCH_KEYS)[number]>;

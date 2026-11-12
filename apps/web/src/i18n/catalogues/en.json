@@ -3182,7 +3182,6 @@
   "matchCentre.subOn": "{player} on",
   "matchCentre.subOff": "{player} off",
   "matchCentre.shootout": "Penalty shoot-out",
-  "matchCentre.shootoutKick": "Kick {n}",
   "matchCentre.lineups.pitchLabel": "Line-ups on the pitch: {home} and {away}, each goalkeeper at his own goal",
   "matchCentre.lineups.pitchNote": "Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
   "matchCentre.lineups.pitchNoteGrid": "Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",
@@ -3369,5 +3368,13 @@
   "teamPage.chip.friendlyNoTable": "friendlies, no table",
   "teamPage.chips.cupNoTable": "{competition} is played in knockout rounds, so it has no table.",
   "teamPage.chips.friendlyNoTable": "{competition}: single matches, not a league or a cup, so there is no table.",
-  "teamPage.chips.rounds": "Its matches on the competition’s page"
+  "teamPage.chips.rounds": "Its matches on the competition’s page",
+  "matchCentre.incident.penaltyGoalInPlay": "Goal (penalty)",
+  "matchCentre.shootoutWin": "{team} win {score} on penalties",
+  "matchCentre.shootoutWinnerUnknown": "The shoot-out’s winner is not in the record",
+  "matchCentre.wonOnPenalties": "Won on penalties",
+  "matchCentre.kickScored": "Scored",
+  "matchCentre.kickMissed": "Missed",
+  "matchCentre.substitutions": "Substitutions ({count})",
+  "summary.reason.held": "No written summary for this match"
 }

@@ -1031,7 +1031,7 @@ describe('live', () => {
     expect(done).toMatch(/data-side="away"[^>]*>[^]*?md:col-start-3/);
   });
 
-  it('draws goals and cards on the axis, home above the line and away below', () => {
+  it('draws goals and cards on two named lanes, home above away, on a 0-45-90 scale (T-1799)', () => {
     const timeline = {
       coverage: 'available' as const,
       last_updated_at: null,
@@ -1041,14 +1041,57 @@ describe('live', () => {
         incident(59, 'substitution', 'home', 'Alysson'),
       ],
     };
-    const axis = section(view(centre({}, { timeline })), 'timeline');
+    const html = section(view(centre({}, { timeline })), 'timeline');
+    const axis = html.slice(0, html.indexOf('<ol'));
     expect(axis).toContain('role="img"');
     expect(axis).toContain('goals: 1, cards: 1');
-    expect(axis).toMatch(/data-kind="goal" data-side="home" class="[^"]*top-4\.5 bg-accent/);
-    expect(axis).toMatch(/data-kind="yellow_card" data-side="away" class="[^"]*top-12\.75/);
+    // Each lane is named; the home side's comes first.
+    expect(axis.indexOf('data-lane="home"')).toBeLessThan(axis.indexOf('data-lane="away"'));
+    expect(axis).toMatch(/data-lane="home"><span[^>]*><bdi>Lazio</);
+    expect(axis).toMatch(/data-lane="away"><span[^>]*><bdi>Parma</);
+    const lane = (side: string) =>
+      axis.slice(
+        axis.indexOf(`data-lane="${side}"`),
+        axis.indexOf('</div>', axis.indexOf(`data-lane="${side}"`)),
+      );
+    // The goal at 6′ of 90 in the home lane, with its minute; the card in the away lane.
+    expect(lane('home')).toMatch(
+      /data-kind="goal"[^>]*inset-inline-start:6\.666[^]*rounded-full bg-fg[^]*>6′</,
+    );
+    expect(lane('away')).toMatch(/data-kind="yellow_card"[^]*bg-warning[^]*>54′</);
     expect(axis).not.toMatch(/data-kind="substitution"/);
-    // The goal at 6′ of 90.
-    expect(axis).toContain('inset-inline-start:6.666');
+    // The scale.
+    expect(axis).toMatch(
+      /inset-inline-start:0%">0<[^]*inset-inline-start:50%">45<[^]*inset-inline-start:100%">90</,
+    );
+  });
+
+  it('extends the scale for extra time and keeps close minutes from overlapping (T-1799)', () => {
+    const timeline = {
+      coverage: 'available' as const,
+      last_updated_at: null,
+      data: [
+        incident(59, 'yellow_card', 'home', 'B. Barcola'),
+        incident(62, 'yellow_card', 'home', 'R. Araújo'),
+        incident(113, 'goal', 'away', 'E. Nketiah'),
+      ],
+    };
+    const scores = {
+      ...centre().fixture.scores,
+      current: { home: 0, away: 1 },
+      full_time: { home: 0, away: 0 },
+      extra_time: { home: 0, away: 1 },
+    };
+    const html = section(
+      view(centre({ status: 'finished', minute: null, scores }, { timeline })),
+      'timeline',
+    );
+    const axis = html.slice(0, html.indexOf('<ol'));
+    expect(axis).toMatch(/">105<[^]*inset-inline-start:100%">120</);
+    // 62′ is drawn, its label kept out of 59′'s way; the list says it in words.
+    expect(axis).toMatch(/class="invisible">62′</);
+    expect(axis).not.toMatch(/class="invisible">59′</);
+    expect(html.slice(html.indexOf('<ol'))).toContain('62′');
   });
 
   it('writes each side’s scorers under its name, and none when an own goal is in the list', () => {
@@ -1236,5 +1279,177 @@ describe('ratings', () => {
     expect(best).toEqual(['8.9', '8.9', '7.7', '7.6', '7.5', '7.1', '7.0']);
     // Nothing rated, no card.
     expect(view(centre())).not.toContain('data-testid="top-rated"');
+  });
+});
+
+describe('who went through on penalties, and what happened when (T-1798, T-1799)', () => {
+  // Liverpool 1-1 Chelsea, League Cup, 28 Oct 2026: Liverpool won 6-5 on
+  // penalties (the site's own record, board P9-3).
+  const kick = (
+    n: number,
+    side: 'home' | 'away',
+    name: string,
+    scored: boolean,
+  ): MatchIncident => ({
+    ...incident(120, scored ? 'penalty_goal' : 'penalty_missed', side, name),
+    id: `k${n}`,
+    sequence: 200 + n,
+    in_shootout: true,
+  });
+  const home = [
+    'A. Mac Allister',
+    'A. Isak',
+    'C. Gakpo',
+    'F. Wirtz',
+    'K. Tsimikas',
+    'B. Barcola',
+    'R. Gravenberch',
+    'J. Gomez',
+  ];
+  const homeScored = [true, true, true, true, false, true, false, true];
+  const away = [
+    'Pedro Neto',
+    'M. Rogers',
+    'R. Lavia',
+    'V. Barco',
+    'J. Henderson',
+    'L. Colwill',
+    'E. Emegha',
+    'W. Fofana',
+  ];
+  const awayScored = [true, true, true, false, true, true, false, false];
+  const kicks = home.flatMap((name, r) => [
+    kick(2 * r + 1, 'home', name, homeScored[r]!),
+    kick(2 * r + 2, 'away', away[r]!, awayScored[r]!),
+  ]);
+  const sub = (
+    minute: number,
+    side: 'home' | 'away',
+    on: string,
+    off: string,
+    added: number | null = null,
+  ) => ({
+    ...incident(minute, 'substitution', side, off),
+    id: `sub-${side}-${on}`,
+    added_time: added,
+    related_player: { id: `p-${on}`, name: on },
+  });
+  const play: MatchIncident[] = [
+    incident(11, 'yellow_card', 'home', 'L. Koumas'),
+    incident(40, 'penalty_goal', 'away', 'M. Rogers'),
+    incident(43, 'penalty_goal', 'home', 'C. Gakpo'),
+    sub(45, 'away', 'L. Colwill', 'M. Lacroix', 1),
+    sub(59, 'home', 'B. Barcola', 'L. Koumas'),
+    sub(59, 'home', 'F. Wirtz', 'J. McConnell'),
+  ];
+  const scores = {
+    current: { home: 1, away: 1 },
+    half_time: { home: 1, away: 1 },
+    full_time: { home: 1, away: 1 },
+    extra_time: null,
+    penalties: { home: 6, away: 5 },
+    aggregate: null,
+  };
+  const cup = (penalties = scores.penalties, data = [...play, ...kicks]) =>
+    centre(
+      {
+        status: 'finished',
+        minute: null,
+        home: team('h', 'Liverpool') as MatchCentre['fixture']['home'],
+        away: team('a', 'Chelsea') as MatchCentre['fixture']['away'],
+        scores: { ...scores, penalties },
+      },
+      { timeline: { coverage: 'available', last_updated_at: null, data } },
+    );
+  const words = (html: string) => html.replace(/<[^>]+>/g, '');
+
+  it('says who won the shoot-out under the result, from its score', () => {
+    const html = view(cup());
+    expect(html).toMatch(/data-testid="shootout-winner">/);
+    expect(words(html)).toContain('Liverpool win 6–5 on penalties');
+    // The away side, its score read winner first.
+    const away = words(view(cup({ home: 1, away: 4 })));
+    expect(away).toContain('Chelsea win 4–1 on penalties');
+    // In Persian, the team isolated, its own digits.
+    const fa = view(cup(), undefined, 'fa');
+    expect(fa).toContain('<bdi>Liverpool</bdi> در ضربات پنالتی');
+    expect(words(fa)).toContain('۶–۵ پیروز شد');
+  });
+
+  it('never guesses a winner the shoot-out’s score does not name (rule 3)', () => {
+    const level = words(view(cup({ home: 3, away: 3 })));
+    expect(level).toContain('The shoot-out’s winner is not in the record');
+    expect(level).not.toMatch(/win \d/);
+    // No shoot-out, no sentence.
+    expect(view(cup(null as never, play))).not.toContain('shootout-winner');
+  });
+
+  it('calls a penalty scored in play "Goal (penalty)", never the bare word of a kick', () => {
+    const timeline = section(view(cup()), 'timeline');
+    const list = timeline.slice(timeline.indexOf('<ol'));
+    expect(words(list)).toContain('Goal (penalty) · Chelsea');
+    expect(words(list)).toContain('Goal (penalty) · Liverpool');
+    expect(words(list)).not.toMatch(/Penalty ·/);
+    expect(words(section(view(cup(), undefined, 'fa'), 'timeline'))).toContain('گل (پنالتی)');
+  });
+
+  it('draws the shoot-out as two rows of circles, scored and missed said in words', () => {
+    const timeline = section(view(cup()), 'timeline');
+    const card = timeline.slice(timeline.indexOf('data-testid="shootout"'));
+    // One card, no kick as a row of its own.
+    expect(timeline).not.toContain('Kick 1');
+    expect(timeline.match(/data-kick="/g)).toHaveLength(16);
+    const row = (side: string) => {
+      const at = card.indexOf(`>${side}</bdi>`);
+      return card.slice(at, card.indexOf('</ol>', at));
+    };
+    expect(row('Liverpool').match(/data-kick="scored"/g)).toHaveLength(6);
+    expect(row('Liverpool').match(/data-kick="missed"/g)).toHaveLength(2);
+    expect(row('Chelsea').match(/data-kick="scored"/g)).toHaveLength(5);
+    expect(row('Chelsea').match(/data-kick="missed"/g)).toHaveLength(3);
+    // The order recorded, each kick's word for a screen reader, the taker under it.
+    expect(words(row('Liverpool'))).toMatch(/^>Liverpool6✓ScoredMac Allister✓ScoredIsak✓/);
+    expect(words(row('Liverpool'))).toContain('✕MissedTsimikas');
+    expect(card).toMatch(/<span aria-hidden="true" class="[^"]*border-dashed/);
+    expect(words(card)).toContain('Penalty shoot-out6–5');
+    // After the events of play, after full time.
+    expect(timeline.indexOf('data-testid="shootout"')).toBeGreaterThan(timeline.indexOf('</ol>'));
+    // Persian.
+    const fa = words(section(view(cup(), undefined, 'fa'), 'timeline'));
+    expect(fa).toContain('گل شد');
+    expect(fa).toContain('از دست رفت');
+  });
+
+  it('folds the substitutions into a native details, counted, out of the list (D-397)', () => {
+    const timeline = section(view(cup()), 'timeline');
+    const list = timeline.slice(timeline.indexOf('<ol'), timeline.indexOf('</ol>'));
+    expect(list).not.toContain('Substitution ·');
+    const fold = timeline.slice(timeline.indexOf('<details'), timeline.indexOf('</details>'));
+    expect(fold).toMatch(/<summary class="[^"]*min-h-touch[^"]*">/);
+    expect(words(fold)).toContain('Substitutions (3)');
+    expect(words(fold)).toContain('L. Colwill on');
+    expect(words(fold)).toContain('45+1′');
+    // No details when there was no change.
+    expect(section(view(cup(scores.penalties, play.slice(0, 3))), 'timeline')).not.toContain(
+      '<details',
+    );
+    expect(words(section(view(cup(), undefined, 'fa'), 'timeline'))).toContain('تعویض‌ها (۳)');
+  });
+
+  it('shows a shoot-out being played above the latest events (T-1477)', () => {
+    const live = centre(
+      { status: 'live', minute: 120, scores: { ...scores, penalties: { home: 1, away: 1 } } },
+      {
+        timeline: {
+          coverage: 'available',
+          last_updated_at: null,
+          data: [...play, ...kicks.slice(0, 2)],
+        },
+      },
+    );
+    const timeline = section(view(live), 'timeline');
+    expect(timeline.indexOf('data-testid="shootout"')).toBeLessThan(timeline.indexOf('<ol'));
+    // No winner is said while it is on.
+    expect(view(live)).not.toContain('shootout-winner');
   });
 });

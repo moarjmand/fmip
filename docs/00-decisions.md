@@ -15051,3 +15051,35 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 **Rejected.** *Rendering `LiveScores` on Watch:* its stream and its client code for a page whose answers do not change by the minute. *Copying the strip and the row markup:* two copies drift, which is how Watch came to look unstyled. *Links to each service inside the row:* a second link in a row that is already one link, and several 44px targets in a 104px cell on a phone; the match's Watch section has them. *A badge for every row before a territory is chosen:* 24 copies of the same sentence, which is the finding.
 
 **Consequences.** `scores/page.tsx` and `live-scores.tsx` now draw the shared strip and block pieces (no change in output); `ScoreCard` has `href` and `aside`. Eight new strings in every catalogue, Persian from the board where it had them. The Watch page's per-row `ViewingPanel` line is no longer drawn there (it stays on the club page's fixtures). The E2E journey opens the territory line before checking the guest's pick.
+
+## D-396 — A match decided on penalties says who won; a penalty in play is "Goal (penalty)"; the shoot-out is two rows of circles
+
+**Status:** Accepted · 2026-11-12 (maintainer, package 9 decision D1 with the designer's recommendation, board P9-3) · **Task:** T-1798 · **Follows:** D-317, D-363, rules 3 and 7
+
+**Context.** On a cup tie that went to penalties the match page said "1–1" and a grey 12px "Pens 6–5" but never who went through (finding B-15; Liverpool 1–1 Chelsea, League Cup, 28 Oct 2026). Two goals scored in play were called "Penalty", the same word as each of the sixteen shoot-out kicks, and the kicks were sixteen rows of the timeline.
+
+**Decision.**
+1. **The sentence under the result.** A finished match with a shoot-out score says, under the teams and the score, "{team} win {score} on penalties" ("Liverpool win 6–5 on penalties"; Persian «{team} در ضربات پنالتی {score} پیروز شد»), the score winner first. The winner is the side with more shoot-out goals, from `scores.penalties` alone. A level shoot-out score names no winner and the page says "The shoot-out’s winner is not in the record" (rule 3); nothing is guessed from the kicks, the aggregate or the competition. While a shoot-out is being played nothing is said. The status line under the score ("Pens 6–5 · 90′ 1–1 · HT 1–1") is unchanged.
+2. **The compact score bar** draws a tick before the winner's name, with "Won on penalties" as its hover text (the bar is `aria-hidden`; the band above it says the sentence). `BandState.won` carries the winner for both, so the band and the bar cannot disagree.
+3. **"Goal (penalty)".** A penalty scored in play is "Goal (penalty)" (Persian «گل (پنالتی)») in the match page's timeline and the discussion's moment picker (`INCIDENT_KEY.penalty_goal` in `lib/match.ts` → `matchCentre.incident.penaltyGoalInPlay`), never the bare "Penalty". The scores page's card keeps its own map and is untouched by this decision.
+4. **The shoot-out is one card**, after the events of play once the match is over (above the latest events while it is on): "Penalty shoot-out 6–5", then each side's name and score over a row of circles in the order the kicks were recorded, filled with a tick for a goal, dashed with a cross for a miss. Each circle has its word for a screen reader ("Scored", "Missed") and the taker's surname under it. The board's key under the rows is left out to keep the match centre inside its script budget (the tick and the cross say it, and each circle's word is there for a screen reader). A kick with no side recorded is not drawn. The kicks are found as before (`shootoutStart`, T-1477, T-1666, D-322).
+5. **No script.** The sentence, the tick and the circles are markup in the existing client component; no new hook or state.
+
+**Rejected.** *Naming the winner from the kicks:* the kicks can be incomplete (T-1666); the stored shoot-out score is the record. *"Penalty" for both senses with a different icon:* the finding is the word. *A band "(pen.)" after a scorer's minute:* on the board, but the band's scorer line is package 9's builder A's (F1, F2); left for a follow-up so the two changes do not collide.
+
+**Consequences.** Six new strings in every catalogue, Persian from the board where it had them; `matchCentre.shootoutKick` ("Kick {n}") is removed from every catalogue, nothing renders it any more. The timeline's kick rows, the "Kick n" labels and the shoot-out heading row are gone from the match page.
+
+## D-397 — The timeline's axis is two named lanes on a 0-45-90 scale; substitutions are folded; a held-back summary is not explained to readers
+
+**Status:** Accepted · 2026-11-12 (maintainer, package 9 decision D2 with the designer's recommendation, and bug fix F4, board P9-3) · **Task:** T-1799 · **Follows:** D-272, D-396, rules 3 and 7
+
+**Context.** Above "Key events" a small bar of marks around "HT" had no labels, no minutes and no sides (finding B-17); of 18 events 9 were substitutions, and the block on Liverpool v Chelsea was 2,163px tall on a phone. On Crystal Palace v Liverpool the public page said "No summary is shown: the last draft did not agree with the match record, so it was held back." — a note for the desk, not for a reader (F4).
+
+**Decision.**
+1. **Two lanes.** Goals and cards are drawn on two lanes, the home side's above the away side's, each named, over a scale marked 0, 45 and 90; extra time extends it to 105 and 120, and a later minute of added time extends the end so it stays inside. Each mark carries its minute under it unless the previous label in its lane is closer than 9% of the axis (the mark stays; the list gives every minute in words). A goal is a dot, a yellow card amber, a red card red, on both lanes. The board's key under the scale is left out to keep the match centre inside its script budget; the list under the axis names every event. First-half added time is still pressed together at half-time. The picture keeps its description for a screen reader (`role="img"`, `matchCentre.axis`). It mirrors on `/fa`.
+2. **Substitutions folded.** The list holds the kick-off and every other event; the changes are in a native `<details>` under it, closed, its 44px summary "Substitutions (n)" (Persian «تعویض‌ها (n)»). No server-reload chips and no script.
+3. **F4.** A summary whose last draft was rejected tells a reader only "No written summary for this match" (Persian «برای این بازی خلاصه‌ی نوشته‌شده‌ای نیست»); an editor, who can write a new version, still sees why. The other reasons are unchanged.
+
+**Rejected.** *Chips that reload the page to filter the list* (the board's alternative): a reload per tap and a second state in the address for one fold. *Dropping substitutions from the page:* rule 3; they are folded, not hidden.
+
+**Consequences.** The axis's marks are no longer coloured by side (the lanes say the side). Two new strings (`matchCentre.substitutions`, `summary.reason.held`). Key events on Liverpool v Chelsea at 375px, measured on a render of the page's own data with the built CSS: see T-1799.

@@ -17702,12 +17702,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "matchCentre.shootoutKick": {
-    "source": "Kick {n}",
-    "text": "ضربه‌ی {n}",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "matchCentre.lineups.pitchLabel": {
     "source": "Line-ups on the pitch: {home} and {away}, each goalkeeper at his own goal",
     "text": "ترکیب‌ها در زمین: {home} و {away}، دروازه‌بان هر تیم کنار دروازه‌ی خودش",
@@ -18757,5 +18751,53 @@
     "text": "بازی‌هایش در صفحه‌ی رقابت",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "matchCentre.incident.penaltyGoalInPlay": {
+    "source": "Goal (penalty)",
+    "text": "گل (پنالتی)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.shootoutWin": {
+    "source": "{team} win {score} on penalties",
+    "text": "{team} در ضربات پنالتی {score} پیروز شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.shootoutWinnerUnknown": {
+    "source": "The shoot-out’s winner is not in the record",
+    "text": "برنده‌ی ضربات پنالتی در داده‌ها ثبت نشده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.wonOnPenalties": {
+    "source": "Won on penalties",
+    "text": "برنده در ضربات پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.kickScored": {
+    "source": "Scored",
+    "text": "گل شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.kickMissed": {
+    "source": "Missed",
+    "text": "از دست رفت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.substitutions": {
+    "source": "Substitutions ({count})",
+    "text": "تعویض‌ها ({count})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.reason.held": {
+    "source": "No written summary for this match",
+    "text": "برای این بازی خلاصه‌ی نوشته‌شده‌ای نیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
   }
 }

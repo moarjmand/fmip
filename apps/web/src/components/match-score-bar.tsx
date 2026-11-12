@@ -30,6 +30,11 @@ export interface BandState {
   awaiting: boolean;
   /** Finished, the recorded goals disagreeing with the result (D-347). */
   disputed: boolean;
+  /**
+   * Finished on penalties, the side with more shoot-out goals (T-1798,
+   * D-396); `null` with no shoot-out, or one whose score names no winner.
+   */
+  won: 'home' | 'away' | null;
 }
 
 export function bandState(
@@ -39,6 +44,7 @@ export function bandState(
 ): BandState {
   const m = at.words.m;
   const behind = at.now !== undefined && isBehind(f, at.now);
+  const pens = f.scores.penalties;
   return {
     headline: f.status === 'finished' ? resultLine(f.scores) : f.scores.current,
     // At the half-time interval the feed's minute stays at 45: the band says
@@ -53,6 +59,12 @@ export function bandState(
     // Once a snapshot brings another status, the server's notice goes.
     awaiting: f.status === 'scheduled' && hero.awaiting != null,
     disputed: f.status === 'finished' && hero.disputed != null,
+    won:
+      f.status !== 'finished' || pens === null || pens.home === pens.away
+        ? null
+        : pens.home > pens.away
+          ? 'home'
+          : 'away',
   };
 }
 
@@ -104,7 +116,7 @@ export function ScoreBar({
   const coming = f.status === 'scheduled' && !state.awaiting;
   // A long name gives way before the score or the status does: onto a second
   // line on a narrow screen (the bar holds two), and only then an ellipsis.
-  const side = (team: Fixture['home'], crestFirst: boolean) => {
+  const side = (team: Fixture['home'], crestFirst: boolean, won = false) => {
     const crest = (
       <span className="shrink-0">
         <EntityImage media={team.crest} kind="crest" name={team.name} size={20} />
@@ -113,6 +125,15 @@ export function ScoreBar({
     return (
       <span className="flex min-w-0 items-center gap-1.5">
         {crestFirst && crest}
+        {/* The shoot-out's winner (T-1798): a tick, its words on hover. */}
+        {won && (
+          <span
+            className="shrink-0 font-extrabold text-accent"
+            title={m['matchCentre.wonOnPenalties'].text}
+          >
+            ✓
+          </span>
+        )}
         <bdi className="line-clamp-2 min-w-0 leading-4 font-bold [overflow-wrap:anywhere]">
           {team.name}
         </bdi>
@@ -147,7 +168,7 @@ export function ScoreBar({
         </>
       ) : (
         <>
-          {side(f.home, true)}
+          {side(f.home, true, state.won === 'home')}
           {state.headline === null ? (
             // No score supplied: none, rather than a 0-0 (rule 3).
             f.status === 'live' ? (
@@ -167,7 +188,7 @@ export function ScoreBar({
               {n(state.headline.home)}–{n(state.headline.away)}
             </ScorePair>
           )}
-          {side(f.away, false)}
+          {side(f.away, false, state.won === 'away')}
           {live ? (
             <LiveBadge
               className="shrink-0"
