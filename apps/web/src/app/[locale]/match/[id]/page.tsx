@@ -32,6 +32,7 @@ import { MatchToolsRow } from '@/components/match-tools-row';
 import { MatchPanel } from '@/components/match-panel';
 import { linkChoices } from '@/lib/panel-link';
 import { MatchSummaryPanel } from '@/components/match-summary';
+import { KeyEvents, shootoutHero } from '@/components/match-key-events';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { MatchThreads } from '@/components/match-threads';
 import { RelatedNews } from '@/components/related-news';
@@ -365,8 +366,23 @@ export default async function MatchPage({
                 // The recorded goals disagree with the result (T-1717, D-347):
                 // the API's derived word, said here so its words stay off the client.
                 disputed: scoreDisputeHero(locale, result.data.fixture),
+                // Who won on penalties (T-1798, D-396): said here, off the client.
+                penalties: shootoutHero(locale, result.data.fixture),
               }}
               slots={{
+                // A finished match's key events and shoot-out (T-1799, D-397),
+                // drawn here: a finished match does not move, and none of it
+                // is then in the page's JavaScript. While it is on, the
+                // client's own timeline is drawn.
+                keyEvents:
+                  result.data.fixture.status === 'finished' ? (
+                    <KeyEvents
+                      centre={result.data}
+                      locale={locale}
+                      timeZone={timeZone}
+                      words={words}
+                    />
+                  ) : undefined,
                 // The Summary opens with what the model forecast and, after
                 // full time, what happened (T-1497): the model's card alone,
                 // drawn on the server, and the one place the forecast is

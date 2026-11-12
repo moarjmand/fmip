@@ -3182,6 +3182,7 @@
   "matchCentre.subOn": "{player} on",
   "matchCentre.subOff": "{player} off",
   "matchCentre.shootout": "Penalty shoot-out",
+  "matchCentre.shootoutKick": "Kick {n}",
   "matchCentre.lineups.pitchLabel": "Line-ups on the pitch: {home} and {away}, each goalkeeper at his own goal",
   "matchCentre.lineups.pitchNote": "Players are placed by the formation and the role each was given; along each line they are in shirt-number order, because the line-up does not say who played on which side.",
   "matchCentre.lineups.pitchNoteGrid": "Each player stands where the line-up places him: in his line from the goalkeeper, and on his side of the pitch as his team attacks.",
@@ -3376,5 +3377,6 @@
   "matchCentre.kickScored": "Scored",
   "matchCentre.kickMissed": "Missed",
   "matchCentre.substitutions": "Substitutions ({count})",
-  "summary.reason.held": "No written summary for this match"
+  "summary.reason.held": "No written summary for this match",
+  "matchCentre.shootoutKey": "Filled circle with a tick: scored. Dashed circle with a cross: missed."
 }

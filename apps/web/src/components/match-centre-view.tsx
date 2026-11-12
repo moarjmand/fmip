@@ -59,7 +59,12 @@ export type MatchSlot =
   | 'community'
   | 'discussion'
   | 'watch'
-  | 'news';
+  | 'news'
+  // A finished match's key events (T-1799, D-397): the two-lane axis, the
+  // folded substitutions and the shoot-out's circles, drawn on the server
+  // (`match-key-events.tsx`), so none of it is in the page's JavaScript.
+  // While the match is on the client's timeline below stays.
+  | 'keyEvents';
 export type MatchSlots = Partial<Record<MatchSlot, React.ReactNode>>;
 
 /**
@@ -104,6 +109,12 @@ export interface MatchHero {
    * no number is shown as final.
    */
   disputed?: { marker: React.ReactNode; note: React.ReactNode };
+  /**
+   * A finished match decided on penalties (T-1798, D-396): the sentence under
+   * the result ("Liverpool win 6–5 on penalties") and the compact bar's mark
+   * beside the winner, drawn by the server (`shootoutHero`).
+   */
+  penalties?: { line: React.ReactNode; home?: React.ReactNode; away?: React.ReactNode };
 }
 
 type Key = keyof MatchWords['m'];
@@ -390,9 +401,10 @@ export function MatchCentreView({
     <Panel tab="summary">
       <Region id="timeline">
         {coming.length > 0 && <ComingCard items={coming} words={words} />}
-        {!isComing('timeline') && (
-          <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
-        )}
+        {slots.keyEvents ??
+          (!isComing('timeline') && (
+            <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
+          ))}
       </Region>
       {slots.summary}
     </Panel>
@@ -498,6 +510,7 @@ export function MatchCentreView({
           stale={hero?.streamBroken === true}
           locale={locale}
           words={words}
+          marks={hero.penalties}
         />
         {/* The section tabs (Design System `Tabs`): plain anchors, the saffron
             edge under the one on show (globals.css), scrolling sideways on a phone. */}
@@ -867,30 +880,7 @@ function Hero({
           </div>
         </div>
       </div>
-
-      {/* Who went through on penalties (T-1798, D-396): from the shoot-out's
-          score only; a score that names no winner says so (rule 3). */}
-      {f.status === 'finished' && f.scores.penalties !== null && (
-        <p className="text-center text-sm font-bold text-fg" data-testid="shootout-winner">
-          {state.won === null ? (
-            <MessageText message={m['matchCentre.shootoutWinnerUnknown']} />
-          ) : (
-            <FilledMessage
-              message={m['matchCentre.shootoutWin']}
-              params={{
-                team: <bdi>{f[state.won].name}</bdi>,
-                score: (
-                  <Score
-                    home={Math.max(f.scores.penalties.home, f.scores.penalties.away)}
-                    away={Math.min(f.scores.penalties.home, f.scores.penalties.away)}
-                    locale={locale}
-                  />
-                ),
-              }}
-            />
-          )}
-        </p>
-      )}
+      {hero.penalties?.line}
 
       {/* Live: the minute along the match, then kick-off and the stream's stamp. */}
       {f.status === 'live' && (
@@ -1164,61 +1154,31 @@ function Timeline({
       before={unplayed(centre)}
     >
       {(incidents) => {
-        // A shoot-out is its own card, never penalties at minutes of added
-        // time (T-1477): its kicks as circles (T-1798, D-396).
+        // A shoot-out is its own block, its kicks in order and numbered, never
+        // penalties at minutes of added time (T-1477).
         const kicksFrom = shootoutStart(incidents, f.scores.penalties, f.scores.current);
         const play = kicksFrom === null ? incidents : incidents.slice(0, kicksFrom);
-        const inPlay = finished ? play : [...play].reverse();
-        // The changes are folded in a native details (T-1799, D-397): the
-        // list keeps what a reader scans for, and no script opens the rest.
-        const subs = inPlay.filter((i) => i.kind === 'substitution');
-        const row = (i: MatchIncident) => (
-          <li
-            key={i.id}
-            className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 md:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1fr)]"
-            data-side={i.side ?? undefined}
-          >
-            <span className="font-mono text-muted tabular-nums" dir="ltr">
-              {formatMinute(locale, i.minute, i.added_time)}
-            </span>
-            <span
-              className={cx(
-                'flex min-w-0 items-center gap-3',
-                i.side === 'away'
-                  ? 'md:col-start-3'
-                  : i.side === null
-                    ? 'md:col-span-2'
-                    : 'md:col-start-2',
-              )}
-            >
-              <IncidentMark kind={i.kind} />
-              <IncidentText incident={i} centre={centre} locale={locale} words={words} />
-            </span>
-          </li>
-        );
+        const kicks = (kicksFrom === null ? [] : incidents.slice(kicksFrom)).map((i, k) => ({
+          i,
+          kick: k + 1,
+        }));
+        const inPlay = (finished ? play : [...play].reverse()).map((i) => ({ i, kick: null }));
+        const rows = finished ? [...inPlay, ...kicks] : [...kicks, ...inPlay];
         const kickoff = started && (
           <li
             key="kickoff"
-            className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 last:border-b-0"
+            className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 last:border-b-0 md:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1fr)]"
           >
             <span className="font-mono text-muted tabular-nums">
               {formatKickoff(locale, f.kickoff_at, timeZone)}
             </span>
-            <span className="flex items-center gap-3">
+            <span className="flex items-center gap-3 md:col-span-2">
               <IncidentMark kind="kickoff" />
               <b className="font-bold text-fg">
                 <MessageText message={m['matchCentre.kickedOff']} />
               </b>
             </span>
           </li>
-        );
-        const shootout = kicksFrom !== null && (
-          <Shootout
-            kicks={incidents.slice(kicksFrom)}
-            centre={centre}
-            locale={locale}
-            words={words}
-          />
         );
         return (
           <>
@@ -1228,27 +1188,48 @@ function Timeline({
                 <MessageText message={m['matchCentre.noEventsYet']} />
               </p>
             )}
-            {play.length > 0 && (
-              <Axis incidents={play} centre={centre} locale={locale} words={words} />
-            )}
-            {!finished && shootout}
+            {play.length > 0 && <Axis incidents={play} locale={locale} words={words} />}
             <ol className="flex flex-col text-sm">
+              {kicksFrom !== null && f.scores.penalties !== null && !finished && (
+                <Shootout centre={centre} locale={locale} words={words} />
+              )}
               {finished && kickoff}
-              {inPlay.filter((i) => i.kind !== 'substitution').map(row)}
+              {rows.map(({ i, kick }, index) => (
+                <Fragment key={i.id}>
+                  {finished && kick === 1 && f.scores.penalties !== null && (
+                    <Shootout centre={centre} locale={locale} words={words} />
+                  )}
+                  <li
+                    className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 md:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1fr)]"
+                    data-kick={kick ?? undefined}
+                    data-side={i.side ?? undefined}
+                    data-index={index}
+                  >
+                    <span className="font-mono text-muted tabular-nums">
+                      {kick !== null ? (
+                        fill(m['matchCentre.shootoutKick'].text, { n: formatNumber(locale, kick) })
+                      ) : (
+                        <span dir="ltr">{formatMinute(locale, i.minute, i.added_time)}</span>
+                      )}
+                    </span>
+                    <span
+                      className={cx(
+                        'flex min-w-0 items-center gap-3',
+                        i.side === 'away'
+                          ? 'md:col-start-3'
+                          : i.side === null
+                            ? 'md:col-span-2'
+                            : 'md:col-start-2',
+                      )}
+                    >
+                      <IncidentMark kind={i.kind} />
+                      <IncidentText incident={i} centre={centre} locale={locale} words={words} />
+                    </span>
+                  </li>
+                </Fragment>
+              ))}
               {!finished && kickoff}
             </ol>
-            {subs.length > 0 && (
-              <details className="text-sm" data-testid="substitutions">
-                <summary className="flex min-h-touch cursor-pointer items-center gap-3 font-bold text-fg">
-                  <IncidentMark kind="substitution" />
-                  {fill(m['matchCentre.substitutions'].text, {
-                    count: formatNumber(locale, subs.length),
-                  })}
-                </summary>
-                <ol className="flex flex-col">{subs.map(row)}</ol>
-              </details>
-            )}
-            {finished && shootout}
             {incidents.length > 0 && !finished && (
               <p className="text-xs text-caption">
                 <MessageText message={m['matchCentre.latestFirst']} />
@@ -1261,84 +1242,27 @@ function Timeline({
   );
 }
 
-/**
- * The shoot-out (T-1798, D-396): its score, then each side's kicks in the
- * order recorded as a row of circles -- filled with a tick for a goal,
- * dashed with a cross for a miss -- each with its word for a screen reader
- * and the taker under it.
- */
 function Shootout({
-  kicks,
   centre,
   locale,
   words,
 }: {
-  kicks: MatchIncident[];
   centre: MatchCentre;
   locale: string;
   words: MatchWords;
 }) {
-  const m = words.m;
-  const f = centre.fixture;
-  const p = f.scores.penalties;
+  const penalties = centre.fixture.scores.penalties;
+  if (penalties === null) return null;
   return (
-    <section
-      className="flex flex-col gap-2.5 rounded-control border border-default px-2 py-3"
-      data-testid="shootout"
-    >
-      <h3 className="flex justify-between gap-2 font-bold text-fg">
-        <MessageText message={m['matchCentre.shootout']} />
-        {p !== null && <Score home={p.home} away={p.away} locale={locale} />}
-      </h3>
-      {(['home', 'away'] as const).map((side) => (
-        <div key={side} className="flex flex-col gap-1">
-          <p className="flex justify-between gap-2 text-sm font-bold">
-            <bdi>{f[side].name}</bdi>
-            {p !== null && formatNumber(locale, p[side])}
-          </p>
-          <ol className="flex flex-wrap gap-0.5">
-            {kicks
-              .filter((k) => k.side === side)
-              .map((k) => {
-                const scored = k.kind === 'penalty_goal';
-                return (
-                  <li
-                    key={k.id}
-                    className="flex w-8.5 flex-col items-center gap-0.5 text-center text-[10px] leading-tight text-muted font-stretch-condensed"
-                    data-kick={scored ? 'scored' : 'missed'}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={cx(
-                        'grid size-7 place-items-center rounded-full border-[1.5px] border-fg text-sm',
-                        scored ? 'bg-fg text-surface' : 'border-dashed text-fg',
-                      )}
-                    >
-                      {scored ? '✓' : '✕'}
-                    </span>
-                    <span className="sr-only">
-                      <MessageText
-                        message={m[scored ? 'matchCentre.kickScored' : 'matchCentre.kickMissed']}
-                      />
-                    </span>
-                    {k.player !== null && (
-                      <bdi className="line-clamp-2 max-w-full [overflow-wrap:anywhere]">
-                        {/* The surname under the circle, as the board draws it. */}
-                        {listName(locale, k.player.name).replace(/^\p{Lu}\. /u, '')}
-                      </bdi>
-                    )}
-                  </li>
-                );
-              })}
-          </ol>
-        </div>
-      ))}
-    </section>
+    <li className="border-b border-default py-2.5 font-bold text-fg" data-testid="shootout">
+      <MessageText message={words.m['matchCentre.shootout']} />{' '}
+      <Score home={penalties.home} away={penalties.away} locale={locale} />
+    </li>
   );
 }
 
 /** One incident's words: its kind and side, then who (T-1478: who came on, who went off). */
-function IncidentText({
+export function IncidentText({
   incident: i,
   centre,
   locale,
@@ -1401,94 +1325,71 @@ function IncidentText({
 }
 
 /**
- * The axis (T-1799, D-397): two lanes, the home side's above the away
- * side's, each named, on a scale of 0-45-90 that extra time extends to 120;
- * each goal a dot and each card a card, its minute under it unless the
- * previous label in its lane is too close (the list says every minute). A
- * minute of added time sits after its half's last minute; the first half's
- * are pressed together at half-time so the second half keeps its place. The
- * picture is described for a screen reader; the list under it says every
- * event in words. It mirrors on /fa: the minutes run from the inline start.
+ * The axis: where on the clock each goal and card fell. A minute of added
+ * time sits after its half's last minute; the first half's are pressed
+ * together at half-time so the second half keeps its place. The picture is
+ * described for a screen reader; the list under it says every event in words.
  */
 function Axis({
   incidents,
-  centre,
   locale,
   words,
 }: {
   incidents: MatchIncident[];
-  centre: MatchCentre;
   locale: string;
   words: MatchWords;
 }) {
-  const m = words.m;
   const marked = incidents.filter((i) => AXIS_KINDS.has(i.kind) && i.side !== null);
   const at = (i: MatchIncident) => i.minute + (i.added_time ?? 0) * (i.minute <= 45 ? 0.15 : 1);
-  const end = Math.max(centre.fixture.scores.extra_time === null ? 90 : 120, ...marked.map(at));
-  const pos = (minute: number) => `${(minute / end) * 100}%`;
+  const end = Math.max(90, ...marked.map(at));
+  const pos = (minute: number) => `${(Math.min(minute, end) / end) * 100}%`;
   const goals = marked.filter((i) => GOAL_KINDS.has(i.kind)).length;
-  const centred = 'absolute -translate-x-1/2 rtl:translate-x-1/2';
   return (
     <div
       role="img"
-      aria-label={fill(m['matchCentre.axis'].text, {
+      aria-label={fill(words.m['matchCentre.axis'].text, {
         goals: formatNumber(locale, goals),
         cards: formatNumber(locale, marked.length - goals),
       })}
-      className="flex flex-col gap-1.5 px-2 font-mono text-[10px] text-caption"
+      className="relative h-23"
       data-testid="timeline-axis"
     >
-      {(['home', 'away'] as const).map((side) => {
-        let labelled = -100;
+      <span className="absolute inset-x-0 top-11.5 h-0.5 bg-border" />
+      <span
+        className="absolute top-7.5 h-8.5 w-px bg-caption"
+        style={{ insetInlineStart: pos(45) }}
+      />
+      <span
+        className="absolute top-17.5 font-mono text-xs text-caption"
+        style={{ insetInlineStart: pos(45) }}
+      >
+        <MessageText message={words.m['status.halfTime']} />
+      </span>
+      {marked.map((i) => {
+        const goal = GOAL_KINDS.has(i.kind);
+        const home = i.side === 'home';
         return (
-          <div key={side} className="relative h-11 border-b border-default" data-lane={side}>
-            {/* Placed by the page's direction, the name isolated inside it. */}
-            <span className="absolute start-0 top-0 font-semibold">
-              <bdi>{centre.fixture[side].name}</bdi>
-            </span>
-            {marked
-              .filter((i) => i.side === side)
-              .map((i) => {
-                const x = (at(i) / end) * 100;
-                const label = x - labelled > 9;
-                if (label) labelled = x;
-                return (
-                  <span
-                    key={i.id}
-                    data-kind={i.kind}
-                    className={cx(
-                      centred,
-                      'bottom-1 flex flex-col items-center gap-0.5 text-muted',
-                    )}
-                    style={{ insetInlineStart: `${x}%` }}
-                  >
-                    <span
-                      className={
-                        GOAL_KINDS.has(i.kind)
-                          ? 'size-3 rounded-full bg-fg'
-                          : i.kind === 'yellow_card'
-                            ? 'h-3 w-2.25 rounded-xs bg-warning'
-                            : 'h-3 w-2.25 rounded-xs bg-danger'
-                      }
-                    />
-                    <span dir="ltr" className={label ? undefined : 'invisible'}>
-                      {formatMinute(locale, i.minute, i.added_time)}
-                    </span>
-                  </span>
-                );
-              })}
-          </div>
+          <span
+            key={i.id}
+            data-kind={i.kind}
+            data-side={i.side}
+            className={cx(
+              'absolute',
+              goal
+                ? cx(
+                    'size-4.5 -translate-x-1/2 rounded-full rtl:translate-x-1/2',
+                    home ? 'top-4.5 bg-accent' : 'top-14 bg-border-strong',
+                  )
+                : cx(
+                    'h-2.75 w-2 -translate-x-1/2 rounded-xs rtl:translate-x-1/2',
+                    home ? 'top-7.5' : 'top-12.75',
+                    i.kind === 'yellow_card' ? 'bg-warning' : 'bg-danger',
+                  ),
+            )}
+            style={{ insetInlineStart: pos(at(i)) }}
+          />
         );
       })}
-      <div className="relative h-3.5">
-        {[0, 45, 90, 105, 120]
-          .filter((t) => t <= end)
-          .map((t) => (
-            <span key={t} className={centred} style={{ insetInlineStart: pos(t) }}>
-              {formatNumber(locale, t)}
-            </span>
-          ))}
-      </div>
     </div>
   );
 }
@@ -1496,7 +1397,7 @@ function Axis({
 const GOAL_KINDS = new Set<MatchIncident['kind']>(['goal', 'penalty_goal', 'own_goal']);
 
 /** A small mark for an incident's kind, in tokens: a ball, a card's colour, an arrow. */
-function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
+export function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
   const shape =
     kind === 'yellow_card' ? (
       <span className="h-4 w-3 rounded-xs bg-warning" />

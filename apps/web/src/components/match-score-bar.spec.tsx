@@ -152,39 +152,7 @@ describe('the compact score bar (T-1742)', () => {
         penalties: { home: 6, away: 5 },
       },
     });
-    // The shoot-out's winner carries a tick, its words on hover (T-1798, D-396).
-    expect(text(bar(pens))).toBe('✓ Wrexham 1–1 Middlesbrough Pens 6–5');
-    expect(bar(pens)).toContain('title="Won on penalties"');
-  });
-
-  it('marks the shoot-out’s winner from its score alone, and nobody when it names none (T-1798)', () => {
-    const scores = (penalties: { home: number; away: number } | null) => ({
-      ...centre().fixture.scores,
-      current: { home: 1, away: 1 },
-      full_time: { home: 1, away: 1 },
-      penalties,
-    });
-    const state = (c: MatchCentre) =>
-      bandState(
-        c.fixture,
-        {},
-        { locale: 'en', timeZone: 'Europe/London', now: NOW, words: matchWords('en') },
-      ).won;
-    expect(state(finished({ scores: scores({ home: 6, away: 5 }) }))).toBe('home');
-    expect(state(finished({ scores: scores({ home: 1, away: 4 }) }))).toBe('away');
-    expect(text(bar(finished({ scores: scores({ home: 1, away: 4 }) })))).toBe(
-      'Wrexham 1–1 ✓ Middlesbrough Pens 1–4',
-    );
-    // A level shoot-out score names no winner: no tick is guessed (rule 3).
-    expect(state(finished({ scores: scores({ home: 3, away: 3 }) }))).toBeNull();
-    expect(bar(finished({ scores: scores({ home: 3, away: 3 }) }))).not.toContain('✓');
-    // No shoot-out, or one still being played: no winner.
-    expect(state(finished())).toBeNull();
-    expect(state(centre({ scores: scores({ home: 2, away: 1 }) }))).toBeNull();
-    // In Persian, its own words on hover.
-    expect(bar(finished({ scores: scores({ home: 6, away: 5 }) }), 'fa')).toContain(
-      'title="برنده در ضربات پنالتی"',
-    );
+    expect(text(bar(pens))).toBe('Wrexham 1–1 Middlesbrough Pens 6–5');
   });
 
   it('a feed that is behind is amber words, never the live badge (rule 4)', () => {

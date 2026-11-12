@@ -14559,6 +14559,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.shootoutKick": {
+    "source": "Kick {n}",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.lineups.pitchLabel": {
     "source": "Line-ups on the pitch: {home} and {away}, each goalkeeper at his own goal",
     "text": "",
@@ -15459,6 +15464,11 @@
   },
   "summary.reason.held": {
     "source": "No written summary for this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.shootoutKey": {
+    "source": "Filled circle with a tick: scored. Dashed circle with a cross: missed.",
     "text": "",
     "status": "untranslated"
   }

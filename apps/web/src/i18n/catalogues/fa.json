@@ -17702,6 +17702,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.shootoutKick": {
+    "source": "Kick {n}",
+    "text": "ضربه‌ی {n}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "matchCentre.lineups.pitchLabel": {
     "source": "Line-ups on the pitch: {home} and {away}, each goalkeeper at his own goal",
     "text": "ترکیب‌ها در زمین: {home} و {away}، دروازه‌بان هر تیم کنار دروازه‌ی خودش",
@@ -18797,6 +18803,12 @@
   "summary.reason.held": {
     "source": "No written summary for this match",
     "text": "برای این بازی خلاصه‌ی نوشته‌شده‌ای نیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.shootoutKey": {
+    "source": "Filled circle with a tick: scored. Dashed circle with a cross: missed.",
+    "text": "دایره‌ی پر با تیک: گل شد. دایره‌ی خط‌چین با ضربدر: از دست رفت.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   }
