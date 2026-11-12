@@ -104,10 +104,10 @@ export async function generateMetadata({
  * about headline and summary only small print under it.
  *
  * T-1621 (D-291) takes it off editorial paper: it follows the theme like
- * every other page. The reading stays a reading: the headline in the
- * editorial face, as the news front page sets its lead (D-284), and the
- * publisher's words in the article face at the 680px measure (Newsreader on
- * a Latin page, Vazirmatn on /fa). Everything beside the words is a card on
+ * every other page. The reading stays a reading: the publisher's words in
+ * the article face at the 680px measure (Newsreader on a Latin page,
+ * Vazirmatn on /fa). The headline is in the interface face since T-1805
+ * (D-403): a headline someone else wrote is never in the founder's serif. Everything beside the words is a card on
  * the surface, and every control in it a 44px target on a phone.
  */
 const CARD = 'flex flex-col gap-2.5 rounded-tile border border-default bg-surface p-4 text-sm';
@@ -243,7 +243,7 @@ export default async function StoryPage({
                   story on /fa ends its sentences on the right side. */}
               <h1
                 dir="auto"
-                className="font-serif text-display-1 font-semibold break-words sm:text-display-2 md:text-display-3"
+                className="text-display-1 font-bold break-words sm:text-display-2 md:text-display-3"
                 data-testid="title"
               >
                 {story.headline}

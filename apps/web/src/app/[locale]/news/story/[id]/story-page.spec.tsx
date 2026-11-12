@@ -137,11 +137,12 @@ describe('the story page (T-1621, D-291)', () => {
     expect(out).not.toMatch(PHYSICAL);
   });
 
-  it('keeps the reading faces: the headline in the editorial face, the words in the article face', async () => {
+  it('keeps the publisher’s words in the article face, the headline in the interface face (T-1805, D-403)', async () => {
     const out = await render('full_text');
     expect(out).toMatch(
-      /<h1 dir="auto" class="font-serif[^"]*"[^>]*data-testid="title">Arsenal win/,
+      /<h1 dir="auto" class="text-display-1 font-bold[^"]*"[^>]*data-testid="title">Arsenal win/,
     );
+    expect(out).not.toMatch(/<h1[^>]*font-serif/);
     expect(out).toMatch(
       /dir="auto" class="font-article text-article[^"]*" data-testid="story-body">The words\./,
     );
