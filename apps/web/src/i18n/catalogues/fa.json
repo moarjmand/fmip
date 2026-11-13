@@ -11120,12 +11120,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "modelAccuracy.versionsCombined": {
-    "source": "The figures combine these versions; they are not yet shown version by version.",
-    "text": "این ارقام نسخه‌های بالا را با هم می‌آورد و هنوز به تفکیک نسخه نشان داده نمی‌شود.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "modelAccuracy.verdict.right": {
     "source": {
       "one": "Over {count} match, the model picked the right result {share} of the time; a blind guess gets about {guess}.",
@@ -11295,8 +11289,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "modelAccuracy.weekly.partial": {
-    "source": "The last week is incomplete (scored to {date}), so its bar is lighter and dashed.",
-    "text": "هفته‌ی آخر کامل نیست (تا {date} ارزیابی شده)، پس ستونش کم‌رنگ و خط‌چین است.",
+    "source": "A week still running or waiting for a score is incomplete (scored to {date}), so its bar is lighter and dashed.",
+    "text": "هفته‌ای که هنوز جریان دارد یا منتظر ارزیابی است کامل نیست (تا {date} ارزیابی شده)، پس ستونش کم‌رنگ و خط‌چین است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -11357,6 +11351,168 @@
   "modelAccuracy.weekly.unreachable": {
     "source": "The weekly figures cannot be shown right now.",
     "text": "ارقام هفتگی در حال حاضر قابل نمایش نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.title": {
+    "source": "When it says 60%, how often does it happen?",
+    "text": "وقتی می‌گوید ۶۰٪، چند بار رخ می‌دهد؟",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.lede": {
+    "source": "Each dot is every forecast of about one probability, placed by how often that outcome really happened. On the diagonal is a perfect forecaster.",
+    "text": "هر نقطه همه‌ی پیش‌بینی‌های نزدیک به یک احتمال است، در ارتفاعی که نشان می‌دهد آن نتیجه واقعاً چند بار رخ داد. روی قطر، پیش‌بینی‌کننده‌ی بی‌نقص است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.pooled": {
+    "source": {
+      "one": "Every probability of {count} match, {forecasts} in all: home, draw and away of its last forecast before kick-off.",
+      "other": "Every probability of {count} matches, {forecasts} in all: home, draw and away of each match’s last forecast before kick-off."
+    },
+    "forms": {
+      "one": "همه‌ی احتمال‌های {count} بازی، روی هم {forecasts}: میزبان، مساوی و میهمانِ آخرین پیش‌بینی پیش از شروع.",
+      "other": "همه‌ی احتمال‌های {count} بازی، روی هم {forecasts}: میزبان، مساوی و میهمانِ آخرین پیش‌بینی هر بازی پیش از شروع."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.axisX": {
+    "source": "What the model said",
+    "text": "آنچه مدل گفت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.axisY": {
+    "source": "Happened",
+    "text": "رخ داد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.perfect": {
+    "source": "A perfect forecaster",
+    "text": "پیش‌بینی‌کننده‌ی بی‌نقص",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.solid": {
+    "source": "{minimum} or more forecasts in that step",
+    "text": "{minimum} پیش‌بینی یا بیشتر در آن پله",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.hollow": {
+    "source": "Fewer than {minimum}: hollow, with its count beside it",
+    "text": "کمتر از {minimum}: توخالی، با تعدادش کنارش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.range": {
+    "source": "{from} to {to}",
+    "text": "{from} تا {to}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.step": {
+    "source": {
+      "one": "said {range}, {share} of {count} forecast happened",
+      "other": "said {range}, {share} of {count} forecasts happened"
+    },
+    "forms": {
+      "one": "گفت {range}، {share} از {count} پیش‌بینی رخ داد",
+      "other": "گفت {range}، {share} از {count} پیش‌بینی رخ داد"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.chartLabel": {
+    "source": "When the model {values}. On the diagonal is a perfect forecaster.",
+    "text": "وقتی مدل {values}. روی قطر، پیش‌بینی‌کننده‌ی بی‌نقص است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.said": {
+    "source": "The model said",
+    "text": "آنچه مدل گفت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.forecasts": {
+    "source": "Forecasts",
+    "text": "پیش‌بینی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.happened": {
+    "source": "Happened",
+    "text": "رخ داد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.share": {
+    "source": "Share that happened",
+    "text": "سهم رخ‌داده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.thinMark": {
+    "source": "fewer than {minimum}",
+    "text": "کمتر از {minimum}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.calibration.tooThin": {
+    "source": {
+      "one": "The chart appears once one step of ten points holds {minimum} forecasts. So far {count} probability has been scored, and no step holds {minimum}.",
+      "other": "The chart appears once one step of ten points holds {minimum} forecasts. So far {count} probabilities have been scored, and no step holds {minimum}."
+    },
+    "forms": {
+      "one": "نمودار وقتی ظاهر می‌شود که دست‌کم یک پله‌ی ده‌درصدی {minimum} پیش‌بینی داشته باشد. تا اینجا {count} احتمال ارزیابی شده و هیچ پله‌ای به {minimum} نرسیده است.",
+      "other": "نمودار وقتی ظاهر می‌شود که دست‌کم یک پله‌ی ده‌درصدی {minimum} پیش‌بینی داشته باشد. تا اینجا {count} احتمال ارزیابی شده و هیچ پله‌ای به {minimum} نرسیده است."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.versionCards.title": {
+    "source": "Each model version on its own",
+    "text": "هر نسخه‌ی مدل جدا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.versionCards.lede": {
+    "source": "Each match is counted once, under the version of its last forecast before kick-off. Candidate models still in testing are not shown.",
+    "text": "هر بازی یک بار شمرده می‌شود، با نسخه‌ی آخرین پیش‌بینی پیش از شروعش. مدل‌های نامزد که هنوز در آزمون‌اند نشان داده نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.versionCards.span": {
+    "source": "Kick-offs from {first} to {last}.",
+    "text": "شروع بازی‌ها از {first} تا {last}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.versionCards.spanOne": {
+    "source": "Kick-offs in {first}.",
+    "text": "شروع بازی‌ها در {first}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.versionCards.limited": {
+    "source": {
+      "one": "Only {count} match has been scored with this version, fewer than {minimum}: an early record, not a verdict.",
+      "other": "Only {count} matches have been scored with this version, fewer than {minimum}: an early record, not a verdict."
+    },
+    "forms": {
+      "one": "تا اینجا فقط {count} بازی با این نسخه ارزیابی شده، کمتر از {minimum}: یک سابقه‌ی اولیه است، نه یک داوری.",
+      "other": "تا اینجا فقط {count} بازی با این نسخه ارزیابی شده، کمتر از {minimum}: یک سابقه‌ی اولیه است، نه یک داوری."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "modelAccuracy.versionCards.none": {
+    "source": "No match has been scored with this version, so no figure is shown.",
+    "text": "هیچ بازی‌ای با این نسخه ارزیابی نشده، پس رقمی نشان داده نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

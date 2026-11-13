@@ -99,10 +99,15 @@ export class EvaluationController {
    * How accurate the statistical model has been (T-1369, D-187): its
    * published pre-kick-off forecasts only, by month or (`?period=week`,
    * T-1413) ISO week, overall and per competition, each row with its
-   * coverage state. Public.
+   * coverage state. Public. `&calibration=omit` leaves the calibration out
+   * (T-1751): the page's second request, for the weekly chart, does not
+   * compute it again.
    */
   @Get('model/accuracy')
-  async accuracy(@Query('period') period: unknown): Promise<PublicModelAccuracyResponse> {
+  async accuracy(
+    @Query('period') period: unknown,
+    @Query('calibration') calibration: unknown,
+  ): Promise<PublicModelAccuracyResponse> {
     const chosen = period === undefined ? 'month' : period;
     if (typeof chosen !== 'string' || !ACCURACY_PERIODS.includes(chosen as AccuracyPeriod)) {
       const error: ApiError = {
@@ -112,7 +117,17 @@ export class EvaluationController {
       };
       throw new BadRequestException(error);
     }
-    const report = await this.evaluations.publicAccuracy(chosen as AccuracyPeriod);
+    if (calibration !== undefined && calibration !== 'omit') {
+      const error: ApiError = {
+        error: 'validation',
+        message: 'The request is not valid.',
+        fields: { calibration: 'must be omit, or left out' },
+      };
+      throw new BadRequestException(error);
+    }
+    const report = await this.evaluations.publicAccuracy(chosen as AccuracyPeriod, new Date(), {
+      calibration: calibration !== 'omit',
+    });
     return this.withLogos(report);
   }
 
