@@ -23,6 +23,13 @@ import {
   tierCeiling,
   withBudgetTier,
 } from './internal/budget-tier';
+import {
+  detailBatch,
+  LINEUP_REASK_BATCH,
+  LINEUP_REASK_DAYS,
+  LINEUP_REASK_HOURS,
+  lineupReasks,
+} from './internal/detail-sweep';
 import { groupMembers, groupPlayed, isGroupStagesAggregate } from './internal/groups';
 import { lineupAsks, lineupWindow } from './internal/lineup-asks';
 import {
@@ -72,8 +79,6 @@ export const FIXTURE_WINDOW_FORWARD_DAYS = 7;
 /** How close to kick-off a match has to be before the live job asks about it. */
 export const LIVE_WINDOW_BEFORE_MINUTES = 30;
 export const LIVE_WINDOW_AFTER_MINUTES = 210;
-/** How many fixtures one post-match run will spend requests on (line-ups: `LINEUP_BATCH`). */
-export const DETAIL_BATCH = 10;
 /**
  * How many finished fixtures that never had their detail one post-match run
  * also asks about (T-102): 20 every half hour is 960 requests a day at most,
@@ -326,6 +331,8 @@ export class IngestionJobsService {
   private readonly log = new Logger('Ingestion');
   private readonly store: IngestStore;
   private readonly backlogBatch = backlogBatch(process.env.INGESTION_BACKLOG_BATCH);
+  /** The recent asks one post-match run sends (T-1823, D-417): 30 unless set. */
+  private readonly recentBatch = detailBatch(process.env.INGESTION_DETAIL_BATCH);
   private readonly refetchShare = refetchShare(process.env.INGESTION_REFETCH_SHARE);
   private readonly squadsPerDay = squadsPerDay(process.env.INGESTION_SQUADS_PER_DAY);
   private readonly clubFactsBatch = clubFactsBatch(process.env.INGESTION_CLUB_FACTS_BATCH);
@@ -1223,14 +1230,23 @@ export class IngestionJobsService {
    * Everything after the whistle: incidents, team statistics, the periods and
    * the closing scores. Runs against matches that have finished recently, and
    * then against finished matches whose detail was never asked for (T-102) --
-   * a season backfill writes the fixture list and nothing after the whistle.
+   * a season backfill writes the fixture list and nothing after the whistle --
+   * and then against finished matches of the last two weeks still missing a
+   * line-up, every six hours (T-1823, D-417; `internal/detail-sweep.ts`).
    */
   postMatch(now: Date = new Date()): Promise<JobReport> {
     return this.track('post_match', async (source, targets) => {
       // A match in play is the live job's to ask while it asks for details
-      // (T-1782); the ten asks here then go to the matches just finished.
+      // (T-1782); the recent asks here then go to the matches just finished.
       const recent = await this.detailCandidates(source.provider, targets, now);
-      const owed = [...recent, ...(await this.detailBacklog(source, targets, now, recent))];
+      const backlog = await this.detailBacklog(source, targets, now, recent);
+      // A finished match still missing a line-up is asked again (T-1823).
+      const lineups = await this.lineupReasksDue(source.provider, targets, now, [
+        ...recent,
+        ...backlog,
+      ]);
+      const owed = [...recent, ...backlog, ...lineups];
+      const reasked = new Set(lineups.map((c) => c.fixtureId));
       // What an administrator asked the feed again for (T-913), within its share.
       const refetches = await this.refetchesDue(source, targets, owed);
       const candidates = [...owed, ...refetches];
@@ -1252,10 +1268,15 @@ export class IngestionJobsService {
         const before = watched.has(candidate.fixtureId)
           ? await this.alerts.before(candidate.fixtureId)
           : null;
-        // Only a just-finished match draws on the reserve (T-1365, D-183); the
-        // backlog and the re-asks are bulk and stop first.
+        // Only a just-finished match draws on the reserve (T-1365, D-183); a
+        // missing line-up's re-ask is standard, as the line-ups job's asks
+        // are (T-1823); the backlog and the queued re-asks are bulk and stop first.
         const detail = await withBudgetTier(
-          watched.has(candidate.fixtureId) ? 'critical' : 'bulk',
+          watched.has(candidate.fixtureId)
+            ? 'critical'
+            : reasked.has(candidate.fixtureId)
+              ? 'standard'
+              : 'bulk',
           () => this.ingestDetail(source, candidate),
         );
         if (detail.refused !== undefined) {
@@ -1599,10 +1620,12 @@ export class IngestionJobsService {
   }
 
   /**
-   * The fixtures the post-match run spends its ten recent asks on
-   * (`recentDetailCandidates`, T-1782): while the live job asks the matches in
-   * play, finished ones only, newest kick-off first across the competitions;
-   * with it off, live and finished in the competitions' order, as before.
+   * The fixtures the post-match run spends its recent asks on
+   * (`recentDetailCandidates`, T-1782; `INGESTION_DETAIL_BATCH`, T-1823): while
+   * the live job asks the matches in play, finished ones only, the never-asked
+   * first, oldest kick-off first, then the longest-unasked, fair across the
+   * competitions; with it off, live and finished in the competitions' order,
+   * as before.
    */
   private async detailCandidates(
     provider: Provider,
@@ -1616,6 +1639,8 @@ export class IngestionJobsService {
       fixtureId: string;
       status: string;
       kickoffAt: string;
+      competitionId: string;
+      detailFetchedAt: string | null;
       target: PollTarget;
     }[] = [];
     for (const target of targets) {
@@ -1625,12 +1650,52 @@ export class IngestionJobsService {
         from,
         to,
       )) {
-        known.push({ ...fixture, target });
+        known.push({ ...fixture, competitionId: target.competitionId, target });
       }
     }
-    return recentDetailCandidates(known, this.liveDetailMinutes > 0, DETAIL_BATCH).map(
+    return recentDetailCandidates(known, this.liveDetailMinutes > 0, this.recentBatch).map(
       ({ externalId, fixtureId, target }) => ({ externalId, fixtureId, target }),
     );
+  }
+
+  /**
+   * The finished matches this run asks again because a side's line-up is
+   * still missing (T-1823, D-417): kicked off in the last `LINEUP_REASK_DAYS`
+   * and before the recent window, last asked `LINEUP_REASK_HOURS` ago or more,
+   * at most `LINEUP_REASK_BATCH`, the longest-unasked first, fair across the
+   * competitions. A match this run already asks for another reason is left
+   * for the next.
+   */
+  private async lineupReasksDue(
+    provider: Provider,
+    targets: PollTarget[],
+    now: Date,
+    taken: { fixtureId: string }[],
+  ): Promise<{ externalId: string; fixtureId: string; target: PollTarget }[]> {
+    const targetOf = new Map<string, PollTarget>();
+    for (const target of targets) {
+      if (!targetOf.has(target.competitionId)) targetOf.set(target.competitionId, target);
+    }
+    const hour = 60 * 60 * 1000;
+    const skip = new Set(taken.map((c) => c.fixtureId));
+    const rows = await this.store.lineupsOwed(
+      provider,
+      [...targetOf.keys()],
+      new Date(now.getTime() - LINEUP_REASK_DAYS * 24 * hour).toISOString(),
+      new Date(now.getTime() - LIVE_WINDOW_AFTER_MINUTES * 60 * 1000).toISOString(),
+      new Date(now.getTime() - LINEUP_REASK_HOURS * hour).toISOString(),
+      // Enough rows for every competition to have its turn.
+      LINEUP_REASK_BATCH * 10,
+    );
+    return lineupReasks(
+      rows.filter((r) => !skip.has(r.fixtureId)),
+      LINEUP_REASK_BATCH,
+    ).flatMap((r) => {
+      const target = targetOf.get(r.competitionId);
+      return target === undefined
+        ? []
+        : [{ externalId: r.externalId, fixtureId: r.fixtureId, target }];
+    });
   }
 
   /**
