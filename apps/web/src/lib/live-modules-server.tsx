@@ -9,17 +9,21 @@ import { DEFAULT_LOCALE, isLocale, isPseudoLocale } from '@/i18n/locales';
 import { type ApiResult, fetchMatchCentre } from '@/lib/api';
 import {
   LIVE_FORMAT,
-  LIVE_PARTS,
   type LiveAnswer,
   type LivePart,
   type LiveSlot,
+  type LiveReload,
   SHARED_FOR_MS,
+  WIRE_NODE_PROPS,
+  WIRE_TAGS,
   type WireElement,
   type WireIsland,
   type WireNode,
-  isLivePart,
+  liveQuery,
   liveSignature,
   slotsReading,
+  wireAttrAllowed,
+  wireIslandPropAllowed,
 } from '@/lib/live-modules';
 import { isTimeZone } from '@/lib/scores';
 import { matchWords } from '@/lib/words-server';
@@ -65,25 +69,44 @@ const ISLANDS = new Map<unknown, WireIsland>([
 
 const CLIENT_REFERENCE = Symbol.for('react.client.reference');
 
-/** A drawn node's props: drawn nodes inside them (a fallback, children) as `{ $n }`. */
-function wireProps(props: Record<string, unknown>): Record<string, unknown> {
+/** A client component's props: drawn nodes (`children`, `fallback`) as `{ $n }`; each prop allow-listed. */
+function islandProps(island: WireIsland, props: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [name, value] of Object.entries(props)) {
-    if (value === undefined || typeof value === 'function') continue;
+    if (value === undefined) continue;
+    if (!wireIslandPropAllowed(island, name, value)) {
+      throw new Error(`live modules: ${island} may not carry ${name}`);
+    }
     out[name] =
-      isValidElement(value) || (Array.isArray(value) && value.some(isValidElement))
+      WIRE_NODE_PROPS.has(name) && typeof value !== 'string'
         ? { $n: toWire(value as ReactNode) }
         : value;
   }
   return out;
 }
 
+/** A host element's attributes, each allow-listed (review R2-B2). */
+function hostProps(tag: string, props: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(props)) {
+    if (value === undefined) continue;
+    if (!wireAttrAllowed(name, value)) {
+      throw new Error(`live modules: <${tag}> may not carry ${name}`);
+    }
+    out[name] = value;
+  }
+  return out;
+}
+
 /**
  * A card drawn once, as data (D-422): every server component in the tree is
- * called now, host elements and the four client components a card holds are
- * written out; anything else is refused loudly, so a new client component in
- * a card is found by the specs rather than drawn wrong. The cards are pure
- * functions of their props -- no hooks, no context, no awaiting.
+ * called now; host elements and the four client components a card holds are
+ * written out, each checked against the one allow-list `fromWire` applies
+ * (`WIRE_TAGS`, `wireAttrAllowed`, `wireIslandPropAllowed`; review R2-B2), so
+ * the server never sends what the page would drop. Anything else is refused
+ * loudly, so a new tag, attribute or client component in a card is found by
+ * the specs rather than sent. The cards are pure functions of their props --
+ * no hooks, no context, no awaiting.
  */
 export function toWire(node: ReactNode): WireNode {
   if (node === null || node === undefined || typeof node === 'boolean') return null;
@@ -94,11 +117,12 @@ export function toWire(node: ReactNode): WireNode {
   const { type, props, key } = node as ReactElement<Record<string, unknown>>;
   const k = key === null ? {} : { k: key };
   const island = ISLANDS.get(type);
-  if (island !== undefined) return { i: island, ...k, p: wireProps(props) };
+  if (island !== undefined) return { i: island, ...k, p: islandProps(island, props) };
   if (type === Fragment) return toWire(props.children as ReactNode);
   if (typeof type === 'string') {
+    if (!WIRE_TAGS.has(type)) throw new Error(`live modules: no <${type}> on the wire`);
     const { children, ...rest } = props;
-    const element: WireElement = { t: type, ...k, p: wireProps(rest) };
+    const element: WireElement = { t: type, ...k, p: hostProps(type, rest) };
     if (children !== undefined) {
       const drawn = toWire(children as ReactNode);
       element.c = Array.isArray(children) ? (drawn as WireNode[]) : [drawn];
@@ -149,34 +173,72 @@ function sharedRead(fixtureId: string, locale: string, timeZone: string, now: nu
   return entry;
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** A fixture id as the API writes it: lower case, so one match is one key. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
-/** The parts named in the address, in their fixed order; `null` for anything else. */
+/** The parts a query may name, written in their one order (review R2-B1). */
+const PARTS: ReadonlyMap<string, LivePart[]> = new Map([
+  ['events', ['events']],
+  ['stats', ['stats']],
+  ['events,stats', ['events', 'stats']],
+]);
+
+/** The parts named in the address; `null` for anything not written in the one order. */
 export function partsOf(value: string | null): LivePart[] | null {
-  if (value === null) return [...LIVE_PARTS];
-  const named = value.split(',');
-  if (named.length === 0 || named.length > LIVE_PARTS.length) return null;
-  if (!named.every(isLivePart) || new Set(named).size !== named.length) return null;
-  return LIVE_PARTS.filter((part) => named.includes(part));
+  return value === null ? null : (PARTS.get(value) ?? null);
 }
 
 /**
- * The answer for one fixture, locale, zone and parts: `400` for anything
- * malformed, `503` when the match cannot be read (the page keeps what it
- * has), else the drawn slots as JSON, written once per read and parts.
+ * A zone in its canonical IANA name (review R2-B1): the name `Intl` resolves
+ * it to, never an offset (`+03:30`), an alias (`GB`) or another spelling
+ * (`europe/london`), each of which `Intl` also accepts and each of which would
+ * be another key at the edge. `null` for anything else. The page writes the
+ * address with the same name.
+ */
+export function canonicalZone(timeZone: string): string | null {
+  if (!isTimeZone(timeZone)) return null;
+  const resolved = new Intl.DateTimeFormat('en', { timeZone }).resolvedOptions().timeZone;
+  if (resolved === 'UTC') return 'UTC';
+  return /^[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)+$/.test(resolved) ? resolved : null;
+}
+
+const refuse = (what: string) => ({ status: 400 as const, body: `{"error":"${what}"}` });
+
+/**
+ * The answer for one fixture and query (review R2-B1): `400` for any query
+ * not written exactly as `liveQuery` writes it -- the four names in their
+ * order, nothing else, the locale one of ours, the parts one of three, the
+ * zone in its canonical name; `409` with a reload signal when `b` is not this
+ * server process; `503` when the match cannot be read (the page keeps what
+ * it has); else the drawn slots as JSON, written once per read and parts.
+ * Only the 200 is kept at the edge.
  */
 export async function liveAnswer(
   fixtureId: string,
-  locale: string | null,
-  timeZone: string | null,
-  parts: string | null,
-): Promise<{ status: 200 | 400 | 503; body: string }> {
-  if (!UUID.test(fixtureId)) return { status: 400, body: '{"error":"fixture"}' };
-  if (locale === null || !isLocale(locale)) return { status: 400, body: '{"error":"locale"}' };
-  if (timeZone === null || !isTimeZone(timeZone)) return { status: 400, body: '{"error":"tz"}' };
+  search: string,
+): Promise<{ status: 200 | 400 | 409 | 503; body: string }> {
+  if (!UUID.test(fixtureId)) return refuse('fixture');
+  const query = new URLSearchParams(search);
+  const instance = query.get('b');
+  const locale = query.get('locale');
+  const parts = query.get('parts');
+  const timeZone = query.get('tz');
+  if (instance === null || locale === null || parts === null || timeZone === null) {
+    return refuse('query');
+  }
+  if (search !== `?${liveQuery({ instance, locale, parts: parts.split(','), timeZone })}`) {
+    return refuse('query');
+  }
+  if (!isLocale(locale)) return refuse('locale');
   const asked = partsOf(parts);
-  if (asked === null) return { status: 400, body: '{"error":"parts"}' };
-  const entry = sharedRead(fixtureId.toLowerCase(), locale, timeZone, Date.now());
+  if (asked === null) return refuse('parts');
+  if (canonicalZone(timeZone) !== timeZone) return refuse('tz');
+  if (!/^[0-9a-f-]{36}$/.test(instance)) return refuse('b');
+  if (instance !== serverInstance()) {
+    const reload: LiveReload = { v: LIVE_FORMAT, reload: true, instance: serverInstance() };
+    return { status: 409, body: JSON.stringify(reload) };
+  }
+  const entry = sharedRead(fixtureId, locale, timeZone, Date.now());
   const result = await entry.read;
   if (!result.ok) return { status: 503, body: '{"error":"unreachable"}' };
   const key = asked.join(',');

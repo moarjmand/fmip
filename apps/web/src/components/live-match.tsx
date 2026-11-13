@@ -21,6 +21,7 @@ import {
   LIVE_FORMAT,
   LIVE_PARTS,
   type LiveAnswer,
+  type LiveReload,
   type LiveSignature,
   type LiveSlot,
   MAX_FOLLOW_UPS,
@@ -221,10 +222,20 @@ export function LiveMatch({
       // The public address every reader of this match in this locale and
       // zone asks for these parts (D-422): Cloudflare answers most of them.
       fetch(liveModulesPath(id, { instance, locale, parts: want, timeZone }))
-        .then((response) => (response.ok ? (response.json() as Promise<LiveAnswer>) : null))
+        .then((response) =>
+          // A 409 is the address saying this page's server process is gone (review R2-B1).
+          response.ok || response.status === 409
+            ? (response.json() as Promise<LiveAnswer | LiveReload>)
+            : null,
+        )
         .then(
-          (answer) => {
-            if (stopped || answer === null) return;
+          (reply) => {
+            if (stopped || reply === null) return;
+            if ('reload' in reply) {
+              if (mayRefreshForSkew(Date.now())) router.refresh();
+              return;
+            }
+            const answer = reply;
             // Drawn by another server process (a deploy, a restart), or in
             // another shape: one render of the page, which loads the new
             // build when there is one (the router sees the build changed).

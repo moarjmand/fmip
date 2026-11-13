@@ -76,7 +76,7 @@ describe('live match: the server modules in play (T-1811, D-409)', () => {
     expect(SOURCE).toMatch(/refreshDue\(plan, Date\.now\(\)\)/);
     expect(SOURCE).toMatch(/const next = refreshSettled\(plan\);[^]*if \(next\.call\) call\(\);/);
     // The function is the only way the modules are drawn again: no refresh of the page for it.
-    expect(SOURCE.match(/router\.refresh\(\)/g)).toHaveLength(2);
+    expect(SOURCE.match(/router\.refresh\(\)/g)).toHaveLength(3);
   });
 
   it('asks only for the parts that changed, every part after a reopen (review m2)', () => {
@@ -112,9 +112,15 @@ describe('live match: the server modules in play (T-1811, D-409)', () => {
   });
 
   it('keeps what it has when a call fails or answers nothing, and never unmounts the view', () => {
-    expect(SOURCE).toMatch(/if \(stopped \|\| answer === null\) return;/);
-    // A failed request or a status other than 200 is no answer; the view stays.
-    expect(SOURCE).toMatch(/response\.ok \? \(response\.json\(\) as Promise<LiveAnswer>\) : null/);
+    expect(SOURCE).toMatch(/if \(stopped \|\| reply === null\) return;/);
+    // A failed request or a status other than 200 or 409 is no answer; the view stays.
+    expect(SOURCE).toMatch(
+      /response\.ok \|\| response\.status === 409\s*\? \(response\.json\(\) as Promise<LiveAnswer \| LiveReload>\)\s*: null/,
+    );
+    // A 409 from the address: this page's server process is gone, one render (R2-B1).
+    expect(SOURCE).toMatch(
+      /if \('reload' in reply\) \{\s*if \(mayRefreshForSkew\(Date\.now\(\)\)\) router\.refresh\(\);\s*return;/,
+    );
     expect(SOURCE).toMatch(/\(\) => undefined,\s*\)\s*\.finally\(settle\);/);
   });
 

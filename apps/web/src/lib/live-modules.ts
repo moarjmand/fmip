@@ -290,6 +290,17 @@ export interface LiveAnswer {
 }
 
 /**
+ * The answer when the page's server process (`b`) is not this one (review
+ * R2-B1): no cards, `409`, `no-store`; the page asks for a render of itself,
+ * which loads the new build after a deploy.
+ */
+export interface LiveReload {
+  v: number;
+  reload: true;
+  instance: string;
+}
+
+/**
  * The live modules' address (D-422): public and the same for every reader of
  * a match in one locale and zone asking for the same parts, so Cloudflare
  * keeps one copy for `SHARED_FOR_MS`. It ends in `.js` because Cloudflare
@@ -312,13 +323,224 @@ export function liveModulesPath(
     timeZone: string;
   },
 ): string {
-  const query = new URLSearchParams({
+  return `/api/fixtures/${fixtureId}/live.js?${liveQuery({ instance, locale, parts, timeZone })}`;
+}
+
+/**
+ * The address's query in its one written form: `b`, `locale`, `parts`, `tz`
+ * in that order, encoded as `URLSearchParams` encodes them. The route answers
+ * only a query written exactly so (review R2-B1): any other order, encoding,
+ * duplicate or extra name would be another key at the edge for the same
+ * answer.
+ */
+export function liveQuery({
+  instance,
+  locale,
+  parts,
+  timeZone,
+}: {
+  instance: string;
+  locale: string;
+  parts: readonly string[];
+  timeZone: string;
+}): string {
+  return new URLSearchParams({
     b: instance,
     locale,
     parts: LIVE_PARTS.filter((part) => parts.includes(part)).join(','),
     tz: timeZone,
-  });
-  return `/api/fixtures/${fixtureId}/live.js?${query.toString()}`;
+  }).toString();
+}
+
+// ------------------------------------------------------- what a card may hold
+
+/**
+ * The host elements the live cards draw (review R2-B2): `toWire` refuses to
+ * send any other, `fromWire` drops any other with its subtree.
+ */
+export const WIRE_TAGS: ReadonlySet<string> = new Set([
+  'b',
+  'bdi',
+  'caption',
+  'circle',
+  'dd',
+  'details',
+  'div',
+  'dl',
+  'dt',
+  'g',
+  'h2',
+  'h3',
+  'h4',
+  'img',
+  'li',
+  'line',
+  'ol',
+  'p',
+  'path',
+  'rect',
+  'section',
+  'span',
+  'summary',
+  'svg',
+  'table',
+  'tbody',
+  'td',
+  'th',
+  'thead',
+  'time',
+  'tr',
+  'ul',
+]);
+
+/** The attributes a card's host element may carry; `data-*` and `aria-*` besides. */
+const WIRE_ATTRS: ReadonlySet<string> = new Set([
+  'alt',
+  'className',
+  'colSpan',
+  'cx',
+  'cy',
+  'd',
+  'dateTime',
+  'decoding',
+  'dir',
+  'fill',
+  'focusable',
+  'height',
+  'lang',
+  'loading',
+  'r',
+  'role',
+  'rowSpan',
+  'rx',
+  'scope',
+  'src',
+  'stroke',
+  'strokeLinecap',
+  'strokeLinejoin',
+  'strokeWidth',
+  'style',
+  'tabIndex',
+  'title',
+  'viewBox',
+  'width',
+  'x',
+  'x1',
+  'x2',
+  'xmlns',
+  'y',
+  'y1',
+  'y2',
+]);
+
+/** The inline style properties a card sets: a share of a bar, a mark's place on the axis. */
+const WIRE_STYLE: ReadonlySet<string> = new Set(['inlineSize', 'insetInlineStart']);
+
+/** An address on this site: a path from the root, never another origin (`//`, `/\`). */
+export function isLocalPath(value: unknown): boolean {
+  return (
+    typeof value === 'string' &&
+    value.startsWith('/') &&
+    !value.startsWith('//') &&
+    !value.startsWith('/\\') &&
+    ![...value].some((c) => c.charCodeAt(0) <= 0x20 || c === '\\')
+  );
+}
+
+const isPrimitive = (value: unknown): boolean =>
+  typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
+
+/** A length or a share: `12.5%`, `40px`, `3`. */
+const STYLE_VALUE = /^-?\d+(\.\d+)?(%|px|rem|em)?$/;
+
+/** Whether a host element of the wire may carry this attribute with this value. */
+export function wireAttrAllowed(name: string, value: unknown): boolean {
+  if (/^on/i.test(name)) return false;
+  if (name === 'style') {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+    return Object.entries(value).every(
+      ([key, v]) => WIRE_STYLE.has(key) && (typeof v === 'number' || STYLE_VALUE.test(String(v))),
+    );
+  }
+  if (name === 'src') return isLocalPath(value);
+  if (name.startsWith('data-') || name.startsWith('aria-')) return isPrimitive(value);
+  return WIRE_ATTRS.has(name) && isPrimitive(value);
+}
+
+/** A resolved message (`Message`): plain text fields only, as `FreshnessStamp` reads them. */
+function isMessages(value: unknown): boolean {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  return Object.values(value).every(
+    (message) =>
+      message !== null &&
+      typeof message === 'object' &&
+      !Array.isArray(message) &&
+      Object.values(message).every((field) => isPrimitive(field) || field === null),
+  );
+}
+
+/** Each client component's props, and what each may hold; `nodes` are drawn subtrees. */
+const ISLAND_PROPS: ReadonlyMap<
+  WireIsland,
+  ReadonlyMap<string, (value: unknown) => boolean>
+> = new Map([
+  [
+    'link',
+    new Map<string, (value: unknown) => boolean>([
+      ['href', isLocalPath],
+      ['className', (v) => typeof v === 'string'],
+      ['prefetch', (v) => typeof v === 'boolean'],
+      ['title', (v) => typeof v === 'string'],
+      ['children', () => true],
+    ]),
+  ],
+  [
+    'pictured',
+    new Map<string, (value: unknown) => boolean>([
+      ['children', () => true],
+      ['fallback', () => true],
+    ]),
+  ],
+  [
+    'age',
+    new Map<string, (value: unknown) => boolean>([
+      ['checkedAt', (v) => typeof v === 'string' || typeof v === 'number'],
+      ['staleAfterMs', (v) => typeof v === 'number'],
+      ['locale', (v) => typeof v === 'string'],
+      ['words', isMessages],
+      ['testId', (v) => typeof v === 'string'],
+      ['className', (v) => typeof v === 'string'],
+      ['followsModules', isLivePart],
+    ]),
+  ],
+  [
+    'behind',
+    new Map<string, (value: unknown) => boolean>([
+      ['part', isLivePart],
+      ['locale', (v) => typeof v === 'string'],
+      ['words', isMessages],
+      ['testId', (v) => typeof v === 'string'],
+      ['className', (v) => typeof v === 'string'],
+    ]),
+  ],
+]);
+
+/** The props of a client component that may hold drawn nodes. */
+export const WIRE_NODE_PROPS: ReadonlySet<string> = new Set(['children', 'fallback']);
+
+export function isWireIsland(value: unknown): value is WireIsland {
+  return typeof value === 'string' && ISLAND_PROPS.has(value as WireIsland);
+}
+
+/**
+ * Whether a client component of the wire may carry this prop with this value
+ * (drawn nodes in `children` and `fallback` are checked as nodes).
+ */
+export function wireIslandPropAllowed(island: WireIsland, name: string, value: unknown): boolean {
+  const check = ISLAND_PROPS.get(island)?.get(name);
+  if (check === undefined) return false;
+  if (WIRE_NODE_PROPS.has(name)) return true;
+  return check(value);
 }
 
 /**

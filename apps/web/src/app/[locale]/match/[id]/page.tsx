@@ -67,7 +67,7 @@ import {
 } from '@/lib/api';
 import { readPick } from '@/lib/pick';
 import { retryUnreachable } from '@/lib/live-modules';
-import { serverInstance } from '@/lib/live-modules-server';
+import { canonicalZone, serverInstance } from '@/lib/live-modules-server';
 import { isTimeZone } from '@/lib/scores';
 import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -339,7 +339,9 @@ export default async function MatchPage({
             <JsonLd data={matchJsonLd(locale, result.data.fixture)} />
             <LiveMatch
               initial={result.data}
-              timeZone={timeZone}
+              // The zone's canonical IANA name, the only one the live modules'
+              // address answers (review R2-B1); the same clock either way.
+              timeZone={canonicalZone(timeZone) ?? timeZone}
               locale={locale}
               words={words}
               // This server process (D-422): a live answer from another one means a deploy.

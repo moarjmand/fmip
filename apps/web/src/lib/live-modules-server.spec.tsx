@@ -12,6 +12,7 @@ import {
   SHARED_FOR_MS,
   type WireNode,
   liveModulesPath,
+  liveQuery,
   liveSignature,
 } from '@/lib/live-modules';
 import { matchWords } from '@/lib/words-server';
@@ -29,7 +30,8 @@ import { liveSlot, liveSlots } from '@/components/match-live-slots';
 const read = vi.fn();
 vi.mock('@/lib/api', () => ({ fetchMatchCentre: (...args: unknown[]) => read(...args) }));
 
-const { liveAnswer, partsOf, serverInstance, toWire } = await import('./live-modules-server');
+const { canonicalZone, liveAnswer, partsOf, serverInstance, toWire } =
+  await import('./live-modules-server');
 const { GET } = await import('@/app/api/fixtures/[id]/live.js/route');
 
 const ID = '00000000-0000-4000-8000-000000000901';
@@ -40,15 +42,18 @@ const ROUTE = readFileSync(
   'utf8',
 );
 
+/** The query the page writes, for this server process. */
+const query = (locale: string, timeZone: string, parts: readonly string[] = ['events', 'stats']) =>
+  `?${liveQuery({ instance: serverInstance(), locale, parts, timeZone })}`;
+
 /** The answer as the page reads it, or `null` for anything but 200. */
 async function refreshLiveModules(
   fixtureId: string,
   locale: string,
   timeZone: string,
-  parts?: LivePart[] | string,
+  parts?: LivePart[],
 ): Promise<LiveAnswer | null> {
-  const named = parts === undefined ? null : Array.isArray(parts) ? parts.join(',') : parts;
-  const { status, body } = await liveAnswer(fixtureId, locale, timeZone, named);
+  const { status, body } = await liveAnswer(fixtureId, query(locale, timeZone, parts));
   return status === 200 ? (JSON.parse(body) as LiveAnswer) : null;
 }
 
@@ -145,17 +150,90 @@ afterEach(() => {
 const html = (node: WireNode | ReactNode | undefined, wire = true) =>
   renderToStaticMarkup(<>{wire ? fromWire((node ?? null) as WireNode) : (node as ReactNode)}</>);
 
-describe('the live modules’ address: what it accepts', () => {
-  it('asks nothing for a malformed id, an unknown locale, an unknown zone or unknown parts', async () => {
-    expect(await refreshLiveModules('not-a-uuid', 'en', ZONE)).toBeNull();
-    expect(await refreshLiveModules(ID, 'xx', ZONE)).toBeNull();
-    expect(await refreshLiveModules(ID, 'en', 'Mars/Olympus')).toBeNull();
-    for (const parts of ['', 'clock', 'events,stats,events', 'events,events', 'stats,']) {
-      expect(await refreshLiveModules(ID, 'en', ZONE, parts)).toBeNull();
+describe('the live modules’ address: what it accepts (review R2-B1)', () => {
+  const status = async (id: string, search: string) => (await liveAnswer(id, search)).status;
+  const b = () => serverInstance();
+
+  it('answers only the query the page writes', async () => {
+    read.mockResolvedValue(answer(match('live', [goal])));
+    expect(await status(ID, query('en', ZONE))).toBe(200);
+    expect(await status(ID, query('en', ZONE, ['events']))).toBe(200);
+    expect(await status(ID, query('en', ZONE, ['stats']))).toBe(200);
+  });
+
+  it('a malformed or upper-case id, an unknown locale, unknown or reordered parts: 400', async () => {
+    expect(await status('not-a-uuid', query('en', ZONE))).toBe(400);
+    expect(await status('0000000A-0000-4000-8000-000000000901', query('en', ZONE))).toBe(400);
+    expect(await status(ID, query('xx', ZONE))).toBe(400);
+    for (const parts of [
+      '',
+      'clock',
+      'stats,events',
+      'events,stats,events',
+      'events,events',
+      'stats,',
+    ]) {
+      const search = `?b=${b()}&locale=en&parts=${encodeURIComponent(parts)}&tz=${encodeURIComponent(ZONE)}`;
+      expect(await status(ID, search), parts).toBe(400);
+    }
+    expect(partsOf('stats,events')).toBeNull();
+    expect(partsOf(null)).toBeNull();
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it('a zone not in its canonical IANA name -- another spelling, an alias, an offset -- is 400', async () => {
+    for (const zone of [
+      'europe/london',
+      'eUROPE/lONDON',
+      'GB',
+      '+03:30',
+      '-0500',
+      'Mars/Olympus',
+      'Etc/GMT+99',
+    ]) {
+      expect(await status(ID, query('en', zone)), zone).toBe(400);
+    }
+    expect(canonicalZone('Europe/London')).toBe('Europe/London');
+    expect(canonicalZone('UTC')).toBe('UTC');
+    expect(canonicalZone('+03:30')).toBeNull();
+    expect(canonicalZone('GB')).toBe('Europe/London');
+    expect(read).not.toHaveBeenCalled();
+    // The page hands the live view the canonical name, the only one answered.
+    const page = readFileSync(
+      join(__dirname, '..', 'app', '[locale]', 'match', '[id]', 'page.tsx'),
+      'utf8',
+    );
+    expect(page).toMatch(/timeZone=\{canonicalZone\(timeZone\) \?\? timeZone\}/);
+  });
+
+  it('an extra name, a missing one, another order, a duplicate or another encoding: 400', async () => {
+    const tz = encodeURIComponent(ZONE);
+    for (const search of [
+      `${query('en', ZONE)}&x=1`,
+      `?b=${b()}&locale=en&parts=events%2Cstats`,
+      `?locale=en&b=${b()}&parts=events%2Cstats&tz=${tz}`,
+      `${query('en', ZONE)}&tz=${tz}`,
+      `?b=${b()}&locale=en&parts=events,stats&tz=${tz}`,
+      `?b=${b()}&locale=en&parts=events%2Cstats&tz=Europe/London`,
+      '',
+    ]) {
+      expect(await status(ID, search), search).toBe(400);
     }
     expect(read).not.toHaveBeenCalled();
-    expect(partsOf('stats,events')).toEqual(['events', 'stats']);
-    expect(partsOf(null)).toEqual(['events', 'stats']);
+  });
+
+  it('a page from another server process gets a small no-store reload signal, no cards (409)', async () => {
+    const other = '00000000-0000-4000-8000-00000000beef';
+    const search = `?${liveQuery({ instance: other, locale: 'en', parts: ['events'], timeZone: ZONE })}`;
+    const reply = await liveAnswer(ID, search);
+    expect(reply.status).toBe(409);
+    expect(JSON.parse(reply.body)).toEqual({ v: LIVE_FORMAT, reload: true, instance: b() });
+    const response = await GET(new Request(`http://web/api/fixtures/${ID}/live.js${search}`), {
+      params: Promise.resolve({ id: ID }),
+    });
+    expect(response.status).toBe(409);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(read).not.toHaveBeenCalled();
   });
 
   it('is public and read-only: no cookie, no reader header, no write', () => {
@@ -163,12 +241,12 @@ describe('the live modules’ address: what it accepts', () => {
       expect(source).not.toMatch(/cookies\(|sessionCookieHeader|cookie:|fetchMe\(|headers\(\)/);
       expect(source).not.toMatch(/method: '(POST|PATCH|PUT|DELETE)'|revalidate|'use server'/);
     }
-    // Only the address's own parts are read from the request.
-    expect(ROUTE).toMatch(/query\.get\('locale'\),\s*query\.get\('tz'\),\s*query\.get\('parts'\)/);
+    // Only the address's own query is read from the request.
+    expect(ROUTE).toMatch(/liveAnswer\(id, new URL\(request\.url\)\.search\)/);
     expect(ROUTE).not.toMatch(/request\.headers/);
   });
 
-  it('reads the right-to-left pseudo-locale as the default language, as the page does (review m1)', async () => {
+  it('reads the right-to-left pseudo-locale as the default language, as the page does', async () => {
     read.mockResolvedValue(answer(match('live', [goal])));
     expect(await refreshLiveModules(ID, 'x-rtl', ZONE)).not.toBeNull();
     expect(read).toHaveBeenCalledWith(ID, 'en');
@@ -179,20 +257,18 @@ describe('the live modules’ address: what it answers', () => {
   it('a public, two-second answer on a path Cloudflare keeps; failures never kept', async () => {
     read.mockResolvedValue(answer(match('live', [goal])));
     const path = liveModulesPath(ID, {
-      instance: 'i1',
+      instance: serverInstance(),
       locale: 'en',
       parts: ['stats', 'events'],
       timeZone: ZONE,
     });
     // One order of the query, so one answer has one key; the path ends in `.js` (T-1461).
     expect(path).toBe(
-      `/api/fixtures/${ID}/live.js?b=i1&locale=en&parts=events%2Cstats&tz=Europe%2FLondon`,
+      `/api/fixtures/${ID}/live.js?b=${serverInstance()}&locale=en&parts=events%2Cstats&tz=Europe%2FLondon`,
     );
     const ok = await GET(
       new Request(`http://web${path}`, { headers: { cookie: 'fmip_session=x' } }),
-      {
-        params: Promise.resolve({ id: ID }),
-      },
+      { params: Promise.resolve({ id: ID }) },
     );
     expect(ok.status).toBe(200);
     expect(ok.headers.get('cache-control')).toBe('public, max-age=2, s-maxage=2');
@@ -297,7 +373,7 @@ describe('the live modules’ address: one read and one drawing in a short windo
   it('a burst shares one read and one written answer; a new read once the window has passed', async () => {
     let settle: (value: unknown) => void = () => undefined;
     read.mockImplementation(() => new Promise((resolve) => (settle = resolve)));
-    const calls = [1, 2, 3].map(() => liveAnswer(ID, 'en', ZONE, null));
+    const calls = [1, 2, 3].map(() => liveAnswer(ID, query('en', ZONE)));
     await Promise.resolve();
     expect(read).toHaveBeenCalledTimes(1);
     settle(answer(match('live', [goal])));
@@ -347,5 +423,120 @@ describe('a card as data, and back (D-422)', () => {
       throw new Error('a client component outside React');
     };
     expect(() => toWire(<Unknown />)).toThrow();
+  });
+});
+
+describe('nothing in a cached answer is trusted further than the cards need (review R2-B2)', () => {
+  const draw = (node: unknown) => renderToStaticMarkup(<>{fromWire(node as WireNode)}</>);
+
+  it('drops a tag outside the list, with its subtree', () => {
+    for (const t of [
+      'script',
+      'iframe',
+      'object',
+      'embed',
+      'form',
+      'a',
+      'style',
+      'link',
+      'meta',
+      'base',
+    ]) {
+      const html = draw({ t: 'div', c: [{ t, p: { src: '/x', href: '/x' }, c: ['HOSTILE'] }] });
+      expect(html, t).toBe('<div></div>');
+    }
+  });
+
+  it('drops markup, handlers, frames, form actions, refs and style strings', () => {
+    const html = draw({
+      t: 'div',
+      p: {
+        dangerouslySetInnerHTML: { __html: '<img src=x onerror=alert(1)>' },
+        onClick: 'alert(1)',
+        ONMOUSEOVER: 'alert(1)',
+        srcDoc: '<script>alert(1)</script>',
+        formAction: 'javascript:alert(1)',
+        ref: 'x',
+        style: 'background:url(javascript:alert(1))',
+        className: 'kept',
+        'data-ok': 'kept',
+      },
+      c: ['text'],
+    });
+    expect(html).toBe('<div class="kept" data-ok="kept">text</div>');
+  });
+
+  it('keeps a style object only with the two properties the cards set, as lengths', () => {
+    expect(draw({ t: 'span', p: { style: { inlineSize: '40%' } } })).toBe(
+      '<span style="inline-size:40%"></span>',
+    );
+    for (const style of [
+      { inlineSize: 'calc(100% - 1px)' },
+      { backgroundImage: 'url(https://evil.example/x.png)' },
+      { inlineSize: '40%', position: 'fixed' },
+      ['inlineSize'],
+    ]) {
+      expect(draw({ t: 'span', p: { style } }), JSON.stringify(style)).toBe('<span></span>');
+    }
+  });
+
+  it('an image and a link only to a path on this site', () => {
+    expect(draw({ t: 'img', p: { src: '/api/media/crest/x/1.png', alt: '' } })).toContain(
+      'src="/api/media/crest/x/1.png"',
+    );
+    for (const src of [
+      'https://evil.example/x.png',
+      '//evil.example/x.png',
+      '/\\evil.example',
+      'javascript:alert(1)',
+      'data:image/png;base64,AA',
+      '/ok path',
+    ]) {
+      expect(draw({ t: 'img', p: { src, alt: '' } }), src).not.toContain('src=');
+      expect(draw({ i: 'link', p: { href: src, children: 'x' } }), src).not.toContain(
+        `href="${src}"`,
+      );
+    }
+    expect(draw({ i: 'link', p: { href: '/en/player/p1', children: 'Salah' } })).toContain(
+      'href="/en/player/p1"',
+    );
+  });
+
+  it('looks client components up in a Map, never through a prototype; their props allow-listed', () => {
+    for (const i of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'script']) {
+      expect(draw({ t: 'div', c: [{ i, p: {}, c: ['x'] }] }), i).toBe('<div></div>');
+    }
+    // A link with a handler or markup: those props go, the link stays harmless.
+    const link = draw({
+      i: 'link',
+      p: {
+        href: '/en',
+        onClick: 'alert(1)',
+        dangerouslySetInnerHTML: { __html: '<b>x</b>' },
+        children: 'x',
+      },
+    });
+    expect(link).toBe('<a href="/en">x</a>');
+    // A drawn subtree inside a component's prop is checked as any other.
+    expect(
+      draw({ i: 'pictured', p: { children: { $n: { t: 'script', c: ['x'] } }, fallback: 'ok' } }),
+    ).not.toContain('script');
+  });
+
+  it('an unknown shape is nothing, never a crash', () => {
+    for (const node of [{ t: 5 }, { x: 1 }, { t: 'div', p: 'x', c: 'y' }]) {
+      expect(() => draw(node)).not.toThrow();
+    }
+  });
+
+  it('the server refuses to write what the page would drop: a tag, an attribute, a component prop', () => {
+    expect(() => toWire(<iframe srcDoc="x" />)).toThrow(/iframe/);
+    expect(() => toWire(<div dangerouslySetInnerHTML={{ __html: 'x' }} />)).toThrow(
+      /dangerouslySetInnerHTML/,
+    );
+    expect(() => toWire(<div onClick={() => undefined} />)).toThrow(/onClick/);
+    // eslint-disable-next-line @next/next/no-img-element -- a hostile card, never drawn
+    expect(() => toWire(<img src="https://evil.example/x.png" alt="" />)).toThrow(/src/);
+    expect(() => toWire(<span style={{ position: 'fixed' }} />)).toThrow(/style/);
   });
 });
