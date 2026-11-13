@@ -14479,11 +14479,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.latestFirst": {
-    "source": "Latest first. Names and minutes are as recorded for the match.",
-    "text": "",
-    "status": "untranslated"
-  },
   "matchCentre.subOn": {
     "source": "{player} on",
     "text": "",
@@ -14496,11 +14491,6 @@
   },
   "matchCentre.shootout": {
     "source": "Penalty shoot-out",
-    "text": "",
-    "status": "untranslated"
-  },
-  "matchCentre.shootoutKick": {
-    "source": "Kick {n}",
     "text": "",
     "status": "untranslated"
   },

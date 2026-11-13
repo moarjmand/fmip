@@ -1076,7 +1076,7 @@ describe('live', () => {
     // The client's live list read latest first until T-1812; the server's
     // Key events card reads from kick-off in every state.
     expect(live.indexOf('N. Jackson')).toBeLessThan(live.indexOf('E. Haaland'));
-    expect(live).not.toContain(EN['matchCentre.latestFirst']);
+    expect(live).not.toContain('Latest first');
     const done = section(
       view(centre({ status: 'finished', minute: null }, { timeline })),
       'timeline',

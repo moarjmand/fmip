@@ -147,6 +147,81 @@ above stops being true.
 
 Add each run to the record table, with the machine.
 
+## The match centre's live modules on the web server (T-1815, D-409)
+
+Since D-409 the match centre's moving modules (key events, statistics,
+line-ups, Top rated) are server markup, drawn again in play by the server
+function `refreshLiveModules` when the stream says they changed: each reader
+calls it 0-3 s after an event. The API's run above does not see that cost:
+it falls on the web server, one Node process in production
+(`node apps/web/server.js`). This run measures it.
+
+**The tool.** `apps/web/scripts/load-live-modules.mjs`, no dependency. It
+runs a stand-in API (one live fixture with a full payload: two line-ups of
+18, seven team statistics, 22 player rows; its stream; a count of every
+match read) so that only the web server is measured; opens N streams on the
+web server's `/api/fixtures/:id/stream` (proxied to the stand-in, as in
+production); writes goals and a statistics tick at set times; and, as
+`LiveMatch` does, has each reader call the function after a random 0-3 s on
+each event (the POST a browser makes, `Accept-Encoding: gzip`). It reports
+connect + first snapshot, how long each goal took to reach every reader,
+the call latencies and response sizes, the stand-in's match reads, the web
+process's CPU time, and a probe request (`/robots.txt`) every 250 ms as the
+web server's responsiveness to everything else. `--calls off` measures the
+stream alone.
+
+```bash
+# apps/web, after `next build` (unset NODE_ENV; HTTP proxies unset for 127.0.0.1)
+node scripts/load-live-modules.mjs --serve-api 3957
+API_BASE_URL=http://127.0.0.1:3957 node node_modules/next/dist/bin/next start -p 3958
+node scripts/load-live-modules.mjs --web http://127.0.0.1:3958 --api http://127.0.0.1:3957 \
+  --clients 1000 --goals 30,45,60 --stats 40 --seconds 80 --web-pid <pid> --ramp-ms 1000
+```
+
+**The record (2026-11-13, the maintainer's Windows laptop, `next start`, one
+process, branch `t-1810-match-live-split` at T-1816: the two-second shared
+read and drawing on).** Three goals and one statistics tick per run; clients
+ramped at 50 a second (faster, about a quarter of the connections were
+refused by this machine's listen backlog, as the API's tool once saw).
+Other sessions shared the machine, so these are indicative, not a
+benchmark.
+
+| Readers | Calls | Dropped | Connect + first snapshot p95 (ms) | Goal reaches every reader p50 / p95 (ms) | Call p50 / p95 (ms) | Match reads at the API | Web CPU (s, whole run) | Probe p95 during goal bursts (ms) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1,000 | off | 0 | 563 | 395 / 645 | -- | 0 | 16.4 | 5 |
+| 200 | on | 0 | 495 | 66 / 122 | 641 / 1,823 | 6 | 16.8 | 84 |
+| 500 | on | 0 | 484 | 170 / 327 | 5,709 / 8,787 | 13 | 40.4 | 2,390 |
+| 1,000 | on | 0 | 480 | 1,103 / 1,674 | 29,454 / 36,460¹ | 23 | 57.2 | 30,227 |
+
+¹ 1,409 of the 3,000 calls were answered within the run's 80 s.
+
+One call on an idle server (median of 40 in a row, after five to warm up):
+the event parts (key events and line-ups) 16.7 ms and 12.7 kB gzip; the
+statistics parts (statistics, line-ups, Top rated) 27.6 ms and 17.6 kB; both
+23.9 ms and 21.6 kB. A `/robots.txt` meanwhile: 3 ms.
+
+**Verdict.** The stream through the web server carries 1,000 readers within
+D-047's latencies (goal to every reader p95 0.65 s). The shared read and
+drawing work: about one match read per goal and locale (23 reads for about
+3,000 calls). But each call still costs the one web process about 17-28 ms
+-- the server function's response written out (React's serialisation of the
+cards), compressed, and Next's action path -- which no cache inside a
+server function can share. So one process answers a goal's calls well at
+200 readers (calls p95 1.8 s, the site's other requests p95 84 ms during
+the burst), slowly at 500 (calls p95 8.8 s, other requests 2.4 s), and not
+at 1,000 (the process saturated for about 30 s per goal). **D-409's design
+point (1,000 readers of one match on one process) is not met.** Today's
+audience per match is far below 200; before a match that may draw more, one
+of these is needed (a decision, D-409 point 6):
+
+1. a public GET for the drawn cards per fixture, locale, zone and parts,
+   cached at Cloudflare for about two seconds, so the origin answers about
+   one request per key every two seconds whatever the audience (the cards
+   as HTML, the two client islands placed by the page);
+2. a wider random window with the audience (for example 0-15 s above 200
+   readers): no code beyond a constant, the cards lag the band longer;
+3. more web processes behind Caddy.
+
 ## Page budgets (T-808)
 
 The live path above is one limit; the pages are another. The busiest pages
@@ -181,7 +256,7 @@ made per row, a timeout -- does.
 | --- | --- | --- |
 | home `/en` | 150.3 / 158 (2026-10-25, T-1502, after T-1495) | 38 / 50 / 200 |
 | scores `/en/scores` | 165.1 / 170 (2026-11-05, T-1738, D-359: the pick control is server markup, and its one client module is smaller than the form it replaced; was 167.8, budget lowered 2026-11-03, T-1730, D-356) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 181.8 / 183 (2026-11-06, T-1742 to T-1746, D-363 to D-367: the compact score bar, the tools row and freshness line, the coming card and the grouped absences sit in the live view's script, +2.2; 1.2 of headroom left, so the next addition to the live view needs something taken out first; was 179.6 after T-1740 and 179.2 after T-1739, budget lowered 2026-11-03, T-1730, D-356) | 77 / 76 / 300 |
+| match centre `/en/match/…0901` | 175.9 / 183 (2026-11-13, T-1810 to T-1816, D-409: the moving modules are server markup in every state -- key events, statistics, line-ups, Top rated, absences -- and the client keeps the band, the bar, the tabs and the clock; 182.8 before, 175.4 after T-1814, +0.5 for the review fixes; lowering the budget to about 178 or keeping 183 is the maintainer's answer). Before: 181.8 / 183 (2026-11-06, T-1742 to T-1746, D-363 to D-367: the compact score bar, the tools row and freshness line, the coming card and the grouped absences sit in the live view's script, +2.2; 1.2 of headroom left, so the next addition to the live view needs something taken out first; was 179.6 after T-1740 and 179.2 after T-1739, budget lowered 2026-11-03, T-1730, D-356) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 151.1 / 158 (2026-10-25, T-1502, after T-1498) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
