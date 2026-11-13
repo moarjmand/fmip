@@ -90,6 +90,9 @@ export class EvaluationController {
           coverage: outcome.evaluations.length === 0 ? 'not_supplied' : 'available',
           last_updated_at: last?.evaluated_at ?? null,
           evaluations: outcome.evaluations,
+          // The admin's own answer keeps the evaluations it stored, and says
+          // when the scores they were set against contradict each other (D-414).
+          score_conflict: outcome.scoreConflict,
         };
       }
     }

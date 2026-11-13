@@ -299,6 +299,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('evaluations'
         reasons: ['ninety_exceeds_final', 'extra_time_sum'],
       });
       expect(JSON.stringify(body)).not.toContain('"actual"');
+      // The admin's evaluate route keeps what it stored, and says so.
+      const admin = await post(`/fixtures/${FIXTURE}/evaluations`, adminCookie);
+      expect(admin.statusCode).toBe(201);
+      const adminBody = admin.json() as FixtureEvaluationsResponse;
+      expect(adminBody.evaluations.length).toBeGreaterThan(0);
+      expect(adminBody.score_conflict?.reasons).toEqual(['ninety_exceeds_final', 'extra_time_sum']);
     } finally {
       await pool.query(
         `DELETE FROM fixture_score WHERE fixture_id = $1 AND kind IN ('current', 'extra_time')`,

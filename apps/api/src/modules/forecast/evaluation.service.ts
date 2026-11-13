@@ -7,6 +7,7 @@ import type {
   ForecastEvaluation,
   ModelPerformanceResponse,
   PublicModelAccuracyResponse,
+  ScoreConflict,
 } from '@fmip/contracts';
 import { scoreConflictOf } from '@fmip/contracts';
 import { beingJudged, consoleModelReport, inputState } from './internal/console-model';
@@ -19,7 +20,13 @@ export type CountedEvaluation = CountedRow;
 const DAY_MS = 86_400_000;
 
 export type EvaluateOutcome =
-  | { kind: 'evaluated'; added: number; evaluations: ForecastEvaluation[] }
+  | {
+      kind: 'evaluated';
+      added: number;
+      evaluations: ForecastEvaluation[];
+      /** The stored scores contradict each other (T-1819, D-414); the admin sees it said. */
+      scoreConflict: ScoreConflict | null;
+    }
   | { kind: 'not_finished'; status: string }
   | { kind: 'no_final_score' }
   | { kind: 'unknown_fixture' };
@@ -49,7 +56,16 @@ export class EvaluationService {
       const scored = score(version.probabilities, version.mostLikely, actual.home, actual.away);
       if (await this.store.record(version, fixture, actual, scored)) added += 1;
     }
-    return { kind: 'evaluated', added, evaluations: await this.store.evaluations(fixtureId) };
+    return {
+      kind: 'evaluated',
+      added,
+      evaluations: await this.store.evaluations(fixtureId),
+      scoreConflict: scoreConflictOf(fixture.status, {
+        current: fixture.current ?? null,
+        full_time: fixture.fullTime,
+        extra_time: fixture.extraTime ?? null,
+      }),
+    };
   }
 
   async evaluations(fixtureId: string): Promise<FixtureEvaluationsResponse | null> {
