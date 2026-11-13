@@ -64,12 +64,15 @@ export async function generateMetadata({
   const fallback = `${say(locale, 'teamPage.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title: fallback, robots: { index: false, follow: false } };
   const result = await fetchTeam(id, locale);
-  if (!result.ok) return pageMetadata({ locale, path: `/team/${id}`, title: fallback });
+  // The club has its own card (`opengraph-image.tsx`, T-1826), never the brand one.
+  if (!result.ok)
+    return pageMetadata({ locale, path: `/team/${id}`, title: fallback, card: 'own' });
   const t = result.data.team;
   // The reader's name in the title; the canonical one in the description, so
   // both are on the page and neither pretends to be the other (T-303).
   return pageMetadata({
     locale,
+    card: 'own',
     path: `/team/${t.id}`,
     title: `${t.localised_name ?? t.name} · Stadiomind`,
     description: say(locale, 'teamPage.metaDescription', { name: t.name }),

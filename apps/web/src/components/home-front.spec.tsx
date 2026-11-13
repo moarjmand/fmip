@@ -14,7 +14,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { AccuracyFigure, HeroMatch, KeyGroup } from '@/lib/home';
 import type { CardForecast } from '@/lib/score-card-products';
-import { BigMatch, HomeDateline, LiveNow, TodayByCompetition } from './home-front';
+import { BigMatch, BrandLineStrap, HomeDateline, LiveNow, TodayByCompetition } from './home-front';
 import {
   Broadcasts,
   ColumnAndPicks,
@@ -183,6 +183,23 @@ describe('the dateline', () => {
     expect(html).toContain('>امروز</h1>');
     expect(html).toContain('۱۶ مهر');
     expect(html).toContain('۱۵:۱۲');
+  });
+});
+
+describe('the brand line strap (T-1827, D-421)', () => {
+  it('says the line and links its proof, the model’s published record, with no script', () => {
+    const html = renderToStaticMarkup(<BrandLineStrap locale="en" />);
+    expect(html).toContain('A forecast model that shows its record in public.');
+    expect(html).toMatch(/<a[^>]*href="\/en\/model-accuracy"[^>]*>See the record<\/a>/);
+    // The accent rule on the inline-start edge, so it mirrors in Persian (rule 7).
+    expect(html).toContain('border-s-4');
+    expect(html).not.toMatch(/border-l|border-r|<script/);
+  });
+
+  it('speaks Persian on /fa', () => {
+    const html = renderToStaticMarkup(<BrandLineStrap locale="fa" />);
+    expect(html).toContain('مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد.');
+    expect(html).toMatch(/href="\/fa\/model-accuracy"[^>]*>کارنامه را ببینید<\/a>/);
   });
 });
 

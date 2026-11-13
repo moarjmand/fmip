@@ -105,7 +105,17 @@
     "status": "untranslated"
   },
   "shell.meta.description": {
-    "source": "Football match intelligence: live scores, match centre, forecasts and predictions.",
+    "source": "A forecast model that shows its record in public. Live football scores, match centres and the model’s published accuracy, match by match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "brand.line": {
+    "source": "A forecast model that shows its record in public.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "home.brandLine.link": {
+    "source": "See the record",
     "text": "",
     "status": "untranslated"
   },
@@ -14167,6 +14177,16 @@
   },
   "shared.og.memberAlt": {
     "source": "A member of Stadiomind, their rating and latest settled predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.og.brandAlt": {
+    "source": "Stadiomind: a forecast model that shows its record in public",
+    "text": "",
+    "status": "untranslated"
+  },
+  "shared.og.teamAlt": {
+    "source": "The club, its competition and its next match",
     "text": "",
     "status": "untranslated"
   },

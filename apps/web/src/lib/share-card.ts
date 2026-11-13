@@ -7,11 +7,14 @@ import type {
   PublicProfile,
   Rating,
   TableRow,
+  TeamPage,
+  TeamPageFixture,
 } from '@fmip/contracts';
 import { percentages } from './forecast';
 import { OUTCOME_LABEL } from './prediction-form';
+import { stageLabel } from './stage-label';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { type MessageKey, t } from '@/i18n/messages';
+import { type MessageKey, plural, t } from '@/i18n/messages';
 
 /**
  * The words on a share card (T-520): the picture a chat app shows when a link
@@ -34,14 +37,47 @@ export const CARD_SIZE = { width: 1200, height: 630 } as const;
  * right-to-left line out left to right, ignores `direction: rtl`, and draws a
  * zero-width non-joiner as a visible box -- checked by rendering a Persian
  * line with it. A card that reads backwards would be worse than one in
- * English. What the card is *described* as -- its `og:image:alt`, which a
+ * English. Checked again with Vazirmatn, the site's own Persian face, on
+ * 2026-11-13 (T-1825, D-419): its letters join, but the words still run
+ * left to right and the parts a non-joiner separates are put in reverse. What the card is *described* as -- its `og:image:alt`, which a
  * chat app and a screen reader read as text -- is in the reader's language.
  */
 const ALT_KEY = {
   match: 'shared.og.matchAlt',
   competition: 'shared.og.competitionAlt',
   member: 'shared.og.memberAlt',
+  team: 'shared.og.teamAlt',
+  brand: 'shared.og.brandAlt',
 } as const satisfies Record<string, MessageKey>;
+
+/** The alt text of a card in the reader's language (T-1309), for a route or a page's metadata. */
+export function cardAlt(kind: keyof typeof ALT_KEY, locale: string): string {
+  return t(isLocale(locale) ? locale : DEFAULT_LOCALE, ALT_KEY[kind]);
+}
+
+/**
+ * The brand card's words (T-1825, D-419; B10 "Typographic wall"): the brand
+ * line (`brand.line`, D-421), with the word that carries it -- "record" --
+ * apart so the card can light it, and the strap under it. English on every
+ * locale, as every card's words are (T-1309; the Persian spike of 2026-11-13
+ * found the same right-to-left fault, see D-419).
+ */
+export const BRAND_CARD = {
+  before: 'A forecast model that shows its',
+  lit: 'record',
+  after: 'in public.',
+  strap: 'Live scores, match centres and forecasts',
+} as const;
+
+/**
+ * The last segment of a card's address. The team card's ends in `.png`
+ * (T-1826, D-420), so Cloudflare's edge, which caches by extension, keeps a
+ * copy for the hour its `cache-control` allows instead of sending every
+ * fetch to the origin. The match card keeps an extension-less address: it
+ * still answers next/og's year-long header, which an edge must not hold for a
+ * score that changes.
+ */
+const CARD_ID: Partial<Record<keyof typeof ALT_KEY, string>> = { team: 'card.png' };
 
 /**
  * A card route's `generateImageMetadata`: one image, its alt text in the
@@ -55,8 +91,8 @@ export async function cardImageMetadata(
   const { locale } = await params;
   return [
     {
-      id: 'card',
-      alt: t(isLocale(locale) ? locale : DEFAULT_LOCALE, ALT_KEY[kind]),
+      id: CARD_ID[kind] ?? 'card',
+      alt: cardAlt(kind, locale),
       size: CARD_SIZE,
       contentType: 'image/png',
     },
@@ -407,4 +443,150 @@ export function memberCardText(
         };
       }),
   };
+}
+
+export interface TeamCardText {
+  /** "England · Club · Founded 1886", as the club band's eyebrow. */
+  eyebrow: string;
+  name: string;
+  /** The club's main competition (its domestic league first), or the sentence saying there is none. */
+  competition: { name: string; known: boolean };
+  /** "1st · 27 pts from 10" in that competition's table, or `null` with no table that places the club. */
+  standing: string | null;
+  /**
+   * The next match and its day, or the sentence saying there is none, under
+   * its label: "Next match", or "Now playing" / "Suspended" for the one in play
+   * or suspended.
+   */
+  next: { label: string; match: string; detail: string | null; known: boolean };
+  /** The day the card was drawn: a chat app keeps a picture for days (rule 4). */
+  asOf: string;
+}
+
+/** The day in the UK, the English reader's zone: a date only, never a time (D-420). */
+const CARD_DAY_ZONE = 'Europe/London';
+
+function cardDay(at: Date, options: Intl.DateTimeFormatOptions): string {
+  return new Intl.DateTimeFormat('en-GB', { ...options, timeZone: CARD_DAY_ZONE })
+    .format(at)
+    .replace(',', '');
+}
+
+/**
+ * The team card's words (T-1826, D-420; T1 "Club band"), from the club
+ * page's own answer (`GET /teams/:id`, English names): the name, the club's
+ * main competition -- the first, its domestic league where it has one, as
+ * the club page's band reads it -- and where it stands there, the next match
+ * and its day. What the answer does not hold is said, never made up (rule
+ * 3): "No current competition on record", "No match scheduled". No forecast
+ * is drawn: a kept picture of one would go stale (the spec, section 3).
+ */
+export function teamCardText(page: TeamPage, now: Date): TeamCardText {
+  const team = page.team;
+  const say = (key: MessageKey) => t(DEFAULT_LOCALE, key);
+  const eyebrow = [
+    ...(team.country !== null ? [team.country.name] : []),
+    say(team.kind === 'national' ? 'teamPage.national' : 'teamPage.club'),
+    ...(team.gender === 'women' ? [say('competitionPage.women')] : []),
+    ...(team.founded_year !== null ? [`Founded ${team.founded_year}`] : []),
+  ].join(' · ');
+
+  const main = page.competitions[0] ?? null;
+  // Only a table we hold in full and on time is drawn: a limited or delayed
+  // one would be stamped with today's date as if it were current (rule 4).
+  const table = main?.context.coverage === 'available' ? main.context.data : null;
+  const own = table?.rows.find((row) => row.team.id === team.id) ?? null;
+  const standing =
+    table === null
+      ? null
+      : [
+          plural(DEFAULT_LOCALE, 'team.position', table.position).text,
+          own === null ? `${table.points} pts` : `${table.points} pts from ${own.played}`,
+        ].join(' · ');
+
+  const fixture = page.next_match;
+  let next: TeamCardText['next'];
+  if (fixture === null) {
+    next = { label: 'Next match', match: 'No match scheduled', detail: null, known: false };
+  } else {
+    const round = fixture.round === null ? null : stageLabel(fixture.round, say, DEFAULT_LOCALE);
+    const day =
+      fixture.freshness === 'awaiting_update'
+        ? 'Awaiting update'
+        : cardDay(new Date(fixture.kickoff_at), {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+          });
+    next = {
+      // `next_match` is the soonest still to play, which takes in a match in
+      // play and a suspended one (`stillToPlay`): neither is "next".
+      label:
+        fixture.status === 'live'
+          ? 'Now playing'
+          : fixture.status === 'suspended'
+            ? 'Suspended'
+            : 'Next match',
+      match: `${cardName(fixture.home)} v ${cardName(fixture.away)}`,
+      detail: [day, fixture.competition.short_name ?? fixture.competition.name, round]
+        .filter((part): part is string => part !== null && part !== '')
+        .join(' · '),
+      known: true,
+    };
+  }
+
+  return {
+    eyebrow,
+    name: team.localised_name ?? team.name,
+    competition:
+      main === null
+        ? { name: 'No current competition on record', known: false }
+        : { name: main.competition.short_name ?? main.competition.name, known: true },
+    standing,
+    next,
+    asOf: `As of ${cardDay(now, { day: 'numeric', month: 'short', year: 'numeric' })}`,
+  };
+}
+
+/** How long a club's card may be kept while its next match is close or under way (rev-2026-11-13-08). */
+export const TEAM_CARD_SHORT_SECONDS = 300;
+/** How long it may be kept otherwise: its standing and next match move slowly (D-420). */
+export const TEAM_CARD_LONG_SECONDS = 3600;
+
+/**
+ * The team card's `cache-control` (T-1826, D-420; rev-2026-11-13-08): five
+ * minutes when the next match is live, suspended, or kicks off within the
+ * hour -- its label and day are about to change -- and an hour otherwise.
+ */
+export function teamCardCacheControl(
+  next: Pick<TeamPageFixture, 'status' | 'kickoff_at'> | null,
+  now: Date,
+): string {
+  const close =
+    next !== null &&
+    (next.status === 'live' ||
+      next.status === 'suspended' ||
+      new Date(next.kickoff_at).getTime() - now.getTime() <= 60 * 60 * 1000);
+  return `public, max-age=${close ? TEAM_CARD_SHORT_SECONDS : TEAM_CARD_LONG_SECONDS}`;
+}
+
+/**
+ * The team card's fixture line (T-1826; code review of pull request 888): 56px as
+ * drawn while it fits on one line, a step down to keep a longer pair on one
+ * line ("Borussia Dortmund v Bayer Leverkusen", 36 letters, at 44px), and a
+ * smaller size beyond that, which the card clamps to two lines. The panel
+ * holding it has a fixed height, so the "As of" date under it is always
+ * clear.
+ */
+export function teamFixtureSize(match: string): number {
+  if (match.length <= 28) return 56;
+  if (match.length <= 36) return 44;
+  return 34;
+}
+
+/** The team card's name size: 90px as drawn, smaller for a long name, which then takes two lines. */
+export function teamNameSize(name: string): number {
+  if (name.length <= 16) return 90;
+  if (name.length <= 26) return 64;
+  return 52;
 }
