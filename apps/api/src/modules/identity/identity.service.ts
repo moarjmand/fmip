@@ -179,6 +179,7 @@ export class IdentityService {
       preferredLanguage: input.preferred_language,
       timezone: input.timezone,
       passwordHash: await hashPassword(input.password),
+      source: input.source,
     });
 
     if (!created.ok) {

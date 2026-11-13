@@ -17,13 +17,17 @@ all "The marketing wing", and the newest marketing report's priorities
   groups and community analyses; when each session was last seen (`session.last_seen_at`, and
   its user agent, read only as phone, tablet or desktop); the channel's own posts
   (`channel_post`: what was sent, not who read it).
-- **Cannot:** page views, visitors who never register, the page or link a member arrived from,
-  the channel's subscribers or a post's views, search impressions. The site stores none of it,
-  and there is no tracker. Say so in every report as `not_supplied` (CLAUDE.md rule 3), never
-  estimate it.
-- **A first-party measure** of sign-ups by entry page or referrer host would need a schema
-  change, a privacy note and a decision: it goes to the decision desk through the marketing
-  manager, past the business adviser (personal data), never as an external tool.
+- **Cannot:** page views, visitors who never register, the first page or the outside link of a
+  visit that went through other pages before "Create account", any one member's source, the
+  channel's subscribers or a post's views, search impressions. The site stores none of it, and
+  there is no tracker or analytics cookie. Say so in every report as `not_supplied` (CLAUDE.md
+  rule 3), never estimate it.
+- **Where sign-ups start** (T-1821, D-415, from the month the table shipped): `signup_source_monthly`
+  counts sign-ups per month by the kind of page where "Create account" was clicked (home, match,
+  team, competition, news, other, or none) and the other site's host when it linked straight to the
+  register page. No cookie; an aggregate only, never beside an account; staff sign-ups included.
+  Report it only through the two queries at the end of `growth-funnel.sql`, cells of 5 or more.
+  The outside source of a visit that browsed first is lost (`none`/the last page): say so.
 - `session.last_seen_at` is a floor of activity: it moves only while a session is used, and one
   member can hold several sessions. Staff accounts (`user_role`) are left out of every member
   count and shown apart.
@@ -64,6 +68,6 @@ breakdown cell under 5 is written «کمتر از ۵».
 | Case | What the read must say |
 |---|---|
 | 4 members, 9 predictions, none in the last 7 days (str-2026-11-02-01) | the totals as they are, the funnel in counts not percentages, "no prediction for 7 days" as a finding, and no breakdown by country or language (every cell under 5) |
-| Where do our members come from? | `not_supplied`: the site stores no entry page or referrer; the first-party proposal goes to the desk past the business adviser |
+| Where do our members come from? | From T-1821 (D-415): sign-ups by the page kind "Create account" was clicked on and the host of a site that linked straight to the register page, monthly, cells of 5+; earlier members and a visit's outside source after browsing stay `not_supplied` |
 | The dashboard's `users` is higher than this read's members | explained, not a fault: the dashboard counts every account, this read counts staff (`user_role`) and suspended or deleted accounts apart |
 | The channel sent its forecast post every day | the channel's output; its reach is not stored, so no claim that it brought members |

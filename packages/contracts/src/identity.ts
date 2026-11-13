@@ -72,7 +72,61 @@ export interface AcceptPlatformRulesRequest {
   version: string;
 }
 
-/** `POST /auth/register`. Every field is required (blueprint 7.1). */
+/**
+ * Where a sign-up started (T-1821, D-415), never a cookie: the kind of page
+ * on which "Create account" was clicked, carried to the register page by its
+ * link, and the host of the site that linked to the register page when a
+ * visitor landed on it from elsewhere. Only ever added to a monthly
+ * aggregate count, never kept beside the account.
+ */
+export const SIGNUP_ENTRIES = [
+  'home',
+  'match',
+  'team',
+  'competition',
+  'news',
+  'other',
+  'none',
+] as const;
+/** `none`: the register page was the first page we know of (a link from elsewhere, or none at all). */
+export type SignupEntry = (typeof SIGNUP_ENTRIES)[number];
+
+export interface SignupSource {
+  entry: SignupEntry;
+  /** A host name only (`t.me`), lower-case, no `www.`, never a path or query; null for none or our own site. */
+  referrer_host: string | null;
+}
+
+/** A DNS name: labels of letters, digits and hyphens, dot-separated, 253 at most. */
+const HOST_NAME =
+  /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
+
+/**
+ * A referring host as it is counted (D-415): lower-case, without a port or a
+ * leading `www.`, or null for anything that is not a bare host name -- a URL,
+ * a path, a query, an address with a user part. Never a guess.
+ */
+export function signupHost(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const host = value
+    .trim()
+    .toLowerCase()
+    .replace(/:\d{1,5}$/, '')
+    .replace(/^www\./, '');
+  return HOST_NAME.test(host) ? host : null;
+}
+
+/** A sign-up source as the API counts it: anything malformed is `none` with no host. */
+export function signupSource(value: unknown): SignupSource {
+  if (typeof value !== 'object' || value === null) return { entry: 'none', referrer_host: null };
+  const record = value as Record<string, unknown>;
+  const entry = (SIGNUP_ENTRIES as readonly unknown[]).includes(record.entry)
+    ? (record.entry as SignupEntry)
+    : 'none';
+  return { entry, referrer_host: signupHost(record.referrer_host) };
+}
+
+/** `POST /auth/register`. Every field is required (blueprint 7.1) except `source`. */
 export interface RegisterRequest {
   /** 3 to 20 characters: lower-case letters, digits, underscore. */
   username: string;
@@ -85,6 +139,8 @@ export interface RegisterRequest {
   timezone: string;
   /** Must be `true`: acceptance of the platform rules in force (recorded with its version, T-931). */
   accept_rules: boolean;
+  /** Where the sign-up started (T-1821, D-415); absent or malformed is counted as `none`. */
+  source?: SignupSource;
 }
 
 /** `POST /auth/login`. `identifier` is a username or an e-mail address. */

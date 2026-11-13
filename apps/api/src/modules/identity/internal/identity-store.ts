@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { AuthUser } from '@fmip/contracts';
+import type { AuthUser, SignupSource } from '@fmip/contracts';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { LOCKED_CURRENT_RULES_VERSION_SQL } from './platform-rules-store';
@@ -26,6 +26,11 @@ export interface NewUser {
   preferredLanguage: string;
   timezone: string;
   passwordHash: string;
+  /**
+   * Where the sign-up started (T-1821, D-415): added to this month's count in
+   * the same transaction, and never stored beside the account.
+   */
+  source?: SignupSource;
 }
 
 export type CreateUserResult =
@@ -107,6 +112,15 @@ export class PostgresIdentityStore {
         `INSERT INTO platform_rules_acceptance (user_id, version, accepted_at)
          SELECT id, accepted_rules_version, accepted_rules_at FROM user_account WHERE id = $1`,
         [user.id],
+      );
+      // One more sign-up in this month's count for where it started (T-1821,
+      // D-415): an aggregate with no account id, no time finer than the month.
+      await client.query(
+        `INSERT INTO signup_source_monthly (month, entry, referrer_host, sign_ups)
+         VALUES (date_trunc('month', now() AT TIME ZONE 'UTC')::date, $1, $2, 1)
+         ON CONFLICT (month, entry, referrer_host)
+         DO UPDATE SET sign_ups = signup_source_monthly.sign_ups + 1`,
+        [input.source?.entry ?? 'none', input.source?.referrer_host ?? ''],
       );
 
       await client.query('COMMIT');
