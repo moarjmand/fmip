@@ -118,7 +118,7 @@ function CalibrationTable({
       >
         {/* The answer, the share that happened, stands next to the step: on a
             phone it is in view without scrolling, and the step column stays put
-            if the table scrolls at all (review of the PR #883 screenshots). */}
+            if the table scrolls at all (review of the T-1751 screenshots). */}
         <table className="w-full border-collapse text-sm tabular-nums">
           <caption className="sr-only">
             <Translated locale={lang} message="modelAccuracy.calibration.title" />

@@ -34,7 +34,7 @@ export const calibrationForecasts = (calibration: AccuracyCalibration): number =
  * edge; the gridline labels and the halves of the end labels sit in the
  * padding its box keeps on each inline side (`padStart`, `padEnd`, applied
  * as logical padding by the component), so on a 375px phone no label is
- * clipped and none crosses the axis (review of the PR #883 screenshots).
+ * clipped and none crosses the axis (review of the T-1751 screenshots).
  */
 export const CALIBRATION_CHART = {
   /** Room above the plot for the top gridline's label. */

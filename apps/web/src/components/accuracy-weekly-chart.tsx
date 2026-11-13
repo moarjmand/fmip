@@ -92,7 +92,7 @@ function WeeksTable({ lang, weeks }: { lang: Locale; weeks: readonly WeekBar[] }
         tabIndex={0}
       >
         {/* The answer, better than a guess, stands next to the week: on a phone it
-            is in view without scrolling (review of the PR #883 screenshots). */}
+            is in view without scrolling (review of the T-1751 screenshots). */}
         <table className="w-full border-collapse text-sm tabular-nums">
           <caption className="sr-only">
             <Translated locale={lang} message="modelAccuracy.weekly.table" />
