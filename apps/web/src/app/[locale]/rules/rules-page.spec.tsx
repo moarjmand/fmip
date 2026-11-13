@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * The rules page in numbered sections (T-1789, D-392): the 1.0.0 text from
+ * The rules page in numbered sections (T-1789, D-410): the 1.0.0 text from
  * its migration, under eight headings with anchors and an "On this page"
  * index, English and left to right on every page; a version nobody checked
  * is plain blocks, as before. Rendered whole with the API mocked.
@@ -62,7 +62,7 @@ beforeEach(() => {
   api.fetchSession.mockResolvedValue(null);
 });
 
-describe('the rules page (T-1789, D-392)', () => {
+describe('the rules page (T-1789, D-410)', () => {
   it('shows 1.0.0 in eight numbered sections, each with its anchor', async () => {
     const html = await draw('en');
     const ids = [...html.matchAll(/data-testid="rules-section-([a-z-]+)"/g)].map((m) => m[1]);

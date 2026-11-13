@@ -54,7 +54,13 @@ from fmip_model.model.cross_league import (
     joint_problem,
 )
 from fmip_model.model.dixon_coles import MatchObservation
-from fmip_model.model.version import PUBLISHED, CrossLeague, load_candidate, load_candidates
+from fmip_model.model.version import (
+    PUBLISHED,
+    RETIRED_DIR,
+    CrossLeague,
+    load_candidate,
+    load_candidates,
+)
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster, TrainingSource
 
@@ -178,7 +184,7 @@ def ask(forecaster: Forecaster, home: str, away: str) -> object:
     )
 
 
-# --- off by default: the published version and 0.7.0 as before ---------------
+# --- off by default: the published 0.7.0 and the retired 0.6.0 as before (D-410) ---
 
 PAIRS = [(ENGLAND[0], SPAIN[0]), (SPAIN[2], ENGLAND[5]), (ENGLAND[3], OUTSIDER)]
 #: Written by the code before T-1654 (the same world, the same requests).
@@ -195,7 +201,7 @@ GOLDEN_RAW = [
 
 
 def test_the_published_version_and_the_candidate_name_neither_option() -> None:
-    for version in (PUBLISHED, load_candidates()["dixon-coles-elo-0.7.0"]):
+    for version in (PUBLISHED, load_candidates(RETIRED_DIR)["dixon-coles-elo-0.6.0"]):
         assert version.cross_league is not None
         assert version.cross_league.elo_weight == 0
         assert version.cross_league.home_by_competition is None
@@ -207,9 +213,11 @@ def test_the_published_version_and_the_candidate_name_neither_option() -> None:
         }
 
 
-@pytest.mark.parametrize("which", ["published", "candidate"])
+@pytest.mark.parametrize("which", ["published", "retired"])
 def test_with_the_options_off_the_forecasts_are_the_ones_before_t1654(which: str) -> None:
-    version = PUBLISHED if which == "published" else load_candidates()["dixon-coles-elo-0.7.0"]
+    version = (
+        PUBLISHED if which == "published" else load_candidates(RETIRED_DIR)["dixon-coles-elo-0.6.0"]
+    )
     # Elo and competition groups on offer: a version without the options reads neither.
     source = World(
         golden_world(),

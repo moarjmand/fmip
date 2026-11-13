@@ -55,7 +55,7 @@ describe('rulesVersionNumber', () => {
   });
 });
 
-describe('rulesSections (T-1789, D-392)', () => {
+describe('rulesSections (T-1789, D-410)', () => {
   const sections = rulesSections('platform-rules@1.0.0', V1)!;
 
   it('gives 1.0.0 the eight sections its own lead-ins name, with an anchor each', () => {

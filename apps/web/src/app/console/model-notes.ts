@@ -44,7 +44,7 @@ export interface ModelVersionNote {
   decision: string;
   /** What it changed from the version before it, in one sentence. */
   delta: string;
-  /** A version in shadow: the rule its promotion is judged by. */
+  /** A version that went through shadow: the rule its promotion is (or was) judged by. */
   rule?: 'D-336' | 'D-139';
 }
 
@@ -88,8 +88,8 @@ export const MODEL_VERSIONS: Record<VersionNumber, ModelVersionNote> = {
   },
   '0.7.0': {
     number: '0.7.0',
-    fate: 'shadow',
-    decision: 'D-233',
+    fate: 'published',
+    decision: 'D-410',
     delta:
       'یازده لیگ تازه: یونان، سوئیس، دانمارک، آمریکا، برزیل، آرژانتین، چک، کرواسی، صربستان، عربستان و امارات. ثابت‌های 0.6.0 عوض نشد؛ ولی برازش میان‌لیگی هر نسخه مسابقه‌های همه‌ی لیگ‌های همان نسخه را می‌خواند، پس پیش‌بینی جام‌ها هم می‌تواند فرق کند.',
     rule: 'D-336',

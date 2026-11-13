@@ -243,7 +243,7 @@
     "source": "Data sources",
     "text": "منبع داده‌ها",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-392)."
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-410)."
   },
   "shell.moments.label": {
     "source": "Moments that matter",
@@ -1222,7 +1222,7 @@
     "source": "Where the data comes from",
     "text": "داده‌ها از کجا می‌آیند",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-392)."
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-410)."
   },
   "about.competitions": {
     "source": "Covered now: {names}.",

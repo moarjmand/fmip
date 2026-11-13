@@ -140,7 +140,7 @@ export interface FooterGroup {
  * competitions, highlights, where to watch, news. Predictions: the
  * prediction league, the model's record and the founder's analysis, each
  * under its own name and never as one (rule 6). Stadiomind: what it is and
- * Settings. The rules moved to `FOOTER_LEGAL` (T-1790, D-392).
+ * Settings. The rules moved to `FOOTER_LEGAL` (T-1790, D-410).
  */
 export const FOOTER_NAV: readonly FooterGroup[] = [
   {
@@ -173,7 +173,7 @@ export const FOOTER_NAV: readonly FooterGroup[] = [
 ];
 
 /**
- * The footer's legal strip beside the copyright (T-1790, D-392): the rules,
+ * The footer's legal strip beside the copyright (T-1790, D-410): the rules,
  * linked from nowhere else (T-1572), and where the data comes from. Only
  * pages that exist: Privacy and Contact join when the maintainer's texts do
  * (T-1793), never as a link to nothing (rule 3).

@@ -106,7 +106,7 @@ def test_health_names_the_model_version() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok" and body["service"] == "model"
-    assert body["model_version"] == PUBLISHED.id == "dixon-coles-elo@0.6.0"
+    assert body["model_version"] == PUBLISHED.id == "dixon-coles-elo@0.7.0"
     # A source that keeps no loads reports no Elo state, rather than a made-up one.
     assert body["elo_source"] is None
 
@@ -324,9 +324,10 @@ def test_the_candidate_file_names_its_prior_and_refuses_an_unknown_one(tmp_path:
         load_candidate(wrong)
 
 
-def test_the_published_version_is_0_6_0_which_is_0_5_0_plus_ir1() -> None:
-    """D-191: 0.6.0 replaced 0.1.0 on the site; its constants are D-190's, unchanged."""
-    candidate = PUBLISHED
+def test_the_retired_0_6_0_is_0_5_0_plus_ir1() -> None:
+    """D-191: 0.6.0 replaced 0.1.0 on the site; its constants are D-190's, unchanged.
+    D-410: 0.7.0 replaced it, and its file is kept in retired/ (rule 5)."""
+    candidate = load_candidates(RETIRED_DIR)["dixon-coles-elo-0.6.0"]
     assert candidate.id == "dixon-coles-elo@0.6.0"
     assert candidate.elo_prior == "own"
     assert candidate.cross_league is not None  # 0.4.0's cup fit, carried unchanged
@@ -375,23 +376,23 @@ def test_a_candidate_file_is_named_after_its_version(tmp_path: Path) -> None:
 
 
 def test_the_promotion_moved_files_and_renamed_no_version() -> None:
-    """D-191: 0.6.0's file went from candidates/ to published/ and 0.5.0's to retired/,
-    each under the version its stored forecasts carry; nothing was left in shadow. The one
-    candidate since is 0.7.0 (T-1442, D-233)."""
-    assert list(load_candidates()) == ["dixon-coles-elo-0.7.0"]
-    newest = load_candidate()
-    assert newest is not None and newest.id == "dixon-coles-elo@0.7.0"
+    """D-191: 0.6.0's file went from candidates/ to published/ and 0.5.0's to retired/.
+    D-410 (T-1151): 0.7.0's went from candidates/ to published/ and 0.6.0's to retired/,
+    each under the version its stored forecasts carry; nothing is left in shadow."""
+    assert list(load_candidates()) == []
+    assert load_candidate() is None
     assert (
         load_published()
         == PUBLISHED
-        == load_candidate(PUBLISHED_DIR / "dixon-coles-elo-0.6.0.json")
+        == load_candidate(PUBLISHED_DIR / "dixon-coles-elo-0.7.0.json")
     )
     retired = load_candidates(RETIRED_DIR)
-    assert list(retired) == ["dixon-coles-elo-0.5.0"]
+    assert list(retired) == ["dixon-coles-elo-0.5.0", "dixon-coles-elo-0.6.0"]
     assert retired["dixon-coles-elo-0.5.0"].id == "dixon-coles-elo@0.5.0"
+    assert retired["dixon-coles-elo-0.6.0"].id == "dixon-coles-elo@0.6.0"
     app = TestClient(create_app(FakeSource(), candidates={}))
     assert app.get("/candidates").json() == {"candidates": []}
-    assert app.get("/health").json()["model_version"] == "dixon-coles-elo@0.6.0"
+    assert app.get("/health").json()["model_version"] == "dixon-coles-elo@0.7.0"
 
 
 def test_the_published_directory_holds_exactly_one_version(tmp_path: Path) -> None:
