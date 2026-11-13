@@ -20,7 +20,10 @@ import {
   receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { ForecastPanel } from './forecast-panel';
-import { MatchCentreView, ratingsOf, scorerFit } from './match-centre-view';
+import { MatchCentreView, scorerFit } from './match-centre-view';
+import { ratingsOf } from './match-stats-panels';
+import { liveSlots } from './match-live-slots';
+import { LiveClockProvider } from './live-age';
 import { Translated } from './translated';
 import { scoreDisputeHero } from './score-dispute';
 import { matchJsonLd } from '@/lib/seo';
@@ -759,16 +762,23 @@ const centre = (over: Partial<MatchCentre['fixture']> = {}, rest: Partial<MatchC
     },
     ...rest,
   }) as MatchCentre;
-const view = (c: MatchCentre, now?: number, locale = 'en') =>
-  renderToStaticMarkup(
-    <MatchCentreView
-      words={matchWords(locale)}
-      centre={c}
-      timeZone="Europe/London"
-      locale={locale}
-      now={now}
-    />,
+// As the page draws it: the moving modules from the server (D-409), inside
+// the live clock `LiveMatch` gives them (T-1813).
+const view = (c: MatchCentre, now?: number, locale = 'en', behind = false) => {
+  const words = matchWords(locale);
+  return renderToStaticMarkup(
+    <LiveClockProvider value={{ now, behind }}>
+      <MatchCentreView
+        words={words}
+        centre={c}
+        timeZone="Europe/London"
+        locale={locale}
+        now={now}
+        slots={liveSlots({ centre: c, locale, timeZone: 'Europe/London', words })}
+      />
+    </LiveClockProvider>,
   );
+};
 const section = (html: string, testId: string) => {
   const start = html.indexOf(`data-testid="${testId}"`);
   return html.slice(start, html.indexOf('</section>', start));
@@ -813,6 +823,31 @@ describe('live', () => {
     const behind = section(view(live, Date.parse('2026-10-24T11:48:01.000Z')), 'statistics');
     expect(behind).toContain('data-freshness="behind"');
     expect(behind).toContain('may be behind');
+
+    // Since T-1813 the card is the server's and its line ticks on the page's
+    // clock; when the stream has newer figures the card has not been drawn
+    // with (a call failed, D-409), the same line says so at once.
+    const notRedrawn = section(
+      view(live, Date.parse('2026-10-24T11:41:00.000Z'), 'en', true),
+      'statistics',
+    );
+    expect(notRedrawn).toContain('data-freshness="behind"');
+    expect(notRedrawn).toContain('may be behind');
+    // Without the live clock (no live page) there is no line rather than a frozen age.
+    const words = matchWords('en');
+    const frozen = section(
+      renderToStaticMarkup(
+        <MatchCentreView
+          words={words}
+          centre={live}
+          timeZone="Europe/London"
+          locale="en"
+          slots={liveSlots({ centre: live, locale: 'en', timeZone: 'Europe/London', words })}
+        />,
+      ),
+      'statistics',
+    );
+    expect(frozen).not.toContain('stats-freshness');
 
     // In Persian, from the catalogue.
     const fa = section(view(live, Date.parse('2026-10-24T11:41:00.000Z'), 'fa'), 'statistics');
@@ -1013,7 +1048,7 @@ describe('live', () => {
     expect(html).toContain('The data for this match is behind');
   });
 
-  it('lists events latest first while the match is on, in order after full time', () => {
+  it('lists events in order from kick-off, in play as after full time (the server card, D-409)', () => {
     const events = [
       incident(6, 'goal', 'home', 'N. Jackson'),
       incident(32, 'yellow_card', 'away', 'M. Guéhi'),
@@ -1021,7 +1056,10 @@ describe('live', () => {
     ];
     const timeline = { coverage: 'available' as const, last_updated_at: null, data: events };
     const live = section(view(centre({}, { timeline })), 'timeline');
-    expect(live.indexOf('E. Haaland')).toBeLessThan(live.indexOf('N. Jackson'));
+    // The client's live list read latest first until T-1812; the server's
+    // Key events card reads from kick-off in every state.
+    expect(live.indexOf('N. Jackson')).toBeLessThan(live.indexOf('E. Haaland'));
+    expect(live).not.toContain(EN['matchCentre.latestFirst']);
     const done = section(
       view(centre({ status: 'finished', minute: null }, { timeline })),
       'timeline',
@@ -1031,7 +1069,7 @@ describe('live', () => {
     expect(done).toMatch(/data-side="away"[^>]*>[^]*?md:col-start-3/);
   });
 
-  it('draws goals and cards on the axis, home above the line and away below', () => {
+  it('draws goals and cards on the axis in play, home on the first lane and away on the second', () => {
     const timeline = {
       coverage: 'available' as const,
       last_updated_at: null,
@@ -1044,9 +1082,16 @@ describe('live', () => {
     const axis = section(view(centre({}, { timeline })), 'timeline');
     expect(axis).toContain('role="img"');
     expect(axis).toContain('goals: 1, cards: 1');
-    expect(axis).toMatch(/data-kind="goal" data-side="home" class="[^"]*top-4\.5 bg-accent/);
-    expect(axis).toMatch(/data-kind="yellow_card" data-side="away" class="[^"]*top-12\.75/);
-    expect(axis).not.toMatch(/data-kind="substitution"/);
+    // The server's two named lanes (D-397), drawn in play since T-1812.
+    const lane = (side: string) =>
+      axis.slice(
+        axis.indexOf(`data-lane="${side}"`),
+        axis.indexOf('</div></div>', axis.indexOf(`data-lane="${side}"`)),
+      );
+    expect(lane('home')).toContain('data-kind="goal"');
+    expect(lane('home')).not.toContain('data-kind="yellow_card"');
+    expect(lane('away')).toContain('data-kind="yellow_card"');
+    expect(axis).not.toMatch(/data-kind="substitution"[^>]*style/);
     // The goal at 6′ of 90.
     expect(axis).toContain('inset-inline-start:6.666');
   });

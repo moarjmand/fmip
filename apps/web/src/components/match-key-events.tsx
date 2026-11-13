@@ -9,22 +9,25 @@ import { fill, formatMinute } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
 import { Module } from '@/components/match-centre-cards';
-import { type MatchHero, IncidentMark, IncidentText } from '@/components/match-centre-view';
+import type { MatchHero } from '@/components/match-centre-view';
+import { IncidentMark, IncidentText } from '@/components/match-incidents';
 import { MessageText } from '@/components/message-text';
 import { Score } from '@/components/score';
 import { cx } from '@/components/ui/cx';
 
 /**
- * A finished match's key events and its shoot-out (T-1798, T-1799; D-396,
- * D-397; board P9-3), drawn on the server and handed to the match centre as
- * its `keyEvents` slot and the band's `penalties`, so none of it is in the
- * page's JavaScript (the match centre's first-load budget, T-808). A
- * finished match does not move; while a match is on, the client's own
- * timeline in `match-centre-view.tsx` is drawn instead, and a match that
- * ends while the page is open gets this on its next load or refresh.
+ * A match's key events and its shoot-out (T-1798, T-1799; D-396, D-397;
+ * board P9-3), drawn on the server and handed to the match centre as its
+ * `keyEvents` slot and the band's `penalties`, so none of it is in the
+ * page's JavaScript (the match centre's first-load budget, T-808). Drawn in
+ * every state since T-1812 (D-409): the page always passes it (before
+ * kick-off the coming card stands in its place), and in play the live page
+ * draws it again through `refreshLiveModules` when the stream brings an
+ * event; a match that kicks off or ends while the page is open is drawn
+ * again by the status change's refresh. A shoot-out being played shows its
+ * kicks so far and its score, and no winner sentence (D-396 point 1).
  *
- * No directive: a server module. It reuses the client view's incident row
- * pieces (`IncidentText`, `IncidentMark`), which costs the client nothing.
+ * No directive: a server module. Its incident rows are `match-incidents.tsx`.
  */
 
 const say = (locale: string, key: MessageKey) =>
@@ -114,6 +117,11 @@ export function KeyEvents({
       module={centre.timeline}
       testId="timeline"
       words={words}
+      // In play, a feed that has sent nothing yet is "Not in yet", never a
+      // verdict (T-1497, rule 3), as the client's timeline said (T-1811).
+      notInYet={f.status === 'live'}
+      // A postponed or cancelled match had no play to record (T-1550).
+      before={f.status === 'postponed' || f.status === 'cancelled' ? 'unplayed' : null}
     >
       {(incidents) => {
         // The kicks are found as the client's timeline finds them (T-1477, T-1666, D-322).
@@ -156,17 +164,20 @@ export function KeyEvents({
               <Axis incidents={play} centre={centre} locale={locale} words={words} />
             )}
             <ol className="flex flex-col text-sm">
-              <li className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 last:border-b-0">
-                <span className="font-mono text-muted tabular-nums">
-                  {formatKickoff(locale, f.kickoff_at, timeZone)}
-                </span>
-                <span className="flex items-center gap-3">
-                  <IncidentMark kind="kickoff" />
-                  <b className="font-bold text-fg">
-                    <MessageText message={m['matchCentre.kickedOff']} />
-                  </b>
-                </span>
-              </li>
+              {/* "Kicked off" only once it has (the client's timeline did the same). */}
+              {f.status !== 'scheduled' && (
+                <li className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 last:border-b-0">
+                  <span className="font-mono text-muted tabular-nums">
+                    {formatKickoff(locale, f.kickoff_at, timeZone)}
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <IncidentMark kind="kickoff" />
+                    <b className="font-bold text-fg">
+                      <MessageText message={m['matchCentre.kickedOff']} />
+                    </b>
+                  </span>
+                </li>
+              )}
               {play.filter((i) => i.kind !== 'substitution').map(row)}
             </ol>
             {subs.length > 0 && (

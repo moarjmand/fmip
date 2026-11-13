@@ -1,21 +1,21 @@
 import type {
+  ExpectedGoalsMetric,
   MatchCentre,
   MatchIncident,
   MatchLineupPlayer,
+  MatchPlayerStats,
   MatchStatMetric,
   MatchStatRow,
+  PlayerMatchMetric,
 } from '@fmip/contracts';
+import { LIVE_STATS_STALE_AFTER_MS } from '@fmip/contracts';
 import type { ReactNode } from 'react';
 import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
 import { FilledMessage } from '@/components/filled-message';
+import { LiveAge } from '@/components/live-age';
 import { Module } from '@/components/match-centre-cards';
-import {
-  EXPECTED_COLUMNS,
-  PLAYER_COLUMNS,
-  playerCell,
-  ratingsOf,
-} from '@/components/match-centre-view';
+import { comingModules } from '@/components/match-centre-view';
 import { MatchLineupsView, type PlayerExtra } from '@/components/match-lineups';
 import { MessageText } from '@/components/message-text';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
@@ -29,14 +29,68 @@ import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 
 /**
- * A finished match's statistics, player tables, expected goals and line-ups,
- * drawn on the server (T-1800..T-1802, D-398..D-400) and handed to the match
- * centre through its `matchStats` and `matchLineups` slots, so none of this
- * is in the page's JavaScript (the match centre's 183 kB budget). A finished
- * match no longer moves, so the server's snapshot is the whole of it. While a
- * match is in play the view's own modules draw these cards from the stream,
- * as before, with the live "Stats updated" line (T-1782).
+ * The match's statistics, player tables, expected goals and line-ups, drawn
+ * on the server (T-1800..T-1802, D-398..D-400) and handed to the match centre
+ * through its `matchStats` and `matchLineups` slots, so none of this is in
+ * the page's JavaScript (the match centre's 183 kB budget). Since T-1813
+ * (D-409) the statistics are drawn in every state (`liveSlots`) and, in play,
+ * drawn again by `refreshLiveModules` when the stream brings new figures; the
+ * live "Stats updated 2 min ago" line (T-1782) is a `LiveAge` that ticks on
+ * the page's clock. The line-ups likewise since T-1814, with the marks so far.
  */
+
+type Key = keyof MatchWords['m'];
+
+/** The per-player columns the match centre shows (T-101), in reading order. */
+export const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
+  ['minutes', 'matchCentre.player.minutes'],
+  ['rating', 'matchCentre.player.rating'],
+  ['goals', 'matchCentre.player.goals'],
+  ['assists', 'matchCentre.player.assists'],
+  ['shots', 'matchCentre.player.shots'],
+  ['key_passes', 'matchCentre.player.keyPasses'],
+  ['tackles', 'matchCentre.player.tackles'],
+];
+
+/**
+ * The expected-goals columns (T-1432), from their own source: a keeper's xGOT
+ * conceded and goals prevented are stored, not shown here.
+ */
+export const EXPECTED_COLUMNS: readonly [ExpectedGoalsMetric, Key][] = [
+  ['xg', 'matchCentre.expectedGoals.xg'],
+  ['xa', 'matchCentre.expectedGoals.xa'],
+  ['xgot', 'matchCentre.expectedGoals.xgot'],
+];
+
+/** One player cell: the provider's rating to one decimal, a count as it is, `–` when not supplied. */
+export function playerCell(
+  locale: string,
+  player: MatchPlayerStats,
+  metric: PlayerMatchMetric,
+): string {
+  const value = player.stats[metric];
+  if (value === undefined) return '–';
+  return metric === 'rating' ? formatFixed(locale, value, 1) : formatNumber(locale, value);
+}
+
+/**
+ * Every rating the feed gave, by player id; none for a player it did not
+ * rate, nor for a substitute who never came on.
+ */
+export function ratingsOf(centre: MatchCentre): Map<string, number> {
+  const ratings = new Map<string, number>();
+  for (const p of centre.player_statistics.data ?? []) {
+    const rating = p.stats.rating;
+    if (rating !== undefined && (p.stats.minutes ?? 1) > 0) ratings.set(p.id, rating);
+  }
+  return ratings;
+}
+
+/** A postponed or cancelled match had no play to record (T-1550). */
+const unplayed = (centre: MatchCentre): 'unplayed' | null =>
+  centre.fixture.status === 'postponed' || centre.fixture.status === 'cancelled'
+    ? 'unplayed'
+    : null;
 
 /**
  * The words only these server cards say, resolved here rather than carried
@@ -174,6 +228,14 @@ function LeadBar({ row, label, locale }: { row: MatchStatRow; label: ReactNode; 
   );
 }
 
+/**
+ * The team statistics (D-398). While the match is on and nothing has come,
+ * "Not in yet"; once they have, "Stats updated 2 min ago" under them (T-1782,
+ * rule 4) on the page's clock (`LiveAge`): asked every few minutes in play,
+ * they can stop while the score moves, so past `LIVE_STATS_STALE_AFTER_MS`
+ * the line turns to "may be behind" -- and says so at once when the card
+ * itself was not drawn again after the stream's newer figures (D-409).
+ */
 function Statistics({ centre, locale, words }: Props) {
   const m = wordsOf(locale, words);
   const f = centre.fixture;
@@ -183,6 +245,8 @@ function Statistics({ centre, locale, words }: Props) {
       module={centre.statistics}
       testId="statistics"
       words={words}
+      notInYet={f.status === 'live'}
+      before={unplayed(centre)}
     >
       {(rows) => (
         <>
@@ -223,6 +287,19 @@ function Statistics({ centre, locale, words }: Props) {
                 label={<MessageText message={m['status.coverage.notSupplied']} />}
               />
             </p>
+          )}
+          {f.status === 'live' && centre.statistics.last_updated_at !== null && (
+            <LiveAge
+              checkedAt={centre.statistics.last_updated_at}
+              staleAfterMs={LIVE_STATS_STALE_AFTER_MS}
+              locale={locale}
+              words={{
+                'freshness.checked': m['matchCentre.statsUpdated'],
+                'freshness.behind': m['freshness.behind'],
+              }}
+              testId="stats-freshness"
+              followsModules
+            />
           )}
         </>
       )}
@@ -316,6 +393,7 @@ function PlayerStatistics({ centre, locale, words }: Props) {
       module={centre.player_statistics}
       testId="player-statistics"
       words={words}
+      before={unplayed(centre)}
     >
       {(players) => (
         <div className="flex flex-col gap-3 text-sm">
@@ -392,6 +470,7 @@ function PlayerExpectedGoals({ centre, locale, words }: Props) {
       module={expected}
       testId="player-expected-goals"
       words={words}
+      before={unplayed(centre)}
       empty={
         teamXg
           ? m['matchCentre.expectedGoals.teamOnly']
@@ -458,13 +537,18 @@ interface Props {
   words: MatchWords;
 }
 
-/** The Stats tab of a finished match: statistics, player statistics, expected goals. */
-export function FinishedStats(props: Props) {
+/**
+ * The Stats tab in every state (T-1813, D-409): statistics, player
+ * statistics, expected goals. Before kick-off a module the coming card names
+ * (`comingModules`, T-1745) is not drawn: the card says it will come.
+ */
+export function MatchStats(props: Props) {
+  const coming = new Set(comingModules(props.centre).map((item) => item.id));
   return (
     <>
-      <Statistics {...props} />
-      <PlayerStatistics {...props} />
-      <PlayerExpectedGoals {...props} />
+      {!coming.has('statistics') && <Statistics {...props} />}
+      {!coming.has('player_statistics') && <PlayerStatistics {...props} />}
+      {!coming.has('expected_goals') && <PlayerExpectedGoals {...props} />}
     </>
   );
 }
@@ -577,19 +661,32 @@ function MarkGlyphs({ marks }: { marks: readonly Mark[] }) {
 }
 
 /**
- * The line-ups of a finished match (T-1801, D-399): the view's pitch and
- * benches, with each player's surname whole, what happened to him in words
- * under his name and as a mark on his disc, and "On 68′ for …" on the bench.
- * When the match's events are not supplied, one sentence says the pitch
- * carries no marks (rule 3).
+ * The line-ups (T-1801, D-399), in every state since T-1814 (D-409): the
+ * view's pitch and benches, with each player's surname whole, what happened
+ * to him so far in words under his name and as a mark on his disc, and
+ * "On 68′ for …" on the bench; in play `refreshLiveModules` draws it again
+ * when an event or new ratings arrive. Before kick-off "not announced yet",
+ * in play "Not in yet", for a postponed or cancelled match "not played". When
+ * the match's events are not supplied after play, one sentence says the
+ * pitch carries no marks (rule 3); while the match is to come or on, the key
+ * events card says what is missing instead.
  */
-export function FinishedLineups({ centre, locale, words }: Props) {
+export function MatchLineups({ centre, locale, words }: Props) {
   const m = wordsOf(locale, words);
   const f = centre.fixture;
   const events = centre.timeline.data;
   const marks = lineupMarks(events ?? [], locale, f.scores);
+  const open = f.status === 'scheduled' || f.status === 'live' || f.status === 'suspended';
   return (
-    <Module title={m['matchCentre.lineups']} module={centre.lineups} testId="lineups" words={words}>
+    <Module
+      title={m['matchCentre.lineups']}
+      module={centre.lineups}
+      testId="lineups"
+      words={words}
+      empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
+      notInYet={f.status === 'live'}
+      before={unplayed(centre)}
+    >
       {(lineups) => {
         const nameOf = pitchNames([...lineups.home, ...lineups.away], locale);
         const decorate = (p: MatchLineupPlayer): PlayerExtra => {
@@ -613,7 +710,7 @@ export function FinishedLineups({ centre, locale, words }: Props) {
               locale={locale}
               words={words}
             />
-            {events === null && (
+            {events === null && !open && (
               <p dir="auto" className="text-xs text-caption" data-testid="lineup-marks-none">
                 <MessageText message={m['matchCentre.lineups.marksNone']} />
               </p>

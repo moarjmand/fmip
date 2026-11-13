@@ -22,7 +22,9 @@ import { ForecastReality } from '@/app/[locale]/match/[id]/forecast-reality';
 import { CommunityForecastPanel, CommunityPicksRow } from './community-consensus';
 import { FounderAnalysisPanel } from './founder-analysis';
 import { MatchCentreView } from './match-centre-view';
-import { FinishedLineups, FinishedStats, STAT_GROUPS, statGroups } from './match-stats-panels';
+import { KeyEvents } from './match-key-events';
+import { liveSlots } from './match-live-slots';
+import { MatchLineups, MatchStats, STAT_GROUPS, statGroups } from './match-stats-panels';
 import { STAT_KEY } from '@/lib/match';
 import { MatchLineupsView } from './match-lineups';
 import { HighlightsLink, WatchLine } from './viewing-panel';
@@ -493,7 +495,7 @@ describe('per-player expected goals (T-1432)', () => {
         centre={c}
         timeZone="UTC"
         locale={locale}
-        slots={{ matchStats: <FinishedStats centre={c} locale={locale} words={words} /> }}
+        slots={{ matchStats: <MatchStats centre={c} locale={locale} words={words} /> }}
       />,
     );
   };
@@ -621,14 +623,26 @@ describe('per-player expected goals (T-1432)', () => {
     expect(card(html)).not.toContain('No expected goals by player are supplied');
   });
 
-  it('in play, without the slot, keeps the view’s own card under the same neutral heading', () => {
+  it('in play, the server’s card too, under the same neutral heading (T-1813, D-409)', () => {
+    const words = matchWords('en');
+    const c = centre({});
     const live = renderToStaticMarkup(
-      <MatchCentreView words={matchWords('en')} centre={centre({})} timeZone="UTC" locale="en" />,
+      <MatchCentreView
+        words={words}
+        centre={c}
+        timeZone="UTC"
+        locale="en"
+        slots={liveSlots({ centre: c, locale: 'en', timeZone: 'UTC', words })}
+      />,
     );
     const own = card(live);
     expect(own).toContain('Expected goals by player');
     expect(own).not.toContain('Highlightly');
-    expect(live).not.toContain('data-group="match"');
+    // The view has no card of its own any more: without the slot, none.
+    const bare = renderToStaticMarkup(
+      <MatchCentreView words={words} centre={c} timeZone="UTC" locale="en" />,
+    );
+    expect(card(bare)).toBe('');
   });
 });
 
@@ -694,8 +708,9 @@ describe('the score band', () => {
   });
 
   it('says that no event is recorded yet rather than drawing an empty list', () => {
+    // The server's card in play since T-1812 (D-409).
     const html = renderToStaticMarkup(
-      <MatchCentreView
+      <KeyEvents
         words={matchWords('en')}
         centre={{
           ...centre({}),
@@ -1135,16 +1150,20 @@ describe('the community against the result', () => {
 });
 
 describe('the match centre says what happened in words (T-1478)', () => {
-  const full = (c: MatchCentre, locale = 'en') =>
-    renderToStaticMarkup(
+  // As the page draws it: the moving modules from the server (D-409).
+  const full = (c: MatchCentre, locale = 'en') => {
+    const words = matchWords(locale);
+    return renderToStaticMarkup(
       <MatchCentreView
-        words={matchWords(locale)}
+        words={words}
         centre={c}
         timeZone="UTC"
         locale={locale}
         hero={{}}
+        slots={liveSlots({ centre: c, locale, timeZone: 'UTC', words })}
       />,
     );
+  };
   const sub = {
     id: 'i1',
     sequence: 1,
@@ -1243,7 +1262,7 @@ describe('a finished match’s line-ups and player table (D-399, D-400)', () => 
     ...over,
   });
   const lineupsOf = (c: MatchCentre, locale = 'en') =>
-    renderToStaticMarkup(<FinishedLineups centre={c} locale={locale} words={matchWords(locale)} />);
+    renderToStaticMarkup(<MatchLineups centre={c} locale={locale} words={matchWords(locale)} />);
   const pitch = (html: string) =>
     html.slice(
       html.indexOf('data-testid="pitch-home"'),
@@ -1323,6 +1342,25 @@ describe('a finished match’s line-ups and player table (D-399, D-400)', () => 
     expect(text(bench(html))).not.toMatch(/On 68′ for/);
   });
 
+  it('in play, the marks so far, "On 68′ for …" on the bench, and no verdict on missing events (T-1814)', () => {
+    const home = [...eleven(4, 4, 2), player('forward', { role: 'bench', name: 'Emanuel Emegha' })];
+    const [off, on] = [home[10]!, home[11]!];
+    const live = (events: MatchIncident[] | null): MatchCentre => {
+      const c = finished(home, events);
+      return { ...c, fixture: { ...c.fixture, status: 'live', minute: 70 } };
+    };
+    const html = lineupsOf(
+      live([incident('substitution', 68, off, { related_player: { id: on.id, name: on.name } })]),
+    );
+    expect(text(bench(html))).toMatch(/On 68′ for /);
+    // The events not in yet: the key events card says so, not the pitch.
+    expect(lineupsOf(live(null))).not.toContain('data-testid="lineup-marks-none"');
+    // Before the line-ups arrive in play, "Not in yet", never "not supplied".
+    const waiting = lineupsOf({ ...live(null), lineups: empty });
+    expect(waiting).toContain(EN['matchCentre.notInYet']);
+    expect(waiting).not.toContain('Not supplied for this match.');
+  });
+
   it('writes the surname whole, with the initial only where two players share it', () => {
     const home = eleven(4, 4, 2);
     home[0] = { ...home[0]!, name: 'Jorrel Acheampong' };
@@ -1365,7 +1403,7 @@ describe('a finished match’s line-ups and player table (D-399, D-400)', () => 
       },
     });
     const html = renderToStaticMarkup(
-      <FinishedStats centre={c} locale="en" words={matchWords('en')} />,
+      <MatchStats centre={c} locale="en" words={matchWords('en')} />,
     );
     const table = html.slice(html.indexOf('data-testid="player-statistics"'));
     expect(table).toMatch(/<th scope="row" class="sticky start-0[^"]*bg-surface/);

@@ -26,14 +26,15 @@ import { JsonLd } from '@/components/json-ld';
 import { KeyPlayersPanel } from '@/components/key-players';
 import { LiveMatch } from '@/components/live-match';
 import { DataCard } from '@/components/match-centre-cards';
+import { MatchAvailability } from '@/components/match-availability';
 import { Coverage, HeadToHead, MatchForm } from '@/components/match-record';
-import { FinishedLineups, FinishedStats } from '@/components/match-stats-panels';
 import { MatchFollow } from '@/components/match-follow';
 import { MatchToolsRow } from '@/components/match-tools-row';
 import { MatchPanel } from '@/components/match-panel';
 import { linkChoices } from '@/lib/panel-link';
 import { MatchSummaryPanel } from '@/components/match-summary';
-import { KeyEvents, shootoutHero } from '@/components/match-key-events';
+import { shootoutHero } from '@/components/match-key-events';
+import { liveSlots } from '@/components/match-live-slots';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { MatchThreads } from '@/components/match-threads';
 import { RelatedNews } from '@/components/related-news';
@@ -65,6 +66,7 @@ import {
   fetchTerritories,
 } from '@/lib/api';
 import { readPick } from '@/lib/pick';
+import { retryUnreachable } from '@/lib/live-modules';
 import { isTimeZone } from '@/lib/scores';
 import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -86,7 +88,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * answer (T-1536). Each API call carries its own request id, so `fetch` would
  * not merge the two by itself.
  */
-const matchCentre = cache((id: string) => fetchMatchCentre(id));
+const matchCentre = cache((id: string) =>
+  // Asked twice before the page says it is unreachable (finding
+  // arc-2026-11-13-01): a status change's or a panel event's refresh that
+  // drew that notice would put it in place of the live view.
+  retryUnreachable(() => fetchMatchCentre(id)),
+);
 
 export async function generateMetadata({
   params,
@@ -371,19 +378,12 @@ export default async function MatchPage({
                 penalties: shootoutHero(locale, result.data.fixture),
               }}
               slots={{
-                // A finished match's key events and shoot-out (T-1799, D-397),
-                // drawn here: a finished match does not move, and none of it
-                // is then in the page's JavaScript. While it is on, the
-                // client's own timeline is drawn.
-                keyEvents:
-                  result.data.fixture.status === 'finished' ? (
-                    <KeyEvents
-                      centre={result.data}
-                      locale={locale}
-                      timeZone={timeZone}
-                      words={words}
-                    />
-                  ) : undefined,
+                // The moving modules (D-409), drawn here in every state so none
+                // of them is in the page's JavaScript; in play `LiveMatch` has
+                // them drawn again by `refreshLiveModules` when the stream says
+                // they changed. Before kick-off the coming card stands where it
+                // names them. The same cards the function draws (`liveSlots`).
+                ...liveSlots({ centre: result.data, locale, timeZone, words }),
                 // The Summary opens with what the model forecast and, after
                 // full time, what happened (T-1497): the model's card alone,
                 // drawn on the server, and the one place the forecast is
@@ -462,15 +462,17 @@ export default async function MatchPage({
                   />
                 ),
                 coverage: <Coverage centre={result.data} words={words} locale={locale} />,
-                // A finished match's statistics, tables, xG and line-ups (T-1800..T-1802):
-                // it no longer moves, so drawn here and off the client; in play
-                // the view draws them from the stream.
-                ...(result.data.fixture.status === 'finished' && {
-                  matchStats: <FinishedStats centre={result.data} locale={locale} words={words} />,
-                  matchLineups: (
-                    <FinishedLineups centre={result.data} locale={locale} words={words} />
-                  ),
-                }),
+                // Who will miss the match (T-1810, D-409): a pre-match answer,
+                // so drawn here and off the client like the form above.
+                availability: (
+                  <MatchAvailability
+                    centre={result.data}
+                    locale={locale}
+                    timeZone={timeZone}
+                    now={now}
+                    words={words}
+                  />
+                ),
                 venue: (
                   <VenueCard venue={result.data.fixture.venue} locale={locale} words={words} />
                 ),
