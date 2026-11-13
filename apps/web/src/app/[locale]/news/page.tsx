@@ -1,6 +1,12 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
-import { NEWS_SECTIONS, STORY_TYPES, type NewsSection, type NewsStoryCard } from '@fmip/contracts';
+import {
+  NEWS_SECTIONS,
+  STORY_TYPES,
+  newsSourcesMixed,
+  type NewsSection,
+  type NewsStoryCard,
+} from '@fmip/contracts';
 import { ActionForm } from '@/components/action-form';
 import { SaveArticle } from '@/components/save-article';
 import { Translated } from '@/components/translated';
@@ -153,10 +159,12 @@ export default async function NewsPage({
   const now = new Date().toISOString();
 
   // T-1613 (D-284): a first page is a front page -- the lead, the cards, the list.
-  // Latest mixes its publishers, three in a row at most (T-1704).
+  // Latest mixes its publishers: the API does it for every reader but a
+  // Persian one (T-1816, D-411); a Persian page keeps three in a row at most
+  // within the page, as it did (T-1704).
   const stories = result.ok ? (result.data.stories.data ?? []) : [];
   const front = frontPage(
-    q.section === 'latest' ? interleaveSources(stories) : stories,
+    q.section === 'latest' && !newsSourcesMixed(locale) ? interleaveSources(stories) : stories,
     q.before === null,
   );
   const rail =

@@ -55,6 +55,14 @@ describe('readNewsQuery', () => {
     expect(q.before).toBe('2026-09-18T00:00:00Z');
   });
 
+  it('keeps a page of latest’s mixed list as the API wrote it (T-1816)', () => {
+    expect(readNewsQuery({ before: '2026-09-18T00:00:00.000Z~40' }).before).toBe(
+      '2026-09-18T00:00:00.000Z~40',
+    );
+    expect(readNewsQuery({ before: '2026-09-18T00:00:00.000Z~' }).before).toBeNull();
+    expect(readNewsQuery({ before: 'yesterday~40' }).before).toBeNull();
+  });
+
   it('drops a malformed value rather than passing it on to be refused', () => {
     const q = readNewsQuery({
       section: 'opinion',

@@ -15256,3 +15256,23 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 
 **Consequences.** A browser that has seen the header will refuse plain HTTP to the host for six months; going back to HTTP-only would need `max-age=0` served over HTTPS and visitors returning to pick it up. The rollout recreates Caddy. The security agent's weekly check now expects `max-age=15552000`.
 
+## D-411 — The latest list mixes its sources in the API: three in a row at most, no source above 30%
+
+**Status:** Accepted · 2026-11-13 (maintainer, desk decisions d-2026-11-01-03 "interleave" and d-2026-11-05-01 "a 30% cap per source in Latest") · **Task:** T-1816 · **Follows:** T-1704, T-1450, rule 3 · **Supersedes:** T-1704's interleave within a page for every reader but a Persian one
+
+**Context.** Yahoo Sports wrote 26.3, 27.7, 29.8 and then 30.5% of the day's English stories over four days (335 of about 1,099; cnt-2026-11-04-01), and the first forty stories of `/en/news` were all its own. T-1704 (the first answer to d-2026-11-01-03) reordered a page in the web, three in a row at most, but only among the cards of that page: a page of forty from one source stayed one source. On 2026-11-13 the maintainer confirmed the interleave and added the cap: no source above 30% of the Latest list, nothing deleted, the overflow moving down.
+
+**Decision.**
+1. **In the API's read path.** `PostgresNewsReadStore.latest` mixes the list for every reader whose locale is not Persian (`newsSourcesMixed` in the contracts). It covers every list read through `latest`: the news page's Latest, the homepage's news block, and team and competition news. A Persian reader and an internal caller (no locale) read the plain order, newest first.
+2. **The rule** (`mixSources`, `internal/source-mix.ts`, constants `SOURCE_MIX`). The list is composed in order; each place takes the newest story not yet placed, among the next 50 (`lookahead`), that makes no fourth in a row from one source (`maxRun` 3) and keeps its source within 30% of the list so far, rounded up (`maxShare`: one of the first three, two of the first six, twelve of the first forty). The cap holds for every top of the list, so the homepage's six are the news page's first six. When none within reach keeps both rules the run rule alone decides, and when none keeps that either (the next 50 all from one source) the newest takes the place: the list never stalls and never drops a story.
+3. **Nothing is deleted.** A story that would break a rule waits for a later place, while its source holds its share; one source's stories keep their own order. The rows are unchanged; only the order a reader sees is.
+4. **Deterministic, and paged without loss.** The list depends on the stories alone. A page reads `fetchSize(skip + limit) + 50` rows and composes only as far as every place's reach is inside what it read, so it composes exactly what the whole list begins with. Because a story can wait past the end of a page, the page's cursor (`NewsCursor`, `next_before`) is `<instant>~<n>`: the next page composes the list from the same instant and passes over the `n` cards already shown. When no story waits at the end of a page the cursor is a plain instant and the next page starts afresh, so the cost stays a page's. Past `NEWS_CURSOR_MAX_SKIP` (200 cards) the next page starts afresh just above the newest story still waiting: a story pulled up past it may then show twice, none is skipped. A cursor naming more than 200 is refused (400), so a request cannot ask for an unbounded read. The web accepts the new cursor as it is (`readNewsCursor`).
+5. **The web.** T-1704's `interleaveSources` now runs on a Persian page only, as it did; every other page shows the API's order.
+
+**Rejected.**
+- *A daily cap per source* (d-2026-11-01-03's second option): it hides stories, and the maintainer asked that nothing be deleted.
+- *Mixing within a page* (T-1704 as it was): it cannot reach past a run as long as the page.
+- *An offset cursor from "now"*: the list moves as stories arrive; an instant with an offset composes the same list on every page.
+- *Mixing the Persian list too*: not asked; the decision was about the English list's sources.
+
+**Consequences.** A mixed page reads about 50 more rows than before, and a page deep into a long wait re-reads the cards before it (at most 200). New contracts: `NewsCursor`, `readNewsCursor`, `writeNewsCursor`, `NEWS_CURSOR_MAX_SKIP`, `newsSourcesMixed`. The content agent's 30% line (cnt) measures what the feeds wrote, which this does not change; what readers see is now capped.

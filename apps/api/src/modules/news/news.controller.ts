@@ -29,6 +29,9 @@ import {
   isNewsSection,
   isStoryType,
   newsCoverageState,
+  readNewsCursor,
+  writeNewsCursor,
+  type NewsCursor,
   type StoryType,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
@@ -122,12 +125,16 @@ function limitOf(value: unknown): number {
   return n;
 }
 
-function beforeOf(value: unknown): string | null {
+/**
+ * `?before=` as a cursor (`NewsCursor`): an instant, with `~n` on a page of
+ * latest's mixed list (T-1816, D-411).
+ */
+function beforeOf(value: unknown): NewsCursor | null {
   const v = first(value);
   if (v === undefined) return null;
-  const at = new Date(v);
-  if (Number.isNaN(at.getTime())) throw bad('before must be a time.');
-  return at.toISOString();
+  const cursor = readNewsCursor(v);
+  if (cursor === null) throw bad('before must be a time, or a page of latest.');
+  return cursor;
 }
 
 /**
@@ -211,7 +218,12 @@ export class NewsController {
     switch (wanted satisfies NewsSection) {
       case 'latest':
         return answer(
-          await this.store.latest(filters, locale, before, limit),
+          await this.store.latest(
+            filters,
+            locale,
+            before === null ? null : writeNewsCursor(before),
+            limit,
+          ),
           'available',
           'nothing_yet',
         );
@@ -260,7 +272,7 @@ export class NewsController {
             filters,
             locale,
             { teams: ids('team'), competitions: ids('competition'), persons: ids('person') },
-            before,
+            before?.at ?? null,
             limit,
           ),
           'available',

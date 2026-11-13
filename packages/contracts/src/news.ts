@@ -19,6 +19,51 @@ export const NEWS_PAGE_SIZE = 40;
 export const TRENDING_WINDOW_HOURS = 48;
 
 /**
+ * Where the next page of a section begins (`next_before`, sent back as
+ * `?before=`): an instant, the list then holding only stories ordered before
+ * it. Latest mixes its sources (T-1816, D-411), so a story can move down past
+ * the end of a page; its cursor may then add `~n`, the cards already shown of
+ * the list as composed from that instant, written `<instant>~<n>`.
+ */
+export interface NewsCursor {
+  /** ISO 8601. */
+  at: string;
+  /** Cards of the list from `at` already shown; 0 for a plain instant. */
+  skip: number;
+}
+
+/**
+ * The most cards a cursor may say were shown: each page re-reads them all, so
+ * past this the next page starts afresh at an instant instead.
+ */
+export const NEWS_CURSOR_MAX_SKIP = 200;
+
+/** A `?before=` value as a cursor, or `null` when it is not one. */
+export function readNewsCursor(value: string): NewsCursor | null {
+  const m = /^(.+?)(?:~([0-9]{1,4}))?$/.exec(value);
+  if (m === null || m[1] === undefined) return null;
+  const at = new Date(m[1]);
+  const skip = m[2] === undefined ? 0 : Number(m[2]);
+  if (Number.isNaN(at.getTime()) || skip > NEWS_CURSOR_MAX_SKIP) return null;
+  return { at: at.toISOString(), skip };
+}
+
+/**
+ * Whether the API mixes the sources of a reader's latest list (T-1816,
+ * D-411): every reader's but a Persian one's. No locale is an internal
+ * caller, which reads the plain order.
+ */
+export function newsSourcesMixed(locale: string | null): boolean {
+  if (locale === null) return false;
+  return locale.split('-')[0]!.toLowerCase() !== 'fa';
+}
+
+/** A cursor as `?before=` carries it. */
+export function writeNewsCursor(cursor: NewsCursor): string {
+  return cursor.skip === 0 ? cursor.at : `${cursor.at}~${cursor.skip}`;
+}
+
+/**
  * A story's type (blueprint 3.2, T-1001, D-123): the blueprint's eleven and
  * nothing else. The database's `story_label_type_known` check is the same
  * list; `story-label.schema.spec.ts` fails when the two differ.
@@ -244,7 +289,7 @@ export interface NewsSectionResponse {
    */
   stories: Covered<NewsStoryCard[]>;
   reason: NewsSectionReason | null;
-  /** `?before=` for the next page of latest and following; `null` when this is the last. */
+  /** `?before=` for the next page of latest and following (`NewsCursor`); `null` when this is the last. */
   next_before: string | null;
   /**
    * With a type filter only (T-1003, D-124): how many stories that match
