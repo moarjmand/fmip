@@ -104,8 +104,11 @@ async function render(
   locale = 'en',
   /** Link the story to a match, as a preview of it would be. */
   linked = false,
+  /** Change the page's answer before it is drawn. */
+  adjust: (data: StoryPageData) => void = () => undefined,
 ): Promise<string> {
   const data = page(rights);
+  adjust(data);
   if (linked) {
     data.story.entities.push({
       entity_type: 'fixture',
@@ -137,11 +140,12 @@ describe('the story page (T-1621, D-291)', () => {
     expect(out).not.toMatch(PHYSICAL);
   });
 
-  it('keeps the reading faces: the headline in the editorial face, the words in the article face', async () => {
+  it('keeps the publisher’s words in the article face, the headline in the interface face (T-1805, D-403)', async () => {
     const out = await render('full_text');
     expect(out).toMatch(
-      /<h1 dir="auto" class="font-serif[^"]*"[^>]*data-testid="title">Arsenal win/,
+      /<h1 dir="auto" class="text-display-1 font-bold[^"]*"[^>]*data-testid="title">Arsenal win/,
     );
+    expect(out).not.toMatch(/<h1[^>]*font-serif/);
     expect(out).toMatch(
       /dir="auto" class="font-article text-article[^"]*" data-testid="story-body">The words\./,
     );
@@ -275,6 +279,26 @@ describe('the predictions card on the story page (T-1741, D-362)', () => {
 });
 
 describe('the story page’s targets (T-1621, D-291)', () => {
+  it('draws no "Not categorised" and folds one version with no correction into the source line (T-1797)', async () => {
+    const out = await render('summary');
+    expect(out).not.toContain('Not categorised');
+    expect(out).not.toContain('data-testid="story-type-none"');
+    const source = out.split('data-testid="story-source"')[1]?.split('</p>')[0] ?? '';
+    expect(source).toContain('data-testid="story-version-line"');
+    expect(source).toContain('the publisher&#x27;s own words');
+    expect(source).toContain('data-testid="story-no-corrections"');
+    expect(source).toContain('No corrections noted');
+    expect(out).not.toContain('id="languages"');
+    expect(out).not.toContain('id="corrections"');
+    // A correction keeps its card, in words.
+    const corrected = await render('summary', 'en', false, (data) => {
+      data.corrections.push({ note: 'The fee was misreported.', noted_at: '2026-10-26T08:00:00Z' });
+    });
+    expect(corrected).toContain('id="corrections"');
+    expect(corrected).toContain('The fee was misreported.');
+    expect(corrected).not.toContain('data-testid="story-version-line"');
+  });
+
   it('gives the back link, the language and the entity links a 44px target', async () => {
     const out = await render('summary');
     for (const testId of ['back-to-news']) {
@@ -282,7 +306,17 @@ describe('the story page’s targets (T-1621, D-291)', () => {
         new RegExp(`<a[^>]*class="[^"]*min-h-touch[^"]*"[^>]*data-testid="${testId}"`),
       );
     }
-    const language = /<a[^>]*data-language="en"[^>]*>/.exec(out)?.[0] ?? '';
+    // Two versions keep the Languages card and its links (T-1797).
+    const two = await render('summary', 'en', false, (data) => {
+      data.versions.push({
+        language: 'fa',
+        version_number: 1,
+        updated_at: '2026-10-25T19:05:00Z',
+        origin: 'translation',
+        review_state: 'translated',
+      });
+    });
+    const language = /<a[^>]*data-language="en"[^>]*>/.exec(two)?.[0] ?? '';
     expect(language).toContain('min-h-touch');
     expect(language).toContain('aria-current="true"');
     expect(out).toMatch(

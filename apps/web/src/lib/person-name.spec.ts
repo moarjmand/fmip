@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { listName } from './person-name';
+import { listName, shortName } from './person-name';
 
 describe('listName (T-1395): one name style on a match page', () => {
   it("shortens a full Latin name to the feed's initial-and-surname style", () => {
@@ -46,5 +46,15 @@ describe('listName (T-1395): one name style on a match page', () => {
 
   it('keeps every name as stored on a Persian page', () => {
     expect(listName('fa', 'Mohamed Salah')).toBe('Mohamed Salah');
+  });
+});
+
+describe('shortName (T-1796, D-395): the short form where a full name does not fit', () => {
+  it('shortens the same names as listName, on every page', () => {
+    expect(shortName('Alexis Mac Allister')).toBe('A. Mac Allister');
+    expect(shortName('Mohamed Salah')).toBe(listName('en', 'Mohamed Salah'));
+    // A name it cannot shorten safely is returned as stored.
+    expect(shortName('Vinícius Júnior')).toBe('Vinícius Júnior');
+    expect(shortName('Pedro Neto')).toBe('Pedro Neto');
   });
 });

@@ -62,12 +62,13 @@ describe('a match on the scores list', () => {
     expect(html).toContain('href="/en/match/00000000-0000-4000-8000-000000000901"');
     expect(html).toMatch(/data-testid="score-status"[^>]*>67′</);
     expect(html).toMatch(/text-live" data-testid="score-status"/);
-    // T-1757 (D-374): a name wraps inside its own line and is never clamped.
+    // T-1757 (D-374): a name wraps inside its own line and is never clamped;
+    // between words only, never hyphenated (T-1796, D-395).
     expect(html).toMatch(
-      /<bdi class="min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base font-semibold">Liverpool<\/bdi>/,
+      /<bdi class="min-w-0 break-words hyphens-manual leading-tight text-sm @xl:text-base font-semibold">Liverpool<\/bdi>/,
     );
     expect(html).toMatch(
-      /<bdi class="min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base font-semibold">Manchester United/,
+      /<bdi class="min-w-0 break-words hyphens-manual leading-tight text-sm @xl:text-base font-semibold">Manchester United/,
     );
     expect(html).not.toContain('line-clamp');
     expect(html).toContain('min-h-11');

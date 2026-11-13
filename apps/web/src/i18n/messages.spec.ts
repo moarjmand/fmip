@@ -263,7 +263,8 @@ describe('plurals (T-301)', () => {
     // another day's).
     // T-1783: three added (the leaderboard card's third step, long and short,
     // and the folded filters' "N applied").
-    expect(pluralKeys).toHaveLength(118);
+    // T-1807: two added (the coach record's age, in the band and the career).
+    expect(pluralKeys).toHaveLength(120);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

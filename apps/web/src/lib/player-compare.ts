@@ -345,3 +345,48 @@ export function pickerQuery(term: string, limit = 10): string | null {
   const query = apiQuery(term, limit);
   return query === null ? null : `${query}&types=person`;
 }
+
+// ---------------------------------------------------------------------------
+// T-1804 (D-402): the filter folded by season, and the figures drawn as bars.
+// ---------------------------------------------------------------------------
+
+/** One season's scopes, for the folded filter's heading and its rows. */
+export interface SeasonScopes {
+  season: CompareScope['season'];
+  scopes: CompareScope[];
+}
+
+/** The scopes under their season, in `scopesOf`'s order (newest season first). */
+export function scopesBySeason(scopes: readonly CompareScope[]): SeasonScopes[] {
+  const groups: SeasonScopes[] = [];
+  for (const scope of scopes) {
+    const last = groups[groups.length - 1];
+    if (last !== undefined && last.season.id === scope.season.id) last.scopes.push(scope);
+    else groups.push({ season: scope.season, scopes: [scope] });
+  }
+  return groups;
+}
+
+/** A figure where more is not better, so no side is marked as ahead on it. */
+const UNMARKED: ReadonlySet<string> = new Set(['yellow_cards', 'red_cards']);
+
+/**
+ * How a row is drawn (T-1804, D-402): each side's bar as a share of the
+ * row's larger figure, and which side is ahead (`null` on a tie). Null -- no
+ * bar, no mark -- for the cards, where more is not better; when either side
+ * has no figure, since a coverage state is not a comparison; and when either
+ * side's minutes are partial ("at least"), since the true total could be
+ * either side's.
+ */
+export function rowBars(row: CompareRow): { a: number; b: number; ahead: 'a' | 'b' | null } | null {
+  if (UNMARKED.has(row.key)) return null;
+  const { a, b } = row;
+  if (a.value === null || b.value === null) return null;
+  if (a.partial !== undefined || b.partial !== undefined) return null;
+  const top = Math.max(a.value, b.value);
+  return {
+    a: top === 0 ? 0 : a.value / top,
+    b: top === 0 ? 0 : b.value / top,
+    ahead: a.value === b.value ? null : a.value > b.value ? 'a' : 'b',
+  };
+}

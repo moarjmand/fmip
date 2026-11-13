@@ -239,7 +239,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     viewing,
     teamPages,
   ] = await Promise.all([
-    loadForecasts(lead === null ? [] : [lead.id]),
+    // The hero's line, and each row of "today" not yet finished (T-1806, D-405).
+    loadForecasts([
+      ...new Set([
+        ...(lead === null ? [] : [lead.id]),
+        ...groups.flatMap((g) => g.cards.filter((c) => c.status !== 'finished').map((c) => c.id)),
+      ]),
+    ]),
     // The hero's versions, for what the bar's version stored (T-1495).
     lead !== null ? fetchForecasts(lead.id) : null,
     // T-1460: the tables alone, not the whole competition pages.
@@ -349,6 +355,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 scoresHref={`${scoresHref}${day === today ? '' : `?date=${day}`}`}
                 locale={lang}
                 timeZone={timeZone}
+                forecasts={forecasts}
+                now={now.getTime()}
               />
             )}
             {member && (

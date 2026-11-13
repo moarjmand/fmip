@@ -28,6 +28,7 @@
 import type { AdapterError, AdapterResult, Transport } from '../adapters/_contract';
 import type { NormalisedNewsItem } from '../normalised';
 import { isoDate, textOf } from './feed';
+import { stripPhotoCredit } from './photo-credit';
 
 export const GNEWS_ENDPOINT = 'https://gnews.io/api/v4/search';
 
@@ -168,7 +169,7 @@ function articleOf(raw: unknown, language: string, options: GNewsOptions): GNews
     externalId: url.toString(),
     url: url.toString(),
     headline,
-    summary: stringOf(article.description),
+    summary: stripPhotoCredit(stringOf(article.description)),
     byline: null,
     publishedAt: typeof article.publishedAt === 'string' ? isoDate(article.publishedAt) : null,
     language: lang ?? language,

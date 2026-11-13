@@ -101,6 +101,8 @@ const INCIDENT_KEYS = [
   'matchCentre.incident.goal',
   'matchCentre.incident.ownGoal',
   'matchCentre.incident.penaltyGoal',
+  // A penalty scored in play; a shoot-out's kick keeps "Penalty" (D-322, D-396).
+  'matchCentre.incident.penaltyGoalInPlay',
   'matchCentre.incident.penaltyMissed',
   'matchCentre.incident.yellowCard',
   'matchCentre.incident.secondYellow',
@@ -417,6 +419,8 @@ export const MATCH_KEYS = [
   'matchCentre.bestSix',
   'matchCentre.minutesPlayed',
   'matchCentre.ratingsNote',
+  // The stats groups, the tables' legend, the team-only xG sentence and the
+  // line-up marks are said on the server only (`match-stats-panels.tsx`).
 ] as const;
 
 export type MatchWords = ClientWords<(typeof MATCH_KEYS)[number]>;

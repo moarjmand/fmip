@@ -202,6 +202,11 @@ describe('menuView', () => {
     expect(epl).toContain('class="menu-row"');
     expect(epl).toContain('data-testid="competitions-menu-item"');
     expect(epl).toContain('<bdi>Premier League</bdi>');
+    // A long name takes a second line, never an ellipsis or a break inside a word (T-1796, D-395).
+    expect(epl).toMatch(
+      /<span class="[^"]*break-words hyphens-manual line-clamp-2" data-testid="competitions-menu-name">/,
+    );
+    expect(epl).not.toContain('truncate');
     expect(epl).toMatch(/data-kind="live"[^>]*>.*live-dot.*1 live<\/span>/);
     // Later today: the next kick-off in the reader's zone.
     expect(row(v, 'facup')).toMatch(

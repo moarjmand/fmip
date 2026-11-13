@@ -104,10 +104,10 @@ export async function generateMetadata({
  * about headline and summary only small print under it.
  *
  * T-1621 (D-291) takes it off editorial paper: it follows the theme like
- * every other page. The reading stays a reading: the headline in the
- * editorial face, as the news front page sets its lead (D-284), and the
- * publisher's words in the article face at the 680px measure (Newsreader on
- * a Latin page, Vazirmatn on /fa). Everything beside the words is a card on
+ * every other page. The reading stays a reading: the publisher's words in
+ * the article face at the 680px measure (Newsreader on a Latin page,
+ * Vazirmatn on /fa). The headline is in the interface face since T-1805
+ * (D-403): a headline someone else wrote is never in the founder's serif. Everything beside the words is a card on
  * the surface, and every control in it a 44px target on a phone.
  */
 const CARD = 'flex flex-col gap-2.5 rounded-tile border border-default bg-surface p-4 text-sm';
@@ -149,6 +149,11 @@ export default async function StoryPage({
   const match = story.entities.find((e) => e.entity_type === 'fixture') ?? null;
   const named = story.entities.filter((e) => e.entity_type !== 'fixture');
   const when = (iso: string): string => formatDateTime(locale, iso, timeZone);
+  // A story in one version with no correction folds Languages and Corrections
+  // into its source line (T-1797); a second version or a correction keeps the cards.
+  const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const only = page.versions.length === 1 ? page.versions[0] : undefined;
+  const quiet = page.versions.length <= 1 && page.corrections.length === 0;
   // The moment this answer is rendered: a kick-off already past offers no pick.
   const now = new Date().getTime();
   // What is read about the story's match (T-1741), each from its own public
@@ -238,12 +243,14 @@ export default async function StoryPage({
         <div className="grid gap-10 lg:grid-cols-[minmax(0,42.5rem)_minmax(0,1fr)] lg:gap-14">
           <article className="flex max-w-measure min-w-0 flex-col gap-5" lang={story.language}>
             <header className="flex flex-col gap-3">
-              <StoryTypeTag locale={locale} type={story.type} sayNone />
+              {/* No "Not categorised" for a reader (T-1797): a story with no type
+                  carries no tag here, as on a card; the editors' desk still says so. */}
+              <StoryTypeTag locale={locale} type={story.type} />
               {/* The publisher's words in their own direction (T-1622): an English
                   story on /fa ends its sentences on the right side. */}
               <h1
                 dir="auto"
-                className="font-serif text-display-1 font-semibold break-words sm:text-display-2 md:text-display-3"
+                className="text-display-1 font-bold break-words sm:text-display-2 md:text-display-3"
                 data-testid="title"
               >
                 {story.headline}
@@ -276,6 +283,31 @@ export default async function StoryPage({
                   <Translated locale={locale} message="news.noTime" />
                 ) : (
                   <time dateTime={story.published_at}>{when(story.published_at)}</time>
+                )}
+                {/* One version and nothing corrected (T-1797): the Languages and
+                    Corrections cards fold into this line, still said in words. */}
+                {quiet && only !== undefined && (
+                  <span data-testid="story-version-line">
+                    {' · '}
+                    <FilledMessage
+                      message={message(l, 'story.versionLine')}
+                      params={{
+                        language: languageName(intlLocale(locale), only.language),
+                        status: (
+                          <Translated
+                            locale={locale}
+                            message={VERSION_STATUS_KEY[versionStatus(only)]}
+                          />
+                        ),
+                      }}
+                    />
+                  </span>
+                )}
+                {quiet && (
+                  <span data-testid="story-no-corrections">
+                    {' · '}
+                    <Translated locale={locale} message="story.noCorrectionsShort" />
+                  </span>
                 )}
               </p>
               {original}
@@ -357,54 +389,61 @@ export default async function StoryPage({
           </article>
 
           <aside className="flex min-w-0 flex-col gap-4">
-            <section aria-labelledby="languages" className={CARD}>
-              <h2 id="languages" className={CARD_HEADING}>
-                <Translated locale={locale} message="story.languages" />
-              </h2>
-              <ul className="flex flex-wrap gap-2" data-testid="story-languages">
-                {page.versions.map((v) => (
-                  <li key={v.language}>
-                    <Link
-                      href={storyHref(locale, id, v.language)}
-                      aria-current={v.language === story.language ? 'true' : undefined}
-                      className={`inline-flex min-h-touch items-center rounded-pill border px-3.5 ${v.language === story.language ? 'border-accent bg-brand/14 font-extrabold' : 'border-default hover:border-strong'}`}
-                      hrefLang={v.language}
-                      data-language={v.language}
-                      data-origin={v.origin}
-                      data-review-state={v.review_state ?? ''}
-                    >
-                      {/* The language's name in the reader's words ("American English"), not its tag (T-1395). */}
-                      {languageName(intlLocale(locale), v.language)}
-                      {' · '}
-                      <Translated locale={locale} message={VERSION_STATUS_KEY[versionStatus(v)]} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              {/* Blueprint 3.3: language and translation status, per version (T-304). Nothing here is machine-translated. */}
-              <p className="text-muted">
-                <Translated locale={locale} message="story.translationStatus" />
-              </p>
-            </section>
-
-            <section aria-labelledby="corrections" className={CARD}>
-              <h2 id="corrections" className={CARD_HEADING}>
-                <Translated locale={locale} message="story.corrections" />
-              </h2>
-              {page.corrections.length === 0 ? (
-                <p className="text-muted" data-testid="story-no-corrections">
-                  <Translated locale={locale} message="story.noCorrections" />
-                </p>
-              ) : (
-                <ol className="flex flex-col gap-1" data-testid="story-corrections">
-                  {page.corrections.map((c) => (
-                    <li key={c.noted_at}>
-                      <time dateTime={c.noted_at}>{when(c.noted_at)}</time>: {c.note}
+            {!quiet && (
+              <section aria-labelledby="languages" className={CARD}>
+                <h2 id="languages" className={CARD_HEADING}>
+                  <Translated locale={locale} message="story.languages" />
+                </h2>
+                <ul className="flex flex-wrap gap-2" data-testid="story-languages">
+                  {page.versions.map((v) => (
+                    <li key={v.language}>
+                      <Link
+                        href={storyHref(locale, id, v.language)}
+                        aria-current={v.language === story.language ? 'true' : undefined}
+                        className={`inline-flex min-h-touch items-center rounded-pill border px-3.5 ${v.language === story.language ? 'border-accent bg-brand/14 font-extrabold' : 'border-default hover:border-strong'}`}
+                        hrefLang={v.language}
+                        data-language={v.language}
+                        data-origin={v.origin}
+                        data-review-state={v.review_state ?? ''}
+                      >
+                        {/* The language's name in the reader's words ("American English"), not its tag (T-1395). */}
+                        {languageName(intlLocale(locale), v.language)}
+                        {' · '}
+                        <Translated
+                          locale={locale}
+                          message={VERSION_STATUS_KEY[versionStatus(v)]}
+                        />
+                      </Link>
                     </li>
                   ))}
-                </ol>
-              )}
-            </section>
+                </ul>
+                {/* Blueprint 3.3: language and translation status, per version (T-304). Nothing here is machine-translated. */}
+                <p className="text-muted">
+                  <Translated locale={locale} message="story.translationStatus" />
+                </p>
+              </section>
+            )}
+
+            {!quiet && (
+              <section aria-labelledby="corrections" className={CARD}>
+                <h2 id="corrections" className={CARD_HEADING}>
+                  <Translated locale={locale} message="story.corrections" />
+                </h2>
+                {page.corrections.length === 0 ? (
+                  <p className="text-muted" data-testid="story-no-corrections">
+                    <Translated locale={locale} message="story.noCorrections" />
+                  </p>
+                ) : (
+                  <ol className="flex flex-col gap-1" data-testid="story-corrections">
+                    {page.corrections.map((c) => (
+                      <li key={c.noted_at}>
+                        <time dateTime={c.noted_at}>{when(c.noted_at)}</time>: {c.note}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </section>
+            )}
 
             <section aria-labelledby="about" className={CARD}>
               <h2 id="about" className={CARD_HEADING}>

@@ -19,6 +19,7 @@ import {
   conferenceName,
   leaguePhase,
   showsLeagueTable,
+  tableNameFit,
   zoneDivider,
 } from './standings-table';
 
@@ -427,15 +428,24 @@ describe('the phone table: every column in reach (T-1760, D-377)', () => {
     // 30 + 90 = the 120px fixed column, a hairline on its edge.
     expect(team).toContain('max-sm:w-[90px]');
     expect(team).toContain('max-sm:border-e');
-    // A word longer than the column breaks inside it rather than spilling under the figures.
-    // Condensed and hyphenated on a phone, so a name such as "Bournemouth" stays whole in the 90px.
+    // Condensed on a phone, so a name such as "Bournemouth" stays whole in the 90px; a
+    // name wraps between words and is never hyphenated (T-1796, D-395).
     expect(html).toContain('max-sm:font-stretch-condensed');
-    expect(html).toContain(
-      '<bdi class="min-w-0 max-sm:hyphens-auto max-sm:wrap-anywhere">Team a</bdi>',
-    );
+    expect(html).toContain('<bdi class="min-w-0 break-words hyphens-manual">Team a</bdi>');
+    expect(html).not.toMatch(/hyphens-auto|wrap-anywhere|overflow-wrap:anywhere/);
     // Horizontal only: nothing sticks to the top under the site header (D-376).
     expect(html).not.toMatch(/\b(top|inset-block)-/);
     expect(html).not.toMatch(/\b(left|right)\b/);
+  });
+
+  it('steps a word too long for the phone’s 92px column down, so it neither breaks nor spills (D-395)', () => {
+    // Real-data screenshot, Bundesliga, 12 Nov 2026: "Mönchengladbach" ran
+    // under the figures at 13px and 75% (105px).
+    expect(tableNameFit('Mönchengladbach')).toBe(
+      'max-sm:text-xs max-sm:font-stretch-extra-condensed',
+    );
+    expect(tableNameFit('Bournemouth')).toBe('');
+    expect(tableNameFit('Borussia Dortmund')).toBe('');
   });
 
   it('adds no Tab stop or landmark per table: its links are the keyboard’s way in (code review, 2026-11-07)', () => {

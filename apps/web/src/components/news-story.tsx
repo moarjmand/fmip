@@ -65,6 +65,7 @@ export function NewsStory({
         locale={locale}
         size={lead ? 'lead' : row ? 'thumb' : 'card'}
         eager={lead}
+        panelOnPhone={!lead}
       />
       <div className={cx('flex min-w-0 flex-col', lead ? 'gap-3' : 'gap-1.5')}>
         {lead ? (
@@ -73,13 +74,16 @@ export function NewsStory({
           <StoryKicker card={card} locale={locale} />
         )}
         {/* The heading's block takes the headline's direction, so an English one on /fa sits flush left like its summary. */}
+        {/*
+          The headline in the interface face (T-1805, D-403): someone else's
+          headline is never set in the serif that marks the founder's voice.
+        */}
         <H
           dir="auto"
           className={cx(
-            'font-semibold',
-            lead && 'font-serif text-3xl leading-tight sm:text-display-2',
-            variant === 'card' && 'font-serif text-xl leading-snug',
-            row && 'text-base leading-snug sm:text-lg',
+            lead && 'text-[1.375rem] leading-tight font-bold sm:text-display-1 lg:text-display-2',
+            variant === 'card' && 'text-lg leading-snug font-bold',
+            row && 'text-base leading-snug font-semibold sm:text-lg',
           )}
         >
           {/*
@@ -100,7 +104,12 @@ export function NewsStory({
         </H>
         {card.summary !== null && variant !== 'card' && (
           <p
-            className={cx('text-muted', lead ? 'text-base' : 'line-clamp-2 text-sm max-sm:hidden')}
+            className={cx(
+              'text-muted',
+              lead
+                ? 'line-clamp-3 text-sm sm:line-clamp-none sm:text-base'
+                : 'line-clamp-2 text-sm max-sm:hidden',
+            )}
             lang={card.language}
             dir="auto"
             data-testid="story-summary"
@@ -123,38 +132,22 @@ export function NewsStory({
           </p>
         )}
         <NewsTags entities={card.entities} locale={locale} />
-        <p className="flex flex-wrap items-center gap-x-2 text-sm" data-testid="story-more">
-          {variant !== 'card' && (
+        {/*
+          The way to the story's page only when it holds a second report
+          (T-1805, D-404): "Story, languages and other reports" under every
+          story said nothing a story without one has.
+        */}
+        {card.other_reports > 0 && (
+          <p className="flex flex-wrap items-center gap-x-2 text-sm" data-testid="story-more">
             <Link
               href={storyHref(locale, card.story_id)}
-              className="inline-flex min-h-touch items-center font-medium underline md:min-h-6"
+              className="inline-flex min-h-touch items-center font-medium text-muted underline md:min-h-6"
+              data-testid="story-others"
             >
-              <Translated locale={locale} message="news.storyPage" />
+              <Translated locale={locale} message="news.otherReports" count={card.other_reports} />
             </Link>
-          )}
-          {card.other_reports > 0 &&
-            (variant === 'card' ? (
-              <Link
-                href={storyHref(locale, card.story_id)}
-                className="inline-flex min-h-touch items-center text-muted underline md:min-h-6"
-                data-testid="story-others"
-              >
-                <Translated
-                  locale={locale}
-                  message="news.otherReports"
-                  count={card.other_reports}
-                />
-              </Link>
-            ) : (
-              <span className="text-muted" data-testid="story-others">
-                <Translated
-                  locale={locale}
-                  message="news.otherReports"
-                  count={card.other_reports}
-                />
-              </span>
-            ))}
-        </p>
+          </p>
+        )}
         {card.discussion !== null && (
           <p className="text-sm" data-testid="story-discussion">
             <Translated

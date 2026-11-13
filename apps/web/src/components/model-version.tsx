@@ -9,9 +9,17 @@ import { Fragment } from 'react';
  * which rewrote it into a `/cdn-cgi/l/email-protection` link and added its
  * decoding script to the page -- five times on the homepage. Readers see the
  * same characters either way; copying it gives the same text.
+ *
+ * It is a left-to-right island of its own (T-1796, D-395: every Latin run
+ * inside Persian isolated), so inside a Persian sentence its hyphens and dots
+ * never reorder against the words around it.
  */
 export function ModelVersion({ version }: { version: string }) {
-  return <AtApart text={version} />;
+  return (
+    <bdi dir="ltr">
+      <AtApart text={version} />
+    </bdi>
+  );
 }
 
 /** Several versions, "a@1.0.0, b@2.0.0", each drawn as `ModelVersion` (T-1580). */

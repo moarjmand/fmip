@@ -180,7 +180,7 @@
     "status": "untranslated"
   },
   "shell.search.placeholder": {
-    "source": "Teams, players, competitions",
+    "source": "Search",
     "text": "",
     "status": "untranslated"
   },
@@ -3088,36 +3088,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "search.readAs": {
-    "source": "Read as",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.kinds": {
-    "source": "kinds",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.reason.noModel": {
-    "source": "No language model is configured, so this is a keyword search.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.reason.unreadable": {
-    "source": "The question could not be read as one, so it was searched as keywords.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.reason.nothingNamed": {
-    "source": "The question names nothing the search could look for, so it was searched as keywords.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.reason.failed": {
-    "source": "The language model could not be reached, so this is a keyword search.",
-    "text": "",
-    "status": "untranslated"
-  },
   "search.section.team": {
     "source": "Teams",
     "text": "",
@@ -3145,36 +3115,6 @@
   },
   "search.section.member": {
     "source": "Members",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.empty.team": {
-    "source": "No team matches.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.empty.competition": {
-    "source": "No competition matches.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.empty.person": {
-    "source": "No player matches.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.empty.story": {
-    "source": "No story's headline matches.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.empty.group": {
-    "source": "No group that can be found matches. Invite-only groups are never listed.",
-    "text": "",
-    "status": "untranslated"
-  },
-  "search.empty.member": {
-    "source": "No member with a public profile matches. Private and friends-only profiles are never listed.",
     "text": "",
     "status": "untranslated"
   },
@@ -4262,6 +4202,16 @@
   },
   "story.noCorrections": {
     "source": "No corrections have been noted.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.noCorrectionsShort": {
+    "source": "No corrections noted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "story.versionLine": {
+    "source": "{language}, {status}",
     "text": "",
     "status": "untranslated"
   },
@@ -8005,7 +7955,7 @@
     "status": "untranslated"
   },
   "matchCentre.xgNotSupplied": {
-    "source": "Expected goals (xG): not available for this match.",
+    "source": "Team expected goals (xG): not supplied for this match.",
     "text": "",
     "status": "untranslated"
   },
@@ -8065,27 +8015,27 @@
     "status": "untranslated"
   },
   "matchCentre.expectedGoals": {
-    "source": "xG (Highlightly)",
+    "source": "Expected goals by player",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.note": {
-    "source": "Expected goals from Highlightly's own model: kept apart from the player statistics above and never combined with them.",
+    "source": "Licensed match data, from a source of its own: kept apart from the player statistics above and never combined with them.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.none": {
-    "source": "Highlightly supplies no expected goals for this match.",
+    "source": "No expected goals by player are supplied for this match.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.unplaced": {
-    "source": "Not shown: {count} players Highlightly listed who are not yet matched to ours.",
+    "source": "Not shown: {count} players the source listed who are not yet matched to ours.",
     "text": "",
     "status": "untranslated"
   },
   "matchCentre.expectedGoals.region": {
-    "source": "{team}: xG (Highlightly), scrolls sideways",
+    "source": "{team}: expected goals by player, scrolls sideways",
     "text": "",
     "status": "untranslated"
   },
@@ -12470,7 +12420,7 @@
     "status": "untranslated"
   },
   "teamPage.seasonStats.title": {
-    "source": "Season statistics, as {source} counts them",
+    "source": "Season statistics",
     "text": "",
     "status": "untranslated"
   },
@@ -12997,7 +12947,7 @@
     "status": "untranslated"
   },
   "playerPage.expectedGoals": {
-    "source": "xG (Highlightly)",
+    "source": "Expected goals (xG)",
     "text": "",
     "status": "untranslated"
   },
@@ -13579,21 +13529,6 @@
   },
   "searchPage.field": {
     "source": "Team, competition, player, news, group or member",
-    "text": "",
-    "status": "untranslated"
-  },
-  "searchPage.type.team": {
-    "source": "Team",
-    "text": "",
-    "status": "untranslated"
-  },
-  "searchPage.type.competition": {
-    "source": "Competition",
-    "text": "",
-    "status": "untranslated"
-  },
-  "searchPage.type.person": {
-    "source": "Player",
     "text": "",
     "status": "untranslated"
   },
@@ -15097,11 +15032,6 @@
     "text": "",
     "status": "untranslated"
   },
-  "highlights.allListed": {
-    "source": "Every highlight we hold is listed. Some are limited to certain countries and may not play where you are: choose your territory to see only the ones offered there.",
-    "text": "",
-    "status": "untranslated"
-  },
   "highlights.restricted": {
     "source": "May not play in your country",
     "text": "",
@@ -15424,6 +15354,242 @@
   },
   "teamPage.chips.rounds": {
     "source": "Its matches on the competition’s page",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.incident.penaltyGoalInPlay": {
+    "source": "Goal (penalty)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.shootoutWin": {
+    "source": "{team} win {score} on penalties",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.shootoutWinnerUnknown": {
+    "source": "The shoot-out’s winner is not in the record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.wonOnPenalties": {
+    "source": "Won on penalties",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.kickScored": {
+    "source": "Scored",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.kickMissed": {
+    "source": "Missed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.substitutions": {
+    "source": "Substitutions ({count})",
+    "text": "",
+    "status": "untranslated"
+  },
+  "summary.reason.held": {
+    "source": "No written summary for this match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.shootoutKey": {
+    "source": "Filled circle with a tick: scored. Dashed circle with a cross: missed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statGroup.match": {
+    "source": "Match",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statGroup.attack": {
+    "source": "Attack",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statGroup.passing": {
+    "source": "Passing",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.statGroup.discipline": {
+    "source": "Discipline",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.table.legend": {
+    "source": "– no figure supplied for this player; a 0 is a supplied zero.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.expectedGoals.teamOnly": {
+    "source": "Per-player xG: not supplied for this match. The team figure in the statistics above is supplied; the player breakdown is not.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.goal": {
+    "source": "Goal {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.penaltyGoal": {
+    "source": "Goal {minute} (pen.)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.ownGoal": {
+    "source": "Own goal {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.booked": {
+    "source": "Booked {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.sentOff": {
+    "source": "Sent off {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.off": {
+    "source": "Off {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.on": {
+    "source": "On {minute} for {player}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.marksNone": {
+    "source": "The match events are not supplied, so the pitch marks no goals, cards or substitutions.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.lineups.mark.onAlone": {
+    "source": "On {minute}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.need": {
+    "source": "Until you pick one, every highlight is listed; some may not play where you are.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "highlights.needChosen": {
+    "source": "Only the highlights offered in your territory are listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.recordAge": {
+    "source": {
+      "one": "record updated {count} day ago",
+      "other": "record updated {count} days ago"
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "coachPage.careerAge": {
+    "source": {
+      "one": "This record was last updated {count} day ago, so “Current” is as of then.",
+      "other": "This record was last updated {count} days ago, so “Current” is as of then."
+    },
+    "forms": {},
+    "status": "untranslated"
+  },
+  "coachPage.record": {
+    "source": "Record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.recordWith": {
+    "source": "Record with {team}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "coachPage.recordNotSupplied": {
+    "source": "Played, won, drawn and lost under him are not shown: no list of a coach’s matches with their results is kept yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.none": {
+    "source": "No {kinds} match.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.none.team": {
+    "source": "teams",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.none.competition": {
+    "source": "competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.none.person": {
+    "source": "players",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.none.story": {
+    "source": "stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.none.group": {
+    "source": "groups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "search.none.member": {
+    "source": "members",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.noLeagueOrGround": {
+    "source": "No league or ground on record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.playingToday": {
+    "source": "Playing today",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.allCompetitions": {
+    "source": "All competitions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.nothing": {
+    "source": "Nothing matches “{term}”",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.tryThese": {
+    "source": "Try a team or competition name, or one of these.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchPage.neverListed": {
+    "source": "Invite-only groups and private or friends-only profiles are never listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.season": {
+    "source": "Season",
+    "text": "",
+    "status": "untranslated"
+  },
+  "compare.higher": {
+    "source": "higher",
     "text": "",
     "status": "untranslated"
   }

@@ -257,7 +257,7 @@ test.describe('on a 1440px screen', () => {
   test('searches from the field in the bar', async ({ page }) => {
     await page.goto('/en/scores');
     const field = page.getByTestId('nav-search-input');
-    await expect(field).toHaveAttribute('placeholder', 'Teams, players, competitions');
+    await expect(field).toHaveAttribute('placeholder', 'Search');
     await field.fill('arsenal');
     await field.press('Enter');
     await expect(page).toHaveURL(/\/en\/search\?q=arsenal$/);

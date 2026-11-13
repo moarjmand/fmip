@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { SearchEntityType, SearchResult } from '@fmip/contracts';
+import type { SearchEntityType, SearchResult, SearchTeamContext } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -118,5 +118,74 @@ export class PostgresSearchStore {
       alias: r.alias,
       score: Number(r.score),
     }));
+  }
+
+  /**
+   * What tells each team apart from a namesake (T-1803, D-401), by team id
+   * (lower-cased): the domestic league it has a match in this season (a
+   * current season, top tier first, then the name), and its home ground --
+   * the one recorded, else the ground most of its home matches in a current
+   * season name, neutral and cancelled matches left out (D-209's rule, as the
+   * team page reads it). One query for every team on the page of results.
+   */
+  async teamContexts(ids: readonly string[]): Promise<Map<string, SearchTeamContext>> {
+    if (ids.length === 0) return new Map();
+    const { rows } = await this.pool.query<{
+      id: string;
+      league_id: string | null;
+      league_name: string | null;
+      ground_id: string | null;
+      ground_name: string | null;
+      ground_city: string | null;
+    }>(
+      `SELECT t.id, lg.id AS league_id, lg.name AS league_name,
+              g.id AS ground_id, g.name AS ground_name, g.city AS ground_city
+         FROM team t
+         LEFT JOIN LATERAL (
+           SELECT c.id, c.name
+             FROM fixture f
+             JOIN fixture_participant p ON p.fixture_id = f.id AND p.team_id = t.id
+             JOIN season se ON se.id = f.season_id AND se.is_current
+             JOIN competition c ON c.id = se.competition_id
+            WHERE c.kind = 'league' AND c.scope = 'domestic'
+            ORDER BY c.tier NULLS LAST, c.name, c.id
+            LIMIT 1
+         ) lg ON TRUE
+         LEFT JOIN LATERAL (
+           SELECT id, name, city FROM (
+             SELECT 0 AS rank, v.id, v.name, v.city, 0::bigint AS matches
+               FROM venue v
+              WHERE v.id = t.home_venue_id
+             UNION ALL
+             SELECT 1, v.id, v.name, v.city, count(*)
+               FROM fixture f
+               JOIN fixture_participant p
+                 ON p.fixture_id = f.id AND p.side = 'home' AND p.team_id = t.id
+               JOIN season se ON se.id = f.season_id AND se.is_current
+               JOIN venue v ON v.id = f.venue_id
+              WHERE NOT f.is_neutral_venue AND f.status <> 'cancelled'
+              GROUP BY v.id, v.name, v.city
+           ) grounds
+            ORDER BY rank, matches DESC, name, id
+            LIMIT 1
+         ) g ON TRUE
+        WHERE t.id = ANY($1::uuid[])`,
+      [ids],
+    );
+    return new Map(
+      rows.map((r) => [
+        r.id.toLowerCase(),
+        {
+          league:
+            r.league_id !== null && r.league_name !== null
+              ? { id: r.league_id, name: r.league_name }
+              : null,
+          ground:
+            r.ground_id !== null && r.ground_name !== null
+              ? { id: r.ground_id, name: r.ground_name, city: r.ground_city }
+              : null,
+        },
+      ]),
+    );
   }
 }
