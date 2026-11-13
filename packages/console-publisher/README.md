@@ -11,6 +11,7 @@ never reaches this computer: every exchange is this computer running
 | `node packages/console-publisher/src/publish.ts publish` | Loads the snapshot on the server. |
 | `node packages/console-publisher/src/publish.ts sync` | Takes the queued commands, applies them to `E:/FMIP/ops/console/state.json`, publishes, prints the run requests. |
 | `node packages/console-publisher/src/publish.ts finish <id> done\|failed "outcome"` | Reports a requested run. |
+| `node packages/console-publisher/src/publish.ts providers-check [file]` | Checks the data providers' comparison (`E:/FMIP/ops/providers/comparison.json` unless a file is named; T-1830, D-423), prints each problem and exits 1 on any. `build`, `publish` and `sync` carry it in the snapshot as `providers`. |
 | `node packages/console-publisher/src/publish.ts chat-pull` | Takes the queued chat messages into `E:/FMIP/ops/console/chat-inbox.json` (T-1722). |
 | `node packages/console-publisher/src/publish.ts chat-reply <message-id> answered\|failed [--file reply.txt]` | Posts one reply, read from `--file` or standard input, and drops the message from the inbox. |
 | `node packages/console-publisher/src/publish.ts requests-pull [--status s]` | Writes the teammate requests to `E:/FMIP/ops/console/requests.json` and prints a short summary (T-1728); downloads the pictures of open and marked requests to `E:/FMIP/ops/console/requests/<request-id>/<position>-<image-id>.webp` and names each one's `local_path` in the file (T-1731). |

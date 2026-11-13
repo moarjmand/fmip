@@ -18,6 +18,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CALENDAR, CALENDAR_PUSH } from './calendar.fixture';
 import { MODEL_LAB, MODEL_REPORT } from './model-report.fixture';
+import { PROVIDERS } from './providers.fixture';
 
 /**
  * The console is Persian only (T-1725, D-352), and each agent page draws how
@@ -561,6 +562,8 @@ const SNAPSHOT: ConsoleSnapshot = {
   ],
   // T-1752: the lab's ledger, a slice of the real file, so its Persian is scanned too.
   model_lab: MODEL_LAB,
+  // T-1830: the data providers' comparison, the publisher's fixture after its check.
+  providers: PROVIDERS,
 };
 
 // --- The scan ------------------------------------------------------------------
@@ -629,6 +632,18 @@ const TECHNICAL_TERMS = new Set([
   'fa',
   'D-xxx',
   'YYYY-MM-DD',
+  // T-1830: data providers and their plans are named in English in the research's Persian text.
+  'API-Football',
+  'Sportmonks',
+  'Sportradar',
+  'Starter',
+  'Growth',
+  'Advanced',
+  'Ultra',
+  'Enterprise',
+  'PayPal',
+  'SLA',
+  'KYC',
 ]);
 
 const isTechnical = (word: string) =>
@@ -825,6 +840,11 @@ describe('the Persian-only scan', () => {
     ],
     ['the forecast model', async () => render((await import('./(app)/model/page')).default())],
     [
+      'the data providers',
+      async () =>
+        render((await import('./(app)/providers/page')).default({ searchParams: params({}) })),
+    ],
+    [
       'the header',
       async () => render((await import('./(app)/layout')).default({ children: <p>بدنه</p> })),
     ],
@@ -898,6 +918,7 @@ describe('the Persian-only scan', () => {
       './(app)/decisions/page',
       './(app)/findings/page',
       './(app)/model/page',
+      './(app)/providers/page',
       './(app)/reports/page',
       './(app)/requests/page',
       './(open)/login/page',

@@ -361,6 +361,16 @@ export type {
   ConsoleSubscriptionStatus,
   Recurring,
 } from './console-calendar';
+// The agents console's data providers' comparison (T-1830, D-423); its runtime constants are in './console'.
+export type {
+  ConsoleProvider,
+  ConsoleProviderConfidence,
+  ConsoleProviderCriterion,
+  ConsoleProviderFact,
+  ConsoleProviderPlan,
+  ConsoleProviders,
+  ConsoleProviderStatus,
+} from './console-providers';
 // The agents console's forecast-model page (T-1729, D-355); its runtime constants are in './console' (kept out of this barrel so they never reach a public page's bundle).
 export type {
   ConsoleLabEntry,

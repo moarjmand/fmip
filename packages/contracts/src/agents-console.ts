@@ -13,6 +13,7 @@ import type {
   CONSOLE_REQUEST_STATUSES,
 } from './console-requests';
 import type { ConsoleModelLab } from './console-model-lab';
+import type { ConsoleProviders } from './console-providers';
 
 /** The snapshot shape this API reads; the publisher writes the same number. */
 export const CONSOLE_SNAPSHOT_SCHEMA = 1;
@@ -237,6 +238,13 @@ export interface ConsoleSnapshot {
    * not supplied (rule 3).
    */
   model_lab?: ConsoleModelLab | null;
+  /**
+   * The football data providers' comparison (T-1830, D-423), from the
+   * research file on the computer. Absent from a snapshot built before it,
+   * null when the file is missing or unreadable: the providers page then
+   * says the comparison was not supplied (rule 3).
+   */
+  providers?: ConsoleProviders | null;
 }
 
 /** `GET /console/snapshot`: the newest snapshot, and when it reached the server. */
