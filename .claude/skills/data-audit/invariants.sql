@@ -11,6 +11,7 @@
 \pset fieldsep ' | '
 
 -- R1 (D-317): a match that went to extra time stores 90' + extra time = the score after play.
+-- The site shows a match breaking R1 or R7 with no score, its coverage limited (T-1819, D-414).
 WITH x AS (
   SELECT f.id, c.name || ' ' || s.label || ' ' || f.kickoff_at::date AS label
     FROM fixture f
@@ -111,6 +112,7 @@ SELECT 'R6 level_shootout_score', 'critical', count(*), string_agg(label, '; ') 
   FROM (SELECT x.*, row_number() OVER () AS rn FROM x) y;
 
 -- R7 (D-317, the first audit): the score after 90 minutes never exceeds the score after play.
+-- The site shows a match breaking R1 or R7 with no score, its coverage limited (T-1819, D-414).
 WITH x AS (
   SELECT f.id, c.name || ' ' || s.label || ' ' || f.kickoff_at::date || ' 90min ' || ft.home || '-' || ft.away
          || ' final ' || cur.home || '-' || cur.away AS label

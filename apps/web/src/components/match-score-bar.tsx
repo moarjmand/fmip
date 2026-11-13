@@ -29,7 +29,7 @@ export interface BandState {
   behind: boolean;
   /** Scheduled, the kick-off long past and no word from the feed (D-343). */
   awaiting: boolean;
-  /** Finished, the recorded goals disagreeing with the result (D-347). */
+  /** Finished, the recorded goals disagreeing with the result (D-347) or the stored scores with each other (D-414). */
   disputed: boolean;
 }
 
@@ -161,8 +161,9 @@ export function ScoreBar({
         <>
           {side(f.home, true, marks?.home)}
           {state.headline === null ? (
-            // No score supplied: none, rather than a 0-0 (rule 3).
-            f.status === 'live' ? (
+            // No score supplied: none, rather than a 0-0 (rule 3); a finished
+            // match whose stored scores contradict each other neither (D-414).
+            f.status === 'live' || state.disputed ? (
               <span className="shrink-0 font-extrabold">–</span>
             ) : (
               versus

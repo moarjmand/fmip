@@ -275,6 +275,21 @@ describe('the big match', () => {
     expect(live).not.toContain('A new version follows');
   });
 
+  it('draws a dash, never a number or the kick-off time, for a featured match whose stored scores contradict each other (T-1819, D-414)', () => {
+    const finished = card({ status: 'finished', minute: null });
+    const html = big({
+      hero: {
+        card: {
+          ...finished,
+          scores: { ...finished.scores, current: null, full_time: null, extra_time: null },
+          score_conflict: { coverage: 'limited', reasons: ['extra_time_sum'] },
+        },
+        slot: 'live',
+      },
+    });
+    expect(html).toMatch(/data-testid="home-hero-score">–</);
+  });
+
   it('keeps the three voices in three lanes, says the founder has none, and the note once', () => {
     const html = big();
     expect(html.match(/data-voice="(\w+)"/g)).toEqual([

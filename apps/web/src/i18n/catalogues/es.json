@@ -8917,6 +8917,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "forecast.evaluation.withheld": {
+    "source": "The model’s forecast for this match is not scored here: the source’s stored scores do not agree with each other.",
+    "text": "",
+    "status": "untranslated"
+  },
   "forecast.evaluation.result": {
     "source": "Result {score}: {outcome}.",
     "text": "",
@@ -15280,6 +15285,11 @@
   },
   "matchCentre.scoreUnclearNote": {
     "source": "The recorded goals ({goals}) and the reported result ({score}) do not agree, so neither is shown as final.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "matchCentre.scoreConflictNote": {
+    "source": "The source’s stored scores for this match do not agree with each other, so no score is shown.",
     "text": "",
     "status": "untranslated"
   },

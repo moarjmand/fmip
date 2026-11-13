@@ -523,6 +523,15 @@ export function BigMatch({
               className="text-display-2 leading-none font-extrabold font-stretch-condensed tabular-nums"
               testId="home-hero-score"
             />
+          ) : card.status === 'finished' && card.score_conflict != null ? (
+            // Stored scores that contradict each other (T-1819, D-414): no
+            // number, and never the kick-off time beside "FT".
+            <span
+              className="text-3xl leading-none font-extrabold text-muted md:text-display-2"
+              data-testid="home-hero-score"
+            >
+              –
+            </span>
           ) : (
             <span className="text-3xl leading-none font-extrabold font-stretch-condensed tabular-nums md:text-display-2">
               {formatKickoff(l, card.kickoff_at, timeZone)}

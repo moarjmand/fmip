@@ -10,6 +10,7 @@
 
 import type { CoverageState } from './coverage';
 import type { EntityMedia } from './media';
+import type { ScoreConflict } from './scores';
 
 export interface ModelForecastRequest {
   /** Catalog fixture UUID; echoed back, never interpreted by the model. */
@@ -246,6 +247,13 @@ export interface FixtureEvaluationsResponse {
   last_updated_at: string | null;
   /** Oldest version first. */
   evaluations: ForecastEvaluation[];
+  /**
+   * The match's stored scores contradict each other (T-1819, D-414): every
+   * evaluation here was scored against one of the two numbers, so none is
+   * served (`evaluations` empty, `coverage` `limited`) and no surface states
+   * that number or a winner. The model's aggregates still count them (D-139).
+   */
+  score_conflict?: ScoreConflict | null;
 }
 
 export interface ModelPerformanceRow {
