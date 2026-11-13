@@ -9,6 +9,7 @@ import type {
   TableRow,
   TeamPage,
 } from '@fmip/contracts';
+import { t } from '@/i18n/messages';
 import {
   aheadOfKickoff,
   BRAND_CARD,
@@ -389,8 +390,9 @@ describe('the member card', () => {
 
 describe('the brand card (B10, T-1825)', () => {
   it('says the brand line, with "record" apart to be lit', () => {
+    // The catalogue's line (T-1827) and the card's are one sentence.
     expect(`${BRAND_CARD.before} ${BRAND_CARD.lit} ${BRAND_CARD.after}`).toBe(
-      'A forecast model that shows its record in public.',
+      t('en', 'brand.line'),
     );
     expect(BRAND_CARD.lit).toBe('record');
   });

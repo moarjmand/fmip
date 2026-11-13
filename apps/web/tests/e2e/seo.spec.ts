@@ -35,6 +35,36 @@ test.describe('SEO surface without JavaScript', () => {
     await expect(page.locator('meta[name="robots"]')).not.toHaveAttribute('content', /noindex/);
   });
 
+  test('the home page leads with the brand line and shows the brand card (T-1825, T-1827)', async ({
+    page,
+  }) => {
+    await page.goto('/en');
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+      'content',
+      /^A forecast model that shows its record in public\. Live football scores/,
+    );
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+      'content',
+      /\/en\/brand-card$/,
+    );
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+      'content',
+      'summary_large_image',
+    );
+    // A guest sees the strap, with its link to the record.
+    const strap = page.getByTestId('brand-line-strap');
+    await expect(strap).toContainText('A forecast model that shows its record in public.');
+    await expect(strap.getByRole('link', { name: 'See the record' })).toHaveAttribute(
+      'href',
+      '/en/model-accuracy',
+    );
+
+    await page.goto('/fa/about');
+    await expect(page.getByTestId('about-lead')).toHaveText(
+      'مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد.',
+    );
+  });
+
   test('the pseudo-locale and a member page are not indexed', async ({ page }) => {
     await page.goto('/x-rtl/scores');
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);

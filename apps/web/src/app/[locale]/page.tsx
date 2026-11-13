@@ -4,6 +4,7 @@ import { BreakingStrip } from '@/components/breaking-strip';
 import { FirstRunOffer } from '@/components/first-run-offer';
 import {
   BigMatch,
+  BrandLineStrap,
   HomeDateline,
   LiveNow,
   RuleHeading,
@@ -294,6 +295,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <div className="page-frame flex flex-col gap-6 pt-6">
         {marked.length > 0 && <BreakingStrip locale={locale} stories={marked} />}
         <HomeDateline locale={lang} timeZone={timeZone} now={now.toISOString()} />
+        {/* The brand line beside its proof, for a guest only (T-1827, D-421). */}
+        {!member && <BrandLineStrap locale={lang} />}
 
         <div className="flex flex-wrap items-start gap-6">
           {/* T-1756 (D-373; board P4-2): the main match first, then the first

@@ -15319,3 +15319,19 @@ On the 118 differing (cup) matches alone: log loss -0.01385, Brier -0.01109. Cal
 **Rejected.** *T4 "Giant crest" and T2 "Poster echo"* (the other two picks): the maintainer chose T1, which matches the page it links. *The form guide or the table slice* (T7, T8): more figures than a chat preview reads. *Painting a placeholder colour anyway:* a bright blue that is nobody's colour says something false about the club.
 
 **Consequences.** The team page passes `card: 'own'` to `pageMetadata`. A club page fallback for placeholder colours, if wanted, reuses `looksLikeDefault`.
+
+## D-421 — The brand line: a guest's strap under "Today", the About lead and the first sentence of the site's description; the home title stays
+
+**Status:** Accepted · 2026-11-13 (the maintainer, choosing placement A from the designer's package 10 canvas, with the About lead and the meta description as recommended; Q5) · **Task:** T-1827 · **Follows:** d-2026-11-09-02 (the line), D-419, rules 6 and 7 · **Spec:** `E:/FMIP/ops/reports/design/2026-11-13-share-cards-fa.md`, section 6
+
+**Context.** The line "A forecast model that shows its record in public." / «مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد» (d-2026-11-09-02) appeared nowhere on the site. The designer drew three home placements (A a quiet strap, B in the header, C a record hero) and recommended A, the line sitting beside its proof, the accuracy page.
+
+**Decision.**
+1. **Home, placement A.** `BrandLineStrap` (`components/home-front.tsx`) under the dateline, for a guest only (no session): the line in bold and "See the record" / «کارنامه را ببینید» to `/{locale}/model-accuracy`, one surface row with the accent rule on the inline-start edge (logical properties, mirrors in Persian). Server-rendered text, no client code, so the home page's first-load budget is unchanged. A member keeps a scores-first page.
+2. **About.** The line is the page's lead (24px, semi-bold) under "What Stadiomind is"; the old lead (`about.meta.description`) is the paragraph under it, unchanged, and so is About's own meta description.
+3. **The site's description.** `shell.meta.description` -- the home page's `description`, `og:description` and `twitter:description`, and the default every page without its own inherits -- becomes the line and then "Live football scores, match centres and the model’s published accuracy, match by match." (137 characters in English, 117 in Persian). The home `<title>` stays "Stadiomind — Live football scores, forecasts and stats".
+4. **One sentence, two keys' worth of words.** The line is the catalogue key `brand.line`; the brand card's words (`BRAND_CARD`, D-419) are held equal to its English by `share-card.spec.ts`.
+
+**Rejected.** *B, the line in the header:* on every page (match pages too), takes navigation room and never reaches a phone. *C, a record hero above the big match:* pushes the results down (about 200px on desktop, 380 on a phone, from the mock) and puts two "called right" figures with different windows on one page. *The line in the title:* past 60 characters, cut in a result, and the searched words leave it.
+
+**Consequences.** The strap is a visible change to the guest home page; the maintainer approves it before the deploy. Persian catalogue text as the designer wrote it; the other locales' entries are untranslated with the new source.

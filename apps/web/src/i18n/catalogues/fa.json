@@ -126,10 +126,22 @@
     "note": "The maintainer's answer on the decision desk, 2026-11-01 (T-1703)."
   },
   "shell.meta.description": {
-    "source": "Football match intelligence: live scores, match centre, forecasts and predictions.",
-    "text": "اطلاعات هوشمند فوتبال: نتایج زنده، مرکز مسابقه، پیش‌بینی‌های مدل آماری و پیش‌بینی‌های کاربران.",
+    "source": "A forecast model that shows its record in public. Live football scores, match centres and the model’s published accuracy, match by match.",
+    "text": "مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد. نتایج زنده فوتبال، مرکز مسابقه و دقت منتشرشده‌ی مدل، بازی به بازی.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "The brand line of d-2026-11-09-02 and the package 10 spec (D-421), Persian as the designer wrote it."
+  },
+  "brand.line": {
+    "source": "A forecast model that shows its record in public.",
+    "text": "مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد.",
+    "status": "translated",
+    "note": "The brand line of d-2026-11-09-02 and the package 10 spec (D-421), Persian as the designer wrote it."
+  },
+  "home.brandLine.link": {
+    "source": "See the record",
+    "text": "کارنامه را ببینید",
+    "status": "translated",
+    "note": "The brand line of d-2026-11-09-02 and the package 10 spec (D-421), Persian as the designer wrote it."
   },
   "shell.nav.primary": {
     "source": "Primary",
