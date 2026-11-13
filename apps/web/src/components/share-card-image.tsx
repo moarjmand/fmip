@@ -8,6 +8,8 @@ import {
   type MatchCardText,
   type MemberCardText,
   type TableCardText,
+  type TeamCardText,
+  teamNameSize,
 } from '@/lib/share-card';
 
 /**
@@ -71,7 +73,16 @@ export function Frame({
  * A crest on the white tile every logo stands on (D-280), or an empty ring of
  * the same size when there is none to draw (rule 3: nothing made up).
  */
-export function Crest({ src, size }: { src: string | null; size: number }): ReactElement {
+export function Crest({
+  src,
+  size,
+  ring = RULE,
+}: {
+  src: string | null;
+  size: number;
+  /** The empty ring's colour: the rule on Night, the band's text on a club's band. */
+  ring?: string;
+}): ReactElement {
   if (src === null) {
     return (
       <div
@@ -79,7 +90,7 @@ export function Crest({ src, size }: { src: string | null; size: number }): Reac
           width: size,
           height: size,
           borderRadius: size,
-          border: `3px solid ${RULE}`,
+          border: `3px solid ${ring}`,
         })}
       />
     );
@@ -384,5 +395,164 @@ export function MemberCardImage({
       </div>
       <Wordmark host={host} />
     </Frame>
+  );
+}
+
+/**
+ * The team card (T-1826, D-420; T1 "Club band"): the club page's band as a
+ * card. The top 232px are the club's colour (`paint`, from `bandColours`, or
+ * the neutral slate when the club has none or one that looks like a
+ * placeholder), with the crest on its white tile -- or an empty ring --, the
+ * eyebrow and the name; under it the main competition and the standing,
+ * the next match in its own panel, the date the card was drawn and the mark.
+ * An absent competition or match is said in the muted colour, never hidden
+ * or invented (rule 3). Laid out absolutely, as the board draws it: the
+ * renderer draws left to right only, and the words are English (D-419).
+ */
+export function TeamCardImage({
+  text,
+  host,
+  crest,
+  paint,
+}: {
+  text: TeamCardText;
+  host: string;
+  crest: string | null;
+  paint: { fill: string; text: string };
+}): ReactElement {
+  const size = teamNameSize(text.name);
+  return (
+    <div
+      style={flex({
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        background: GROUND,
+        color: INK,
+        fontFamily: SANS,
+      })}
+    >
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: 1200,
+          height: 232,
+          background: paint.fill,
+        })}
+      />
+      <div style={flex({ position: 'absolute', left: 64, top: 40 })}>
+        <Crest src={crest} size={152} ring={paint.text} />
+      </div>
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 250,
+          top: 34,
+          width: 886,
+          height: 172,
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 14,
+          color: paint.text,
+        })}
+      >
+        {text.eyebrow !== '' && (
+          <div
+            style={flex({
+              fontFamily: MONO,
+              fontSize: 24,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+            })}
+          >
+            {text.eyebrow}
+          </div>
+        )}
+        <div
+          style={flex({ fontSize: size, fontWeight: 800, lineHeight: 1.02, letterSpacing: -0.5 })}
+        >
+          {text.name}
+        </div>
+      </div>
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 64,
+          top: 260,
+          width: 1072,
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: 32,
+        })}
+      >
+        <div
+          style={flex({
+            fontSize: text.competition.known ? 38 : 34,
+            fontWeight: text.competition.known ? 800 : 700,
+            color: text.competition.known ? INK : MUTED,
+          })}
+        >
+          {text.competition.name}
+        </div>
+        {text.standing !== null && (
+          <div style={flex({ fontSize: 34, fontWeight: 700, color: MUTED })}>{text.standing}</div>
+        )}
+      </div>
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 64,
+          top: 340,
+          width: 1072,
+          flexDirection: 'column',
+          gap: 10,
+          padding: '24px 36px 26px',
+          borderRadius: 18,
+          background: NIGHT_COLOURS.surface,
+        })}
+      >
+        <div
+          style={flex({
+            fontFamily: MONO,
+            fontSize: 24,
+            textTransform: 'uppercase',
+            letterSpacing: 1,
+            color: text.next.known ? SAFFRON : MUTED,
+          })}
+        >
+          Next match
+        </div>
+        <div
+          style={flex({
+            fontSize: 56,
+            fontWeight: 700,
+            lineHeight: 1.1,
+            color: text.next.known ? INK : MUTED,
+          })}
+        >
+          {text.next.match}
+        </div>
+        {text.next.detail !== null && (
+          <div style={flex({ fontSize: 32, color: MUTED })}>{text.next.detail}</div>
+        )}
+      </div>
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 64,
+          bottom: 48,
+          fontFamily: MONO,
+          fontSize: 22,
+          color: CAPTION,
+        })}
+      >
+        {text.asOf}
+      </div>
+      <div style={flex({ position: 'absolute', right: 64, bottom: 40 })}>
+        <Wordmark host={host} size={22} />
+      </div>
+    </div>
   );
 }

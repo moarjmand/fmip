@@ -17084,6 +17084,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 10 share-card spec (D-419, D-420)."
   },
+  "shared.og.teamAlt": {
+    "source": "The club, its competition and its next match",
+    "text": "باشگاه، رقابتش و بازی بعدی‌اش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 10 share-card spec (D-419, D-420)."
+  },
   "shareCard.title": {
     "source": "Your card",
     "text": "کارت شما",

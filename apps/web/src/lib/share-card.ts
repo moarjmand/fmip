@@ -7,11 +7,13 @@ import type {
   PublicProfile,
   Rating,
   TableRow,
+  TeamPage,
 } from '@fmip/contracts';
 import { percentages } from './forecast';
 import { OUTCOME_LABEL } from './prediction-form';
+import { stageLabel } from './stage-label';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { type MessageKey, t } from '@/i18n/messages';
+import { type MessageKey, plural, t } from '@/i18n/messages';
 
 /**
  * The words on a share card (T-520): the picture a chat app shows when a link
@@ -43,6 +45,7 @@ const ALT_KEY = {
   match: 'shared.og.matchAlt',
   competition: 'shared.og.competitionAlt',
   member: 'shared.og.memberAlt',
+  team: 'shared.og.teamAlt',
   brand: 'shared.og.brandAlt',
 } as const satisfies Record<string, MessageKey>;
 
@@ -425,4 +428,100 @@ export function memberCardText(
         };
       }),
   };
+}
+
+export interface TeamCardText {
+  /** "England · Club · Founded 1886", as the club band's eyebrow. */
+  eyebrow: string;
+  name: string;
+  /** The club's main competition (its domestic league first), or the sentence saying there is none. */
+  competition: { name: string; known: boolean };
+  /** "1st · 27 pts from 10" in that competition's table, or `null` with no table that places the club. */
+  standing: string | null;
+  /** The next match and its day, or the sentence saying there is none. */
+  next: { match: string; detail: string | null; known: boolean };
+  /** The day the card was drawn: a chat app keeps a picture for days (rule 4). */
+  asOf: string;
+}
+
+/** The day in the UK, the English reader's zone: a date only, never a time (D-420). */
+const CARD_DAY_ZONE = 'Europe/London';
+
+function cardDay(at: Date, options: Intl.DateTimeFormatOptions): string {
+  return new Intl.DateTimeFormat('en-GB', { ...options, timeZone: CARD_DAY_ZONE })
+    .format(at)
+    .replace(',', '');
+}
+
+/**
+ * The team card's words (T-1826, D-420; T1 "Club band"), from the club
+ * page's own answer (`GET /teams/:id`, English names): the name, the club's
+ * main competition -- the first, its domestic league where it has one, as
+ * the club page's band reads it -- and where it stands there, the next match
+ * and its day. What the answer does not hold is said, never made up (rule
+ * 3): "No current competition on record", "No match scheduled". No forecast
+ * is drawn: a kept picture of one would go stale (the spec, section 3).
+ */
+export function teamCardText(page: TeamPage, now: Date): TeamCardText {
+  const team = page.team;
+  const say = (key: MessageKey) => t(DEFAULT_LOCALE, key);
+  const eyebrow = [
+    ...(team.country !== null ? [team.country.name] : []),
+    say(team.kind === 'national' ? 'teamPage.national' : 'teamPage.club'),
+    ...(team.gender === 'women' ? [say('competitionPage.women')] : []),
+    ...(team.founded_year !== null ? [`Founded ${team.founded_year}`] : []),
+  ].join(' · ');
+
+  const main = page.competitions[0] ?? null;
+  const table = main?.context.data ?? null;
+  const own = table?.rows.find((row) => row.team.id === team.id) ?? null;
+  const standing =
+    table === null
+      ? null
+      : [
+          plural(DEFAULT_LOCALE, 'team.position', table.position).text,
+          own === null ? `${table.points} pts` : `${table.points} pts from ${own.played}`,
+        ].join(' · ');
+
+  const fixture = page.next_match;
+  let next: TeamCardText['next'];
+  if (fixture === null) {
+    next = { match: 'No match scheduled', detail: null, known: false };
+  } else {
+    const round = fixture.round === null ? null : stageLabel(fixture.round, say, DEFAULT_LOCALE);
+    const day =
+      fixture.freshness === 'awaiting_update'
+        ? 'Awaiting update'
+        : cardDay(new Date(fixture.kickoff_at), {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+          });
+    next = {
+      match: `${cardName(fixture.home)} v ${cardName(fixture.away)}`,
+      detail: [day, fixture.competition.short_name ?? fixture.competition.name, round]
+        .filter((part): part is string => part !== null && part !== '')
+        .join(' · '),
+      known: true,
+    };
+  }
+
+  return {
+    eyebrow,
+    name: team.localised_name ?? team.name,
+    competition:
+      main === null
+        ? { name: 'No current competition on record', known: false }
+        : { name: main.competition.short_name ?? main.competition.name, known: true },
+    standing,
+    next,
+    asOf: `As of ${cardDay(now, { day: 'numeric', month: 'short', year: 'numeric' })}`,
+  };
+}
+
+/** The team card's name size: 90px as drawn, smaller for a long name, which then takes two lines. */
+export function teamNameSize(name: string): number {
+  if (name.length <= 16) return 90;
+  if (name.length <= 26) return 64;
+  return 52;
 }

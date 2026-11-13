@@ -10,6 +10,7 @@ const api = vi.hoisted(() => ({
   fetchMatchCentre: vi.fn(),
   fetchForecastSummaries: vi.fn(),
   fetchCompetition: vi.fn(),
+  fetchTeam: vi.fn(),
   fetchProfile: vi.fn(),
   fetchRating: vi.fn(),
   fetchPredictionHistory: vi.fn(),
@@ -172,6 +173,14 @@ describe('the card routes read English names on any locale', () => {
     const { default: Image } = await import('@/app/[locale]/competition/[id]/opengraph-image');
     await png(await Image({ params: Promise.resolve({ locale: 'fa', id: ID }) }));
     expect(api.fetchCompetition).toHaveBeenCalledWith(ID, '', 'en');
+  }, 20_000);
+
+  it('the team card, kept an hour by shared caches (T-1826)', async () => {
+    const { default: Image } = await import('@/app/[locale]/team/[id]/opengraph-image');
+    const drawn = await Image({ params: Promise.resolve({ locale: 'fa', id: ID }) });
+    await png(drawn);
+    expect(drawn.headers.get('cache-control')).toBe('public, max-age=3600');
+    expect(api.fetchTeam).toHaveBeenCalledWith(ID, 'en');
   }, 20_000);
 
   it('the member card', async () => {
