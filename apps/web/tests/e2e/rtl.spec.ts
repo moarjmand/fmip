@@ -126,7 +126,7 @@ test.describe('layout mirrors under rtl', () => {
       };
     });
     expect(style).toEqual({ borderLeftWidth: '0px', borderRightWidth: ACCENT_WIDTH });
-    // The numbered sections (T-1789, D-392) stay left to right inside the
+    // The numbered sections (T-1789, D-410) stay left to right inside the
     // English text; this suite runs without the API, so the page shows the
     // unreachable notice here and `rules-page.spec.tsx` checks the sections.
   });

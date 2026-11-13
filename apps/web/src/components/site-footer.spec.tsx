@@ -102,7 +102,7 @@ describe('the site footer', () => {
     expect(html).toContain('>What Stadiomind is<');
   });
 
-  it('ends on a legal strip beside the copyright: the rules and the data sources, nothing else (D-392)', async () => {
+  it('ends on a legal strip beside the copyright: the rules and the data sources, nothing else (D-410)', async () => {
     const html = await draw('en');
     expect(tag(html, 'footer-rules')).toContain('href="/en/rules"');
     expect(tag(html, 'footer-rules')).toContain('class="footer-link underline"');
