@@ -72,7 +72,120 @@ export interface AcceptPlatformRulesRequest {
   version: string;
 }
 
-/** `POST /auth/register`. Every field is required (blueprint 7.1). */
+/**
+ * Where a sign-up started (T-1821, D-415), never a cookie: the kind of page
+ * on which "Create account" was clicked, carried to the register page by its
+ * link, and the host of the site that linked to the register page when a
+ * visitor landed on it from elsewhere. Only ever added to a monthly
+ * aggregate count, never kept beside the account.
+ */
+export const SIGNUP_ENTRIES = [
+  'home',
+  'match',
+  'team',
+  'competition',
+  'news',
+  'other',
+  'none',
+] as const;
+/** `none`: the register page was the first page we know of (a link from elsewhere, or none at all). */
+export type SignupEntry = (typeof SIGNUP_ENTRIES)[number];
+
+export interface SignupSource {
+  entry: SignupEntry;
+  /**
+   * The referring site's main domain only (`t.me`, `bbc.co.uk`, `github.io`
+   * for `name.github.io`), or `telegram` for Telegram's Android app; null for
+   * none, our own site, an address, `localhost` or a one-label name.
+   */
+  referrer_host: string | null;
+}
+
+/** A DNS name: labels of letters, digits and hyphens, dot-separated, 253 at most. */
+const HOST_NAME =
+  /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
+
+/**
+ * A referring host as it is counted (D-415): lower-case, without a port or a
+ * leading `www.`, or null for anything that is not a bare host name -- a URL,
+ * a path, a query, an address with a user part. Never a guess.
+ */
+export function signupHost(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const host = value
+    .trim()
+    .toLowerCase()
+    .replace(/:\d{1,5}$/, '')
+    .replace(/^www\./, '');
+  return HOST_NAME.test(host) ? host : null;
+}
+
+/**
+ * Second-level labels under a two-letter country code that are themselves a
+ * public suffix (`co.uk`, `com.au`, `ac.ir`, `org.tr`...): a small built-in
+ * list, no Public Suffix List and no dependency (D-415). A rare suffix it
+ * misses keeps one label more than its main domain, never a full URL.
+ */
+const SECOND_LEVEL_SUFFIXES: ReadonlySet<string> = new Set([
+  'ac',
+  'co',
+  'com',
+  'edu',
+  'gob',
+  'go',
+  'gov',
+  'ltd',
+  'me',
+  'ne',
+  'net',
+  'nic',
+  'or',
+  'org',
+  'plc',
+  'sch',
+]);
+
+/**
+ * Referrers that are an app, not a site (an `android-app://<package>/`
+ * `Referer`): counted under one plain name.
+ */
+export const SIGNUP_APP_REFERRERS: Readonly<Record<string, string>> = {
+  'org.telegram.messenger': 'telegram',
+};
+const APP_NAMES: ReadonlySet<string> = new Set(Object.values(SIGNUP_APP_REFERRERS));
+
+/**
+ * The referring host as it is counted (T-1821, D-415): a name, never an
+ * address, cut to its main domain (eTLD+1 by `SECOND_LEVEL_SUFFIXES`), so a
+ * personal subdomain (`name.github.io`) or a mail client's host
+ * (`mail.google.com`) never names a person. An IP address, `localhost` and
+ * any one-label name are null; so is everything `signupHost` refuses. An app
+ * name from `SIGNUP_APP_REFERRERS` passes as it is.
+ */
+export function signupReferrerHost(value: unknown): string | null {
+  if (typeof value === 'string' && APP_NAMES.has(value)) return value;
+  const host = signupHost(value);
+  if (host === null) return null;
+  const labels = host.split('.');
+  const last = labels[labels.length - 1] ?? '';
+  // One label (`localhost`, `intranet`), or an address (its last label is digits).
+  if (labels.length < 2 || /^\d+$/.test(last)) return null;
+  const second = labels[labels.length - 2] ?? '';
+  const keep = labels.length >= 3 && last.length === 2 && SECOND_LEVEL_SUFFIXES.has(second) ? 3 : 2;
+  return labels.slice(-keep).join('.');
+}
+
+/** A sign-up source as the API counts it: anything malformed is `none` with no host. */
+export function signupSource(value: unknown): SignupSource {
+  if (typeof value !== 'object' || value === null) return { entry: 'none', referrer_host: null };
+  const record = value as Record<string, unknown>;
+  const entry = (SIGNUP_ENTRIES as readonly unknown[]).includes(record.entry)
+    ? (record.entry as SignupEntry)
+    : 'none';
+  return { entry, referrer_host: signupReferrerHost(record.referrer_host) };
+}
+
+/** `POST /auth/register`. Every field is required (blueprint 7.1) except `source`. */
 export interface RegisterRequest {
   /** 3 to 20 characters: lower-case letters, digits, underscore. */
   username: string;
@@ -85,6 +198,8 @@ export interface RegisterRequest {
   timezone: string;
   /** Must be `true`: acceptance of the platform rules in force (recorded with its version, T-931). */
   accept_rules: boolean;
+  /** Where the sign-up started (T-1821, D-415); absent or malformed is counted as `none`. */
+  source?: SignupSource;
 }
 
 /** `POST /auth/login`. `identifier` is a username or an e-mail address. */

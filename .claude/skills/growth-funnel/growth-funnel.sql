@@ -95,3 +95,28 @@ ORDER BY 2 DESC;
 \echo == the channel's own posts, last 28 days (kind | sent | refused or failed); output, not reach: subscribers are not stored
 SELECT kind, count(*) FILTER (WHERE state = 'sent') AS sent, count(*) FILTER (WHERE state IN ('refused', 'failed')) AS not_sent
   FROM channel_post WHERE day > current_date - 28 GROUP BY 1 ORDER BY 1;
+
+\echo == sign-ups by where they started, closed months since T-1821 (entry | referring site; cells under 5 folded)
+-- D-415: the kind of page where "Create account" was clicked and the other site that linked straight
+-- to the register page; an aggregate counted at registration, never beside an account. Staff sign-ups
+-- are in it too (the count has no account to tell them apart). Months before the table are not counted.
+-- Closed months only: two reports a week apart over the month in progress would show one member's source.
+WITH c AS (SELECT entry || ' | ' || CASE WHEN referrer_host = '' THEN '(none)' ELSE referrer_host END AS k,
+                  sum(sign_ups) AS n
+             FROM signup_source_monthly
+            WHERE month < date_trunc('month', now() AT TIME ZONE 'UTC')::date
+            GROUP BY 1)
+SELECT k, n FROM c WHERE n >= 5
+UNION ALL
+SELECT 'fewer than 5 each (' || count(*) || ' sources)', coalesce(sum(n), 0) FROM c WHERE n < 5 HAVING count(*) > 0
+ORDER BY 2 DESC;
+
+\echo == sign-ups by entry page alone, by closed month (cells under 5 folded per month)
+WITH c AS (SELECT to_char(month, 'YYYY-MM') AS m, entry AS k, sum(sign_ups) AS n
+             FROM signup_source_monthly
+            WHERE month < date_trunc('month', now() AT TIME ZONE 'UTC')::date
+            GROUP BY 1, 2)
+SELECT m, k, n FROM c WHERE n >= 5
+UNION ALL
+SELECT m, 'fewer than 5 each (' || count(*) || ' kinds)', sum(n) FROM c WHERE n < 5 GROUP BY m
+ORDER BY 1 DESC, 3 DESC;

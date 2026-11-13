@@ -86,7 +86,17 @@ export type {
   IngestionHealth,
   LiveHealth,
 } from './health';
-export { DELETED_USERNAME_PATTERN, ROLE_REFUSALS, forbidden, isDeletedMember } from './identity';
+export {
+  DELETED_USERNAME_PATTERN,
+  ROLE_REFUSALS,
+  SIGNUP_ENTRIES,
+  forbidden,
+  isDeletedMember,
+  SIGNUP_APP_REFERRERS,
+  signupHost,
+  signupReferrerHost,
+  signupSource,
+} from './identity';
 export type {
   AcceptPlatformRulesRequest,
   ApiError,
@@ -102,6 +112,8 @@ export type {
   RegisterRequest,
   ResetPasswordRequest,
   SessionResponse,
+  SignupEntry,
+  SignupSource,
   VerifyEmailRequest,
 } from './identity';
 // The viewer's territory (blueprint 11, T-312): chosen, stored, never inferred.
