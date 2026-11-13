@@ -100,13 +100,26 @@ export class EvaluationService {
     return beingJudged(counts, published);
   }
 
-  /** The public page's figures (T-1369): published forecasts only, by month or ISO week (T-1413). */
-  async publicAccuracy(period: AccuracyPeriod = 'month'): Promise<PublicModelAccuracyResponse> {
-    const [rows, competitions] = await Promise.all([
+  /**
+   * The public page's figures (T-1369): published forecasts only, by month or
+   * ISO week (T-1413); with the calibration, each published version on its
+   * own and whether each period is over (T-1751, D-408), all read from the
+   * stored forecasts and evaluations, nothing written. `calibration: false`
+   * leaves the calibration out and does not read it: it does not depend on
+   * the period, so a page asking for months and weeks computes it once.
+   */
+  async publicAccuracy(
+    period: AccuracyPeriod = 'month',
+    now: Date = new Date(),
+    { calibration: withCalibration = true }: { calibration?: boolean } = {},
+  ): Promise<PublicModelAccuracyResponse> {
+    const [rows, competitions, calibration, pending] = await Promise.all([
       this.store.accuracySums(period, 'published'),
       this.store.publishedCompetitions(),
+      withCalibration ? this.store.publicCalibration() : Promise.resolve(null),
+      this.store.pendingPeriods(period, now),
     ]);
-    return publicAccuracy(rows, competitions, period);
+    return publicAccuracy(rows, competitions, period, { calibration, pending, now });
   }
 
   /**

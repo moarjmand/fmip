@@ -5,6 +5,7 @@ import { PG_POOL } from '../../database/database.module';
 import { EvaluationService } from './evaluation.service';
 import { ForecastService } from './forecast.service';
 import { PowerIndexService } from './power-index.service';
+import { EVALUATE_WINDOW_DAYS } from './internal/evaluation-window';
 import {
   EARLY_WINDOW_DAYS,
   MILLISECONDS_PER_DAY,
@@ -53,8 +54,12 @@ export interface TriggerReport {
  * forecast is not ingestion, and giving it its own tick keeps it out of the
  * `ingest_run` record, which is about what a provider was asked for.
  */
-/** How far back a finished fixture is still scored by the tick, in days. */
-export const EVALUATE_WINDOW_DAYS = 14;
+/**
+ * How far back a finished fixture is still scored by the tick, in days: in
+ * `internal/evaluation-window.ts` since T-1751, so the public accuracy
+ * answer's running periods read the same constant (D-408).
+ */
+export { EVALUATE_WINDOW_DAYS };
 /** Fixtures scored per tick at most. */
 export const EVALUATE_BATCH = 200;
 

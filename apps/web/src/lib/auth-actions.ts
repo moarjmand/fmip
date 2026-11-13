@@ -13,6 +13,7 @@ import type {
   ViewingTerritoryResponse,
   UpdateProfileRequest,
 } from '@fmip/contracts';
+import { signupSource } from '@fmip/contracts';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { type ApiResult, apiRequest, savePendingPick } from './api';
@@ -25,6 +26,7 @@ import { registrationDisplayName, registrationLanguage } from './register';
 import { RETURN_PARAM, safeReturnPath } from './return-to';
 import { applyApiSetCookie, readerAddress, sessionCookieHeader } from './session';
 import { SESSION_COOKIE, parseSessionSetCookie } from './set-cookie';
+import { SIGNUP_ENTRY_FIELD, SIGNUP_REFERRER_FIELD } from './signup-source';
 import { reconcileThemeAtSignIn } from './theme-cookie';
 import { territoryName } from './territory';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
@@ -118,6 +120,12 @@ export async function registerAction(
     preferred_language: registrationLanguage(locale, await offeredNow()),
     timezone: text(formData, 'timezone'),
     accept_rules: formData.get('accept_rules') === 'on',
+    // Where the sign-up started (T-1821, D-415), as the register page read it;
+    // the API normalises it again and only adds it to a monthly count.
+    source: signupSource({
+      entry: text(formData, SIGNUP_ENTRY_FIELD),
+      referrer_host: text(formData, SIGNUP_REFERRER_FIELD) || null,
+    }),
   };
   // The list has no preselected country (T-1480): an unchosen one is said in
   // the reader's words, not the API's schema message.

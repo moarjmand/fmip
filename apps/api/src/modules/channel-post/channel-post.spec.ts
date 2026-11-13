@@ -162,6 +162,8 @@ function accuracyFor(weekStart: string, matches: number): PublicModelAccuracyRes
   const point = {
     period: '2026-W39',
     period_start: weekStart,
+    period_end: weekStart,
+    complete: true,
     forecasts: matches,
     matches,
     coverage: 'limited' as const,
@@ -180,8 +182,10 @@ function accuracyFor(weekStart: string, matches: number): PublicModelAccuracyRes
       model_versions: ['dixon-coles@1.0.0'],
       total: point,
       points: matches === 0 ? [] : [point],
+      calibration: { minimum_forecasts: 30, coverage: 'not_supplied', bins: [] },
     },
     competitions: [],
+    versions: [],
     last_updated_at: null,
   };
 }

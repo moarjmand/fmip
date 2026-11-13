@@ -1511,12 +1511,17 @@ export function fetchAdminModelAccuracy(
 
 /**
  * `GET /model/accuracy?period=` (T-1369): the published model's accuracy by
- * month, or by ISO week (T-1413, T-1414). Public.
+ * month, or by ISO week (T-1413, T-1414). Public. `calibration: false`
+ * asks the API to leave the calibration out (T-1751): the accuracy page's
+ * second request, for the weekly chart, so it is computed once a view.
  */
 export function fetchModelAccuracy(
   period: AccuracyPeriod = 'month',
+  { calibration = true }: { calibration?: boolean } = {},
 ): Promise<ApiResult<PublicModelAccuracyResponse>> {
-  return apiRequest<PublicModelAccuracyResponse>(`/model/accuracy?period=${period}`);
+  return apiRequest<PublicModelAccuracyResponse>(
+    `/model/accuracy?period=${period}${calibration ? '' : '&calibration=omit'}`,
+  );
 }
 
 /**

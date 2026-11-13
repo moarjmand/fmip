@@ -281,7 +281,8 @@ export class ChannelPostService implements OnModuleInit, OnApplicationShutdown {
 
     const post = composeWeeklyPost(
       week,
-      await this.evaluations.publicAccuracy('week'),
+      // The post draws no calibration: it is not read (T-1751).
+      await this.evaluations.publicAccuracy('week', new Date(), { calibration: false }),
       this.config.origin,
     );
     if (post === null) return this.nothing('weekly_accuracy', week);

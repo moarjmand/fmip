@@ -184,7 +184,10 @@ export default async function CompetitionPage({
     // Each tab asks only for its own modules.
     requested === 'news' ? fetchFounderFeed({ competition: id, limit: 3 }) : null,
     requested === 'news' ? fetchEntityNews('competition', id, locale) : null,
-    requested === 'overview' || requested === 'model' ? fetchModelAccuracy('month') : null,
+    // The league's own figures only: no calibration is read (T-1751).
+    requested === 'overview' || requested === 'model'
+      ? fetchModelAccuracy('month', { calibration: false })
+      : null,
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
