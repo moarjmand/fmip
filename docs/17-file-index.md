@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2433), grouped by folder, with one line on
+Every file in the repository (2436), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -83,7 +83,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/identity`](#appsapisrcmodulesidentity) — 9
 - [`apps/api/src/modules/identity/internal`](#appsapisrcmodulesidentityinternal) — 12
 - [`apps/api/src/modules/ingestion`](#appsapisrcmodulesingestion) — 23
-- [`apps/api/src/modules/ingestion/internal`](#appsapisrcmodulesingestioninternal) — 70
+- [`apps/api/src/modules/ingestion/internal`](#appsapisrcmodulesingestioninternal) — 73
 - [`apps/api/src/modules/intelligence`](#appsapisrcmodulesintelligence) — 4
 - [`apps/api/src/modules/intelligence/internal`](#appsapisrcmodulesintelligenceinternal) — 4
 - [`apps/api/src/modules/locale-holds`](#appsapisrcmoduleslocale-holds) — 3
@@ -1172,6 +1172,8 @@ machine, `docs/18-handover.md`.
 | `coaches.ts` | Coaches from the provider's coaches endpoint (T-1439, D-230). |
 | `coverage-rules.ts` | How evidence becomes a coverage state (T-027, blueprint 4.3). |
 | `coverage-store.ts` | The SQL behind the coverage computation (T-027). |
+| `detail-sweep.spec.ts` | Tests for `detail-sweep`. |
+| `detail-sweep.ts` | What the post-match run asks after the whistle, and in what order (T-1823, D-417). |
 | `group-assign.spec.ts` | T-1333 against the real schema: the standings job writes each group-stage fixture's group from the provider's group tables, and our group tables are then built from those fixtures. |
 | `groups.spec.ts` | Tests for `groups`. |
 | `groups.ts` | Which group each team is in, from the provider's group tables (T-1333). |
@@ -1182,6 +1184,7 @@ machine, `docs/18-handover.md`.
 | `kit-colour-store.ts` | The `kit_colours` job's SQL (T-1417, D-218): `fixture_kit_fetch` and the matches owed shirts. |
 | `kit-colours.spec.ts` | The `kit_colours` job (T-1417, D-218), over a fake adapter and store. |
 | `kit-colours.ts` | The shirts of past matches (T-1417, D-218). |
+| `lineup-arrival.spec.ts` | T-1824 (D-418) against the real schema: a season whose line-ups reach us after kick-off as a rule (the Persian Gulf Pro League's, 56 to 105 hours after, on 2026-11-13) is `delayed` for line-ups, never `available`; a sea… |
 | `lineup-asks.spec.ts` | T-1625, D-293: who the line-ups job asks, from 75 minutes before kick-off. |
 | `lineup-asks.ts` | Which matches the line-ups job asks for their line-up, and in what order (T-1625, D-293). |
 | `lineup-sides.spec.ts` | Line-ups filed under the other team (T-1628, D-294). |
