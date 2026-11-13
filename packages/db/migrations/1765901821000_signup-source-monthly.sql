@@ -22,8 +22,12 @@
 -- account's transaction id), and the daily retention run rewrites every row
 -- in one transaction (`RetentionStore.restampSignupSources`), so after at
 -- most a day no row's live version sits next to its account's transaction id
--- either. Old row versions remain on disk until vacuum, readable only with
--- superuser tools. Reports read closed months only, as folded aggregates
+-- either. The rewrite leaves the old row versions on disk until vacuum, and
+-- they can be read by any superuser session (pageinspect) -- which our one
+-- database role is: the API and the agents both connect with it. So the
+-- table's autovacuum runs at the first dead row (threshold 0, scale factor
+-- 0, below), and the old versions are cleared soon after the daily rewrite.
+-- Reports read closed months only, as folded aggregates
 -- with cells of 5 or more (the growth-funnel skill).
 --
 -- A new table; accounts created before it are not counted (no backfill:
@@ -53,9 +57,15 @@ CREATE TABLE signup_source_monthly (
   CONSTRAINT signup_source_monthly_positive CHECK (sign_ups > 0)
 );
 
+-- Vacuumed at the first dead row, so the rewrite's old versions do not linger.
+ALTER TABLE signup_source_monthly
+  SET (autovacuum_vacuum_threshold = 0, autovacuum_vacuum_scale_factor = 0);
+
 COMMENT ON TABLE signup_source_monthly IS
   'Sign-ups per month by entry page kind and referring main domain; aggregate, still personal data (T-1821, D-415).';
 
 -- Down Migration
 
+ALTER TABLE signup_source_monthly
+  RESET (autovacuum_vacuum_threshold, autovacuum_vacuum_scale_factor);
 DROP TABLE signup_source_monthly;
