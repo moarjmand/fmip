@@ -1149,8 +1149,9 @@ export function ModelAccuracy({
         />
       )}
 
-      {/* Under the sample rule no chart either (D-370 point 5); the calibration says when it has too few itself. */}
-      {state === 'available' && (
+      {/* Under the sample rule no chart either (D-370 point 5); the calibration says when it has too few itself.
+          An answer asked without it (`calibration=omit`) has none to draw. */}
+      {state === 'available' && report.overall.calibration !== undefined && (
         <CalibrationChart lang={lang} calibration={report.overall.calibration} total={total} />
       )}
 

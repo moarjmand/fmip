@@ -417,7 +417,6 @@ export type {
 export type { ModelUpset, ModelUpsetEntity, ModelUpsetGap, ModelUpsetResponse } from './forecast';
 export {
   ACCURACY_MINIMUM_MATCHES,
-  ACCURACY_PENDING_HOURS,
   ACCURACY_PERIODS,
   CALIBRATION_MINIMUM_FORECASTS,
   CALIBRATION_STEPS,

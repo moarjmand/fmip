@@ -167,7 +167,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     // The founder's analysis of what is coming (T-132).
     fetchFounderFeed({ limit: 3 }),
     // T-1369 (D-187): the public accuracy figures, by month (T-1516, D-270).
-    fetchModelAccuracy('month'),
+    // No calibration: the home page draws none, and it is not read for every guest (T-1751).
+    fetchModelAccuracy('month', { calibration: false }),
     session ? fetchFriendPredictions(cookie) : null,
     session ? fetchGroupDiscussions(cookie) : null,
   ]);

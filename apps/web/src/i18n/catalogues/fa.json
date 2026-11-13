@@ -11289,8 +11289,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "modelAccuracy.weekly.partial": {
-    "source": "The last week is incomplete (scored to {date}), so its bar is lighter and dashed.",
-    "text": "هفته‌ی آخر کامل نیست (تا {date} ارزیابی شده)، پس ستونش کم‌رنگ و خط‌چین است.",
+    "source": "A week still running or waiting for a score is incomplete (scored to {date}), so its bar is lighter and dashed.",
+    "text": "هفته‌ای که هنوز جریان دارد یا منتظر ارزیابی است کامل نیست (تا {date} ارزیابی شده)، پس ستونش کم‌رنگ و خط‌چین است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },

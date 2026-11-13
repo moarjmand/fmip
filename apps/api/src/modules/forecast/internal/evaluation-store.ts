@@ -1,15 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  ACCURACY_PENDING_HOURS,
-  type AccuracyPeriod,
-  type ForecastEvaluation,
-  type ForecastKind,
-  type ModelPerformanceRow,
-  type ModelProbabilities,
-  type ModelScorelineProbability,
+import type {
+  AccuracyPeriod,
+  ForecastEvaluation,
+  ForecastKind,
+  ModelPerformanceRow,
+  ModelProbabilities,
+  ModelScorelineProbability,
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { EVALUATE_WINDOW_DAYS } from './evaluation-window';
 import type { AccuracySumRow } from './model-accuracy';
 import { rps, type Scored } from './scoring';
 
@@ -513,10 +513,12 @@ export class PostgresEvaluationStore {
   /**
    * The periods still waiting for a score (T-1751, D-408): per competition,
    * the week or month (UTC, as `accuracySums`) of each match that kicked off
-   * in the `ACCURACY_PENDING_HOURS` before `now`, has a published forecast
-   * made before kick-off, is not postponed, cancelled, abandoned or awarded,
-   * and has no published pre-kick-off evaluation yet. A period with one is
-   * still running, however late it is.
+   * within `EVALUATE_WINDOW_DAYS` before `now` -- the window in which the
+   * evaluation tick still scores a finished match, so a result that arrives
+   * late still lands in a period the page calls running (review of PR #883)
+   * -- has a published forecast made before kick-off, is not postponed,
+   * cancelled, abandoned or awarded, and has no published pre-kick-off
+   * evaluation yet. A period with one is still running, however late it is.
    */
   async pendingPeriods(
     period: AccuracyPeriod,
@@ -530,7 +532,7 @@ export class PostgresEvaluationStore {
                 AS period_start
          FROM fixture fx
          JOIN season se ON se.id = fx.season_id
-        WHERE fx.kickoff_at > $1 AND fx.kickoff_at <= $2
+        WHERE fx.kickoff_at >= $1 AND fx.kickoff_at <= $2
           AND fx.status IN ('scheduled', 'live', 'suspended', 'finished')
           AND EXISTS (
                 SELECT 1 FROM forecast f
@@ -539,7 +541,8 @@ export class PostgresEvaluationStore {
           AND NOT EXISTS (
                 SELECT 1 FROM evaluation e JOIN forecast f2 ON f2.id = e.forecast_id
                  WHERE e.fixture_id = fx.id AND e.pre_kickoff AND f2.role = 'published')`,
-      [new Date(now.getTime() - ACCURACY_PENDING_HOURS * 3_600_000), now],
+      // The same bound as `ForecastTriggersService.evaluateFinished`'s.
+      [new Date(now.getTime() - EVALUATE_WINDOW_DAYS * 86_400_000), now],
     );
     return rows.map((row) => ({
       competitionId: row.competition_id,

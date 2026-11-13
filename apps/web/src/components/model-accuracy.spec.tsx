@@ -703,7 +703,7 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
       expect(bars[4]).toContain('fill-model/25');
       expect(bars[4]).toContain('stroke-dasharray="4 3"');
       expect(text(part(out, 'accuracy-weekly-partial', 'li'))).toBe(
-        'The last week is incomplete (scored to 5 Nov), so its bar is lighter and dashed.',
+        'A week still running or waiting for a score is incomplete (scored to 5 Nov), so its bar is lighter and dashed.',
       );
       // Once the API calls the week complete, it is a week like the others: the
       // page infers nothing from the last scoring time (T-1751).
@@ -717,6 +717,18 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
         weekly: WEEKS,
       });
       expect(weeksOf(chartOf(running)).at(-1)).toContain('data-partial="true"');
+      // An earlier week still waiting for a late result is marked and said too.
+      const earlier = html(sixNov(), 'en', {
+        weekly: WEEKS.map((week, i) => ({ ...week, complete: i !== 3 })),
+      });
+      expect(weeksOf(chartOf(earlier)).map((w) => w.includes('data-partial="true"'))).toEqual([
+        false,
+        false,
+        false,
+        true,
+        false,
+      ]);
+      expect(earlier).toContain('data-testid="accuracy-weekly-partial"');
     });
 
     it('draws a week worse than a guess below the axis and says so', () => {
@@ -1088,8 +1100,13 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
       expect(top.attrs).toContain('data-thin="true"');
       expect(top.circle).toContain('fill-surface stroke-model');
       expect(steps(out)[8]!.circle).toContain('fill-model stroke-model');
+      // Near the inline end (0.93) the count sits on the inline-start side, in
+      // both directions, so it never runs past the drawing on a phone.
       expect(part(out, 'accuracy-calibration-chart', 'svg')).toMatch(
-        /data-thin="true"><circle[^>]*><\/circle><text[^>]*>14<\/text>/,
+        /data-thin="true"><circle[^>]*><\/circle><text[^>]*dx="-10"[^>]*text-anchor="end"[^>]*>14<\/text>/,
+      );
+      expect(part(live('fa'), 'accuracy-calibration-chart', 'svg')).toMatch(
+        /data-thin="true"><circle[^>]*><\/circle><text[^>]*dx="10"[^>]*text-anchor="start"[^>]*>۱۴<\/text>/,
       );
       expect(text(part(out, 'accuracy-calibration-hollow', 'li'))).toBe(
         'Fewer than 30: hollow, with its count beside it',

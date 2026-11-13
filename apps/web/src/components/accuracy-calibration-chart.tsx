@@ -35,6 +35,9 @@ import { filled, formatPercent } from '@/lib/words';
 
 const whole = (lang: Locale, value: number): string => formatPercent(lang, value * 100, 0);
 
+/** Past this probability a hollow dot's count sits on its inline-start side. */
+const COUNT_FLIP = 0.8;
+
 function Heading({ lang }: { lang: Locale }) {
   return (
     <h2
@@ -318,12 +321,14 @@ export function CalibrationChart({
                   data-mark="step"
                 />
                 {point.thin && (
-                  // The count beside a hollow dot, towards the inline end.
+                  // The count beside a hollow dot, towards the inline end; near
+                  // that edge it goes on the other side, so a narrow phone never
+                  // pushes it past the drawing (T-1751 review).
                   <text
                     x={`${point.x}%`}
-                    dx={rtl ? -(radius + 4) : radius + 4}
+                    dx={(rtl !== point.said > COUNT_FLIP ? -1 : 1) * (radius + 4)}
                     y={point.y + 4}
-                    textAnchor={rtl ? 'end' : 'start'}
+                    textAnchor={rtl !== point.said > COUNT_FLIP ? 'end' : 'start'}
                     direction="ltr"
                     unicodeBidi="isolate"
                     className="fill-muted stroke-surface stroke-[3px] text-[0.6875rem] tabular-nums [paint-order:stroke] [stroke-linejoin:round]"

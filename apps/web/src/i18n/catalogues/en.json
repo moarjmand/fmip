@@ -2023,7 +2023,7 @@
     "one": "All {count} match: {edge}",
     "other": "All {count} matches: {edge}"
   },
-  "modelAccuracy.weekly.partial": "The last week is incomplete (scored to {date}), so its bar is lighter and dashed.",
+  "modelAccuracy.weekly.partial": "A week still running or waiting for a score is incomplete (scored to {date}), so its bar is lighter and dashed.",
   "modelAccuracy.weekly.partialMark": "incomplete",
   "modelAccuracy.weekly.thin": "Lighter and dashed: fewer than {minimum} matches that week.",
   "modelAccuracy.weekly.axis": "Each week is named by its Monday (UTC); the number under it is its matches scored.",

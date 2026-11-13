@@ -15,6 +15,7 @@ import { EvaluationService } from './evaluation.service';
 import { ForecastModule } from './forecast.module';
 import { MODEL_CLIENT, ModelClient } from './forecast.service';
 import { PostgresEvaluationStore } from './internal/evaluation-store';
+import { EVALUATE_WINDOW_DAYS } from './internal/evaluation-window';
 import { PostgresForecastStore, type NewForecast } from './internal/forecast-store';
 import { rps, uniformRps } from './internal/scoring';
 
@@ -176,7 +177,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     await store.record(
       version(sunday, SUNDAY, 'published', PUBLISHED, '2031-03-02T10:00:00Z', P_SUNDAY),
     );
-    await store.record(version(sunday, SUNDAY, 'shadow', SHADOW, '2031-03-02T10:00:00Z', P_SHADOW));
+    // Later than the published version's last before kick-off, so a read that
+    // forgot `role = 'published'` would always count it (T-1751 review).
+    await store.record(version(sunday, SUNDAY, 'shadow', SHADOW, '2031-03-02T11:00:00Z', P_SHADOW));
     await store.record(
       version(monday, MONDAY, 'published', PUBLISHED, '2031-03-02T12:00:00Z', P_MONDAY),
     );
@@ -380,7 +383,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
 
     // Sunday's counted 0.5 / 0.3 / 0.2 (home won) and Monday's 0.1 / 0.3 / 0.6
     // (a draw): never the earlier Sunday version, the shadow's, or the one after kick-off.
-    const bins = own?.calibration.bins ?? [];
+    const bins = own?.calibration?.bins ?? [];
     expect(bins).toHaveLength(10);
     expect(bins.map((b) => [b.forecasts, b.happened])).toEqual([
       [0, 0],
@@ -395,7 +398,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
       [0, 0],
     ]);
     expect(bins[3]?.said).toBeCloseTo(0.3, 6);
-    expect(own?.calibration.coverage).toBe('limited');
+    expect(own?.calibration?.coverage).toBe('limited');
 
     // Rule 8: the same steps recomputed here from the stored forecasts and
     // their evaluations alone, the last published one before kick-off a match.
@@ -430,7 +433,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
 
     // Over the same matches as the version's figures: three probabilities a match.
     expect(bins.reduce((sum, b) => sum + b.forecasts, 0)).toBe(3 * (own?.total.matches ?? 0));
-    expect(body.overall.calibration.bins).toHaveLength(10);
+    expect(body.overall.calibration?.bins).toHaveLength(10);
+  });
+
+  it('leaves the calibration out when asked, and refuses another value (T-1751)', async () => {
+    const response = await get('/model/accuracy?period=week&calibration=omit');
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as PublicModelAccuracyResponse;
+    expect(body.overall).not.toHaveProperty('calibration');
+    expect(body.versions.every((v) => !('calibration' in v))).toBe(true);
+    // Everything else is the same answer.
+    expect(body.versions.find((v) => v.model_version === PUBLISHED)?.total.matches).toBe(2);
+    expect((await get('/model/accuracy?calibration=none')).statusCode).toBe(400);
   });
 
   it('keeps a week running while one of its matches waits for its score (T-1751)', async () => {
@@ -440,9 +454,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     expect(soon).toContainEqual({ competitionId: COMPETITION, periodStart: '2031-03-03' });
     // Sunday and Monday's scored matches are not waiting: the week before is not there.
     expect(soon).not.toContainEqual({ competitionId: COMPETITION, periodStart: '2031-02-24' });
-    // Past the 48 hours it is missing, not late: nothing waits for it.
-    const later = await store.pendingPeriods('week', new Date('2031-03-05T01:00:00Z'));
-    expect(later).not.toContainEqual({ competitionId: COMPETITION, periodStart: '2031-03-03' });
+    // A finished match still unscored three days on keeps its week running: the
+    // evaluation tick still scores it for EVALUATE_WINDOW_DAYS (review of #883).
+    const threeDays = await store.pendingPeriods('week', new Date('2031-03-06T00:30:00Z'));
+    expect(threeDays).toContainEqual({ competitionId: COMPETITION, periodStart: '2031-03-03' });
+    // To the last moment of the tick's window, inclusive, as the tick's own bound...
+    const edge = new Date(Date.parse(MONDAY) + EVALUATE_WINDOW_DAYS * 86_400_000);
+    expect(await store.pendingPeriods('week', edge)).toContainEqual({
+      competitionId: COMPETITION,
+      periodStart: '2031-03-03',
+    });
+    // ...and no further: past it the tick never scores the match, which is
+    // outside the sample like any unscored one.
+    const past = await store.pendingPeriods('week', new Date(edge.getTime() + 1000));
+    expect(past).not.toContainEqual({ competitionId: COMPETITION, periodStart: '2031-03-03' });
     const months = await store.pendingPeriods('month', new Date('2031-03-03T02:00:00Z'));
     expect(months).toContainEqual({ competitionId: COMPETITION, periodStart: '2031-03-01' });
   });

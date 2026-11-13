@@ -336,12 +336,12 @@ describe('publicAccuracy, step two (T-1751)', () => {
   });
 
   it('gives each version its own calibration, and the overall one their sum', () => {
-    expect(out.versions[0]?.calibration.bins[4]).toMatchObject({ forecasts: 93, happened: 40 });
-    expect(out.versions[1]?.calibration.bins[4]).toMatchObject({ forecasts: 60, happened: 20 });
-    expect(out.versions[1]?.calibration.bins[8]?.forecasts).toBe(0);
-    expect(out.overall.calibration.bins[4]).toMatchObject({ forecasts: 153, happened: 60 });
-    expect(out.overall.calibration.bins[8]).toMatchObject({ forecasts: 12, happened: 10 });
-    expect(out.overall.calibration.coverage).toBe('available');
+    expect(out.versions[0]?.calibration?.bins[4]).toMatchObject({ forecasts: 93, happened: 40 });
+    expect(out.versions[1]?.calibration?.bins[4]).toMatchObject({ forecasts: 60, happened: 20 });
+    expect(out.versions[1]?.calibration?.bins[8]?.forecasts).toBe(0);
+    expect(out.overall.calibration?.bins[4]).toMatchObject({ forecasts: 153, happened: 60 });
+    expect(out.overall.calibration?.bins[8]).toMatchObject({ forecasts: 12, happened: 10 });
+    expect(out.overall.calibration?.coverage).toBe('available');
   });
 
   it('marks each point with its end and whether it is over, per competition', () => {
@@ -370,6 +370,30 @@ describe('publicAccuracy, step two (T-1751)', () => {
   it('says not_supplied with nothing, with no version and an empty calibration', () => {
     const empty = publicAccuracy([], [], 'month', { calibration: [], pending: [], now: NOW });
     expect(empty.versions).toEqual([]);
-    expect(empty.overall.calibration.coverage).toBe('not_supplied');
+    expect(empty.overall.calibration?.coverage).toBe('not_supplied');
+  });
+
+  it('leaves the calibration out, overall and per version, when it was not read', () => {
+    const omitted = publicAccuracy(rows, [PL, LL], 'week', {
+      calibration: null,
+      pending: [],
+      now: NOW,
+    });
+    expect(omitted.overall).not.toHaveProperty('calibration');
+    expect(omitted.versions.map((v) => 'calibration' in v)).toEqual([false, false]);
+    // Everything else is the answer it would have been.
+    expect(omitted.versions.map((v) => v.total.matches)).toEqual([35, 20]);
+  });
+
+  it('orders versions with the same latest period by their number, newest first', () => {
+    const tie = publicAccuracy(
+      ['m@1.9.0', 'm@1.10.0', 'm@1.2.0'].map((modelVersion) =>
+        row({ role: null, modelVersion, periodStart: '2026-11-02' }),
+      ),
+      [PL],
+      'week',
+      { calibration: null, pending: [], now: NOW },
+    );
+    expect(tie.versions.map((v) => v.model_version)).toEqual(['m@1.10.0', 'm@1.9.0', 'm@1.2.0']);
   });
 });

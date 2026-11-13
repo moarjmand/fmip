@@ -522,20 +522,15 @@ export interface PublicAccuracyPoint extends AccuracyPoint {
   period_end: string;
   /**
    * False while the period is still running: its end has not passed, or a
-   * match of it with a published forecast made before kick-off kicked off
-   * within the last `ACCURACY_PENDING_HOURS` and is not scored yet. A match
-   * still unscored after that is not waited for: the period is complete
-   * without it, as any unscored match is outside the sample.
+   * match of it with a published forecast made before kick-off is not scored
+   * yet and kicked off recently enough that the API's evaluation tick would
+   * still score it (its `EVALUATE_WINDOW_DAYS`, 14 days): a late result
+   * still lands in a period called running, so a complete period's figures
+   * do not change. A match still unscored past that window is never scored
+   * by the tick and is outside the sample, like any unscored match.
    */
   complete: boolean;
 }
-
-/**
- * How long after its kick-off an unscored match keeps its week or month
- * running (T-1751). Matches are scored within minutes of the full-time
- * score; one still unscored two days on is missing, not late.
- */
-export const ACCURACY_PENDING_HOURS = 48;
 
 /** The published forecasts over one competition, or all of them. */
 export interface PublicAccuracySeries {
@@ -600,7 +595,11 @@ export interface AccuracyCalibration {
 /** Every competition together, with its calibration. */
 export interface PublicOverallSeries extends PublicAccuracySeries {
   competition: null;
-  calibration: AccuracyCalibration;
+  /**
+   * Absent only when the request said `calibration=omit`: it does not depend
+   * on the period, so a page that asks twice computes it once.
+   */
+  calibration?: AccuracyCalibration;
 }
 
 /**
@@ -614,14 +613,17 @@ export interface PublicVersionSeries {
   total: AccuracyMetrics;
   /** By the response's period, oldest first. */
   points: PublicAccuracyPoint[];
-  calibration: AccuracyCalibration;
+  /** Absent only when the request said `calibration=omit`. */
+  calibration?: AccuracyCalibration;
 }
 
 /**
  * `GET /model/accuracy?period=week|month` (T-1369; the week, T-1413): the
  * statistical model's published forecasts only -- never a shadow candidate,
  * never the founder's analysis or the community's consensus (rule 6).
- * Public; by month unless asked for weeks.
+ * Public; by month unless asked for weeks. `&calibration=omit` leaves the
+ * calibration out (T-1751): the page's second request, for the weekly chart,
+ * does not compute it again.
  */
 export interface PublicModelAccuracyResponse {
   period: AccuracyPeriod;

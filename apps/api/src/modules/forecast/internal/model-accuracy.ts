@@ -320,13 +320,17 @@ export function calibrationOf(rows: readonly CalibrationSumRow[]): AccuracyCalib
 
 /** What the public answer reads besides the accuracy sums (T-1751). */
 export interface PublicAccuracyExtras {
-  /** The calibration sums, per published version. */
-  calibration: readonly CalibrationSumRow[];
+  /**
+   * The calibration sums, per published version; null when the request left
+   * the calibration out (`calibration=omit`), and then the answer has none.
+   */
+  calibration: readonly CalibrationSumRow[] | null;
   /** The periods with a match still waiting for its score, per competition. */
   pending: readonly { competitionId: string; periodStart: string }[];
   now: Date;
 }
 
+// Without the time, no period can be shown to be over: every one is running.
 const NO_EXTRAS: PublicAccuracyExtras = { calibration: [], pending: [], now: new Date(0) };
 
 /**
@@ -348,7 +352,7 @@ export function publicAccuracy(
   const named = new Map(forecastCompetitions.map((c) => [c.id, c]));
   for (const group of grouped.values()) named.set(group.competition.id, group.competition);
 
-  const { now } = extras;
+  const { now, calibration } = extras;
   const anyWaiting = new Set(extras.pending.map((p) => p.periodStart));
   const waitingIn = (competitionId: string) =>
     new Set(
@@ -375,11 +379,18 @@ export function publicAccuracy(
   const latest = (own: readonly AccuracySumRow[]) =>
     own.reduce((last, row) => (row.periodStart > last ? row.periodStart : last), '');
   const versions: PublicVersionSeries[] = [...byVersion.entries()]
-    .sort(([a, ownA], [b, ownB]) => latest(ownB).localeCompare(latest(ownA)) || b.localeCompare(a))
+    // Latest kick-off first; a tie by the version's own number, newest first
+    // ("1.10.0" after "1.9.0", not before it).
+    .sort(
+      ([a, ownA], [b, ownB]) =>
+        latest(ownB).localeCompare(latest(ownA)) || b.localeCompare(a, 'en', { numeric: true }),
+    )
     .map(([version, own]) => ({
       model_version: version,
       ...publicSeries(own, period, now, anyWaiting),
-      calibration: calibrationOf(extras.calibration.filter((r) => r.modelVersion === version)),
+      ...(calibration === null
+        ? {}
+        : { calibration: calibrationOf(calibration.filter((r) => r.modelVersion === version)) }),
     }));
 
   return {
@@ -391,7 +402,7 @@ export function publicAccuracy(
       model_versions: versionsOf(published),
       ...publicSeries(published, period, now, anyWaiting),
       // The store reads published forecasts only: every row is a published version's.
-      calibration: calibrationOf(extras.calibration),
+      ...(calibration === null ? {} : { calibration: calibrationOf(calibration) }),
     },
     competitions,
     versions,

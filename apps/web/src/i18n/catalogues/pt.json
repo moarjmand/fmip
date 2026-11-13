@@ -9305,7 +9305,7 @@
     "status": "untranslated"
   },
   "modelAccuracy.weekly.partial": {
-    "source": "The last week is incomplete (scored to {date}), so its bar is lighter and dashed.",
+    "source": "A week still running or waiting for a score is incomplete (scored to {date}), so its bar is lighter and dashed.",
     "text": "",
     "status": "untranslated"
   },

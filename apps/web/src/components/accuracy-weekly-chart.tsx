@@ -205,7 +205,9 @@ export function WeeklyEdgeChart({
   const allBeat = record.every((percent) => percent > 0);
   // "Its bar is drawn below the line" can only be said of a bar that is drawn.
   const worse = percents.filter((percent) => percent < 0).length;
-  const last = bars.at(-1);
+  // Any drawn week the API calls running, not only the last (T-1751): an
+  // earlier one can still be waiting for a late result.
+  const running = bars.some((bar) => bar.partial);
   const thin = bars.some((bar) => bar.limited && !bar.partial);
 
   // The sentence a screen reader hears in place of the picture: every bar's figure.
@@ -394,7 +396,7 @@ export function WeeklyEdgeChart({
             <li>
               <Translated locale={lang} message="modelAccuracy.weekly.axis" />
             </li>
-            {last?.partial === true && lastScoredAt !== null && (
+            {running && lastScoredAt !== null && (
               <li data-testid="accuracy-weekly-partial">
                 <MessageText
                   message={filled(message(lang, 'modelAccuracy.weekly.partial'), {
