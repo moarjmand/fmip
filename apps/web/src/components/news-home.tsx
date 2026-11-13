@@ -3,7 +3,7 @@ import Link from '@/components/ui/link';
 import { RuleHeading } from '@/components/home-front';
 import { Pictured } from '@/components/lite-mode';
 import { NewsImageCredit, drawableNewsImage } from '@/components/news-image';
-import { NewsTags, StoryKicker, StoryLanguage, StoryTime } from '@/components/news-story';
+import { NewsTags, StoryKicker, StoryTime } from '@/components/news-story';
 import { NewsVisual, type NewsVisualSize } from '@/components/news-visual';
 import { Translated } from '@/components/translated';
 import { cx } from '@/components/ui/cx';
@@ -159,7 +159,6 @@ function HomeStory({
           <span className="font-semibold text-fg">
             <bdi>{card.source.name}</bdi>
           </span>
-          <StoryLanguage card={card} locale={locale} />
           <span aria-hidden="true">·</span>
           <StoryTime card={card} locale={locale} timeZone={timeZone} now={now} />
           {card.origin !== 'publisher' && (

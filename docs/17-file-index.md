@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2434), grouped by folder, with one line on
+Every file in the repository (2437), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -271,7 +271,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 32
+- [`docs`](#docs) — 36
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -286,7 +286,7 @@ machine, `docs/18-handover.md`.
 - [`packages/contracts/src`](#packagescontractssrc) — 76
 - [`packages/contracts/zones`](#packagescontractszones) — 1
 - [`packages/db`](#packagesdb) — 6
-- [`packages/db/migrations`](#packagesdbmigrations) — 183
+- [`packages/db/migrations`](#packagesdbmigrations) — 182
 - [`packages/db/scripts`](#packagesdbscripts) — 4
 - [`packages/db/scripts/data`](#packagesdbscriptsdata) — 1
 - [`packages/db/seed`](#packagesdbseed) — 7
@@ -3565,6 +3565,8 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
+| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
@@ -3572,6 +3574,8 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
+| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -3981,7 +3985,6 @@ machine, `docs/18-handover.md`.
 | `1765901400000_competition-zone-key.sql` | T-1761 (D-381): our own code for a competition the committed league-zone list (`packages/contracts/zones/league-zones.json`, D-171) keys by competition rather than by training division or country. |
 | `1765901782000_fixture-stat-check.sql` | T-1782 (D-382): when a fixture's team statistics were last confirmed by an answer that carried them. |
 | `1765901788000_console-calendar.sql` | The agents console's calendar and reminders (T-1788, D-391), moved from the team board's claude.ai page, where only a page left open could show a reminder. |
-| `1765901900000_persian-foreign-news.sql` | T-1817 (D-412): the Persian site shows the other languages' stories again, each headline labelled with its language. |
 
 ## packages/db/scripts
 

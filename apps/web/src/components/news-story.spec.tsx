@@ -210,32 +210,3 @@ describe('the headline face and the story-page link (T-1805, D-403, D-404)', () 
     );
   });
 });
-
-describe('the headline’s language on the Persian site (T-1817, D-412)', () => {
-  const label = (markup: string) =>
-    /<span lang="fa" class="([^"]*)" data-testid="story-language" data-language="([^"]*)"><bdi>([^<]*)<\/bdi><\/span>/.exec(
-      markup,
-    );
-
-  it('names an English or German headline’s language beside its source, in every shape', () => {
-    for (const variant of VARIANTS) {
-      const english = label(render(variant));
-      expect(english?.[3], variant).toBe('انگلیسی');
-      expect(english?.[2]).toBe('en-US');
-      expect(english?.[1]).not.toMatch(PHYSICAL);
-      expect(label(render(variant, { language: 'de' }))?.[3]).toBe('آلمانی');
-    }
-    // After the source, before the time.
-    expect(render('row')).toMatch(
-      /<bdi>Yahoo Sports<\/bdi><\/span><span aria-hidden="true">·<\/span><span lang="fa"[^>]*data-testid="story-language"/,
-    );
-  });
-
-  it('labels nothing in Persian, nor on any other page', () => {
-    expect(render('row', { language: 'fa' })).not.toContain('story-language');
-    expect(render('row', { language: 'fa-IR' })).not.toContain('story-language');
-    expect(render('row', {}, 'en')).not.toContain('story-language');
-    expect(render('row', { language: 'de' }, 'en')).not.toContain('story-language');
-    expect(render('row', { language: 'en' }, 'x-rtl')).not.toContain('story-language');
-  });
-});

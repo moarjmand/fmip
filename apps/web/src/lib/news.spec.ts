@@ -11,7 +11,6 @@ import {
   entityHref,
   feedsStale,
   frontPage,
-  headlineLanguageLabel,
   interleaveSources,
   isFiltered,
   orderedEntities,
@@ -313,26 +312,5 @@ describe('interleaveSources (T-1704)', () => {
   it('leaves an already mixed list alone', () => {
     const list = [story(1, 'a'), story(2, 'b'), story(3, 'a'), story(4, 'a'), story(5, 'c')];
     expect(order(interleaveSources(list))).toEqual([1, 2, 3, 4, 5]);
-  });
-});
-
-describe('headlineLanguageLabel (T-1817, D-412)', () => {
-  it('names another language in Persian on the Persian site, by its primary tag', () => {
-    expect(headlineLanguageLabel('fa', 'en')).toBe('انگلیسی');
-    expect(headlineLanguageLabel('fa', 'en-US')).toBe('انگلیسی');
-    expect(headlineLanguageLabel('fa', 'de')).toBe('آلمانی');
-    expect(headlineLanguageLabel('fa', 'es')).toBe('اسپانیایی');
-  });
-
-  it('labels nothing in the page’s own language, on another page, or with no language', () => {
-    expect(headlineLanguageLabel('fa', 'fa')).toBeNull();
-    expect(headlineLanguageLabel('fa', 'fa-IR')).toBeNull();
-    expect(headlineLanguageLabel('fa', '')).toBeNull();
-    expect(headlineLanguageLabel('en', 'de')).toBeNull();
-    expect(headlineLanguageLabel('ar', 'en')).toBeNull();
-  });
-
-  it('says the tag itself when the platform has no name for it, never a guess', () => {
-    expect(headlineLanguageLabel('fa', 'qaa')).toBe('qaa');
   });
 });

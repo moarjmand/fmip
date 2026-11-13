@@ -9,14 +9,7 @@ import { Translated } from '@/components/translated';
 import { cx } from '@/components/ui/cx';
 import { inlineTargetClasses } from '@/components/ui';
 import { formatAgo, formatDate, formatDateTime, formatNumber } from '@/i18n/format';
-import {
-  STORY_TYPE_KEY,
-  entityHref,
-  headlineLanguageLabel,
-  orderedEntities,
-  recentAge,
-  storyHref,
-} from '@/lib/news';
+import { STORY_TYPE_KEY, entityHref, orderedEntities, recentAge, storyHref } from '@/lib/news';
 
 /**
  * One story on the news front page (T-1570; T-1613, D-284): the publisher's
@@ -234,7 +227,6 @@ function Meta({
           <bdi>{card.source.name}</bdi>
         </span>
       )}
-      <StoryLanguage card={card} locale={locale} />
       {lead && card.byline !== null && (
         <>
           <span aria-hidden="true">·</span>
@@ -244,40 +236,6 @@ function Meta({
       <span aria-hidden="true">·</span>
       <StoryTime card={card} locale={locale} timeZone={timeZone} now={now} />
     </p>
-  );
-}
-
-/**
- * A headline's language beside it on a page that labels other languages
- * (T-1817, D-412): "· انگلیسی" after the source, in the page's language and
- * isolated (`bdi`) so an English source name beside it keeps its order.
- * Nothing for a headline in the page's language, or on any other page.
- * `inline` is for a source line written as text with " · " between its
- * parts (the related lists) rather than a flex row with gaps.
- */
-export function StoryLanguage({
-  card,
-  locale,
-  inline = false,
-}: {
-  card: NewsStoryCard;
-  locale: string;
-  inline?: boolean;
-}) {
-  const name = headlineLanguageLabel(locale, card.language);
-  if (name === null) return null;
-  return (
-    <>
-      {inline ? ' · ' : <span aria-hidden="true">·</span>}
-      <span
-        lang={locale}
-        className="rounded-sm border border-default px-1 leading-snug"
-        data-testid="story-language"
-        data-language={card.language}
-      >
-        <bdi>{name}</bdi>
-      </span>
-    </>
   );
 }
 
