@@ -1,6 +1,7 @@
 import Link from '@/components/ui/link';
 import type { EntityNewsResponse, FixtureNewsResponse, NewsStoryCard } from '@fmip/contracts';
 import { NewsImageCredit, NewsThumb, drawableNewsImage } from '@/components/news-image';
+import { StoryLanguage } from '@/components/news-story';
 import { Translated } from '@/components/translated';
 import { formatDateTime, formatNumber } from '@/i18n/format';
 import { feedsStale, storyHref } from '@/lib/news';
@@ -118,6 +119,7 @@ function StoryList({
               <a href={card.source.homepage_url} rel="noopener" className="underline">
                 {card.source.name}
               </a>
+              <StoryLanguage card={card} locale={locale} inline />
               {' · '}
               {card.published_at === null ? (
                 <Translated locale={locale} message="news.noTime" />

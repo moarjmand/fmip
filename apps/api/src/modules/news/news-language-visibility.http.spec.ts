@@ -25,9 +25,11 @@ import { NewsModule } from './news.module';
  * that report's headline; a story with no report the reader is shown is a
  * 404 on its page; a saved one stays on the list and says why it is not
  * shown; a read with no locale filters nothing. From T-1391 (D-207) an
- * English reader, and from T-1718 (D-348) a Persian reader, is shown sources
- * in their own language only, whatever the setting. The setting is the
- * administrators', with a reason, audited with the previous value (rule 10).
+ * English reader is shown sources in their own language only, whatever the
+ * setting. A Persian reader was too from T-1718 (D-348); from T-1817 (D-412)
+ * they are shown the other languages' sources again, by the setting, and the
+ * web labels each headline's language. The setting is the administrators',
+ * with a reason, audited with the previous value (rule 10).
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -258,8 +260,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       for (const locale of ['fa', 'fa-IR']) {
         const cards = await latest(locale);
         expect(cards.map((c) => c.story_id)).toEqual([mixed, persianOnly]);
-        // The English report is not shown on the Persian site (T-1718, D-348).
-        expect(cards[0]).toMatchObject({ headline: `گزارش فارسی ${RUN}`, other_reports: 0 });
+        // The English report is shown on the Persian site again (T-1817, D-412).
+        expect(cards[0]).toMatchObject({ headline: `گزارش فارسی ${RUN}`, other_reports: 1 });
       }
     });
 
@@ -276,7 +278,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(page.reports).toEqual([]);
       const persianPage = (await call('GET', `/news/stories/${mixed}?locale=fa`)).json<StoryPage>();
       expect(persianPage.story.headline).toBe(`گزارش فارسی ${RUN}`);
-      expect(persianPage.reports).toEqual([]);
+      expect(persianPage.reports.map((r) => r.source.id)).toEqual([english]);
     });
 
     it('keeps a saved story on the list and says it is not shown in this language', async () => {
@@ -366,32 +368,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect((await latest('en', OTHER_TEAM)).map((c) => c.story_id)).not.toContain(germanStory);
       expect((await latest('en-GB', OTHER_TEAM)).map((c) => c.story_id)).not.toContain(germanStory);
       expect((await call('GET', `/news/stories/${germanStory}?locale=en`)).statusCode).toBe(404);
+      expect((await latest('fa', OTHER_TEAM)).map((c) => c.story_id)).toContain(germanStory);
       expect((await latest('de', OTHER_TEAM)).map((c) => c.story_id)).toContain(germanStory);
     });
 
-    it('shows a Persian reader Persian-language sources only (T-1718, D-348)', async () => {
-      // English and German publishers every reader used to be shown: not on
-      // the Persian site, whatever the console's setting; any fa tag.
+    it('shows a Persian reader the other languages’ sources again (T-1817, D-412)', async () => {
+      // English and German publishers not set `same_language_only` are on the
+      // Persian site again, as before D-348; any fa tag. The web labels them.
       for (const locale of ['fa', 'fa-IR']) {
-        expect(await latest(locale, OTHER_TEAM)).toEqual([]);
-        const cards = await latest(locale);
-        expect(cards.every((c) => c.language === 'fa')).toBe(true);
-        expect(cards.map((c) => c.source.id)).toEqual([persian, persian]);
+        const cards = await latest(locale, OTHER_TEAM);
+        expect(cards.map((c) => c.story_id)).toEqual([englishOther, germanStory]);
+        expect(cards.map((c) => c.language)).toEqual(['en', 'de']);
       }
-      expect((await call('GET', `/news/stories/${germanStory}?locale=fa`)).statusCode).toBe(404);
-      expect((await call('GET', `/news/stories/${englishOther}?locale=fa`)).statusCode).toBe(404);
-      // Counted in the read, not after it: a page of one is a Persian story,
-      // and the next page starts after it.
-      const one = await call('GET', `/news?section=latest&team=${TEAM}&locale=fa&limit=1`);
-      const page = one.json<NewsSectionResponse>();
-      expect(page.stories.data!.map((c) => c.story_id)).toEqual([mixed]);
-      expect(page.next_before).not.toBeNull();
-      // A team only other languages wrote about says so on /fa, honestly empty.
+      expect((await call('GET', `/news/stories/${germanStory}?locale=fa`)).statusCode).toBe(200);
+      expect((await call('GET', `/news/stories/${englishOther}?locale=fa`)).statusCode).toBe(200);
       const team = (
         await call('GET', `/teams/${OTHER_TEAM}/news?locale=fa`)
       ).json<EntityNewsResponse>();
-      expect(team.stories).toMatchObject({ coverage: 'available', data: [] });
-      expect(team.reason).toBe('nothing_linked');
+      expect(team.stories.data!.map((c) => c.story_id)).toEqual([englishOther, germanStory]);
+      expect(team.reason).toBeNull();
       // English and the other languages are unchanged.
       expect((await latest('en', OTHER_TEAM)).map((c) => c.story_id)).toEqual([englishOther]);
       expect((await latest('de', OTHER_TEAM)).map((c) => c.story_id)).toEqual([

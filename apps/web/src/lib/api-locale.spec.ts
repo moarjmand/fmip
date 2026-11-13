@@ -66,7 +66,7 @@ describe('the API client asks for names in the reader language (T-1312)', () => 
     expect(urls[1]).toMatch(/\/model\/upset\?locale=fa$/);
   });
 
-  it('asks for every news list in the page language, which keeps /fa to Persian sources (T-1718, D-348)', async () => {
+  it('asks for every news list in the page language, which decides the sources /fa is shown (D-348, D-412)', async () => {
     await fetchNewsSection('?section=latest&limit=31', 'fa', undefined);
     await fetchNewsSection('?section=trending&limit=5', 'fa', undefined);
     await fetchBreakingNews('fa');

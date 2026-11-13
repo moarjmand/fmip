@@ -33,8 +33,9 @@ like), some of them general sports feeds whose other sports the filter removes.
 
    Read with `javascript_tool`, not the whole page:
    `[...document.querySelectorAll('main article h2, main article h3, main h3')].slice(0,30).map(h=>h.textContent.trim())`.
-   Since D-348 (T-1718), `/fa/news` lists Persian-language sources only, so a non-Persian headline
-   there is a finding (a source stored with the wrong language), and so is broken direction.
+   Since D-412 (T-1817), `/fa/news` lists the other languages' headlines again, each with its
+   language beside the source («انگلیسی», «آلمانی»); a non-Persian headline without that label is
+   a finding (a source or version stored with the wrong language), and so is broken direction.
    Football's family is in scope: futsal and beach soccer, men's and women's, youth (D-321).
 3. Write findings (prefix `cnt`) for:
    - a source failing all day;

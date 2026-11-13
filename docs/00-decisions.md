@@ -15276,3 +15276,20 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 - *Mixing the Persian list too*: not asked; the decision was about the English list's sources.
 
 **Consequences.** A mixed page reads about 50 more rows than before, and a page deep into a long wait re-reads the cards before it (at most 200). New contracts: `NewsCursor`, `readNewsCursor`, `writeNewsCursor`, `NEWS_CURSOR_MAX_SKIP`, `newsSourcesMixed`. The content agent's 30% line (cnt) measures what the feeds wrote, which this does not change; what readers see is now capped.
+
+## D-412 — The Persian site keeps the other languages' headlines, each labelled with its language
+
+**Status:** Accepted · 2026-11-13 (maintainer, desk decision d-2026-11-02-03: "they stay, with a language label beside each headline") · **Task:** T-1817 · **Follows:** D-178, D-207, rule 3 · **Supersedes:** D-348
+
+**Context.** About 20 of the first 30 headlines on `/fa/news` were English or German (aud-2026-11-01-02, qa-2026-10-31-04). The desk put three options: keep them with a language label, Persian only, or no change. D-348 (T-1718, 2026-11-02) built "Persian only" in `news_visible_to()`. On 2026-11-13 the maintainer answered the desk question with the first option: the other languages' headlines stay, and the reader knows what they are reading.
+
+**Decision.**
+1. **The other languages are shown again.** Migration `1765901900000_persian-foreign-news.sql` makes `news_visible_to()` answer for a Persian reader by D-178's per-source rule again (every source not set `same_language_only`, and one that is, in the reader's language) -- D-348's down section; its own down is D-348 again. English keeps D-207's rule. Every reader path inherits it, as D-348 listed them: the news sections, the homepage's news, team, competition, player and match news, the story page, search, saved stories, the Following feed and story alerts. No row is touched.
+2. **Each foreign headline says its language.** On a page whose language is in `LABELLED_LANGUAGE_LOCALES` (Persian), a headline whose version's primary language tag is not the page's carries its language's name in the page's language -- «انگلیسی», «آلمانی» -- from `Intl.DisplayNames` (`headlineLanguageLabel`, `src/lib/news.ts`), the tag itself when the platform has no name. `StoryLanguage` draws it after the source name in the line under the headline, a small outlined label in a `bdi` with `lang` set to the page's, on the news page's three card shapes, the homepage's news and the related lists. Server-rendered, no client JavaScript, logical properties only; a Persian headline and every other page get nothing.
+
+**Rejected.**
+- *Persian only* (D-348): the maintainer chose to keep the stories.
+- *The label inside the heading:* the heading takes its direction from its first strong letter (`dir="auto"`, T-1570), and a Persian label first would turn an English headline right to left.
+- *Language names in the catalogue:* nine languages times every source language; the platform's names are what the group and leaderboard pages already use.
+
+**Consequences.** `/fa/news` is again mostly English and German by volume; Persian readers see which is which. The content agent's check changes: a foreign headline on `/fa` without its label is a finding, not every foreign headline.

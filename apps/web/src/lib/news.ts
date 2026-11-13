@@ -255,6 +255,38 @@ export function interleaveSources<T extends { source: { id: string } }>(
   return out;
 }
 
+/**
+ * The pages whose readers see other languages' headlines labelled with their
+ * language (T-1817, D-412): the Persian site, which lists English, German and
+ * other publishers beside the Persian ones.
+ */
+export const LABELLED_LANGUAGE_LOCALES: readonly string[] = ['fa'];
+
+const primaryTag = (tag: string): string => tag.split('-')[0]!.toLowerCase();
+
+/**
+ * The name, in the page's language, of the language a headline is written
+ * in -- "انگلیسی", "آلمانی" -- on a page that labels them and for a headline
+ * not in the page's language; else `null`. From `Intl.DisplayNames`, the
+ * platform's own names, as the group and leaderboard pages take theirs; the
+ * tag itself when the platform has no name for it, never a guess.
+ */
+export function headlineLanguageLabel(locale: string, language: string): string | null {
+  const page = primaryTag(locale);
+  const headline = primaryTag(language);
+  if (!LABELLED_LANGUAGE_LOCALES.includes(page) || headline === page || headline === '') {
+    return null;
+  }
+  try {
+    return (
+      new Intl.DisplayNames([locale], { type: 'language', fallback: 'none' }).of(headline) ??
+      language
+    );
+  } catch {
+    return language;
+  }
+}
+
 export function frontPage<T>(
   stories: readonly T[],
   front: boolean,
