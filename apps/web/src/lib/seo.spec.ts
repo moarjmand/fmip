@@ -101,14 +101,15 @@ describe('pageMetadata', () => {
     const meta = pageMetadata({ locale: 'fa', path: '/news', title: 'x' }, ORIGIN);
     expect(meta.openGraph?.images).toEqual([
       {
-        url: 'https://fmip.example/fa/brand-card',
+        // One address for every locale, ending in .png for the edge's cache.
+        url: 'https://fmip.example/brand-card.png',
         width: 1200,
         height: 630,
         alt: 'Stadiomind: مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد',
         type: 'image/png',
       },
     ]);
-    expect(brandCardUrl('en', ORIGIN)).toBe('https://fmip.example/en/brand-card');
+    expect(brandCardUrl(ORIGIN)).toBe('https://fmip.example/brand-card.png');
     expect(meta.twitter).toEqual({ card: 'summary_large_image' });
   });
 

@@ -14,6 +14,7 @@ import {
   aheadOfKickoff,
   BRAND_CARD,
   teamCardText,
+  teamFixtureSize,
   teamNameSize,
   calledItText,
   cardAlt,
@@ -476,6 +477,7 @@ describe('the team card (T1, T-1826)', () => {
       competition: { name: 'Premier League', known: true },
       standing: '1st · 27 pts from 10',
       next: {
+        label: 'Next match',
         match: 'Newcastle v Arsenal',
         detail: 'Sat 21 Nov · Premier League · Matchweek 11',
         known: true,
@@ -489,7 +491,34 @@ describe('the team card (T1, T-1826)', () => {
     const text = teamCardText(page({ competitions: [], next_match: null }), NOW);
     expect(text.competition).toEqual({ name: 'No current competition on record', known: false });
     expect(text.standing).toBeNull();
-    expect(text.next).toEqual({ match: 'No match scheduled', detail: null, known: false });
+    expect(text.next).toEqual({
+      label: 'Next match',
+      match: 'No match scheduled',
+      detail: null,
+      known: false,
+    });
+  });
+
+  it('draws a standing only from a table held in full and on time (rule 4)', () => {
+    const [league] = page().competitions;
+    for (const coverage of ['limited', 'delayed'] as const) {
+      const partial = { ...league!, context: { ...league!.context, coverage } };
+      expect(teamCardText(page({ competitions: [partial] }), NOW).standing).toBeNull();
+    }
+  });
+
+  it('says "Now playing" or "Suspended" for a match in play or suspended, never "Next match"', () => {
+    const base = page();
+    const live = { ...base.next_match!, status: 'live' };
+    const suspended = { ...base.next_match!, status: 'suspended' };
+    expect(teamCardText(page({ next_match: live }), NOW).next.label).toBe('Now playing');
+    expect(teamCardText(page({ next_match: suspended }), NOW).next.label).toBe('Suspended');
+  });
+
+  it('steps a long fixture down so the date under it stays clear (PR #888 review)', () => {
+    expect(teamFixtureSize('Newcastle v Arsenal')).toBe(56);
+    expect(teamFixtureSize('Borussia Dortmund v Bayer Leverkusen')).toBe(44);
+    expect(teamFixtureSize('Wolverhampton Wanderers v Brighton and Hove Albion')).toBe(34);
   });
 
   it('names no standing for a table that does not place the club, and no played count it lacks', () => {

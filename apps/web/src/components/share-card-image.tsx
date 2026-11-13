@@ -9,8 +9,12 @@ import {
   type MemberCardText,
   type TableCardText,
   type TeamCardText,
+  teamFixtureSize,
   teamNameSize,
 } from '@/lib/share-card';
+
+/** The team card's next-match panel, fixed so the date under it is never covered. */
+const PANEL_HEIGHT = 196;
 
 /**
  * The pictures behind the share cards (T-520), for `next/og`'s
@@ -421,6 +425,7 @@ export function TeamCardImage({
   paint: { fill: string; text: string };
 }): ReactElement {
   const size = teamNameSize(text.name);
+  const fixture = teamFixtureSize(text.next.match);
   return (
     <div
       style={flex({
@@ -504,11 +509,16 @@ export function TeamCardImage({
         style={flex({
           position: 'absolute',
           left: 64,
-          top: 340,
+          // A fixed box (y 330 to 526): however the fixture wraps, the
+          // "As of" date under it (from y 556) stays clear (code review, pull request 888).
+          top: 330,
           width: 1072,
+          height: PANEL_HEIGHT,
+          overflow: 'hidden',
           flexDirection: 'column',
-          gap: 10,
-          padding: '24px 36px 26px',
+          justifyContent: 'center',
+          gap: 8,
+          padding: '20px 36px 22px',
           borderRadius: 18,
           background: NIGHT_COLOURS.surface,
         })}
@@ -522,20 +532,33 @@ export function TeamCardImage({
             color: text.next.known ? SAFFRON : MUTED,
           })}
         >
-          Next match
+          {text.next.label}
         </div>
         <div
-          style={flex({
-            fontSize: 56,
+          style={{
+            display: 'block',
+            lineClamp: 2,
+            fontSize: fixture,
             fontWeight: 700,
             lineHeight: 1.1,
+            maxHeight: Math.ceil(fixture * 1.1 * 2),
             color: text.next.known ? INK : MUTED,
-          })}
+          }}
         >
           {text.next.match}
         </div>
         {text.next.detail !== null && (
-          <div style={flex({ fontSize: 32, color: MUTED })}>{text.next.detail}</div>
+          <div
+            style={{
+              display: 'block',
+              lineClamp: 1,
+              fontSize: 30,
+              lineHeight: 1.2,
+              color: MUTED,
+            }}
+          >
+            {text.next.detail}
+          </div>
         )}
       </div>
       <div

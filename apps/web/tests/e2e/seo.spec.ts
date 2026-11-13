@@ -45,7 +45,7 @@ test.describe('SEO surface without JavaScript', () => {
     );
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
       'content',
-      /\/en\/brand-card$/,
+      /\/brand-card\.png$/,
     );
     await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
       'content',

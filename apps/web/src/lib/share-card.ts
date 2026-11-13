@@ -69,6 +69,16 @@ export const BRAND_CARD = {
 } as const;
 
 /**
+ * The last segment of a card's address. The team card's ends in `.png`
+ * (T-1826, D-420), so Cloudflare's edge, which caches by extension, keeps a
+ * copy for the hour its `cache-control` allows instead of sending every
+ * fetch to the origin. The match card keeps an extension-less address: it
+ * still answers next/og's year-long header, which an edge must not hold for a
+ * score that changes.
+ */
+const CARD_ID: Partial<Record<keyof typeof ALT_KEY, string>> = { team: 'card.png' };
+
+/**
  * A card route's `generateImageMetadata`: one image, its alt text in the
  * reader's language. `params` is read whether Next.js hands it over as an
  * object or as a promise.
@@ -80,7 +90,7 @@ export async function cardImageMetadata(
   const { locale } = await params;
   return [
     {
-      id: 'card',
+      id: CARD_ID[kind] ?? 'card',
       alt: cardAlt(kind, locale),
       size: CARD_SIZE,
       contentType: 'image/png',
@@ -438,8 +448,12 @@ export interface TeamCardText {
   competition: { name: string; known: boolean };
   /** "1st · 27 pts from 10" in that competition's table, or `null` with no table that places the club. */
   standing: string | null;
-  /** The next match and its day, or the sentence saying there is none. */
-  next: { match: string; detail: string | null; known: boolean };
+  /**
+   * The next match and its day, or the sentence saying there is none, under
+   * its label: "Next match", or "Now playing" / "Suspended" for the one in play
+   * or suspended.
+   */
+  next: { label: string; match: string; detail: string | null; known: boolean };
   /** The day the card was drawn: a chat app keeps a picture for days (rule 4). */
   asOf: string;
 }
@@ -473,7 +487,9 @@ export function teamCardText(page: TeamPage, now: Date): TeamCardText {
   ].join(' · ');
 
   const main = page.competitions[0] ?? null;
-  const table = main?.context.data ?? null;
+  // Only a table we hold in full and on time is drawn: a limited or delayed
+  // one would be stamped with today's date as if it were current (rule 4).
+  const table = main?.context.coverage === 'available' ? main.context.data : null;
   const own = table?.rows.find((row) => row.team.id === team.id) ?? null;
   const standing =
     table === null
@@ -486,7 +502,7 @@ export function teamCardText(page: TeamPage, now: Date): TeamCardText {
   const fixture = page.next_match;
   let next: TeamCardText['next'];
   if (fixture === null) {
-    next = { match: 'No match scheduled', detail: null, known: false };
+    next = { label: 'Next match', match: 'No match scheduled', detail: null, known: false };
   } else {
     const round = fixture.round === null ? null : stageLabel(fixture.round, say, DEFAULT_LOCALE);
     const day =
@@ -498,6 +514,14 @@ export function teamCardText(page: TeamPage, now: Date): TeamCardText {
             month: 'short',
           });
     next = {
+      // `next_match` is the soonest still to play, which takes in a match in
+      // play and a suspended one (`stillToPlay`): neither is "next".
+      label:
+        fixture.status === 'live'
+          ? 'Now playing'
+          : fixture.status === 'suspended'
+            ? 'Suspended'
+            : 'Next match',
       match: `${cardName(fixture.home)} v ${cardName(fixture.away)}`,
       detail: [day, fixture.competition.short_name ?? fixture.competition.name, round]
         .filter((part): part is string => part !== null && part !== '')
@@ -517,6 +541,20 @@ export function teamCardText(page: TeamPage, now: Date): TeamCardText {
     next,
     asOf: `As of ${cardDay(now, { day: 'numeric', month: 'short', year: 'numeric' })}`,
   };
+}
+
+/**
+ * The team card's fixture line (T-1826; code review of pull request 888): 56px as
+ * drawn while it fits on one line, a step down to keep a longer pair on one
+ * line ("Borussia Dortmund v Bayer Leverkusen", 36 letters, at 44px), and a
+ * smaller size beyond that, which the card clamps to two lines. The panel
+ * holding it has a fixed height, so the "As of" date under it is always
+ * clear.
+ */
+export function teamFixtureSize(match: string): number {
+  if (match.length <= 28) return 56;
+  if (match.length <= 36) return 44;
+  return 34;
 }
 
 /** The team card's name size: 90px as drawn, smaller for a long name, which then takes two lines. */

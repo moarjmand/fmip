@@ -19,7 +19,8 @@ import { CARD_SIZE } from '@/lib/share-card';
  *
  * Every card is drawn in the bundled faces (T-1723, `lib/card-fonts.ts`).
  * `cacheControl` replaces `next/og`'s own year-long immutable header where a
- * card can change or be withdrawn (a revoked share link, D-351).
+ * card can change or be withdrawn (a revoked share link, D-351). Every card
+ * answers `X-Robots-Tag: noindex` (T-1825).
  */
 export async function drawCard(
   card: ReactElement,
@@ -30,6 +31,9 @@ export async function drawCard(
   const answer = (image: ImageResponse, body: ArrayBuffer | null): Response => {
     const headers = new Headers(image.headers);
     if (options.cacheControl !== undefined) headers.set('cache-control', options.cacheControl);
+    // A card is a picture of a page, not a page: chat apps still fetch it,
+    // but image search does not list it (T-1825, D-419).
+    headers.set('x-robots-tag', 'noindex');
     return new Response(body ?? image.body, { status: image.status, headers });
   };
   try {

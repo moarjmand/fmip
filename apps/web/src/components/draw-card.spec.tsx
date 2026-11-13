@@ -82,6 +82,8 @@ describe('drawCard', () => {
     expect(body.readUInt32BE(16)).toBe(1080);
     expect(body.readUInt32BE(20)).toBe(1920);
     expect(response.headers.get('cache-control')).toBe('public, max-age=60');
+    // A card is never listed by image search (T-1825).
+    expect(response.headers.get('x-robots-tag')).toBe('noindex');
   }, 20_000);
 });
 
@@ -149,12 +151,17 @@ describe('the brand card route (T-1825)', () => {
     for (const fetcher of Object.values(api)) fetcher.mockReset().mockResolvedValue(UNREACHABLE);
   });
 
-  it('draws B10 from nothing but itself, kept a day by shared caches', async () => {
-    const { GET } = await import('@/app/[locale]/brand-card/route');
-    const drawn = await GET();
-    await png(drawn);
-    expect(drawn.headers.get('cache-control')).toBe('public, max-age=86400');
+  it('draws B10 from nothing but itself, once, kept a day and never indexed', async () => {
+    const { GET } = await import('@/app/brand-card.png/route');
+    const first = await GET();
+    const body = await png(first);
+    expect(first.headers.get('cache-control')).toBe('public, max-age=86400');
+    expect(first.headers.get('x-robots-tag')).toBe('noindex');
     for (const fetcher of Object.values(api)) expect(fetcher).not.toHaveBeenCalled();
+    // The second answer is the same picture, from memory.
+    const second = await GET();
+    expect(Buffer.from(await second.arrayBuffer()).equals(body)).toBe(true);
+    expect(second.headers.get('content-type')).toBe('image/png');
   }, 20_000);
 });
 
@@ -180,7 +187,11 @@ describe('the card routes read English names on any locale', () => {
     const drawn = await Image({ params: Promise.resolve({ locale: 'fa', id: ID }) });
     await png(drawn);
     expect(drawn.headers.get('cache-control')).toBe('public, max-age=3600');
+    expect(drawn.headers.get('x-robots-tag')).toBe('noindex');
     expect(api.fetchTeam).toHaveBeenCalledWith(ID, 'en');
+    // Its address ends in .png, which Cloudflare's edge caches (PR #888 review).
+    const { generateImageMetadata } = await import('@/app/[locale]/team/[id]/opengraph-image');
+    expect((await generateImageMetadata({ params: { locale: 'fa' } }))[0]?.id).toBe('card.png');
   }, 20_000);
 
   it('the member card', async () => {

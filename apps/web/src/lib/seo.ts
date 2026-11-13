@@ -51,9 +51,13 @@ export interface PageMeta {
   card?: 'brand' | 'own';
 }
 
-/** The brand card's address (T-1825, D-419): `app/[locale]/brand-card/route.tsx`. */
-export function brandCardUrl(locale: string, origin = siteUrl()): string {
-  return `${origin}/${locale}/brand-card`;
+/**
+ * The brand card's address (T-1825, D-419): `app/brand-card.png/route.tsx`.
+ * One for every locale (the picture is the same), ending in `.png` so
+ * Cloudflare's edge keeps it.
+ */
+export function brandCardUrl(origin = siteUrl()): string {
+  return `${origin}/brand-card.png`;
 }
 
 /**
@@ -104,7 +108,7 @@ export function pageMetadata(
         : {
             images: [
               {
-                url: brandCardUrl(meta.locale, origin),
+                url: brandCardUrl(origin),
                 ...CARD_SIZE,
                 alt: cardAlt('brand', meta.locale),
                 type: 'image/png',
