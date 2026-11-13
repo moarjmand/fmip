@@ -1,4 +1,4 @@
-import { NEWS_SECTIONS, type NewsEntity } from '@fmip/contracts';
+import { NEWS_SECTIONS, type NewsEntity, writeNewsCursor } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import { EN } from '@/i18n/messages';
 import {
@@ -56,11 +56,15 @@ describe('readNewsQuery', () => {
   });
 
   it('keeps a page of latest’s mixed list as the API wrote it (T-1816)', () => {
-    expect(readNewsQuery({ before: '2026-09-18T00:00:00.000Z~40' }).before).toBe(
-      '2026-09-18T00:00:00.000Z~40',
-    );
+    const page = writeNewsCursor({
+      at: '2026-09-18T00:00:00.000Z',
+      shown: '0b6f9c1e-3a52-4e0c-9d7a-1f2e3d4c5b6a',
+      run: null,
+      waiting: [TEAM],
+    });
+    expect(readNewsQuery({ before: page }).before).toBe(page);
     expect(readNewsQuery({ before: '2026-09-18T00:00:00.000Z~' }).before).toBeNull();
-    expect(readNewsQuery({ before: 'yesterday~40' }).before).toBeNull();
+    expect(readNewsQuery({ before: '2026-09-18T00:00:00.000Z~40' }).before).toBeNull();
   });
 
   it('drops a malformed value rather than passing it on to be refused', () => {

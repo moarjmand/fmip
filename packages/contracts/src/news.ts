@@ -20,32 +20,88 @@ export const TRENDING_WINDOW_HOURS = 48;
 
 /**
  * Where the next page of a section begins (`next_before`, sent back as
- * `?before=`): an instant, the list then holding only stories ordered before
- * it. Latest mixes its sources (T-1816, D-411), so a story can move down past
- * the end of a page; its cursor may then add `~n`, the cards already shown of
- * the list as composed from that instant, written `<instant>~<n>`.
+ * `?before=`). A plain cursor is an instant: the list goes on with the stories
+ * ordered before it. Latest mixes its sources (T-1816, D-411), so a story can
+ * wait past the end of a page; its cursor is then
+ * `<instant>~<shown>~<run>~<waiting>`:
+ * - `<instant>` and `<shown>`: the oldest story the page showed, a boundary
+ *   the next page reads below (through that millisecond, leaving that story
+ *   out);
+ * - `<waiting>`: every story above the boundary the page passed over, read by
+ *   id on the next page wherever it has moved -- so a story that waited is
+ *   never lost, whatever happens above it between two pages;
+ * - `<run>`: the source of the page's last cards and how many in a row, or
+ *   `-`, so a run never passes three across a page's end.
+ * Story and source ids are written as 22 URL-safe base64 characters.
  */
 export interface NewsCursor {
   /** ISO 8601. */
   at: string;
-  /** Cards of the list from `at` already shown; 0 for a plain instant. */
-  skip: number;
+  /** The story at `at` already shown, for a mixed cursor; `null` for a plain instant. */
+  shown: string | null;
+  /** The last run of cards from one source. */
+  run: { source: string; length: number } | null;
+  /** Stories above the boundary not yet shown. */
+  waiting: string[];
 }
 
 /**
- * The most cards a cursor may say were shown: each page re-reads them all, so
- * past this the next page starts afresh at an instant instead.
+ * The most stories a cursor may say are waiting. A page passes over at most
+ * the stories within a place's reach (49, `SOURCE_MIX.lookahead` less one).
  */
-export const NEWS_CURSOR_MAX_SKIP = 200;
+export const NEWS_CURSOR_MAX_WAITING = 64;
+
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const PACKED = /^[A-Za-z0-9_-]{22}$/;
+
+/** A UUID as 22 URL-safe base64 characters; `null` when it is not one. */
+export function packId(id: string): string | null {
+  const hex = id.replace(/-/g, '').toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(hex)) return null;
+  let bits = '';
+  for (const c of hex) bits += parseInt(c, 16).toString(2).padStart(4, '0');
+  bits += '0000';
+  let out = '';
+  for (let i = 0; i < bits.length; i += 6) out += B64[parseInt(bits.slice(i, i + 6), 2)];
+  return out;
+}
+
+/** `packId` undone; `null` when the text is not a packed id. */
+export function unpackId(text: string): string | null {
+  if (!PACKED.test(text)) return null;
+  let bits = '';
+  for (const c of text) bits += B64.indexOf(c).toString(2).padStart(6, '0');
+  if (!bits.endsWith('0000')) return null;
+  let hex = '';
+  for (let i = 0; i < 128; i += 4) hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
 
 /** A `?before=` value as a cursor, or `null` when it is not one. */
 export function readNewsCursor(value: string): NewsCursor | null {
-  const m = /^(.+?)(?:~([0-9]{1,4}))?$/.exec(value);
-  if (m === null || m[1] === undefined) return null;
-  const at = new Date(m[1]);
-  const skip = m[2] === undefined ? 0 : Number(m[2]);
-  if (Number.isNaN(at.getTime()) || skip > NEWS_CURSOR_MAX_SKIP) return null;
-  return { at: at.toISOString(), skip };
+  const parts = value.split('~');
+  const at = new Date(parts[0] ?? '');
+  if (parts[0] === '' || Number.isNaN(at.getTime())) return null;
+  if (parts.length === 1) return { at: at.toISOString(), shown: null, run: null, waiting: [] };
+  if (parts.length !== 4) return null;
+  const shown = unpackId(parts[1]!);
+  if (shown === null) return null;
+  let run: NewsCursor['run'] = null;
+  if (parts[2] !== '-') {
+    const m = /^([A-Za-z0-9_-]{22})\.([1-9])$/.exec(parts[2]!);
+    const source = m === null ? null : unpackId(m[1]!);
+    if (m === null || source === null) return null;
+    run = { source, length: Number(m[2]) };
+  }
+  const list = parts[3]!;
+  if (list.length % 22 !== 0 || list.length / 22 > NEWS_CURSOR_MAX_WAITING) return null;
+  const waiting: string[] = [];
+  for (let i = 0; i < list.length; i += 22) {
+    const id = unpackId(list.slice(i, i + 22));
+    if (id === null) return null;
+    waiting.push(id);
+  }
+  return { at: at.toISOString(), shown, run, waiting };
 }
 
 /**
@@ -58,9 +114,12 @@ export function newsSourcesMixed(locale: string | null): boolean {
   return locale.split('-')[0]!.toLowerCase() !== 'fa';
 }
 
-/** A cursor as `?before=` carries it. */
+/** A cursor as `?before=` carries it; a plain instant when it names no story. */
 export function writeNewsCursor(cursor: NewsCursor): string {
-  return cursor.skip === 0 ? cursor.at : `${cursor.at}~${cursor.skip}`;
+  if (cursor.shown === null) return cursor.at;
+  const pack = (id: string): string => packId(id) ?? '';
+  const run = cursor.run === null ? '-' : `${pack(cursor.run.source)}.${cursor.run.length}`;
+  return `${cursor.at}~${pack(cursor.shown)}~${run}~${cursor.waiting.map(pack).join('')}`;
 }
 
 /**

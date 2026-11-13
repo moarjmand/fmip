@@ -1,7 +1,9 @@
 import {
-  NEWS_CURSOR_MAX_SKIP,
+  NEWS_CURSOR_MAX_WAITING,
   newsSourcesMixed,
+  packId,
   readNewsCursor,
+  unpackId,
   writeNewsCursor,
 } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
@@ -67,7 +69,7 @@ function longestRun(list: readonly Row[]): number {
 
 describe('mixSources (T-1816, D-411)', () => {
   it('breaks a forty-story run: never more than three in a row, no source above 30% of any top', () => {
-    const top = mixSources(burst(), 40, true);
+    const top = mixSources(burst(), 40).cards;
     expect(top).toHaveLength(40);
     expect(longestRun(top)).toBeLessThanOrEqual(SOURCE_MIX.maxRun);
     for (let n = 1; n <= top.length; n += 1) {
@@ -82,7 +84,7 @@ describe('mixSources (T-1816, D-411)', () => {
 
   it('deletes nothing: the overflow moves down, and each source keeps its own order', () => {
     const input = burst();
-    const all = mixSources(input, input.length, true);
+    const all = mixSources(input, input.length).cards;
     expect([...ids(all)].sort()).toEqual([...ids(input)].sort());
     for (const source of ['Y', 'A', 'B', 'C', 'D', 'E']) {
       expect(ids(all.filter((r) => r.source_id === source))).toEqual(
@@ -101,7 +103,7 @@ describe('mixSources (T-1816, D-411)', () => {
     ]);
     // Nothing else within reach for six places: Yahoo takes them, past three
     // in a row, rather than leave a place empty; then the others come within it.
-    expect(ids(mixSources(input, 10, true))).toEqual([
+    expect(ids(mixSources(input, 10).cards)).toEqual([
       'Y0',
       'Y1',
       'Y2',
@@ -126,32 +128,38 @@ describe('mixSources (T-1816, D-411)', () => {
       ['C', 1],
       ['D', 1],
     ]);
-    expect(ids(mixSources(mixed, 8, true))).toEqual(ids(mixed));
+    expect(ids(mixSources(mixed, 8).cards)).toEqual(ids(mixed));
     const alone = rows([['Y', 10]]);
-    expect(ids(mixSources(alone, 10, true))).toEqual(ids(alone));
-    expect(mixSources([], 10, true)).toEqual([]);
+    expect(ids(mixSources(alone, 10).cards)).toEqual(ids(alone));
+    expect(mixSources([], 10)).toEqual({ cards: [], run: null });
   });
 
-  it('is deterministic: a shorter list begins the longer, and a partial read agrees with the whole', () => {
+  it('is deterministic: a shorter page begins the longer', () => {
     for (const seed of [1, 2, 3, 99, 2026]) {
       const input = stream(600, seed);
-      const whole = mixSources(input, input.length, true);
+      const whole = mixSources(input, input.length).cards;
       for (const count of [1, 6, 40, 80, 160]) {
-        expect(ids(mixSources(input, count, true))).toEqual(ids(whole.slice(0, count)));
-        // The newest rows only, as a page reads them: what it composes begins the whole.
-        for (const read of [count + SOURCE_MIX.lookahead, count * 2 + 10 + SOURCE_MIX.lookahead]) {
-          const part = mixSources(input.slice(0, read), count, false);
-          expect(ids(part), `seed ${seed}, count ${count}, read ${read}`).toEqual(
-            ids(whole.slice(0, part.length)),
-          );
-        }
+        expect(ids(mixSources(input, count).cards), `seed ${seed}`).toEqual(
+          ids(whole.slice(0, count)),
+        );
       }
     }
   });
 
-  it('stops short rather than guess when the rows end before a place’s reach', () => {
-    const input = burst();
-    expect(mixSources(input.slice(0, SOURCE_MIX.lookahead - 1), 10, false)).toEqual([]);
+  it('carries the run across a page’s end: never a fourth in a row', () => {
+    const input = rows([
+      ['Y', 4],
+      ['A', 2],
+    ]);
+    // The page before ended with three from Y: Y waits for A.
+    const next = mixSources(input, 3, { source: 'Y', length: 3 });
+    expect(ids(next.cards)).toEqual(['A0', 'Y0', 'Y1']);
+    expect(next.run).toEqual({ source: 'Y', length: 2 });
+    // And says how the page ended, for the next.
+    expect(mixSources(rows([['Y', 2]]), 2, { source: 'Y', length: 1 }).run).toEqual({
+      source: 'Y',
+      length: 3,
+    });
   });
 });
 
@@ -168,24 +176,60 @@ describe('newsSourcesMixed', () => {
 });
 
 describe('the news cursor (NewsCursor)', () => {
-  it('reads an instant, or an instant with the cards shown, and writes it back', () => {
-    expect(readNewsCursor('2026-11-13T10:00:00Z')).toEqual({
-      at: '2026-11-13T10:00:00.000Z',
-      skip: 0,
-    });
-    const page = readNewsCursor('2026-11-13T10:00:00.000Z~40');
-    expect(page).toEqual({ at: '2026-11-13T10:00:00.000Z', skip: 40 });
-    expect(writeNewsCursor(page!)).toBe('2026-11-13T10:00:00.000Z~40');
-    expect(writeNewsCursor({ at: '2026-11-13T10:00:00.000Z', skip: 0 })).toBe(
-      '2026-11-13T10:00:00.000Z',
-    );
+  const STORY = '0b6f9c1e-3a52-4e0c-9d7a-1f2e3d4c5b6a';
+  const SOURCE = '00000000-0000-4000-8000-000000000101';
+  const OTHER = 'ffffffff-ffff-4fff-bfff-ffffffffffff';
+
+  it('packs an id in 22 URL-safe characters and back', () => {
+    for (const id of [STORY, SOURCE, OTHER, '00000000-0000-0000-0000-000000000000']) {
+      const packed = packId(id)!;
+      expect(packed).toMatch(/^[A-Za-z0-9_-]{22}$/);
+      expect(unpackId(packed)).toBe(id);
+    }
+    expect(packId('not an id')).toBeNull();
+    expect(unpackId('short')).toBeNull();
+    // The last character carries four bits of padding, which must be zero.
+    expect(unpackId(`${packId(STORY)!.slice(0, 21)}B`)).toBeNull();
   });
 
-  it('refuses what is not one, and more cards shown than a page may re-read', () => {
-    for (const bad of ['yesterday', 'yesterday~40', '2026-11-13T10:00:00Z~', '~40', '']) {
+  it('reads a plain instant, and a mixed page’s boundary, run and waiting stories, and writes them back', () => {
+    expect(readNewsCursor('2026-11-13T10:00:00Z')).toEqual({
+      at: '2026-11-13T10:00:00.000Z',
+      shown: null,
+      run: null,
+      waiting: [],
+    });
+    const cursor = {
+      at: '2026-11-13T10:00:00.123Z',
+      shown: STORY,
+      run: { source: SOURCE, length: 3 },
+      waiting: [OTHER, SOURCE],
+    };
+    const written = writeNewsCursor(cursor);
+    expect(written).toMatch(
+      /^2026-11-13T10:00:00\.123Z~[A-Za-z0-9_-]{22}~[A-Za-z0-9_-]{22}\.3~[A-Za-z0-9_-]{44}$/,
+    );
+    expect(readNewsCursor(written)).toEqual(cursor);
+    const quiet = { ...cursor, run: null, waiting: [] };
+    expect(readNewsCursor(writeNewsCursor(quiet))).toEqual(quiet);
+    expect(writeNewsCursor({ ...quiet, shown: null })).toBe('2026-11-13T10:00:00.123Z');
+  });
+
+  it('refuses what is not one, and more waiting stories than a page can leave', () => {
+    const id = packId(STORY)!;
+    for (const bad of [
+      '',
+      'yesterday',
+      '2026-11-13T10:00:00Z~40',
+      `yesterday~${id}~-~`,
+      `2026-11-13T10:00:00Z~${id}~-`,
+      `2026-11-13T10:00:00Z~${id}~${id}.0~`,
+      `2026-11-13T10:00:00Z~${id}~-~${id.slice(1)}`,
+    ]) {
       expect(readNewsCursor(bad), bad).toBeNull();
     }
-    expect(readNewsCursor(`2026-11-13T10:00:00Z~${NEWS_CURSOR_MAX_SKIP}`)).not.toBeNull();
-    expect(readNewsCursor(`2026-11-13T10:00:00Z~${NEWS_CURSOR_MAX_SKIP + 1}`)).toBeNull();
+    const at = '2026-11-13T10:00:00Z';
+    expect(readNewsCursor(`${at}~${id}~-~${id.repeat(NEWS_CURSOR_MAX_WAITING)}`)).not.toBeNull();
+    expect(readNewsCursor(`${at}~${id}~-~${id.repeat(NEWS_CURSOR_MAX_WAITING + 1)}`)).toBeNull();
   });
 });

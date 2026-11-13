@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2437), grouped by folder, with one line on
+Every file in the repository (2433), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -103,7 +103,7 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/moments`](#appsapisrcmodulesmoments) — 5
 - [`apps/api/src/modules/moments/internal`](#appsapisrcmodulesmomentsinternal) — 1
 - [`apps/api/src/modules/news`](#appsapisrcmodulesnews) — 46
-- [`apps/api/src/modules/news/internal`](#appsapisrcmodulesnewsinternal) — 23
+- [`apps/api/src/modules/news/internal`](#appsapisrcmodulesnewsinternal) — 21
 - [`apps/api/src/modules/notifications`](#appsapisrcmodulesnotifications) — 13
 - [`apps/api/src/modules/notifications/internal`](#appsapisrcmodulesnotificationsinternal) — 2
 - [`apps/api/src/modules/panel`](#appsapisrcmodulespanel) — 13
@@ -140,9 +140,9 @@ machine, `docs/18-handover.md`.
 - [`apps/model/fmip_model/backtest`](#appsmodelfmip-modelbacktest) — 13
 - [`apps/model/fmip_model/inputs`](#appsmodelfmip-modelinputs) — 19
 - [`apps/model/fmip_model/model`](#appsmodelfmip-modelmodel) — 8
-- [`apps/model/fmip_model/model/candidates`](#appsmodelfmip-modelmodelcandidates) — 2
+- [`apps/model/fmip_model/model/candidates`](#appsmodelfmip-modelmodelcandidates) — 1
 - [`apps/model/fmip_model/model/published`](#appsmodelfmip-modelmodelpublished) — 1
-- [`apps/model/fmip_model/model/retired`](#appsmodelfmip-modelmodelretired) — 1
+- [`apps/model/fmip_model/model/retired`](#appsmodelfmip-modelmodelretired) — 2
 - [`apps/model/fmip_model/service`](#appsmodelfmip-modelservice) — 6
 - [`apps/model/fmip_model/training`](#appsmodelfmip-modeltraining) — 12
 - [`apps/model/reports`](#appsmodelreports) — 1
@@ -271,7 +271,7 @@ machine, `docs/18-handover.md`.
 - [`deploy`](#deploy) — 8
 - [`deploy/certs`](#deploycerts) — 1
 - [`deploy/preview`](#deploypreview) — 2
-- [`docs`](#docs) — 36
+- [`docs`](#docs) — 32
 - [`docs/research`](#docsresearch) — 2
 - [`packages/config`](#packagesconfig) — 4
 - [`packages/config/eslint`](#packagesconfigeslint) — 1
@@ -311,7 +311,7 @@ machine, `docs/18-handover.md`.
 - [`packages/ingestion/src/adapters/replay`](#packagesingestionsrcadaptersreplay) — 3
 - [`packages/ingestion/src/bakeoff`](#packagesingestionsrcbakeoff) — 5
 - [`packages/ingestion/src/harness`](#packagesingestionsrcharness) — 4
-- [`packages/ingestion/src/news`](#packagesingestionsrcnews) — 15
+- [`packages/ingestion/src/news`](#packagesingestionsrcnews) — 17
 - [`packages/ingestion/src/news/_recorded`](#packagesingestionsrcnews-recorded) — 3
 - [`scripts`](#scripts) — 6
 - [`scripts/backup`](#scriptsbackup) — 12
@@ -1405,7 +1405,7 @@ machine, `docs/18-handover.md`.
 | `news-entity.http.spec.ts` | News on the team and competition pages (T-944, D-119): the stories the news boundary linked to the team or competition, newest first, from its existing links; a team nobody wrote about says so; an unknown id is 404; and… |
 | `news-filters.http.spec.ts` | The news filters by story type, player and date (T-1003, D-124). |
 | `news-fixture.http.spec.ts` | Related news for a match (T-145): reports linked to the match come first, then reports linked to one of its sides inside the window around kick-off; a report about a side from outside the window and a report about nobod… |
-| `news-hidden-headlines.http.spec.ts` | Headlines the lists do not show (T-1818, D-413), over Postgres: an invitation to watch a match live on the publisher's site is left out of the latest list for every reader, the report stored beside it is listed, and the… |
+| `news-hidden-headlines.http.spec.ts` | Headlines the lists do not show (T-1818, D-413), over Postgres: an invitation to watch a match live on the publisher's site (read on a team of its own, so other specs' stories cannot crowd it out) is left out of the new… |
 | `news-images.http.spec.ts` | News photos end to end (T-1322, D-177), against the real schema with every response scripted: a source whose licence covers photos gets its own photo stored on our volume and served from our route with its credit and li… |
 | `news-images.service.ts` | The injection token for `MEDIA_DIR`, resolved; `null` when unset. |
 | `news-ingestion.http.spec.ts` | The news job against the real schema (T-142, D-061), with every response scripted: what a feed says is the input, what the tables hold is the output. |
@@ -1444,8 +1444,6 @@ machine, `docs/18-handover.md`.
 | `debate-admin-store.ts` | The editor's half of the debate section (blueprint 3.1, T-143): selecting a story and clearing one, each with its `audit_log` row in the same transaction (rule 10). |
 | `feed-probe.ts` | How much of a publisher's summary the preview shows. |
 | `gnews-store.ts` | The GNews row the migration seeds (T-1367, `1765844000000_gnews-source.sql`). |
-| `hidden-headlines.spec.ts` | Tests for `hidden-headlines`. |
-| `hidden-headlines.ts` | Headlines the news lists do not show (T-1818, D-413). |
 | `news-coverage-store.ts` | News coverage per competition (T-1010, D-129): for each competition, the carried sources -- not dropped -- with a report linked to it whose first publication falls inside the window, the stories each linked, and the dis… |
 | `news-image-store.ts` | A source's image right (T-1322, D-177); `null` licence means it grants none. |
 | `news-media.ts` | Where news photos live on our server, and how one is fetched (T-1322, D-177). |
@@ -1702,7 +1700,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `community-search-store.ts` | SQL for the kinds members and publishers make (T-642, D-087): the same matching as the catalog's -- `search_key()` on both sides, trigram word similarity or prefix, the same threshold -- so a headline, a group name and… |
+| `community-search-store.ts` | Rows read past a search's limit, for the headlines D-413 leaves out (T-1818). |
 | `result-images.spec.ts` | Each search result's image (T-1617): the right kind per type, one read, none invented. |
 | `result-images.ts` | Each entity result's image (T-1617): a team's crest, a competition's logo, a person's photo, from our own origin (D-176) in one media read for the whole page of results; `not_supplied` where none is held (rule 3). |
 | `search-query.ts` | Parsing of `GET /search` parameters (T-038). |
@@ -1929,19 +1927,19 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `.gitkeep` | Keeps an empty folder in git. |
-| `dixon-coles-elo-0.7.0.json` | JSON data or settings. |
 
 ## apps/model/fmip_model/model/published
 
 | File | What it is |
 |---|---|
-| `dixon-coles-elo-0.6.0.json` | JSON data or settings. |
+| `dixon-coles-elo-0.7.0.json` | JSON data or settings. |
 
 ## apps/model/fmip_model/model/retired
 
 | File | What it is |
 |---|---|
 | `dixon-coles-elo-0.5.0.json` | JSON data or settings. |
+| `dixon-coles-elo-0.6.0.json` | JSON data or settings. |
 
 ## apps/model/fmip_model/service
 
@@ -2578,7 +2576,7 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `page.tsx` | The platform rules in force (T-931, D-113), for anybody. |
-| `rules-page.spec.tsx` | The rules page in numbered sections (T-1789, D-392): the 1.0.0 text from its migration, under eight headings with anchors and an "On this page" index, English and left to right on every page; a version nobody checked is… |
+| `rules-page.spec.tsx` | The rules page in numbered sections (T-1789, D-410): the 1.0.0 text from its migration, under eight headings with anchors and an "On this page" index, English and left to right on every page; a version nobody checked is… |
 
 ## apps/web/src/app/[locale]/scores
 
@@ -3565,8 +3563,6 @@ machine, `docs/18-handover.md`.
 | File | What it is |
 |---|---|
 | `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
-| `00-decisions.md` | Decision log |
 | `01-roadmap.md` | Roadmap |
 | `02-architecture.md` | Architecture |
 | `03-project-map.md` | Project map |
@@ -3574,8 +3570,6 @@ machine, `docs/18-handover.md`.
 | `04-tasks-phase-10.md` | Phase 10 — News depth and community depth |
 | `04-tasks-phase-11.md` | Phase 11 — Model depth and the console's configuration |
 | `04-tasks-phase-12.md` | Phase 12 — A design pass over the pages a reader meets |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
-| `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-13.md` | Phase 13 — Persian, and images |
 | `04-tasks-phase-14.md` | Phase 14 — Model factors |
 | `04-tasks-phase-2.md` | Phase 2 — Depth on football intelligence |
@@ -4236,6 +4230,8 @@ machine, `docs/18-handover.md`.
 | `feed.ts` | A publisher's feed → normalised news items (T-142, D-061). |
 | `gnews.spec.ts` | The GNews reader (T-1367, D-185). The sample below is written for the spec in the shape GNews documents for API v4 (`totalArticles`, `articles[]` with `title`, `description`, `content`, `url`, `image`, `publishedAt`, `l… |
 | `gnews.ts` | GNews (gnews.io, API v4) -> normalised news items (T-1367, D-185). |
+| `hidden-headlines.spec.ts` | Headlines as production stored them (Khabar Varzeshi, 2026-09-29..11-12), and the reports beside them. |
+| `hidden-headlines.ts` | Headlines the news lists do not show (T-1818, D-413). |
 | `image-file.spec.ts` | Minimal headers of each accepted format, built byte by byte (T-1322). |
 | `image-file.ts` | What a downloaded news photo is, read from its own bytes (T-1322, D-177). |
 | `image-provenance.spec.ts` | Whether a photo is the agency's own (T-1322, D-177), against two recorded article pages -- Mehr's lead photo with no other credit, and Tehran Times republishing an AFP/Getty photo -- and samples for the rest. |

@@ -126,8 +126,9 @@ function limitOf(value: unknown): number {
 }
 
 /**
- * `?before=` as a cursor (`NewsCursor`): an instant, with `~n` on a page of
- * latest's mixed list (T-1816, D-411).
+ * `?before=` as a cursor (`NewsCursor`): an instant, or a page of latest's
+ * mixed list (T-1816, D-411). Following and the entity lists page by its
+ * instant alone.
  */
 function beforeOf(value: unknown): NewsCursor | null {
   const v = first(value);

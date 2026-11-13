@@ -74,6 +74,8 @@ export {
   type NonArticleRule,
   nonArticleKind,
 } from './news/non-article';
+// Headlines the lists do not show, applied on read only (T-1818, D-413).
+export { HIDDEN_HEADLINES, type HiddenHeadline, hiddenHeadline } from './news/hidden-headlines';
 export {
   type ProvenanceInput,
   type ProvenanceVerdict,

@@ -1,8 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { GroupSearchResult, MemberSearchResult, StorySearchResult } from '@fmip/contracts';
+import { hiddenHeadline } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { MIN_SIMILARITY } from './search-store';
+
+/** Rows read past a search's limit, for the headlines D-413 leaves out (T-1818). */
+const HIDDEN_HEADROOM = 10;
 
 /**
  * SQL for the kinds members and publishers make (T-642, D-087): the same
@@ -75,9 +79,12 @@ export class PostgresCommunitySearchStore {
         WHERE score >= $3
         ORDER BY score DESC, published_at DESC, story_id
         LIMIT $2`,
-      [q, limit, MIN_SIMILARITY, locale],
+      [q, limit + HIDDEN_HEADROOM, MIN_SIMILARITY, locale],
     );
-    return rows.map((r) => ({
+    // T-1818 (D-413): a headline on the named list is not shown, as in the
+    // news lists; read past the limit so the ones left out leave no gap.
+    const shown = rows.filter((r) => hiddenHeadline(r.headline) === null).slice(0, limit);
+    return shown.map((r) => ({
       story_id: r.story_id,
       headline: r.headline,
       language: r.language,
