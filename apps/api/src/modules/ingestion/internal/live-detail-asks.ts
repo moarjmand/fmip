@@ -25,6 +25,8 @@
  * statistics, never its score, clock or state, which are the list's.
  */
 
+import { recentDetailOrder } from './detail-sweep';
+
 /** The default minutes between two asks about the same match in play. */
 export const LIVE_DETAIL_MINUTES = 3;
 /** A ceiling on the setting: beyond it a match's statistics move too seldom to call live. */
@@ -137,15 +139,20 @@ export interface RecentFixture {
   fixtureId: string;
   status: string;
   kickoffAt: string;
+  competitionId: string;
+  /** When its detail was last asked after the whistle (T-1823); null if never. */
+  detailFetchedAt: string | null;
 }
 
 /**
  * The post-match run's recent asks, at most `batch` (T-1782). While the live
- * job asks the matches in play (`liveDetailOn`), the finished ones only, the
- * newest kick-off first whatever the competition: the competitions come in
- * alphabetical order, and the first ten of that order left the Premier
- * League out on a busy Saturday. With it off, live and finished matches in
- * the order given, exactly as before T-1782.
+ * job asks the matches in play (`liveDetailOn`), the finished ones only, in
+ * `recentDetailOrder` (T-1823, D-417): never asked after the whistle first,
+ * oldest kick-off first, then the one asked longest ago, fair across the
+ * competitions -- never their alphabetical order, whose first ten left the
+ * Premier League out on a busy Saturday, nor the newest kick-off first, which
+ * kept the earlier matches of a crowded evening waiting. With it off, live
+ * and finished matches in the order given, exactly as before T-1782.
  */
 export function recentDetailCandidates<T extends RecentFixture>(
   known: T[],
@@ -155,12 +162,10 @@ export function recentDetailCandidates<T extends RecentFixture>(
   if (!liveDetailOn) {
     return known.filter((f) => f.status === 'finished' || f.status === 'live').slice(0, batch);
   }
-  return known
-    .filter((f) => f.status === 'finished')
-    .map((f, i) => ({ f, i }))
-    .sort((a, b) => Date.parse(b.f.kickoffAt) - Date.parse(a.f.kickoffAt) || a.i - b.i)
-    .slice(0, batch)
-    .map(({ f }) => f);
+  return recentDetailOrder(
+    known.filter((f) => f.status === 'finished'),
+    batch,
+  );
 }
 
 /** Drops the asks old enough that their match is over; the map is the job's memory. */

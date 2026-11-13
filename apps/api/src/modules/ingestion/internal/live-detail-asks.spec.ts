@@ -125,57 +125,46 @@ describe('liveDetailBudgetLeft (T-1782, N5)', () => {
   });
 });
 
-describe('recentDetailCandidates (T-1782)', () => {
-  // The competitions in the store's alphabetical order, as `pollTargets` gives them.
+describe('recentDetailCandidates (T-1782, T-1823)', () => {
+  // The competitions in the store's alphabetical order, as `pollTargets` gives
+  // them; the ids are not names, so no order below can come from a name.
+  const row = (
+    id: string,
+    status: string,
+    kickoffAt: string,
+    competitionId: string,
+    detailFetchedAt: string | null = null,
+  ) => ({ externalId: id, fixtureId: id, status, kickoffAt, competitionId, detailFetchedAt });
   const known = [
-    {
-      externalId: 'a1',
-      fixtureId: 'a1',
-      status: 'finished',
-      kickoffAt: '2026-11-07T12:30:00Z',
-      c: 'Austrian Bundesliga',
-    },
-    {
-      externalId: 'b1',
-      fixtureId: 'b1',
-      status: 'live',
-      kickoffAt: '2026-11-07T15:00:00Z',
-      c: 'Bundesliga',
-    },
-    {
-      externalId: 'b2',
-      fixtureId: 'b2',
-      status: 'finished',
-      kickoffAt: '2026-11-07T13:30:00Z',
-      c: 'Bundesliga',
-    },
-    {
-      externalId: 'l1',
-      fixtureId: 'l1',
-      status: 'finished',
-      kickoffAt: '2026-11-07T14:00:00Z',
-      c: 'La Liga',
-    },
-    {
-      externalId: 'p1',
-      fixtureId: 'p1',
-      status: 'finished',
-      kickoffAt: '2026-11-07T14:15:00Z',
-      c: 'Premier League',
-    },
-    {
-      externalId: 'p2',
-      fixtureId: 'p2',
-      status: 'scheduled',
-      kickoffAt: '2026-11-07T16:30:00Z',
-      c: 'Premier League',
-    },
+    row('a1', 'finished', '2026-11-07T12:30:00Z', 'c-austria', '2026-11-07T14:20:00Z'),
+    row('b1', 'live', '2026-11-07T15:00:00Z', 'c-bundesliga'),
+    row('b2', 'finished', '2026-11-07T13:30:00Z', 'c-bundesliga'),
+    row('l1', 'finished', '2026-11-07T14:00:00Z', 'c-laliga'),
+    row('p1', 'finished', '2026-11-07T14:15:00Z', 'c-premier'),
+    row('p2', 'scheduled', '2026-11-07T16:30:00Z', 'c-premier'),
   ];
   const ids = (rows: { externalId: string }[]): string[] => rows.map((r) => r.externalId);
 
-  it('with live details on: finished only, newest kick-off first across the competitions', () => {
-    expect(ids(recentDetailCandidates(known, true, 10))).toEqual(['p1', 'l1', 'b2', 'a1']);
-    expect(ids(recentDetailCandidates(known, true, 2))).toEqual(['p1', 'l1']);
+  it('with live details on: finished only, never asked first, oldest kick-off first', () => {
+    // a1 was asked at the whistle; the three never asked come first.
+    expect(ids(recentDetailCandidates(known, true, 10))).toEqual(['b2', 'l1', 'p1', 'a1']);
+    expect(ids(recentDetailCandidates(known, true, 2))).toEqual(['b2', 'l1']);
+  });
+
+  it('a crowded evening does not keep the earlier matches waiting (T-1823)', () => {
+    // Forty cup matches at 19:00 and five league matches at 18:00, none asked:
+    // the league's earlier matches are not behind the cup's, and the cup is
+    // not behind the league's five either -- the competitions take turns.
+    const cup = Array.from({ length: 40 }, (_, i) =>
+      row(`cup${i}`, 'finished', '2026-10-29T19:00:00Z', 'c-cup'),
+    );
+    const league = Array.from({ length: 5 }, (_, i) =>
+      row(`lg${i}`, 'finished', '2026-10-29T18:00:00Z', 'c-league'),
+    );
+    const asked = ids(recentDetailCandidates([...cup, ...league], true, 10));
+    expect(asked.slice(0, 2)).toEqual(['lg0', 'cup0']);
+    expect(asked.filter((id) => id.startsWith('lg'))).toHaveLength(5);
+    expect(asked.filter((id) => id.startsWith('cup'))).toHaveLength(5);
   });
 
   it('with live details off: live and finished in the competitions’ order, as before', () => {
