@@ -238,7 +238,7 @@ test.describe('on a 1440px screen', () => {
     for (const [id, url] of [
       ['footer-about', /\/en\/about$/],
       ['footer-rules', /\/en\/rules$/],
-      // The legal strip's data sources: About's own section (T-1790, D-392).
+      // The legal strip's data sources: About's own section (T-1790, D-410).
       ['footer-data', /\/en\/about#data$/],
       ['footer-league', /\/en\/leaderboard$/],
       ['footer-highlights', /\/en\/highlights$/],

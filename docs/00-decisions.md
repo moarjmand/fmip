@@ -15256,3 +15256,34 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 
 **Consequences.** A browser that has seen the header will refuse plain HTTP to the host for six months; going back to HTTP-only would need `max-age=0` served over HTTPS and visitors returning to pick it up. The rollout recreates Caddy. The security agent's weekly check now expects `max-age=15552000`.
 
+## D-410 — dixon-coles-elo@0.7.0 replaces 0.6.0 on the site, on D-336's two verdicts
+
+**Status:** Accepted · 2026-11-13 (the maintainer, in chat: «ارتقا بده», on the weekly promotion watch of 2026-11-09; D-082) · **Task:** T-1151 (T-535's measurement) · **Follows:** D-082, D-191, D-233, D-336, D-371, D-380
+
+**Context.** `dixon-coles-elo@0.7.0` has run in shadow since 2026-10-21 (T-1442, D-233): the published `0.6.0` plus eleven divisions (Greece, Switzerland, Denmark, USA, Brazil, Argentina, Czechia, Croatia, Serbia, Saudi Arabia, UAE). It is judged under D-336, with its cup matches inside the "no worse" condition (D-380, point 1). Both counts were reached before the weekly watch of 2026-11-09, and the model scientist took D-336's one look per condition that morning; the verdicts are the ledger's `judgements` rows (D-380, point 5) and are carried here unchanged, not judged again.
+
+**The verdicts (ledger, 2026-11-09, `E:/FMIP/ops/reports/model-scientist/2026-11-09.md`).** Paired percentile bootstrap, 2,000 resamples of matches, each match counted once per version by its last forecast before kick-off (D-209, D-371).
+- **No worse: met.** 496 paired pre-kick-off matches; log loss 0.7.0 minus 0.6.0 = -0.00329, 95% [-0.00758, +0.00072]; the upper end is below D-336's +0.002. 378 matches (76.2%) are forecast identically; the 118 that differ are all cup matches.
+- **Better than chance where it is new: met.** 168 pre-kick-off matches in all eleven new divisions; log loss 0.9732, 95% [0.9116, 1.0413], wholly below 1.0986. Each division has 7 to 30 matches; no per-division verdict is given.
+
+**T-535's measurement on the same 496 matches (D-082; computed on the server, read-only, 2026-11-09).** Descriptive beside the verdicts above; the bootstrap here is PostgreSQL's (`setseed(0.1101)`, 2,000 resamples), so its interval differs a little from the lab's.
+
+| | 0.6.0 (published) | 0.7.0 (shadow) | 0.7.0 − 0.6.0 [95%] |
+|---|---|---|---|
+| Log loss | 0.9450 | 0.9417 | -0.00329 [-0.00781, +0.00040] |
+| Brier | 0.5579 | 0.5553 | -0.00264 [-0.00594, -0.00005] |
+| Accuracy | 59.1% | 59.3% | |
+| Calibration error (10-point bands, weighted) | 5.71 pts | 5.83 pts | |
+
+On the 118 differing (cup) matches alone: log loss -0.01385, Brier -0.01109. Calibration is the same shape for both: draws said 20-30% (mean 24.9-25.0%) are seen 19.1-19.2% (n≈380), and an away side said 40-50% wins 58-59% (n≈78). The calibration weakness the model scientist already tracks (finding mod-2026-10-31-03) is 0.6.0's as much as 0.7.0's and is not changed by this promotion. None of the 496 paired matches is in the new divisions (0.6.0 forecasts none of them); 169 finished matches have a pre-kick-off forecast from 0.7.0 alone. The extra leagues' training rows were first loaded on production on 2026-10-29 (docs/14-maintainer.md, "Fourteen more leagues"); condition (b) is the ledger's verdict on the record it counted.
+
+**Decision (proposed; the maintainer's to take, D-082).** Publish `dixon-coles-elo@0.7.0`, replacing `0.6.0`, by D-191's mechanism: 0.7.0's file moves from `candidates/` to `published/`, 0.6.0's from `published/` to `retired/`, each under the version its stored forecasts carry.
+
+**What it does not change.**
+- **Stored forecasts keep their version** (rule 5): 0.6.0's published rows and their evaluations stay as they are; 0.7.0's shadow rows stay shadow. Published numbering continues on each fixture.
+- **No constant or input changes** on the divisions 0.6.0 forecast: 0.7.0 carries 0.6.0's constants unchanged (`test_0_7_0_is_0_6_0_plus_eleven_divisions_and_nothing_else`). The inputs `12-power-index.md` and the public pages describe are the same, so neither changes; the console's model note (`apps/web/src/app/console/model-notes.ts`) marks 0.7.0 as on the site under this decision.
+- **No candidate is in shadow** afterwards; T-1151 waits for the next one, whose count starts at zero.
+
+**Limits, stated.** Both intervals treat matches as independent; matches of one weekend are not. The "no worse" upper end sits 0.0013 under its ceiling, which holds if that dependence widens the interval by up to about 30% (the model scientist's note). Per-division records of the new leagues are too small for a verdict of their own.
+
+**Consequences.** `apps/model/fmip_model/model/{published,retired}/` (the two moves), the model service's tests that named the published file (`test_service.py`, `test_more_leagues.py`, `test_cross_league_options.py`, `test_cross_league.py`), `model-notes.ts`, a comment in `forecast.service.ts`. After the merge, the full `bash deploy/rollout.sh` replaces the model container; from then on the site shows forecasts for the eleven new divisions where it said "no forecast", and D-380's withheld figures for 0.7.0 come back as a published version's.

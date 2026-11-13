@@ -42,7 +42,7 @@ export const FOOTER_LABELS: Record<FooterLink['id'], MessageKey> = {
  * model's record and the founder's analysis, each by its own name (rule 6)
  * -- and Stadiomind, with what it is, Settings and the languages, as links
  * to this page in each. Then the copyright line, the year in the page's
- * digits, and beside it the legal strip (`FOOTER_LEGAL`, T-1790, D-392):
+ * digits, and beside it the legal strip (`FOOTER_LEGAL`, T-1790, D-410):
  * the rules (linked from nowhere else since D-281 took them out of More)
  * and "Data sources", About's `#data` section.
  *
@@ -129,7 +129,7 @@ export async function SiteFooter({ locale }: { locale: string }) {
           })}
         </nav>
       </div>
-      {/* The copyright and the legal strip share one line (T-1790, D-392):
+      {/* The copyright and the legal strip share one line (T-1790, D-410):
           the strip's 44px targets take the place of the bar's padding, so
           the footer is no taller than before on a phone or a desktop. */}
       <div className="border-t border-default">

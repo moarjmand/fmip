@@ -30,7 +30,7 @@ export async function generateMetadata({
 }
 
 /**
- * "Where the data comes from" (T-1790, D-392): each kind by the name and the
+ * "Where the data comes from" (T-1790, D-410): each kind by the name and the
  * sentence "How Stadiomind works" and "Find your way" already give it.
  */
 const DATA_SOURCES: readonly (readonly [MessageKey, MessageKey])[] = [
@@ -116,7 +116,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
           )}
         </section>
 
-        {/* Where the data comes from (T-1790, D-392), the footer's "Data
+        {/* Where the data comes from (T-1790, D-410), the footer's "Data
             sources": what each kind of data is and where it opens, in the
             words the page already uses above. No provider is named and no
             attribution line is written: those are the maintainer's (D-014). */}
