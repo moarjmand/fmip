@@ -446,7 +446,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   <LinkedSentence
                     sentence={message(lang, 'home.guestInvite')}
                     link={message(lang, 'home.guestInvite.link')}
-                    href={`/${locale}/register`}
+                    // The kind of page the sign-up started on (T-1821, D-415).
+                    href={`/${locale}/register?from=home`}
                   />
                 </p>
               </GuestWelcome>

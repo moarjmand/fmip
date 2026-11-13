@@ -96,6 +96,8 @@ export interface PurgeReport {
   email_tokens: BatchedOutcome;
   notification_deliveries: BatchedOutcome;
   pending_picks: BatchedOutcome;
+  /** Rows of `signup_source_monthly` rewritten in one transaction (T-1821, D-415). */
+  signup_sources_restamped: number;
 }
 
 /**
@@ -104,7 +106,8 @@ export interface PurgeReport {
  * notification delivery records after 90 days, reduced to anonymous daily
  * counts; and (T-1740, D-361) picks saved before an e-mail address was
  * confirmed, 30 days after their match's kick-off, or at once when they
- * became a prediction. Backups keep what they hold for up to `BACKUP_KEEP_REMOTE_DAYS`
+ * became a prediction; and (T-1821, D-415) it rewrites the sign-up source
+ * counts in one transaction, unchanged. Backups keep what they hold for up to `BACKUP_KEEP_REMOTE_DAYS`
  * (docs/07-backups.md) and are not touched here.
  *
  * First of all it has the Activity report keep the sign-ins and active
@@ -140,6 +143,8 @@ export class RetentionService {
       pending_picks: await purgeInBatches((limit) =>
         this.store.deletePendingPicks(cutoff.pendingPicks, limit, now),
       ),
+      // Last: no sign-up count's live version keeps a transaction id near its account's.
+      signup_sources_restamped: await this.store.restampSignupSources(),
     };
     const capped = [
       report.sessions,
@@ -156,6 +161,7 @@ export class RetentionService {
       email_tokens: report.email_tokens.deleted,
       notification_deliveries: report.notification_deliveries.deleted,
       pending_picks: report.pending_picks.deleted,
+      signup_sources_restamped: report.signup_sources_restamped,
       capped,
     });
     return report;

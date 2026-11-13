@@ -95,6 +95,18 @@ describe('validateRegister', () => {
     }
   });
 
+  it('reads the sign-up source leniently: absent or malformed is none (T-1821, D-415)', () => {
+    const plain = validateRegister(valid);
+    expect(plain.ok && plain.value.source).toEqual({ entry: 'none', referrer_host: null });
+    const linked = validateRegister({
+      ...valid,
+      source: { entry: 'team', referrer_host: 'www.T.me' },
+    });
+    expect(linked.ok && linked.value.source).toEqual({ entry: 'team', referrer_host: 't.me' });
+    const odd = validateRegister({ ...valid, source: 'https://t.me/x' });
+    expect(odd.ok && odd.value.source).toEqual({ entry: 'none', referrer_host: null });
+  });
+
   it('names every failing field at once', () => {
     const result = validateRegister({
       ...valid,
