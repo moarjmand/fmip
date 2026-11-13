@@ -14,6 +14,7 @@ import { forecastBarWords, matchWords } from '@/lib/words-server';
 import { ForecastBarWithReceipt } from './forecast-receipt';
 import { ForecastPanel } from './forecast-panel';
 import { MatchCentreView } from './match-centre-view';
+import { liveSlots } from './match-live-slots';
 
 /**
  * T-1395 (D-210): the English site's reader-facing copy. Forecast stamps on
@@ -182,15 +183,20 @@ const centre = (): MatchCentre =>
     },
   }) as unknown as MatchCentre;
 
-const page = (locale: string) =>
-  renderToStaticMarkup(
+// As the page draws it: the moving modules from the server (D-409).
+const page = (locale: string) => {
+  const words = matchWords(locale);
+  const c = centre();
+  return renderToStaticMarkup(
     <MatchCentreView
-      words={matchWords(locale)}
-      centre={centre()}
+      words={words}
+      centre={c}
       timeZone="Europe/London"
       locale={locale}
+      slots={liveSlots({ centre: c, locale, timeZone: 'Europe/London', words })}
     />,
   );
+};
 
 describe('the player statistics table on a phone (T-1395)', () => {
   it('is a named region a keyboard can reach, with the edge cue and a hint', () => {

@@ -44,6 +44,7 @@ export function LiveAge({
   words,
   testId,
   className,
+  followsModules = false,
 }: {
   checkedAt: number | string;
   staleAfterMs: number;
@@ -51,13 +52,20 @@ export function LiveAge({
   words: FreshnessWords;
   testId?: string;
   className?: string;
+  /**
+   * The age of a module the stream draws again (D-409): also in its "may be
+   * behind" state while the page's server modules are behind the stream (a
+   * call failed), in the stamp's own words -- never a line of its own.
+   */
+  followsModules?: boolean;
 }) {
-  const { now } = useLiveClock();
+  const { now, behind } = useLiveClock();
   return (
     <FreshnessStamp
       checkedAt={checkedAt}
       now={now}
       staleAfterMs={staleAfterMs}
+      behind={followsModules && behind}
       locale={locale}
       words={words}
       testId={testId}

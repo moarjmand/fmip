@@ -28,7 +28,7 @@ import { LiveMatch } from '@/components/live-match';
 import { DataCard } from '@/components/match-centre-cards';
 import { MatchAvailability } from '@/components/match-availability';
 import { Coverage, HeadToHead, MatchForm } from '@/components/match-record';
-import { FinishedLineups, FinishedStats } from '@/components/match-stats-panels';
+import { FinishedLineups } from '@/components/match-stats-panels';
 import { MatchFollow } from '@/components/match-follow';
 import { MatchToolsRow } from '@/components/match-tools-row';
 import { MatchPanel } from '@/components/match-panel';
@@ -474,11 +474,10 @@ export default async function MatchPage({
                     words={words}
                   />
                 ),
-                // A finished match's statistics, tables, xG and line-ups (T-1800..T-1802):
-                // it no longer moves, so drawn here and off the client; in play
-                // the view draws them from the stream.
+                // A finished match's line-ups (T-1801): drawn here and off the
+                // client; in play the view draws them from the stream. The
+                // statistics are `liveSlots`' since T-1813.
                 ...(result.data.fixture.status === 'finished' && {
-                  matchStats: <FinishedStats centre={result.data} locale={locale} words={words} />,
                   matchLineups: (
                     <FinishedLineups centre={result.data} locale={locale} words={words} />
                   ),

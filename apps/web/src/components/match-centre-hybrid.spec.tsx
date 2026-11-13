@@ -24,7 +24,7 @@ import { FounderAnalysisPanel } from './founder-analysis';
 import { MatchCentreView } from './match-centre-view';
 import { KeyEvents } from './match-key-events';
 import { liveSlots } from './match-live-slots';
-import { FinishedLineups, FinishedStats, STAT_GROUPS, statGroups } from './match-stats-panels';
+import { FinishedLineups, MatchStats, STAT_GROUPS, statGroups } from './match-stats-panels';
 import { STAT_KEY } from '@/lib/match';
 import { MatchLineupsView } from './match-lineups';
 import { HighlightsLink, WatchLine } from './viewing-panel';
@@ -495,7 +495,7 @@ describe('per-player expected goals (T-1432)', () => {
         centre={c}
         timeZone="UTC"
         locale={locale}
-        slots={{ matchStats: <FinishedStats centre={c} locale={locale} words={words} /> }}
+        slots={{ matchStats: <MatchStats centre={c} locale={locale} words={words} /> }}
       />,
     );
   };
@@ -623,14 +623,26 @@ describe('per-player expected goals (T-1432)', () => {
     expect(card(html)).not.toContain('No expected goals by player are supplied');
   });
 
-  it('in play, without the slot, keeps the view’s own card under the same neutral heading', () => {
+  it('in play, the server’s card too, under the same neutral heading (T-1813, D-409)', () => {
+    const words = matchWords('en');
+    const c = centre({});
     const live = renderToStaticMarkup(
-      <MatchCentreView words={matchWords('en')} centre={centre({})} timeZone="UTC" locale="en" />,
+      <MatchCentreView
+        words={words}
+        centre={c}
+        timeZone="UTC"
+        locale="en"
+        slots={liveSlots({ centre: c, locale: 'en', timeZone: 'UTC', words })}
+      />,
     );
     const own = card(live);
     expect(own).toContain('Expected goals by player');
     expect(own).not.toContain('Highlightly');
-    expect(live).not.toContain('data-group="match"');
+    // The view has no card of its own any more: without the slot, none.
+    const bare = renderToStaticMarkup(
+      <MatchCentreView words={words} centre={c} timeZone="UTC" locale="en" />,
+    );
+    expect(card(bare)).toBe('');
   });
 });
 
@@ -1372,7 +1384,7 @@ describe('a finished match’s line-ups and player table (D-399, D-400)', () => 
       },
     });
     const html = renderToStaticMarkup(
-      <FinishedStats centre={c} locale="en" words={matchWords('en')} />,
+      <MatchStats centre={c} locale="en" words={matchWords('en')} />,
     );
     const table = html.slice(html.indexOf('data-testid="player-statistics"'));
     expect(table).toMatch(/<th scope="row" class="sticky start-0[^"]*bg-surface/);

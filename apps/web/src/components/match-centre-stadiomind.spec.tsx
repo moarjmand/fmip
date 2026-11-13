@@ -22,6 +22,7 @@ import {
 import { ForecastPanel } from './forecast-panel';
 import { MatchCentreView, ratingsOf, scorerFit } from './match-centre-view';
 import { liveSlots } from './match-live-slots';
+import { LiveClockProvider } from './live-age';
 import { Translated } from './translated';
 import { scoreDisputeHero } from './score-dispute';
 import { matchJsonLd } from '@/lib/seo';
@@ -760,18 +761,21 @@ const centre = (over: Partial<MatchCentre['fixture']> = {}, rest: Partial<MatchC
     },
     ...rest,
   }) as MatchCentre;
-// As the page draws it: the moving modules from the server (D-409).
-const view = (c: MatchCentre, now?: number, locale = 'en') => {
+// As the page draws it: the moving modules from the server (D-409), inside
+// the live clock `LiveMatch` gives them (T-1813).
+const view = (c: MatchCentre, now?: number, locale = 'en', behind = false) => {
   const words = matchWords(locale);
   return renderToStaticMarkup(
-    <MatchCentreView
-      words={words}
-      centre={c}
-      timeZone="Europe/London"
-      locale={locale}
-      now={now}
-      slots={liveSlots({ centre: c, locale, timeZone: 'Europe/London', words })}
-    />,
+    <LiveClockProvider value={{ now, behind }}>
+      <MatchCentreView
+        words={words}
+        centre={c}
+        timeZone="Europe/London"
+        locale={locale}
+        now={now}
+        slots={liveSlots({ centre: c, locale, timeZone: 'Europe/London', words })}
+      />
+    </LiveClockProvider>,
   );
 };
 const section = (html: string, testId: string) => {
@@ -818,6 +822,31 @@ describe('live', () => {
     const behind = section(view(live, Date.parse('2026-10-24T11:48:01.000Z')), 'statistics');
     expect(behind).toContain('data-freshness="behind"');
     expect(behind).toContain('may be behind');
+
+    // Since T-1813 the card is the server's and its line ticks on the page's
+    // clock; when the stream has newer figures the card has not been drawn
+    // with (a call failed, D-409), the same line says so at once.
+    const notRedrawn = section(
+      view(live, Date.parse('2026-10-24T11:41:00.000Z'), 'en', true),
+      'statistics',
+    );
+    expect(notRedrawn).toContain('data-freshness="behind"');
+    expect(notRedrawn).toContain('may be behind');
+    // Without the live clock (no live page) there is no line rather than a frozen age.
+    const words = matchWords('en');
+    const frozen = section(
+      renderToStaticMarkup(
+        <MatchCentreView
+          words={words}
+          centre={live}
+          timeZone="Europe/London"
+          locale="en"
+          slots={liveSlots({ centre: live, locale: 'en', timeZone: 'Europe/London', words })}
+        />,
+      ),
+      'statistics',
+    );
+    expect(frozen).not.toContain('stats-freshness');
 
     // In Persian, from the catalogue.
     const fa = section(view(live, Date.parse('2026-10-24T11:41:00.000Z'), 'fa'), 'statistics');

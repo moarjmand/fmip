@@ -162,7 +162,7 @@ export function modulesBehind(waitingSince: number | null, now: number): boolean
  * statistics, line-ups and Top rated join in T-1813 and T-1814), each with the
  * part of the signature it reads.
  */
-export const LIVE_SLOTS = { keyEvents: 'events' } as const satisfies Partial<
+export const LIVE_SLOTS = { keyEvents: 'events', matchStats: 'stats' } as const satisfies Partial<
   Record<MatchSlot, LivePart>
 >;
 

@@ -2,6 +2,7 @@ import type { MatchCentre } from '@fmip/contracts';
 import type { LiveModules } from '@/lib/live-modules';
 import type { MatchWords } from '@/lib/words-server';
 import { KeyEvents } from '@/components/match-key-events';
+import { MatchStats } from '@/components/match-stats-panels';
 
 /**
  * The match centre's moving modules as the server draws them (D-409): the
@@ -25,5 +26,7 @@ export function liveSlots({
 }): Required<LiveModules> {
   return {
     keyEvents: <KeyEvents centre={centre} locale={locale} timeZone={timeZone} words={words} />,
+    // The Stats tab (T-1813): statistics, player tables, expected goals.
+    matchStats: <MatchStats centre={centre} locale={locale} words={words} />,
   };
 }

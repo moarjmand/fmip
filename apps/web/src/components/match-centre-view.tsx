@@ -1,16 +1,7 @@
-import type {
-  CoverageModule,
-  ExpectedGoalsMetric,
-  MatchCentre,
-  MatchPlayerExpected,
-  MatchPlayerStats,
-  MatchStatRow,
-  PlayerMatchMetric,
-} from '@fmip/contracts';
-import { LIVE_STATS_STALE_AFTER_MS } from '@fmip/contracts';
+import type { CoverageModule, MatchCentre } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
-import { STAT_KEY, shootoutStart, statValue } from '@/lib/match';
+import { shootoutStart } from '@/lib/match';
 import { formatKickoff, formatStamp } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { listName, shortName } from '@/lib/person-name';
@@ -22,14 +13,11 @@ import { FilledMessage } from '@/components/filled-message';
 import { CARD, ComingCard, type ComingItem, Module } from '@/components/match-centre-cards';
 import { LiveBadge } from '@/components/ui/live-badge';
 import { RatingChip } from '@/components/ui/rating-chip';
-import { StatBar } from '@/components/ui/stat-bar';
 import { FreshnessLine } from '@/components/match-freshness-line';
-import { FreshnessStamp } from '@/components/freshness-stamp';
 import { MatchLineupsView } from '@/components/match-lineups';
 import { BLEED, type BandState, ScoreBar, bandState } from '@/components/match-score-bar';
 import { MessageText } from '@/components/message-text';
 import { Score, ScorePair } from '@/components/score';
-import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { cx } from '@/components/ui/cx';
 import { Fragment } from 'react';
 
@@ -172,40 +160,8 @@ export const SECTIONS = {
   discussion: 'discussion',
 } as const satisfies Record<string, MatchTab>;
 
-/** The per-player columns the match centre shows (T-101), in reading order. */
-export const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
-  ['minutes', 'matchCentre.player.minutes'],
-  ['rating', 'matchCentre.player.rating'],
-  ['goals', 'matchCentre.player.goals'],
-  ['assists', 'matchCentre.player.assists'],
-  ['shots', 'matchCentre.player.shots'],
-  ['key_passes', 'matchCentre.player.keyPasses'],
-  ['tackles', 'matchCentre.player.tackles'],
-];
-
-/**
- * The expected-goals columns (T-1432), from their own source: a keeper's xGOT
- * conceded and goals prevented are stored, not shown here.
- */
-export const EXPECTED_COLUMNS: readonly [ExpectedGoalsMetric, Key][] = [
-  ['xg', 'matchCentre.expectedGoals.xg'],
-  ['xa', 'matchCentre.expectedGoals.xa'],
-  ['xgot', 'matchCentre.expectedGoals.xgot'],
-];
-
 /** Locales whose numerals and names are set in Vazirmatn: no condensed width, a smaller score (D-198). */
 const ARABIC_SCRIPT = new Set(['fa', 'ar']);
-
-/** One player cell: the provider's rating to one decimal, a count as it is, `–` when not supplied. */
-export function playerCell(
-  locale: string,
-  player: MatchPlayerStats,
-  metric: PlayerMatchMetric,
-): string {
-  const value = player.stats[metric];
-  if (value === undefined) return '–';
-  return metric === 'rating' ? formatFixed(locale, value, 1) : formatNumber(locale, value);
-}
 
 /**
  * One section of the page, the target of an anchor. Its top clears the
@@ -314,19 +270,9 @@ export function MatchCentreView({
   const statsRegion = (
     <Region id="stats" tab="stats">
       {statsComing.length > 0 && <ComingCard items={statsComing} words={words} phone />}
-      {slots.matchStats ?? (
-        <>
-          {!isComing('statistics') && (
-            <Statistics centre={centre} locale={locale} now={now} words={words} />
-          )}
-          {!isComing('player_statistics') && (
-            <PlayerStatistics centre={centre} locale={locale} words={words} />
-          )}
-          {!isComing('expected_goals') && (
-            <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
-          )}
-        </>
-      )}
+      {/* The server's Stats cards in every state (T-1813, D-409); they leave
+          out what the coming card names. */}
+      {slots.matchStats}
     </Region>
   );
   const lineupsRegion = (
@@ -1110,308 +1056,6 @@ function Crest({ team, className }: { team: MatchCentre['fixture']['home']; clas
     >
       <EntityImage media={team.crest} kind="crest" name={team.name} size={40} aboveFold />
     </span>
-  );
-}
-
-/**
- * The team statistics (Design System `StatBar`): each metric's two figures
- * at the ends, its name between them, and a split bar under it -- the home
- * side's share in ink from the inline start, the away side's grey; never a
- * club colour. A side the provider left out is "–" and there is no bar for
- * that row. While the match is on and nothing has come, "Not in yet".
- * While it is on and they have come, "Stats updated 2 min ago" under them
- * (T-1782, rule 4): asked every few minutes in play, they can stop while the
- * score moves (the budget's standard share spent, the provider refusing),
- * so past `LIVE_STATS_STALE_AFTER_MS` the line turns to "may be behind".
- */
-function Statistics({
-  centre,
-  locale,
-  now,
-  words,
-}: {
-  centre: MatchCentre;
-  locale: string;
-  now: number | undefined;
-  words: MatchWords;
-}) {
-  const m = words.m;
-  const f = centre.fixture;
-  return (
-    <Module
-      title={m['matchCentre.statistics']}
-      module={centre.statistics}
-      testId="statistics"
-      words={words}
-      notInYet={f.status === 'live'}
-      before={unplayed(centre)}
-    >
-      {(rows) => (
-        <>
-          <p aria-hidden="true" className="-mt-1 flex gap-3.5 text-xs text-muted">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-xs bg-fg" />
-              <bdi>{f.home.name}</bdi>
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-xs bg-caption" />
-              <bdi>{f.away.name}</bdi>
-            </span>
-          </p>
-          <ul className="flex flex-col gap-3.5" data-testid="stat-grid">
-            {rows.map((row) => (
-              <StatTile key={row.metric} row={row} locale={locale} words={words} />
-            ))}
-          </ul>
-          {rows.some((row) => row.metric === 'expected_goals') ? null : (
-            <p
-              className="flex flex-wrap items-center justify-between gap-2 border-t border-default pt-3 text-sm text-muted"
-              data-testid="xg-not-supplied"
-            >
-              <span dir="auto">
-                <MessageText message={m['matchCentre.xgNotSupplied']} />
-              </span>
-              <CoverageBadge
-                state="not_supplied"
-                label={<MessageText message={m['status.coverage.notSupplied']} />}
-              />
-            </p>
-          )}
-          {f.status === 'live' && centre.statistics.last_updated_at !== null && (
-            <FreshnessStamp
-              checkedAt={centre.statistics.last_updated_at}
-              now={now}
-              staleAfterMs={LIVE_STATS_STALE_AFTER_MS}
-              locale={locale}
-              words={{
-                'freshness.checked': m['matchCentre.statsUpdated'],
-                'freshness.behind': m['freshness.behind'],
-              }}
-              testId="stats-freshness"
-            />
-          )}
-        </>
-      )}
-    </Module>
-  );
-}
-
-function StatTile({
-  row,
-  locale,
-  words,
-}: {
-  row: MatchStatRow;
-  locale: string;
-  words: MatchWords;
-}) {
-  return (
-    <li data-metric={row.metric}>
-      <StatBar
-        label={<MessageText message={words.m[STAT_KEY[row.metric]]} />}
-        home={row.home}
-        away={row.away}
-        homeText={statValue(row.metric, row.home, locale)}
-        awayText={statValue(row.metric, row.away, locale)}
-      />
-    </li>
-  );
-}
-
-function PlayerStatistics({
-  centre,
-  locale,
-  words,
-}: {
-  centre: MatchCentre;
-  locale: string;
-  words: MatchWords;
-}) {
-  const m = words.m;
-  const f = centre.fixture;
-  return (
-    <Module
-      title={m['matchCentre.playerStatistics']}
-      module={centre.player_statistics}
-      testId="player-statistics"
-      words={words}
-      before={unplayed(centre)}
-    >
-      {(players) => (
-        <div className="flex flex-col gap-3 text-sm">
-          {/* A phone cannot fit every column (T-1395): say so, and shade the edge that hides more. */}
-          <p className="text-xs text-caption md:hidden" data-testid="player-statistics-scroll-hint">
-            <span aria-hidden="true">↔ </span>
-            <MessageText message={m['matchCentre.playerStatistics.scroll']} />
-          </p>
-          {(
-            [
-              ['home', f.home.name],
-              ['away', f.away.name],
-            ] as const
-          ).map(([side, team]) => {
-            // A substitute who never came on did not play (T-1478): the feed
-            // still lists him at 0 minutes with a 0.0 rating, figures that
-            // were never earned, so he is not a row (rule 3).
-            const rows = players.filter((p) => p.side === side && p.stats.minutes !== 0);
-            if (rows.length === 0) return null;
-            return (
-              // A named region a keyboard can reach and scroll with the arrow keys.
-              <div
-                key={side}
-                role="region"
-                aria-label={fill(m['matchCentre.playerStatistics.region'].text, { team })}
-                tabIndex={0}
-                className="scroll-cue overflow-x-auto rounded-control"
-                data-testid="player-statistics-scroll"
-              >
-                <table className="w-full">
-                  <caption className="text-start font-bold">{team}</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col" className="py-1 text-start font-normal text-muted">
-                        <MessageText message={m['matchCentre.playerColumn']} />
-                      </th>
-                      {PLAYER_COLUMNS.map(([metric, label]) => (
-                        <th
-                          key={metric}
-                          scope="col"
-                          className="px-2 py-1 text-end font-normal text-muted"
-                        >
-                          <MessageText message={m[label]} />
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((player) => (
-                      <tr key={player.id} className="border-t border-default">
-                        <th scope="row" className="py-1 text-start font-normal">
-                          <Link href={`/${locale}/player/${player.id}`}>
-                            {listName(locale, player.name)}
-                          </Link>
-                        </th>
-                        {PLAYER_COLUMNS.map(([metric]) => (
-                          <td key={metric} className="px-2 py-1 text-end tabular-nums">
-                            {playerCell(locale, player, metric)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </Module>
-  );
-}
-
-/**
- * Per-player expected goals from their one source (T-1432, D-224), a card of
- * its own under the player statistics: "Expected goals by player", from
- * licensed match data, never named by its provider (D-014, T-1802), never a
- * column of the table above, `–` for a figure the source did not supply, and
- * an explicit state when it supplied none (rule 3). In play only: a finished
- * match's card is the server's (`match-stats-panels.tsx`, F9).
- */
-function PlayerExpectedGoals({
-  centre,
-  locale,
-  words,
-}: {
-  centre: MatchCentre;
-  locale: string;
-  words: MatchWords;
-}) {
-  const m = words.m;
-  const f = centre.fixture;
-  const expected = centre.player_expected_goals;
-  const cell = (player: MatchPlayerExpected, metric: ExpectedGoalsMetric): string => {
-    const value = player.figures[metric];
-    return value === undefined ? '–' : formatFixed(locale, value, 2);
-  };
-  return (
-    <Module
-      title={m['matchCentre.expectedGoals']}
-      module={expected}
-      testId="player-expected-goals"
-      words={words}
-      before={unplayed(centre)}
-      empty={expected.last_updated_at === null ? null : 'matchCentre.expectedGoals.none'}
-    >
-      {(players) => (
-        <div className="flex flex-col gap-3 text-sm">
-          {(
-            [
-              ['home', f.home.name],
-              ['away', f.away.name],
-            ] as const
-          ).map(([side, team]) => {
-            const rows = players.filter((p) => p.side === side);
-            if (rows.length === 0) return null;
-            return (
-              <div
-                key={side}
-                role="region"
-                aria-label={fill(m['matchCentre.expectedGoals.region'].text, { team })}
-                tabIndex={0}
-                className="scroll-cue overflow-x-auto rounded-control"
-              >
-                <table className="w-full">
-                  <caption className="text-start font-bold">{team}</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col" className="py-1 text-start font-normal text-muted">
-                        <MessageText message={m['matchCentre.playerColumn']} />
-                      </th>
-                      {EXPECTED_COLUMNS.map(([metric, label]) => (
-                        <th
-                          key={metric}
-                          scope="col"
-                          className="px-2 py-1 text-end font-normal text-muted"
-                        >
-                          <MessageText message={m[label]} />
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((player) => (
-                      <tr key={player.id} className="border-t border-default">
-                        <th scope="row" className="py-1 text-start font-normal">
-                          <Link href={`/${locale}/player/${player.id}`}>
-                            {listName(locale, player.name)}
-                          </Link>
-                        </th>
-                        {EXPECTED_COLUMNS.map(([metric]) => (
-                          <td key={metric} className="px-2 py-1 text-end tabular-nums">
-                            {cell(player, metric)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            );
-          })}
-          <p className="text-xs text-muted" data-testid="player-expected-goals-note">
-            <MessageText message={m['matchCentre.expectedGoals.note']} />
-          </p>
-          {expected.unplaced > 0 && (
-            <p className="text-xs text-muted" data-testid="player-expected-goals-unplaced">
-              <FilledMessage
-                message={m['matchCentre.expectedGoals.unplaced']}
-                params={{ count: formatNumber(locale, expected.unplaced) }}
-              />
-            </p>
-          )}
-        </div>
-      )}
-    </Module>
   );
 }
 
