@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { withTriggersOff } from '../../testing/cleanup';
 import { CONSOLE_OPTIONS } from '../agents-console/agents-console.controller';
+import { ConsoleRequestEvents } from '../agents-console/console-request-events.service';
 import { PostgresCalendarStore } from '../agents-console/internal/calendar-store';
 import { consoleTokenText } from '../agents-console/internal/console-rules';
 import { PostgresConsoleStore } from '../agents-console/internal/console-store';
@@ -20,6 +21,7 @@ import { PushServiceError, WebPushChannel } from '../delivery/internal/webpush';
 import { hashPassword, hashToken, newToken } from '../identity/identity.service';
 import { ConsoleRemindersModule } from './console-reminders.module';
 import { ConsoleReminders } from './console-reminders.service';
+import { ConsoleRequestAlerts } from './console-request-alerts.service';
 
 /**
  * T-1788 (D-391) against the real schema: the calendar's routes refuse
@@ -373,13 +375,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('new-request 
   };
 
   /** The asynchronous send has settled: the pushed list stops growing. */
-  const settled = async () => {
-    let before = -1;
-    for (let i = 0; i < 50 && before !== pushed.length; i += 1) {
-      before = pushed.length;
-      await new Promise((resolve) => setTimeout(resolve, 40));
-    }
-  };
+  /** The last request's notifications, sent apart from its answer: the test waits for them. */
+  let lastSend: Promise<unknown> = Promise.resolve();
+  const settled = () => lastSend;
 
   beforeAll(async () => {
     const channel = new WebPushChannel(
@@ -403,6 +401,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('new-request 
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
     pool = new Pool({ connectionString: DATABASE_URL });
+    // The real sender, behind a listener that keeps its promise for `settled`.
+    const alerts = app.get(ConsoleRequestAlerts);
+    app.get(ConsoleRequestEvents).listen((request) => {
+      lastSend = alerts.send(request);
+      return lastSend;
+    });
 
     const store = app.get(PostgresConsoleStore);
     for (const who of ['filer', 'mate', 'quiet', 'gone'] as const) {
