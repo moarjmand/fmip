@@ -27,6 +27,7 @@ import { PG_POOL } from '../../../database/database.module';
 import { MediaService } from '../../media/media.service';
 import { SAME_HEADLINE } from '../news-clustering.service';
 import { shownImageJoin } from './news-image-store';
+import { hiddenHeadline } from './hidden-headlines';
 import { SOURCE_MIX, mixSources } from './source-mix';
 
 /** The shown photo's columns, as every card query selects them (T-1322). */
@@ -684,7 +685,9 @@ export class PostgresNewsReadStore {
    * for what was stored before the job applied it), an item a search brought
    * whose own words name another code of football (`otherCodeOf`, T-1400,
    * D-215), or a publisher's feed item that does and is filed to none of ours
-   * (T-1619, D-290), and a story whose report
+   * (T-1619, D-290), a headline on the named list of those not shown
+   * (`hiddenHeadline`, T-1818, D-413: applied here only, nothing deleted),
+   * and a story whose report
    * an earlier story already carries (`copies`). `paged` sections say where
    * the next page begins: after the last card shown, or, when every row past
    * it was left out, after the last row read.
@@ -731,6 +734,7 @@ export class PostgresNewsReadStore {
     const listed = rows.filter(
       (r) =>
         nonArticleKind(r.headline) === null &&
+        hiddenHeadline(r.headline) === null &&
         !((r.searched || !filed(r)) && otherCodeOf(r.headline, r.summary) !== null) &&
         !copies.has(r.story_id),
     );

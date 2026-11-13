@@ -15293,3 +15293,21 @@ The plan is Ultra, 75,000 requests a day (D-197); the last week spent about 20,0
 - *Language names in the catalogue:* nine languages times every source language; the platform's names are what the group and leaderboard pages already use.
 
 **Consequences.** `/fa/news` is again mostly English and German by volume; Persian readers see which is which. The content agent's check changes: a foreign headline on `/fa` without its label is a finding, not every foreign headline.
+
+## D-413 — Headlines that invite readers to watch a match live are not listed
+
+**Status:** Accepted · 2026-11-13 (maintainer, desk decision d-2026-11-04-01) · **Task:** T-1818 · **Follows:** D-211, D-061
+
+**Context.** Among the first 30 headlines on `/fa/news` three were Khabar Varzeshi's invitations to watch a match on its own site -- «پخش زنده بازی … تماشای رایگان» (finding cnt-2026-11-04-02). They are about football but are not reports. D-211's `nonArticleKind` catches English live tickers, where-to-watch guides and betting offers; it is applied by the news job as well, so what it catches is never stored.
+
+**Decision.**
+1. **A named list, applied on read.** `HIDDEN_HEADLINES` in `apps/api/src/modules/news/internal/hidden-headlines.ts`: each entry has a key, the decision that listed it and the words a headline starts with. The first is `live-stream-invitation` (D-413), «پخش زنده بازی». `hiddenHeadline` folds what Persian text varies in (Arabic yeh and kaf, runs of white space, Latin case) and asks for the words as whole words: a suffix joined by the zero-width non-joiner is another word, so «پخش زنده بازی‌های جام جهانی» (the broadcasting of the World Cup's matches) is shown, and so is a headline that only contains the words.
+2. **Every card list.** The read store leaves such a story out where it already leaves out what is not an article (`listed`): latest, trending, debate, following, breaking, and team, competition, player and match news. Paging is unchanged: a hidden row is read and passed over, as a non-article is.
+3. **Nothing is deleted and nothing is refused.** The news job stores these items as before and the rows stay; taking the entry off the list shows them again on the next read. The story page by its address still answers, as it does for what D-211 hides from lists.
+
+**Rejected.**
+- *Adding the words to `NON_ARTICLE_RULES`:* the job applies those before it writes, so the items would not be stored and the rule could not be undone for what was skipped.
+- *Deleting the stored rows, or dropping the source:* the source's other stories are news, and the maintainer asked for a rule that can be reversed.
+- *Hiding any headline that contains the words:* a report about broadcasting rights or a coach saying he did not watch the live broadcast would go too.
+
+**Consequences.** A new entry needs a decision and a line in the list, with its tests; the content agent reports a new shape of invitation as a finding with examples.

@@ -1,6 +1,6 @@
 # File index
 
-Every file in the repository (2431), grouped by folder, with one line on
+Every file in the repository (2434), grouped by folder, with one line on
 what it is, taken from the file’s own header comment. **Generated** by
 `node scripts/file-index.mjs` — never edit by hand; rerun it after adding,
 moving or re-describing files. For *why* things are where they are and how
@@ -102,8 +102,8 @@ machine, `docs/18-handover.md`.
 - [`apps/api/src/modules/moderation/internal`](#appsapisrcmodulesmoderationinternal) — 2
 - [`apps/api/src/modules/moments`](#appsapisrcmodulesmoments) — 5
 - [`apps/api/src/modules/moments/internal`](#appsapisrcmodulesmomentsinternal) — 1
-- [`apps/api/src/modules/news`](#appsapisrcmodulesnews) — 45
-- [`apps/api/src/modules/news/internal`](#appsapisrcmodulesnewsinternal) — 21
+- [`apps/api/src/modules/news`](#appsapisrcmodulesnews) — 46
+- [`apps/api/src/modules/news/internal`](#appsapisrcmodulesnewsinternal) — 23
 - [`apps/api/src/modules/notifications`](#appsapisrcmodulesnotifications) — 13
 - [`apps/api/src/modules/notifications/internal`](#appsapisrcmodulesnotificationsinternal) — 2
 - [`apps/api/src/modules/panel`](#appsapisrcmodulespanel) — 13
@@ -1405,6 +1405,7 @@ machine, `docs/18-handover.md`.
 | `news-entity.http.spec.ts` | News on the team and competition pages (T-944, D-119): the stories the news boundary linked to the team or competition, newest first, from its existing links; a team nobody wrote about says so; an unknown id is 404; and… |
 | `news-filters.http.spec.ts` | The news filters by story type, player and date (T-1003, D-124). |
 | `news-fixture.http.spec.ts` | Related news for a match (T-145): reports linked to the match come first, then reports linked to one of its sides inside the window around kick-off; a report about a side from outside the window and a report about nobod… |
+| `news-hidden-headlines.http.spec.ts` | Headlines the lists do not show (T-1818, D-413), over Postgres: an invitation to watch a match live on the publisher's site is left out of the latest list for every reader, the report stored beside it is listed, and the… |
 | `news-images.http.spec.ts` | News photos end to end (T-1322, D-177), against the real schema with every response scripted: a source whose licence covers photos gets its own photo stored on our volume and served from our route with its credit and li… |
 | `news-images.service.ts` | The injection token for `MEDIA_DIR`, resolved; `null` when unset. |
 | `news-ingestion.http.spec.ts` | The news job against the real schema (T-142, D-061), with every response scripted: what a feed says is the input, what the tables hold is the output. |
@@ -1443,6 +1444,8 @@ machine, `docs/18-handover.md`.
 | `debate-admin-store.ts` | The editor's half of the debate section (blueprint 3.1, T-143): selecting a story and clearing one, each with its `audit_log` row in the same transaction (rule 10). |
 | `feed-probe.ts` | How much of a publisher's summary the preview shows. |
 | `gnews-store.ts` | The GNews row the migration seeds (T-1367, `1765844000000_gnews-source.sql`). |
+| `hidden-headlines.spec.ts` | Tests for `hidden-headlines`. |
+| `hidden-headlines.ts` | Headlines the news lists do not show (T-1818, D-413). |
 | `news-coverage-store.ts` | News coverage per competition (T-1010, D-129): for each competition, the carried sources -- not dropped -- with a report linked to it whose first publication falls inside the window, the stories each linked, and the dis… |
 | `news-image-store.ts` | A source's image right (T-1322, D-177); `null` licence means it grants none. |
 | `news-media.ts` | Where news photos live on our server, and how one is fetched (T-1322, D-177). |
