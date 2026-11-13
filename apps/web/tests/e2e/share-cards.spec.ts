@@ -17,6 +17,10 @@ const PAGES = [
   '/fa/match/00000000-0000-4000-8000-000000000901',
   '/fa/competition/00000000-0000-4000-8000-000000000101',
   '/fa/u/someone',
+  // The brand card (T-1825), on pages with no card of their own.
+  '/en',
+  '/en/news',
+  '/fa/model-accuracy',
 ];
 
 test.describe('share cards', () => {

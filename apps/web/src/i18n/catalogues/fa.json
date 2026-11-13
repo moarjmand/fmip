@@ -17078,6 +17078,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "shared.og.brandAlt": {
+    "source": "Stadiomind: a forecast model that shows its record in public",
+    "text": "Stadiomind: مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 10 share-card spec (D-419, D-420)."
+  },
   "shareCard.title": {
     "source": "Your card",
     "text": "کارت شما",

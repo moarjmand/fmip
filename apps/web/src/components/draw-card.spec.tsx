@@ -143,6 +143,20 @@ describe('the called-it card routes (T-1723): nothing public without a live toke
   }, 30_000);
 });
 
+describe('the brand card route (T-1825)', () => {
+  beforeEach(() => {
+    for (const fetcher of Object.values(api)) fetcher.mockReset().mockResolvedValue(UNREACHABLE);
+  });
+
+  it('draws B10 from nothing but itself, kept a day by shared caches', async () => {
+    const { GET } = await import('@/app/[locale]/brand-card/route');
+    const drawn = await GET();
+    await png(drawn);
+    expect(drawn.headers.get('cache-control')).toBe('public, max-age=86400');
+    for (const fetcher of Object.values(api)) expect(fetcher).not.toHaveBeenCalled();
+  }, 20_000);
+});
+
 describe('the card routes read English names on any locale', () => {
   beforeEach(() => {
     for (const fetcher of Object.values(api)) fetcher.mockReset().mockResolvedValue(UNREACHABLE);

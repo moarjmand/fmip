@@ -3,6 +3,7 @@ import type { CompetitionPage, MatchHeader, PlayerPage, TeamPage } from '@fmip/c
 import { DEFAULT_LOCALE, LOCALES, isPseudoLocale, isUnfinishedLocale } from '../i18n/locales';
 import { demonstrationTitle, isDemonstrationData } from './demonstration';
 import { resultLine } from './scores';
+import { CARD_SIZE, cardAlt } from './share-card';
 
 /**
  * The SEO surface (T-039, D-040): one canonical URL per page under its
@@ -41,6 +42,18 @@ export interface PageMeta {
   description?: string;
   /** False for pages that are one member's own or a search result. Pseudo-locales are never indexed. */
   index?: boolean;
+  /**
+   * `own` for a page with a share card of its own -- an `opengraph-image`
+   * beside it (match, competition, team, member) -- which Next.js adds only
+   * when the page's metadata names no image. Every other page shows the
+   * brand card (T-1825, D-419).
+   */
+  card?: 'brand' | 'own';
+}
+
+/** The brand card's address (T-1825, D-419): `app/[locale]/brand-card/route.tsx`. */
+export function brandCardUrl(locale: string, origin = siteUrl()): string {
+  return `${origin}/${locale}/brand-card`;
 }
 
 /**
@@ -86,7 +99,23 @@ export function pageMetadata(
       siteName: 'Stadiomind',
       type: 'website',
       locale: meta.locale,
+      ...(meta.card === 'own'
+        ? {}
+        : {
+            images: [
+              {
+                url: brandCardUrl(meta.locale, origin),
+                ...CARD_SIZE,
+                alt: cardAlt('brand', meta.locale),
+                type: 'image/png',
+              },
+            ],
+          }),
     },
+    // Every page has a 1200 x 630 card now, so X shows it large rather than
+    // as a small square (finding des-2026-11-13-01); its image is filled from
+    // `openGraph` by Next.js.
+    twitter: { card: 'summary_large_image' },
   };
 }
 

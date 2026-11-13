@@ -3,6 +3,7 @@ import { BrandMark } from '@/components/brand-mark';
 import { NIGHT_COLOURS } from '@/lib/brand-colours';
 import { CARD_FACES } from '@/lib/card-fonts';
 import {
+  BRAND_CARD,
   nameSize,
   type MatchCardText,
   type MemberCardText,
@@ -140,6 +141,50 @@ export function PlainCard(): ReactElement {
       </div>
       <div style={flex({ fontSize: 34, color: MUTED })}>
         Live scores, match centres and forecasts
+      </div>
+    </Frame>
+  );
+}
+
+/**
+ * The brand card (T-1825, D-419; B10 "Typographic wall"): the card of every
+ * page with no card of its own. Only type: the brand line at 108px over
+ * three lines with "record" lit in saffron, the mark and name above it, the
+ * strap and the address under it. Static, so it never goes stale. The
+ * renderer does not flow text across differently styled spans, so the line
+ * is one word per box in a wrapping row, a word space apart.
+ */
+export function BrandCardImage({ host }: { host: string }): ReactElement {
+  const words = [
+    ...BRAND_CARD.before.split(' ').map((word) => ({ word, lit: false })),
+    { word: BRAND_CARD.lit, lit: true },
+    ...BRAND_CARD.after.split(' ').map((word) => ({ word, lit: false })),
+  ];
+  return (
+    <Frame padding="52px 64px 44px" gap={0}>
+      <Wordmark host={null} size={28} />
+      <div
+        style={flex({
+          flexWrap: 'wrap',
+          columnGap: 27,
+          width: 1072,
+          fontSize: 108,
+          fontWeight: 800,
+          lineHeight: 1.01,
+          letterSpacing: -2.5,
+        })}
+      >
+        {words.map(({ word, lit }, index) => (
+          <div key={index} style={flex({ color: lit ? SAFFRON : INK })}>
+            {word}
+          </div>
+        ))}
+      </div>
+      <div style={flex({ alignItems: 'baseline', justifyContent: 'space-between', gap: 32 })}>
+        <div style={flex({ fontFamily: MONO, fontSize: 28, color: MUTED, letterSpacing: 0.5 })}>
+          {BRAND_CARD.strap}
+        </div>
+        <div style={flex({ fontFamily: MONO, fontSize: 26, color: CAPTION })}>{host}</div>
       </div>
     </Frame>
   );

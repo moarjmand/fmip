@@ -34,14 +34,36 @@ export const CARD_SIZE = { width: 1200, height: 630 } as const;
  * right-to-left line out left to right, ignores `direction: rtl`, and draws a
  * zero-width non-joiner as a visible box -- checked by rendering a Persian
  * line with it. A card that reads backwards would be worse than one in
- * English. What the card is *described* as -- its `og:image:alt`, which a
+ * English. Checked again with Vazirmatn, the site's own Persian face, on
+ * 2026-11-13 (T-1825, D-419): its letters join, but the words still run
+ * left to right and the parts a non-joiner separates are put in reverse. What the card is *described* as -- its `og:image:alt`, which a
  * chat app and a screen reader read as text -- is in the reader's language.
  */
 const ALT_KEY = {
   match: 'shared.og.matchAlt',
   competition: 'shared.og.competitionAlt',
   member: 'shared.og.memberAlt',
+  brand: 'shared.og.brandAlt',
 } as const satisfies Record<string, MessageKey>;
+
+/** The alt text of a card in the reader's language (T-1309), for a route or a page's metadata. */
+export function cardAlt(kind: keyof typeof ALT_KEY, locale: string): string {
+  return t(isLocale(locale) ? locale : DEFAULT_LOCALE, ALT_KEY[kind]);
+}
+
+/**
+ * The brand card's words (T-1825, D-419; B10 "Typographic wall"): the brand
+ * line (`brand.line`, D-421), with the word that carries it -- "record" --
+ * apart so the card can light it, and the strap under it. English on every
+ * locale, as every card's words are (T-1309; the Persian spike of 2026-11-13
+ * found the same right-to-left fault, see D-419).
+ */
+export const BRAND_CARD = {
+  before: 'A forecast model that shows its',
+  lit: 'record',
+  after: 'in public.',
+  strap: 'Live scores, match centres and forecasts',
+} as const;
 
 /**
  * A card route's `generateImageMetadata`: one image, its alt text in the
@@ -56,7 +78,7 @@ export async function cardImageMetadata(
   return [
     {
       id: 'card',
-      alt: t(isLocale(locale) ? locale : DEFAULT_LOCALE, ALT_KEY[kind]),
+      alt: cardAlt(kind, locale),
       size: CARD_SIZE,
       contentType: 'image/png',
     },

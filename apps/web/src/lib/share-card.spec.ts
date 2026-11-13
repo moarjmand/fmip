@@ -10,7 +10,9 @@ import type {
 } from '@fmip/contracts';
 import {
   aheadOfKickoff,
+  BRAND_CARD,
   calledItText,
+  cardAlt,
   cardName,
   kickoffUtc,
   matchCardText,
@@ -379,5 +381,24 @@ describe('the member card', () => {
     const text = memberCardText({ display_name: 'New', username: 'newbie' }, null, [open]);
     expect(text.rating).toBe('No settled predictions yet');
     expect(text.recent).toEqual([]);
+  });
+});
+
+describe('the brand card (B10, T-1825)', () => {
+  it('says the brand line, with "record" apart to be lit', () => {
+    expect(`${BRAND_CARD.before} ${BRAND_CARD.lit} ${BRAND_CARD.after}`).toBe(
+      'A forecast model that shows its record in public.',
+    );
+    expect(BRAND_CARD.lit).toBe('record');
+  });
+
+  it('is described in the reader’s language, an unknown one in English', () => {
+    expect(cardAlt('brand', 'en')).toBe(
+      'Stadiomind: a forecast model that shows its record in public',
+    );
+    expect(cardAlt('brand', 'fa')).toBe(
+      'Stadiomind: مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد',
+    );
+    expect(cardAlt('brand', 'xx')).toBe(cardAlt('brand', 'en'));
   });
 });
