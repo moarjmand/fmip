@@ -337,6 +337,23 @@ export async function removeReminderDevice(endpoint: string): Promise<{ ok: bool
   return { ok: result.ok || result.status === 404 };
 }
 
+/**
+ * New teammate requests by browser notification, on or off for the signed-in
+ * person (T-1832, D-425); it reaches the browsers switched on for reminders.
+ */
+export async function setRequestAlerts(
+  on: boolean,
+): Promise<{ ok: boolean; error: string | null }> {
+  const result = await consoleCall('calendar/push/requests', { method: 'POST', body: { on } });
+  calendarChanged();
+  return result.ok
+    ? { ok: true, error: null }
+    : {
+        ok: false,
+        error: apiErrorWords(result.error?.message, 'تغییر اعلان درخواست‌ها ذخیره نشد.'),
+      };
+}
+
 export async function testReminder(): Promise<{ devices: number; delivered: number } | null> {
   const result = await consoleCall<{ devices: number; delivered: number }>('calendar/push/test', {
     method: 'POST',

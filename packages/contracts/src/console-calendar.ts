@@ -139,6 +139,11 @@ export interface ConsoleCalendarPush {
   state: 'configured' | 'absent';
   public_key: string | null;
   devices: number;
+  /**
+   * Whether this person gets a browser notification when someone else files
+   * a teammate request (T-1832, D-425), on the same browsers as the reminders.
+   */
+  request_alerts: boolean;
 }
 
 /** What the one-off import from the board's claude.ai page carries (`import-calendar`). */

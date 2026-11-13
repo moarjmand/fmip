@@ -74,6 +74,7 @@ vi.mock('@/lib/console-actions', () => {
     registerReminderDevice: async () => ({ ok: true, error: null }),
     removeReminderDevice: async () => ({ ok: true }),
     testReminder: async () => null,
+    setRequestAlerts: async () => ({ ok: true, error: null }),
   };
 });
 vi.mock('@/lib/console-api', () => {

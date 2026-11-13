@@ -50,7 +50,7 @@ vi.mock('@/lib/console-api', () => ({
     Promise.resolve({
       ok: true,
       status: 200,
-      data: { available: true, public_key: 'BPk', devices: 0, request_alerts: false },
+      data: { state: 'configured', public_key: 'BPk', devices: 0, request_alerts: false },
       setCookie: null,
     }),
 }));
@@ -152,5 +152,14 @@ describe('the filer filter', () => {
   it('says when a filer has no request', async () => {
     state.list = list([]);
     expect(await page({ by: 'mohammad' })).toContain('درخواستی از «محمد» نیست.');
+  });
+});
+
+describe('the new-request notification switch (T-1832)', () => {
+  it('sits on the requests page, off until the person switches it on', async () => {
+    const html = await page();
+    expect(html).toContain('data-testid="request-alerts"');
+    expect(html).toContain('اعلان درخواست‌های تازه');
+    expect(html).toContain('aria-checked="false"');
   });
 });

@@ -140,4 +140,5 @@ export const CALENDAR_PUSH: ConsoleCalendarPush = {
   state: 'configured',
   public_key: 'BPUBLICKEY',
   devices: 1,
+  request_alerts: false,
 };

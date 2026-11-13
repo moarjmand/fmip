@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import { type ConsoleRequestStatus } from '@fmip/contracts';
 import { CONSOLE_REQUEST_STATUSES } from '@fmip/contracts/console';
 import { ConsoleLink as Link } from '@/app/console/console-link';
-import { consoleRequests } from '@/lib/console-api';
+import { consoleCalendarPush, consoleRequests } from '@/lib/console-api';
 import { consoleBase } from '@/lib/console-base';
+import { RequestAlerts } from '../../request-alerts';
 import { NewRequestForm } from '../../request-images';
 import { REQUEST_STATUS_WORDS, RequestCard } from '../../requests';
 import { Card, fa } from '../../ui';
@@ -33,7 +34,11 @@ export default async function ConsoleRequestsPage({ searchParams }: Props) {
   // T-1831 (D-424): one filer's requests, by the console username.
   const rawBy = Array.isArray(params.by) ? params.by[0] : params.by;
   const by = rawBy !== undefined && /^[a-z0-9][a-z0-9_.-]{2,31}$/.test(rawBy) ? rawBy : undefined;
-  const [result, base] = await Promise.all([consoleRequests(status, by), consoleBase()]);
+  const [result, base, push] = await Promise.all([
+    consoleRequests(status, by),
+    consoleBase(),
+    consoleCalendarPush(),
+  ]);
   const list = result.ok ? result.data : null;
   const current = status ?? 'all';
   const href = (next: { status?: ConsoleRequestStatus; by?: string }) => {
@@ -56,6 +61,16 @@ export default async function ConsoleRequestsPage({ searchParams }: Props) {
           اجرا می‌گذارد تا با گفتهٔ نگهدارنده اجرا شود.
         </p>
       </div>
+
+      <Card>
+        <RequestAlerts
+          configured={push.ok && push.data.state === 'configured'}
+          publicKey={push.ok ? push.data.public_key : null}
+          wanted={push.ok && push.data.request_alerts === true}
+          workerUrl={`${base}/reminders-worker`}
+          scope={`${base}/`}
+        />
+      </Card>
 
       <Card title="درخواست تازه">
         <NewRequestForm base={base} />

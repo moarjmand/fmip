@@ -62,6 +62,7 @@ import {
   isConsoleUsername,
   isLocked,
 } from './internal/console-rules';
+import { ConsoleRequestEvents } from './console-request-events.service';
 import { PostgresConsoleStore } from './internal/console-store';
 import {
   REQUEST_ID,
@@ -134,6 +135,7 @@ export class AgentsConsoleController {
     private readonly requestStore: PostgresRequestStore,
     @Inject(CONSOLE_OPTIONS) private readonly options: ConsoleOptions,
     @Inject(REQUEST_IMAGE_FILES) private readonly imageFiles: RequestImageFiles,
+    private readonly requestEvents: ConsoleRequestEvents,
   ) {}
 
   @Post('session')
@@ -383,7 +385,16 @@ export class AgentsConsoleController {
     const actor = await this.person(request);
     const checked = checkRequestCreate(body);
     if (!checked.ok) throw invalid(checked.reason);
-    return this.answer(await this.requestStore.create(checked.value, actor), reply);
+    const outcome = await this.requestStore.create(checked.value, actor);
+    // T-1832 (D-425): the others' browsers are told once it is saved, on their own;
+    // the answer never waits for them, and their failure never fails it.
+    if (outcome.kind === 'ok')
+      void this.requestEvents.filed({
+        id: outcome.request.id,
+        title: outcome.request.title,
+        filer: actor,
+      });
+    return this.answer(outcome, reply);
   }
 
   /**
