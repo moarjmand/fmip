@@ -15161,6 +15161,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.scoreConflictNote": {
+    "source": "The source’s scores for this match after 90 minutes and at the end do not agree with each other, so no score is shown.",
+    "text": "",
+    "status": "untranslated"
+  },
   "competitionPage.zone.leaguePhaseRoundOf16": {
     "source": "Round of 16",
     "text": "",

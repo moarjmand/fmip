@@ -976,6 +976,55 @@ describe('live', () => {
     expect(scoreDisputeHero('en', { status: 'live', score_dispute })).toBeUndefined();
   });
 
+  it('prints no score when the stored scores contradict each other (T-1819, D-414)', () => {
+    // "2–0 · 90′ 4–0": the API has withheld the three lines in conflict.
+    const scores = {
+      ...centre().fixture.scores,
+      current: null,
+      half_time: { home: 1, away: 0 },
+      full_time: null,
+      extra_time: null,
+    };
+    const score_conflict = {
+      coverage: 'limited' as const,
+      reasons: ['ninety_exceeds_final' as const, 'extra_time_sum' as const],
+    };
+    const conflicted = centre({
+      status: 'finished',
+      minute: null,
+      scores,
+      score_dispute: null,
+      score_conflict,
+    });
+    const band = (locale: string) =>
+      renderToStaticMarkup(
+        <MatchCentreView
+          words={matchWords(locale)}
+          centre={conflicted}
+          timeZone="Europe/London"
+          locale={locale}
+          hero={{ disputed: scoreDisputeHero(locale, conflicted.fixture) }}
+        />,
+      );
+    const html = band('en');
+    const text = html.replace(/<[^>]+>/g, '');
+    expect(html).toContain('data-testid="score-unclear"');
+    expect(html).toContain('data-coverage-badge="limited"');
+    expect(html).toContain('data-testid="score-conflict-note"');
+    expect(text).toContain(
+      'The source’s scores for this match after 90 minutes and at the end do not agree with each other, so no score is shown.',
+    );
+    // The figure is a dash, never either number; no ninety-minute line.
+    expect(html).toMatch(/data-testid="score">–</);
+    expect(html).not.toContain('data-testid="ninety"');
+    expect(text).not.toMatch(/[24]\s*–\s*0/);
+    expect(JSON.stringify(matchJsonLd('en', conflicted.fixture))).not.toContain('Full time');
+    const fa = band('fa').replace(/<[^>]+>/g, '');
+    expect(fa).toContain('نتیجه در منبع نامشخص است');
+    expect(fa).toContain('هیچ نتیجه‌ای نشان داده نمی‌شود');
+    expect(scoreDisputeHero('en', { status: 'live', score_conflict })).toBeUndefined();
+  });
+
   it('sets the forecast from before kick-off on a match awaiting an update, never as to come (T-1708)', () => {
     const awaiting = renderToStaticMarkup(
       <ForecastReality

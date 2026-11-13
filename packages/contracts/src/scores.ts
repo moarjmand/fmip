@@ -46,6 +46,30 @@ export interface ScoreDispute {
 }
 
 /**
+ * Why a finished match's stored scores contradict one another (T-1819, D-414;
+ * the data auditor's invariants of the same names, D-317):
+ * - `ninety_exceeds_final` (R7): a side has more goals after ninety minutes
+ *   (`full_time`) than after play (`current`);
+ * - `extra_time_sum` (R1): with an extra-time line on record, the ninety
+ *   minutes plus extra time is not the score after play.
+ */
+export type ScoreConflictReason = 'ninety_exceeds_final' | 'extra_time_sum';
+
+/**
+ * A finished match whose stored scores do not reconcile with each other
+ * (T-1819, D-414, the maintainer's rule N3). The match's score coverage is
+ * `limited` for this reason, and the API withholds the lines in conflict
+ * (`current`, `full_time`, `extra_time` are `null`), so no surface prints a
+ * definite score: neither of the two numbers is picked and none is invented
+ * (rule 3). Derived at read time, never stored; a repaired score clears it.
+ */
+export interface ScoreConflict {
+  coverage: 'limited';
+  /** Every invariant the stored lines break, in the order above; never empty. */
+  reasons: ScoreConflictReason[];
+}
+
+/**
  * Whether a match not yet finished is still on the calendar (T-1560): it is
  * to be played, or is being played. A cancelled, abandoned or awarded match
  * will not be played, and a postponed one has lost its date, so none of them
@@ -198,6 +222,11 @@ export interface ScoreCard {
   freshness: Freshness | null;
   /** The recorded goals disagree with the result (T-1717, D-347); see `ScoreDispute`. */
   score_dispute?: ScoreDispute | null;
+  /**
+   * The stored scores contradict each other (T-1819, D-414): the lines in
+   * conflict are withheld, `coverage` is `limited`. See `ScoreConflict`.
+   */
+  score_conflict?: ScoreConflict | null;
   /** Ranked above the standard list because of the viewer's favourites. */
   pinned: boolean;
 }

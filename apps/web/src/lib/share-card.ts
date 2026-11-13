@@ -83,6 +83,8 @@ export interface MatchCardText {
   /**
    * The recorded goals outnumber the reported result (T-1717, D-347): the score
    * is drawn muted, no side as the loser, and the status says it is unclear.
+   * Also when the stored scores contradict each other (T-1819, D-414), where
+   * the API has withheld them and the centre is "–", never a number.
    */
   disputed: boolean;
   /**
@@ -216,15 +218,17 @@ export function matchCardText(header: MatchHeader, preKickoff: CardForecast | nu
   }
 
   const finished = header.status === 'finished' && score !== null;
+  // T-1819: stored scores that contradict each other (D-414), withheld by the API.
+  const conflicted = header.status === 'finished' && header.score_conflict != null;
   // T-1726: the card says what the match page says (D-347), never a final score in doubt.
-  const disputed = finished && header.score_dispute != null;
+  const disputed = conflicted || (finished && header.score_dispute != null);
   return {
     eyebrow: [header.competition.name, header.season.label, header.round]
       .filter((part): part is string => part !== null && part !== '')
       .join(' · '),
     home,
     away,
-    centre: started && score !== null ? `${score.home}–${score.away}` : 'v',
+    centre: conflicted ? '–' : started && score !== null ? `${score.home}–${score.away}` : 'v',
     loser:
       !finished || disputed
         ? null

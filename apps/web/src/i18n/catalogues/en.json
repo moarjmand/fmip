@@ -3312,6 +3312,7 @@
   "matchCentre.lineups.bothSidesNote": "The data source lists one player in both teams’ line-ups. We show him where it puts him and mark him as unclear rather than guess which side he played for.",
   "matchCentre.scoreUnclear": "Score unclear in the source",
   "matchCentre.scoreUnclearNote": "The recorded goals ({goals}) and the reported result ({score}) do not agree, so neither is shown as final.",
+  "matchCentre.scoreConflictNote": "The source’s scores for this match after 90 minutes and at the end do not agree with each other, so no score is shown.",
   "competitionPage.zone.leaguePhaseRoundOf16": "Round of 16",
   "competitionPage.zone.leaguePhasePlayoff": "Play-off round",
   "competitionPage.zone.leaguePhaseOut": "Out",

@@ -430,6 +430,8 @@ export type {
   ScoreCardIncident,
   ScoreCardIncidentKind,
   ScoreCardTeam,
+  ScoreConflict,
+  ScoreConflictReason,
   ScoreDispute,
   ScoreLine,
   ScoresAgeFilter,

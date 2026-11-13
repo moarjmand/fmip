@@ -215,8 +215,11 @@ export function ScoreCard({
           ),
         });
   // The recorded goals disagree with the result (T-1717, D-347): the numbers
-  // stay quiet, no side is drawn as the winner, and the row says so.
-  const disputed = card.status === 'finished' && card.score_dispute != null;
+  // stay quiet, no side is drawn as the winner, and the row says so. Stored
+  // scores that contradict each other (T-1819, D-414) say the same, and the
+  // API has withheld their numbers, so the row draws none.
+  const disputed =
+    card.status === 'finished' && (card.score_dispute != null || card.score_conflict != null);
   // What stays on the row under the teams: what changes the score's meaning.
   const rowBits = [
     showCompetition ? card.competition.name : null,

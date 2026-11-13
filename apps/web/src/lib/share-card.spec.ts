@@ -164,6 +164,30 @@ describe('the match card (A10, T-1723)', () => {
     });
   });
 
+  it('draws no number when the stored scores contradict each other (T-1819, D-414)', () => {
+    // The API withholds the lines in conflict; the shoot-out line stays on record.
+    const text = matchCardText(
+      header({
+        status: 'finished',
+        scores: {
+          ...header().scores,
+          current: null,
+          full_time: null,
+          penalties: { home: 4, away: 3 },
+        },
+        score_conflict: { coverage: 'limited', reasons: ['ninety_exceeds_final'] },
+      }),
+      null,
+    );
+    expect(text).toMatchObject({
+      centre: '–',
+      disputed: true,
+      loser: null,
+      decided: null,
+      status: 'Score unclear in the source',
+    });
+  });
+
   it('says how a cup tie was decided only when the feed says so', () => {
     const scores = {
       ...header().scores,

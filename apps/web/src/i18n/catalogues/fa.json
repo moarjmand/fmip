@@ -18434,6 +18434,12 @@
     "status": "translated",
     "note": "Written by the agent for a finished match whose recorded goals disagree with its result (T-1717, D-347)."
   },
+  "matchCentre.scoreConflictNote": {
+    "source": "The source’s scores for this match after 90 minutes and at the end do not agree with each other, so no score is shown.",
+    "text": "نتیجه‌های منبع برای این بازی پس از ۹۰ دقیقه و در پایان با هم نمی‌خوانند، پس هیچ نتیجه‌ای نشان داده نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent for a finished match whose stored scores contradict each other (T-1819, D-414)."
+  },
   "competitionPage.zone.leaguePhaseRoundOf16": {
     "source": "Round of 16",
     "text": "یک‌هشتم نهایی",
