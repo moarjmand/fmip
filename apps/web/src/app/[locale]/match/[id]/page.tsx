@@ -66,6 +66,7 @@ import {
   fetchTerritories,
 } from '@/lib/api';
 import { readPick } from '@/lib/pick';
+import { drawsKeyEvents, retryUnreachable } from '@/lib/live-modules';
 import { isTimeZone } from '@/lib/scores';
 import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -87,7 +88,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * answer (T-1536). Each API call carries its own request id, so `fetch` would
  * not merge the two by itself.
  */
-const matchCentre = cache((id: string) => fetchMatchCentre(id));
+const matchCentre = cache((id: string) =>
+  // Asked twice before the page says it is unreachable (finding
+  // arc-2026-11-13-01): a status change's or a panel event's refresh that
+  // drew that notice would put it in place of the live view.
+  retryUnreachable(() => fetchMatchCentre(id)),
+);
 
 export async function generateMetadata({
   params,
@@ -372,19 +378,19 @@ export default async function MatchPage({
                 penalties: shootoutHero(locale, result.data.fixture),
               }}
               slots={{
-                // A finished match's key events and shoot-out (T-1799, D-397),
-                // drawn here: a finished match does not move, and none of it
-                // is then in the page's JavaScript. While it is on, the
-                // client's own timeline is drawn.
-                keyEvents:
-                  result.data.fixture.status === 'finished' ? (
-                    <KeyEvents
-                      centre={result.data}
-                      locale={locale}
-                      timeZone={timeZone}
-                      words={words}
-                    />
-                  ) : undefined,
+                // The key events and shoot-out (T-1799, D-397), drawn here so
+                // none of it is in the page's JavaScript: after full time and,
+                // since T-1811 (D-409), in play, where `LiveMatch` has it drawn
+                // again by `refreshLiveModules` when the stream brings an event.
+                // Before kick-off the client's coming card stands there.
+                keyEvents: drawsKeyEvents(result.data.fixture.status) ? (
+                  <KeyEvents
+                    centre={result.data}
+                    locale={locale}
+                    timeZone={timeZone}
+                    words={words}
+                  />
+                ) : undefined,
                 // The Summary opens with what the model forecast and, after
                 // full time, what happened (T-1497): the model's card alone,
                 // drawn on the server, and the one place the forecast is

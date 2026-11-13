@@ -1,4 +1,5 @@
-import type { MatchCentre } from '@fmip/contracts';
+import type { FixtureStatus, MatchCentre } from '@fmip/contracts';
+import type { MatchSlot, MatchSlots } from '@/components/match-centre-view';
 
 /**
  * When the match centre's server-drawn modules are drawn again in play
@@ -154,4 +155,58 @@ export function refreshSettled(plan: RefreshPlan): { plan: RefreshPlan; call: bo
  */
 export function modulesBehind(waitingSince: number | null, now: number): boolean {
   return waitingSince !== null && now - waitingSince > BEHIND_AFTER_MS;
+}
+
+/**
+ * The slots `refreshLiveModules` draws again (T-1811: the key events; the
+ * statistics, line-ups and Top rated join in T-1813 and T-1814), each with the
+ * part of the signature it reads.
+ */
+export const LIVE_SLOTS = { keyEvents: 'events' } as const satisfies Partial<
+  Record<MatchSlot, LivePart>
+>;
+
+/** What `refreshLiveModules` answers: the live slots it drew. */
+export type LiveModules = Partial<Pick<MatchSlots, keyof typeof LIVE_SLOTS>>;
+
+/**
+ * The parts of the signature the server's live modules on this page read:
+ * none when the page drew none of them (a match still to come), and then no
+ * call is ever made.
+ */
+export function liveParts(slots: MatchSlots): LivePart[] {
+  const parts = new Set<LivePart>();
+  for (const [slot, part] of Object.entries(LIVE_SLOTS) as [keyof typeof LIVE_SLOTS, LivePart][]) {
+    if ((slots[slot] ?? null) !== null) parts.add(part);
+  }
+  return [...parts];
+}
+
+/**
+ * Whether the key events are the server's card (D-397, D-409): in play and
+ * after full time. The page and `refreshLiveModules` both ask this, so the two
+ * draw the same card for the same match.
+ */
+export function drawsKeyEvents(status: FixtureStatus): boolean {
+  return status === 'live' || status === 'suspended' || status === 'finished';
+}
+
+/** How long the page waits before asking for the match a second time. */
+export const RETRY_PAUSE_MS = 250;
+
+/**
+ * One retry of a read that could not reach the API or met a server error,
+ * before the page says the match is unreachable (finding arc-2026-11-13-01):
+ * a render of the match page -- a status change's or a panel event's refresh
+ * among them -- that draws that notice puts it in place of the live view,
+ * which closes its stream until a reload. A 404 or another answer is final.
+ */
+export async function retryUnreachable<T extends { ok: boolean; status: number }>(
+  read: () => Promise<T>,
+  pauseMs = RETRY_PAUSE_MS,
+): Promise<T> {
+  const first = await read();
+  if (first.ok || (first.status !== 0 && first.status < 500)) return first;
+  await new Promise((resolve) => setTimeout(resolve, pauseMs));
+  return read();
 }

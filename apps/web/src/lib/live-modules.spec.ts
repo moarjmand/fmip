@@ -1,5 +1,5 @@
 import type { MatchCentre, MatchIncident } from '@fmip/contracts';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   BEHIND_AFTER_MS,
   EVENT_WINDOW_MS,
@@ -7,14 +7,58 @@ import {
   NO_REFRESH,
   type RefreshPlan,
   STATS_WINDOW_MS,
+  drawsKeyEvents,
   liveChange,
+  liveParts,
   liveSignature,
   modulesBehind,
   planRefresh,
   refreshDue,
   refreshSettled,
   refreshStarted,
+  retryUnreachable,
 } from './live-modules';
+
+describe('which server modules the page drew (T-1811)', () => {
+  it('the key events read the events; a page without them makes no call', () => {
+    expect(liveParts({ keyEvents: 'card' })).toEqual(['events']);
+    expect(liveParts({ keyEvents: null })).toEqual([]);
+    expect(liveParts({ outcome: 'card' })).toEqual([]);
+  });
+
+  it('the key events are the server’s in play and after full time, never before kick-off', () => {
+    expect(['live', 'suspended', 'finished'].every((s) => drawsKeyEvents(s as never))).toBe(true);
+    for (const status of ['scheduled', 'postponed', 'cancelled', 'abandoned'] as const) {
+      expect(drawsKeyEvents(status)).toBe(false);
+    }
+  });
+});
+
+describe('one retry before "unreachable" (finding arc-2026-11-13-01)', () => {
+  const answer = (ok: boolean, status: number) => ({ ok, status });
+
+  it('asks again once when the API could not be reached or failed, and takes the second answer', async () => {
+    for (const status of [0, 502]) {
+      const read = vi
+        .fn()
+        .mockResolvedValueOnce(answer(false, status))
+        .mockResolvedValueOnce(answer(true, 200));
+      expect(await retryUnreachable(read, 0)).toEqual(answer(true, 200));
+      expect(read).toHaveBeenCalledTimes(2);
+    }
+    const down = vi.fn().mockResolvedValue(answer(false, 0));
+    expect(await retryUnreachable(down, 0)).toEqual(answer(false, 0));
+    expect(down).toHaveBeenCalledTimes(2);
+  });
+
+  it('a found match or a 404 is final: asked once', async () => {
+    for (const first of [answer(true, 200), answer(false, 404)]) {
+      const read = vi.fn().mockResolvedValue(first);
+      expect(await retryUnreachable(read, 0)).toEqual(first);
+      expect(read).toHaveBeenCalledTimes(1);
+    }
+  });
+});
 
 /**
  * When the match centre's server modules are drawn again in play (T-1810,

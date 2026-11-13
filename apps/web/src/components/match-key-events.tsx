@@ -18,10 +18,12 @@ import { cx } from '@/components/ui/cx';
  * A finished match's key events and its shoot-out (T-1798, T-1799; D-396,
  * D-397; board P9-3), drawn on the server and handed to the match centre as
  * its `keyEvents` slot and the band's `penalties`, so none of it is in the
- * page's JavaScript (the match centre's first-load budget, T-808). A
- * finished match does not move; while a match is on, the client's own
- * timeline in `match-centre-view.tsx` is drawn instead, and a match that
- * ends while the page is open gets this on its next load or refresh.
+ * page's JavaScript (the match centre's first-load budget, T-808). Since
+ * T-1811 (D-409) it is drawn in play too: the page passes it for a live,
+ * suspended or finished match (`drawsKeyEvents`), and the live page draws it
+ * again through `refreshLiveModules` when the stream brings an event; a
+ * match that kicks off or ends while the page is open is drawn again by the
+ * status change's refresh.
  *
  * No directive: a server module. It reuses the client view's incident row
  * pieces (`IncidentText`, `IncidentMark`), which costs the client nothing.
@@ -114,6 +116,9 @@ export function KeyEvents({
       module={centre.timeline}
       testId="timeline"
       words={words}
+      // In play, a feed that has sent nothing yet is "Not in yet", never a
+      // verdict (T-1497, rule 3), as the client's timeline said (T-1811).
+      notInYet={f.status === 'live'}
     >
       {(incidents) => {
         // The kicks are found as the client's timeline finds them (T-1477, T-1666, D-322).
