@@ -70,6 +70,32 @@ export interface ScoreConflict {
 }
 
 /**
+ * Whether a finished match's stored lines contradict one another (T-1819,
+ * D-414): the data auditor's R7 and R1 on the same rows. Null when they
+ * reconcile, when a line is missing, or when the match is not `finished`.
+ * The fixtures read model and the forecast evaluation answer both judge by it.
+ */
+export function scoreConflictOf(
+  status: FixtureStatus | string,
+  scores: { current: ScoreLine | null; full_time: ScoreLine | null; extra_time: ScoreLine | null },
+): ScoreConflict | null {
+  if (status !== 'finished') return null;
+  const { current, full_time: ninety, extra_time: extra } = scores;
+  if (current === null || ninety === null) return null;
+  const reasons: ScoreConflictReason[] = [];
+  if (ninety.home > current.home || ninety.away > current.away) {
+    reasons.push('ninety_exceeds_final');
+  }
+  if (
+    extra !== null &&
+    (ninety.home + extra.home !== current.home || ninety.away + extra.away !== current.away)
+  ) {
+    reasons.push('extra_time_sum');
+  }
+  return reasons.length === 0 ? null : { coverage: 'limited', reasons };
+}
+
+/**
  * Whether a match not yet finished is still on the calendar (T-1560): it is
  * to be played, or is being played. A cancelled, abandoned or awarded match
  * will not be played, and a postponed one has lost its date, so none of them

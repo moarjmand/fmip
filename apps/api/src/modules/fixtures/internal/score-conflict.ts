@@ -1,4 +1,5 @@
-import type { FixtureStatus, ScoreConflict, ScoreConflictReason, ScoreLine } from '@fmip/contracts';
+import type { ScoreConflict, ScoreLine } from '@fmip/contracts';
+import { scoreConflictOf } from '@fmip/contracts';
 
 /**
  * Whether a finished match's stored scores contradict one another (T-1819,
@@ -32,25 +33,8 @@ interface ConflictScores {
   extra_time: ScoreLine | null;
 }
 
-export function scoreConflictOf(
-  status: FixtureStatus,
-  scores: ConflictScores,
-): ScoreConflict | null {
-  if (status !== 'finished') return null;
-  const { current, full_time: ninety, extra_time: extra } = scores;
-  if (current === null || ninety === null) return null;
-  const reasons: ScoreConflictReason[] = [];
-  if (ninety.home > current.home || ninety.away > current.away) {
-    reasons.push('ninety_exceeds_final');
-  }
-  if (
-    extra !== null &&
-    (ninety.home + extra.home !== current.home || ninety.away + extra.away !== current.away)
-  ) {
-    reasons.push('extra_time_sum');
-  }
-  return reasons.length === 0 ? null : { coverage: 'limited', reasons };
-}
+/** The derivation itself is the contracts' (shared with the forecast evaluation answer). */
+export { scoreConflictOf };
 
 /** The scores with the lines in conflict withheld; unchanged when there is no conflict. */
 export function withheld<S extends ConflictScores>(scores: S, conflict: ScoreConflict | null): S {

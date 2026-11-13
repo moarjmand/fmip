@@ -420,6 +420,7 @@ export {
   STALE_LIVE_AFTER_MS,
   STOPPED_CLOCK_MINUTES,
   liveFreshnessFrom,
+  scoreConflictOf,
   stillToPlay,
 } from './scores';
 export { AVAILABILITY_STALE_AFTER_MS, LIVE_STATS_STALE_AFTER_MS } from './match-centre';

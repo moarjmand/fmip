@@ -19,6 +19,13 @@ export interface FixtureResult {
   kickoffAt: Date;
   /** The full-time score, or null when none has been recorded. */
   fullTime: { home: number; away: number } | null;
+  /**
+   * The score after play and the extra-time line (D-317), read so the
+   * evaluation answer can tell stored scores that contradict each other
+   * (T-1819, D-414); absent where a caller builds a result by hand.
+   */
+  current?: { home: number; away: number } | null;
+  extraTime?: { home: number; away: number } | null;
 }
 
 /** An available forecast version with no evaluation yet. */
@@ -138,22 +145,33 @@ export class PostgresEvaluationStore {
       kickoff_at: Date;
       home: number | null;
       away: number | null;
+      cur_home: number | null;
+      cur_away: number | null;
+      et_home: number | null;
+      et_away: number | null;
     }>(
-      `SELECT f.id, se.competition_id, f.status, f.kickoff_at, sc.home, sc.away
+      `SELECT f.id, se.competition_id, f.status, f.kickoff_at, sc.home, sc.away,
+              cur.home AS cur_home, cur.away AS cur_away, et.home AS et_home, et.away AS et_away
          FROM fixture f
          JOIN season se ON se.id = f.season_id
          LEFT JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
+         LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+         LEFT JOIN fixture_score et ON et.fixture_id = f.id AND et.kind = 'extra_time'
         WHERE f.id = $1`,
       [fixtureId],
     );
     const row = rows[0];
     if (row === undefined) return null;
+    const line = (home: number | null, away: number | null) =>
+      home === null || away === null ? null : { home, away };
     return {
       id: row.id,
       competitionId: row.competition_id,
       status: row.status,
       kickoffAt: row.kickoff_at,
-      fullTime: row.home === null || row.away === null ? null : { home: row.home, away: row.away },
+      fullTime: line(row.home, row.away),
+      current: line(row.cur_home, row.cur_away),
+      extraTime: line(row.et_home, row.et_away),
     };
   }
 

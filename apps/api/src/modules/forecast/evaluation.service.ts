@@ -8,6 +8,7 @@ import type {
   ModelPerformanceResponse,
   PublicModelAccuracyResponse,
 } from '@fmip/contracts';
+import { scoreConflictOf } from '@fmip/contracts';
 import { beingJudged, consoleModelReport, inputState } from './internal/console-model';
 import { type CountedRow, PostgresEvaluationStore } from './internal/evaluation-store';
 import { adminAccuracy, publicAccuracy } from './internal/model-accuracy';
@@ -52,9 +53,28 @@ export class EvaluationService {
   }
 
   async evaluations(fixtureId: string): Promise<FixtureEvaluationsResponse | null> {
-    if ((await this.store.fixtureResult(fixtureId)) === null) return null;
+    const fixture = await this.store.fixtureResult(fixtureId);
+    if (fixture === null) return null;
     const evaluations = await this.store.evaluations(fixtureId);
     const last = evaluations.at(-1);
+    // Stored scores that contradict each other (T-1819, D-414): each
+    // evaluation was scored against one of the two numbers, so none is
+    // served and no page states that number or a winner. The aggregates,
+    // read apart, still count them (D-139).
+    const conflict = scoreConflictOf(fixture.status, {
+      current: fixture.current ?? null,
+      full_time: fixture.fullTime,
+      extra_time: fixture.extraTime ?? null,
+    });
+    if (conflict !== null) {
+      return {
+        fixture_id: fixtureId,
+        coverage: conflict.coverage,
+        last_updated_at: last?.evaluated_at ?? null,
+        evaluations: [],
+        score_conflict: conflict,
+      };
+    }
     return {
       fixture_id: fixtureId,
       coverage: evaluations.length === 0 ? 'not_supplied' : 'available',

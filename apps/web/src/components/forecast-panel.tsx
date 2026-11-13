@@ -231,6 +231,20 @@ function Evaluation({
   stamp: (iso: string) => React.ReactNode;
   locale: Locale;
 }) {
+  // Stored scores that contradict each other (T-1819, D-414): the API serves
+  // no evaluation, and the panel says why instead of a result or a winner.
+  if (evaluations?.score_conflict != null) {
+    return (
+      <div className="flex flex-col gap-1 text-xs" data-testid="forecast-evaluation-withheld">
+        <h3 className="text-sm font-medium">
+          <Translated locale={locale} message="forecast.evaluation.title" />
+        </h3>
+        <p>
+          <Translated locale={locale} message="forecast.evaluation.withheld" />
+        </p>
+      </div>
+    );
+  }
   if (evaluations === null || evaluations.evaluations.length === 0) return null;
   const last = evaluations.evaluations.at(-1);
   if (last === undefined) return null;
@@ -317,6 +331,7 @@ export function ModelExpected({
   summary,
   evaluation,
   result,
+  scoreUnclear = false,
   home,
   away,
   timeZone,
@@ -328,6 +343,12 @@ export function ModelExpected({
   evaluation: ForecastEvaluation | null;
   /** The full-time score, when there is one. */
   result: { home: number; away: number } | null;
+  /**
+   * The match's stored scores contradict each other (T-1819, D-414): no
+   * result, no evaluation and no winner, and the line says the score is
+   * unclear rather than not yet recorded.
+   */
+  scoreUnclear?: boolean;
   home: string;
   away: string;
   timeZone: string;
@@ -336,7 +357,9 @@ export function ModelExpected({
   const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   const forecast: CardForecast =
     summary === 'unreachable' ? { state: 'unreachable' } : cardForecast(summary);
-  const score = result ?? evaluation?.actual ?? null;
+  // Never a number scored against one of two contradicting lines (D-414).
+  const scored = scoreUnclear ? null : evaluation;
+  const score = scoreUnclear ? null : (result ?? evaluation?.actual ?? null);
   return (
     <ModelVoice locale={l}>
       <section className="flex flex-col gap-3" data-testid="story-model-expected">
@@ -366,7 +389,9 @@ export function ModelExpected({
           words={forecastBarWords(l)}
         />
         <p className="text-sm" data-testid="story-model-result">
-          {score === null ? (
+          {scoreUnclear ? (
+            <Translated locale={l} message="matchCentre.scoreUnclear" />
+          ) : score === null ? (
             <Translated locale={l} message="story.expected.noResult" />
           ) : (
             <FilledMessage
@@ -380,9 +405,9 @@ export function ModelExpected({
               }}
             />
           )}{' '}
-          {evaluation !== null ? (
+          {scored !== null ? (
             <span data-testid="story-model-rps">
-              {interpolate(t(l, 'story.expected.rps'), { rps: formatFixed(l, evaluation.rps, 3) })}
+              {interpolate(t(l, 'story.expected.rps'), { rps: formatFixed(l, scored.rps, 3) })}
             </span>
           ) : score !== null && forecast.state === 'available' ? (
             <Translated locale={l} message="story.expected.notScored" />

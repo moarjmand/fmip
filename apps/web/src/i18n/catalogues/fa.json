@@ -10802,6 +10802,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "forecast.evaluation.withheld": {
+    "source": "The model’s forecast for this match is not scored here: the source’s stored scores do not agree with each other.",
+    "text": "پیش‌بینی مدل برای این بازی این‌جا ارزیابی نمی‌شود: نتیجه‌های ثبت‌شده‌ی منبع با هم نمی‌خوانند.",
+    "status": "translated",
+    "note": "Written by the agent for a finished match whose stored scores contradict each other (T-1819, D-414)."
+  },
   "forecast.evaluation.result": {
     "source": "Result {score}: {outcome}.",
     "text": "نتیجه {score}: {outcome}.",
@@ -18435,8 +18441,8 @@
     "note": "Written by the agent for a finished match whose recorded goals disagree with its result (T-1717, D-347)."
   },
   "matchCentre.scoreConflictNote": {
-    "source": "The source’s scores for this match after 90 minutes and at the end do not agree with each other, so no score is shown.",
-    "text": "نتیجه‌های منبع برای این بازی پس از ۹۰ دقیقه و در پایان با هم نمی‌خوانند، پس هیچ نتیجه‌ای نشان داده نمی‌شود.",
+    "source": "The source’s stored scores for this match do not agree with each other, so no score is shown.",
+    "text": "نتیجه‌های ثبت‌شده‌ی منبع برای این بازی با هم نمی‌خوانند، پس هیچ نتیجه‌ای نشان داده نمی‌شود.",
     "status": "translated",
     "note": "Written by the agent for a finished match whose stored scores contradict each other (T-1819, D-414)."
   },

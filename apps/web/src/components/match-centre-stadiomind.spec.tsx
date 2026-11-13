@@ -533,6 +533,24 @@ describe('the forecast is drawn once: headline, details, and why (T-1744)', () =
     expect(mixed).not.toMatch(/Here both are/);
   });
 
+  it('states no result or winner when the stored scores contradict each other (T-1819, D-414)', () => {
+    // An answer that still carried an evaluation is not drawn either.
+    const withheld = how(factored, {
+      ...scored,
+      coverage: 'limited',
+      score_conflict: { coverage: 'limited', reasons: ['ninety_exceeds_final'] },
+    });
+    expect(withheld).toContain('data-testid="forecast-evaluation-withheld"');
+    expect(withheld).not.toContain('data-testid="forecast-evaluation"');
+    expect(withheld).toContain(
+      'The model’s forecast for this match is not scored here: the source’s stored scores do not agree with each other.',
+    );
+    expect(withheld).not.toContain('Both numbers measure');
+    expect(how(factored, { ...scored, score_conflict: null })).toContain(
+      'data-testid="forecast-evaluation"',
+    );
+  });
+
   it('is not rendered when there is nothing to explain: the summary has said so once', () => {
     expect(how(null, null)).toBe('');
     const unanswered = {
@@ -1012,7 +1030,7 @@ describe('live', () => {
     expect(html).toContain('data-coverage-badge="limited"');
     expect(html).toContain('data-testid="score-conflict-note"');
     expect(text).toContain(
-      'The source’s scores for this match after 90 minutes and at the end do not agree with each other, so no score is shown.',
+      'The source’s stored scores for this match do not agree with each other, so no score is shown.',
     );
     // The figure is a dash, never either number; no ninety-minute line.
     expect(html).toMatch(/data-testid="score">–</);
