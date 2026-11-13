@@ -86,7 +86,17 @@ export type {
   IngestionHealth,
   LiveHealth,
 } from './health';
-export { DELETED_USERNAME_PATTERN, ROLE_REFUSALS, forbidden, isDeletedMember } from './identity';
+export {
+  DELETED_USERNAME_PATTERN,
+  ROLE_REFUSALS,
+  SIGNUP_ENTRIES,
+  forbidden,
+  isDeletedMember,
+  SIGNUP_APP_REFERRERS,
+  signupHost,
+  signupReferrerHost,
+  signupSource,
+} from './identity';
 export type {
   AcceptPlatformRulesRequest,
   ApiError,
@@ -102,6 +112,8 @@ export type {
   RegisterRequest,
   ResetPasswordRequest,
   SessionResponse,
+  SignupEntry,
+  SignupSource,
   VerifyEmailRequest,
 } from './identity';
 // The viewer's territory (blueprint 11, T-312): chosen, stored, never inferred.
@@ -400,19 +412,26 @@ export type {
   CandidateShadowHealth,
 } from './forecast';
 export type {
+  AccuracyCalibration,
   AccuracyMetrics,
   AccuracyPeriod,
   AccuracyPoint,
   AccuracyReference,
   AdminAccuracySeries,
   AdminModelAccuracyResponse,
+  CalibrationBin,
+  PublicAccuracyPoint,
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
+  PublicOverallSeries,
+  PublicVersionSeries,
 } from './forecast';
 export type { ModelUpset, ModelUpsetEntity, ModelUpsetGap, ModelUpsetResponse } from './forecast';
 export {
   ACCURACY_MINIMUM_MATCHES,
   ACCURACY_PERIODS,
+  CALIBRATION_MINIMUM_FORECASTS,
+  CALIBRATION_STEPS,
   CANDIDATE_FAILURE_LOOKBACK_DAYS,
   PROMOTION_MINIMUM,
 } from './forecast';

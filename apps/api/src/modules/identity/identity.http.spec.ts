@@ -131,6 +131,74 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('/auth', () =
     expect(sameEmail.json().fields).toEqual({ email: 'already taken' });
   });
 
+  it('counts where a sign-up started, by month only, and keeps nothing beside the account (T-1821, D-415)', async () => {
+    // A main domain of its own, so the count is this run's alone.
+    const host = `it-${RUN}.test`;
+    const count = async () =>
+      (
+        await pool.query<{ entry: string; sign_ups: number; month: string }>(
+          `SELECT entry, sign_ups, to_char(month, 'YYYY-MM-DD') AS month
+             FROM signup_source_monthly WHERE referrer_host = $1`,
+          [host],
+        )
+      ).rows;
+    try {
+      const created = await post('/auth/register', {
+        ...registration,
+        username: `it_${RUN}s`,
+        email: `s_${RUN}@example.test`,
+        // Counted by its main domain only.
+        source: { entry: 'match', referrer_host: `WWW.cv.${host}:443` },
+      });
+      expect(created.statusCode).toBe(201);
+      const rows = await count();
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ entry: 'match', sign_ups: 1 });
+      expect(rows[0]?.month).toMatch(/^\d{4}-\d{2}-01$/);
+
+      // Counted after the account's transaction, never inside it: the two
+      // rows do not share a transaction id.
+      const xmins = await pool.query<{ account: string; counter: string }>(
+        `SELECT (SELECT xmin::text FROM user_account WHERE username = $1) AS account,
+                (SELECT xmin::text FROM signup_source_monthly WHERE referrer_host = $2) AS counter`,
+        [`it_${RUN}s`, host],
+      );
+      expect(xmins.rows[0]?.counter).not.toBe(xmins.rows[0]?.account);
+
+      // A refused sign-up is not counted.
+      const refused = await post('/auth/register', {
+        ...registration,
+        username: `it_${RUN}s`,
+        email: `s2_${RUN}@example.test`,
+        source: { entry: 'match', referrer_host: host },
+      });
+      expect(refused.statusCode).toBe(409);
+      expect((await count())[0]?.sign_ups).toBe(1);
+
+      // A malformed source never refuses a sign-up; it is counted as none.
+      const odd = await post('/auth/register', {
+        ...registration,
+        username: `it_${RUN}t`,
+        email: `t_${RUN}@example.test`,
+        source: { entry: 'campaign', referrer_host: `https://${host}/path?q=1` },
+      });
+      expect(odd.statusCode).toBe(201);
+      expect(await count()).toHaveLength(1);
+
+      // Nothing about the source is a column of the account.
+      const columns = await pool.query<{ column_name: string }>(
+        `SELECT column_name FROM information_schema.columns WHERE table_name = 'user_account'`,
+      );
+      expect(
+        columns.rows
+          .map((c) => c.column_name)
+          .filter((c) => /signup|referrer|source|entry/.test(c)),
+      ).toEqual([]);
+    } finally {
+      await pool.query(`DELETE FROM signup_source_monthly WHERE referrer_host = $1`, [host]);
+    }
+  });
+
   it('rejects an invalid body with a 400 naming the fields, and an unknown country', async () => {
     const invalid = await post('/auth/register', { username: 'x' });
     expect(invalid.statusCode).toBe(400);

@@ -1982,7 +1982,6 @@
   "modelAccuracy.kpi.correctMeaning": "How often the outcome it rated most likely happened.",
   "modelAccuracy.competition.months": "Month by month",
   "modelAccuracy.competition.weeks": "Week by week",
-  "modelAccuracy.versionsCombined": "The figures combine these versions; they are not yet shown version by version.",
   "modelAccuracy.verdict.right": {
     "one": "Over {count} match, the model picked the right result {share} of the time; a blind guess gets about {guess}.",
     "other": "Over {count} matches, the model picked the right result {share} of the time; a blind guess gets about {guess}."
@@ -2025,7 +2024,7 @@
     "one": "All {count} match: {edge}",
     "other": "All {count} matches: {edge}"
   },
-  "modelAccuracy.weekly.partial": "The last week is incomplete (scored to {date}), so its bar is lighter and dashed.",
+  "modelAccuracy.weekly.partial": "A week still running or waiting for a score is incomplete (scored to {date}), so its bar is lighter and dashed.",
   "modelAccuracy.weekly.partialMark": "incomplete",
   "modelAccuracy.weekly.thin": "Lighter and dashed: fewer than {minimum} matches that week.",
   "modelAccuracy.weekly.axis": "Each week is named by its Monday (UTC); the number under it is its matches scored.",
@@ -2038,6 +2037,41 @@
     "other": "So far: {count} weeks."
   },
   "modelAccuracy.weekly.unreachable": "The weekly figures cannot be shown right now.",
+  "modelAccuracy.calibration.title": "When it says 60%, how often does it happen?",
+  "modelAccuracy.calibration.lede": "Each dot is every forecast of about one probability, placed by how often that outcome really happened. On the diagonal is a perfect forecaster.",
+  "modelAccuracy.calibration.pooled": {
+    "one": "Every probability of {count} match, {forecasts} in all: home, draw and away of its last forecast before kick-off.",
+    "other": "Every probability of {count} matches, {forecasts} in all: home, draw and away of each match’s last forecast before kick-off."
+  },
+  "modelAccuracy.calibration.axisX": "What the model said",
+  "modelAccuracy.calibration.axisY": "Happened",
+  "modelAccuracy.calibration.perfect": "A perfect forecaster",
+  "modelAccuracy.calibration.solid": "{minimum} or more forecasts in that step",
+  "modelAccuracy.calibration.hollow": "Fewer than {minimum}: hollow, with its count beside it",
+  "modelAccuracy.calibration.range": "{from} to {to}",
+  "modelAccuracy.calibration.step": {
+    "one": "said {range}, {share} of {count} forecast happened",
+    "other": "said {range}, {share} of {count} forecasts happened"
+  },
+  "modelAccuracy.calibration.chartLabel": "When the model {values}. On the diagonal is a perfect forecaster.",
+  "modelAccuracy.calibration.said": "The model said",
+  "modelAccuracy.calibration.forecasts": "Forecasts",
+  "modelAccuracy.calibration.happened": "Happened",
+  "modelAccuracy.calibration.share": "Share that happened",
+  "modelAccuracy.calibration.thinMark": "fewer than {minimum}",
+  "modelAccuracy.calibration.tooThin": {
+    "one": "The chart appears once one step of ten points holds {minimum} forecasts. So far {count} probability has been scored, and no step holds {minimum}.",
+    "other": "The chart appears once one step of ten points holds {minimum} forecasts. So far {count} probabilities have been scored, and no step holds {minimum}."
+  },
+  "modelAccuracy.versionCards.title": "Each model version on its own",
+  "modelAccuracy.versionCards.lede": "Each match is counted once, under the version of its last forecast before kick-off. Candidate models still in testing are not shown.",
+  "modelAccuracy.versionCards.span": "Kick-offs from {first} to {last}.",
+  "modelAccuracy.versionCards.spanOne": "Kick-offs in {first}.",
+  "modelAccuracy.versionCards.limited": {
+    "one": "Only {count} match has been scored with this version, fewer than {minimum}: an early record, not a verdict.",
+    "other": "Only {count} matches have been scored with this version, fewer than {minimum}: an early record, not a verdict."
+  },
+  "modelAccuracy.versionCards.none": "No match has been scored with this version, so no figure is shown.",
   "modelAccuracy.list.lede": "How much better than a guess, by competition. On the “Better” side of the line: better than a guess; on the other side: worse. Dashed: fewer than {minimum} matches.",
   "modelAccuracy.list.worse": "Worse than a guess",
   "modelAccuracy.list.better": "Better",

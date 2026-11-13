@@ -109,6 +109,11 @@ describe('RetentionService.purge', () => {
         },
       ]),
     ) as unknown as RetentionStore;
+    (store as unknown as { restampSignupSources: () => Promise<number> }).restampSignupSources =
+      async () => {
+        calls.push({ method: 'restampSignupSources', cutoff: NOW.toISOString(), limit: 0 });
+        return 3;
+      };
 
     const activity = {
       keepDailyCounts: async (sessionsBefore: Date) => {
@@ -130,6 +135,9 @@ describe('RetentionService.purge', () => {
       capped: false,
     });
     expect(report.pending_picks).toEqual({ deleted: 4, batches: 1, capped: false });
+    expect(report.signup_sources_restamped).toBe(3);
+    // The sign-up counts are rewritten last (T-1821, D-415).
+    expect(calls.at(-1)?.method).toBe('restampSignupSources');
     expect(calls).toEqual([
       // The day counts are kept first, with the sessions' own cut-off (D-353).
       { method: 'keepDailyCounts', cutoff: '2026-10-03T03:23:00.000Z', limit: 0 },
@@ -148,6 +156,7 @@ describe('RetentionService.purge', () => {
         cutoff: '2026-10-03T03:23:00.000Z',
         limit: PURGE_BATCH_SIZE,
       },
+      { method: 'restampSignupSources', cutoff: NOW.toISOString(), limit: 0 },
     ]);
   });
 });

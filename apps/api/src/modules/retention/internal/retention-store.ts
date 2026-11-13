@@ -73,6 +73,18 @@ export class RetentionStore {
   }
 
   /**
+   * Rewrites every row of the sign-up source counts in one transaction
+   * (T-1821, D-415): each row's live version then carries this run's
+   * transaction id, shared by all of them, so a count's latest increment can
+   * no longer be put beside the account created just before it by the order
+   * of their transaction ids. The values do not change. Returns the rows.
+   */
+  async restampSignupSources(): Promise<number> {
+    const result = await this.pool.query(`UPDATE signup_source_monthly SET sign_ups = sign_ups`);
+    return result.rowCount ?? 0;
+  }
+
+  /**
    * Picks saved before an e-mail address was confirmed (T-1740, D-361): one
    * whose match kicked off before `cutoff`, whatever became of it, and one
    * that became a prediction before `convertedBefore` (the run's own moment:
