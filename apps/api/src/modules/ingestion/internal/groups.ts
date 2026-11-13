@@ -50,3 +50,43 @@ export function groupPlayed(
       .flatMap((g) => g.rows.map((r) => [r.team.id, r.played] as const)),
   );
 }
+
+/**
+ * Whether a provider's table that names no group and no conference is the sum
+ * of the season's group stages, and so has nothing of ours to be compared with
+ * (T-1822, D-416).
+ *
+ * Argentina's Liga Profesional is played as two group stages (Apertura and
+ * Clausura) and no league stage. After the Clausura the feed added a 30-row
+ * table with no group whose `played` is each club's 16 + 16 group matches, and
+ * the comparison read it against our league table -- empty for a season with
+ * no league stage -- so every club became a `table_disagrees` finding ("ours
+ * has no row"). The table is left out only when all three hold:
+ *
+ *   1. our league table for the season is empty (`leagueTable`);
+ *   2. the season has group stages with finished matches stored (`ourGroups`);
+ *   3. each of the table's teams has played exactly its total of finished
+ *      matches over our group stages (a team's interzonal matches are in its
+ *      group's table, T-1399).
+ *
+ * The third is what keeps it from being blind: a sum that does not match ours
+ * (a result we do not hold) is compared as before and raises its finding.
+ * Recognised by these facts, never by the competition's name. Pure.
+ */
+export function isGroupStagesAggregate(
+  rows: readonly { teamId: string; played: number }[],
+  leagueTable: ReadonlyMap<string, number>,
+  ourGroups: readonly { rows: readonly { team: { id: string }; played: number }[] }[],
+): boolean {
+  if (leagueTable.size > 0 || rows.length === 0) return false;
+  const totals = new Map<string, number>();
+  let counted = 0;
+  for (const group of ourGroups) {
+    for (const row of group.rows) {
+      totals.set(row.team.id, (totals.get(row.team.id) ?? 0) + row.played);
+      counted += row.played;
+    }
+  }
+  if (counted === 0) return false;
+  return rows.every((row) => totals.get(row.teamId) === row.played);
+}

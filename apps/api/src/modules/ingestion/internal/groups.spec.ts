@@ -1,5 +1,49 @@
 import { describe, expect, it } from 'vitest';
-import { groupMembers, groupPlayed } from './groups';
+import { groupMembers, groupPlayed, isGroupStagesAggregate } from './groups';
+
+describe('isGroupStagesAggregate (T-1822, D-416)', () => {
+  // Two group stages, each club 16 + 16 group matches; no league stage.
+  const stage = {
+    rows: [
+      { team: { id: 't1' }, played: 16 },
+      { team: { id: 't2' }, played: 16 },
+    ],
+  };
+  const ours = [stage, stage];
+  const sum = [
+    { teamId: 't1', played: 32 },
+    { teamId: 't2', played: 32 },
+  ];
+  const noLeague = new Map<string, number>();
+
+  it("is the season's sum when every team matches its group-stage total", () => {
+    expect(isGroupStagesAggregate(sum, noLeague, ours)).toBe(true);
+  });
+
+  it('is not when one team is ahead of ours: a real disagreement still fires', () => {
+    const ahead = [sum[0]!, { teamId: 't2', played: 33 }];
+    expect(isGroupStagesAggregate(ahead, noLeague, ours)).toBe(false);
+  });
+
+  it('is not when a team has no group row of ours', () => {
+    const extra = [...sum, { teamId: 't3', played: 32 }];
+    expect(isGroupStagesAggregate(extra, noLeague, ours)).toBe(false);
+  });
+
+  it('is not when our league table has rows: then it is compared as before', () => {
+    expect(isGroupStagesAggregate(sum, new Map([['t1', 32]]), ours)).toBe(false);
+  });
+
+  it('is not without group stages, or with none of their matches finished', () => {
+    expect(isGroupStagesAggregate(sum, noLeague, [])).toBe(false);
+    const unplayed = [{ rows: [] }, { rows: [] }];
+    expect(isGroupStagesAggregate([{ teamId: 't1', played: 0 }], noLeague, unplayed)).toBe(false);
+  });
+
+  it('is not for an empty table', () => {
+    expect(isGroupStagesAggregate([], noLeague, ours)).toBe(false);
+  });
+});
 
 describe('groupPlayed (T-1399)', () => {
   // Argentina: the Apertura and the Clausura each have a group A.

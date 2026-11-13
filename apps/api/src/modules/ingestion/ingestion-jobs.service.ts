@@ -23,7 +23,7 @@ import {
   tierCeiling,
   withBudgetTier,
 } from './internal/budget-tier';
-import { groupMembers, groupPlayed } from './internal/groups';
+import { groupMembers, groupPlayed, isGroupStagesAggregate } from './internal/groups';
 import { lineupAsks, lineupWindow } from './internal/lineup-asks';
 import {
   askUntilDeadline,
@@ -1510,10 +1510,26 @@ export class IngestionJobsService {
               const ours = await this.standings.table(seasonId);
               for (const row of ours.data ?? []) mine.set(row.team.id, row.played);
             }
-            const ourGroups = grouped.length > 0 ? await this.standings.groupTables(seasonId) : [];
+            // A table with no group and no conference in a season whose league
+            // table is empty may be the sum of its group stages (T-1822): our
+            // groups are read for it too, to say whether it is.
+            const plain = resolved.filter((t) => t.group === null && t.conference === null);
+            const ourGroups =
+              grouped.length > 0 || (plain.length > 0 && mine.size === 0)
+                ? await this.standings.groupTables(seasonId)
+                : [];
 
             const compared: TableComparison[] = [];
             for (const table of resolved) {
+              // The sum of the season's group stages, matching ours team by
+              // team, has nothing to be compared with (T-1822, D-416).
+              if (
+                table.group === null &&
+                table.conference === null &&
+                isGroupStagesAggregate(table.rows, mine, ourGroups)
+              ) {
+                continue;
+              }
               // A team's row in our table of the same group: a team in no
               // group of ours (its matches carry none yet) has no row.
               const held = table.group === null ? mine : groupPlayed(ourGroups, table);
