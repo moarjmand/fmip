@@ -8,10 +8,12 @@
  * there", and a module nothing supplied says `not_supplied` rather than
  * appearing as an empty list.
  *
- * The one state that cannot be derived from counts is `delayed`: "the data
- * arrives, late" is a statement about a provider's behaviour over time, not
- * about rows. It is set by hand in the admin area (T-070) and this computation
- * preserves it as long as the evidence does not contradict it.
+ * `delayed` is "the data arrives, late": a statement about a provider's
+ * behaviour over time, not about counts. It is set by hand in the admin area
+ * (T-070), and this computation preserves it as long as the evidence does not
+ * contradict it. For line-ups it is also measured (T-1824, D-418): when they
+ * reach us after kick-off in most of a season's recent matches, the season
+ * says `delayed`, never `available`.
  */
 
 import type { CoverageModule, CoverageState } from '@fmip/contracts';
@@ -32,6 +34,43 @@ export interface Evidence {
   expected: number;
   /** Of those, the ones that actually carry it. */
   present: number;
+  /**
+   * When it arrived, for a module the provider sends before kick-off (line-ups,
+   * T-1824): of the season's latest `ARRIVAL_SAMPLE` finished matches that
+   * carry it, and that we knew of before they kicked off, how many had it
+   * first stored after kick-off. Absent for every other module.
+   */
+  arrival?: { measured: number; late: number };
+}
+
+/**
+ * How many of a season's latest finished matches the line-ups' arrival is
+ * measured on (T-1824, D-418): recent enough to follow a provider that changes,
+ * enough that one late match does not turn a league `delayed`.
+ */
+export const ARRIVAL_SAMPLE = 20;
+
+/**
+ * The fewest measured matches the arrival is read from (T-1824 review): below
+ * it a season's first late match or two -- our own slip as easily as the
+ * provider's -- would turn the whole season `delayed`, so the counts decide
+ * as before.
+ */
+export const ARRIVAL_MIN_SAMPLE = 10;
+
+/**
+ * Whether a module's data arrives late as a rule: at least
+ * `ARRIVAL_MIN_SAMPLE` measured matches, and more than half of them had it
+ * only after kick-off (T-1824, D-418). The Persian Gulf Pro League's line-ups
+ * were after kick-off in 20 of its last 20 matches on 2026-11-13; the leagues
+ * the provider covers on time were at 0 to 8 of 20.
+ */
+export function arrivesLate(arrival: Evidence['arrival']): boolean {
+  return (
+    arrival !== undefined &&
+    arrival.measured >= ARRIVAL_MIN_SAMPLE &&
+    arrival.late * 2 > arrival.measured
+  );
 }
 
 export interface Computed {
@@ -69,6 +108,30 @@ export function compute(
           state: 'not_supplied',
           note: `No ${module} for any of the ${expected} fixtures that should have them.`,
         };
+  }
+
+  // Mostly missing is `limited` whenever it arrives (T-1824 review): saying
+  // `delayed` there would promise the many matches without data a line-up
+  // that never comes.
+  if (present * 2 < expected) {
+    return {
+      state: 'limited',
+      note: `${present} of ${expected} fixtures have ${module}.`,
+    };
+  }
+
+  // Data that is there but arrives after kick-off as a rule (T-1824, D-418):
+  // `available` would promise line-ups before the match that never come
+  // then, so the season says `delayed`, with both counts.
+  const arrival = evidence.arrival;
+  if (arrival !== undefined && arrivesLate(arrival)) {
+    const { measured, late } = arrival;
+    return {
+      state: 'delayed',
+      note:
+        `${present} of ${expected} fixtures have ${module}; ` +
+        `${late} of the last ${measured} had them only after kick-off.`,
+    };
   }
 
   if (present >= expected) {

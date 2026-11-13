@@ -14,7 +14,7 @@
 import type { Pool } from 'pg';
 import type { CoverageModule, CoverageState } from '@fmip/contracts';
 import type { Provider } from '@fmip/ingestion';
-import type { Evidence } from './coverage-rules';
+import { ARRIVAL_SAMPLE, type Evidence } from './coverage-rules';
 
 /**
  * What counts as "should have this by now", per module.
@@ -113,10 +113,43 @@ export class CoverageStore {
         WHERE f.season_id = $1`,
       [seasonId],
     );
-    return {
+    const evidence: Evidence = {
       expected: Number(rows[0]?.expected ?? 0),
       present: Number(rows[0]?.present ?? 0),
     };
+    return module === 'lineups'
+      ? { ...evidence, arrival: await this.lineupArrival(seasonId) }
+      : evidence;
+  }
+
+  /**
+   * When the line-ups reached us (T-1824, D-418): of the season's latest
+   * `ARRIVAL_SAMPLE` finished matches that carry a line-up, how many had their
+   * first line-up row stored after kick-off. Only matches we held before they
+   * kicked off are measured: a season loaded afterwards (a backfill, a new
+   * competition) stores every line-up "late" and says nothing about the
+   * provider. The first row's `created_at` survives a later answer: the
+   * writer updates a listed player's row in place (`IngestStore.saveLineup`).
+   */
+  private async lineupArrival(seasonId: string): Promise<{ measured: number; late: number }> {
+    const { rows } = await this.pool.query<{ measured: string; late: string }>(
+      `SELECT count(*)::text AS measured,
+              count(*) FILTER (WHERE m.first_at > m.kickoff_at)::text AS late
+         FROM (SELECT f.kickoff_at,
+                      (SELECT min(l.created_at) FROM lineup l
+                         JOIN fixture_participant p ON p.id = l.participant_id
+                        WHERE p.fixture_id = f.id) AS first_at
+                 FROM fixture f
+                WHERE f.season_id = $1 AND f.status = 'finished'
+                  AND f.created_at < f.kickoff_at
+                  AND EXISTS (SELECT 1 FROM lineup l
+                                JOIN fixture_participant p ON p.id = l.participant_id
+                               WHERE p.fixture_id = f.id)
+                ORDER BY f.kickoff_at DESC
+                LIMIT $2) m`,
+      [seasonId, ARRIVAL_SAMPLE],
+    );
+    return { measured: Number(rows[0]?.measured ?? 0), late: Number(rows[0]?.late ?? 0) };
   }
 
   /** The state an admin or an earlier run recorded, or `null` if none. */
