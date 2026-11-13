@@ -375,6 +375,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('new-request 
   };
 
   /** The asynchronous send has settled: the pushed list stops growing. */
+  /**
+   * Files a request over HTTP. The agents console's spec lowers the shared
+   * hourly ceiling to 1 for a moment while it runs beside this one, so a 429
+   * here is that moment, waited out, never this feature's answer.
+   */
+  const file = async (body: Record<string, unknown>, who: string) => {
+    for (let tries = 0; ; tries += 1) {
+      const answer = await call<ConsoleRequestDetail>('POST', '/console/requests', body, who);
+      if (answer.status !== 429 || tries >= 40) return answer;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  };
+
   /** The last request's notifications, sent apart from its answer: the test waits for them. */
   let lastSend: Promise<unknown> = Promise.resolve();
   const settled = () => lastSend;
@@ -508,9 +521,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('new-request 
 
   it('tells everyone else who switched it on, never the filer, and drops a gone browser', async () => {
     pushed.length = 0;
-    const created = await call<ConsoleRequestDetail>(
-      'POST',
-      '/console/requests',
+    const created = await file(
       { title: `Two conferences ${ARUN}\nsecond line`, body: 'private detail' },
       people.filer.cookie,
     );
@@ -536,7 +547,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('new-request 
   it('stops after a person switches it off, and keeps their browser for reminders', async () => {
     await call('POST', '/console/calendar/push/requests', { on: false }, people.mate.cookie);
     pushed.length = 0;
-    await call('POST', '/console/requests', { title: `Another ${ARUN}` }, people.filer.cookie);
+    await file({ title: `Another ${ARUN}` }, people.filer.cookie);
     await settled();
     expect(pushed).toEqual([]);
     expect(
@@ -555,12 +566,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('new-request 
     await call('POST', '/console/calendar/push/requests', { on: true }, people.mate.cookie);
     failPush = true;
     try {
-      const created = await call<ConsoleRequestDetail>(
-        'POST',
-        '/console/requests',
-        { title: `Push down ${ARUN}` },
-        people.filer.cookie,
-      );
+      const created = await file({ title: `Push down ${ARUN}` }, people.filer.cookie);
       expect(created.status).toBe(201);
       await settled();
     } finally {
