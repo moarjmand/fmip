@@ -51,13 +51,26 @@ export interface Evidence {
 export const ARRIVAL_SAMPLE = 20;
 
 /**
- * Whether a module's data arrives late as a rule: more than half of the
- * measured matches had it only after kick-off (T-1824, D-418). The Persian
- * Gulf Pro League's line-ups were after kick-off in 20 of its last 20 matches
- * on 2026-11-13; the leagues the provider covers on time were at 0 to 8 of 20.
+ * The fewest measured matches the arrival is read from (T-1824 review): below
+ * it a season's first late match or two -- our own slip as easily as the
+ * provider's -- would turn the whole season `delayed`, so the counts decide
+ * as before.
+ */
+export const ARRIVAL_MIN_SAMPLE = 10;
+
+/**
+ * Whether a module's data arrives late as a rule: at least
+ * `ARRIVAL_MIN_SAMPLE` measured matches, and more than half of them had it
+ * only after kick-off (T-1824, D-418). The Persian Gulf Pro League's line-ups
+ * were after kick-off in 20 of its last 20 matches on 2026-11-13; the leagues
+ * the provider covers on time were at 0 to 8 of 20.
  */
 export function arrivesLate(arrival: Evidence['arrival']): boolean {
-  return arrival !== undefined && arrival.measured > 0 && arrival.late * 2 > arrival.measured;
+  return (
+    arrival !== undefined &&
+    arrival.measured >= ARRIVAL_MIN_SAMPLE &&
+    arrival.late * 2 > arrival.measured
+  );
 }
 
 export interface Computed {
@@ -95,6 +108,16 @@ export function compute(
           state: 'not_supplied',
           note: `No ${module} for any of the ${expected} fixtures that should have them.`,
         };
+  }
+
+  // Mostly missing is `limited` whenever it arrives (T-1824 review): saying
+  // `delayed` there would promise the many matches without data a line-up
+  // that never comes.
+  if (present * 2 < expected) {
+    return {
+      state: 'limited',
+      note: `${present} of ${expected} fixtures have ${module}.`,
+    };
   }
 
   // Data that is there but arrives after kick-off as a rule (T-1824, D-418):

@@ -22,6 +22,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     const LATE = randomUUID();
     const ON_TIME = randomUUID();
     const BACKFILLED = randomUUID();
+    const SMALL = randomUUID();
     const HOME = randomUUID();
     const AWAY = randomUUID();
     const PLAYER = randomUUID();
@@ -79,6 +80,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         [LATE, '2088'],
         [ON_TIME, '2089'],
         [BACKFILLED, '2090'],
+        [SMALL, '2091'],
       ] as const) {
         await pool.query(
           `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
@@ -94,28 +96,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         PLAYER,
         `Arrival player ${RUN}`,
       ]);
-      // Line-ups 56 to 105 hours after kick-off in four of five matches.
-      for (const [day, hours] of [
-        [1, 56],
-        [2, 105],
-        [3, 70],
-        [4, 80],
-        [5, -0.4],
-      ] as const) {
-        await match(LATE, day, 48, hours);
+      // Twelve matches each, above the ten-match floor.
+      for (let day = 1; day <= 12; day += 1) {
+        // Line-ups 56 to 105 hours after kick-off in ten of twelve.
+        await match(LATE, day, 48, day <= 10 ? 56 + day * 4 : -0.4);
+        // Twenty-five minutes before kick-off in ten of twelve, two after.
+        await match(ON_TIME, day, 48, day <= 10 ? -0.4 : 0.5);
+        // A season loaded after its matches: every line-up stored "late".
+        await match(BACKFILLED, day, -200, 300);
       }
-      // Twenty-five minutes before kick-off in four of five, one after.
-      for (const [day, hours] of [
-        [1, -0.4],
-        [2, -0.4],
-        [3, 0.5],
-        [4, -0.4],
-        [5, -0.4],
-      ] as const) {
-        await match(ON_TIME, day, 48, hours);
-      }
-      // A season loaded after its matches: every line-up stored "late".
-      for (const day of [1, 2, 3]) await match(BACKFILLED, day, -200, 300);
+      // Three late matches only: below the floor, the counts decide.
+      for (const day of [1, 2, 3]) await match(SMALL, day, 48, 60);
     });
 
     afterAll(async () => {
@@ -125,7 +116,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         [externalIds],
       );
       await pool.query(`DELETE FROM fixture WHERE season_id = ANY($1::uuid[])`, [
-        [LATE, ON_TIME, BACKFILLED],
+        [LATE, ON_TIME, BACKFILLED, SMALL],
       ]);
       await pool.query(`DELETE FROM season WHERE competition_id = $1`, [LEAGUE]);
       await pool.query(`DELETE FROM competition WHERE id = $1`, [LEAGUE]);
@@ -141,7 +132,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         [LATE],
       );
       expect(rows[0]?.note).toBe(
-        '5 of 5 fixtures have lineups; 4 of the last 5 had them only after kick-off.',
+        '12 of 12 fixtures have lineups; 10 of the last 12 had them only after kick-off.',
       );
     });
 
@@ -151,6 +142,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     it('does not measure a season loaded after its matches were played', async () => {
       expect(await lineups(BACKFILLED)).toBe('available');
+    });
+
+    it('does not call a season delayed on fewer than ten measured matches', async () => {
+      expect(await lineups(SMALL)).toBe('available');
     });
   },
 );

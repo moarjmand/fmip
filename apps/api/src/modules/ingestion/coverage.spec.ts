@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ARRIVAL_SAMPLE, COVERAGE_MODULES, arrivesLate, compute } from './internal/coverage-rules';
+import {
+  ARRIVAL_MIN_SAMPLE,
+  ARRIVAL_SAMPLE,
+  COVERAGE_MODULES,
+  arrivesLate,
+  compute,
+} from './internal/coverage-rules';
 
 // The rules that turn "of the fixtures that should carry this, how many do"
 // into a coverage state (T-027, blueprint 4.3). Pure, so they can be argued
@@ -72,7 +78,7 @@ describe('line-ups measured by when they arrived (T-1824)', () => {
     expect(pgpl.note).toBe(
       '104 of 104 fixtures have lineups; 20 of the last 20 had them only after kick-off.',
     );
-    // Some missing too: still delayed, not limited, with both counts.
+    // Some missing (most present) too: still delayed, with both counts.
     const some = compute(
       'lineups',
       { expected: 69, present: 44, arrival: { measured: 20, late: 12 } },
@@ -104,5 +110,41 @@ describe('line-ups measured by when they arrived (T-1824)', () => {
         .state,
     ).toBe('not_supplied');
     expect(ARRIVAL_SAMPLE).toBe(20);
+  });
+
+  it('needs at least ten measured matches before a season is delayed (review)', () => {
+    expect(ARRIVAL_MIN_SAMPLE).toBe(10);
+    expect(arrivesLate({ measured: 1, late: 1 })).toBe(false);
+    expect(arrivesLate({ measured: 3, late: 2 })).toBe(false);
+    expect(arrivesLate({ measured: 9, late: 9 })).toBe(false);
+    expect(arrivesLate({ measured: 10, late: 6 })).toBe(true);
+    // Below the floor the counts decide, as before T-1824.
+    expect(
+      compute('lineups', { expected: 1, present: 1, arrival: { measured: 1, late: 1 } }, null)
+        .state,
+    ).toBe('available');
+    expect(
+      compute('lineups', { expected: 4, present: 3, arrival: { measured: 3, late: 2 } }, null)
+        .state,
+    ).toBe('limited');
+    expect(
+      compute('lineups', { expected: 10, present: 10, arrival: { measured: 10, late: 6 } }, null)
+        .state,
+    ).toBe('delayed');
+  });
+
+  it('is limited, not delayed, when most matches have none, however late the rest came', () => {
+    const cup = compute(
+      'lineups',
+      { expected: 100, present: 5, arrival: { measured: 5, late: 5 } },
+      null,
+    );
+    expect(cup.state).toBe('limited');
+    expect(cup.note).toBe('5 of 100 fixtures have lineups.');
+    // A large late sample does not change it either.
+    expect(
+      compute('lineups', { expected: 100, present: 40, arrival: { measured: 20, late: 20 } }, null)
+        .state,
+    ).toBe('limited');
   });
 });

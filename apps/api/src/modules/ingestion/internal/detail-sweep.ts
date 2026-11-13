@@ -17,17 +17,19 @@
  *
  * Now each run asks, in this order:
  *
- *   1. recent: finished matches in the live window, `detailBatch` of them
- *      (`INGESTION_DETAIL_BATCH`, 30 unless set), those never asked after the
- *      whistle first, oldest kick-off first, then the one asked longest ago --
- *      fair across competitions (`fairOrder`), never in the order of their
- *      names;
- *   2. the backlog of matches never asked (T-102), as before, fair across
- *      competitions;
- *   3. line-up re-asks: finished matches of the last `LINEUP_REASK_DAYS` still
+ *   1. recent (critical tier): finished matches in the live window,
+ *      `detailBatch` of them (`INGESTION_DETAIL_BATCH`, 30 unless set), those
+ *      never asked after the whistle first, oldest kick-off first, then the one
+ *      asked longest ago -- fair across competitions (`fairOrder`), never in
+ *      the order of their names;
+ *   2. line-up re-asks (standard tier, the share D-382's live statistics also
+ *      draw on): finished matches of the last `LINEUP_REASK_DAYS` still
  *      missing a side's line-up, asked again once `LINEUP_REASK_HOURS` have
  *      passed since the last ask, at most `LINEUP_REASK_BATCH` a run, the one
- *      asked longest ago first, fair across competitions.
+ *      asked longest ago first, fair across competitions; none chosen once the
+ *      standard share is spent, and none started `LINEUP_REASK_DEADLINE_MS`
+ *      after the run began;
+ *   3. the backlog of matches never asked (T-102, bulk tier), as before.
  */
 
 /** Recent asks one post-match run sends unless `INGESTION_DETAIL_BATCH` says otherwise. */
@@ -53,8 +55,15 @@ export const LINEUP_REASK_HOURS = 6;
  * weeks a line-up that has not come is taken as not supplied.
  */
 export const LINEUP_REASK_DAYS = 14;
-/** The most line-up re-asks one run sends (at most 960 a day, about 300 in practice). */
+/** The most line-up re-asks one run sends (at most 960 a day, about 50 a day today). */
 export const LINEUP_REASK_BATCH = 20;
+/**
+ * No line-up re-ask starts once the post-match run has gone this long (T-1823
+ * review): the run shares the one ingestion worker with the live tick, and the
+ * jobs on it are held to 30 seconds. The re-asks come right after the recent
+ * asks, so twenty spaced asks fit; those left are first on the next run.
+ */
+export const LINEUP_REASK_DEADLINE_MS = 30_000;
 
 /**
  * Items ordered by `compare` within each competition, then taken one from each

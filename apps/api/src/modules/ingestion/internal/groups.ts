@@ -70,7 +70,9 @@ export function groupPlayed(
  *      group's table, T-1399).
  *
  * The third is what keeps it from being blind: a sum that does not match ours
- * (a result we do not hold) is compared as before and raises its finding.
+ * (a result we do not hold) is compared, and raises its finding -- against
+ * our group-stage totals (`groupStagesPlayed`), so only the clubs that differ
+ * are named, with our count, not all thirty as "no row" (T-1822 review).
  * Recognised by these facts, never by the competition's name. Pure.
  */
 export function isGroupStagesAggregate(
@@ -78,7 +80,23 @@ export function isGroupStagesAggregate(
   leagueTable: ReadonlyMap<string, number>,
   ourGroups: readonly { rows: readonly { team: { id: string }; played: number }[] }[],
 ): boolean {
-  if (leagueTable.size > 0 || rows.length === 0) return false;
+  if (rows.length === 0) return false;
+  const totals = groupStagesPlayed(leagueTable, ourGroups);
+  return totals !== null && rows.every((row) => totals.get(row.teamId) === row.played);
+}
+
+/**
+ * Each team's finished matches over the season's group stages, when the
+ * season has no league table of ours and its group stages have finished
+ * matches (conditions 1 and 2 of `isGroupStagesAggregate`); `null` otherwise.
+ * What a provider table with no group and no conference is compared with in
+ * such a season (T-1822). Pure.
+ */
+export function groupStagesPlayed(
+  leagueTable: ReadonlyMap<string, number>,
+  ourGroups: readonly { rows: readonly { team: { id: string }; played: number }[] }[],
+): Map<string, number> | null {
+  if (leagueTable.size > 0) return null;
   const totals = new Map<string, number>();
   let counted = 0;
   for (const group of ourGroups) {
@@ -87,6 +105,5 @@ export function isGroupStagesAggregate(
       counted += row.played;
     }
   }
-  if (counted === 0) return false;
-  return rows.every((row) => totals.get(row.teamId) === row.played);
+  return counted === 0 ? null : totals;
 }

@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StandingsService } from '../../standings/standings.service';
 import { PostgresStandingsStore } from '../../standings/internal/standings-store';
-import { groupMembers, isGroupStagesAggregate } from './groups';
+import { groupMembers, groupStagesPlayed, isGroupStagesAggregate } from './groups';
 import { IngestStore, type RefResolver } from './ingest-store';
 
 /**
@@ -219,6 +219,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // One result we do not hold: compared as before, and the finding fires.
       const ahead = sum.map((r) => (r.teamId === TEAMS.d ? { ...r, played: 4 } : r));
       expect(isGroupStagesAggregate(ahead, mine, ours)).toBe(false);
+      // ...against our zone totals: d alone differs (4 against our 3).
+      const totals = groupStagesPlayed(mine, ours);
+      expect(ahead.filter((r) => totals?.get(r.teamId) !== r.played)).toEqual([
+        { teamId: TEAMS.d, played: 4 },
+      ]);
     });
   },
 );

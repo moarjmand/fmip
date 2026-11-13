@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DETAIL_BATCH,
   LINEUP_REASK_BATCH,
+  LINEUP_REASK_DEADLINE_MS,
   LINEUP_REASK_DAYS,
   LINEUP_REASK_HOURS,
   detailBatch,
@@ -33,6 +34,8 @@ describe('the line-up re-ask constants (T-1823)', () => {
     expect(LINEUP_REASK_BATCH).toBe(20);
     // 48 runs a day at most: under the 75,000 a day with room.
     expect(48 * LINEUP_REASK_BATCH).toBeLessThanOrEqual(1_000);
+    // Held to the 30 seconds the jobs on the live tick's worker keep to.
+    expect(LINEUP_REASK_DEADLINE_MS).toBe(30_000);
   });
 });
 

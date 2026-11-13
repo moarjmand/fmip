@@ -26,11 +26,17 @@ import {
 import {
   detailBatch,
   LINEUP_REASK_BATCH,
+  LINEUP_REASK_DEADLINE_MS,
   LINEUP_REASK_DAYS,
   LINEUP_REASK_HOURS,
   lineupReasks,
 } from './internal/detail-sweep';
-import { groupMembers, groupPlayed, isGroupStagesAggregate } from './internal/groups';
+import {
+  groupMembers,
+  groupPlayed,
+  groupStagesPlayed,
+  isGroupStagesAggregate,
+} from './internal/groups';
 import { lineupAsks, lineupWindow } from './internal/lineup-asks';
 import {
   askUntilDeadline,
@@ -363,6 +369,8 @@ export class IngestionJobsService {
   private readonly liveDetailPerTick = LIVE_DETAIL_PER_TICK;
   /** The UTC day the budget pause of the live statistics was last logged. */
   private liveDetailBudgetDay: string | null = null;
+  /** The UTC day the line-up re-asks last said the standard share was spent (T-1823). */
+  private lineupReaskBudgetDay: string | null = null;
 
   constructor(
     @Inject(PG_POOL) pool: Pool,
@@ -1240,12 +1248,11 @@ export class IngestionJobsService {
       // (T-1782); the recent asks here then go to the matches just finished.
       const recent = await this.detailCandidates(source.provider, targets, now);
       const backlog = await this.detailBacklog(source, targets, now, recent);
-      // A finished match still missing a line-up is asked again (T-1823).
-      const lineups = await this.lineupReasksDue(source.provider, targets, now, [
-        ...recent,
-        ...backlog,
-      ]);
-      const owed = [...recent, ...backlog, ...lineups];
+      // A finished match still missing a line-up is asked again (T-1823),
+      // right after the recent asks and before the backlog, within
+      // `LINEUP_REASK_DEADLINE_MS` of the run's start.
+      const lineups = await this.lineupReasksDue(source, targets, now, [...recent, ...backlog]);
+      const owed = [...recent, ...lineups, ...backlog];
       const reasked = new Set(lineups.map((c) => c.fixtureId));
       // What an administrator asked the feed again for (T-913), within its share.
       const refetches = await this.refetchesDue(source, targets, owed);
@@ -1260,7 +1267,17 @@ export class IngestionJobsService {
       // The backlog and the re-asks are spaced (T-1422) where a provider's
       // plan is held to a budget; a replay source or a test is not.
       const pacer = this.sources.dailyBudget === undefined ? null : new AskPacer();
+      const runStarted = Date.now();
       for (const candidate of candidates) {
+        // No line-up re-ask starts once the run has had its time (T-1823
+        // review): the live tick waits behind this run on the one worker.
+        // The ones left are the longest-unasked on the next run.
+        if (
+          reasked.has(candidate.fixtureId) &&
+          Date.now() - runStarted >= LINEUP_REASK_DEADLINE_MS
+        ) {
+          continue;
+        }
         if (!watched.has(candidate.fixtureId)) await pacer?.pace();
         // A recent match's alerts (T-830): a full-time or a red card the live
         // list did not carry. A backlog match is long over and raises none,
@@ -1268,9 +1285,10 @@ export class IngestionJobsService {
         const before = watched.has(candidate.fixtureId)
           ? await this.alerts.before(candidate.fixtureId)
           : null;
-        // Only a just-finished match draws on the reserve (T-1365, D-183); a
-        // missing line-up's re-ask is standard, as the line-ups job's asks
-        // are (T-1823); the backlog and the queued re-asks are bulk and stop first.
+        // Only a just-finished match draws on the reserve (T-1365, D-183). A
+        // missing line-up's re-ask (T-1823) is standard, the share D-382's
+        // live statistics also draw on (the line-ups job itself is critical);
+        // the backlog and the queued re-asks are bulk and stop first.
         const detail = await withBudgetTier(
           watched.has(candidate.fixtureId)
             ? 'critical'
@@ -1539,6 +1557,10 @@ export class IngestionJobsService {
               grouped.length > 0 || (plain.length > 0 && mine.size === 0)
                 ? await this.standings.groupTables(seasonId)
                 : [];
+            // Such a season's sums are compared with our group-stage totals:
+            // a club that differs is named with our count, not every club as
+            // "no row" against an empty league table.
+            const sums = plain.length > 0 ? groupStagesPlayed(mine, ourGroups) : null;
 
             const compared: TableComparison[] = [];
             for (const table of resolved) {
@@ -1553,7 +1575,12 @@ export class IngestionJobsService {
               }
               // A team's row in our table of the same group: a team in no
               // group of ours (its matches carry none yet) has no row.
-              const held = table.group === null ? mine : groupPlayed(ourGroups, table);
+              const held =
+                table.group !== null
+                  ? groupPlayed(ourGroups, table)
+                  : table.conference === null && sums !== null
+                    ? sums
+                    : mine;
               for (const row of table.rows) {
                 const ourPlayed = held.get(row.teamId);
                 compared.push({ teamId: row.teamId, providerPlayed: row.played, ourPlayed });
@@ -1664,14 +1691,43 @@ export class IngestionJobsService {
    * and before the recent window, last asked `LINEUP_REASK_HOURS` ago or more,
    * at most `LINEUP_REASK_BATCH`, the longest-unasked first, fair across the
    * competitions. A match this run already asks for another reason is left
-   * for the next.
+   * for the next. Standard tier: once its share of the day is spent nothing
+   * is chosen, quietly, as D-382's live statistics do -- a decision, not a
+   * failure, so the run is neither partial nor paced for asks never sent.
    */
   private async lineupReasksDue(
-    provider: Provider,
+    source: JobSource,
     targets: PollTarget[],
     now: Date,
     taken: { fixtureId: string }[],
   ): Promise<{ externalId: string; fixtureId: string; target: PollTarget }[]> {
+    const provider = source.provider;
+    let left = LINEUP_REASK_BATCH;
+    const budget = this.sources.dailyBudget;
+    if (budget !== undefined) {
+      const shares = parseTierShares(process.env);
+      const ceiling = tierCeiling(
+        budget,
+        'standard',
+        'error' in shares ? DEFAULT_TIER_SHARES : shares,
+      );
+      left = Math.min(
+        left,
+        liveDetailBudgetLeft(ceiling, await this.runs.requestsToday(provider, now)),
+      );
+      if (left === 0) {
+        const day = now.toISOString().slice(0, 10);
+        if (this.lineupReaskBudgetDay !== day) {
+          this.lineupReaskBudgetDay = day;
+          this.log.log('line-up re-asks paused: the standard share of the budget is spent', {
+            event: 'ingest.lineup_reask_budget',
+            ceiling,
+            budget,
+          });
+        }
+        return [];
+      }
+    }
     const targetOf = new Map<string, PollTarget>();
     for (const target of targets) {
       if (!targetOf.has(target.competitionId)) targetOf.set(target.competitionId, target);
@@ -1689,7 +1745,7 @@ export class IngestionJobsService {
     );
     return lineupReasks(
       rows.filter((r) => !skip.has(r.fixtureId)),
-      LINEUP_REASK_BATCH,
+      left,
     ).flatMap((r) => {
       const target = targetOf.get(r.competitionId);
       return target === undefined

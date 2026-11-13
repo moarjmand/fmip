@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupMembers, groupPlayed, isGroupStagesAggregate } from './groups';
+import { groupMembers, groupPlayed, groupStagesPlayed, isGroupStagesAggregate } from './groups';
 
 describe('isGroupStagesAggregate (T-1822, D-416)', () => {
   // Two group stages, each club 16 + 16 group matches; no league stage.
@@ -42,6 +42,15 @@ describe('isGroupStagesAggregate (T-1822, D-416)', () => {
 
   it('is not for an empty table', () => {
     expect(isGroupStagesAggregate([], noLeague, ours)).toBe(false);
+  });
+
+  it('gives a sum that differs our group-stage totals to compare with, not an empty league table', () => {
+    // One club ahead: compared with 32, so one finding "ours 32", not thirty "no row".
+    const totals = groupStagesPlayed(noLeague, ours);
+    expect(totals?.get('t1')).toBe(32);
+    expect(totals?.get('t2')).toBe(32);
+    expect(groupStagesPlayed(new Map([['t1', 32]]), ours)).toBeNull();
+    expect(groupStagesPlayed(noLeague, [{ rows: [] }])).toBeNull();
   });
 });
 
