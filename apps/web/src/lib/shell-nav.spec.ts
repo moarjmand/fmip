@@ -155,7 +155,7 @@ describe('the site footer', () => {
     ]);
   });
 
-  it('has a legal strip of the rules and the data sources, and nothing that does not exist yet (D-392)', () => {
+  it('has a legal strip of the rules and the data sources, and nothing that does not exist yet (D-410)', () => {
     expect(FOOTER_LEGAL).toEqual([
       { id: 'rules', path: '/rules' },
       { id: 'data', path: '/about#data' },

@@ -38,7 +38,7 @@ export interface RulesSection {
 
 /**
  * The versions whose sections a person has checked against the text (T-1789,
- * D-392): every lead-in below is a heading in that text and nothing else is.
+ * D-410): every lead-in below is a heading in that text and nothing else is.
  * A version that is not here is shown as plain blocks, as before: a short
  * first sentence is not always a heading ("One account per person."), and a
  * heading that changed what a text says would be a new version every member
@@ -50,7 +50,7 @@ const SECTIONED_VERSIONS: ReadonlySet<string> = new Set(['platform-rules@1.0.0']
 const LEAD_IN = /^([A-Z][A-Za-z]*(?: [a-z]+){0,6})\.(?: |$)/;
 
 /**
- * The rules in numbered sections (T-1789, D-392), for a version in
+ * The rules in numbered sections (T-1789, D-410), for a version in
  * `SECTIONED_VERSIONS`; `null` for any other, or if its first block has no
  * lead-in. A paragraph that opens on a lead-in starts a section: the lead-in
  * becomes the heading and leaves the paragraph, and nothing else changes, so

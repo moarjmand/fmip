@@ -70,7 +70,7 @@ function Block({ block }: { block: RulesBlock }) {
 }
 
 /**
- * The index of the sections (T-1789, D-392): a link to each heading, a 44px
+ * The index of the sections (T-1789, D-410): a link to each heading, a 44px
  * row. The headings are the text's own English words, so the list is
  * English and left to right on every page, like the text.
  */
@@ -118,7 +118,7 @@ export default async function RulesPage({
   const day = (iso: string) =>
     formatDate(locale, iso, timeZone, { day: 'numeric', month: 'long', year: 'numeric' });
   // Numbered sections with an index, only for a version whose headings were
-  // checked against its text (T-1789, D-392); any other is plain blocks.
+  // checked against its text (T-1789, D-410); any other is plain blocks.
   const sections = rules.ok ? rulesSections(rules.data.version, rules.data.body) : null;
   const onThisPage = attribute(
     isLocale(locale) ? locale : DEFAULT_LOCALE,
