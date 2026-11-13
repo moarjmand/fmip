@@ -34,10 +34,6 @@ from fmip_model.model.version import (
     CrossLeague,
     load_candidate,
 )
-
-#: The version 0.7.0 replaced on the site (D-410), kept in retired/ (rule 5).
-PREVIOUS = load_candidate(RETIRED_DIR / "dixon-coles-elo-0.6.0.json")
-assert PREVIOUS is not None
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster, TrainingSource
 from fmip_model.training import sources
@@ -48,6 +44,10 @@ from fmip_model.training.sources import (
     extra_season_label,
     football_data_extra_url,
 )
+
+#: The version 0.7.0 replaced on the site (D-410), kept in retired/ (rule 5).
+PREVIOUS = load_candidate(RETIRED_DIR / "dixon-coles-elo-0.6.0.json")
+assert PREVIOUS is not None
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 needs_db = pytest.mark.skipif(not DATABASE_URL, reason="DATABASE_URL not set")
