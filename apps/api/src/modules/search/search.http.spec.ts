@@ -201,7 +201,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
         league,
         ground: null,
       });
-      expect(found.find((r) => r.id === PERSON)).not.toHaveProperty('team_context');
+      // A person carries no team context ("zeb" does not reach "Zlatko", so ask by name).
+      const person = ours(await search('q=zlatko&types=person')).find((r) => r.id === PERSON);
+      expect(person).toBeDefined();
+      expect(person).not.toHaveProperty('team_context');
     } finally {
       await pool.query(`DELETE FROM fixture_participant WHERE fixture_id = $1`, [match]);
       await pool.query(`DELETE FROM fixture WHERE id = $1`, [match]);
