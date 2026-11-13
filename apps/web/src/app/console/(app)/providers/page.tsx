@@ -509,9 +509,7 @@ function Filters({
                 className={chip(view.status === tab)}
               >
                 {tab === 'all' ? 'همه' : STATUS_WORDS[tab]}
-                <span className="text-xs opacity-80">
-                  {fa(tab === 'all' ? total : counts[tab])}
-                </span>
+                <span className="text-xs">{fa(tab === 'all' ? total : counts[tab])}</span>
               </Link>
             </li>
           ))}

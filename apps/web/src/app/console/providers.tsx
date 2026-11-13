@@ -47,6 +47,11 @@ const CONFIDENCE_TONE: Record<ConsoleProviderConfidence, string> = {
 
 /** Bars filled out of three, so the badge does not lean on its colour. */
 const CONFIDENCE_BARS: Record<ConsoleProviderConfidence, number> = { high: 3, medium: 2, low: 1 };
+const CONFIDENCE_FILL: Record<ConsoleProviderConfidence, string> = {
+  high: 'bg-success',
+  medium: 'bg-warning',
+  low: 'bg-danger',
+};
 
 /** 1 (poor) to 5 (best): a tint per step, the number always written on it. */
 const SCORE_TONE: Record<number, string> = {
@@ -169,7 +174,7 @@ export function ConfidenceBadge({ confidence }: { confidence: ConsoleProviderCon
         {[1, 2, 3].map((n) => (
           <span
             key={n}
-            className={`inline-block w-1 rounded-sm ${n <= bars ? 'bg-current' : 'bg-current opacity-25'}`}
+            className={`inline-block w-1 rounded-sm ${n <= bars ? CONFIDENCE_FILL[confidence] : 'bg-surface-raised'}`}
             style={{ blockSize: `${n * 0.25 + 0.25}rem` }}
           />
         ))}
@@ -212,11 +217,10 @@ export function ScoreCell({
     );
   return (
     <span
-      className={`relative inline-flex min-w-9 items-center justify-center rounded-control px-2 py-1 text-sm font-bold text-fg ${
-        SCORE_TONE[fact.score]
-      } ${fact.verified ? 'border border-transparent' : 'border border-dashed border-warning'} ${
-        muted ? 'opacity-40' : ''
-      }`}
+      className={`relative inline-flex min-w-9 items-center justify-center rounded-control px-2 py-1 text-sm font-bold ${
+        // Left out of a verified-only total: drawn without its tint, its number still there.
+        muted ? 'bg-surface text-caption line-through' : `${SCORE_TONE[fact.score]} text-fg`
+      } ${fact.verified ? 'border border-transparent' : 'border border-dashed border-warning'}`}
       title={`${fact.value_fa}${fact.verified ? '' : ` (${UNVERIFIED})`}`}
       data-score={fact.score}
       data-verified={fact.verified}
