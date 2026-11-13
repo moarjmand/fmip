@@ -59,6 +59,19 @@ describe('ModelExpected in a match report', () => {
     expect(expected({ summary: 'unreachable', evaluation: null })).toContain('could not be loaded');
   });
 
+  it('states no result, winner or score for stored scores that contradict each other (T-1819, D-414)', () => {
+    // An evaluation handed in anyway still holds the 4-0 it was scored against.
+    const html = expected({
+      result: null,
+      evaluation: { rps: 0.2, actual: { home: 4, away: 0 } } as ForecastEvaluation,
+      scoreUnclear: true,
+    });
+    expect(html).toContain('Score unclear in the source');
+    expect(html).not.toContain('No result has been recorded');
+    expect(html).not.toContain('data-testid="story-model-rps"');
+    expect(html.replace(/<[^>]+>/g, '')).not.toMatch(/4\s*–\s*0/);
+  });
+
   it('is Persian on /fa, with Persian digits', () => {
     const html = expected({}, 'fa');
     expect(html).toContain('مدل چه انتظاری داشت');

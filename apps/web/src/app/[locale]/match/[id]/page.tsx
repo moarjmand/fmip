@@ -98,11 +98,13 @@ export async function generateMetadata({
   const title = `${t(resolved, 'matchCentre.title')} · Stadiomind`;
   if (!UUID.test(id)) return { title, robots: { index: false, follow: false } };
   const result = await matchCentre(id);
-  if (!result.ok) return pageMetadata({ locale, path: `/match/${id}`, title });
+  // The match has its own card (`opengraph-image.tsx`), never the brand one.
+  if (!result.ok) return pageMetadata({ locale, path: `/match/${id}`, title, card: 'own' });
   const f = result.data.fixture;
   const teams = { home: f.home.name, away: f.away.name };
   return pageMetadata({
     locale,
+    card: 'own',
     path: `/match/${f.id}`,
     title: `${interpolate(t(resolved, 'matchCentre.fixtureTitle'), teams)} · Stadiomind`,
     description: interpolate(t(resolved, 'matchCentre.metaDescription'), {

@@ -111,8 +111,11 @@ export function MatchPreview({
   const compact = !started && !awaiting;
   const live = card.status === 'live';
   // The recorded goals disagree with the result (T-1717, D-347): the score is
-  // drawn quiet and said to be unclear, neither number as final.
-  const disputed = card.status === 'finished' && card.score_dispute != null;
+  // drawn quiet and said to be unclear, neither number as final. Stored scores
+  // that contradict each other (T-1819, D-414) are said to be unclear with no
+  // number at all: the API has withheld them.
+  const disputed =
+    card.status === 'finished' && (card.score_dispute != null || card.score_conflict != null);
   const when = `${formatDate(locale, card.kickoff_at, timeZone, { weekday: 'short' })} ${formatKickoff(locale, card.kickoff_at, timeZone)}`;
   const close = attribute(l, 'scores.preview.close');
   const side = (which: 'home' | 'away') => (
@@ -202,7 +205,11 @@ export function MatchPreview({
         >
           {side('home')}
           <div className="flex flex-col items-center gap-1">
-            {line === null ? (
+            {line === null && disputed ? (
+              <span className="text-2xl font-extrabold text-muted" data-testid="preview-score">
+                –
+              </span>
+            ) : line === null ? (
               <span className="text-sm text-caption">
                 <Translated locale={l} message="scores.preview.versus" />
               </span>

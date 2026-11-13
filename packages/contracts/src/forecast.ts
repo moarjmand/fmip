@@ -10,6 +10,7 @@
 
 import type { CoverageState } from './coverage';
 import type { EntityMedia } from './media';
+import type { ScoreConflict } from './scores';
 
 export interface ModelForecastRequest {
   /** Catalog fixture UUID; echoed back, never interpreted by the model. */
@@ -246,6 +247,13 @@ export interface FixtureEvaluationsResponse {
   last_updated_at: string | null;
   /** Oldest version first. */
   evaluations: ForecastEvaluation[];
+  /**
+   * The match's stored scores contradict each other (T-1819, D-414): every
+   * evaluation here was scored against one of the two numbers, so none is
+   * served (`evaluations` empty, `coverage` `limited`) and no surface states
+   * that number or a winner. The model's aggregates still count them (D-139).
+   */
+  score_conflict?: ScoreConflict | null;
 }
 
 export interface ModelPerformanceRow {
@@ -512,6 +520,26 @@ export interface AdminModelAccuracyResponse {
   generated_at: string;
 }
 
+/**
+ * A week or month of the public page, with whether it is over (T-1751,
+ * D-370): the page no longer infers a running week from the last scoring
+ * time.
+ */
+export interface PublicAccuracyPoint extends AccuracyPoint {
+  /** The first day after the period, `YYYY-MM-DD` (UTC): its end, exclusive. */
+  period_end: string;
+  /**
+   * False while the period is still running: its end has not passed, or a
+   * match of it with a published forecast made before kick-off is not scored
+   * yet and kicked off recently enough that the API's evaluation tick would
+   * still score it (its `EVALUATE_WINDOW_DAYS`, 14 days): a late result
+   * still lands in a period called running, so a complete period's figures
+   * do not change. A match still unscored past that window is never scored
+   * by the tick and is outside the sample, like any unscored match.
+   */
+  complete: boolean;
+}
+
 /** The published forecasts over one competition, or all of them. */
 export interface PublicAccuracySeries {
   /**
@@ -524,26 +552,103 @@ export interface PublicAccuracySeries {
   model_versions: string[];
   total: AccuracyMetrics;
   /** By ISO week or calendar month, as the response's `period` says, oldest first. */
-  points: AccuracyPoint[];
+  points: PublicAccuracyPoint[];
+}
+
+// ---------------------------------------------------------------------------
+// Calibration (T-1751, D-370, D-408): "when it says 60%, how often does it
+// happen?" Every probability of each match's counted forecast (the last
+// published one before kick-off, D-209) -- home, draw and away, pooled -- in
+// ten steps of ten points, with how many of them happened. Aggregated on read
+// from the stored forecasts and their evaluations alone (rule 8); nothing is
+// written (rule 5).
+// ---------------------------------------------------------------------------
+
+/** The calibration's steps: ten of ten points each. */
+export const CALIBRATION_STEPS = 10;
+
+/**
+ * Forecasts a step needs before its point is drawn solid; under it the point
+ * is hollow with its count, and with no step at it there is no chart. Three
+ * probabilities a match, so a step of 30 is at most 30 and at least 10
+ * matches.
+ */
+export const CALIBRATION_MINIMUM_FORECASTS = 30;
+
+export interface CalibrationBin {
+  /** The step's lower bound, inclusive: 0, 0.1 … 0.9. */
+  from: number;
+  /** The upper bound, exclusive; the last step, 0.9 to 1, includes 1. */
+  to: number;
+  /** Probabilities that fell in the step. */
+  forecasts: number;
+  /** How many of those outcomes happened. */
+  happened: number;
+  /** The mean of those probabilities, where the point sits; null with none. */
+  said: number | null;
+}
+
+export interface AccuracyCalibration {
+  minimum_forecasts: number;
+  /**
+   * `not_supplied` with no forecast; `limited` when no step reaches the
+   * minimum (no chart); `available` when at least one does (the thin steps
+   * drawn hollow).
+   */
+  coverage: CoverageState;
+  /** Always ten, lowest first; a step with no forecast has zeros and a null `said`. */
+  bins: CalibrationBin[];
+}
+
+/** Every competition together, with its calibration. */
+export interface PublicOverallSeries extends PublicAccuracySeries {
+  competition: null;
+  /**
+   * Absent only when the request said `calibration=omit`: it does not depend
+   * on the period, so a page that asks twice computes it once.
+   */
+  calibration?: AccuracyCalibration;
+}
+
+/**
+ * One published model version on its own (T-1751): each match counted once,
+ * under the version of its last published forecast before kick-off, so the
+ * versions' matches add up to the overall series'. A shadow candidate is
+ * never here.
+ */
+export interface PublicVersionSeries {
+  model_version: string;
+  total: AccuracyMetrics;
+  /** By the response's period, oldest first. */
+  points: PublicAccuracyPoint[];
+  /** Absent only when the request said `calibration=omit`. */
+  calibration?: AccuracyCalibration;
 }
 
 /**
  * `GET /model/accuracy?period=week|month` (T-1369; the week, T-1413): the
  * statistical model's published forecasts only -- never a shadow candidate,
  * never the founder's analysis or the community's consensus (rule 6).
- * Public; by month unless asked for weeks.
+ * Public; by month unless asked for weeks. `&calibration=omit` leaves the
+ * calibration out (T-1751): the page's second request, for the weekly chart,
+ * does not compute it again.
  */
 export interface PublicModelAccuracyResponse {
   period: AccuracyPeriod;
   minimum_matches: number;
   reference: AccuracyReference;
   /** Every competition together. */
-  overall: PublicAccuracySeries;
+  overall: PublicOverallSeries;
   /**
    * Each competition the model has published a pre-kick-off forecast for, by
    * name; one with nothing evaluated yet is `not_supplied`, never left out.
    */
   competitions: PublicAccuracySeries[];
+  /**
+   * Each published version that has a counted match, the one with the latest
+   * counted kick-off first (T-1751). Empty with nothing scored.
+   */
+  versions: PublicVersionSeries[];
   last_updated_at: string | null;
 }
 

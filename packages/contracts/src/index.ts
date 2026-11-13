@@ -422,19 +422,26 @@ export type {
   CandidateShadowHealth,
 } from './forecast';
 export type {
+  AccuracyCalibration,
   AccuracyMetrics,
   AccuracyPeriod,
   AccuracyPoint,
   AccuracyReference,
   AdminAccuracySeries,
   AdminModelAccuracyResponse,
+  CalibrationBin,
+  PublicAccuracyPoint,
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
+  PublicOverallSeries,
+  PublicVersionSeries,
 } from './forecast';
 export type { ModelUpset, ModelUpsetEntity, ModelUpsetGap, ModelUpsetResponse } from './forecast';
 export {
   ACCURACY_MINIMUM_MATCHES,
   ACCURACY_PERIODS,
+  CALIBRATION_MINIMUM_FORECASTS,
+  CALIBRATION_STEPS,
   CANDIDATE_FAILURE_LOOKBACK_DAYS,
   PROMOTION_MINIMUM,
 } from './forecast';
@@ -442,6 +449,7 @@ export {
   STALE_LIVE_AFTER_MS,
   STOPPED_CLOCK_MINUTES,
   liveFreshnessFrom,
+  scoreConflictOf,
   stillToPlay,
 } from './scores';
 export { AVAILABILITY_STALE_AFTER_MS, LIVE_STATS_STALE_AFTER_MS } from './match-centre';
@@ -452,6 +460,8 @@ export type {
   ScoreCardIncident,
   ScoreCardIncidentKind,
   ScoreCardTeam,
+  ScoreConflict,
+  ScoreConflictReason,
   ScoreDispute,
   ScoreLine,
   ScoresAgeFilter,

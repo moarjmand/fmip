@@ -7,10 +7,18 @@ import type {
   PredictionHistoryItem,
   Rating,
   TableRow,
+  TeamPage,
 } from '@fmip/contracts';
+import { t } from '@/i18n/messages';
 import {
   aheadOfKickoff,
+  BRAND_CARD,
+  teamCardText,
+  teamCardCacheControl,
+  teamFixtureSize,
+  teamNameSize,
   calledItText,
+  cardAlt,
   cardName,
   kickoffUtc,
   matchCardText,
@@ -160,6 +168,30 @@ describe('the match card (A10, T-1723)', () => {
       centre: '0–1',
       disputed: true,
       loser: null,
+      status: 'Score unclear in the source',
+    });
+  });
+
+  it('draws no number when the stored scores contradict each other (T-1819, D-414)', () => {
+    // The API withholds the lines in conflict; the shoot-out line stays on record.
+    const text = matchCardText(
+      header({
+        status: 'finished',
+        scores: {
+          ...header().scores,
+          current: null,
+          full_time: null,
+          penalties: { home: 4, away: 3 },
+        },
+        score_conflict: { coverage: 'limited', reasons: ['ninety_exceeds_final'] },
+      }),
+      null,
+    );
+    expect(text).toMatchObject({
+      centre: '–',
+      disputed: true,
+      loser: null,
+      decided: null,
       status: 'Score unclear in the source',
     });
   });
@@ -379,5 +411,189 @@ describe('the member card', () => {
     const text = memberCardText({ display_name: 'New', username: 'newbie' }, null, [open]);
     expect(text.rating).toBe('No settled predictions yet');
     expect(text.recent).toEqual([]);
+  });
+});
+
+describe('the brand card (B10, T-1825)', () => {
+  it('says the brand line, with "record" apart to be lit', () => {
+    // The catalogue's line (T-1827) and the card's are one sentence.
+    expect(`${BRAND_CARD.before} ${BRAND_CARD.lit} ${BRAND_CARD.after}`).toBe(
+      t('en', 'brand.line'),
+    );
+    expect(BRAND_CARD.lit).toBe('record');
+  });
+
+  it('is described in the reader’s language, an unknown one in English', () => {
+    expect(cardAlt('brand', 'en')).toBe(
+      'Stadiomind: a forecast model that shows its record in public',
+    );
+    expect(cardAlt('brand', 'fa')).toBe(
+      'Stadiomind: مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد',
+    );
+    expect(cardAlt('brand', 'xx')).toBe(cardAlt('brand', 'en'));
+  });
+});
+
+describe('the team card (T1, T-1826)', () => {
+  const ARSENAL = 'team-ars';
+  const NOW = new Date('2026-11-13T23:30:00.000Z');
+  const page = (over: Partial<TeamPage> = {}): TeamPage =>
+    ({
+      team: {
+        id: ARSENAL,
+        name: 'Arsenal',
+        localised_name: null,
+        short_name: null,
+        code: 'ARS',
+        kind: 'club',
+        gender: 'men',
+        age_group: 'senior',
+        founded_year: 1886,
+        country: { id: 'c-eng', name: 'England', code: 'GB-ENG' },
+        venue: null,
+        colour: '#e10000',
+      },
+      competitions: [
+        {
+          competition: {
+            id: 'pl',
+            name: 'Premier League',
+            short_name: null,
+            kind: 'league',
+            scope: 'domestic',
+          },
+          season: { id: 's', label: '2026/27', is_current: true },
+          context: {
+            coverage: 'available',
+            data: {
+              position: 1,
+              total: 20,
+              points: 27,
+              rows: [
+                { position: 1, team: { id: ARSENAL, name: 'Arsenal' }, played: 10, points: 27 },
+              ],
+            },
+          },
+          has_table: true,
+        },
+      ],
+      next_match: {
+        id: 'f1',
+        kickoff_at: '2026-11-21T17:30:00.000Z',
+        status: 'scheduled',
+        round: 'Regular Season - 11',
+        stage: null,
+        home: { id: 'new', name: 'Newcastle', short_name: null },
+        away: { id: ARSENAL, name: 'Arsenal', short_name: null },
+        score: null,
+        competition: { id: 'pl', name: 'Premier League', short_name: null },
+        season: { id: 's', label: '2026/27' },
+        after_extra_time: false,
+        penalties: null,
+        freshness: null,
+      },
+      ...over,
+    }) as unknown as TeamPage;
+
+  it('says the club, its league and standing, its next match and the day it was drawn', () => {
+    expect(teamCardText(page(), NOW)).toEqual({
+      eyebrow: 'England · Club · Founded 1886',
+      name: 'Arsenal',
+      competition: { name: 'Premier League', known: true },
+      standing: '1st · 27 pts from 10',
+      next: {
+        label: 'Next match',
+        match: 'Newcastle v Arsenal',
+        detail: 'Sat 21 Nov · Premier League · Matchweek 11',
+        known: true,
+      },
+      // The UK's day, never a time: 23:30 UTC on the 13th is still the 13th in London.
+      asOf: 'As of 13 Nov 2026',
+    });
+  });
+
+  it('says what the answer does not hold, never a made-up figure (rule 3)', () => {
+    const text = teamCardText(page({ competitions: [], next_match: null }), NOW);
+    expect(text.competition).toEqual({ name: 'No current competition on record', known: false });
+    expect(text.standing).toBeNull();
+    expect(text.next).toEqual({
+      label: 'Next match',
+      match: 'No match scheduled',
+      detail: null,
+      known: false,
+    });
+  });
+
+  it('draws a standing only from a table held in full and on time (rule 4)', () => {
+    const [league] = page().competitions;
+    for (const coverage of ['limited', 'delayed'] as const) {
+      const partial = { ...league!, context: { ...league!.context, coverage } };
+      expect(teamCardText(page({ competitions: [partial] }), NOW).standing).toBeNull();
+    }
+  });
+
+  it('says "Now playing" or "Suspended" for a match in play or suspended, never "Next match"', () => {
+    const base = page();
+    const live = { ...base.next_match!, status: 'live' };
+    const suspended = { ...base.next_match!, status: 'suspended' };
+    expect(teamCardText(page({ next_match: live }), NOW).next.label).toBe('Now playing');
+    expect(teamCardText(page({ next_match: suspended }), NOW).next.label).toBe('Suspended');
+  });
+
+  it('is kept five minutes while its match is close or under way, else an hour (rev-2026-11-13-08)', () => {
+    const at = (iso: string, status = 'scheduled') => ({ kickoff_at: iso, status });
+    const now = new Date('2026-11-21T17:00:00.000Z');
+    expect(teamCardCacheControl(null, now)).toBe('public, max-age=3600');
+    expect(teamCardCacheControl(at('2026-11-22T17:00:00.000Z'), now)).toBe('public, max-age=3600');
+    expect(teamCardCacheControl(at('2026-11-21T18:01:00.000Z'), now)).toBe('public, max-age=3600');
+    expect(teamCardCacheControl(at('2026-11-21T18:00:00.000Z'), now)).toBe('public, max-age=300');
+    // A kick-off already past and still "scheduled" is about to change too.
+    expect(teamCardCacheControl(at('2026-11-21T12:00:00.000Z'), now)).toBe('public, max-age=300');
+    expect(teamCardCacheControl(at('2026-11-21T16:30:00.000Z', 'live'), now)).toBe(
+      'public, max-age=300',
+    );
+    expect(teamCardCacheControl(at('2026-11-25T16:30:00.000Z', 'suspended'), now)).toBe(
+      'public, max-age=300',
+    );
+  });
+
+  it('steps a long fixture down so the date under it stays clear (PR #888 review)', () => {
+    expect(teamFixtureSize('Newcastle v Arsenal')).toBe(56);
+    expect(teamFixtureSize('Borussia Dortmund v Bayer Leverkusen')).toBe(44);
+    expect(teamFixtureSize('Wolverhampton Wanderers v Brighton and Hove Albion')).toBe(34);
+  });
+
+  it('names no standing for a table that does not place the club, and no played count it lacks', () => {
+    const [league] = page().competitions;
+    const noTable = { ...league!, context: { coverage: 'not_supplied', data: null } };
+    expect(teamCardText(page({ competitions: [noTable] as never }), NOW).standing).toBeNull();
+    const elsewhere = {
+      ...league!,
+      context: { coverage: 'available', data: { position: 3, total: 20, points: 20, rows: [] } },
+    };
+    expect(teamCardText(page({ competitions: [elsewhere] as never }), NOW).standing).toBe(
+      '3rd · 20 pts',
+    );
+  });
+
+  it('never gives a long-past kick-off as the next match’s day (D-343)', () => {
+    const base = page();
+    const late = { ...base.next_match!, freshness: 'awaiting_update' as const };
+    expect(teamCardText(page({ next_match: late }), NOW).next.detail).toBe(
+      'Awaiting update · Premier League · Matchweek 11',
+    );
+  });
+
+  it('shows the English localised name, and sizes a long one down', () => {
+    const named = page();
+    named.team.localised_name = 'Persepolis';
+    expect(teamCardText(named, NOW).name).toBe('Persepolis');
+    expect(teamNameSize('Arsenal Tivat')).toBe(90);
+    expect(teamNameSize('Borussia Mönchengladbach')).toBe(64);
+    expect(teamNameSize('Club Atlético Tucumán de San Miguel')).toBe(52);
+  });
+
+  it('is described in the reader’s language', () => {
+    expect(cardAlt('team', 'fa')).toBe('باشگاه، رقابتش و بازی بعدی‌اش');
   });
 });

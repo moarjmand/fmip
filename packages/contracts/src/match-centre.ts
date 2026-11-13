@@ -11,7 +11,14 @@
 
 import type { CoverageState, Covered } from './coverage';
 import type { EntityMedia } from './media';
-import type { FixtureStatus, Freshness, ScoreCardTeam, ScoreDispute, ScoreLine } from './scores';
+import type {
+  FixtureStatus,
+  Freshness,
+  ScoreCardTeam,
+  ScoreConflict,
+  ScoreDispute,
+  ScoreLine,
+} from './scores';
 
 export interface MatchTeam extends ScoreCardTeam {
   /** From `fixture_participant`; the confirmed formation when known. */
@@ -105,6 +112,13 @@ export interface MatchHeader {
    * shows the score as unclear and announces no final number. See `ScoreDispute`.
    */
   score_dispute?: ScoreDispute | null;
+  /**
+   * The stored scores contradict each other (T-1819, D-414): `current`,
+   * `full_time` and `extra_time` are withheld (`null`), the match's
+   * `coverage.scores` is `limited`, and the page prints no definite score.
+   * See `ScoreConflict`.
+   */
+  score_conflict?: ScoreConflict | null;
   /**
    * When this match's fixture list was last answered, changed or not
    * (T-1371, D-189): the season's last whole-season ask, or its last window

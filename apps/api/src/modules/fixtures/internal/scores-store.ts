@@ -11,6 +11,7 @@ import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { freshnessOf } from './freshness';
 import { liveAnsweredAtSql } from './live-answer';
+import { scoreConflictOf, withheld } from './score-conflict';
 import { scoreDisputeOf } from './score-dispute';
 
 /** A card plus the country its competition belongs to, for grouping. */
@@ -35,7 +36,8 @@ export function orderLanguage(locale: string | null): string | null {
   return /^[a-z]{2,3}$/.test(language) ? language : null;
 }
 
-interface Row {
+/** One row of the scores list query (exported for its spec). */
+export interface Row {
   id: string;
   kickoff_at: Date;
   status: FixtureStatus;
@@ -81,15 +83,18 @@ const SCORE_KINDS = [
   'aggregate',
 ] as const;
 
-function toRow(row: Row): ScoredRow {
+export function toRow(row: Row): ScoredRow {
   const incidents = row.incidents ?? [];
   const sentOff = (side: 'home' | 'away'): number =>
     incidents.filter(
       (i) => i.side === side && (i.kind === 'red_card' || i.kind === 'second_yellow_card'),
     ).length;
-  const scores = Object.fromEntries(
+  const stored = Object.fromEntries(
     SCORE_KINDS.map((kind) => [kind, row.scores?.[kind] ?? null]),
   ) as ScoreCard['scores'];
+  // Stored lines that contradict each other are withheld (T-1819, D-414).
+  const conflict = scoreConflictOf(row.status, stored);
+  const scores = withheld(stored, conflict);
 
   return {
     card: {
@@ -131,7 +136,7 @@ function toRow(row: Row): ScoredRow {
           : null,
       // No recorded profile: the fixture exists but the depth of its data is
       // unknown, which is what `limited` says. Never `available` by default.
-      coverage: row.scores_coverage ?? 'limited',
+      coverage: conflict?.coverage ?? row.scores_coverage ?? 'limited',
       last_updated_at: row.last_updated_at.toISOString(),
       live_answered_at: row.live_answered_at?.toISOString() ?? null,
       freshness: freshnessOf(row.status, row.last_updated_at, new Date(), undefined, {
@@ -140,7 +145,9 @@ function toRow(row: Row): ScoredRow {
         kickoffAt: row.kickoff_at,
       }),
       // The recorded goals against the result, derived here (T-1717, D-347).
-      score_dispute: scoreDisputeOf(row.status, scores, incidents),
+      score_dispute: conflict === null ? scoreDisputeOf(row.status, stored, incidents) : null,
+      // The stored scores against each other (T-1819, D-414).
+      score_conflict: conflict,
       pinned: false,
     },
     country:

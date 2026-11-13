@@ -601,8 +601,17 @@ function modelExpected(
 ): Omit<Parameters<typeof ModelExpected>[0], 'timeZone' | 'locale'> {
   const { centre, summary, evaluations } = reads;
   const l: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  // Stored scores that contradict each other (T-1819, D-414): no result and
+  // no evaluation scored against one of them, whatever an answer carries.
+  const conflicted =
+    (centre.ok && centre.data.fixture.score_conflict != null) ||
+    (evaluations !== null && evaluations.ok && evaluations.data.score_conflict != null);
   const evaluation =
-    summary === null || summary === 'unreachable' || evaluations === null || !evaluations.ok
+    conflicted ||
+    summary === null ||
+    summary === 'unreachable' ||
+    evaluations === null ||
+    !evaluations.ok
       ? null
       : (evaluations.data.evaluations
           .filter((e) => e.pre_kickoff && e.version_number === summary.version_number)
@@ -610,7 +619,8 @@ function modelExpected(
   return {
     summary,
     evaluation,
-    result: centre.ok ? centre.data.fixture.scores.full_time : null,
+    result: centre.ok && !conflicted ? centre.data.fixture.scores.full_time : null,
+    scoreUnclear: conflicted,
     home: centre.ok ? centre.data.fixture.home.name : t(l, 'matchCentre.home'),
     away: centre.ok ? centre.data.fixture.away.name : t(l, 'matchCentre.away'),
   };

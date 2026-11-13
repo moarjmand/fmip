@@ -110,7 +110,10 @@ export async function generateMetadata({
   if (!UUID.test(id)) return { title: fallback, robots: { index: false, follow: false } };
   const season = readSeasonParam(query);
   const result = await fetchCompetition(id, competitionQuery(season), locale);
-  if (!result.ok) return pageMetadata({ locale, path: `/competition/${id}`, title: fallback });
+  // The competition has its own card (`opengraph-image.tsx`), never the brand one.
+  if (!result.ok) {
+    return pageMetadata({ locale, path: `/competition/${id}`, title: fallback, card: 'own' });
+  }
   const c = result.data.competition;
   // The current season is the canonical page; an older season is its own URL.
   const path = result.data.season.is_current
@@ -120,6 +123,7 @@ export async function generateMetadata({
   const seasonLabel = localDigits(locale, result.data.season.label);
   return pageMetadata({
     locale,
+    card: 'own',
     path,
     title: `${c.localised_name ?? c.name} ${seasonLabel} · Stadiomind`,
     description: say(locale, 'competitionPage.metaDescription', {
@@ -180,7 +184,10 @@ export default async function CompetitionPage({
     // Each tab asks only for its own modules.
     requested === 'news' ? fetchFounderFeed({ competition: id, limit: 3 }) : null,
     requested === 'news' ? fetchEntityNews('competition', id, locale) : null,
-    requested === 'overview' || requested === 'model' ? fetchModelAccuracy('month') : null,
+    // The league's own figures only: no calibration is read (T-1751).
+    requested === 'overview' || requested === 'model'
+      ? fetchModelAccuracy('month', { calibration: false })
+      : null,
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
