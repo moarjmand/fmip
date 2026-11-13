@@ -40,7 +40,7 @@ export const CONFIDENCE_WORDS: Record<ConsoleProviderConfidence, string> = {
 };
 
 const CONFIDENCE_TONE: Record<ConsoleProviderConfidence, string> = {
-  high: 'border-success text-success',
+  high: 'border-rating-good text-fg',
   medium: 'border-warning text-warning',
   low: 'border-danger text-danger',
 };
@@ -48,7 +48,7 @@ const CONFIDENCE_TONE: Record<ConsoleProviderConfidence, string> = {
 /** Bars filled out of three, so the badge does not lean on its colour. */
 const CONFIDENCE_BARS: Record<ConsoleProviderConfidence, number> = { high: 3, medium: 2, low: 1 };
 const CONFIDENCE_FILL: Record<ConsoleProviderConfidence, string> = {
-  high: 'bg-success',
+  high: 'bg-rating-good',
   medium: 'bg-warning',
   low: 'bg-danger',
 };
@@ -58,8 +58,8 @@ const SCORE_TONE: Record<number, string> = {
   1: 'bg-danger/25',
   2: 'bg-warning/25',
   3: 'bg-surface-raised',
-  4: 'bg-success/20',
-  5: 'bg-success/40',
+  4: 'bg-rating-good/30',
+  5: 'bg-rating-good/60',
 };
 
 export const UNVERIFIED = 'تأییدنشده';
@@ -390,7 +390,7 @@ export function ProviderCard({
         </div>
       </dl>
 
-      <details className="group" open={provider.status !== 'not-suitable'}>
+      <details className="group">
         <summary className="min-h-touch cursor-pointer text-sm font-bold text-fg">
           واقعیت‌ها با منبع ({fa(Object.keys(provider.facts).length)})
         </summary>
