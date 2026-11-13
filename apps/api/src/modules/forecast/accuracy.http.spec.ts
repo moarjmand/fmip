@@ -345,6 +345,108 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('model accura
     expect(league?.total).toMatchObject({ forecasts: 3, matches: 2, coverage: 'limited' });
   });
 
+  it('serves each published version on its own with its calibration, never a shadow (T-1751)', async () => {
+    const counts = async () =>
+      // This run's matches only: other files write to the same database meanwhile.
+      (
+        await pool.query<{ forecasts: number; evaluations: number; latest: Date | null }>(
+          `SELECT (SELECT COUNT(*)::int FROM forecast WHERE fixture_id = ANY($1::uuid[])) AS forecasts,
+                  (SELECT COUNT(*)::int FROM evaluation WHERE fixture_id = ANY($1::uuid[]))
+                    AS evaluations,
+                  (SELECT MAX(computed_at) FROM forecast WHERE fixture_id = ANY($1::uuid[]))
+                    AS latest`,
+          [[sunday, monday, unscored, bare]],
+        )
+      ).rows[0];
+    const before = await counts();
+    const body = (await get('/model/accuracy?period=week')).json() as PublicModelAccuracyResponse;
+    // Read only: not a forecast or an evaluation written (rule 5).
+    expect(await counts()).toEqual(before);
+
+    expect(body.versions.map((v) => v.model_version)).toContain(PUBLISHED);
+    expect(body.versions.map((v) => v.model_version)).not.toContain(SHADOW);
+    const own = body.versions.find((v) => v.model_version === PUBLISHED);
+    expect(own?.total).toMatchObject({ forecasts: 3, matches: 2, coverage: 'limited' });
+    expect(own?.points.map((p) => [p.period, p.period_end])).toEqual([
+      ['2031-W09', '2031-03-03'],
+      ['2031-W10', '2031-03-10'],
+    ]);
+    // 2031 is still to come: neither week is over.
+    expect(own?.points.map((p) => p.complete)).toEqual([false, false]);
+    // Every version's matches add up to the whole, each match under one version.
+    expect(body.versions.reduce((sum, v) => sum + v.total.matches, 0)).toBe(
+      body.overall.total.matches,
+    );
+
+    // Sunday's counted 0.5 / 0.3 / 0.2 (home won) and Monday's 0.1 / 0.3 / 0.6
+    // (a draw): never the earlier Sunday version, the shadow's, or the one after kick-off.
+    const bins = own?.calibration.bins ?? [];
+    expect(bins).toHaveLength(10);
+    expect(bins.map((b) => [b.forecasts, b.happened])).toEqual([
+      [0, 0],
+      [1, 0],
+      [1, 0],
+      [2, 1],
+      [0, 0],
+      [1, 1],
+      [1, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+    ]);
+    expect(bins[3]?.said).toBeCloseTo(0.3, 6);
+    expect(own?.calibration.coverage).toBe('limited');
+
+    // Rule 8: the same steps recomputed here from the stored forecasts and
+    // their evaluations alone, the last published one before kick-off a match.
+    const { rows } = await pool.query<{
+      p_home: string;
+      p_draw: string;
+      p_away: string;
+      outcome: string;
+    }>(
+      `SELECT DISTINCT ON (e.fixture_id) f.p_home, f.p_draw, f.p_away, e.outcome
+         FROM evaluation e
+         JOIN forecast f ON f.id = e.forecast_id
+         JOIN model_version m ON m.id = f.model_version_id
+        WHERE e.pre_kickoff AND f.role = 'published' AND m.model_id = $1
+        ORDER BY e.fixture_id, f.computed_at DESC, f.id DESC`,
+      [PUBLISHED],
+    );
+    const recomputed = Array.from({ length: 10 }, () => [0, 0]);
+    for (const row of rows) {
+      for (const [side, p] of [
+        ['home', row.p_home],
+        ['draw', row.p_draw],
+        ['away', row.p_away],
+      ] as const) {
+        const step = recomputed[Math.min(Math.floor(Number(p) * 10 + 1e-9), 9)];
+        if (step === undefined) continue;
+        step[0] = (step[0] ?? 0) + 1;
+        if (row.outcome === side) step[1] = (step[1] ?? 0) + 1;
+      }
+    }
+    expect(bins.map((b) => [b.forecasts, b.happened])).toEqual(recomputed);
+
+    // Over the same matches as the version's figures: three probabilities a match.
+    expect(bins.reduce((sum, b) => sum + b.forecasts, 0)).toBe(3 * (own?.total.matches ?? 0));
+    expect(body.overall.calibration.bins).toHaveLength(10);
+  });
+
+  it('keeps a week running while one of its matches waits for its score (T-1751)', async () => {
+    const store = new PostgresEvaluationStore(pool);
+    // An hour and a half after Monday's kick-off: the unscored match is waiting.
+    const soon = await store.pendingPeriods('week', new Date('2031-03-03T02:00:00Z'));
+    expect(soon).toContainEqual({ competitionId: COMPETITION, periodStart: '2031-03-03' });
+    // Sunday and Monday's scored matches are not waiting: the week before is not there.
+    expect(soon).not.toContainEqual({ competitionId: COMPETITION, periodStart: '2031-02-24' });
+    // Past the 48 hours it is missing, not late: nothing waits for it.
+    const later = await store.pendingPeriods('week', new Date('2031-03-05T01:00:00Z'));
+    expect(later).not.toContainEqual({ competitionId: COMPETITION, periodStart: '2031-03-03' });
+    const months = await store.pendingPeriods('month', new Date('2031-03-03T02:00:00Z'));
+    expect(months).toContainEqual({ competitionId: COMPETITION, periodStart: '2031-03-01' });
+  });
+
   it("reads each match's counted evaluation, never a shadow's or a post-kick-off one (T-1430)", async () => {
     const service = app.get(EvaluationService);
     const unknown = randomUUID();

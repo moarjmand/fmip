@@ -1,15 +1,22 @@
 import {
   ACCURACY_MINIMUM_MATCHES,
+  CALIBRATION_MINIMUM_FORECASTS,
+  CALIBRATION_STEPS,
+  type AccuracyCalibration,
   type AccuracyMetrics,
   type AccuracyPeriod,
   type AccuracyPoint,
   type AccuracyReference,
   type AdminAccuracySeries,
   type AdminModelAccuracyResponse,
+  type CalibrationBin,
   type CoverageState,
+  type PublicAccuracyPoint,
   type PublicAccuracySeries,
   type PublicModelAccuracyResponse,
+  type PublicVersionSeries,
 } from '@fmip/contracts';
+import type { CalibrationSumRow } from './evaluation-store';
 import { UNIFORM_ACCURACY, UNIFORM_BRIER, UNIFORM_LOG_LOSS } from './scoring';
 
 /**
@@ -235,25 +242,146 @@ export function adminAccuracy(
 const versionsOf = (rows: readonly AccuracySumRow[]): string[] =>
   [...new Set(rows.flatMap((row) => row.modelVersions))].sort();
 
+/** The first day after a week or month, `YYYY-MM-DD` (UTC): its end, exclusive. */
+export function periodEnd(periodStart: string, period: AccuracyPeriod): string {
+  const day = new Date(`${periodStart}T00:00:00Z`);
+  if (period === 'week') day.setUTCDate(day.getUTCDate() + 7);
+  else day.setUTCMonth(day.getUTCMonth() + 1, 1);
+  return day.toISOString().slice(0, 10);
+}
+
+/**
+ * A week or month is complete once its end has passed and none of its
+ * matches is still waiting for a score (T-1751, D-408): `waiting` holds the
+ * period starts with such a match (`PostgresEvaluationStore.pendingPeriods`).
+ */
+export function periodComplete(
+  periodStart: string,
+  period: AccuracyPeriod,
+  now: Date,
+  waiting: ReadonlySet<string>,
+): boolean {
+  const end = Date.parse(`${periodEnd(periodStart, period)}T00:00:00Z`);
+  return now.getTime() >= end && !waiting.has(periodStart);
+}
+
+/** A series' points with their ends and whether each is over. */
+function publicSeries(
+  rows: readonly AccuracySumRow[],
+  period: AccuracyPeriod,
+  now: Date,
+  waiting: ReadonlySet<string>,
+): { total: AccuracyMetrics; points: PublicAccuracyPoint[] } {
+  const own = series(rows, period);
+  return {
+    total: own.total,
+    points: own.points.map((point) => ({
+      ...point,
+      period_end: periodEnd(point.period_start, period),
+      complete: periodComplete(point.period_start, period, now, waiting),
+    })),
+  };
+}
+
+/**
+ * The calibration of a set of sums (T-1751, D-408): always ten steps, a step
+ * with no forecast at zero with no mean. `available` when a step reaches the
+ * minimum, `limited` when none does, `not_supplied` with no forecast at all.
+ */
+export function calibrationOf(rows: readonly CalibrationSumRow[]): AccuracyCalibration {
+  const sums = Array.from({ length: CALIBRATION_STEPS }, () => ({
+    forecasts: 0,
+    happened: 0,
+    said: 0,
+  }));
+  for (const row of rows) {
+    const step = sums[Math.min(Math.max(row.bin, 0), CALIBRATION_STEPS - 1)];
+    if (step === undefined) continue;
+    step.forecasts += row.forecasts;
+    step.happened += row.happened;
+    step.said += row.said;
+  }
+  const bins: CalibrationBin[] = sums.map((step, index) => ({
+    from: index / CALIBRATION_STEPS,
+    to: (index + 1) / CALIBRATION_STEPS,
+    forecasts: step.forecasts,
+    happened: step.happened,
+    said: step.forecasts === 0 ? null : round(step.said / step.forecasts, 4),
+  }));
+  const forecasts = bins.reduce((sum, bin) => sum + bin.forecasts, 0);
+  const coverage: CoverageState =
+    forecasts === 0
+      ? 'not_supplied'
+      : bins.some((bin) => bin.forecasts >= CALIBRATION_MINIMUM_FORECASTS)
+        ? 'available'
+        : 'limited';
+  return { minimum_forecasts: CALIBRATION_MINIMUM_FORECASTS, coverage, bins };
+}
+
+/** What the public answer reads besides the accuracy sums (T-1751). */
+export interface PublicAccuracyExtras {
+  /** The calibration sums, per published version. */
+  calibration: readonly CalibrationSumRow[];
+  /** The periods with a match still waiting for its score, per competition. */
+  pending: readonly { competitionId: string; periodStart: string }[];
+  now: Date;
+}
+
+const NO_EXTRAS: PublicAccuracyExtras = { calibration: [], pending: [], now: new Date(0) };
+
 /**
  * The public page's figures (T-1369): published forecasts only, by month,
  * overall and for each competition the model has published a pre-kick-off
  * forecast for -- one with nothing evaluated yet is listed as `not_supplied`.
+ * T-1751 (D-370, D-408): the overall calibration, each published version on
+ * its own (a match under the version of its counted forecast, with that
+ * version's calibration), and whether each period is over.
  */
 export function publicAccuracy(
   rows: readonly AccuracySumRow[],
   forecastCompetitions: readonly { id: string; name: string }[],
   period: AccuracyPeriod = 'month',
+  extras: PublicAccuracyExtras = NO_EXTRAS,
 ): PublicModelAccuracyResponse {
   const published = rows.filter((row) => row.role === null || row.role === 'published');
   const grouped = new Map(competitionsOf(published).map((g) => [g.competition.id, g]));
   const named = new Map(forecastCompetitions.map((c) => [c.id, c]));
   for (const group of grouped.values()) named.set(group.competition.id, group.competition);
 
+  const { now } = extras;
+  const anyWaiting = new Set(extras.pending.map((p) => p.periodStart));
+  const waitingIn = (competitionId: string) =>
+    new Set(
+      extras.pending.filter((p) => p.competitionId === competitionId).map((p) => p.periodStart),
+    );
+
   const competitions: PublicAccuracySeries[] = [...named.values()].sort(byName).map((c) => {
     const own = grouped.get(c.id)?.rows ?? [];
-    return { competition: c, model_versions: versionsOf(own), ...series(own, period) };
+    return {
+      competition: c,
+      model_versions: versionsOf(own),
+      ...publicSeries(own, period, now, waitingIn(c.id)),
+    };
   });
+
+  // Each published version on its own: the rows are already grouped by the
+  // version of each match's counted forecast. A row without one (a shadow's,
+  // which `published` has dropped, or a caller that did not split) is not here.
+  const byVersion = new Map<string, AccuracySumRow[]>();
+  for (const row of published) {
+    if (row.modelVersion === null) continue;
+    byVersion.set(row.modelVersion, [...(byVersion.get(row.modelVersion) ?? []), row]);
+  }
+  const latest = (own: readonly AccuracySumRow[]) =>
+    own.reduce((last, row) => (row.periodStart > last ? row.periodStart : last), '');
+  const versions: PublicVersionSeries[] = [...byVersion.entries()]
+    .sort(([a, ownA], [b, ownB]) => latest(ownB).localeCompare(latest(ownA)) || b.localeCompare(a))
+    .map(([version, own]) => ({
+      model_version: version,
+      ...publicSeries(own, period, now, anyWaiting),
+      calibration: calibrationOf(extras.calibration.filter((r) => r.modelVersion === version)),
+    }));
+
   return {
     period,
     minimum_matches: ACCURACY_MINIMUM_MATCHES,
@@ -261,9 +389,12 @@ export function publicAccuracy(
     overall: {
       competition: null,
       model_versions: versionsOf(published),
-      ...series(published, period),
+      ...publicSeries(published, period, now, anyWaiting),
+      // The store reads published forecasts only: every row is a published version's.
+      calibration: calibrationOf(extras.calibration),
     },
     competitions,
+    versions,
     last_updated_at: lastEvaluated(published),
   };
 }
