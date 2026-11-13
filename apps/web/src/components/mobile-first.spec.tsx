@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { MatchCentreView, SECTIONS, TABS } from './match-centre-view';
 import { Coverage, HeadToHead, MatchForm } from './match-record';
+import { MatchAvailability } from './match-availability';
 import { CardDetails, ScoreCard } from './score-card';
 import { EN } from '@/i18n/messages';
 import { matchWords, scoresWords } from '@/lib/words-server';
@@ -176,7 +177,7 @@ describe('a match on the scores list', () => {
 
 /**
  * The view as the page renders it (T-1384): the parts that do not move in
- * play -- form, head-to-head, absences, coverage -- are drawn on the server
+ * play -- form, head-to-head, absences (T-1810), coverage -- are drawn on the server
  * and handed in as slots, so they are rendered here the same way.
  */
 function FullView(props: React.ComponentProps<typeof MatchCentreView>) {
@@ -190,6 +191,15 @@ function FullView(props: React.ComponentProps<typeof MatchCentreView>) {
           <HeadToHead centre={centre} timeZone={timeZone} locale={locale} words={words} />
         ),
         coverage: <Coverage centre={centre} words={words} locale={locale} />,
+        availability: (
+          <MatchAvailability
+            centre={centre}
+            locale={locale}
+            timeZone={timeZone}
+            now={props.now}
+            words={words}
+          />
+        ),
         ...slots,
       }}
     />

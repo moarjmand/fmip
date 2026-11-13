@@ -3,13 +3,14 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { EN } from '@/i18n/messages';
 import { matchWords } from '@/lib/words-server';
+import { MatchCentreView } from './match-centre-view';
 import {
   ABSENCES_SHOWN,
-  MatchCentreView,
+  MatchAvailability,
   absenceGroups,
   absenceOrder,
   absenceReasonKey,
-} from './match-centre-view';
+} from './match-availability';
 
 /**
  * Who will miss the match, before kick-off (T-1626): each side's injured,
@@ -130,14 +131,28 @@ const centre = (availability: MatchCentre['availability']) =>
 const listed = (data: MatchAbsence[] = LIST, asked: string | null = ASKED) =>
   centre({ coverage: 'available', last_updated_at: asked, data, gap: null });
 
+// As the page draws it since T-1810 (D-409): the server's card in the view's
+// `availability` slot.
 const card = (c: MatchCentre, locale = 'en', now: number | undefined = NOW) => {
+  const words = matchWords(locale);
   const html = renderToStaticMarkup(
     <MatchCentreView
-      words={matchWords(locale)}
+      words={words}
       centre={c}
       timeZone="Europe/London"
       locale={locale}
       now={now}
+      slots={{
+        availability: (
+          <MatchAvailability
+            centre={c}
+            locale={locale}
+            timeZone="Europe/London"
+            now={now}
+            words={words}
+          />
+        ),
+      }}
     />,
   );
   const start = html.indexOf('data-testid="availability"');

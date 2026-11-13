@@ -26,6 +26,7 @@ import { JsonLd } from '@/components/json-ld';
 import { KeyPlayersPanel } from '@/components/key-players';
 import { LiveMatch } from '@/components/live-match';
 import { DataCard } from '@/components/match-centre-cards';
+import { MatchAvailability } from '@/components/match-availability';
 import { Coverage, HeadToHead, MatchForm } from '@/components/match-record';
 import { FinishedLineups, FinishedStats } from '@/components/match-stats-panels';
 import { MatchFollow } from '@/components/match-follow';
@@ -462,6 +463,17 @@ export default async function MatchPage({
                   />
                 ),
                 coverage: <Coverage centre={result.data} words={words} locale={locale} />,
+                // Who will miss the match (T-1810, D-409): a pre-match answer,
+                // so drawn here and off the client like the form above.
+                availability: (
+                  <MatchAvailability
+                    centre={result.data}
+                    locale={locale}
+                    timeZone={timeZone}
+                    now={now}
+                    words={words}
+                  />
+                ),
                 // A finished match's statistics, tables, xG and line-ups (T-1800..T-1802):
                 // it no longer moves, so drawn here and off the client; in play
                 // the view draws them from the stream.
