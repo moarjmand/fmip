@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COVERAGE_MODULES, compute } from './internal/coverage-rules';
+import { ARRIVAL_SAMPLE, COVERAGE_MODULES, arrivesLate, compute } from './internal/coverage-rules';
 
 // The rules that turn "of the fixtures that should carry this, how many do"
 // into a coverage state (T-027, blueprint 4.3). Pure, so they can be argued
@@ -55,5 +55,54 @@ describe('computing a coverage state from what arrived', () => {
     expect(compute('lineups', { expected: 8, present: 0 }, 'delayed').state).toBe('delayed');
     expect(compute('lineups', { expected: 8, present: 8 }, 'delayed').state).toBe('available');
     expect(compute('lineups', { expected: 8, present: 2 }, 'delayed').state).toBe('limited');
+  });
+});
+
+// T-1824 (D-418): line-ups that reach us after kick-off as a rule are
+// `delayed`, never `available`. The Persian Gulf Pro League on 2026-11-13: 104
+// of 104 matches with line-ups, 20 of the last 20 stored after kick-off.
+describe('line-ups measured by when they arrived (T-1824)', () => {
+  it('is delayed when most of the measured matches had them only after kick-off', () => {
+    const pgpl = compute(
+      'lineups',
+      { expected: 104, present: 104, arrival: { measured: 20, late: 20 } },
+      'available',
+    );
+    expect(pgpl.state).toBe('delayed');
+    expect(pgpl.note).toBe(
+      '104 of 104 fixtures have lineups; 20 of the last 20 had them only after kick-off.',
+    );
+    // Some missing too: still delayed, not limited, with both counts.
+    const some = compute(
+      'lineups',
+      { expected: 69, present: 44, arrival: { measured: 20, late: 12 } },
+      null,
+    );
+    expect(some.state).toBe('delayed');
+    expect(some.note).toContain('44 of 69');
+  });
+
+  it('stays available or limited when they mostly arrive before kick-off', () => {
+    const onTime = { measured: 20, late: 8 };
+    expect(compute('lineups', { expected: 50, present: 50, arrival: onTime }, null).state).toBe(
+      'available',
+    );
+    expect(compute('lineups', { expected: 50, present: 30, arrival: onTime }, null).state).toBe(
+      'limited',
+    );
+    // Exactly half is not "most".
+    expect(arrivesLate({ measured: 20, late: 10 })).toBe(false);
+    expect(arrivesLate({ measured: 20, late: 11 })).toBe(true);
+  });
+
+  it('measures nothing it cannot: no sample, or no line-up at all', () => {
+    expect(arrivesLate(undefined)).toBe(false);
+    expect(arrivesLate({ measured: 0, late: 0 })).toBe(false);
+    // Nothing arrived: the arrival cannot say anything, the counts decide.
+    expect(
+      compute('lineups', { expected: 8, present: 0, arrival: { measured: 0, late: 0 } }, null)
+        .state,
+    ).toBe('not_supplied');
+    expect(ARRIVAL_SAMPLE).toBe(20);
   });
 });
