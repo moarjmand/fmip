@@ -223,8 +223,9 @@ def test_a_version_without_the_scale_says_it_rates_within_one_league() -> None:
 
 
 def test_the_published_version_carries_the_scale() -> None:
-    """0.6.0 (D-191) carries 0.4.0's cup fit; the API still asks it nothing about a
-    match between leagues, which keeps saying why it has none (D-085, D-191)."""
+    """0.6.0 (D-191), and 0.7.0 after it (D-410), carry 0.4.0's cup fit; the API still
+    asks it nothing about a match between leagues, which keeps saying why it has none
+    (D-085, D-191)."""
     assert PUBLISHED.cross_league is not None
 
 
