@@ -402,6 +402,39 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('retention pu
     expect(predictionsAfter.rows).toEqual(predictionsBefore.rows);
   });
 
+  it('rewrites every sign-up source count in one transaction, values unchanged (T-1821, D-415)', async () => {
+    const hosts = [`a-${Date.now()}.test`, `b-${Date.now()}.test`];
+    await pool.query(
+      `INSERT INTO signup_source_monthly (month, entry, referrer_host, sign_ups)
+       VALUES ('2001-01-01', 'match', $1, 2)`,
+      [hosts[0]],
+    );
+    await pool.query(
+      `INSERT INTO signup_source_monthly (month, entry, referrer_host, sign_ups)
+       VALUES ('2001-02-01', 'none', $1, 7)`,
+      [hosts[1]],
+    );
+    try {
+      const read = () =>
+        pool.query<{ xmin: string; sign_ups: number }>(
+          `SELECT xmin::text, sign_ups FROM signup_source_monthly
+            WHERE referrer_host = ANY($1::text[]) ORDER BY month`,
+          [hosts],
+        );
+      const before = (await read()).rows;
+      expect(before[0]?.xmin).not.toBe(before[1]?.xmin);
+      expect(await store.restampSignupSources()).toBeGreaterThanOrEqual(2);
+      const after = (await read()).rows;
+      expect(after.map((r) => r.sign_ups)).toEqual([2, 7]);
+      expect(after[0]?.xmin).toBe(after[1]?.xmin);
+      expect(after[0]?.xmin).not.toBe(before[0]?.xmin);
+    } finally {
+      await pool.query(`DELETE FROM signup_source_monthly WHERE referrer_host = ANY($1::text[])`, [
+        hosts,
+      ]);
+    }
+  });
+
   it('adds to an existing day’s count rather than replacing it', async () => {
     await claim('late', '2001-01-10T23:00:00Z', { email: 'sent', push: 'absent' });
     await service.purge(NOW);

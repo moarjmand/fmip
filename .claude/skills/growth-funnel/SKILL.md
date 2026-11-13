@@ -26,8 +26,11 @@ all "The marketing wing", and the newest marketing report's priorities
   counts sign-ups per month by the kind of page where "Create account" was clicked (home, match,
   team, competition, news, other, or none) and the other site's host when it linked straight to the
   register page. No cookie; an aggregate only, never beside an account; staff sign-ups included.
-  Report it only through the two queries at the end of `growth-funnel.sql`, cells of 5 or more.
-  The outside source of a visit that browsed first is lost (`none`/the last page): say so.
+  Report it only through the two queries at the end of `growth-funnel.sql`: completed months
+  only, cells of 5 or more. The host is the referring site's main domain (`telegram` for its
+  Android app). Treat it as personal data: never compare it with members' join dates. The
+  outside source of a visit that browsed first, and a referrer a browser or app withholds, are
+  lost (`none`/the last page): say so as `not_supplied`.
 - `session.last_seen_at` is a floor of activity: it moves only while a session is used, and one
   member can hold several sessions. Staff accounts (`user_role`) are left out of every member
   count and shown apart.

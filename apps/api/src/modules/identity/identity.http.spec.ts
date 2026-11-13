@@ -132,7 +132,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('/auth', () =
   });
 
   it('counts where a sign-up started, by month only, and keeps nothing beside the account (T-1821, D-415)', async () => {
-    const host = `it-${RUN}.example.test`;
+    // A main domain of its own, so the count is this run's alone.
+    const host = `it-${RUN}.test`;
     const count = async () =>
       (
         await pool.query<{ entry: string; sign_ups: number; month: string }>(
@@ -146,7 +147,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('/auth', () =
         ...registration,
         username: `it_${RUN}s`,
         email: `s_${RUN}@example.test`,
-        source: { entry: 'match', referrer_host: `WWW.${host}:443` },
+        // Counted by its main domain only.
+        source: { entry: 'match', referrer_host: `WWW.cv.${host}:443` },
       });
       expect(created.statusCode).toBe(201);
       const rows = await count();
@@ -154,7 +156,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('/auth', () =
       expect(rows[0]).toMatchObject({ entry: 'match', sign_ups: 1 });
       expect(rows[0]?.month).toMatch(/^\d{4}-\d{2}-01$/);
 
-      // A refused sign-up is not counted: the count is in its transaction.
+      // Counted after the account's transaction, never inside it: the two
+      // rows do not share a transaction id.
+      const xmins = await pool.query<{ account: string; counter: string }>(
+        `SELECT (SELECT xmin::text FROM user_account WHERE username = $1) AS account,
+                (SELECT xmin::text FROM signup_source_monthly WHERE referrer_host = $2) AS counter`,
+        [`it_${RUN}s`, host],
+      );
+      expect(xmins.rows[0]?.counter).not.toBe(xmins.rows[0]?.account);
+
+      // A refused sign-up is not counted.
       const refused = await post('/auth/register', {
         ...registration,
         username: `it_${RUN}s`,

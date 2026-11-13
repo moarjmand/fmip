@@ -14,6 +14,7 @@ describe('entryOfPath (T-1821, D-415)', () => {
     expect(entryOfPath('/en/news/story/1')).toBe('news');
     expect(entryOfPath('/en/player/1')).toBe('other');
     expect(entryOfPath('/en/login')).toBe('other');
+    expect(entryOfPath('/fa/register')).toBeNull();
     expect(entryOfPath(null)).toBeNull();
     expect(entryOfPath('https://t.me/x')).toBeNull();
   });
@@ -53,11 +54,58 @@ describe('signupSourceOf (T-1821, D-415)', () => {
         siteHosts: SITE,
       }),
     ).toEqual({ entry: 'none', referrer_host: 'google.com' });
+    // Its main domain only: a personal subdomain never names a person.
+    expect(
+      signupSourceOf({
+        from: undefined,
+        next: null,
+        referer: 'https://john-smith.github.io/cv',
+        siteHosts: SITE,
+      }),
+    ).toEqual({ entry: 'none', referrer_host: 'github.io' });
+    // An address or a one-label name is no site.
+    for (const referer of ['http://192.168.1.10/x', 'https://localhost/', 'https://intranet/']) {
+      expect(
+        signupSourceOf({ from: undefined, next: null, referer, siteHosts: SITE }).referrer_host,
+      ).toBeNull();
+    }
+  });
+
+  it('names Telegram’s Android app, and no other app', () => {
+    expect(
+      signupSourceOf({
+        from: undefined,
+        next: null,
+        referer: 'android-app://org.telegram.messenger/',
+        siteHosts: SITE,
+      }),
+    ).toEqual({ entry: 'none', referrer_host: 'telegram' });
+    expect(
+      signupSourceOf({
+        from: undefined,
+        next: null,
+        referer: 'android-app://com.whatsapp/',
+        siteHosts: SITE,
+      }).referrer_host,
+    ).toBeNull();
+  });
+
+  it('keeps the kind a register page’s own link carried across a language switch', () => {
+    const switched = (referer: string) =>
+      signupSourceOf({ from: undefined, next: null, referer, siteHosts: SITE });
+    expect(switched('https://traveltohormuz.ir/en/register?from=team')).toEqual({
+      entry: 'team',
+      referrer_host: null,
+    });
+    expect(switched('https://traveltohormuz.ir/en/register')).toEqual({
+      entry: 'none',
+      referrer_host: null,
+    });
   });
 
   it('says no host for this site or its subdomains, nor for a missing or malformed referrer', () => {
     const none = { entry: 'none', referrer_host: null };
-    for (const referer of [null, '', 'not a url', 'android-app://org.telegram.messenger/']) {
+    for (const referer of [null, '', 'not a url', 'ftp://example.com/']) {
       expect(signupSourceOf({ from: undefined, next: null, referer, siteHosts: SITE })).toEqual(
         none,
       );

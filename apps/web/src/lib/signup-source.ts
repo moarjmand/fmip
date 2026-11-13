@@ -1,4 +1,11 @@
-import { SIGNUP_ENTRIES, type SignupEntry, type SignupSource, signupHost } from '@fmip/contracts';
+import {
+  SIGNUP_APP_REFERRERS,
+  SIGNUP_ENTRIES,
+  type SignupEntry,
+  type SignupSource,
+  signupHost,
+  signupReferrerHost,
+} from '@fmip/contracts';
 import { isLocale } from '@/i18n/locales';
 
 /**
@@ -14,9 +21,15 @@ import { isLocale } from '@/i18n/locales';
  *   linked to the register page on this site (the header's button lives in
  *   the layout, which cannot know its page without a script). `none` when
  *   none of these says: the register page was the first page we know of.
- * - **The host of another site**, only when the register page was reached
- *   straight from it (a `Referer` from elsewhere). Nothing for this site or
- *   its subdomains, and never the path or query.
+ * - **The main domain of another site** (`signupReferrerHost`: `github.io`
+ *   for `name.github.io`, never an address or a one-label name), only when it
+ *   linked straight to the register page (a `Referer` from elsewhere);
+ *   `telegram` for Telegram's Android app (`android-app://...`). Nothing for
+ *   this site or its subdomains, and never the path or query.
+ *
+ * A register page reached from a register page (a language switch) keeps the
+ * kind its own link carried (`?from=` in that `Referer`), else says `none`:
+ * the page the visit started on is not "other".
  */
 
 export const SIGNUP_FROM_PARAM = 'from';
@@ -38,6 +51,9 @@ export function entryOfPath(path: string | null | undefined): SignupEntry | null
   switch (rest[0]) {
     case undefined:
       return 'home';
+    case 'register':
+      // The register page itself is no entry kind (see above).
+      return null;
     case 'match':
       return 'match';
     case 'team':
@@ -73,21 +89,27 @@ export function signupSourceOf(request: {
   siteHosts: readonly (string | null | undefined)[];
 }): SignupSource {
   const sites = request.siteHosts.map(bareHost).filter((h): h is string => h !== null);
-  let refererPath: string | null = null;
+  let refererEntry: SignupEntry | null = null;
   let referrerHost: string | null = null;
   if (request.referer !== null && request.referer !== '') {
     try {
       const url = new URL(request.referer);
-      const host = bareHost(url.hostname);
-      if (host !== null && (url.protocol === 'https:' || url.protocol === 'http:')) {
-        if (sites.some((site) => sameSite(host, site))) refererPath = url.pathname;
-        else referrerHost = host;
+      if (url.protocol === 'android-app:') {
+        referrerHost = SIGNUP_APP_REFERRERS[url.hostname.toLowerCase()] ?? null;
+      } else if (url.protocol === 'https:' || url.protocol === 'http:') {
+        const host = bareHost(url.hostname);
+        if (host !== null && sites.some((site) => sameSite(host, site))) {
+          // This site's page: its kind, or for a register page the kind its own link carried.
+          refererEntry =
+            entryOfPath(url.pathname) ?? entryParam(url.searchParams.get('from') ?? undefined);
+        } else {
+          referrerHost = signupReferrerHost(host);
+        }
       }
     } catch {
       // Not a URL: nothing is said about where the reader came from.
     }
   }
-  const entry =
-    entryParam(request.from) ?? entryOfPath(request.next) ?? entryOfPath(refererPath) ?? 'none';
+  const entry = entryParam(request.from) ?? entryOfPath(request.next) ?? refererEntry ?? 'none';
   return { entry, referrer_host: referrerHost };
 }

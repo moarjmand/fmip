@@ -179,7 +179,6 @@ export class IdentityService {
       preferredLanguage: input.preferred_language,
       timezone: input.timezone,
       passwordHash: await hashPassword(input.password),
-      source: input.source,
     });
 
     if (!created.ok) {
@@ -190,6 +189,17 @@ export class IdentityService {
     }
 
     const user = toAuthUser(created.user);
+    // Where the sign-up started (T-1821, D-415), counted only once the account
+    // has committed and in a transaction of its own; a failure loses one count
+    // and never the sign-up.
+    try {
+      await this.store.countSignupSource(input.source ?? { entry: 'none', referrer_host: null });
+    } catch (error: unknown) {
+      this.log.warn('sign-up source not counted', {
+        event: 'identity.signup_source_failed',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     await this.sendVerificationEmail(user);
     const sessionToken = await this.startSession(user.id, userAgent);
 
