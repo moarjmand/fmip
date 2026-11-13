@@ -129,10 +129,10 @@ function HomeStory({
         <h3
           dir="auto"
           className={cx(
-            'font-semibold',
-            lead && 'font-serif text-3xl leading-tight',
-            size === 'card' && 'font-serif text-xl leading-snug',
-            row && 'text-base leading-snug',
+            // The interface face, as on the news page (T-1805, D-403).
+            lead && 'text-[1.375rem] leading-tight font-bold sm:text-display-1',
+            size === 'card' && 'text-lg leading-snug font-bold',
+            row && 'text-base leading-snug font-semibold',
           )}
         >
           <Link

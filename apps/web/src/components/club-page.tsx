@@ -15,7 +15,7 @@ import { EntityBand } from '@/components/entity-band';
 import { SectionTabs } from '@/components/ui/section-tabs';
 import { EntityImage } from '@/components/entity-image';
 import { MinutesFigure } from '@/components/minutes-figure';
-import { Score } from '@/components/score';
+import { Score, nameIsolate } from '@/components/score';
 import { FORM_LOOK } from '@/components/standings-table';
 import { Translated } from '@/components/translated';
 import { ViewingPanel } from '@/components/viewing-panel';
@@ -171,6 +171,23 @@ function clubEyebrow(page: TeamPage, locale: string): string {
   ].join(' · ');
 }
 
+/** A letter of the Arabic script (Persian among it). */
+const ARABIC_SCRIPT = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/u;
+
+/**
+ * A ground and its city as one name (T-1796, D-395): both in Latin letters,
+ * one Latin run with its own comma ("Emirates Stadium, London"), never a
+ * Persian comma between two Latin words; otherwise the reader's separator.
+ * The names are the data's and never translated.
+ */
+export function groundName(locale: string, venue: { name: string; city: string | null }): string {
+  if (venue.city === null) return venue.name;
+  if (!ARABIC_SCRIPT.test(venue.name) && !ARABIC_SCRIPT.test(venue.city)) {
+    return `${venue.name}, ${venue.city}`;
+  }
+  return say(locale, 'teamPage.venueCity', { venue: venue.name, city: venue.city });
+}
+
 /** The ground with its capacity, or where the home matches were played, and the followers. */
 function GroundLine({
   page,
@@ -192,11 +209,7 @@ function GroundLine({
           own direction and scramble the line. */}
       {t.venue !== null ? (
         <>
-          <bdi data-testid={`${ids}team-ground`}>
-            {t.venue.city !== null
-              ? say(locale, 'teamPage.venueCity', { venue: t.venue.name, city: t.venue.city })
-              : t.venue.name}
-          </bdi>
+          <bdi data-testid={`${ids}team-ground`}>{groundName(locale, t.venue)}</bdi>
           {t.venue.capacity !== null && (
             <>
               {' · '}
@@ -209,13 +222,7 @@ function GroundLine({
         // played, said to come from them (T-1394, D-209).
         <span data-testid={`${ids}fixture-ground`}>
           {say(locale, 'teamPage.groundFromFixtures', {
-            venue:
-              page.fixture_ground.venue.city !== null
-                ? say(locale, 'teamPage.venueCity', {
-                    venue: page.fixture_ground.venue.name,
-                    city: page.fixture_ground.venue.city,
-                  })
-                : page.fixture_ground.venue.name,
+            venue: nameIsolate(groundName(locale, page.fixture_ground.venue)),
             matches: formatNumber(locale, page.fixture_ground.matches),
             total: formatNumber(locale, page.fixture_ground.home_matches),
           })}
@@ -317,7 +324,7 @@ function Manager({
       )}
       {head !== null && head.lineup_disagrees && coach.data !== null && (
         <p className="text-xs text-muted" data-testid={`${ids}head-coach-disagrees`}>
-          {say(locale, 'team.headCoach.lineupDisagrees', { name: coach.data.name })}
+          {say(locale, 'team.headCoach.lineupDisagrees', { name: nameIsolate(coach.data.name) })}
         </p>
       )}
       {head === null && (

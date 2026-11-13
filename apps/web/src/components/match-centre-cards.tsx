@@ -89,8 +89,11 @@ export function Module<T>({
   module: Covered<T>;
   testId: string;
   words: MatchWords;
-  /** Says why a `not_supplied` module is empty, where more is known (T-1364). */
-  empty?: Key | null;
+  /**
+   * Says why a `not_supplied` module is empty, where more is known (T-1364):
+   * a key of the page's words, or a sentence a server module resolved itself.
+   */
+  empty?: Key | Message | null;
   /**
    * The match is on (T-1497): a module with nothing yet says "Not in yet"
    * and that nothing is estimated meanwhile, rather than "not supplied",
@@ -109,12 +112,15 @@ export function Module<T>({
 }) {
   const m = words.m;
   const pending = module.data === null ? before : null;
-  const why: Key =
+  const reason = empty ?? 'matchCentre.moduleNotSupplied';
+  const why: Message =
     pending === 'unplayed'
-      ? 'matchCentre.notPlayedWhy'
+      ? m['matchCentre.notPlayedWhy']
       : module.coverage === 'delayed'
-        ? 'matchCentre.moduleDelayed'
-        : (empty ?? 'matchCentre.moduleNotSupplied');
+        ? m['matchCentre.moduleDelayed']
+        : typeof reason === 'string'
+          ? m[reason]
+          : reason;
   const waiting = notInYet && module.data === null;
   const pill =
     'inline-flex min-h-6 items-center gap-1 rounded-pill border border-dashed border-caption px-2 text-xs font-semibold text-muted';
@@ -143,7 +149,7 @@ export function Module<T>({
       </h2>
       {module.data === null ? (
         <p dir="auto" className="text-sm text-muted">
-          <MessageText message={m[waiting ? 'matchCentre.notInYetWhy' : why]} />
+          <MessageText message={waiting ? m['matchCentre.notInYetWhy'] : why} />
         </p>
       ) : (
         children(module.data)

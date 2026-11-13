@@ -7,6 +7,7 @@ import { formatKickoff, formatStamp, scoreLine, statusLabel } from '@/lib/scores
 import { isOpenForPick } from '@/lib/scores-filters';
 import type { CardCommunity, CardForecast, CardViewing } from '@/lib/score-card-products';
 import { stageAndRoundLabels } from '@/lib/stage-label';
+import { NAME_WRAP, ROW_STEPS, longestWord, nameFit, statusFit } from '@/lib/word-fit';
 import { fill, filled, formatMinute, pickPlural } from '@/lib/words';
 import type { ScoresWords } from '@/lib/words-server';
 import { EntityImage } from '@/components/entity-image';
@@ -17,6 +18,7 @@ import { CardCommunityTotals } from '@/components/score-card-community';
 import { ninetyOutcome } from '@/components/forecast-bar';
 import { CardForecastSummary, RowForecast } from '@/components/score-card-forecast';
 import { Icon } from '@/components/ui/icons';
+import { cx } from '@/components/ui/cx';
 
 const INCIDENT_KEY = {
   goal: 'matchCentre.incident.goal',
@@ -68,9 +70,33 @@ export const COVERAGE_KEY = {
 /**
  * A team's name wraps inside its own line and is never cut or ellipsised
  * (T-1757, D-374; at 360 px one line once left "Nassaji Maz…", T-1202). On a
- * phone it is 14px, so a word fits its column before it breaks.
+ * phone it is 14px. It wraps between words and never inside one (T-1796,
+ * D-395): a single long word steps the width axis down instead (`rowNameFit`).
  */
-export const NAME = 'min-w-0 break-words hyphens-auto leading-tight text-sm @xl:text-base';
+export const NAME = `min-w-0 ${NAME_WRAP} leading-tight text-sm @xl:text-base`;
+
+/**
+ * How a phone row's name fits its cell (T-1796, D-395). Measured at 375 on
+ * the matches page: the name has 107px beside its crest, 83px when the score
+ * stands at the end of the line; a 14px semi-bold letter is about 8px, so
+ * twelve letters fit, or ten beside a score (`scored`). A longer word steps
+ * the width to 87.5%, then 75% (`nameFit`); one too long even then also
+ * steps to 12px, and past that to 62.5% ("Mönchengladbach" beside a score:
+ * 96px at 75%, 69px at 12px and 62.5%). A red-card mark is not counted: it
+ * follows the name in the line and goes under it when the line is full.
+ * From the list's 36rem the cell is wide enough as drawn.
+ */
+export const ROW_NAME_LETTERS = 12;
+export const ROW_NAME_LETTERS_SCORED = 10;
+
+export function rowNameFit(name: string, scored = false): string {
+  const fits = scored ? ROW_NAME_LETTERS_SCORED : ROW_NAME_LETTERS;
+  const letters = longestWord(name);
+  if (letters <= fits / 0.75) return nameFit(name, fits, ROW_STEPS);
+  return letters <= fits * 1.45
+    ? '@max-xl:font-stretch-condensed @max-xl:text-xs'
+    : '@max-xl:font-stretch-extra-condensed @max-xl:text-xs';
+}
 
 /** Where the row's Pick stands for this reader (T-1496, D-206's lock at kick-off). */
 export type RowPick = 'open' | 'picked' | 'locked' | 'locked-picked';
@@ -108,6 +134,9 @@ export function ScoreCard({
   picked = false,
   selected = false,
   pickHref,
+  href,
+  aside,
+  bareWhenFinished = false,
   words,
 }: {
   card: ScoreCardData;
@@ -129,6 +158,19 @@ export function ScoreCard({
   selected?: boolean;
   /** Where Pick leads: this page with this match's preview open. Absent: no Pick. */
   pickHref?: string;
+  /** The match link, when it must carry more than the match (Watch: a guest's territory, T-1792). */
+  href?: string;
+  /**
+   * The end cell in place of the model's (T-1792, D-394): a list that is not
+   * a forecast surface (Watch) puts its own answer there. Absent: the model's.
+   */
+  aside?: React.ReactNode;
+  /**
+   * A finished match drawn without the model's cell, 56px (T-1806, D-405;
+   * D-378's finished row): for a list that is a glance at the day, the home
+   * page's, not the matches page's record of what the model said.
+   */
+  bareWhenFinished?: boolean;
   /** The reader's words, resolved on the server (T-1303). */
   words: ScoresWords;
 }) {
@@ -147,7 +189,7 @@ export function ScoreCard({
             ? m['scores.card.redCard'].text
             : pickPlural(p['scores.card.redCards'], locale, count).text
         }
-        className="shrink-0"
+        className="whitespace-nowrap"
       >
         {count === 1 ? '🟥' : `🟥×${n(count)}`}
       </span>
@@ -184,6 +226,8 @@ export function ScoreCard({
     disputed ? m['matchCentre.scoreUnclear'].text : null,
   ].filter((bit): bit is string => bit !== null);
   const live = card.status === 'live';
+  // A bare finished row is 56px (D-405): two 20px lines, scores included, and a 2px gap in its 12px padding.
+  const bare = bareWhenFinished && card.status === 'finished';
   const line = scoreLine(card);
   // At full time the winner is bold and the loser muted; a draw keeps both in ink.
   const weight = (side: 'home' | 'away'): string => {
@@ -196,10 +240,18 @@ export function ScoreCard({
   const team = (side: 'home' | 'away') => {
     const t = card[side];
     return (
-      <span className="flex min-h-6 min-w-0 items-center gap-1.5" data-testid={`${side}-team`}>
+      <span
+        className={`flex min-w-0 items-center gap-1.5 ${bare ? 'min-h-5 leading-5' : 'min-h-6'}`}
+        data-testid={`${side}-team`}
+      >
         <EntityImage media={t.crest} kind="crest" name={t.name} size={20} />
-        <bdi className={`${NAME} ${weight(side)}`}>{t.name}</bdi>
-        {sentOff(card.red_cards[side])}
+        {/* The name and its red-card mark in one line of text: the mark goes
+            under the name when they do not fit side by side, never into it. */}
+        <span className="min-w-0">
+          <bdi className={cx(NAME, rowNameFit(t.name, line !== null), weight(side))}>{t.name}</bdi>
+          {card.red_cards[side] > 0 && ' '}
+          {sentOff(card.red_cards[side])}
+        </span>
         {line !== null && (
           <span
             className={`ms-auto shrink-0 ps-2 font-bold tabular-nums ${live ? 'text-live' : disputed ? 'text-muted' : ''}`}
@@ -217,12 +269,14 @@ export function ScoreCard({
   // live or finished row's "View" is the desktop's only (T-1757, D-374).
   const under = pickHref !== undefined && pick !== 'locked';
 
+  const status = statusLabel(card, locale, timeZone, now, m);
+
   return (
     <li
       // The anchor its own Pick and the preview's close control return to (T-1738).
       id={pickHref === undefined ? undefined : `m-${card.id}`}
-      // The 72px grid and its columns (`match-row` in globals.css).
-      className="match-row"
+      // The 72px grid and its columns (`match-row` in globals.css); 56px finished and bare.
+      className={bare ? 'match-row match-row-done' : 'match-row'}
       data-testid="score-card"
       data-fixture-id={card.id}
       data-status={card.status}
@@ -230,18 +284,20 @@ export function ScoreCard({
       aria-current={selected ? 'true' : undefined}
     >
       <Link
-        href={`/${locale}/match/${card.id}`}
+        href={href ?? `/${locale}/match/${card.id}`}
         className="col-span-2 col-start-1 row-span-2 row-start-1 grid min-h-11 grid-cols-subgrid grid-rows-subgrid items-center hover:[&_bdi]:underline"
         data-testid="match-link"
       >
         <span
-          className={`text-xs leading-tight font-bold tabular-nums font-stretch-semi-condensed hyphens-auto [overflow-wrap:anywhere] @xl:row-span-2 @xl:self-center @xl:text-sm ${under ? 'self-end' : 'row-span-2'} ${live ? 'text-live' : awaiting ? 'text-warning' : ''}`}
+          className={`${statusFit(status)} font-bold tabular-nums @xl:row-span-2 @xl:self-center ${under ? 'self-end' : 'row-span-2'} ${live ? 'text-live' : awaiting ? 'text-warning' : ''}`}
           data-testid="score-status"
           data-awaiting-update={awaiting ? '' : undefined}
         >
-          {statusLabel(card, locale, timeZone, now, m)}
+          {status}
         </span>
-        <span className="row-span-2 flex min-w-0 flex-col gap-1 @xl:font-stretch-semi-condensed">
+        <span
+          className={`row-span-2 flex min-w-0 flex-col @xl:font-stretch-semi-condensed ${bare ? 'gap-0.5' : 'gap-1'}`}
+        >
           {team('home')}
           {team('away')}
           {rowBits.length > 0 && (
@@ -252,15 +308,19 @@ export function ScoreCard({
         </span>
       </Link>
 
-      <RowForecast
-        forecast={forecast}
-        home={card.home.name}
-        away={card.away.name}
-        outcome={ninetyOutcome(card)}
-        locale={locale}
-        words={words}
-        className="col-start-3 row-span-2 row-start-1"
-      />
+      {bare
+        ? null
+        : (aside ?? (
+            <RowForecast
+              forecast={forecast}
+              home={card.home.name}
+              away={card.away.name}
+              outcome={ninetyOutcome(card)}
+              locale={locale}
+              words={words}
+              className="col-start-3 row-span-2 row-start-1"
+            />
+          ))}
 
       {pickHref !== undefined && (
         <Link
@@ -371,9 +431,9 @@ export function CardDetails({
           />
         </span>
         {card.venue !== null && (
-          <span>
+          <bdi>
             {card.venue.city === null ? card.venue.name : `${card.venue.name}, ${card.venue.city}`}
-          </span>
+          </bdi>
         )}
       </p>
 
@@ -387,7 +447,16 @@ export function CardDetails({
               ) : (
                 <span dir="ltr">{formatMinute(locale, incident.minute, incident.added_time)}</span>
               )}{' '}
-              <MessageText message={m[INCIDENT_KEY[incident.kind]]} />
+              <MessageText
+                message={
+                  m[
+                    // A penalty in play is a goal; a kick keeps "Penalty" (D-322, D-396).
+                    incident.kind === 'penalty_goal' && (kicksFrom === null || index < kicksFrom)
+                      ? 'matchCentre.incident.penaltyGoalInPlay'
+                      : INCIDENT_KEY[incident.kind]
+                  ]
+                }
+              />
               {incident.player !== null ? ` · ${incident.player}` : ''}
               {incident.side !== null
                 ? ` (${incident.side === 'home' ? card.home.name : card.away.name})`

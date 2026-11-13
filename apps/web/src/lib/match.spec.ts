@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '@/i18n/messages';
-import { INCIDENT_KEY, NOT_YET, STAT_KEY, minuteLabel, shootoutStart, statValue } from './match';
+import {
+  INCIDENT_KEY,
+  NOT_YET,
+  STAT_KEY,
+  incidentKey,
+  minuteLabel,
+  shootoutStart,
+  statValue,
+} from './match';
 
 describe('match centre labels', () => {
   it('writes minutes with added time', () => {
@@ -25,6 +33,14 @@ describe('match centre labels', () => {
     expect(t('en', INCIDENT_KEY.goal)).toBe('Goal');
     expect(t('en', STAT_KEY.possession_pct)).toBe('Possession');
     expect(t('fa', STAT_KEY.possession_pct)).toBe('مالکیت توپ');
+  });
+
+  it('calls only a penalty in play "Goal (penalty)", never a shoot-out’s kick (D-322, D-396)', () => {
+    expect(t('en', incidentKey('penalty_goal', true))).toBe('Goal (penalty)');
+    expect(t('en', incidentKey('penalty_goal', false))).toBe('Penalty');
+    expect(t('en', INCIDENT_KEY.penalty_goal)).toBe('Penalty');
+    expect(incidentKey('penalty_missed', true)).toBe(INCIDENT_KEY.penalty_missed);
+    expect(incidentKey('goal', false)).toBe(INCIDENT_KEY.goal);
   });
 
   it('lists every blueprint 4.2 module the page does not have yet', () => {

@@ -4,9 +4,9 @@ import { Coverage, CoveredPanel, Panel } from '@/components/competition-page';
 import { EntityBand } from '@/components/entity-band';
 import { EntityImage } from '@/components/entity-image';
 import { Translated } from '@/components/translated';
-import { inlineTargetClasses } from '@/components/ui';
+import { Icon, inlineTargetClasses } from '@/components/ui';
 import { formatNumber } from '@/i18n/format';
-import { coachSpellPeriod, currentSpells } from '@/lib/coach';
+import { coachSpellPeriod, currentSpells, staleRecordDays } from '@/lib/coach';
 import { formatFixtureDate, say } from '@/lib/competition';
 import { ageOn, dayText } from '@/lib/player';
 
@@ -18,9 +18,40 @@ import { ageOn, dayText } from '@/lib/player';
  * rule `CoachCareerSpell.current` states.
  */
 
-export function CoachBand({ page, locale }: { page: CoachPage; locale: string }) {
+/** The coaching record's update time: the career's own, else the page's. */
+function recordUpdatedAt(page: CoachPage): string | null {
+  return page.career.last_updated_at ?? page.last_updated_at;
+}
+
+/**
+ * "Coaching now" from a record older than `COACH_RECORD_STALE_DAYS` (T-1807,
+ * D-406; rule 4): the clock and the age in words, never colour alone.
+ */
+function StaleMark({ days, locale }: { days: number; locale: string }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 font-semibold text-warning"
+      data-testid="coach-stale"
+    >
+      <Icon name="clock" size={14} />
+      <Translated locale={locale} message="coachPage.recordAge" count={days} />
+    </span>
+  );
+}
+
+export function CoachBand({
+  page,
+  locale,
+  now = new Date(),
+}: {
+  page: CoachPage;
+  locale: string;
+  /** The page's clock, for the record's age. */
+  now?: Date;
+}) {
   const c = page.coach;
   const current = currentSpells(page);
+  const staleDays = staleRecordDays(recordUpdatedAt(page), now);
   const age = ageOn(c.date_of_birth, new Date());
   return (
     <EntityBand
@@ -63,6 +94,12 @@ export function CoachBand({ page, locale }: { page: CoachPage; locale: string })
                       ` · ${say(locale, 'team.headCoach.since', { date: dayText(locale, s.start_date) })}`}
                   </span>
                 ))
+              )}
+              {current.length > 0 && staleDays !== null && (
+                <>
+                  {' · '}
+                  <StaleMark days={staleDays} locale={locale} />
+                </>
               )}
             </dd>
           </div>
@@ -111,11 +148,15 @@ export function CoachCareerPanel({
   page,
   locale,
   timeZone,
+  now = new Date(),
 }: {
   page: CoachPage;
   locale: string;
   timeZone: string;
+  /** The page's clock, for the record's age. */
+  now?: Date;
 }) {
+  const staleDays = staleRecordDays(recordUpdatedAt(page), now);
   return (
     <CoveredPanel
       testId="coach-career"
@@ -124,9 +165,22 @@ export function CoachCareerPanel({
       locale={locale}
       timeZone={timeZone}
       intro={
-        <p className="text-xs text-muted">
-          <Translated locale={locale} message="coachPage.careerIntro" />
-        </p>
+        <>
+          {staleDays !== null && (page.career.data?.length ?? 0) > 0 && (
+            <p
+              className="flex items-start gap-1.5 rounded-control border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
+              data-testid="coach-career-stale"
+            >
+              <Icon name="clock" size={16} className="mt-0.5 shrink-0 text-warning" />
+              <span>
+                <Translated locale={locale} message="coachPage.careerAge" count={staleDays} />
+              </span>
+            </p>
+          )}
+          <p className="text-xs text-muted">
+            <Translated locale={locale} message="coachPage.careerIntro" />
+          </p>
+        </>
       }
       empty={
         page.career.data === null ? (
@@ -211,6 +265,32 @@ export function CoachLineupsPanel({
           </p>
         </div>
       )}
+    </Panel>
+  );
+}
+
+/**
+ * The record under him -- played, won, drawn, lost (T-1807, D-406): no API
+ * gives a coach's matches with their results yet, so the card is a labelled
+ * gap with the not-supplied state, never numbers (rule 3).
+ */
+export function CoachRecordPanel({ page, locale }: { page: CoachPage; locale: string }) {
+  const team = currentSpells(page)[0]?.team ?? null;
+  return (
+    <Panel
+      testId="coach-record"
+      title={
+        team === null ? (
+          <Translated locale={locale} message="coachPage.record" />
+        ) : (
+          say(locale, 'coachPage.recordWith', { team: team.name })
+        )
+      }
+      aside={<Coverage locale={locale} state="not_supplied" />}
+    >
+      <p className="text-sm text-muted" data-testid="coach-record-gap">
+        <Translated locale={locale} message="coachPage.recordNotSupplied" />
+      </p>
     </Panel>
   );
 }

@@ -184,7 +184,7 @@ def ask(forecaster: Forecaster, home: str, away: str) -> object:
     )
 
 
-# --- off by default: the published 0.7.0 and the retired 0.6.0 as before (D-392) ---
+# --- off by default: the published 0.7.0 and the retired 0.6.0 as before (D-410) ---
 
 PAIRS = [(ENGLAND[0], SPAIN[0]), (SPAIN[2], ENGLAND[5]), (ENGLAND[3], OUTSIDER)]
 #: Written by the code before T-1654 (the same world, the same requests).

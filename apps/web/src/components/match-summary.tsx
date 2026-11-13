@@ -70,7 +70,16 @@ export function MatchSummaryPanel({
       )}
       {summary !== null && data === null && summary.reason !== null && (
         <p className="text-sm text-muted" data-testid="match-summary-reason">
-          <Translated locale={locale} message={REASON_KEY[summary.reason]} />
+          {/* A draft held back is the desk's business (T-1799, F4): a reader
+              is told only that there is no summary, an editor why. */}
+          <Translated
+            locale={locale}
+            message={
+              summary.reason === 'rejected' && !editor
+                ? 'summary.reason.held'
+                : REASON_KEY[summary.reason]
+            }
+          />
         </p>
       )}
       {data !== null && (

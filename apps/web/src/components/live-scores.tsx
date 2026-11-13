@@ -3,7 +3,7 @@
 import type { ScoresResponse } from '@fmip/contracts';
 import Link from '@/components/ui/link';
 import { type ReactNode, useEffect, useState } from 'react';
-import { EntityImage } from '@/components/entity-image';
+import { GROUP_BLOCK, GROUP_HEADING, GROUP_LIST, GroupTitle } from '@/components/match-group';
 import { ScoreCard } from '@/components/score-card';
 import { scoresAnnouncements } from '@/lib/announce';
 import { FreshnessStamp } from '@/components/freshness-stamp';
@@ -30,23 +30,6 @@ import { withLocale } from '@/lib/locale-query';
 import type { ScoresWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
-
-/**
- * A block's heading stays at the top of the screen, under the site header
- * (`match-group-head` in globals.css), while its matches scroll under it (T-605),
- * on the block's own surface so nothing shows through. 44px (T-1757,
- * D-374): the name and the "Updated" stamp on one line, a longer stamp
- * whole on a second.
- */
-const HEADING =
-  'match-group-head z-10 flex min-h-11 min-w-0 flex-wrap items-center gap-x-2.5 border-b border-default bg-surface px-4 text-sm font-extrabold';
-/**
- * One card per block (T-1496, the canvas's competition groups), a hairline
- * between rows. `overflow-clip`, not `hidden`, so the sticky heading still sticks.
- */
-const BLOCK = 'flex flex-col overflow-clip rounded-xl border border-default bg-surface';
-/** The rows' columns follow the list's width, not the screen's (T-1757). */
-const LIST = '@container flex flex-col divide-y divide-default';
 
 /**
  * When this block's cards last changed, once for the block (rule 4), beside
@@ -376,8 +359,8 @@ export function LiveScores({
       ) : (
         <div className="flex flex-col gap-4">
           {shown.pinned.length > 0 && (
-            <section className={BLOCK} data-testid="pinned">
-              <div className={HEADING}>
+            <section className={GROUP_BLOCK} data-testid="pinned">
+              <div className={GROUP_HEADING}>
                 <h2>
                   <MessageText message={words.m['scores.favourites']} />
                 </h2>
@@ -389,32 +372,21 @@ export function LiveScores({
                   words={words}
                 />
               </div>
-              <ul className={LIST}>{shown.pinned.map((card) => row(card, true))}</ul>
+              <ul className={GROUP_LIST}>{shown.pinned.map((card) => row(card, true))}</ul>
             </section>
           )}
           {shown.groups.map((group) => (
-            <section key={group.competition.id} className={BLOCK} data-testid="competition-group">
-              <div className={HEADING}>
-                <h2 className="flex min-w-0 flex-wrap items-center gap-x-2.5">
-                  <Link
-                    href={`/${locale}/competition/${group.competition.id}`}
-                    className="flex min-h-11 min-w-0 items-center gap-2.5 hover:underline"
-                    data-testid="competition-link"
-                  >
-                    <EntityImage
-                      media={group.competition.logo}
-                      kind="logo"
-                      name={group.competition.name}
-                      size={20}
-                    />
-                    <bdi className="truncate">{group.competition.name}</bdi>
-                  </Link>
-                  {group.country !== null && (
-                    <span className="shrink-0 text-xs font-medium text-muted">
-                      {group.country.name}
-                    </span>
-                  )}
-                </h2>
+            <section
+              key={group.competition.id}
+              className={GROUP_BLOCK}
+              data-testid="competition-group"
+            >
+              <div className={GROUP_HEADING}>
+                <GroupTitle
+                  locale={locale}
+                  competition={group.competition}
+                  country={group.country}
+                />
                 <Updated
                   cards={group.fixtures}
                   locale={locale}
@@ -423,7 +395,7 @@ export function LiveScores({
                   words={words}
                 />
               </div>
-              <ul className={LIST}>{group.fixtures.map((card) => row(card, false))}</ul>
+              <ul className={GROUP_LIST}>{group.fixtures.map((card) => row(card, false))}</ul>
             </section>
           ))}
           <p dir="auto" className="text-xs text-muted">

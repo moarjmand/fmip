@@ -73,9 +73,11 @@ describe('the site footer', () => {
       'analysis',
       'site',
       'about',
-      'rules',
       'settings',
       'copyright',
+      'legal',
+      'rules',
+      'data',
     ]);
     for (const [id, href] of [
       ['matches', '/en/scores'],
@@ -87,7 +89,6 @@ describe('the site footer', () => {
       ['model', '/en/model-accuracy'],
       ['analysis', '/en/scores#analysis'],
       ['about', '/en/about'],
-      ['rules', '/en/rules'],
       ['settings', '/en/settings'],
     ] as const) {
       expect(tag(html, `footer-${id}`), id).toContain(`href="${href}"`);
@@ -99,7 +100,20 @@ describe('the site footer', () => {
     // The founder's analysis by its own name, never folded into the others (rule 6).
     expect(html).toContain('>Founder’s analysis<');
     expect(html).toContain('>What Stadiomind is<');
+  });
+
+  it('ends on a legal strip beside the copyright: the rules and the data sources, nothing else (D-410)', async () => {
+    const html = await draw('en');
+    expect(tag(html, 'footer-rules')).toContain('href="/en/rules"');
+    expect(tag(html, 'footer-rules')).toContain('class="footer-link underline"');
+    expect(tag(html, 'footer-data')).toContain('href="/en/about#data"');
     expect(html).toContain('>Platform rules<');
+    expect(html).toContain('>Data sources<');
+    // No Privacy or Contact link until those pages exist (rule 3).
+    expect(html).not.toMatch(/privacy|contact/i);
+    const strip = html.slice(html.indexOf('data-testid="footer-legal"'));
+    expect(strip).toContain('footer-rules');
+    expect(strip).toContain('footer-data');
   });
 
   it('offers this page in each language, with test ids of its own', async () => {
@@ -124,6 +138,8 @@ describe('the site footer', () => {
       'جدول برترین‌ها',
       'تحلیل بنیان‌گذار',
       'پیوندهای سایت',
+      'قوانین پلتفرم',
+      'منبع داده‌ها',
       'زبان',
     ]) {
       expect(html).toContain(word);

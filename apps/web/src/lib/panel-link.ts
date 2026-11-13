@@ -5,7 +5,15 @@ import type {
   PanelLinkRequest,
   PanelLinkedPrediction,
 } from '@fmip/contracts';
-import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, minuteLabel, statValue } from '@/lib/match';
+import {
+  INCIDENT_KEY,
+  STAT_KEY,
+  incidentDetailKey,
+  incidentKey,
+  minuteLabel,
+  shootoutStart,
+  statValue,
+} from '@/lib/match';
 import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, directionOf, isLocale } from '@/i18n/locales';
 import { pairIsolate } from '@/components/score';
@@ -54,14 +62,17 @@ export function linkChoices(
 
   const incidents = centre.timeline.data ?? [];
   if (incidents.length > 0) {
+    // A shoot-out's kick keeps "Penalty"; only a penalty in play is a goal (D-322, D-396).
+    const { scores } = centre.fixture;
+    const kicksFrom = shootoutStart(incidents, scores.penalties, scores.current);
     groups.push({
       kind: 'incidents',
       label: 'Incidents',
-      choices: incidents.map((incident) => ({
+      choices: incidents.map((incident, index) => ({
         value: `incident:${incident.id}`,
         label: [
           minuteLabel(incident.minute, incident.added_time, locale),
-          say(locale, INCIDENT_KEY[incident.kind]),
+          say(locale, incidentKey(incident.kind, kicksFrom === null || index < kicksFrom)),
           incident.player?.name,
         ]
           .filter((part) => part !== undefined && part !== '')
@@ -184,6 +195,9 @@ export function linkCard(
           withSide(
             [
               minuteLabel(i.minute, i.added_time, locale),
+              // The linked incident alone cannot say whether it was a
+              // shoot-out's kick, so a penalty keeps the plain "Penalty",
+              // never "Goal (penalty)" (D-322).
               say(locale, INCIDENT_KEY[i.kind]),
               i.player?.name,
             ]

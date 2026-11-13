@@ -3,6 +3,7 @@ import { formatNumber } from '@/i18n/format';
 import { isBehind } from '@/lib/live';
 import { resultLine, statusLabel } from '@/lib/scores';
 import type { MatchWords } from '@/lib/words-server';
+import { ALL_STEPS, NAME_WRAP, nameFit } from '@/lib/word-fit';
 import { EntityImage } from '@/components/entity-image';
 import { MessageText } from '@/components/message-text';
 import { Score, ScorePair } from '@/components/score';
@@ -89,6 +90,7 @@ export function ScoreBar({
   stale = false,
   locale,
   words,
+  marks,
 }: {
   fixture: Fixture;
   state: BandState;
@@ -96,6 +98,8 @@ export function ScoreBar({
   stale?: boolean;
   locale: string;
   words: MatchWords;
+  /** The shoot-out winner's mark before its name (T-1798), drawn by the server. */
+  marks?: { home?: React.ReactNode; away?: React.ReactNode };
 }) {
   const m = words.m;
   const live = state.live && !stale;
@@ -103,8 +107,9 @@ export function ScoreBar({
   const n = (value: number): string => formatNumber(locale, value);
   const coming = f.status === 'scheduled' && !state.awaiting;
   // A long name gives way before the score or the status does: onto a second
-  // line on a narrow screen (the bar holds two), and only then an ellipsis.
-  const side = (team: Fixture['home'], crestFirst: boolean) => {
+  // line on a narrow screen (the bar holds two), and only then an ellipsis;
+  // between words, never inside one, a single long word narrowed (T-1796, D-395).
+  const side = (team: Fixture['home'], crestFirst: boolean, mark?: React.ReactNode) => {
     const crest = (
       <span className="shrink-0">
         <EntityImage media={team.crest} kind="crest" name={team.name} size={20} />
@@ -113,7 +118,14 @@ export function ScoreBar({
     return (
       <span className="flex min-w-0 items-center gap-1.5">
         {crestFirst && crest}
-        <bdi className="line-clamp-2 min-w-0 leading-4 font-bold [overflow-wrap:anywhere]">
+        {mark}
+        <bdi
+          className={cx(
+            'line-clamp-2 min-w-0 leading-4 font-bold',
+            NAME_WRAP,
+            nameFit(team.name, 12, ALL_STEPS),
+          )}
+        >
           {team.name}
         </bdi>
         {!crestFirst && crest}
@@ -147,7 +159,7 @@ export function ScoreBar({
         </>
       ) : (
         <>
-          {side(f.home, true)}
+          {side(f.home, true, marks?.home)}
           {state.headline === null ? (
             // No score supplied: none, rather than a 0-0 (rule 3).
             f.status === 'live' ? (
@@ -167,7 +179,7 @@ export function ScoreBar({
               {n(state.headline.home)}–{n(state.headline.away)}
             </ScorePair>
           )}
-          {side(f.away, false)}
+          {side(f.away, false, marks?.away)}
           {live ? (
             <LiveBadge
               className="shrink-0"

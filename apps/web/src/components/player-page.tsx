@@ -1067,7 +1067,7 @@ function MatchLine({ match, locale }: { match: PlayerMatch; locale: string }) {
 }
 
 /**
- * "xG (Highlightly) 0.38 · xA 0.12": the match's expected goals from their own
+ * "Expected goals (xG) 0.38 · xA 0.12": the match's expected goals from their own
  * source, labelled with it (T-1432, D-224), and only what it supplied -- `–`
  * for an xG it did not, nothing at all when it has no figure for the match.
  */

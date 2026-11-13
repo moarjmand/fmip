@@ -76,6 +76,8 @@ test.describe('Highlights page', () => {
     await expect(page.getByTestId('highlight-item')).not.toHaveCount(0);
 
     // A guest picks a territory: the filter stays, the "every clip" sentence goes.
+    // The chooser sits behind the one-line territory bar (T-1806, D-405).
+    await page.getByTestId('highlights-territory-choose').locator('summary').click();
     const form = page.getByTestId('viewing-territory-form');
     await form.getByLabel('Territory').selectOption({ label: 'Iran' });
     await form.getByRole('button').click();

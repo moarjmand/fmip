@@ -9,7 +9,7 @@ import type { FreshnessWords } from '@/components/freshness-stamp';
 import { MatchesFreshness } from '@/components/matches-freshness';
 import { MessageText } from '@/components/message-text';
 import { ModelVersions } from '@/components/model-version';
-import { NAME } from '@/components/score-card';
+import { NAME, rowNameFit } from '@/components/score-card';
 import { RowForecast } from '@/components/score-card-forecast';
 import { Stamp } from '@/components/stamp';
 import { StandingsTable } from '@/components/standings-table';
@@ -35,6 +35,7 @@ import { pickCardPath, pickOpen } from '@/lib/pick';
 import type { CardForecast } from '@/lib/score-card-products';
 import { filled, formatFixed, formatPercent } from '@/lib/words';
 import { type ScoresWords, scoresWords } from '@/lib/words-server';
+import { statusFit } from '@/lib/word-fit';
 
 /**
  * The competition page's modules in the Stadiomind design (T-1498, D-274):
@@ -275,6 +276,18 @@ function rowWords(locale: string): ScoresWords {
 }
 
 /** What stands in the time column: the kick-off, "FT" and its day, "Live", or what happened instead. */
+/**
+ * The word a row's state cell says instead of a time, if any: still scheduled
+ * long after its kick-off (T-1710, D-343), as the API derived it, is the word,
+ * never a kick-off time that reads as still to come.
+ */
+function stateWord(fixture: SeasonFixture): MessageKey | undefined {
+  if (fixture.status === 'finished') return undefined;
+  return awaitingUpdate(fixture)
+    ? 'status.awaitingUpdate'
+    : STATUS_KEY[fixture.status as keyof typeof STATUS_KEY];
+}
+
 function MatchState({
   fixture,
   locale,
@@ -295,11 +308,7 @@ function MatchState({
       </>
     );
   }
-  // Still scheduled long after its kick-off (T-1710, D-343), as the API
-  // derived it: the word, never a kick-off time that reads as still to come.
-  const word: MessageKey | undefined = awaitingUpdate(fixture)
-    ? 'status.awaitingUpdate'
-    : STATUS_KEY[status as keyof typeof STATUS_KEY];
+  const word = stateWord(fixture);
   if (word !== undefined) {
     return (
       <span
@@ -357,6 +366,8 @@ export function MatchLine({
   const home = fixture.home.short_name ?? fixture.home.name;
   const away = fixture.away.short_name ?? fixture.away.name;
   // At full time the winner is bold and the loser muted; a draw keeps both in ink.
+  const stateKey = stateWord(fixture);
+  const stateText = stateKey === undefined ? '' : say(locale, stateKey);
   const weight = (side: 'home' | 'away'): string => {
     if (!done || score === null || score.home === score.away) return 'font-semibold';
     const won = side === 'home' ? score.home > score.away : score.away > score.home;
@@ -368,7 +379,7 @@ export function MatchLine({
     return (
       <span className="flex min-h-6 min-w-0 items-center gap-1.5" data-testid={`${side}-team`}>
         <EntityImage media={t.crest} kind="crest" name={name} size={20} />
-        <bdi className={cx(NAME, weight(side))}>{name}</bdi>
+        <bdi className={cx(NAME, rowNameFit(name, score !== null), weight(side))}>{name}</bdi>
         {score !== null && (
           <span
             className={cx(
@@ -398,7 +409,9 @@ export function MatchLine({
       >
         <span
           className={cx(
-            'text-xs leading-tight font-bold tabular-nums font-stretch-semi-condensed hyphens-auto [overflow-wrap:anywhere] @xl:row-span-2 @xl:self-center @xl:text-sm',
+            // A status word stays a word (T-1796, D-395): 11px and 75% width.
+            statusFit(stateText),
+            'font-bold tabular-nums @xl:row-span-2 @xl:self-center',
             pick ? 'self-end' : 'row-span-2',
           )}
           data-testid="fixture-state"

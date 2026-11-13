@@ -19,6 +19,7 @@ import {
 } from '@/i18n/messages';
 import { type ApiResult, fetchCompetitionDirectory, fetchScores } from '@/lib/api';
 import { foldName } from '@/lib/competitions-directory';
+import { NAME_WRAP } from '@/lib/word-fit';
 import {
   MENU_COLUMNS,
   type MenuRegion,
@@ -188,14 +189,19 @@ export function menuView({
           node: (
             <Link
               href={`/${locale}/competition/${entry.id}`}
-              // A long name is cut short in its track; the whole of it on hover.
+              // A long name takes a second line rather than an ellipsis, so the
+              // two "AFC Champions League ..." entries read apart (T-1796,
+              // D-395); the whole of it on hover as well.
               title={entry.name}
               className="menu-row"
               data-testid="competitions-menu-item"
               data-competition={entry.id}
             >
               <EntityImage media={entry.logo} kind="logo" name={entry.name} size={20} />
-              <span className="min-w-0 flex-1 truncate">
+              <span
+                className={`min-w-0 flex-1 py-0.5 leading-tight ${NAME_WRAP} line-clamp-2`}
+                data-testid="competitions-menu-name"
+              >
                 <bdi>{entry.name}</bdi>
               </span>
               <StatusMark

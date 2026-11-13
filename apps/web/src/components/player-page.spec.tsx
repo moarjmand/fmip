@@ -788,7 +788,7 @@ describe('the matches', () => {
       .slice(1)
       .map((line) => line.slice(0, line.indexOf('</li>')));
     expect(lines).toHaveLength(2);
-    expect(lines[0]).toContain('xG (Highlightly)');
+    expect(lines[0]).toContain('Expected goals (xG)');
     expect(lines[0]).toContain('0.38');
     expect(lines[0]).toContain('0.10');
     expect(en).not.toContain('xGOT');

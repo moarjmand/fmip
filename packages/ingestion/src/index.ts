@@ -39,6 +39,8 @@ export {
   parseFeed,
   readFeed,
 } from './news/feed';
+// A photo credit glued into a publisher's summary, taken out (T-1797).
+export { PICTURE_AGENCIES, stripPhotoCredit } from './news/photo-credit';
 // GNews, an English news search that names each article's own publisher (T-1367, D-185).
 export {
   GNEWS_MAX_ARTICLES,

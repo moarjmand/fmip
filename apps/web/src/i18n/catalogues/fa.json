@@ -216,10 +216,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "shell.search.placeholder": {
-    "source": "Teams, players, competitions",
-    "text": "تیم، بازیکن، رقابت",
+    "source": "Search",
+    "text": "جستجو",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "shell.footer.nav": {
     "source": "Site links",
@@ -238,6 +238,12 @@
     "text": "فوتبال زنده، مدل آماری، تحلیل بنیان‌گذار و پیش‌بینی‌های اعضا: کنار هم، و هرگز درهم‌آمیخته.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "shell.footer.dataSources": {
+    "source": "Data sources",
+    "text": "منبع داده‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-410)."
   },
   "shell.moments.label": {
     "source": "Moments that matter",
@@ -1211,6 +1217,12 @@
     "text": "نتایج زنده و صفحه‌ای برای هر بازی: روند بازی، ترکیب‌ها، آمار، بازیکنانی که بازی را از دست می‌دهند و فرم هر تیم، همراه با جدول رده‌بندی هر رقابت. وقتی چیزی برای بازی‌ای موجود نیست، صفحه‌ی آن به‌جای نشان دادن کادری خالی همین را می‌گوید، و هر عدد زنده نشان می‌دهد آخرین بار کی تغییر کرده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "about.data.title": {
+    "source": "Where the data comes from",
+    "text": "داده‌ها از کجا می‌آیند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-410)."
   },
   "about.competitions": {
     "source": "Covered now: {names}.",
@@ -3716,42 +3728,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "search.readAs": {
-    "source": "Read as",
-    "text": "برداشت از پرسش",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.kinds": {
-    "source": "kinds",
-    "text": "دسته‌ها",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.reason.noModel": {
-    "source": "No language model is configured, so this is a keyword search.",
-    "text": "هیچ مدل زبانی پیکربندی نشده است، پس این یک جست‌وجوی کلیدواژه‌ای است.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.reason.unreadable": {
-    "source": "The question could not be read as one, so it was searched as keywords.",
-    "text": "پرسش را نمی‌شد به‌صورت یک پرسش فهمید، پس با کلیدواژه‌ها جست‌وجو شد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.reason.nothingNamed": {
-    "source": "The question names nothing the search could look for, so it was searched as keywords.",
-    "text": "پرسش به چیزی اشاره نمی‌کند که جست‌وجو بتواند دنبالش بگردد، پس با کلیدواژه‌ها جست‌وجو شد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.reason.failed": {
-    "source": "The language model could not be reached, so this is a keyword search.",
-    "text": "دسترسی به مدل زبانی ممکن نشد، پس این یک جست‌وجوی کلیدواژه‌ای است.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "search.section.team": {
     "source": "Teams",
     "text": "تیم‌ها",
@@ -3785,42 +3761,6 @@
   "search.section.member": {
     "source": "Members",
     "text": "اعضا",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.team": {
-    "source": "No team matches.",
-    "text": "هیچ تیمی پیدا نشد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.competition": {
-    "source": "No competition matches.",
-    "text": "هیچ رقابتی پیدا نشد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.person": {
-    "source": "No player matches.",
-    "text": "هیچ بازیکنی پیدا نشد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.story": {
-    "source": "No story's headline matches.",
-    "text": "تیتر هیچ خبری با جست‌وجو مطابقت ندارد.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.group": {
-    "source": "No group that can be found matches. Invite-only groups are never listed.",
-    "text": "هیچ گروه قابل‌جست‌وجویی پیدا نشد. گروه‌هایی که فقط با دعوت می‌شود عضوشان شد، هرگز فهرست نمی‌شوند.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "search.empty.member": {
-    "source": "No member with a public profile matches. Private and friends-only profiles are never listed.",
-    "text": "هیچ عضوی با نمایه‌ی عمومی پیدا نشد. نمایه‌های خصوصی و مخصوص دوستان هرگز فهرست نمی‌شوند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -5149,6 +5089,18 @@
     "text": "هیچ اصلاحیه‌ای ثبت نشده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "story.noCorrectionsShort": {
+    "source": "No corrections noted",
+    "text": "اصلاحیه‌ای ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
+  },
+  "story.versionLine": {
+    "source": "{language}, {status}",
+    "text": "{language}، {status}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "story.about": {
     "source": "About",
@@ -9669,10 +9621,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.xgNotSupplied": {
-    "source": "Expected goals (xG): not available for this match.",
-    "text": "گل مورد انتظار (xG): برای این بازی در دسترس نیست.",
+    "source": "Team expected goals (xG): not supplied for this match.",
+    "text": "گل مورد انتظار تیمی: برای این بازی ارائه نشده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); reworded in T-1395 (D-210)."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.statsUpdated": {
     "source": "Stats updated {ago}",
@@ -9741,34 +9693,34 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "matchCentre.expectedGoals": {
-    "source": "xG (Highlightly)",
-    "text": "xG (Highlightly)",
+    "source": "Expected goals by player",
+    "text": "گل مورد انتظار به تفکیک بازیکن",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.note": {
-    "source": "Expected goals from Highlightly's own model: kept apart from the player statistics above and never combined with them.",
-    "text": "گل مورد انتظار از مدل خود Highlightly: جدا از آمار بازیکنان در بالا نگه داشته می‌شود و هرگز با آن ترکیب نمی‌شود.",
+    "source": "Licensed match data, from a source of its own: kept apart from the player statistics above and never combined with them.",
+    "text": "داده‌ی دارای مجوز مسابقه، از منبعی جداگانه: جدا از آمار بازیکنان در بالا نگه داشته می‌شود و هرگز با آن ترکیب نمی‌شود.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.none": {
-    "source": "Highlightly supplies no expected goals for this match.",
-    "text": "Highlightly برای این بازی گل مورد انتظار ارائه نمی‌کند.",
+    "source": "No expected goals by player are supplied for this match.",
+    "text": "برای این بازی گل مورد انتظار به تفکیک بازیکن ارائه نشده است.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.unplaced": {
-    "source": "Not shown: {count} players Highlightly listed who are not yet matched to ours.",
-    "text": "نمایش داده نشده: {count} بازیکنی که Highlightly فهرست کرده و هنوز با بازیکنان ما تطبیق داده نشده‌اند.",
+    "source": "Not shown: {count} players the source listed who are not yet matched to ours.",
+    "text": "نمایش داده نشده: {count} بازیکنی که منبع فهرست کرده و هنوز با بازیکنان ما تطبیق داده نشده‌اند.",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.region": {
-    "source": "{team}: xG (Highlightly), scrolls sideways",
-    "text": "{team}: xG (Highlightly)، به پهلو پیمایش می‌شود",
+    "source": "{team}: expected goals by player, scrolls sideways",
+    "text": "{team}: گل مورد انتظار به تفکیک بازیکن، به پهلو پیمایش می‌شود",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
   },
   "matchCentre.expectedGoals.xg": {
     "source": "xG",
@@ -13262,12 +13214,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "analysis.desk.signedOut": {
-    "source": "You are not signed in, so publishing will be refused.",
-    "text": "شما وارد نشده‌اید، بنابراین انتشار پذیرفته نمی‌شود.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "analysis.desk.locked": {
     "source": "This match has started. An analysis cannot be published or updated after kick-off — the record of what was said, and when, is the point of it.",
     "text": "این بازی شروع شده است. پس از شروع بازی نمی‌توان تحلیلی منتشر یا به‌روز کرد؛ ارزش آن در ثبت این است که چه گفته شد و چه زمانی.",
@@ -13357,6 +13303,30 @@
     "text": "هر به‌روزرسانی نسخه‌ای تازه است. نسخه‌های پیشین خواندنی می‌مانند، چون ارزش این کار در ثبت این است که چه چیزی و چه زمانی گفته شد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "analysis.desk.gate": {
+    "source": "This desk is for the founder. Analyses are written here before kick-off and read on the match’s page.",
+    "text": "این میز مخصوص بنیان‌گذار است. تحلیل‌ها پیش از شروع بازی اینجا نوشته می‌شوند و در صفحه‌ی بازی خوانده می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "analysis.desk.gateWhat": {
+    "source": "The founder’s analysis is one person’s call on selected matches, signed and published before kick-off. It is one of three separate things on the site: the statistical model’s forecast and the members’ predictions are the other two, and they are never mixed.",
+    "text": "تحلیل بنیان‌گذار نظر یک نفر درباره‌ی بازی‌های منتخب است که پیش از شروع بازی امضا و منتشر می‌شود. این یکی از سه چیز جدا در این سایت است: پیش‌بینی مدل آماری و پیش‌بینی‌های اعضا دو چیز دیگرند و هرگز با هم آمیخته نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "analysis.desk.toMatch": {
+    "source": "Back to the match",
+    "text": "بازگشت به بازی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "analysis.desk.toAnalyses": {
+    "source": "Read the founder’s analyses",
+    "text": "خواندن تحلیل‌های بنیان‌گذار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
   },
   "analysis.action.published": {
     "source": "Published as version {version}. The previous versions stay readable.",
@@ -15141,10 +15111,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "teamPage.seasonStats.title": {
-    "source": "Season statistics, as {source} counts them",
-    "text": "آمار فصل، به شمارش {source}",
+    "source": "Season statistics",
+    "text": "آمار فصل",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "teamPage.seasonStats.note": {
     "source": "{source}'s figures for one competition's season, beside our own table and home-and-away figures, never added to them.",
@@ -15783,10 +15753,10 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "playerPage.expectedGoals": {
-    "source": "xG (Highlightly)",
-    "text": "xG (Highlightly)",
+    "source": "Expected goals (xG)",
+    "text": "گل مورد انتظار (xG)",
     "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175); T-1432."
+    "note": "Written by the agent at the maintainer's request (D-175); T-1797."
   },
   "playerPage.noData": {
     "source": "No match data stored for this player yet.",
@@ -16490,24 +16460,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "searchPage.type.team": {
-    "source": "Team",
-    "text": "تیم",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "searchPage.type.competition": {
-    "source": "Competition",
-    "text": "رقابت",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
-  "searchPage.type.person": {
-    "source": "Player",
-    "text": "بازیکن",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "searchPage.limited": {
     "source": "Too many questions have been asked in the last hour.",
     "text": "در یک ساعت گذشته پرسش‌های بسیاری پرسیده شده است.",
@@ -16591,6 +16543,54 @@
     "text": "هیچ خلاصه‌ی رسمی‌ای برای {territory} ثبت نشده است",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "watch.from": {
+    "source": "Watching from",
+    "text": "تماشا از",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.need": {
+    "source": "Pick a territory to see which official service shows each match.",
+    "text": "یک قلمرو انتخاب کنید تا ببینید هر بازی در کدام سرویس رسمی پخش می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.needChosen": {
+    "source": "Official services in your territory, from the editors’ list.",
+    "text": "سرویس‌های رسمی در قلمرو شما، از فهرست ویراستاران.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.row.official": {
+    "source": "Official: {services}",
+    "text": "رسمی: {services}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.row.notCovered": {
+    "source": "Not covered in your territory",
+    "text": "در قلمرو شما پوشش داده نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.row.nothingListed": {
+    "source": "No official service listed",
+    "text": "هیچ سرویس رسمی‌ای فهرست نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.row.notLoaded": {
+    "source": "Viewing not loaded",
+    "text": "اطلاعات تماشا بارگیری نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
+  },
+  "watch.confirmedSince": {
+    "source": "Every listing here confirmed since {time}.",
+    "text": "همه‌ی فهرست‌های اینجا از {time} به بعد تأیید شده‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 8 mockups' proposal (D-393, D-394); not yet reviewed by a translator."
   },
   "rules.title": {
     "source": "Platform rules",
@@ -18272,12 +18272,6 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
-  "highlights.allListed": {
-    "source": "Every highlight we hold is listed. Some are limited to certain countries and may not play where you are: choose your territory to see only the ones offered there.",
-    "text": "همهٔ هایلایت‌هایی که داریم فهرست شده‌اند. برخی فقط در کشورهای خاصی در دسترس‌اند و ممکن است جایی که هستید پخش نشوند: کشور خود را انتخاب کنید تا فقط آن‌هایی را ببینید که آنجا در دسترس است.",
-    "status": "translated",
-    "note": "Written by the agent at the maintainer's request (D-175)."
-  },
   "highlights.restricted": {
     "source": "May not play in your country",
     "text": "ممکن است در کشور شما پخش نشود",
@@ -18679,5 +18673,293 @@
     "text": "بازی‌هایش در صفحه‌ی رقابت",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 5 mockups' proposal (D-379); not yet reviewed by a translator."
+  },
+  "matchCentre.incident.penaltyGoalInPlay": {
+    "source": "Goal (penalty)",
+    "text": "گل (پنالتی)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.shootoutWin": {
+    "source": "{team} win {score} on penalties",
+    "text": "{team} در ضربات پنالتی {score} پیروز شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.shootoutWinnerUnknown": {
+    "source": "The shoot-out’s winner is not in the record",
+    "text": "برنده‌ی ضربات پنالتی در داده‌ها ثبت نشده است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.wonOnPenalties": {
+    "source": "Won on penalties",
+    "text": "برنده در ضربات پنالتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.kickScored": {
+    "source": "Scored",
+    "text": "گل شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.kickMissed": {
+    "source": "Missed",
+    "text": "از دست رفت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.substitutions": {
+    "source": "Substitutions ({count})",
+    "text": "تعویض‌ها ({count})",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "summary.reason.held": {
+    "source": "No written summary for this match",
+    "text": "برای این بازی خلاصه‌ی نوشته‌شده‌ای نیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.shootoutKey": {
+    "source": "Filled circle with a tick: scored. Dashed circle with a cross: missed.",
+    "text": "دایره‌ی پر با تیک: گل شد. دایره‌ی خط‌چین با ضربدر: از دست رفت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "matchCentre.statGroup.match": {
+    "source": "Match",
+    "text": "کلیات",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.statGroup.attack": {
+    "source": "Attack",
+    "text": "حمله",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.statGroup.passing": {
+    "source": "Passing",
+    "text": "پاس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.statGroup.discipline": {
+    "source": "Discipline",
+    "text": "انضباط",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.table.legend": {
+    "source": "– no figure supplied for this player; a 0 is a supplied zero.",
+    "text": "– برای این بازیکن رقمی ارائه نشده است؛ ۰ صفرِ ارائه‌شده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.expectedGoals.teamOnly": {
+    "source": "Per-player xG: not supplied for this match. The team figure in the statistics above is supplied; the player breakdown is not.",
+    "text": "گل مورد انتظار بازیکنان: برای این بازی ارائه نشده است. رقم تیمی در آمار بالا ارائه شده است؛ تفکیک بازیکنان نه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.goal": {
+    "source": "Goal {minute}",
+    "text": "گل {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.penaltyGoal": {
+    "source": "Goal {minute} (pen.)",
+    "text": "گل {minute} (پنالتی)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.ownGoal": {
+    "source": "Own goal {minute}",
+    "text": "گل به خودی {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.booked": {
+    "source": "Booked {minute}",
+    "text": "کارت زرد {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.sentOff": {
+    "source": "Sent off {minute}",
+    "text": "اخراج {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.off": {
+    "source": "Off {minute}",
+    "text": "خروج {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.on": {
+    "source": "On {minute} for {player}",
+    "text": "ورود {minute} به جای {player}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.marksNone": {
+    "source": "The match events are not supplied, so the pitch marks no goals, cards or substitutions.",
+    "text": "رویدادهای بازی ارائه نشده‌اند، پس زمین هیچ گل، کارت یا تعویضی را نشان نمی‌دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "matchCentre.lineups.mark.onAlone": {
+    "source": "On {minute}",
+    "text": "ورود {minute}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-398..D-400); not yet reviewed by a translator."
+  },
+  "highlights.need": {
+    "source": "Until you pick one, every highlight is listed; some may not play where you are.",
+    "text": "تا کشوری انتخاب نکنید، همه‌ی هایلایت‌ها فهرست می‌شوند؛ برخی ممکن است جایی که هستید پخش نشوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "highlights.needChosen": {
+    "source": "Only the highlights offered in your territory are listed.",
+    "text": "فقط هایلایت‌هایی فهرست شده‌اند که در کشور شما در دسترس‌اند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.recordAge": {
+    "source": {
+      "one": "record updated {count} day ago",
+      "other": "record updated {count} days ago"
+    },
+    "forms": {
+      "one": "داده‌ها {count} روز پیش به‌روز شده‌اند",
+      "other": "داده‌ها {count} روز پیش به‌روز شده‌اند"
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.careerAge": {
+    "source": {
+      "one": "This record was last updated {count} day ago, so “Current” is as of then.",
+      "other": "This record was last updated {count} days ago, so “Current” is as of then."
+    },
+    "forms": {
+      "one": "این داده‌ها آخرین بار {count} روز پیش به‌روز شده‌اند؛ پس «فعلی» مربوط به همان زمان است.",
+      "other": "این داده‌ها آخرین بار {count} روز پیش به‌روز شده‌اند؛ پس «فعلی» مربوط به همان زمان است."
+    },
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.record": {
+    "source": "Record",
+    "text": "کارنامه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.recordWith": {
+    "source": "Record with {team}",
+    "text": "کارنامه با {team}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "coachPage.recordNotSupplied": {
+    "source": "Played, won, drawn and lost under him are not shown: no list of a coach’s matches with their results is kept yet.",
+    "text": "بازی، برد، مساوی و باخت با او نشان داده نمی‌شود: هنوز فهرستی از بازی‌های یک مربی با نتیجه‌هایشان نگه داشته نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 boards (D-405, D-406)."
+  },
+  "search.none": {
+    "source": "No {kinds} match.",
+    "text": "{kinds} پیدا نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.team": {
+    "source": "teams",
+    "text": "تیمی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.competition": {
+    "source": "competitions",
+    "text": "رقابتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.person": {
+    "source": "players",
+    "text": "بازیکنی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.story": {
+    "source": "stories",
+    "text": "خبری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.group": {
+    "source": "groups",
+    "text": "گروهی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "search.none.member": {
+    "source": "members",
+    "text": "عضوی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.noLeagueOrGround": {
+    "source": "No league or ground on record",
+    "text": "لیگ یا ورزشگاهی ثبت نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.playingToday": {
+    "source": "Playing today",
+    "text": "امروز بازی دارند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.allCompetitions": {
+    "source": "All competitions",
+    "text": "همه‌ی رقابت‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.nothing": {
+    "source": "Nothing matches “{term}”",
+    "text": "چیزی با «{term}» پیدا نشد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.tryThese": {
+    "source": "Try a team or competition name, or one of these.",
+    "text": "نام یک تیم یا رقابت را بنویسید، یا یکی از این‌ها را بزنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "searchPage.neverListed": {
+    "source": "Invite-only groups and private or friends-only profiles are never listed.",
+    "text": "گروه‌هایی که فقط با دعوت می‌شود عضوشان شد و نمایه‌های خصوصی یا مخصوص دوستان هرگز فهرست نمی‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "compare.season": {
+    "source": "Season",
+    "text": "فصل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "compare.higher": {
+    "source": "higher",
+    "text": "بیشتر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
   }
 }

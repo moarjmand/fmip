@@ -39,3 +39,25 @@ export function coachSpellPeriod(
 export function currentSpells(page: CoachPage): CoachCareerSpell[] {
   return (page.career.data ?? []).filter((s) => s.current);
 }
+
+/**
+ * How old the coaching record may be before "Coaching now" and "Current"
+ * stop reading as today's (T-1807, D-406; rule 4). The maintainer's figure:
+ * seven days.
+ */
+export const COACH_RECORD_STALE_DAYS = 7;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How many whole days ago the coaching record was updated, when that is more
+ * than `COACH_RECORD_STALE_DAYS`; `null` while it is fresh, or when no time
+ * was given (the page then says "not supplied" by its coverage, not a guess).
+ */
+export function staleRecordDays(lastUpdatedAt: string | null, now: Date): number | null {
+  if (lastUpdatedAt === null) return null;
+  const then = Date.parse(lastUpdatedAt);
+  if (Number.isNaN(then)) return null;
+  const days = Math.floor((now.getTime() - then) / DAY_MS);
+  return days > COACH_RECORD_STALE_DAYS ? days : null;
+}

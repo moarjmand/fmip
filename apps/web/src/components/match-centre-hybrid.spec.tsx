@@ -6,7 +6,9 @@ import type {
   ForecastVersionsResponse,
   FounderAnalysisResponse,
   MatchCentre,
+  MatchIncident,
   MatchLineupPlayer,
+  MatchStatRow,
   MatchViewing,
 } from '@fmip/contracts';
 import { readFileSync } from 'node:fs';
@@ -20,6 +22,8 @@ import { ForecastReality } from '@/app/[locale]/match/[id]/forecast-reality';
 import { CommunityForecastPanel, CommunityPicksRow } from './community-consensus';
 import { FounderAnalysisPanel } from './founder-analysis';
 import { MatchCentreView } from './match-centre-view';
+import { FinishedLineups, FinishedStats, STAT_GROUPS, statGroups } from './match-stats-panels';
+import { STAT_KEY } from '@/lib/match';
 import { MatchLineupsView } from './match-lineups';
 import { HighlightsLink, WatchLine } from './viewing-panel';
 
@@ -474,21 +478,31 @@ const band = (c: MatchCentre, locale = 'en', hero = {}) => {
 };
 
 describe('per-player expected goals (T-1432)', () => {
-  const view = (expected: MatchCentre['player_expected_goals'], locale = 'en') =>
-    renderToStaticMarkup(
+  // As the page draws a finished match: its Stats cards are the server's,
+  // through the view's `matchStats` slot (T-1800..T-1802).
+  const view = (
+    expected: MatchCentre['player_expected_goals'],
+    locale = 'en',
+    statistics: MatchCentre['statistics'] = centre({}).statistics,
+  ) => {
+    const c = { ...centre({ status: 'finished' }), player_expected_goals: expected, statistics };
+    const words = matchWords(locale);
+    return renderToStaticMarkup(
       <MatchCentreView
-        words={matchWords(locale)}
-        centre={{ ...centre({ status: 'finished' }), player_expected_goals: expected }}
+        words={words}
+        centre={c}
         timeZone="UTC"
         locale={locale}
+        slots={{ matchStats: <FinishedStats centre={c} locale={locale} words={words} /> }}
       />,
     );
+  };
   const card = (html: string) => {
     const at = html.indexOf('data-testid="player-expected-goals"');
     return at < 0 ? '' : html.slice(at, html.indexOf('</section>', at));
   };
 
-  it('shows a card of its own, labelled with the source, a dash for what was not supplied', () => {
+  it('shows a card of its own, licensed data and no provider name, a dash only for what was not supplied', () => {
     const html = card(
       view({
         source: 'highlightly',
@@ -502,10 +516,18 @@ describe('per-player expected goals (T-1432)', () => {
       }),
     );
     expect(html).toContain('data-coverage="limited"');
-    expect(html).toContain('xG (Highlightly)');
+    // D-014 (T-1802): the heading says what it is, never whose it is.
+    expect(html).toContain('Expected goals by player');
+    expect(html).toContain('Licensed match data');
+    expect(html).not.toContain('Highlightly');
     expect(html).toContain('0.38');
-    expect(html).toContain('0.00');
+    // A supplied zero is written, quiet; a missing figure is a dash the legend explains.
+    expect(html).toMatch(/text-caption">0\.00</);
     expect(html).toContain('–');
+    expect(html).toContain('data-testid="table-legend"');
+    expect(html).toContain('– no figure supplied for this player');
+    // The name column stays put while the figures scroll.
+    expect(html).toMatch(/<th scope="row" class="sticky start-0[^"]*bg-surface/);
     expect(html).toContain('data-testid="player-expected-goals-unplaced"');
     expect(html).toContain('Not shown: 3 players');
   });
@@ -520,7 +542,7 @@ describe('per-player expected goals (T-1432)', () => {
         data: null,
       }),
     );
-    expect(answered).toContain('Highlightly supplies no expected goals for this match.');
+    expect(answered).toContain('No expected goals by player are supplied for this match.');
     expect(answered).not.toContain('<table');
     const owed = card(
       view({
@@ -532,6 +554,81 @@ describe('per-player expected goals (T-1432)', () => {
       }),
     );
     expect(owed).toContain('data-coverage="delayed"');
+  });
+
+  it('orders the statistics in four fixed groups, every metric in exactly one (T-1800)', () => {
+    const grouped = STAT_GROUPS.flatMap(([, metrics]) => [...metrics]);
+    expect([...grouped].sort()).toEqual(Object.keys(STAT_KEY).sort());
+    expect(new Set(grouped).size).toBe(grouped.length);
+    // The feed's alphabetical order, as it came; a group with nothing is left out.
+    const rows: MatchStatRow[] = (
+      ['blocked_shots', 'corners', 'fouls', 'possession_pct', 'shots'] as const
+    ).map((metric) => ({ metric, home: 5, away: 4 }));
+    const groups = statGroups(rows);
+    expect(groups.map(([g, list]) => [g, list.map((r) => r.metric)])).toEqual([
+      ['match', ['possession_pct']],
+      ['attack', ['shots', 'blocked_shots', 'corners']],
+      ['discipline', ['fouls']],
+    ]);
+    const html = view(
+      {
+        source: 'highlightly',
+        unplaced: 0,
+        coverage: 'not_supplied',
+        last_updated_at: null,
+        data: null,
+      },
+      'en',
+      { coverage: 'available', last_updated_at: null, data: rows },
+    );
+    const stats = html.slice(html.indexOf('data-testid="stat-grid"'));
+    expect(stats.indexOf('data-metric="possession_pct"')).toBeLessThan(
+      stats.indexOf('data-metric="shots"'),
+    );
+    expect(stats).toContain('>Attack</');
+    // Fouls: more is not better, so neither side is marked.
+    expect(stats).toMatch(
+      /data-metric="fouls"><div class="flex flex-col gap-1\.5" data-stat-bar="" data-lead="none"/,
+    );
+    expect(stats).toMatch(
+      /data-metric="shots"><div class="flex flex-col gap-1\.5" data-stat-bar="" data-lead="home"/,
+    );
+  });
+
+  it('agrees with the statistics when the team xG is supplied and the player breakdown is not (F9)', () => {
+    const html = view(
+      {
+        source: 'highlightly',
+        unplaced: 0,
+        coverage: 'not_supplied',
+        last_updated_at: '2026-10-08T16:00:00.000Z',
+        data: null,
+      },
+      'en',
+      {
+        coverage: 'available',
+        last_updated_at: '2026-10-08T16:00:00.000Z',
+        data: [{ metric: 'expected_goals', home: 2.19, away: 1.88 }],
+      },
+    );
+    // The statistics carry the team figure ...
+    expect(html).toContain('data-metric="expected_goals"');
+    expect(html).not.toContain('data-testid="xg-not-supplied"');
+    // ... and the card says only the player breakdown is missing.
+    expect(card(html)).toContain(
+      'Per-player xG: not supplied for this match. The team figure in the statistics above is supplied',
+    );
+    expect(card(html)).not.toContain('No expected goals by player are supplied');
+  });
+
+  it('in play, without the slot, keeps the view’s own card under the same neutral heading', () => {
+    const live = renderToStaticMarkup(
+      <MatchCentreView words={matchWords('en')} centre={centre({})} timeZone="UTC" locale="en" />,
+    );
+    const own = card(live);
+    expect(own).toContain('Expected goals by player');
+    expect(own).not.toContain('Highlightly');
+    expect(live).not.toContain('data-group="match"');
   });
 });
 
@@ -1095,5 +1192,185 @@ describe('the match centre says what happened in words (T-1478)', () => {
     });
     expect(html).toContain('Starter');
     expect(html).not.toContain('Bench<');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A finished match's line-ups and player table, from the server (T-1801, T-1802)
+// ---------------------------------------------------------------------------
+
+describe('a finished match’s line-ups and player table (D-399, D-400)', () => {
+  let seq = 0;
+  const incident = (
+    kind: MatchIncident['kind'],
+    minute: number,
+    who: MatchLineupPlayer | null,
+    over: Partial<MatchIncident> = {},
+  ): MatchIncident => {
+    seq += 1;
+    return {
+      id: `i${seq}`,
+      sequence: seq,
+      minute,
+      added_time: null,
+      kind,
+      side: 'home',
+      player: who === null ? null : { id: who.id, name: who.name },
+      related_player: null,
+      detail: null,
+      ...over,
+    };
+  };
+  const finished = (
+    home: MatchLineupPlayer[],
+    events: MatchIncident[] | null,
+    over: Partial<MatchCentre> = {},
+  ): MatchCentre => ({
+    ...centre({
+      status: 'finished',
+      home: team('h', 'Chelsea', '4-4-2'),
+      away: team('a', 'Liverpool', '4-4-2'),
+    }),
+    lineups: {
+      coverage: 'available',
+      last_updated_at: '2026-10-08T16:00:00.000Z',
+      data: { home, away: eleven(4, 4, 2) },
+    },
+    timeline:
+      events === null
+        ? empty
+        : { coverage: 'available', last_updated_at: '2026-10-08T16:00:00.000Z', data: events },
+    ...over,
+  });
+  const lineupsOf = (c: MatchCentre, locale = 'en') =>
+    renderToStaticMarkup(<FinishedLineups centre={c} locale={locale} words={matchWords(locale)} />);
+  const pitch = (html: string) =>
+    html.slice(
+      html.indexOf('data-testid="pitch-home"'),
+      html.indexOf('data-testid="lineup-pitch-note"'),
+    );
+  const bench = (html: string) => html.slice(html.indexOf('data-testid="lineup-benches"'));
+  const text = (html: string) => html.replace(/<[^>]+>/g, '');
+
+  it('says what happened to each player in words with the minute, and marks his disc', () => {
+    const home = [...eleven(4, 4, 2), player('defender', { role: 'bench', name: 'Levi Colwill' })];
+    home[9] = { ...home[9]!, name: 'Morgan Rogers' };
+    home[1] = { ...home[1]!, name: 'Marc Lacroix' };
+    const [rogers, lacroix, colwill] = [home[9]!, home[1]!, home[11]!];
+    const html = lineupsOf(
+      finished(home, [
+        incident('penalty_goal', 40, rogers),
+        incident('yellow_card', 45, lacroix, { added_time: 1 }),
+        incident('substitution', 45, lacroix, {
+          added_time: 1,
+          related_player: { id: colwill.id, name: colwill.name },
+        }),
+        // A shoot-out kick is never a goal of the match (D-322).
+        incident('penalty_goal', 120, home[2]!, { in_shootout: true }),
+      ]),
+    );
+    const onPitch = pitch(html);
+    expect(text(onPitch)).toContain('Goal 40′ (pen.)');
+    expect(text(onPitch)).toContain('Booked 45+1′ · Off 45+1′');
+    expect(text(onPitch)).not.toContain('120′');
+    expect(onPitch.match(/data-testid="lineup-marks"/g)).toHaveLength(2);
+    // The glyph on the disc is decoration beside the words.
+    expect(onPitch).toMatch(
+      /aria-hidden="true" class="absolute -start-1 -top-0\.5[^"]*" data-testid="lineup-disc-marks"/,
+    );
+    expect(onPitch).toContain('bg-warning');
+    expect(onPitch).toContain('>↓</span>');
+    // The bench says who came on, when and for whom.
+    expect(text(bench(html))).toContain('On 45+1′ for M. Lacroix');
+    expect(bench(html)).toContain('>↑</span>');
+  });
+
+  it('finds the kicks the feed did not flag as the key events do: never a goal (D-322)', () => {
+    const home = eleven(4, 4, 2);
+    const c = finished(home, [
+      incident('penalty_goal', 40, home[9]!),
+      // A shoot-out with no `in_shootout` (another adapter, or no label from
+      // the feed): read back from its 2-0 score, as `shootoutStart` does.
+      incident('penalty_goal', 120, home[2]!),
+      incident('penalty_missed', 120, null, { side: 'away' }),
+      incident('penalty_goal', 120, home[3]!),
+    ]);
+    const html = lineupsOf({
+      ...c,
+      fixture: {
+        ...c.fixture,
+        scores: {
+          ...c.fixture.scores,
+          current: { home: 1, away: 0 },
+          penalties: { home: 2, away: 0 },
+        },
+      },
+    });
+    expect(text(pitch(html))).toContain('Goal 40′ (pen.)');
+    expect(text(pitch(html))).not.toContain('120′');
+    expect(pitch(html).match(/data-testid="lineup-marks"/g)).toHaveLength(1);
+  });
+
+  it('never writes "for" with nobody after it when the feed left out who went off', () => {
+    const home = [...eleven(4, 4, 2), player('forward', { role: 'bench', name: 'Emanuel Emegha' })];
+    const sub = home[11]!;
+    const html = lineupsOf(
+      finished(home, [
+        incident('substitution', 68, null, { related_player: { id: sub.id, name: sub.name } }),
+      ]),
+    );
+    expect(text(bench(html))).toContain('On 68′');
+    expect(text(bench(html))).not.toMatch(/On 68′ for/);
+  });
+
+  it('writes the surname whole, with the initial only where two players share it', () => {
+    const home = eleven(4, 4, 2);
+    home[0] = { ...home[0]!, name: 'Jorrel Acheampong' };
+    home[5] = { ...home[5]!, name: 'Reece James' };
+    home[6] = { ...home[6]!, name: 'Daniel James' };
+    const onPitch = pitch(lineupsOf(finished(home, [])));
+    expect(onPitch).toMatch(/>Acheampong<\/span>/);
+    expect(onPitch).not.toContain('J. Acheampong');
+    expect(onPitch).toContain('>R. James</span>');
+    expect(onPitch).toContain('>D. James</span>');
+    expect(onPitch).toContain('title="Jorrel Acheampong"');
+  });
+
+  it('says the pitch carries no marks when the events are not supplied, and nothing when none happened', () => {
+    const none = lineupsOf(finished(eleven(4, 4, 2), null));
+    expect(none).toContain('data-testid="lineup-marks-none"');
+    expect(none).toContain('The match events are not supplied');
+    expect(lineupsOf(finished(eleven(4, 4, 2), []))).not.toContain('lineup-marks');
+  });
+
+  it('writes the marks in the reader’s language and digits', () => {
+    const home = eleven(4, 4, 2);
+    const html = lineupsOf(finished(home, [incident('goal', 67, home[9]!)]), 'fa');
+    expect(html).toContain('گل ۶۷′');
+  });
+
+  it('keeps the player table’s names in view, quiets its zeros, rates in the neutral chip', () => {
+    const c = finished(eleven(4, 4, 2), [], {
+      player_statistics: {
+        coverage: 'available',
+        last_updated_at: null,
+        data: [
+          {
+            id: 'x1',
+            name: 'Cody Gakpo',
+            side: 'home',
+            stats: { minutes: 90, rating: 7.2, goals: 1, assists: 0 },
+          },
+        ],
+      },
+    });
+    const html = renderToStaticMarkup(
+      <FinishedStats centre={c} locale="en" words={matchWords('en')} />,
+    );
+    const table = html.slice(html.indexOf('data-testid="player-statistics"'));
+    expect(table).toMatch(/<th scope="row" class="sticky start-0[^"]*bg-surface/);
+    expect(table).toMatch(/text-caption">0</);
+    expect(table).toMatch(/data-rating-band="high"[^>]*>7\.2</);
+    expect(table).toContain('– no figure supplied for this player');
   });
 });

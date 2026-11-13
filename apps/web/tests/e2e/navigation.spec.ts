@@ -238,6 +238,8 @@ test.describe('on a 1440px screen', () => {
     for (const [id, url] of [
       ['footer-about', /\/en\/about$/],
       ['footer-rules', /\/en\/rules$/],
+      // The legal strip's data sources: About's own section (T-1790, D-410).
+      ['footer-data', /\/en\/about#data$/],
       ['footer-league', /\/en\/leaderboard$/],
       ['footer-highlights', /\/en\/highlights$/],
       // A guest's Settings: the desktop bar no longer carries its gear (T-1736).
@@ -248,14 +250,14 @@ test.describe('on a 1440px screen', () => {
       await expect(page).toHaveURL(url);
     }
     const footer = page.getByTestId('site-footer');
-    await expect(footer.getByRole('link')).toHaveCount(12);
+    await expect(footer.getByRole('link')).toHaveCount(13);
     await expect(footer).toContainText('© 2');
   });
 
   test('searches from the field in the bar', async ({ page }) => {
     await page.goto('/en/scores');
     const field = page.getByTestId('nav-search-input');
-    await expect(field).toHaveAttribute('placeholder', 'Teams, players, competitions');
+    await expect(field).toHaveAttribute('placeholder', 'Search');
     await field.fill('arsenal');
     await field.press('Enter');
     await expect(page).toHaveURL(/\/en\/search\?q=arsenal$/);

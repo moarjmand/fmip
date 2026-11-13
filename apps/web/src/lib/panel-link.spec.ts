@@ -8,7 +8,11 @@ const names = { home: 'Home FC', away: 'Away FC' };
 function centre(overrides: Partial<MatchCentre>): MatchCentre {
   const none = { coverage: 'not_supplied', last_updated_at: null, data: null } as const;
   return {
-    fixture: { home: { name: 'Home FC' }, away: { name: 'Away FC' } },
+    fixture: {
+      home: { name: 'Home FC' },
+      away: { name: 'Away FC' },
+      scores: { current: { home: 1, away: 1 }, penalties: null },
+    },
     timeline: none,
     statistics: none,
     lineups: none,
@@ -86,6 +90,83 @@ describe('linkChoices (T-1030)', () => {
     expect(groups[1]?.choices[0]).toEqual({ value: `player:${ID}`, label: 'Keeper (Home FC)' });
     // The away side supplied no shots: no choice for it rather than a zero.
     expect(groups[2]?.choices.map((c) => c.value)).toEqual(['statistic:home:shots']);
+  });
+});
+
+describe('a penalty’s name in the link choices (D-322, D-396)', () => {
+  const at = (
+    n: number,
+    minute: number,
+    kind: 'penalty_goal' | 'penalty_missed',
+    side: 'home' | 'away',
+  ) => ({
+    id: `${ID.slice(0, -2)}${String(n).padStart(2, '0')}`,
+    sequence: n,
+    minute,
+    added_time: null,
+    kind,
+    side,
+    player: { id: ID, name: `Taker ${n}` },
+    related_player: null,
+    detail: null,
+  });
+  const shootout = (inShootout: boolean) => {
+    const kicks = [
+      at(2, 120, 'penalty_goal', 'home'),
+      at(3, 120, 'penalty_missed', 'away'),
+      at(4, 120, 'penalty_goal', 'home'),
+    ].map((i) => ({ ...i, in_shootout: inShootout }));
+    const base = centre({
+      timeline: {
+        coverage: 'available',
+        last_updated_at: null,
+        data: [at(1, 40, 'penalty_goal', 'away'), ...kicks],
+      },
+    });
+    return {
+      ...base,
+      fixture: {
+        ...base.fixture,
+        scores: { current: { home: 0, away: 1 }, penalties: { home: 2, away: 0 } },
+      },
+    } as MatchCentre;
+  };
+
+  it('calls a penalty in play "Goal (penalty)" and a shoot-out’s kick "Penalty"', () => {
+    // Flagged by the feed, or read back from the shoot-out's 2-0 score.
+    for (const flagged of [true, false]) {
+      const labels = linkChoices(shootout(flagged), false)[0]!.choices.map((c) => c.label);
+      expect(labels[0]).toBe('40′ Goal (penalty) Taker 1');
+      expect(labels.slice(1)).toEqual([
+        '120′ Penalty Taker 2',
+        '120′ Penalty missed Taker 3',
+        '120′ Penalty Taker 4',
+      ]);
+    }
+  });
+
+  it('keeps the plain "Penalty" on a link card, which cannot tell a kick from play', () => {
+    const card = linkCard(
+      {
+        kind: 'incident',
+        state: 'as_linked',
+        incident: {
+          kind: 'penalty_goal',
+          minute: 120,
+          added_time: null,
+          side: 'home',
+          player: { id: ID, name: 'Taker' },
+          related_player: null,
+          detail: null,
+        },
+      },
+      'Cara',
+      names,
+      null,
+      'en',
+    );
+    expect(card.lines[0]).toContain('Penalty Taker');
+    expect(card.lines[0]).not.toContain('Goal (penalty)');
   });
 });
 

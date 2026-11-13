@@ -69,6 +69,7 @@ export function NewsVisual({
   size,
   eager = false,
   href = card.url,
+  panelOnPhone = true,
 }: {
   card: NewsStoryCard;
   locale: string;
@@ -77,6 +78,12 @@ export function NewsVisual({
   eager?: boolean;
   /** Where the picture leads, as the headline beside it does: the original unless said. */
   href?: string;
+  /**
+   * Whether the designed panel is drawn under 640px (T-1805, D-404): the
+   * news page's lead leaves its panel out on a phone, so its headline is on
+   * the first screen; a licensed photo is always drawn.
+   */
+  panelOnPhone?: boolean;
 }) {
   const image = card.image;
   if (drawableNewsImage(image)) {
@@ -111,7 +118,11 @@ export function NewsVisual({
       rel="noopener"
       tabIndex={-1}
       aria-hidden="true"
-      className={cx('block lite:hidden', size === 'thumb' && 'shrink-0')}
+      className={cx(
+        'block lite:hidden',
+        size === 'thumb' && 'shrink-0',
+        !panelOnPhone && 'max-sm:hidden',
+      )}
     >
       <NewsPanel card={card} size={size} />
     </a>
@@ -170,7 +181,7 @@ export function NewsPanel({ card, size }: { card: NewsStoryCard; size: NewsVisua
           <span className={cx('bg-brand', size === 'thumb' ? 'h-0.5 w-4' : 'h-1 w-8')} />
           <bdi
             className={cx(
-              'line-clamp-2 font-serif leading-tight font-semibold text-fg',
+              'line-clamp-2 leading-tight font-extrabold text-fg font-stretch-semi-condensed',
               size === 'lead'
                 ? 'text-3xl sm:text-display-2'
                 : size === 'card'

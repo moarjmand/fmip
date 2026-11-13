@@ -35,7 +35,7 @@ from fmip_model.model.version import (
     load_candidate,
 )
 
-#: The version 0.7.0 replaced on the site (D-392), kept in retired/ (rule 5).
+#: The version 0.7.0 replaced on the site (D-410), kept in retired/ (rule 5).
 PREVIOUS = load_candidate(RETIRED_DIR / "dixon-coles-elo-0.6.0.json")
 assert PREVIOUS is not None
 from fmip_model.service.contract import ForecastRequest
@@ -200,7 +200,7 @@ def test_a_version_without_a_list_forecasts_what_versions_did_before_t1442() -> 
 def test_0_7_0_is_0_6_0_plus_eleven_divisions_and_nothing_else() -> None:
     candidate = load_candidate(PUBLISHED_DIR / "dixon-coles-elo-0.7.0.json")
     assert candidate is not None and candidate.id == "dixon-coles-elo@0.7.0"
-    assert candidate == PUBLISHED  # D-392: promoted
+    assert candidate == PUBLISHED  # D-410: promoted
     assert new_divisions(candidate, PREVIOUS) == sorted(
         ["G1", "CH1", "DK1", "US1", "BR1", "AR1", "CZ1", "HR1", "RS1", "SA1", "AE1"]
     )

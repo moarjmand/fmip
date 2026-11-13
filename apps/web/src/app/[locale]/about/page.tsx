@@ -5,7 +5,7 @@ import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
 import { intlLocale } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
-import { interpolate, message, plural, t } from '@/i18n/messages';
+import { type MessageKey, interpolate, message, plural, t } from '@/i18n/messages';
 import { fetchCompetitions, fetchLeaderboard } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
 import { FindYourWay } from './find-your-way';
@@ -28,6 +28,16 @@ export async function generateMetadata({
     description: t(lang, 'about.meta.description'),
   });
 }
+
+/**
+ * "Where the data comes from" (T-1790, D-410): each kind by the name and the
+ * sentence "How Stadiomind works" and "Find your way" already give it.
+ */
+const DATA_SOURCES: readonly (readonly [MessageKey, MessageKey])[] = [
+  ['about.how.source.name', 'about.how.source.body'],
+  ['about.map.news.name', 'about.map.news.body'],
+  ['about.map.highlights.name', 'about.map.highlights.body'],
+];
 
 /**
  * The page for a first visit (T-523): what the product is, the three
@@ -104,6 +114,34 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
               <Translated locale={lang} message="about.competitions.unreachable" />
             </p>
           )}
+        </section>
+
+        {/* Where the data comes from (T-1790, D-410), the footer's "Data
+            sources": what each kind of data is and where it opens, in the
+            words the page already uses above. No provider is named and no
+            attribution line is written: those are the maintainer's (D-014). */}
+        <section
+          id="data"
+          aria-labelledby="data-heading"
+          className="flex scroll-mt-4 flex-col gap-2"
+          data-testid="about-data"
+        >
+          <h2
+            id="data-heading"
+            className="text-[1.375rem] leading-tight font-extrabold font-stretch-semi-expanded"
+          >
+            <Translated locale={lang} message="about.data.title" />
+          </h2>
+          <ul className="flex list-disc flex-col gap-2 ps-6">
+            {DATA_SOURCES.map(([name, body]) => (
+              <li key={name}>
+                <strong>
+                  <Translated locale={lang} message={name} />
+                </strong>{' '}
+                <Translated locale={lang} message={body} />
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="flex flex-col gap-2">

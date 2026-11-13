@@ -8,7 +8,7 @@ import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, attribute, message } from '@/i18n/messages';
 import { currentHolds, offeredGiven } from '@/lib/language-hold';
 import { offeredLanguages } from '@/lib/language-picker';
-import { FOOTER_NAV, type FooterGroup, type FooterLink } from '@/lib/shell-nav';
+import { FOOTER_LEGAL, FOOTER_NAV, type FooterGroup, type FooterLink } from '@/lib/shell-nav';
 
 /** Each column's heading. "Stadiomind" is the name, the same in every language. */
 const GROUP_HEADINGS: Record<FooterGroup['id'], MessageKey | null> = {
@@ -30,6 +30,7 @@ export const FOOTER_LABELS: Record<FooterLink['id'], MessageKey> = {
   about: 'about.meta.title',
   rules: 'rules.title',
   settings: 'nav.settings',
+  data: 'shell.footer.dataSources',
 };
 
 /**
@@ -39,17 +40,20 @@ export const FOOTER_LABELS: Record<FooterLink['id'], MessageKey> = {
  * a line on what the site is; then the links in three columns
  * (`FOOTER_NAV`): Football, Predictions -- the prediction league, the
  * model's record and the founder's analysis, each by its own name (rule 6)
- * -- and Stadiomind, with what it is, its rules (linked from nowhere else
- * since D-281 took them out of More) and the languages, as links to this
- * page in each. Then the copyright line, the year in the page's digits.
+ * -- and Stadiomind, with what it is, Settings and the languages, as links
+ * to this page in each. Then the copyright line, the year in the page's
+ * digits, and beside it the legal strip (`FOOTER_LEGAL`, T-1790, D-410):
+ * the rules (linked from nowhere else since D-281 took them out of More)
+ * and "Data sources", About's `#data` section.
  *
  * A server component: the words are resolved here and the catalogues stay
  * on the server (T-1040); only the language links, which need the
  * pathname, are the client's. It follows the theme like the header: the
  * raised surface with a hairline above it, in Day and in Night.
  *
- * No data-source line: no page carries one today, and what a licence
- * requires to be said is the maintainer's to word (CLAUDE.md, 7).
+ * No provider's name or attribution line: what a licence requires to be
+ * said is the maintainer's to word (D-014). No Privacy or Contact link until
+ * those pages exist (T-1793): never a link to nothing (rule 3).
  */
 export async function SiteFooter({ locale }: { locale: string }) {
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
@@ -125,10 +129,31 @@ export async function SiteFooter({ locale }: { locale: string }) {
           })}
         </nav>
       </div>
+      {/* The copyright and the legal strip share one line (T-1790, D-410):
+          the strip's 44px targets take the place of the bar's padding, so
+          the footer is no taller than before on a phone or a desktop. */}
       <div className="border-t border-default">
-        <p className="page-frame py-4 text-xs text-caption" data-testid="footer-copyright">
-          © {year} <span className="font-latin">Stadiomind</span>
-        </p>
+        <div className="page-frame flex flex-wrap items-center justify-between gap-x-6 py-1 md:py-2">
+          <p
+            className="flex min-h-touch items-center text-xs text-caption md:min-h-8"
+            data-testid="footer-copyright"
+          >
+            © {year} <span className="ms-1 font-latin">Stadiomind</span>
+          </p>
+          <ul className="flex flex-wrap gap-x-5" data-testid="footer-legal">
+            {FOOTER_LEGAL.map((link) => (
+              <li key={link.id}>
+                <Link
+                  href={href(link.path)}
+                  className="footer-link underline"
+                  data-testid={`footer-${link.id}`}
+                >
+                  <MessageText message={message(lang, FOOTER_LABELS[link.id])} />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </footer>
   );

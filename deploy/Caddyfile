@@ -24,15 +24,15 @@ import cloudflare-ranges.caddy
 	tls /certs/origin.pem /certs/origin.key
 
 	# Security headers on every response (T-1685, D-332), in stages: the
-	# safe ones now, HSTS with a one-day max-age first (raised once a week
-	# passes without trouble), and the content policy in report-only mode,
+	# safe ones now, HSTS at six months (one day first; raised after a clean
+	# week, T-1690, D-407), and the content policy in report-only mode,
 	# so a wrong source shows in the browser console instead of breaking a
 	# page. `defer` sets them after the upstream answers, so they win over
 	# the same header from `web`. Frames from other sites are allowed for
 	# the highlights' embedded players (viewing-panel.tsx); framing of this
 	# site is limited to itself.
 	header {
-		Strict-Transport-Security "max-age=86400"
+		Strict-Transport-Security "max-age=15552000"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "SAMEORIGIN"
 		Referrer-Policy "strict-origin-when-cross-origin"
@@ -176,7 +176,7 @@ import cloudflare-ranges.caddy
 {$CONSOLE_HOST:console.invalid} {
 	tls /certs/origin.pem /certs/origin.key
 	header {
-		Strict-Transport-Security "max-age=86400"
+		Strict-Transport-Security "max-age=15552000"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "no-referrer"

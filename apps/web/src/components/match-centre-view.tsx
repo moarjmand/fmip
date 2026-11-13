@@ -14,11 +14,12 @@ import type {
 import { AVAILABILITY_STALE_AFTER_MS, LIVE_STATS_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
-import { INCIDENT_KEY, STAT_KEY, incidentDetailKey, shootoutStart, statValue } from '@/lib/match';
+import { STAT_KEY, incidentDetailKey, incidentKey, shootoutStart, statValue } from '@/lib/match';
 import { formatKickoff, formatStamp, freshnessStamp } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
-import { listName } from '@/lib/person-name';
+import { listName, shortName } from '@/lib/person-name';
 import type { MatchWords } from '@/lib/words-server';
+import { NAME_WRAP, NARROW_STEPS, nameFit } from '@/lib/word-fit';
 import { formatDate, formatDateTime, localDigits } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
@@ -53,13 +54,23 @@ export type MatchSlot =
   | 'context'
   // The ground's card (T-1438), from the server: a ground does not change in play.
   | 'venue'
+  // A finished match's statistics, player tables and xG, and its line-ups, drawn
+  // on the server (T-1800..T-1802, `match-stats-panels.tsx`); in play the
+  // modules below draw them from the stream.
+  | 'matchStats'
+  | 'matchLineups'
   | 'players'
   | 'forecast'
   | 'analysis'
   | 'community'
   | 'discussion'
   | 'watch'
-  | 'news';
+  | 'news'
+  // A finished match's key events (T-1799, D-397): the two-lane axis, the
+  // folded substitutions and the shoot-out's circles, drawn on the server
+  // (`match-key-events.tsx`), so none of it is in the page's JavaScript.
+  // While the match is on the client's timeline below stays.
+  | 'keyEvents';
 export type MatchSlots = Partial<Record<MatchSlot, React.ReactNode>>;
 
 /**
@@ -104,6 +115,12 @@ export interface MatchHero {
    * no number is shown as final.
    */
   disputed?: { marker: React.ReactNode; note: React.ReactNode };
+  /**
+   * A finished match decided on penalties (T-1798, D-396): the sentence under
+   * the result ("Liverpool win 6–5 on penalties") and the compact bar's mark
+   * beside the winner, drawn by the server (`shootoutHero`).
+   */
+  penalties?: { line: React.ReactNode; home?: React.ReactNode; away?: React.ReactNode };
 }
 
 type Key = keyof MatchWords['m'];
@@ -157,7 +174,7 @@ export const SECTIONS = {
 } as const satisfies Record<string, MatchTab>;
 
 /** The per-player columns the match centre shows (T-101), in reading order. */
-const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
+export const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
   ['minutes', 'matchCentre.player.minutes'],
   ['rating', 'matchCentre.player.rating'],
   ['goals', 'matchCentre.player.goals'],
@@ -171,7 +188,7 @@ const PLAYER_COLUMNS: readonly [PlayerMatchMetric, Key][] = [
  * The expected-goals columns (T-1432), from their own source: a keeper's xGOT
  * conceded and goals prevented are stored, not shown here.
  */
-const EXPECTED_COLUMNS: readonly [ExpectedGoalsMetric, Key][] = [
+export const EXPECTED_COLUMNS: readonly [ExpectedGoalsMetric, Key][] = [
   ['xg', 'matchCentre.expectedGoals.xg'],
   ['xa', 'matchCentre.expectedGoals.xa'],
   ['xgot', 'matchCentre.expectedGoals.xgot'],
@@ -233,7 +250,11 @@ export function absenceReasonKey(a: MatchAbsence): Key | null {
 const ARABIC_SCRIPT = new Set(['fa', 'ar']);
 
 /** One player cell: the provider's rating to one decimal, a count as it is, `–` when not supplied. */
-function playerCell(locale: string, player: MatchPlayerStats, metric: PlayerMatchMetric): string {
+export function playerCell(
+  locale: string,
+  player: MatchPlayerStats,
+  metric: PlayerMatchMetric,
+): string {
   const value = player.stats[metric];
   if (value === undefined) return '–';
   return metric === 'rating' ? formatFixed(locale, value, 1) : formatNumber(locale, value);
@@ -346,14 +367,18 @@ export function MatchCentreView({
   const statsRegion = (
     <Region id="stats" tab="stats">
       {statsComing.length > 0 && <ComingCard items={statsComing} words={words} phone />}
-      {!isComing('statistics') && (
-        <Statistics centre={centre} locale={locale} now={now} words={words} />
-      )}
-      {!isComing('player_statistics') && (
-        <PlayerStatistics centre={centre} locale={locale} words={words} />
-      )}
-      {!isComing('expected_goals') && (
-        <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
+      {slots.matchStats ?? (
+        <>
+          {!isComing('statistics') && (
+            <Statistics centre={centre} locale={locale} now={now} words={words} />
+          )}
+          {!isComing('player_statistics') && (
+            <PlayerStatistics centre={centre} locale={locale} words={words} />
+          )}
+          {!isComing('expected_goals') && (
+            <PlayerExpectedGoals centre={centre} locale={locale} words={words} />
+          )}
+        </>
       )}
     </Region>
   );
@@ -362,26 +387,28 @@ export function MatchCentreView({
       {lineupsComing ? (
         <ComingCard items={coming.filter((item) => item.tab === 'lineups')} words={words} phone />
       ) : (
-        <Module
-          title={m['matchCentre.lineups']}
-          module={centre.lineups}
-          testId="lineups"
-          words={words}
-          empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
-          notInYet={f.status === 'live'}
-          before={unplayed(centre)}
-        >
-          {(lineups) => (
-            <MatchLineupsView
-              home={f.home}
-              away={f.away}
-              lineups={lineups}
-              ratings={ratingsOf(centre)}
-              locale={locale}
-              words={words}
-            />
-          )}
-        </Module>
+        (slots.matchLineups ?? (
+          <Module
+            title={m['matchCentre.lineups']}
+            module={centre.lineups}
+            testId="lineups"
+            words={words}
+            empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
+            notInYet={f.status === 'live'}
+            before={unplayed(centre)}
+          >
+            {(lineups) => (
+              <MatchLineupsView
+                home={f.home}
+                away={f.away}
+                lineups={lineups}
+                ratings={ratingsOf(centre)}
+                locale={locale}
+                words={words}
+              />
+            )}
+          </Module>
+        ))
       )}
     </Region>
   );
@@ -390,9 +417,10 @@ export function MatchCentreView({
     <Panel tab="summary">
       <Region id="timeline">
         {coming.length > 0 && <ComingCard items={coming} words={words} />}
-        {!isComing('timeline') && (
-          <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
-        )}
+        {slots.keyEvents ??
+          (!isComing('timeline') && (
+            <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
+          ))}
       </Region>
       {slots.summary}
     </Panel>
@@ -498,6 +526,7 @@ export function MatchCentreView({
           stale={hero?.streamBroken === true}
           locale={locale}
           words={words}
+          marks={hero.penalties}
         />
         {/* The section tabs (Design System `Tabs`): plain anchors, the saffron
             edge under the one on show (globals.css), scrolling sideways on a phone. */}
@@ -684,9 +713,14 @@ function Hero({
       })}
     </time>
   );
-  const name = cx(
-    'block max-w-full text-base leading-tight font-extrabold hyphens-auto [overflow-wrap:anywhere] md:text-3xl md:leading-none',
-  );
+  // Whole words only (T-1796, D-395): a single long word steps its width
+  // down on a phone, where the cell holds about ten letters (96px at 375).
+  const name = (team: string) =>
+    cx(
+      'block max-w-full text-base leading-tight font-extrabold md:text-3xl md:leading-none',
+      NAME_WRAP,
+      nameFit(team, 10, NARROW_STEPS),
+    );
   const figure = cx(
     'font-sans font-extrabold tabular-nums whitespace-nowrap',
     naskh
@@ -770,14 +804,14 @@ function Hero({
           <div className="flex flex-col items-center text-center md:flex-row md:justify-end md:gap-5 md:text-end">
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
               <Link href={`/${locale}/team/${f.home.id}`} className={teamLink}>
-                <bdi className={name}>{f.home.name}</bdi>
+                <bdi className={name(f.home.name)}>{f.home.name}</bdi>
               </Link>
-              {scorers.home !== '' && (
+              {scorers.home.length > 0 && (
                 <span
                   className="text-xs text-muted max-md:pb-1.5 md:text-sm"
                   data-testid="scorers-home"
                 >
-                  {scorers.home}
+                  {scorerLine(scorers.home)}
                 </span>
               )}
             </span>
@@ -853,20 +887,21 @@ function Hero({
             <Crest team={f.away} />
             <span className="flex max-w-full min-w-0 flex-col gap-1.5">
               <Link href={`/${locale}/team/${f.away.id}`} className={teamLink}>
-                <bdi className={name}>{f.away.name}</bdi>
+                <bdi className={name(f.away.name)}>{f.away.name}</bdi>
               </Link>
-              {scorers.away !== '' && (
+              {scorers.away.length > 0 && (
                 <span
                   className="text-xs text-muted max-md:pb-1.5 md:text-sm"
                   data-testid="scorers-away"
                 >
-                  {scorers.away}
+                  {scorerLine(scorers.away)}
                 </span>
               )}
             </span>
           </div>
         </div>
       </div>
+      {hero.penalties?.line}
 
       {/* Live: the minute along the match, then kick-off and the stream's stamp. */}
       {f.status === 'live' && (
@@ -973,7 +1008,11 @@ function Hero({
         <li>
           <FilledMessage message={m['scores.card.kickoff']} params={{ time: kickoffFull }} />
         </li>
-        {facts.venue !== null && <li>{facts.venue}</li>}
+        {facts.venue !== null && (
+          <li>
+            <bdi>{facts.venue}</bdi>
+          </li>
+        )}
         <li>{facts.referee}</li>
         {facts.attendance !== null && <li>{facts.attendance}</li>}
         {facts.aggregate !== null && <li>{facts.aggregate}</li>}
@@ -1053,12 +1092,15 @@ export function comingModules(centre: MatchCentre): ComingItem[] {
 
 /**
  * Each side's scorers for the band, "Jackson 6′, 60′", in the order they
- * scored. None at all when the timeline holds an own goal: which side it
+ * scored, as [name, minutes] pairs. None at all when the timeline holds an own goal: which side it
  * counts for is not certain from the feed, and a scorer under the wrong
  * name would be invented (rule 3; the alerts make the same choice).
  */
-function scorersOf(centre: MatchCentre, locale: string): Record<'home' | 'away', string> {
-  const none = { home: '', away: '' };
+function scorersOf(
+  centre: MatchCentre,
+  locale: string,
+): Record<'home' | 'away', [string, string][]> {
+  const none = { home: [], away: [] };
   const recorded = centre.timeline.data;
   if (recorded === null || recorded.some((i) => i.kind === 'own_goal')) return none;
   // A shoot-out's kicks are not goals of the match (T-1550): the band names
@@ -1073,14 +1115,47 @@ function scorersOf(centre: MatchCentre, locale: string): Record<'home' | 'away',
   for (const i of incidents) {
     if ((i.kind !== 'goal' && i.kind !== 'penalty_goal') || i.side === null || i.player === null)
       continue;
-    const name = listName(locale, i.player.name);
+    // The short form on every page, the Persian one too: the band's column
+    // is about 115px on a phone (T-1796, D-395).
+    const name = shortName(i.player.name);
     const minutes = by[i.side].get(name) ?? [];
     minutes.push(formatMinute(locale, i.minute, i.added_time));
     by[i.side].set(name, minutes);
   }
   const line = (side: 'home' | 'away') =>
-    [...by[side]].map(([name, minutes]) => `${name} ${minutes.join(', ')}`).join(' · ');
+    [...by[side]].map(([name, minutes]): [string, string] => [name, minutes.join(', ')]);
   return { home: line('home'), away: line('away') };
+}
+
+/**
+ * A side's scorers, broken into lines only between scorers (T-1796, D-395):
+ * each scorer is one unbreakable unit, his name isolated (a Latin name
+ * inside Persian) and his minutes, the separator held to the unit before it.
+ */
+function scorerLine(list: [string, string][]) {
+  return list.map(([who, at], i) => (
+    <Fragment key={who}>
+      {i > 0 && '\u00a0· '}
+      <span className={cx('whitespace-nowrap', scorerFit(`${who} ${at}`))}>
+        <bdi>{who}</bdi>
+        {'\u00a0'}
+        {at}
+      </span>
+    </Fragment>
+  ));
+}
+
+/**
+ * A scorer's unit on a phone (D-395): measured at 375, the band's column is
+ * 113-116px and "A. Mac Allister 40′" 94-95px at 12px in both fonts, so up
+ * to 22 characters stay as drawn; a longer one steps the size down, which
+ * Vazirmatn needs too (it has no width axis), Archivo also narrowing.
+ */
+export function scorerFit(unit: string): string {
+  const letters = Array.from(unit).length;
+  if (letters <= 22) return '';
+  if (letters <= 26) return 'max-md:text-[11px] max-md:font-stretch-semi-condensed';
+  return 'max-md:text-[10px] max-md:font-stretch-condensed';
 }
 
 /** A side's crest on a white tile, so a dark crest reads on the Night ground. */
@@ -1209,7 +1284,13 @@ function Timeline({
                       )}
                     >
                       <IncidentMark kind={i.kind} />
-                      <IncidentText incident={i} centre={centre} locale={locale} words={words} />
+                      <IncidentText
+                        incident={i}
+                        inPlay={kick === null}
+                        centre={centre}
+                        locale={locale}
+                        words={words}
+                      />
                     </span>
                   </li>
                 </Fragment>
@@ -1248,13 +1329,16 @@ function Shootout({
 }
 
 /** One incident's words: its kind and side, then who (T-1478: who came on, who went off). */
-function IncidentText({
+export function IncidentText({
   incident: i,
+  inPlay,
   centre,
   locale,
   words,
 }: {
   incident: MatchIncident;
+  /** False for a shoot-out's kick, which is never called a goal (D-322, D-396). */
+  inPlay: boolean;
   centre: MatchCentre;
   locale: string;
   words: MatchWords;
@@ -1269,7 +1353,7 @@ function IncidentText({
   return (
     <span className="min-w-0 [overflow-wrap:anywhere]">
       <b className="block font-bold text-fg">
-        <MessageText message={m[INCIDENT_KEY[i.kind]]} />
+        <MessageText message={m[incidentKey(i.kind, inPlay)]} />
         {i.side !== null ? (
           <>
             {' · '}
@@ -1383,7 +1467,7 @@ function Axis({
 const GOAL_KINDS = new Set<MatchIncident['kind']>(['goal', 'penalty_goal', 'own_goal']);
 
 /** A small mark for an incident's kind, in tokens: a ball, a card's colour, an arrow. */
-function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
+export function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
   const shape =
     kind === 'yellow_card' ? (
       <span className="h-4 w-3 rounded-xs bg-warning" />
@@ -1608,9 +1692,11 @@ function PlayerStatistics({
 
 /**
  * Per-player expected goals from their one source (T-1432, D-224), a card of
- * its own under the player statistics: labelled "xG (Highlightly)", never a
+ * its own under the player statistics: "Expected goals by player", from
+ * licensed match data, never named by its provider (D-014, T-1802), never a
  * column of the table above, `–` for a figure the source did not supply, and
- * an explicit state when it supplied none (rule 3).
+ * an explicit state when it supplied none (rule 3). In play only: a finished
+ * match's card is the server's (`match-stats-panels.tsx`, F9).
  */
 function PlayerExpectedGoals({
   centre,

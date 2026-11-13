@@ -12,6 +12,7 @@ import { territoryName } from '@/lib/territory';
 import { optionsState } from '@/lib/viewing';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { forecastBarWords } from '@/lib/words-server';
+import { NAME_WRAP, PHONE_STEPS, nameFit } from '@/lib/word-fit';
 import { EntityImage } from '@/components/entity-image';
 import { ForecastBarWithReceipt } from '@/components/forecast-receipt';
 import { MessageText } from '@/components/message-text';
@@ -112,7 +113,9 @@ export function NextMatchCard({
         {/* Each side's crest at the outer edge, above the name on a phone (T-1617). */}
         <span className="flex min-w-0 flex-col items-end gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
           <EntityImage media={fixture.home.crest} kind="crest" name={fixture.home.name} size={40} />
-          <b className="min-w-0 text-end text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
+          <b
+            className={`min-w-0 text-end text-lg font-extrabold sm:text-2xl ${NAME_WRAP} ${nameFit(fixture.home.name, 11, PHONE_STEPS)}`}
+          >
             <bdi>{fixture.home.name}</bdi>
           </b>
         </span>
@@ -126,7 +129,9 @@ export function NextMatchCard({
         </b>
         <span className="flex min-w-0 flex-col items-start gap-2 sm:flex-row-reverse sm:items-center sm:justify-end sm:gap-3">
           <EntityImage media={fixture.away.crest} kind="crest" name={fixture.away.name} size={40} />
-          <b className="min-w-0 text-start text-lg font-extrabold hyphens-auto [overflow-wrap:anywhere] sm:text-2xl">
+          <b
+            className={`min-w-0 text-start text-lg font-extrabold sm:text-2xl ${NAME_WRAP} ${nameFit(fixture.away.name, 11, PHONE_STEPS)}`}
+          >
             <bdi>{fixture.away.name}</bdi>
           </b>
         </span>

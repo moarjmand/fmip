@@ -326,7 +326,7 @@ def test_the_candidate_file_names_its_prior_and_refuses_an_unknown_one(tmp_path:
 
 def test_the_retired_0_6_0_is_0_5_0_plus_ir1() -> None:
     """D-191: 0.6.0 replaced 0.1.0 on the site; its constants are D-190's, unchanged.
-    D-392: 0.7.0 replaced it, and its file is kept in retired/ (rule 5)."""
+    D-410: 0.7.0 replaced it, and its file is kept in retired/ (rule 5)."""
     candidate = load_candidates(RETIRED_DIR)["dixon-coles-elo-0.6.0"]
     assert candidate.id == "dixon-coles-elo@0.6.0"
     assert candidate.elo_prior == "own"
@@ -377,7 +377,7 @@ def test_a_candidate_file_is_named_after_its_version(tmp_path: Path) -> None:
 
 def test_the_promotion_moved_files_and_renamed_no_version() -> None:
     """D-191: 0.6.0's file went from candidates/ to published/ and 0.5.0's to retired/.
-    D-392 (T-1151): 0.7.0's went from candidates/ to published/ and 0.6.0's to retired/,
+    D-410 (T-1151): 0.7.0's went from candidates/ to published/ and 0.6.0's to retired/,
     each under the version its stored forecasts carry; nothing is left in shadow."""
     assert list(load_candidates()) == []
     assert load_candidate() is None

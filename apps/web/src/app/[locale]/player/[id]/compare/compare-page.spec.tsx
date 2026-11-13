@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { PlayerPage } from '@fmip/contracts';
+import type { PlayerPage, PlayerSeasonRecord } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,8 +11,16 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
  * with the API mocked.
  */
 
-const api = vi.hoisted(() => ({ fetchPlayer: vi.fn(), fetchSearch: vi.fn() }));
+const api = vi.hoisted(() => ({
+  fetchPlayer: vi.fn(),
+  fetchSearch: vi.fn(),
+  fetchMe: vi.fn(async () => null),
+}));
 vi.mock('@/lib/api', () => api);
+vi.mock('@/lib/session', () => ({ sessionCookieHeader: async () => undefined }));
+vi.mock('@/lib/reader-time-zone-server', () => ({
+  pageTimeZone: async () => ({ timeZone: 'Europe/London', chosen: false }),
+}));
 vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('not found');
@@ -154,8 +162,153 @@ describe('the compare page names who each player is (T-1630)', () => {
     expect(identity(html, 1)).toContain('سن ارائه نشده');
   });
 
+  it('stamps the last data update in the reader’s zone, never in UTC (T-1797)', async () => {
+    api.fetchPlayer.mockImplementation(async (id: string) => ({
+      ok: true,
+      data: { ...(id === MBAPPE ? mbappe : unknown), last_updated_at: '2026-10-28T09:15:00Z' },
+    }));
+    const html = await render('en');
+    expect(html).toContain('<time dateTime="2026-10-28T09:15:00Z">');
+    // Europe/London keeps GMT after 25 October; the stamp is the zone's, with no "UTC" said.
+    expect(html).toContain('09:15</time>');
+    expect(html).not.toContain(' UTC</time>');
+  });
+
   it('lays the blocks out with logical properties only', () => {
     const source = readFileSync(join(__dirname, 'page.tsx'), 'utf8');
     expect(source).not.toMatch(PHYSICAL);
+  });
+});
+
+describe('a filter you can use and a table you can read (T-1804, D-402)', () => {
+  const LEAGUE = '00000000-0000-4000-8000-00000000d001';
+  const CUP = '00000000-0000-4000-8000-00000000d002';
+  const S27 = '00000000-0000-4000-8000-00000000d027';
+  const S26 = '00000000-0000-4000-8000-00000000d026';
+  const season = (
+    seasonId: string,
+    competitionId: string,
+    over: Partial<PlayerSeasonRecord> = {},
+  ): PlayerSeasonRecord => ({
+    season: { id: seasonId, label: seasonId === S27 ? '2026/27' : '2025/26' },
+    competition: {
+      id: competitionId,
+      name: competitionId === LEAGUE ? 'Premier League' : 'EFL Cup',
+      short_name: null,
+    },
+    team: { id: MADRID, name: 'Real Madrid' },
+    starts: 7,
+    sub_appearances: 1,
+    goals: 9,
+    assists: 0,
+    yellow_cards: 2,
+    red_cards: 0,
+    minutes: {
+      coverage: 'available',
+      total: 600,
+      matches: 8,
+      matches_with_minutes: 8,
+      supplied_minutes: 600,
+    },
+    ...over,
+  });
+  const recordOf = (rows: PlayerSeasonRecord[]): PlayerPage['record'] => ({
+    coverage: 'available',
+    last_updated_at: '2026-11-07T16:56:00.000Z',
+    data: rows,
+  });
+  const a = {
+    ...mbappe,
+    record: recordOf([season(S27, LEAGUE), season(S27, CUP), season(S26, LEAGUE)]),
+  };
+  const b = {
+    ...unknown,
+    record: recordOf([season(S27, LEAGUE, { goals: 3, assists: 0, yellow_cards: 5 })]),
+  };
+
+  beforeEach(() => {
+    api.fetchPlayer.mockImplementation(async (id: string) => ({
+      ok: true,
+      data: id === MBAPPE ? a : b,
+    }));
+  });
+
+  it('folds every scope into one closed details, grouped by season, naming the choice', async () => {
+    const html = await render('en');
+    expect(html).toMatch(/<details[^>]*>\s*<summary[^>]*min-h-12/);
+    expect(html).not.toMatch(/<details[^>]*open/);
+    expect(html).toMatch(/compare-scope-toggle.*Season.*2026\/27 · Premier League/);
+    const seasons = html.split('data-testid="compare-season"').slice(1);
+    expect(seasons).toHaveLength(2);
+    expect(seasons[0]).toContain('2026/27');
+    expect(seasons[0]).toContain('EFL Cup');
+    expect(seasons[0]).toContain('(one player only)');
+    expect(seasons[1]).toContain('2025/26');
+    // The table follows the filter; who the players are comes after it.
+    expect(html.indexOf('compare-figures')).toBeLessThan(html.indexOf('compare-players'));
+    expect(html.indexOf('compare-scopes')).toBeLessThan(html.indexOf('compare-figures'));
+  });
+
+  it('bolds the larger figure with a longer bar, and marks nobody on cards or a tie', async () => {
+    const html = await render('en');
+    const rowOf = (key: string) =>
+      html.split('data-testid="compare-row"').find((r) => r.includes(`>${key}<`)) ?? '';
+    const goals = rowOf('Goals');
+    expect(goals).toContain('data-ahead="a"');
+    expect(goals).toMatch(/font-bold[^>]*>9<span class="sr-only"> higher<\/span>/);
+    expect(goals).toContain('inline-size:100%');
+    expect(goals).toContain('inline-size:33%');
+    expect(rowOf('Yellow cards')).toContain('data-ahead="none"');
+    expect(rowOf('Yellow cards')).not.toContain('inline-size');
+    // 0 against 0: no mark, no bar.
+    expect(rowOf('Assists')).toContain('data-ahead="none"');
+    expect(rowOf('Assists')).not.toContain('inline-size');
+  });
+
+  it('heads each column with the name, the club and the position', async () => {
+    const heads = (await render('en')).split('data-testid="compare-head"').slice(1);
+    expect(heads[0]).toMatch(/Kylian Mbappé.*Real Madrid.* · .*Forward/);
+    expect(heads[1]).toMatch(/Nobody Known.*No current team on record.* · .*Position not recorded/);
+  });
+});
+
+describe('the picker tells namesakes apart (T-1804, D-402)', () => {
+  beforeEach(() => {
+    api.fetchPlayer.mockImplementation(async (id: string) =>
+      id === MBAPPE
+        ? { ok: true, data: mbappe }
+        : id === UNKNOWN
+          ? { ok: true, data: unknown }
+          : { ok: false, status: 503 },
+    );
+    api.fetchSearch.mockResolvedValue({
+      ok: true,
+      data: {
+        query: 'kn',
+        types: ['person'],
+        results: [
+          { type: 'person', id: UNKNOWN, name: 'Nobody Known', secondary: null },
+          { type: 'person', id: FRANCE, name: 'Other Known', secondary: 'Somewhere FC' },
+        ],
+        stories: null,
+        groups: null,
+        members: null,
+      },
+    });
+  });
+
+  it("gives each candidate his position and club from his own page, else the search's line", async () => {
+    const html = renderToStaticMarkup(
+      await ComparePlayersPage({
+        params: Promise.resolve({ locale: 'en', id: MBAPPE }),
+        searchParams: Promise.resolve({ q: 'known' }),
+      }),
+    );
+    const [first = '', second = ''] = html.split('data-testid="compare-candidate"').slice(1);
+    expect(first).toMatch(
+      /compare-candidate-line[^>]*>Position not recorded · No current team on record/,
+    );
+    expect(second).not.toContain('compare-candidate-line');
+    expect(second).toContain('Somewhere FC');
   });
 });

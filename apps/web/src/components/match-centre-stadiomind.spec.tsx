@@ -20,7 +20,7 @@ import {
   receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { ForecastPanel } from './forecast-panel';
-import { MatchCentreView, ratingsOf } from './match-centre-view';
+import { MatchCentreView, ratingsOf, scorerFit } from './match-centre-view';
 import { Translated } from './translated';
 import { scoreDisputeHero } from './score-dispute';
 import { matchJsonLd } from '@/lib/seo';
@@ -1051,6 +1051,26 @@ describe('live', () => {
     expect(axis).toContain('inset-inline-start:6.666');
   });
 
+  it('writes a Persian page’s scorers in the short form, each one unit that never wraps inside', () => {
+    const goals = [
+      incident(40, 'goal', 'home', 'Alexis Mac Allister'),
+      incident(54, 'goal', 'home', 'Florian Wirtz'),
+    ];
+    const html = view(
+      centre({}, { timeline: { coverage: 'available', last_updated_at: null, data: goals } }),
+      undefined,
+      'fa',
+    );
+    const band = html.slice(html.indexOf('data-testid="scorers-home"'));
+    expect(band).toMatch(
+      /^data-testid="scorers-home"><span class="whitespace-nowrap"><bdi>A\. Mac Allister<\/bdi>\u00a0۴۰′<\/span>\u00a0· <span class="whitespace-nowrap"><bdi>F\. Wirtz<\/bdi>\u00a0۵۴′<\/span><\/span>/,
+    );
+    expect(scorerFit('A. Mac Allister 40′')).toBe('');
+    expect(scorerFit('D. Calvert-Lewin 12′, 45+2′')).toBe(
+      'max-md:text-[10px] max-md:font-stretch-condensed',
+    );
+  });
+
   it('writes each side’s scorers under its name, and none when an own goal is in the list', () => {
     const goals = [
       incident(6, 'goal', 'home', 'N. Jackson'),
@@ -1060,8 +1080,14 @@ describe('live', () => {
     const html = view(
       centre({}, { timeline: { coverage: 'available', last_updated_at: null, data: goals } }),
     );
-    expect(html).toContain('data-testid="scorers-home">N. Jackson 6′, 60′<');
-    expect(html).toContain('data-testid="scorers-away">E. Haaland 52′<');
+    // Each scorer one unit that never wraps inside (T-1796, D-395): the name
+    // isolated, then its minutes; lines break only between scorers.
+    expect(html).toContain(
+      'data-testid="scorers-home"><span class="whitespace-nowrap"><bdi>N. Jackson</bdi>\u00a06′, 60′</span><',
+    );
+    expect(html).toContain(
+      'data-testid="scorers-away"><span class="whitespace-nowrap"><bdi>E. Haaland</bdi>\u00a052′</span><',
+    );
     const own = view(
       centre(
         {},
@@ -1102,7 +1128,9 @@ describe('the match centre review (T-1550)', () => {
         { timeline: { coverage: 'available', last_updated_at: null, data: kicks } },
       ),
     );
-    expect(html).toContain('data-testid="scorers-home">Mauricio 30′<');
+    expect(html).toContain(
+      'data-testid="scorers-home"><span class="whitespace-nowrap"><bdi>Mauricio</bdi>\u00a030′</span><',
+    );
     expect(html).not.toContain('G. Gómez 91′');
     expect(html).not.toContain('data-testid="scorers-away"');
   });
@@ -1182,11 +1210,11 @@ describe('ratings', () => {
           words={matchWords(locale)}
         />,
       );
-    expect(html('en')).toMatch(/data-rating-band="good" class="[^"]*">7\.0</);
-    expect(html('fa')).toMatch(/data-rating-band="good" class="[^"]*">۷٫۰</);
+    expect(html('en')).toMatch(/data-rating-band="high" class="[^"]*">7\.0</);
+    expect(html('fa')).toMatch(/data-rating-band="high" class="[^"]*">۷٫۰</);
   });
 
-  it('puts the ratings on the pitch, the best rated in saffron, and turns it from 768px', () => {
+  it('puts the ratings on the pitch in neutral chips, no rating colour on a disc, and turns it from 768px', () => {
     const home = eleven();
     const away = eleven();
     const ratings = new Map([
@@ -1208,10 +1236,12 @@ describe('ratings', () => {
     expect(html).toMatch(
       /class="relative flex flex-col[^"]*md:flex-row-reverse[^"]*" data-testid="lineup-pitch"/,
     );
-    expect(html).toMatch(/data-rating-band="top" class="[^"]*">8\.9</);
+    expect(html).toMatch(/data-rating-band="high" class="[^"]*">8\.9</);
     expect(html).toMatch(/data-rating-band="low" class="[^"]*">5\.7</);
     expect(html.match(/data-rating-band=/g)).toHaveLength(2);
-    expect(html).toContain(`bg-accent text-on-accent">${home[10]!.shirt_number}<`);
+    // Rule 6 (T-1801): the best rated's disc is his side's tone, never saffron or teal.
+    expect(html).toContain(`bg-fg text-canvas">${home[10]!.shirt_number}<`);
+    expect(html).not.toMatch(/bg-accent|bg-brand|rating-good/);
   });
 
   it('names the best rated with the best six, from the feed’s ratings only', () => {
@@ -1229,7 +1259,7 @@ describe('ratings', () => {
     expect([...ratingsOf(c).keys()]).not.toContain('s7');
     const html = section(view(c), 'top-rated');
     expect(html).toContain('Top rated');
-    expect(html).toMatch(/Rated 1<\/a>[^]*data-rating-band="top"/);
+    expect(html).toMatch(/Rated 1<\/a>[^]*data-rating-band="high"/);
     const best = [...html.matchAll(/data-rating-band="\w+" class="[^"]*">([\d.]+)</g)].map(
       (m) => m[1],
     );
