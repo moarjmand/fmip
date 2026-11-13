@@ -229,7 +229,7 @@ check as a guest → a docs PR ticking the task rows.
 | 6 Empty cards, repeated labels | D-383..D-387 | T-1773..T-1781 | live |
 | 7 Rating and community | D-388..D-390 | T-1783..T-1787 | live (D4, the guest group directory, deferred: T-1785) |
 | 8 Trust: rules, About, footer, desk, Watch | D-392..D-394 | T-1789..T-1794 | the parts without the maintainer's text live; T-1793 and T-1794 wait for him |
-| 9 Single fixes (23 findings) | from D-395 | from T-1795 | mockups ready, waiting for his approval |
+| 9 Single fixes (23 findings) | D-395..D-406 | T-1796..T-1807 | live (69efd773, 2026-11-13); a live match keeps the old key events, stats and line-ups until it finishes (match centre budget, D-397/D-398) |
 
 Also live in this period: live match statistics every three minutes (T-1782,
 D-382) and the console calendar (T-1788, D-391).
@@ -243,19 +243,17 @@ entry on top). This is only a pointer for the first hour. The server ran
 `d2915a04` (package 8) with only docs merged after it; `check-setup.sh`
 passed; disk 50%.
 
-- **Package 9 (single fixes)** waits for the maintainer's approval of its
-  canvas (https://claude.ai/artifact/3qyoWehhMr5y2aBXLVc84r; spec
-  `E:\FMIP\ops\reports\ui-review-2026-11-05\P9-mockups-fa.md`). Bug fixes F1-F10
-  need no decision; decisions D1-D13, of which D8 (the news headline face)
-  reverses D-284/D-291 and D12's staleness figure is his. Then build it as
-  packages 1-8 were built.
+- **Package 9 (single fixes)** is live (69efd773, 2026-11-13). Open
+  follow-ups: the new key events, stats and line-ups show only after full
+  time (drawing them in play needs a match-centre budget decision); stored
+  news summaries spot-checked for the photo-credit cleaning (T-1797).
 - **Package 8's remainder waits for the maintainer's texts:** T-1793 (the
   rules' "In short" and Persian summary, the contact address, the Privacy page
   from the business adviser's 2026-11-02 draft after legal review, About's "who"
   section) and T-1794 (the public founder's page: his floor, the meaning of
   "Right" after extra time and penalties, a new API list).
-- **Open pull requests:** #868 (HSTS to six months, T-1690; merge when the
-  maintainer agrees) and #874 (calendar docs, from its own session).
+- **Open pull requests:** none after this docs PR. HSTS is six months since
+  2026-11-12 (T-1690, D-407; renumbered from a clash with D-382).
 - **Budgets:** match centre 182.3 of 183 kB (0.7 kB left), scores 166.9 of 170,
   home 156.4 of 158, competition 157.2 of 158.
 - **A flake to watch:** the journeys test `competitions-menu.spec.ts:104` (Esc
