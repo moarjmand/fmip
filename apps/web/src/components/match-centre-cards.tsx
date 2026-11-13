@@ -83,6 +83,7 @@ export function Module<T>({
   empty,
   notInYet = false,
   before = null,
+  note,
   children,
 }: {
   title: Message;
@@ -108,6 +109,11 @@ export function Module<T>({
    * card, `ComingCard` (T-1745).
    */
   before?: 'unplayed' | null;
+  /**
+   * A line under the title in every state (D-409): the key events' "may be
+   * behind", a client island that draws nothing while the card is current.
+   */
+  note?: React.ReactNode;
   children: (data: T) => React.ReactNode;
 }) {
   const m = words.m;
@@ -147,6 +153,7 @@ export function Module<T>({
           />
         )}
       </h2>
+      {note}
       {module.data === null ? (
         <p dir="auto" className="text-sm text-muted">
           <MessageText message={waiting ? m['matchCentre.notInYetWhy'] : why} />

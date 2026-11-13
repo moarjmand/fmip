@@ -16,7 +16,46 @@ import {
   refreshSettled,
   refreshStarted,
   retryUnreachable,
+  SHARED_FOR_MS,
+  changedParts,
+  markDrawn,
+  planFollowUp,
+  slotsReading,
 } from './live-modules';
+
+describe('only what changed, and only what was drawn (review m2, B2)', () => {
+  const a = { events: 'e1', stats: 's1' };
+
+  it('names every changed part among those read', () => {
+    expect(changedParts(a, { events: 'e2', stats: 's2' }, ['events', 'stats'])).toEqual([
+      'events',
+      'stats',
+    ]);
+    expect(changedParts(a, { events: 'e2', stats: 's2' }, ['stats'])).toEqual(['stats']);
+    expect(changedParts(a, a, ['events', 'stats'])).toEqual([]);
+  });
+
+  it('a call for a part draws the slots that read it', () => {
+    expect(slotsReading(['events']).sort()).toEqual(['keyEvents', 'matchLineups']);
+    expect(slotsReading(['stats']).sort()).toEqual(['matchLineups', 'matchStats', 'topRated']);
+  });
+
+  it('marks as drawn the server’s data for the parts it drew, and nothing else', () => {
+    // The server read data older than the snapshot that asked: that is what is drawn.
+    expect(markDrawn(a, { events: 'e0', stats: 's9' }, ['events'])).toEqual({
+      events: 'e0',
+      stats: 's1',
+    });
+  });
+
+  it('asks again after the shared read has expired, within the event window', () => {
+    const now = 1_000_000;
+    const plan = planFollowUp(NO_REFRESH, { now, random: 0.5 });
+    expect(plan.due).toBe(now + SHARED_FOR_MS + EVENT_WINDOW_MS / 2);
+    // A sooner call already planned stays.
+    expect(planFollowUp({ ...NO_REFRESH, due: now + 10 }, { now, random: 0.5 }).due).toBe(now + 10);
+  });
+});
 
 describe('which server modules the page drew (T-1811)', () => {
   it('the key events read the events; a page without them makes no call', () => {

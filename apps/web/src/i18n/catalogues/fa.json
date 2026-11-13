@@ -17594,6 +17594,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "matchCentre.keyEventsUpdated": {
+    "source": "Key events updated {ago}",
+    "text": "به‌روزرسانی رویدادها {ago}",
+    "status": "translated",
+    "note": "Written by the agent (the designer's wording, 2026-11-13; D-409), for the translator's review."
+  },
   "matchCentre.kickedOff": {
     "source": "Kick-off",
     "text": "شروع بازی",

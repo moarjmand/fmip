@@ -298,7 +298,7 @@ function Statistics({ centre, locale, words }: Props) {
                 'freshness.behind': m['freshness.behind'],
               }}
               testId="stats-freshness"
-              followsModules
+              followsModules="stats"
             />
           )}
         </>

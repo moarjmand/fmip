@@ -14469,6 +14469,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "matchCentre.keyEventsUpdated": {
+    "source": "Key events updated {ago}",
+    "text": "",
+    "status": "untranslated"
+  },
   "matchCentre.kickedOff": {
     "source": "Kick-off",
     "text": "",

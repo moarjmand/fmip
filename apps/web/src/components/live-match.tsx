@@ -18,13 +18,20 @@ import {
   staleAfterMs,
 } from '@/lib/live';
 import {
+  LIVE_PARTS,
   type LiveSignature,
+  MAX_FOLLOW_UPS,
   NO_REFRESH,
+  type PerPart,
   type RefreshReason,
+  both,
+  changedParts,
   liveChange,
   liveParts,
   liveSignature,
+  markDrawn,
   modulesBehind,
+  planFollowUp,
   planRefresh,
   refreshDue,
   refreshSettled,
@@ -92,25 +99,38 @@ export function LiveMatch({
   // page's slots they were asked against: a later render of the page brings
   // newer slots of its own, which then win.
   const [fresh, setFresh] = useState<{ from: MatchSlots; slots: MatchSlots } | null>(null);
-  // When a change the server modules read was first seen and not yet drawn.
-  const [waitingSince, setWaitingSince] = useState<number | null>(null);
+  // Per part: when a change the server modules read was first seen and not
+  // yet drawn, and when the modules reading it were last drawn (D-409 point 4).
+  const [waiting, setWaiting] = useState<PerPart<number | null>>({ events: null, stats: null });
+  const [drawnAt, setDrawnAt] = useState<PerPart<number>>(() => both(Date.now()));
   const id = initial.fixture.id;
   const router = useRouter();
 
   // What the stream's listener reads without starting again: the page's
-  // slots, the newest snapshot, and the signature the modules on screen
-  // were drawn from.
+  // slots, the newest snapshot, the signature the modules on screen were
+  // drawn from, and the newest answer drawn (the server's clock).
   const slotsRef = useRef(slots);
   const seen = useRef(initial);
   const drawn = useRef<LiveSignature>(liveSignature(initial));
+  const drawnRead = useRef(0);
+  const considerRef = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (slotsRef.current === slots) return;
     // The page was drawn again (a status change, a panel event): its slots
-    // are as new as the snapshot the stream last sent.
+    // are drawn from `initial`, the match as the page read it (review B2),
+    // which a snapshot may already have passed. What is still behind waits
+    // on, and is asked for at once.
     slotsRef.current = slots;
-    drawn.current = liveSignature(seen.current);
-    setWaitingSince(null);
-  }, [slots]);
+    drawn.current = liveSignature(initial);
+    drawnRead.current = 0;
+    setDrawnAt(both(Date.now()));
+    const behind = changedParts(drawn.current, liveSignature(seen.current), LIVE_PARTS);
+    setWaiting((was) => ({
+      events: behind.includes('events') ? was.events : null,
+      stats: behind.includes('stats') ? was.stats : null,
+    }));
+    considerRef.current?.();
+  }, [slots, initial]);
 
   // Lite mode (T-1387): a snapshot a minute rather than an open stream.
   const { on: lite } = useLite();
@@ -128,11 +148,15 @@ export function LiveMatch({
     };
 
     // The server modules' refresh (D-409 point 3): when it is due, one call
-    // in flight at most, and what it was asked for.
+    // in flight at most, what it was asked for, and whether the stream has
+    // reopened since (then every part is asked for).
     let plan = NO_REFRESH;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let asked: LiveSignature | null = null;
+    let reopened = false;
     let skewed = false;
+    // Follow-up calls in a row that came back still behind the stream.
+    let followUps = 0;
     const arm = (): void => {
       if (timer !== null) clearTimeout(timer);
       timer = null;
@@ -145,19 +169,59 @@ export function LiveMatch({
       if (next.call) call();
       else arm();
     };
+    const settle = (): void => {
+      asked = null;
+      if (stopped) return;
+      const next = refreshSettled(plan);
+      plan = next.plan;
+      if (next.call) call();
+      else arm();
+    };
     const call = (): void => {
       plan = refreshStarted(plan);
       const from = slotsRef.current;
-      const signature = liveSignature(seen.current);
-      asked = signature;
-      refreshLiveModules(id, locale, timeZone)
+      const read = liveParts(from);
+      const latest = liveSignature(seen.current);
+      // Only the parts that changed (review m2); every part after a reopen.
+      const want = reopened ? read : changedParts(drawn.current, latest, read);
+      reopened = false;
+      if (want.length === 0) {
+        settle();
+        return;
+      }
+      asked = markDrawn(drawn.current, latest, want);
+      refreshLiveModules(id, locale, timeZone, want)
         .then(
-          (modules) => {
-            if (stopped || modules === null) return;
-            drawn.current = signature;
-            setFresh({ from, slots: modules });
-            if (liveChange(signature, liveSignature(seen.current), liveParts(from)) === null) {
-              setWaitingSince(null);
+          (answer) => {
+            if (stopped || answer === null) return;
+            // An answer older than one already drawn is not drawn over it.
+            if (answer.readAt < drawnRead.current) return;
+            drawnRead.current = answer.readAt;
+            // Only what the server drew is drawn, from the data it read (review B2).
+            drawn.current = markDrawn(drawn.current, answer.drawn, answer.parts);
+            setFresh((was) => ({
+              from,
+              slots: { ...(was !== null && was.from === from ? was.slots : {}), ...answer.modules },
+            }));
+            const at = Date.now();
+            setDrawnAt((was) => ({
+              events: answer.parts.includes('events') ? at : was.events,
+              stats: answer.parts.includes('stats') ? at : was.stats,
+            }));
+            const still = changedParts(drawn.current, liveSignature(seen.current), answer.parts);
+            setWaiting((was) => ({
+              events:
+                answer.parts.includes('events') && !still.includes('events') ? null : was.events,
+              stats: answer.parts.includes('stats') && !still.includes('stats') ? null : was.stats,
+            }));
+            // The read was older than the snapshot that asked (it had started
+            // before the change was written): ask again once the shared read
+            // has expired, a few times at most; the next snapshot asks too.
+            if (still.length > 0 && followUps < MAX_FOLLOW_UPS) {
+              followUps += 1;
+              plan = planFollowUp(plan, { now: at, random: Math.random() });
+            } else if (still.length === 0) {
+              followUps = 0;
             }
           },
           (error: unknown) => {
@@ -169,31 +233,28 @@ export function LiveMatch({
             router.refresh();
           },
         )
-        .finally(() => {
-          asked = null;
-          if (stopped) return;
-          const next = refreshSettled(plan);
-          plan = next.plan;
-          if (next.call) call();
-          else arm();
-        });
+        .finally(settle);
     };
     // Plan a call when the server modules on screen read something older
     // than the newest snapshot (or the stream reopened after a break).
     const consider = (reason?: RefreshReason): void => {
-      const parts = liveParts(slotsRef.current);
-      if (parts.length === 0) return;
+      const read = liveParts(slotsRef.current);
+      if (read.length === 0) return;
       const latest = liveSignature(seen.current);
-      const change = reason ?? liveChange(asked ?? drawn.current, latest, parts);
+      const parts = changedParts(asked ?? drawn.current, latest, read);
+      const change = reason ?? liveChange(asked ?? drawn.current, latest, read);
       if (change === null) return;
+      if (reason === 'reopen') reopened = true;
       const at = Date.now();
       plan = planRefresh(plan, change, { now: at, random: Math.random(), lite });
       // A statistics change held on purpose in lite mode is not "behind".
-      if (change !== 'reopen' && !(lite && change === 'stats')) {
-        setWaitingSince((since) => since ?? at);
-      }
+      setWaiting((was) => ({
+        events: parts.includes('events') ? (was.events ?? at) : was.events,
+        stats: parts.includes('stats') && !lite ? (was.stats ?? at) : was.stats,
+      }));
       arm();
     };
+    considerRef.current = () => consider();
 
     let broken = false;
     const stamp = (snapshot: boolean): void =>
@@ -250,6 +311,7 @@ export function LiveMatch({
       clearInterval(tick);
       if (pageRefresh !== null) clearTimeout(pageRefresh);
       if (timer !== null) clearTimeout(timer);
+      considerRef.current = null;
       stop();
     };
   }, [id, router, words, locale, lite, timeZone]);
@@ -306,9 +368,13 @@ export function LiveMatch({
       </p>
     ) : undefined
   ) : undefined;
-  const behind = modulesBehind(waitingSince, now);
+  // Per part, whether the server modules may be behind the stream (D-409 point 4).
+  const behind: PerPart<boolean> = {
+    events: modulesBehind(waiting.events, now),
+    stats: modulesBehind(waiting.stats, now),
+  };
   return (
-    <LiveClockProvider value={{ now, behind }}>
+    <LiveClockProvider value={{ now, behind, drawnAt }}>
       <div
         aria-live="polite"
         aria-atomic="true"
@@ -317,7 +383,7 @@ export function LiveMatch({
         // The stream's state, for a page that draws no line about it (T-1743).
         data-stream={state}
         // Whether the server modules may be behind the stream (D-409).
-        data-modules={behind ? 'behind' : 'current'}
+        data-modules={behind.events || behind.stats ? 'behind' : 'current'}
       >
         {announcement}
       </div>

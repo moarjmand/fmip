@@ -766,8 +766,13 @@ const centre = (over: Partial<MatchCentre['fixture']> = {}, rest: Partial<MatchC
 // the live clock `LiveMatch` gives them (T-1813).
 const view = (c: MatchCentre, now?: number, locale = 'en', behind = false) => {
   const words = matchWords(locale);
+  const clock = {
+    now,
+    behind: { events: behind, stats: behind },
+    drawnAt: now === undefined ? undefined : { events: now - 180_000, stats: now - 180_000 },
+  };
   return renderToStaticMarkup(
-    <LiveClockProvider value={{ now, behind }}>
+    <LiveClockProvider value={clock}>
       <MatchCentreView
         words={words}
         centre={c}
@@ -833,6 +838,18 @@ describe('live', () => {
     );
     expect(notRedrawn).toContain('data-freshness="behind"');
     expect(notRedrawn).toContain('may be behind');
+    // The key events say so too, under their title (review B1, designer option A),
+    // and say nothing while they are current.
+    const events = (html: string) => section(html, 'timeline');
+    const late = events(view(live, Date.parse('2026-10-24T11:41:00.000Z'), 'en', true));
+    expect(late).toMatch(/<\/h2><span[^>]*data-testid="events-freshness" data-freshness="behind"/);
+    expect(late.replace(/<[^>]+>/g, '')).toContain('Key events updated 3 min ago · may be behind');
+    expect(events(view(live, Date.parse('2026-10-24T11:41:00.000Z')))).not.toContain(
+      'events-freshness',
+    );
+    const lateFa = events(view(live, Date.parse('2026-10-24T11:41:00.000Z'), 'fa', true));
+    expect(lateFa).toContain('به‌روزرسانی رویدادها');
+    expect(lateFa).toContain('شاید عقب باشد');
     // Without the live clock (no live page) there is no line rather than a frozen age.
     const words = matchWords('en');
     const frozen = section(

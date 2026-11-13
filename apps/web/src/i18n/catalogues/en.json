@@ -3164,6 +3164,7 @@
   "matchCentre.tab.summary": "Summary",
   "matchCentre.tab.predictions": "Predictions",
   "matchCentre.keyEvents": "Key events",
+  "matchCentre.keyEventsUpdated": "Key events updated {ago}",
   "matchCentre.kickedOff": "Kick-off",
   "matchCentre.latestFirst": "Latest first. Names and minutes are as recorded for the match.",
   "matchCentre.subOn": "{player} on",

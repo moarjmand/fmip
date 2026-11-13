@@ -2,6 +2,7 @@
 
 import { createContext, useContext } from 'react';
 import { FreshnessStamp, type FreshnessWords } from '@/components/freshness-stamp';
+import type { LivePart, PerPart } from '@/lib/live-modules';
 
 /**
  * The live page's clock, for the modules the server draws (T-1811, D-409
@@ -17,13 +18,20 @@ export interface LiveClock {
   /** The page's clock, ms since the epoch; `undefined` outside a live match page. */
   now: number | undefined;
   /**
-   * A change the server modules read was seen more than a minute ago and is
-   * not drawn yet: a call failed or is late (`modulesBehind`).
+   * Per part of the stream (`events`, `stats`): a change the server modules
+   * reading it read was seen more than a minute ago and is not drawn yet --
+   * a call failed or is late (`modulesBehind`).
    */
-  behind: boolean;
+  behind: PerPart<boolean>;
+  /** Per part: when the modules reading it were last drawn, on the page's clock. */
+  drawnAt: PerPart<number> | undefined;
 }
 
-const LiveClockContext = createContext<LiveClock>({ now: undefined, behind: false });
+const LiveClockContext = createContext<LiveClock>({
+  now: undefined,
+  behind: { events: false, stats: false },
+  drawnAt: undefined,
+});
 
 /** Given by `LiveMatch` around the match centre. */
 export const LiveClockProvider = LiveClockContext.Provider;
@@ -44,7 +52,7 @@ export function LiveAge({
   words,
   testId,
   className,
-  followsModules = false,
+  followsModules,
 }: {
   checkedAt: number | string;
   staleAfterMs: number;
@@ -53,11 +61,11 @@ export function LiveAge({
   testId?: string;
   className?: string;
   /**
-   * The age of a module the stream draws again (D-409): also in its "may be
-   * behind" state while the page's server modules are behind the stream (a
+   * The age of a module the stream draws again (D-409), by the part it reads:
+   * also in its "may be behind" state while that part is behind the stream (a
    * call failed), in the stamp's own words -- never a line of its own.
    */
-  followsModules?: boolean;
+  followsModules?: LivePart;
 }) {
   const { now, behind } = useLiveClock();
   return (
@@ -65,7 +73,45 @@ export function LiveAge({
       checkedAt={checkedAt}
       now={now}
       staleAfterMs={staleAfterMs}
-      behind={followsModules && behind}
+      behind={followsModules !== undefined && behind[followsModules]}
+      locale={locale}
+      words={words}
+      testId={testId}
+      className={className}
+    />
+  );
+}
+
+/**
+ * A server card's "may be behind" line (review B1; the designer's option A,
+ * 2026-11-13): nothing while the card is as current as the stream; once a
+ * change it reads has waited more than a minute undrawn, `FreshnessStamp` in
+ * its behind state -- "▲ Key events updated 3 min ago · may be behind" -- its
+ * age the time the card was last drawn. The threshold is the page's (one
+ * truth), so the stamp's own is never reached. Gone at the next drawing; no
+ * `role` and no live region: the page's polite region has said the change.
+ */
+export function LiveBehind({
+  part,
+  locale,
+  words,
+  testId,
+  className,
+}: {
+  part: LivePart;
+  locale: string;
+  words: FreshnessWords;
+  testId?: string;
+  className?: string;
+}) {
+  const { now, behind, drawnAt } = useLiveClock();
+  if (!behind[part] || drawnAt === undefined) return null;
+  return (
+    <FreshnessStamp
+      checkedAt={drawnAt[part]}
+      now={now}
+      staleAfterMs={Number.POSITIVE_INFINITY}
+      behind
       locale={locale}
       words={words}
       testId={testId}

@@ -71,6 +71,62 @@ export function liveChange(
   return null;
 }
 
+/**
+ * How long one read of a match and its drawn cards answer every reader of it
+ * in one locale and zone (`refreshLiveModules`, review M1): a goal sends
+ * about a thousand readers there within three seconds, and they share about
+ * two reads and one drawing of each card instead of a thousand. Short
+ * enough that a change written meanwhile is drawn by the next call: an
+ * answer's signature says what it holds, and the page asks again while it
+ * is behind the stream.
+ */
+export const SHARED_FOR_MS = 2_000;
+
+/** One value per part of the signature. */
+export type PerPart<T> = Record<LivePart, T>;
+
+export function both<T>(value: T): PerPart<T> {
+  return { events: value, stats: value };
+}
+
+/** Every part, in a fixed order. */
+export const LIVE_PARTS: readonly LivePart[] = ['events', 'stats'];
+
+export function isLivePart(value: unknown): value is LivePart {
+  return value === 'events' || value === 'stats';
+}
+
+/**
+ * Every part, among those the drawn modules read, whose drawn signature
+ * differs from the newest snapshot's: what one call asks the server for, so a
+ * statistics tick does not send the key events again (review m2).
+ */
+export function changedParts(
+  drawn: LiveSignature,
+  latest: LiveSignature,
+  parts: readonly LivePart[],
+): LivePart[] {
+  return LIVE_PARTS.filter((part) => parts.includes(part) && drawn[part] !== latest[part]);
+}
+
+/**
+ * What the modules on screen are now drawn from, after a call drew `parts`
+ * from data whose signature is `server` (review B2): only those parts move,
+ * and to the signature of the data the server actually read -- which may be
+ * older than the snapshot that asked, when the read had started before the
+ * change was written. The other parts keep what they were drawn from.
+ */
+export function markDrawn(
+  drawn: LiveSignature,
+  server: LiveSignature,
+  parts: readonly LivePart[],
+): LiveSignature {
+  return {
+    events: parts.includes('events') ? server.events : drawn.events,
+    stats: parts.includes('stats') ? server.stats : drawn.stats,
+  };
+}
+
 /** The longest random wait before an event is drawn. */
 export const EVENT_WINDOW_MS = 3_000;
 /** The longest random wait before a statistics-only change is drawn. */
@@ -122,6 +178,22 @@ export function planRefresh(
   return { ...plan, due: plan.due === null ? at : Math.min(plan.due, at) };
 }
 
+/** How many calls in a row may come back still behind before only the stream asks again. */
+export const MAX_FOLLOW_UPS = 3;
+
+/**
+ * An answer came back drawn from data older than the snapshot that asked
+ * (review B2): ask again once the shared read it joined has expired
+ * (`SHARED_FOR_MS`), within the event window after it.
+ */
+export function planFollowUp(
+  plan: RefreshPlan,
+  { now, random }: { now: number; random: number },
+): RefreshPlan {
+  const at = now + SHARED_FOR_MS + Math.floor(random * EVENT_WINDOW_MS);
+  return { ...plan, due: plan.due === null ? at : Math.min(plan.due, at) };
+}
+
 /**
  * The due time has come: call now, or -- with one in flight -- once it
  * settles (the trailing call). Nothing before the due time.
@@ -169,8 +241,30 @@ export const LIVE_SLOTS = {
   topRated: ['stats'],
 } as const satisfies Partial<Record<MatchSlot, readonly LivePart[]>>;
 
-/** What `refreshLiveModules` answers: the live slots it drew. */
-export type LiveModules = Partial<Pick<MatchSlots, keyof typeof LIVE_SLOTS>>;
+export type LiveSlot = keyof typeof LIVE_SLOTS;
+
+/** The live slots: what `liveSlots` draws, and what a call may draw again. */
+export type LiveModules = Partial<Pick<MatchSlots, LiveSlot>>;
+
+/** The live slots that read any of these parts: what a call for them draws. */
+export function slotsReading(parts: readonly LivePart[]): LiveSlot[] {
+  return (Object.entries(LIVE_SLOTS) as [LiveSlot, readonly LivePart[]][])
+    .filter(([, read]) => read.some((part) => parts.includes(part)))
+    .map(([slot]) => slot);
+}
+
+/**
+ * What `refreshLiveModules` answers (review B2): the slots it drew, the parts
+ * they read, the signature of the data they were drawn from, and when the
+ * server read that data (its own clock, only ever compared with itself), so
+ * an answer older than one already drawn is not drawn over it.
+ */
+export interface LiveRefresh {
+  modules: LiveModules;
+  parts: LivePart[];
+  drawn: LiveSignature;
+  readAt: number;
+}
 
 /**
  * The parts of the signature the server's live modules on this page read:

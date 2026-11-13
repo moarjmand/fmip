@@ -8,6 +8,7 @@ import { formatKickoff } from '@/lib/scores';
 import { fill, formatMinute } from '@/lib/words';
 import type { MatchWords } from '@/lib/words-server';
 import { FilledMessage } from '@/components/filled-message';
+import { LiveBehind } from '@/components/live-age';
 import { Module } from '@/components/match-centre-cards';
 import type { MatchHero } from '@/components/match-centre-view';
 import { IncidentMark, IncidentText } from '@/components/match-incidents';
@@ -122,6 +123,22 @@ export function KeyEvents({
       notInYet={f.status === 'live'}
       // A postponed or cancelled match had no play to record (T-1550).
       before={f.status === 'postponed' || f.status === 'cancelled' ? 'unplayed' : null}
+      // In play, when the stream has events this card was not drawn with for
+      // over a minute (a call failed): "▲ Key events updated 3 min ago · may
+      // be behind" under the title, and nothing otherwise (review B1; the
+      // designer's option A, 2026-11-13).
+      note={
+        <LiveBehind
+          part="events"
+          locale={locale}
+          words={{
+            'freshness.checked': say(locale, 'matchCentre.keyEventsUpdated'),
+            'freshness.behind': m['freshness.behind'],
+          }}
+          testId="events-freshness"
+          className="flex-wrap"
+        />
+      }
     >
       {(incidents) => {
         // The kicks are found as the client's timeline finds them (T-1477, T-1666, D-322).

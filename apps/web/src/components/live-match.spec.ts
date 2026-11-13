@@ -4,8 +4,12 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { FreshnessWords } from './freshness-stamp';
-import { LiveAge, LiveClockProvider } from './live-age';
+import { LiveAge, LiveBehind, LiveClockProvider } from './live-age';
+import { message } from '@/i18n/messages';
+import { both } from '@/lib/live-modules';
 import { matchWords } from '@/lib/words-server';
+
+const EN_KEY_EVENTS = message('en', 'matchCentre.keyEventsUpdated');
 
 /**
  * The match page listens for the public discussion moving (T-254, D-068).
@@ -62,9 +66,9 @@ describe('live match: the server modules in play (T-1811, D-409)', () => {
 
   it('asks only through the policy: the signature without the clock, the parts the page drew', () => {
     expect(SOURCE).toMatch(
-      /const parts = liveParts\(slotsRef\.current\);\s*if \(parts\.length === 0\) return;/,
+      /const read = liveParts\(slotsRef\.current\);\s*if \(read\.length === 0\) return;/,
     );
-    expect(SOURCE).toMatch(/liveChange\(asked \?\? drawn\.current, latest, parts\)/);
+    expect(SOURCE).toMatch(/liveChange\(asked \?\? drawn\.current, latest, read\)/);
     expect(SOURCE).toMatch(
       /planRefresh\(plan, change, \{ now: at, random: Math\.random\(\), lite \}\)/,
     );
@@ -75,8 +79,36 @@ describe('live match: the server modules in play (T-1811, D-409)', () => {
     expect(SOURCE.match(/router\.refresh\(\)/g)).toHaveLength(2);
   });
 
+  it('asks only for the parts that changed, every part after a reopen (review m2)', () => {
+    expect(SOURCE).toMatch(
+      /const want = reopened \? read : changedParts\(drawn\.current, latest, read\);/,
+    );
+    expect(SOURCE).toMatch(/refreshLiveModules\(id, locale, timeZone, want\)/);
+    expect(SOURCE).toMatch(/if \(want\.length === 0\) \{\s*settle\(\);\s*return;/);
+  });
+
+  it('marks as drawn only what the server drew, from the data it read (review B2)', () => {
+    expect(SOURCE).toMatch(
+      /drawn\.current = markDrawn\(drawn\.current, answer\.drawn, answer\.parts\);/,
+    );
+    // Never the signature it asked for.
+    expect(SOURCE).not.toMatch(/drawn\.current = signature/);
+    // An answer older than one already drawn is not drawn over it.
+    expect(SOURCE).toMatch(/if \(answer\.readAt < drawnRead\.current\) return;/);
+    // Still behind: ask again after the shared read, a few times at most.
+    expect(SOURCE).toMatch(/if \(still\.length > 0 && followUps < MAX_FOLLOW_UPS\)/);
+    expect(SOURCE).toMatch(/planFollowUp\(plan, \{ now: at, random: Math\.random\(\) \}\)/);
+  });
+
+  it('after a render of the page, its slots are drawn from `initial`, not the newest snapshot (review B2)', () => {
+    expect(SOURCE).toMatch(
+      /slotsRef\.current = slots;\s*drawn\.current = liveSignature\(initial\);/,
+    );
+    expect(SOURCE).toMatch(/considerRef\.current\?\.\(\);\s*\}, \[slots, initial\]\);/);
+  });
+
   it('keeps what it has when a call fails or answers nothing, and never unmounts the view', () => {
-    expect(SOURCE).toMatch(/if \(stopped \|\| modules === null\) return;/);
+    expect(SOURCE).toMatch(/if \(stopped \|\| answer === null\) return;/);
     // A failure other than a replaced build is swallowed; the view stays.
     expect(SOURCE).toMatch(
       /if \(stopped \|\| skewed \|\| !unstable_isUnrecognizedActionError\(error\)\) return;\s*skewed = true;\s*router\.refresh\(\);/,
@@ -92,42 +124,50 @@ describe('live match: the server modules in play (T-1811, D-409)', () => {
     expect(SOURCE).toMatch(
       /slots=\{fresh !== null && fresh\.from === slots \? \{ \.\.\.slots, \.\.\.fresh\.slots \} : slots\}/,
     );
-    expect(SOURCE).toMatch(
-      /slotsRef\.current = slots;\s*drawn\.current = liveSignature\(seen\.current\);/,
-    );
   });
 
-  it('gives the server modules the page’s clock, and says on the live region when they may be behind', () => {
-    expect(SOURCE).toMatch(/<LiveClockProvider value=\{\{ now, behind \}\}>/);
-    expect(SOURCE).toMatch(/data-modules=\{behind \? 'behind' : 'current'\}/);
+  it('gives the server modules the page’s clock, per part, and says on the live region when they may be behind', () => {
+    expect(SOURCE).toMatch(/<LiveClockProvider value=\{\{ now, behind, drawnAt \}\}>/);
+    expect(SOURCE).toMatch(
+      /data-modules=\{behind\.events \|\| behind\.stats \? 'behind' : 'current'\}/,
+    );
     // A statistics change held on purpose in lite mode is not "behind".
-    expect(SOURCE).toMatch(/if \(change !== 'reopen' && !\(lite && change === 'stats'\)\)/);
+    expect(SOURCE).toMatch(/stats: parts\.includes\('stats'\) && !lite \?/);
   });
 
   it('clears the call’s timer when the page goes away', () => {
-    expect(SOURCE).toMatch(/if \(timer !== null\) clearTimeout\(timer\);\s*stop\(\);/);
+    expect(SOURCE).toMatch(
+      /if \(timer !== null\) clearTimeout\(timer\);\s*considerRef\.current = null;\s*stop\(\);/,
+    );
   });
 });
 
+const m = matchWords('en').m;
+const at = Date.parse('2026-11-13T20:30:00.000Z');
+const clock = (now: number | undefined, behind = both(false), drawnAt = both(at)) => ({
+  now,
+  behind,
+  drawnAt,
+});
+
 describe('live age: a server module’s age on the live clock (T-1811)', () => {
-  // T-1782's words, as the statistics card will hand them in (T-1813).
-  const m = matchWords('en').m;
+  // T-1782's words, as the statistics card hands them in (T-1813).
   const words: FreshnessWords = {
     'freshness.checked': m['matchCentre.statsUpdated'],
     'freshness.behind': m['freshness.behind'],
   };
-  const at = Date.parse('2026-11-13T20:30:00.000Z');
-  const age = (now: number | undefined) =>
+  const age = (now: number | undefined, behind = both(false)) =>
     renderToStaticMarkup(
       createElement(
         LiveClockProvider,
-        { value: { now, behind: false } },
+        { value: clock(now, behind) },
         createElement(LiveAge, {
           checkedAt: new Date(at).toISOString(),
           staleAfterMs: 10 * 60_000,
           locale: 'en',
           words,
           testId: 'stats-freshness',
+          followsModules: 'stats',
         }),
       ),
     );
@@ -138,6 +178,11 @@ describe('live age: a server module’s age on the live clock (T-1811)', () => {
     expect(fresh).toContain('2 min');
     expect(age(at + 11 * 60_000)).toContain('data-freshness="behind"');
     expect(age(at + 11 * 60_000)).toContain(m['freshness.behind'].text);
+  });
+
+  it('turns to "may be behind" at once when its own part is behind the stream, not another', () => {
+    expect(age(at + 60_000, { events: false, stats: true })).toContain('data-freshness="behind"');
+    expect(age(at + 60_000, { events: true, stats: false })).toContain('data-freshness="current"');
   });
 
   it('draws nothing without a live clock', () => {
@@ -155,33 +200,63 @@ describe('live age: a server module’s age on the live clock (T-1811)', () => {
   });
 });
 
-describe('live match: a finished match is not live (T-1394)', () => {
-  it('draws the stream line only while showsLiveLine says the match can still change', () => {
-    expect(SOURCE).toMatch(/const live = showsLiveLine\(centre\.fixture\.status\) \?/);
-    expect(SOURCE).toMatch(/\) : undefined;/);
-  });
-});
-
-describe('live match: no counter before kick-off (T-1743, D-364)', () => {
-  const from = SOURCE.indexOf('const live = showsLiveLine');
-  const line = SOURCE.slice(from, SOURCE.indexOf('return (', from));
-
-  it('ticks "last checked" only while the match is in play', () => {
-    expect(SOURCE).toMatch(/const inPlay = status === 'live' \|\| status === 'suspended';/);
-    expect(line).toMatch(/\? \(\s*inPlay \? \([^]*<FreshnessStamp[^]*\) : broken \? \(/);
-    // The stamp is in the in-play branch and nowhere after it.
-    expect(line.slice(line.indexOf(') : broken ? ('))).not.toContain('FreshnessStamp');
-  });
-
-  it('before kick-off names the stream only when it has broken, as a status in the warning colour', () => {
-    expect(SOURCE).toMatch(/const broken = state === 'stale' \|\| state === 'unavailable';/);
-    expect(line).toMatch(
-      /\) : broken \? \(\s*<p\s+className="text-xs font-medium text-warning"\s+data-testid="live-state"\s+data-state=\{state\}\s+role="status"\s*>\s*\{liveLabel\(state, clock, locale, timeZone, words\.m\)\}/,
+describe('the key events’ "may be behind" line (review B1; designer option A)', () => {
+  const words: FreshnessWords = {
+    'freshness.checked': EN_KEY_EVENTS,
+    'freshness.behind': m['freshness.behind'],
+  };
+  const line = (value: ReturnType<typeof clock>) =>
+    renderToStaticMarkup(
+      createElement(
+        LiveClockProvider,
+        { value },
+        createElement(LiveBehind, {
+          part: 'events',
+          locale: 'en',
+          words,
+          testId: 'events-freshness',
+        }),
+      ),
     );
-    expect(line).toMatch(/\) : undefined\s*\) : undefined;/);
+
+  it('normal: nothing at all, no line held open', () => {
+    expect(line(clock(at + 5 * 60_000))).toBe('');
+    // Behind on the statistics only: the key events are current.
+    expect(line(clock(at + 5 * 60_000, { events: false, stats: true }))).toBe('');
   });
 
-  it('keeps the stream state on the live region, for a page that draws no line about it', () => {
-    expect(SOURCE).toMatch(/data-testid="live-announcements"[^>]*data-stream=\{state\}/);
+  it('behind: the triangle, "Key events updated 3 min ago · may be behind", in the warning colour', () => {
+    const html = line(clock(at + 3 * 60_000, { events: true, stats: false }));
+    expect(html).toContain('data-testid="events-freshness"');
+    expect(html).toContain('data-freshness="behind"');
+    expect(html).toContain('▲');
+    expect(html).toContain('text-warning');
+    expect(html.replace(/<[^>]+>/g, '')).toContain('Key events updated 3 min ago · may be behind');
+    // No live region of its own: the page's polite region has said the change.
+    expect(html).not.toMatch(/role=|aria-live/);
+  });
+
+  it('recovered: the next drawing takes the line away', () => {
+    expect(line(clock(at + 3 * 60_000, both(false), both(at + 3 * 60_000)))).toBe('');
+  });
+
+  it('says it in Persian from the catalogue', () => {
+    const fa = matchWords('fa').m;
+    const html = renderToStaticMarkup(
+      createElement(
+        LiveClockProvider,
+        { value: clock(at + 3 * 60_000, { events: true, stats: false }) },
+        createElement(LiveBehind, {
+          part: 'events',
+          locale: 'fa',
+          words: {
+            'freshness.checked': message('fa', 'matchCentre.keyEventsUpdated'),
+            'freshness.behind': fa['freshness.behind'],
+          },
+        }),
+      ),
+    );
+    expect(html).toContain('به‌روزرسانی رویدادها');
+    expect(html).toContain('شاید عقب باشد');
   });
 });
