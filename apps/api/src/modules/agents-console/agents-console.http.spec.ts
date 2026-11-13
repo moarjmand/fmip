@@ -508,6 +508,40 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       ).toBe(404);
     });
 
+    it('records who filed each request, and lists one filer at a time (T-1831)', async () => {
+      const mine = (
+        await send('POST', 'requests', { title: `${RUN} mine` })
+      ).json<ConsoleRequestDetail>();
+      const theirs = (
+        await send('POST', 'requests', { title: `${RUN} theirs` }, mate)
+      ).json<ConsoleRequestDetail>();
+      expect(mine.created_by_username).not.toBe(`${name}_mate`);
+      expect(theirs).toMatchObject({
+        created_by: `AC ${RUN} teammate`,
+        created_by_username: `${name}_mate`,
+      });
+      const filtered = (await get(`requests?by=${name}_mate`)).json<ConsoleRequestList>();
+      expect(filtered.requests.length).toBeGreaterThan(0);
+      expect(filtered.requests.every((r) => r.created_by_username === `${name}_mate`)).toBe(true);
+      expect(filtered.requests.map((r) => r.id)).toContain(theirs.id);
+      expect(filtered.requests.map((r) => r.id)).not.toContain(mine.id);
+      expect(filtered.counts.all).toBe(filtered.requests.length);
+      // The filers are everyone's, whatever the filter.
+      const usernames = filtered.filers.map((f) => f.username);
+      expect(usernames).toEqual(expect.arrayContaining([`${name}_mate`, mine.created_by_username]));
+      expect(filtered.filers.find((f) => f.username === `${name}_mate`)?.display_name).toBe(
+        `AC ${RUN} teammate`,
+      );
+      expect((await get('requests?by=Not%20A%20User')).statusCode).toBe(400);
+      expect((await get('requests?by=nobody_here')).json<ConsoleRequestList>().requests).toEqual(
+        [],
+      );
+      for (const id of [mine.id, theirs.id])
+        expect((await send('POST', `requests/${id}/status`, { action: 'cancel' })).statusCode).toBe(
+          200,
+        );
+    });
+
     it('keeps a request from new to done, with its history and audit', async () => {
       const created = await send('POST', 'requests', {
         title: `  Fix the table ${RUN} `,

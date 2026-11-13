@@ -1209,6 +1209,7 @@ export type {
   ConsoleRequestDetail,
   ConsoleRequestEdit,
   ConsoleRequestEvent,
+  ConsoleRequestFiler,
   ConsoleRequestEventKind,
   ConsoleRequestImage,
   ConsoleRequestImageCaption,

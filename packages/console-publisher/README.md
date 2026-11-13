@@ -30,7 +30,8 @@ no scheduled task: nothing here runs a request by itself.
   writes `requests.json`: every request (newest first, at most 200) with its
   question, decision, result and history, the counts, the time and a reminder
   of the rule. It prints the counts and the open requests, the ones marked to
-  run («اجرا شود») first.
+  run («اجرا شود») first, each with who filed it (`created_by`,
+  `created_by_username`; T-1831, D-424).
 - Pictures (T-1731, D-357): for every picture of an open or marked request,
   `requests-pull` runs `request-image --id <image-id>` over the same `ssh`
   (the stored WebP as base64 on one line, so it crosses ssh as text), checks

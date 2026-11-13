@@ -70,6 +70,7 @@ import {
   checkRequestCreate,
   checkRequestEdit,
   checkStatusAction,
+  checkFilerFilter,
   checkStatusFilter,
 } from './internal/request-rules';
 import { PostgresRequestStore, type RequestOutcome } from './internal/request-store';
@@ -337,12 +338,16 @@ export class AgentsConsoleController {
   @Get('requests')
   async requests(
     @Query('status') status: unknown,
+    @Query('by') by: unknown,
     @Req() request: FastifyRequest,
   ): Promise<ConsoleRequestList> {
     await this.person(request);
     const checked = checkStatusFilter(status);
     if (!checked.ok) throw invalid(checked.reason);
-    return this.requestStore.list(checked.value);
+    // T-1831 (D-424): one filer's requests, by username.
+    const filer = checkFilerFilter(by);
+    if (!filer.ok) throw invalid(filer.reason);
+    return this.requestStore.list(checked.value, filer.value);
   }
 
   /** The counts alone, for the navigation's badge. */

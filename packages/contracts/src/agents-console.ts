@@ -412,8 +412,13 @@ export interface ConsoleRequest {
   body: string;
   status: ConsoleRequestStatus;
   priority: ConsoleRequestPriority;
-  /** The console user who added it (display name). */
+  /**
+   * The console user who filed it (display name): the account signed in when
+   * it was added, recorded on every request since T-1728 (T-1831, D-424).
+   */
   created_by: string;
+  /** That account's username, the stable key the list is filtered by (T-1831). */
+  created_by_username: string;
   created_at: string;
   updated_at: string;
   /** The result box, written by Claude; `null` until one is. */
@@ -478,10 +483,22 @@ export interface ConsoleRequestCounts {
   by_status: Record<ConsoleRequestStatus, number>;
 }
 
-/** `GET /console/requests[?status=s]`: newest first, each with its history. */
+/** One console user who filed requests, and how many (T-1831, D-424). */
+export interface ConsoleRequestFiler {
+  username: string;
+  display_name: string;
+  count: number;
+}
+
+/**
+ * `GET /console/requests[?status=s][&by=username]`: newest first, each with
+ * its history. With `by`, the requests and the counts are that person's
+ * alone; `filers` is always everyone who filed one, for the filter.
+ */
 export interface ConsoleRequestList {
   requests: ConsoleRequestDetail[];
   counts: ConsoleRequestCounts;
+  filers: ConsoleRequestFiler[];
 }
 
 /** `POST /console/requests`. */

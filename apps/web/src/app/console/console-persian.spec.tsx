@@ -192,7 +192,12 @@ vi.mock('@/lib/console-api', () => {
       }),
     // Teammate requests (T-1728): one of every state, with the English the
     // API really sends (statuses, kinds, choices) and Persian free text.
-    consoleRequests: () => ok({ requests: REQUESTS, counts: REQUEST_COUNTS }),
+    consoleRequests: () =>
+      ok({
+        requests: REQUESTS,
+        counts: REQUEST_COUNTS,
+        filers: [{ username: 'maryam', display_name: 'مریم', count: 2 }],
+      }),
     consoleRequestCounts: () => ok(REQUEST_COUNTS),
     // T-1788: the calendar and the subscriptions, Persian free text.
     consoleCalendar: () => ok(CALENDAR),
@@ -331,6 +336,7 @@ const requestFixture = (overrides: Partial<ConsoleRequestDetail>): ConsoleReques
   status: 'new',
   priority: 'normal',
   created_by: 'مریم',
+  created_by_username: 'maryam',
   created_at: '2026-11-03T08:00:00Z',
   updated_at: '2026-11-03T08:00:00Z',
   result: null,
