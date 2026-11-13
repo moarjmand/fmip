@@ -1,4 +1,4 @@
-import type { FixtureStatus, MatchCentre } from '@fmip/contracts';
+import type { MatchCentre } from '@fmip/contracts';
 import type { MatchSlot, MatchSlots } from '@/components/match-centre-view';
 
 /**
@@ -171,8 +171,9 @@ export type LiveModules = Partial<Pick<MatchSlots, keyof typeof LIVE_SLOTS>>;
 
 /**
  * The parts of the signature the server's live modules on this page read:
- * none when the page drew none of them (a match still to come), and then no
- * call is ever made.
+ * none when the page drew none of them, and then no call is ever made. The
+ * page draws them in every state (`liveSlots`); before kick-off nothing they
+ * read moves until the line-ups come, and kick-off itself is a status change.
  */
 export function liveParts(slots: MatchSlots): LivePart[] {
   const parts = new Set<LivePart>();
@@ -180,15 +181,6 @@ export function liveParts(slots: MatchSlots): LivePart[] {
     if ((slots[slot] ?? null) !== null) parts.add(part);
   }
   return [...parts];
-}
-
-/**
- * Whether the key events are the server's card (D-397, D-409): in play and
- * after full time. The page and `refreshLiveModules` both ask this, so the two
- * draw the same card for the same match.
- */
-export function drawsKeyEvents(status: FixtureStatus): boolean {
-  return status === 'live' || status === 'suspended' || status === 'finished';
 }
 
 /** How long the page waits before asking for the match a second time. */

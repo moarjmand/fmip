@@ -34,7 +34,8 @@ import { MatchToolsRow } from '@/components/match-tools-row';
 import { MatchPanel } from '@/components/match-panel';
 import { linkChoices } from '@/lib/panel-link';
 import { MatchSummaryPanel } from '@/components/match-summary';
-import { KeyEvents, shootoutHero } from '@/components/match-key-events';
+import { shootoutHero } from '@/components/match-key-events';
+import { liveSlots } from '@/components/match-live-slots';
 import { PowerIndexPanel } from '@/components/power-index-panel';
 import { MatchThreads } from '@/components/match-threads';
 import { RelatedNews } from '@/components/related-news';
@@ -66,7 +67,7 @@ import {
   fetchTerritories,
 } from '@/lib/api';
 import { readPick } from '@/lib/pick';
-import { drawsKeyEvents, retryUnreachable } from '@/lib/live-modules';
+import { retryUnreachable } from '@/lib/live-modules';
 import { isTimeZone } from '@/lib/scores';
 import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -378,19 +379,12 @@ export default async function MatchPage({
                 penalties: shootoutHero(locale, result.data.fixture),
               }}
               slots={{
-                // The key events and shoot-out (T-1799, D-397), drawn here so
-                // none of it is in the page's JavaScript: after full time and,
-                // since T-1811 (D-409), in play, where `LiveMatch` has it drawn
-                // again by `refreshLiveModules` when the stream brings an event.
-                // Before kick-off the client's coming card stands there.
-                keyEvents: drawsKeyEvents(result.data.fixture.status) ? (
-                  <KeyEvents
-                    centre={result.data}
-                    locale={locale}
-                    timeZone={timeZone}
-                    words={words}
-                  />
-                ) : undefined,
+                // The moving modules (D-409), drawn here in every state so none
+                // of them is in the page's JavaScript; in play `LiveMatch` has
+                // them drawn again by `refreshLiveModules` when the stream says
+                // they changed. Before kick-off the coming card stands where it
+                // names them. The same cards the function draws (`liveSlots`).
+                ...liveSlots({ centre: result.data, locale, timeZone, words }),
                 // The Summary opens with what the model forecast and, after
                 // full time, what happened (T-1497): the model's card alone,
                 // drawn on the server, and the one place the forecast is

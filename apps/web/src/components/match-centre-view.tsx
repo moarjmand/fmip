@@ -2,7 +2,6 @@ import type {
   CoverageModule,
   ExpectedGoalsMetric,
   MatchCentre,
-  MatchIncident,
   MatchPlayerExpected,
   MatchPlayerStats,
   MatchStatRow,
@@ -11,7 +10,7 @@ import type {
 import { LIVE_STATS_STALE_AFTER_MS } from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
-import { STAT_KEY, incidentDetailKey, incidentKey, shootoutStart, statValue } from '@/lib/match';
+import { STAT_KEY, shootoutStart, statValue } from '@/lib/match';
 import { formatKickoff, formatStamp } from '@/lib/scores';
 import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
 import { listName, shortName } from '@/lib/person-name';
@@ -66,10 +65,10 @@ export type MatchSlot =
   | 'discussion'
   | 'watch'
   | 'news'
-  // A finished match's key events (T-1799, D-397): the two-lane axis, the
-  // folded substitutions and the shoot-out's circles, drawn on the server
-  // (`match-key-events.tsx`), so none of it is in the page's JavaScript.
-  // While the match is on the client's timeline below stays.
+  // The key events (T-1799, D-397): the two-lane axis, the folded
+  // substitutions and the shoot-out's circles, drawn on the server
+  // (`match-key-events.tsx`), so none of it is in the page's JavaScript. In
+  // every state since T-1812 (D-409); in play `LiveMatch` has it drawn again.
   | 'keyEvents';
 export type MatchSlots = Partial<Record<MatchSlot, React.ReactNode>>;
 
@@ -365,10 +364,9 @@ export function MatchCentreView({
     <Panel tab="summary">
       <Region id="timeline">
         {coming.length > 0 && <ComingCard items={coming} words={words} />}
-        {slots.keyEvents ??
-          (!isComing('timeline') && (
-            <Timeline centre={centre} locale={locale} timeZone={timeZone} words={words} />
-          ))}
+        {/* The key events, from the server in every state (T-1812, D-409):
+            before kick-off the coming card names them instead. */}
+        {!isComing('timeline') && slots.keyEvents}
       </Region>
       {slots.summary}
     </Panel>
@@ -1115,328 +1113,6 @@ function Crest({ team, className }: { team: MatchCentre['fixture']['home']; clas
   );
 }
 
-/** Goals and cards on the axis; every other incident is in the list only. */
-const AXIS_KINDS = new Set<MatchIncident['kind']>([
-  'goal',
-  'penalty_goal',
-  'own_goal',
-  'yellow_card',
-  'second_yellow_card',
-  'red_card',
-]);
-
-/**
- * The timeline (the canvas's "How it unfolded"; T-1497): an axis from
- * kick-off to the last minute with half-time marked, each goal a dot and
- * each card a card, the home side's above the line and the away side's
- * below, the axis running with the reading direction; then the events as a
- * list in two columns, one per side, from 768px. After full time the list
- * reads in order from kick-off; while the match is on, latest first.
- */
-function Timeline({
-  centre,
-  locale,
-  timeZone,
-  words,
-}: {
-  centre: MatchCentre;
-  locale: string;
-  timeZone: string;
-  words: MatchWords;
-}) {
-  const m = words.m;
-  const f = centre.fixture;
-  const started = f.status !== 'scheduled';
-  const finished = f.status === 'finished';
-  return (
-    <Module
-      title={m[finished ? 'matchCentre.keyEvents' : 'matchCentre.timeline']}
-      module={centre.timeline}
-      testId="timeline"
-      words={words}
-      notInYet={f.status === 'live'}
-      before={unplayed(centre)}
-    >
-      {(incidents) => {
-        // A shoot-out is its own block, its kicks in order and numbered, never
-        // penalties at minutes of added time (T-1477).
-        const kicksFrom = shootoutStart(incidents, f.scores.penalties, f.scores.current);
-        const play = kicksFrom === null ? incidents : incidents.slice(0, kicksFrom);
-        const kicks = (kicksFrom === null ? [] : incidents.slice(kicksFrom)).map((i, k) => ({
-          i,
-          kick: k + 1,
-        }));
-        const inPlay = (finished ? play : [...play].reverse()).map((i) => ({ i, kick: null }));
-        const rows = finished ? [...inPlay, ...kicks] : [...kicks, ...inPlay];
-        const kickoff = started && (
-          <li
-            key="kickoff"
-            className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 last:border-b-0 md:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1fr)]"
-          >
-            <span className="font-mono text-muted tabular-nums">
-              {formatKickoff(locale, f.kickoff_at, timeZone)}
-            </span>
-            <span className="flex items-center gap-3 md:col-span-2">
-              <IncidentMark kind="kickoff" />
-              <b className="font-bold text-fg">
-                <MessageText message={m['matchCentre.kickedOff']} />
-              </b>
-            </span>
-          </li>
-        );
-        return (
-          <>
-            {/* Nothing recorded is said, never an empty card (rule 3). */}
-            {incidents.length === 0 && (
-              <p dir="auto" className="text-sm text-muted" data-testid="no-events">
-                <MessageText message={m['matchCentre.noEventsYet']} />
-              </p>
-            )}
-            {play.length > 0 && <Axis incidents={play} locale={locale} words={words} />}
-            <ol className="flex flex-col text-sm">
-              {kicksFrom !== null && f.scores.penalties !== null && !finished && (
-                <Shootout centre={centre} locale={locale} words={words} />
-              )}
-              {finished && kickoff}
-              {rows.map(({ i, kick }, index) => (
-                <Fragment key={i.id}>
-                  {finished && kick === 1 && f.scores.penalties !== null && (
-                    <Shootout centre={centre} locale={locale} words={words} />
-                  )}
-                  <li
-                    className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3 border-b border-default py-2.5 md:grid-cols-[3.5rem_minmax(0,1fr)_minmax(0,1fr)]"
-                    data-kick={kick ?? undefined}
-                    data-side={i.side ?? undefined}
-                    data-index={index}
-                  >
-                    <span className="font-mono text-muted tabular-nums">
-                      {kick !== null ? (
-                        fill(m['matchCentre.shootoutKick'].text, { n: formatNumber(locale, kick) })
-                      ) : (
-                        <span dir="ltr">{formatMinute(locale, i.minute, i.added_time)}</span>
-                      )}
-                    </span>
-                    <span
-                      className={cx(
-                        'flex min-w-0 items-center gap-3',
-                        i.side === 'away'
-                          ? 'md:col-start-3'
-                          : i.side === null
-                            ? 'md:col-span-2'
-                            : 'md:col-start-2',
-                      )}
-                    >
-                      <IncidentMark kind={i.kind} />
-                      <IncidentText
-                        incident={i}
-                        inPlay={kick === null}
-                        centre={centre}
-                        locale={locale}
-                        words={words}
-                      />
-                    </span>
-                  </li>
-                </Fragment>
-              ))}
-              {!finished && kickoff}
-            </ol>
-            {incidents.length > 0 && !finished && (
-              <p className="text-xs text-caption">
-                <MessageText message={m['matchCentre.latestFirst']} />
-              </p>
-            )}
-          </>
-        );
-      }}
-    </Module>
-  );
-}
-
-function Shootout({
-  centre,
-  locale,
-  words,
-}: {
-  centre: MatchCentre;
-  locale: string;
-  words: MatchWords;
-}) {
-  const penalties = centre.fixture.scores.penalties;
-  if (penalties === null) return null;
-  return (
-    <li className="border-b border-default py-2.5 font-bold text-fg" data-testid="shootout">
-      <MessageText message={words.m['matchCentre.shootout']} />{' '}
-      <Score home={penalties.home} away={penalties.away} locale={locale} />
-    </li>
-  );
-}
-
-/** One incident's words: its kind and side, then who (T-1478: who came on, who went off). */
-export function IncidentText({
-  incident: i,
-  inPlay,
-  centre,
-  locale,
-  words,
-}: {
-  incident: MatchIncident;
-  /** False for a shoot-out's kick, which is never called a goal (D-322, D-396). */
-  inPlay: boolean;
-  centre: MatchCentre;
-  locale: string;
-  words: MatchWords;
-}) {
-  const m = words.m;
-  const f = centre.fixture;
-  const player = (p: { id: string; name: string }) => (
-    <Link href={`/${locale}/player/${p.id}`} className="underline">
-      {listName(locale, p.name)}
-    </Link>
-  );
-  return (
-    <span className="min-w-0 [overflow-wrap:anywhere]">
-      <b className="block font-bold text-fg">
-        <MessageText message={m[incidentKey(i.kind, inPlay)]} />
-        {i.side !== null ? (
-          <>
-            {' · '}
-            <bdi>{i.side === 'home' ? f.home.name : f.away.name}</bdi>
-          </>
-        ) : null}
-        <IncidentDetail detail={i.detail} words={words} />
-      </b>
-      <span className="text-muted">
-        {i.kind === 'substitution' && i.player !== null && i.related_player !== null ? (
-          <>
-            <FilledMessage
-              message={m['matchCentre.subOn']}
-              params={{ player: player(i.related_player) }}
-            />
-            {' · '}
-            <FilledMessage
-              message={m['matchCentre.subOff']}
-              params={{ player: player(i.player) }}
-            />
-          </>
-        ) : (
-          <>
-            {i.player !== null && player(i.player)}
-            {i.related_player !== null && i.kind !== 'substitution' && (
-              <>
-                {' · '}
-                <FilledMessage
-                  message={m['matchCentre.assist']}
-                  params={{ player: player(i.related_player) }}
-                />
-              </>
-            )}
-          </>
-        )}
-      </span>
-    </span>
-  );
-}
-
-/**
- * The axis: where on the clock each goal and card fell. A minute of added
- * time sits after its half's last minute; the first half's are pressed
- * together at half-time so the second half keeps its place. The picture is
- * described for a screen reader; the list under it says every event in words.
- */
-function Axis({
-  incidents,
-  locale,
-  words,
-}: {
-  incidents: MatchIncident[];
-  locale: string;
-  words: MatchWords;
-}) {
-  const marked = incidents.filter((i) => AXIS_KINDS.has(i.kind) && i.side !== null);
-  const at = (i: MatchIncident) => i.minute + (i.added_time ?? 0) * (i.minute <= 45 ? 0.15 : 1);
-  const end = Math.max(90, ...marked.map(at));
-  const pos = (minute: number) => `${(Math.min(minute, end) / end) * 100}%`;
-  const goals = marked.filter((i) => GOAL_KINDS.has(i.kind)).length;
-  return (
-    <div
-      role="img"
-      aria-label={fill(words.m['matchCentre.axis'].text, {
-        goals: formatNumber(locale, goals),
-        cards: formatNumber(locale, marked.length - goals),
-      })}
-      className="relative h-23"
-      data-testid="timeline-axis"
-    >
-      <span className="absolute inset-x-0 top-11.5 h-0.5 bg-border" />
-      <span
-        className="absolute top-7.5 h-8.5 w-px bg-caption"
-        style={{ insetInlineStart: pos(45) }}
-      />
-      <span
-        className="absolute top-17.5 font-mono text-xs text-caption"
-        style={{ insetInlineStart: pos(45) }}
-      >
-        <MessageText message={words.m['status.halfTime']} />
-      </span>
-      {marked.map((i) => {
-        const goal = GOAL_KINDS.has(i.kind);
-        const home = i.side === 'home';
-        return (
-          <span
-            key={i.id}
-            data-kind={i.kind}
-            data-side={i.side}
-            className={cx(
-              'absolute',
-              goal
-                ? cx(
-                    'size-4.5 -translate-x-1/2 rounded-full rtl:translate-x-1/2',
-                    home ? 'top-4.5 bg-accent' : 'top-14 bg-border-strong',
-                  )
-                : cx(
-                    'h-2.75 w-2 -translate-x-1/2 rounded-xs rtl:translate-x-1/2',
-                    home ? 'top-7.5' : 'top-12.75',
-                    i.kind === 'yellow_card' ? 'bg-warning' : 'bg-danger',
-                  ),
-            )}
-            style={{ insetInlineStart: pos(at(i)) }}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-const GOAL_KINDS = new Set<MatchIncident['kind']>(['goal', 'penalty_goal', 'own_goal']);
-
-/** A small mark for an incident's kind, in tokens: a ball, a card's colour, an arrow. */
-export function IncidentMark({ kind }: { kind: MatchIncident['kind'] | 'kickoff' }) {
-  const shape =
-    kind === 'yellow_card' ? (
-      <span className="h-4 w-3 rounded-xs bg-warning" />
-    ) : kind === 'red_card' || kind === 'second_yellow_card' ? (
-      <span className="h-4 w-3 rounded-xs bg-danger" />
-    ) : kind === 'substitution' ? (
-      <span className="text-base leading-none">⇄</span>
-    ) : kind === 'var' ? (
-      <span className="text-xs font-extrabold">VAR</span>
-    ) : kind === 'kickoff' ? (
-      <span className="size-2.5 rounded-full border-2 border-fg" />
-    ) : kind === 'penalty_missed' ? (
-      <span className="size-3 rounded-full border-2 border-dashed border-fg" />
-    ) : (
-      <span className="size-3 rounded-full bg-accent" />
-    );
-  return (
-    <span
-      aria-hidden="true"
-      className="grid size-8 shrink-0 place-items-center rounded-control bg-surface-raised text-fg"
-    >
-      {shape}
-    </span>
-  );
-}
-
 /**
  * The team statistics (Design System `StatBar`): each metric's two figures
  * at the ends, its name between them, and a split bar under it -- the home
@@ -1859,21 +1535,5 @@ function TopRated({
         <MessageText message={m['matchCentre.ratingsNote']} />
       </p>
     </section>
-  );
-}
-
-/**
- * What an incident adds to its kind (a VAR review's decision), in the
- * reader's words (T-1378). Nothing when there is none or the page does not
- * know the code: the kind's own label stands, never the provider's text.
- */
-function IncidentDetail({ detail, words }: { detail: MatchIncident['detail']; words: MatchWords }) {
-  const key = incidentDetailKey(detail);
-  if (key === null) return null;
-  return (
-    <span data-testid="incident-detail">
-      {' · '}
-      <MessageText message={words.m[key]} />
-    </span>
   );
 }

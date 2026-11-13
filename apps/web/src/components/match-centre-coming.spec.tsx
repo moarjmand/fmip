@@ -5,6 +5,7 @@ import { EN } from '@/i18n/messages';
 import { matchWords } from '@/lib/words-server';
 import { ComingCard, type ComingItem } from './match-centre-cards';
 import { MatchCentreView, comingModules } from './match-centre-view';
+import { liveSlots } from './match-live-slots';
 
 /**
  * "After kick-off you'll see" (T-1745, D-366; board P2-3): before kick-off
@@ -88,16 +89,22 @@ const centre = (
     coverage: COVERED,
     ...rest,
   }) as unknown as MatchCentre;
-const view = (c: MatchCentre, locale = 'en') =>
-  renderToStaticMarkup(
+// As the page draws it: the moving modules from the server (D-409).
+const view = (c: MatchCentre, locale = 'en') => {
+  const words = matchWords(locale);
+  return renderToStaticMarkup(
     <MatchCentreView
-      words={matchWords(locale)}
+      words={words}
       centre={c}
       timeZone="Europe/London"
       locale={locale}
-      slots={{ players: <p>PLAYERS</p> }}
+      slots={{
+        ...liveSlots({ centre: c, locale, timeZone: 'Europe/London', words }),
+        players: <p>PLAYERS</p>,
+      }}
     />,
   );
+};
 /** Every card on the page, as its markup. */
 const cards = (html: string): string[] =>
   [...html.matchAll(/<section[^>]*data-testid="coming"[^]*?<\/section>/g)].map((m) => m[0]);

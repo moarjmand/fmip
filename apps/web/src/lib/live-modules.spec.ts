@@ -7,7 +7,6 @@ import {
   NO_REFRESH,
   type RefreshPlan,
   STATS_WINDOW_MS,
-  drawsKeyEvents,
   liveChange,
   liveParts,
   liveSignature,
@@ -24,13 +23,6 @@ describe('which server modules the page drew (T-1811)', () => {
     expect(liveParts({ keyEvents: 'card' })).toEqual(['events']);
     expect(liveParts({ keyEvents: null })).toEqual([]);
     expect(liveParts({ outcome: 'card' })).toEqual([]);
-  });
-
-  it('the key events are the server’s in play and after full time, never before kick-off', () => {
-    expect(['live', 'suspended', 'finished'].every((s) => drawsKeyEvents(s as never))).toBe(true);
-    for (const status of ['scheduled', 'postponed', 'cancelled', 'abandoned'] as const) {
-      expect(drawsKeyEvents(status)).toBe(false);
-    }
   });
 });
 

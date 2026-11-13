@@ -22,6 +22,8 @@ import { ForecastReality } from '@/app/[locale]/match/[id]/forecast-reality';
 import { CommunityForecastPanel, CommunityPicksRow } from './community-consensus';
 import { FounderAnalysisPanel } from './founder-analysis';
 import { MatchCentreView } from './match-centre-view';
+import { KeyEvents } from './match-key-events';
+import { liveSlots } from './match-live-slots';
 import { FinishedLineups, FinishedStats, STAT_GROUPS, statGroups } from './match-stats-panels';
 import { STAT_KEY } from '@/lib/match';
 import { MatchLineupsView } from './match-lineups';
@@ -694,8 +696,9 @@ describe('the score band', () => {
   });
 
   it('says that no event is recorded yet rather than drawing an empty list', () => {
+    // The server's card in play since T-1812 (D-409).
     const html = renderToStaticMarkup(
-      <MatchCentreView
+      <KeyEvents
         words={matchWords('en')}
         centre={{
           ...centre({}),
@@ -1135,16 +1138,20 @@ describe('the community against the result', () => {
 });
 
 describe('the match centre says what happened in words (T-1478)', () => {
-  const full = (c: MatchCentre, locale = 'en') =>
-    renderToStaticMarkup(
+  // As the page draws it: the moving modules from the server (D-409).
+  const full = (c: MatchCentre, locale = 'en') => {
+    const words = matchWords(locale);
+    return renderToStaticMarkup(
       <MatchCentreView
-        words={matchWords(locale)}
+        words={words}
         centre={c}
         timeZone="UTC"
         locale={locale}
         hero={{}}
+        slots={liveSlots({ centre: c, locale, timeZone: 'UTC', words })}
       />,
     );
+  };
   const sub = {
     id: 'i1',
     sequence: 1,

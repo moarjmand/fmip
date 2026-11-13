@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { MatchCentreView, SECTIONS, TABS } from './match-centre-view';
 import { Coverage, HeadToHead, MatchForm } from './match-record';
 import { MatchAvailability } from './match-availability';
+import { liveSlots } from './match-live-slots';
 import { CardDetails, ScoreCard } from './score-card';
 import { EN } from '@/i18n/messages';
 import { matchWords, scoresWords } from '@/lib/words-server';
@@ -191,6 +192,8 @@ function FullView(props: React.ComponentProps<typeof MatchCentreView>) {
           <HeadToHead centre={centre} timeZone={timeZone} locale={locale} words={words} />
         ),
         coverage: <Coverage centre={centre} words={words} locale={locale} />,
+        // The moving modules, as the page draws them (D-409).
+        ...liveSlots({ centre, locale, timeZone, words }),
         availability: (
           <MatchAvailability
             centre={centre}
@@ -500,7 +503,8 @@ describe('the scores card and the match centre in Persian (T-1303)', () => {
   });
 
   it('names the match centre’s sections and coverage in Persian', () => {
-    expect(view).toContain('رویدادهای زنده');
+    // In play too the card is the server's "Key events" (T-1812, D-409).
+    expect(view).toContain('رویدادهای کلیدی');
     expect(view).toContain('پوشش داده‌ها در این فصل');
     expect(view).toContain('موجود');
     expect(view).not.toContain('Live timeline');

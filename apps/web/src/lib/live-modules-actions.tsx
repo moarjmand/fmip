@@ -3,10 +3,10 @@
 import type { MatchCentre } from '@fmip/contracts';
 import { isLocale } from '@/i18n/locales';
 import { type ApiResult, fetchMatchCentre } from '@/lib/api';
-import { type LiveModules, drawsKeyEvents } from '@/lib/live-modules';
+import type { LiveModules } from '@/lib/live-modules';
 import { isTimeZone } from '@/lib/scores';
 import { matchWords } from '@/lib/words-server';
-import { KeyEvents } from '@/components/match-key-events';
+import { liveSlots } from '@/components/match-live-slots';
 
 /**
  * The match centre's moving modules, drawn again by the server when the live
@@ -52,16 +52,6 @@ export async function refreshLiveModules(
   if (typeof timeZone !== 'string' || !isTimeZone(timeZone)) return null;
   const result = await readMatch(fixtureId, locale);
   if (!result.ok) return null;
-  const centre = result.data;
-  const words = matchWords(locale);
-  const modules: LiveModules = {};
-  // The same card and the same rule as the page (`drawsKeyEvents`); a match
-  // whose status no longer has it leaves the page's slot as it is (the
-  // status change draws the whole page again).
-  if (drawsKeyEvents(centre.fixture.status)) {
-    modules.keyEvents = (
-      <KeyEvents centre={centre} locale={locale} timeZone={timeZone} words={words} />
-    );
-  }
-  return modules;
+  // The same cards the page draws (`liveSlots`).
+  return liveSlots({ centre: result.data, locale, timeZone, words: matchWords(locale) });
 }

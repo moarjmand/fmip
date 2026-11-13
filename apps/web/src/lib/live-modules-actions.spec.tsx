@@ -4,6 +4,8 @@ import type { MatchCentre, MatchIncident } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { EN } from '@/i18n/messages';
+import { matchWords } from '@/lib/words-server';
+import { liveSlots } from '@/components/match-live-slots';
 
 /**
  * The server function that draws the match centre's moving modules again
@@ -122,11 +124,20 @@ describe('refreshLiveModules: what it draws', () => {
     expect(html).not.toContain('Not supplied for this match.');
   });
 
-  it('draws no key events for a match not under way: the page’s own rule', async () => {
-    read.mockResolvedValue(answer(match('scheduled', null)));
+  it('draws the same cards as the page in every state (`liveSlots`, T-1812)', async () => {
+    const c = match('scheduled', null);
+    read.mockResolvedValue(answer(c));
     const modules = await refreshLiveModules(ID, 'en', ZONE);
-    expect(modules).not.toBeNull();
-    expect(modules).not.toHaveProperty('keyEvents');
+    const words = matchWords('en');
+    const drawn = liveSlots({ centre: c, locale: 'en', timeZone: ZONE, words });
+    expect(Object.keys(modules ?? {})).toEqual(Object.keys(drawn));
+    expect(renderToStaticMarkup(<>{modules?.keyEvents}</>)).toBe(
+      renderToStaticMarkup(<>{drawn.keyEvents}</>),
+    );
+    // Before kick-off the card has no "kicked off" row.
+    expect(renderToStaticMarkup(<>{modules?.keyEvents}</>)).not.toContain(
+      EN['matchCentre.kickedOff'],
+    );
   });
 
   it('is null when the match cannot be read: the page keeps what it has', async () => {
