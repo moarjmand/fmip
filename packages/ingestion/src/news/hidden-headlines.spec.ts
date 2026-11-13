@@ -38,6 +38,9 @@ describe('hiddenHeadline (T-1818, D-413)', () => {
       'پخش زنده بازی پرسپولیس از شبکه سه',
       // Six such Khabar Varzeshi headlines carry no marker and stay shown (D-413).
       'پخش زنده بازی اتلتیکومادرید و بارسلونا با گزارش عادل فردوسی‌پور',
+      // A marker only as a whole word: the spectators («تماشاگران») of a report are no invitation.
+      'پخش زنده بازی پرسپولیس لغو شد؛ تماشاگران معترض شدند',
+      'پخش زنده بازی برای تماشاچیان ورزشگاه آزادی پخش نمی‌شود',
     ]) {
       expect(hiddenHeadline(headline), headline).toBeNull();
     }

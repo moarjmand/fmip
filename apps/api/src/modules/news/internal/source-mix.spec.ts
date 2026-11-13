@@ -200,19 +200,21 @@ describe('the news cursor (NewsCursor)', () => {
       waiting: [],
     });
     const cursor = {
-      at: '2026-11-13T10:00:00.123Z',
+      at: '2026-11-13T10:00:00.123456Z',
       shown: STORY,
       run: { source: SOURCE, length: 3 },
       waiting: [OTHER, SOURCE],
     };
     const written = writeNewsCursor(cursor);
     expect(written).toMatch(
-      /^2026-11-13T10:00:00\.123Z~[A-Za-z0-9_-]{22}~[A-Za-z0-9_-]{22}\.3~[A-Za-z0-9_-]{44}$/,
+      /^2026-11-13T10:00:00\.123456Z~[A-Za-z0-9_-]{22}~[A-Za-z0-9_-]{22}\.3~[A-Za-z0-9_-]{44}$/,
     );
     expect(readNewsCursor(written)).toEqual(cursor);
     const quiet = { ...cursor, run: null, waiting: [] };
     expect(readNewsCursor(writeNewsCursor(quiet))).toEqual(quiet);
-    expect(writeNewsCursor({ ...quiet, shown: null })).toBe('2026-11-13T10:00:00.123Z');
+    expect(writeNewsCursor({ ...quiet, shown: null, at: '2026-11-13T10:00:00.123Z' })).toBe(
+      '2026-11-13T10:00:00.123Z',
+    );
   });
 
   it('refuses what is not one, and more waiting stories than a page can leave', () => {
@@ -228,8 +230,29 @@ describe('the news cursor (NewsCursor)', () => {
     ]) {
       expect(readNewsCursor(bad), bad).toBeNull();
     }
-    const at = '2026-11-13T10:00:00Z';
+    const at = '2026-11-13T10:00:00.000000Z';
     expect(readNewsCursor(`${at}~${id}~-~${id.repeat(NEWS_CURSOR_MAX_WAITING)}`)).not.toBeNull();
     expect(readNewsCursor(`${at}~${id}~-~${id.repeat(NEWS_CURSOR_MAX_WAITING + 1)}`)).toBeNull();
+    // A mixed cursor's instant is to the microsecond, as the API writes it.
+    expect(readNewsCursor(`2026-11-13T10:00:00.123Z~${id}~-~`)).toBeNull();
+    // A date no reader meant is refused (400), never a failure (500).
+    for (const year of [
+      '+275760-09-13T00:00:00.000Z',
+      '-000001-01-01T00:00:00Z',
+      '1999-12-31T23:59:59Z',
+    ]) {
+      expect(readNewsCursor(year), year).toBeNull();
+      expect(readNewsCursor(`${year}~${id}~-~`), year).toBeNull();
+    }
+    expect(readNewsCursor('2000-01-01T00:00:00Z')).not.toBeNull();
+  });
+
+  it('writes no more waiting stories than it reads back', () => {
+    const many = Array.from({ length: NEWS_CURSOR_MAX_WAITING + 1 }, () => STORY);
+    const cursor = { at: '2026-11-13T10:00:00.000000Z', shown: STORY, run: null };
+    expect(() => writeNewsCursor({ ...cursor, waiting: many })).toThrow(RangeError);
+    expect(() =>
+      writeNewsCursor({ ...cursor, waiting: many.slice(0, NEWS_CURSOR_MAX_WAITING) }),
+    ).not.toThrow();
   });
 });

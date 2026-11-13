@@ -36,8 +36,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       sourceOf: Map<string, string>;
     }
 
-    /** One case's stories on a new team: `busy` from the first source, then `others` in turn. */
-    async function scene(busy: number, others: number): Promise<Case> {
+    /**
+     * One case's stories on a new team: `busy` from the first source, then
+     * `others` in turn -- a minute apart, or all at `instant` when given.
+     */
+    async function scene(
+      busy: number,
+      others: number,
+      instant: string | null = null,
+    ): Promise<Case> {
       const team = randomUUID();
       await pool.query(
         `INSERT INTO team (id, country_id, name, kind, gender) VALUES ($1, $2, $3, 'club', 'men')`,
@@ -53,19 +60,28 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         const storyId = rows[0]!.id;
         const article = await pool.query<{ id: string }>(
           `INSERT INTO article (source_id, story_id, external_id, url, fetched_at)
-           VALUES ($1, $2, $3, $4, now() - make_interval(mins => $5)) RETURNING id`,
-          [source, storyId, `mix-${storyId}`, `https://mix.test/${RUN}/${storyId}`, minutesAgo],
+           VALUES ($1, $2, $3, $4, COALESCE($6::timestamptz, now() - make_interval(mins => $5)))
+           RETURNING id`,
+          [
+            source,
+            storyId,
+            `mix-${storyId}`,
+            `https://mix.test/${RUN}/${storyId}`,
+            minutesAgo,
+            instant,
+          ],
         );
         const articleId = article.rows[0]!.id;
         // Headlines unlike one another, so no story reads as a copy of another.
         await pool.query(
           `INSERT INTO article_version (article_id, language, version_number, headline, summary, published_at)
-           VALUES ($1, 'fa', 1, $2, $3, now() - make_interval(mins => $4))`,
+           VALUES ($1, 'fa', 1, $2, $3, COALESCE($5::timestamptz, now() - make_interval(mins => $4)))`,
           [
             articleId,
             `Club ${teams.length} report ${n} ${storyId}`,
             `Summary ${storyId} of run ${RUN}.`,
             minutesAgo,
+            instant,
           ],
         );
         await pool.query(
@@ -179,6 +195,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect([...seen].sort()).toEqual([...c.ids].sort());
       // One source's stories keep their own order.
       expect(seen.filter((id) => c.sourceOf.get(id) === c.busy)).toEqual(c.ids.slice(0, 30));
+    }, 120_000);
+
+    it('pages through 45 stories that share one instant, each exactly once (R2-1)', async () => {
+      // To the microsecond, as a feed that dates every item alike writes them.
+      const c = await scene(30, 15, new Date(Date.now() - 3_600_000).toISOString());
+      const seen = await pageAll(c, 10);
+      expect(new Set(seen).size).toBe(seen.length);
+      expect([...seen].sort()).toEqual([...c.ids].sort());
     }, 120_000);
 
     it('loses no story when one already shown is merged away between pages', async () => {

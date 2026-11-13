@@ -25,8 +25,9 @@ export const TRENDING_WINDOW_HOURS = 48;
  * wait past the end of a page; its cursor is then
  * `<instant>~<shown>~<run>~<waiting>`:
  * - `<instant>` and `<shown>`: the oldest story the page showed, a boundary
- *   the next page reads below (through that millisecond, leaving that story
- *   out);
+ *   the next page reads below in the list's own order -- older, or as old
+ *   with a higher id -- the instant written to the microsecond
+ *   (`2026-11-13T10:00:00.123456Z`), as Postgres orders it;
  * - `<waiting>`: every story above the boundary the page passed over, read by
  *   id on the next page wherever it has moved -- so a story that waited is
  *   never lost, whatever happens above it between two pages;
@@ -35,7 +36,7 @@ export const TRENDING_WINDOW_HOURS = 48;
  * Story and source ids are written as 22 URL-safe base64 characters.
  */
 export interface NewsCursor {
-  /** ISO 8601. */
+  /** ISO 8601; to the microsecond in a mixed cursor. */
   at: string;
   /** The story at `at` already shown, for a mixed cursor; `null` for a plain instant. */
   shown: string | null;
@@ -77,13 +78,22 @@ export function unpackId(text: string): string | null {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+/** A mixed cursor's instant: ISO 8601 in UTC to the microsecond. */
+const MICRO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
+
+/** The years a cursor may name: a mistyped or hostile one is refused, never a failure. */
+const CURSOR_YEARS = { first: 2000, last: 9999 } as const;
+
 /** A `?before=` value as a cursor, or `null` when it is not one. */
 export function readNewsCursor(value: string): NewsCursor | null {
   const parts = value.split('~');
-  const at = new Date(parts[0] ?? '');
-  if (parts[0] === '' || Number.isNaN(at.getTime())) return null;
+  const text = parts[0] ?? '';
+  const at = new Date(text);
+  if (text === '' || Number.isNaN(at.getTime())) return null;
+  const year = at.getUTCFullYear();
+  if (year < CURSOR_YEARS.first || year > CURSOR_YEARS.last) return null;
   if (parts.length === 1) return { at: at.toISOString(), shown: null, run: null, waiting: [] };
-  if (parts.length !== 4) return null;
+  if (parts.length !== 4 || !MICRO_INSTANT.test(text)) return null;
   const shown = unpackId(parts[1]!);
   if (shown === null) return null;
   let run: NewsCursor['run'] = null;
@@ -101,7 +111,7 @@ export function readNewsCursor(value: string): NewsCursor | null {
     if (id === null) return null;
     waiting.push(id);
   }
-  return { at: at.toISOString(), shown, run, waiting };
+  return { at: text, shown, run, waiting };
 }
 
 /**
@@ -114,8 +124,17 @@ export function newsSourcesMixed(locale: string | null): boolean {
   return locale.split('-')[0]!.toLowerCase() !== 'fa';
 }
 
-/** A cursor as `?before=` carries it; a plain instant when it names no story. */
+/**
+ * A cursor as `?before=` carries it; a plain instant when it names no story.
+ * Refuses more waiting stories than `readNewsCursor` takes back, so a link it
+ * writes is never one the API then refuses.
+ */
 export function writeNewsCursor(cursor: NewsCursor): string {
+  if (cursor.waiting.length > NEWS_CURSOR_MAX_WAITING) {
+    throw new RangeError(
+      `A news cursor carries at most ${NEWS_CURSOR_MAX_WAITING} waiting stories.`,
+    );
+  }
   if (cursor.shown === null) return cursor.at;
   const pack = (id: string): string => packId(id) ?? '';
   const run = cursor.run === null ? '-' : `${pack(cursor.run.source)}.${cursor.run.length}`;

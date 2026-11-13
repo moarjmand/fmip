@@ -57,7 +57,7 @@ describe('readNewsQuery', () => {
 
   it('keeps a page of latest’s mixed list as the API wrote it (T-1816)', () => {
     const page = writeNewsCursor({
-      at: '2026-09-18T00:00:00.000Z',
+      at: '2026-09-18T00:00:00.000000Z',
       shown: '0b6f9c1e-3a52-4e0c-9d7a-1f2e3d4c5b6a',
       run: null,
       waiting: [TEAM],
