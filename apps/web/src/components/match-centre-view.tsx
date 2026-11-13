@@ -3,18 +3,16 @@ import { formatNumber } from '@/i18n/format';
 import Link from '@/components/ui/link';
 import { shootoutStart } from '@/lib/match';
 import { formatKickoff, formatStamp } from '@/lib/scores';
-import { fill, filled, formatFixed, formatMinute } from '@/lib/words';
-import { listName, shortName } from '@/lib/person-name';
+import { fill, filled, formatMinute } from '@/lib/words';
+import { shortName } from '@/lib/person-name';
 import type { MatchWords } from '@/lib/words-server';
 import { NAME_WRAP, NARROW_STEPS, nameFit } from '@/lib/word-fit';
 import { formatDate, formatDateTime, localDigits } from '@/i18n/format';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
-import { CARD, ComingCard, type ComingItem, Module } from '@/components/match-centre-cards';
+import { ComingCard, type ComingItem } from '@/components/match-centre-cards';
 import { LiveBadge } from '@/components/ui/live-badge';
-import { RatingChip } from '@/components/ui/rating-chip';
 import { FreshnessLine } from '@/components/match-freshness-line';
-import { MatchLineupsView } from '@/components/match-lineups';
 import { BLEED, type BandState, ScoreBar, bandState } from '@/components/match-score-bar';
 import { MessageText } from '@/components/message-text';
 import { Score, ScorePair } from '@/components/score';
@@ -43,6 +41,8 @@ export type MatchSlot =
   // modules below draw them from the stream.
   | 'matchStats'
   | 'matchLineups'
+  // The Top rated card (T-1814, D-409), drawn on the server (`match-top-rated.tsx`).
+  | 'topRated'
   // Who will or may miss the match (T-1810, D-409), drawn on the server
   // (`match-availability.tsx`): a pre-match answer that does not move in play.
   | 'availability'
@@ -280,28 +280,8 @@ export function MatchCentreView({
       {lineupsComing ? (
         <ComingCard items={coming.filter((item) => item.tab === 'lineups')} words={words} phone />
       ) : (
-        (slots.matchLineups ?? (
-          <Module
-            title={m['matchCentre.lineups']}
-            module={centre.lineups}
-            testId="lineups"
-            words={words}
-            empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
-            notInYet={f.status === 'live'}
-            before={unplayed(centre)}
-          >
-            {(lineups) => (
-              <MatchLineupsView
-                home={f.home}
-                away={f.away}
-                lineups={lineups}
-                ratings={ratingsOf(centre)}
-                locale={locale}
-                words={words}
-              />
-            )}
-          </Module>
-        ))
+        // The server's line-ups in every state (T-1814, D-409).
+        slots.matchLineups
       )}
     </Region>
   );
@@ -462,7 +442,8 @@ export function MatchCentreView({
           {/* Beside the Summary: the best rated, who was missing, the past
               meetings; beside the statistics, each side's form. */}
           <div className="flex min-w-0 flex-col gap-3 md:gap-5" data-tab="summary">
-            <TopRated centre={centre} locale={locale} words={words} />
+            {/* The best rated, from the server (T-1814, D-409). */}
+            {slots.topRated}
             {/* Who will miss the match, from the server (T-1810, D-409). */}
             {slots.availability}
             {slots.headToHead}
@@ -917,15 +898,6 @@ function Hero({
 }
 
 /**
- * A postponed or cancelled match was not played (T-1550): its modules say
- * so, rather than "Not supplied". `null` for every other match.
- */
-function unplayed(centre: MatchCentre): 'unplayed' | null {
-  const status = centre.fixture.status;
-  return status === 'postponed' || status === 'cancelled' ? 'unplayed' : null;
-}
-
-/**
  * The in-play modules: each one's title, the tab that holds it, the season
  * coverage it falls under, and its data in the match's payload.
  */
@@ -1056,128 +1028,5 @@ function Crest({ team, className }: { team: MatchCentre['fixture']['home']; clas
     >
       <EntityImage media={team.crest} kind="crest" name={team.name} size={40} aboveFold />
     </span>
-  );
-}
-
-/** Every rating the feed gave, by player id; none for a player it did not rate. */
-export function ratingsOf(centre: MatchCentre): Map<string, number> {
-  const ratings = new Map<string, number>();
-  for (const p of centre.player_statistics.data ?? []) {
-    const rating = p.stats.rating;
-    if (rating !== undefined && (p.stats.minutes ?? 1) > 0) ratings.set(p.id, rating);
-  }
-  return ratings;
-}
-
-/**
- * The best rated (the canvas's "Top rated" and "Ratings, best six"; T-1497):
- * the highest rating of the match with that player's goals, assists and xG
- * where they were supplied, then the best six. From the feed's ratings only;
- * with none there is no card, since the statistics already say why (rule 3).
- */
-function TopRated({
-  centre,
-  locale,
-  words,
-}: {
-  centre: MatchCentre;
-  locale: string;
-  words: MatchWords;
-}) {
-  const m = words.m;
-  const f = centre.fixture;
-  const ratings = ratingsOf(centre);
-  const best = (centre.player_statistics.data ?? [])
-    .filter((p) => ratings.has(p.id))
-    .sort((a, b) => (ratings.get(b.id) ?? 0) - (ratings.get(a.id) ?? 0))
-    .slice(0, 6);
-  const top = best[0];
-  if (top === undefined) return null;
-  const team = (side: 'home' | 'away') => (side === 'home' ? f.home : f.away);
-  const photo = [...(centre.lineups.data?.home ?? []), ...(centre.lineups.data?.away ?? [])].find(
-    (p) => p.id === top.id,
-  )?.photo;
-  const xg = centre.player_expected_goals.data?.find((p) => p.id === top.id)?.figures.xg;
-  const figures: [string, Key][] = [];
-  if (top.stats.goals !== undefined)
-    figures.push([formatNumber(locale, top.stats.goals), 'matchCentre.player.goals']);
-  if (top.stats.assists !== undefined)
-    figures.push([formatNumber(locale, top.stats.assists), 'matchCentre.player.assists']);
-  if (xg !== undefined) figures.push([formatFixed(locale, xg, 2), 'matchCentre.expectedGoals.xg']);
-  return (
-    <section className={CARD} data-testid="top-rated">
-      <h2 className="text-xs font-extrabold tracking-wider text-accent uppercase">
-        <MessageText message={m['matchCentre.topRated']} />
-      </h2>
-      <div className="flex items-center gap-3.5">
-        <EntityImage media={photo} kind="photo" name={top.name} size={48} />
-        <span className="flex min-w-0 flex-col gap-1">
-          <Link
-            href={`/${locale}/player/${top.id}`}
-            className="text-lg leading-tight font-extrabold text-fg"
-          >
-            {listName(locale, top.name)}
-          </Link>
-          <span className="text-sm text-muted">
-            <bdi>{team(top.side).name}</bdi>
-            {top.stats.minutes !== undefined && (
-              <>
-                {' · '}
-                <MessageText
-                  message={filled(m['matchCentre.minutesPlayed'], {
-                    minutes: formatNumber(locale, top.stats.minutes),
-                  })}
-                />
-              </>
-            )}
-          </span>
-        </span>
-        <RatingChip
-          value={ratings.get(top.id) ?? 0}
-          text={formatFixed(locale, ratings.get(top.id) ?? 0, 1)}
-          className="ms-auto"
-        />
-      </div>
-      {figures.length > 0 && (
-        <dl className="grid grid-cols-3 gap-2.5 tabular-nums">
-          {figures.map(([value, label]) => (
-            <div key={label} className="flex flex-col-reverse gap-0.5">
-              <dt className="text-xs text-caption">
-                <MessageText message={m[label]} />
-              </dt>
-              <dd className="text-2xl leading-none font-extrabold font-stretch-condensed">
-                {value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      )}
-      <h3 className="border-t border-default pt-3 text-sm font-extrabold">
-        <MessageText message={m['matchCentre.bestSix']} />
-      </h3>
-      <ol className="-mt-1 flex flex-col divide-y divide-default text-sm" data-testid="best-rated">
-        {best.map((p) => (
-          <li key={p.id} className="flex items-center gap-2.5 py-2">
-            <EntityImage
-              media={team(p.side).crest}
-              kind="crest"
-              name={team(p.side).name}
-              size={20}
-            />
-            <Link href={`/${locale}/player/${p.id}`} className="min-w-0 truncate">
-              {listName(locale, p.name)}
-            </Link>
-            <RatingChip
-              value={ratings.get(p.id) ?? 0}
-              text={formatFixed(locale, ratings.get(p.id) ?? 0, 1)}
-              className="ms-auto"
-            />
-          </li>
-        ))}
-      </ol>
-      <p className="font-mono text-xs text-caption [:root:is(:lang(fa),:lang(ar))_&]:font-sans">
-        <MessageText message={m['matchCentre.ratingsNote']} />
-      </p>
-    </section>
   );
 }

@@ -20,7 +20,8 @@ import {
   receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { ForecastPanel } from './forecast-panel';
-import { MatchCentreView, ratingsOf, scorerFit } from './match-centre-view';
+import { MatchCentreView, scorerFit } from './match-centre-view';
+import { ratingsOf } from './match-stats-panels';
 import { liveSlots } from './match-live-slots';
 import { LiveClockProvider } from './live-age';
 import { Translated } from './translated';

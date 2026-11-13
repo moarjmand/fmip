@@ -15,7 +15,7 @@ import Link from '@/components/ui/link';
 import { FilledMessage } from '@/components/filled-message';
 import { LiveAge } from '@/components/live-age';
 import { Module } from '@/components/match-centre-cards';
-import { comingModules, ratingsOf } from '@/components/match-centre-view';
+import { comingModules } from '@/components/match-centre-view';
 import { MatchLineupsView, type PlayerExtra } from '@/components/match-lineups';
 import { MessageText } from '@/components/message-text';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
@@ -36,8 +36,7 @@ import type { MatchWords } from '@/lib/words-server';
  * (D-409) the statistics are drawn in every state (`liveSlots`) and, in play,
  * drawn again by `refreshLiveModules` when the stream brings new figures; the
  * live "Stats updated 2 min ago" line (T-1782) is a `LiveAge` that ticks on
- * the page's clock. A finished match's line-ups are still drawn here only
- * after full time until T-1814.
+ * the page's clock. The line-ups likewise since T-1814, with the marks so far.
  */
 
 type Key = keyof MatchWords['m'];
@@ -72,6 +71,19 @@ export function playerCell(
   const value = player.stats[metric];
   if (value === undefined) return '–';
   return metric === 'rating' ? formatFixed(locale, value, 1) : formatNumber(locale, value);
+}
+
+/**
+ * Every rating the feed gave, by player id; none for a player it did not
+ * rate, nor for a substitute who never came on.
+ */
+export function ratingsOf(centre: MatchCentre): Map<string, number> {
+  const ratings = new Map<string, number>();
+  for (const p of centre.player_statistics.data ?? []) {
+    const rating = p.stats.rating;
+    if (rating !== undefined && (p.stats.minutes ?? 1) > 0) ratings.set(p.id, rating);
+  }
+  return ratings;
 }
 
 /** A postponed or cancelled match had no play to record (T-1550). */
@@ -649,19 +661,32 @@ function MarkGlyphs({ marks }: { marks: readonly Mark[] }) {
 }
 
 /**
- * The line-ups of a finished match (T-1801, D-399): the view's pitch and
- * benches, with each player's surname whole, what happened to him in words
- * under his name and as a mark on his disc, and "On 68′ for …" on the bench.
- * When the match's events are not supplied, one sentence says the pitch
- * carries no marks (rule 3).
+ * The line-ups (T-1801, D-399), in every state since T-1814 (D-409): the
+ * view's pitch and benches, with each player's surname whole, what happened
+ * to him so far in words under his name and as a mark on his disc, and
+ * "On 68′ for …" on the bench; in play `refreshLiveModules` draws it again
+ * when an event or new ratings arrive. Before kick-off "not announced yet",
+ * in play "Not in yet", for a postponed or cancelled match "not played". When
+ * the match's events are not supplied after play, one sentence says the
+ * pitch carries no marks (rule 3); while the match is to come or on, the key
+ * events card says what is missing instead.
  */
-export function FinishedLineups({ centre, locale, words }: Props) {
+export function MatchLineups({ centre, locale, words }: Props) {
   const m = wordsOf(locale, words);
   const f = centre.fixture;
   const events = centre.timeline.data;
   const marks = lineupMarks(events ?? [], locale, f.scores);
+  const open = f.status === 'scheduled' || f.status === 'live' || f.status === 'suspended';
   return (
-    <Module title={m['matchCentre.lineups']} module={centre.lineups} testId="lineups" words={words}>
+    <Module
+      title={m['matchCentre.lineups']}
+      module={centre.lineups}
+      testId="lineups"
+      words={words}
+      empty={f.status === 'scheduled' ? 'matchCentre.lineupsNotYet' : null}
+      notInYet={f.status === 'live'}
+      before={unplayed(centre)}
+    >
       {(lineups) => {
         const nameOf = pitchNames([...lineups.home, ...lineups.away], locale);
         const decorate = (p: MatchLineupPlayer): PlayerExtra => {
@@ -685,7 +710,7 @@ export function FinishedLineups({ centre, locale, words }: Props) {
               locale={locale}
               words={words}
             />
-            {events === null && (
+            {events === null && !open && (
               <p dir="auto" className="text-xs text-caption" data-testid="lineup-marks-none">
                 <MessageText message={m['matchCentre.lineups.marksNone']} />
               </p>

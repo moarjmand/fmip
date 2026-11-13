@@ -24,7 +24,7 @@ import { FounderAnalysisPanel } from './founder-analysis';
 import { MatchCentreView } from './match-centre-view';
 import { KeyEvents } from './match-key-events';
 import { liveSlots } from './match-live-slots';
-import { FinishedLineups, MatchStats, STAT_GROUPS, statGroups } from './match-stats-panels';
+import { MatchLineups, MatchStats, STAT_GROUPS, statGroups } from './match-stats-panels';
 import { STAT_KEY } from '@/lib/match';
 import { MatchLineupsView } from './match-lineups';
 import { HighlightsLink, WatchLine } from './viewing-panel';
@@ -1262,7 +1262,7 @@ describe('a finished match’s line-ups and player table (D-399, D-400)', () => 
     ...over,
   });
   const lineupsOf = (c: MatchCentre, locale = 'en') =>
-    renderToStaticMarkup(<FinishedLineups centre={c} locale={locale} words={matchWords(locale)} />);
+    renderToStaticMarkup(<MatchLineups centre={c} locale={locale} words={matchWords(locale)} />);
   const pitch = (html: string) =>
     html.slice(
       html.indexOf('data-testid="pitch-home"'),
@@ -1340,6 +1340,25 @@ describe('a finished match’s line-ups and player table (D-399, D-400)', () => 
     );
     expect(text(bench(html))).toContain('On 68′');
     expect(text(bench(html))).not.toMatch(/On 68′ for/);
+  });
+
+  it('in play, the marks so far, "On 68′ for …" on the bench, and no verdict on missing events (T-1814)', () => {
+    const home = [...eleven(4, 4, 2), player('forward', { role: 'bench', name: 'Emanuel Emegha' })];
+    const [off, on] = [home[10]!, home[11]!];
+    const live = (events: MatchIncident[] | null): MatchCentre => {
+      const c = finished(home, events);
+      return { ...c, fixture: { ...c.fixture, status: 'live', minute: 70 } };
+    };
+    const html = lineupsOf(
+      live([incident('substitution', 68, off, { related_player: { id: on.id, name: on.name } })]),
+    );
+    expect(text(bench(html))).toMatch(/On 68′ for /);
+    // The events not in yet: the key events card says so, not the pitch.
+    expect(lineupsOf(live(null))).not.toContain('data-testid="lineup-marks-none"');
+    // Before the line-ups arrive in play, "Not in yet", never "not supplied".
+    const waiting = lineupsOf({ ...live(null), lineups: empty });
+    expect(waiting).toContain(EN['matchCentre.notInYet']);
+    expect(waiting).not.toContain('Not supplied for this match.');
   });
 
   it('writes the surname whole, with the initial only where two players share it', () => {

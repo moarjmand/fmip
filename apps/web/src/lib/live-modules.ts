@@ -158,13 +158,16 @@ export function modulesBehind(waitingSince: number | null, now: number): boolean
 }
 
 /**
- * The slots `refreshLiveModules` draws again (T-1811: the key events; the
- * statistics, line-ups and Top rated join in T-1813 and T-1814), each with the
- * part of the signature it reads.
+ * The slots `refreshLiveModules` draws again (T-1811..T-1814), each with the
+ * parts of the signature it reads: the line-ups read the events too (each
+ * player's goals, cards and substitutions so far, D-399).
  */
-export const LIVE_SLOTS = { keyEvents: 'events', matchStats: 'stats' } as const satisfies Partial<
-  Record<MatchSlot, LivePart>
->;
+export const LIVE_SLOTS = {
+  keyEvents: ['events'],
+  matchStats: ['stats'],
+  matchLineups: ['events', 'stats'],
+  topRated: ['stats'],
+} as const satisfies Partial<Record<MatchSlot, readonly LivePart[]>>;
 
 /** What `refreshLiveModules` answers: the live slots it drew. */
 export type LiveModules = Partial<Pick<MatchSlots, keyof typeof LIVE_SLOTS>>;
@@ -177,8 +180,11 @@ export type LiveModules = Partial<Pick<MatchSlots, keyof typeof LIVE_SLOTS>>;
  */
 export function liveParts(slots: MatchSlots): LivePart[] {
   const parts = new Set<LivePart>();
-  for (const [slot, part] of Object.entries(LIVE_SLOTS) as [keyof typeof LIVE_SLOTS, LivePart][]) {
-    if ((slots[slot] ?? null) !== null) parts.add(part);
+  for (const [slot, read] of Object.entries(LIVE_SLOTS) as [
+    keyof typeof LIVE_SLOTS,
+    readonly LivePart[],
+  ][]) {
+    if ((slots[slot] ?? null) !== null) for (const part of read) parts.add(part);
   }
   return [...parts];
 }

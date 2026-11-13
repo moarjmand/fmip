@@ -79,8 +79,23 @@ function match(status: MatchCentre['fixture']['status'], incidents: MatchInciden
       freshness: null,
     },
     timeline: covered(incidents),
+    // The other live slots' modules, as the API sends them (T-1813, T-1814).
+    statistics: NONE,
+    player_statistics: NONE,
+    player_expected_goals: { ...NONE, source: 'highlightly', unplaced: 0 },
+    lineups: NONE,
+    coverage: {
+      scores: 'available',
+      incidents: 'available',
+      lineups: 'available',
+      statistics: 'available',
+      standings: 'available',
+      availability: 'available',
+      advanced_statistics: 'not_supplied',
+    },
   } as unknown as MatchCentre;
 }
+const NONE = { coverage: 'not_supplied' as const, last_updated_at: null, data: null };
 const answer = (data: MatchCentre) => ({ ok: true, status: 200, data, setCookie: null });
 
 afterEach(() => read.mockReset());

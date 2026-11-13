@@ -21,6 +21,9 @@ import {
 describe('which server modules the page drew (T-1811)', () => {
   it('the key events read the events; a page without them makes no call', () => {
     expect(liveParts({ keyEvents: 'card' })).toEqual(['events']);
+    // The statistics and Top rated read the statistics; the line-ups both (T-1813, T-1814).
+    expect(liveParts({ matchStats: 'card', topRated: 'card' })).toEqual(['stats']);
+    expect(liveParts({ matchLineups: 'card' }).sort()).toEqual(['events', 'stats']);
     expect(liveParts({ keyEvents: null })).toEqual([]);
     expect(liveParts({ outcome: 'card' })).toEqual([]);
   });
