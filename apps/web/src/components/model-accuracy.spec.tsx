@@ -1,10 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type {
+  AccuracyCalibration,
   AccuracyMetrics,
   AccuracyPoint,
+  PublicAccuracyPoint,
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
+  PublicVersionSeries,
 } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -43,7 +46,53 @@ const metrics = (overrides: Partial<AccuracyMetrics>): AccuracyMetrics => ({
   ...overrides,
 });
 
-const series = (overrides: Partial<PublicAccuracySeries>): PublicAccuracySeries => ({
+/**
+ * The fixtures are loose where step two added fields (T-1751): a point may
+ * leave out its end and its flag (complete unless it says otherwise), the
+ * overall series its calibration (nothing scored), the answer its versions
+ * (none). `full` fills them in as the API would.
+ */
+type LoosePoint = AccuracyPoint & Partial<Pick<PublicAccuracyPoint, 'period_end' | 'complete'>>;
+type LooseSeries = Omit<PublicAccuracySeries, 'points'> & {
+  points: LoosePoint[];
+  calibration?: AccuracyCalibration;
+};
+type Loose = Omit<Partial<PublicModelAccuracyResponse>, 'overall' | 'competitions'> & {
+  overall?: LooseSeries;
+  competitions?: LooseSeries[];
+};
+
+/** Ten steps with nothing in them: the API's calibration of an empty record. */
+const NO_CALIBRATION: AccuracyCalibration = {
+  minimum_forecasts: 30,
+  coverage: 'not_supplied',
+  bins: Array.from({ length: 10 }, (_, i) => ({
+    from: i / 10,
+    to: (i + 1) / 10,
+    forecasts: 0,
+    happened: 0,
+    said: null,
+  })),
+};
+
+const point = (p: LoosePoint): PublicAccuracyPoint => ({
+  period_end: p.period_start,
+  complete: true,
+  ...p,
+});
+const points = (s: LooseSeries) => ({ ...s, points: s.points.map(point) });
+const full = (r: PublicModelAccuracyResponse | Loose): PublicModelAccuracyResponse => {
+  const loose = r as Loose & PublicModelAccuracyResponse;
+  const { calibration, ...overall } = loose.overall;
+  return {
+    ...loose,
+    overall: { ...points(overall), competition: null, calibration: calibration ?? NO_CALIBRATION },
+    competitions: loose.competitions.map(points),
+    versions: loose.versions ?? [],
+  };
+};
+
+const series = (overrides: Partial<LooseSeries>): LooseSeries => ({
   competition: null,
   model_versions: ['dixon-coles-elo@0.1.0'],
   total: metrics({}),
@@ -52,23 +101,24 @@ const series = (overrides: Partial<PublicAccuracySeries>): PublicAccuracySeries 
 });
 
 /** A small record, under the sample rule everywhere: the page's limited state. */
-const report = (overrides: Partial<PublicModelAccuracyResponse>): PublicModelAccuracyResponse => ({
-  period: 'month',
-  minimum_matches: 30,
-  reference: { uniform_log_loss: 1.098612, uniform_brier: 0.666667, uniform_accuracy: 0.333333 },
-  overall: series({}),
-  competitions: [
-    series({ competition: { id: 'c1', name: 'Premier League' } }),
-    series({
-      competition: { id: 'c2', name: 'Serie A' },
-      model_versions: [],
-      total: NONE,
-      points: [],
-    }),
-  ],
-  last_updated_at: '2026-10-12T09:00:00Z',
-  ...overrides,
-});
+const report = (overrides: Loose): PublicModelAccuracyResponse =>
+  full({
+    period: 'month',
+    minimum_matches: 30,
+    reference: { uniform_log_loss: 1.098612, uniform_brier: 0.666667, uniform_accuracy: 0.333333 },
+    overall: series({}),
+    competitions: [
+      series({ competition: { id: 'c1', name: 'Premier League' } }),
+      series({
+        competition: { id: 'c2', name: 'Serie A' },
+        model_versions: [],
+        total: NONE,
+        points: [],
+      }),
+    ],
+    last_updated_at: '2026-10-12T09:00:00Z',
+    ...overrides,
+  });
 
 // ---------------------------------------------------------------------------
 // The live page's figures of 6 November 2026 (T-1750): 727 matches, five
@@ -98,19 +148,83 @@ const week = (
   accuracy: number,
   rps: number,
   uniform: number,
-): AccuracyPoint => ({ period, period_start: start, ...scored(matches, accuracy, rps, uniform) });
+  complete = true,
+): PublicAccuracyPoint => ({
+  period,
+  period_start: start,
+  period_end: start,
+  complete,
+  ...scored(matches, accuracy, rps, uniform),
+});
 
-const WEEKS: AccuracyPoint[] = [
+// The week of 2 November was still running on the 6th: the API says so (T-1751).
+const WEEKS: PublicAccuracyPoint[] = [
   week('2026-W41', '2026-10-05', 104, 0.587, 0.179, 0.233),
   week('2026-W42', '2026-10-12', 176, 0.563, 0.21, 0.249),
   week('2026-W43', '2026-10-19', 182, 0.517, 0.217, 0.239),
   week('2026-W44', '2026-10-26', 171, 0.673, 0.189, 0.252),
-  week('2026-W45', '2026-11-02', 94, 0.532, 0.215, 0.244),
+  week('2026-W45', '2026-11-02', 94, 0.532, 0.215, 0.244, false),
 ];
 
-const MONTHS: AccuracyPoint[] = [
+const MONTHS: LoosePoint[] = [
   { period: '2026-10', period_start: '2026-10-01', ...scored(599, 0.573, 0.201, 0.243) },
-  { period: '2026-11', period_start: '2026-11-01', ...scored(128, 0.594, 0.211, 0.25) },
+  {
+    period: '2026-11',
+    period_start: '2026-11-01',
+    complete: false,
+    ...scored(128, 0.594, 0.211, 0.25),
+  },
+];
+
+/**
+ * A calibration over the 727 matches' 2,181 probabilities. Not the live
+ * page's: the API had no bins on 6 November. Invented for the test, adding
+ * up as the API's must (one outcome a match happened, 727 in all); the top
+ * step is under the minimum.
+ */
+const BINS: [number, number, number][] = [
+  [160, 12, 0.07],
+  [310, 46, 0.155],
+  [520, 135, 0.255],
+  [330, 112, 0.345],
+  [300, 131, 0.45],
+  [240, 128, 0.55],
+  [170, 100, 0.645],
+  [95, 63, 0.74],
+  [42, 35, 0.84],
+  [14, 13, 0.93],
+];
+const CALIBRATION: AccuracyCalibration = {
+  minimum_forecasts: 30,
+  coverage: 'available',
+  bins: BINS.map(([forecasts, happened, said], i) => ({
+    from: i / 10,
+    to: (i + 1) / 10,
+    forecasts,
+    happened,
+    said,
+  })),
+};
+
+/** Two published versions: the newer at the sample rule, the older under it. */
+const version = (
+  model: string,
+  total: AccuracyMetrics,
+  monthly: LoosePoint[],
+): PublicVersionSeries => ({
+  model_version: model,
+  total,
+  points: monthly.map(point),
+  calibration: NO_CALIBRATION,
+});
+const SPLIT: PublicVersionSeries[] = [
+  version('dixon-coles-elo@0.6.0', scored(700, 0.58, 0.202, 0.245), [
+    { period: '2026-10', period_start: '2026-10-01', ...scored(572, 0.57, 0.2, 0.243) },
+    { period: '2026-11', period_start: '2026-11-01', ...scored(128, 0.594, 0.211, 0.25) },
+  ]),
+  version('dixon-coles-elo@0.1.0', scored(27, 0.48, 0.23, 0.244), [
+    { period: '2026-10', period_start: '2026-10-01', ...scored(27, 0.48, 0.23, 0.244) },
+  ]),
 ];
 
 // name, matches, share right, RPS, the guess's RPS; in the API's order, by name.
@@ -141,38 +255,50 @@ const COMPETITIONS: [string, number, number, number, number][] = [
 
 const VERSIONS = ['dixon-coles-elo@0.1.0', 'dixon-coles-elo@0.6.0'];
 
-const sixNov = (
-  overrides: Partial<PublicModelAccuracyResponse> = {},
-): PublicModelAccuracyResponse => ({
-  period: 'month',
-  minimum_matches: 30,
-  reference: { uniform_log_loss: 1.098612, uniform_brier: 0.666667, uniform_accuracy: 0.333333 },
-  overall: {
-    competition: null,
-    model_versions: VERSIONS,
-    total: scored(727, 0.576, 0.203, 0.245),
-    points: MONTHS,
-  },
-  competitions: COMPETITIONS.map(([name, matches, accuracy, rps, uniform], index) => ({
-    competition: { id: `c${index + 1}`, name },
-    model_versions: VERSIONS,
-    total: scored(matches, accuracy, rps, uniform),
-    points: [
-      { period: '2026-10', period_start: '2026-10-01', ...scored(matches, accuracy, rps, uniform) },
-    ],
-  })),
-  last_updated_at: '2026-11-05T22:10:00Z',
-  ...overrides,
-});
+const sixNov = (overrides: Loose = {}): PublicModelAccuracyResponse =>
+  full({
+    period: 'month',
+    minimum_matches: 30,
+    reference: { uniform_log_loss: 1.098612, uniform_brier: 0.666667, uniform_accuracy: 0.333333 },
+    overall: {
+      competition: null,
+      model_versions: VERSIONS,
+      total: scored(727, 0.576, 0.203, 0.245),
+      points: MONTHS,
+      calibration: CALIBRATION,
+    },
+    competitions: COMPETITIONS.map(([name, matches, accuracy, rps, uniform], index) => ({
+      competition: { id: `c${index + 1}`, name },
+      model_versions: VERSIONS,
+      total: scored(matches, accuracy, rps, uniform),
+      points: [
+        {
+          period: '2026-10',
+          period_start: '2026-10-01',
+          ...scored(matches, accuracy, rps, uniform),
+        },
+      ],
+    })),
+    versions: SPLIT,
+    last_updated_at: '2026-11-05T22:10:00Z',
+    ...overrides,
+  });
 
-type Props = Omit<Parameters<typeof ModelAccuracy>[0], 'locale' | 'report'>;
+type Props = Omit<Parameters<typeof ModelAccuracy>[0], 'locale' | 'report' | 'weekly'> & {
+  weekly?: readonly LoosePoint[] | null;
+};
 
 // The page as it composes them: the band, then the figures (T-1620).
 const html = (r: PublicModelAccuracyResponse | null, locale = 'en', props: Props = {}) =>
   renderToStaticMarkup(
     <>
       <ModelAccuracyBand locale={locale} />
-      <ModelAccuracy locale={locale} report={r} {...props} />
+      <ModelAccuracy
+        locale={locale}
+        report={r === null ? null : full(r)}
+        {...props}
+        weekly={props.weekly == null ? props.weekly : props.weekly.map(point)}
+      />
     </>,
   );
 /** The page of 6 November as the route renders it: months for the tables, weeks for the chart. */
@@ -579,12 +705,18 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
       expect(text(part(out, 'accuracy-weekly-partial', 'li'))).toBe(
         'The last week is incomplete (scored to 5 Nov), so its bar is lighter and dashed.',
       );
-      // Once the record is scored past the week's Sunday, it is a week like the others.
-      const later = html(sixNov({ last_updated_at: '2026-11-09T06:00:00Z' }), 'en', {
-        weekly: WEEKS,
+      // Once the API calls the week complete, it is a week like the others: the
+      // page infers nothing from the last scoring time (T-1751).
+      const later = html(sixNov(), 'en', {
+        weekly: WEEKS.map((week) => ({ ...week, complete: true })),
       });
       expect(chartOf(later)).not.toContain('data-partial');
       expect(later).not.toContain('data-testid="accuracy-weekly-partial"');
+      // And a week the API calls running stays incomplete however late it was scored.
+      const running = html(sixNov({ last_updated_at: '2026-11-12T06:00:00Z' }), 'en', {
+        weekly: WEEKS,
+      });
+      expect(weeksOf(chartOf(running)).at(-1)).toContain('data-partial="true"');
     });
 
     it('draws a week worse than a guess below the axis and says so', () => {
@@ -917,46 +1049,224 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
     });
   });
 
-  it('says plainly that the figures combine the published versions (D9, interim)', () => {
-    const meta = part(live(), 'accuracy-meta', 'ul');
-    expect(text(meta)).toContain(
-      'Model versions: dixon-coles-elo@0.1.0, dixon-coles-elo@0.6.0. The figures combine these versions; they are not yet shown version by version.',
-    );
-    expect(html(report({}))).not.toContain('data-testid="accuracy-versions-combined"');
+  describe('the calibration chart (T-1751, D-408)', () => {
+    const section = (out: string) => part(out, 'accuracy-calibration', 'section');
+    const steps = (out: string) =>
+      [
+        ...part(out, 'accuracy-calibration-chart', 'svg').matchAll(
+          /<g data-testid="accuracy-calibration-step"([^>]*)><circle cx="([\d.]+)%" cy="([\d.]+)"([^>]*)>/g,
+        ),
+      ].map((m) => ({ attrs: m[1] ?? '', x: Number(m[2]), y: Number(m[3]), circle: m[4] ?? '' }));
+
+    it('draws a dot a step at what the model said and how often it happened', () => {
+      const out = live();
+      expect(section(out)).toContain('data-chart="drawn"');
+      expect(text(section(out))).toContain('When it says 60%, how often does it happen?');
+      expect(text(section(out))).toContain(
+        'Every probability of 727 matches, 2,181 in all: home, draw and away of each match’s last forecast before kick-off.',
+      );
+      const dots = steps(out);
+      expect(dots).toHaveLength(10);
+      // Higher probabilities happened more often: the dots climb (y falls) from left to right.
+      expect(dots.map((d) => d.x)).toEqual([...dots.map((d) => d.x)].sort((a, b) => a - b));
+      // 60% to 70%: 100 of 170 happened, 59%, placed at the step's mean, 0.645.
+      const sixty = dots[6]!;
+      expect(sixty.attrs).toContain('data-forecasts="170"');
+      expect(sixty.y).toBeCloseTo(16 + (1 - 100 / 170) * 220, 6);
+      expect(sixty.x).toBeCloseTo(9 + 0.645 * 88, 6);
+      const label =
+        /<svg role="img" aria-label="([^"]*)"[^>]*data-testid="accuracy-calibration-chart"/.exec(
+          out,
+        )?.[1];
+      expect(label).toContain('said 60% to 70%, 59% of 170 forecasts happened');
+      expect(label).toContain('On the diagonal is a perfect forecaster.');
+    });
+
+    it('draws a step under the minimum hollow, with its count, and says why', () => {
+      const out = live();
+      const top = steps(out)[9]!;
+      expect(top.attrs).toContain('data-thin="true"');
+      expect(top.circle).toContain('fill-surface stroke-model');
+      expect(steps(out)[8]!.circle).toContain('fill-model stroke-model');
+      expect(part(out, 'accuracy-calibration-chart', 'svg')).toMatch(
+        /data-thin="true"><circle[^>]*><\/circle><text[^>]*>14<\/text>/,
+      );
+      expect(text(part(out, 'accuracy-calibration-hollow', 'li'))).toBe(
+        'Fewer than 30: hollow, with its count beside it',
+      );
+    });
+
+    it('gives the same ten rows as a table, an empty step as dashes, never zeros', () => {
+      const empty = CALIBRATION.bins.map((bin, i) =>
+        i === 0 ? { ...bin, forecasts: 0, happened: 0, said: null } : bin,
+      );
+      const out = html(
+        sixNov({
+          overall: {
+            competition: null,
+            model_versions: VERSIONS,
+            total: scored(727, 0.576, 0.203, 0.245),
+            points: MONTHS,
+            calibration: { ...CALIBRATION, bins: empty },
+          },
+        }),
+        'en',
+        { weekly: WEEKS },
+      );
+      expect(steps(out)).toHaveLength(9);
+      const table = part(out, 'accuracy-calibration-table', 'details');
+      expect(table).not.toMatch(/<details[^>]* open/);
+      const rows = [
+        ...table.matchAll(/<tr[^>]*data-testid="accuracy-calibration-row"[^>]*>([\s\S]*?)<\/tr>/g),
+      ].map((m) => text(m[1] ?? ''));
+      expect(rows).toHaveLength(10);
+      expect(rows[0]).toBe('0% to 10%———');
+      expect(rows[6]).toBe('60% to 70%17010059%');
+      expect(rows[9]).toBe('90% to 100%(fewer than 30)141393%');
+    });
+
+    it('draws no chart when every step is under the minimum, only a sentence (rule 3)', () => {
+      const thin = {
+        ...CALIBRATION,
+        coverage: 'limited' as const,
+        bins: CALIBRATION.bins.map((bin) => ({ ...bin, forecasts: Math.min(bin.forecasts, 29) })),
+      };
+      const out = html(
+        sixNov({
+          overall: {
+            competition: null,
+            model_versions: VERSIONS,
+            total: scored(727, 0.576, 0.203, 0.245),
+            points: MONTHS,
+            calibration: thin,
+          },
+        }),
+        'en',
+        { weekly: WEEKS },
+      );
+      const s = section(out);
+      expect(s).toContain('data-chart="too-thin"');
+      expect(s).not.toContain('<svg');
+      expect(s).not.toContain('data-mark');
+      expect(s).not.toContain('accuracy-calibration-table');
+      expect(text(s)).toContain(
+        'The chart appears once one step of ten points holds 30 forecasts. So far 275 probabilities have been scored, and no step holds 30.',
+      );
+    });
+
+    it('is not on the page under the sample rule, with nothing scored, or unreachable', () => {
+      for (const out of [html(report({})), html(NONE_SCORED), html(null)]) {
+        expect(out).not.toContain('data-testid="accuracy-calibration"');
+        expect(text(out)).not.toContain('When it says 60%');
+      }
+    });
+
+    it('mirrors in Persian: 0% at the inline start, on the right, digits left to right', () => {
+      const en = steps(live());
+      const fa = steps(live('fa'));
+      fa.forEach((dot, i) => expect(dot.x).toBeCloseTo(100 - en[i]!.x, 6));
+      const svg = part(live('fa'), 'accuracy-calibration-chart', 'svg');
+      expect(svg).toContain('data-direction="rtl"');
+      expect(svg).toMatch(/<text x="100%"[^>]*text-anchor="end" direction="ltr"[^>]*>۱۰۰٪</);
+      expect(text(svg)).not.toMatch(/[0-9]/);
+      const s = section(live('fa'));
+      expect(text(s)).toContain('وقتی می‌گوید ۶۰٪، چند بار رخ می‌دهد؟');
+      expect(s).not.toContain('data-translation="untranslated"');
+      expect(s).not.toMatch(PHYSICAL);
+    });
   });
 
-  it('ships no calibration chart and no per-version card, not even as a frame (D10)', () => {
-    for (const out of [live(), live('fa'), html(report({})), html(NONE_SCORED)]) {
-      expect(out).not.toMatch(/calibration|per-version|accuracy-version-card/i);
-      for (const words of [
-        'When it says 60%',
-        'Each model version on its own',
-        'Needs data',
-        'وقتی می‌گوید ۶۰٪',
-        'هر نسخه‌ی مدل جدا',
-        'به داده‌ای نیاز دارد',
-      ]) {
-        expect(text(out)).not.toContain(words);
-      }
-    }
-    // One picture on the page: the weekly chart.
-    expect(live().match(/<svg[^>]*role="img"/g)).toHaveLength(1);
+  describe('each version on its own (T-1751, D-408)', () => {
+    const cards = (out: string) =>
+      part(out, 'accuracy-versions-split', 'section')
+        .split('data-testid="accuracy-version"')
+        .slice(1);
+
+    it('gives each published version a card with its own coverage, newest first', () => {
+      const out = live();
+      const [newer = '', older = ''] = cards(out);
+      expect(cards(out)).toHaveLength(2);
+      expect(text(part(out, 'accuracy-versions-split', 'section'))).toContain(
+        'Each match is counted once, under the version of its last forecast before kick-off. Candidate models still in testing are not shown.',
+      );
+      expect(newer).toMatch(/^ data-coverage="available"/);
+      expect(text(newer)).toContain('dixon-coles-elo@0.6.0');
+      expect(text(newer)).toContain('Kick-offs from October 2026 to November 2026.');
+      expect(text(part(newer, 'accuracy-version-figures', 'dl'))).toBe(
+        'Matches700Correct58.0%Better than a guess+18%RPS0.202If guessing: 0.245',
+      );
+      expect(newer).not.toContain('data-coverage-badge');
+      // Under the sample rule: the badge, the count and the sentence; no figure claimed.
+      expect(older).toMatch(/^ data-coverage="limited"/);
+      expect(older).toContain('data-coverage-badge="limited"');
+      expect(text(older)).toContain(
+        'Only 27 matches have been scored with this version, fewer than 30: an early record, not a verdict.',
+      );
+      expect(older).not.toContain('accuracy-version-figures');
+      expect(text(older)).not.toMatch(/%/);
+    });
+
+    it('says no longer that the figures combine the versions, and names no version in an attribute', () => {
+      const out = live();
+      expect(text(part(out, 'accuracy-meta', 'ul'))).toContain(
+        'Model versions: dixon-coles-elo@0.1.0, dixon-coles-elo@0.6.0.',
+      );
+      expect(text(out)).not.toContain('The figures combine these versions');
+      expect(out).not.toMatch(/\S+@\d+\.\d+\.\d+/);
+    });
+
+    it('is not drawn for one version, under the sample rule overall, or with nothing scored', () => {
+      expect(html(sixNov({ versions: SPLIT.slice(0, 1) }), 'en', { weekly: WEEKS })).not.toContain(
+        'accuracy-versions-split',
+      );
+      expect(html(NONE_SCORED)).not.toContain('accuracy-versions-split');
+      expect(html(sixNov({ versions: [] }), 'en', { weekly: WEEKS })).not.toContain(
+        'accuracy-versions-split',
+      );
+    });
+
+    it('reads in Persian, with the count and the edge in Persian digits', () => {
+      const out = live('fa');
+      const section = part(out, 'accuracy-versions-split', 'section');
+      expect(text(section)).toContain('هر نسخه‌ی مدل جدا');
+      expect(section).toContain('<bdi dir="ltr">+۱۸٪</bdi>');
+      expect(text(section)).toContain('تا اینجا فقط ۲۷ بازی با این نسخه ارزیابی شده');
+      expect(section).not.toContain('data-translation="untranslated"');
+      expect(section).not.toMatch(PHYSICAL);
+    });
+  });
+
+  it('draws the page in this order: card, weekly, calibration, versions, competitions', () => {
+    const out = live();
+    const at = (id: string) => out.indexOf(`data-testid="${id}"`);
+    expect(at('accuracy-overall')).toBeLessThan(at('accuracy-weekly'));
+    expect(at('accuracy-weekly')).toBeLessThan(at('accuracy-calibration'));
+    expect(at('accuracy-calibration')).toBeLessThan(at('accuracy-versions-split'));
+    expect(at('accuracy-versions-split')).toBeLessThan(at('accuracy-competitions'));
+    // Two pictures: the weekly chart and the calibration.
+    expect(out.match(/<svg[^>]*role="img"/g)).toHaveLength(2);
   });
 
   it('draws the model’s data in turquoise only: no saffron on a data mark', () => {
     for (const out of [live(), live('fa'), live('en', { sort: 'edge', chosenPeriod: true })]) {
-      const marks = [...out.matchAll(/<(?:span|rect|line)[^>]*data-mark="[^"]+"[^>]*>/g)].map(
-        (m) => m[0],
-      );
-      // Two pairs on the card, five bars and the overall line on the chart, 22 competitions.
-      expect(marks).toHaveLength(4 + 5 + 1 + 22);
+      const marks = [
+        ...out.matchAll(/<(?:span|rect|line|circle)[^>]*data-mark="[^"]+"[^>]*>/g),
+      ].map((m) => m[0]);
+      // Two pairs on the card, five bars and the overall line on the chart, 22
+      // competitions; the calibration's ten dots and its perfect forecaster.
+      expect(marks).toHaveLength(4 + 5 + 1 + 22 + 10 + 1);
       for (const mark of marks) {
         expect(mark).not.toMatch(/brand|accent|saffron|warning|danger|live/);
-        if (!mark.includes('data-mark="guess"'))
+        // The guess and the perfect forecaster are grey and named; the rest is the model's.
+        if (!mark.includes('data-mark="guess"') && !mark.includes('data-mark="perfect"'))
           expect(mark).toMatch(/(?:bg|fill|stroke|border)-model/);
       }
+      expect(marks.find((mark) => mark.includes('data-mark="perfect"'))).toContain(
+        'stroke-caption',
+      );
       const svg = part(out, 'accuracy-weekly-chart', 'svg');
       expect(svg).not.toMatch(/brand|accent/);
+      expect(part(out, 'accuracy-calibration-chart', 'svg')).not.toMatch(/brand|accent/);
       // Saffron is the one closing button.
       expect(out.match(/bg-brand(?![/\w-])/g)).toHaveLength(1);
       expect(part(out, 'accuracy-cta', 'section')).toMatch(

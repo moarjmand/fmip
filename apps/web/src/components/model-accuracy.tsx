@@ -2,6 +2,7 @@ import type {
   AccuracyMetrics,
   AccuracyPeriod,
   AccuracyPoint,
+  PublicAccuracyPoint,
   AccuracyReference,
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
@@ -9,7 +10,9 @@ import type {
 import type { ReactNode } from 'react';
 import { Fragment, useId } from 'react';
 import Link from '@/components/ui/link';
+import { CalibrationChart } from '@/components/accuracy-calibration-chart';
 import { VerdictCard } from '@/components/accuracy-verdict';
+import { VersionCards } from '@/components/accuracy-version-cards';
 import { WeeklyEdgeChart } from '@/components/accuracy-weekly-chart';
 import { EntityImage } from '@/components/entity-image';
 import { FilledMessage } from '@/components/filled-message';
@@ -54,9 +57,9 @@ import { formatFixed, formatPercent } from '@/lib/words';
  * list, each row a native disclosure, those under the sample rule a separate
  * dashed group; RPS, Brier and log loss, the month or week table and the
  * long explanation under one closed disclosure; and a link on to today's
- * forecasts. The calibration chart and the per-version figures are not here,
- * not even as frames: the public API has no data for them yet (T-1751), and
- * an empty frame on a live page is an empty module (rule 3).
+ * forecasts. T-1751 (D-408) adds, after the weekly chart, the calibration
+ * chart (`CalibrationChart`) and each published version on its own
+ * (`VersionCards`), from the API's own fields: never an empty frame (rule 3).
  *
  * The interface face throughout: the serif is the founder's voice (D-263),
  * never the model's. The model's data is drawn in its turquoise only;
@@ -1047,9 +1050,9 @@ function ForecastsCta({ lang }: { lang: Locale }) {
 
 /**
  * The published versions the figures are from and the day they were last
- * scored. With more than one version it says plainly that the figures combine
- * them (T-1750, D-370: the split by version needs an API field, T-1751); a
- * candidate still in testing is never named here. It sits under the verdict,
+ * scored; a candidate still in testing is never named here. The line that
+ * the figures combined the versions (T-1750) went with T-1751: each version
+ * now has its own card (`VersionCards`). It sits under the verdict,
  * not in the band: on a phone the band's four extra lines pushed the page's
  * two figures off the first screen (found on the real-data screenshots).
  */
@@ -1069,14 +1072,6 @@ function AccuracyMeta({ lang, report }: { lang: Locale; report: PublicModelAccur
               versions: <VersionList versions={versions} className="font-semibold text-fg" />,
             }}
           />
-          {versions.length > 1 && (
-            <>
-              {' '}
-              <span data-testid="accuracy-versions-combined">
-                <Translated locale={lang} message="modelAccuracy.versionsCombined" />
-              </span>
-            </>
-          )}
         </li>
       )}
       {report.last_updated_at !== null && (
@@ -1110,7 +1105,7 @@ export function ModelAccuracy({
    * tables show; null when they did not arrive. Left out, a weekly report
    * serves as its own.
    */
-  weekly?: readonly AccuracyPoint[] | null;
+  weekly?: readonly PublicAccuracyPoint[] | null;
   /** The competition list's order (`?sort=edge`). */
   sort?: AccuracySort;
   /** The reader chose the period in the address: the measures open on it and the links keep it. */
@@ -1131,7 +1126,7 @@ export function ModelAccuracy({
   const state = verdictState(total);
   const points =
     weekly === undefined ? (report.period === 'week' ? report.overall.points : null) : weekly;
-  const weeks = points === null ? null : weeklyEdges(points, report.last_updated_at);
+  const weeks = points === null ? null : weeklyEdges(points);
   return (
     <div
       className="flex flex-col gap-8 sm:gap-10"
@@ -1152,6 +1147,16 @@ export function ModelAccuracy({
           minimum={report.minimum_matches}
           lastScoredAt={report.last_updated_at}
         />
+      )}
+
+      {/* Under the sample rule no chart either (D-370 point 5); the calibration says when it has too few itself. */}
+      {state === 'available' && (
+        <CalibrationChart lang={lang} calibration={report.overall.calibration} total={total} />
+      )}
+
+      {/* With one version its card would repeat the opening card; nothing scored, nothing to split. */}
+      {state !== 'empty' && report.versions.length > 1 && (
+        <VersionCards lang={lang} report={report} />
       )}
 
       {report.competitions.length > 0 && (
