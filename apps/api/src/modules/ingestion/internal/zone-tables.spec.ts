@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { StandingsService } from '../../standings/standings.service';
 import { PostgresStandingsStore } from '../../standings/internal/standings-store';
-import { groupMembers } from './groups';
+import { groupMembers, groupStagesPlayed, isGroupStagesAggregate } from './groups';
 import { IngestStore, type RefResolver } from './ingest-store';
 
 /**
@@ -198,6 +198,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(before.table.data?.map((r) => [r.team.id, r.played])).toEqual([
         [TEAMS.d, 2],
         [TEAMS.c, 3],
+      ]);
+    });
+
+    it("leaves out the feed's season-sum table only while it matches our zones (T-1822)", async () => {
+      // No league stage: our league table is empty, as Argentina's is.
+      const league = await standings.table(SEASON);
+      const mine = new Map((league.data ?? []).map((r) => [r.team.id, r.played]));
+      expect(mine.size).toBe(0);
+      const ours = await standings.groupTables(SEASON);
+      // Each club's finished group matches over both stages: a 2+1, b 1+1,
+      // c 3+1, d 2+1 (interzonal and awarded counted, the knockout not).
+      const sum = [
+        { teamId: TEAMS.a, played: 3 },
+        { teamId: TEAMS.b, played: 2 },
+        { teamId: TEAMS.c, played: 4 },
+        { teamId: TEAMS.d, played: 3 },
+      ];
+      expect(isGroupStagesAggregate(sum, mine, ours)).toBe(true);
+      // One result we do not hold: compared as before, and the finding fires.
+      const ahead = sum.map((r) => (r.teamId === TEAMS.d ? { ...r, played: 4 } : r));
+      expect(isGroupStagesAggregate(ahead, mine, ours)).toBe(false);
+      // ...against our zone totals: d alone differs (4 against our 3).
+      const totals = groupStagesPlayed(mine, ours);
+      expect(ahead.filter((r) => totals?.get(r.teamId) !== r.played)).toEqual([
+        { teamId: TEAMS.d, played: 4 },
       ]);
     });
   },
