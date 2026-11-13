@@ -5,6 +5,7 @@ import {
   calibrationForecasts,
   calibrationGeometry,
   calibrationState,
+  countSide,
   versionCards,
 } from './accuracy-calibration';
 
@@ -52,14 +53,15 @@ describe('calibrationState', () => {
 });
 
 describe('calibrationGeometry', () => {
-  const { top, plot, gutter, end } = CALIBRATION_CHART;
+  const { top, plot } = CALIBRATION_CHART;
 
   it('places a dot at the mean said and the share that happened, none for an empty step', () => {
     const chart = calibrationGeometry(calibration(TEN), 'ltr');
     expect(chart.points.map((p) => p.from)).toEqual([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]);
     const sixty = chart.points.find((p) => p.from === 0.6)!;
     expect(sixty.share).toBeCloseTo(19 / 30, 9);
-    expect(sixty.x).toBeCloseTo(gutter + 0.64 * (100 - gutter - end), 9);
+    // The SVG is the plot, edge to edge: its labels sit in the box's padding.
+    expect(sixty.x).toBeCloseTo(64, 9);
     expect(sixty.y).toBeCloseTo(top + (1 - 19 / 30) * plot, 9);
     expect(sixty.thin).toBe(false);
     expect(chart.points.filter((p) => p.thin).map((p) => p.from)).toEqual([0.7, 0.8, 0.9]);
@@ -74,7 +76,33 @@ describe('calibrationGeometry', () => {
       expect(p.x).toBeCloseTo(100 - ltr.points[i]!.x, 9);
       expect(p.y).toBe(ltr.points[i]!.y);
     });
-    expect(rtl.xOf(0)).toBeCloseTo(100 - gutter, 9);
+    expect(rtl.xOf(0)).toBe(100);
+    expect(rtl.xOf(1)).toBe(0);
+  });
+});
+
+describe('countSide', () => {
+  // The production record of 13 November at 375px (the screenshots' detail a):
+  // a solid 70-80% dot, a hollow 80-90% one counted 22, a hollow 90-100% one counted 6.
+  const y = (share: number) => 16 + (1 - share) * 220;
+  const solid = { said: 0.74, y: y(0.77), forecasts: 40 };
+  const eighty = { said: 0.84, y: y(0.77), forecasts: 22 };
+  const ninety = { said: 0.93, y: y(0.83), forecasts: 6 };
+  const dots = [solid, eighty, ninety];
+
+  it('moves a count off its neighbours: neither side is clear for 22, so it goes above', () => {
+    expect(countSide(eighty, dots)).toBe('above');
+  });
+
+  it('keeps a count beside its dot when the side is clear, inside the padding', () => {
+    expect(countSide(ninety, dots)).toBe('end');
+    expect(countSide({ said: 0.3, y: y(0.3), forecasts: 12 }, dots)).toBe('end');
+  });
+
+  it('puts it towards the inline start when only the end is taken', () => {
+    const right = { said: 0.55, y: y(0.5), forecasts: 8 };
+    const neighbour = { said: 0.61, y: y(0.5), forecasts: 40 };
+    expect(countSide(right, [right, neighbour])).toBe('start');
   });
 });
 

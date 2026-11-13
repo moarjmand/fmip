@@ -28,7 +28,14 @@ export function calibrationState(calibration: AccuracyCalibration): CalibrationS
 export const calibrationForecasts = (calibration: AccuracyCalibration): number =>
   calibration.bins.reduce((sum, bin) => sum + bin.forecasts, 0);
 
-/** The calibration chart's fixed measures, in CSS pixels; widths are percentages. */
+/**
+ * The calibration chart's fixed measures, in CSS pixels; widths are
+ * percentages of the plot. The SVG is the plot alone, 0% to 100% edge to
+ * edge; the gridline labels and the halves of the end labels sit in the
+ * padding its box keeps on each inline side (`padStart`, `padEnd`, applied
+ * as logical padding by the component), so on a 375px phone no label is
+ * clipped and none crosses the axis (review of the PR #883 screenshots).
+ */
 export const CALIBRATION_CHART = {
   /** Room above the plot for the top gridline's label. */
   top: 16,
@@ -37,13 +44,18 @@ export const CALIBRATION_CHART = {
   /** The gap under the plot and the row of the axis labels. */
   under: 18,
   labels: 14,
-  /** The share of the width kept for the gridline labels, at the inline start. */
-  gutter: 9,
-  /** The share kept at the inline end, so a point at 100% is not cut in half. */
-  end: 3,
-  /** A point's radius. */
+  /** The padding at the inline start, for the gridline labels ("100%" and a gap). */
+  padStart: 40,
+  /** The padding at the inline end, for half of the "100%" under the plot. */
+  padEnd: 20,
+  /** A point's radius, and its stroke around it. */
   radius: 6,
+  /** The narrowest plot the chart is drawn at (a 320px phone): labels are placed for it. */
+  narrowest: 230,
 } as const;
+
+/** Where a hollow dot's count goes, relative to the dot, in the reading direction. */
+export type CountSide = 'end' | 'start' | 'above' | 'below';
 
 /** The gridlines and axis labels: every twenty points. */
 export const CALIBRATION_TICKS = [0, 0.2, 0.4, 0.6, 0.8, 1] as const;
@@ -55,6 +67,8 @@ export interface CalibrationPoint extends CalibrationBin {
   share: number;
   /** Under the minimum: drawn hollow, with its count beside it. */
   thin: boolean;
+  /** Where the count goes: clear of every other dot (only read when `thin`). */
+  countSide: CountSide;
   /** The point's centre: across in percent of the width, down in pixels. */
   x: number;
   y: number;
@@ -86,11 +100,8 @@ export function calibrationGeometry(
   calibration: AccuracyCalibration,
   direction: 'ltr' | 'rtl',
 ): CalibrationGeometry {
-  const { top, plot, under, labels, gutter, end } = CALIBRATION_CHART;
-  const xOf = (value: number): number => {
-    const fromStart = gutter + value * (100 - gutter - end);
-    return direction === 'rtl' ? 100 - fromStart : fromStart;
-  };
+  const { top, plot, under, labels } = CALIBRATION_CHART;
+  const xOf = (value: number): number => (direction === 'rtl' ? 100 - value * 100 : value * 100);
   const yOf = (value: number): number => top + (1 - value) * plot;
   const points: CalibrationPoint[] = [];
   for (const bin of calibration.bins) {
@@ -101,9 +112,13 @@ export function calibrationGeometry(
       said: bin.said,
       share,
       thin: bin.forecasts < calibration.minimum_forecasts,
+      countSide: 'end',
       x: xOf(bin.said),
       y: yOf(share),
     });
+  }
+  for (const point of points) {
+    if (point.thin) point.countSide = countSide(point, points);
   }
   const bottom = top + plot;
   return {
@@ -115,6 +130,75 @@ export function calibrationGeometry(
     labelY: bottom + under + 6,
     points,
   };
+}
+
+/** A box in pixels, measured from the inline start (mirroring changes no distance). */
+interface Box {
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+}
+
+const overlaps = (a: Box, b: Box): boolean =>
+  a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+
+/**
+ * Where a hollow dot's count goes: beside it towards the inline end, else
+ * towards the inline start, else above, else below -- the first place whose
+ * box touches no other dot and stays inside the drawing and its padding.
+ * Worked out on the narrowest plot (`narrowest`), where the dots are
+ * closest: across, they only move apart on a wider one, and the heights are
+ * fixed, so a place clear there is clear everywhere. The count's box is
+ * estimated from its digits (11px tabular figures, about 7px each).
+ */
+export function countSide(
+  point: Pick<CalibrationPoint, 'said' | 'y' | 'forecasts'>,
+  points: readonly Pick<CalibrationPoint, 'said' | 'y'>[],
+): CountSide {
+  const { radius, narrowest, padEnd, top, plot } = CALIBRATION_CHART;
+  const ring = radius + 2;
+  const gap = 4;
+  const width = String(point.forecasts).length * 7 + 2;
+  const height = 11;
+  const cx = point.said * narrowest;
+  const others: Box[] = points
+    .filter((other) => other !== point)
+    .map((other) => ({
+      x0: other.said * narrowest - ring,
+      x1: other.said * narrowest + ring,
+      y0: other.y - ring,
+      y1: other.y + ring,
+    }));
+  const middle = { y0: point.y - height / 2, y1: point.y + height / 2 };
+  const candidates: [CountSide, Box][] = [
+    ['end', { x0: cx + ring + gap, x1: cx + ring + gap + width, ...middle }],
+    ['start', { x0: cx - ring - gap - width, x1: cx - ring - gap, ...middle }],
+    [
+      'above',
+      {
+        x0: cx - width / 2,
+        x1: cx + width / 2,
+        y0: point.y - ring - gap - height,
+        y1: point.y - ring - gap,
+      },
+    ],
+    [
+      'below',
+      {
+        x0: cx - width / 2,
+        x1: cx + width / 2,
+        y0: point.y + ring + gap,
+        y1: point.y + ring + gap + height,
+      },
+    ],
+  ];
+  for (const [side, box] of candidates) {
+    const inside =
+      box.x0 >= 0 && box.x1 <= narrowest + padEnd && box.y0 >= 0 && box.y1 <= top + plot;
+    if (inside && !others.some((other) => overlaps(box, other))) return side;
+  }
+  return 'above';
 }
 
 // ---------------------------------------------------------------------------

@@ -58,6 +58,8 @@ function WeeksTable({ lang, weeks }: { lang: Locale; weeks: readonly WeekBar[] }
   const captionId = useId();
   const th = 'px-2 py-2 text-xs font-semibold text-caption';
   const cell = 'px-2 py-2 text-end';
+  // The week column stays put if the table scrolls (T-1751 review).
+  const sticky = 'sticky start-0 z-1 bg-surface';
   return (
     <details className="group border-t border-default" data-testid="accuracy-weekly-table">
       <summary
@@ -89,14 +91,19 @@ function WeeksTable({ lang, weeks }: { lang: Locale; weeks: readonly WeekBar[] }
         aria-labelledby={captionId}
         tabIndex={0}
       >
-        <table className="w-full min-w-100 border-collapse text-sm tabular-nums">
+        {/* The answer, better than a guess, stands next to the week: on a phone it
+            is in view without scrolling (review of the PR #883 screenshots). */}
+        <table className="w-full border-collapse text-sm tabular-nums">
           <caption className="sr-only">
             <Translated locale={lang} message="modelAccuracy.weekly.table" />
           </caption>
           <thead>
             <tr className="border-t border-default">
-              <th scope="col" className={`${th} text-start`}>
+              <th scope="col" className={cx(th, sticky, 'text-start')}>
                 <Translated locale={lang} message="modelAccuracy.table.week" />
+              </th>
+              <th scope="col" className={`${th} text-end`}>
+                <Translated locale={lang} message="modelAccuracy.weekly.edge" />
               </th>
               <th scope="col" className={`${th} text-end`}>
                 <Translated locale={lang} message="modelAccuracy.table.matches" />
@@ -106,9 +113,6 @@ function WeeksTable({ lang, weeks }: { lang: Locale; weeks: readonly WeekBar[] }
               </th>
               <th scope="col" className={`${th} text-end`}>
                 <Translated locale={lang} message="modelAccuracy.table.rpsGuess" />
-              </th>
-              <th scope="col" className={`${th} text-end`}>
-                <Translated locale={lang} message="modelAccuracy.weekly.edge" />
               </th>
             </tr>
           </thead>
@@ -120,24 +124,24 @@ function WeeksTable({ lang, weeks }: { lang: Locale; weeks: readonly WeekBar[] }
                 data-testid="accuracy-weekly-row"
                 data-partial={week.partial ? 'true' : undefined}
               >
-                <th scope="row" className="px-2 py-2 text-start font-semibold">
+                <th scope="row" className={cx('px-2 py-2 text-start font-semibold', sticky)}>
                   <time dateTime={week.periodStart} className="whitespace-nowrap">
                     {interpolate(t(lang, 'modelAccuracy.weekOf'), {
                       date: day(lang, week.periodStart, true),
                     })}
                   </time>
                   {week.partial && (
-                    <span className="ms-2 text-xs font-normal text-muted">
+                    <span className="block text-xs font-normal text-muted">
                       (<Translated locale={lang} message="modelAccuracy.weekly.partialMark" />)
                     </span>
                   )}
                 </th>
-                <td className={cell}>{formatNumber(lang, week.matches)}</td>
-                <td className={cell}>{formatFixed(lang, week.edge.model, 3)}</td>
-                <td className={cx(cell, 'text-muted')}>{formatFixed(lang, week.edge.guess, 3)}</td>
                 <td className={cx(cell, 'font-semibold')}>
                   <bdi dir="ltr">{formatEdge(lang, week.edge.percent)}</bdi>
                 </td>
+                <td className={cell}>{formatNumber(lang, week.matches)}</td>
+                <td className={cell}>{formatFixed(lang, week.edge.model, 3)}</td>
+                <td className={cx(cell, 'text-muted')}>{formatFixed(lang, week.edge.guess, 3)}</td>
               </tr>
             ))}
           </tbody>

@@ -1085,12 +1085,16 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
       const sixty = dots[6]!;
       expect(sixty.attrs).toContain('data-forecasts="170"');
       expect(sixty.y).toBeCloseTo(16 + (1 - 100 / 170) * 220, 6);
-      expect(sixty.x).toBeCloseTo(9 + 0.645 * 88, 6);
+      expect(sixty.x).toBeCloseTo(64.5, 6);
       const label =
         /<svg role="img" aria-label="([^"]*)"[^>]*data-testid="accuracy-calibration-chart"/.exec(
           out,
         )?.[1];
-      expect(label).toContain('said 60% to 70%, 59% of 170 forecasts happened');
+      // Each figure between left-to-right isolates, so a right-to-left reading keeps it whole.
+      expect(label).toContain('said ⁦60%⁩ to ⁦70%⁩');
+      expect(label?.replace(/[⁦⁩]/g, '')).toContain(
+        'said 60% to 70%, 59% of 170 forecasts happened',
+      );
       expect(label).toContain('On the diagonal is a perfect forecaster.');
     });
 
@@ -1100,13 +1104,13 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
       expect(top.attrs).toContain('data-thin="true"');
       expect(top.circle).toContain('fill-surface stroke-model');
       expect(steps(out)[8]!.circle).toContain('fill-model stroke-model');
-      // Near the inline end (0.93) the count sits on the inline-start side, in
-      // both directions, so it never runs past the drawing on a phone.
+      // Clear of every other dot, beside it towards the inline end (`countSide`):
+      // to the right in English, to the left in Persian, inside the padding.
       expect(part(out, 'accuracy-calibration-chart', 'svg')).toMatch(
-        /data-thin="true"><circle[^>]*><\/circle><text[^>]*dx="-10"[^>]*text-anchor="end"[^>]*>14<\/text>/,
+        /data-thin="true"><circle[^>]*><\/circle><text[^>]*dx="10"[^>]*text-anchor="start"[^>]*data-side="end"[^>]*>14<\/text>/,
       );
       expect(part(live('fa'), 'accuracy-calibration-chart', 'svg')).toMatch(
-        /data-thin="true"><circle[^>]*><\/circle><text[^>]*dx="10"[^>]*text-anchor="start"[^>]*>۱۴<\/text>/,
+        /data-thin="true"><circle[^>]*><\/circle><text[^>]*dx="-10"[^>]*text-anchor="end"[^>]*data-side="end"[^>]*>۱۴<\/text>/,
       );
       expect(text(part(out, 'accuracy-calibration-hollow', 'li'))).toBe(
         'Fewer than 30: hollow, with its count beside it',
@@ -1138,8 +1142,9 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
       ].map((m) => text(m[1] ?? ''));
       expect(rows).toHaveLength(10);
       expect(rows[0]).toBe('0% to 10%———');
-      expect(rows[6]).toBe('60% to 70%17010059%');
-      expect(rows[9]).toBe('90% to 100%(fewer than 30)141393%');
+      // The answer next to the step, then the counts (T-1751 review: in view on a phone).
+      expect(rows[6]).toBe('60% to 70%59%170100');
+      expect(rows[9]).toBe('90% to 100%(fewer than 30)93%1413');
     });
 
     it('draws no chart when every step is under the minimum, only a sentence (rule 3)', () => {
@@ -1184,12 +1189,22 @@ describe('the accuracy page a reader can read (T-1750, D-370)', () => {
       fa.forEach((dot, i) => expect(dot.x).toBeCloseTo(100 - en[i]!.x, 6));
       const svg = part(live('fa'), 'accuracy-calibration-chart', 'svg');
       expect(svg).toContain('data-direction="rtl"');
-      expect(svg).toMatch(/<text x="100%"[^>]*text-anchor="end" direction="ltr"[^>]*>۱۰۰٪</);
+      // The gridline labels in the inline-start padding, on the right, short of the axis.
+      expect(svg).toMatch(
+        /<text x="100%" dx="6"[^>]*text-anchor="start" direction="ltr"[^>]*>۱۰۰٪</,
+      );
       expect(text(svg)).not.toMatch(/[0-9]/);
       const s = section(live('fa'));
       expect(text(s)).toContain('وقتی می‌گوید ۶۰٪، چند بار رخ می‌دهد؟');
       expect(s).not.toContain('data-translation="untranslated"');
       expect(s).not.toMatch(PHYSICAL);
+      // Every percent of a step range stays whole, "۹۰٪" not "٪۹۰" (T-1751 review):
+      // isolated left to right in the table and in the chart's sentence.
+      expect(s).toContain('<bdi dir="ltr">۹۰٪</bdi> تا <bdi dir="ltr">۱۰۰٪</bdi>');
+      expect(s).toContain('<bdi dir="ltr">۹۳٪</bdi>');
+      expect(svg).toContain('گفت ⁦۶۰٪⁩ تا ⁦۷۰٪⁩');
+      // The step column stays put on a phone; the share that happened comes next.
+      expect(s).toMatch(/<th scope="row" class="[^"]*sticky start-0/);
     });
   });
 

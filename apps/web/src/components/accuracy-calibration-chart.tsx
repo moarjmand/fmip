@@ -1,5 +1,6 @@
 import type { AccuracyCalibration, AccuracyMetrics } from '@fmip/contracts';
 import { useId } from 'react';
+import { FilledMessage } from '@/components/filled-message';
 import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
 import { cx } from '@/components/ui/cx';
@@ -12,6 +13,7 @@ import {
   calibrationForecasts,
   calibrationGeometry,
   calibrationState,
+  type CountSide,
 } from '@/lib/accuracy-calibration';
 import { filled, formatPercent } from '@/lib/words';
 
@@ -35,9 +37,6 @@ import { filled, formatPercent } from '@/lib/words';
 
 const whole = (lang: Locale, value: number): string => formatPercent(lang, value * 100, 0);
 
-/** Past this probability a hollow dot's count sits on its inline-start side. */
-const COUNT_FLIP = 0.8;
-
 function Heading({ lang }: { lang: Locale }) {
   return (
     <h2
@@ -49,12 +48,29 @@ function Heading({ lang }: { lang: Locale }) {
   );
 }
 
-/** "60% to 70%": a step as a reader names it. */
+/**
+ * "60% to 70%" as text, for the chart's sentence: each figure between
+ * left-to-right isolates (U+2066 ... U+2069), so a right-to-left reading
+ * keeps "۰٪" whole instead of turning it into "٪۰".
+ */
 const rangeOf = (lang: Locale, from: number, to: number): string =>
   interpolate(t(lang, 'modelAccuracy.calibration.range'), {
-    from: whole(lang, from),
-    to: whole(lang, to),
+    from: `\u2066${whole(lang, from)}\u2069`,
+    to: `\u2066${whole(lang, to)}\u2069`,
   });
+
+/** The same step in the table, each figure in `<bdi dir="ltr">`, as the weekly table's edges. */
+function Range({ lang, from, to }: { lang: Locale; from: number; to: number }) {
+  return (
+    <FilledMessage
+      message={message(lang, 'modelAccuracy.calibration.range')}
+      params={{
+        from: <bdi dir="ltr">{whole(lang, from)}</bdi>,
+        to: <bdi dir="ltr">{whole(lang, to)}</bdi>,
+      }}
+    />
+  );
+}
 
 /** The chart's rows as a table: all ten steps, an empty one with dashes, not zeros. */
 function CalibrationTable({
@@ -67,6 +83,7 @@ function CalibrationTable({
   const captionId = useId();
   const th = 'px-2 py-2 text-xs font-semibold text-caption';
   const cell = 'px-2 py-2 text-end';
+  const sticky = 'sticky start-0 z-1 bg-surface';
   const minimum = formatNumber(lang, calibration.minimum_forecasts);
   return (
     <details className="group border-t border-default" data-testid="accuracy-calibration-table">
@@ -99,23 +116,26 @@ function CalibrationTable({
         aria-labelledby={captionId}
         tabIndex={0}
       >
-        <table className="w-full min-w-100 border-collapse text-sm tabular-nums">
+        {/* The answer, the share that happened, stands next to the step: on a
+            phone it is in view without scrolling, and the step column stays put
+            if the table scrolls at all (review of the PR #883 screenshots). */}
+        <table className="w-full border-collapse text-sm tabular-nums">
           <caption className="sr-only">
             <Translated locale={lang} message="modelAccuracy.calibration.title" />
           </caption>
           <thead>
             <tr className="border-t border-default">
-              <th scope="col" className={`${th} text-start`}>
+              <th scope="col" className={cx(th, sticky, 'text-start')}>
                 <Translated locale={lang} message="modelAccuracy.calibration.said" />
+              </th>
+              <th scope="col" className={`${th} text-end`}>
+                <Translated locale={lang} message="modelAccuracy.calibration.share" />
               </th>
               <th scope="col" className={`${th} text-end`}>
                 <Translated locale={lang} message="modelAccuracy.calibration.forecasts" />
               </th>
               <th scope="col" className={`${th} text-end`}>
                 <Translated locale={lang} message="modelAccuracy.calibration.happened" />
-              </th>
-              <th scope="col" className={`${th} text-end`}>
-                <Translated locale={lang} message="modelAccuracy.calibration.share" />
               </th>
             </tr>
           </thead>
@@ -129,10 +149,12 @@ function CalibrationTable({
                   data-testid="accuracy-calibration-row"
                   data-thin={thin ? 'true' : undefined}
                 >
-                  <th scope="row" className="px-2 py-2 text-start font-semibold whitespace-nowrap">
-                    {rangeOf(lang, bin.from, bin.to)}
+                  <th scope="row" className={cx('px-2 py-2 text-start font-semibold', sticky)}>
+                    <span className="whitespace-nowrap">
+                      <Range lang={lang} from={bin.from} to={bin.to} />
+                    </span>
                     {thin && (
-                      <span className="ms-2 text-xs font-normal text-muted">
+                      <span className="block text-xs font-normal text-muted">
                         (
                         <MessageText
                           message={filled(message(lang, 'modelAccuracy.calibration.thinMark'), {
@@ -143,14 +165,18 @@ function CalibrationTable({
                       </span>
                     )}
                   </th>
+                  <td className={cx(cell, 'font-semibold')}>
+                    {bin.forecasts === 0 ? (
+                      '—'
+                    ) : (
+                      <bdi dir="ltr">{whole(lang, bin.happened / bin.forecasts)}</bdi>
+                    )}
+                  </td>
                   <td className={cell}>
                     {bin.forecasts === 0 ? '—' : formatNumber(lang, bin.forecasts)}
                   </td>
                   <td className={cell}>
                     {bin.forecasts === 0 ? '—' : formatNumber(lang, bin.happened)}
-                  </td>
-                  <td className={cx(cell, 'font-semibold')}>
-                    {bin.forecasts === 0 ? '—' : whole(lang, bin.happened / bin.forecasts)}
                   </td>
                 </tr>
               );
@@ -160,6 +186,24 @@ function CalibrationTable({
       </div>
     </details>
   );
+}
+
+/** The count's position for its side; "end" and "start" follow the reading direction. */
+function countPlacement(
+  side: CountSide,
+  y: number,
+  rtl: boolean,
+): { dx: number; y: number; textAnchor: 'start' | 'middle' | 'end' } {
+  const { radius } = CALIBRATION_CHART;
+  if (side === 'above') return { dx: 0, y: y - radius - 7, textAnchor: 'middle' };
+  if (side === 'below') return { dx: 0, y: y + radius + 14, textAnchor: 'middle' };
+  const towardsEnd = side === 'end';
+  const right = towardsEnd !== rtl;
+  return {
+    dx: (right ? 1 : -1) * (radius + 4),
+    y: y + 4,
+    textAnchor: right ? 'start' : 'end',
+  };
 }
 
 export function CalibrationChart({
@@ -239,106 +283,111 @@ export function CalibrationChart({
           <p className="text-xs font-semibold text-caption" aria-hidden="true">
             <Translated locale={lang} message="modelAccuracy.calibration.axisY" />
           </p>
-          <svg
-            role="img"
-            aria-label={label.text}
-            lang={label.status === 'untranslated' ? DEFAULT_LOCALE : undefined}
-            width="100%"
-            height={chart.height}
-            className="block w-full min-w-0 overflow-visible text-fg"
-            data-testid="accuracy-calibration-chart"
-            data-direction={direction}
-          >
-            {CALIBRATION_TICKS.map((value) => (
-              <g key={value}>
-                {/* Across: how often it happened. */}
-                <line
-                  x1={`${Math.min(x0, x1)}%`}
-                  x2={`${Math.max(x0, x1)}%`}
-                  y1={chart.yOf(value)}
-                  y2={chart.yOf(value)}
-                  stroke="currentColor"
-                  strokeOpacity={value === 0 ? 0.6 : 0.14}
-                  strokeWidth={value === 0 ? 1.5 : 1}
-                />
-                <text
-                  x={rtl ? '100%' : '0'}
-                  y={chart.yOf(value) + 4}
-                  textAnchor={rtl ? 'end' : 'start'}
-                  direction="ltr"
-                  unicodeBidi="isolate"
-                  className={tick}
-                >
-                  {whole(lang, value)}
-                </text>
-                {/* Down: what the model said, its label under the plot. */}
-                <line
-                  x1={`${chart.xOf(value)}%`}
-                  x2={`${chart.xOf(value)}%`}
-                  y1={chart.topY}
-                  y2={chart.bottom}
-                  stroke="currentColor"
-                  strokeOpacity={value === 0 ? 0.6 : 0.14}
-                  strokeWidth={value === 0 ? 1.5 : 1}
-                />
-                <text
-                  x={`${chart.xOf(value)}%`}
-                  y={chart.labelY}
-                  textAnchor="middle"
-                  direction="ltr"
-                  unicodeBidi="isolate"
-                  className={tick}
-                >
-                  {whole(lang, value)}
-                </text>
-              </g>
-            ))}
-            {/* A perfect forecaster: what it says happens that often. Grey, named in the notes. */}
-            <line
-              x1={`${x0}%`}
-              y1={chart.yOf(0)}
-              x2={`${x1}%`}
-              y2={chart.yOf(1)}
-              className="stroke-caption"
-              strokeWidth={1.5}
-              strokeDasharray="5 4"
-              data-mark="perfect"
-            />
-            {chart.points.map((point) => (
-              <g
-                key={point.from}
-                data-testid="accuracy-calibration-step"
-                data-from={point.from}
-                data-forecasts={point.forecasts}
-                data-thin={point.thin ? 'true' : undefined}
-              >
-                <circle
-                  cx={`${point.x}%`}
-                  cy={point.y}
-                  r={radius}
-                  className={point.thin ? 'fill-surface stroke-model' : 'fill-model stroke-model'}
-                  strokeWidth={2}
-                  data-mark="step"
-                />
-                {point.thin && (
-                  // The count beside a hollow dot, towards the inline end; near
-                  // that edge it goes on the other side, so a narrow phone never
-                  // pushes it past the drawing (T-1751 review).
+          {/* The SVG is the plot, edge to edge; the gridline labels and the
+              halves of the end labels sit in this padding (logical, so it
+              mirrors), never clipped and never over the axis. */}
+          <div className="ps-10 pe-5" data-testid="accuracy-calibration-plot">
+            <svg
+              role="img"
+              aria-label={label.text}
+              lang={label.status === 'untranslated' ? DEFAULT_LOCALE : undefined}
+              width="100%"
+              height={chart.height}
+              className="block w-full min-w-0 overflow-visible text-fg"
+              data-testid="accuracy-calibration-chart"
+              data-direction={direction}
+            >
+              {CALIBRATION_TICKS.map((value) => (
+                <g key={value}>
+                  {/* Across: how often it happened. */}
+                  <line
+                    x1={`${Math.min(x0, x1)}%`}
+                    x2={`${Math.max(x0, x1)}%`}
+                    y1={chart.yOf(value)}
+                    y2={chart.yOf(value)}
+                    stroke="currentColor"
+                    strokeOpacity={value === 0 ? 0.6 : 0.14}
+                    strokeWidth={value === 0 ? 1.5 : 1}
+                  />
+                  {/* Beside the axis, in the inline-start padding, ending a gap short of the line. */}
                   <text
-                    x={`${point.x}%`}
-                    dx={(rtl !== point.said > COUNT_FLIP ? -1 : 1) * (radius + 4)}
-                    y={point.y + 4}
-                    textAnchor={rtl !== point.said > COUNT_FLIP ? 'end' : 'start'}
+                    x={rtl ? '100%' : '0'}
+                    dx={rtl ? 6 : -6}
+                    y={chart.yOf(value) + 4}
+                    textAnchor={rtl ? 'start' : 'end'}
                     direction="ltr"
                     unicodeBidi="isolate"
-                    className="fill-muted stroke-surface stroke-[3px] text-[0.6875rem] tabular-nums [paint-order:stroke] [stroke-linejoin:round]"
+                    className={tick}
                   >
-                    {formatNumber(lang, point.forecasts)}
+                    {whole(lang, value)}
                   </text>
-                )}
-              </g>
-            ))}
-          </svg>
+                  {/* Down: what the model said, its label under the plot. */}
+                  <line
+                    x1={`${chart.xOf(value)}%`}
+                    x2={`${chart.xOf(value)}%`}
+                    y1={chart.topY}
+                    y2={chart.bottom}
+                    stroke="currentColor"
+                    strokeOpacity={value === 0 ? 0.6 : 0.14}
+                    strokeWidth={value === 0 ? 1.5 : 1}
+                  />
+                  <text
+                    x={`${chart.xOf(value)}%`}
+                    y={chart.labelY}
+                    textAnchor="middle"
+                    direction="ltr"
+                    unicodeBidi="isolate"
+                    className={tick}
+                  >
+                    {whole(lang, value)}
+                  </text>
+                </g>
+              ))}
+              {/* A perfect forecaster: what it says happens that often. Grey, named in the notes. */}
+              <line
+                x1={`${x0}%`}
+                y1={chart.yOf(0)}
+                x2={`${x1}%`}
+                y2={chart.yOf(1)}
+                className="stroke-caption"
+                strokeWidth={1.5}
+                strokeDasharray="5 4"
+                data-mark="perfect"
+              />
+              {chart.points.map((point) => (
+                <g
+                  key={point.from}
+                  data-testid="accuracy-calibration-step"
+                  data-from={point.from}
+                  data-forecasts={point.forecasts}
+                  data-thin={point.thin ? 'true' : undefined}
+                >
+                  <circle
+                    cx={`${point.x}%`}
+                    cy={point.y}
+                    r={radius}
+                    className={point.thin ? 'fill-surface stroke-model' : 'fill-model stroke-model'}
+                    strokeWidth={2}
+                    data-mark="step"
+                  />
+                  {point.thin && (
+                    // The count beside a hollow dot, where it touches no other dot
+                    // (`countSide`, worked out for the narrowest phone).
+                    <text
+                      x={`${point.x}%`}
+                      {...countPlacement(point.countSide, point.y, rtl)}
+                      data-side={point.countSide}
+                      direction="ltr"
+                      unicodeBidi="isolate"
+                      className="fill-muted stroke-surface stroke-[3px] text-[0.6875rem] tabular-nums [paint-order:stroke] [stroke-linejoin:round]"
+                    >
+                      {formatNumber(lang, point.forecasts)}
+                    </text>
+                  )}
+                </g>
+              ))}
+            </svg>
+          </div>
           <p className="text-center text-xs font-semibold text-caption" aria-hidden="true">
             <Translated locale={lang} message="modelAccuracy.calibration.axisX" />
           </p>
