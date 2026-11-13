@@ -1,7 +1,7 @@
 'use client';
 
 import type { MatchCentre } from '@fmip/contracts';
-import { unstable_isUnrecognizedActionError, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { type MatchHero, MatchCentreView, type MatchSlots } from '@/components/match-centre-view';
 import { LiveClockProvider } from '@/components/live-age';
@@ -18,8 +18,11 @@ import {
   staleAfterMs,
 } from '@/lib/live';
 import {
+  LIVE_FORMAT,
   LIVE_PARTS,
+  type LiveAnswer,
   type LiveSignature,
+  type LiveSlot,
   MAX_FOLLOW_UPS,
   NO_REFRESH,
   type PerPart,
@@ -32,12 +35,13 @@ import {
   markDrawn,
   modulesBehind,
   planFollowUp,
+  liveModulesPath,
   planRefresh,
   refreshDue,
   refreshSettled,
   refreshStarted,
 } from '@/lib/live-modules';
-import { refreshLiveModules } from '@/lib/live-modules-actions';
+import { fromWire } from '@/components/live-wire';
 import { openLiveSource } from '@/lib/live-source';
 import { signalLiveMoved } from '@/lib/live-signal';
 import type { MatchWords } from '@/lib/words-server';
@@ -58,17 +62,36 @@ import type { MatchWords } from '@/lib/words-server';
  * render (D-409 point 3): the outcome card, the pick's lock and the summary
  * change with it.
  *
- * The moving modules the server draws (D-409; the key events since T-1811)
- * are drawn again through one read-only server function, `refreshLiveModules`,
- * and only when a snapshot changed what they read: never for the clock, an
- * event within three seconds, statistics within fifteen (`lib/live-modules`).
- * A call that fails keeps the modules on screen, never the live view's
- * place; after a deploy the function this page knows is gone, and one render
- * of the page takes the new build.
+ * The moving modules the server draws (D-409) are drawn again from one
+ * public address, `/api/fixtures/:id/live.js` (D-422), that Cloudflare keeps
+ * for two seconds, and only when a snapshot changed what they read: never for
+ * the clock, an event within three seconds, statistics within fifteen
+ * (`lib/live-modules`). A request that fails keeps the modules on screen,
+ * never the live view's place; an answer from another server process (a
+ * deploy) asks for one render of the page, which takes the new build.
  */
 
 /** Collapse a burst of panel events -- three in a second is one render, not three. */
 const PANEL_REFRESH_MS = 400;
+/** After a deploy, at most one render of the page a minute while answers come from elsewhere. */
+const SKEW_REFRESH_MS = 60_000;
+const SKEW_KEY = 'fmip-live-skew';
+
+/** Whether a render of the page may be asked now for an answer from another process. */
+function mayRefreshForSkew(now: number): boolean {
+  try {
+    const last = Number(sessionStorage.getItem(SKEW_KEY) ?? '0');
+    if (now - last <= SKEW_REFRESH_MS) return false;
+    sessionStorage.setItem(SKEW_KEY, String(now));
+    return true;
+  } catch {
+    // No storage (a private window): once per page load instead.
+    if (skewedThisLoad) return false;
+    skewedThisLoad = true;
+    return true;
+  }
+}
+let skewedThisLoad = false;
 export function LiveMatch({
   initial,
   timeZone,
@@ -76,8 +99,14 @@ export function LiveMatch({
   slots,
   hero = {},
   words,
+  instance,
 }: {
   initial: MatchCentre;
+  /**
+   * The server process that drew the page (`serverInstance`, D-422): the live
+   * modules' answers name theirs, and one from another process means a deploy.
+   */
+  instance: string;
   timeZone: string;
   locale: string;
   /**
@@ -95,7 +124,7 @@ export function LiveMatch({
   const [now, setNow] = useState(() => Date.now());
   // What the last snapshot changed, in words, for the polite live region (T-081).
   const [announcement, setAnnouncement] = useState('');
-  // The server modules drawn again by `refreshLiveModules` (D-409), and the
+  // The server modules drawn again by the live modules' address (D-409), and the
   // page's slots they were asked against: a later render of the page brings
   // newer slots of its own, which then win.
   const [fresh, setFresh] = useState<{ from: MatchSlots; slots: MatchSlots } | null>(null);
@@ -154,7 +183,6 @@ export function LiveMatch({
     let timer: ReturnType<typeof setTimeout> | null = null;
     let asked: LiveSignature | null = null;
     let reopened = false;
-    let skewed = false;
     // Follow-up calls in a row that came back still behind the stream.
     let followUps = 0;
     const arm = (): void => {
@@ -190,18 +218,34 @@ export function LiveMatch({
         return;
       }
       asked = markDrawn(drawn.current, latest, want);
-      refreshLiveModules(id, locale, timeZone, want)
+      // The public address every reader of this match in this locale and
+      // zone asks for these parts (D-422): Cloudflare answers most of them.
+      fetch(liveModulesPath(id, { instance, locale, parts: want, timeZone }))
+        .then((response) => (response.ok ? (response.json() as Promise<LiveAnswer>) : null))
         .then(
           (answer) => {
             if (stopped || answer === null) return;
+            // Drawn by another server process (a deploy, a restart), or in
+            // another shape: one render of the page, which loads the new
+            // build when there is one (the router sees the build changed).
+            if (answer.v !== LIVE_FORMAT || answer.instance !== instance) {
+              // Once a minute at most, across loads too: a page kept at the
+              // edge from before the deploy must not reload itself in a loop.
+              if (mayRefreshForSkew(Date.now())) router.refresh();
+              if (answer.v !== LIVE_FORMAT) return;
+            }
             // An answer older than one already drawn is not drawn over it.
             if (answer.readAt < drawnRead.current) return;
             drawnRead.current = answer.readAt;
             // Only what the server drew is drawn, from the data it read (review B2).
             drawn.current = markDrawn(drawn.current, answer.drawn, answer.parts);
+            const modules: MatchSlots = {};
+            for (const [slot, card] of Object.entries(answer.modules)) {
+              modules[slot as LiveSlot] = fromWire(card);
+            }
             setFresh((was) => ({
               from,
-              slots: { ...(was !== null && was.from === from ? was.slots : {}), ...answer.modules },
+              slots: { ...(was !== null && was.from === from ? was.slots : {}), ...modules },
             }));
             const at = Date.now();
             setDrawnAt((was) => ({
@@ -224,14 +268,8 @@ export function LiveMatch({
               followUps = 0;
             }
           },
-          (error: unknown) => {
-            // After a deploy this page's function is unknown to the server:
-            // one render of the page, which then loads the new build (the
-            // router sees the build changed). Anything else keeps what is drawn.
-            if (stopped || skewed || !unstable_isUnrecognizedActionError(error)) return;
-            skewed = true;
-            router.refresh();
-          },
+          // A failed request or answer keeps what is drawn; the next snapshot asks again.
+          () => undefined,
         )
         .finally(settle);
     };
@@ -314,7 +352,7 @@ export function LiveMatch({
       considerRef.current = null;
       stop();
     };
-  }, [id, router, words, locale, lite, timeZone]);
+  }, [id, router, words, locale, lite, timeZone, instance]);
 
   // In lite mode the threshold is a missed poll plus the usual slack (T-1387).
   const staleAfter = staleAfterMs(lite);

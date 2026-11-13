@@ -179,7 +179,7 @@ node scripts/load-live-modules.mjs --web http://127.0.0.1:3958 --api http://127.
 ```
 
 **The record (2026-11-13, the maintainer's Windows laptop, `next start`, one
-process, branch `t-1810-match-live-split` at T-1816: the two-second shared
+process, branch `t-1810-match-live-split` at T-1828: the two-second shared
 read and drawing on).** Three goals and one statistics tick per run; clients
 ramped at 50 a second (faster, about a quarter of the connections were
 refused by this machine's listen backlog, as the API's tool once saw).
@@ -222,6 +222,41 @@ of these is needed (a decision, D-409 point 6):
    readers): no code beyond a constant, the cards lag the band longer;
 3. more web processes behind Caddy.
 
+**The maintainer chose 1 (2026-11-13, D-422; T-1829).** The server function
+is gone: the cards are a public GET, `/api/fixtures/:id/live.js?b&locale&parts&tz`,
+answered `public, max-age=2, s-maxage=2`, its path ending in a cached
+extension so Cloudflare keeps it without a dashboard rule (T-1461), the cards
+written as data once per read and parts. The edge is modelled by nginx
+(`apps/web/scripts/load-live-modules.nginx.conf`, keeping a 200 for the
+origin's `max-age`, **no cache lock**, so concurrent misses at an expiry all
+reach the origin: the conservative case):
+
+```bash
+docker run -d --rm --name fmip-edge-cache -p 127.0.0.1:3959:80 \
+  -v "$PWD/scripts/load-live-modules.nginx.conf:/etc/nginx/conf.d/default.conf:ro" nginx:1.27-alpine
+# the web server must listen beyond loopback for the container: next start -H 0.0.0.0
+```
+
+| Readers | Requests via | Dropped | Goal reaches every reader p50 / p95 (ms) | Request p50 / p95 (ms) | Reached the web server | Match reads at the API | Web CPU (s, whole run) | Probe p95 during goal bursts (ms) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1,000 | the edge (nginx, 2 s) | 0 | 221 / 472 | 35 / 1,060 | 371 of 3,000 (11 misses, 360 expired) | 4 | 16.9 | 656 |
+| 1,000 | the web server directly | 0 | 198 / 495 | 548 / 1,372 | 3,000 | 7 | 24.5 | 1,265 |
+
+Same machine and shape as the runs above (three goals, one statistics tick,
+50 connections a second; `next start` on one process). With the edge in
+front, the web process spends what the stream alone costs (16.9 s against
+16.4 s with no calls at all) and every one of the 3,000 requests is
+answered (p50 35 ms); even without it, the answer is written once per read,
+so the origin answers 3,000 requests at p95 1.4 s with 24.5 s of CPU,
+against 57 s and 29.5 s p50 for the server function. An answer is 45 kB of
+JSON as the origin writes it and **3.7 kB gzip** (Cloudflare compresses
+JSON at the edge; the function's answer was 12.7 kB gzip). **D-409's design
+point, 1,000 readers of one match on one process, is now met on this
+machine.** Not measured: Cloudflare itself (whether it collapses concurrent
+misses, its own time to first byte); production's numbers on the first big
+match, which the ops check should read (`cf-cache-status` of
+`/api/fixtures/*/live.js` HIT after the first reader).
+
 ## Page budgets (T-808)
 
 The live path above is one limit; the pages are another. The busiest pages
@@ -256,7 +291,7 @@ made per row, a timeout -- does.
 | --- | --- | --- |
 | home `/en` | 150.3 / 158 (2026-10-25, T-1502, after T-1495) | 38 / 50 / 200 |
 | scores `/en/scores` | 165.1 / 170 (2026-11-05, T-1738, D-359: the pick control is server markup, and its one client module is smaller than the form it replaced; was 167.8, budget lowered 2026-11-03, T-1730, D-356) | 21 / 31 / 150 |
-| match centre `/en/match/…0901` | 175.9 / 183 (2026-11-13, T-1810 to T-1816, D-409: the moving modules are server markup in every state -- key events, statistics, line-ups, Top rated, absences -- and the client keeps the band, the bar, the tabs and the clock; 182.8 before, 175.4 after T-1814, +0.5 for the review fixes; lowering the budget to about 178 or keeping 183 is the maintainer's answer). Before: 181.8 / 183 (2026-11-06, T-1742 to T-1746, D-363 to D-367: the compact score bar, the tools row and freshness line, the coming card and the grouped absences sit in the live view's script, +2.2; 1.2 of headroom left, so the next addition to the live view needs something taken out first; was 179.6 after T-1740 and 179.2 after T-1739, budget lowered 2026-11-03, T-1730, D-356) | 77 / 76 / 300 |
+| match centre `/en/match/…0901` | 176.2 / 183 (2026-11-13, T-1829, D-422: the server function replaced by a fetch of the public address and `fromWire`, +0.3; the budget stays 183, the maintainer's answer). 175.9 (T-1810 to T-1815 and T-1828, D-409: the moving modules are server markup in every state -- key events, statistics, line-ups, Top rated, absences -- and the client keeps the band, the bar, the tabs and the clock; 182.8 before, 175.4 after T-1814, +0.5 for the review fixes; the budget kept at 183 by the maintainer). Before: 181.8 / 183 (2026-11-06, T-1742 to T-1746, D-363 to D-367: the compact score bar, the tools row and freshness line, the coming card and the grouped absences sit in the live view's script, +2.2; 1.2 of headroom left, so the next addition to the live view needs something taken out first; was 179.6 after T-1740 and 179.2 after T-1739, budget lowered 2026-11-03, T-1730, D-356) | 77 / 76 / 300 |
 | competition `/en/competition/…0201` | 151.1 / 158 (2026-10-25, T-1502, after T-1498) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**

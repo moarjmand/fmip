@@ -73,7 +73,7 @@ export function liveChange(
 
 /**
  * How long one read of a match and its drawn cards answer every reader of it
- * in one locale and zone (`refreshLiveModules`, review M1): a goal sends
+ * in one locale and zone (the live modules' address, review M1): a goal sends
  * about a thousand readers there within three seconds, and they share about
  * two reads and one drawing of each card instead of a thousand. Short
  * enough that a change written meanwhile is drawn by the next call: an
@@ -230,7 +230,7 @@ export function modulesBehind(waitingSince: number | null, now: number): boolean
 }
 
 /**
- * The slots `refreshLiveModules` draws again (T-1811..T-1814), each with the
+ * The slots the live modules' address draws again (T-1811..T-1814), each with the
  * parts of the signature it reads: the line-ups read the events too (each
  * player's goals, cards and substitutions so far, D-399).
  */
@@ -254,16 +254,71 @@ export function slotsReading(parts: readonly LivePart[]): LiveSlot[] {
 }
 
 /**
- * What `refreshLiveModules` answers (review B2): the slots it drew, the parts
- * they read, the signature of the data they were drawn from, and when the
- * server read that data (its own clock, only ever compared with itself), so
- * an answer older than one already drawn is not drawn over it.
+ * A drawn card as data (D-422): text, a host element (`t`, its props `p`, its
+ * children `c`, its key `k`) or one of the few client components a card holds
+ * (`i`: the link, the lite-mode picture, the live age and "may be behind"),
+ * whose props may hold drawn nodes (`{ $n: … }`). What the live modules'
+ * address answers, so a cache in front of it can hand the same bytes to every
+ * reader; the page turns it back into elements (`fromWire`).
  */
-export interface LiveRefresh {
-  modules: LiveModules;
+export type WireNode = string | number | null | WireNode[] | WireElement;
+export interface WireElement {
+  t?: string;
+  i?: WireIsland;
+  k?: string;
+  p?: Record<string, unknown>;
+  c?: WireNode[];
+}
+export type WireIsland = 'link' | 'pictured' | 'age' | 'behind';
+
+/** The answer's shape; a page that meets another asks for the page again. */
+export const LIVE_FORMAT = 1;
+
+/**
+ * What the live modules' address answers (D-422; review B2): the slots it
+ * drew, as data, the parts they read, the signature of the data they were
+ * drawn from, when the server read it (its own clock, only ever compared with
+ * itself), and which server process drew it.
+ */
+export interface LiveAnswer {
+  v: number;
+  instance: string;
+  modules: Partial<Record<LiveSlot, WireNode>>;
   parts: LivePart[];
   drawn: LiveSignature;
   readAt: number;
+}
+
+/**
+ * The live modules' address (D-422): public and the same for every reader of
+ * a match in one locale and zone asking for the same parts, so Cloudflare
+ * keeps one copy for `SHARED_FOR_MS`. It ends in `.js` because Cloudflare
+ * keeps a response by its path's extension unless a dashboard rule says
+ * otherwise (T-1461); the answer is JSON (`nosniff`). The query is written in
+ * one order, so one answer has one key; `b` is the page's server process, so
+ * a page drawn before a deploy asks a key of its own.
+ */
+export function liveModulesPath(
+  fixtureId: string,
+  {
+    instance,
+    locale,
+    parts,
+    timeZone,
+  }: {
+    instance: string;
+    locale: string;
+    parts: readonly LivePart[];
+    timeZone: string;
+  },
+): string {
+  const query = new URLSearchParams({
+    b: instance,
+    locale,
+    parts: LIVE_PARTS.filter((part) => parts.includes(part)).join(','),
+    tz: timeZone,
+  });
+  return `/api/fixtures/${fixtureId}/live.js?${query.toString()}`;
 }
 
 /**

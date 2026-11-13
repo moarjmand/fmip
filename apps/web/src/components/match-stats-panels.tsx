@@ -34,7 +34,7 @@ import type { MatchWords } from '@/lib/words-server';
  * through its `matchStats` and `matchLineups` slots, so none of this is in
  * the page's JavaScript (the match centre's 183 kB budget). Since T-1813
  * (D-409) the statistics are drawn in every state (`liveSlots`) and, in play,
- * drawn again by `refreshLiveModules` when the stream brings new figures; the
+ * drawn again by the live modules' address when the stream brings new figures; the
  * live "Stats updated 2 min ago" line (T-1782) is a `LiveAge` that ticks on
  * the page's clock. The line-ups likewise since T-1814, with the marks so far.
  */
@@ -664,7 +664,7 @@ function MarkGlyphs({ marks }: { marks: readonly Mark[] }) {
  * The line-ups (T-1801, D-399), in every state since T-1814 (D-409): the
  * view's pitch and benches, with each player's surname whole, what happened
  * to him so far in words under his name and as a mark on his disc, and
- * "On 68′ for …" on the bench; in play `refreshLiveModules` draws it again
+ * "On 68′ for …" on the bench; in play the live modules' address draws it again
  * when an event or new ratings arrive. Before kick-off "not announced yet",
  * in play "Not in yet", for a postponed or cancelled match "not played". When
  * the match's events are not supplied after play, one sentence says the

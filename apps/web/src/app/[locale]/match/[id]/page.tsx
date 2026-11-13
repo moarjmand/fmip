@@ -67,6 +67,7 @@ import {
 } from '@/lib/api';
 import { readPick } from '@/lib/pick';
 import { retryUnreachable } from '@/lib/live-modules';
+import { serverInstance } from '@/lib/live-modules-server';
 import { isTimeZone } from '@/lib/scores';
 import { canonicalUrl, matchJsonLd, pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
@@ -341,6 +342,8 @@ export default async function MatchPage({
               timeZone={timeZone}
               locale={locale}
               words={words}
+              // This server process (D-422): a live answer from another one means a deploy.
+              instance={serverInstance()}
               hero={{
                 // The zone in words, beside the full kick-off in the phone's
                 // details (T-1743): resolved here, off the client.
@@ -380,7 +383,7 @@ export default async function MatchPage({
               slots={{
                 // The moving modules (D-409), drawn here in every state so none
                 // of them is in the page's JavaScript; in play `LiveMatch` has
-                // them drawn again by `refreshLiveModules` when the stream says
+                // them drawn again by the live modules' address when the stream says
                 // they changed. Before kick-off the coming card stands where it
                 // names them. The same cards the function draws (`liveSlots`).
                 ...liveSlots({ centre: result.data, locale, timeZone, words }),

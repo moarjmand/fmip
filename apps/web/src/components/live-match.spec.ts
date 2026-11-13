@@ -83,7 +83,11 @@ describe('live match: the server modules in play (T-1811, D-409)', () => {
     expect(SOURCE).toMatch(
       /const want = reopened \? read : changedParts\(drawn\.current, latest, read\);/,
     );
-    expect(SOURCE).toMatch(/refreshLiveModules\(id, locale, timeZone, want\)/);
+    // From the public address every reader of the match asks (D-422), not a server function.
+    expect(SOURCE).toMatch(
+      /fetch\(liveModulesPath\(id, \{ instance, locale, parts: want, timeZone \}\)\)/,
+    );
+    expect(SOURCE).not.toMatch(/live-modules-actions|'use server'/);
     expect(SOURCE).toMatch(/if \(want\.length === 0\) \{\s*settle\(\);\s*return;/);
   });
 
@@ -109,13 +113,17 @@ describe('live match: the server modules in play (T-1811, D-409)', () => {
 
   it('keeps what it has when a call fails or answers nothing, and never unmounts the view', () => {
     expect(SOURCE).toMatch(/if \(stopped \|\| answer === null\) return;/);
-    // A failure other than a replaced build is swallowed; the view stays.
-    expect(SOURCE).toMatch(
-      /if \(stopped \|\| skewed \|\| !unstable_isUnrecognizedActionError\(error\)\) return;\s*skewed = true;\s*router\.refresh\(\);/,
-    );
+    // A failed request or a status other than 200 is no answer; the view stays.
+    expect(SOURCE).toMatch(/response\.ok \? \(response\.json\(\) as Promise<LiveAnswer>\) : null/);
+    expect(SOURCE).toMatch(/\(\) => undefined,\s*\)\s*\.finally\(settle\);/);
   });
 
-  it('after a deploy: a reopened stream makes one call, and an unknown function one page render', () => {
+  it('after a deploy: a reopened stream makes one call, and an answer from another process one page render (D-422)', () => {
+    expect(SOURCE).toMatch(
+      /if \(answer\.v !== LIVE_FORMAT \|\| answer\.instance !== instance\) \{[^]*?if \(mayRefreshForSkew\(Date\.now\(\)\)\) router\.refresh\(\);/,
+    );
+    // Once a minute at most, across loads too.
+    expect(SOURCE).toMatch(/sessionStorage\.getItem\(SKEW_KEY\)/);
     expect(SOURCE).toMatch(/source\.onerror = \(\) => \{\s*broken = true;/);
     expect(SOURCE).toMatch(/if \(broken\) consider\('reopen'\);\s*broken = false;/);
   });

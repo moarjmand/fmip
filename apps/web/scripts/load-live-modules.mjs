@@ -1,11 +1,14 @@
-// Load test for the match centre's live modules (T-1815, D-409 point 6): many
-// readers of one live match on the web server, each holding the page's stream
-// open (`/api/fixtures/:id/stream`, proxied to the API) and, like `LiveMatch`,
-// calling the read-only server function `refreshLiveModules` after a random
-// 0-3 s when a snapshot brings an event. Measures how fast each event reaches
-// every reader, how long the calls take, how many match reads reach the API,
-// how responsive the web server stays meanwhile (a probe request every
-// 250 ms), and the web process's CPU time. No dependency.
+// Load test for the match centre's live modules (T-1815, D-409 point 6,
+// D-422): many readers of one live match on the web server, each holding the
+// page's stream open (`/api/fixtures/:id/stream`, proxied to the API) and,
+// like `LiveMatch`, asking the live modules' public address
+// (`/api/fixtures/:id/live.js`) after a random 0-3 s when a snapshot brings
+// an event -- through an edge cache when `--edge` names one (nginx keeping
+// each answer for its two seconds, as Cloudflare does; docs/08). Measures how
+// fast each event reaches every reader, how long the requests take and how
+// many the cache answered, how many match reads reach the API, how responsive
+// the web server stays meanwhile (a probe request every 250 ms), and the web
+// process's CPU time. No dependency.
 //
 // The API is a stand-in, so the run measures the web server alone: it serves
 // one live fixture (a full payload: line-ups, statistics, player tables),
@@ -14,16 +17,12 @@
 //   node scripts/load-live-modules.mjs --serve-api 3957          # terminal 1: the stand-in API
 //   API_BASE_URL=http://127.0.0.1:3957 node node_modules/next/dist/bin/next start -p 3958
 //                                                                 # terminal 2: the built web, one process
-//   node scripts/load-live-modules.mjs --web http://127.0.0.1:3958 --api http://127.0.0.1:3957 \
-//     --clients 1000 --goals 15,35,55 --stats 25 --seconds 70 --web-pid <pid>
-//
-// The server function's id is read from the build (`.next/server/
-// server-reference-manifest.json`); a call is the POST the browser makes.
+//   (the edge cache on 3959: docs/08, "The match centre's live modules")
+//   node scripts/load-live-modules.mjs --web http://127.0.0.1:3958 --edge http://127.0.0.1:3959 \
+//     --api http://127.0.0.1:3957 --clients 1000 --goals 30,45,60 --stats 40 --seconds 80 \
+//     --web-pid <pid> --ramp-ms 1000
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import http from 'node:http';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const args = Object.fromEntries(
   process.argv
@@ -249,18 +248,6 @@ function stats(values) {
   };
 }
 
-function actionId() {
-  const web = join(dirname(fileURLToPath(import.meta.url)), '..');
-  const manifest = JSON.parse(
-    readFileSync(join(web, '.next', 'server', 'server-reference-manifest.json'), 'utf8'),
-  );
-  for (const [id, entry] of Object.entries(manifest.node ?? {})) {
-    const names = JSON.stringify(entry);
-    if (names.includes('refreshLiveModules')) return id;
-  }
-  throw new Error('refreshLiveModules not found in the build');
-}
-
 function cpuSeconds(pid) {
   if (pid === undefined) return null;
   const out = execFileSync(
@@ -285,8 +272,8 @@ async function run() {
   const CALLS = args.calls !== 'off';
   const why = {};
   const ZONE = args.zone ?? 'Europe/London';
-  const ID = args['action-id'] ?? actionId();
-  const page = `/${LOCALE}/match/${FIXTURE}`;
+  // `--edge`: a cache in front of the web server, as Cloudflare is (nginx in docs/08).
+  const EDGE = args.edge ?? WEB;
   const agent = new http.Agent({ keepAlive: true, maxSockets: 256 });
 
   const connect = [];
@@ -307,26 +294,26 @@ async function run() {
       });
     });
 
+  // The live modules' public address (D-422), as `liveModulesPath` writes it,
+  // through the edge cache in front of the web server when one is named.
+  const cacheStatus = {};
   const callAction = (parts) =>
     new Promise((resolve) => {
       const started = performance.now();
-      const body = JSON.stringify([FIXTURE, LOCALE, ZONE, parts]);
-      const req = http.request(
-        `${WEB}${page}`,
-        {
-          method: 'POST',
-          agent,
-          headers: {
-            accept: 'text/x-component',
-            // As a browser asks: the bytes counted are the compressed ones.
-            'accept-encoding': 'gzip',
-            'next-action': ID,
-            'content-type': 'text/plain;charset=UTF-8',
-            'content-length': Buffer.byteLength(body),
-          },
-        },
+      const query = new URLSearchParams({
+        b: 'load',
+        locale: LOCALE,
+        parts: parts.join(','),
+        tz: ZONE,
+      });
+      const req = http.get(
+        `${EDGE}/api/fixtures/${FIXTURE}/live.js?${query.toString()}`,
+        // As a browser asks: the bytes counted are the compressed ones.
+        { agent, headers: { 'accept-encoding': 'gzip' } },
         (res) => {
           let bytes = 0;
+          const status = res.headers['x-cache'] ?? 'none';
+          cacheStatus[status] = (cacheStatus[status] ?? 0) + 1;
           res.on('data', (c) => (bytes += c.length));
           res.on('end', () => {
             if (res.statusCode !== 200) callErrors += 1;
@@ -342,7 +329,6 @@ async function run() {
         callErrors += 1;
         resolve();
       });
-      req.end(body);
     });
 
   const client = (stopAt) =>
@@ -464,6 +450,8 @@ async function run() {
         goalReachesReadersMs: stats(propagation),
         callMs: stats(calls),
         callErrors,
+        edge: EDGE === WEB ? 'none' : EDGE,
+        cacheStatus,
         callResponseBytes: stats(callBytes),
         apiMatchReads: readsAfter - readsBefore,
         webCpuSeconds: cpuBefore === null ? null : Math.round((cpuAfter - cpuBefore) * 10) / 10,

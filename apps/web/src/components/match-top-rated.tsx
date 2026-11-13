@@ -13,7 +13,7 @@ import { RatingChip } from '@/components/ui/rating-chip';
 /**
  * The Top rated card, drawn on the server (T-1814, D-409) and handed to the
  * match centre as its `topRated` slot through `liveSlots`, so neither it nor
- * the rating chip is in the page's JavaScript; in play `refreshLiveModules`
+ * the rating chip is in the page's JavaScript; in play the live modules' address
  * draws it again when the stream brings new ratings.
  *
  * No directive: a server module.

@@ -23,7 +23,7 @@ import { cx } from '@/components/ui/cx';
  * page's JavaScript (the match centre's first-load budget, T-808). Drawn in
  * every state since T-1812 (D-409): the page always passes it (before
  * kick-off the coming card stands in its place), and in play the live page
- * draws it again through `refreshLiveModules` when the stream brings an
+ * draws it again through the live modules' address when the stream brings an
  * event; a match that kicks off or ends while the page is open is drawn
  * again by the status change's refresh. A shoot-out being played shows its
  * kicks so far and its score, and no winner sentence (D-396 point 1).
