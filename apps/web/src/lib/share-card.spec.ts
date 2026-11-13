@@ -14,6 +14,7 @@ import {
   aheadOfKickoff,
   BRAND_CARD,
   teamCardText,
+  teamCardCacheControl,
   teamFixtureSize,
   teamNameSize,
   calledItText,
@@ -513,6 +514,23 @@ describe('the team card (T1, T-1826)', () => {
     const suspended = { ...base.next_match!, status: 'suspended' };
     expect(teamCardText(page({ next_match: live }), NOW).next.label).toBe('Now playing');
     expect(teamCardText(page({ next_match: suspended }), NOW).next.label).toBe('Suspended');
+  });
+
+  it('is kept five minutes while its match is close or under way, else an hour (rev-2026-11-13-08)', () => {
+    const at = (iso: string, status = 'scheduled') => ({ kickoff_at: iso, status });
+    const now = new Date('2026-11-21T17:00:00.000Z');
+    expect(teamCardCacheControl(null, now)).toBe('public, max-age=3600');
+    expect(teamCardCacheControl(at('2026-11-22T17:00:00.000Z'), now)).toBe('public, max-age=3600');
+    expect(teamCardCacheControl(at('2026-11-21T18:01:00.000Z'), now)).toBe('public, max-age=3600');
+    expect(teamCardCacheControl(at('2026-11-21T18:00:00.000Z'), now)).toBe('public, max-age=300');
+    // A kick-off already past and still "scheduled" is about to change too.
+    expect(teamCardCacheControl(at('2026-11-21T12:00:00.000Z'), now)).toBe('public, max-age=300');
+    expect(teamCardCacheControl(at('2026-11-21T16:30:00.000Z', 'live'), now)).toBe(
+      'public, max-age=300',
+    );
+    expect(teamCardCacheControl(at('2026-11-25T16:30:00.000Z', 'suspended'), now)).toBe(
+      'public, max-age=300',
+    );
   });
 
   it('steps a long fixture down so the date under it stays clear (PR #888 review)', () => {

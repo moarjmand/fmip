@@ -22,6 +22,19 @@ import { CARD_SIZE } from '@/lib/share-card';
  * card can change or be withdrawn (a revoked share link, D-351). Every card
  * answers `X-Robots-Tag: noindex` (T-1825).
  */
+/**
+ * The plain card that stands in for a page whose answer could not be read is
+ * kept a minute at most (PR 888 review), so the real card follows soon.
+ */
+export const FALLBACK_CARD_CACHE = 'public, max-age=60';
+
+/**
+ * A card the renderer failed to draw is answered as the plain card and kept
+ * nowhere (PR 888 review): the next fetch tries again, and a caller that keeps
+ * drawn cards in memory (the brand card) can tell it from a real drawing.
+ */
+export const FAILED_CARD_CACHE = 'no-store';
+
 export async function drawCard(
   card: ReactElement,
   options: { size?: { width: number; height: number }; cacheControl?: string } = {},
@@ -30,7 +43,8 @@ export async function drawCard(
   const fonts = await cardFonts();
   const answer = (image: ImageResponse, body: ArrayBuffer | null): Response => {
     const headers = new Headers(image.headers);
-    if (options.cacheControl !== undefined) headers.set('cache-control', options.cacheControl);
+    if (body === null) headers.set('cache-control', FAILED_CARD_CACHE);
+    else if (options.cacheControl !== undefined) headers.set('cache-control', options.cacheControl);
     // A card is a picture of a page, not a page: chat apps still fetch it,
     // but image search does not list it (T-1825, D-419).
     headers.set('x-robots-tag', 'noindex');

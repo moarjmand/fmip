@@ -8,6 +8,7 @@ import type {
   Rating,
   TableRow,
   TeamPage,
+  TeamPageFixture,
 } from '@fmip/contracts';
 import { percentages } from './forecast';
 import { OUTCOME_LABEL } from './prediction-form';
@@ -541,6 +542,28 @@ export function teamCardText(page: TeamPage, now: Date): TeamCardText {
     next,
     asOf: `As of ${cardDay(now, { day: 'numeric', month: 'short', year: 'numeric' })}`,
   };
+}
+
+/** How long a club's card may be kept while its next match is close or under way (rev-2026-11-13-08). */
+export const TEAM_CARD_SHORT_SECONDS = 300;
+/** How long it may be kept otherwise: its standing and next match move slowly (D-420). */
+export const TEAM_CARD_LONG_SECONDS = 3600;
+
+/**
+ * The team card's `cache-control` (T-1826, D-420; rev-2026-11-13-08): five
+ * minutes when the next match is live, suspended, or kicks off within the
+ * hour -- its label and day are about to change -- and an hour otherwise.
+ */
+export function teamCardCacheControl(
+  next: Pick<TeamPageFixture, 'status' | 'kickoff_at'> | null,
+  now: Date,
+): string {
+  const close =
+    next !== null &&
+    (next.status === 'live' ||
+      next.status === 'suspended' ||
+      new Date(next.kickoff_at).getTime() - now.getTime() <= 60 * 60 * 1000);
+  return `public, max-age=${close ? TEAM_CARD_SHORT_SECONDS : TEAM_CARD_LONG_SECONDS}`;
 }
 
 /**

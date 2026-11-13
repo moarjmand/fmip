@@ -21,7 +21,7 @@ vi.mock('@/lib/api', () => api);
 const session = vi.hoisted(() => ({ sessionCookieHeader: vi.fn() }));
 vi.mock('@/lib/session', () => session);
 
-const { drawCard } = await import('./draw-card');
+const { drawCard, FAILED_CARD_CACHE, FALLBACK_CARD_CACHE } = await import('./draw-card');
 const { PlainCard } = await import('./share-card-image');
 
 const UNREACHABLE = { ok: false, status: 503 };
@@ -59,9 +59,14 @@ describe('drawCard', () => {
     function Unreadable(): never {
       throw new Error('lookupType: 5 - substFormat: 3 is not yet supported');
     }
-    const fallback = await png(await drawCard(createElement(Unreadable)));
+    const failed = await drawCard(createElement(Unreadable), {
+      cacheControl: 'public, max-age=86400',
+    });
+    const fallback = await png(failed);
     const plain = await png(await drawCard(createElement(PlainCard)));
     expect(fallback.equals(plain)).toBe(true);
+    // Kept nowhere, whatever the caller asked for (PR 888 review).
+    expect(failed.headers.get('cache-control')).toBe(FAILED_CARD_CACHE);
   }, 20_000);
 
   it('draws in the bundled faces, at the size asked, with the cache header asked', async () => {
@@ -166,6 +171,30 @@ describe('a crest the card cannot draw (PR 888 review)', () => {
   });
 });
 
+describe('the brand card route keeps no failure in memory (PR 888 review)', () => {
+  it('answers a failed drawing once and draws again next time', async () => {
+    vi.resetModules();
+    let calls = 0;
+    vi.doMock('@/components/draw-card', () => ({
+      FAILED_CARD_CACHE: 'no-store',
+      drawCard: async () => {
+        calls += 1;
+        return new Response(new Uint8Array([calls]), {
+          headers: { 'cache-control': calls === 1 ? 'no-store' : 'public, max-age=86400' },
+        });
+      },
+    }));
+    const { GET } = await import('@/app/brand-card.png/route');
+    expect((await GET()).headers.get('cache-control')).toBe('no-store');
+    expect((await GET()).headers.get('cache-control')).toBe('public, max-age=86400');
+    // The real drawing is kept: the third answer draws nothing.
+    await GET();
+    expect(calls).toBe(2);
+    vi.doUnmock('@/components/draw-card');
+    vi.resetModules();
+  });
+});
+
 describe('the brand card route (T-1825)', () => {
   beforeEach(() => {
     for (const fetcher of Object.values(api)) fetcher.mockReset().mockResolvedValue(UNREACHABLE);
@@ -202,16 +231,49 @@ describe('the card routes read English names on any locale', () => {
     expect(api.fetchCompetition).toHaveBeenCalledWith(ID, '', 'en');
   }, 20_000);
 
-  it('the team card, kept an hour by shared caches (T-1826)', async () => {
+  it('the team card: the plain one a minute while the API is unreachable (T-1826)', async () => {
     const { default: Image } = await import('@/app/[locale]/team/[id]/opengraph-image');
     const drawn = await Image({ params: Promise.resolve({ locale: 'fa', id: ID }) });
     await png(drawn);
-    expect(drawn.headers.get('cache-control')).toBe('public, max-age=3600');
+    expect(drawn.headers.get('cache-control')).toBe(FALLBACK_CARD_CACHE);
     expect(drawn.headers.get('x-robots-tag')).toBe('noindex');
     expect(api.fetchTeam).toHaveBeenCalledWith(ID, 'en');
-    // Its address ends in .png, which Cloudflare's edge caches (PR #888 review).
+    // Its address ends in .png, which Cloudflare's edge caches (PR 888 review).
     const { generateImageMetadata } = await import('@/app/[locale]/team/[id]/opengraph-image');
     expect((await generateImageMetadata({ params: { locale: 'fa' } }))[0]?.id).toBe('card.png');
+  }, 20_000);
+
+  it('the team card: five minutes while its match is under way (rev-2026-11-13-08)', async () => {
+    api.fetchTeam.mockResolvedValue({
+      ok: true,
+      data: {
+        team: {
+          id: ID,
+          name: 'Arsenal',
+          localised_name: null,
+          short_name: null,
+          kind: 'club',
+          gender: 'men',
+          founded_year: 1886,
+          country: null,
+          colour: '#e10000',
+        },
+        competitions: [],
+        next_match: {
+          id: 'f1',
+          kickoff_at: new Date().toISOString(),
+          status: 'live',
+          round: null,
+          home: { id: 'n', name: 'Newcastle', short_name: null },
+          away: { id: ID, name: 'Arsenal', short_name: null },
+          competition: { id: 'pl', name: 'Premier League', short_name: null },
+        },
+      },
+    });
+    const { default: Image } = await import('@/app/[locale]/team/[id]/opengraph-image');
+    const drawn = await Image({ params: Promise.resolve({ locale: 'en', id: ID }) });
+    await png(drawn);
+    expect(drawn.headers.get('cache-control')).toBe('public, max-age=300');
   }, 20_000);
 
   it('the member card', async () => {
