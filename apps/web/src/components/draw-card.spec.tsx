@@ -146,6 +146,26 @@ describe('the called-it card routes (T-1723): nothing public without a live toke
   }, 30_000);
 });
 
+describe('a crest the card cannot draw (PR 888 review)', () => {
+  it('is the lettered mark, never an empty shape', async () => {
+    const { Crest } = await import('./share-card-image');
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const none = renderToStaticMarkup(
+      createElement(Crest, { src: null, size: 152, name: 'AFC Darwen' }),
+    );
+    expect(none).toContain('>AD</div>');
+    expect(none).not.toContain('<img');
+    const single = renderToStaticMarkup(
+      createElement(Crest, { src: null, size: 152, name: 'Liverpool' }),
+    );
+    expect(single).toContain('>L</div>');
+    const drawn = renderToStaticMarkup(
+      createElement(Crest, { src: 'data:image/png;base64,AA==', size: 152, name: 'Arsenal' }),
+    );
+    expect(drawn).toContain('<img');
+  });
+});
+
 describe('the brand card route (T-1825)', () => {
   beforeEach(() => {
     for (const fetcher of Object.values(api)) fetcher.mockReset().mockResolvedValue(UNREACHABLE);

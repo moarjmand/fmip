@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import { BrandMark } from '@/components/brand-mark';
+import { initials } from '@/components/entity-image';
 import { NIGHT_COLOURS } from '@/lib/brand-colours';
 import { CARD_FACES } from '@/lib/card-fonts';
 import {
@@ -74,29 +75,45 @@ export function Frame({
 }
 
 /**
- * A crest on the white tile every logo stands on (D-280), or an empty ring of
- * the same size when there is none to draw (rule 3: nothing made up).
+ * A crest on the white tile every logo stands on (D-280), or, when there is
+ * none to draw -- none supplied, not read within the time allowed, or a kind
+ * the renderer cannot draw --, the site's neutral lettered mark (`initials`,
+ * as `EntityImage` draws it): the club's letters in a plain square, which
+ * cannot pass for a crest (rule 3), and never an empty shape (PR 888 review).
  */
 export function Crest({
   src,
   size,
+  name,
   ring = RULE,
 }: {
   src: string | null;
   size: number;
-  /** The empty ring's colour: the rule on Night, the band's text on a club's band. */
+  /** Whose crest it is: the lettered mark's letters when there is no picture. */
+  name: string;
+  /** The lettered mark's edge: the rule on Night, the band's text on a club's band. */
   ring?: string;
 }): ReactElement {
   if (src === null) {
+    const letters = initials(name, 'crest') || Array.from(name.trim())[0] || '';
     return (
       <div
         style={flex({
           width: size,
           height: size,
-          borderRadius: size,
+          borderRadius: Math.round(size * 0.18),
           border: `3px solid ${ring}`,
+          background: NIGHT_COLOURS.surface,
+          color: INK,
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: Math.round(size * (letters.length > 1 ? 0.34 : 0.42)),
+          fontWeight: 800,
+          letterSpacing: 1,
         })}
-      />
+      >
+        {letters}
+      </div>
     );
   }
   const inner = Math.round(size * 0.7);
@@ -224,7 +241,7 @@ function TeamColumn({
         gap: 18,
       })}
     >
-      <Crest src={crest} size={176} />
+      <Crest src={crest} size={176} name={name} />
       <div
         style={flex({
           textAlign: 'center',
@@ -448,7 +465,7 @@ export function TeamCardImage({
         })}
       />
       <div style={flex({ position: 'absolute', left: 64, top: 40 })}>
-        <Crest src={crest} size={152} ring={paint.text} />
+        <Crest src={crest} size={152} name={text.name} ring={paint.text} />
       </div>
       <div
         style={flex({
