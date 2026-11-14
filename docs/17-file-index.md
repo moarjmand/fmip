@@ -1714,7 +1714,7 @@ machine, `docs/18-handover.md`.
 
 | File | What it is |
 |---|---|
-| `community-search-store.ts` | Rows read past a search's limit, for the headlines D-413 leaves out (T-1818). |
+| `community-search-store.ts` | Rows read past a search's limit, for the headlines D-413 and D-426 leave out (T-1818, T-1833). |
 | `result-images.spec.ts` | Each search result's image (T-1617): the right kind per type, one read, none invented. |
 | `result-images.ts` | Each entity result's image (T-1617): a team's crest, a competition's logo, a person's photo, from our own origin (D-176) in one media read for the whole page of results; `not_supplied` where none is held (rule 3). |
 | `search-query.ts` | Parsing of `GET /search` parameters (T-038). |
