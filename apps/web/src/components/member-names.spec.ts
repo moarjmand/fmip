@@ -40,6 +40,8 @@ const FIELDS: Record<string, Rule> = {
   // The console user who added a teammate request (T-1728): shown only inside
   // the agents console, to its invited users.
   'agents-console.ts:ConsoleRequest.created_by': { exempt: CONSOLE },
+  // Who filed teammate requests, for the requests page's filter (T-1831).
+  'agents-console.ts:ConsoleRequestFiler.display_name': { exempt: CONSOLE },
   // Where a subscription's renewal date came from (T-1788): text the computer
   // writes, such as a dashboard's name, never a member; shown only in the
   // agents console.
@@ -218,6 +220,7 @@ describe('the web never renders a stored name or a tombstone handle directly', (
   const DISPLAY_NAME_READERS: Record<string, string> = {
     'lib/member-name.ts': 'the rule itself',
     'app/console/(app)/layout.tsx': CONSOLE,
+    'app/console/(app)/requests/page.tsx': CONSOLE,
     'app/console/(open)/invite/[token]/page.tsx': CONSOLE,
     'components/member-name.tsx': 'the rule itself',
     'components/match-panel.tsx': '`Standing` branches on isDeletedMember first (T-812)',

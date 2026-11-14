@@ -51,6 +51,19 @@ export class ConsoleCalendarService {
     return this.store.removeDevice(actor, endpoint);
   }
 
+  /** T-1832 (D-425): the browsers that take a new request's notification, never the filer's. */
+  requestAlertDevices(filer: string): Promise<ConsolePushDevice[]> {
+    return this.store.requestAlertDevices(filer);
+  }
+
+  requestAlerts(userId: string): Promise<boolean> {
+    return this.store.requestAlerts(userId);
+  }
+
+  setRequestAlerts(actor: ConsoleMe, on: boolean): Promise<void> {
+    return this.store.setRequestAlerts(actor, on);
+  }
+
   deviceUsed(id: string): Promise<void> {
     return this.store.deviceUsed(id);
   }

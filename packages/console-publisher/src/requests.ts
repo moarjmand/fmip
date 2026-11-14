@@ -222,6 +222,9 @@ export interface RequestLine {
   has_result: boolean;
   /** How many pictures it has (T-1731). */
   images: number;
+  /** Who filed it: the console account's name and username (T-1831, D-424). */
+  created_by: string;
+  created_by_username: string | null;
 }
 
 /** The short summary: the counts and the open requests (marked to run first, then newest). */
@@ -245,6 +248,9 @@ export function summary(list: ConsoleRequestList): {
             : null,
       has_result: r.result !== null,
       images: (r.images ?? []).length,
+      created_by: r.created_by,
+      // A server before T-1831 sends no username.
+      created_by_username: r.created_by_username ?? null,
     }))
     .sort((a, b) => Number(b.execute_requested) - Number(a.execute_requested));
   return { counts: list.counts, open };
