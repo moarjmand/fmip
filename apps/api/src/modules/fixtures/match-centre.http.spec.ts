@@ -599,4 +599,49 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /fixture
     ]);
     expect(head_to_head.last_updated_at).toBe('2086-03-08T15:00:00.000Z');
   });
+
+  it('withholds stored scores that contradict each other and says the score is limited (T-1819, D-414)', async () => {
+    // "2–0 · 90′ 4–0": after play 2-0, after ninety 4-0, an extra-time line;
+    // four goals recorded. Later than MATCH, so no form or meeting above moves.
+    const conflicted = randomUUID();
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, round, kickoff_at, status) VALUES
+         ($1, $2, 'Matchweek 31', TIMESTAMPTZ '2086-04-05 15:00:00+00', 'finished')`,
+      [conflicted, PL_2024],
+    );
+    try {
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES
+           ($1, $2, 'home'), ($1, $3, 'away')`,
+        [conflicted, REAL_MADRID, LIVERPOOL],
+      );
+      await pool.query(
+        `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES
+           ($1, 'half_time', 1, 0), ($1, 'full_time', 4, 0), ($1, 'extra_time', 0, 0),
+           ($1, 'current', 2, 0)`,
+        [conflicted],
+      );
+      const response = await get(conflicted);
+      expect(response.statusCode).toBe(200);
+      const centre = response.json() as MatchCentre;
+      expect(centre.fixture.scores).toMatchObject({
+        current: null,
+        full_time: null,
+        extra_time: null,
+        half_time: { home: 1, away: 0 },
+      });
+      expect(centre.fixture.score_conflict).toEqual({
+        coverage: 'limited',
+        reasons: ['ninety_exceeds_final', 'extra_time_sum'],
+      });
+      expect(centre.fixture.score_dispute).toBeNull();
+      expect(centre.coverage.scores).toBe('limited');
+      // The agreed match beside it keeps its numbers and no conflict.
+      const agreed = (await get(MATCH)).json() as MatchCentre;
+      expect(agreed.fixture.score_conflict).toBeNull();
+      expect(agreed.fixture.scores.current).toEqual({ home: 2, away: 1 });
+    } finally {
+      await pool.query(`DELETE FROM fixture WHERE id = $1`, [conflicted]);
+    }
+  });
 });

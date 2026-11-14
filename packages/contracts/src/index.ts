@@ -86,7 +86,17 @@ export type {
   IngestionHealth,
   LiveHealth,
 } from './health';
-export { DELETED_USERNAME_PATTERN, ROLE_REFUSALS, forbidden, isDeletedMember } from './identity';
+export {
+  DELETED_USERNAME_PATTERN,
+  ROLE_REFUSALS,
+  SIGNUP_ENTRIES,
+  forbidden,
+  isDeletedMember,
+  SIGNUP_APP_REFERRERS,
+  signupHost,
+  signupReferrerHost,
+  signupSource,
+} from './identity';
 export type {
   AcceptPlatformRulesRequest,
   ApiError,
@@ -102,6 +112,8 @@ export type {
   RegisterRequest,
   ResetPasswordRequest,
   SessionResponse,
+  SignupEntry,
+  SignupSource,
   VerifyEmailRequest,
 } from './identity';
 // The viewer's territory (blueprint 11, T-312): chosen, stored, never inferred.
@@ -349,6 +361,16 @@ export type {
   ConsoleSubscriptionStatus,
   Recurring,
 } from './console-calendar';
+// The agents console's data providers' comparison (T-1830, D-423); its runtime constants are in './console'.
+export type {
+  ConsoleProvider,
+  ConsoleProviderConfidence,
+  ConsoleProviderCriterion,
+  ConsoleProviderFact,
+  ConsoleProviderPlan,
+  ConsoleProviders,
+  ConsoleProviderStatus,
+} from './console-providers';
 // The agents console's forecast-model page (T-1729, D-355); its runtime constants are in './console' (kept out of this barrel so they never reach a public page's bundle).
 export type {
   ConsoleLabEntry,
@@ -400,19 +422,26 @@ export type {
   CandidateShadowHealth,
 } from './forecast';
 export type {
+  AccuracyCalibration,
   AccuracyMetrics,
   AccuracyPeriod,
   AccuracyPoint,
   AccuracyReference,
   AdminAccuracySeries,
   AdminModelAccuracyResponse,
+  CalibrationBin,
+  PublicAccuracyPoint,
   PublicAccuracySeries,
   PublicModelAccuracyResponse,
+  PublicOverallSeries,
+  PublicVersionSeries,
 } from './forecast';
 export type { ModelUpset, ModelUpsetEntity, ModelUpsetGap, ModelUpsetResponse } from './forecast';
 export {
   ACCURACY_MINIMUM_MATCHES,
   ACCURACY_PERIODS,
+  CALIBRATION_MINIMUM_FORECASTS,
+  CALIBRATION_STEPS,
   CANDIDATE_FAILURE_LOOKBACK_DAYS,
   PROMOTION_MINIMUM,
 } from './forecast';
@@ -420,6 +449,7 @@ export {
   STALE_LIVE_AFTER_MS,
   STOPPED_CLOCK_MINUTES,
   liveFreshnessFrom,
+  scoreConflictOf,
   stillToPlay,
 } from './scores';
 export { AVAILABILITY_STALE_AFTER_MS, LIVE_STATS_STALE_AFTER_MS } from './match-centre';
@@ -430,6 +460,8 @@ export type {
   ScoreCardIncident,
   ScoreCardIncidentKind,
   ScoreCardTeam,
+  ScoreConflict,
+  ScoreConflictReason,
   ScoreDispute,
   ScoreLine,
   ScoresAgeFilter,
@@ -1194,6 +1226,7 @@ export type {
   ConsoleRequestDetail,
   ConsoleRequestEdit,
   ConsoleRequestEvent,
+  ConsoleRequestFiler,
   ConsoleRequestEventKind,
   ConsoleRequestImage,
   ConsoleRequestImageCaption,

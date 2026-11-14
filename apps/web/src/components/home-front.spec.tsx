@@ -14,7 +14,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import type { AccuracyFigure, HeroMatch, KeyGroup } from '@/lib/home';
 import type { CardForecast } from '@/lib/score-card-products';
-import { BigMatch, HomeDateline, LiveNow, TodayByCompetition } from './home-front';
+import { BigMatch, BrandLineStrap, HomeDateline, LiveNow, TodayByCompetition } from './home-front';
 import {
   Broadcasts,
   ColumnAndPicks,
@@ -186,6 +186,23 @@ describe('the dateline', () => {
   });
 });
 
+describe('the brand line strap (T-1827, D-421)', () => {
+  it('says the line and links its proof, the model’s published record, with no script', () => {
+    const html = renderToStaticMarkup(<BrandLineStrap locale="en" />);
+    expect(html).toContain('A forecast model that shows its record in public.');
+    expect(html).toMatch(/<a[^>]*href="\/en\/model-accuracy"[^>]*>See the record<\/a>/);
+    // The accent rule on the inline-start edge, so it mirrors in Persian (rule 7).
+    expect(html).toContain('border-s-4');
+    expect(html).not.toMatch(/border-l|border-r|<script/);
+  });
+
+  it('speaks Persian on /fa', () => {
+    const html = renderToStaticMarkup(<BrandLineStrap locale="fa" />);
+    expect(html).toContain('مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد.');
+    expect(html).toMatch(/href="\/fa\/model-accuracy"[^>]*>کارنامه را ببینید<\/a>/);
+  });
+});
+
 describe('the live strip', () => {
   const live = (over: Partial<ScoreCard> = {}) =>
     card({ status: 'live', minute: 67, scores: scored(2, 1), ...over });
@@ -273,6 +290,21 @@ describe('the big match', () => {
     expect(live).toContain('data-testid="home-hero-score"');
     // In play no new version is coming before kick-off.
     expect(live).not.toContain('A new version follows');
+  });
+
+  it('draws a dash, never a number or the kick-off time, for a featured match whose stored scores contradict each other (T-1819, D-414)', () => {
+    const finished = card({ status: 'finished', minute: null });
+    const html = big({
+      hero: {
+        card: {
+          ...finished,
+          scores: { ...finished.scores, current: null, full_time: null, extra_time: null },
+          score_conflict: { coverage: 'limited', reasons: ['extra_time_sum'] },
+        },
+        slot: 'live',
+      },
+    });
+    expect(html).toMatch(/data-testid="home-hero-score">–</);
   });
 
   it('keeps the three voices in three lanes, says the founder has none, and the note once', () => {

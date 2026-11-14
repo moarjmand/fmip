@@ -17,7 +17,7 @@ import { Score, ScorePair } from '@/components/score';
 import { GROUP_LIST } from '@/components/match-group';
 import { COVERAGE_KEY, ScoreCard as ScoreRow } from '@/components/score-card';
 import { Translated } from '@/components/translated';
-import { ButtonLink, CoverageBadge, Icon } from '@/components/ui';
+import { ButtonLink, CoverageBadge, Icon, inlineTargetClasses } from '@/components/ui';
 import { cx } from '@/components/ui/cx';
 import { formatDate, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
@@ -126,6 +126,33 @@ export function HomeDateline({
         {zoneName(l, timeZone)}
       </p>
     </div>
+  );
+}
+
+/**
+ * The brand line as a quiet strap under "Today" (T-1827, D-421; package 10,
+ * placement A): for a guest only -- a member has been here and keeps a
+ * scores-first page -- and beside its proof, a link to the model's published
+ * record. Text and tokens only, drawn on the server: no client code (the
+ * home page's first load is held to its budget).
+ */
+export function BrandLineStrap({ locale }: { locale: string }) {
+  const l = asLocale(locale);
+  return (
+    <p
+      className="flex flex-wrap items-center gap-x-3.5 gap-y-1 rounded-card border border-s-4 border-default border-s-accent bg-surface px-3.5 py-2.5 text-[0.9375rem]"
+      data-testid="brand-line-strap"
+    >
+      <strong className="font-bold">
+        <Translated locale={l} message="brand.line" />
+      </strong>
+      <Link
+        href={`/${locale}/model-accuracy`}
+        className={inlineTargetClasses('font-bold text-accent underline')}
+      >
+        <Translated locale={l} message="home.brandLine.link" />
+      </Link>
+    </p>
   );
 }
 
@@ -523,6 +550,15 @@ export function BigMatch({
               className="text-display-2 leading-none font-extrabold font-stretch-condensed tabular-nums"
               testId="home-hero-score"
             />
+          ) : card.status === 'finished' && card.score_conflict != null ? (
+            // Stored scores that contradict each other (T-1819, D-414): no
+            // number, and never the kick-off time beside "FT".
+            <span
+              className="text-3xl leading-none font-extrabold text-muted md:text-display-2"
+              data-testid="home-hero-score"
+            >
+              –
+            </span>
           ) : (
             <span className="text-3xl leading-none font-extrabold font-stretch-condensed tabular-nums md:text-display-2">
               {formatKickoff(l, card.kickoff_at, timeZone)}

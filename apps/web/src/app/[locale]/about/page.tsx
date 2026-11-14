@@ -77,6 +77,10 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
         >
           <Translated locale={lang} message="about.meta.title" />
         </h1>
+        {/* The brand line is the lead (T-1827, D-421); the old lead says how, under it. */}
+        <p className="text-2xl leading-snug font-semibold" data-testid="about-lead">
+          <Translated locale={lang} message="brand.line" />
+        </p>
         <p className="text-lg text-muted">
           <Translated locale={lang} message="about.meta.description" />
         </p>

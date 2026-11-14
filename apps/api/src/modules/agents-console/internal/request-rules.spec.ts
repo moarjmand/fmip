@@ -15,6 +15,7 @@ import {
   checkRequestCreate,
   checkRequestEdit,
   checkStatusAction,
+  checkFilerFilter,
   checkStatusFilter,
   isOpen,
   nextStatus,
@@ -78,6 +79,14 @@ describe('the small bodies', () => {
     expect(checkStatusFilter('all')).toEqual({ ok: true, value: null });
     expect(checkStatusFilter('decided')).toEqual({ ok: true, value: 'decided' });
     expect(checkStatusFilter('open').ok).toBe(false);
+  });
+
+  it('reads a filer filter as a console username, or none (T-1831)', () => {
+    expect(checkFilerFilter(undefined)).toEqual({ ok: true, value: null });
+    expect(checkFilerFilter('all')).toEqual({ ok: true, value: null });
+    expect(checkFilerFilter('mohammad')).toEqual({ ok: true, value: 'mohammad' });
+    for (const bad of ['Mohammad', 'a', '../x', ['mostafa'], 7, "x' OR 1=1"])
+      expect(checkFilerFilter(bad).ok).toBe(false);
   });
 });
 

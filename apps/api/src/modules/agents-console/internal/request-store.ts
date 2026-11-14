@@ -7,6 +7,7 @@ import {
   type ConsoleRequestDetail,
   type ConsoleRequestEdit,
   type ConsoleRequestEvent,
+  type ConsoleRequestFiler,
   type ConsoleRequestEventKind,
   type ConsoleRequestImage,
   type ConsoleRequestList,
@@ -75,6 +76,7 @@ interface RequestRow {
   status: ConsoleRequestStatus;
   priority: ConsoleRequestDetail['priority'];
   created_by: string;
+  created_by_username: string;
   created_at: Date;
   updated_at: Date;
   result: string | null;
@@ -101,7 +103,7 @@ interface EventRow {
 }
 
 const REQUEST_COLUMNS = `r.id, r.title, r.body, r.status, r.priority, cu.display_name AS created_by,
-  r.created_at, r.updated_at, r.result, r.result_at, r.decision_question, r.decision_asked_at,
+  cu.username AS created_by_username, r.created_at, r.updated_at, r.result, r.result_at, r.decision_question, r.decision_asked_at,
   r.decision_choice, r.decision_text, du.display_name AS decision_by, r.decided_at,
   r.execute_requested_at`;
 const REQUEST_FROM = `console_request r
@@ -163,6 +165,7 @@ const detail = (
   status: r.status,
   priority: r.priority,
   created_by: r.created_by,
+  created_by_username: r.created_by_username,
   created_at: r.created_at.toISOString(),
   updated_at: r.updated_at.toISOString(),
   result: r.result,
@@ -222,25 +225,49 @@ const AUDIT_REASON: Record<ConsoleRequestEventKind, string> = {
 export class PostgresRequestStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  async list(status: ConsoleRequestStatus | null): Promise<ConsoleRequestList> {
+  /**
+   * The list, one status or all, one filer's or everyone's (T-1831): `by` is
+   * the filer's username; the counts follow it, the filers do not.
+   */
+  async list(
+    status: ConsoleRequestStatus | null,
+    by: string | null = null,
+  ): Promise<ConsoleRequestList> {
     const { rows } = await this.pool.query<RequestRow>(
       `SELECT ${REQUEST_COLUMNS} FROM ${REQUEST_FROM}
-        WHERE $1::text IS NULL OR r.status = $1
+        WHERE ($1::text IS NULL OR r.status = $1) AND ($3::text IS NULL OR cu.username = $3)
         ORDER BY r.created_at DESC, r.id DESC LIMIT $2`,
-      [status, REQUEST_LIST_LIMIT],
+      [status, REQUEST_LIST_LIMIT, by],
     );
     const ids = rows.map((r) => r.id);
     const events = await this.eventsOf(this.pool, ids);
     const images = await this.imagesOf(this.pool, ids);
     return {
       requests: rows.map((r) => detail(r, events.get(r.id) ?? [], images.get(r.id) ?? [])),
-      counts: await this.counts(),
+      counts: await this.counts(by),
+      filers: await this.filers(),
     };
   }
 
-  async counts(): Promise<ConsoleRequestCounts> {
+  /** Everyone who filed a request, most first (T-1831, D-424). */
+  async filers(): Promise<ConsoleRequestFiler[]> {
+    const { rows } = await this.pool.query<ConsoleRequestFiler>(
+      `SELECT cu.username, cu.display_name, count(*)::int AS count
+         FROM console_request r JOIN console_user cu ON cu.id = r.created_by
+        GROUP BY cu.username, cu.display_name
+        ORDER BY count(*) DESC, cu.username`,
+    );
+    return rows;
+  }
+
+  /** Requests per status, everyone's or one filer's. */
+  async counts(filer: string | null = null): Promise<ConsoleRequestCounts> {
     const { rows } = await this.pool.query<{ status: ConsoleRequestStatus; n: number }>(
-      `SELECT status, count(*)::int AS n FROM console_request GROUP BY status`,
+      `SELECT r.status, count(*)::int AS n
+         FROM console_request r JOIN console_user cu ON cu.id = r.created_by
+        WHERE $1::text IS NULL OR cu.username = $1
+        GROUP BY r.status`,
+      [filer],
     );
     const by = Object.fromEntries(CONSOLE_REQUEST_STATUSES.map((s) => [s, 0])) as Record<
       ConsoleRequestStatus,

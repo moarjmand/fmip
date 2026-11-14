@@ -391,6 +391,9 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'POST /console/calendar/push':
     "Switches reminders on in the caller's own browser: one row per browser (the endpoint is unique), audited; a repeat replaces it.",
   'DELETE /console/calendar/push': REMOVAL,
+  // T-1832 (D-425): one flag on the caller's own console account.
+  'POST /console/calendar/push/requests':
+    "Switches the caller's own new-request notifications on or off: one flag on their own console account, set in place and audited only when it changes; it sends nothing.",
   'POST /console/calendar/push/test':
     "Sends one test message to the caller's own browsers only; reaches no one else, and the push services hold their own limits.",
 };

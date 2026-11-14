@@ -1,5 +1,5 @@
 /**
- * The agents console's runtime constants (T-1728, T-1729, T-1752), on their own entry
+ * The agents console's runtime constants (T-1728, T-1729, T-1752, T-1830), on their own entry
  * point `@fmip/contracts/console`: the main barrel is in every public page's
  * first-load bundle, and these are only the console's (the match centre went
  * 0.4 kB over its budget when they sat in the barrel). Types stay in the barrel.
@@ -39,6 +39,18 @@ export {
   CONSOLE_LAB_TEXT_MAX,
   CONSOLE_LAB_VERDICTS,
 } from './console-model-lab';
+export {
+  CONSOLE_PROVIDER_CONFIDENCES,
+  CONSOLE_PROVIDER_CRITERIA_MAX,
+  CONSOLE_PROVIDER_LIST_MAX,
+  CONSOLE_PROVIDER_PLANS_MAX,
+  CONSOLE_PROVIDER_SCORE_MAX,
+  CONSOLE_PROVIDER_SCORE_MIN,
+  CONSOLE_PROVIDER_STATUSES,
+  CONSOLE_PROVIDER_TEXT_MAX,
+  CONSOLE_PROVIDERS_MAX,
+  CONSOLE_PROVIDERS_SCHEMA,
+} from './console-providers';
 export {
   CONSOLE_CALENDAR_TIME_ZONE,
   CONSOLE_EVENT_BASES,

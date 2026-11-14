@@ -4,6 +4,7 @@ import { BreakingStrip } from '@/components/breaking-strip';
 import { FirstRunOffer } from '@/components/first-run-offer';
 import {
   BigMatch,
+  BrandLineStrap,
   HomeDateline,
   LiveNow,
   RuleHeading,
@@ -167,7 +168,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     // The founder's analysis of what is coming (T-132).
     fetchFounderFeed({ limit: 3 }),
     // T-1369 (D-187): the public accuracy figures, by month (T-1516, D-270).
-    fetchModelAccuracy('month'),
+    // No calibration: the home page draws none, and it is not read for every guest (T-1751).
+    fetchModelAccuracy('month', { calibration: false }),
     session ? fetchFriendPredictions(cookie) : null,
     session ? fetchGroupDiscussions(cookie) : null,
   ]);
@@ -294,6 +296,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <div className="page-frame flex flex-col gap-6 pt-6">
         {marked.length > 0 && <BreakingStrip locale={locale} stories={marked} />}
         <HomeDateline locale={lang} timeZone={timeZone} now={now.toISOString()} />
+        {/* The brand line beside its proof, for a guest only (T-1827, D-421). */}
+        {!member && <BrandLineStrap locale={lang} />}
 
         <div className="flex flex-wrap items-start gap-6">
           {/* T-1756 (D-373; board P4-2): the main match first, then the first
@@ -446,7 +450,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   <LinkedSentence
                     sentence={message(lang, 'home.guestInvite')}
                     link={message(lang, 'home.guestInvite.link')}
-                    href={`/${locale}/register`}
+                    // The kind of page the sign-up started on (T-1821, D-415).
+                    href={`/${locale}/register?from=home`}
                   />
                 </p>
               </GuestWelcome>
