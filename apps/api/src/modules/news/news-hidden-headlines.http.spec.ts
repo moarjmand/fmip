@@ -9,7 +9,8 @@ import { NO_FILTERS, PostgresNewsReadStore } from './internal/news-read-store';
  * Headlines the lists do not show (T-1818, D-413), over Postgres: an
  * invitation to watch a match live on the publisher's site (read on a team
  * of its own, so other specs' stories cannot crowd it out) is left out of
- * the news lists, the Following feed and story search for every reader; a
+ * the news lists, the Following feed and story search for every reader, and
+ * so is another sport's own event filed to one of ours (T-1833); a
  * report that starts with the same words but invites nobody to watch is
  * shown, and so is the report beside them; the invitation's row is still
  * stored -- the rule is applied on read.
@@ -63,6 +64,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     let invitation: string;
     let cancelled: string;
     let report: string;
+    let handball: string;
 
     beforeAll(async () => {
       pool = new Pool({ connectionString: DATABASE_URL });
@@ -82,6 +84,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       );
       cancelled = await story(`پخش زنده بازی سپاهان و تراکتور ${RUN} لغو شد`, 2);
       report = await story(`حق پخش زنده بازی سپاهان و تراکتور ${RUN} فروخته شد`, 3);
+      // T-1833 (D-426): another sport's own event, filed to one of ours as
+      // the bare word "Championship" filed it on production.
+      handball = await story(
+        `Iran learn fate at 2026 Asian Women’s Handball Championship سپاهان و تراکتور ${RUN}`,
+        4,
+      );
     }, 60_000);
 
     afterAll(async () => {
@@ -104,6 +112,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         expect(ids, String(locale)).toContain(report);
         expect(ids, String(locale)).toContain(cancelled);
         expect(ids, String(locale)).not.toContain(invitation);
+        expect(ids, String(locale)).not.toContain(handball);
       }
     });
 
@@ -121,12 +130,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const fed = feed.map((r) => r.story_id);
       expect(fed).toEqual(expect.arrayContaining([cancelled, report]));
       expect(fed).not.toContain(invitation);
+      expect(fed).not.toContain(handball);
 
       const found = (
         await new PostgresCommunitySearchStore(pool).stories(`سپاهان و تراکتور ${RUN}`, 10, 'fa')
       ).map((r) => r.story_id);
       expect(found).toContain(cancelled);
       expect(found).not.toContain(invitation);
+      expect(found).not.toContain(handball);
     });
 
     it('deletes nothing: the invitation is still stored', async () => {
