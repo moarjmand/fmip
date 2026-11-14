@@ -9,7 +9,7 @@ import type {
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { EN } from '@/i18n/messages';
 import { matchWords } from '@/lib/words-server';
 import {
@@ -28,6 +28,10 @@ import { Translated } from './translated';
 import { scoreDisputeHero } from './score-dispute';
 import { matchJsonLd } from '@/lib/seo';
 import { MatchLineupsView } from './match-lineups';
+
+// The page as the browser draws it once hydrated: the modules' ages print on
+// the live clock (the server's markup has none; see live-age.spec.tsx).
+vi.mock('./use-hydrated', () => ({ useHydrated: () => true }));
 
 /**
  * The Stadiomind match centre (T-1497): the Summary's "what was forecast,

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { FreshnessWords } from './freshness-stamp';
 import { LiveAge, LiveBehind, LiveClockProvider } from './live-age';
 import { message } from '@/i18n/messages';
@@ -20,6 +20,10 @@ const EN_KEY_EVENTS = message('en', 'matchCentre.keyEventsUpdated');
  * the event itself -- the same shape `LiveConversation` set, so there is one
  * way a post can look.
  */
+// The ages as the browser draws them once hydrated (the server's markup has
+// none; live-age.spec.tsx).
+vi.mock('./use-hydrated', () => ({ useHydrated: () => true }));
+
 const SOURCE = readFileSync(join(__dirname, 'live-match.tsx'), 'utf8');
 
 describe('live match: the panel event', () => {

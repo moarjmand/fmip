@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
+import { useHydrated } from '@/components/use-hydrated';
 import { FreshnessStamp, type FreshnessWords } from '@/components/freshness-stamp';
 import type { LivePart, PerPart } from '@/lib/live-modules';
 
@@ -36,6 +37,18 @@ const LiveClockContext = createContext<LiveClock>({
 /** Given by `LiveMatch` around the match centre. */
 export const LiveClockProvider = LiveClockContext.Provider;
 
+/**
+ * The clock as an age may print it: none on the server and while the page
+ * hydrates. The server's `now` and the browser's differ by the render and the
+ * trip, so an age both printed ("8 sec ago" against "12 sec ago") would fail
+ * hydration (React error 418) and the page would be drawn again in the browser.
+ * The age appears a moment later, as a stamp without a clock.
+ */
+function useAgeClock(): LiveClock {
+  const clock = useContext(LiveClockContext);
+  return useHydrated() ? clock : { ...clock, now: undefined };
+}
+
 export function useLiveClock(): LiveClock {
   return useContext(LiveClockContext);
 }
@@ -67,7 +80,7 @@ export function LiveAge({
    */
   followsModules?: LivePart;
 }) {
-  const { now, behind } = useLiveClock();
+  const { now, behind } = useAgeClock();
   return (
     <FreshnessStamp
       checkedAt={checkedAt}
@@ -104,7 +117,7 @@ export function LiveBehind({
   testId?: string;
   className?: string;
 }) {
-  const { now, behind, drawnAt } = useLiveClock();
+  const { now, behind, drawnAt } = useAgeClock();
   if (!behind[part] || drawnAt === undefined) return null;
   return (
     <FreshnessStamp
