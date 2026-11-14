@@ -215,6 +215,8 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'calendar.subscription_changed': 'تغییر اشتراک',
   'calendar.reminders_on': 'روشن کردن یادآور در مرورگر',
   'calendar.reminders_off': 'خاموش کردن یادآور در مرورگر',
+  'requests.alerts_on': 'روشن کردن اعلان درخواست‌های تازه',
+  'requests.alerts_off': 'خاموش کردن اعلان درخواست‌های تازه',
 };
 
 /** An audit row's action in Persian (`command.agent_pause` from `COMMAND_WORDS`); an unknown one keeps its id. */
@@ -257,6 +259,8 @@ export function auditReasonWords(reason: string): string {
     [/^import-calendar, filed for (.+)$/, (m) => `بارگذاری فهرست اشتراک‌ها به نام ${m[1]}`],
     [/^reminders switched on in a browser$/, () => 'یادآور در یک مرورگر روشن شد'],
     [/^reminders switched off in a browser$/, () => 'یادآور در یک مرورگر خاموش شد'],
+    [/^new-request notifications switched on$/, () => 'اعلان درخواست‌های تازه روشن شد'],
+    [/^new-request notifications switched off$/, () => 'اعلان درخواست‌های تازه خاموش شد'],
   ];
   for (const [pattern, words] of system) {
     const match = pattern.exec(reason);

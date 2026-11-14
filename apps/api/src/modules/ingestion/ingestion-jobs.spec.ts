@@ -688,6 +688,85 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ingestion jo
   });
 
   /**
+   * T-1823 (D-417): a match asked once after the whistle was never asked
+   * again, so a cup's line-ups the provider added days later stayed missing
+   * until something cleared the mark. A finished match still missing a side's
+   * line-up is owed a re-ask once its last ask is old enough; one with both
+   * sides' line-ups never is.
+   */
+  it('owes a re-ask for a finished match still missing a line-up, once its last ask is old', async () => {
+    const unused: RefResolver = {
+      resolve: () => Promise.reject(new Error('not used')),
+      link: () => Promise.reject(new Error('not used')),
+    };
+    const store = new IngestStore(pool, unused);
+    const recorded = (
+      await pool.query<{ id: string }>(`SELECT id FROM fixture WHERE season_id = $1`, [SEASON])
+    ).rows[0]?.id;
+    const bare = randomUUID();
+    const externalId = `t1823-${bare.slice(0, 8)}`;
+    await pool.query(
+      `INSERT INTO fixture (id, season_id, stage_id, kickoff_at, status)
+       VALUES ($1, $2, $3, '2023-08-12T14:00:00Z', 'finished')`,
+      [bare, SEASON, STAGE],
+    );
+    await pool.query(
+      `INSERT INTO fixture_participant (fixture_id, team_id, side)
+       VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+      [bare, BURNLEY, CITY],
+    );
+    await pool.query(
+      `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+       VALUES ('api_football', 'fixture', $1, $2)`,
+      [externalId, bare],
+    );
+    await pool.query(
+      `INSERT INTO fixture_detail_fetch (fixture_id, provider, fetched_at)
+       VALUES ($1, 'api_football', '2023-08-12T16:30:00Z')`,
+      [bare],
+    );
+    try {
+      const owed = async (askedBefore: string) =>
+        (
+          await store.lineupsOwed(
+            'api_football',
+            [competitionId],
+            '2023-08-01T00:00:00Z',
+            '2023-09-01T00:00:00Z',
+            askedBefore,
+            50,
+          )
+        ).map((r) => r.fixtureId);
+
+      // Asked at 16:30: not owed before six hours have passed, owed after.
+      expect(await owed('2023-08-12T16:00:00Z')).not.toContain(bare);
+      const late = await owed('2023-08-12T22:30:01Z');
+      expect(late).toContain(bare);
+      // The recorded match carries both sides' line-ups: never owed.
+      expect(late).not.toContain(recorded);
+      // Outside the window of kick-offs: not owed.
+      expect(
+        (
+          await store.lineupsOwed(
+            'api_football',
+            [competitionId],
+            '2023-08-13T00:00:00Z',
+            '2023-09-01T00:00:00Z',
+            '2100-01-01T00:00:00Z',
+            50,
+          )
+        ).map((r) => r.fixtureId),
+      ).not.toContain(bare);
+    } finally {
+      await pool.query(
+        `DELETE FROM provider_mapping WHERE provider = 'api_football' AND external_id = $1`,
+        [externalId],
+      );
+      await pool.query(`DELETE FROM fixture WHERE id = $1`, [bare]);
+    }
+  });
+
+  /**
    * T-913: an administrator asked the feed again about a match already
    * detailed. The post-match job carries the queue within its share, through
    * the same writer, and records whether the answer changed anything.

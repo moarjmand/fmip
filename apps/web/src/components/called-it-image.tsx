@@ -51,7 +51,7 @@ function Team({
         gap: 14,
       })}
     >
-      <Crest src={crest} size={crestSize} />
+      <Crest src={crest} size={crestSize} name={name} />
       <div
         style={flex({
           textAlign: 'center',

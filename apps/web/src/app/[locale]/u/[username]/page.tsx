@@ -51,6 +51,8 @@ export async function generateMetadata({
   const name = decodeURIComponent(username);
   return pageMetadata({
     locale,
+    // The member's own card (`opengraph-image.tsx`), never the brand one.
+    card: 'own',
     path: `/u/${encodeURIComponent(name)}`,
     title: `${memberName(locale, { username: name })} · Stadiomind`,
   });

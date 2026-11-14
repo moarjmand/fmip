@@ -8,6 +8,7 @@ import type {
   ResetPasswordRequest,
   VerifyEmailRequest,
 } from '@fmip/contracts';
+import { signupSource } from '@fmip/contracts';
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from './password';
 import { isWellFormedToken } from './tokens';
 
@@ -113,6 +114,8 @@ export function validateRegister(body: unknown): Validated<RegisterRequest> {
       preferred_language: language as string,
       timezone: timezone as string,
       accept_rules: true,
+      // Never a reason to refuse a sign-up: malformed is counted as `none` (T-1821, D-415).
+      source: signupSource(body.source),
     },
   };
 }

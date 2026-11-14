@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { BRAND_COLOURS } from '@/lib/brand-colours';
-import { BAND_MIN_CONTRAST, bandColours, contrast, darken, luminance } from './band-colour';
+import { BRAND_COLOURS, NIGHT_COLOURS } from '@/lib/brand-colours';
+import {
+  BAND_MIN_CONTRAST,
+  bandColours,
+  cardBandColours,
+  contrast,
+  darken,
+  looksLikeDefault,
+  luminance,
+} from './band-colour';
 
 /** The club band's paint (T-1418, D-204, D-218): every text on it at 4.5:1 or more. */
 
@@ -60,5 +68,25 @@ describe('bandColours', () => {
     for (const bad of ['', 'red', '#fff', '#DA291C', 'da291c', '#da291cff']) {
       expect(bandColours(bad)).toBeNull();
     }
+  });
+});
+
+describe('the team card band (T-1826, finding des-2026-11-13-02)', () => {
+  it('takes a pure primary or secondary for a placeholder, never black, white or a real red', () => {
+    for (const placeholder of ['#0000ff', '#ff0000', '#00ff00', '#ffff00', '#00ffff', '#ff00ff']) {
+      expect(looksLikeDefault(placeholder)).toBe(true);
+    }
+    for (const real of ['#000000', '#ffffff', '#e10000', '#cc0000', '#e41e2c', 'blue']) {
+      expect(looksLikeDefault(real)).toBe(false);
+    }
+  });
+
+  it('paints the club page’s band, else the neutral slate with the Night text', () => {
+    expect(cardBandColours('#e10000')).toEqual(bandColours('#e10000'));
+    const slate = { fill: NIGHT_COLOURS.border, text: NIGHT_COLOURS.text };
+    for (const none of [null, undefined, '#0000ff', 'not a colour']) {
+      expect(cardBandColours(none)).toEqual(slate);
+    }
+    expect(contrast(slate.fill, slate.text)).toBeGreaterThanOrEqual(BAND_MIN_CONTRAST);
   });
 });

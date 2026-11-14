@@ -1,4 +1,4 @@
-import { BRAND_COLOURS } from '@/lib/brand-colours';
+import { BRAND_COLOURS, NIGHT_COLOURS } from '@/lib/brand-colours';
 
 /**
  * A club's colour on the top band of its page (T-1418, D-204, D-218): the
@@ -44,6 +44,34 @@ export function darken(hex: string, amount: number): string {
       .padStart(2, '0'),
   );
   return `#${out.join('')}`;
+}
+
+/**
+ * A colour that looks like a placeholder rather than a club's (T-1826, D-420;
+ * finding des-2026-11-13-02): a pure primary or secondary -- every channel
+ * fully off or fully on, black and white aside, which are real kits -- as the
+ * pure blue derived for Arsenal Tivat. The share card paints such a club in
+ * the neutral slate; the club page has no such fallback yet.
+ */
+export function looksLikeDefault(colour: string): boolean {
+  if (!HEX.test(colour)) return false;
+  const values = channels(colour);
+  const pure = values.every((c) => c === 0 || c === 255);
+  const sum = values.reduce((a, b) => a + b, 0);
+  return pure && sum !== 0 && sum !== 3 * 255;
+}
+
+/**
+ * The team card's band (T-1826, D-420): the club page's own `bandColours`,
+ * or the slate of the Night rule with the Night text when the club has no
+ * colour, an unreadable one or one that looks like a placeholder.
+ */
+export function cardBandColours(colour: string | null | undefined): { fill: string; text: string } {
+  const paint =
+    colour === null || colour === undefined || looksLikeDefault(colour)
+      ? null
+      : bandColours(colour);
+  return paint ?? { fill: NIGHT_COLOURS.border, text: NIGHT_COLOURS.text };
 }
 
 /** The band's fill and text for a club colour, or `null` for a value that is not `#rrggbb`. */

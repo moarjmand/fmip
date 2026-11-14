@@ -13,6 +13,7 @@ const {
   fetchEntityNews,
   fetchFixtureNews,
   fetchMatchCentre,
+  fetchModelAccuracy,
   fetchModelUpset,
   fetchNewsSection,
   fetchScores,
@@ -34,6 +35,13 @@ describe('the API client asks for names in the reader language (T-1312)', () => 
     );
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  it('asks for the accuracy without its calibration only when told (T-1751)', async () => {
+    await fetchModelAccuracy('month');
+    await fetchModelAccuracy('week', { calibration: false });
+    expect(urls[0]).toMatch(/\/model\/accuracy\?period=month(?:&locale=fa)?$/);
+    expect(urls[1]).toMatch(/\/model\/accuracy\?period=week&calibration=omit(?:&locale=fa)?$/);
+  });
 
   it('passes the reader locale on the scores list and the match centre', async () => {
     await fetchScores('from=2026-10-01&tz=Asia%2FTehran', undefined);

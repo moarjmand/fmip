@@ -73,7 +73,26 @@ export class ConsoleRemindersController {
       state: key === null ? 'absent' : 'configured',
       public_key: key,
       devices: await this.calendar.deviceCount(me.id),
+      request_alerts: await this.calendar.requestAlerts(me.id),
     };
+  }
+
+  /**
+   * New teammate requests by browser notification, on or off for the caller
+   * (T-1832, D-425): `{ on: boolean }`. It reaches the caller's browsers
+   * already switched on here; audited with the value before.
+   */
+  @Post('requests')
+  @HttpCode(204)
+  async requestAlerts(@Body() body: unknown, @Req() request: FastifyRequest): Promise<void> {
+    const me = await this.person(request);
+    const on = (body as { on?: unknown } | null)?.on;
+    if (typeof on !== 'boolean')
+      throw new BadRequestException({
+        error: 'validation',
+        message: 'on is true or false.',
+      } satisfies ApiError);
+    await this.calendar.setRequestAlerts(me, on);
   }
 
   @Post()

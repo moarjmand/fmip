@@ -139,6 +139,35 @@ describe('selectResults', () => {
     expect(match?.score).toEqual({ home: 3, away: 0 });
     expect(match?.verdict).toMatchObject({ pick: ['home', 'away'] });
   });
+
+  it('leaves out a match whose stored scores contradict each other, its counted actual too (T-1819, D-414)', () => {
+    // As the read model serves it: the lines in conflict withheld; the
+    // evaluation still holds the 4-0 it was scored against.
+    const conflicted = card({
+      scores: {
+        current: null,
+        half_time: null,
+        full_time: null,
+        extra_time: null,
+        penalties: null,
+        aggregate: null,
+      },
+      coverage: 'limited',
+      score_conflict: { coverage: 'limited', reasons: ['ninety_exceeds_final', 'extra_time_sum'] },
+    });
+    const agreed = card();
+    const competitions = selectResults(
+      [group('Premier League', 'England', [conflicted, agreed])],
+      new Map([
+        [
+          conflicted.id,
+          scored(conflicted.id, { home: 0.5, draw: 0.3, away: 0.2 }, true, { home: 4, away: 0 }),
+        ],
+        [agreed.id, scored(agreed.id, { home: 0.5, draw: 0.3, away: 0.2 }, true)],
+      ]),
+    );
+    expect(competitions[0]?.matches.map((m) => m.fixtureId)).toEqual([agreed.id]);
+  });
 });
 
 describe('composeResultsPost', () => {

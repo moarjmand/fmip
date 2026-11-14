@@ -115,6 +115,35 @@ describe('a row whose recorded goals disagree with its result (T-1717, D-347)', 
   });
 });
 
+describe('a row whose stored scores contradict each other (T-1819, D-414)', () => {
+  const conflicted = (locale: 'en' | 'fa'): string =>
+    renderToStaticMarkup(
+      <ul>
+        <ScoreCard
+          words={scoresWords(locale)}
+          card={{
+            ...card,
+            // As the API serves it: the lines in conflict withheld.
+            scores: { ...card.scores, current: null, full_time: null, extra_time: null },
+            coverage: 'limited',
+            score_conflict: { coverage: 'limited', reasons: ['ninety_exceeds_final'] },
+          }}
+          timeZone="UTC"
+          locale={locale}
+        />
+      </ul>,
+    );
+
+  it('draws no score, no winner, and says the score is unclear', () => {
+    const html = conflicted('en');
+    expect(html).toContain('Score unclear in the source');
+    expect(html).not.toContain('data-testid="home-score"');
+    expect(html).not.toContain('data-testid="away-score"');
+    expect(html).not.toMatch(/font-bold">سپاهان</);
+    expect(conflicted('fa')).toContain('نتیجه در منبع نامشخص است');
+  });
+});
+
 describe('the score primitives', () => {
   it('isolates a pair in the page’s direction, or the inherited one without a locale', () => {
     expect(renderToStaticMarkup(<Score home={2} away={1} locale="fa" />)).toBe(

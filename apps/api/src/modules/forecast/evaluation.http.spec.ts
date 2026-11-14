@@ -281,6 +281,44 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('evaluations'
     });
   });
 
+  it('serves no evaluation, and so no result or winner, when the stored scores contradict each other (T-1819, D-414)', async () => {
+    // 2-2 after ninety (above), yet 1-1 after play with a 1-0 extra-time line.
+    await pool.query(
+      `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES
+         ($1, 'current', 1, 1), ($1, 'extra_time', 1, 0)`,
+      [FIXTURE],
+    );
+    try {
+      const response = await get(`/fixtures/${FIXTURE}/evaluations`);
+      expect(response.statusCode).toBe(200);
+      const body = response.json() as FixtureEvaluationsResponse;
+      expect(body.evaluations).toEqual([]);
+      expect(body.coverage).toBe('limited');
+      expect(body.score_conflict).toEqual({
+        coverage: 'limited',
+        reasons: ['ninety_exceeds_final', 'extra_time_sum'],
+      });
+      expect(JSON.stringify(body)).not.toContain('"actual"');
+      // The admin's evaluate route keeps what it stored, and says so.
+      const admin = await post(`/fixtures/${FIXTURE}/evaluations`, adminCookie);
+      expect(admin.statusCode).toBe(201);
+      const adminBody = admin.json() as FixtureEvaluationsResponse;
+      expect(adminBody.evaluations.length).toBeGreaterThan(0);
+      expect(adminBody.score_conflict?.reasons).toEqual(['ninety_exceeds_final', 'extra_time_sum']);
+    } finally {
+      await pool.query(
+        `DELETE FROM fixture_score WHERE fixture_id = $1 AND kind IN ('current', 'extra_time')`,
+        [FIXTURE],
+      );
+    }
+    // Reconciled again, the stored evaluations are served as before.
+    const after = (
+      await get(`/fixtures/${FIXTURE}/evaluations`)
+    ).json() as FixtureEvaluationsResponse;
+    expect(after.evaluations.length).toBeGreaterThan(0);
+    expect(after.score_conflict ?? null).toBeNull();
+  });
+
   it('serves model performance per competition from pre-kick-off versions only', async () => {
     const response = await get(`/competitions/${COMPETITION}/model-performance?season=${SEASON}`);
     expect(response.statusCode).toBe(200);

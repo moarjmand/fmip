@@ -1,14 +1,16 @@
-import type { AccuracyPoint, PublicModelAccuracyResponse } from '@fmip/contracts';
+import type { PublicAccuracyPoint, PublicModelAccuracyResponse } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import { accuracyUrl, addDays, composeWeeklyPost, previousWeekStart } from './weekly-post';
 
 const ORIGIN = 'https://fmip.example';
 const WEEK = '2026-10-12';
 
-function point(periodStart: string, matches: number, accuracy = 0.55): AccuracyPoint {
+function point(periodStart: string, matches: number, accuracy = 0.55): PublicAccuracyPoint {
   return {
     period: '2026-W42',
     period_start: periodStart,
+    period_end: addDays(periodStart, 7),
+    complete: true,
     forecasts: matches + 3,
     matches,
     coverage: matches === 0 ? 'not_supplied' : matches < 30 ? 'limited' : 'available',
@@ -21,8 +23,8 @@ function point(periodStart: string, matches: number, accuracy = 0.55): AccuracyP
 }
 
 function answer(
-  points: AccuracyPoint[],
-  competitions: { name: string; points: AccuracyPoint[] }[] = [],
+  points: PublicAccuracyPoint[],
+  competitions: { name: string; points: PublicAccuracyPoint[] }[] = [],
 ): PublicModelAccuracyResponse {
   return {
     period: 'week',
@@ -33,6 +35,7 @@ function answer(
       model_versions: ['dixon-coles@1.2.0'],
       total: point(WEEK, 400),
       points,
+      calibration: { minimum_forecasts: 30, coverage: 'not_supplied', bins: [] },
     },
     competitions: competitions.map((c) => ({
       competition: { id: c.name, name: c.name },
@@ -40,6 +43,7 @@ function answer(
       total: point(WEEK, 40),
       points: c.points,
     })),
+    versions: [],
     last_updated_at: '2026-10-19T03:00:00.000Z',
   };
 }

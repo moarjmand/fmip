@@ -145,3 +145,22 @@ test('/fa/register keeps Latin values left-to-right inside the mirrored page', a
     );
   }
 });
+
+test('carries where the sign-up started in two hidden fields, never a cookie (T-1821, D-415)', async ({
+  page,
+  context,
+}) => {
+  const form = page.getByTestId('register-form');
+  await page.goto('/en/register?from=team');
+  await expect(form.locator('input[name="signup_entry"]')).toHaveValue('team');
+  await expect(form.locator('input[name="signup_referrer"]')).toHaveCount(0);
+
+  // Straight from another site: its host only, never the path or query.
+  await page.goto('/en/register', { referer: 'https://www.t.me/stadiomind?start=1' });
+  await expect(form.locator('input[name="signup_entry"]')).toHaveValue('none');
+  await expect(form.locator('input[name="signup_referrer"]')).toHaveValue('t.me');
+
+  // Nothing about it is written to the device.
+  const names = (await context.cookies()).map((c) => c.name);
+  expect(names.filter((n) => /signup|entry|referr|source/.test(n))).toEqual([]);
+});

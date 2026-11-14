@@ -7,6 +7,7 @@ import {
 } from './agents-console.controller';
 import { ConsoleCalendarController } from './console-calendar.controller';
 import { ConsoleCalendarService } from './console-calendar.service';
+import { ConsoleRequestEvents } from './console-request-events.service';
 import { ConsoleSessions } from './console-sessions.service';
 import { PostgresCalendarStore } from './internal/calendar-store';
 import { PostgresConsoleStore } from './internal/console-store';
@@ -33,6 +34,8 @@ import {
     ConsoleCalendarService,
     // T-1729: the session check, for the model page another module serves.
     ConsoleSessions,
+    // T-1832 (D-425): a new request, told to console-reminders' sender.
+    ConsoleRequestEvents,
     // T-1731 (D-357): the requests' pictures, private on the media volume.
     ImageBodyParser,
     {
@@ -53,6 +56,7 @@ import {
     PostgresCalendarStore,
     ConsoleCalendarService,
     ConsoleSessions,
+    ConsoleRequestEvents,
     REQUEST_IMAGE_FILES,
   ],
 })

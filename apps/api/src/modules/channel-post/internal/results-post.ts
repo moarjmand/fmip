@@ -58,7 +58,8 @@ function pickOf(p: ModelProbabilities): MatchOutcome[] {
  * list for the day, T-504), each with the model's counted evaluation. Kept: a
  * finished match in a season whose scores are not declared unsupplied, with a
  * full-time score on record. A match with no score to show is left out
- * rather than given one.
+ * rather than given one, as is one whose stored scores contradict each other
+ * (T-1819, D-414): the model's counted `actual` is one of those numbers.
  */
 export function selectResults(
   groups: ScoresGroup[],
@@ -69,6 +70,8 @@ export function selectResults(
     const matches: ResultMatch[] = [];
     for (const card of group.fixtures) {
       if (card.status !== 'finished' || card.coverage === 'not_supplied') continue;
+      // Stored scores that contradict each other are no result to post (D-414).
+      if (card.score_conflict != null) continue;
       const entry = counted.get(card.id);
       const evaluation = entry?.evaluation ?? null;
       const score = evaluation?.actual ?? card.scores.full_time;

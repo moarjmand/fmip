@@ -1,13 +1,21 @@
 import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import { BrandMark } from '@/components/brand-mark';
+import { initials } from '@/components/entity-image';
 import { NIGHT_COLOURS } from '@/lib/brand-colours';
 import { CARD_FACES } from '@/lib/card-fonts';
 import {
+  BRAND_CARD,
   nameSize,
   type MatchCardText,
   type MemberCardText,
   type TableCardText,
+  type TeamCardText,
+  teamFixtureSize,
+  teamNameSize,
 } from '@/lib/share-card';
+
+/** The team card's next-match panel, fixed so the date under it is never covered. */
+const PANEL_HEIGHT = 196;
 
 /**
  * The pictures behind the share cards (T-520), for `next/og`'s
@@ -67,20 +75,45 @@ export function Frame({
 }
 
 /**
- * A crest on the white tile every logo stands on (D-280), or an empty ring of
- * the same size when there is none to draw (rule 3: nothing made up).
+ * A crest on the white tile every logo stands on (D-280), or, when there is
+ * none to draw -- none supplied, not read within the time allowed, or a kind
+ * the renderer cannot draw --, the site's neutral lettered mark (`initials`,
+ * as `EntityImage` draws it): the club's letters in a plain square, which
+ * cannot pass for a crest (rule 3), and never an empty shape (PR 888 review).
  */
-export function Crest({ src, size }: { src: string | null; size: number }): ReactElement {
+export function Crest({
+  src,
+  size,
+  name,
+  ring = RULE,
+}: {
+  src: string | null;
+  size: number;
+  /** Whose crest it is: the lettered mark's letters when there is no picture. */
+  name: string;
+  /** The lettered mark's edge: the rule on Night, the band's text on a club's band. */
+  ring?: string;
+}): ReactElement {
   if (src === null) {
+    const letters = initials(name, 'crest') || Array.from(name.trim())[0] || '';
     return (
       <div
         style={flex({
           width: size,
           height: size,
-          borderRadius: size,
-          border: `3px solid ${RULE}`,
+          borderRadius: Math.round(size * 0.18),
+          border: `3px solid ${ring}`,
+          background: NIGHT_COLOURS.surface,
+          color: INK,
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: Math.round(size * (letters.length > 1 ? 0.34 : 0.42)),
+          fontWeight: 800,
+          letterSpacing: 1,
         })}
-      />
+      >
+        {letters}
+      </div>
     );
   }
   const inner = Math.round(size * 0.7);
@@ -145,6 +178,50 @@ export function PlainCard(): ReactElement {
   );
 }
 
+/**
+ * The brand card (T-1825, D-419; B10 "Typographic wall"): the card of every
+ * page with no card of its own. Only type: the brand line at 108px over
+ * three lines with "record" lit in saffron, the mark and name above it, the
+ * strap and the address under it. Static, so it never goes stale. The
+ * renderer does not flow text across differently styled spans, so the line
+ * is one word per box in a wrapping row, a word space apart.
+ */
+export function BrandCardImage({ host }: { host: string }): ReactElement {
+  const words = [
+    ...BRAND_CARD.before.split(' ').map((word) => ({ word, lit: false })),
+    { word: BRAND_CARD.lit, lit: true },
+    ...BRAND_CARD.after.split(' ').map((word) => ({ word, lit: false })),
+  ];
+  return (
+    <Frame padding="52px 64px 44px" gap={0}>
+      <Wordmark host={null} size={28} />
+      <div
+        style={flex({
+          flexWrap: 'wrap',
+          columnGap: 27,
+          width: 1072,
+          fontSize: 108,
+          fontWeight: 800,
+          lineHeight: 1.01,
+          letterSpacing: -2.5,
+        })}
+      >
+        {words.map(({ word, lit }, index) => (
+          <div key={index} style={flex({ color: lit ? SAFFRON : INK })}>
+            {word}
+          </div>
+        ))}
+      </div>
+      <div style={flex({ alignItems: 'baseline', justifyContent: 'space-between', gap: 32 })}>
+        <div style={flex({ fontFamily: MONO, fontSize: 28, color: MUTED, letterSpacing: 0.5 })}>
+          {BRAND_CARD.strap}
+        </div>
+        <div style={flex({ fontFamily: MONO, fontSize: 26, color: CAPTION })}>{host}</div>
+      </div>
+    </Frame>
+  );
+}
+
 function TeamColumn({
   name,
   crest,
@@ -164,7 +241,7 @@ function TeamColumn({
         gap: 18,
       })}
     >
-      <Crest src={crest} size={176} />
+      <Crest src={crest} size={176} name={name} />
       <div
         style={flex({
           textAlign: 'center',
@@ -339,5 +416,183 @@ export function MemberCardImage({
       </div>
       <Wordmark host={host} />
     </Frame>
+  );
+}
+
+/**
+ * The team card (T-1826, D-420; T1 "Club band"): the club page's band as a
+ * card. The top 232px are the club's colour (`paint`, from `bandColours`, or
+ * the neutral slate when the club has none or one that looks like a
+ * placeholder), with the crest on its white tile -- or an empty ring --, the
+ * eyebrow and the name; under it the main competition and the standing,
+ * the next match in its own panel, the date the card was drawn and the mark.
+ * An absent competition or match is said in the muted colour, never hidden
+ * or invented (rule 3). Laid out absolutely, as the board draws it: the
+ * renderer draws left to right only, and the words are English (D-419).
+ */
+export function TeamCardImage({
+  text,
+  host,
+  crest,
+  paint,
+}: {
+  text: TeamCardText;
+  host: string;
+  crest: string | null;
+  paint: { fill: string; text: string };
+}): ReactElement {
+  const size = teamNameSize(text.name);
+  const fixture = teamFixtureSize(text.next.match);
+  return (
+    <div
+      style={flex({
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        background: GROUND,
+        color: INK,
+        fontFamily: SANS,
+      })}
+    >
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: 1200,
+          height: 232,
+          background: paint.fill,
+        })}
+      />
+      <div style={flex({ position: 'absolute', left: 64, top: 40 })}>
+        <Crest src={crest} size={152} name={text.name} ring={paint.text} />
+      </div>
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 250,
+          top: 34,
+          width: 886,
+          height: 172,
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 14,
+          color: paint.text,
+        })}
+      >
+        {text.eyebrow !== '' && (
+          <div
+            style={flex({
+              fontFamily: MONO,
+              fontSize: 24,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+            })}
+          >
+            {text.eyebrow}
+          </div>
+        )}
+        <div
+          style={flex({ fontSize: size, fontWeight: 800, lineHeight: 1.02, letterSpacing: -0.5 })}
+        >
+          {text.name}
+        </div>
+      </div>
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 64,
+          top: 260,
+          width: 1072,
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: 32,
+        })}
+      >
+        <div
+          style={flex({
+            fontSize: text.competition.known ? 38 : 34,
+            fontWeight: text.competition.known ? 800 : 700,
+            color: text.competition.known ? INK : MUTED,
+          })}
+        >
+          {text.competition.name}
+        </div>
+        {text.standing !== null && (
+          <div style={flex({ fontSize: 34, fontWeight: 700, color: MUTED })}>{text.standing}</div>
+        )}
+      </div>
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 64,
+          // A fixed box (y 330 to 526): however the fixture wraps, the
+          // "As of" date under it (from y 556) stays clear (code review, pull request 888).
+          top: 330,
+          width: 1072,
+          height: PANEL_HEIGHT,
+          overflow: 'hidden',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 8,
+          padding: '20px 36px 22px',
+          borderRadius: 18,
+          background: NIGHT_COLOURS.surface,
+        })}
+      >
+        <div
+          style={flex({
+            fontFamily: MONO,
+            fontSize: 24,
+            textTransform: 'uppercase',
+            letterSpacing: 1,
+            color: text.next.known ? SAFFRON : MUTED,
+          })}
+        >
+          {text.next.label}
+        </div>
+        <div
+          style={{
+            display: 'block',
+            lineClamp: 2,
+            fontSize: fixture,
+            fontWeight: 700,
+            lineHeight: 1.1,
+            maxHeight: Math.ceil(fixture * 1.1 * 2),
+            color: text.next.known ? INK : MUTED,
+          }}
+        >
+          {text.next.match}
+        </div>
+        {text.next.detail !== null && (
+          <div
+            style={{
+              display: 'block',
+              lineClamp: 1,
+              fontSize: 30,
+              lineHeight: 1.2,
+              color: MUTED,
+            }}
+          >
+            {text.next.detail}
+          </div>
+        )}
+      </div>
+      <div
+        style={flex({
+          position: 'absolute',
+          left: 64,
+          bottom: 48,
+          fontFamily: MONO,
+          fontSize: 22,
+          color: CAPTION,
+        })}
+      >
+        {text.asOf}
+      </div>
+      <div style={flex({ position: 'absolute', right: 64, bottom: 40 })}>
+        <Wordmark host={host} size={22} />
+      </div>
+    </div>
   );
 }

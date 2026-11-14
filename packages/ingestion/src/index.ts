@@ -63,9 +63,12 @@ export {
 // Items about another sport that shares the word "football" (T-1400, D-215).
 export {
   OTHER_CODE_RULES,
+  OTHER_SPORT_EVENT_NAMES,
+  OTHER_SPORT_EVENT_SPORTS,
   type OtherCode,
   type OtherCodeRule,
   otherCodeOf,
+  otherSportEventOf,
 } from './news/other-code';
 // Items whose own headline says they are not articles (T-1396, D-211).
 export {
@@ -74,6 +77,8 @@ export {
   type NonArticleRule,
   nonArticleKind,
 } from './news/non-article';
+// Headlines the lists do not show, applied on read only (T-1818, D-413).
+export { HIDDEN_HEADLINES, type HiddenHeadline, hiddenHeadline } from './news/hidden-headlines';
 export {
   type ProvenanceInput,
   type ProvenanceVerdict,

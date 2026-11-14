@@ -33,6 +33,7 @@ const request = (overrides: Partial<ConsoleRequestDetail>): ConsoleRequestDetail
   status: 'new',
   priority: 'normal',
   created_by: 'Mostafa',
+  created_by_username: 'mostafa',
   created_at: '2026-11-03T08:00:00.000Z',
   updated_at: '2026-11-03T08:00:00.000Z',
   result: null,
@@ -51,6 +52,7 @@ const request = (overrides: Partial<ConsoleRequestDetail>): ConsoleRequestDetail
 
 const list = (requests: ConsoleRequestDetail[]): ConsoleRequestList => ({
   requests,
+  filers: [{ username: 'mostafa', display_name: 'Mostafa', count: requests.length }],
   counts: {
     all: requests.length,
     open: requests.filter((r) => r.status !== 'done' && r.status !== 'cancelled').length,
@@ -135,6 +137,8 @@ describe('the pulled file and the summary', () => {
       [ID2, 'approve', true],
       [ID, 'waiting', false],
     ]);
+    // T-1831: each line names who filed it.
+    expect(out.open[0]).toMatchObject({ created_by: 'Mostafa', created_by_username: 'mostafa' });
   });
 });
 

@@ -358,6 +358,24 @@ function History({ events }: { events: ConsoleRequestEvent[] }) {
   );
 }
 
+/** Said when a request carries no filer's name (T-1831, D-424). */
+export const UNKNOWN_FILER = 'ثبت‌کننده نامشخص';
+
+/** Who filed the request: the console account signed in when it was added (T-1831, D-424). */
+export function FilerBadge({ request }: { request: Pick<ConsoleRequestDetail, 'created_by'> }) {
+  const name = (request.created_by ?? '').trim();
+  return name === '' ? (
+    <Badge tone="border-default text-caption">{UNKNOWN_FILER}</Badge>
+  ) : (
+    <Badge tone="border-strong text-fg">
+      <span className="text-muted">ثبت‌کننده:</span>
+      <span className="ms-1 font-bold" dir="auto" data-testid="filer">
+        {name}
+      </span>
+    </Badge>
+  );
+}
+
 /**
  * One request: on a wide screen the request at the start and the result at
  * the end; its pictures under the details (T-1731). `base` is the console's
@@ -373,7 +391,8 @@ export function RequestCard({
   const open = OPEN.includes(request.status);
   return (
     <article
-      className={`flex flex-col gap-4 rounded-card border bg-surface p-4 md:p-5 ${
+      id={`r-${request.id}`}
+      className={`flex scroll-mt-4 flex-col gap-4 rounded-card border bg-surface p-4 md:p-5 ${
         request.status === 'waiting_decision' ? 'border-warning' : 'border-default'
       }`}
       aria-labelledby={`request-${request.id}`}
@@ -387,6 +406,7 @@ export function RequestCard({
             {request.execute_requested_at !== null && (
               <Badge tone="border-brand bg-brand text-on-brand">در صف اجرا</Badge>
             )}
+            <FilerBadge request={request} />
           </div>
           <h2
             id={`request-${request.id}`}
@@ -406,9 +426,7 @@ export function RequestCard({
             images={request.images ?? []}
             open={open}
           />
-          <p className="text-xs text-caption">
-            ثبت: <span dir="auto">{request.created_by}</span> · {when(request.created_at)}
-          </p>
+          <p className="text-xs text-caption">ثبت: {when(request.created_at)}</p>
         </div>
         <ResultBox request={request} />
       </div>

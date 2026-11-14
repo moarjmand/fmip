@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { AuthUser } from '@fmip/contracts';
+import type { AuthUser, SignupSource } from '@fmip/contracts';
 import { Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { LOCKED_CURRENT_RULES_VERSION_SQL } from './platform-rules-store';
@@ -69,6 +69,24 @@ export class PostgresIdentityStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
   /** The user and their password credential, in one transaction: neither exists without the other. */
+  /**
+   * One more sign-up in this month's count for where it started (T-1821,
+   * D-415): an aggregate with no account id and no time finer than the month.
+   * Its own statement, committed after the account's transaction and never
+   * inside it, so the row's version never carries the account's transaction
+   * id; the daily retention run then rewrites every row in one transaction
+   * (`RetentionStore.restampSignupSources`).
+   */
+  async countSignupSource(source: SignupSource): Promise<void> {
+    await this.pool.query(
+      `INSERT INTO signup_source_monthly (month, entry, referrer_host, sign_ups)
+       VALUES (date_trunc('month', now() AT TIME ZONE 'UTC')::date, $1, $2, 1)
+       ON CONFLICT (month, entry, referrer_host)
+       DO UPDATE SET sign_ups = signup_source_monthly.sign_ups + 1`,
+      [source.entry, source.referrer_host ?? ''],
+    );
+  }
+
   async createUser(input: NewUser): Promise<CreateUserResult> {
     const client: PoolClient = await this.pool.connect();
 

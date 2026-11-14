@@ -264,7 +264,9 @@ describe('plurals (T-301)', () => {
     // T-1783: three added (the leaderboard card's third step, long and short,
     // and the folded filters' "N applied").
     // T-1807: two added (the coach record's age, in the band and the career).
-    expect(pluralKeys).toHaveLength(120);
+    // T-1751: four added (the calibration's sample, a step in its sentence,
+    // its too-thin note, a version under the sample rule).
+    expect(pluralKeys).toHaveLength(124);
     expect(pluralKeys.filter((key) => (EN[key] as PluralForms).type === 'ordinal')).toEqual([
       'team.position',
     ]);

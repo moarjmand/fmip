@@ -7,7 +7,9 @@ import type {
   ForecastEvaluation,
   ModelPerformanceResponse,
   PublicModelAccuracyResponse,
+  ScoreConflict,
 } from '@fmip/contracts';
+import { scoreConflictOf } from '@fmip/contracts';
 import { beingJudged, consoleModelReport, inputState } from './internal/console-model';
 import { type CountedRow, PostgresEvaluationStore } from './internal/evaluation-store';
 import { adminAccuracy, publicAccuracy } from './internal/model-accuracy';
@@ -18,7 +20,13 @@ export type CountedEvaluation = CountedRow;
 const DAY_MS = 86_400_000;
 
 export type EvaluateOutcome =
-  | { kind: 'evaluated'; added: number; evaluations: ForecastEvaluation[] }
+  | {
+      kind: 'evaluated';
+      added: number;
+      evaluations: ForecastEvaluation[];
+      /** The stored scores contradict each other (T-1819, D-414); the admin sees it said. */
+      scoreConflict: ScoreConflict | null;
+    }
   | { kind: 'not_finished'; status: string }
   | { kind: 'no_final_score' }
   | { kind: 'unknown_fixture' };
@@ -48,13 +56,41 @@ export class EvaluationService {
       const scored = score(version.probabilities, version.mostLikely, actual.home, actual.away);
       if (await this.store.record(version, fixture, actual, scored)) added += 1;
     }
-    return { kind: 'evaluated', added, evaluations: await this.store.evaluations(fixtureId) };
+    return {
+      kind: 'evaluated',
+      added,
+      evaluations: await this.store.evaluations(fixtureId),
+      scoreConflict: scoreConflictOf(fixture.status, {
+        current: fixture.current ?? null,
+        full_time: fixture.fullTime,
+        extra_time: fixture.extraTime ?? null,
+      }),
+    };
   }
 
   async evaluations(fixtureId: string): Promise<FixtureEvaluationsResponse | null> {
-    if ((await this.store.fixtureResult(fixtureId)) === null) return null;
+    const fixture = await this.store.fixtureResult(fixtureId);
+    if (fixture === null) return null;
     const evaluations = await this.store.evaluations(fixtureId);
     const last = evaluations.at(-1);
+    // Stored scores that contradict each other (T-1819, D-414): each
+    // evaluation was scored against one of the two numbers, so none is
+    // served and no page states that number or a winner. The aggregates,
+    // read apart, still count them (D-139).
+    const conflict = scoreConflictOf(fixture.status, {
+      current: fixture.current ?? null,
+      full_time: fixture.fullTime,
+      extra_time: fixture.extraTime ?? null,
+    });
+    if (conflict !== null) {
+      return {
+        fixture_id: fixtureId,
+        coverage: conflict.coverage,
+        last_updated_at: last?.evaluated_at ?? null,
+        evaluations: [],
+        score_conflict: conflict,
+      };
+    }
     return {
       fixture_id: fixtureId,
       coverage: evaluations.length === 0 ? 'not_supplied' : 'available',
@@ -100,13 +136,26 @@ export class EvaluationService {
     return beingJudged(counts, published);
   }
 
-  /** The public page's figures (T-1369): published forecasts only, by month or ISO week (T-1413). */
-  async publicAccuracy(period: AccuracyPeriod = 'month'): Promise<PublicModelAccuracyResponse> {
-    const [rows, competitions] = await Promise.all([
+  /**
+   * The public page's figures (T-1369): published forecasts only, by month or
+   * ISO week (T-1413); with the calibration, each published version on its
+   * own and whether each period is over (T-1751, D-408), all read from the
+   * stored forecasts and evaluations, nothing written. `calibration: false`
+   * leaves the calibration out and does not read it: it does not depend on
+   * the period, so a page asking for months and weeks computes it once.
+   */
+  async publicAccuracy(
+    period: AccuracyPeriod = 'month',
+    now: Date = new Date(),
+    { calibration: withCalibration = true }: { calibration?: boolean } = {},
+  ): Promise<PublicModelAccuracyResponse> {
+    const [rows, competitions, calibration, pending] = await Promise.all([
       this.store.accuracySums(period, 'published'),
       this.store.publishedCompetitions(),
+      withCalibration ? this.store.publicCalibration() : Promise.resolve(null),
+      this.store.pendingPeriods(period, now),
     ]);
-    return publicAccuracy(rows, competitions, period);
+    return publicAccuracy(rows, competitions, period, { calibration, pending, now });
   }
 
   /**

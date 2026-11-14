@@ -14,6 +14,7 @@ import { availabilityOf, keyPlayersSide, pickKeyPlayers } from './internal/key-p
 import { PostgresKeyPlayersStore, type TeamSeason } from './internal/key-players-store';
 import { FORM_WINDOW, PostgresMatchCentreStore } from './internal/match-centre-store';
 import { PostgresScoresStore, type ScoredRow } from './internal/scores-store';
+import { scoreConflictOf, withheld } from './internal/score-conflict';
 import { scoreDisputeOf } from './internal/score-dispute';
 
 // The module's public surface. Other modules import from this file only.
@@ -161,10 +162,17 @@ export class FixturesService {
       venue: header.venue === null ? [] : [header.venue.id],
     });
     const withPhoto = <P extends { id: string }>(p: P) => ({ ...p, photo: media.photo(p.id) });
+    // Stored scores that contradict each other (T-1819, D-414): the lines in
+    // conflict are withheld and the score is `limited`; the goals-against-result
+    // dispute (D-347) has no result left to judge then.
+    const conflict = scoreConflictOf(header.status, header.scores);
     const fixture = {
       ...header,
+      scores: withheld(header.scores, conflict),
       // The recorded goals against the result, from the rows loaded above (T-1717, D-347).
-      score_dispute: scoreDisputeOf(header.status, header.scores, incidents.rows),
+      score_dispute:
+        conflict === null ? scoreDisputeOf(header.status, header.scores, incidents.rows) : null,
+      score_conflict: conflict,
       competition: { ...header.competition, logo: media.logo(header.competition.id) },
       home: { ...header.home, crest: media.crest(header.home.id) },
       away: { ...header.away, crest: media.crest(header.away.id) },
@@ -229,7 +237,8 @@ export class FixturesService {
         away: derived(awayForm, FORM_WINDOW, awayForm[0]?.kickoff_at ?? null),
       },
       head_to_head: derived(meetings, FORM_WINDOW, meetings[0]?.kickoff_at ?? null),
-      coverage,
+      // This match's score is limited whatever the season declares (D-414).
+      coverage: conflict === null ? coverage : { ...coverage, scores: conflict.coverage },
     };
   }
 

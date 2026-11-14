@@ -4,6 +4,7 @@ import { DeliveryModule } from '../delivery/delivery.module';
 import { FailureCountsModule } from '../failure-counts/failure-counts.module';
 import { ConsoleRemindersController } from './console-reminders.controller';
 import { ConsoleRemindersScheduler } from './console-reminders-scheduler.service';
+import { ConsoleRequestAlerts } from './console-request-alerts.service';
 import { ConsoleReminders } from './console-reminders.service';
 
 /**
@@ -16,6 +17,7 @@ import { ConsoleReminders } from './console-reminders.service';
 @Module({
   imports: [AgentsConsoleModule, DeliveryModule, FailureCountsModule],
   controllers: [ConsoleRemindersController],
-  providers: [ConsoleReminders, ConsoleRemindersScheduler],
+  // T-1832 (D-425): new teammate requests, by the same push channel and browsers.
+  providers: [ConsoleReminders, ConsoleRemindersScheduler, ConsoleRequestAlerts],
 })
 export class ConsoleRemindersModule {}

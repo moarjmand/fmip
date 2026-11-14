@@ -9,6 +9,7 @@ import type {
 } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
+import { EVALUATE_WINDOW_DAYS } from './evaluation-window';
 import type { AccuracySumRow } from './model-accuracy';
 import { rps, type Scored } from './scoring';
 
@@ -19,6 +20,13 @@ export interface FixtureResult {
   kickoffAt: Date;
   /** The full-time score, or null when none has been recorded. */
   fullTime: { home: number; away: number } | null;
+  /**
+   * The score after play and the extra-time line (D-317), read so the
+   * evaluation answer can tell stored scores that contradict each other
+   * (T-1819, D-414); absent where a caller builds a result by hand.
+   */
+  current?: { home: number; away: number } | null;
+  extraTime?: { home: number; away: number } | null;
 }
 
 /** An available forecast version with no evaluation yet. */
@@ -138,22 +146,33 @@ export class PostgresEvaluationStore {
       kickoff_at: Date;
       home: number | null;
       away: number | null;
+      cur_home: number | null;
+      cur_away: number | null;
+      et_home: number | null;
+      et_away: number | null;
     }>(
-      `SELECT f.id, se.competition_id, f.status, f.kickoff_at, sc.home, sc.away
+      `SELECT f.id, se.competition_id, f.status, f.kickoff_at, sc.home, sc.away,
+              cur.home AS cur_home, cur.away AS cur_away, et.home AS et_home, et.away AS et_away
          FROM fixture f
          JOIN season se ON se.id = f.season_id
          LEFT JOIN fixture_score sc ON sc.fixture_id = f.id AND sc.kind = 'full_time'
+         LEFT JOIN fixture_score cur ON cur.fixture_id = f.id AND cur.kind = 'current'
+         LEFT JOIN fixture_score et ON et.fixture_id = f.id AND et.kind = 'extra_time'
         WHERE f.id = $1`,
       [fixtureId],
     );
     const row = rows[0];
     if (row === undefined) return null;
+    const line = (home: number | null, away: number | null) =>
+      home === null || away === null ? null : { home, away };
     return {
       id: row.id,
       competitionId: row.competition_id,
       status: row.status,
       kickoffAt: row.kickoff_at,
-      fullTime: row.home === null || row.away === null ? null : { home: row.home, away: row.away },
+      fullTime: line(row.home, row.away),
+      current: line(row.cur_home, row.cur_away),
+      extraTime: line(row.et_home, row.et_away),
     };
   }
 
@@ -415,7 +434,13 @@ export class PostgresEvaluationStore {
                 -- kick-off (for the console, per model version and role).
                 row_number() OVER (
                   PARTITION BY e.fixture_id${byModel ? ', f.role, m.model_id' : ''}
-                  ORDER BY f.computed_at DESC, f.id DESC) = 1 AS counted
+                  ORDER BY f.computed_at DESC, f.id DESC) = 1 AS counted,
+                -- The public read groups every version of a match under the
+                -- version of its counted forecast (T-1751), so the versions'
+                -- matches add up to the whole and the totals are unchanged.
+                first_value(m.model_id) OVER (
+                  PARTITION BY e.fixture_id${byModel ? ', f.role, m.model_id' : ''}
+                  ORDER BY f.computed_at DESC, f.id DESC) AS counted_model
            FROM evaluation e
            JOIN forecast f ON f.id = e.forecast_id
            JOIN model_version m ON m.id = f.model_version_id
@@ -424,7 +449,7 @@ export class PostgresEvaluationStore {
            JOIN competition co ON co.id = se.competition_id
           WHERE e.pre_kickoff ${byModel ? '' : `AND f.role = 'published'`}
        )
-       SELECT ${byModel ? 's.role, s.model_id' : 'NULL::text AS role, NULL::text AS model_id'},
+       SELECT ${byModel ? 's.role, s.model_id' : 'NULL::text AS role, s.counted_model AS model_id'},
               COALESCE(array_agg(DISTINCT s.model_id ORDER BY s.model_id)
                          FILTER (WHERE s.counted), '{}') AS model_ids,
               s.competition_id::text AS competition_id, s.competition_name,
@@ -438,7 +463,7 @@ export class PostgresEvaluationStore {
               (COUNT(*) FILTER (WHERE s.counted AND s.correct))::int AS correct,
               MAX(s.evaluated_at) AS last_evaluated_at
          FROM scored s
-        GROUP BY ${byModel ? 's.role, s.model_id, ' : ''}s.competition_id, s.competition_name,
+        GROUP BY ${byModel ? 's.role, s.model_id, ' : 's.counted_model, '}s.competition_id, s.competition_name,
                  s.period
         ORDER BY period_start`,
     );
@@ -456,6 +481,90 @@ export class PostgresEvaluationStore {
       uniformRps: Number(row.uniform_rps),
       correct: row.correct,
       lastEvaluatedAt: row.last_evaluated_at,
+    }));
+  }
+
+  /**
+   * The public calibration's sums (T-1751, D-408): each match once, by its
+   * counted forecast (the last published one before kick-off, as
+   * `accuracySums`), its three probabilities pooled into ten steps of ten
+   * points, per model version. The step is `floor(p * 10)` on the stored
+   * `numeric(5, 4)`, exact, with 1.0000 in the top step; `said` is the sum of
+   * the probabilities, as text so no digit is lost before the division.
+   * Read only: nothing is written (rule 5).
+   */
+  async publicCalibration(): Promise<CalibrationSumRow[]> {
+    const { rows } = await this.pool.query<{
+      model_id: string;
+      bin: number;
+      forecasts: number;
+      happened: number;
+      said: string;
+    }>(
+      `WITH counted AS (
+         SELECT DISTINCT ON (e.fixture_id) m.model_id, e.outcome, f.p_home, f.p_draw, f.p_away
+           FROM evaluation e
+           JOIN forecast f ON f.id = e.forecast_id
+           JOIN model_version m ON m.id = f.model_version_id
+          WHERE e.pre_kickoff AND f.role = 'published'
+          ORDER BY e.fixture_id, f.computed_at DESC, f.id DESC)
+       SELECT c.model_id, LEAST(floor(o.p * 10), 9)::int AS bin,
+              COUNT(*)::int AS forecasts,
+              (COUNT(*) FILTER (WHERE c.outcome::text = o.outcome))::int AS happened,
+              SUM(o.p)::text AS said
+         FROM counted c
+        CROSS JOIN LATERAL (VALUES ('home', c.p_home), ('draw', c.p_draw),
+                                   ('away', c.p_away)) o(outcome, p)
+        WHERE o.p IS NOT NULL
+        GROUP BY 1, 2
+        ORDER BY 1, 2`,
+    );
+    return rows.map((row) => ({
+      modelVersion: row.model_id,
+      bin: row.bin,
+      forecasts: row.forecasts,
+      happened: row.happened,
+      said: Number(row.said),
+    }));
+  }
+
+  /**
+   * The periods still waiting for a score (T-1751, D-408): per competition,
+   * the week or month (UTC, as `accuracySums`) of each match that kicked off
+   * within `EVALUATE_WINDOW_DAYS` before `now` -- the window in which the
+   * evaluation tick still scores a finished match, so a result that arrives
+   * late still lands in a period the page calls running (review of PR #883)
+   * -- has a published forecast made before kick-off, is not postponed,
+   * cancelled, abandoned or awarded, and has no published pre-kick-off
+   * evaluation yet. A period with one is still running, however late it is.
+   */
+  async pendingPeriods(
+    period: AccuracyPeriod,
+    now: Date,
+  ): Promise<{ competitionId: string; periodStart: string }[]> {
+    // Interpolated, never a parameter, as in `accuracySums`.
+    const unit = period === 'week' ? 'week' : 'month';
+    const { rows } = await this.pool.query<{ competition_id: string; period_start: string }>(
+      `SELECT DISTINCT se.competition_id::text AS competition_id,
+              to_char(date_trunc('${unit}', fx.kickoff_at AT TIME ZONE 'UTC'), 'YYYY-MM-DD')
+                AS period_start
+         FROM fixture fx
+         JOIN season se ON se.id = fx.season_id
+        WHERE fx.kickoff_at >= $1 AND fx.kickoff_at <= $2
+          AND fx.status IN ('scheduled', 'live', 'suspended', 'finished')
+          AND EXISTS (
+                SELECT 1 FROM forecast f
+                 WHERE f.fixture_id = fx.id AND f.role = 'published'
+                   AND f.status = 'available' AND f.computed_at < fx.kickoff_at)
+          AND NOT EXISTS (
+                SELECT 1 FROM evaluation e JOIN forecast f2 ON f2.id = e.forecast_id
+                 WHERE e.fixture_id = fx.id AND e.pre_kickoff AND f2.role = 'published')`,
+      // The same bound as `ForecastTriggersService.evaluateFinished`'s.
+      [new Date(now.getTime() - EVALUATE_WINDOW_DAYS * 86_400_000), now],
+    );
+    return rows.map((row) => ({
+      competitionId: row.competition_id,
+      periodStart: row.period_start,
     }));
   }
 
@@ -1163,6 +1272,17 @@ export interface VersionPairRow {
   /** `a` minus `b` in log loss, per match. */
   difference: number;
   differenceSd: number | null;
+}
+
+/** One model version's probabilities in one calibration step, summed (T-1751). */
+export interface CalibrationSumRow {
+  modelVersion: string;
+  /** 0 to 9: the step `[bin / 10, (bin + 1) / 10)`, the last one closed. */
+  bin: number;
+  forecasts: number;
+  happened: number;
+  /** The probabilities' sum: their mean is `said / forecasts`. */
+  said: number;
 }
 
 export interface CalibrationRow {

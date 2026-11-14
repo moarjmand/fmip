@@ -56,7 +56,9 @@ export default async function ModelAccuracyPage({
   const period = query.period === 'week' ? 'week' : 'month';
   const [result, weeks] = await Promise.all([
     fetchModelAccuracy(period),
-    period === 'week' ? null : fetchModelAccuracy('week'),
+    // The weekly chart needs the points only: the calibration, which does not
+    // depend on the period, comes with the first answer (T-1751).
+    period === 'week' ? null : fetchModelAccuracy('week', { calibration: false }),
   ]);
   const report = result.ok ? result.data : null;
   // A weekly report is its own chart; beside a monthly one, the second answer or nothing.

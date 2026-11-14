@@ -18,6 +18,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CALENDAR, CALENDAR_PUSH } from './calendar.fixture';
 import { MODEL_LAB, MODEL_REPORT } from './model-report.fixture';
+import { PROVIDERS } from './providers.fixture';
 
 /**
  * The console is Persian only (T-1725, D-352), and each agent page draws how
@@ -73,6 +74,7 @@ vi.mock('@/lib/console-actions', () => {
     registerReminderDevice: async () => ({ ok: true, error: null }),
     removeReminderDevice: async () => ({ ok: true }),
     testReminder: async () => null,
+    setRequestAlerts: async () => ({ ok: true, error: null }),
   };
 });
 vi.mock('@/lib/console-api', () => {
@@ -191,7 +193,12 @@ vi.mock('@/lib/console-api', () => {
       }),
     // Teammate requests (T-1728): one of every state, with the English the
     // API really sends (statuses, kinds, choices) and Persian free text.
-    consoleRequests: () => ok({ requests: REQUESTS, counts: REQUEST_COUNTS }),
+    consoleRequests: () =>
+      ok({
+        requests: REQUESTS,
+        counts: REQUEST_COUNTS,
+        filers: [{ username: 'maryam', display_name: 'مریم', count: 2 }],
+      }),
     consoleRequestCounts: () => ok(REQUEST_COUNTS),
     // T-1788: the calendar and the subscriptions, Persian free text.
     consoleCalendar: () => ok(CALENDAR),
@@ -330,6 +337,7 @@ const requestFixture = (overrides: Partial<ConsoleRequestDetail>): ConsoleReques
   status: 'new',
   priority: 'normal',
   created_by: 'مریم',
+  created_by_username: 'maryam',
   created_at: '2026-11-03T08:00:00Z',
   updated_at: '2026-11-03T08:00:00Z',
   result: null,
@@ -561,6 +569,8 @@ const SNAPSHOT: ConsoleSnapshot = {
   ],
   // T-1752: the lab's ledger, a slice of the real file, so its Persian is scanned too.
   model_lab: MODEL_LAB,
+  // T-1830: the data providers' comparison, the publisher's fixture after its check.
+  providers: PROVIDERS,
 };
 
 // --- The scan ------------------------------------------------------------------
@@ -629,6 +639,18 @@ const TECHNICAL_TERMS = new Set([
   'fa',
   'D-xxx',
   'YYYY-MM-DD',
+  // T-1830: data providers and their plans are named in English in the research's Persian text.
+  'API-Football',
+  'Sportmonks',
+  'Sportradar',
+  'Starter',
+  'Growth',
+  'Advanced',
+  'Ultra',
+  'Enterprise',
+  'PayPal',
+  'SLA',
+  'KYC',
 ]);
 
 const isTechnical = (word: string) =>
@@ -825,6 +847,11 @@ describe('the Persian-only scan', () => {
     ],
     ['the forecast model', async () => render((await import('./(app)/model/page')).default())],
     [
+      'the data providers',
+      async () =>
+        render((await import('./(app)/providers/page')).default({ searchParams: params({}) })),
+    ],
+    [
       'the header',
       async () => render((await import('./(app)/layout')).default({ children: <p>بدنه</p> })),
     ],
@@ -898,6 +925,7 @@ describe('the Persian-only scan', () => {
       './(app)/decisions/page',
       './(app)/findings/page',
       './(app)/model/page',
+      './(app)/providers/page',
       './(app)/reports/page',
       './(app)/requests/page',
       './(open)/login/page',

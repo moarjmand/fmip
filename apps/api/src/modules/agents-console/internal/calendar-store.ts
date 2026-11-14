@@ -369,6 +369,58 @@ export class PostgresCalendarStore {
     return rows;
   }
 
+  /**
+   * The browsers that take new-request notifications (T-1832, D-425): every
+   * enabled person who switched them on, except `filer`, who filed it.
+   */
+  async requestAlertDevices(filer: string): Promise<ConsolePushDevice[]> {
+    const { rows } = await this.pool.query<ConsolePushDevice>(
+      `SELECT d.id, d.user_id, d.endpoint, d.p256dh, d.auth
+         FROM console_push_device d JOIN console_user u ON u.id = d.user_id
+        WHERE u.disabled_at IS NULL AND u.request_alerts AND d.user_id <> $1
+        ORDER BY d.created_at`,
+      [filer],
+    );
+    return rows;
+  }
+
+  /** Whether a person takes new-request notifications (T-1832). */
+  async requestAlerts(userId: string): Promise<boolean> {
+    const { rows } = await this.pool.query<{ on: boolean }>(
+      `SELECT request_alerts AS on FROM console_user WHERE id = $1`,
+      [userId],
+    );
+    return rows[0]?.on ?? false;
+  }
+
+  /** Switches a person's new-request notifications on or off; audited with the value before. */
+  async setRequestAlerts(actor: ConsoleMe, on: boolean): Promise<void> {
+    await this.transaction(async (client) => {
+      const { rows } = await client.query<{ on: boolean }>(
+        `SELECT request_alerts AS on FROM console_user WHERE id = $1 FOR UPDATE`,
+        [actor.id],
+      );
+      const before = rows[0]?.on ?? false;
+      if (before === on) return;
+      await client.query(`UPDATE console_user SET request_alerts = $2 WHERE id = $1`, [
+        actor.id,
+        on,
+      ]);
+      await writeConsoleAudit(client, {
+        actorId: actor.id,
+        actorName: actor.username,
+        action: on ? 'requests.alerts_on' : 'requests.alerts_off',
+        targetType: 'console_user',
+        targetId: actor.id,
+        reason: on
+          ? 'new-request notifications switched on'
+          : 'new-request notifications switched off',
+        previous: { request_alerts: before },
+        next: { request_alerts: on },
+      });
+    });
+  }
+
   async deviceUsed(id: string): Promise<void> {
     await this.pool.query(`UPDATE console_push_device SET last_used_at = now() WHERE id = $1`, [
       id,

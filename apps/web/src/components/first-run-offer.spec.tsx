@@ -40,10 +40,15 @@ describe('home’s order (D-373)', () => {
   });
 
   it('with no main match, puts the strip first in the column, right after the "Today" line', () => {
-    // The only things between the dateline and the strip are the column's
-    // opening and the hero, drawn only when there is one.
+    // The only things between the dateline and the strip are a guest's brand
+    // line under the "Today" line (T-1827, D-421: part of that line's block),
+    // the column's opening and the hero, drawn only when there is one.
     const between = HOME.slice(at('<HomeDateline'), at('{offerFirstRun && <FirstRunOffer'));
-    expect(between.match(/<[A-Z][A-Za-z]+/g)).toEqual(['<HomeDateline', '<BigMatch']);
+    expect(between.match(/<[A-Z][A-Za-z]+/g)).toEqual([
+      '<HomeDateline',
+      '<BrandLineStrap',
+      '<BigMatch',
+    ]);
   });
 
   it('offers it nowhere else on the page', () => {

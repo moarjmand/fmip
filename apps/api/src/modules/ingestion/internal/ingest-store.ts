@@ -309,18 +309,29 @@ export class IngestStore implements SquadStore {
     competitionId: string,
     fromIso: string,
     toIso: string,
-  ): Promise<{ externalId: string; fixtureId: string; status: string; kickoffAt: string }[]> {
+  ): Promise<
+    {
+      externalId: string;
+      fixtureId: string;
+      status: string;
+      kickoffAt: string;
+      /** When its detail was last asked after the whistle (T-1823); null if never. */
+      detailFetchedAt: string | null;
+    }[]
+  > {
     const { rows } = await this.pool.query<{
       external_id: string;
       fixture_id: string;
       status: string;
       kickoff_at: Date;
+      fetched_at: Date | null;
     }>(
-      `SELECT pm.external_id, f.id AS fixture_id, f.status, f.kickoff_at
+      `SELECT pm.external_id, f.id AS fixture_id, f.status, f.kickoff_at, d.fetched_at
          FROM fixture f
          JOIN season s ON s.id = f.season_id
          JOIN provider_mapping pm
            ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = $1
+         LEFT JOIN fixture_detail_fetch d ON d.fixture_id = f.id
         WHERE s.competition_id = $2 AND f.kickoff_at >= $3 AND f.kickoff_at < $4
         ORDER BY f.kickoff_at`,
       [provider, competitionId, fromIso, toIso],
@@ -330,6 +341,63 @@ export class IngestStore implements SquadStore {
       fixtureId: r.fixture_id,
       status: r.status,
       kickoffAt: r.kickoff_at.toISOString(),
+      detailFetchedAt: r.fetched_at === null ? null : r.fetched_at.toISOString(),
+    }));
+  }
+
+  /**
+   * Finished matches of the polled competitions kicked off in
+   * `[fromIso, beforeIso)` whose detail was asked after the whistle before
+   * `askedBeforeIso` and that still lack a side's line-up (T-1823, D-417):
+   * what the post-match run asks again. The longest-unasked first, at most
+   * `limit` (the run then orders them fairly across competitions).
+   */
+  async lineupsOwed(
+    provider: Provider,
+    competitionIds: string[],
+    fromIso: string,
+    beforeIso: string,
+    askedBeforeIso: string,
+    limit: number,
+  ): Promise<
+    {
+      externalId: string;
+      fixtureId: string;
+      competitionId: string;
+      kickoffAt: string;
+      askedAt: string;
+    }[]
+  > {
+    if (competitionIds.length === 0) return [];
+    const { rows } = await this.pool.query<{
+      external_id: string;
+      fixture_id: string;
+      competition_id: string;
+      kickoff_at: Date;
+      fetched_at: Date;
+    }>(
+      `SELECT pm.external_id, f.id AS fixture_id, s.competition_id, f.kickoff_at, d.fetched_at
+         FROM fixture f
+         JOIN season s ON s.id = f.season_id
+         JOIN provider_mapping pm
+           ON pm.internal_id = f.id AND pm.entity_type = 'fixture' AND pm.provider = $1
+         JOIN fixture_detail_fetch d ON d.fixture_id = f.id
+        WHERE s.competition_id = ANY($2::uuid[]) AND f.status = 'finished'
+          AND f.kickoff_at >= $3 AND f.kickoff_at < $4 AND d.fetched_at < $5
+          AND (SELECT count(DISTINCT fp.side)
+                 FROM fixture_participant fp
+                WHERE fp.fixture_id = f.id
+                  AND EXISTS (SELECT 1 FROM lineup l WHERE l.participant_id = fp.id)) < 2
+        ORDER BY d.fetched_at, f.kickoff_at
+        LIMIT $6`,
+      [provider, competitionIds, fromIso, beforeIso, askedBeforeIso, limit],
+    );
+    return rows.map((r) => ({
+      externalId: r.external_id,
+      fixtureId: r.fixture_id,
+      competitionId: r.competition_id,
+      kickoffAt: r.kickoff_at.toISOString(),
+      askedAt: r.fetched_at.toISOString(),
     }));
   }
 

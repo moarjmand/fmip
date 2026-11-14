@@ -944,6 +944,19 @@ describe('the preview', () => {
     );
   });
 
+  it('draws a dash, never a number or "v", when the stored scores contradict each other (T-1819, D-414)', () => {
+    // As the API serves it: the lines in conflict withheld.
+    const html = preview(null, null, AVAILABLE, 'en', {
+      ...started,
+      status: 'finished' as const,
+      scores: { ...started.scores, current: null, full_time: null, extra_time: null },
+      score_conflict: { coverage: 'limited', reasons: ['extra_time_sum'] },
+    });
+    expect(html).toMatch(/data-testid="preview-score">–</);
+    expect(html).toContain('data-testid="preview-score-unclear"');
+    expect(html).not.toContain('>v<');
+  });
+
   it('says full time on a finished match and postponed on one with no score', () => {
     const done = preview(null, null, AVAILABLE, 'en', {
       ...started,

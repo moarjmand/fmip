@@ -1,6 +1,6 @@
 import type {
-  AccuracyPoint,
   CompetitionPage,
+  PublicAccuracyPoint,
   PublicModelAccuracyResponse,
   SeasonFixture,
   TableRow,
@@ -361,9 +361,14 @@ describe('the day of matches (T-1498)', () => {
 });
 
 describe('the model in this league (T-1498)', () => {
-  const metrics = (matches: number, over: Partial<AccuracyPoint> = {}): AccuracyPoint => ({
+  const metrics = (
+    matches: number,
+    over: Partial<PublicAccuracyPoint> = {},
+  ): PublicAccuracyPoint => ({
     period: '2026-10',
     period_start: '2026-10-01',
+    period_end: '2026-11-01',
+    complete: true,
     forecasts: matches * 2,
     matches,
     coverage: matches === 0 ? 'not_supplied' : matches < 30 ? 'limited' : 'available',
@@ -380,8 +385,15 @@ describe('the model in this league (T-1498)', () => {
     period: 'month',
     minimum_matches: 30,
     reference: { uniform_log_loss: 1.0986, uniform_brier: 0.6667, uniform_accuracy: 1 / 3 },
-    overall: { competition: null, model_versions: ['m@1'], total: metrics(40), points: [] },
+    overall: {
+      competition: null,
+      model_versions: ['m@1'],
+      total: metrics(40),
+      points: [],
+      calibration: { minimum_forecasts: 30, coverage: 'not_supplied', bins: [] },
+    },
     competitions,
+    versions: [],
     last_updated_at: '2026-10-25T06:00:00.000Z',
   });
 

@@ -4,10 +4,14 @@ import {
   accuracyCoverage,
   accuracyMetrics,
   adminAccuracy,
+  calibrationOf,
   isoWeekLabel,
+  periodComplete,
+  periodEnd,
   periodLabel,
   publicAccuracy,
 } from './internal/model-accuracy';
+import type { CalibrationSumRow } from './internal/evaluation-store';
 
 /**
  * Accuracy over time (T-1369, D-187), as arithmetic: the sums the store reads
@@ -235,5 +239,161 @@ describe('publicAccuracy', () => {
     expect(out.overall.model_versions).toEqual([]);
     expect(out.competitions).toEqual([]);
     expect(out.last_updated_at).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T-1751 (D-370, D-408): calibration, each version on its own, the period's end
+// ---------------------------------------------------------------------------
+
+const OLD = 'dixon-coles-elo@0.1.0';
+const NEW = 'dixon-coles-elo@0.6.0';
+const NOW = new Date('2026-11-13T12:00:00Z');
+
+const cal = (modelVersion: string, bin: number, forecasts: number, happened: number) =>
+  ({
+    modelVersion,
+    bin,
+    forecasts,
+    happened,
+    said: (forecasts * (bin + 0.5)) / 10,
+  }) satisfies CalibrationSumRow;
+
+describe('calibrationOf', () => {
+  it('always gives ten steps of ten points, a step with nothing at zero and no mean', () => {
+    const out = calibrationOf([cal(OLD, 6, 40, 25), cal(NEW, 6, 10, 7), cal(OLD, 9, 3, 3)]);
+    expect(out.bins).toHaveLength(10);
+    expect(out.bins.map((b) => [b.from, b.to])).toEqual(
+      Array.from({ length: 10 }, (_, i) => [i / 10, (i + 1) / 10]),
+    );
+    // Two versions' sums in one step: added, then divided once.
+    expect(out.bins[6]).toEqual({ from: 0.6, to: 0.7, forecasts: 50, happened: 32, said: 0.65 });
+    expect(out.bins[9]).toMatchObject({ forecasts: 3, happened: 3, said: 0.95 });
+    expect(out.bins[0]).toEqual({ from: 0, to: 0.1, forecasts: 0, happened: 0, said: null });
+    expect(out.minimum_forecasts).toBe(30);
+    expect(out.coverage).toBe('available');
+  });
+
+  it('is limited when no step reaches the minimum, not_supplied with nothing (rule 3)', () => {
+    expect(calibrationOf([cal(OLD, 3, 29, 9), cal(OLD, 5, 12, 6)]).coverage).toBe('limited');
+    expect(calibrationOf([cal(OLD, 3, 30, 9)]).coverage).toBe('available');
+    const none = calibrationOf([]);
+    expect(none.coverage).toBe('not_supplied');
+    expect(none.bins.every((b) => b.forecasts === 0 && b.said === null)).toBe(true);
+  });
+});
+
+describe('the period end and whether it is over', () => {
+  it('ends a week seven days on and a month on the first of the next, UTC', () => {
+    expect(periodEnd('2026-11-09', 'week')).toBe('2026-11-16');
+    expect(periodEnd('2026-12-28', 'week')).toBe('2027-01-04');
+    expect(periodEnd('2026-11-01', 'month')).toBe('2026-12-01');
+    expect(periodEnd('2026-12-01', 'month')).toBe('2027-01-01');
+    expect(periodEnd('2028-01-01', 'month')).toBe('2028-02-01');
+  });
+
+  it('is complete once the end has passed and no match of it waits for its score', () => {
+    const none = new Set<string>();
+    expect(periodComplete('2026-11-09', 'week', NOW, none)).toBe(false); // running
+    expect(periodComplete('2026-11-02', 'week', NOW, none)).toBe(true);
+    // A Sunday-night match still unscored keeps last week running past midnight.
+    expect(periodComplete('2026-11-02', 'week', NOW, new Set(['2026-11-02']))).toBe(false);
+    expect(periodComplete('2026-11-02', 'week', new Date('2026-11-09T00:00:00Z'), none)).toBe(true);
+    expect(periodComplete('2026-11-02', 'week', new Date('2026-11-08T23:59:59Z'), none)).toBe(
+      false,
+    );
+  });
+});
+
+describe('publicAccuracy, step two (T-1751)', () => {
+  const rows = [
+    row({ role: null, modelVersion: OLD, periodStart: '2026-10-26', matches: 20, forecasts: 25 }),
+    row({ role: null, modelVersion: NEW, periodStart: '2026-11-02', matches: 31, forecasts: 31 }),
+    row({
+      role: null,
+      modelVersion: NEW,
+      competition: LL,
+      periodStart: '2026-11-09',
+      matches: 4,
+      forecasts: 4,
+    }),
+  ];
+  const out = publicAccuracy(rows, [PL, LL], 'week', {
+    calibration: [cal(OLD, 4, 60, 20), cal(NEW, 4, 93, 40), cal(NEW, 8, 12, 10)],
+    pending: [{ competitionId: PL.id, periodStart: '2026-11-02' }],
+    now: NOW,
+  });
+
+  it('gives each published version on its own, the latest first, adding up to the whole', () => {
+    expect(out.versions.map((v) => [v.model_version, v.total.matches, v.total.coverage])).toEqual([
+      [NEW, 35, 'available'],
+      [OLD, 20, 'limited'],
+    ]);
+    expect(out.versions.reduce((sum, v) => sum + v.total.matches, 0)).toBe(
+      out.overall.total.matches,
+    );
+    expect(out.versions[0]?.points.map((p) => p.period)).toEqual(['2026-W45', '2026-W46']);
+  });
+
+  it('gives each version its own calibration, and the overall one their sum', () => {
+    expect(out.versions[0]?.calibration?.bins[4]).toMatchObject({ forecasts: 93, happened: 40 });
+    expect(out.versions[1]?.calibration?.bins[4]).toMatchObject({ forecasts: 60, happened: 20 });
+    expect(out.versions[1]?.calibration?.bins[8]?.forecasts).toBe(0);
+    expect(out.overall.calibration?.bins[4]).toMatchObject({ forecasts: 153, happened: 60 });
+    expect(out.overall.calibration?.bins[8]).toMatchObject({ forecasts: 12, happened: 10 });
+    expect(out.overall.calibration?.coverage).toBe('available');
+  });
+
+  it('marks each point with its end and whether it is over, per competition', () => {
+    expect(out.overall.points.map((p) => [p.period_start, p.period_end, p.complete])).toEqual([
+      ['2026-10-26', '2026-11-02', true],
+      ['2026-11-02', '2026-11-09', false], // a Premier League match waits for its score
+      ['2026-11-09', '2026-11-16', false], // still running
+    ]);
+    const pl = out.competitions.find((c) => c.competition?.id === PL.id);
+    const ll = out.competitions.find((c) => c.competition?.id === LL.id);
+    expect(pl?.points.map((p) => p.complete)).toEqual([true, false]);
+    expect(ll?.points.map((p) => p.complete)).toEqual([false]);
+  });
+
+  it('never gives a shadow version a series or a calibration of its own (D9)', () => {
+    const withShadow = publicAccuracy(
+      [...rows, row({ role: 'shadow', modelVersion: 'dixon-coles-elo@0.7.0', matches: 99 })],
+      [PL, LL],
+      'week',
+      { calibration: [], pending: [], now: NOW },
+    );
+    expect(withShadow.versions.map((v) => v.model_version)).toEqual([NEW, OLD]);
+    expect(withShadow.overall.total.matches).toBe(55);
+  });
+
+  it('says not_supplied with nothing, with no version and an empty calibration', () => {
+    const empty = publicAccuracy([], [], 'month', { calibration: [], pending: [], now: NOW });
+    expect(empty.versions).toEqual([]);
+    expect(empty.overall.calibration?.coverage).toBe('not_supplied');
+  });
+
+  it('leaves the calibration out, overall and per version, when it was not read', () => {
+    const omitted = publicAccuracy(rows, [PL, LL], 'week', {
+      calibration: null,
+      pending: [],
+      now: NOW,
+    });
+    expect(omitted.overall).not.toHaveProperty('calibration');
+    expect(omitted.versions.map((v) => 'calibration' in v)).toEqual([false, false]);
+    // Everything else is the answer it would have been.
+    expect(omitted.versions.map((v) => v.total.matches)).toEqual([35, 20]);
+  });
+
+  it('orders versions with the same latest period by their number, newest first', () => {
+    const tie = publicAccuracy(
+      ['m@1.9.0', 'm@1.10.0', 'm@1.2.0'].map((modelVersion) =>
+        row({ role: null, modelVersion, periodStart: '2026-11-02' }),
+      ),
+      [PL],
+      'week',
+      { calibration: null, pending: [], now: NOW },
+    );
+    expect(tie.versions.map((v) => v.model_version)).toEqual(['m@1.10.0', 'm@1.9.0', 'm@1.2.0']);
   });
 });

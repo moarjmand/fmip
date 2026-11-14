@@ -39,7 +39,9 @@ node packages/console-publisher/src/publish.ts requests-pull
 
 It prints a short JSON summary (the counts, and the open requests with `execute_requested` and
 `decision`, the marked ones first) and writes everything to `E:/FMIP/ops/console/requests.json`:
-each request's `title`, `body`, `status`, `priority`, `created_by`, the `result`, the question
+each request's `title`, `body`, `status`, `priority`, `created_by` and `created_by_username` (who
+filed it: the console account signed in when it was added, e.g. `mostafa` or `mohammad`; T-1831,
+D-424), the `result`, the question
 (`decision_question`) and the answer (`decision_choice`: `approve` | `reject` | `other`,
 `decision_text`, `decision_by`, `decided_at`), `execute_requested_at`, `images` (its pictures) and
 `events`, its history. Read that file before you answer the maintainer; `--status <s>` pulls one
@@ -71,7 +73,10 @@ Statuses: `new` (تازه), `in_progress` (در حال انجام), `waiting_dec
 (لغوشده).
 
 Show the maintainer the list in Persian: open requests first, each with its id's first 8
-characters, title, status, and whether it is marked to run or has a decision.
+characters, title, who filed it (`created_by`), status, and whether it is marked to run or has a
+decision. The printed summary carries `created_by` and `created_by_username` on each open line too.
+On the page, «ثبت‌کننده» on each card names the filer and the filer row narrows the list
+(`/agents/requests?by=<username>`).
 
 ## Write a result
 

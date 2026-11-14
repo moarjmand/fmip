@@ -157,10 +157,14 @@ export const consoleConversation = (agent: string, before?: string) =>
     }`,
   );
 /** The teammate requests (T-1728): all, or one status, each with its history. */
-export const consoleRequests = (status?: ConsoleRequestStatus) =>
-  consoleCall<ConsoleRequestList>(
-    `requests${status === undefined ? '' : `?status=${encodeURIComponent(status)}`}`,
-  );
+/** The requests, one status or all, one filer's (by username, T-1831) or everyone's. */
+export const consoleRequests = (status?: ConsoleRequestStatus, by?: string) => {
+  const query = new URLSearchParams();
+  if (status !== undefined) query.set('status', status);
+  if (by !== undefined) query.set('by', by);
+  const q = query.toString();
+  return consoleCall<ConsoleRequestList>(`requests${q === '' ? '' : `?${q}`}`);
+};
 /** The counts alone, for the navigation's badge. */
 export const consoleRequestCounts = () => consoleCall<ConsoleRequestCounts>('requests/counts');
 export const consoleInvitation = (token: string) =>

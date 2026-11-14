@@ -150,6 +150,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the daily ch
       const point = {
         period: 'W',
         period_start: WEEK,
+        period_end: WEEK,
+        complete: true,
         forecasts: 40,
         matches: 36,
         coverage: 'available' as const,
@@ -168,8 +170,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the daily ch
           model_versions: ['dixon-coles@9.9.9'],
           total: point,
           points: [point],
+          calibration: { minimum_forecasts: 30, coverage: 'not_supplied', bins: [] },
         },
         competitions: [],
+        versions: [],
         last_updated_at: null,
       };
     },

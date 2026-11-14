@@ -1,4 +1,4 @@
-import type { AccuracyMetrics, AccuracyPoint, PublicAccuracySeries } from '@fmip/contracts';
+import type { AccuracyMetrics, PublicAccuracyPoint, PublicAccuracySeries } from '@fmip/contracts';
 import { formatPercent } from '@/lib/words';
 
 /**
@@ -94,26 +94,20 @@ export interface WeekBar {
   periodStart: string;
   matches: number;
   edge: Edge;
-  /** The week was still running when the record was last scored. */
+  /** The week is still running, as the API says (`complete: false`). */
   partial: boolean;
   /** Fewer matches than the sample rule asks for: drawn dashed. */
   limited: boolean;
 }
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
 /**
  * The weeks the chart can draw, oldest first: every weekly point with a
- * match and both figures. Only the last one can be partial, and the API has
- * no flag for it, so it is inferred: the week is partial when the record was
- * last scored before the week's end (its Monday plus seven days, UTC). With
- * no scoring time the last week cannot be shown to be complete, so it is
- * treated as partial.
+ * match and both figures. A week is partial when the API says it is not
+ * complete (T-1751, D-408): its end has not passed, or one of its matches is
+ * still waiting for its score. The page no longer infers it from the last
+ * scoring time.
  */
-export function weeklyEdges(
-  points: readonly AccuracyPoint[],
-  lastScoredAt: string | null,
-): WeekBar[] {
+export function weeklyEdges(points: readonly PublicAccuracyPoint[]): WeekBar[] {
   const bars: WeekBar[] = [];
   for (const point of points) {
     const edge = edgeOverGuess(point.rps, point.uniform_rps);
@@ -123,15 +117,9 @@ export function weeklyEdges(
       periodStart: point.period_start,
       matches: point.matches,
       edge,
-      partial: false,
+      partial: !point.complete,
       limited: point.coverage !== 'available',
     });
-  }
-  const last = bars.at(-1);
-  if (last !== undefined) {
-    const end = Date.parse(`${last.periodStart}T00:00:00Z`) + WEEK_MS;
-    const scored = lastScoredAt === null ? Number.NaN : Date.parse(lastScoredAt);
-    last.partial = !(scored >= end);
   }
   return bars;
 }

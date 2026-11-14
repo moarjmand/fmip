@@ -1,6 +1,7 @@
 import type { MatchHeader } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  brandCardUrl,
   breadcrumbJsonLd,
   canonicalUrl,
   matchJsonLd,
@@ -94,6 +95,28 @@ describe('pageMetadata', () => {
       siteName: 'Stadiomind',
       locale: 'en',
     });
+  });
+
+  it('shows the brand card, large on X, on a page with no card of its own (T-1825)', () => {
+    const meta = pageMetadata({ locale: 'fa', path: '/news', title: 'x' }, ORIGIN);
+    expect(meta.openGraph?.images).toEqual([
+      {
+        // One address for every locale, ending in .png for the edge's cache.
+        url: 'https://fmip.example/brand-card.png',
+        width: 1200,
+        height: 630,
+        alt: 'Stadiomind: مدل پیش‌بینی‌ای که کارنامه‌اش را علنی نشان می‌دهد',
+        type: 'image/png',
+      },
+    ]);
+    expect(brandCardUrl(ORIGIN)).toBe('https://fmip.example/brand-card.png');
+    expect(meta.twitter).toEqual({ card: 'summary_large_image' });
+  });
+
+  it('names no image for a page with its own card, so Next.js adds that one (T-1825)', () => {
+    const meta = pageMetadata({ locale: 'en', path: '/match/m', title: 'x', card: 'own' }, ORIGIN);
+    expect(meta.openGraph).not.toHaveProperty('images');
+    expect(meta.twitter).toEqual({ card: 'summary_large_image' });
   });
 
   it('never indexes the pseudo-locale or a page marked private', () => {

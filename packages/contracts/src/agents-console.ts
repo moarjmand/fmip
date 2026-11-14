@@ -13,6 +13,7 @@ import type {
   CONSOLE_REQUEST_STATUSES,
 } from './console-requests';
 import type { ConsoleModelLab } from './console-model-lab';
+import type { ConsoleProviders } from './console-providers';
 
 /** The snapshot shape this API reads; the publisher writes the same number. */
 export const CONSOLE_SNAPSHOT_SCHEMA = 1;
@@ -237,6 +238,13 @@ export interface ConsoleSnapshot {
    * not supplied (rule 3).
    */
   model_lab?: ConsoleModelLab | null;
+  /**
+   * The football data providers' comparison (T-1830, D-423), from the
+   * research file on the computer. Absent from a snapshot built before it,
+   * null when the file is missing or unreadable: the providers page then
+   * says the comparison was not supplied (rule 3).
+   */
+  providers?: ConsoleProviders | null;
 }
 
 /** `GET /console/snapshot`: the newest snapshot, and when it reached the server. */
@@ -404,8 +412,13 @@ export interface ConsoleRequest {
   body: string;
   status: ConsoleRequestStatus;
   priority: ConsoleRequestPriority;
-  /** The console user who added it (display name). */
+  /**
+   * The console user who filed it (display name): the account signed in when
+   * it was added, recorded on every request since T-1728 (T-1831, D-424).
+   */
   created_by: string;
+  /** That account's username, the stable key the list is filtered by (T-1831). */
+  created_by_username: string;
   created_at: string;
   updated_at: string;
   /** The result box, written by Claude; `null` until one is. */
@@ -470,10 +483,22 @@ export interface ConsoleRequestCounts {
   by_status: Record<ConsoleRequestStatus, number>;
 }
 
-/** `GET /console/requests[?status=s]`: newest first, each with its history. */
+/** One console user who filed requests, and how many (T-1831, D-424). */
+export interface ConsoleRequestFiler {
+  username: string;
+  display_name: string;
+  count: number;
+}
+
+/**
+ * `GET /console/requests[?status=s][&by=username]`: newest first, each with
+ * its history. With `by`, the requests and the counts are that person's
+ * alone; `filers` is always everyone who filed one, for the filter.
+ */
 export interface ConsoleRequestList {
   requests: ConsoleRequestDetail[];
   counts: ConsoleRequestCounts;
+  filers: ConsoleRequestFiler[];
 }
 
 /** `POST /console/requests`. */

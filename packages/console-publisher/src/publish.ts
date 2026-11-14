@@ -35,6 +35,7 @@ import {
 } from './requests.ts';
 import { flowsOf, parseCharter } from './flow.ts';
 import { type LabRead, labFrom } from './lab.ts';
+import { type ProvidersRead, providersFrom } from './providers.ts';
 import {
   DEFAULT_SCHEDULES,
   type ConsoleState,
@@ -81,6 +82,11 @@ import {
  * prints the problems alone and exits 1 when there is one: run it after
  * every edit of the ledger, before the next sync carries it.
  *
+ * The data providers' comparison (T-1830, D-423):
+ * `E:/FMIP/ops/providers/comparison.json`, written by a research agent, goes
+ * into every snapshot as `providers` after `providers.ts` has checked it, the
+ * same way; `providers-check [file]` prints its problems and exits 1 on any.
+ *
  * The chat (T-1722, D-350), run by the ten-minute scheduled task:
  *
  *     node packages/console-publisher/src/publish.ts chat-pull
@@ -121,6 +127,7 @@ const INBOX_FILE = join(OPS, 'console', 'chat-inbox.json');
 const REQUESTS_FILE = join(OPS, 'console', 'requests.json');
 const REQUEST_IMAGES_DIR = join(OPS, 'console', 'requests');
 const LAB_FILE = join(OPS, 'model', 'ledger.json');
+const PROVIDERS_FILE = join(OPS, 'providers', 'comparison.json');
 const SSH_HOST = process.env.FMIP_SSH_HOST ?? 'fmip-prod';
 const CLI = 'cd /opt/fmip && docker compose exec -T api node dist/cli/agents-console.js';
 
@@ -171,6 +178,21 @@ export function readLab(path = LAB_FILE): LabRead {
     return { lab: null, problems: [`${path} is not JSON: ${(error as Error).message}`] };
   }
   return labFrom(raw, statSync(path).mtime.toISOString());
+}
+
+/**
+ * The data providers' comparison as the file has it (T-1830): none when the
+ * file is missing, and then the providers page says it was not supplied.
+ */
+export function readProviders(path = PROVIDERS_FILE): ProvidersRead {
+  if (!existsSync(path)) return { providers: null, problems: [`${path} does not exist.`] };
+  let raw: unknown;
+  try {
+    raw = JSON.parse(read(path).replace(/^\uFEFF/, ''));
+  } catch (error) {
+    return { providers: null, problems: [`${path} is not JSON: ${(error as Error).message}`] };
+  }
+  return providersFrom(raw, statSync(path).mtime.toISOString());
 }
 
 export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
@@ -263,6 +285,9 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
   const briefName = files(join(OPS, 'brief'), '.md').at(-1);
   const lab = readLab();
   for (const problem of lab.problems) process.stderr.write(`model lab ledger: ${problem}\n`);
+  const providers = readProviders();
+  for (const problem of providers.problems)
+    process.stderr.write(`providers comparison: ${problem}\n`);
 
   return snapshotOf({
     generated_at: new Date().toISOString(),
@@ -282,6 +307,7 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
       ),
     ],
     model_lab: lab.lab,
+    providers: providers.providers,
   });
 }
 
@@ -409,6 +435,16 @@ export function main(argv = process.argv.slice(2)): number {
       );
       return lab.problems.length === 0 ? 0 : 1;
     }
+    case 'providers-check': {
+      const checked = readProviders(rest[0] ?? PROVIDERS_FILE);
+      for (const problem of checked.problems) process.stderr.write(`${problem}\n`);
+      process.stdout.write(
+        checked.providers === null
+          ? 'No comparison to publish.\n'
+          : `${checked.providers.providers.length} providers, ${checked.providers.criteria.length} criteria, ${checked.providers.skipped} left out.\n`,
+      );
+      return checked.problems.length === 0 ? 0 : 1;
+    }
     case 'finish': {
       const [id, status, ...words] = rest;
       if (id === undefined || (status !== 'done' && status !== 'failed') || words.length === 0) {
@@ -521,7 +557,7 @@ export function main(argv = process.argv.slice(2)): number {
     }
     default:
       process.stderr.write(
-        'build [--out file] | publish | sync | lab-check | finish <id> done|failed "outcome" | chat-pull | chat-reply <id> answered|failed [--file f] | requests-pull [--status s] | request-result <id> in_progress|done|cancelled [--file f] | request-ask <id> [--file f]\n',
+        'build [--out file] | publish | sync | lab-check | providers-check [file] | finish <id> done|failed "outcome" | chat-pull | chat-reply <id> answered|failed [--file f] | requests-pull [--status s] | request-result <id> in_progress|done|cancelled [--file f] | request-ask <id> [--file f]\n',
       );
       return 2;
   }

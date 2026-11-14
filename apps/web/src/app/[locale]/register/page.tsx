@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { ActionForm, type Field } from '@/components/action-form';
 import { DeviceTimeZone } from '@/components/device-time-zone';
@@ -9,7 +10,14 @@ import { readGuestChoices } from '@/lib/first-run-cookie';
 import { readInviter } from '@/lib/invite';
 import { registerAction } from '@/lib/auth-actions';
 import { RETURN_PARAM, loginHref, safeReturnPath } from '@/lib/return-to';
+import { siteUrl } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
+import {
+  SIGNUP_ENTRY_FIELD,
+  SIGNUP_FROM_PARAM,
+  SIGNUP_REFERRER_FIELD,
+  signupSourceOf,
+} from '@/lib/signup-source';
 import { Translated } from '@/components/translated';
 import { Icon, Notice } from '@/components/ui';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
@@ -55,6 +63,16 @@ export default async function RegisterPage({
   const next = safeReturnPath(locale, query[RETURN_PARAM]);
   const me = await fetchMe(await sessionCookieHeader());
   if (me !== null) redirect(next ?? `/${locale}/u/${encodeURIComponent(me.username)}`);
+
+  // Where this sign-up started (T-1821, D-415): read from this request only,
+  // carried by two hidden fields, never a cookie; the API only counts it.
+  const requestHeaders = await headers();
+  const source = signupSourceOf({
+    from: query[SIGNUP_FROM_PARAM],
+    next,
+    referer: requestHeaders.get('referer'),
+    siteHosts: [requestHeaders.get('host'), new URL(siteUrl()).hostname],
+  });
 
   const countries = await fetchCountries();
   const timezones = Intl.supportedValuesOf('timeZone');
@@ -117,6 +135,24 @@ export default async function RegisterPage({
             label: 'Return to',
             type: 'hidden' as const,
             defaultValue: next,
+          },
+        ]),
+    {
+      name: SIGNUP_ENTRY_FIELD,
+      // A hidden field: its label is never shown.
+      label: 'Signed up from',
+      type: 'hidden' as const,
+      defaultValue: source.entry,
+    },
+    ...(source.referrer_host === null
+      ? []
+      : [
+          {
+            name: SIGNUP_REFERRER_FIELD,
+            // A hidden field: its label is never shown.
+            label: 'Linked from',
+            type: 'hidden' as const,
+            defaultValue: source.referrer_host,
           },
         ]),
     {

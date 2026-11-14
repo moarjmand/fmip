@@ -152,6 +152,14 @@ export function checkStatusFilter(value: unknown): Checked<ConsoleRequestStatus 
   return { ok: true, value: value as ConsoleRequestStatus };
 }
 
+/** `?by=` of the list (T-1831, D-424): a console username, or none for everyone. */
+export function checkFilerFilter(value: unknown): Checked<string | null> {
+  if (value === undefined || value === '' || value === 'all') return { ok: true, value: null };
+  if (typeof value !== 'string' || !/^[a-z0-9][a-z0-9_.-]{2,31}$/.test(value))
+    return { ok: false, reason: 'Not a console username.' };
+  return { ok: true, value };
+}
+
 /** Claude's text from standard input (a result or a question), checked rather than cut. */
 export function agentText(raw: string, max: number, what: string): Checked<string> {
   const text = cleanText(raw).trim();

@@ -1,4 +1,4 @@
-import type { AccuracyMetrics, AccuracyPoint, PublicAccuracySeries } from '@fmip/contracts';
+import type { AccuracyMetrics, PublicAccuracyPoint, PublicAccuracySeries } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   WEEKLY_CHART_MAXIMUM,
@@ -38,20 +38,29 @@ const metrics = (
   ...overrides,
 });
 
-const week = (start: string, matches: number, rps: number, uniform: number): AccuracyPoint => ({
+const week = (
+  start: string,
+  matches: number,
+  rps: number,
+  uniform: number,
+  complete = true,
+): PublicAccuracyPoint => ({
   period: `week-of-${start}`,
   period_start: start,
+  // Not read here: the API's end of the week, exclusive.
+  period_end: start,
+  complete,
   ...metrics(matches, rps, uniform),
 });
 
-const WEEKS: AccuracyPoint[] = [
+// The last week was still running on 6 November: the API says so (T-1751).
+const WEEKS: PublicAccuracyPoint[] = [
   week('2026-10-05', 104, 0.179, 0.233),
   week('2026-10-12', 176, 0.21, 0.249),
   week('2026-10-19', 182, 0.217, 0.239),
   week('2026-10-26', 171, 0.189, 0.252),
-  week('2026-11-02', 94, 0.215, 0.244),
+  week('2026-11-02', 94, 0.215, 0.244, false),
 ];
-const LAST_SCORED = '2026-11-05T22:10:00Z';
 
 // name, matches, RPS, the guess's RPS: the 22 competitions of 6 Nov, in the API's order (by name).
 const COMPETITIONS: [string, number, number, number][] = [
@@ -177,39 +186,47 @@ describe('verdictState', () => {
 });
 
 describe('weeklyEdges', () => {
-  it('reads five weeks, the last one still running when it was last scored', () => {
-    const bars = weeklyEdges(WEEKS, LAST_SCORED);
+  it('reads five weeks, the last one still running as the API says', () => {
+    const bars = weeklyEdges(WEEKS);
     expect(bars.map((bar) => bar.edge.percent)).toEqual([23, 16, 9, 25, 12]);
     expect(bars.map((bar) => bar.matches)).toEqual([104, 176, 182, 171, 94]);
     expect(bars.map((bar) => bar.partial)).toEqual([false, false, false, false, true]);
     expect(completeWeeks(bars)).toBe(4);
   });
 
-  it('calls the last week complete once the record was scored after its Sunday', () => {
-    expect(weeklyEdges(WEEKS, '2026-11-08T23:59:59Z').at(-1)?.partial).toBe(true);
-    expect(weeklyEdges(WEEKS, '2026-11-09T00:00:00Z').at(-1)?.partial).toBe(false);
-  });
-
-  it('cannot call the last week complete without a scoring time', () => {
-    expect(weeklyEdges(WEEKS, null).at(-1)?.partial).toBe(true);
+  it("takes the API's flag, not an inference: any week it calls running is partial (T-1751)", () => {
+    const done = WEEKS.map((point) => ({ ...point, complete: true }));
+    expect(weeklyEdges(done).at(-1)?.partial).toBe(false);
+    // A week before the last still waiting for a score (a late Sunday match) is partial too.
+    const waiting = WEEKS.map((point, i) => ({ ...point, complete: i < 3 }));
+    expect(weeklyEdges(waiting).map((bar) => bar.partial)).toEqual([
+      false,
+      false,
+      false,
+      true,
+      true,
+    ]);
   });
 
   it('marks a week under the sample rule, and leaves out one with no figure', () => {
-    const bars = weeklyEdges(
-      [
-        week('2026-10-05', 12, 0.2, 0.25),
-        { period: 'empty', period_start: '2026-10-12', ...metrics(0, null, null) },
-        week('2026-10-19', 40, 0.2, 0.25),
-      ],
-      '2026-11-05T00:00:00Z',
-    );
+    const bars = weeklyEdges([
+      week('2026-10-05', 12, 0.2, 0.25),
+      {
+        period: 'empty',
+        period_start: '2026-10-12',
+        period_end: '2026-10-19',
+        complete: true,
+        ...metrics(0, null, null),
+      },
+      week('2026-10-19', 40, 0.2, 0.25),
+    ]);
     expect(bars.map((bar) => bar.periodStart)).toEqual(['2026-10-05', '2026-10-19']);
     expect(bars.map((bar) => bar.limited)).toEqual([true, false]);
   });
 });
 
 describe('weeklyChartGeometry', () => {
-  const bars = weeklyEdges(WEEKS, LAST_SCORED);
+  const bars = weeklyEdges(WEEKS);
   const overall = edgeOverGuess(0.203, 0.245);
 
   it('puts time from the inline start: left to right in English', () => {
@@ -249,10 +266,7 @@ describe('weeklyChartGeometry', () => {
   });
 
   it('draws a week worse than a guess below the axis', () => {
-    const withBad = weeklyEdges(
-      [...WEEKS.slice(0, 4), week('2026-11-02', 94, 0.27, 0.244)],
-      '2026-11-10T00:00:00Z',
-    );
+    const withBad = weeklyEdges([...WEEKS.slice(0, 4), week('2026-11-02', 94, 0.27, 0.244)]);
     const chart = weeklyChartGeometry(withBad, 'ltr', overall);
     expect(chart.ticks.map((tick) => tick.value)).toEqual([30, 20, 10, 0, -10, -20]);
     const bad = chart.bars.at(-1)!;
@@ -264,10 +278,10 @@ describe('weeklyChartGeometry', () => {
   });
 
   it('widens its steps when the weeks are far apart', () => {
-    const wide = weeklyEdges(
-      [week('2026-10-05', 40, 0.1, 0.25), week('2026-10-12', 40, 0.31, 0.25)],
-      '2026-11-05T00:00:00Z',
-    );
+    const wide = weeklyEdges([
+      week('2026-10-05', 40, 0.1, 0.25),
+      week('2026-10-12', 40, 0.31, 0.25),
+    ]);
     const chart = weeklyChartGeometry(wide, 'ltr', null);
     expect(chart.ticks.map((tick) => tick.value)).toEqual([60, 40, 20, 0, -20, -40]);
     expect(chart.overallY).toBeNull();
@@ -282,17 +296,17 @@ describe('weeklyChartGeometry', () => {
         0.25,
       ),
     );
-    const chart = weeklyChartGeometry(weeklyEdges(many, '2026-12-01T00:00:00Z'), 'ltr', null);
+    const chart = weeklyChartGeometry(weeklyEdges(many), 'ltr', null);
     expect(chart.bars).toHaveLength(WEEKLY_CHART_MAXIMUM);
     expect(chart.omitted).toBe(2);
     expect(chart.bars[0]!.periodStart).toBe(many[2]!.period_start);
   });
 
   it('keeps a mark on the axis for a week level with a guess', () => {
-    const level = weeklyEdges(
-      [week('2026-10-05', 40, 0.25, 0.25), week('2026-10-12', 40, 0.2, 0.25)],
-      '2026-11-05T00:00:00Z',
-    );
+    const level = weeklyEdges([
+      week('2026-10-05', 40, 0.25, 0.25),
+      week('2026-10-12', 40, 0.2, 0.25),
+    ]);
     expect(weeklyChartGeometry(level, 'ltr', null).bars[0]!.height).toBe(2);
   });
 });
