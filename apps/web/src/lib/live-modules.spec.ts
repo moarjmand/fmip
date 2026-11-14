@@ -12,6 +12,7 @@ import {
   liveSignature,
   modulesBehind,
   partBehind,
+  waitsCaughtUp,
   planRefresh,
   refreshDue,
   refreshSettled,
@@ -349,5 +350,28 @@ describe('a server read newer than the stream is not behind it (T-1810)', () => 
     expect(partBehind('events', sig('x', 'e1'), sig('x', 'e2'))).toBe(true);
     expect(partBehind('events', sig('x', 'e2'), sig('x', 'e1'))).toBe(true);
     expect(partBehind('events', sig('x'), sig('x'))).toBe(false);
+  });
+});
+
+describe('a wait ends once the stream holds what is drawn (T-1810)', () => {
+  const drawn = { events: 'e1', stats: 'available@2026-11-14T20:29:04.230Z' };
+  const waiting = { events: null, stats: 1_000 };
+
+  it('a snapshot that caught up with the drawing ends the statistics wait', () => {
+    expect(waitsCaughtUp(waiting, drawn, drawn, ['events', 'stats'])).toEqual({
+      events: null,
+      stats: null,
+    });
+  });
+
+  it('a snapshot still ahead of the drawing keeps it', () => {
+    const latest = { events: 'e1', stats: 'available@2026-11-14T20:32:04.409Z' };
+    expect(waitsCaughtUp(waiting, drawn, latest, ['events', 'stats'])).toBe(waiting);
+  });
+
+  it('a part the modules do not read keeps its wait, and no wait is no change', () => {
+    expect(waitsCaughtUp(waiting, drawn, drawn, ['events'])).toBe(waiting);
+    const none = { events: null, stats: null };
+    expect(waitsCaughtUp(none, drawn, drawn, ['events', 'stats'])).toBe(none);
   });
 });

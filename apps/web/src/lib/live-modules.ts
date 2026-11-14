@@ -107,7 +107,9 @@ export function isLivePart(value: unknown): value is LivePart {
  * which the stream sent the first -- and such an answer is not "still behind"
  * (seen live in the T-1810 screenshots: three follow-ups, then "may be behind" on
  * a card that was newer than the stream). Stamps are ISO 8601 in UTC as the
- * API writes them, so they compare as strings.
+ * API writes them, so they compare as strings. It assumes a module's stamp
+ * only moves forward (statistics are upserted, never removed); one moving back
+ * would not be seen as behind.
  */
 export function partBehind(part: LivePart, drawn: LiveSignature, latest: LiveSignature): boolean {
   if (drawn[part] === latest[part]) return false;
@@ -126,6 +128,29 @@ export function partBehind(part: LivePart, drawn: LiveSignature, latest: LiveSig
 function splitStamp(module: string): [string, string] {
   const at = module.indexOf('@');
   return at < 0 ? [module, ''] : [module.slice(0, at), module.slice(at + 1)];
+}
+
+/**
+ * The waits that end because the stream has caught up with what is drawn: a
+ * part the modules read and are no longer behind in waits no more. The same
+ * object when nothing ends, so a snapshot that changes nothing is no state
+ * change. (A later snapshot holding what an earlier answer drew used to leave
+ * "may be behind" until the next change; T-1810.)
+ */
+export function waitsCaughtUp(
+  waiting: PerPart<number | null>,
+  drawn: LiveSignature,
+  latest: LiveSignature,
+  parts: readonly LivePart[],
+): PerPart<number | null> {
+  const behind = changedParts(drawn, latest, parts);
+  const ends = (part: LivePart) =>
+    waiting[part] !== null && parts.includes(part) && !behind.includes(part);
+  if (!ends('events') && !ends('stats')) return waiting;
+  return {
+    events: ends('events') ? null : waiting.events,
+    stats: ends('stats') ? null : waiting.stats,
+  };
 }
 
 /**
