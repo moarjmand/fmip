@@ -11,6 +11,7 @@ import {
   liveParts,
   liveSignature,
   modulesBehind,
+  partBehind,
   planRefresh,
   refreshDue,
   refreshSettled,
@@ -305,5 +306,48 @@ describe('modules that may be behind (D-409 point 4)', () => {
     expect(modulesBehind(null, seen + 10 * 60_000)).toBe(false);
     expect(modulesBehind(seen, seen + BEHIND_AFTER_MS)).toBe(false);
     expect(modulesBehind(seen, seen + BEHIND_AFTER_MS + 1)).toBe(true);
+  });
+});
+
+describe('a server read newer than the stream is not behind it (T-1810)', () => {
+  const sig = (stats: string, events = 'e1') => ({ events, stats });
+  const T1 = '2026-11-14T20:29:03.727Z';
+  const T2 = '2026-11-14T20:29:03.992Z';
+  const T3 = '2026-11-14T20:29:04.230Z';
+  const L = '2026-11-14T20:18:03.504Z';
+  // As live: the stream's last snapshot had the player statistics at T2;
+  // the server read the second write, T3, a quarter of a second later.
+  const stream = sig(`available@${T1}|available@${T2}|not_supplied@|available@${L}`);
+  const server = sig(`available@${T1}|available@${T3}|not_supplied@|available@${L}`);
+
+  it('the statistics drawn from the newer read are not behind the older snapshot', () => {
+    expect(partBehind('stats', server, stream)).toBe(false);
+    expect(changedParts(server, stream, BOTH)).toEqual([]);
+    expect(liveChange(server, stream, BOTH)).toBeNull();
+  });
+
+  it('they are behind a snapshot with a later stamp, in any module', () => {
+    expect(partBehind('stats', stream, server)).toBe(true);
+    const lineups = sig(`available@${T1}|available@${T3}|not_supplied@|available@${T3}`);
+    expect(partBehind('stats', server, lineups)).toBe(true);
+  });
+
+  it('a module the stream has a stamp for and the drawing had none is behind; the reverse is not', () => {
+    const none = sig(`available@${T1}|available@${T3}|not_supplied@|available@${L}`);
+    const xg = sig(`available@${T1}|available@${T3}|available@${T3}|available@${L}`);
+    expect(partBehind('stats', none, xg)).toBe(true);
+    expect(partBehind('stats', xg, none)).toBe(false);
+  });
+
+  it('the same stamp with another coverage, or another number of modules, is behind', () => {
+    const delayed = sig(`delayed@${T1}|available@${T3}|not_supplied@|available@${L}`);
+    expect(partBehind('stats', server, delayed)).toBe(true);
+    expect(partBehind('stats', server, sig(`available@${T1}`))).toBe(true);
+  });
+
+  it('the key events carry no stamp: any difference is behind, either way', () => {
+    expect(partBehind('events', sig('x', 'e1'), sig('x', 'e2'))).toBe(true);
+    expect(partBehind('events', sig('x', 'e2'), sig('x', 'e1'))).toBe(true);
+    expect(partBehind('events', sig('x'), sig('x'))).toBe(false);
   });
 });

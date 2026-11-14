@@ -290,6 +290,14 @@ export function LiveMatch({
       const read = liveParts(slotsRef.current);
       if (read.length === 0) return;
       const latest = liveSignature(seen.current);
+      // A part the stream has caught up with -- the snapshot now holds what an
+      // earlier answer drew -- is no longer waiting: without this, "may be
+      // behind" stayed until the next change (T-1810 screenshots).
+      const behindDrawn = changedParts(drawn.current, latest, read);
+      setWaiting((was) => ({
+        events: read.includes('events') && !behindDrawn.includes('events') ? null : was.events,
+        stats: read.includes('stats') && !behindDrawn.includes('stats') ? null : was.stats,
+      }));
       const parts = changedParts(asked ?? drawn.current, latest, read);
       const change = reason ?? liveChange(asked ?? drawn.current, latest, read);
       if (change === null) return;

@@ -66,8 +66,8 @@ export function liveChange(
   latest: LiveSignature,
   parts: readonly LivePart[],
 ): LiveChange | null {
-  if (parts.includes('events') && drawn.events !== latest.events) return 'event';
-  if (parts.includes('stats') && drawn.stats !== latest.stats) return 'stats';
+  if (parts.includes('events') && partBehind('events', drawn, latest)) return 'event';
+  if (parts.includes('stats') && partBehind('stats', drawn, latest)) return 'stats';
   return null;
 }
 
@@ -97,8 +97,40 @@ export function isLivePart(value: unknown): value is LivePart {
 }
 
 /**
- * Every part, among those the drawn modules read, whose drawn signature
- * differs from the newest snapshot's: what one call asks the server for, so a
+ * Whether the modules drawn from `drawn` are behind `latest` in one part.
+ *
+ * The key events carry no stamp, so any difference is behind. The statistics
+ * part is one `coverage@last_updated_at` per module, and a module is behind
+ * only when the newest snapshot's stamp is later than the drawn one (or the
+ * same stamp with another coverage): the server's read may be newer than the
+ * last snapshot the stream sent -- two writes a quarter of a second apart, of
+ * which the stream sent the first -- and such an answer is not "still behind"
+ * (seen live in the T-1810 screenshots: three follow-ups, then "may be behind" on
+ * a card that was newer than the stream). Stamps are ISO 8601 in UTC as the
+ * API writes them, so they compare as strings.
+ */
+export function partBehind(part: LivePart, drawn: LiveSignature, latest: LiveSignature): boolean {
+  if (drawn[part] === latest[part]) return false;
+  if (part === 'events') return true;
+  const was = drawn.stats.split('|');
+  const now = latest.stats.split('|');
+  if (was.length !== now.length) return true;
+  return now.some((module, index) => {
+    const [coverage, stamp = ''] = splitStamp(module);
+    const [drawnCoverage, drawnStamp = ''] = splitStamp(was[index] ?? '');
+    return stamp > drawnStamp || (stamp === drawnStamp && coverage !== drawnCoverage);
+  });
+}
+
+/** `coverage@stamp` as its two halves; the stamp is everything after the first `@`. */
+function splitStamp(module: string): [string, string] {
+  const at = module.indexOf('@');
+  return at < 0 ? [module, ''] : [module.slice(0, at), module.slice(at + 1)];
+}
+
+/**
+ * Every part, among those the drawn modules read, that is behind the newest
+ * snapshot (`partBehind`): what one call asks the server for, so a
  * statistics tick does not send the key events again (review m2).
  */
 export function changedParts(
@@ -106,7 +138,7 @@ export function changedParts(
   latest: LiveSignature,
   parts: readonly LivePart[],
 ): LivePart[] {
-  return LIVE_PARTS.filter((part) => parts.includes(part) && drawn[part] !== latest[part]);
+  return LIVE_PARTS.filter((part) => parts.includes(part) && partBehind(part, drawn, latest));
 }
 
 /**
