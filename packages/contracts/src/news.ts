@@ -47,10 +47,13 @@ export interface NewsCursor {
 }
 
 /**
- * The most stories a cursor may say are waiting. A page passes over at most
- * the stories within a place's reach (49, `SOURCE_MIX.lookahead` less one).
+ * The most stories a cursor may say are waiting (T-1833: 160, about 3.5 kB of
+ * link). The mixer never leaves more waiting than this: past it, the share
+ * rule gives way rather than lose or repeat a story. On 2026-11-14's English
+ * stories (one source 64% of the day) it keeps the first four pages within
+ * the rules.
  */
-export const NEWS_CURSOR_MAX_WAITING = 64;
+export const NEWS_CURSOR_MAX_WAITING = 160;
 
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 const PACKED = /^[A-Za-z0-9_-]{22}$/;

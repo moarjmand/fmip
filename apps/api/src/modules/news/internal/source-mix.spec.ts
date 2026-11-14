@@ -7,7 +7,8 @@ import {
   writeNewsCursor,
 } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { SOURCE_MIX, mixSources } from './source-mix';
+import { LATEST_2026_11_14 } from './latest-2026-11-14.fixture';
+import { SOURCE_MIX, type SourceRun, mixSources } from './source-mix';
 
 interface Row {
   id: string;
@@ -254,5 +255,74 @@ describe('the news cursor (NewsCursor)', () => {
     expect(() =>
       writeNewsCursor({ ...cursor, waiting: many.slice(0, NEWS_CURSOR_MAX_WAITING) }),
     ).not.toThrow();
+  });
+});
+
+describe('2026-11-14’s English stories, paged as the store pages them (T-1833)', () => {
+  const PAGE = 40;
+  const YAHOO = 'Yahoo Sports';
+  // Newest first; the id is the place in the stream.
+  const stream = LATEST_2026_11_14.flatMap(([source, n]) =>
+    Array.from({ length: n }, () => source),
+  ).map((source_id, at) => ({ id: `s${String(at).padStart(3, '0')}`, at, source_id }));
+  type Story = (typeof stream)[number];
+
+  /** The store's paging over a list that does not change: the waiting stories, then below the boundary. */
+  function page(boundary: number, waiting: readonly Story[], run: SourceRun | null) {
+    const below = stream
+      .filter((r) => r.at > boundary)
+      .slice(0, PAGE * 2 + 10 + SOURCE_MIX.lookahead);
+    const rows = [...waiting, ...below];
+    const { cards, run: next } = mixSources(rows, PAGE, run, {
+      ahead: waiting.length,
+      max: NEWS_CURSOR_MAX_WAITING,
+    });
+    const shown = new Set(cards.map((c) => c.id));
+    const oldest = Math.max(boundary, ...cards.map((c) => c.at));
+    return {
+      cards,
+      run: next,
+      boundary: oldest,
+      waiting: rows.filter((r) => r.at < oldest && !shown.has(r.id)),
+    };
+  }
+
+  it('reproduces the day: Yahoo Sports the most of it, the second source first 71 places down', () => {
+    expect(stream).toHaveLength(600);
+    expect(
+      stream.findIndex((r) => r.source_id !== YAHOO && !r.source_id.startsWith('Tehran')),
+    ).toBe(70);
+    expect(stream.slice(0, 300).filter((r) => r.source_id === YAHOO).length).toBeGreaterThan(180);
+  });
+
+  it('keeps the first four pages within the rules: three in a row at most, 30% at most', () => {
+    let boundary = -1;
+    let waiting: Story[] = [];
+    let run: SourceRun | null = null;
+    for (let p = 0; p < 4; p += 1) {
+      const next = page(boundary, waiting, run);
+      const yahoo = (n: number): number =>
+        next.cards.slice(0, n).filter((c) => c.source_id === YAHOO).length;
+      expect(next.cards, `page ${p + 1}`).toHaveLength(PAGE);
+      expect(longestRun(next.cards), `page ${p + 1}`).toBeLessThanOrEqual(SOURCE_MIX.maxRun);
+      expect(yahoo(30), `page ${p + 1}`).toBeLessThanOrEqual(9);
+      expect(yahoo(PAGE), `page ${p + 1}`).toBeLessThanOrEqual(12);
+      ({ boundary, waiting, run } = next);
+    }
+  });
+
+  it('never leaves more waiting than a cursor carries, and shows every story once', () => {
+    let boundary = -1;
+    let waiting: Story[] = [];
+    let run: SourceRun | null = null;
+    const seen: string[] = [];
+    for (let p = 0; p < 40 && (waiting.length > 0 || boundary < stream.length - 1); p += 1) {
+      const next = page(boundary, waiting, run);
+      seen.push(...next.cards.map((c) => c.id));
+      expect(next.waiting.length, `page ${p + 1}`).toBeLessThanOrEqual(NEWS_CURSOR_MAX_WAITING);
+      ({ boundary, waiting, run } = next);
+    }
+    expect(new Set(seen).size).toBe(seen.length);
+    expect(seen).toHaveLength(stream.length);
   });
 });

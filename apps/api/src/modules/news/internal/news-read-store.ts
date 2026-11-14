@@ -6,7 +6,13 @@ import {
   readNewsCursor,
   writeNewsCursor,
 } from '@fmip/contracts';
-import { hiddenHeadline, nonArticleKind, otherCodeOf, stripPhotoCredit } from '@fmip/ingestion';
+import {
+  hiddenHeadline,
+  nonArticleKind,
+  otherCodeOf,
+  otherSportEventOf,
+  stripPhotoCredit,
+} from '@fmip/ingestion';
 import type {
   NewsCursor,
   NewsEntity,
@@ -301,7 +307,14 @@ export class PostgresNewsReadStore {
   ): Promise<StoryPage_> {
     const { listed, entities } = await this.listed(q, rows);
     const composed = page.mixed
-      ? mixSources(listed, page.limit, page.run)
+      ? mixSources(listed, page.limit, page.run, {
+          // The cursor's waiting stories lead the rows, above its boundary.
+          ahead:
+            page.boundary === null
+              ? 0
+              : listed.filter((r) => before(keyOf(r), page.boundary!)).length,
+          max: NEWS_CURSOR_MAX_WAITING,
+        })
       : { cards: listed.slice(0, page.limit), run: null };
     const shown = composed.cards;
     const cards = shown.map((r) => this.card(r, entities.get(r.story_id) ?? [], q.windowHours));
@@ -795,6 +808,9 @@ export class PostgresNewsReadStore {
       (r) =>
         nonArticleKind(r.headline) === null &&
         hiddenHeadline(r.headline) === null &&
+        // T-1833: another sport's own event is left out even when filed --
+        // the filing came from the bare word "Championship".
+        !otherSportEventOf(r.headline) &&
         !((r.searched || !filed(r)) && otherCodeOf(r.headline, r.summary) !== null) &&
         !copies.has(r.story_id),
     );

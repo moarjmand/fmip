@@ -454,3 +454,61 @@ export function otherCodeOf(headline: string, summary: string | null): OtherCode
   }
   return null;
 }
+
+/**
+ * Other sports whose own events a headline can name (T-1833): handball, polo,
+ * wrestling, weightlifting and the rest of a general sports feed's sports.
+ * Not futsal or beach soccer, which are football's family (D-321).
+ */
+export const OTHER_SPORT_EVENT_SPORTS: readonly string[] = [
+  'handball',
+  'polo',
+  'water polo',
+  'volleyball',
+  'basketball',
+  'wrestling',
+  'weightlifting',
+  'judo',
+  'taekwondo',
+  'karate',
+  'badminton',
+  'table tennis',
+  'squash',
+  'cricket',
+  'field hockey',
+  'ice hockey',
+  'kabaddi',
+  'athletics',
+  'swimming',
+  'cycling',
+  'gymnastics',
+  'archery',
+  'fencing',
+  'boxing',
+  'netball',
+  'baseball',
+  'softball',
+  'rowing',
+  'shooting',
+  'chess',
+];
+
+const OTHER_SPORT_EVENT = new RegExp(
+  words(
+    `(${OTHER_SPORT_EVENT_SPORTS.join('|')})( world| asian| european| african)? ` +
+      '(championships?|world cup|asian cup|nations cup|league|grand prix|qualifiers?)',
+  ),
+  'i',
+);
+
+/**
+ * Whether a headline names another sport's own event -- "2026 Asian Women's
+ * Handball Championship", "FIP World Polo Championship" (T-1833). Such a
+ * story is left out even when it is filed to one of ours: the filing came
+ * from the bare word "Championship" (our English Championship), so D-290's
+ * exemption for a filed story does not apply. On production's 60 days it
+ * named three filed stories, all handball or polo, and no football one.
+ */
+export function otherSportEventOf(headline: string): boolean {
+  return OTHER_SPORT_EVENT.test(headline);
+}

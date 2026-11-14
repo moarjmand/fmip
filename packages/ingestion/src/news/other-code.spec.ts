@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OTHER_CODE_RULES, otherCodeOf } from './other-code';
+import { OTHER_CODE_RULES, otherCodeOf, otherSportEventOf } from './other-code';
 
 /**
  * Items about another code of football (T-1400, D-215). Every title and
@@ -248,6 +248,37 @@ describe('otherCodeOf', () => {
   it('compiles every rule', () => {
     for (const rule of OTHER_CODE_RULES) {
       expect(() => new RegExp(rule.pattern)).not.toThrow();
+    }
+  });
+});
+
+describe('otherSportEventOf (T-1833)', () => {
+  it('names another sport’s own event, as production filed under our Championship', () => {
+    for (const headline of [
+      'Iran defeat Nigeria at FIP World Polo Championship Zone E Qualifiers',
+      'Iran learn fate at 2026 Asian Women’s Handball Championship',
+      'Iran’s fixtures at 2026 Asian Women’s Handball Championship unveiled',
+      'Zare collects gold at 2026 World Wrestling Championships',
+      'Alireza Nasiri wins silver at 2026 World Weightlifting Championships',
+      'Iran women make history at 2026 Asian Team Squash Championships',
+      'Iran face tough tests in Basketball World Cup 2027 qualifiers',
+    ]) {
+      expect(otherSportEventOf(headline), headline).toBe(true);
+    }
+  });
+
+  it('leaves football alone, its family included, and the handball of a football match', () => {
+    for (const headline of [
+      'Leeds promoted from the Championship',
+      'Premier League panel backs controversial Elliot Anderson handball decision',
+      'Crystal Palace ‘handball’ goal v Forest not a VAR error - panel',
+      'Iran are undisputed kings of beach soccer: AFC',
+      'Iran announce 12-man squad for AFC Beach Soccer Asian Cup',
+      'Iran defeat China at Futsal International Tournament Yinchuan Women',
+      'Iran thrash Sri Lanka at AFC U17 Asian Cup Uzbekistan 2027 qualifier',
+      'Andrej Panadic linked with Persepolis',
+    ]) {
+      expect(otherSportEventOf(headline), headline).toBe(false);
     }
   });
 });
