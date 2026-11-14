@@ -14616,13 +14616,13 @@
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.kickedOff": {
-    "source": "Kick-off",
+  "matchCentre.keyEventsUpdated": {
+    "source": "Key events updated {ago}",
     "text": "",
     "status": "untranslated"
   },
-  "matchCentre.latestFirst": {
-    "source": "Latest first. Names and minutes are as recorded for the match.",
+  "matchCentre.kickedOff": {
+    "source": "Kick-off",
     "text": "",
     "status": "untranslated"
   },
@@ -14638,11 +14638,6 @@
   },
   "matchCentre.shootout": {
     "source": "Penalty shoot-out",
-    "text": "",
-    "status": "untranslated"
-  },
-  "matchCentre.shootoutKick": {
-    "source": "Kick {n}",
     "text": "",
     "status": "untranslated"
   },

@@ -108,11 +108,9 @@ const page = (c: MatchCentre, locale = 'en') => {
       timeZone="Europe/London"
       locale={locale}
       hero={{ penalties: shootoutHero(locale, c.fixture) }}
+      // In every state since T-1812 (D-409), as `liveSlots` hands it in.
       slots={{
-        keyEvents:
-          c.fixture.status === 'finished' ? (
-            <KeyEvents centre={c} locale={locale} timeZone="Europe/London" words={words} />
-          ) : undefined,
+        keyEvents: <KeyEvents centre={c} locale={locale} timeZone="Europe/London" words={words} />,
       }}
     />,
   );
@@ -442,18 +440,22 @@ describe('a finished match’s key events, from the server (T-1798, T-1799; D-39
     expect(keyEvents(page(cup(null, [])))).toContain('data-testid="no-events"');
   });
 
-  it('while the match is on, the client’s own timeline stays, and no winner is said', () => {
+  it('while the shoot-out is on: the lanes and the kicks so far as circles, and no winner said (D-396, D-409)', () => {
     const live = centre(
       { status: 'live', minute: 120, scores: { ...scores, penalties: { home: 1, away: 1 } } },
       [...play, ...kicks.slice(0, 2)],
     );
     const html = page(live);
-    expect(html).toContain('Kick 1');
-    expect(html).not.toContain('data-lane=');
+    // The server's card in play since T-1812: the lanes, and two kicks drawn.
+    expect(html).toContain('data-lane="home"');
+    expect(html.match(/data-kick="(scored|missed)"/g)).toHaveLength(2);
+    expect(html).not.toContain('Kick 1');
+    // No sentence and no tick while it is being played (D-396 point 1).
     expect(html).not.toContain('shootout-winner');
+    expect(html).not.toContain('shootout-mark');
   });
 
-  it('while the shoot-out is on, a kick row says "Penalty", never "Goal (penalty)" (D-322)', () => {
+  it('while the shoot-out is on, a kick is never called a goal (D-322)', () => {
     for (const flagged of [true, false]) {
       // Flagged by the feed, or read back from the shoot-out's 1-1 score.
       const two = kicks.slice(0, 2).map((k) => ({ ...k, in_shootout: flagged }));
@@ -463,11 +465,10 @@ describe('a finished match’s key events, from the server (T-1798, T-1799; D-39
       );
       for (const locale of ['en', 'fa']) {
         const html = page(live, locale);
-        const rows = [...html.matchAll(/<li[^>]*data-kick="(\d+)"[^]*?<\/li>/g)];
-        expect(rows).toHaveLength(2);
-        for (const [row] of rows) {
-          expect(words(row)).not.toContain(locale === 'en' ? 'Goal (penalty)' : 'گل (پنالتی)');
-          expect(words(row)).toContain(locale === 'en' ? 'Penalty · ' : 'پنالتی');
+        const circles = [...html.matchAll(/<li[^>]*data-kick="(scored|missed)"[^]*?<\/li>/g)];
+        expect(circles).toHaveLength(2);
+        for (const [circle] of circles) {
+          expect(words(circle)).not.toContain(locale === 'en' ? 'Goal (penalty)' : 'گل (پنالتی)');
         }
       }
       // The penalties scored in play, above the kicks, are goals.
