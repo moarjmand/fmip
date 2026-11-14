@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PROVIDERS } from './providers.fixture';
-import { lowestPrice, sortProviders, viewHref, viewOf, weightedTotal } from './providers';
+import { factOf, lowestPrice, sortProviders, viewHref, viewOf, weightedTotal } from './providers';
 
 /**
  * The data providers' comparison page (T-1830, D-423): the weighted total
@@ -242,5 +242,19 @@ describe('the providers page', () => {
   it('says how many items of the file were left out', async () => {
     state.providers = { ...clone(), skipped: 3 };
     expect(await page()).toContain('۳ مورد از فایل پژوهش');
+  });
+
+  it("reads a fact as the provider's own only, never through the prototype (sec-2026-11-13-07)", () => {
+    const provider = PROVIDERS.providers[0]!;
+    expect(factOf(provider, 'constructor')).toBeUndefined();
+    expect(factOf(provider, 'toString')).toBeUndefined();
+    expect(factOf(provider, 'coverage')).toBe(provider.facts.coverage);
+    const criteria = [...PROVIDERS.criteria, { key: 'constructor', label_fa: 'x', weight: 10 }];
+    const total = weightedTotal(provider, criteria);
+    expect(total.counted).toBe(PROVIDERS.criteria.length);
+    expect(Number.isFinite(total.value)).toBe(true);
+    expect(
+      sortProviders(PROVIDERS.providers, criteria, 'c:constructor', 'desc', false),
+    ).toHaveLength(4);
   });
 });

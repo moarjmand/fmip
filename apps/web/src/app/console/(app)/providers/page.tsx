@@ -18,6 +18,7 @@ import {
   priceText,
   sortProviders,
   dirOf,
+  factOf,
   trialText,
   viewHref,
   weightedTotal,
@@ -314,7 +315,7 @@ function Comparison({
                       </div>
                     </th>
                     {criteria.map((c) => {
-                      const fact = p.facts[c.key];
+                      const fact = factOf(p, c.key);
                       return (
                         <td
                           key={c.key}

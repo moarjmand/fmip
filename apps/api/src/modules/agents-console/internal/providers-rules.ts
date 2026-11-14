@@ -31,6 +31,10 @@ import {
  */
 
 const KEY = /^[a-z0-9][a-z0-9_.-]{0,63}$/;
+/** Names an object already has: never a key, so a lookup can never reach the prototype (sec-2026-11-13-07). */
+const RESERVED = new Set(['constructor', '__proto__', 'prototype']);
+const isKey = (value: unknown): value is string =>
+  typeof value === 'string' && KEY.test(value) && !RESERVED.has(value);
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
@@ -69,7 +73,7 @@ export function safeUrl(value: unknown): string | null {
 
 function criterionOf(raw: unknown): ConsoleProviderCriterion | null {
   if (!isObject(raw)) return null;
-  const key = typeof raw.key === 'string' && KEY.test(raw.key) ? raw.key : null;
+  const key = isKey(raw.key) ? raw.key : null;
   const label = text(raw.label_fa);
   const weight =
     typeof raw.weight === 'number' && Number.isFinite(raw.weight) && raw.weight > 0
@@ -123,7 +127,7 @@ function factOf(raw: unknown): ConsoleProviderFact | null {
 
 function providerOf(raw: unknown, criteria: ReadonlySet<string>): ConsoleProvider | null {
   if (!isObject(raw)) return null;
-  const key = typeof raw.key === 'string' && KEY.test(raw.key) ? raw.key : null;
+  const key = isKey(raw.key) ? raw.key : null;
   const name = text(raw.name);
   const status = oneOf(CONSOLE_PROVIDER_STATUSES, raw.status);
   if (key === null || name === null || status === null) return null;

@@ -140,4 +140,33 @@ describe('checkProviders', () => {
         ?.confidence,
     ).toBeNull();
   });
+
+  it('refuses a key named like an object property, and never reads a fact through the prototype (sec-2026-11-13-07)', () => {
+    const checked = checkProviders(
+      comparison({
+        criteria: [
+          { key: 'coverage', label_fa: 'پوشش', weight: 20 },
+          { key: 'constructor', label_fa: 'x', weight: 1 },
+          { key: 'prototype', label_fa: 'x', weight: 1 },
+          { key: '__proto__', label_fa: 'x', weight: 1 },
+        ],
+        providers: [
+          provider({ key: 'constructor' }),
+          provider({ key: 'prototype' }),
+          provider({
+            facts: JSON.parse(
+              '{"__proto__": {"value_fa": "x", "score": 5}, "coverage": ' +
+                JSON.stringify(fact()) +
+                '}',
+            ),
+          }),
+        ],
+      }),
+    );
+    expect(checked?.criteria.map((c) => c.key)).toEqual(['coverage']);
+    expect(checked?.providers.map((p) => p.key)).toEqual(['api-football']);
+    const facts = checked!.providers[0]!.facts;
+    expect(Object.keys(facts)).toEqual(['coverage']);
+    expect(Object.getPrototypeOf(facts)).toBe(Object.prototype);
+  });
 });

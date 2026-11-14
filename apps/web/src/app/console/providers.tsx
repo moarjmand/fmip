@@ -64,6 +64,17 @@ const SCORE_TONE: Record<number, string> = {
 
 export const UNVERIFIED = 'تأییدنشده';
 
+/**
+ * A provider's fact on one criterion, read as an own property only, so a
+ * criterion named like an object's own (`constructor`) finds nothing rather
+ * than the prototype (sec-2026-11-13-07); the checks refuse such keys too.
+ */
+export const factOf = (
+  provider: ConsoleProvider,
+  criterion: string,
+): ConsoleProviderFact | undefined =>
+  Object.hasOwn(provider.facts, criterion) ? provider.facts[criterion] : undefined;
+
 // --- Arithmetic ------------------------------------------------------------------
 
 export interface Total {
@@ -91,7 +102,7 @@ export function weightedTotal(
   let counted = 0;
   const all = criteria.reduce((a, c) => a + c.weight, 0);
   for (const criterion of criteria) {
-    const fact = provider.facts[criterion.key];
+    const fact = factOf(provider, criterion.key);
     if (fact === undefined || fact.score === null || (verifiedOnly && !fact.verified)) continue;
     sum += criterion.weight * fact.score;
     weights += criterion.weight;
@@ -134,7 +145,7 @@ export function sortProviders(
     if (sort === 'name') return p.name.toLowerCase();
     if (sort === 'price') return lowestPrice(p);
     if (sort === 'total') return weightedTotal(p, criteria, verifiedOnly).value;
-    const fact = p.facts[sort.slice(2)];
+    const fact = factOf(p, sort.slice(2));
     return fact === undefined || fact.score === null || (verifiedOnly && !fact.verified)
       ? null
       : fact.score;
@@ -331,7 +342,7 @@ export function ProviderCard({
   verifiedOnly: boolean;
 }) {
   const total = weightedTotal(provider, criteria, verifiedOnly);
-  const unverified = criteria.filter((c) => provider.facts[c.key]?.verified === false).length;
+  const unverified = criteria.filter((c) => factOf(provider, c.key)?.verified === false).length;
   return (
     <article
       id={`p-${provider.key}`}
@@ -396,7 +407,7 @@ export function ProviderCard({
         </summary>
         <ul className="mt-2 flex flex-col divide-y divide-default">
           {criteria.map((criterion) => {
-            const fact = provider.facts[criterion.key];
+            const fact = factOf(provider, criterion.key);
             return (
               <li key={criterion.key} className="flex flex-col gap-1.5 py-3" data-testid="fact">
                 <div className="flex flex-wrap items-center gap-2">

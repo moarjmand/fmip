@@ -143,4 +143,22 @@ describe('providersFrom', () => {
     delete raw.updated_at;
     expect(providersFrom(raw, CHANGED).providers!.updated_at).toBe(CHANGED);
   });
+
+  it('refuses a key named like an object property (sec-2026-11-13-07)', () => {
+    const raw = fixture();
+    (raw.criteria as Record<string, unknown>[]).push(
+      { key: 'constructor', label_fa: 'x', weight: 1 },
+      { key: 'prototype', label_fa: 'x', weight: 1 },
+    );
+    (raw.providers as Record<string, unknown>[]).push({
+      key: 'constructor',
+      name: 'x',
+      status: 'candidate',
+    });
+    const read = providersFrom(raw, CHANGED);
+    expect(read.providers!.criteria.map((c) => c.key)).not.toContain('constructor');
+    expect(read.providers!.criteria.map((c) => c.key)).not.toContain('prototype');
+    expect(read.providers!.providers.map((p) => p.key)).not.toContain('constructor');
+    expect(read.problems.join('\n')).toMatch(/criterion 9: the key is missing or not a key/);
+  });
 });

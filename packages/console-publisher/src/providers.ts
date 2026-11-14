@@ -36,6 +36,10 @@ export const PROVIDER_LIST_MAX = 30;
 export const PROVIDER_TEXT_MAX = 2000;
 
 const KEY = /^[a-z0-9][a-z0-9_.-]{0,63}$/;
+/** Names an object already has: never a key, so a lookup can never reach the prototype (sec-2026-11-13-07). */
+const RESERVED = new Set(['constructor', '__proto__', 'prototype']);
+const isKey = (value: unknown): value is string =>
+  typeof value === 'string' && KEY.test(value) && !RESERVED.has(value);
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -103,7 +107,7 @@ function criterionOf(
 ): { criterion: ConsoleProviderCriterion | null; problems: string[] } {
   if (!isObject(raw))
     return { criterion: null, problems: [`criterion ${index + 1}: not an object`] };
-  const key = typeof raw.key === 'string' && KEY.test(raw.key) ? raw.key : null;
+  const key = isKey(raw.key) ? raw.key : null;
   const label = text(raw.label_fa);
   const weight =
     typeof raw.weight === 'number' && Number.isFinite(raw.weight) && raw.weight > 0
@@ -181,7 +185,7 @@ function providerOf(
 ): { provider: ConsoleProvider | null; problems: string[]; dropped: number } {
   if (!isObject(raw))
     return { provider: null, problems: [`provider ${index + 1}: not an object`], dropped: 0 };
-  const key = typeof raw.key === 'string' && KEY.test(raw.key) ? raw.key : null;
+  const key = isKey(raw.key) ? raw.key : null;
   const name = text(raw.name);
   const status = (PROVIDER_STATUSES as readonly unknown[]).includes(raw.status)
     ? (raw.status as ConsoleProviderStatus)
