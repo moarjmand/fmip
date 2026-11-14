@@ -19,6 +19,129 @@ export const NEWS_PAGE_SIZE = 40;
 export const TRENDING_WINDOW_HOURS = 48;
 
 /**
+ * Where the next page of a section begins (`next_before`, sent back as
+ * `?before=`). A plain cursor is an instant: the list goes on with the stories
+ * ordered before it. Latest mixes its sources (T-1816, D-411), so a story can
+ * wait past the end of a page; its cursor is then
+ * `<instant>~<shown>~<run>~<waiting>`:
+ * - `<instant>` and `<shown>`: the oldest story the page showed, a boundary
+ *   the next page reads below in the list's own order -- older, or as old
+ *   with a higher id -- the instant written to the microsecond
+ *   (`2026-11-13T10:00:00.123456Z`), as Postgres orders it;
+ * - `<waiting>`: every story above the boundary the page passed over, read by
+ *   id on the next page wherever it has moved -- so a story that waited is
+ *   never lost, whatever happens above it between two pages;
+ * - `<run>`: the source of the page's last cards and how many in a row, or
+ *   `-`, so a run never passes three across a page's end.
+ * Story and source ids are written as 22 URL-safe base64 characters.
+ */
+export interface NewsCursor {
+  /** ISO 8601; to the microsecond in a mixed cursor. */
+  at: string;
+  /** The story at `at` already shown, for a mixed cursor; `null` for a plain instant. */
+  shown: string | null;
+  /** The last run of cards from one source. */
+  run: { source: string; length: number } | null;
+  /** Stories above the boundary not yet shown. */
+  waiting: string[];
+}
+
+/**
+ * The most stories a cursor may say are waiting. A page passes over at most
+ * the stories within a place's reach (49, `SOURCE_MIX.lookahead` less one).
+ */
+export const NEWS_CURSOR_MAX_WAITING = 64;
+
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const PACKED = /^[A-Za-z0-9_-]{22}$/;
+
+/** A UUID as 22 URL-safe base64 characters; `null` when it is not one. */
+export function packId(id: string): string | null {
+  const hex = id.replace(/-/g, '').toLowerCase();
+  if (!/^[0-9a-f]{32}$/.test(hex)) return null;
+  let bits = '';
+  for (const c of hex) bits += parseInt(c, 16).toString(2).padStart(4, '0');
+  bits += '0000';
+  let out = '';
+  for (let i = 0; i < bits.length; i += 6) out += B64[parseInt(bits.slice(i, i + 6), 2)];
+  return out;
+}
+
+/** `packId` undone; `null` when the text is not a packed id. */
+export function unpackId(text: string): string | null {
+  if (!PACKED.test(text)) return null;
+  let bits = '';
+  for (const c of text) bits += B64.indexOf(c).toString(2).padStart(6, '0');
+  if (!bits.endsWith('0000')) return null;
+  let hex = '';
+  for (let i = 0; i < 128; i += 4) hex += parseInt(bits.slice(i, i + 4), 2).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/** A mixed cursor's instant: ISO 8601 in UTC to the microsecond. */
+const MICRO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
+
+/** The years a cursor may name: a mistyped or hostile one is refused, never a failure. */
+const CURSOR_YEARS = { first: 2000, last: 9999 } as const;
+
+/** A `?before=` value as a cursor, or `null` when it is not one. */
+export function readNewsCursor(value: string): NewsCursor | null {
+  const parts = value.split('~');
+  const text = parts[0] ?? '';
+  const at = new Date(text);
+  if (text === '' || Number.isNaN(at.getTime())) return null;
+  const year = at.getUTCFullYear();
+  if (year < CURSOR_YEARS.first || year > CURSOR_YEARS.last) return null;
+  if (parts.length === 1) return { at: at.toISOString(), shown: null, run: null, waiting: [] };
+  if (parts.length !== 4 || !MICRO_INSTANT.test(text)) return null;
+  const shown = unpackId(parts[1]!);
+  if (shown === null) return null;
+  let run: NewsCursor['run'] = null;
+  if (parts[2] !== '-') {
+    const m = /^([A-Za-z0-9_-]{22})\.([1-9])$/.exec(parts[2]!);
+    const source = m === null ? null : unpackId(m[1]!);
+    if (m === null || source === null) return null;
+    run = { source, length: Number(m[2]) };
+  }
+  const list = parts[3]!;
+  if (list.length % 22 !== 0 || list.length / 22 > NEWS_CURSOR_MAX_WAITING) return null;
+  const waiting: string[] = [];
+  for (let i = 0; i < list.length; i += 22) {
+    const id = unpackId(list.slice(i, i + 22));
+    if (id === null) return null;
+    waiting.push(id);
+  }
+  return { at: text, shown, run, waiting };
+}
+
+/**
+ * Whether the API mixes the sources of a reader's latest list (T-1816,
+ * D-411): every reader's but a Persian one's. No locale is an internal
+ * caller, which reads the plain order.
+ */
+export function newsSourcesMixed(locale: string | null): boolean {
+  if (locale === null) return false;
+  return locale.split('-')[0]!.toLowerCase() !== 'fa';
+}
+
+/**
+ * A cursor as `?before=` carries it; a plain instant when it names no story.
+ * Refuses more waiting stories than `readNewsCursor` takes back, so a link it
+ * writes is never one the API then refuses.
+ */
+export function writeNewsCursor(cursor: NewsCursor): string {
+  if (cursor.waiting.length > NEWS_CURSOR_MAX_WAITING) {
+    throw new RangeError(
+      `A news cursor carries at most ${NEWS_CURSOR_MAX_WAITING} waiting stories.`,
+    );
+  }
+  if (cursor.shown === null) return cursor.at;
+  const pack = (id: string): string => packId(id) ?? '';
+  const run = cursor.run === null ? '-' : `${pack(cursor.run.source)}.${cursor.run.length}`;
+  return `${cursor.at}~${pack(cursor.shown)}~${run}~${cursor.waiting.map(pack).join('')}`;
+}
+
+/**
  * A story's type (blueprint 3.2, T-1001, D-123): the blueprint's eleven and
  * nothing else. The database's `story_label_type_known` check is the same
  * list; `story-label.schema.spec.ts` fails when the two differ.
@@ -244,7 +367,7 @@ export interface NewsSectionResponse {
    */
   stories: Covered<NewsStoryCard[]>;
   reason: NewsSectionReason | null;
-  /** `?before=` for the next page of latest and following; `null` when this is the last. */
+  /** `?before=` for the next page of latest and following (`NewsCursor`); `null` when this is the last. */
   next_before: string | null;
   /**
    * With a type filter only (T-1003, D-124): how many stories that match

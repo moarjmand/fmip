@@ -1,7 +1,14 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { TRENDING_WEIGHTS } from '@fmip/contracts';
-import { nonArticleKind, otherCodeOf, stripPhotoCredit } from '@fmip/ingestion';
+import {
+  NEWS_CURSOR_MAX_WAITING,
+  TRENDING_WEIGHTS,
+  newsSourcesMixed,
+  readNewsCursor,
+  writeNewsCursor,
+} from '@fmip/contracts';
+import { hiddenHeadline, nonArticleKind, otherCodeOf, stripPhotoCredit } from '@fmip/ingestion';
 import type {
+  NewsCursor,
   NewsEntity,
   NewsFilters,
   NewsImage,
@@ -20,6 +27,7 @@ import { PG_POOL } from '../../../database/database.module';
 import { MediaService } from '../../media/media.service';
 import { SAME_HEADLINE } from '../news-clustering.service';
 import { shownImageJoin } from './news-image-store';
+import { SOURCE_MIX, type SourceRun, mixSources } from './source-mix';
 
 /** The shown photo's columns, as every card query selects them (T-1322). */
 interface ImageColumns {
@@ -91,6 +99,11 @@ interface CardRow extends ImageColumns {
   breaking_marked_at: Date | null;
   breaking_ends_at: Date | null;
   at: Date;
+  /**
+   * `at` to the microsecond, as ISO 8601 in UTC: the instant a mixed cursor's
+   * boundary is written in and compared by (T-1816). Selected by `latest` only.
+   */
+  at_us?: string;
   participants: number | null;
   /** Trending only (T-1008); the other sections do not select it. */
   savers?: number | null;
@@ -174,6 +187,14 @@ export class PostgresNewsReadStore {
    * through `newestWindows`, the last of them unbounded. A window that fills
    * the rows a page reads holds exactly the rows the unbounded read would
    * return (see `Query.recent`), so only a short window is ever read whole.
+   *
+   * T-1816 (D-411): for every reader but a Persian one the sources are mixed
+   * (`mixSources`), and `before` is a `NewsCursor`. A mixed cursor's page
+   * reads below its boundary -- through the millisecond of the story it names,
+   * leaving that story out -- and reads the stories it says are waiting by id,
+   * wherever they now stand; the two together are every story not yet shown.
+   * A Persian reader handed a mixed cursor reads the same rows in the plain
+   * order, so nothing it names is lost either.
    */
   async latest(
     filters: NewsFilters,
@@ -181,27 +202,131 @@ export class PostgresNewsReadStore {
     before: string | null,
     limit: number,
   ): Promise<StoryPage_> {
+    const cursor = before === null ? null : readNewsCursor(before);
+    if (before !== null && cursor === null) throw new Error(`Not a news cursor: ${before}`);
+    const mixed = newsSourcesMixed(locale);
+    // Mixed, the read reaches past the page by what a place can reach for.
+    const fetch = mixed ? fetchSize(limit) + SOURCE_MIX.lookahead : fetchSize(limit);
     const windows = new Query(filters, locale).narrowed ? [null] : this.newestWindows;
     for (const window of windows) {
       const q = new Query(filters, locale);
-      const cursor = before === null ? '' : `AND sc.at < ${q.param(before)}::timestamptz`;
+      // A plain cursor reads before its instant. A mixed one is a keyset in the
+      // list's own order -- older, or as old with a higher id -- to the
+      // microsecond, so stories that share an instant are neither read twice
+      // nor skipped (review of PR #885, R2-1).
+      let after = '';
+      if (cursor !== null) {
+        const at = `${q.param(cursor.at)}::timestamptz`;
+        after =
+          cursor.shown === null
+            ? `AND sc.at < ${at}`
+            : `AND (sc.at < ${at} OR (sc.at = ${at} AND sc.story_id > ${q.param(cursor.shown)}::uuid))`;
+      }
       if (window !== null) {
-        q.recent(before === null ? 'now()' : `${q.param(before)}::timestamptz`, window);
+        q.recent(cursor === null ? 'now()' : `${q.param(cursor.at)}::timestamptz`, window);
       }
       const rows = await this.rows(
         q,
-        `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note
+        `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note,
+                to_char(sc.at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS at_us
            FROM story_card sc
-          WHERE TRUE ${cursor}
+          WHERE TRUE ${after}
           ORDER BY sc.at DESC, sc.story_id
-          LIMIT ${q.fetch(limit)}`,
+          LIMIT ${q.param(fetch)}`,
       );
-      if (window === null || rows.length === fetchSize(limit)) {
-        return this.finish(q, rows, limit, true);
+      if (window === null || rows.length === fetch) {
+        const waiting = await this.waiting(filters, locale, cursor?.waiting ?? []);
+        if (!mixed && waiting.length === 0) return this.finish(q, rows, limit, true);
+        return this.finishMixed(q, inOrder([...waiting, ...rows]), rows.length === fetch, {
+          run: mixed ? (cursor?.run ?? null) : null,
+          limit,
+          mixed,
+          boundary: cursor?.shown == null ? null : { at_us: cursor.at, story_id: cursor.shown },
+        });
       }
     }
     // `newestWindows` ends unbounded, so the loop has returned.
     return { cards: [], nextBefore: null };
+  }
+
+  /**
+   * The stories a mixed cursor says are waiting (T-1816), read by id under
+   * the same filters and the reader's locale, wherever they now stand. One
+   * merged away or no longer listed is simply not there.
+   */
+  private async waiting(
+    filters: NewsFilters,
+    locale: string | null,
+    ids: readonly string[],
+  ): Promise<CardRow[]> {
+    if (ids.length === 0) return [];
+    const q = new Query(filters, locale);
+    const list = q.param(ids);
+    q.pick(`s0.id = ANY(${list}::uuid[])`);
+    return this.rows(
+      q,
+      `SELECT sc.*, NULL::int AS participants, NULL::timestamptz AS debate_selected_at, NULL::text AS debate_note,
+              to_char(sc.at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS at_us
+         FROM story_card sc
+        WHERE sc.story_id = ANY(${list}::uuid[])`,
+    );
+  }
+
+  /**
+   * `finish` for a mixed latest page (T-1816, D-411): `rows` are the waiting
+   * stories and the rows below the boundary, in the list's order; the page is
+   * `mixSources` over those listed (the plain order for a Persian reader).
+   * The next cursor's boundary is the oldest story shown -- or this page's own
+   * boundary when every card came from above it (the waiting stories): a
+   * boundary never moves up, or what lies between would be read again -- and
+   * every listed story above it not shown is waiting, so the next page holds
+   * exactly what this one did not show: a story that waited, moved or whose
+   * neighbours were merged away is read wherever it stands. When every row
+   * read was left out (not an article, a copy, ...) and more were there, the
+   * next page goes on below the last row read. Should more stories wait than
+   * a cursor may carry (`NEWS_CURSOR_MAX_WAITING`; a place's reach keeps it to
+   * 49), the boundary moves up to the last one carried: those past it are
+   * read below it, and a few shown cards may show again -- none is lost.
+   */
+  private async finishMixed(
+    q: Query,
+    rows: CardRow[],
+    full: boolean,
+    page: {
+      run: SourceRun | null;
+      limit: number;
+      mixed: boolean;
+      boundary: Key | null;
+    },
+  ): Promise<StoryPage_> {
+    const { listed, entities } = await this.listed(q, rows);
+    const composed = page.mixed
+      ? mixSources(listed, page.limit, page.run)
+      : { cards: listed.slice(0, page.limit), run: null };
+    const shown = composed.cards;
+    const cards = shown.map((r) => this.card(r, entities.get(r.story_id) ?? [], q.windowHours));
+    const taken = new Set(shown.map((r) => r.story_id));
+    const left = listed.filter((r) => !taken.has(r.story_id));
+    if (left.length === 0 && !full) return { cards, nextBefore: null };
+    const oldest = [...shown.map(keyOf), ...(page.boundary === null ? [] : [page.boundary])].reduce<
+      Key | undefined
+    >((o, r) => (o === undefined || before(o, r) ? r : o), undefined);
+    const last = rows[rows.length - 1];
+    let boundary = shown.length > 0 ? oldest : last === undefined ? undefined : keyOf(last);
+    if (boundary === undefined) return { cards, nextBefore: null };
+    const above = boundary;
+    let waiting = left.filter((r) => before(keyOf(r), above));
+    if (waiting.length > NEWS_CURSOR_MAX_WAITING) {
+      waiting = waiting.slice(0, NEWS_CURSOR_MAX_WAITING);
+      boundary = keyOf(waiting[waiting.length - 1]!);
+    }
+    const cursor: NewsCursor = {
+      at: boundary.at_us,
+      shown: boundary.story_id,
+      run: composed.run,
+      waiting: waiting.map((r) => r.story_id),
+    };
+    return { cards, nextBefore: writeNewsCursor(cursor) };
   }
 
   /**
@@ -620,7 +745,9 @@ export class PostgresNewsReadStore {
    * for what was stored before the job applied it), an item a search brought
    * whose own words name another code of football (`otherCodeOf`, T-1400,
    * D-215), or a publisher's feed item that does and is filed to none of ours
-   * (T-1619, D-290), and a story whose report
+   * (T-1619, D-290), a headline on the named list of those not shown
+   * (`hiddenHeadline`, T-1818, D-413: applied here only, nothing deleted),
+   * and a story whose report
    * an earlier story already carries (`copies`). `paged` sections say where
    * the next page begins: after the last card shown, or, when every row past
    * it was left out, after the last row read.
@@ -642,6 +769,20 @@ export class PostgresNewsReadStore {
     limit: number,
     paged: boolean,
   ): Promise<StoryPage_> {
+    const { listed, entities } = await this.listed(q, rows);
+    const shown = listed.slice(0, limit);
+    const read = rows.length === fetchSize(limit);
+    const cards = shown.map((r) => this.card(r, entities.get(r.story_id) ?? [], q.windowHours));
+    const more = paged && (listed.length > limit || read);
+    const last = listed.length > limit ? shown[shown.length - 1] : rows[rows.length - 1];
+    return { cards, nextBefore: more && last !== undefined ? last.at.toISOString() : null };
+  }
+
+  /** The rows a section lists, in their order (see `page`), and every row's entities. */
+  private async listed(
+    q: Query,
+    rows: CardRow[],
+  ): Promise<{ listed: CardRow[]; entities: Map<string, NewsEntity[]> }> {
     const copies = await this.copies(rows, q.locale);
     // Read before the filter: an item from a publisher's own feed that names
     // another sport is left out only when it is filed to none of ours (T-1619, D-290).
@@ -653,15 +794,11 @@ export class PostgresNewsReadStore {
     const listed = rows.filter(
       (r) =>
         nonArticleKind(r.headline) === null &&
+        hiddenHeadline(r.headline) === null &&
         !((r.searched || !filed(r)) && otherCodeOf(r.headline, r.summary) !== null) &&
         !copies.has(r.story_id),
     );
-    const shown = listed.slice(0, limit);
-    const read = rows.length === fetchSize(limit);
-    const cards = shown.map((r) => this.card(r, entities.get(r.story_id) ?? [], q.windowHours));
-    const more = paged && (listed.length > limit || read);
-    const last = listed.length > limit ? shown[shown.length - 1] : rows[rows.length - 1];
-    return { cards, nextBefore: more && last !== undefined ? last.at.toISOString() : null };
+    return { listed, entities };
   }
 
   /**
@@ -836,6 +973,35 @@ export const FUTURE_GRACE = '10 minutes';
 
 /** How many rows a section reads for a page of `limit` cards (`Query.fetch`). */
 const fetchSize = (limit: number): number => limit * 2 + 10;
+
+/** Whether `a` comes before `b` in the list: newer, or as new with the lower id (the SQL's order). */
+/** A row's place in the list: its instant to the microsecond, then its id (T-1816). */
+interface Key {
+  at_us: string;
+  story_id: string;
+}
+
+function keyOf(r: CardRow): Key {
+  if (r.at_us === undefined) throw new Error('A mixed page reads at_us with every row');
+  return { at_us: r.at_us, story_id: r.story_id };
+}
+
+/**
+ * Whether `a` comes before `b` in the list, as the SQL orders it: newer, or as
+ * new with the lower id. `at_us` is fixed-width ISO 8601 in UTC, so it
+ * compares as text.
+ */
+function before(a: Key, b: Key): boolean {
+  return a.at_us !== b.at_us ? a.at_us > b.at_us : a.story_id < b.story_id;
+}
+
+/** Rows in the list's order, each story once (a waiting story can also be read below the boundary). */
+function inOrder(rows: readonly CardRow[]): CardRow[] {
+  const seen = new Set<string>();
+  return rows
+    .filter((r) => !seen.has(r.story_id) && seen.add(r.story_id))
+    .sort((a, b) => (before(keyOf(a), keyOf(b)) ? -1 : before(keyOf(b), keyOf(a)) ? 1 : 0));
+}
 
 /**
  * The windows the unfiltered latest section is read through (T-1450),

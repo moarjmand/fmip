@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { hiddenHeadline } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -171,7 +172,9 @@ export class PostgresFollowingFeedStore {
         LIMIT 100`,
       [teams, competitions, window.since, window.until, locale, userId],
     );
-    return rows;
+    // T-1818 (D-413): a headline on the named list is not shown, as in the
+    // news lists; applied on read, nothing is deleted.
+    return rows.filter((r) => hiddenHeadline(r.headline) === null);
   }
 
   async analyses(teams: string[], competitions: string[], window: Window): Promise<AnalysisRow[]> {

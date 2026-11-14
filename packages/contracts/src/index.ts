@@ -873,6 +873,7 @@ export {
   ENTITY_NEWS_LIMIT,
   NEWS_COVERAGE_FLOOR,
   NEWS_COVERAGE_WINDOW_DAYS,
+  NEWS_CURSOR_MAX_WAITING,
   NEWS_PAGE_SIZE,
   NEWS_SECTIONS,
   SAVED_ARTICLES_LIMIT,
@@ -884,6 +885,11 @@ export {
   isNewsSection,
   newsCoverageState,
   isStoryType,
+  newsSourcesMixed,
+  packId,
+  readNewsCursor,
+  unpackId,
+  writeNewsCursor,
 } from './news';
 export type {
   BreakingClearRequest,
@@ -904,6 +910,7 @@ export type {
   NewsCoverageReport,
   NewsCoverageSource,
   NewsCoverageState,
+  NewsCursor,
   NewsEntity,
   NewsFilters,
   NewsRights,

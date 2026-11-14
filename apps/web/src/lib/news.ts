@@ -6,7 +6,7 @@ import type {
   StoryType,
   StoryVersion,
 } from '@fmip/contracts';
-import { MEDIA_PATH_PREFIX, isNewsSection, isStoryType } from '@fmip/contracts';
+import { MEDIA_PATH_PREFIX, isNewsSection, isStoryType, readNewsCursor } from '@fmip/contracts';
 import type { MessageKey } from '@/i18n/messages';
 
 type Params = Record<string, string | string[] | undefined>;
@@ -85,7 +85,8 @@ export function readNewsQuery(params: Params): NewsPageQuery {
     player: id('player'),
     from: day('from'),
     to: day('to'),
-    before: before !== null && !Number.isNaN(new Date(before).getTime()) ? before : null,
+    // An instant, or a page of latest's mixed list (`NewsCursor`, T-1816).
+    before: before !== null && readNewsCursor(before) !== null ? before : null,
   };
 }
 
@@ -232,7 +233,9 @@ export const SOURCE_RUN = 3;
  * next story would make a longer run, the newest story from another
  * publisher on the page goes first. Nothing is dropped, and a page with only
  * one publisher left keeps its order. Pure; the page's cursor comes from the
- * API, so reordering a page never moves its boundary.
+ * API, so reordering a page never moves its boundary. Since T-1816 (D-411)
+ * the API mixes every other reader's list across pages (`newsSourcesMixed`),
+ * and this runs on a Persian page only.
  */
 export function interleaveSources<T extends { source: { id: string } }>(
   stories: readonly T[],
