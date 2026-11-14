@@ -63,6 +63,7 @@ export {
 // Items about another sport that shares the word "football" (T-1400, D-215).
 export {
   OTHER_CODE_RULES,
+  OTHER_SPORT_EVENT_NAMES,
   OTHER_SPORT_EVENT_SPORTS,
   type OtherCode,
   type OtherCodeRule,

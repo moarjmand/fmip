@@ -456,12 +456,13 @@ export function otherCodeOf(headline: string, summary: string | null): OtherCode
 }
 
 /**
- * Other sports whose own events a headline can name (T-1833): handball, polo,
+ * Other sports whose own events a headline can name (T-1833): polo,
  * wrestling, weightlifting and the rest of a general sports feed's sports.
- * Not futsal or beach soccer, which are football's family (D-321).
+ * Not futsal or beach soccer, which are football's family (D-321). Not
+ * "handball" or "shooting" either: those are also football's words (the foul,
+ * a team's shooting), so they count only in `OTHER_SPORT_EVENT_NAMES`' forms.
  */
 export const OTHER_SPORT_EVENT_SPORTS: readonly string[] = [
-  'handball',
   'polo',
   'water polo',
   'volleyball',
@@ -489,17 +490,33 @@ export const OTHER_SPORT_EVENT_SPORTS: readonly string[] = [
   'baseball',
   'softball',
   'rowing',
-  'shooting',
   'chess',
+];
+
+/**
+ * The events of a sport whose name is also a football word, in forms a
+ * football headline does not use (review of PR #891): "Handball
+ * Championship" ("World Handball Championship", "Asian Women's Handball
+ * Championship"), "Shooting Championship", and the federations' own
+ * initials, EHF, IHF and ISSF, in capitals. A handball in a World Cup
+ * qualifier, a league table of handball decisions or a team's shooting stays.
+ */
+export const OTHER_SPORT_EVENT_NAMES: readonly string[] = [
+  'handball championships?',
+  'shooting championships?',
 ];
 
 const OTHER_SPORT_EVENT = new RegExp(
   words(
     `(${OTHER_SPORT_EVENT_SPORTS.join('|')})( world| asian| european| african)? ` +
-      '(championships?|world cup|asian cup|nations cup|league|grand prix|qualifiers?)',
+      '(championships?|world cup|asian cup|nations cup|league|grand prix|qualifiers?)' +
+      `|${OTHER_SPORT_EVENT_NAMES.join('|')}`,
   ),
   'i',
 );
+
+/** The federations of those sports, in capitals only (T-1833). */
+const OTHER_SPORT_FEDERATION = new RegExp(words('EHF|IHF|ISSF'));
 
 /**
  * Whether a headline names another sport's own event -- "2026 Asian Women's
@@ -510,5 +527,5 @@ const OTHER_SPORT_EVENT = new RegExp(
  * named three filed stories, all handball or polo, and no football one.
  */
 export function otherSportEventOf(headline: string): boolean {
-  return OTHER_SPORT_EVENT.test(headline);
+  return OTHER_SPORT_EVENT.test(headline) || OTHER_SPORT_FEDERATION.test(headline);
 }

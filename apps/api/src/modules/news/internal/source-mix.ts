@@ -60,9 +60,10 @@ export interface WaitingBudget {
  * With a `budget`, a place never passes over more stories than the next
  * cursor can carry: every story above the page's oldest card that is not
  * shown waits, so a pick that would leave more than `budget.max` waiting is
- * out of reach. When the budget is spent the rules give way to the newest
- * stories instead -- a source above its share, never a story lost or shown
- * twice (T-1833).
+ * out of reach. A guard: with `lookahead` 150 a place passes over at most 149
+ * stories, within the cursor's 160, so it binds only should the reach ever
+ * exceed the cursor (T-1833). Either way the rules give way to the newest
+ * stories -- a source above its share, never a story lost or shown twice.
  */
 export function mixSources<T extends Mixable>(
   rows: readonly T[],

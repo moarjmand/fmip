@@ -48,10 +48,10 @@ export interface NewsCursor {
 
 /**
  * The most stories a cursor may say are waiting (T-1833: 160, about 3.5 kB of
- * link). The mixer never leaves more waiting than this: past it, the share
- * rule gives way rather than lose or repeat a story. On 2026-11-14's English
- * stories (one source 64% of the day) it keeps the first four pages within
- * the rules.
+ * link). A page leaves at most 149 waiting -- a place passes over at most the
+ * 149 stories within its reach of 150 -- and the mixer also takes this as a
+ * guard. On 2026-11-14's English stories (one source 64% of the day) the
+ * reach keeps the first four pages within the rules.
  */
 export const NEWS_CURSOR_MAX_WAITING = 160;
 

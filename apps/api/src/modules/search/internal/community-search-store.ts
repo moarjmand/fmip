@@ -1,11 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { GroupSearchResult, MemberSearchResult, StorySearchResult } from '@fmip/contracts';
-import { hiddenHeadline } from '@fmip/ingestion';
+import { hiddenHeadline, otherSportEventOf } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { MIN_SIMILARITY } from './search-store';
 
-/** Rows read past a search's limit, for the headlines D-413 leaves out (T-1818). */
+/** Rows read past a search's limit, for the headlines D-413 and D-426 leave out (T-1818, T-1833). */
 const HIDDEN_HEADROOM = 10;
 
 /**
@@ -81,9 +81,12 @@ export class PostgresCommunitySearchStore {
         LIMIT $2`,
       [q, limit + HIDDEN_HEADROOM, MIN_SIMILARITY, locale],
     );
-    // T-1818 (D-413): a headline on the named list is not shown, as in the
-    // news lists; read past the limit so the ones left out leave no gap.
-    const shown = rows.filter((r) => hiddenHeadline(r.headline) === null).slice(0, limit);
+    // T-1818 (D-413): a headline on the named list is not shown, nor (T-1833,
+    // D-426) another sport's own event, as in the news lists; read past the
+    // limit so the ones left out leave no gap.
+    const shown = rows
+      .filter((r) => hiddenHeadline(r.headline) === null && !otherSportEventOf(r.headline))
+      .slice(0, limit);
     return shown.map((r) => ({
       story_id: r.story_id,
       headline: r.headline,

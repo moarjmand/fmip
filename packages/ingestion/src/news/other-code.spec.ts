@@ -262,6 +262,11 @@ describe('otherSportEventOf (T-1833)', () => {
       'Alireza Nasiri wins silver at 2026 World Weightlifting Championships',
       'Iran women make history at 2026 Asian Team Squash Championships',
       'Iran face tough tests in Basketball World Cup 2027 qualifiers',
+      'Denmark win the World Handball Championship again',
+      'Barca beat Kiel in the EHF Champions League final',
+      'IHF confirms the dates of the next Women’s World Championship',
+      'Iran win two golds at the Asian Shooting Championship',
+      'ISSF World Cup: Iranian shooter wins bronze',
     ]) {
       expect(otherSportEventOf(headline), headline).toBe(true);
     }
@@ -277,6 +282,13 @@ describe('otherSportEventOf (T-1833)', () => {
       'Iran defeat China at Futsal International Tournament Yinchuan Women',
       'Iran thrash Sri Lanka at AFC U17 Asian Cup Uzbekistan 2027 qualifier',
       'Andrej Panadic linked with Persepolis',
+      // Football's own handball and shooting (review of PR #891).
+      'Thierry Henry handball World Cup qualifier still haunts Ireland',
+      'Suarez handball World Cup 2010: Ghana still hurt',
+      'Maradona Hand of God handball World Cup shirt sold at auction',
+      'Arsenal handball league table: who has conceded the most penalties',
+      'Leeds’ shooting league-best this season',
+      'Shooting league leaders Manchester City face Brentford',
     ]) {
       expect(otherSportEventOf(headline), headline).toBe(false);
     }
