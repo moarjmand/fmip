@@ -17,6 +17,7 @@ import {
   X_MAX_LENGTH,
   afterEvent,
   approver,
+  backToPerson,
   buildBody,
   canMove,
   checkGates,
@@ -194,10 +195,27 @@ describe('expiresAt', () => {
     );
   });
 
-  it('ends a verdict or result at midnight in London, in winter and in summer', () => {
-    expect(expiresAt('result', '', NOW).toISOString()).toBe('2026-11-15T00:00:00.000Z');
+  it('keeps a verdict or result until 16:30 London time the next day, in winter and in summer', () => {
+    expect(expiresAt('result', '', NOW).toISOString()).toBe('2026-11-15T16:30:00.000Z');
+    // 22:00 London on 1 July: valid through the next morning's slots.
     const summer = new Date('2026-07-01T21:00:00.000Z');
-    expect(expiresAt('model_verdict', '', summer).toISOString()).toBe('2026-07-01T23:00:00.000Z');
+    expect(expiresAt('model_verdict', '', summer).toISOString()).toBe('2026-07-02T15:30:00.000Z');
+  });
+
+  it('lets an evening match’s results take the next morning’s slots instead of all racing for the last one', () => {
+    // A 20:00 kick-off settles about 22:25 London: the last slot (21:45) has passed.
+    const settled = new Date('2026-11-14T22:25:00.000Z');
+    const expiry = expiresAt('result', '', settled).toISOString();
+    const morning = new Date('2026-11-15T08:35:00.000Z');
+    const results = ['r1', 'r2'].map((id) => ({
+      id,
+      kind: 'result' as const,
+      competition_rank: 1,
+      kick_off: '2026-11-14T20:00:00.000Z',
+      expires_at: expiry,
+    }));
+    expect(nextToPublish(results, morning, [])?.slot).toBe(1);
+    expect(nextToPublish(results, new Date('2026-11-15T12:05:00.000Z'), [1])?.slot).toBe(2);
   });
 });
 
@@ -210,12 +228,21 @@ describe('sensitivity (D-427 point 5)', () => {
       'Government steps in over stadium',
       'Sanctions hit owner',
       'War forces match to move',
+      'Club raises funds for Gaza',
+      'Ukraine squad named for qualifier',
+      'Iran players stay silent during anthem',
+      'Russian side banned again',
+      'Fans protest against ticket prices',
+      'Ceasefire talks halt league',
     ],
     accident: [
       'Team bus crash on motorway',
       'Player hurt in accident',
       'Tragedy before kick-off',
       'A tragic night',
+      'Midfielder collapses on pitch, taken to hospital',
+      'Keeper suffers cardiac arrest',
+      'Coach in intensive care',
     ],
     death: [
       'Former captain dies aged 70',
@@ -228,6 +255,10 @@ describe('sensitivity (D-427 point 5)', () => {
       'Minute of silence at Anfield',
       'Funeral held for striker',
       'Dead after collapse',
+      'Former striker passes away at 54',
+      'City mourns its captain',
+      'Tributes paid, RIP legend',
+      'Condolences to the family',
     ],
     racism: [
       'Racist chants reported',
@@ -235,6 +266,19 @@ describe('sensitivity (D-427 point 5)', () => {
       'Racially abused online',
       'Player suffers abuse',
       'Discrimination charge',
+      'Homophobic chanting investigated',
+      'Antisemitic banner removed',
+      'Sexist remarks by pundit',
+      'Slur aimed at winger',
+    ],
+    violence: [
+      'Fan stabbed outside stadium',
+      'Terror alert delays kick-off',
+      'Riot police called to derby',
+      'Two arrested after assault on steward',
+      'Violence mars cup tie',
+      'Hooligans clash in city centre',
+      'Gunman sparks stadium lockdown',
     ],
     betting: [
       'Midfielder banned for betting',
@@ -265,6 +309,14 @@ describe('sensitivity (D-427 point 5)', () => {
         'Die-hard fans travel north',
         'Better late than never for Spurs',
         'Bookings pile up in derby',
+        'A dead rubber in Group B',
+        'Late collapse costs Spurs',
+        'The big guns meet at Anfield',
+        'Gunners top the table',
+        'A killer pass from Odegaard',
+        'Attacking midfielder signs',
+        'Shooting practice pays off',
+        'He takes a stab at the title',
       ]),
     ).toBeNull();
   });
@@ -303,6 +355,7 @@ const payloads = {
     called: 'home',
     called_percent: 48,
     correct: true,
+    after_extra_time: false,
   },
   result: {
     ...base,
@@ -351,6 +404,27 @@ describe('buildBody, the fixed templates', () => {
     )!.body;
     expect(wrong).toContain('pick: Draw (27%)');
     expect(wrong).toContain('No: it got this one wrong.');
+  });
+
+  it('names the 90-minute score a verdict was judged on when the match went further (D-317)', () => {
+    // 1-1 at 90, 2-1 after extra time: the model's draw was right on the 90 minutes.
+    const body = buildBody(
+      {
+        ...payloads.model_verdict,
+        score: { home: 1, away: 1 },
+        after_extra_time: true,
+        called: 'draw',
+        called_percent: 31,
+        correct: true,
+      },
+      'instagram',
+      LINK,
+    )!.body;
+    expect(body).toContain('Arsenal 1–1 Chelsea after 90 minutes · Premier League');
+    expect(body).toContain('pick: Draw (31%)');
+    expect(body).not.toContain('2–1');
+    const regular = buildBody(payloads.model_verdict, 'instagram', LINK)!.body;
+    expect(regular).not.toContain('after 90 minutes');
   });
 
   it('writes a result after extra time and on penalties as the match page does', () => {
@@ -414,7 +488,10 @@ describe('buildBody, the fixed templates', () => {
 
   it('carries no image address in any payload', () => {
     for (const payload of Object.values(payloads)) {
-      expect(JSON.stringify(payload)).not.toMatch(/"(image|img|crest|logo|photo|url)[a-z_]*"\s*:/i);
+      const text = JSON.stringify(payload);
+      // The same two patterns as the migration's CHECK `social_post_payload_no_image`.
+      expect(text).not.toMatch(/"[a-z_]*(image|img|crest|logo|photo|picture|url|src)[a-z_]*"\s*:/i);
+      expect(text).not.toMatch(/"\s*(https?:|data:|\/\/)/i);
     }
   });
 });
@@ -527,6 +604,48 @@ describe('the state machine', () => {
     expect(canMove('unknown', 'publishing')).toBe(false);
     expect(canMove('unknown', 'published')).toBe(true);
     expect(canMove('refused', 'publishing')).toBe(true);
+    expect(canMove('publishing', 'publishing')).toBe(false);
+  });
+
+  it('sends a refused post back to a person, and lets a person reject any post not yet claimed', () => {
+    expect(canMove('refused', 'pending_approval')).toBe(true);
+    for (const from of ['pending_approval', 'approved', 'refused'] as const) {
+      expect(canMove(from, 'rejected')).toBe(true);
+      expect(checkRejection(from, 'not this one')).toEqual({ ok: true });
+    }
+    for (const from of ['publishing', 'unknown'] as const) {
+      expect(checkRejection(from, 'too late')).toEqual({ ok: false, refusal: 'not_waiting' });
+    }
+  });
+});
+
+describe('backToPerson: a job-approved post after its kind is lowered', () => {
+  const byJob = { approved_by_name: 'automation' } as const;
+  const running = { level: 'automatic', stopped: false } as const;
+
+  it('keeps it with the job while the kind is automatic and publishing runs', () => {
+    expect(backToPerson({ ...byJob, state: 'approved' }, running)).toBe(false);
+    expect(backToPerson({ ...byJob, state: 'refused' }, running)).toBe(false);
+  });
+
+  it('sends an approved or refused post back once the kind is lowered or publishing stops', () => {
+    for (const state of ['approved', 'refused'] as const) {
+      expect(backToPerson({ ...byJob, state }, { level: 'approval', stopped: false })).toBe(true);
+      expect(backToPerson({ ...byJob, state }, { level: 'automatic', stopped: true })).toBe(true);
+    }
+  });
+
+  it('leaves a person’s approval and a post already claimed alone', () => {
+    const lowered = { level: 'approval', stopped: false } as const;
+    expect(backToPerson({ state: 'refused', approved_by_name: 'Mostafa' }, lowered)).toBe(false);
+    expect(backToPerson({ ...byJob, state: 'unknown' }, lowered)).toBe(false);
+    expect(backToPerson({ ...byJob, state: 'publishing' }, lowered)).toBe(false);
+  });
+
+  it('follows an error from the lowering to the post: no retry by the job', () => {
+    const lowered = afterEvent({ level: 'automatic', clean_run: 20 }, { type: 'publish_error' });
+    const kind = { level: lowered.next.level, stopped: false };
+    expect(backToPerson({ ...byJob, state: 'refused' }, kind)).toBe(true);
   });
 });
 
@@ -580,8 +699,19 @@ describe('automation levels and the run of 14 (the maintainer’s answers, 2026-
     from: 'approval',
     to: 'automatic',
     clean_run: 14,
+    stopped: false,
     reason: 'earned',
   } as const;
+
+  it('refuses a raise while publishing is stopped, but not a lowering', () => {
+    expect(checkLevelChange({ ...change, stopped: true })).toEqual({
+      ok: false,
+      refusal: 'stopped',
+    });
+    expect(
+      checkLevelChange({ ...change, from: 'automatic', to: 'approval', stopped: true }),
+    ).toEqual({ ok: true });
+  });
 
   it('lets only the owner change a level, raising only from eligible', () => {
     expect(checkLevelChange(change)).toEqual({ ok: true });
@@ -636,6 +766,21 @@ describe('automation levels and the run of 14 (the maintainer’s answers, 2026-
       lowered: null,
     });
   });
+
+  it.each([
+    [{ type: 'edited' }],
+    [{ type: 'rejected' }],
+    [{ type: 'published', edited: true }],
+  ] as const)(
+    'resets an automatic kind’s run on %o and leaves it automatic (a person may always reject)',
+    (event) => {
+      expect(afterEvent({ level: 'automatic', clean_run: 20 }, event)).toEqual({
+        next: { level: 'automatic', clean_run: 0 },
+        became_eligible: false,
+        lowered: null,
+      });
+    },
+  );
 
   it('drops an automatic kind back to approval on a publishing error, audited as automation', () => {
     expect(afterEvent({ level: 'automatic', clean_run: 20 }, { type: 'publish_error' })).toEqual({

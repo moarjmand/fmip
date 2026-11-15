@@ -78,12 +78,17 @@ export const SOCIAL_TIME_ZONE = 'Europe/London';
 /** The slots' local times, for a UK and European audience. Nothing between 23:00 and 07:00. */
 export const SOCIAL_SLOT_TIMES = ['08:30', '12:00', '16:30', '19:00', '21:45'] as const;
 
-/** The topics that always send a post to a person (D-427 point 5). */
+/**
+ * The topics that always send a post to a person (D-427 point 5): the
+ * maintainer's five, with violence beside them; `racism` covers every
+ * discrimination and `accident` sudden illness too.
+ */
 export const SOCIAL_SENSITIVE_TOPICS = [
   'politics',
   'accident',
   'death',
   'racism',
+  'violence',
   'betting',
 ] as const;
 export type SocialSensitiveTopic = (typeof SOCIAL_SENSITIVE_TOPICS)[number];
@@ -153,7 +158,15 @@ export type SocialOutcome = 'home' | 'draw' | 'away';
 export interface SocialVerdictPayload extends SocialCardBase {
   kind: 'model_verdict';
   model: SocialCardModel;
+  /**
+   * The score after 90 minutes: the one the evaluation judged the forecast
+   * on (D-317; `full_time` in the evaluation store), never the score after
+   * extra time or the shoot-out, so the card cannot read "2-1 ... pick: Draw
+   * ... right".
+   */
   score: { home: number; away: number };
+  /** The match went past 90 minutes (extra time, perhaps penalties): the card says "after 90 minutes". */
+  after_extra_time: boolean;
   /** The outcome the model gave the most, and its whole percentage. */
   called: SocialOutcome;
   called_percent: number;

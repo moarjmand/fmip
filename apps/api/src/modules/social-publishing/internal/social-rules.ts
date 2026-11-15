@@ -124,11 +124,18 @@ export function publishingOutcome(check: SocialGateCheck): 'publish' | 'expired'
   return check.failed.includes('forecast_shown') ? 'superseded' : 'expired';
 }
 
-/** When a post stops being valid: a forecast at kick-off; a verdict or result at the end of its London day. */
+/** A verdict or result stays valid until this London time the day after it was drafted. */
+export const CARRY_UNTIL = '16:30';
+
+/**
+ * When a post stops being valid: a forecast at kick-off; a verdict or result
+ * at 16:30 London time the next day, so an evening match's posts can take the
+ * next morning's slots instead of all racing for the evening's last one.
+ */
 export function expiresAt(kind: SocialPostKind, kickOff: string, draftedAt: Date): Date {
   if (kind === 'forecast_pre_match') return new Date(kickOff);
   const day = isoToDay(londonDay(draftedAt))!;
-  return wallTimeToInstant(day + 1, 0, SOCIAL_TIME_ZONE);
+  return wallTimeToInstant(day + 1, timeToMinutes(CARRY_UNTIL)!, SOCIAL_TIME_ZONE);
 }
 
 // ---------------------------------------------------------------------------
@@ -136,9 +143,10 @@ export function expiresAt(kind: SocialPostKind, kickOff: string, draftedAt: Date
 // ---------------------------------------------------------------------------
 
 /**
- * The lexicon, by topic. Word forms are matched whole; a few football idioms
- * that share a word ("crash out", "dead ball", "die-hard") are left out.
- * Over-matching only sends a post to a person, so the list errs wide.
+ * The lexicon, by topic. Word forms are matched whole; football idioms that
+ * share a word ("crash out", "dead ball", "dead rubber", "die-hard", "killer
+ * pass", a "shooting" chance, "attack") are left out. Over-matching only sends
+ * a post to a person, so where a word is ambiguous outside those idioms it is in.
  */
 export const SENSITIVE_LEXICON: Readonly<Record<SocialSensitiveTopic, readonly RegExp[]>> = {
   politics: [
@@ -147,12 +155,35 @@ export const SENSITIVE_LEXICON: Readonly<Record<SocialSensitiveTopic, readonly R
     /\bgovernments?\b/i,
     /\bsanction(?:s|ed)?\b/i,
     /\bwars?\b/i,
+    /\bwartime\b/i,
+    /\bceasefire\b/i,
+    /\binvasion\b/i,
+    /\bmilitary\b/i,
+    /\btroops?\b/i,
+    /\bmissiles?\b/i,
+    /\brefugees?\b/i,
+    /\bregime\b/i,
+    /\bprotest(?:s|ed|ers?|ing)?\b/i,
+    /\bgaza\b/i,
+    /\bukrain(?:e|ian|ians)\b/i,
+    /\brussian?s?\b/i,
+    /\bisrael(?:i|is)?\b/i,
+    /\bpalestin(?:e|ian|ians)\b/i,
+    /\biran(?:ian|ians)?\b/i,
+    /\bnational anthem\b/i,
   ],
   accident: [
     /\bcrash(?:es|ed|ing)?\b(?!\s+out\b)/i,
     /\baccidents?\b/i,
     /\btraged(?:y|ies)\b/i,
     /\btragic(?:ally)?\b/i,
+    // "Collapses on the pitch", not a team's late collapse.
+    /\bcollaps(?:es|ed|ing)\s+(?:on|during)\b/i,
+    /\bhospital(?:s|ised|ized)?\b/i,
+    /\bcardiac\b/i,
+    /\bheart attack\b/i,
+    /\bintensive care\b/i,
+    /\bcritical condition\b/i,
   ],
   death: [
     /\bdeaths?\b/i,
@@ -160,15 +191,48 @@ export const SENSITIVE_LEXICON: Readonly<Record<SocialSensitiveTopic, readonly R
     /\bdying\b/i,
     /\bdead\b(?!\s+(?:ball|rubber)s?\b)/i,
     /\bkill(?:ed|ing|s)?\b/i,
-    /\bpassed away\b/i,
+    /\bpass(?:es|ed|ing)? away\b/i,
+    /\bpassing of\b/i,
     /\bfunerals?\b/i,
     /\bminute(?:'|’)?s?\s+(?:of\s+)?silence\b/i,
+    /\bmourn(?:s|ed|ing|ers)?\b/i,
+    /\bcondolences?\b/i,
+    /\btributes?\b/i,
+    /\bRIP\b/,
+    /\bR\.I\.P\b/i,
+    /\bmemorial\b/i,
   ],
   racism: [
     /\bracis[mt]s?\b/i,
     /\bracial(?:ly)?\b/i,
     /\babus(?:e|es|ed|ive)\b/i,
     /\bdiscriminat(?:e|ed|ion|ory)\b/i,
+    /\bhomophob(?:ia|ic)\b/i,
+    /\btransphob(?:ia|ic)\b/i,
+    /\banti-?semit(?:ism|ic)\b/i,
+    /\bislamophob(?:ia|ic)\b/i,
+    /\bsexis[mt]\b/i,
+    /\bmisogyn(?:y|ist|istic)\b/i,
+    /\bslurs?\b/i,
+    /\bhate (?:crime|speech)\b/i,
+    /\bbigot(?:s|ry|ed)?\b/i,
+  ],
+  violence: [
+    /\bstab(?:s|bed|bing)\b/i,
+    /\bassault(?:s|ed)?\b/i,
+    /\barrest(?:s|ed)?\b/i,
+    /\bpolice\b/i,
+    /\briot(?:s|ers?|ing)?\b/i,
+    /\bterror(?:ism|ist|ists)?\b/i,
+    /\bviolen(?:ce|t)\b/i,
+    /\bshot dead\b/i,
+    // Not "the big guns", nor the Gunners.
+    /\bgun(?:man|men|fire|shot|shots)\b/i,
+    /\bbomb(?:s|ing|ings)?\b/i,
+    /\bmurder(?:s|ed|er)?\b/i,
+    /\bjail(?:s|ed)?\b/i,
+    /\bprison\b/i,
+    /\bhooligan(?:s|ism)?\b/i,
   ],
   betting: [
     /\bbet(?:s|ting)?\b/i,
@@ -258,7 +322,7 @@ function lines(payload: SocialCardPayload, name: (team: SocialCardTeam) => strin
         payload.called === 'draw' ? 'Draw' : `${payload.called === 'home' ? home : away} win`;
       return [
         'Did the model get it right?',
-        `${home} ${score(payload.score)} ${away} · ${competition}`,
+        `${home} ${score(payload.score)} ${away}${payload.after_extra_time ? ' after 90 minutes' : ''} · ${competition}`,
         '',
         `${payload.model.name} (${payload.model.version}) pick: ${pick} (${payload.called_percent}%)`,
         payload.correct ? 'Yes: it got this one right.' : 'No: it got this one wrong.',
@@ -384,9 +448,9 @@ export function nextToPublish<T extends SocialCandidate>(
 
 export const SOCIAL_TRANSITIONS: Readonly<Record<SocialPostState, readonly SocialPostState[]>> = {
   pending_approval: ['approved', 'rejected', 'expired', 'superseded'],
-  approved: ['publishing', 'pending_approval', 'expired', 'superseded'],
+  approved: ['publishing', 'pending_approval', 'rejected', 'expired', 'superseded'],
   publishing: ['published', 'refused', 'unknown'],
-  refused: ['publishing', 'expired', 'superseded'],
+  refused: ['publishing', 'pending_approval', 'rejected', 'expired', 'superseded'],
   unknown: ['published', 'refused'],
   published: [],
   rejected: [],
@@ -436,7 +500,24 @@ export function checkPersonApproval(
 
 const hasReason = (reason: string): boolean => reason.trim() !== '';
 
-/** A rejection: either account, a post still waiting, and a reason. */
+/**
+ * Whether a post the job approved goes back to a person: once its kind is no
+ * longer automatic or publishing is stopped, an `approved` or `refused` post
+ * the job approved is not published by the job (the database refuses the
+ * claim too); it waits for a person again, its approval withdrawn.
+ */
+export function backToPerson(
+  post: { state: SocialPostState; approved_by_name: string | null },
+  kind: { level: SocialAutomationLevel; stopped: boolean },
+): boolean {
+  return (
+    post.approved_by_name === SOCIAL_AUTOMATION_ACTOR &&
+    (post.state === 'approved' || post.state === 'refused') &&
+    (kind.level !== 'automatic' || kind.stopped)
+  );
+}
+
+/** A rejection: either account, a post not yet claimed (waiting, approved or refused), and a reason. */
 export function checkRejection(
   state: SocialPostState,
   reason: string,
@@ -461,21 +542,24 @@ export const isEligible = (cleanRun: number): boolean => cleanRun >= SOCIAL_ELIG
 
 /**
  * A level change by a person. The maintainer (`console_user.owner`) only, both
- * ways; raising only from eligible (14 clean in a row); a reason always.
- * The console answers `not_owner` 403 and `not_eligible` 409.
+ * ways; raising only from eligible (14 clean in a row) and only while
+ * publishing runs; a reason always. The console answers `not_owner` 403 and
+ * `not_eligible` and `stopped` 409.
  */
 export function checkLevelChange(change: {
   owner: boolean;
   from: SocialAutomationLevel;
   to: SocialAutomationLevel;
   clean_run: number;
+  stopped: boolean;
   reason: string;
-}): Refusal<'not_owner' | 'no_change' | 'not_eligible' | 'reason_required'> {
+}): Refusal<'not_owner' | 'no_change' | 'not_eligible' | 'stopped' | 'reason_required'> {
   if (!change.owner) return { ok: false, refusal: 'not_owner' };
   if (change.from === change.to) return { ok: false, refusal: 'no_change' };
   if (change.to === 'automatic' && !isEligible(change.clean_run)) {
     return { ok: false, refusal: 'not_eligible' };
   }
+  if (change.to === 'automatic' && change.stopped) return { ok: false, refusal: 'stopped' };
   if (!hasReason(change.reason)) return { ok: false, refusal: 'reason_required' };
   return { ok: true };
 }
