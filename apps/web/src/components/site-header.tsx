@@ -8,7 +8,7 @@ import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
 import { MomentsRail } from '@/components/moments-rail';
 import { RulesPrompt } from '@/components/rules-prompt';
-import { HeaderSearchField } from '@/components/header-search-field';
+import { HeaderSearchFieldLazy } from '@/components/search-combobox-lazy';
 import { BottomTabBar, PrimaryNav } from '@/components/shell-nav';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
@@ -258,7 +258,7 @@ export async function SiteHeader({
                   {/* No Suspense: the layout reads cookies, so every page renders per
                       request and the field is drawn in place, the term in the server's
                       HTML (as shell-nav.tsx reads useSearchParams, T-1850 review). */}
-                  <HeaderSearchField
+                  <HeaderSearchFieldLazy
                     locale={locale}
                     words={suggestWords(locale)}
                     // Its own name: the list and the live region inside the label must not join it.
