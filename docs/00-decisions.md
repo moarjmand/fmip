@@ -15668,3 +15668,13 @@ The notification: title «درخواست تازه از <filer's display name>»,
 - *The seed loaded by the console's command line*: one more step on the server; the text is the maintainer's and fixed, so the migration carries it.
 
 **Consequences.** Above section 3's six files (migration, contract, rules, store, controller, module, specs, the web page and its pieces, actions, words, docs), accepted because the maintainer asked for one page end to end and the coordinating session for one PR. New: `packages/db/migrations/1765901840000_console-checklist.sql`, `packages/contracts/src/console-checklist.ts`, `apps/api/src/modules/agents-console/console-checklist.controller.ts`, `internal/checklist-rules.ts`, `internal/checklist-store.ts` with their specs, `apps/web/src/app/console/(app)/checklist/page.tsx`, `checklist.tsx`, `checklist-item.tsx`, `checklist-words.ts`, `checklist.fixture.ts`, `checklist.spec.tsx`. Changed: the module, the rate-limit inventory and `docs/02-architecture.md`, `lib/console-api.ts`, `lib/console-actions.ts`, `app/console/words.ts`, `app/console/(app)/layout.tsx` (one nav entry), `console-persian.spec.tsx`. No new environment variable, no new dependency. Sections cannot be added, renamed or removed from the page.
+
+## D-430 — A mail that is not sent is noted without its text
+
+**Date:** 2026-11-16. **Task:** T-1846.
+
+**Context.** D-026 printed outbound mail to the log so local work finds the verification link, and D-073 kept that print as the fallback when the e-mail channel fails. On production the channel (Google SMTP) began refusing its login, so every verification and password-reset mail -- the member's full address and a link that confirms the address or resets the password -- was written whole into the API's log, which more people read and which is kept longer than an inbox.
+
+**Decision.** `DeliveryMailer` prints a mail's text only where that is the point: a deployment with no e-mail channel and `NODE_ENV` other than `production` (local work, the E2E journey). A failed send anywhere, or a production deployment with no channel, writes one line, `[mail-not-sent] email=<failed|absent> to=***@<domain> subject="..."`, never the text or the address's local part. The member is told nothing different and can ask again; the delivery port still logs the channel's own error (`delivery.email_failed`), which holds the provider's answer, not the mail.
+
+**Consequences.** An operator can no longer copy a member's link out of the production log when mail is down; that is intended. Lines written before this was deployed stay in the container's log until the container is recreated (each rollout recreates it).
